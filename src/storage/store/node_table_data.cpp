@@ -46,8 +46,7 @@ void NodeTableData::scan(Transaction* transaction, TableReadState& readState,
         auto localTableData = transaction->getLocalStorage()->getLocalTableData(tableID);
         if (localTableData) {
             auto localRelTableData =
-                ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableData);
-            KU_ASSERT(localRelTableData);
+                ku_dynamic_ptr_cast<LocalTableData, LocalNodeTableData>(localTableData);
             localRelTableData->scan(nodeIDVector, readState.columnIDs, outputVectors);
         }
     }
@@ -65,25 +64,22 @@ void NodeTableData::insert(Transaction* transaction, ValueVector* nodeIDVector,
         newNodeGroup->finalize(currentNumNodeGroups);
         append(newNodeGroup.get());
     }
-    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
+    auto localTableData = ku_dynamic_ptr_cast<LocalTableData, LocalNodeTableData>(
         transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns));
-    KU_ASSERT(localTableData);
     localTableData->insert(nodeIDVector, propertyVectors);
 }
 
 void NodeTableData::update(Transaction* transaction, column_id_t columnID,
     ValueVector* nodeIDVector, ValueVector* propertyVector) {
     KU_ASSERT(columnID < columns.size());
-    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
+    auto localTableData = ku_dynamic_ptr_cast<LocalTableData, LocalNodeTableData>(
         transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns));
-    KU_ASSERT(localTableData);
     localTableData->update(nodeIDVector, columnID, propertyVector);
 }
 
 void NodeTableData::delete_(Transaction* transaction, ValueVector* nodeIDVector) {
-    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
+    auto localTableData = ku_dynamic_ptr_cast<LocalTableData, LocalNodeTableData>(
         transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns));
-    KU_ASSERT(localTableData);
     localTableData->delete_(nodeIDVector);
 }
 
@@ -103,8 +99,7 @@ void NodeTableData::lookup(Transaction* transaction, TableReadState& readState,
         auto localTableData = transaction->getLocalStorage()->getLocalTableData(tableID);
         if (localTableData) {
             auto localRelTableData =
-                ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableData);
-            KU_ASSERT(localRelTableData);
+                ku_dynamic_ptr_cast<LocalTableData, LocalNodeTableData>(localTableData);
             localRelTableData->lookup(nodeIDVector, readState.columnIDs, outputVectors);
         }
     }
@@ -127,7 +122,7 @@ void NodeTableData::prepareLocalTableToCommit(
             if (columnChunk->getNumRows() == 0) {
                 continue;
             }
-            auto localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(nodeGroup.get());
+            auto localNodeGroup = ku_dynamic_ptr_cast<LocalNodeGroup, LocalNodeNG>(nodeGroup.get());
             column->prepareCommitForChunk(transaction, nodeGroupIdx, columnChunk,
                 localNodeGroup->getInsertInfoRef(columnID),
                 localNodeGroup->getUpdateInfoRef(columnID), {} /* deleteInfo */);

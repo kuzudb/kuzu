@@ -103,7 +103,7 @@ void LocalNodeTableData::scan(ValueVector* nodeIDVector, const std::vector<colum
         return;
     }
     auto localNodeGroup =
-        ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(nodeGroups.at(nodeGroupIdx).get());
+        ku_dynamic_ptr_cast<LocalNodeGroup, LocalNodeNG>(nodeGroups.at(nodeGroupIdx).get());
     KU_ASSERT(localNodeGroup);
     localNodeGroup->scan(nodeIDVector, columnIDs, outputVectors);
 }
@@ -113,8 +113,8 @@ void LocalNodeTableData::lookup(ValueVector* nodeIDVector,
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[i];
         auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-        auto localNodeGroup =
-            ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(getOrCreateLocalNodeGroup(nodeIDVector));
+        auto localNodeGroup = ku_dynamic_ptr_cast<LocalNodeGroup, LocalNodeNG>(
+            getOrCreateLocalNodeGroup(nodeIDVector));
         KU_ASSERT(localNodeGroup);
         for (auto columnIdx = 0u; columnIdx < columnIDs.size(); columnIdx++) {
             auto columnID = columnIDs[columnIdx];
@@ -129,7 +129,7 @@ void LocalNodeTableData::insert(
     ValueVector* nodeIDVector, const std::vector<ValueVector*>& propertyVectors) {
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
     auto localNodeGroup =
-        ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(getOrCreateLocalNodeGroup(nodeIDVector));
+        ku_dynamic_ptr_cast<LocalNodeGroup, LocalNodeNG>(getOrCreateLocalNodeGroup(nodeIDVector));
     KU_ASSERT(localNodeGroup);
     localNodeGroup->insert(nodeIDVector, propertyVectors);
 }
@@ -137,7 +137,7 @@ void LocalNodeTableData::insert(
 void LocalNodeTableData::update(
     ValueVector* nodeIDVector, column_id_t columnID, ValueVector* propertyVector) {
     auto localNodeGroup =
-        ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(getOrCreateLocalNodeGroup(nodeIDVector));
+        ku_dynamic_ptr_cast<LocalNodeGroup, LocalNodeNG>(getOrCreateLocalNodeGroup(nodeIDVector));
     KU_ASSERT(localNodeGroup);
     localNodeGroup->update(nodeIDVector, columnID, propertyVector);
 }
@@ -150,7 +150,7 @@ void LocalNodeTableData::delete_(ValueVector* nodeIDVector) {
         return;
     }
     auto localNodeGroup =
-        ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(nodeGroups.at(nodeGroupIdx).get());
+        ku_dynamic_ptr_cast<LocalNodeGroup, LocalNodeNG>(nodeGroups.at(nodeGroupIdx).get());
     localNodeGroup->delete_(nodeIDVector);
 }
 

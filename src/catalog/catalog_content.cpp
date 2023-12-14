@@ -41,7 +41,8 @@ static void assignPropertyIDAndTableID(
 
 table_id_t CatalogContent::addNodeTableSchema(const BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
-    auto extraInfo = reinterpret_cast<BoundExtraCreateNodeTableInfo*>(info.extraInfo.get());
+    auto extraInfo = ku_dynamic_ptr_cast<BoundExtraCreateTableInfo, BoundExtraCreateNodeTableInfo>(
+        info.extraInfo.get());
     auto properties = Property::copy(extraInfo->properties);
     assignPropertyIDAndTableID(properties, tableID);
     auto nodeTableSchema = std::make_unique<NodeTableSchema>(
@@ -60,15 +61,15 @@ static void addRelInternalIDProperty(std::vector<std::unique_ptr<Property>>& pro
 
 table_id_t CatalogContent::addRelTableSchema(const BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
-    auto extraInfo = reinterpret_cast<BoundExtraCreateRelTableInfo*>(info.extraInfo.get());
+    auto extraInfo = ku_dynamic_ptr_cast<BoundExtraCreateTableInfo, BoundExtraCreateRelTableInfo>(
+        info.extraInfo.get());
     auto properties = Property::copy(extraInfo->properties);
     addRelInternalIDProperty(properties);
     assignPropertyIDAndTableID(properties, tableID);
     auto srcNodeTableSchema =
-        ku_dynamic_cast<TableSchema*, NodeTableSchema*>(getTableSchema(extraInfo->srcTableID));
+        ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(getTableSchema(extraInfo->srcTableID));
     auto dstNodeTableSchema =
-        ku_dynamic_cast<TableSchema*, NodeTableSchema*>(getTableSchema(extraInfo->dstTableID));
-    KU_ASSERT(srcNodeTableSchema && dstNodeTableSchema);
+        ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(getTableSchema(extraInfo->dstTableID));
     srcNodeTableSchema->addFwdRelTableID(tableID);
     dstNodeTableSchema->addBwdRelTableID(tableID);
     auto relTableSchema = std::make_unique<RelTableSchema>(info.tableName, tableID,
@@ -97,15 +98,18 @@ table_id_t CatalogContent::addRelTableGroupSchema(const binder::BoundCreateTable
 
 table_id_t CatalogContent::addRdfGraphSchema(const BoundCreateTableInfo& info) {
     table_id_t rdfGraphID = assignNextTableID();
-    auto extraInfo = reinterpret_cast<BoundExtraCreateRdfGraphInfo*>(info.extraInfo.get());
+    auto extraInfo = ku_dynamic_ptr_cast<BoundExtraCreateTableInfo, BoundExtraCreateRdfGraphInfo>(
+        info.extraInfo.get());
     auto resourceInfo = extraInfo->resourceInfo.get();
     auto literalInfo = extraInfo->literalInfo.get();
     auto resourceTripleInfo = extraInfo->resourceTripleInfo.get();
     auto literalTripleInfo = extraInfo->literalTripleInfo.get();
     auto resourceTripleExtraInfo =
-        reinterpret_cast<BoundExtraCreateRelTableInfo*>(resourceTripleInfo->extraInfo.get());
+        ku_dynamic_ptr_cast<BoundExtraCreateTableInfo, BoundExtraCreateRelTableInfo>(
+            resourceTripleInfo->extraInfo.get());
     auto literalTripleExtraInfo =
-        reinterpret_cast<BoundExtraCreateRelTableInfo*>(literalTripleInfo->extraInfo.get());
+        ku_dynamic_ptr_cast<BoundExtraCreateTableInfo, BoundExtraCreateRelTableInfo>(
+            literalTripleInfo->extraInfo.get());
     // Resource table
     auto resourceTableID = addNodeTableSchema(*resourceInfo);
     // Literal table
@@ -131,7 +135,8 @@ void CatalogContent::dropTableSchema(table_id_t tableID) {
     auto tableSchema = getTableSchema(tableID);
     switch (tableSchema->tableType) {
     case common::TableType::REL_GROUP: {
-        auto relTableGroupSchema = reinterpret_cast<RelTableGroupSchema*>(tableSchema);
+        auto relTableGroupSchema =
+            ku_dynamic_ptr_cast<TableSchema, RelTableGroupSchema>(tableSchema);
         for (auto& relTableID : relTableGroupSchema->getRelTableIDs()) {
             dropTableSchema(relTableID);
         }

@@ -7,9 +7,9 @@
 #include "function/table_functions.h"
 #include "main/client_context.h"
 
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::parser;
-using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace binder {
@@ -223,25 +223,26 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
     auto functions = catalog.getBuiltInFunctions();
     switch (fileType) {
     case FileType::PARQUET: {
-        func = functions->matchScalarFunction(READ_PARQUET_FUNC_NAME, inputTypes);
+        func = functions->matchFunction(READ_PARQUET_FUNC_NAME, inputTypes);
     } break;
     case FileType::NPY: {
-        func = functions->matchScalarFunction(READ_NPY_FUNC_NAME, inputTypes);
+        func = functions->matchFunction(READ_NPY_FUNC_NAME, inputTypes);
     } break;
     case FileType::CSV: {
-        auto csvConfig = reinterpret_cast<CSVReaderConfig*>(config.extraConfig.get());
-        func = functions->matchScalarFunction(
+        auto csvConfig =
+            ku_dynamic_ptr_cast<ExtraReaderConfig, CSVReaderConfig>(config.extraConfig.get());
+        func = functions->matchFunction(
             csvConfig->parallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
             inputTypes);
     } break;
     case FileType::NQUADS:
     case FileType::TURTLE: {
-        func = functions->matchScalarFunction(READ_RDF_FUNC_NAME, inputTypes);
+        func = functions->matchFunction(READ_RDF_FUNC_NAME, inputTypes);
     } break;
     default:
         KU_UNREACHABLE;
     }
-    return reinterpret_cast<function::TableFunction*>(func);
+    return ku_dynamic_ptr_cast<function::Function, function::TableFunction>(func);
 }
 
 } // namespace binder

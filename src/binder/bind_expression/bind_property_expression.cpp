@@ -3,6 +3,7 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/table_schema.h"
+#include "common/cast.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "parser/expression/parsed_property_expression.h"
@@ -90,7 +91,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindNodeOrRelPropertyExpression(
     const Expression& child, const std::string& propertyName) {
-    auto& nodeOrRel = reinterpret_cast<const NodeOrRelExpression&>(child);
+    auto& nodeOrRel = ku_dynamic_cast<const Expression&, const NodeOrRelExpression&>(child);
     if (!nodeOrRel.hasPropertyExpression(propertyName)) {
         throw BinderException(
             "Cannot find property " + propertyName + " for " + child.toString() + ".");

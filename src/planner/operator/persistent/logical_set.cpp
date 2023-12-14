@@ -1,6 +1,7 @@
 #include "planner/operator/persistent/logical_set.h"
 
 #include "binder/expression/rel_expression.h"
+#include "common/cast.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 
 using namespace kuzu::binder;
@@ -28,7 +29,8 @@ std::string LogicalSetNodeProperty::getExpressionsForPrinting() const {
 
 f_group_pos_set LogicalSetNodeProperty::getGroupsPosToFlatten(uint32_t idx) {
     f_group_pos_set result;
-    auto node = reinterpret_cast<NodeExpression*>(infos[idx]->nodeOrRel.get());
+    auto node =
+        common::ku_dynamic_ptr_cast<Expression, NodeExpression>(infos[idx]->nodeOrRel.get());
     auto rhs = infos[idx]->setItem.second;
     auto childSchema = children[0]->getSchema();
     result.insert(childSchema->getGroupPos(*node->getInternalID()));
@@ -48,7 +50,7 @@ std::string LogicalSetRelProperty::getExpressionsForPrinting() const {
 
 f_group_pos_set LogicalSetRelProperty::getGroupsPosToFlatten(uint32_t idx) {
     f_group_pos_set result;
-    auto rel = reinterpret_cast<RelExpression*>(infos[idx]->nodeOrRel.get());
+    auto rel = common::ku_dynamic_ptr_cast<Expression, RelExpression>(infos[idx]->nodeOrRel.get());
     auto rhs = infos[idx]->setItem.second;
     auto childSchema = children[0]->getSchema();
     result.insert(childSchema->getGroupPos(*rel->getSrcNode()->getInternalID()));

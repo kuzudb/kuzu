@@ -1,5 +1,6 @@
 #include "planner/operator/logical_plan_util.h"
 
+#include "common/cast.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_hash_join.h"
@@ -62,29 +63,34 @@ void LogicalPlanUtil::encodeCrossProduct(
 }
 
 void LogicalPlanUtil::encodeIntersect(LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto logicalIntersect = reinterpret_cast<LogicalIntersect*>(logicalOperator);
+    auto logicalIntersect =
+        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalIntersect>(logicalOperator);
     encodeString += "I(" + logicalIntersect->getIntersectNodeID()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto logicalHashJoin = reinterpret_cast<LogicalHashJoin*>(logicalOperator);
+    auto logicalHashJoin =
+        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalHashJoin>(logicalOperator);
     encodeString += "HJ(" + logicalHashJoin->getExpressionsForPrinting() + ")";
 }
 
 void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto logicalExtend = reinterpret_cast<LogicalExtend*>(logicalOperator);
+    auto logicalExtend =
+        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalExtend>(logicalOperator);
     encodeString += "E(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeRecursiveExtend(
     LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto logicalExtend = reinterpret_cast<LogicalRecursiveExtend*>(logicalOperator);
+    auto logicalExtend =
+        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalRecursiveExtend>(logicalOperator);
     encodeString += "RE(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeScanInternalID(
     LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto scan = reinterpret_cast<LogicalScanInternalID*>(logicalOperator);
+    auto scan =
+        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalScanInternalID>(logicalOperator);
     encodeString += "S(" + scan->getInternalID()->toString() + ")";
 }
 

@@ -59,7 +59,7 @@ static std::shared_ptr<Expression> matchColumnExpression(
     const expression_vector& columnExpressions, const std::string& columnName) {
     for (auto& expression : columnExpressions) {
         KU_ASSERT(expression->expressionType == ExpressionType::VARIABLE);
-        auto var = reinterpret_cast<binder::VariableExpression*>(expression.get());
+        auto var = ku_dynamic_ptr_cast<Expression, VariableExpression>(expression.get());
         if (columnName == var->getVariableName()) {
             return expression;
         }
@@ -82,7 +82,7 @@ static std::vector<DataPos> getColumnDataPositions(const std::vector<std::string
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* logicalOperator) {
-    auto copyFrom = reinterpret_cast<LogicalCopyFrom*>(logicalOperator);
+    auto copyFrom = ku_dynamic_ptr_cast<LogicalOperator, LogicalCopyFrom>(logicalOperator);
     auto copyFromInfo = copyFrom->getInfo();
     auto outFSchema = copyFrom->getSchema();
     auto tableSchema = (catalog::NodeTableSchema*)copyFromInfo->tableSchema;
@@ -140,7 +140,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* logicalOperator) {
-    auto logicalPartitioner = reinterpret_cast<LogicalPartitioner*>(logicalOperator);
+    auto logicalPartitioner =
+        ku_dynamic_ptr_cast<LogicalOperator, LogicalPartitioner>(logicalOperator);
     auto prevOperator = mapOperator(logicalPartitioner->getChild(0).get());
     auto outFSchema = logicalPartitioner->getSchema();
     std::vector<std::unique_ptr<PartitioningInfo>> infos;
@@ -183,7 +184,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     auto copyFrom = (LogicalCopyFrom*)logicalOperator;
     auto copyFromInfo = copyFrom->getInfo();
     auto outFSchema = copyFrom->getSchema();
-    auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
+    auto tableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(copyFromInfo->tableSchema);
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
     KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::PARTITIONER);
     auto nodesStats = storageManager.getNodesStatisticsAndDeletedIDs();

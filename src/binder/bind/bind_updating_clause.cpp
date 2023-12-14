@@ -127,7 +127,7 @@ std::vector<std::unique_ptr<BoundInsertInfo>> Binder::bindCreateInfos(
 static void validatePrimaryKeyExistence(const PropertyKeyValCollection& collection,
     TableSchema* tableSchema, const std::shared_ptr<Expression>& node) {
     auto tableID = tableSchema->getTableID();
-    auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(tableSchema);
+    auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema);
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     std::shared_ptr<Expression> primaryKeyExpression;
     for (auto& [key, val] : collection.getKeyVals(node)) {

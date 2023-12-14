@@ -48,7 +48,7 @@ static void validateKeyType(const std::shared_ptr<binder::Expression>& mapExpres
 std::unique_ptr<FunctionBindData> MapExtractFunctions::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::Function* function) {
     validateKeyType(arguments[0], arguments[1]);
-    auto scalarFunction = reinterpret_cast<ScalarFunction*>(function);
+    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
     scalarFunction->execFunc =
         ListFunction::getBinaryListExecFuncSwitchRight<MapExtract, list_entry_t>(
             arguments[1]->getDataType());

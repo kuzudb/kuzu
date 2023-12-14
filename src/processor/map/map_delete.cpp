@@ -4,6 +4,7 @@
 #include "transaction/transaction.h"
 
 using namespace kuzu::binder;
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::planner;
 using namespace kuzu::storage;
@@ -11,7 +12,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(catalog::Catalog* catalog,
+static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(Catalog* catalog,
     StorageManager& storageManager, LogicalDeleteNodeInfo* info, const Schema& inSchema) {
     auto nodeIDPos = DataPos(inSchema.getExpressionPos(*info->node->getInternalID()));
     if (info->node->isMultiLabeled()) {
@@ -21,8 +22,7 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(catalog::Catalo
         for (auto tableID : info->node->getTableIDs()) {
             auto tableSchema =
                 catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, tableID);
-            auto nodeTableSchema =
-                ku_dynamic_cast<catalog::TableSchema*, catalog::NodeTableSchema*>(tableSchema);
+            auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema);
             auto table = storageManager.getNodeTable(tableID);
             auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
             auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
@@ -45,8 +45,7 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(catalog::Catalo
         auto table = storageManager.getNodeTable(info->node->getSingleTableID());
         auto tableSchema = catalog->getTableSchema(
             &transaction::DUMMY_READ_TRANSACTION, info->node->getSingleTableID());
-        auto nodeTableSchema =
-            ku_dynamic_cast<catalog::TableSchema*, catalog::NodeTableSchema*>(tableSchema);
+        auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema);
         auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
         auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
         std::unordered_set<RelTable*> fwdRelTables;

@@ -27,7 +27,8 @@ static void appendIndexScan(
 }
 
 static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan) {
-    auto extraInfo = reinterpret_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
+    auto extraInfo = ku_dynamic_ptr_cast<ExtraBoundCopyFromInfo, ExtraBoundCopyRelInfo>(
+        copyFromInfo->extraInfo.get());
     expression_vector payloads;
     for (auto& column : extraInfo->propertyColumns) {
         payloads.push_back(column);
@@ -38,7 +39,7 @@ static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan
     }
     std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
     // Partitioner for FWD direction rel data.
-    auto relSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
+    auto relSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(copyFromInfo->tableSchema);
     infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->fromOffset, payloads,
         relSchema->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
                                                                  ColumnDataFormat::CSR,
@@ -66,10 +67,12 @@ static void planCopyNode(const BoundCopyFrom& copyFrom, LogicalPlan& plan,
     catalog::Catalog* catalog, storage::StorageManager* storageManager) {
     auto copyFromInfo = copyFrom.getInfo();
     auto scanInfo = copyFromInfo->fileScanInfo.get();
-    auto readerConfig = reinterpret_cast<ScanBindData*>(scanInfo->bindData.get())->config;
+    auto readerConfig =
+        ku_dynamic_ptr_cast<TableFuncBindData, ScanBindData>(scanInfo->bindData.get())->config;
     auto fileType = readerConfig.fileType;
     if (FileTypeUtils::isRdf(fileType)) {
-        auto extraInfo = reinterpret_cast<RdfReaderConfig*>(readerConfig.extraConfig.get());
+        auto extraInfo =
+            ku_dynamic_ptr_cast<ExtraReaderConfig, RdfReaderConfig>(readerConfig.extraConfig.get());
         if (extraInfo->mode == common::RdfReaderMode::RESOURCE) {
             auto planner = QueryPlanner(*catalog, storageManager);
             KU_ASSERT(scanInfo->columns.size() == 1);
@@ -82,7 +85,8 @@ static void planCopyNode(const BoundCopyFrom& copyFrom, LogicalPlan& plan,
 static void planCopyRel(const BoundCopyFrom& copyFrom, LogicalPlan& plan) {
     auto copyFromInfo = copyFrom.getInfo();
     auto scanInfo = copyFromInfo->fileScanInfo.get();
-    auto readerConfig = reinterpret_cast<ScanBindData*>(scanInfo->bindData.get())->config;
+    auto readerConfig =
+        ku_dynamic_ptr_cast<TableFuncBindData, ScanBindData>(scanInfo->bindData.get())->config;
     auto extraInfo = dynamic_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
     appendIndexScan(IndexLookupInfo::copy(extraInfo->infos), plan);
     appendPartitioner(copyFromInfo, plan);
@@ -105,7 +109,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCopyTo(const BoundStatement& statement) {
-    auto& boundCopy = reinterpret_cast<const BoundCopyTo&>(statement);
+    auto& boundCopy = ku_dynamic_cast<const BoundStatement&, const BoundCopyTo&>(statement);
     auto regularQuery = boundCopy.getRegularQuery();
     KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
     auto plan = QueryPlanner(*catalog, storageManager).getBestPlan(*regularQuery);

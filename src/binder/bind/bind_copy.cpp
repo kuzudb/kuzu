@@ -20,7 +20,7 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statement) {
-    auto& copyToStatement = reinterpret_cast<const CopyTo&>(statement);
+    auto& copyToStatement = ku_dynamic_cast<const Statement&, const CopyTo&>(statement);
     auto boundFilePath = copyToStatement.getFilePath();
     auto fileType = bindFileType(boundFilePath);
     std::vector<std::string> columnNames;
@@ -62,7 +62,7 @@ static void validateCopyNpyNotForRelTables(TableSchema* schema) {
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {
-    auto& copyStatement = reinterpret_cast<const CopyFrom&>(statement);
+    auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
     auto tableName = copyStatement.getTableName();
     validateTableExist(tableName);
     // Bind to table schema.
@@ -116,7 +116,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
 
 std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
     std::unique_ptr<common::ReaderConfig> config, TableSchema* tableSchema) {
-    auto& copyStatement = reinterpret_cast<const CopyFrom&>(statement);
+    auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
     auto func = getScanFunction(config->fileType, *config);
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = tableSchema->containPropertyType(*LogicalType::SERIAL());
@@ -143,8 +143,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement& statement,
     std::unique_ptr<common::ReaderConfig> config, TableSchema* tableSchema) {
-    auto& copyStatement = reinterpret_cast<const CopyFrom&>(statement);
-    // Bind file scan.
+    auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
     auto func = getScanFunction(config->fileType, *config);
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = tableSchema->containPropertyType(*LogicalType::SERIAL());
@@ -165,13 +164,12 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         *LogicalType::INT64(), std::string(InternalKeyword::ROW_OFFSET));
     auto boundFileScanInfo =
         std::make_unique<BoundFileScanInfo>(func, std::move(bindData), columns, offset);
-    // Bind rel table copy.
-    auto relSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
+    auto relSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(tableSchema);
     auto srcTableID = relSchema->getSrcTableID();
     auto dstTableID = relSchema->getDstTableID();
-    auto srcSchema = reinterpret_cast<NodeTableSchema*>(
+    auto srcSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
         catalog.getTableSchema(clientContext->getTx(), srcTableID));
-    auto dstSchema = reinterpret_cast<NodeTableSchema*>(
+    auto dstSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
         catalog.getTableSchema(clientContext->getTx(), dstTableID));
     auto srcKey = columns[0];
     auto dstKey = columns[1];
@@ -252,10 +250,10 @@ void Binder::bindExpectedRelColumns(TableSchema* tableSchema,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
     std::vector<std::unique_ptr<common::LogicalType>>& columnTypes) {
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
-    auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
-    auto srcTable = reinterpret_cast<NodeTableSchema*>(
+    auto relTableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(tableSchema);
+    auto srcTable = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
         catalog.getTableSchema(clientContext->getTx(), relTableSchema->getSrcTableID()));
-    auto dstTable = reinterpret_cast<NodeTableSchema*>(
+    auto dstTable = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
         catalog.getTableSchema(clientContext->getTx(), relTableSchema->getDstTableID()));
     columnNames.push_back("from");
     columnNames.push_back("to");

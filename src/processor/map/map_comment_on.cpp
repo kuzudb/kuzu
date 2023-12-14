@@ -1,3 +1,4 @@
+#include "common/cast.h"
 #include "planner/operator/logical_comment_on.h"
 #include "processor/operator/comment_on.h"
 #include "processor/plan_mapper.h"
@@ -9,7 +10,8 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCommentOn(
     planner::LogicalOperator* logicalOperator) {
-    auto logicalCommentOn = reinterpret_cast<LogicalCommentOn*>(logicalOperator);
+    auto logicalCommentOn =
+        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalCommentOn>(logicalOperator);
     auto outSchema = logicalCommentOn->getSchema();
     auto outputExpression = logicalCommentOn->getOutputExpression();
     auto outputPos = DataPos(outSchema->getExpressionPos(*outputExpression));

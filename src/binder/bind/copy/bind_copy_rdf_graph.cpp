@@ -87,7 +87,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(const Statement& /*st
     auto boundFileScanInfo =
         std::make_unique<BoundFileScanInfo>(func, std::move(bindData), columns, offset);
     // Bind Copy
-    auto rrrSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
+    auto rrrSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(tableSchema);
     auto rTableID = rrrSchema->getSrcTableID();
     auto extraInfo = std::make_unique<ExtraBoundCopyRelInfo>();
     auto s = columns[0];
