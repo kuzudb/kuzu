@@ -70,3 +70,19 @@
 ---- 2
 foo|
 foobar|
+
+-CASE CreateSerial
+-STATEMENT CREATE NODE TABLE A(pk1 SERIAL, PRIMARY KEY(pk1));
+---- ok
+-STATEMENT CREATE NODE TABLE B(pk2 SERIAL, PRIMARY KEY(pk2));
+---- ok
+-STATEMENT CREATE NODE TABLE C(pk3 SERIAL, PRIMARY KEY(pk3));
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT CREATE (:B);
+---- ok
+-STATEMENT MATCH (n) RETURN n;
+---- 2
+{_ID: 0:0, _LABEL: A, pk1: 0}
+{_ID: 1:0, _LABEL: B, pk2: 0}

@@ -300,7 +300,7 @@ public:
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             auto offset = nodeIDVector->readNodeOffset(pos);
-            KU_ASSERT(!resultVector->isNull(pos));
+            resultVector->setNull(pos, false);
             resultVector->setValue<offset_t>(pos, offset);
         }
     }
@@ -311,6 +311,7 @@ public:
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             auto offset = nodeIDVector->readNodeOffset(pos);
+            resultVector->setNull(pos, false);
             resultVector->setValue<offset_t>(pos, offset);
         }
     }
