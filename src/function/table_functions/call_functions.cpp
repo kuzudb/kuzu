@@ -340,7 +340,9 @@ void StorageInfoSharedState::collectColumns(Table* table) {
 std::vector<Column*> StorageInfoSharedState::collectColumns(Column* column) {
     std::vector<Column*> result;
     result.push_back(column);
-    result.push_back(column->getNullColumn());
+    if (column->getNullColumn()) {
+        result.push_back(column->getNullColumn());
+    }
     switch (column->getDataType()->getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         auto structColumn = ku_dynamic_cast<Column*, StructColumn*>(column);
