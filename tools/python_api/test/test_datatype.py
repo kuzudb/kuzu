@@ -311,7 +311,7 @@ def test_recursive_rel(establish_connection):
                     'length': 5, 'level': 5, 'code': 9223372036854775808, 'temprature':32800,
                     'ulength':33768, 'ulevel': 250, 'hugedata': 1844674407370955161811111111,
                     'grading': None, 'rating': None, 'location': None, 'times': None, 'data': None,
-                    'usedAddress': None, 'address': None, 'note': None, 'notes': None, 'summary': None}
+                    'usedAddress': None, 'address': None, 'note': None, 'notes': None, 'someMap': None, 'summary': None}
     assert (rel == excepted_rel)
     assert not result.has_next()
     result.close()

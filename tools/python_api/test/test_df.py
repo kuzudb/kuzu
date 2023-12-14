@@ -310,6 +310,7 @@ def test_df_get_recursive_join(establish_connection):
                                       'summary': {'locations': ["'toronto'", "'waterloo'"],
                                                   'transfer': {'amount': [100, 200],
                                                                'day': datetime.date(2021, 1, 2)}},
+                                      'someMap': {'a': 'b'},
                                       'validInterval': datetime.timedelta(days=3750, seconds=46800, microseconds=24)},
                                      {'_dst': {'offset': 0, 'table': 0},
                                       '_label': 'knows',
@@ -321,4 +322,5 @@ def test_df_get_recursive_join(establish_connection):
                                       'summary': {'locations': ["'toronto'", "'waterloo'"],
                                                   'transfer': {'amount': [100, 200],
                                                                'day': datetime.date(2021, 1, 2)}},
+                                      'someMap': {'a': 'b'},
                                       'validInterval': datetime.timedelta(days=3750, seconds=46800, microseconds=24)}]}

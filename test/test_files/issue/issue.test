@@ -69,11 +69,16 @@
 -STATEMENT CREATE NODE TABLE T2(name STRING, myprops MAP(STRING,STRING), PRIMARY KEY(name));
 ---- ok
 -STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops MAP(STRING,STRING));
+---- ok
+-STATEMENT CREATE REL TABLE KIND_OF4(FROM T TO T, myprops SERIAL);
 ---- error
-Binder exception: MAP(STRING: STRING) property is not supported in rel table.
--STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops SERIAL);
----- error
-Binder exception: SERIAL property is not supported in rel table.
+Binder exception: SERIAL properties are not supported in rel tables.
+-STATEMENT CREATE (:T {name: "Foo"});
+---- ok
+-STATEMENT CREATE (:T {name: "Bar"});
+---- ok
+-STATEMENT MATCH (t1:T), (t2:T) where t1.name = 'Foo' AND t2.name = "Bar" CREATE (t1)-[:KIND_OF3 {myprops: map(['1', '2'], ['a', 'b'])}]->(t2);
+---- ok
 
 -CASE 2293
 -STATEMENT CREATE NODE TABLE T(id INT64, PRIMARY KEY(id));

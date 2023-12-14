@@ -474,6 +474,7 @@ describe("RECURSIVE_REL", function () {
           data: null,
           usedAddress: null,
           address: null,
+          someMap: null,
           note: null,
           notes: null,
           summary: null,

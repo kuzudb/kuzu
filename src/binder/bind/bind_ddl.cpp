@@ -10,6 +10,7 @@
 #include "main/client_context.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_table.h"
+#include "parser/ddl/create_table_info.h"
 #include "parser/ddl/drop.h"
 
 using namespace kuzu::common;
@@ -120,10 +121,8 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
         propertyInfos.push_back(propertyInfo.copy());
     }
     for (auto& propertyInfo : propertyInfos) {
-        if (propertyInfo.type == *LogicalType::SERIAL() ||
-            propertyInfo.type.getLogicalTypeID() == LogicalTypeID::MAP) {
-            throw BinderException(stringFormat(
-                "{} property is not supported in rel table.", propertyInfo.type.toString()));
+        if (propertyInfo.type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            throw BinderException("SERIAL properties are not supported in rel tables.");
         }
     }
     auto extraInfo = (ExtraCreateRelTableInfo*)info->extraInfo.get();

@@ -190,7 +190,7 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection):
         assert src != dst
         assert pos_to_idx[dst] in ground_truth.TINY_SNB_KNOWS_GROUND_TRUTH[pos_to_idx[src]]
 
-    assert len(edge_properties) == 7
+    assert len(edge_properties) == 8
     assert 'date' in edge_properties
     assert 'meetTime' in edge_properties
     assert 'validInterval' in edge_properties
@@ -216,6 +216,8 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection):
             orginal_src, orginal_dst)]['summary'] == edge_properties['summary'][i]
         assert ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
             orginal_src, orginal_dst)]['notes'] == edge_properties['notes'][i]
+        assert ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            orginal_src, orginal_dst)]['someMap'] == edge_properties['someMap'][i]
 
 
 def test_to_torch_geometric_heterogeneous_graph(establish_connection):
@@ -319,7 +321,7 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
         assert src != dst
         assert pos_to_idx['person'][dst] in ground_truth.TINY_SNB_KNOWS_GROUND_TRUTH[pos_to_idx['person'][src]]
 
-    assert len(edge_properties['person', 'person']) == 7
+    assert len(edge_properties['person', 'person']) == 8
     assert 'date' in edge_properties['person', 'person']
     assert 'meetTime' in edge_properties['person', 'person']
     assert 'validInterval' in edge_properties['person', 'person']
