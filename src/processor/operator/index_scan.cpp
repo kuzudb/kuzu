@@ -22,6 +22,9 @@ bool IndexScan::getNextTuplesInternal(ExecutionContext* context) {
         numSelectedValues = 0u;
         for (auto i = 0u; i < indexVector->state->selVector->selectedSize; ++i) {
             auto pos = indexVector->state->selVector->selectedPositions[i];
+            if (indexVector->isNull(pos)) {
+                continue;
+            }
             outVector->state->selVector->getSelectedPositionsBuffer()[numSelectedValues] = pos;
             offset_t nodeOffset = INVALID_OFFSET;
             numSelectedValues += pkIndex->lookup(transaction, indexVector, pos, nodeOffset);

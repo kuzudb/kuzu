@@ -173,3 +173,57 @@ foo
 -STATEMENT OPTIONAL MATCH (b {id: "non existent id"})-[r]->(c) RETURN b is NULL, r is NULL, c is NULL;
 ---- 1
 True|True|True
+
+-CASE 2578
+-STATEMENT CREATE NODE TABLE T(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE CHILD_OF(FROM T TO T);
+---- ok
+-STATEMENT CREATE (t1:T {id: "t1"}),
+ (t11:T {id: "t11"}),
+ (t12:T {id: "t12"}),
+ (t13:T {id: "t13"}),
+ (t111:T {id: "t111"}),
+ (t112:T {id: "t112"}),
+ (t1111:T {id: "t1111"}),
+ (t2:T {id: "t2"}),
+ (t21:T {id: "t21"}),
+ (t22:T {id: "t22"}),
+ (t3:T {id: "t3"}),
+ (t1111)-[:CHILD_OF]->(t111),
+ (t111)-[:CHILD_OF]->(t11),
+ (t112)-[:CHILD_OF]->(t11),
+ (t11)-[:CHILD_OF]->(t1),
+ (t12)-[:CHILD_OF]->(t1),
+ (t13)-[:CHILD_OF]->(t1),
+ (t21)-[:CHILD_OF]->(t2),
+ (t22)-[:CHILD_OF]->(t2);
+---- ok
+-STATEMENT WITH "t1" as parentid
+           MATCH p = (t1:T)<-[e:CHILD_OF*0..1]-(t0:T)
+           WHERE CASE
+             WHEN parentid IS NULL THEN NOT EXISTS {MATCH (t1)-[:CHILD_OF]->(:T)}
+             ELSE EXISTS {MATCH (t1)-[:CHILD_OF]->(:T {id: parentid})}
+           END
+           AND (NOT EXISTS {MATCH (:T)-[:CHILD_OF]->(t0)} OR length(e) = 1)
+           RETURN properties(nodes(p),'id');
+---- 4
+[t11,t111]
+[t11,t112]
+[t12]
+[t13]
+-STATEMENT WITH NULL as parentid
+           MATCH p = (t1:T)<-[e:CHILD_OF*0..1]-(t0:T)
+           WHERE CASE
+             WHEN parentid IS NULL THEN NOT EXISTS {MATCH (t1)-[:CHILD_OF]->(:T)}
+             ELSE EXISTS {MATCH (t1)-[:CHILD_OF]->(:T {id: parentid})}
+           END
+           AND (NOT EXISTS {MATCH (:T)-[:CHILD_OF]->(t0)} OR length(e) = 1)
+           RETURN properties(nodes(p),'id');
+---- 6
+[t1,t11]
+[t1,t12]
+[t1,t13]
+[t2,t21]
+[t2,t22]
+[t3]
