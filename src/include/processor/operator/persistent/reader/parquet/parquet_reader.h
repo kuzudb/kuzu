@@ -42,10 +42,12 @@ struct ParquetReaderScanState {
 
 class ParquetReader {
 public:
-    ParquetReader(const std::string& filePath, storage::MemoryManager* memoryManager);
+    ParquetReader(const std::string& filePath, storage::MemoryManager* memoryManager,
+        common::VirtualFileSystem* vfs);
     ~ParquetReader() = default;
 
-    void initializeScan(ParquetReaderScanState& state, std::vector<uint64_t> groups_to_read);
+    void initializeScan(ParquetReaderScanState& state, std::vector<uint64_t> groups_to_read,
+        common::VirtualFileSystem* vfs);
     bool scanInternal(ParquetReaderScanState& state, common::DataChunk& result);
     void scan(ParquetReaderScanState& state, common::DataChunk& result);
     inline uint64_t getNumRowsGroups() { return metadata->row_groups.size(); }
@@ -72,7 +74,7 @@ private:
     }
     static std::unique_ptr<common::LogicalType> deriveLogicalType(
         const kuzu_parquet::format::SchemaElement& s_ele);
-    void initMetadata();
+    void initMetadata(common::VirtualFileSystem* vfs);
     std::unique_ptr<ColumnReader> createReader();
     std::unique_ptr<ColumnReader> createReaderRecursive(uint64_t depth, uint64_t maxDefine,
         uint64_t maxRepeat, uint64_t& nextSchemaIdx, uint64_t& nextFileIdx);
@@ -84,17 +86,16 @@ private:
     uint64_t getGroupOffset(ParquetReaderScanState& state);
 
 private:
-    std::unique_ptr<common::FileInfo> fileInfo;
-    std::string filePath;
+    const std::string filePath;
     std::vector<std::string> columnNames;
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     std::unique_ptr<kuzu_parquet::format::FileMetaData> metadata;
     storage::MemoryManager* memoryManager;
 };
 
-struct ParquetScanSharedState final : public function::ScanSharedState {
+struct ParquetScanSharedState final : public function::ScanFileSharedState {
     explicit ParquetScanSharedState(const common::ReaderConfig readerConfig,
-        storage::MemoryManager* memoryManager, uint64_t numRows);
+        storage::MemoryManager* memoryManager, uint64_t numRows, common::VirtualFileSystem* vfs);
 
     std::vector<std::unique_ptr<ParquetReader>> readers;
     storage::MemoryManager* memoryManager;
@@ -123,11 +124,11 @@ struct ParquetScanFunction {
         function::TableFunctionInitInput& input, function::TableFuncSharedState* state,
         storage::MemoryManager* /*mm*/);
 
-    static void bindColumns(const common::ReaderConfig& readerConfig, storage::MemoryManager* mm,
+    static void bindColumns(const function::ScanTableFuncBindInput* bindInput,
         std::vector<std::string>& columnNames,
         std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
-    static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
-        storage::MemoryManager* mm, std::vector<std::string>& columnNames,
+    static void bindColumns(const function::ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
+        std::vector<std::string>& columnNames,
         std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
 };
 

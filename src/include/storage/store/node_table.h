@@ -21,9 +21,10 @@ public:
     NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         catalog::NodeTableSchema* nodeTableSchema,
         NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, MemoryManager* memoryManager,
-        WAL* wal, bool readOnly, bool enableCompression);
+        WAL* wal, bool readOnly, bool enableCompression, common::VirtualFileSystem* vfs);
 
-    void initializePKIndex(catalog::NodeTableSchema* nodeTableSchema, bool readOnly);
+    void initializePKIndex(
+        catalog::NodeTableSchema* nodeTableSchema, bool readOnly, common::VirtualFileSystem* vfs);
 
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
         auto nodesStats =

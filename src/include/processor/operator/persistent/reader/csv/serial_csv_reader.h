@@ -12,8 +12,8 @@ namespace processor {
 //! Serial CSV reader is a class that reads values from a stream in a single thread.
 class SerialCSVReader final : public BaseCSVReader {
 public:
-    SerialCSVReader(
-        const std::string& filePath, const common::CSVOption& option, uint64_t numColumns);
+    SerialCSVReader(const std::string& filePath, const common::CSVOption& option,
+        uint64_t numColumns, common::VirtualFileSystem* vfs);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
     std::vector<std::pair<std::string, common::LogicalType>> sniffCSV();
@@ -23,10 +23,10 @@ protected:
     void handleQuotedNewline() override {}
 };
 
-struct SerialCSVScanSharedState final : public function::ScanSharedState {
-    SerialCSVScanSharedState(
-        common::ReaderConfig readerConfig, uint64_t numRows, uint64_t numColumns)
-        : ScanSharedState{std::move(readerConfig), numRows}, numColumns{numColumns} {
+struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
+    SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
+        uint64_t numColumns, common::VirtualFileSystem* vfs)
+        : ScanFileSharedState{std::move(readerConfig), numRows, vfs}, numColumns{numColumns} {
         initReader();
     }
 
@@ -54,10 +54,10 @@ struct SerialCSVScan {
         function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/,
         storage::MemoryManager* /*mm*/);
 
-    static void bindColumns(const common::ReaderConfig& readerConfig,
+    static void bindColumns(const function::ScanTableFuncBindInput* bindInput,
         std::vector<std::string>& columnNames,
         std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
-    static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
+    static void bindColumns(const function::ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
         std::vector<std::string>& columnNames,
         std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
 };

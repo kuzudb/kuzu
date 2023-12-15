@@ -175,7 +175,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     }
     auto scanFunction = getScanFunction(readerConfig->fileType, *readerConfig);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager,
-        *readerConfig, std::move(expectedColumnNames), std::move(expectedColumnTypes));
+        *readerConfig, std::move(expectedColumnNames), std::move(expectedColumnTypes), vfs);
     auto bindData =
         scanFunction->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;

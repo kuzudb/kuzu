@@ -81,7 +81,8 @@ class HashIndex : public BaseHashIndex {
 
 public:
     HashIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
-        const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal);
+        const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal,
+        common::VirtualFileSystem* vfs);
 
 public:
     bool lookupInternal(
@@ -147,14 +148,15 @@ class PrimaryKeyIndex {
 
 public:
     PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
-        const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
+        const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal,
+        common::VirtualFileSystem* vfs)
         : keyDataTypeID{keyDataType.getLogicalTypeID()} {
         if (keyDataTypeID == common::LogicalTypeID::INT64) {
             hashIndexForInt64 = std::make_unique<HashIndex<int64_t>>(
-                dbFileIDAndName, readOnly, keyDataType, bufferManager, wal);
+                dbFileIDAndName, readOnly, keyDataType, bufferManager, wal, vfs);
         } else {
             hashIndexForString = std::make_unique<HashIndex<common::ku_string_t>>(
-                dbFileIDAndName, readOnly, keyDataType, bufferManager, wal);
+                dbFileIDAndName, readOnly, keyDataType, bufferManager, wal, vfs);
         }
     }
 

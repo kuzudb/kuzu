@@ -21,7 +21,7 @@ public:
         : pkIndex{nullptr}, readerSharedState{nullptr}, distinctSharedState{nullptr},
           currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {};
 
-    void init();
+    void init(common::VirtualFileSystem* vfs);
 
     inline common::offset_t getNextNodeGroupIdx() {
         std::unique_lock<std::mutex> lck{mtx};

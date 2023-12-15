@@ -9,6 +9,7 @@
 #include "common/exception/buffer_manager.h"
 #include <errhandlingapi.h>
 #include <handleapi.h>
+#include <io.h>
 #include <memoryapi.h>
 #else
 #include <sys/mman.h>
@@ -273,7 +274,7 @@ std::unique_ptr<function::TableFuncBindData> NpyScanFunction::bindFunc(
         reader->validate(*resultColumnTypes[i], numRows);
     }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->mm, scanInput->config);
+        std::move(resultColumnNames), scanInput->mm, scanInput->config, scanInput->vfs);
 }
 
 std::unique_ptr<function::TableFuncSharedState> NpyScanFunction::initSharedState(

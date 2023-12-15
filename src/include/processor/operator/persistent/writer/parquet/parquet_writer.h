@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/data_chunk/data_chunk.h"
-#include "common/file_utils.h"
+#include "common/file_system/file_info.h"
 #include "common/types/types.h"
 #include "parquet/parquet_types.h"
 #include "processor/operator/persistent/writer/parquet/column_writer.h"
@@ -23,7 +23,7 @@ public:
     void close() override {}
 
     inline void write_virt(const uint8_t* buf, uint32_t len) override {
-        common::FileUtils::writeToFile(fileInfo, buf, len, offset);
+        fileInfo->writeFile(buf, len, offset);
         offset += len;
     }
 
@@ -41,11 +41,11 @@ class ParquetWriter {
 public:
     ParquetWriter(std::string fileName, std::vector<std::unique_ptr<common::LogicalType>> types,
         std::vector<std::string> names, kuzu_parquet::format::CompressionCodec::type codec,
-        storage::MemoryManager* mm);
+        storage::MemoryManager* mm, common::VirtualFileSystem* vfs);
 
     inline common::offset_t getOffset() const { return fileOffset; }
     inline void write(const uint8_t* buf, uint32_t len) {
-        common::FileUtils::writeToFile(fileInfo.get(), buf, len, fileOffset);
+        fileInfo->writeFile(buf, len, fileOffset);
         fileOffset += len;
     }
     inline kuzu_parquet::format::CompressionCodec::type getCodec() { return codec; }

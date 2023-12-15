@@ -16,9 +16,9 @@ namespace catalog {
 
 class Catalog {
 public:
-    Catalog();
+    explicit Catalog(common::VirtualFileSystem* vfs);
 
-    explicit Catalog(storage::WAL* wal);
+    Catalog(storage::WAL* wal, common::VirtualFileSystem* vfs);
 
     // TODO(Guodong): Get rid of the following.
     inline CatalogContent* getReadOnlyVersion() const { return readOnlyVersion.get(); }
@@ -56,8 +56,9 @@ public:
         }
     }
 
-    static inline void saveInitialCatalogToFile(const std::string& directory) {
-        std::make_unique<Catalog>()->getReadOnlyVersion()->saveToFile(
+    static inline void saveInitialCatalogToFile(
+        const std::string& directory, common::VirtualFileSystem* vfs) {
+        std::make_unique<Catalog>(vfs)->getReadOnlyVersion()->saveToFile(
             directory, common::FileVersionType::ORIGINAL);
     }
 

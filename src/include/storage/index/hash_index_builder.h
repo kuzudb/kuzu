@@ -73,7 +73,8 @@ protected:
 template<typename T>
 class HashIndexBuilder : public BaseHashIndex {
 public:
-    HashIndexBuilder(const std::string& fName, const common::LogicalType& keyDataType);
+    HashIndexBuilder(const std::string& fName, const common::LogicalType& keyDataType,
+        common::VirtualFileSystem* vfs);
 
 public:
     // Reserves space for at least the specified number of elements.
@@ -125,7 +126,8 @@ private:
 
 class PrimaryKeyIndexBuilder {
 public:
-    PrimaryKeyIndexBuilder(const std::string& fName, const common::LogicalType& keyDataType);
+    PrimaryKeyIndexBuilder(const std::string& fName, const common::LogicalType& keyDataType,
+        common::VirtualFileSystem* vfs);
 
     inline void lock() { mtx.lock(); }
 

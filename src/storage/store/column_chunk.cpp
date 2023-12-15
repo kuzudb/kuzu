@@ -15,8 +15,8 @@ namespace storage {
 ColumnChunkMetadata fixedSizedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     KU_ASSERT(dataFH->getNumPages() >= startPageIdx + metadata.numPages);
-    FileUtils::writeToFile(dataFH->getFileInfo(), buffer, bufferSize,
-        startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+    dataFH->getFileInfo()->writeFile(
+        buffer, bufferSize, startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
     return ColumnChunkMetadata(
         startPageIdx, metadata.numPages, metadata.numValues, metadata.compMeta);
 }
@@ -68,7 +68,7 @@ public:
             }
             KU_ASSERT(numPages < metadata.numPages);
             KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
-            FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(),
+            dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
                 BufferPoolConstants::PAGE_4KB_SIZE,
                 (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
             numPages++;
@@ -76,7 +76,7 @@ public:
         // Make sure that the file is the right length
         if (numPages < metadata.numPages) {
             memset(compressedBuffer.get(), 0, BufferPoolConstants::PAGE_4KB_SIZE);
-            FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(),
+            dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
                 BufferPoolConstants::PAGE_4KB_SIZE,
                 (startPageIdx + metadata.numPages - 1) * BufferPoolConstants::PAGE_4KB_SIZE);
         }

@@ -26,7 +26,8 @@ public:
         catalog = getCatalog(*database);
         profiler = std::make_unique<Profiler>();
         executionContext = std::make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
-            getMemoryManager(*database), getBufferManager(*database), getClientContext(*conn));
+            getMemoryManager(*database), getBufferManager(*database), getClientContext(*conn),
+            getFileSystem(*database));
     }
 
     void initWithoutLoadingGraph() {

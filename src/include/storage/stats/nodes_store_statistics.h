@@ -15,26 +15,25 @@ class NodesStoreStatsAndDeletedIDs : public TablesStatistics {
 public:
     // Should only be used by saveInitialNodesStatisticsAndDeletedIDsToFile to start a database
     // from an empty directory.
-    NodesStoreStatsAndDeletedIDs() : TablesStatistics{nullptr, nullptr, nullptr} {};
+    explicit NodesStoreStatsAndDeletedIDs(common::VirtualFileSystem* vfs)
+        : TablesStatistics{
+              nullptr /* metadataFH */, nullptr /* bufferManager */, nullptr /* wal */, vfs} {};
     // Should be used when an already loaded database is started from a directory.
     NodesStoreStatsAndDeletedIDs(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        common::VirtualFileSystem* vfs,
         common::FileVersionType dbFileType = common::FileVersionType::ORIGINAL)
-        : TablesStatistics{metadataFH, bufferManager, wal} {
-        readFromFile(wal->getDirectory(), dbFileType);
+        : TablesStatistics{metadataFH, bufferManager, wal, vfs} {
+        readFromFile(dbFileType);
     }
-
-    // Should be used only by tests;
-    explicit NodesStoreStatsAndDeletedIDs(
-        std::unordered_map<common::table_id_t, std::unique_ptr<NodeTableStatsAndDeletedIDs>>&
-            nodesStatisticsAndDeletedIDs);
 
     inline NodeTableStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs(
         common::table_id_t tableID) const {
         return getNodeTableStats(transaction::TransactionType::READ_ONLY, tableID);
     }
 
-    static inline void saveInitialNodesStatisticsAndDeletedIDsToFile(const std::string& directory) {
-        std::make_unique<NodesStoreStatsAndDeletedIDs>()->saveToFile(
+    static inline void saveInitialNodesStatisticsAndDeletedIDsToFile(
+        common::VirtualFileSystem* vfs, const std::string& directory) {
+        std::make_unique<NodesStoreStatsAndDeletedIDs>(vfs)->saveToFile(
             directory, common::FileVersionType::ORIGINAL, transaction::TransactionType::READ_ONLY);
     }
 
@@ -95,7 +94,7 @@ protected:
 
     inline std::string getTableStatisticsFilePath(
         const std::string& directory, common::FileVersionType dbFileType) override {
-        return StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(directory, dbFileType);
+        return StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs, directory, dbFileType);
     }
 
 private:

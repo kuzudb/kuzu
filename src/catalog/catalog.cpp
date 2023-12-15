@@ -12,12 +12,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace catalog {
 
-Catalog::Catalog() : wal{nullptr} {
-    readOnlyVersion = std::make_unique<CatalogContent>();
+Catalog::Catalog(VirtualFileSystem* vfs) : wal{nullptr} {
+    readOnlyVersion = std::make_unique<CatalogContent>(vfs);
 }
 
-Catalog::Catalog(WAL* wal) : wal{wal} {
-    readOnlyVersion = std::make_unique<CatalogContent>(wal->getDirectory());
+Catalog::Catalog(WAL* wal, VirtualFileSystem* vfs) : wal{wal} {
+    readOnlyVersion = std::make_unique<CatalogContent>(wal->getDirectory(), vfs);
 }
 
 uint64_t Catalog::getTableCount(Transaction* tx) const {

@@ -16,7 +16,8 @@ struct TablesStatisticsContent {
 class WAL;
 class TablesStatistics {
 public:
-    TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal);
+    TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        common::VirtualFileSystem* vfs);
 
     virtual ~TablesStatistics() = default;
 
@@ -77,8 +78,8 @@ protected:
     virtual std::string getTableStatisticsFilePath(
         const std::string& directory, common::FileVersionType dbFileType) = 0;
 
-    void readFromFile(const std::string& directory);
-    void readFromFile(const std::string& directory, common::FileVersionType dbFileType);
+    void readFromFile();
+    void readFromFile(common::FileVersionType dbFileType);
 
     void saveToFile(const std::string& directory, common::FileVersionType dbFileType,
         transaction::TransactionType transactionType);
@@ -88,10 +89,12 @@ protected:
 protected:
     BMFileHandle* metadataFH;
     BufferManager* bufferManager;
+    common::VirtualFileSystem* vfs;
     WAL* wal;
     std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForReadOnlyTrx;
     std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForWriteTrx;
     std::mutex mtx;
 };
+
 } // namespace storage
 } // namespace kuzu

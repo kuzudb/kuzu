@@ -14,7 +14,7 @@ namespace storage {
 class StorageManager {
 public:
     StorageManager(bool readOnly, const catalog::Catalog& catalog, MemoryManager& memoryManager,
-        WAL* wal, bool enableCompression);
+        WAL* wal, bool enableCompression, common::VirtualFileSystem* vfs);
 
     void createTable(common::table_id_t tableID, catalog::Catalog* catalog,
         transaction::Transaction* transaction);
@@ -65,6 +65,7 @@ private:
     MemoryManager& memoryManager;
     WAL* wal;
     bool enableCompression;
+    common::VirtualFileSystem* vfs;
 };
 
 } // namespace storage

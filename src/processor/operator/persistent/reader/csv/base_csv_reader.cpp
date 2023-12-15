@@ -1,15 +1,11 @@
 #include "processor/operator/persistent/reader/csv/base_csv_reader.h"
 
 #include <fcntl.h>
-#if defined(_WIN32)
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
 
 #include <vector>
 
 #include "common/exception/copy.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/system_message.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
@@ -19,28 +15,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-BaseCSVReader::BaseCSVReader(
-    const std::string& filePath, const common::CSVOption& option, uint64_t numColumns)
-    : filePath{filePath}, option{option}, numColumns(numColumns), fd(-1), buffer(nullptr),
-      bufferSize(0), position(0), osFileOffset(0), rowEmpty(false) {
-    // TODO(Ziyi): should we wrap this fd using kuzu file handler?
-    fd = open(filePath.c_str(), O_RDONLY
+BaseCSVReader::BaseCSVReader(const std::string& filePath, const common::CSVOption& option,
+    uint64_t numColumns, VirtualFileSystem* vfs)
+    : option{option}, numColumns(numColumns), buffer(nullptr), bufferSize(0), position(0),
+      osFileOffset(0), rowEmpty(false) {
+    fileInfo = vfs->openFile(filePath, O_RDONLY
 #ifdef _WIN32
-                                    | _O_BINARY
+                                           | _O_BINARY
 #endif
     );
-    if (fd == -1) {
-        // LCOV_EXCL_START
-        throw CopyException(
-            stringFormat("Could not open file {}: {}", filePath, posixErrMessage()));
-        // LCOV_EXCL_STOP
-    }
-}
-
-BaseCSVReader::~BaseCSVReader() {
-    if (fd != -1) {
-        close(fd);
-    }
 }
 
 uint64_t BaseCSVReader::countRows() {
@@ -127,17 +110,17 @@ escape:
 
 bool BaseCSVReader::isEOF() const {
     uint64_t offset = getFileOffset();
-    off_t end = lseek(fd, 0, SEEK_END);
+    auto end = fileInfo->seek(0, SEEK_END);
     if (end == -1) {
         // LCOV_EXCL_START
-        throw CopyException(
-            stringFormat("Could not seek to end of file {}: {}", filePath, posixErrMessage()));
+        throw CopyException(stringFormat(
+            "Could not seek to end of file {}: {}", fileInfo->path, posixErrMessage()));
         // LCOV_EXCL_STOP
     }
-    if (lseek(fd, offset, SEEK_SET) == -1) {
+    if (fileInfo->seek(offset, SEEK_SET) == -1) {
         // LCOV_EXCL_START
-        throw CopyException(
-            stringFormat("Could not reset position of file {}: {}", filePath, posixErrMessage()));
+        throw CopyException(stringFormat(
+            "Could not reset position of file {}: {}", fileInfo->path, posixErrMessage()));
         // LCOV_EXCL_STOP
     }
     return offset >= (uint64_t)end;
@@ -214,12 +197,11 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
         KU_ASSERT(start != nullptr);
         memcpy(buffer.get(), oldBuffer.get() + *start, remaining);
     }
-
-    auto readCount = read(fd, buffer.get() + remaining, bufferReadSize);
+    auto readCount = fileInfo->readFile(buffer.get() + remaining, bufferReadSize);
     if (readCount == -1) {
         // LCOV_EXCL_START
         throw CopyException(
-            stringFormat("Could not read from file {}: {}", filePath, posixErrMessage()));
+            stringFormat("Could not read from file {}: {}", fileInfo->path, posixErrMessage()));
         // LCOV_EXCL_STOP
     }
     osFileOffset += readCount;
@@ -350,7 +332,7 @@ in_quotes:
     [[unlikely]]
     // still in quoted state at the end of the file, error:
     throw CopyException(stringFormat(
-        "Error in file {} on line {}: unterminated quotes.", filePath, getLineNumber()));
+        "Error in file {} on line {}: unterminated quotes.", fileInfo->path, getLineNumber()));
 unquote:
     KU_ASSERT(hasQuotes && buffer[position] == option.quoteChar);
     // this state handles the state directly after we unquote
@@ -378,20 +360,21 @@ unquote:
             stringFormat("Error in file {} on line {}: quote should be followed by "
                          "end of file, end of value, end of "
                          "row or another quote.",
-                filePath, getLineNumber()));
+                fileInfo->path, getLineNumber()));
     }
 handle_escape:
     /* state: handle_escape */
     // escape should be followed by a quote or another escape character
     position++;
     if (!maybeReadBuffer(&start)) {
-        [[unlikely]] throw CopyException(stringFormat(
-            "Error in file {} on line {}: escape at end of file.", filePath, getLineNumber()));
+        [[unlikely]] throw CopyException(
+            stringFormat("Error in file {} on line {}: escape at end of file.", fileInfo->path,
+                getLineNumber()));
     }
     if (buffer[position] != option.quoteChar && buffer[position] != option.escapeChar) {
         [[unlikely]] throw CopyException(stringFormat(
             "Error in file {} on line {}: neither QUOTE nor ESCAPE is proceeded by ESCAPE.",
-            filePath, getLineNumber()));
+            fileInfo->path, getLineNumber()));
     }
     // escape was followed by quote or escape, go back to quoted state
     goto in_quotes;
@@ -444,21 +427,21 @@ uint64_t BaseCSVReader::getLineNumber() {
     uint64_t lineNumber = 1;
     const uint64_t BUF_SIZE = 4096;
     char buf[BUF_SIZE];
-    if (lseek(fd, 0, SEEK_SET) == -1) {
+    if (fileInfo->seek(0, SEEK_SET) == -1) {
         // LCOV_EXCL_START
         throw CopyException(stringFormat(
-            "Could not seek to beginning of file {}: {}", filePath, posixErrMessage()));
+            "Could not seek to beginning of file {}: {}", fileInfo->path, posixErrMessage()));
         // LCOV_EXCL_STOP
     }
 
     bool carriageReturn = false;
     uint64_t totalBytes = 0;
     do {
-        auto bytesRead = read(fd, buf, std::min(BUF_SIZE, offset - totalBytes));
+        auto bytesRead = fileInfo->readFile(buf, std::min(BUF_SIZE, offset - totalBytes));
         if (bytesRead == -1) {
             // LCOV_EXCL_START
             throw CopyException(
-                stringFormat("Could not read from file {}: {}", filePath, posixErrMessage()));
+                stringFormat("Could not read from file {}: {}", fileInfo->path, posixErrMessage()));
             // LCOV_EXCL_STOP
         }
         totalBytes += bytesRead;

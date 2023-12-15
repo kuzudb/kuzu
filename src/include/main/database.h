@@ -98,6 +98,7 @@ private:
 private:
     std::string databasePath;
     SystemConfig systemConfig;
+    std::unique_ptr<common::VirtualFileSystem> vfs;
     std::unique_ptr<storage::BufferManager> bufferManager;
     std::unique_ptr<storage::MemoryManager> memoryManager;
     std::unique_ptr<processor::QueryProcessor> queryProcessor;

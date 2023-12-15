@@ -4,7 +4,7 @@
 #include <list>
 
 #include "common/assert.h"
-#include "common/file_utils.h"
+#include "common/file_system/file_info.h"
 #include "thrift/transport/TVirtualTransport.h"
 
 namespace kuzu {
@@ -107,8 +107,7 @@ struct ReadAheadBuffer {
             if (read_head.GetEnd() > handle->getFileSize()) {
                 throw std::runtime_error("Prefetch registered requested for bytes outside file");
             }
-            common::FileUtils::readFromFile(
-                handle, read_head.data.get(), read_head.size, read_head.location);
+            handle->readFromFile(read_head.data.get(), read_head.size, read_head.location);
             read_head.data_isset = true;
         }
     }
@@ -131,8 +130,8 @@ public:
 
             if (!prefetch_buffer->data_isset) {
                 prefetch_buffer->Allocate();
-                common::FileUtils::readFromFile(handle, prefetch_buffer->data.get(),
-                    prefetch_buffer->size, prefetch_buffer->location);
+                handle->readFromFile(
+                    prefetch_buffer->data.get(), prefetch_buffer->size, prefetch_buffer->location);
                 prefetch_buffer->data_isset = true;
             }
             memcpy(buf, prefetch_buffer->data.get() + location - prefetch_buffer->location, len);
@@ -148,7 +147,7 @@ public:
                         prefetch_buffer_fallback->location,
                     len);
             } else {
-                common::FileUtils::readFromFile(handle, buf, len, location);
+                handle->readFromFile(buf, len, location);
             }
         }
         location += len;

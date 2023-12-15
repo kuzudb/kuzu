@@ -1,9 +1,11 @@
 #include "storage/storage_structure/in_mem_file.h"
 
+#include <fcntl.h>
+
 #include "common/constants.h"
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
-#include "common/file_utils.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/type_utils.h"
 
 using namespace kuzu::common;
@@ -11,8 +13,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-InMemFile::InMemFile(std::string filePath)
+InMemFile::InMemFile(std::string filePath, common::VirtualFileSystem* vfs)
     : filePath{std::move(filePath)}, nextPageIdxToAppend{0}, nextOffsetInPageToAppend{0} {
+    fileInfo = vfs->openFile(this->filePath, O_CREAT | O_WRONLY);
     addANewPage();
 }
 
@@ -65,10 +68,9 @@ void InMemFile::flush() {
     if (filePath.empty()) {
         throw CopyException("InMemPages: Empty filename");
     }
-    auto fileInfo = FileUtils::openFile(filePath, O_CREAT | O_WRONLY);
     for (auto pageIdx = 0u; pageIdx < pages.size(); pageIdx++) {
-        FileUtils::writeToFile(fileInfo.get(), pages[pageIdx]->data,
-            BufferPoolConstants::PAGE_4KB_SIZE, pageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+        fileInfo->writeFile(pages[pageIdx]->data, BufferPoolConstants::PAGE_4KB_SIZE,
+            pageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
     }
 }
 

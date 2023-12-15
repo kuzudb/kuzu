@@ -1,5 +1,8 @@
 #include "processor/operator/persistent/copy_to_csv.h"
 
+#include <fcntl.h>
+
+#include "common/file_system/virtual_file_system.h"
 #include "function/cast/vector_cast_functions.h"
 
 namespace kuzu {
@@ -190,14 +193,14 @@ void CopyToCSVLocalState::writeHeader(CopyToSharedState* sharedState, CopyToCSVI
     serializer->writeBufferData(CopyToCSVConstants::DEFAULT_CSV_NEWLINE);
 }
 
-void CopyToCSVSharedState::init(CopyToInfo* info, MemoryManager* /*mm*/) {
-    fileInfo = FileUtils::openFile(info->fileName, O_WRONLY | O_CREAT | O_TRUNC);
+void CopyToCSVSharedState::init(CopyToInfo* info, MemoryManager* /*mm*/, VirtualFileSystem* vfs) {
+    fileInfo = vfs->openFile(info->fileName, O_WRONLY | O_CREAT | O_TRUNC);
     outputHeader = ku_dynamic_ptr_cast<CopyToInfo, CopyToCSVInfo>(info)->copyToOption->hasHeader;
 }
 
 void CopyToCSVSharedState::writeRows(const uint8_t* data, uint64_t size) {
     std::lock_guard<std::mutex> lck(mtx);
-    FileUtils::writeToFile(fileInfo.get(), data, size, offset);
+    fileInfo->writeFile(data, size, offset);
     offset += size;
 }
 
