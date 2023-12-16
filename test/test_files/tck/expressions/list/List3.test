@@ -1,0 +1,86 @@
+-GROUP TCKList3
+-DATASET CSV tck
+
+--
+
+
+#  Equality between list and literal should return false
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1, 2] = 'foo' AS res;
+## Outcome: the result should be, in any order:
+---- 1
+false
+
+#  Equality of lists of different length should return false despite nulls
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1] = [1, null] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  Equality between different lists with null should return false
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1, 2] = [null, 'foo'] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  Equality between almost equal lists with null should return null
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1, 2] = [null, 2] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  Equality of nested lists of different length should return false despite nulls
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [[1]] = [[1], [null]] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  Equality between different nested lists with null should return false
+-CASE Scenario6
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [[1, 2], [1, 3]] = [[1, 2], [null, 'foo']] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  Equality between almost equal nested lists with null should return null
+-CASE Scenario7
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [[1, 2], ['foo', 'bar']] = [[1, 2], [null, 'bar']] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+Null

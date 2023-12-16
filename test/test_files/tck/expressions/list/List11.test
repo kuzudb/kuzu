@@ -1,0 +1,493 @@
+-GROUP TCKList11
+-DATASET CSV tck
+
+--
+
+
+#  Create list from `range()` with default step
+-CASE Scenario1
+-STATEMENT RETURN range(-1236, -1234) AS list;
+---- 1
+[-1236,-1235,-1234]
+
+-STATEMENT RETURN range(-1234, -1234) AS list;
+---- 1
+[-1234]
+
+-STATEMENT RETURN range(-10, -3) AS list;
+---- 1
+[-10,-9,-8,-7,-6,-5,-4,-3]
+
+-STATEMENT RETURN range(-10, 0) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0]
+
+-STATEMENT RETURN range(-1, 0) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[-1,0]
+
+-STATEMENT RETURN range(0, -123) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[]
+
+-STATEMENT RETURN range(0, -1) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[]
+
+-STATEMENT RETURN range(-1, 1) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[-1,0,1]
+
+-STATEMENT RETURN range(0, 0) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[0]
+
+-STATEMENT RETURN range(0, 1) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[0,1]
+
+-STATEMENT RETURN range(0, 10) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[0,1,2,3,4,5,6,7,8,9,10]
+
+-STATEMENT RETURN range(6, 10) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[6,7,8,9,10]
+
+-STATEMENT RETURN range(1234, 1234) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[1234]
+
+-STATEMENT RETURN range(1234, 1236) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[1234,1235,1236]
+
+-CASE Scenario2
+-STATEMENT RETURN range(1381, -3412, -1298) AS list;
+## Outcome: the result should be, in any order:
+---- 1
+[1381,83,-1215,-2513]
+
+-STATEMENT RETURN range(0, -2000, -1298) AS list;
+---- 1
+[0,-1298]
+-STATEMENT RETURN range(10, -10, -3) AS list;
+---- 1
+[10,7,4,1,-2,-5,-8]
+-STATEMENT RETURN range(0, -10, -3) AS list;
+---- 1
+[0,-3,-6,-9]
+-STATEMENT RETURN range(0, -20, -2) AS list;
+---- 1
+[0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20]
+-STATEMENT RETURN range(0, -10, -1) AS list;
+---- 1
+[0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10]
+-STATEMENT RETURN range(0, -1, -1) AS list;
+---- 1
+[0,-1]
+-STATEMENT RETURN range(-1236, -1234, 1) AS list;
+---- 1
+[-1236,-1235,-1234]
+-STATEMENT RETURN range(-10, 0, 1) AS list;
+---- 1
+[-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0]
+-STATEMENT RETURN range(-1, 0, 1) AS list;
+---- 1
+[-1,0]
+-STATEMENT RETURN range(0, 1, -123) AS list;
+---- 1
+[]
+-STATEMENT RETURN range(0, 1, -1) AS list;
+---- 1
+[]
+-STATEMENT RETURN range(0, -123, 1) AS list;
+---- 1
+[]
+-STATEMENT RETURN range(0, -1, 1) AS list;
+---- 1
+[]
+-STATEMENT RETURN range(0, 0, -1) AS list;
+---- 1
+[0]
+-STATEMENT RETURN range(0, 0, 1) AS list;
+---- 1
+[0]
+-STATEMENT RETURN range(0, 1, 2) AS list;
+---- 1
+[0]
+-STATEMENT RETURN range(0, 1, 1) AS list;
+---- 1
+[0,1]
+-STATEMENT RETURN range(0, 10, 1) AS list;
+---- 1
+[0,1,2,3,4,5,6,7,8,9,10]
+-STATEMENT RETURN range(6, 10, 1) AS list;
+---- 1
+[6,7,8,9,10]
+-STATEMENT RETURN range(1234, 1234, 1) AS list;
+---- 1
+[1234]
+-STATEMENT RETURN range(1234, 1236, 1) AS list;
+---- 1
+[1234,1235,1236]
+-STATEMENT RETURN range(-10, 0, 3) AS list;
+---- 1
+[-10,-7,-4,-1]
+-STATEMENT RETURN range(-10, 10, 3) AS list;
+---- 1
+[-10,-7,-4,-1,2,5,8]
+-STATEMENT RETURN range(-2000, 0, 1298) AS list;
+---- 1
+[-2000,-702]
+-STATEMENT RETURN range(-3412, 1381, 1298) AS list;
+---- 1
+[-3412,-2114,-816,482]
+
+#  Create an empty list if range direction and step direction are inconsistent
+-CASE Scenario3
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH 0 AS start, [1, 2, 500, 1000, 1500] AS stopList, [-1000, -3, -2, -1, 1, 2, 3, 1000] AS stepList
+           UNWIND stopList AS stop
+           UNWIND stepList AS step
+           WITH start, stop, step, range(start, stop, step) AS list
+           WITH start, stop, step, list, sign(stop-start) <> sign(step) AS empty
+           #RETURN ALL(ok IN collect((size(list) = 0) = empty) WHERE ok) AS okay;
+## Outcome: the result should be, in any order:
+---- 1
+TRUE
+
+#  Fail on invalid arguments for `range()`
+-CASE Scenario4
+-STATEMENT RETURN range(0, 0, 0);
+## Outcome: an ArgumentError should be raised at runtime: NumberOutOfRange
+---- error
+Runtime exception: Step of range cannot be 0.
+
+-STATEMENT RETURN range(2, 8, 0);
+## Outcome: an ArgumentError should be raised at runtime: NumberOutOfRange
+---- error
+Runtime exception: Step of range cannot be 0.
+
+-STATEMENT RETURN range(-2, 8, 0);
+## Outcome: an ArgumentError should be raised at runtime: NumberOutOfRange
+---- error
+Runtime exception: Step of range cannot be 0.
+
+-STATEMENT RETURN range(2, -8, 0);
+## Outcome: an ArgumentError should be raised at runtime: NumberOutOfRange
+---- error
+Runtime exception: Step of range cannot be 0.
+
+#  Fail on invalid argument types for `range()`
+-CASE Scenario5
+-STATEMENT RETURN range(true, 1, 1);
+## Outcome: an Error should be raised at runtime: InvalidArgumentType
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(BOOL,INT64,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, true, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,BOOL,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, 1, true);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,INT64,BOOL). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(-1.1, 1, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(DOUBLE,INT64,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(-0.0, 1, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(DOUBLE,INT64,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0.0, 1, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(DOUBLE,INT64,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(1.1, 1, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(DOUBLE,INT64,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, -1.1, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,DOUBLE,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, -0.0, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,DOUBLE,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, 0.0, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,DOUBLE,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, 1.1, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,DOUBLE,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, 1, -1.1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,INT64,DOUBLE). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, 1, 1.1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,INT64,DOUBLE). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range('xyz', 1, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(STRING,INT64,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, 'xyz', 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,STRING,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, 1, 'xyz');
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,INT64,STRING). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range([0], 1, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(VAR_LIST,INT64,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, [1], 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,VAR_LIST,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range(0, 1, [1]);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,INT64,VAR_LIST). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+-STATEMENT RETURN range({start: 0}, 1, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(STRUCT,INT64,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+
+
+-STATEMENT RETURN range(0, 1, {step: 1});
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,INT64,STRUCT). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST

@@ -1,0 +1,32 @@
+-GROUP TCKAggregation3
+-DATASET CSV tck
+
+--
+
+
+#  Sum only non-null values
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'a', num: 33}), (:A {name: 'a'}), (:A {name: 'a', num: 42});
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n.name, sum(n.num);
+## Outcome: the result should be, in any order:
+---- 1
+a|75
+
+#  No overflow during summation
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND range(1000000, 2000000) AS i
+           WITH i
+           LIMIT 3000
+           RETURN sum(i);
+## Outcome: the result should be, in any order:
+---- 1
+3004498500

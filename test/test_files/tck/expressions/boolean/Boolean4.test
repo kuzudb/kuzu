@@ -1,0 +1,66 @@
+-GROUP TCKBoolean4
+-DATASET CSV tck
+
+--
+
+
+#  Logical negation of truth values
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN NOT true AS nt, NOT false AS nf, NOT null AS nn;
+## Outcome: the result should be, in any order:
+---- 1
+False|True|
+
+#  Double logical negation of truth values
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN NOT NOT true AS nnt, NOT NOT false AS nnf, NOT NOT null AS nnn;
+## Outcome: the result should be, in any order:
+---- 1
+true | false | null
+
+#  NOT and false
+-CASE Scenario3
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (A:{name: 'a'});
+-STATEMENT MATCH (n)
+           WHERE NOT(n.name = 'apa' AND false)
+           RETURN n;
+## Outcome: the result should be, in any order:
+---- 1
+{name: 'a'}
+
+#  Fail when using NOT on a non-boolean literal
+-CASE Scenario4
+-STATEMENT RETURN NOT 0;
+---- error
+Binder exception: Expression 0 has data type INT64 but expected BOOL. Implicit cast is not supported.
+-STATEMENT RETURN NOT 1;
+---- error
+Binder exception: Expression 1 has data type INT64 but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN NOT 123;
+---- error
+Binder exception: Expression 123 has data type INT64 but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN NOT 123.4;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN NOT '';
+## Outcome: a SyntaxError should be raised at compile time: InvalidArgumentType
+---- error
+Binder exception: Expression  has data type STRING but expected BOOL. Implicit cast is not supported.
+
+

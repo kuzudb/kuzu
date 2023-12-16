@@ -1,0 +1,351 @@
+-GROUP TCKComparison1
+-DATASET CSV tck
+
+--
+
+
+#  Number-typed integer comparison
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({id: 0});
+-STATEMENT WITH collect([0, 0.0]) AS numbers
+           UNWIND numbers AS arr
+           WITH arr[0] AS expected
+           MATCH (n) WHERE toInteger(n.id) = expected
+           RETURN n;
+## Outcome: the result should be, in any order:
+---- 1
+{id: 0}
+
+#  Number-typed float comparison
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({id: 0});
+-STATEMENT WITH collect([0.5, 0]) AS numbers
+           UNWIND numbers AS arr
+           WITH arr[0] AS expected
+           MATCH (n) WHERE toInteger(n.id) = expected
+           RETURN n;
+## Outcome: the result should be, in any order:
+---- 0
+
+#  Any-typed string comparison
+-CASE Scenario3
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({id: 0});
+-STATEMENT WITH collect(['0', 0]) AS things
+           UNWIND things AS arr
+           WITH arr[0] AS expected
+           MATCH (n) WHERE toInteger(n.id) = expected
+           RETURN n;
+## Outcome: the result should be, in any order:
+---- 0
+
+#  Comparing nodes to nodes
+-CASE Scenario4
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ();
+-STATEMENT MATCH (a)
+           WITH a
+           MATCH (b)
+           WHERE a = b
+           RETURN count(b);
+## Outcome: the result should be, in any order:
+---- 1
+1
+
+#  Comparing relationships to relationships
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ()-[:T]->();
+-STATEMENT MATCH ()-[a]->()
+           WITH a
+           MATCH ()-[b]->()
+           WHERE a = b
+           RETURN count(b);
+## Outcome: the result should be, in any order:
+---- 1
+1
+
+
+#  Comparing lists to lists
+-CASE Scenario6
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN [1, 2] = [1] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN [null] = [1] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN ['a'] = [1] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  Comparing maps to maps
+-CASE Scenario7
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+
+-STATEMENT RETURN {k: True} = {k: True} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+-STATEMENT RETURN {k: 1} = {k: 1} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+-STATEMENT RETURN {k: 1.0} = {k: 1.0} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+-STATEMENT RETURN {k: 'abc'} = {k: 'abc'} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+-STATEMENT RETURN {k: 'a', l: 2} = {k: 'a', l: 2} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+-STATEMENT RETURN {k: 1} = {k: 1, l: null} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN {k: null, l: 1} = {l: 1} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN {k: null} = {k: null, l: null} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN {k: null} = {k: null} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+-STATEMENT RETURN {k: 1} = {k: null} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN {k: 1, l: null} = {k: null, l: null} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN {k: 1, l: null} = {k: null, l: 1} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN {k: 1, l: null} = {k: 1, l: 1} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#invalids in case7
+-CASE Scenario7_error
+-SKIP
+-STATEMENT RETURN {} = {} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+
+-STATEMENT RETURN {} = {k: null} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN {k: null} = {} AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+
+#  Equality and inequality of NaN
+-CASE Scenario8
+## Context: any graph
+-STATEMENT RETURN 0.0 / 0.0 = 1 AS isEqual, 0.0 / 0.0 <> 1 AS isNotEqual;
+## Outcome: the result should be, in any order:
+---- 1
+False|True
+
+-STATEMENT RETURN 0.0 / 0.0 = 1.0 AS isEqual, 0.0 / 0.0 <> 1.0 AS isNotEqual;
+## Outcome: the result should be, in any order:
+---- 1
+False|True
+
+-STATEMENT RETURN 0.0 / 0.0 = 0.0 / 0.0 AS isEqual, 0.0 / 0.0 <> 0.0 / 0.0 AS isNotEqual;
+## Outcome: the result should be, in any order:
+---- 1
+False|True
+
+-CASE Scenario8_error
+-SKIP
+-STATEMENT RETURN 0.0 / 0.0 = 'a' AS isEqual, 0.0 / 0.0 <> 'a' AS isNotEqual;
+## Outcome: the result should be, in any order:
+---- 1
+False|True
+
+
+#  Equality between strings and numbers
+-CASE Scenario9
+## Context: any graph
+-STATEMENT RETURN 1.0 = 1.0 AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+-STATEMENT RETURN 1 = 1.0 AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#cannot compare string and number
+-CASE Scenario9_error
+-SKIP
+-STATEMENT RETURN '1.0' = 1.0 AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN '1' = 1 AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+
+#  Handling inlined equality of large integer
+-CASE Scenario10
+## VERIFY
+-STATEMENT CREATE NODE TABLE TheLabel(ID SERIAL, name INT128, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:TheLabel {name: 4611686018427387905});
+---- ok
+-STATEMENT MATCH (p:TheLabel {name: 4611686018427387905})
+           RETURN p.name;
+## Outcome: the result should be, in any order:
+---- 1
+4611686018427387905
+
+#  Handling explicit equality of large integer
+-CASE Scenario11
+## VERIFY
+-STATEMENT CREATE NODE TABLE TheLabel(ID SERIAL, name INT128, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:TheLabel {name: 4611686018427387905});
+---- ok
+-STATEMENT MATCH (p:TheLabel)
+           WHERE p.name = 4611686018427387905
+           RETURN p.name;
+## Outcome: the result should be, in any order:
+---- 1
+4611686018427387905
+
+#  Handling inlined equality of large integer, non-equal values
+-CASE Scenario12
+## VERIFY
+-STATEMENT CREATE NODE TABLE TheLabel(ID SERIAL, name INT128, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:TheLabel {name: 4611686018427387905});
+-STATEMENT MATCH (p:TheLabel {name : 4611686018427387900})
+           RETURN p.name;
+## Outcome: the result should be, in any order:
+---- 0
+
+#  Handling explicit equality of large integer, non-equal values
+-CASE Scenario13
+## VERIFY
+-STATEMENT CREATE NODE TABLE TheLabel(ID SERIAL, name INT128, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:TheLabel {name: 4611686018427387905});
+-STATEMENT MATCH (p:TheLabel)
+           WHERE p.name = 4611686018427387900
+           RETURN p.name;
+## Outcome: the result should be, in any order:
+---- 0
+
+#  Direction of traversed relationship is not significant for path equality, simple
+-CASE Scenario14
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE R(FROM A TO A);
+---- ok
+-STATEMENT CREATE (n:A)-[:R]->(n);
+
+-STATEMENT MATCH p1 = (:A)-->()
+           MATCH p2 = (:A)<--()
+           RETURN p1 = p2;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#  It is unknown - i.e. null - if a null is equal to a null
+-CASE Scenario15
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN null = null AS value;
+## Outcome: the result should be, in any order:
+---- 1
+
+
+#  It is unknown - i.e. null - if a null is not equal to a null
+-CASE Scenario16
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN null <> null AS value;
+## Outcome: the result should be, in any order:
+---- 1
+
+
+#  Failing when comparing to an undefined variable
+-CASE Scenario17
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT MATCH (s)
+           WHERE s.name = undefinedVariable
+             AND s.age = 10
+           RETURN s;
+## Outcome: a SyntaxError should be raised at compile time: UndefinedVariable
+---- error
+Binder exception: Variable undefinedVariable is not in scope.

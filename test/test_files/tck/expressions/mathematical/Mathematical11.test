@@ -1,0 +1,15 @@
+-GROUP TCKMathematical11
+-DATASET CSV tck
+
+--
+
+#  Absolute function
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN abs(-1);
+## Outcome: the result should be, in any order:
+---- 1
+1

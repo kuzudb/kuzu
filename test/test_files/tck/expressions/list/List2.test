@@ -1,0 +1,191 @@
+-GROUP TCKList2
+-DATASET CSV tck
+
+--
+
+#  List slice
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3, 4, 5] AS list
+           RETURN list[2:4];
+## Outcome: the result should be, in any order:
+---- 1
+[2,3]
+
+#  List slice with implicit end
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[2:] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+[2]
+
+#  List slice with implicit start
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[:3] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+[1,2]
+
+#  List slice with singleton range
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[1:2] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+[1]
+
+#  List slice with empty range
+-CASE Scenario5
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[1:1] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+[]
+
+#  List slice with negative range
+-CASE Scenario6
+-SKIP
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[-3:-1] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+[1,2]
+
+#  List slice with invalid range
+-CASE Scenario7
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[3:1] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+[]
+
+#  List slice with exceeding range
+-CASE Scenario8
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[-5:5] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+[1,2,3]
+
+#  List slice with null range
+-CASE Scenario9
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[null:null] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+
+
+#  List slice with null range
+-CASE Scenario10
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[1:null] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+
+
+#  List slice with null range
+-CASE Scenario11
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[null:3] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+
+
+#  List slice with null range
+-CASE Scenario12
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[:null] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+
+
+#  List slice with null range
+-CASE Scenario13
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[null:] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+
+
+#  List slice with parameterised range
+-CASE Scenario14
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+## Context: parameters are:
+#parameters are:
+#from | 1
+#to | 3
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[$from..$to] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+[2, 3]
+
+#  List slice with parameterised invalid range
+-CASE Scenario15
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+## Context: parameters are:
+#parameters are:
+#from | 3
+#to | 1
+-STATEMENT WITH [1, 2, 3] AS list
+           RETURN list[$from..$to] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+[]

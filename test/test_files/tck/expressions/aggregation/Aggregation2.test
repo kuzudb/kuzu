@@ -1,0 +1,155 @@
+-GROUP TCKAggregation2
+-DATASET CSV tck
+
+--
+
+
+#  `max()` over integers
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [1,2,0,null,-1] AS x
+           RETURN max(x);
+## Outcome: the result should be, in any order:
+---- 1
+2
+
+#  `min()` over integers
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [1,2,0,null,-1] AS x
+           RETURN min(x);
+## Outcome: the result should be, in any order:
+---- 1
+-1
+
+#  `max()` over floats
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [1.0,2.0,0.5,null] AS x
+           RETURN max(x);
+## Outcome: the result should be, in any order:
+---- 1
+2.000000
+
+#  `min()` over floats
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [1.0,2.0,0.5,null] AS x
+           RETURN min(x);
+## Outcome: the result should be, in any order:
+---- 1
+0.500000
+
+#  `max()` over mixed numeric values
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [1,2.0,5,null,3.2,0.1] AS x
+           RETURN max(x);
+## Outcome: the result should be, in any order:
+---- 1
+5
+
+#  `min()` over mixed numeric values
+-CASE Scenario6
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [1,2.0,5,null,3.2,0.1] AS x
+           RETURN min(x);
+## Outcome: the result should be, in any order:
+---- 1
+0.1
+
+#  `max()` over strings
+-CASE Scenario7
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND ['a','b','B',null,'abc','abc1'] AS i
+           RETURN max(i);
+## Outcome: the result should be, in any order:
+---- 1
+b
+
+#  `min()` over strings
+-CASE Scenario8
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND ['a','b','B',null,'abc','abc1'] AS i
+           RETURN min(i);
+## Outcome: the result should be, in any order:
+---- 1
+B
+
+#  `max()` over list values
+-CASE Scenario9
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [[1],[2],[2, 1]] AS x
+           RETURN max(x);
+## Outcome: the result should be, in any order:
+---- 1
+[2,1]
+
+#  `min()` over list values
+-CASE Scenario10
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [[1],[2],[2, 1]] AS x
+           RETURN min(x);
+## Outcome: the result should be, in any order:
+---- 1
+[1]
+
+#  `max()` over mixed values
+-CASE Scenario11
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [1,'a',null,[1, 2],0.2,'b'] AS x
+           RETURN max(x);
+## Outcome: the result should be, in any order:
+---- 1
+1
+
+#  `min()` over mixed values
+-CASE Scenario12
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [1,'a',null,[1, 2],0.2,'b'] AS x
+           RETURN min(x);
+## Outcome: the result should be, in any order:
+---- 1
+[1,2]

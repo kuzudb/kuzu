@@ -1,0 +1,55 @@
+-GROUP TCKList6
+-DATASET CSV tck
+
+--
+
+
+#  Return list size
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN size([1, 2, 3]) AS n;
+## Outcome: the result should be, in any order:
+---- 1
+3
+
+#  Setting and returning the size of a list property
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE TheLabel(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:TheLabel);
+-STATEMENT MATCH (n:TheLabel)
+           SET n.numbers = [1, 2, 3]
+           RETURN size(n.numbers);
+## Outcome: the result should be, in any order:
+---- 1
+3
+## Outcome: the side effects should be:
+---- 0
+
+#  Concatenating and returning the size of literal lists
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN size([[], []] + [[]]) AS l;
+## Outcome: the result should be, in any order:
+---- 1
+3
+
+#  `size()` on null list
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH null AS l
+           RETURN size(l), size(null);
+## Outcome: the result should be, in any order:
+---- 1
+|

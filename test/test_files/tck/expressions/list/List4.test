@@ -1,0 +1,28 @@
+-GROUP TCKList4
+-DATASET CSV tck
+
+--
+
+
+#  Concatenating lists of same type
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1, 10, 100] + [4, 5] AS foo;
+## Outcome: the result should be, in any order:
+---- 1
+[1,10,100,4,5]
+
+#  Concatenating a list with a scalar of same type
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [False,True] + False AS foo;
+## Outcome: the result should be, in any order:
+---- 1
+[False,True,False]

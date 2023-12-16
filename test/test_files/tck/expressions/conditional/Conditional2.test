@@ -1,0 +1,161 @@
+-GROUP TCKConditional2
+-DATASET CSV tck
+
+--
+
+
+#  Simple cases over integers
+-CASE Scenario1
+-STATEMENT RETURN CASE -10
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+## Outcome: the result should be, in any order:
+---- 1
+minus ten
+-STATEMENT RETURN CASE 0
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+## Outcome: the result should be, in any order:
+---- 1
+zero
+-STATEMENT RETURN CASE 1
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+## Outcome: the result should be, in any order:
+---- 1
+one
+
+-STATEMENT RETURN CASE 5
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+
+## Outcome: the result should be, in any order:
+---- 1
+five
+
+-STATEMENT RETURN CASE 10
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+
+## Outcome: the result should be, in any order:
+---- 1
+ten
+
+-STATEMENT RETURN CASE 3000
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+
+---- 1
+three thousand
+
+-STATEMENT RETURN CASE 3001
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+---- 1
+something else
+
+-STATEMENT RETURN CASE -30
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+---- 1
+something else
+
+-STATEMENT RETURN CASE 3
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+---- 1
+something else
+
+-STATEMENT RETURN CASE 10.1
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+---- 1
+something else
+
+# Other types
+-CASE Scenario1b
+-SKIP
+-STATEMENT RETURN CASE '0'
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+---- 1
+something else
+
+-STATEMENT RETURN CASE true
+               WHEN -10 THEN 'minus ten'
+               WHEN 0 THEN 'zero'
+               WHEN 1 THEN 'one'
+               WHEN 5 THEN 'five'
+               WHEN 10 THEN 'ten'
+               WHEN 3000 THEN 'three thousand'
+               ELSE 'something else'
+             END AS result;
+---- 1
+something else
+

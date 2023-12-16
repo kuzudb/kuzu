@@ -1,0 +1,165 @@
+-GROUP TCKMap2
+-DATASET CSV tck
+
+--
+
+
+#  Dynamically access a field based on parameters when there is no type information
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+## Context: parameters are:
+#parameters are:
+#expr|{name: 'Apa'}
+#idx|'name'
+-STATEMENT WITH $expr AS expr, $idx AS idx
+           RETURN expr[idx] AS value;
+## Outcome: the result should be, in any order:
+---- 1
+Apa
+
+#  Dynamically access a field based on parameters when there is rhs type information
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+## Context: parameters are:
+#parameters are:
+#expr|{name: 'Apa'}
+#idx|'name'
+-STATEMENT WITH $expr AS expr, $idx AS idx
+           RETURN expr[toString(idx)] AS value;
+## Outcome: the result should be, in any order:
+---- 1
+Apa
+
+#  Dynamically access a field on null results in null
+-CASE Scenario3
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH null AS expr, 'x' AS idx
+           RETURN expr[idx] AS value;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Dynamically access a field with null results in null
+-CASE Scenario4
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH map(['name'], ['Mats']) AS expr, null AS idx
+           RETURN expr[idx] AS value;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Dynamically access a field is case-sensitive
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH map(['name', 'nome'], ['Mats', 'Pontus']) AS map
+           RETURN map['name'] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Mats
+
+-STATEMENT WITH map(['name', 'Name'], ['Mats', 'Pontus']) AS map
+           RETURN map['name'] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Mats
+
+-STATEMENT WITH {name: 'Mats', Name: 'Pontus'} AS map
+           RETURN map['Name'] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Pontus
+
+-STATEMENT WITH {name: 'Mats', Name: 'Pontus'} AS map
+           RETURN map['nAMe'] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+-STATEMENT WITH {name: 'Mats', nome: 'Pontus'} AS map
+           RETURN map['null'] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+-STATEMENT WITH {null: 'Mats', NULL: 'Pontus'} AS map
+           RETURN map['null'] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Mats
+
+-STATEMENT WITH {null: 'Mats', NULL: 'Pontus'} AS map
+           RETURN map['NULL'] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Pontus
+
+#  Fail at runtime when attempting to index with an Int into a Map
+-CASE Scenario6
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+## Context: parameters are:
+#parameters are:
+#expr|{name: 'Apa'}
+#idx|0
+-STATEMENT WITH $expr AS expr, $idx AS idx
+           RETURN expr[idx];
+## Outcome: an Error should be raised at runtime: MapElementAccessByNonString
+---- error
+1
+
+#  Fail at runtime when trying to index into a map with a non-string
+-CASE Scenario13
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+## Context: parameters are:
+#parameters are:
+#expr|{name: 'Apa'}
+#idx|12.3
+-STATEMENT WITH $expr AS expr, $idx AS idx
+           RETURN expr[idx];
+## Outcome: a TypeError should be raised at runtime: MapElementAccessByNonString
+---- error
+TypeError: Map element access by non-string
+
+#  Fail at runtime when trying to index something which is not a map
+-CASE Scenario7
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+## Context: parameters are:
+#parameters are:
+#expr|100
+#idx|0
+-STATEMENT WITH $expr AS expr, $idx AS idx
+           RETURN expr[idx];
+## Outcome: an Error should be raised at any time: InvalidArgumentType
+---- error
+Invalid argument type

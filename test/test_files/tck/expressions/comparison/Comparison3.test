@@ -1,0 +1,146 @@
+-GROUP TCKComparison3
+-DATASET CSV tck
+
+--
+
+
+#  Handling numerical ranges 1
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [1, 2, 3] AS i
+           CREATE (:A {num: i});
+---- ok
+-STATEMENT MATCH (n)
+           WHERE 1 < n.num AND n.num < 3
+           RETURN n.num;
+## Outcome: the result should be, in any order:
+---- 1
+2
+
+#  Handling numerical ranges 2
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [1, 2, 3] AS i
+           CREATE (:A {num: i});
+---- ok
+-STATEMENT MATCH (n)
+           WHERE 1 < n.num AND n.num <= 3
+           RETURN n.num;
+## Outcome: the result should be, in any order:
+---- 2
+2
+3
+
+#  Handling numerical ranges 3
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [1, 2, 3] AS i
+           CREATE (:A {num: i});
+---- ok
+-STATEMENT MATCH (n)
+           WHERE 1 <= n.num AND n.num < 3
+           RETURN n.num;
+## Outcome: the result should be, in any order:
+---- 2
+1
+2
+
+#  Handling numerical ranges 4
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [1, 2, 3] AS i
+           CREATE (:A {num: i});
+---- ok
+-STATEMENT MATCH (n)
+           WHERE 1 <= n.num AND n.num <= 3
+           RETURN n.num;
+## Outcome: the result should be, in any order:
+---- 3
+1
+2
+3
+
+#  Handling string ranges 1
+-CASE Scenario5
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND ['a', 'b', 'c'] AS c
+           CREATE (:A {name: c});
+---- ok
+-STATEMENT MATCH (n)
+           WHERE 'a' < n.name AND n.name < 'c'
+           RETURN n.name;
+## Outcome: the result should be, in any order:
+---- 1
+b
+
+#  Handling string ranges 2
+-CASE Scenario6
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND ['a', 'b', 'c'] AS c
+           CREATE (:A {name: c});
+---- ok
+-STATEMENT MATCH (n)
+           WHERE 'a' < n.name AND n.name <= 'c'
+           RETURN n.name;
+## Outcome: the result should be, in any order:
+---- 2
+b
+c
+
+#  Handling string ranges 3
+-CASE Scenario7
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND ['a', 'b', 'c'] AS c
+           CREATE (:A {name: c});
+---- ok
+-STATEMENT MATCH (n)
+           WHERE 'a' <= n.name AND n.name < 'c'
+           RETURN n.name;
+## Outcome: the result should be, in any order:
+---- 2
+a
+b
+
+#  Handling string ranges 4
+-CASE Scenario8
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND ['a', 'b', 'c'] AS c
+           CREATE (:A {name: c});
+---- ok
+-STATEMENT MATCH (n)
+           WHERE 'a' <= n.name AND n.name <= 'c'
+           RETURN n.name;
+## Outcome: the result should be, in any order:
+---- 3
+a
+b
+c
+
+#  Handling empty range
+-CASE Scenario9
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 3});
+---- ok
+-STATEMENT MATCH (n)
+           WHERE 10 < n.num AND n.num < 10
+           RETURN n.num;
+## Outcome: the result should be, in any order:
+---- 0
+

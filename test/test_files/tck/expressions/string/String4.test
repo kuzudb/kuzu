@@ -1,0 +1,17 @@
+-GROUP TCKString4
+-DATASET CSV tck
+
+--
+
+
+#  `split()`
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND split('one1two', '1') AS item
+           RETURN count(item) AS item;
+---- 1
+2

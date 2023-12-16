@@ -1,0 +1,100 @@
+-GROUP TCKMap3
+-DATASET CSV tck
+
+--
+
+
+#  Using `keys()` on a literal map
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN map_keys(
+map(['Alice','age', 'address'],
+    ['Alice', 38, map(['city', 'residential'], ['London', True])])) AS k;
+## Outcome: the result should be (ignoring element order for lists):
+---- 1
+['name', 'age', 'address']
+
+#  Using `keys()` on a parameter map
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+## Context: parameters are:
+#parameters are:
+#param|{name: 'Alice', age: 38, address: {city: 'London', residential: true}}
+-STATEMENT RETURN ($param) AS k;
+## Outcome: the result should be (ignoring element order for lists):
+---- 1
+['address', 'name', 'age']
+
+#  Using `keys()` on null map
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH map([],[]) AS m
+           RETURN map_keys(m), map_keys(map([],[]));
+## Outcome: the result should be, in any order:
+---- 1
+[]|[]
+
+#  Using `keys()` on map with null values
+-CASE Scenario4
+## VERIFY
+
+-STATEMENT RETURN map_keys(map([], [])) AS keys;
+## Outcome: the result should be (ignoring element order for lists):
+---- 1
+[]
+
+-STATEMENT RETURN map_keys(map(['k'], [1])) AS keys;
+## Outcome: the result should be (ignoring element order for lists):
+---- 1
+[k]
+
+-STATEMENT RETURN map_keys(map(['k'], [null])) AS keys;
+## Outcome: the result should be (ignoring element order for lists):
+---- 1
+[k]
+
+-STATEMENT RETURN map_keys(map(['k', 'l'], [null, 1])) AS keys;
+## Outcome: the result should be (ignoring element order for lists):
+---- 1
+[k,l]
+
+-STATEMENT RETURN map_keys(map(['k', 'l'], [1, null])) AS keys;
+## Outcome: the result should be (ignoring element order for lists):
+---- 1
+[k,l]
+
+-STATEMENT RETURN map_keys(map(['k', 'l'], [null, null])) AS keys;
+## Outcome: the result should be (ignoring element order for lists):
+---- 1
+[k,l]
+
+-STATEMENT RETURN map_keys(map(['k', 'l', 'm'], [1, null, 1])) AS keys;
+## Outcome: the result should be (ignoring element order for lists):
+---- 1
+[k,l,m]
+
+#  Using `keys()` and `IN` to check field existence
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH {exists: 42, notMissing: null} AS map
+           RETURN 'exists' IN keys(map) AS a,
+                  'notMissing' IN keys(map) AS b,
+                  'missing' IN keys(map) AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False

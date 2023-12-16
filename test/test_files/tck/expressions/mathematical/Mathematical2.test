@@ -1,0 +1,19 @@
+-GROUP TCKMathematical2
+-DATASET CSV tck
+
+--
+
+
+#  Allow addition
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name INT64, version INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 1337, version: 99});
+---- ok
+-STATEMENT MATCH (a)
+           WHERE a.name = 1337
+           RETURN a.version + 5;
+## Outcome: the result should be, in any order:
+---- 1
+104

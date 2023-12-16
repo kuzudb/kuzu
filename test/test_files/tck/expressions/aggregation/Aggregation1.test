@@ -1,0 +1,32 @@
+-GROUP TCKAggregation1
+-DATASET CSV tck
+
+--
+
+#  Count only non-null values
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'a', num: 33}), (:A {name: 'b', num: 42}), ({name: 'a'});
+---- ok
+-STATEMENT MATCH (n) RETURN n.name, count(n.num);
+## Outcome: the result should be, in any order:
+---- 2
+a|1
+b|1
+
+#  Counting loop relationships
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE R(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A), (a:A)-[:R]->(a:A);
+---- ok
+-STATEMENT MATCH ()-[r]->()
+           RETURN count(r);
+## Outcome: the result should be, in any order:
+---- 1
+1

@@ -1,0 +1,27 @@
+-GROUP TCKMathematical8
+-DATASET CSV tck
+
+--
+
+
+#  Arithmetic precedence test
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN 12 / 4 * 3 - 2 * 4;
+## Outcome: the result should be, in any order:
+---- 1
+1
+
+#  Arithmetic precedence with parenthesis test
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN 12 / 4 * (3 - 2 * 4);
+## Outcome: the result should be, in any order:
+---- 1
+-15

@@ -1,0 +1,171 @@
+-GROUP TCKPrecedence2
+-DATASET CSV tck
+
+--
+
+
+#  Numeric multiplicative operations takes precedence over numeric additive operations
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN 4 * 2 + 3 * 2 AS a,
+                  4 * 2 + (3 * 2) AS b,
+                  4 * (2 + 3) * 2 AS c;
+## Outcome: the result should be, in any order:
+---- 1
+14|14|40
+-STATEMENT RETURN 4 * 2 + 3 / 2 AS a,
+                  4 * 2 + (3 / 2) AS b,
+                  4 * (2 + 3) / 2 AS c
+---- 1
+9|9|10
+-STATEMENT RETURN 4 * 2 + 3 % 2 AS a,
+                  4 * 2 + (3 % 2) AS b,
+                  4 * (2 + 3) % 2 AS c
+---- 1
+9|9|0
+-STATEMENT RETURN 4 * 2 - 3 * 2 AS a,
+                  4 * 2 - (3 * 2) AS b,
+                  4 * (2 - 3) * 2 AS c
+---- 1
+2|2|-8
+-STATEMENT RETURN 4 * 2 - 3 / 2 AS a,
+                  4 * 2 - (3 / 2) AS b,
+                  4 * (2 - 3) / 2 AS c
+---- 1
+7|7|-2
+-STATEMENT RETURN 4 * 2 - 3 % 2 AS a,
+                  4 * 2 - (3 % 2) AS b,
+                  4 * (2 - 3) % 2 AS c
+---- 1
+7|7|0
+-STATEMENT RETURN 4 / 2 + 3 * 2 AS a,
+                  4 / 2 + (3 * 2) AS b,
+                  4 / (2 + 3) * 2 AS c
+---- 1
+8|8|0
+-STATEMENT RETURN 4 / 2 + 3 / 2 AS a,
+                  4 / 2 + (3 / 2) AS b,
+                  4 / (2 + 3) / 2 AS c
+---- 1
+3|3|0
+-STATEMENT RETURN 4 / 2 + 3 % 2 AS a,
+                  4 / 2 + (3 % 2) AS b,
+                  4 / (2 + 3) % 2 AS c
+---- 1
+3|3|0
+-STATEMENT RETURN 4 / 2 - 3 * 2 AS a,
+                  4 / 2 - (3 * 2) AS b,
+                  4 / (2 - 3) * 2 AS c
+---- 1
+-4|-4|-8
+-STATEMENT RETURN 4 / 2 - 3 / 2 AS a,
+                  4 / 2 - (3 / 2) AS b,
+                  4 / (2 - 3) / 2 AS c
+---- 1
+1|1|-2
+-STATEMENT RETURN 4 / 2 - 3 % 2 AS a,
+                  4 / 2 - (3 % 2) AS b,
+                  4 / (2 - 3) % 2 AS c
+---- 1
+1|1|0
+-STATEMENT RETURN 4 % 2 + 3 * 2 AS a,
+                  4 % 2 + (3 * 2) AS b,
+                  4 % (2 + 3) * 2 AS c
+---- 1
+6|6|8
+-STATEMENT RETURN 4 % 2 + 3 / 2 AS a,
+                  4 % 2 + (3 / 2) AS b,
+                  4 % (2 + 3) / 2 AS c
+---- 1
+1|1|2
+-STATEMENT RETURN 4 % 2 + 3 % 2 AS a,
+                  4 % 2 + (3 % 2) AS b,
+                  4 % (2 + 3) % 2 AS c
+---- 1
+1|1|0
+-STATEMENT RETURN 4 % 2 - 3 * 2 AS a,
+                  4 % 2 - (3 * 2) AS b,
+                  4 % (2 - 3) * 2 AS c
+---- 1
+-6|-6|0
+-STATEMENT RETURN 4 % 2 - 3 / 2 AS a,
+                  4 % 2 - (3 / 2) AS b,
+                  4 % (2 - 3) / 2 AS c
+---- 1
+-1|-1|0
+-STATEMENT RETURN 4 % 2 - 3 % 2 AS a,
+                  4 % 2 - (3 % 2) AS b,
+                  4 % (2 - 3) % 2 AS c
+---- 1
+-1|-1|0
+
+
+#  Exponentiation takes precedence over numeric multiplicative operations
+-CASE Scenario2
+-STATEMENT RETURN 4 ^ 3 * 2 ^ 3 AS a,
+                  (4 ^ 3) * (2 ^ 3) AS b,
+                  4 ^ (3 * 2) ^ 3 AS c;
+## Outcome: the result should be, in any order:
+---- 1
+512.000000|512.000000|68719476736.000000
+
+-STATEMENT RETURN 4 ^ 3 / 2 ^ 3 AS a,
+                  (4 ^ 3) / (2 ^ 3) AS b,
+                  4 ^ (3 / 2) ^ 3 AS c;
+---- 1
+8.000000|8.000000|64.000000
+
+-STATEMENT RETURN 4 ^ 3 % 2 ^ 3 AS a,
+                  (4 ^ 3) % (2 ^ 3) AS b,
+                  4 ^ (3 % 2) ^ 3 AS c;
+---- 1
+0.000000|0.000000|64.000000
+
+
+#  Exponentiation takes precedence over numeric additive operations
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN 4 ^ 3 + 2 ^ 3 AS a,
+                  (4 ^ 3) + (2 ^ 3) AS b,
+                  4 ^ (3 + 2) ^ 3 AS c;
+## Outcome: the result should be, in any order:
+---- 1
+72.000000|72.000000|1073741824.000000
+
+-STATEMENT RETURN 4 ^ 3 - 2 ^ 3 AS a,
+                  (4 ^ 3) - (2 ^ 3) AS b,
+                  4 ^ (3 - 2) ^ 3 AS c;
+---- 1
+56.000000|56.000000|64.000000
+
+
+#  Numeric unary negative takes precedence over exponentiation
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN -3 ^ 2 AS a,
+                  (-3) ^ 2 AS b,
+                  -(3 ^ 2) AS c;
+## Outcome: the result should be, in any order:
+---- 1
+9.000000|9.000000|-9.000000
+
+#  Numeric unary negative takes precedence over numeric additive operations
+-CASE Scenario5
+## VERIFY
+-STATEMENT RETURN -3 + 2 AS a,
+                  (-3) + 2 AS b,
+                  -(3 + 2) AS c;
+---- 1
+-1|-1|-5
+
+-STATEMENT RETURN -3 - 2 AS a,
+                  (-3) - 2 AS b,
+                  -(3 - 2) AS c;
+---- 1
+-5|-5|-1

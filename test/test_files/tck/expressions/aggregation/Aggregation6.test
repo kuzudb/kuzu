@@ -1,0 +1,23 @@
+-GROUP TCKAggregation6
+-DATASET CSV tck
+
+--
+
+
+#  `percentileDisc()`
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({price: 10.0}),
+                  ({price: 20.0}),
+                  ({price: 30.0});
+## Context: parameters are:
+#parameters are:
+#percentile | 0.0
+-STATEMENT MATCH (n)
+           RETURN percentileDisc(n.price, $percentile) AS p;
+## Outcome: the result should be, in any order:
+---- 1
+10.0

@@ -1,0 +1,123 @@
+-GROUP TCKPrecedence4
+-DATASET CSV tck
+
+--
+
+
+#  Null predicate takes precedence over comparison operator
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN (null is NOT NULL) = (null is NULL);
+
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  Null predicate takes precedence over comparison operator
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN null IS NULL <> null IS NULL AS a,
+                  (null IS NULL) <> (null IS NULL) AS b,
+                  (null IS NULL <> null) IS NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True
+
+#  Null predicate takes precedence over comparison operator
+-CASE Scenario3
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN null IS NULL <> null IS NOT NULL AS a,
+                  (null IS NULL) <> (null IS NOT NULL) AS b,
+                  (null IS NULL <> null) IS NOT NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+#  Null predicate takes precedence over boolean negation
+-CASE Scenario4
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN NOT null IS NULL AS a,
+                  NOT (null IS NULL) AS b,
+                  (NOT null) IS NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True
+
+#  Null predicate takes precedence over binary boolean operator
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN null AND null IS NULL AS a,
+                  null AND (null IS NULL) AS b,
+                  (null AND null) IS NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+null|null|True
+
+#  Null predicate takes precedence over binary boolean operator
+-CASE Scenario6
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN null AND True IS NULL AS a,
+                  null AND (True IS NULL) AS b,
+                  (null AND True) IS NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True
+
+-STATEMENT RETURN False AND False IS NOT NULL AS a,
+                  False AND (False IS NOT NULL) AS b,
+                  (False AND False) IS NOT NULL AS c;
+---- 1
+False|False|True
+
+-STATEMENT RETURN null OR False IS NULL AS a,
+                  null OR (False IS NULL) AS b,
+                  (null OR False) IS NULL AS c;
+---- 1
+null|null|True
+
+-STATEMENT RETURN True OR null IS NULL AS a,
+                  True OR (null IS NULL) AS b,
+                  (True OR null) IS NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+-STATEMENT RETURN True XOR null IS NOT NULL AS a,
+                  True XOR (null IS NOT NULL) AS b,
+                  (True XOR null) IS NOT NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+-STATEMENT RETURN True XOR False IS NULL AS a,
+                  True XOR (False IS NULL) AS b,
+                  (True XOR False) IS NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+-STATEMENT RETURN ('abc' STARTS WITH null OR True) = (('abc' STARTS WITH null) OR True) AS a,
+                  ('abc' STARTS WITH null OR True) <> ('abc' STARTS WITH (null OR True)) AS b,
+                  (True OR null STARTS WITH 'abc') = (True OR (null STARTS WITH 'abc')) AS c,
+                  (True OR null STARTS WITH 'abc') <> ((True OR null) STARTS WITH 'abc') AS d;
+## Outcome: the result should be, in any order:
+---- 1
+True|null|True|null

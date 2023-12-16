@@ -1,0 +1,70 @@
+-GROUP TCKTypeConversion1
+-DATASET CSV tck
+
+--
+
+
+#  `toBoolean()` on booleans
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS b
+           RETURN to_bool(b) AS b;
+## Outcome: the result should be, in any order:
+---- 2
+True
+False
+
+#  `toBoolean()` on valid literal string
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN to_bool('true') AS b;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+
+#  `toBoolean()` on variables with valid string values
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND ['true', 'false'] AS s
+           RETURN to_Bool(s) AS b;
+## Outcome: the result should be, in any order:
+---- 2
+True
+False
+
+#  `toBoolean()` on invalid strings
+-CASE Scenario4
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [null, '', ' tru ', 'f alse'] AS things
+           RETURN to_Bool(things) AS b;
+## Outcome: the result should be, in any order:
+---- 4
+
+
+
+#  Fail `toBoolean()` on invalid types #Example: list
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ()-[:T]->();
+-STATEMENT MATCH p = (n)-[r:T]->()
+           RETURN [x IN [true, []] | toBoolean(x) ] AS list;
+---- error
+123
