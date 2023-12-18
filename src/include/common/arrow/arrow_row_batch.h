@@ -44,7 +44,7 @@ struct ArrowVector {
 // An arrow data chunk consisting of N rows in columnar format.
 class ArrowRowBatch {
 public:
-    ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity);
+    ArrowRowBatch(common::logical_types_t types, std::int64_t capacity);
 
     //! Append a data chunk to the underlying arrow array
     ArrowArray append(main::QueryResult& queryResult, std::int64_t chunkSize);
@@ -80,7 +80,7 @@ private:
     ArrowArray toArray();
 
 private:
-    std::vector<LogicalType> types;
+    common::logical_types_t types;
     std::vector<std::unique_ptr<ArrowVector>> vectors;
     std::int64_t numTuples;
 };

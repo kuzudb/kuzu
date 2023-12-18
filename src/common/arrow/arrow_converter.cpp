@@ -197,7 +197,10 @@ std::unique_ptr<ArrowSchema> ArrowConverter::toArrowSchema(
 
 void ArrowConverter::toArrowArray(
     main::QueryResult& queryResult, ArrowArray* outArray, std::int64_t chunkSize) {
-    auto types = queryResult.getColumnDataTypes();
+    common::logical_types_t types;
+    for (auto type : queryResult.getColumnDataTypes()) {
+        types.push_back(std::make_unique<LogicalType>(type));
+    }
     auto rowBatch = make_unique<ArrowRowBatch>(std::move(types), chunkSize);
     *outArray = rowBatch->append(queryResult, chunkSize);
 }
