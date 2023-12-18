@@ -11,20 +11,20 @@ namespace kuzu {
 namespace planner {
 
 void QueryPlanner::planReadingClause(
-    BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& prevPlans) {
-    auto readingClauseType = boundReadingClause->getClauseType();
+    BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& prevPlans) {
+    auto readingClauseType = readingClause->getClauseType();
     switch (readingClauseType) {
     case ClauseType::MATCH: {
-        planMatchClause(boundReadingClause, prevPlans);
+        planMatchClause(readingClause, prevPlans);
     } break;
     case ClauseType::UNWIND: {
-        planUnwindClause(boundReadingClause, prevPlans);
+        planUnwindClause(readingClause, prevPlans);
     } break;
     case ClauseType::IN_QUERY_CALL: {
-        planInQueryCall(boundReadingClause, prevPlans);
+        planInQueryCall(readingClause, prevPlans);
     } break;
     case ClauseType::LOAD_FROM: {
-        planLoadFrom(boundReadingClause, prevPlans);
+        planLoadFrom(readingClause, prevPlans);
     } break;
     default:
         KU_UNREACHABLE;
@@ -36,7 +36,7 @@ void QueryPlanner::planMatchClause(
     auto boundMatchClause =
         ku_dynamic_ptr_cast<BoundReadingClause, BoundMatchClause>(boundReadingClause);
     auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
-    auto predicates = boundMatchClause->getPredicatesSplitOnAnd();
+    auto predicates = boundMatchClause->getConjunctivePredicates();
     switch (boundMatchClause->getMatchClauseType()) {
     case MatchClauseType::MATCH: {
         if (plans.size() == 1 && plans[0]->isEmpty()) {
@@ -82,12 +82,12 @@ void QueryPlanner::planInQueryCall(
     BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     auto inQueryCall = ku_dynamic_ptr_cast<BoundReadingClause, BoundInQueryCall>(readingClause);
     std::unordered_set<std::string> columnNameSet;
-    for (auto& column : inQueryCall->getOutputExpressions()) {
+    for (auto& column : inQueryCall->getOutExprs()) {
         columnNameSet.insert(column->getUniqueName());
     }
     expression_vector predicatesToPushDown;
     expression_vector predicatesToPullUp;
-    for (auto& predicate : inQueryCall->getPredicatesSplitOnAnd()) {
+    for (auto& predicate : inQueryCall->getConjunctivePredicates()) {
         if (hasExternalDependency(predicate, columnNameSet)) {
             predicatesToPullUp.push_back(predicate);
         } else {
@@ -109,7 +109,7 @@ void QueryPlanner::planInQueryCall(
             }
         }
         if (!predicatesToPullUp.empty()) {
-            appendFilter(inQueryCall->getWherePredicate(), *plan);
+            appendFilter(inQueryCall->getPredicate(), *plan);
         }
     }
 }
@@ -123,7 +123,7 @@ void QueryPlanner::planLoadFrom(
     }
     expression_vector predicatesToPushDown;
     expression_vector predicatesToPullUp;
-    for (auto& predicate : loadFrom->getPredicatesSplitOnAnd()) {
+    for (auto& predicate : loadFrom->getConjunctivePredicates()) {
         if (hasExternalDependency(predicate, columnNameSet)) {
             predicatesToPullUp.push_back(predicate);
         } else {
@@ -145,7 +145,7 @@ void QueryPlanner::planLoadFrom(
             }
         }
         if (!predicatesToPullUp.empty()) {
-            appendFilter(loadFrom->getWherePredicate(), *plan);
+            appendFilter(loadFrom->getPredicate(), *plan);
         }
     }
 }

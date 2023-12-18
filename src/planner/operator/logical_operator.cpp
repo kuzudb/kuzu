@@ -49,6 +49,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::DUMMY_SCAN: {
         return "DUMMY_SCAN";
     }
+    case LogicalOperatorType::EMPTY_RESULT: {
+        return "EMPTY_RESULT";
+    }
     case LogicalOperatorType::EXTEND: {
         return "EXTEND";
     }

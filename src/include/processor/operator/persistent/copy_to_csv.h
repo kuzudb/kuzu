@@ -80,7 +80,7 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : CopyTo{std::move(resultSetDescriptor), std::move(info),
               std::make_unique<CopyToCSVLocalState>(), std::move(sharedState),
-              PhysicalOperatorType::COPY_TO_CSV, std::move(child), id, paramsString} {}
+              PhysicalOperatorType::COPY_TO, std::move(child), id, paramsString} {}
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CopyToCSV>(resultSetDescriptor->copy(), info->copy(), sharedState,

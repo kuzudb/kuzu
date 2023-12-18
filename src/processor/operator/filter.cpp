@@ -7,6 +7,7 @@ namespace processor {
 
 void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     expressionEvaluator->init(*resultSet, context->memoryManager);
+    KU_ASSERT(dataChunkToSelectPos != INVALID_DATA_CHUNK_POS);
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
 }
 

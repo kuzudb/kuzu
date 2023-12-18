@@ -34,6 +34,8 @@ Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 10
 0|5|[wwAewsdndweusd,wek]|1
 2|120|[anew,jsdnwusklklklwewsd]|1
 8|2|[awndsnjwejwen,isuhuwennjnuhuhuwewe]|1
+-STATEMENT load from "${DATABASE_PATH}/studyAt.csv"(header=true) WHERE FALSE return *
+---- 0
 
 -STATEMENT COPY (MATCH (p:person)-[e:knows]->(p1:person) RETURN p.ID, p1.ID, p.grades, p1.grades) TO "${DATABASE_PATH}/onehop.csv" (header=true)
 ---- ok

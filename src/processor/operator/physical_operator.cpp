@@ -19,11 +19,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::STANDALONE_CALL: {
         return "STANDALONE_CALL";
     }
-    case PhysicalOperatorType::COPY_TO_CSV: {
-        return "COPY_TO_CSV";
-    }
-    case PhysicalOperatorType::COPY_TO_PARQUET: {
-        return "COPY_TO_PARQUET";
+    case PhysicalOperatorType::COPY_TO: {
+        return "COPY_TO";
     }
     case PhysicalOperatorType::COPY_NODE: {
         return "COPY_NODE";
@@ -69,6 +66,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::DROP_TABLE: {
         return "DROP_TABLE";
+    }
+    case PhysicalOperatorType::EMPTY_RESULT: {
+        return "EMPTY_RESULT";
     }
     case PhysicalOperatorType::FACTORIZED_TABLE_SCAN: {
         return "FACTORIZED_TABLE_SCAN";

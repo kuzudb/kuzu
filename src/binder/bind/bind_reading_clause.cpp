@@ -51,7 +51,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
     rewriteMatchPattern(*boundGraphPattern);
     auto boundMatch = make_unique<BoundMatchClause>(
         std::move(boundGraphPattern->queryGraphCollection), matchClause.getMatchClauseType());
-    boundMatch->setWherePredicate(boundGraphPattern->where);
+    boundMatch->setPredicate(boundGraphPattern->where);
     return boundMatch;
 }
 
@@ -143,7 +143,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         tableFunction, std::move(bindData), std::move(columns), offset);
     if (call.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*call.getWherePredicate());
-        boundInQueryCall->setWherePredicate(std::move(wherePredicate));
+        boundInQueryCall->setPredicate(std::move(wherePredicate));
     }
     return boundInQueryCall;
 }
@@ -190,7 +190,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     auto boundLoadFrom = std::make_unique<BoundLoadFrom>(std::move(info));
     if (loadFrom.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*loadFrom.getWherePredicate());
-        boundLoadFrom->setWherePredicate(std::move(wherePredicate));
+        boundLoadFrom->setPredicate(std::move(wherePredicate));
     }
     return boundLoadFrom;
 }

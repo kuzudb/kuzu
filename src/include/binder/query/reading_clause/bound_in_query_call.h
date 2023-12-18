@@ -11,40 +11,32 @@ namespace binder {
 class BoundInQueryCall : public BoundReadingClause {
 public:
     BoundInQueryCall(function::TableFunction* tableFunc,
-        std::unique_ptr<function::TableFuncBindData> bindData, expression_vector outputExpressions,
-        std::shared_ptr<Expression> rowIdxExpression)
+        std::unique_ptr<function::TableFuncBindData> bindData, expression_vector outExprs,
+        std::shared_ptr<Expression> rowIdxExpr)
         : BoundReadingClause{common::ClauseType::IN_QUERY_CALL}, tableFunc{tableFunc},
-          bindData{std::move(bindData)}, outputExpressions{std::move(outputExpressions)},
-          rowIdxExpression{std::move(rowIdxExpression)} {}
+          bindData{std::move(bindData)}, outExprs{std::move(outExprs)}, rowIdxExpr{std::move(
+                                                                            rowIdxExpr)} {}
+    BoundInQueryCall(const BoundInQueryCall& other)
+        : BoundReadingClause{other}, tableFunc{other.tableFunc}, bindData{other.bindData->copy()},
+          outExprs{other.outExprs}, rowIdxExpr{other.rowIdxExpr} {}
 
     inline function::TableFunction* getTableFunc() const { return tableFunc; }
 
     inline function::TableFuncBindData* getBindData() const { return bindData.get(); }
 
-    inline expression_vector getOutputExpressions() const { return outputExpressions; }
+    inline expression_vector getOutExprs() const { return outExprs; }
 
-    inline std::shared_ptr<Expression> getRowIdxExpression() const { return rowIdxExpression; }
-
-    inline void setWherePredicate(std::shared_ptr<Expression> expression) {
-        wherePredicate = std::move(expression);
-    }
-    inline bool hasWherePredicate() const { return wherePredicate != nullptr; }
-    inline std::shared_ptr<Expression> getWherePredicate() const { return wherePredicate; }
-    inline expression_vector getPredicatesSplitOnAnd() const {
-        return hasWherePredicate() ? wherePredicate->splitOnAND() : expression_vector{};
-    }
+    inline std::shared_ptr<Expression> getRowIdxExpr() const { return rowIdxExpr; }
 
     inline std::unique_ptr<BoundReadingClause> copy() override {
-        return std::make_unique<BoundInQueryCall>(
-            tableFunc, bindData->copy(), outputExpressions, rowIdxExpression);
+        return std::make_unique<BoundInQueryCall>(*this);
     }
 
 private:
     function::TableFunction* tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
-    expression_vector outputExpressions;
-    std::shared_ptr<Expression> rowIdxExpression;
-    std::shared_ptr<Expression> wherePredicate;
+    expression_vector outExprs;
+    std::shared_ptr<Expression> rowIdxExpr;
 };
 
 } // namespace binder
