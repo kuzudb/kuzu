@@ -720,6 +720,7 @@ oC_SymbolicName
         | kU_NonReservedKeywords
         ;
 
+// example of BEGIN and END: TCKWith2.Scenario1
 kU_NonReservedKeywords
     : COMMENT
         | COUNT
