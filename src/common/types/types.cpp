@@ -441,80 +441,60 @@ std::vector<std::unique_ptr<LogicalType>> LogicalType::copy(
 
 PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
     switch (typeID) {
-    case LogicalTypeID::ANY: {
+    case LogicalTypeID::ANY:
         return PhysicalTypeID::ANY;
-    } break;
-    case LogicalTypeID::BOOL: {
+    case LogicalTypeID::BOOL:
         return PhysicalTypeID::BOOL;
-    } break;
     case LogicalTypeID::TIMESTAMP_MS:
     case LogicalTypeID::TIMESTAMP_NS:
     case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::TIMESTAMP_SEC:
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
+    case LogicalTypeID::INT64:
         return PhysicalTypeID::INT64;
-    } break;
     case LogicalTypeID::DATE:
-    case LogicalTypeID::INT32: {
+    case LogicalTypeID::INT32:
         return PhysicalTypeID::INT32;
-    } break;
-    case LogicalTypeID::INT16: {
+    case LogicalTypeID::INT16:
         return PhysicalTypeID::INT16;
-    } break;
-    case LogicalTypeID::INT8: {
+    case LogicalTypeID::INT8:
         return PhysicalTypeID::INT8;
-    } break;
-    case LogicalTypeID::UINT64: {
+    case LogicalTypeID::UINT64:
         return PhysicalTypeID::UINT64;
-    } break;
-    case LogicalTypeID::UINT32: {
+    case LogicalTypeID::UINT32:
         return PhysicalTypeID::UINT32;
-    } break;
-    case LogicalTypeID::UINT16: {
+    case LogicalTypeID::UINT16:
         return PhysicalTypeID::UINT16;
-    } break;
-    case LogicalTypeID::UINT8: {
+    case LogicalTypeID::UINT8:
         return PhysicalTypeID::UINT8;
-    } break;
-    case LogicalTypeID::INT128: {
+    case LogicalTypeID::INT128:
         return PhysicalTypeID::INT128;
-    } break;
-    case LogicalTypeID::DOUBLE: {
+    case LogicalTypeID::DOUBLE:
         return PhysicalTypeID::DOUBLE;
-    } break;
-    case LogicalTypeID::FLOAT: {
+    case LogicalTypeID::FLOAT:
         return PhysicalTypeID::FLOAT;
-    } break;
-    case LogicalTypeID::INTERVAL: {
+    case LogicalTypeID::INTERVAL:
         return PhysicalTypeID::INTERVAL;
-    } break;
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::FIXED_LIST:
         return PhysicalTypeID::FIXED_LIST;
-    } break;
-    case LogicalTypeID::INTERNAL_ID: {
+    case LogicalTypeID::INTERNAL_ID:
         return PhysicalTypeID::STRUCT;
-    } break;
     case LogicalTypeID::BLOB:
-    case LogicalTypeID::STRING: {
+    case LogicalTypeID::STRING:
         return PhysicalTypeID::STRING;
-    } break;
     case LogicalTypeID::MAP:
-    case LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::VAR_LIST:
         return PhysicalTypeID::VAR_LIST;
-    } break;
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT:
-    case LogicalTypeID::RDF_VARIANT: {
+    case LogicalTypeID::RDF_VARIANT:
         return PhysicalTypeID::STRUCT;
-    } break;
-    case LogicalTypeID::POINTER: {
+    case LogicalTypeID::POINTER:
         return PhysicalTypeID::POINTER;
-    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -886,13 +866,14 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseUnionType(const std::string&
 }
 
 std::unique_ptr<LogicalType> LogicalType::INTERNAL_ID() {
-    std::vector<StructField> fieldsVector;
-    fieldsVector.reserve(2);
-    fieldsVector.emplace_back("TABLE_ID", UINT64());
+    std::vector<StructField> fields;
+    fields.reserve(2);
+    fields.emplace_back("TABLE_ID", UINT64());
     // FIXME(bmwinger): From internalID_t the offset should be a UINT64, but it's assumed to be
     // INT64 elsewhere
-    fieldsVector.emplace_back("OFFSET", INT64());
-    return LogicalType::STRUCT(std::move(fieldsVector));
+    fields.emplace_back("OFFSET", INT64());
+    return std::unique_ptr<LogicalType>(new LogicalType(
+        LogicalTypeID::INTERNAL_ID, std::make_unique<StructTypeInfo>(std::move(fields))));
 }
 
 std::unique_ptr<LogicalType> LogicalType::STRUCT(std::vector<StructField>&& fields) {
