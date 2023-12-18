@@ -100,7 +100,7 @@ AggregateFunction* BuiltInFunctions::matchAggregateFunction(
     auto& functionSet = functions.at(name);
     std::vector<AggregateFunction*> candidateFunctions;
     for (auto& function : functionSet) {
-        auto aggregateFunction = ku_dynamic_ptr_cast<Function, AggregateFunction>(function.get());
+        auto aggregateFunction = ku_dynamic_cast<Function*, AggregateFunction*>(function.get());
         auto cost = getAggregateFunctionCost(inputTypes, isDistinct, aggregateFunction);
         if (cost == UINT32_MAX) {
             continue;
@@ -189,8 +189,7 @@ void BuiltInFunctions::validateNonEmptyCandidateFunctions(
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
         for (auto& function : functions.at(name)) {
-            auto aggregateFunction =
-                ku_dynamic_ptr_cast<Function, AggregateFunction>(function.get());
+            auto aggregateFunction = ku_dynamic_cast<Function*, AggregateFunction*>(function.get());
             if (aggregateFunction->isDistinct) {
                 supportedInputsString += "DISTINCT ";
             }
@@ -426,7 +425,7 @@ uint32_t BuiltInFunctions::getFunctionCost(
     const std::vector<LogicalType*>& inputTypes, Function* function, bool isOverload) {
     switch (function->type) {
     case FunctionType::SCALAR: {
-        auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+        auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
         if (scalarFunction->isVarLength) {
             KU_ASSERT(function->parameterTypeIDs.size() == 1);
             return matchVarLengthParameters(inputTypes, function->parameterTypeIDs[0], isOverload);

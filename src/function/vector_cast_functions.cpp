@@ -949,7 +949,7 @@ std::unique_ptr<FunctionBindData> CastAnyFunction::bindFunc(
     }
     auto str = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
     auto outputType = binder::Binder::bindDataType(str);
-    auto func = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto func = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     func->name = "CAST_TO_" + str;
     func->parameterTypeIDs[0] = inputTypeID;
     func->execFunc =

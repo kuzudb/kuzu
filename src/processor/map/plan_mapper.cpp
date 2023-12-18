@@ -11,7 +11,7 @@ namespace processor {
 static void setPhysicalPlanIfProfile(
     planner::LogicalPlan* logicalPlan, PhysicalPlan* physicalPlan) {
     if (logicalPlan->isProfile()) {
-        ku_dynamic_ptr_cast<PhysicalOperator, Profile>(physicalPlan->lastOperator->getChild(0))
+        ku_dynamic_cast<PhysicalOperator*, Profile*>(physicalPlan->lastOperator->getChild(0))
             ->setPhysicalPlan(physicalPlan);
     }
 }

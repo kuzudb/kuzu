@@ -100,13 +100,13 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
 
 std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause& readingClause) {
     auto& call = ku_dynamic_cast<const ReadingClause&, const InQueryCallClause&>(readingClause);
-    auto funcExpr = ku_dynamic_ptr_cast<ParsedExpression, ParsedFunctionExpression>(
-        call.getFunctionExpression());
+    auto funcExpr =
+        ku_dynamic_cast<ParsedExpression*, ParsedFunctionExpression*>(call.getFunctionExpression());
     auto funcName = funcExpr->getFunctionName();
     StringUtils::toUpper(funcName);
     if (funcName == common::READ_PANDAS_FUNC_NAME && clientContext->replaceFunc) {
         auto replacedValue = clientContext->replaceFunc(
-            ku_dynamic_ptr_cast<ParsedExpression, ParsedLiteralExpression>(funcExpr->getChild(0))
+            ku_dynamic_cast<ParsedExpression*, ParsedLiteralExpression*>(funcExpr->getChild(0))
                 ->getValue());
         auto parameterExpression =
             std::make_unique<ParsedLiteralExpression>(std::move(replacedValue), "pd");
@@ -122,12 +122,12 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             throw BinderException{"Parameters in table function must be a literal expression."};
         }
         auto expressionValue =
-            ku_dynamic_ptr_cast<ParsedExpression, ParsedLiteralExpression>(parameter)->getValue();
+            ku_dynamic_cast<ParsedExpression*, ParsedLiteralExpression*>(parameter)->getValue();
         inputTypes.push_back(expressionValue->getDataType());
         inputValues.push_back(expressionValue->copy());
     }
     // TODO: this is dangerous because we could match to a scan function.
-    auto tableFunction = ku_dynamic_ptr_cast<function::Function, function::TableFunction>(
+    auto tableFunction = ku_dynamic_cast<function::Function*, function::TableFunction*>(
         catalog.getBuiltInFunctions()->matchFunction(funcName, inputTypes));
     auto bindInput = std::make_unique<function::TableFuncBindInput>();
     bindInput->inputs = std::move(inputValues);

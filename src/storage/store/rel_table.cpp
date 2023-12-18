@@ -42,7 +42,7 @@ void RelTable::insert(Transaction* transaction, ValueVector* srcNodeIDVector,
     ValueVector* dstNodeIDVector, const std::vector<ValueVector*>& propertyVectors) {
     fwdRelTableData->insert(transaction, srcNodeIDVector, dstNodeIDVector, propertyVectors);
     bwdRelTableData->insert(transaction, dstNodeIDVector, srcNodeIDVector, propertyVectors);
-    auto relsStats = ku_dynamic_ptr_cast<TablesStatistics, RelsStoreStats>(tablesStatistics);
+    auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
     relsStats->updateNumRelsByValue(tableID, 1);
 }
 
@@ -61,7 +61,7 @@ void RelTable::delete_(Transaction* transaction, ValueVector* srcNodeIDVector,
         bwdRelTableData->delete_(transaction, dstNodeIDVector, srcNodeIDVector, relIDVector);
     KU_ASSERT(fwdDeleted == bwdDeleted);
     if (fwdDeleted && bwdDeleted) {
-        auto relsStats = ku_dynamic_ptr_cast<TablesStatistics, RelsStoreStats>(tablesStatistics);
+        auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
         relsStats->updateNumRelsByValue(tableID, -1);
     }
 }
@@ -81,7 +81,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
                 relDataReadState.get(), deleteState) :
             detachDeleteForCSRRels(transaction, tableData, reverseTableData, srcNodeIDVector,
                 relDataReadState.get(), deleteState);
-    auto relsStats = ku_dynamic_ptr_cast<TablesStatistics, RelsStoreStats>(tablesStatistics);
+    auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
     relsStats->updateNumRelsByValue(tableID, -numRelsDeleted);
 }
 
@@ -146,7 +146,7 @@ void RelTable::lookup(Transaction* transaction, RelDataReadState& scanState,
 
 void RelTable::addColumn(
     Transaction* transaction, const Property& property, ValueVector* defaultValueVector) {
-    auto relsStats = ku_dynamic_ptr_cast<TablesStatistics, RelsStoreStats>(tablesStatistics);
+    auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
     relsStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
         PropertyStatistics{!defaultValueVector->hasNoNullsGuarantee()});
     relsStats->addMetadataDAHInfo(tableID, *property.getDataType());

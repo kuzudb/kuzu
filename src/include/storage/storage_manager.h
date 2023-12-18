@@ -30,13 +30,13 @@ public:
     inline NodeTable* getNodeTable(common::table_id_t tableID) const {
         KU_ASSERT(tables.contains(tableID) &&
                   tables.at(tableID)->getTableType() == common::TableType::NODE);
-        auto table = common::ku_dynamic_ptr_cast<Table, NodeTable>(tables.at(tableID).get());
+        auto table = common::ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
         return table;
     }
     inline RelTable* getRelTable(common::table_id_t tableID) const {
         KU_ASSERT(tables.contains(tableID) &&
                   tables.at(tableID)->getTableType() == common::TableType::REL);
-        auto table = common::ku_dynamic_ptr_cast<Table, RelTable>(tables.at(tableID).get());
+        auto table = common::ku_dynamic_cast<Table*, RelTable*>(tables.at(tableID).get());
         return table;
     }
 

@@ -9,8 +9,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapScanInternalID(LogicalOperator* logicalOperator) {
-    auto scan =
-        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalScanInternalID>(logicalOperator);
+    auto scan = common::ku_dynamic_cast<LogicalOperator*, LogicalScanInternalID*>(logicalOperator);
     auto outSchema = scan->getSchema();
     auto dataPos = DataPos(outSchema->getExpressionPos(*scan->getInternalID()));
     auto sharedState = std::make_shared<ScanNodeIDSharedState>();

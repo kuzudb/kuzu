@@ -138,8 +138,7 @@ void Catalog::dropTableSchema(table_id_t tableID) {
     auto tableSchema = readWriteVersion->getTableSchema(tableID);
     switch (tableSchema->tableType) {
     case TableType::REL_GROUP: {
-        auto relTableGroupSchema =
-            ku_dynamic_ptr_cast<TableSchema, RelTableGroupSchema>(tableSchema);
+        auto relTableGroupSchema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(tableSchema);
         auto relTableIDs = relTableGroupSchema->getRelTableIDs();
         readWriteVersion->dropTableSchema(tableID);
         for (auto relTableID : relTableIDs) {

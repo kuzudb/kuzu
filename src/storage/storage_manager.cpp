@@ -33,14 +33,14 @@ StorageManager::StorageManager(bool readOnly, const Catalog& catalog, MemoryMana
 void StorageManager::loadTables(bool readOnly, const catalog::Catalog& catalog) {
     for (auto& schema : catalog.getNodeTableSchemas(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(schema->tableID));
-        auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(schema);
+        auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(schema);
         tables[schema->tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
             nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal, readOnly,
             enableCompression, vfs);
     }
     for (auto schema : catalog.getRelTableSchemas(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(schema->tableID));
-        auto relTableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(schema);
+        auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
         tables[schema->tableID] = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
             relsStatistics.get(), &memoryManager, relTableSchema, wal, enableCompression);
     }
@@ -51,13 +51,13 @@ void StorageManager::createTable(
     auto tableSchema = catalog->getTableSchema(transaction, tableID);
     switch (tableSchema->tableType) {
     case TableType::NODE: {
-        auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema);
+        auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
         tables[tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
             nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal,
             false /* readOnly */, enableCompression, vfs);
     } break;
     case TableType::REL: {
-        auto relTableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(tableSchema);
+        auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema);
         tables[tableID] = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
             relsStatistics.get(), &memoryManager, relTableSchema, wal, enableCompression);
     } break;
@@ -70,7 +70,7 @@ void StorageManager::createTable(
 PrimaryKeyIndex* StorageManager::getPKIndex(table_id_t tableID) {
     KU_ASSERT(tables.contains(tableID));
     KU_ASSERT(tables.at(tableID)->getTableType() == TableType::NODE);
-    auto table = ku_dynamic_ptr_cast<Table, NodeTable>(tables.at(tableID).get());
+    auto table = ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
     return table->getPKIndex();
 }
 

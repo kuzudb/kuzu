@@ -11,7 +11,7 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCommentOn(
     planner::LogicalOperator* logicalOperator) {
     auto logicalCommentOn =
-        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalCommentOn>(logicalOperator);
+        common::ku_dynamic_cast<LogicalOperator*, LogicalCommentOn*>(logicalOperator);
     auto outSchema = logicalCommentOn->getSchema();
     auto outputExpression = logicalCommentOn->getOutputExpression();
     auto outputPos = DataPos(outSchema->getExpressionPos(*outputExpression));

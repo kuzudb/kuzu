@@ -50,7 +50,7 @@ void StringColumnChunk::append(ValueVector* vector) {
 
 void StringColumnChunk::append(
     ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
-    auto otherChunk = ku_dynamic_ptr_cast<ColumnChunk, StringColumnChunk>(other);
+    auto otherChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(other);
     nullChunk->append(otherChunk->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
     switch (dataType->getLogicalTypeID()) {
     case LogicalTypeID::BLOB:

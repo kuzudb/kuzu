@@ -34,7 +34,7 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
         if (queryRel->getDirectionType() == RelDirectionType::BOTH) {
             if (isSrcConnect || isDstConnect) {
                 for (auto relTableID : queryRel->getTableIDs()) {
-                    auto relTableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(
+                    auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
                         catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
                     candidates.insert(relTableSchema->getSrcTableID());
                     candidates.insert(relTableSchema->getDstTableID());
@@ -43,13 +43,13 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
         } else {
             if (isSrcConnect) {
                 for (auto relTableID : queryRel->getTableIDs()) {
-                    auto relTableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(
+                    auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
                         catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
                     candidates.insert(relTableSchema->getSrcTableID());
                 }
             } else if (isDstConnect) {
                 for (auto relTableID : queryRel->getTableIDs()) {
-                    auto relTableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(
+                    auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
                         catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
                     candidates.insert(relTableSchema->getDstTableID());
                 }
@@ -88,7 +88,7 @@ void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) {
             boundTableIDSet.insert(tableID);
         }
         for (auto& relTableID : rel.getTableIDs()) {
-            auto relTableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(
+            auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
                 catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
             auto srcTableID = relTableSchema->getSrcTableID();
             auto dstTableID = relTableSchema->getDstTableID();
@@ -101,7 +101,7 @@ void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) {
         auto srcTableIDSet = rel.getSrcNode()->getTableIDsSet();
         auto dstTableIDSet = rel.getDstNode()->getTableIDsSet();
         for (auto& relTableID : rel.getTableIDs()) {
-            auto relTableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(
+            auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
                 catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
             auto srcTableID = relTableSchema->getSrcTableID();
             auto dstTableID = relTableSchema->getDstTableID();

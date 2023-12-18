@@ -27,7 +27,7 @@ static void appendIndexScan(
 }
 
 static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan) {
-    auto extraInfo = ku_dynamic_ptr_cast<ExtraBoundCopyFromInfo, ExtraBoundCopyRelInfo>(
+    auto extraInfo = ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRelInfo*>(
         copyFromInfo->extraInfo.get());
     expression_vector payloads;
     for (auto& column : extraInfo->propertyColumns) {
@@ -39,7 +39,7 @@ static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan
     }
     std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
     // Partitioner for FWD direction rel data.
-    auto relSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(copyFromInfo->tableSchema);
+    auto relSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(copyFromInfo->tableSchema);
     infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->fromOffset, payloads,
         relSchema->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
                                                                  ColumnDataFormat::CSR,
@@ -68,11 +68,11 @@ static void planCopyNode(const BoundCopyFrom& copyFrom, LogicalPlan& plan,
     auto copyFromInfo = copyFrom.getInfo();
     auto scanInfo = copyFromInfo->fileScanInfo.get();
     auto readerConfig =
-        ku_dynamic_ptr_cast<TableFuncBindData, ScanBindData>(scanInfo->bindData.get())->config;
+        ku_dynamic_cast<TableFuncBindData*, ScanBindData*>(scanInfo->bindData.get())->config;
     auto fileType = readerConfig.fileType;
     if (FileTypeUtils::isRdf(fileType)) {
         auto extraInfo =
-            ku_dynamic_ptr_cast<ExtraReaderConfig, RdfReaderConfig>(readerConfig.extraConfig.get());
+            ku_dynamic_cast<ExtraReaderConfig*, RdfReaderConfig*>(readerConfig.extraConfig.get());
         if (extraInfo->mode == common::RdfReaderMode::RESOURCE) {
             auto planner = QueryPlanner(*catalog, storageManager);
             KU_ASSERT(scanInfo->columns.size() == 1);
@@ -86,7 +86,7 @@ static void planCopyRel(const BoundCopyFrom& copyFrom, LogicalPlan& plan) {
     auto copyFromInfo = copyFrom.getInfo();
     auto scanInfo = copyFromInfo->fileScanInfo.get();
     auto readerConfig =
-        ku_dynamic_ptr_cast<TableFuncBindData, ScanBindData>(scanInfo->bindData.get())->config;
+        ku_dynamic_cast<TableFuncBindData*, ScanBindData*>(scanInfo->bindData.get())->config;
     auto extraInfo = dynamic_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
     appendIndexScan(IndexLookupInfo::copy(extraInfo->infos), plan);
     appendPartitioner(copyFromInfo, plan);

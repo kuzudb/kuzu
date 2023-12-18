@@ -230,7 +230,7 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
     } break;
     case FileType::CSV: {
         auto csvConfig =
-            ku_dynamic_ptr_cast<ExtraReaderConfig, CSVReaderConfig>(config.extraConfig.get());
+            ku_dynamic_cast<ExtraReaderConfig*, CSVReaderConfig*>(config.extraConfig.get());
         func = functions->matchFunction(
             csvConfig->parallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
             inputTypes);
@@ -242,7 +242,7 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
     default:
         KU_UNREACHABLE;
     }
-    return ku_dynamic_ptr_cast<function::Function, function::TableFunction>(func);
+    return ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
 }
 
 } // namespace binder

@@ -175,7 +175,7 @@ void WALReplayer::replayCreateTableRecord(const WALRecord& walRecord) {
         // record.
         auto catalogForCheckpointing = getCatalogForRecovery(FileVersionType::WAL_VERSION);
         if (walRecord.copyTableRecord.tableType == TableType::NODE) {
-            auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
+            auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
                 catalogForCheckpointing->getTableSchema(
                     &DUMMY_READ_TRANSACTION, walRecord.createTableRecord.tableID));
             WALReplayerUtils::createEmptyHashIndexFiles(nodeTableSchema, wal->getDirectory(), vfs);
@@ -254,7 +254,7 @@ void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecor
             // fileHandles are obsolete and should be reconstructed (e.g. since the numPages
             // have likely changed they need to reconstruct their page locks).
             if (walRecord.copyTableRecord.tableType == TableType::NODE) {
-                auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
+                auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
                     catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
                 storageManager->getNodeTable(tableID)->initializePKIndex(
                     nodeTableSchema, false /* readOnly */, vfs);

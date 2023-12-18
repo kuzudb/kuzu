@@ -22,7 +22,7 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(Catalog* catalo
         for (auto tableID : info->node->getTableIDs()) {
             auto tableSchema =
                 catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, tableID);
-            auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema);
+            auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
             auto table = storageManager.getNodeTable(tableID);
             auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
             auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
@@ -45,7 +45,7 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(Catalog* catalo
         auto table = storageManager.getNodeTable(info->node->getSingleTableID());
         auto tableSchema = catalog->getTableSchema(
             &transaction::DUMMY_READ_TRANSACTION, info->node->getSingleTableID());
-        auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema);
+        auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
         auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
         auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
         std::unordered_set<RelTable*> fwdRelTables;

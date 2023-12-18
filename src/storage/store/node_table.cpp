@@ -49,7 +49,7 @@ offset_t NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         auto offset =
-            ku_dynamic_ptr_cast<TablesStatistics, NodesStoreStatsAndDeletedIDs>(tablesStatistics)
+            ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
                 ->addNode(tableID);
         if (offset > maxNodeOffset) {
             maxNodeOffset = offset;
@@ -92,7 +92,7 @@ void NodeTable::delete_(
             continue;
         }
         auto nodeOffset = nodeIDVector->readNodeOffset(pos);
-        ku_dynamic_ptr_cast<TablesStatistics, NodesStoreStatsAndDeletedIDs>(tablesStatistics)
+        ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
             ->deleteNode(tableID, nodeOffset);
     }
     tableData->delete_(transaction, nodeIDVector);
@@ -101,7 +101,7 @@ void NodeTable::delete_(
 void NodeTable::addColumn(transaction::Transaction* transaction, const catalog::Property& property,
     common::ValueVector* defaultValueVector) {
     auto nodesStats =
-        ku_dynamic_ptr_cast<TablesStatistics, NodesStoreStatsAndDeletedIDs>(tablesStatistics);
+        ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
     nodesStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
         PropertyStatistics(!defaultValueVector->hasNoNullsGuarantee()));
     nodesStats->addMetadataDAHInfo(tableID, *property.getDataType());

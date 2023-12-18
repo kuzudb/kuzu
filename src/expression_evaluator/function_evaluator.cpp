@@ -22,7 +22,7 @@ void FunctionExpressionEvaluator::evaluate() {
         child->evaluate();
     }
     auto expr =
-        ku_dynamic_ptr_cast<binder::Expression, binder::ScalarFunctionExpression>(expression.get());
+        ku_dynamic_cast<binder::Expression*, binder::ScalarFunctionExpression*>(expression.get());
     if (expr->getFunctionName() == CAST_FUNC_NAME) {
         execFunc(parameters, *resultVector, expr->getBindData());
         return;

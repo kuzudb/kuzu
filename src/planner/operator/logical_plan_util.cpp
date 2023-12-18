@@ -64,33 +64,31 @@ void LogicalPlanUtil::encodeCrossProduct(
 
 void LogicalPlanUtil::encodeIntersect(LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalIntersect =
-        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalIntersect>(logicalOperator);
+        common::ku_dynamic_cast<LogicalOperator*, LogicalIntersect*>(logicalOperator);
     encodeString += "I(" + logicalIntersect->getIntersectNodeID()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalHashJoin =
-        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalHashJoin>(logicalOperator);
+        common::ku_dynamic_cast<LogicalOperator*, LogicalHashJoin*>(logicalOperator);
     encodeString += "HJ(" + logicalHashJoin->getExpressionsForPrinting() + ")";
 }
 
 void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto logicalExtend =
-        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalExtend>(logicalOperator);
+    auto logicalExtend = common::ku_dynamic_cast<LogicalOperator*, LogicalExtend*>(logicalOperator);
     encodeString += "E(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeRecursiveExtend(
     LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalExtend =
-        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalRecursiveExtend>(logicalOperator);
+        common::ku_dynamic_cast<LogicalOperator*, LogicalRecursiveExtend*>(logicalOperator);
     encodeString += "RE(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeScanInternalID(
     LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto scan =
-        common::ku_dynamic_ptr_cast<LogicalOperator, LogicalScanInternalID>(logicalOperator);
+    auto scan = common::ku_dynamic_cast<LogicalOperator*, LogicalScanInternalID*>(logicalOperator);
     encodeString += "S(" + scan->getInternalID()->toString() + ")";
 }
 

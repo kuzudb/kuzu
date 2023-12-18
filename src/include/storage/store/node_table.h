@@ -27,16 +27,14 @@ public:
         catalog::NodeTableSchema* nodeTableSchema, bool readOnly, common::VirtualFileSystem* vfs);
 
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
-        auto nodesStats =
-            common::ku_dynamic_ptr_cast<TablesStatistics, NodesStoreStatsAndDeletedIDs>(
-                tablesStatistics);
+        auto nodesStats = common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
+            tablesStatistics);
         return nodesStats->getMaxNodeOffset(transaction, tableID);
     }
     inline void setSelVectorForDeletedOffsets(
         transaction::Transaction* trx, std::shared_ptr<common::ValueVector>& vector) const {
         KU_ASSERT(vector->isSequential());
-        common::ku_dynamic_ptr_cast<TablesStatistics, NodesStoreStatsAndDeletedIDs>(
-            tablesStatistics)
+        common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
             ->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
     }
 
@@ -67,7 +65,7 @@ public:
     inline common::column_id_t getPKColumnID() const { return pkColumnID; }
     inline PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
     inline NodesStoreStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
-        return common::ku_dynamic_ptr_cast<TablesStatistics, NodesStoreStatsAndDeletedIDs>(
+        return common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
             tablesStatistics);
     }
 

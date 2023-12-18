@@ -37,7 +37,7 @@ VarListColumnChunk::VarListColumnChunk(
 void VarListColumnChunk::append(
     ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     nullChunk->append(other->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
-    auto otherListChunk = ku_dynamic_ptr_cast<ColumnChunk, VarListColumnChunk>(other);
+    auto otherListChunk = ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(other);
     auto offsetInDataChunkToAppend = varListDataColumnChunk->getNumValues();
     for (auto i = 0u; i < numValuesToAppend; i++) {
         offsetInDataChunkToAppend += otherListChunk->getListLen(startPosInOtherChunk + i);
@@ -154,8 +154,7 @@ void VarListColumnChunk::finalize() {
     auto newColumnChunk =
         ColumnChunkFactory::createColumnChunk(dataType->copy(), enableCompression, capacity);
     auto totalListLen = getListOffset(numValues);
-    auto newVarListChunk =
-        ku_dynamic_ptr_cast<ColumnChunk, VarListColumnChunk>(newColumnChunk.get());
+    auto newVarListChunk = ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(newColumnChunk.get());
     newVarListChunk->getDataColumnChunk()->resize(totalListLen);
     for (auto i = 0u; i < indicesColumnChunk->getNumValues(); i++) {
         if (indicesColumnChunk->getNullChunk()->isNull(i)) {
