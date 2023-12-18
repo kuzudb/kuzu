@@ -35,8 +35,6 @@ arrow = {version="43", optional=true, default-features=false, features=["ffi"]}
 cxx-build = "1.0"
 num_cpus = "1.0"
 cmake = "0.1"
-[target.'cfg(windows)'.build-dependencies]
-which = "4"
 
 [dev-dependencies]
 tempfile = "3"

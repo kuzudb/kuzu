@@ -9,37 +9,6 @@ fn link_mode() -> &'static str {
     }
 }
 
-fn find_openssl_windows() {
-    // Find openssl library relative to the path of the openssl executable
-    // Or fall back to OPENSSL_DIR
-    #[cfg(windows)]
-    {
-        let openssl_dir = if let Ok(mut path) = which::which("openssl") {
-            path.pop();
-            path.pop();
-            path
-        } else if let Ok(path) = env::var("OPENSSL_CONF") {
-            Path::new(&path)
-                .parent()
-                .unwrap()
-                .parent()
-                .unwrap()
-                .to_path_buf()
-        } else if let Ok(path) = env::var("OPENSSL_DIR") {
-            Path::new(&path).to_path_buf()
-        } else {
-            panic!(
-                "OPENSSL_DIR must be set if the openssl library cannot be found \
-                            using the path of the openssl executable"
-            )
-        };
-        println!(
-            "cargo:rustc-link-search=native={}/lib",
-            openssl_dir.display()
-        );
-    }
-}
-
 fn get_target() -> String {
     if cfg!(windows) && std::env::var("CXXFLAGS").is_err() {
         "release".to_string()
@@ -63,12 +32,6 @@ fn link_libraries() {
             println!("cargo:rustc-link-lib=dylib=c++");
         } else {
             println!("cargo:rustc-link-lib=dylib=stdc++");
-        }
-
-        if env::var("KUZU_TESTING").is_ok() && cfg!(windows) {
-            find_openssl_windows();
-            println!("cargo:rustc-link-lib=dylib=libssl");
-            println!("cargo:rustc-link-lib=dylib=libcrypto");
         }
 
         println!("cargo:rustc-link-lib=static=utf8proc");
