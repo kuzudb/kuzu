@@ -86,3 +86,15 @@ foobar|
 ---- 2
 {_ID: 0:0, _LABEL: A, pk1: 0}
 {_ID: 1:0, _LABEL: B, pk2: 0}
+
+-CASE CreateWithLargeStringPK
+-STATEMENT CREATE NODE TABLE test(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:"fe38f9dc-f761-4184-8b8b"});
+---- ok
+-STATEMENT CREATE (t:test {id:"foobar-ewe-j323-8nd*-ewew"});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+fe38f9dc-f761-4184-8b8b
+foobar-ewe-j323-8nd*-ewew

@@ -53,6 +53,8 @@ void DiskOverflowFile::setStringOverflowWithoutLock(
         nextBytePosToWriteTo, BufferPoolConstants::PAGE_4KB_SIZE);
     memcpy(updatedPageInfoAndWALPageFrame.frame + updatedPageInfoAndWALPageFrame.posInPage,
         srcRawString, len);
+    DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
+        updatedPageInfoAndWALPageFrame, *fileHandle, *bufferManager, *wal);
     TypeUtils::encodeOverflowPtr(diskDstString.overflowPtr,
         updatedPageInfoAndWALPageFrame.originalPageIdx, updatedPageInfoAndWALPageFrame.posInPage);
     nextBytePosToWriteTo += len;
