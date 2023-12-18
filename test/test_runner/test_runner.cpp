@@ -40,7 +40,7 @@ void TestRunner::runTest(TestStatement* statement, Connection& conn, std::string
     spdlog::info("DEBUG LOG: {}", statement->logMessage);
     spdlog::info("QUERY: {}", statement->query);
     conn.setMaxNumThreadForExec(statement->numThreads);
-    ASSERT_TRUE(testStatement(statement, conn, databasePath));
+    testStatement(statement, conn, databasePath);
 }
 
 void replaceEnv(std::string& queryToReplace, const std::string& env) {
@@ -50,7 +50,7 @@ void replaceEnv(std::string& queryToReplace, const std::string& env) {
     }
 }
 
-bool TestRunner::testStatement(TestStatement* statement, Connection& conn,
+void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     std::string& databasePath) {
     std::unique_ptr<PreparedStatement> preparedStatement;
     StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", databasePath);
@@ -83,34 +83,30 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn,
         }
         // Check for wrong statements
         ResultType resultType = statement->result[std::min(i, statement->result.size() - 1)].type;
-        if (resultType != ResultType::ERROR_MSG && resultType != ResultType::ERROR_REGEX &&
-            !preparedStatement->isSuccess()) {
-            spdlog::error(preparedStatement->getErrorMessage());
-            return false;
+        if (resultType != ResultType::ERROR_MSG && resultType != ResultType::ERROR_REGEX) {
+            ASSERT_TRUE(preparedStatement->isSuccess()) << preparedStatement->getErrorMessage();
         }
-        if (!checkLogicalPlans(preparedStatement, statement, i, conn)) {
-            return false;
-        }
+        checkLogicalPlans(preparedStatement, statement, i, conn);
     }
-    return true;
 }
 
-bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedStatement,
+void TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedStatement,
     TestStatement* statement, size_t resultIdx, Connection& conn) {
     auto numPlans = preparedStatement->logicalPlans.size();
-    auto numPassedPlans = 0u;
     if (numPlans == 0) {
         return checkLogicalPlan(preparedStatement, statement, resultIdx, conn, 0);
     }
     for (auto i = 0u; i < numPlans; ++i) {
-        if (checkLogicalPlan(preparedStatement, statement, resultIdx, conn, i)) {
-            numPassedPlans++;
+        try {
+            checkLogicalPlan(preparedStatement, statement, resultIdx, conn, i);
+        } catch (std::exception& ex) {
+            spdlog::error("PLAN {} FAILED.", i);
+            throw;
         }
     }
-    return numPassedPlans == numPlans;
 }
 
-bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedStatement,
+void TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedStatement,
     TestStatement* statement, size_t resultIdx, Connection& conn, uint32_t planIdx) {
     auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
     // TODO(Ziyi): Our current testing framework is not able to handle multi-statements in a single
@@ -120,45 +116,37 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     std::string actualError;
     switch (testAnswer.type) {
     case ResultType::OK: {
-        if (!result->isSuccess()) {
-            spdlog::info("EXPECT OK BUT GOT ERROR: {}", result->getErrorMessage());
-        }
-        return result->isSuccess();
+        ASSERT_TRUE(result->isSuccess())
+            << "EXPECT OK BUT GOT ERROR: " << result->getErrorMessage();
+        break;
     }
     case ResultType::ERROR_MSG: {
+        std::string expectedError = StringUtils::rtrim(testAnswer.expectedResult[0]);
+        EXPECT_FALSE(result->isSuccess());
         actualError = StringUtils::rtrim(result->getErrorMessage());
-        if (testAnswer.expectedResult[0] == actualError) {
-            return true;
-        }
-        spdlog::info("INCORRECT ERROR: {}", actualError);
+        ASSERT_EQ(actualError, expectedError);
         break;
     }
     case ResultType::ERROR_REGEX: {
         actualError = StringUtils::rtrim(result->getErrorMessage());
-        if (std::regex_match(actualError, std::regex(testAnswer.expectedResult[0]))) {
-            return true;
-        }
-        spdlog::info("INCORRECT ERROR: {}", actualError);
+        ASSERT_TRUE(std::regex_match(actualError, std::regex(testAnswer.expectedResult[0])))
+            << "Expected error to match regex: " << testAnswer.expectedResult[0]
+            << " actual error: " << actualError;
         break;
     }
     default: {
-        if (!preparedStatement->success) {
-            spdlog::info("Query compilation failed with error: {}",
-                preparedStatement->getErrorMessage());
-            return false;
-        }
+        ASSERT_TRUE(preparedStatement->success)
+            << "Query compilation failed with error: " << preparedStatement->getErrorMessage();
         auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
-        if (checkPlanResult(result, statement, resultIdx, planStr, planIdx)) {
-            return true;
-        }
+        checkPlanResult(result, statement, resultIdx, planStr, planIdx);
         break;
     }
     }
-    return false;
 }
 
-bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
+void TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
     size_t resultIdx, const std::string& planStr, uint32_t planIdx) {
+    spdlog::info("PLAN{} took {}ms.", planIdx, result->getQuerySummary()->getExecutionTime());
     TestQueryResult& testAnswer = statement->result[resultIdx];
     if (testAnswer.type == ResultType::CSV_FILE) {
         std::ifstream expectedTuplesFile(testAnswer.expectedResult[0]);
@@ -171,12 +159,12 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             testAnswer.expectedResult.push_back(line);
         }
         if (testAnswer.expectedResult.size() != testAnswer.numTuples) {
-            spdlog::error("PLAN{} NOT PASSED.", planIdx);
+            spdlog::error("PLAN{} FAILED.", planIdx);
             spdlog::info("PLAN: \n{}", planStr);
             spdlog::info("TUPLE COUNT NOT MATCHING:");
             spdlog::info("    EXPECTED {} TUPLES IN ANSWER FILE.", testAnswer.numTuples);
             spdlog::info("    FOUND {} TUPLES IN ANSWER FILE.", testAnswer.expectedResult.size());
-            return false;
+            return;
         }
         if (!statement->checkOutputOrder) {
             sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
@@ -188,52 +176,44 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     if (statement->checkColumnNames) {
         actualNumTuples++;
     }
+    EXPECT_EQ(resultTuples.size(), actualNumTuples);
     if (testAnswer.type == ResultType::HASH) {
         std::string resultHash = TestRunner::convertResultToMD5Hash(*result,
             statement->checkOutputOrder, statement->checkColumnNames);
-        if (resultTuples.size() == actualNumTuples && resultHash == testAnswer.expectedResult[0] &&
-            resultTuples.size() == testAnswer.numTuples) {
-            spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
-                result->getQuerySummary()->getExecutionTime());
-            return true;
-        } else {
-            spdlog::error("PLAN{} NOT PASSED.", planIdx);
+
+        if (resultHash != testAnswer.expectedResult[0]) {
+            spdlog::error("PLAN{} FAILED.", planIdx);
             spdlog::info("PLAN: \n{}", planStr);
             spdlog::info("RESULT: \n");
             for (auto& tuple : resultTuples) {
                 spdlog::info(tuple);
             }
-            spdlog::info("HASH: {}\n", resultHash);
-            return false;
+            ASSERT_EQ(resultHash, testAnswer.expectedResult[0]);
         }
-    }
-    if (statement->checkPrecision) {
-        if (!statement->checkOutputOrder) {
-            spdlog::error("PLAN{} NOT PASSED.", planIdx);
-            spdlog::info("PLAN: \n{}", planStr);
-            spdlog::info("CHECK_ORDER MUST BE ENABLED FOR CHECK_PRECISION");
-            return false;
-        }
-        if (resultTuples.size() == actualNumTuples && resultTuples.size() == testAnswer.numTuples &&
-            TestRunner::checkResultNumeric(*result, statement, resultIdx)) {
-            spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
-                result->getQuerySummary()->getExecutionTime());
-            return true;
-        }
+    } else if (statement->checkPrecision) {
+        ASSERT_TRUE(statement->checkOutputOrder)
+            << "PLAN: \n"
+            << planStr << "\nCHECK_ORDER MUST BE ENABLED FOR CHECK_PRECISION";
+        EXPECT_TRUE(resultTuples.size() == testAnswer.numTuples);
+        ASSERT_TRUE(TestRunner::checkResultNumeric(*result, statement, resultIdx));
+    } else if (resultTuples == testAnswer.expectedResult) {
+        spdlog::info("PLAN{} PASSED.", planIdx);
     } else {
-        if (resultTuples.size() == actualNumTuples && resultTuples == testAnswer.expectedResult) {
-            spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
-                result->getQuerySummary()->getExecutionTime());
-            return true;
+        spdlog::error("PLAN{} FAILED.", planIdx);
+        spdlog::info("PLAN: \n{}", planStr);
+        if (resultTuples.size() == testAnswer.numTuples) {
+            for (auto& tuple : resultTuples) {
+                spdlog::info(tuple);
+            }
+            for (auto i = 0u; i < resultTuples.size(); i++) {
+                EXPECT_EQ(resultTuples[i], testAnswer.expectedResult[i])
+                    << "Result tuple at index " << i << " did not match the expected value";
+            }
+        } else {
+            EXPECT_EQ(resultTuples.size(), actualNumTuples);
+            ASSERT_EQ(resultTuples, testAnswer.expectedResult);
         }
     }
-    spdlog::error("PLAN{} NOT PASSED.", planIdx);
-    spdlog::info("PLAN: \n{}", planStr);
-    spdlog::info("RESULT: \n");
-    for (auto& tuple : resultTuples) {
-        spdlog::info(tuple);
-    }
-    return false;
 }
 
 bool TestRunner::checkResultNumeric(QueryResult& queryResult, TestStatement* statement,
