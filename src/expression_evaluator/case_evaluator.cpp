@@ -1,13 +1,5 @@
 #include "expression_evaluator/case_evaluator.h"
 
-#include <cmath>
-
-#include "common/types/date_t.h"
-#include "common/types/interval_t.h"
-#include "common/types/ku_string.h"
-#include "common/types/timestamp_t.h"
-#include "common/types/types.h"
-
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
@@ -41,16 +33,16 @@ void CaseExpressionEvaluator::evaluate() {
         alternativeEvaluator->thenEvaluator->evaluate();
         auto thenVector = alternativeEvaluator->thenEvaluator->resultVector.get();
         if (alternativeEvaluator->whenEvaluator->isResultFlat()) {
-            fillAllSwitch(*thenVector);
+            fillAll(thenVector);
         } else {
-            fillSelectedSwitch(*whenSelVector, *thenVector);
+            fillSelected(*whenSelVector, thenVector);
         }
         if (filledMask.count() == resultVector->state->selVector->selectedSize) {
             return;
         }
     }
     elseEvaluator->evaluate();
-    fillAllSwitch(*elseEvaluator->resultVector);
+    fillAll(elseEvaluator->resultVector.get());
 }
 
 bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
@@ -90,89 +82,30 @@ void CaseExpressionEvaluator::resolveResultVector(
     resolveResultStateFromChildren(inputEvaluators);
 }
 
-template<typename T>
-void CaseExpressionEvaluator::fillEntry(sel_t resultPos, const ValueVector& thenVector) {
+void CaseExpressionEvaluator::fillSelected(
+    const SelectionVector& selVector, ValueVector* srcVector) {
+    for (auto i = 0u; i < selVector.selectedSize; ++i) {
+        auto resultPos = selVector.selectedPositions[i];
+        fillEntry(resultPos, srcVector);
+    }
+}
+
+void CaseExpressionEvaluator::fillAll(ValueVector* srcVector) {
+    auto resultSelVector = resultVector->state->selVector.get();
+    for (auto i = 0u; i < resultSelVector->selectedSize; ++i) {
+        auto resultPos = resultSelVector->selectedPositions[i];
+        fillEntry(resultPos, srcVector);
+    }
+}
+
+void CaseExpressionEvaluator::fillEntry(sel_t resultPos, ValueVector* srcVector) {
     if (filledMask[resultPos]) {
         return;
     }
     filledMask[resultPos] = true;
-    auto thenPos =
-        thenVector.state->isFlat() ? thenVector.state->selVector->selectedPositions[0] : resultPos;
-    if (thenVector.isNull(thenPos)) {
-        resultVector->setNull(resultPos, true);
-    } else {
-        if (thenVector.dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
-            auto srcListEntry = thenVector.getValue<list_entry_t>(thenPos);
-            ListVector::addList(resultVector.get(), srcListEntry.size);
-            resultVector->copyFromVectorData(resultPos, &thenVector, thenPos);
-        } else {
-            auto val = thenVector.getValue<T>(thenPos);
-            resultVector->setValue<T>(resultPos, val);
-        }
-    }
-}
-
-void CaseExpressionEvaluator::fillAllSwitch(const ValueVector& thenVector) {
-    switch (resultVector->dataType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL: {
-        fillAll<bool>(thenVector);
-    } break;
-    case LogicalTypeID::INT64: {
-        fillAll<int64_t>(thenVector);
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        fillAll<double_t>(thenVector);
-    } break;
-    case LogicalTypeID::DATE: {
-        fillAll<date_t>(thenVector);
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        fillAll<timestamp_t>(thenVector);
-    } break;
-    case LogicalTypeID::INTERVAL: {
-        fillAll<interval_t>(thenVector);
-    } break;
-    case LogicalTypeID::STRING: {
-        fillAll<ku_string_t>(thenVector);
-    } break;
-    case LogicalTypeID::VAR_LIST: {
-        fillAll<list_entry_t>(thenVector);
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
-}
-
-void CaseExpressionEvaluator::fillSelectedSwitch(
-    const SelectionVector& selVector, const ValueVector& thenVector) {
-    switch (resultVector->dataType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL: {
-        fillSelected<bool>(selVector, thenVector);
-    } break;
-    case LogicalTypeID::INT64: {
-        fillSelected<int64_t>(selVector, thenVector);
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        fillSelected<double_t>(selVector, thenVector);
-    } break;
-    case LogicalTypeID::DATE: {
-        fillSelected<date_t>(selVector, thenVector);
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        fillSelected<timestamp_t>(selVector, thenVector);
-    } break;
-    case LogicalTypeID::INTERVAL: {
-        fillSelected<interval_t>(selVector, thenVector);
-    } break;
-    case LogicalTypeID::STRING: {
-        fillSelected<ku_string_t>(selVector, thenVector);
-    } break;
-    case LogicalTypeID::VAR_LIST: {
-        fillSelected<list_entry_t>(selVector, thenVector);
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
+    auto srcPos =
+        srcVector->state->isFlat() ? srcVector->state->selVector->selectedPositions[0] : resultPos;
+    resultVector->copyFromVectorData(resultPos, srcVector, srcPos);
 }
 
 } // namespace evaluator

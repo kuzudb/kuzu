@@ -288,3 +288,29 @@ t2
 ---- 2
 t1
 t2
+
+-CASE 2589
+-STATEMENT CREATE NODE TABLE T (id STRING,PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE E (FROM T TO T);
+---- ok
+-STATEMENT CREATE (t1:T{id:"t1"})-[:E]->(t2:T{id:"t2"});
+---- ok
+-STATEMENT WITH "node_after" as selected
+        MATCH (t1:T{id: "t1"})-[:E]->(t2:T{id: "t2"})
+        WITH
+        CASE WHEN selected = "node_after" THEN t2
+            ELSE t1
+        END as ret
+        RETURN ret;
+---- 1
+{_ID: 0:1, _LABEL: T, id: t2}
+-STATEMENT WITH "node_after" as selected
+        MATCH (t1:T{id: "t1"})-[:E]->(t2:T{id: "t2"})
+        WITH
+        CASE WHEN selected <> "node_after" THEN t2
+            ELSE t1
+        END as ret
+        RETURN ret;
+---- 1
+{_ID: 0:0, _LABEL: T, id: t1}
