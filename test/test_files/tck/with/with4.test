@@ -5,7 +5,6 @@
 
 # Aliasing relationship variable
 -CASE Scenario1
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE T1(FROM A TO A);
