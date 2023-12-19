@@ -118,6 +118,7 @@ void NodeTableData::appendAsync(kuzu::storage::NodeGroup* nodeGroup, uv_loop_t* 
         auto columnChunk = nodeGroup->getColumnChunk(columnID);
         KU_ASSERT(columnID < columns.size());
         columns[columnID]->appendAsync(columnChunk, nodeGroup->getNodeGroupIdx(), loop, info);
+        uv_run(loop, UV_RUN_NOWAIT);
     }
 }
 

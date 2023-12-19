@@ -134,7 +134,10 @@ void CopyNode::executeInternal(ExecutionContext* context) {
         sharedState->appendLocalNodeGroup(std::move(localNodeGroups[currentNodeGroup]));
     }
 
-    while(waitForAllNodeGroup()) {};
+    while(waitForAllNodeGroup()) {
+        uv_run(&loop, UV_RUN_DEFAULT);
+    };
+    uv_loop_close(&loop);
 }
 
 void CopyNode::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
@@ -161,7 +164,9 @@ void CopyNode::writeNodeGroup(node_group_idx_t nodeGroupIdx,
     // }
     table->appendAsync(nodeGroup, &loop, nodeGroupInfo[currentNodeGroup].get());
 
-    while(waitForOneNodeGroup(currentNodeGroup)) {};
+    while(waitForOneNodeGroup(currentNodeGroup)) {
+        uv_run(&loop, UV_RUN_NOWAIT);
+    };
 }
 
 
