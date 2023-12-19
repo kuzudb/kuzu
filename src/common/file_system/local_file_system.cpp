@@ -11,6 +11,8 @@
 
 #include <fcntl.h>
 
+#include <cstring>
+
 #include "common/assert.h"
 #include "common/exception/exception.h"
 #include "common/string_format.h"
