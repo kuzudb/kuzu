@@ -228,6 +228,7 @@ True|True|True
 [t2,t22]
 [t3]
 
+
 -CASE 2587
 -STATEMENT CREATE NODE TABLE T (id STRING, descr STRING, PRIMARY KEY (id));
 ---- ok
@@ -248,3 +249,42 @@ foo|
 bar|fe38f9dc-f761-4184-8b8b-ec9a1b5ffb83
 ge38f9dc-f751-4174-8b8b-ec9a1b6gab83|
 1234567890123|
+
+-CASE 2588
+-STATEMENT CREATE NODE TABLE T (id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (:T {id: "t1"}),(:T {id: "t2"});
+---- ok
+-STATEMENT CALL SHOW_TABLES() WHERE true RETURN *;
+---- 1
+T|NODE|
+-STATEMENT CALL SHOW_TABLES() WHERE false RETURN *;
+---- 0
+
+-STATEMENT MATCH (t:T) WHERE false RETURN t.*;
+---- 0
+
+-STATEMENT MATCH (t:T) WHERE true RETURN t.*;
+---- 2
+t1
+t2
+-STATEMENT MATCH (t:T) WHERE NULL RETURN t.*;
+---- 0
+
+-STATEMENT MATCH (t:T) WHERE 2 > 1 + 1 RETURN t.*;
+---- 0
+
+-STATEMENT MATCH (t:T) WHERE "aa" STARTS WITH "a" RETURN t.*;
+---- 2
+t1
+t2
+-STATEMENT MATCH (t:T) WHERE 1 > null RETURN t.*;
+---- 0
+
+-STATEMENT MATCH (t:T) WHERE NULL WITH t MATCH (t2:T) RETURN t.*;
+---- 0
+
+-STATEMENT MATCH (t:T) WITH t OPTIONAL MATCH (t2:T) WHERE NULL RETURN t.*;
+---- 2
+t1
+t2

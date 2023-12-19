@@ -20,6 +20,7 @@ enum class LogicalOperatorType : uint8_t {
     DISTINCT,
     DROP_TABLE,
     DUMMY_SCAN,
+    EMPTY_RESULT,
     EXPLAIN,
     EXPRESSIONS_SCAN,
     EXTEND,

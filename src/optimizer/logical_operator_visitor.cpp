@@ -10,6 +10,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     case LogicalOperatorType::FLATTEN: {
         visitFlatten(op);
     } break;
+    case LogicalOperatorType::EMPTY_RESULT: {
+        visitEmptyResult(op);
+    } break;
     case LogicalOperatorType::EXPRESSIONS_SCAN: {
         visitExpressionsScan(op);
     } break;
@@ -95,6 +98,9 @@ std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorR
     switch (op->getOperatorType()) {
     case LogicalOperatorType::FLATTEN: {
         return visitFlattenReplace(op);
+    }
+    case LogicalOperatorType::EMPTY_RESULT: {
+        return visitEmptyResultReplace(op);
     }
     case LogicalOperatorType::EXPRESSIONS_SCAN: {
         return visitExpressionsScanReplace(op);

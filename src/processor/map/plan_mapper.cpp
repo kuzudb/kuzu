@@ -45,6 +45,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::INDEX_SCAN_NODE: {
         physicalOperator = mapIndexScan(logicalOperator);
     } break;
+    case LogicalOperatorType::EMPTY_RESULT: {
+        physicalOperator = mapEmptyResult(logicalOperator);
+    } break;
     case LogicalOperatorType::UNWIND: {
         physicalOperator = mapUnwind(logicalOperator);
     } break;

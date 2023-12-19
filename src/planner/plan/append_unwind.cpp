@@ -9,8 +9,8 @@ namespace planner {
 
 void QueryPlanner::appendUnwind(const BoundReadingClause& boundReadingClause, LogicalPlan& plan) {
     auto& boundUnwindClause = (BoundUnwindClause&)boundReadingClause;
-    auto unwind = make_shared<LogicalUnwind>(boundUnwindClause.getExpression(),
-        boundUnwindClause.getAliasExpression(), plan.getLastOperator());
+    auto unwind = make_shared<LogicalUnwind>(
+        boundUnwindClause.getInExpr(), boundUnwindClause.getOutExpr(), plan.getLastOperator());
     QueryPlanner::appendFlattens(unwind->getGroupsPosToFlatten(), plan);
     unwind->setChild(0, plan.getLastOperator());
     unwind->computeFactorizedSchema();

@@ -21,6 +21,12 @@ protected:
         return op;
     }
 
+    virtual void visitEmptyResult(planner::LogicalOperator*) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitEmptyResultReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
     virtual void visitExpressionsScan(planner::LogicalOperator* /*op*/) {}
     virtual std::shared_ptr<planner::LogicalOperator> visitExpressionsScanReplace(
         std::shared_ptr<planner::LogicalOperator> op) {

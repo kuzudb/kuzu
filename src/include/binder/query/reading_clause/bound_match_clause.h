@@ -1,6 +1,5 @@
 #pragma once
 
-#include "binder/expression/expression.h"
 #include "binder/query/query_graph.h"
 #include "bound_reading_clause.h"
 
@@ -14,21 +13,11 @@ public:
         : BoundReadingClause{common::ClauseType::MATCH},
           queryGraphCollection{std::move(queryGraphCollection)}, matchClauseType{matchClauseType} {}
     BoundMatchClause(const BoundMatchClause& other)
-        : BoundReadingClause(common::ClauseType::MATCH),
-          queryGraphCollection{other.queryGraphCollection->copy()},
-          wherePredicate(other.wherePredicate), matchClauseType{other.matchClauseType} {}
+        : BoundReadingClause{other}, queryGraphCollection{other.queryGraphCollection->copy()},
+          matchClauseType{other.matchClauseType} {}
 
     inline QueryGraphCollection* getQueryGraphCollection() const {
         return queryGraphCollection.get();
-    }
-
-    inline void setWherePredicate(std::shared_ptr<Expression> expression) {
-        wherePredicate = std::move(expression);
-    }
-    inline bool hasWherePredicate() const { return wherePredicate != nullptr; }
-    inline std::shared_ptr<Expression> getWherePredicate() const { return wherePredicate; }
-    inline expression_vector getPredicatesSplitOnAnd() const {
-        return hasWherePredicate() ? wherePredicate->splitOnAND() : expression_vector{};
     }
 
     inline common::MatchClauseType getMatchClauseType() const { return matchClauseType; }
@@ -39,7 +28,6 @@ public:
 
 private:
     std::unique_ptr<QueryGraphCollection> queryGraphCollection;
-    std::shared_ptr<Expression> wherePredicate;
     common::MatchClauseType matchClauseType;
 };
 

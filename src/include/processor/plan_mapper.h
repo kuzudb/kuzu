@@ -45,6 +45,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapScanInternalID(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapFillTableID(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIndexScan(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapEmptyResult(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUnwind(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExtend(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapRecursiveExtend(planner::LogicalOperator* logicalOperator);

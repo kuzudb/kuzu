@@ -59,7 +59,7 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : CopyTo{std::move(resultSetDescriptor), std::move(info),
               std::make_unique<CopyToParquetLocalState>(), std::move(sharedState),
-              PhysicalOperatorType::COPY_TO_PARQUET, std::move(child), id, paramsString} {}
+              PhysicalOperatorType::COPY_TO, std::move(child), id, paramsString} {}
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CopyToParquet>(resultSetDescriptor->copy(), info->copy(),

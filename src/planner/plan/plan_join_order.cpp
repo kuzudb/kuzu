@@ -55,6 +55,9 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphColle
         // Extract predicates for current query graph
         std::unordered_set<uint32_t> predicateToEvaluateIndices;
         for (auto j = 0u; j < predicates.size(); ++j) {
+            if (predicates[j]->expressionType == ExpressionType::LITERAL) {
+                continue;
+            }
             if (evaluatedPredicatesIndices.contains(j)) {
                 continue;
             }
