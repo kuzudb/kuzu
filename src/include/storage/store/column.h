@@ -61,6 +61,8 @@ public:
         common::ValueVector* resultVector);
 
     virtual void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx);
+    virtual void appendAsync(ColumnChunk* columnChunk, uint64_t nodeGroupIdx, uv_loop_t* ring,
+        common::NodeGroupInfo* info);
 
     virtual bool isNull(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);

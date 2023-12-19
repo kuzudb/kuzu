@@ -59,6 +59,8 @@ public:
 
     ColumnChunkMetadata flushBuffer(
         BMFileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata);
+    ColumnChunkMetadata flushBufferAsync(BMFileHandle* dataFH, common::page_idx_t startPageIdx,
+        const ColumnChunkMetadata& metadata, uv_loop_t* loop, common::NodeGroupInfo* info);
 
     static inline common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
         return (numBytes + common::BufferPoolConstants::PAGE_4KB_SIZE - 1) /
@@ -112,8 +114,8 @@ protected:
     std::unique_ptr<uint8_t[]> buffer;
     std::unique_ptr<NullColumnChunk> nullChunk;
     uint64_t numValues;
-    std::function<ColumnChunkMetadata(
-        const uint8_t*, uint64_t, BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>
+    std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, BMFileHandle*, common::page_idx_t,
+        const ColumnChunkMetadata&, uv_loop_t*, common::NodeGroupInfo*)>
         flushBufferFunction;
     std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, uint64_t, uint64_t)>
         getMetadataFunction;

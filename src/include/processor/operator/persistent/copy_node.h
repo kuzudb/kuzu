@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+#include <uv.h>
 
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/call/in_query_call.h"
@@ -107,8 +108,13 @@ public:
     static void writeAndResetNodeGroup(common::node_group_idx_t nodeGroupIdx,
         storage::PrimaryKeyIndexBuilder* pkIndex, common::column_id_t pkColumnID,
         storage::NodeTable* table, storage::NodeGroup* nodeGroup);
+    void writeNodeGroup(common::node_group_idx_t nodeGroupIdx,
+        storage::PrimaryKeyIndexBuilder* pkIndex, common::column_id_t pkColumnID,
+        storage::NodeTable* table, storage::NodeGroup* nodeGroup);
 
 private:
+    bool waitForOneNodeGroup(uint8_t& curGroup);
+    bool waitForAllNodeGroup();
     static void populatePKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
         storage::ColumnChunk* chunk, common::offset_t startNodeOffset, common::offset_t numNodes);
     static void checkNonNullConstraint(
@@ -127,7 +133,11 @@ protected:
     common::DataChunkState* columnState;
     std::vector<std::shared_ptr<common::ValueVector>> nullColumnVectors;
     std::vector<common::ValueVector*> columnVectors;
-    std::unique_ptr<storage::NodeGroup> localNodeGroup;
+    std::vector<std::unique_ptr<storage::NodeGroup>> localNodeGroups;
+    uint8_t k = 2;
+    uv_loop_t loop;
+    uint8_t currentNodeGroup = 0;
+    std::vector<std::unique_ptr<common::NodeGroupInfo>> nodeGroupInfo;
 };
 
 template<>

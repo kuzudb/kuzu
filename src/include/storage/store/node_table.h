@@ -58,6 +58,9 @@ public:
     void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* pkVector);
     inline void append(NodeGroup* nodeGroup) { tableData->append(nodeGroup); }
+    inline void appendAsync(NodeGroup* nodeGroup, uv_loop_t* loop, common::NodeGroupInfo* info) {
+        tableData->appendAsync(nodeGroup, loop, info);
+    }
 
     inline common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
     inline Column* getColumn(common::column_id_t columnID) {

@@ -88,9 +88,40 @@ void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*
             columnVectors.push_back(nullVector.get());
         }
     }
-    localNodeGroup = NodeGroupFactory::createNodeGroup(
-        ColumnDataFormat::REGULAR, sharedState->columnTypes, info->compressionEnabled);
+    localNodeGroups.reserve(k);
+    nodeGroupInfo.reserve(k);
+
+    for (int i = 0; i < k; i++) {
+        localNodeGroups.push_back(NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR,
+            sharedState->columnTypes, info->compressionEnabled));
+        nodeGroupInfo.push_back(std::make_unique<NodeGroupInfo>(i));
+    }
     columnState = state.get();
+    uv_loop_init(&loop);
+}
+
+bool CopyNode::waitForOneNodeGroup(uint8_t& curGroup) {
+    bool needToWait = true;
+    for (auto i = 0u; i < k; i++) {
+        if (nodeGroupInfo[i]->receivedReq == nodeGroupInfo[i]->totalReq) {
+            localNodeGroups[i]->resetToEmpty();
+            curGroup = i;
+            needToWait = false;
+            break;
+        }
+    }
+    return needToWait;
+}
+
+bool CopyNode::waitForAllNodeGroup() {
+    bool needToWait = false;
+    for (auto& groupInfo: nodeGroupInfo) {
+        if (groupInfo->receivedReq != groupInfo->totalReq) {
+            needToWait = true;
+            break;
+        }
+    }
+    return needToWait;
 }
 
 void CopyNode::executeInternal(ExecutionContext* context) {
@@ -99,9 +130,11 @@ void CopyNode::executeInternal(ExecutionContext* context) {
         copyToNodeGroup();
         columnState->selVector = std::move(originalSelVector);
     }
-    if (localNodeGroup->getNumRows() > 0) {
-        sharedState->appendLocalNodeGroup(std::move(localNodeGroup));
+    if (localNodeGroups[currentNodeGroup]->getNumRows() > 0) {
+        sharedState->appendLocalNodeGroup(std::move(localNodeGroups[currentNodeGroup]));
     }
+
+    while(waitForAllNodeGroup()) {};
 }
 
 void CopyNode::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
@@ -109,13 +142,28 @@ void CopyNode::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
     NodeGroup* nodeGroup) {
     nodeGroup->finalize(nodeGroupIdx);
     auto startOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    if (pkIndex) {
-        populatePKIndex(pkIndex, nodeGroup->getColumnChunk(pkColumnID), startOffset,
-            nodeGroup->getNumRows() /* startPageIdx */);
-    }
+    // if (pkIndex) {
+    //   populatePKIndex(pkIndex, nodeGroup->getColumnChunk(pkColumnID), startOffset,
+    //        nodeGroup->getNumRows() /* startPageIdx */);
+    // }
     table->append(nodeGroup);
     nodeGroup->resetToEmpty();
 }
+
+void CopyNode::writeNodeGroup(node_group_idx_t nodeGroupIdx,
+    PrimaryKeyIndexBuilder* pkIndex, column_id_t pkColumnID, NodeTable* table,
+    NodeGroup* nodeGroup) {
+    nodeGroup->finalize(nodeGroupIdx);
+    auto startOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    // if (pkIndex) {
+    //    populatePKIndex(pkIndex, nodeGroup->getColumnChunk(pkColumnID), startOffset,
+    //        nodeGroup->getNumRows() /* startPageIdx */);
+    // }
+    table->appendAsync(nodeGroup, &loop, nodeGroupInfo[currentNodeGroup].get());
+
+    while(waitForOneNodeGroup(currentNodeGroup)) {};
+}
+
 
 void CopyNode::populatePKIndex(
     PrimaryKeyIndexBuilder* pkIndex, ColumnChunk* chunk, offset_t startOffset, offset_t numNodes) {
@@ -150,7 +198,7 @@ void CopyNode::populatePKIndex(
     }
     pkIndex->unlock();
     if (errorPKValueStr) {
-        throw CopyException(ExceptionMessage::existedPKException(*errorPKValueStr));
+         throw CopyException(ExceptionMessage::existedPKException(*errorPKValueStr));
     }
 }
 
@@ -219,15 +267,17 @@ uint64_t CopyNode::appendToPKIndex<std::string>(
 void CopyNode::copyToNodeGroup() {
     auto numAppendedTuples = 0ul;
     auto numTuplesToAppend = columnState->getNumSelectedValues();
+
     while (numAppendedTuples < numTuplesToAppend) {
-        auto numAppendedTuplesInNodeGroup = localNodeGroup->append(
+        auto numAppendedTuplesInNodeGroup = localNodeGroups[currentNodeGroup]->append(
             columnVectors, columnState, numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
-        if (localNodeGroup->isFull()) {
+        if (localNodeGroups[currentNodeGroup]->isFull()) {
             node_group_idx_t nodeGroupIdx;
             nodeGroupIdx = sharedState->getNextNodeGroupIdx();
-            writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(),
-                sharedState->pkColumnIdx, sharedState->table, localNodeGroup.get());
+            writeNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(),
+                sharedState->pkColumnIdx, sharedState->table,
+                localNodeGroups[currentNodeGroup].get());
         }
         if (numAppendedTuples < numTuplesToAppend) {
             columnState->slice((offset_t)numAppendedTuplesInNodeGroup);

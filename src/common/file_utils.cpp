@@ -1,5 +1,6 @@
 #include "common/file_utils.h"
 
+#include <uv.h>
 #include <cstring>
 
 #include "common/assert.h"
@@ -28,6 +29,15 @@ FileInfo::~FileInfo() {
 #endif
 }
 
+
+static bool hasEnding(std::string const &fullString, std::string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+
 uint64_t FileInfo::getFileSize() {
 #ifdef _WIN32
     LARGE_INTEGER size;
@@ -38,6 +48,20 @@ uint64_t FileInfo::getFileSize() {
     }
     return size.QuadPart;
 #else
+    if (hasEnding(path, "/data.kz")) {
+        if (fcntl(fd, F_GETFD) == -1) {
+            throw Exception("file not open correctly.");
+        }
+        uv_fs_t statReq;
+        int r = uv_fs_fstat(NULL, &statReq, fd, NULL);
+        if (r < 0) {
+            throw StorageException(stringFormat(
+                "Cannot read size of file. path: {}", path));
+        }
+        uint64_t size = statReq.statbuf.st_size;
+        uv_fs_req_cleanup(&statReq);
+        return size;
+    }
     struct stat s;
     if (fstat(fd, &s) == -1) {
         throw StorageException(stringFormat(
@@ -46,6 +70,13 @@ uint64_t FileInfo::getFileSize() {
     KU_ASSERT(s.st_size >= 0);
     return s.st_size;
 #endif
+}
+
+static void onOpen(uv_fs_t* req) {
+    if (req->result < 0) {
+        throw Exception(uv_strerror(req->result));
+    }
+    uv_fs_req_cleanup(req);
 }
 
 std::unique_ptr<FileInfo> FileUtils::openFile(
@@ -81,10 +112,17 @@ std::unique_ptr<FileInfo> FileUtils::openFile(
     }
     return std::make_unique<FileInfo>(path, handle);
 #else
-    int fd = open(path.c_str(), flags, 0644);
-    if (fd == -1) {
-        throw Exception("Cannot open file: " + path);
-    }
+    int fd;
+    // if (hasEnding(path, "/data.kz")) {
+        // flags |= O_DIRECT;
+    //    uv_fs_t open_req;
+    //    uv_fs_open(NULL,  &open_req, path.c_str(), flags, 0644, NULL);
+    // } else {
+        fd = open(path.c_str(), flags, 0644);
+        if (fd == -1) {
+            throw Exception("Cannot open file: " + path);
+        }
+    // }
     if (lock_type != FileLockType::NO_LOCK) {
         struct flock fl;
         memset(&fl, 0, sizeof fl);
@@ -140,6 +178,39 @@ void FileUtils::writeToFile(
         remainingNumBytesToWrite -= numBytesWritten;
         offset += numBytesWritten;
         bufferOffset += numBytesWritten;
+    }
+}
+
+static void onWrite(uv_fs_t* req) {
+    if (req->result < 0) {
+        throw Exception(uv_strerror(req->result));
+    } else {
+        NodeGroupInfo* info = static_cast<NodeGroupInfo*>(req->data);
+        info->receivedReq++;
+        info->receivedSize += req->result;
+    }
+
+    // Cleanup request
+    uv_fs_req_cleanup(req);
+}
+
+void FileUtils::writeToFileAsync(
+    FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset, uv_loop_t* loop, NodeGroupInfo* info) {
+    uint64_t remainingNumBytesToWrite = numBytes;
+    uint64_t bufferOffset = 0;
+    // Split large writes to 1GB at a time
+    uint64_t maxBytesToWriteAtOnce = 1ull << 30; // 1ull << 30 = 1G
+    while (remainingNumBytesToWrite > 0) {
+        uint64_t numBytesToWrite = std::min(remainingNumBytesToWrite, maxBytesToWriteAtOnce);
+        uv_fs_t writeReq;
+        writeReq.data = info;
+        uv_buf_t iov = uv_buf_init((char *)(buffer + bufferOffset), numBytesToWrite);
+        uv_fs_write(loop, &writeReq, fileInfo->fd, &iov, 1, offset, onWrite);
+        info->totalReq++;
+        info->byteSize += numBytesToWrite;
+        remainingNumBytesToWrite -= numBytesToWrite;
+        offset += numBytesToWrite;
+        bufferOffset += numBytesToWrite;
     }
 }
 

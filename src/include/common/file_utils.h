@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fcntl.h>
+#include <uv.h>
 #include <sys/stat.h>
 #if defined(_WIN32)
 #include <io.h>
@@ -36,6 +37,18 @@ struct FileInfo {
 #endif
 };
 
+struct NodeGroupInfo {
+    uint64_t byteSize = 0;
+    uint8_t idx;
+    uint64_t totalReq = 0;
+
+    uint64_t receivedSize = 0;
+    uint64_t receivedReq = 0;
+
+    NodeGroupInfo(uint8_t i): idx{i}
+    {}
+};
+
 class FileUtils {
 public:
     static std::unique_ptr<FileInfo> openFile(
@@ -45,6 +58,8 @@ public:
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
     static void writeToFile(
         FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset);
+    static void writeToFileAsync(FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+        uint64_t offset, uv_loop_t* ring, NodeGroupInfo* info);
     // This function is a no-op if either file, from or to, does not exist.
     static void overwriteFile(const std::string& from, const std::string& to);
     static void copyFile(const std::string& from, const std::string& to,
