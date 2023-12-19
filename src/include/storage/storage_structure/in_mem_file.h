@@ -5,12 +5,16 @@
 #include "storage/storage_structure/in_mem_page.h"
 
 namespace kuzu {
+namespace common {
+class VirtualFileSystem;
+}
+
 namespace storage {
 
 // InMemFile holds a collection of in-memory page in the memory.
 class InMemFile {
 public:
-    explicit InMemFile(std::string filePath);
+    explicit InMemFile(std::string filePath, common::VirtualFileSystem* vfs);
 
     uint32_t addANewPage(bool setToZero = false);
 
@@ -27,6 +31,7 @@ public:
 
 private:
     std::string filePath;
+    std::unique_ptr<common::FileInfo> fileInfo;
     std::vector<std::unique_ptr<InMemPage>> pages;
     common::page_idx_t nextPageIdxToAppend;
     common::page_offset_t nextOffsetInPageToAppend;

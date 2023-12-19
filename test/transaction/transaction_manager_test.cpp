@@ -13,11 +13,12 @@ class TransactionManagerTest : public EmptyDBTest {
 protected:
     void SetUp() override {
         EmptyDBTest::SetUp();
-        FileUtils::createDir(databasePath);
+        std::filesystem::create_directory(databasePath);
         createDBAndConn();
         bufferManager = getBufferManager(*database);
         std::make_unique<BufferManager>(BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        wal = std::make_unique<WAL>(databasePath, false /* readOnly */, *bufferManager);
+        wal = std::make_unique<WAL>(
+            databasePath, false /* readOnly */, *bufferManager, getFileSystem(*database));
         transactionManager =
             std::make_unique<TransactionManager>(*wal, getMemoryManager(*database));
     }

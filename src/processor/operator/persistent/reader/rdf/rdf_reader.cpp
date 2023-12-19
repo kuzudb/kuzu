@@ -317,7 +317,7 @@ std::unique_ptr<function::TableFuncBindData> RdfScan::bindFunc(main::ClientConte
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     return std::make_unique<function::ScanBindData>(
         common::LogicalType::copy(scanInput->expectedColumnTypes), scanInput->expectedColumnNames,
-        scanInput->mm, scanInput->config);
+        scanInput->mm, scanInput->config, scanInput->vfs);
 }
 
 std::unique_ptr<function::TableFuncSharedState> RdfScan::initSharedState(

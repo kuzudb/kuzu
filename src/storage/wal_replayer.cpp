@@ -19,10 +19,10 @@ namespace storage {
 // ROLLBACK:            isCheckpoint = false, isRecovering = false
 // RECOVERY_CHECKPOINT: isCheckpoint = true,  isRecovering = true
 WALReplayer::WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager* bufferManager,
-    Catalog* catalog, WALReplayMode replayMode)
+    Catalog* catalog, WALReplayMode replayMode, common::VirtualFileSystem* vfs)
     : isRecovering{replayMode == WALReplayMode::RECOVERY_CHECKPOINT},
       isCheckpoint{replayMode != WALReplayMode::ROLLBACK}, storageManager{storageManager},
-      bufferManager{bufferManager}, wal{wal}, catalog{catalog} {
+      bufferManager{bufferManager}, vfs{vfs}, wal{wal}, catalog{catalog} {
     init();
 }
 
@@ -102,15 +102,14 @@ void WALReplayer::replayPageUpdateOrInsertRecord(const kuzu::storage::WALRecord&
     // (and checkpointing) or checkpointing while during regular execution.
     auto dbFileID = walRecord.pageInsertOrUpdateRecord.dbFileID;
     std::unique_ptr<FileInfo> fileInfoOfDBFile =
-        StorageUtils::getFileInfoForReadWrite(wal->getDirectory(), dbFileID);
+        StorageUtils::getFileInfoForReadWrite(wal->getDirectory(), dbFileID, vfs);
     if (isCheckpoint) {
         if (!wal->isLastLoggedRecordCommit()) {
             // Nothing to undo.
             return;
         }
         walFileHandle->readPage(pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInWAL);
-        FileUtils::writeToFile(fileInfoOfDBFile.get(), pageBuffer.get(),
-            BufferPoolConstants::PAGE_4KB_SIZE,
+        fileInfoOfDBFile->writeFile(pageBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE,
             walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile *
                 BufferPoolConstants::PAGE_4KB_SIZE);
     }
@@ -126,13 +125,20 @@ void WALReplayer::replayPageUpdateOrInsertRecord(const kuzu::storage::WALRecord&
 void WALReplayer::replayTableStatisticsRecord(const kuzu::storage::WALRecord& walRecord) {
     if (isCheckpoint) {
         if (walRecord.tableStatisticsRecord.isNodeTable) {
-            StorageUtils::overwriteNodesStatisticsAndDeletedIDsFileWithVersionFromWAL(
-                wal->getDirectory());
+            auto walFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
+                vfs, wal->getDirectory(), common::FileVersionType::WAL_VERSION);
+            auto originalFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
+                vfs, wal->getDirectory(), common::FileVersionType::ORIGINAL);
+            vfs->overwriteFile(walFilePath, originalFilePath);
             if (!isRecovering) {
                 storageManager->getNodesStatisticsAndDeletedIDs()->checkpointInMemoryIfNecessary();
             }
         } else {
-            StorageUtils::overwriteRelsStatisticsFileWithVersionFromWAL(wal->getDirectory());
+            auto walFilePath = StorageUtils::getRelsStatisticsFilePath(
+                vfs, wal->getDirectory(), common::FileVersionType::WAL_VERSION);
+            auto originalFilePath = StorageUtils::getRelsStatisticsFilePath(
+                vfs, wal->getDirectory(), common::FileVersionType::ORIGINAL);
+            vfs->overwriteFile(walFilePath, originalFilePath);
             if (!isRecovering) {
                 storageManager->getRelsStatistics()->checkpointInMemoryIfNecessary();
             }
@@ -148,7 +154,11 @@ void WALReplayer::replayTableStatisticsRecord(const kuzu::storage::WALRecord& wa
 
 void WALReplayer::replayCatalogRecord() {
     if (isCheckpoint) {
-        StorageUtils::overwriteCatalogFileWithVersionFromWAL(wal->getDirectory());
+        auto walFile = StorageUtils::getCatalogFilePath(
+            vfs, wal->getDirectory(), common::FileVersionType::WAL_VERSION);
+        auto originalFile = StorageUtils::getCatalogFilePath(
+            vfs, wal->getDirectory(), common::FileVersionType::ORIGINAL);
+        vfs->overwriteFile(walFile, originalFile);
         if (!isRecovering) {
             catalog->checkpointInMemory();
         }
@@ -168,7 +178,7 @@ void WALReplayer::replayCreateTableRecord(const WALRecord& walRecord) {
             auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
                 catalogForCheckpointing->getTableSchema(
                     &DUMMY_READ_TRANSACTION, walRecord.createTableRecord.tableID));
-            WALReplayerUtils::createEmptyHashIndexFiles(nodeTableSchema, wal->getDirectory());
+            WALReplayerUtils::createEmptyHashIndexFiles(nodeTableSchema, wal->getDirectory(), vfs);
         }
         if (!isRecovering) {
             // If we are not recovering, i.e., we are checkpointing during normal execution,
@@ -247,7 +257,7 @@ void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecor
                 auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
                     catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
                 storageManager->getNodeTable(tableID)->initializePKIndex(
-                    nodeTableSchema, false /* readOnly */);
+                    nodeTableSchema, false /* readOnly */, vfs);
             }
         } else {
             // RECOVERY.
@@ -271,9 +281,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
             case TableType::NODE: {
                 storageManager->dropTable(tableID);
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
-                WALReplayerUtils::removeHashIndexFile(
-                    ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema),
-                    wal->getDirectory());
+                WALReplayerUtils::removeHashIndexFile(vfs, tableID, wal->getDirectory());
             } break;
             case TableType::REL: {
                 storageManager->dropTable(tableID);
@@ -293,9 +301,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
             switch (tableSchema->getTableType()) {
             case TableType::NODE: {
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
-                WALReplayerUtils::removeHashIndexFile(
-                    ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema),
-                    wal->getDirectory());
+                WALReplayerUtils::removeHashIndexFile(vfs, tableID, wal->getDirectory());
             } break;
             case TableType::REL: {
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
@@ -423,7 +429,7 @@ std::unique_ptr<Catalog> WALReplayer::getCatalogForRecovery(FileVersionType file
     // When we are recovering our database, the catalog field of walReplayer has not been
     // initialized and recovered yet. We need to create a new catalog to get node/rel tableSchemas
     // for recovering.
-    auto catalogForRecovery = std::make_unique<Catalog>();
+    auto catalogForRecovery = std::make_unique<Catalog>(vfs);
     catalogForRecovery->getReadOnlyVersion()->readFromFile(wal->getDirectory(), fileVersionType);
     return catalogForRecovery;
 }

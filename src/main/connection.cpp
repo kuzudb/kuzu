@@ -127,7 +127,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         }
         // binding
         auto binder = Binder(*database->catalog, database->memoryManager.get(),
-            database->storageManager.get(), clientContext.get());
+            database->storageManager.get(), database->vfs.get(), clientContext.get());
         auto boundStatement = binder.bind(*statement);
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult = boundStatement->getStatementResult()->copy();
@@ -248,9 +248,9 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     }
     auto queryResult = std::make_unique<QueryResult>(preparedStatement->preparedSummary);
     auto profiler = std::make_unique<Profiler>();
-    auto executionContext =
-        std::make_unique<ExecutionContext>(clientContext->numThreadsForExecution, profiler.get(),
-            database->memoryManager.get(), database->bufferManager.get(), clientContext.get());
+    auto executionContext = std::make_unique<ExecutionContext>(
+        clientContext->numThreadsForExecution, profiler.get(), database->memoryManager.get(),
+        database->bufferManager.get(), clientContext.get(), database->vfs.get());
     profiler->enabled = preparedStatement->isProfile();
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();

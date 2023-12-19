@@ -7,7 +7,7 @@
 #endif
 
 #include "common/exception/exception.h"
-#include "common/file_utils.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/logging_level_utils.h"
 #include "common/utils.h"
 #include "function/scalar_function.h"
@@ -62,15 +62,17 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     : databasePath{std::move(databasePath)}, systemConfig{systemConfig} {
     initLoggers();
     logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::DATABASE);
+    vfs = std::make_unique<VirtualFileSystem>();
     bufferManager = std::make_unique<BufferManager>(this->systemConfig.bufferPoolSize);
-    memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
+    memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     initDBDirAndCoreFilesIfNecessary();
-    wal = std::make_unique<WAL>(this->databasePath, systemConfig.readOnly, *bufferManager);
+    wal =
+        std::make_unique<WAL>(this->databasePath, systemConfig.readOnly, *bufferManager, vfs.get());
     recoverIfNecessary();
-    catalog = std::make_unique<catalog::Catalog>(wal.get());
-    storageManager = std::make_unique<storage::StorageManager>(
-        systemConfig.readOnly, *catalog, *memoryManager, wal.get(), systemConfig.enableCompression);
+    catalog = std::make_unique<catalog::Catalog>(wal.get(), vfs.get());
+    storageManager = std::make_unique<storage::StorageManager>(systemConfig.readOnly, *catalog,
+        *memoryManager, wal.get(), systemConfig.enableCompression, vfs.get());
     transactionManager =
         std::make_unique<transaction::TransactionManager>(*wal, memoryManager.get());
 }
@@ -91,34 +93,35 @@ void Database::addBuiltInFunction(std::string name, function::function_set funct
 void Database::openLockFile() {
     int flags;
     FileLockType lock;
-    auto lockFilePath = StorageUtils::getLockFilePath(databasePath);
-    if (!FileUtils::fileOrPathExists(lockFilePath)) {
+    auto lockFilePath = StorageUtils::getLockFilePath(vfs.get(), databasePath);
+    if (!vfs->fileOrPathExists(lockFilePath)) {
         getLockFileFlagsAndType(systemConfig.readOnly, true, flags, lock);
     } else {
         getLockFileFlagsAndType(systemConfig.readOnly, false, flags, lock);
     }
-    lockFile = FileUtils::openFile(lockFilePath, flags, lock);
+    lockFile = vfs->openFile(lockFilePath, flags, lock);
 }
 
 void Database::initDBDirAndCoreFilesIfNecessary() {
-    if (!FileUtils::fileOrPathExists(databasePath)) {
+    if (!vfs->fileOrPathExists(databasePath)) {
         if (systemConfig.readOnly) {
             throw Exception("Cannot create an empty database under READ ONLY mode.");
         }
-        FileUtils::createDir(databasePath);
+        vfs->createDir(databasePath);
     }
     openLockFile();
-    if (!FileUtils::fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
-            databasePath, FileVersionType::ORIGINAL))) {
-        NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(databasePath);
+    if (!vfs->fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
+            vfs.get(), databasePath, FileVersionType::ORIGINAL))) {
+        NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(
+            vfs.get(), databasePath);
     }
-    if (!FileUtils::fileOrPathExists(
-            StorageUtils::getRelsStatisticsFilePath(databasePath, FileVersionType::ORIGINAL))) {
-        RelsStoreStats::saveInitialRelsStatisticsToFile(databasePath);
+    if (!vfs->fileOrPathExists(StorageUtils::getRelsStatisticsFilePath(
+            vfs.get(), databasePath, FileVersionType::ORIGINAL))) {
+        RelsStoreStats::saveInitialRelsStatisticsToFile(vfs.get(), databasePath);
     }
-    if (!FileUtils::fileOrPathExists(
-            StorageUtils::getCatalogFilePath(databasePath, FileVersionType::ORIGINAL))) {
-        Catalog::saveInitialCatalogToFile(databasePath);
+    if (!vfs->fileOrPathExists(
+            StorageUtils::getCatalogFilePath(vfs.get(), databasePath, FileVersionType::ORIGINAL))) {
+        Catalog::saveInitialCatalogToFile(databasePath, vfs.get());
     }
 }
 
@@ -197,14 +200,14 @@ void Database::checkpointAndClearWAL(WALReplayMode replayMode) {
     KU_ASSERT(replayMode == WALReplayMode::COMMIT_CHECKPOINT ||
               replayMode == WALReplayMode::RECOVERY_CHECKPOINT);
     auto walReplayer = std::make_unique<WALReplayer>(
-        wal.get(), storageManager.get(), bufferManager.get(), catalog.get(), replayMode);
+        wal.get(), storageManager.get(), bufferManager.get(), catalog.get(), replayMode, vfs.get());
     walReplayer->replay();
     wal->clearWAL();
 }
 
 void Database::rollbackAndClearWAL() {
     auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
-        bufferManager.get(), catalog.get(), WALReplayMode::ROLLBACK);
+        bufferManager.get(), catalog.get(), WALReplayMode::ROLLBACK, vfs.get());
     walReplayer->replay();
     wal->clearWAL();
 }

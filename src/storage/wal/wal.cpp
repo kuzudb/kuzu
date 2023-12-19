@@ -1,6 +1,7 @@
 #include "storage/wal/wal.h"
 
 #include "common/exception/runtime.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/utils.h"
 #include "spdlog/spdlog.h" // IWYU pragma: keep: public interface to spdlog.
 #include "storage/storage_utils.h"
@@ -10,14 +11,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager)
+WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
+    VirtualFileSystem* vfs)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::WAL)}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
     fileHandle = bufferManager.getBMFileHandle(
-        FileUtils::joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
+        vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE);
+        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs);
     initCurrentPage();
 }
 

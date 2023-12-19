@@ -17,9 +17,10 @@ WALPageIdxGroup::WALPageIdxGroup() {
 }
 
 BMFileHandle::BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
-    PageSizeClass pageSizeClass, FileVersionedType fileVersionedType)
-    : FileHandle{path, flags}, fileVersionedType{fileVersionedType}, bm{bm}, pageSizeClass{
-                                                                                 pageSizeClass} {
+    PageSizeClass pageSizeClass, FileVersionedType fileVersionedType,
+    common::VirtualFileSystem* vfs)
+    : FileHandle{path, flags, vfs}, fileVersionedType{fileVersionedType}, bm{bm},
+      pageSizeClass{pageSizeClass} {
     initPageStatesAndGroups();
 }
 
@@ -70,7 +71,7 @@ page_group_idx_t BMFileHandle::addWALPageIdxGroupIfNecessary(page_idx_t original
 
 void BMFileHandle::resetToZeroPagesAndPageCapacity() {
     removePageIdxAndTruncateIfNecessary(0 /* pageIdx */);
-    FileUtils::truncateFileToEmpty(fileInfo.get());
+    fileInfo->truncate(0 /* size */);
 }
 
 void BMFileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdx) {

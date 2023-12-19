@@ -36,7 +36,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(const Statement& /*s
     }
     config->extraConfig = std::make_unique<RdfReaderConfig>(mode);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(
-        memoryManager, *config, columnNames, std::move(columnTypes));
+        memoryManager, *config, columnNames, std::move(columnTypes), vfs);
     auto bindData =
         func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;
@@ -75,7 +75,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(const Statement& /*st
     }
     config->extraConfig = std::make_unique<RdfReaderConfig>(mode);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(
-        memoryManager, *config, columnNames, std::move(columnTypes));
+        memoryManager, *config, columnNames, std::move(columnTypes), vfs);
     auto bindData =
         func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;

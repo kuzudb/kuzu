@@ -4,7 +4,7 @@
 #include <string>
 
 #include "common/constants.h"
-#include "common/file_utils.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/null_mask.h"
 #include "storage/wal/wal_record.h"
 
@@ -111,20 +111,23 @@ public:
         return std::make_pair(nodeGroupIdx, offsetInChunk);
     }
 
-    static std::string getNodeIndexFName(const std::string& directory,
-        const common::table_id_t& tableID, common::FileVersionType dbFileType);
+    static std::string getNodeIndexFName(common::VirtualFileSystem* vfs,
+        const std::string& directory, const common::table_id_t& tableID,
+        common::FileVersionType dbFileType);
 
-    static inline std::string getDataFName(const std::string& directory) {
-        return common::FileUtils::joinPath(directory, common::StorageConstants::DATA_FILE_NAME);
+    static inline std::string getDataFName(
+        common::VirtualFileSystem* vfs, const std::string& directory) {
+        return vfs->joinPath(directory, common::StorageConstants::DATA_FILE_NAME);
     }
 
-    static inline std::string getMetadataFName(const std::string& directory) {
-        return common::FileUtils::joinPath(directory, common::StorageConstants::METADATA_FILE_NAME);
+    static inline std::string getMetadataFName(
+        common::VirtualFileSystem* vfs, const std::string& directory) {
+        return vfs->joinPath(directory, common::StorageConstants::METADATA_FILE_NAME);
     }
 
     static inline DBFileIDAndName getNodeIndexIDAndFName(
-        const std::string& directory, common::table_id_t tableID) {
-        auto fName = getNodeIndexFName(directory, tableID, common::FileVersionType::ORIGINAL);
+        common::VirtualFileSystem* vfs, const std::string& directory, common::table_id_t tableID) {
+        auto fName = getNodeIndexFName(vfs, directory, tableID, common::FileVersionType::ORIGINAL);
         return {DBFileID::newPKIndexFileID(tableID), fName};
     }
 
@@ -133,51 +136,33 @@ public:
             fName, common::StorageConstants::OVERFLOW_FILE_SUFFIX);
     }
 
-    static inline void overwriteNodesStatisticsAndDeletedIDsFileWithVersionFromWAL(
-        const std::string& directory) {
-        common::FileUtils::overwriteFile(getNodesStatisticsAndDeletedIDsFilePath(
-                                             directory, common::FileVersionType::WAL_VERSION),
-            getNodesStatisticsAndDeletedIDsFilePath(directory, common::FileVersionType::ORIGINAL));
-    }
-
     static inline std::string getNodesStatisticsAndDeletedIDsFilePath(
-        const std::string& directory, common::FileVersionType dbFileType) {
-        return common::FileUtils::joinPath(
+        common::VirtualFileSystem* vfs, const std::string& directory,
+        common::FileVersionType dbFileType) {
+        return vfs->joinPath(
             directory, dbFileType == common::FileVersionType::ORIGINAL ?
                            common::StorageConstants::NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME :
                            common::StorageConstants::NODES_STATISTICS_FILE_NAME_FOR_WAL);
     }
 
-    static inline void overwriteRelsStatisticsFileWithVersionFromWAL(const std::string& directory) {
-        common::FileUtils::overwriteFile(
-            getRelsStatisticsFilePath(directory, common::FileVersionType::WAL_VERSION),
-            getRelsStatisticsFilePath(directory, common::FileVersionType::ORIGINAL));
-    }
-
-    static inline std::string getRelsStatisticsFilePath(
+    static inline std::string getRelsStatisticsFilePath(common::VirtualFileSystem* vfs,
         const std::string& directory, common::FileVersionType dbFileType) {
-        return common::FileUtils::joinPath(
+        return vfs->joinPath(
             directory, dbFileType == common::FileVersionType::ORIGINAL ?
                            common::StorageConstants::RELS_METADATA_FILE_NAME :
                            common::StorageConstants::RELS_METADATA_FILE_NAME_FOR_WAL);
     }
 
-    static inline void overwriteCatalogFileWithVersionFromWAL(const std::string& directory) {
-        common::FileUtils::overwriteFile(
-            getCatalogFilePath(directory, common::FileVersionType::WAL_VERSION),
-            getCatalogFilePath(directory, common::FileVersionType::ORIGINAL));
-    }
-
-    static inline std::string getCatalogFilePath(
+    static inline std::string getCatalogFilePath(common::VirtualFileSystem* vfs,
         const std::string& directory, common::FileVersionType dbFileType) {
-        return common::FileUtils::joinPath(
-            directory, dbFileType == common::FileVersionType::ORIGINAL ?
-                           common::StorageConstants::CATALOG_FILE_NAME :
-                           common::StorageConstants::CATALOG_FILE_NAME_FOR_WAL);
+        return vfs->joinPath(directory, dbFileType == common::FileVersionType::ORIGINAL ?
+                                            common::StorageConstants::CATALOG_FILE_NAME :
+                                            common::StorageConstants::CATALOG_FILE_NAME_FOR_WAL);
     }
 
-    static inline std::string getLockFilePath(const std::string& directory) {
-        return common::FileUtils::joinPath(directory, common::StorageConstants::LOCK_FILE_NAME);
+    static inline std::string getLockFilePath(
+        common::VirtualFileSystem* vfs, const std::string& directory) {
+        return vfs->joinPath(directory, common::StorageConstants::LOCK_FILE_NAME);
     }
 
     // Note: This is a relatively slow function because of division and mod and making std::pair.
@@ -207,7 +192,7 @@ public:
     }
 
     static std::unique_ptr<common::FileInfo> getFileInfoForReadWrite(
-        const std::string& directory, DBFileID dbFileID);
+        const std::string& directory, DBFileID dbFileID, common::VirtualFileSystem* vfs);
 
     static uint32_t getDataTypeSize(const common::LogicalType& type);
 

@@ -1,6 +1,9 @@
 #include "storage/storage_utils.h"
 
+#include <fcntl.h>
+
 #include "common/exception/runtime.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/null_buffer.h"
 #include "common/string_format.h"
 #include "common/types/ku_list.h"
@@ -16,25 +19,25 @@ std::string StorageUtils::getColumnName(
     switch (type) {
     case StorageUtils::ColumnType::DATA: {
         return stringFormat("{}_data", propertyName);
-    } break;
+    }
     case StorageUtils::ColumnType::NULL_MASK: {
         return stringFormat("{}_null", propertyName);
-    } break;
+    }
     case StorageUtils::ColumnType::INDEX: {
         return stringFormat("{}_index", propertyName);
-    } break;
+    }
     case StorageUtils::ColumnType::OFFSET: {
         return stringFormat("{}_offset", propertyName);
-    } break;
+    }
     case StorageUtils::ColumnType::CSR_OFFSET: {
         return stringFormat("{}_csr_offset", propertyName);
-    } break;
+    }
     case StorageUtils::ColumnType::ADJ: {
         return stringFormat("{}_adj", prefix);
-    } break;
+    }
     case StorageUtils::ColumnType::STRUCT_CHILD: {
         return stringFormat("{}_{}_child", propertyName, prefix);
-    } break;
+    }
     default: {
         if (prefix.empty()) {
             return propertyName;
@@ -45,27 +48,26 @@ std::string StorageUtils::getColumnName(
     }
 }
 
-std::string StorageUtils::getNodeIndexFName(
-    const std::string& directory, const table_id_t& tableID, FileVersionType fileVersionType) {
+std::string StorageUtils::getNodeIndexFName(VirtualFileSystem* vfs, const std::string& directory,
+    const table_id_t& tableID, FileVersionType fileVersionType) {
     auto fName = stringFormat("n-{}", tableID);
     return appendWALFileSuffixIfNecessary(
-        FileUtils::joinPath(directory, fName + StorageConstants::INDEX_FILE_SUFFIX),
-        fileVersionType);
+        vfs->joinPath(directory, fName + StorageConstants::INDEX_FILE_SUFFIX), fileVersionType);
 }
 
 std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
-    const std::string& directory, DBFileID dbFileID) {
+    const std::string& directory, DBFileID dbFileID, VirtualFileSystem* vfs) {
     std::string fName;
     switch (dbFileID.dbFileType) {
     case DBFileType::METADATA: {
-        fName = getMetadataFName(directory);
+        fName = getMetadataFName(vfs, directory);
     } break;
     case DBFileType::DATA: {
-        fName = getDataFName(directory);
+        fName = getDataFName(vfs, directory);
     } break;
     case DBFileType::NODE_INDEX: {
-        fName =
-            getNodeIndexFName(directory, dbFileID.nodeIndexID.tableID, FileVersionType::ORIGINAL);
+        fName = getNodeIndexFName(
+            vfs, directory, dbFileID.nodeIndexID.tableID, FileVersionType::ORIGINAL);
         if (dbFileID.isOverflow) {
             fName = getOverflowFileName(fName);
         }
@@ -75,7 +77,7 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
                                "StorageUtils::getFileInfoFromdbFileID.");
     }
     }
-    return FileUtils::openFile(fName, O_RDWR);
+    return vfs->openFile(fName, O_RDWR);
 }
 
 uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {

@@ -9,6 +9,7 @@ namespace kuzu {
 namespace common {
 class Serializer;
 class Deserializer;
+class VirtualFileSystem;
 } // namespace common
 namespace catalog {
 
@@ -16,19 +17,20 @@ class CatalogContent {
     friend class Catalog;
 
 public:
-    CatalogContent();
+    explicit CatalogContent(common::VirtualFileSystem* vfs);
 
-    explicit CatalogContent(const std::string& directory);
+    CatalogContent(const std::string& directory, common::VirtualFileSystem* vfs);
 
     CatalogContent(
         std::unordered_map<common::table_id_t, std::unique_ptr<TableSchema>> tableSchemas,
         std::unordered_map<std::string, common::table_id_t> tableNameToIDMap,
         common::table_id_t nextTableID,
         std::unique_ptr<function::BuiltInFunctions> builtInFunctions,
-        std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros)
+        std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros,
+        common::VirtualFileSystem* vfs)
         : tableSchemas{std::move(tableSchemas)}, tableNameToIDMap{std::move(tableNameToIDMap)},
-          nextTableID{nextTableID}, builtInFunctions{std::move(builtInFunctions)}, macros{std::move(
-                                                                                       macros)} {}
+          nextTableID{nextTableID},
+          builtInFunctions{std::move(builtInFunctions)}, macros{std::move(macros)}, vfs{vfs} {}
 
     void saveToFile(const std::string& directory, common::FileVersionType dbFileType);
     void readFromFile(const std::string& directory, common::FileVersionType dbFileType);
@@ -79,6 +81,7 @@ private:
     common::table_id_t nextTableID;
     std::unique_ptr<function::BuiltInFunctions> builtInFunctions;
     std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros;
+    common::VirtualFileSystem* vfs;
 };
 
 } // namespace catalog

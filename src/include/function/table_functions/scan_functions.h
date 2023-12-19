@@ -3,6 +3,10 @@
 #include "function/table_functions.h"
 
 namespace kuzu {
+namespace common {
+class FileSystem;
+}
+
 namespace function {
 
 struct BaseScanSharedState : public TableFuncSharedState {
@@ -21,6 +25,14 @@ struct ScanSharedState : public BaseScanSharedState {
         : BaseScanSharedState{numRows}, readerConfig{std::move(readerConfig)} {}
 
     std::pair<uint64_t, uint64_t> getNext();
+};
+
+struct ScanFileSharedState : public ScanSharedState {
+    common::VirtualFileSystem* vfs;
+
+    ScanFileSharedState(
+        common::ReaderConfig readerConfig, uint64_t numRows, common::VirtualFileSystem* vfs)
+        : ScanSharedState{std::move(readerConfig), numRows}, vfs{vfs} {}
 };
 
 } // namespace function

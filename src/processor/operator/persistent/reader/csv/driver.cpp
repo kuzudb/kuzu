@@ -33,7 +33,7 @@ void ParsingDriver::addValue(
     if (columnIdx >= reader->numColumns) {
         throw CopyException(
             stringFormat("Error in file {}, on line {}: expected {} values per row, but got more.",
-                reader->filePath, reader->getLineNumber(), reader->numColumns));
+                reader->fileInfo->path, reader->getLineNumber(), reader->numColumns));
     }
 
     function::CastString::copyStringToVector(
@@ -53,7 +53,7 @@ bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount)
         // Column number mismatch.
         throw CopyException(
             stringFormat("Error in file {} on line {}: expected {} values per row, but got {}",
-                reader->filePath, reader->getLineNumber(), reader->numColumns, columnCount));
+                reader->fileInfo->path, reader->getLineNumber(), reader->numColumns, columnCount));
     }
     return true;
 }

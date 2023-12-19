@@ -10,9 +10,10 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-RelsStoreStats::RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
-    : TablesStatistics{metadataFH, bufferManager, wal} {
-    readFromFile(wal->getDirectory());
+RelsStoreStats::RelsStoreStats(
+    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, VirtualFileSystem* vfs)
+    : TablesStatistics{metadataFH, bufferManager, wal, vfs} {
+    readFromFile();
 }
 
 // We should only call this function after we call setNumRelsPerDirectionBoundTableID.

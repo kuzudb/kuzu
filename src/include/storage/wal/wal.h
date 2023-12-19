@@ -71,7 +71,8 @@ class WAL : public BaseWALAndWALIterator {
     friend WALIterator;
 
 public:
-    WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager);
+    WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
+        common::VirtualFileSystem* vfs);
 
     // Destructing WAL flushes any unwritten header page but not the other pages. The caller
     // which possibly has access to the buffer manager needs to ensure any unwritten pages

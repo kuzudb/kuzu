@@ -1,6 +1,7 @@
 #pragma once
 
-#include "common/file_utils.h"
+#include <filesystem>
+
 #include "common/string_format.h"
 #include "gtest/gtest.h"
 #include "main/kuzu.h"
@@ -17,7 +18,7 @@ enum class TransactionTestType : uint8_t {
 };
 
 static void removeDir(const std::string& dir) {
-    if (common::FileUtils::fileOrPathExists(dir)) {
+    if (std::filesystem::exists(dir)) {
         std::error_code removeErrorCode;
         if (!std::filesystem::remove_all(dir, removeErrorCode)) {
             throw common::Exception(common::stringFormat(
@@ -63,6 +64,9 @@ protected:
     }
     static inline storage::MemoryManager* getMemoryManager(main::Database& database) {
         return database.memoryManager.get();
+    }
+    static inline common::VirtualFileSystem* getFileSystem(main::Database& database) {
+        return database.vfs.get();
     }
     static inline uint64_t getBMSize(main::Database& database) {
         return database.systemConfig.bufferPoolSize;

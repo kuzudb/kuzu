@@ -124,8 +124,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
     bindExpectedNodeColumns(
         tableSchema, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
-    auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(
-        memoryManager, *config, std::move(expectedColumnNames), std::move(expectedColumnTypes));
+    auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager, *config,
+        std::move(expectedColumnNames), std::move(expectedColumnTypes), vfs);
     auto bindData =
         func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;
@@ -153,7 +153,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     bindExpectedRelColumns(
         tableSchema, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager,
-        std::move(*config), std::move(expectedColumnNames), std::move(expectedColumnTypes));
+        std::move(*config), std::move(expectedColumnNames), std::move(expectedColumnTypes), vfs);
     auto bindData =
         func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;

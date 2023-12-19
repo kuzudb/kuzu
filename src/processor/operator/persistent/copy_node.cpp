@@ -16,12 +16,12 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void CopyNodeSharedState::init() {
+void CopyNodeSharedState::init(VirtualFileSystem* vfs) {
     if (pkType->getLogicalTypeID() != LogicalTypeID::SERIAL) {
         auto indexFName = StorageUtils::getNodeIndexFName(
-            wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
-        pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(indexFName, *pkType);
-        uint64_t numRows = 0;
+            vfs, wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
+        pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(indexFName, *pkType, vfs);
+        uint64_t numRows;
         if (readerSharedState != nullptr) {
             KU_ASSERT(distinctSharedState == nullptr);
             auto sharedState =
@@ -60,11 +60,11 @@ static bool isEmptyTable(NodeTable* nodeTable) {
                ->getNumTuples() == 0;
 }
 
-void CopyNode::initGlobalStateInternal(ExecutionContext* /*context*/) {
+void CopyNode::initGlobalStateInternal(ExecutionContext* context) {
     if (!isEmptyTable(info->table)) {
         throw CopyException(ExceptionMessage::notAllowCopyOnNonEmptyTableException());
     }
-    sharedState->init();
+    sharedState->init(context->vfs);
 }
 
 void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {

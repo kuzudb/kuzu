@@ -75,8 +75,9 @@ class Binder {
 
 public:
     explicit Binder(const catalog::Catalog& catalog, storage::MemoryManager* memoryManager,
-        storage::StorageManager* storageManager, main::ClientContext* clientContext)
-        : catalog{catalog}, memoryManager{memoryManager}, storageManager{storageManager},
+        storage::StorageManager* storageManager, common::VirtualFileSystem* vfs,
+        main::ClientContext* clientContext)
+        : catalog{catalog}, memoryManager{memoryManager}, storageManager{storageManager}, vfs{vfs},
           lastExpressionId{0}, scope{std::make_unique<BinderScope>()}, expressionBinder{this},
           clientContext{clientContext} {}
 
@@ -144,9 +145,9 @@ private:
     /*** bind file scan ***/
     std::unique_ptr<common::CSVReaderConfig> bindParsingOptions(
         const parser::parsing_option_t& parsingOptions);
-    static common::FileType bindFileType(const std::vector<std::string>& filePaths);
-    static common::FileType bindFileType(const std::string& filePath);
-    static std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
+    common::FileType bindFileType(const std::vector<std::string>& filePaths);
+    common::FileType bindFileType(const std::string& filePath);
+    std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 
     /*** bind query ***/
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);
@@ -294,6 +295,7 @@ private:
     const catalog::Catalog& catalog;
     storage::MemoryManager* memoryManager;
     storage::StorageManager* storageManager;
+    common::VirtualFileSystem* vfs;
     uint32_t lastExpressionId;
     std::unique_ptr<BinderScope> scope;
     ExpressionBinder expressionBinder;

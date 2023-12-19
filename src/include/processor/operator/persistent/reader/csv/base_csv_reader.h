@@ -6,6 +6,7 @@
 
 #include "common/copier_config/csv_reader_config.h"
 #include "common/data_chunk/data_chunk.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/types/types.h"
 
 namespace kuzu {
@@ -15,10 +16,10 @@ class BaseCSVReader {
     friend class ParsingDriver;
 
 public:
-    BaseCSVReader(
-        const std::string& filePath, const common::CSVOption& option, uint64_t numColumns);
+    BaseCSVReader(const std::string& filePath, const common::CSVOption& option, uint64_t numColumns,
+        common::VirtualFileSystem* vfs);
 
-    virtual ~BaseCSVReader();
+    virtual ~BaseCSVReader() = default;
 
     virtual uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) = 0;
 
@@ -62,11 +63,10 @@ protected:
     virtual void handleQuotedNewline() = 0;
 
 protected:
-    std::string filePath;
     common::CSVOption option;
 
     uint64_t numColumns;
-    int fd;
+    std::unique_ptr<common::FileInfo> fileInfo;
 
     common::block_idx_t currentBlockIdx;
 

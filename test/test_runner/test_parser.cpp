@@ -1,8 +1,13 @@
 #include "test_runner/test_parser.h"
 
-#include <fstream>
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
-#include "common/file_utils.h"
+#include <filesystem>
+
 #include "common/string_utils.h"
 #include "test_helper/test_helper.h"
 
@@ -104,7 +109,7 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         nextLine();
         if (line.starts_with("<FILE>:")) {
             statement->expectedTuplesCSVFile = TestHelper::appendKuzuRootPath(
-                FileUtils::joinPath(TestHelper::TEST_ANSWERS_PATH, line.substr(7)));
+                (std::filesystem::path(TestHelper::TEST_ANSWERS_PATH) / line.substr(7)).string());
             return;
         }
         setCursorToPreviousLine();
@@ -174,7 +179,7 @@ TestStatement* TestParser::extractStatement(
         std::string query = paramsToString(1);
         extractConnName(query, statement);
         statement->batchStatmentsCSVFile = TestHelper::appendKuzuRootPath(
-            FileUtils::joinPath(TestHelper::TEST_STATEMENTS_PATH, query.substr(7)));
+            (std::filesystem::path(TestHelper::TEST_STATEMENTS_PATH) / query.substr(7)).string());
         break;
     }
     case TokenType::RESULT: {

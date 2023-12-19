@@ -25,7 +25,7 @@ void PrivateGraphTest::validateQueryBestPlanJoinOrder(
     auto statement = parser::Parser::parseQuery(query);
     auto parsedQuery = (parser::RegularQuery*)statement.get();
     auto boundQuery = Binder(*catalog, database->memoryManager.get(),
-        database->storageManager.get(), conn->clientContext.get())
+        database->storageManager.get(), database->vfs.get(), conn->clientContext.get())
                           .bind(*parsedQuery);
     auto planner = Planner(catalog, getStorageManager(*database));
     auto plan = planner.getBestPlan(*boundQuery);

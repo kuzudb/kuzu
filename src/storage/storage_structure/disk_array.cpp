@@ -20,12 +20,12 @@ DiskArrayHeader::DiskArrayHeader(uint64_t elementSize)
       firstPIPPageIdx{DBFileUtils::NULL_PAGE_IDX}, numElements{0}, numAPs{0} {}
 
 void DiskArrayHeader::saveToDisk(FileHandle& fileHandle, uint64_t headerPageIdx) {
-    FileUtils::writeToFile(fileHandle.getFileInfo(), reinterpret_cast<uint8_t*>(this),
-        sizeof(DiskArrayHeader), headerPageIdx * fileHandle.getPageSize());
+    fileHandle.getFileInfo()->writeFile(reinterpret_cast<uint8_t*>(this), sizeof(DiskArrayHeader),
+        headerPageIdx * fileHandle.getPageSize());
 }
 
 void DiskArrayHeader::readFromFile(FileHandle& fileHandle, uint64_t headerPageIdx) {
-    FileUtils::readFromFile(fileHandle.getFileInfo(), reinterpret_cast<uint8_t*>(this),
+    fileHandle.getFileInfo()->readFromFile(reinterpret_cast<uint8_t*>(this),
         sizeof(DiskArrayHeader), headerPageIdx * fileHandle.getPageSize());
 }
 

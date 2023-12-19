@@ -19,13 +19,15 @@ struct TableFuncBindInput {
 struct ScanTableFuncBindInput final : public TableFuncBindInput {
     storage::MemoryManager* mm;
     common::ReaderConfig config;
+    common::VirtualFileSystem* vfs;
     std::vector<std::string> expectedColumnNames;
     std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
 
     ScanTableFuncBindInput(storage::MemoryManager* mm, const common::ReaderConfig& config,
         std::vector<std::string> expectedColumnNames,
-        std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes)
-        : TableFuncBindInput{}, mm{mm}, config{config},
+        std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes,
+        common::VirtualFileSystem* vfs)
+        : TableFuncBindInput{}, mm{mm}, config{config}, vfs{vfs},
           expectedColumnNames{std::move(expectedColumnNames)}, expectedColumnTypes{
                                                                    std::move(expectedColumnTypes)} {
         inputs.push_back(common::Value::createValue(config.filePaths[0]).copy());

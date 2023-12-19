@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/catalog.h"
+#include "common/file_system/virtual_file_system.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal.h"
 #include "storage/wal/wal_record.h"
@@ -20,7 +21,7 @@ enum class WALReplayMode : uint8_t { COMMIT_CHECKPOINT, ROLLBACK, RECOVERY_CHECK
 class WALReplayer {
 public:
     WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager* bufferManager,
-        catalog::Catalog* catalog, WALReplayMode replayMode);
+        catalog::Catalog* catalog, WALReplayMode replayMode, common::VirtualFileSystem* vfs);
 
     void replay();
 
@@ -52,6 +53,7 @@ private:
     // has been initialized during recovery, i.e., isRecovering=true.
     StorageManager* storageManager;
     BufferManager* bufferManager;
+    common::VirtualFileSystem* vfs;
     std::shared_ptr<BMFileHandle> walFileHandle;
     std::unique_ptr<uint8_t[]> pageBuffer;
     WAL* wal;
