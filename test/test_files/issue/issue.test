@@ -227,3 +227,24 @@ True|True|True
 [t2,t21]
 [t2,t22]
 [t3]
+
+-CASE 2587
+-STATEMENT CREATE NODE TABLE T (id STRING, descr STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE (:T {id: "foo"});
+---- ok
+-STATEMENT CREATE (:T {id: "123456789012"});
+---- ok
+-STATEMENT CREATE (:T {id: "bar", descr: "fe38f9dc-f761-4184-8b8b-ec9a1b5ffb83"});
+---- ok
+-STATEMENT CREATE (:T {id: "ge38f9dc-f751-4174-8b8b-ec9a1b6gab83"});
+---- ok
+-STATEMENT CREATE (:T {id: "1234567890123"});
+---- ok
+-STATEMENT MATCH (t:T) RETURN t.*;
+---- 5
+foo|
+123456789012|
+bar|fe38f9dc-f761-4184-8b8b-ec9a1b5ffb83
+ge38f9dc-f751-4174-8b8b-ec9a1b6gab83|
+1234567890123|
