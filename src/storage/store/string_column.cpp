@@ -52,12 +52,14 @@ void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_i
     auto& kuStr = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
     auto index = dictionary.append(nodeGroupIdx, kuStr.getAsStringView());
     // Write index to main column
-    Column::writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, (uint8_t*)&index);
+    auto state = ReadState{
+        chunkMeta, chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
+    Column::writeValues(state, offsetInChunk, (uint8_t*)&index);
 }
 
 void StringColumn::write(node_group_idx_t nodeGroupIdx, offset_t dstOffset, ColumnChunk* data,
     offset_t srcOffset, length_t numValues) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     numValues = std::min(numValues, data->getNumValues() - srcOffset);
     auto strChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(data);
     std::vector<string_index_t> indices;
@@ -71,11 +73,11 @@ void StringColumn::write(node_group_idx_t nodeGroupIdx, offset_t dstOffset, Colu
         indices[i] = dictionary.append(nodeGroupIdx, strVal);
     }
     // Write index to main column
-    Column::writeValues(chunkMeta, nodeGroupIdx, dstOffset,
-        reinterpret_cast<const uint8_t*>(&indices[0]), 0 /*srcOffset*/, numValues);
-    if (dstOffset + numValues > chunkMeta.numValues) {
-        chunkMeta.numValues = dstOffset + numValues;
-        metadataDA->update(nodeGroupIdx, chunkMeta);
+    Column::writeValues(state, dstOffset, reinterpret_cast<const uint8_t*>(&indices[0]),
+        0 /*srcOffset*/, numValues);
+    if (dstOffset + numValues > state.metadata.numValues) {
+        state.metadata.numValues = dstOffset + numValues;
+        metadataDA->update(nodeGroupIdx, state.metadata);
     }
 }
 
