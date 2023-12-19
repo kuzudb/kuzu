@@ -1,3 +1,5 @@
+#pragma once
+
 // This file defines many macros for controlling copy constructors and move constructors on classes.
 
 #define DELETE_COPY(Object) Object(const Object& other) = delete
