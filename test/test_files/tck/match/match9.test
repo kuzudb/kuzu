@@ -29,13 +29,13 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE NODE TABLE Endd(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE End(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM A TO B, FROM B TO Endd, num INT64);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM A TO B, FROM B TO End, num INT64);
 ---- ok
--STATEMENT CREATE (a:A)-[:REL_A_B {num: 1}]->(b:B)-[:REL_B_Endd {num: 2}]->(e:Endd);
+-STATEMENT CREATE (a:A)-[:REL_A_B {num: 1}]->(b:B)-[:REL_B_End {num: 2}]->(e:End);
 ---- ok
--STATEMENT MATCH (a)-[r:REL*2..2]->(b:Endd)
+-STATEMENT MATCH (a)-[r:REL*2..2]->(b:End)
            RETURN r;
 ---- 1
 [...]
@@ -45,13 +45,13 @@
 -SKIP
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE NODE TABLE Endd(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE End(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Endd TO B, FROM B TO Endd, num INT64);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM End TO B, FROM B TO End, num INT64);
 ---- ok
--STATEMENT CREATE (a:Endd)-[:REL_Endd_B {num: 1}]->(b:B)-[:REL_B_Endd {num: 2}]->(c:Endd);
+-STATEMENT CREATE (a:End)-[:REL_End_B {num: 1}]->(b:B)-[:REL_B_End {num: 2}]->(c:End);
 ---- ok
--STATEMENT MATCH (a)-[r:REL*2..2]-(b:Endd)
+-STATEMENT MATCH (a)-[r:REL*2..2]-(b:End)
            RETURN r;
 ---- 2
 [...]

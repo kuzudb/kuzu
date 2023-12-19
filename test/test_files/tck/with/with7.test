@@ -25,7 +25,6 @@
 
 # Multiple WITHs using a predicate and aggregation
 -CASE Scenario2
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
