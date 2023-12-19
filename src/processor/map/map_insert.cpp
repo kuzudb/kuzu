@@ -34,7 +34,7 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     std::unordered_set<RelTable*> fwdRelTablesToInit;
     std::unordered_set<RelTable*> bwdRelTablesToInit;
     auto tableSchema = catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, nodeTableID);
-    auto nodeTableSchema = common::ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema);
+    auto nodeTableSchema = common::ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
     auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
     auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
     for (auto relTableID : fwdRelTableIDs) {

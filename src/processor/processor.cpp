@@ -17,7 +17,7 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
 std::shared_ptr<FactorizedTable> QueryProcessor::execute(
     PhysicalPlan* physicalPlan, ExecutionContext* context) {
     auto lastOperator = physicalPlan->lastOperator.get();
-    auto resultCollector = ku_dynamic_ptr_cast<PhysicalOperator, ResultCollector>(lastOperator);
+    auto resultCollector = ku_dynamic_cast<PhysicalOperator*, ResultCollector*>(lastOperator);
     // The root pipeline(task) consists of operators and its prevOperator only, because we
     // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its
     // prevOperator in the same pipeline, and decompose build and its prevOperator into another
@@ -32,8 +32,8 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(
 void QueryProcessor::decomposePlanIntoTask(
     PhysicalOperator* op, Task* task, ExecutionContext* context) {
     if (op->isSink()) {
-        auto childTask = std::make_unique<ProcessorTask>(
-            ku_dynamic_ptr_cast<PhysicalOperator, Sink>(op), context);
+        auto childTask =
+            std::make_unique<ProcessorTask>(ku_dynamic_cast<PhysicalOperator*, Sink*>(op), context);
         for (auto i = (int64_t)op->getNumChildren() - 1; i >= 0; --i) {
             decomposePlanIntoTask(op->getChild(i), childTask.get(), context);
         }
@@ -47,7 +47,7 @@ void QueryProcessor::decomposePlanIntoTask(
 }
 
 void QueryProcessor::initTask(Task* task) {
-    auto processorTask = ku_dynamic_ptr_cast<Task, ProcessorTask>(task);
+    auto processorTask = ku_dynamic_cast<Task*, ProcessorTask*>(task);
     PhysicalOperator* op = processorTask->sink;
     while (!op->isSource()) {
         if (!op->canParallel()) {

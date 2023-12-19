@@ -395,7 +395,7 @@ static bool isNodeSequentialOnPlan(LogicalPlan& plan, const NodeExpression& node
     if (seqScan == nullptr) {
         return false;
     }
-    auto sequentialScan = ku_dynamic_ptr_cast<LogicalOperator, LogicalScanInternalID>(seqScan);
+    auto sequentialScan = ku_dynamic_cast<LogicalOperator*, LogicalScanInternalID*>(seqScan);
     return sequentialScan->getInternalID()->getUniqueName() ==
            node.getInternalID()->getUniqueName();
 }

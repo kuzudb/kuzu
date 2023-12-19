@@ -33,7 +33,7 @@ void CardinalityEstimator::addNodeIDDom(
 }
 
 uint64_t CardinalityEstimator::estimateScanNode(LogicalOperator* op) {
-    auto scan = ku_dynamic_ptr_cast<LogicalOperator, LogicalScanInternalID>(op);
+    auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanInternalID*>(op);
     return atLeastOne(getNodeIDDom(scan->getInternalID()->getUniqueName()));
 }
 

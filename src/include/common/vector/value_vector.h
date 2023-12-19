@@ -113,7 +113,7 @@ class StringVector {
 public:
     static inline InMemOverflowBuffer* getInMemOverflowBuffer(ValueVector* vector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-        return ku_dynamic_ptr_cast<AuxiliaryBuffer, StringAuxiliaryBuffer>(
+        return ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getOverflowBuffer();
     }
@@ -145,25 +145,25 @@ public:
     static inline void setDataVector(
         const ValueVector* vector, std::shared_ptr<ValueVector> dataVector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        auto listBuffer = ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(
-            vector->auxiliaryBuffer.get());
+        auto listBuffer =
+            ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
         listBuffer->setDataVector(std::move(dataVector));
     }
     static inline ValueVector* getDataVector(const ValueVector* vector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        return ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(
+        return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
     static inline std::shared_ptr<ValueVector> getSharedDataVector(const ValueVector* vector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        return ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(
+        return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getSharedDataVector();
     }
     static inline uint64_t getDataVectorSize(const ValueVector* vector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        return ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(
+        return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getSize();
     }
@@ -181,12 +181,12 @@ public:
     }
     static inline list_entry_t addList(ValueVector* vector, uint64_t listSize) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        return ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(
+        return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
     static inline void resizeDataVector(ValueVector* vector, uint64_t numValues) {
-        ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(vector->auxiliaryBuffer.get())
+        ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->resize(numValues);
     }
 
@@ -227,21 +227,21 @@ class StructVector {
 public:
     static inline const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors(
         const ValueVector* vector) {
-        return ku_dynamic_ptr_cast<AuxiliaryBuffer, StructAuxiliaryBuffer>(
+        return ku_dynamic_cast<AuxiliaryBuffer*, StructAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getFieldVectors();
     }
 
     static inline std::shared_ptr<ValueVector> getFieldVector(
         const ValueVector* vector, struct_field_idx_t idx) {
-        return ku_dynamic_ptr_cast<AuxiliaryBuffer, StructAuxiliaryBuffer>(
+        return ku_dynamic_cast<AuxiliaryBuffer*, StructAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getFieldVectors()[idx];
     }
 
     static inline void referenceVector(ValueVector* vector, struct_field_idx_t idx,
         std::shared_ptr<ValueVector> vectorToReference) {
-        ku_dynamic_ptr_cast<AuxiliaryBuffer, StructAuxiliaryBuffer>(vector->auxiliaryBuffer.get())
+        ku_dynamic_cast<AuxiliaryBuffer*, StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->referenceChildVector(idx, std::move(vectorToReference));
     }
 

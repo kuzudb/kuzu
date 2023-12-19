@@ -338,20 +338,20 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
 void ValueVector::resetAuxiliaryBuffer() {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRING: {
-        ku_dynamic_ptr_cast<AuxiliaryBuffer, StringAuxiliaryBuffer>(auxiliaryBuffer.get())
+        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(auxiliaryBuffer.get())
             ->resetOverflowBuffer();
         return;
     }
     case PhysicalTypeID::VAR_LIST: {
         auto listAuxiliaryBuffer =
-            ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(auxiliaryBuffer.get());
+            ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(auxiliaryBuffer.get());
         listAuxiliaryBuffer->resetSize();
         listAuxiliaryBuffer->getDataVector()->resetAuxiliaryBuffer();
         return;
     }
     case PhysicalTypeID::STRUCT: {
         auto structAuxiliaryBuffer =
-            ku_dynamic_ptr_cast<AuxiliaryBuffer, StructAuxiliaryBuffer>(auxiliaryBuffer.get());
+            ku_dynamic_cast<AuxiliaryBuffer*, StructAuxiliaryBuffer*>(auxiliaryBuffer.get());
         for (auto& vector : structAuxiliaryBuffer->getFieldVectors()) {
             vector->resetAuxiliaryBuffer();
         }
@@ -430,7 +430,7 @@ void ValueVector::setNull(uint32_t pos, bool isNull) {
 void StringVector::addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =
-        ku_dynamic_ptr_cast<AuxiliaryBuffer, StringAuxiliaryBuffer>(vector->auxiliaryBuffer.get());
+        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     auto& dstStr = vector->getValue<ku_string_t>(vectorPos);
     if (ku_string_t::isShortString(srcStr.len)) {
         dstStr.setShortString(srcStr);
@@ -447,7 +447,7 @@ void StringVector::addString(
     ValueVector* vector, uint32_t vectorPos, const char* srcStr, uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =
-        ku_dynamic_ptr_cast<AuxiliaryBuffer, StringAuxiliaryBuffer>(vector->auxiliaryBuffer.get());
+        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     auto& dstStr = vector->getValue<ku_string_t>(vectorPos);
     if (ku_string_t::isShortString(length)) {
         dstStr.setShortString(srcStr, length);
@@ -463,7 +463,7 @@ void StringVector::addString(
 ku_string_t& StringVector::reserveString(ValueVector* vector, uint32_t vectorPos, uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =
-        ku_dynamic_ptr_cast<AuxiliaryBuffer, StringAuxiliaryBuffer>(vector->auxiliaryBuffer.get());
+        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     auto& dstStr = vector->getValue<ku_string_t>(vectorPos);
     dstStr.len = length;
     if (!ku_string_t::isShortString(length)) {
@@ -475,7 +475,7 @@ ku_string_t& StringVector::reserveString(ValueVector* vector, uint32_t vectorPos
 void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =
-        ku_dynamic_ptr_cast<AuxiliaryBuffer, StringAuxiliaryBuffer>(vector->auxiliaryBuffer.get());
+        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     if (ku_string_t::isShortString(srcStr.len)) {
         dstStr.setShortString(srcStr);
     } else {
@@ -491,7 +491,7 @@ void StringVector::addString(
     ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =
-        ku_dynamic_ptr_cast<AuxiliaryBuffer, StringAuxiliaryBuffer>(vector->auxiliaryBuffer.get());
+        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     if (ku_string_t::isShortString(length)) {
         dstStr.setShortString(srcStr, length);
     } else {

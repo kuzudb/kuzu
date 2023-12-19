@@ -292,14 +292,14 @@ bool LogicalType::operator==(const LogicalType& other) const {
     }
     switch (other.getPhysicalType()) {
     case PhysicalTypeID::VAR_LIST:
-        return *ku_dynamic_ptr_cast<ExtraTypeInfo, VarListTypeInfo>(extraTypeInfo.get()) ==
-               *ku_dynamic_ptr_cast<ExtraTypeInfo, VarListTypeInfo>(other.extraTypeInfo.get());
+        return *ku_dynamic_cast<ExtraTypeInfo*, VarListTypeInfo*>(extraTypeInfo.get()) ==
+               *ku_dynamic_cast<ExtraTypeInfo*, VarListTypeInfo*>(other.extraTypeInfo.get());
     case PhysicalTypeID::FIXED_LIST:
-        return *ku_dynamic_ptr_cast<ExtraTypeInfo, FixedListTypeInfo>(extraTypeInfo.get()) ==
-               *ku_dynamic_ptr_cast<ExtraTypeInfo, FixedListTypeInfo>(other.extraTypeInfo.get());
+        return *ku_dynamic_cast<ExtraTypeInfo*, FixedListTypeInfo*>(extraTypeInfo.get()) ==
+               *ku_dynamic_cast<ExtraTypeInfo*, FixedListTypeInfo*>(other.extraTypeInfo.get());
     case PhysicalTypeID::STRUCT:
-        return *ku_dynamic_ptr_cast<ExtraTypeInfo, StructTypeInfo>(extraTypeInfo.get()) ==
-               *ku_dynamic_ptr_cast<ExtraTypeInfo, StructTypeInfo>(other.extraTypeInfo.get());
+        return *ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(extraTypeInfo.get()) ==
+               *ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(other.extraTypeInfo.get());
     default:
         return true;
     }
@@ -312,25 +312,24 @@ bool LogicalType::operator!=(const LogicalType& other) const {
 std::string LogicalType::toString() const {
     switch (typeID) {
     case LogicalTypeID::MAP: {
-        auto structType = ku_dynamic_ptr_cast<ExtraTypeInfo, VarListTypeInfo>(extraTypeInfo.get())
-                              ->getChildType();
+        auto structType =
+            ku_dynamic_cast<ExtraTypeInfo*, VarListTypeInfo*>(extraTypeInfo.get())->getChildType();
         auto fieldTypes = StructType::getFieldTypes(structType);
         return "MAP(" + fieldTypes[0]->toString() + ": " + fieldTypes[1]->toString() + ")";
     }
     case LogicalTypeID::VAR_LIST: {
         auto varListTypeInfo =
-            ku_dynamic_ptr_cast<ExtraTypeInfo, VarListTypeInfo>(extraTypeInfo.get());
+            ku_dynamic_cast<ExtraTypeInfo*, VarListTypeInfo*>(extraTypeInfo.get());
         return varListTypeInfo->getChildType()->toString() + "[]";
     }
     case LogicalTypeID::FIXED_LIST: {
         auto fixedListTypeInfo =
-            ku_dynamic_ptr_cast<ExtraTypeInfo, FixedListTypeInfo>(extraTypeInfo.get());
+            ku_dynamic_cast<ExtraTypeInfo*, FixedListTypeInfo*>(extraTypeInfo.get());
         return fixedListTypeInfo->getChildType()->toString() + "[" +
                std::to_string(fixedListTypeInfo->getNumValuesInList()) + "]";
     }
     case LogicalTypeID::UNION: {
-        auto unionTypeInfo =
-            ku_dynamic_ptr_cast<ExtraTypeInfo, StructTypeInfo>(extraTypeInfo.get());
+        auto unionTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(extraTypeInfo.get());
         std::string dataTypeStr = LogicalTypeUtils::toString(typeID) + "(";
         auto numFields = unionTypeInfo->getChildrenTypes().size();
         auto fieldNames = unionTypeInfo->getChildrenNames();
@@ -342,8 +341,7 @@ std::string LogicalType::toString() const {
         return dataTypeStr;
     }
     case LogicalTypeID::STRUCT: {
-        auto structTypeInfo =
-            ku_dynamic_ptr_cast<ExtraTypeInfo, StructTypeInfo>(extraTypeInfo.get());
+        auto structTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(extraTypeInfo.get());
         std::string dataTypeStr = LogicalTypeUtils::toString(typeID) + "(";
         auto numFields = structTypeInfo->getChildrenTypes().size();
         auto fieldNames = structTypeInfo->getChildrenNames();

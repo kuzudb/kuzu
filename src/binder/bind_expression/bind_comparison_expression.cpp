@@ -26,7 +26,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     for (auto& child : children) {
         childrenTypes.push_back(&child->dataType);
     }
-    auto function = ku_dynamic_ptr_cast<function::Function, function::ScalarFunction>(
+    auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
         builtInFunctions->matchFunction(functionName, childrenTypes));
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {

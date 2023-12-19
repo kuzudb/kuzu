@@ -38,7 +38,7 @@ void StructColumn::scan(
         auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
         columnChunk->setNumValues(chunkMetadata.numValues);
     }
-    auto structColumnChunk = ku_dynamic_ptr_cast<ColumnChunk, StructColumnChunk>(columnChunk);
+    auto structColumnChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(columnChunk);
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->scan(transaction, nodeGroupIdx, structColumnChunk->getChild(i));
     }

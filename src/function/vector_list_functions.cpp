@@ -145,7 +145,7 @@ static void BinaryExecListExtractFunction(
 std::unique_ptr<FunctionBindData> ListExtractFunction::bindFunc(
     const binder::expression_vector& arguments, Function* function) {
     auto resultType = VarListType::getChildType(&arguments[0]->dataType);
-    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     switch (resultType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         scalarFunction->execFunc =
@@ -261,7 +261,7 @@ std::unique_ptr<FunctionBindData> ListAppendFunction::bindFunc(
             LIST_APPEND_FUNC_NAME, arguments[0]->getDataType(), arguments[1]->getDataType()));
     }
     auto resultType = arguments[0]->getDataType();
-    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     scalarFunction->execFunc =
         ListFunction::getBinaryListExecFuncSwitchRight<ListAppend, list_entry_t>(
             arguments[1]->getDataType());
@@ -284,7 +284,7 @@ std::unique_ptr<FunctionBindData> ListPrependFunction::bindFunc(
             LIST_PREPEND_FUNC_NAME, arguments[0]->getDataType(), arguments[1]->getDataType()));
     }
     auto resultType = arguments[0]->getDataType();
-    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     scalarFunction->execFunc =
         ListFunction::getBinaryListExecFuncSwitchRight<ListPrepend, list_entry_t>(
             arguments[1]->getDataType());
@@ -309,7 +309,7 @@ function_set ListPositionFunction::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> ListPositionFunction::bindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     scalarFunction->execFunc =
         ListFunction::getBinaryListExecFuncSwitchRight<ListPosition, int64_t>(
             arguments[1]->getDataType());
@@ -326,7 +326,7 @@ function_set ListContainsFunction::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> ListContainsFunction::bindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     scalarFunction->execFunc =
         ListFunction::getBinaryListExecFuncSwitchRight<ListContains, uint8_t>(
             arguments[1]->getDataType());
@@ -374,7 +374,7 @@ function_set ListSortFunction::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> ListSortFunction::bindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     switch (VarListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
@@ -476,7 +476,7 @@ function_set ListReverseSortFunction::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> ListReverseSortFunction::bindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     switch (VarListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
@@ -588,7 +588,7 @@ function_set ListDistinctFunction::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> ListDistinctFunction::bindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     switch (VarListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
@@ -692,7 +692,7 @@ function_set ListUniqueFunction::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> ListUniqueFunction::bindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     switch (VarListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
@@ -796,7 +796,7 @@ function_set ListAnyValueFunction::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> ListAnyValueFunction::bindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = ku_dynamic_ptr_cast<Function, ScalarFunction>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     auto resultType = VarListType::getChildType(&arguments[0]->dataType);
     switch (resultType->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:

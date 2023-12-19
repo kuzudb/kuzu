@@ -164,12 +164,12 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         *LogicalType::INT64(), std::string(InternalKeyword::ROW_OFFSET));
     auto boundFileScanInfo =
         std::make_unique<BoundFileScanInfo>(func, std::move(bindData), columns, offset);
-    auto relSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(tableSchema);
+    auto relSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema);
     auto srcTableID = relSchema->getSrcTableID();
     auto dstTableID = relSchema->getDstTableID();
-    auto srcSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
+    auto srcSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
         catalog.getTableSchema(clientContext->getTx(), srcTableID));
-    auto dstSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
+    auto dstSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
         catalog.getTableSchema(clientContext->getTx(), dstTableID));
     auto srcKey = columns[0];
     auto dstKey = columns[1];
@@ -250,10 +250,10 @@ void Binder::bindExpectedRelColumns(TableSchema* tableSchema,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
     std::vector<std::unique_ptr<common::LogicalType>>& columnTypes) {
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
-    auto relTableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(tableSchema);
-    auto srcTable = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
+    auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema);
+    auto srcTable = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
         catalog.getTableSchema(clientContext->getTx(), relTableSchema->getSrcTableID()));
-    auto dstTable = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
+    auto dstTable = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
         catalog.getTableSchema(clientContext->getTx(), relTableSchema->getDstTableID()));
     columnNames.push_back("from");
     columnNames.push_back("to");

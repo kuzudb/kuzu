@@ -34,7 +34,7 @@ void QueryPlanner::planReadingClause(
 void QueryPlanner::planMatchClause(
     BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     auto boundMatchClause =
-        ku_dynamic_ptr_cast<BoundReadingClause, BoundMatchClause>(boundReadingClause);
+        ku_dynamic_cast<BoundReadingClause*, BoundMatchClause*>(boundReadingClause);
     auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
     auto predicates = boundMatchClause->getConjunctivePredicates();
     switch (boundMatchClause->getMatchClauseType()) {
@@ -80,7 +80,7 @@ static bool hasExternalDependency(const std::shared_ptr<Expression>& expression,
 
 void QueryPlanner::planInQueryCall(
     BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto inQueryCall = ku_dynamic_ptr_cast<BoundReadingClause, BoundInQueryCall>(readingClause);
+    auto inQueryCall = ku_dynamic_cast<BoundReadingClause*, BoundInQueryCall*>(readingClause);
     std::unordered_set<std::string> columnNameSet;
     for (auto& column : inQueryCall->getOutExprs()) {
         columnNameSet.insert(column->getUniqueName());
@@ -116,7 +116,7 @@ void QueryPlanner::planInQueryCall(
 
 void QueryPlanner::planLoadFrom(
     binder::BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto loadFrom = ku_dynamic_ptr_cast<BoundReadingClause, BoundLoadFrom>(readingClause);
+    auto loadFrom = ku_dynamic_cast<BoundReadingClause*, BoundLoadFrom*>(readingClause);
     std::unordered_set<std::string> columnNameSet;
     for (auto& column : loadFrom->getInfo()->columns) {
         columnNameSet.insert(column->getUniqueName());
