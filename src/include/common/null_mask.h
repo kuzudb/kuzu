@@ -83,7 +83,8 @@ public:
     }
 
     // For creating a null mask using existing data
-    explicit NullMask(std::span<uint64_t> nullData) : data{nullData}, mayContainNulls{true} {}
+    explicit NullMask(std::span<uint64_t> nullData)
+        : data{nullData}, buffer{}, mayContainNulls{true} {}
 
     inline void setAllNonNull() {
         if (!mayContainNulls) {

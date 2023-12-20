@@ -1,5 +1,10 @@
 #include "common/data_chunk/data_chunk_collection.h"
 #include "common/exception/binder.h"
+#include "common/type_utils.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/interval_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "function/table/bind_input.h"
 #include "function/table/call_functions.h"
 #include "storage/storage_manager.h"
@@ -7,6 +12,7 @@
 #include "storage/store/node_table.h"
 #include "storage/store/string_column.h"
 #include "storage/store/struct_column.h"
+#include <concepts>
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -139,7 +145,39 @@ static void appendColumnChunkStorageInfo(node_group_idx_t nodeGroupIdx,
     outputChunk.getValueVector(4)->setValue<uint64_t>(vectorPos, metadata.pageIdx);
     outputChunk.getValueVector(5)->setValue<uint64_t>(vectorPos, metadata.numPages);
     outputChunk.getValueVector(6)->setValue<uint64_t>(vectorPos, metadata.numValues);
-    outputChunk.getValueVector(7)->setValue(vectorPos, metadata.compMeta.toString());
+
+    auto customToString = [&]<typename T>(T) {
+        outputChunk.getValueVector(7)->setValue(vectorPos,
+            std::to_string(metadata.compMeta.min.get<T>()));
+        outputChunk.getValueVector(8)->setValue(vectorPos,
+            std::to_string(metadata.compMeta.min.get<T>()));
+    };
+    auto physicalType = column->getDataType().getPhysicalType();
+    TypeUtils::visit(
+        physicalType, [&](ku_string_t) { customToString(uint32_t()); },
+        [&](list_entry_t) { customToString(uint64_t()); },
+        [&](internalID_t) { customToString(uint64_t()); },
+        [&]<typename T>(T)
+            requires(std::integral<T> || std::floating_point<T>)
+        {
+            if (column->getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
+                customToString(uint64_t());
+            } else {
+                auto min = metadata.compMeta.min.get<T>();
+                auto max = metadata.compMeta.max.get<T>();
+                outputChunk.getValueVector(7)->setValue(vectorPos,
+                    TypeUtils::entryToString(column->getDataType(), (uint8_t*)&min,
+                        outputChunk.getValueVector(7).get()));
+                outputChunk.getValueVector(8)->setValue(vectorPos,
+                    TypeUtils::entryToString(column->getDataType(), (uint8_t*)&max,
+                        outputChunk.getValueVector(8).get()));
+            }
+        },
+        // Types which don't support statistics.
+        // types not supported by TypeUtils::visit can
+        // also be ignored since we don't track statistics for them
+        [](int128_t) {}, [](struct_entry_t) {}, [](interval_t) {});
+    outputChunk.getValueVector(9)->setValue(vectorPos, metadata.compMeta.toString(physicalType));
     outputChunk.state->getSelVectorUnsafe().incrementSelSize();
 }
 
@@ -198,7 +236,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
     std::vector<std::string> columnNames = {"node_group_id", "column_name", "data_type",
-        "table_type", "start_page_idx", "num_pages", "num_values", "compression"};
+        "table_type", "start_page_idx", "num_pages", "num_values", "min", "max", "compression"};
     std::vector<LogicalType> columnTypes;
     columnTypes.emplace_back(*LogicalType::INT64());
     columnTypes.emplace_back(*LogicalType::STRING());
@@ -207,6 +245,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     columnTypes.emplace_back(*LogicalType::INT64());
     columnTypes.emplace_back(*LogicalType::INT64());
     columnTypes.emplace_back(*LogicalType::INT64());
+    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(*LogicalType::STRING());
     columnTypes.emplace_back(*LogicalType::STRING());
     auto tableName = input->inputs[0].getValue<std::string>();
     auto catalog = context->getCatalog();

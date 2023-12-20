@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <variant>
 
 #include "common/copy_constructors.h"
