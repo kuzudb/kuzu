@@ -23,6 +23,7 @@ struct ScanTableFuncBindInput final : public TableFuncBindInput {
     std::vector<std::string> expectedColumnNames;
     std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
 
+    explicit ScanTableFuncBindInput(common::ReaderConfig& config) : config{config} {};
     ScanTableFuncBindInput(storage::MemoryManager* mm, const common::ReaderConfig& config,
         std::vector<std::string> expectedColumnNames,
         std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes,

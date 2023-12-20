@@ -388,7 +388,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         }
     }
     auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(
-        LogicalType{LogicalTypeID::BOOL}, InternalKeyword::ANONYMOUS);
+        LogicalType{LogicalTypeID::BOOL}, std::string(InternalKeyword::ANONYMOUS));
     if (nodePredicate != nullptr) {
         nodePredicate = expressionBinder.combineBooleanExpressions(
             ExpressionType::OR, nodePredicate, nodePredicateExecutionFlag);

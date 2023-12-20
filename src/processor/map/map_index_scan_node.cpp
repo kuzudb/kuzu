@@ -23,7 +23,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexScan(
             auto offsetPos = DataPos(outSchema->getExpressionPos(*info->offset));
             auto keyPos = DataPos(outSchema->getExpressionPos(*info->key));
             indexLookupInfos.push_back(std::make_unique<IndexLookupInfo>(
-                info->nodeTableID, info->indexType->copy(), storageIndex, keyPos, offsetPos));
+                info->indexType->copy(), storageIndex, keyPos, offsetPos));
         }
         return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(prevOperator),
             getOperatorID(), logicalIndexScan->getExpressionsForPrinting());

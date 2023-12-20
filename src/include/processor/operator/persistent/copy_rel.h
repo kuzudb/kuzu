@@ -48,14 +48,14 @@ public:
     }
     inline void updateRelsStatistics() { relsStatistics->setNumTuplesForTable(tableID, numRows); }
 
-    inline std::shared_ptr<FactorizedTable> getFTable() { return fTable; }
+public:
+    std::shared_ptr<FactorizedTable> fTable;
 
 private:
     common::table_id_t tableID;
     storage::RelTable* table;
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     storage::RelsStoreStats* relsStatistics;
-    std::shared_ptr<FactorizedTable> fTable;
     std::atomic<common::row_idx_t> numRows;
 };
 
@@ -74,6 +74,8 @@ public:
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_REL, id, paramsString},
           info{std::move(info)}, partitionerSharedState{std::move(partitionerSharedState)},
           sharedState{std::move(sharedState)} {}
+
+    inline std::shared_ptr<CopyRelSharedState> getSharedState() const { return sharedState; }
 
     inline bool isSource() const final { return true; }
 

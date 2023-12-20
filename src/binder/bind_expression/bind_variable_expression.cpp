@@ -21,6 +21,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(
+    common::LogicalType logicalType, std::string_view name) {
+    return createVariableExpression(logicalType, std::string(name));
+}
+
+std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(
     LogicalType logicalType, std::string name) {
     return std::make_shared<VariableExpression>(
         std::move(logicalType), binder->getUniqueExpressionName(name), std::move(name));

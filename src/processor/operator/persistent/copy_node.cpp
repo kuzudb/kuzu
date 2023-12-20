@@ -17,10 +17,10 @@ namespace kuzu {
 namespace processor {
 
 void CopyNodeSharedState::init(VirtualFileSystem* vfs) {
-    if (pkType->getLogicalTypeID() != LogicalTypeID::SERIAL) {
+    if (pkType != *LogicalType::SERIAL()) {
         auto indexFName = StorageUtils::getNodeIndexFName(
             vfs, wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
-        pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(indexFName, *pkType, vfs);
+        indexBuilder = std::make_shared<PrimaryKeyIndexBuilder>(indexFName, pkType, vfs);
         uint64_t numRows;
         if (readerSharedState != nullptr) {
             KU_ASSERT(distinctSharedState == nullptr);
@@ -30,7 +30,7 @@ void CopyNodeSharedState::init(VirtualFileSystem* vfs) {
         } else {
             numRows = distinctSharedState->getFactorizedTable()->getNumTuples();
         }
-        pkIndex->bulkReserve(numRows);
+        indexBuilder->bulkReserve(numRows);
     }
     wal->logCopyTableRecord(table->getTableID(), TableType::NODE);
     wal->flushAllPages();
@@ -47,7 +47,7 @@ void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localN
     if (sharedNodeGroup->isFull()) {
         auto nodeGroupIdx = getNextNodeGroupIdxWithoutLock();
         CopyNode::writeAndResetNodeGroup(
-            nodeGroupIdx, pkIndex.get(), pkColumnIdx, table, sharedNodeGroup.get());
+            nodeGroupIdx, indexBuilder.get(), pkColumnIdx, table, sharedNodeGroup.get());
     }
     if (numNodesAppended < localNodeGroup->getNumRows()) {
         sharedNodeGroup->append(localNodeGroup.get(), numNodesAppended);
@@ -162,19 +162,28 @@ void CopyNode::checkNonNullConstraint(NullColumnChunk* nullChunk, offset_t numNo
     }
 }
 
-void CopyNode::finalize(ExecutionContext* context) {
-    uint64_t numNodes = StorageUtils::getStartOffsetOfNodeGroup(sharedState->getCurNodeGroupIdx());
-    if (sharedState->sharedNodeGroup) {
-        numNodes += sharedState->sharedNodeGroup->getNumRows();
-        auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
-        writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(), sharedState->pkColumnIdx,
-            sharedState->table, sharedState->sharedNodeGroup.get());
+void CopyNodeSharedState::calculateNumTuples() {
+    numTuples = StorageUtils::getStartOffsetOfNodeGroup(getCurNodeGroupIdx());
+    if (sharedNodeGroup) {
+        numTuples += sharedNodeGroup->getNumRows();
     }
-    if (sharedState->pkIndex) {
-        sharedState->pkIndex->flush();
+}
+
+void CopyNode::finalize(ExecutionContext* context) {
+    sharedState->calculateNumTuples();
+    //    uint64_t numNodes =
+    //    StorageUtils::getStartOffsetOfNodeGroup(sharedState->getCurNodeGroupIdx());
+    if (sharedState->sharedNodeGroup) {
+        //        numNodes += sharedState->sharedNodeGroup->getNumRows();
+        auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
+        writeAndResetNodeGroup(nodeGroupIdx, sharedState->indexBuilder.get(),
+            sharedState->pkColumnIdx, sharedState->table, sharedState->sharedNodeGroup.get());
+    }
+    if (sharedState->indexBuilder) {
+        sharedState->indexBuilder->flush();
     }
     sharedState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
-        sharedState->table->getTableID(), numNodes);
+        sharedState->table->getTableID(), sharedState->numTuples);
     for (auto relTable : info->fwdRelTables) {
         relTable->resizeColumns(context->clientContext->getTx(), RelDataDirection::FWD,
             sharedState->getCurNodeGroupIdx());
@@ -183,8 +192,8 @@ void CopyNode::finalize(ExecutionContext* context) {
         relTable->resizeColumns(context->clientContext->getTx(), RelDataDirection::BWD,
             sharedState->getCurNodeGroupIdx());
     }
-    auto outputMsg = stringFormat(
-        "{} number of tuples has been copied to table: {}.", numNodes, info->tableName.c_str());
+    auto outputMsg = stringFormat("{} number of tuples has been copied to table: {}.",
+        sharedState->numTuples, info->tableName.c_str());
     FactorizedTableUtils::appendStringToTable(
         sharedState->fTable.get(), outputMsg, context->memoryManager);
 }
@@ -226,7 +235,7 @@ void CopyNode::copyToNodeGroup() {
         if (localNodeGroup->isFull()) {
             node_group_idx_t nodeGroupIdx;
             nodeGroupIdx = sharedState->getNextNodeGroupIdx();
-            writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(),
+            writeAndResetNodeGroup(nodeGroupIdx, sharedState->indexBuilder.get(),
                 sharedState->pkColumnIdx, sharedState->table, localNodeGroup.get());
         }
         if (numAppendedTuples < numTuplesToAppend) {

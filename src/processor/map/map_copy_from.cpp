@@ -4,8 +4,10 @@
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
 #include "processor/operator/call/in_query_call.h"
+#include "processor/operator/index_lookup.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/copy_node.h"
+#include "processor/operator/persistent/copy_rdf.h"
 #include "processor/operator/persistent/copy_rel.h"
 #include "processor/plan_mapper.h"
 
@@ -21,10 +23,26 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logicalOperator) {
     auto copyFrom = (LogicalCopyFrom*)logicalOperator;
     switch (copyFrom->getInfo()->tableSchema->getTableType()) {
-    case TableType::NODE:
-        return mapCopyNodeFrom(logicalOperator);
-    case TableType::REL:
-        return mapCopyRelFrom(logicalOperator);
+    case TableType::NODE: {
+        auto op = mapCopyNodeFrom(logicalOperator);
+        auto copy = ku_dynamic_cast<PhysicalOperator*, CopyNode*>(op.get());
+        auto table = copy->getSharedState()->fTable;
+        return createFactorizedTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(),
+            table, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(op));
+    }
+    case TableType::REL: {
+        auto ops = mapCopyRelFrom(logicalOperator);
+        auto copy = ku_dynamic_cast<PhysicalOperator*, CopyRel*>(ops[0].get());
+        auto table = copy->getSharedState()->fTable;
+        auto scan = createFactorizedTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(),
+            table, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(ops[0]));
+        for (auto i = 1u; i < ops.size(); ++i) {
+            scan->addChild(std::move(ops[i]));
+        }
+        return scan;
+    }
+    case TableType::RDF:
+        return mapCopyRdfFrom(logicalOperator);
         // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
@@ -103,7 +121,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     sharedState->table = nodeTable;
     auto pk = tableSchema->getPrimaryKey();
     sharedState->pkColumnIdx = tableSchema->getColumnID(pk->getPropertyID());
-    sharedState->pkType = pk->getDataType()->copy();
+    sharedState->pkType = *pk->getDataType();
     sharedState->fTable = getSingleStringColumnFTable();
     std::vector<std::string> columnNames;
     logical_types_t columnTypes;
@@ -131,12 +149,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto info = std::make_unique<CopyNodeInfo>(std::move(columnPositions), nodeTable, fwdRelTables,
         bwdRelTables, tableSchema->tableName, copyFromInfo->containsSerial,
         storageManager.compressionEnabled());
-    auto copyNode = std::make_unique<CopyNode>(sharedState, std::move(info),
+    return std::make_unique<CopyNode>(sharedState, std::move(info),
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
         getOperatorID(), copyFrom->getExpressionsForPrinting());
-    auto outputExpressions = binder::expression_vector{copyFrom->getOutputExpression()->copy()};
-    return createFactorizedTableScanAligned(outputExpressions, copyFrom->getSchema(),
-        sharedState->fTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(copyNode));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* logicalOperator) {
@@ -179,23 +194,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
         copyFrom->getExpressionsForPrinting());
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
-    planner::LogicalOperator* logicalOperator) {
+physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator) {
     auto copyFrom = (LogicalCopyFrom*)logicalOperator;
     auto copyFromInfo = copyFrom->getInfo();
-    auto outFSchema = copyFrom->getSchema();
     auto tableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(copyFromInfo->tableSchema);
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
     KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::PARTITIONER);
-    auto nodesStats = storageManager.getNodesStatisticsAndDeletedIDs();
     auto partitionerSharedState = dynamic_cast<Partitioner*>(prevOperator.get())->getSharedState();
-    partitionerSharedState->maxNodeOffsets.resize(2);
-    partitionerSharedState->maxNodeOffsets[0] =
-        nodesStats->getMaxNodeOffset(transaction::Transaction::getDummyReadOnlyTrx().get(),
-            tableSchema->getBoundTableID(RelDataDirection::FWD));
-    partitionerSharedState->maxNodeOffsets[1] =
-        nodesStats->getMaxNodeOffset(transaction::Transaction::getDummyReadOnlyTrx().get(),
-            tableSchema->getBoundTableID(RelDataDirection::BWD));
+    partitionerSharedState->srcNodeTable =
+        storageManager.getNodeTable(tableSchema->getSrcTableID());
+    partitionerSharedState->dstNodeTable =
+        storageManager.getNodeTable(tableSchema->getDstTableID());
     // TODO(Xiyang): Move binding of column types to binder.
     std::vector<std::unique_ptr<LogicalType>> columnTypes;
     columnTypes.push_back(LogicalType::INTERNAL_ID()); // ADJ COLUMN.
@@ -209,14 +218,54 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
         createCopyRel(partitionerSharedState, copyRelSharedState, copyFrom, RelDataDirection::FWD);
     auto copyRelBWD =
         createCopyRel(partitionerSharedState, copyRelSharedState, copyFrom, RelDataDirection::BWD);
-    auto outputExpressions = expression_vector{copyFrom->getOutputExpression()->copy()};
-    auto fTableScan = createFactorizedTableScanAligned(outputExpressions, outFSchema,
-        copyRelSharedState->getFTable(), DEFAULT_VECTOR_CAPACITY /* maxMorselSize */,
-        std::move(copyRelBWD));
-    // Pipelines are scheduled as the order: partitioner -> copyRelFWD -> copyRelBWD.
-    fTableScan->addChild(std::move(copyRelFWD));
-    fTableScan->addChild(std::move(prevOperator));
-    return fTableScan;
+    physical_op_vector_t result;
+    result.push_back(std::move(copyRelBWD));
+    result.push_back(std::move(copyRelFWD));
+    result.push_back(std::move(prevOperator));
+    return result;
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* logicalOperator) {
+    auto copyFrom = ku_dynamic_cast<LogicalOperator*, LogicalCopyFrom*>(logicalOperator);
+    auto logicalRRLChild = logicalOperator->getChild(0).get();
+    auto logicalRRRChild = logicalOperator->getChild(1).get();
+    auto logicalLChild = logicalOperator->getChild(2).get();
+    auto logicalRChild = logicalOperator->getChild(3).get();
+    auto rChild = mapCopyNodeFrom(logicalRChild);
+    KU_ASSERT(rChild->getOperatorType() == PhysicalOperatorType::COPY_NODE);
+    auto rCopy = ku_dynamic_cast<PhysicalOperator*, CopyNode*>(rChild.get());
+    auto lChild = mapCopyNodeFrom(logicalLChild);
+    auto lCopy = ku_dynamic_cast<PhysicalOperator*, CopyNode*>(lChild.get());
+    auto rrrChildren = mapCopyRelFrom(logicalRRRChild);
+    KU_ASSERT(rrrChildren[2]->getOperatorType() == PhysicalOperatorType::PARTITIONER);
+    auto rrrPartitioner = ku_dynamic_cast<PhysicalOperator*, Partitioner*>(rrrChildren[2].get());
+    rrrPartitioner->getSharedState()->copyNodeSharedStates.push_back(rCopy->getSharedState());
+    rrrPartitioner->getSharedState()->copyNodeSharedStates.push_back(rCopy->getSharedState());
+    KU_ASSERT(rrrChildren[2]->getChild(0)->getOperatorType() == PhysicalOperatorType::INDEX_LOOKUP);
+    auto rrrLookup = ku_dynamic_cast<PhysicalOperator*, IndexLookup*>(rrrChildren[2]->getChild(0));
+    rrrLookup->setCopyNodeSharedState(rCopy->getSharedState());
+    auto rrlChildren = mapCopyRelFrom(logicalRRLChild);
+    auto rrLPartitioner = ku_dynamic_cast<PhysicalOperator*, Partitioner*>(rrlChildren[2].get());
+    rrLPartitioner->getSharedState()->copyNodeSharedStates.push_back(rCopy->getSharedState());
+    rrLPartitioner->getSharedState()->copyNodeSharedStates.push_back(lCopy->getSharedState());
+    KU_ASSERT(rrlChildren[2]->getChild(0)->getOperatorType() == PhysicalOperatorType::INDEX_LOOKUP);
+    auto rrlLookup = ku_dynamic_cast<PhysicalOperator*, IndexLookup*>(rrlChildren[2]->getChild(0));
+    rrlLookup->setCopyNodeSharedState(rCopy->getSharedState());
+    auto sharedState = std::make_shared<CopyRdfSharedState>();
+    auto fTable = getSingleStringColumnFTable();
+    sharedState->fTable = fTable;
+    auto copyRdf = std::make_unique<CopyRdf>(std::move(sharedState),
+        std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), getOperatorID(), "");
+    for (auto& child : rrlChildren) {
+        copyRdf->addChild(std::move(child));
+    }
+    for (auto& child : rrrChildren) {
+        copyRdf->addChild(std::move(child));
+    }
+    copyRdf->addChild(std::move(lChild));
+    copyRdf->addChild(std::move(rChild));
+    return createFactorizedTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
+        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(copyRdf));
 }
 
 } // namespace processor

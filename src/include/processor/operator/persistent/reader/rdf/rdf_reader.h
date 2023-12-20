@@ -1,12 +1,8 @@
 #pragma once
 
-#include "common/copier_config/rdf_reader_config.h"
 #include "common/data_chunk/data_chunk.h"
-#include "function/scalar_function.h"
 #include "function/table_functions.h"
-#include "function/table_functions/bind_data.h"
-#include "function/table_functions/bind_input.h"
-#include "function/table_functions/scan_functions.h"
+#include "processor/operator/persistent/reader/rdf/rdf_reader_mode.h"
 #include "serd.h"
 
 namespace kuzu {
@@ -14,9 +10,8 @@ namespace processor {
 
 class RdfReader {
 public:
-    RdfReader(
-        std::string filePath, common::FileType fileType, const common::RdfReaderConfig& config)
-        : filePath{std::move(filePath)}, fileType{fileType}, mode{config.mode}, reader{nullptr},
+    RdfReader(std::string filePath, common::FileType fileType, RdfReaderMode mode)
+        : filePath{std::move(filePath)}, fileType{fileType}, mode{mode}, reader{nullptr},
           rowOffset{0}, vectorSize{0}, status{SERD_SUCCESS}, sVector{nullptr}, pVector{nullptr},
           oVector{nullptr} {}
 
@@ -47,7 +42,7 @@ private:
 private:
     const std::string filePath;
     common::FileType fileType;
-    common::RdfReaderMode mode;
+    RdfReaderMode mode;
 
     FILE* fp;
     SerdReader* reader;
@@ -61,36 +56,6 @@ private:
     common::ValueVector* sVector; // subject
     common::ValueVector* pVector; // predicate
     common::ValueVector* oVector; // object
-};
-
-struct RdfScanSharedState final : public function::ScanSharedState {
-    std::unique_ptr<RdfReader> reader;
-
-    RdfScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows)
-        : ScanSharedState{readerConfig, numRows} {
-        initReader();
-    }
-
-    void read(common::DataChunk& dataChunk);
-
-    void initReader();
-};
-
-struct RdfScan {
-    static function::function_set getFunctionSet();
-
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
-
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        function::TableFuncBindInput* input, catalog::Catalog* /*catalog*/,
-        storage::StorageManager* /*storageManager*/);
-
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
-
-    static std::unique_ptr<function::TableFuncLocalState> initLocalState(
-        function::TableFunctionInitInput& input, function::TableFuncSharedState* /*state*/,
-        storage::MemoryManager* /*mm*/);
 };
 
 } // namespace processor
