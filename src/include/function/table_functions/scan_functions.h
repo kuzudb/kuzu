@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/copier_config/reader_config.h"
 #include "function/table_functions.h"
 
 namespace kuzu {

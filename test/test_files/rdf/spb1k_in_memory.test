@@ -1,0 +1,14 @@
+-GROUP Spb1kInMemory
+-DATASET TTL EMPTY
+
+--
+
+-CASE BASIC
+
+-STATEMENT CREATE RDF GRAPH example;
+---- ok
+-STATEMENT COPY example FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/spb1k/*.nq" (in_memory=true);
+---- ok
+-STATEMENT MATCH (s)-[]->() WHERE s.iri = "http://www.bbc.co.uk/things/3#id" RETURN COUNT(*);
+---- 1
+23

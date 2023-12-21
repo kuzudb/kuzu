@@ -460,6 +460,10 @@ void StringVector::addString(
     }
 }
 
+void StringVector::addString(ValueVector* vector, uint32_t vectorPos, const std::string& srcStr) {
+    addString(vector, vectorPos, srcStr.data(), srcStr.length());
+}
+
 ku_string_t& StringVector::reserveString(ValueVector* vector, uint32_t vectorPos, uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =

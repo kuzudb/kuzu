@@ -1,25 +1,26 @@
 #pragma once
 
+#include "common/copier_config/rdf_reader_config.h"
+#include "common/copier_config/reader_config.h"
 #include "common/data_chunk/data_chunk.h"
-#include "function/table_functions.h"
-#include "processor/operator/persistent/reader/rdf/rdf_reader_mode.h"
 #include "serd.h"
+#include "triple_store.h"
 
 namespace kuzu {
 namespace processor {
 
 class RdfReader {
 public:
-    RdfReader(std::string filePath, common::FileType fileType, RdfReaderMode mode)
-        : filePath{std::move(filePath)}, fileType{fileType}, mode{mode}, reader{nullptr},
-          rowOffset{0}, vectorSize{0}, status{SERD_SUCCESS}, sVector{nullptr}, pVector{nullptr},
-          oVector{nullptr} {}
+    RdfReader(std::string filePath, common::FileType fileType, common::RdfReaderMode mode,
+        RdfStore* store)
+        : filePath{std::move(filePath)}, fileType{fileType}, mode{mode}, store{store},
+          reader{nullptr}, rowOffset{0}, status{SERD_SUCCESS}, dataChunk{nullptr} {}
 
     ~RdfReader();
 
     void initReader();
 
-    common::offset_t read(common::DataChunk* dataChunkToRead);
+    common::offset_t read(common::DataChunk* dataChunk);
 
 private:
     static SerdStatus errorHandle(void* handle, const SerdError* error);
@@ -36,13 +37,17 @@ private:
     static SerdStatus rrlHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
         const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
         const SerdNode* object_datatype, const SerdNode* object_lang);
+    static SerdStatus allHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
+        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
+        const SerdNode* object_datatype, const SerdNode* object_lang);
 
     static SerdStatus prefixHandle(void* handle, const SerdNode* name, const SerdNode* uri);
 
 private:
     const std::string filePath;
     common::FileType fileType;
-    RdfReaderMode mode;
+    common::RdfReaderMode mode;
+    RdfStore* store;
 
     FILE* fp;
     SerdReader* reader;
@@ -50,12 +55,9 @@ private:
     // TODO(Xiyang): use prefix to expand CURIE.
     const char* currentPrefix;
     common::offset_t rowOffset;
-    common::offset_t vectorSize;
     SerdStatus status;
 
-    common::ValueVector* sVector; // subject
-    common::ValueVector* pVector; // predicate
-    common::ValueVector* oVector; // object
+    common::DataChunk* dataChunk;
 };
 
 } // namespace processor

@@ -123,6 +123,11 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRdfFrom(
     auto rrlPlan = planCopyRelFrom(extraRdfInfo->rrlInfo.get(), results);
     auto children = logical_op_vector_t{rrlPlan->getLastOperator(), rrrPlan->getLastOperator(),
         lPlan->getLastOperator(), rPlan->getLastOperator()};
+    if (info->fileScanInfo != nullptr) {
+        auto readerPlan = LogicalPlan();
+        QueryPlanner::appendScanFile(info->fileScanInfo.get(), readerPlan);
+        children.push_back(readerPlan.getLastOperator());
+    }
     auto resultPlan = std::make_unique<LogicalPlan>();
     auto op = make_shared<LogicalCopyFrom>(info->copy(), results, children);
     op->computeFactorizedSchema();

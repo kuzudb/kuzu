@@ -20,6 +20,7 @@ public:
         return functions.at(functionName)[0]->type;
     }
 
+    Function* matchFunction(const std::string& name);
     // TODO(Ziyi): We should have a unified interface for matching table, aggregate and scalar
     // functions.
     Function* matchFunction(

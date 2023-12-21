@@ -141,7 +141,7 @@ private:
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
     /*** bind file scan ***/
-    std::unique_ptr<common::CSVReaderConfig> bindParsingOptions(
+    std::unordered_map<std::string, common::Value> bindParsingOptions(
         const parser::parsing_option_t& parsingOptions);
     common::FileType bindFileType(const std::vector<std::string>& filePaths);
     common::FileType bindFileType(const std::string& filePath);

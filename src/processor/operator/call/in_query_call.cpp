@@ -14,8 +14,13 @@ common::row_idx_t InQueryCallSharedState::getAndIncreaseRowIdx(uint64_t numRows)
 
 void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<InQueryCallLocalState>();
-    localState->outputChunk = std::make_unique<DataChunk>(inQueryCallInfo->outputPoses.size(),
-        resultSet->getDataChunk(inQueryCallInfo->outputPoses[0].dataChunkPos)->state);
+    if (!inQueryCallInfo->outputPoses.empty()) {
+        localState->outputChunk = std::make_unique<DataChunk>(inQueryCallInfo->outputPoses.size(),
+            resultSet->getDataChunk(inQueryCallInfo->outputPoses[0].dataChunkPos)->state);
+    } else {
+        // Some scan function (e.g. rdf scan) doesn't output any vector.
+        localState->outputChunk = std::make_unique<DataChunk>(0);
+    }
     for (auto i = 0u; i < inQueryCallInfo->outputPoses.size(); i++) {
         localState->outputChunk->insert(
             i, resultSet->getValueVector(inQueryCallInfo->outputPoses[i]));

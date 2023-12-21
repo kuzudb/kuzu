@@ -1,0 +1,39 @@
+-GROUP RdfoxExampleInMemory
+-DATASET TTL EMPTY
+
+--
+
+-CASE BASIC
+
+-STATEMENT CREATE RDF GRAPH example;
+---- ok
+-STATEMENT COPY example FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/rdfox_example/data.ttl" (in_memory=true);
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
+---- 26
+:andy|:literal||-14.900000
+:andy|:literal||0.016630
+:andy|:literal||12
+:andy|:literal||1999-08-16
+:andy|:literal||True
+:brian|:forename||Brian
+:chris|:forename||Chris
+:chris|:gender||male
+:chris|:hasParent|:peter|
+:chris|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
+:lois|:forename||Lois
+:lois|:gender||female
+:lois|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
+:meg|:forename||Meg
+:meg|:gender||female
+:meg|:hasParent|:lois|
+:meg|:hasParent|:peter|
+:meg|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
+:peter|:forename||Peter
+:peter|:gender||male
+:peter|:marriedTo|:lois|
+:peter|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
+:stewie|:forename||Stewie
+:stewie|:gender||male
+:stewie|:hasParent|:lois|
+:stewie|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|

@@ -61,9 +61,8 @@ void SerialCSVScanSharedState::read(common::DataChunk& outputChunk) {
 
 void SerialCSVScanSharedState::initReader() {
     if (fileIdx < readerConfig.getNumFiles()) {
-        auto csvConfig = reinterpret_cast<CSVReaderConfig*>(readerConfig.extraConfig.get());
         reader = std::make_unique<SerialCSVReader>(
-            readerConfig.filePaths[fileIdx], csvConfig->option, numColumns, vfs);
+            readerConfig.filePaths[fileIdx], csvReaderConfig.option, numColumns, vfs);
     }
 }
 
@@ -98,15 +97,15 @@ std::unique_ptr<function::TableFuncBindData> SerialCSVScan::bindFunc(
 std::unique_ptr<function::TableFuncSharedState> SerialCSVScan::initSharedState(
     function::TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
-    auto csvConfig = reinterpret_cast<CSVReaderConfig*>(bindData->config.extraConfig.get());
+    auto csvConfig = CSVReaderConfig::construct(bindData->config.options);
     common::row_idx_t numRows = 0;
     for (const auto& path : bindData->config.filePaths) {
         auto reader = make_unique<SerialCSVReader>(
-            path, csvConfig->option, bindData->columnNames.size(), bindData->vfs);
+            path, csvConfig.option, bindData->columnNames.size(), bindData->vfs);
         numRows += reader->countRows();
     }
     return std::make_unique<SerialCSVScanSharedState>(
-        bindData->config, numRows, bindData->columnNames.size(), bindData->vfs);
+        bindData->config, numRows, bindData->columnNames.size(), bindData->vfs, csvConfig);
 }
 
 std::unique_ptr<function::TableFuncLocalState> SerialCSVScan::initLocalState(
@@ -130,9 +129,9 @@ void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
 void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
     std::vector<std::string>& columnNames,
     std::vector<std::unique_ptr<common::LogicalType>>& columnTypes) {
-    auto csvConfig = reinterpret_cast<CSVReaderConfig*>(bindInput->config.extraConfig.get());
-    auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvConfig->option,
-        0 /* numColumns */, bindInput->vfs);
+    auto csvConfig = CSVReaderConfig::construct(bindInput->config.options);
+    auto csvReader = SerialCSVReader(
+        bindInput->config.filePaths[fileIdx], csvConfig.option, 0 /* numColumns */, bindInput->vfs);
     auto sniffedColumns = csvReader.sniffCSV();
     for (auto& [name, type] : sniffedColumns) {
         columnNames.push_back(name);
