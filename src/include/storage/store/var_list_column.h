@@ -66,6 +66,8 @@ protected:
         common::ValueVector* resultVector, uint32_t posInVector) final;
 
     void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
+    void appendAsync(ColumnChunk* columnChunk, uint64_t nodeGroupIdx, uv_loop_t* loop,
+        common::NodeGroupInfo* info) override;
 
 private:
     inline common::offset_t readListOffsetInStorage(transaction::Transaction* transaction,

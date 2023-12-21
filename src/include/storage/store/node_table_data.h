@@ -34,6 +34,7 @@ public:
     void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector);
 
     void append(NodeGroup* nodeGroup) override;
+    void appendAsync(NodeGroup* nodeGroup, uv_loop_t* loop, common::NodeGroupInfo* info);
 
     void prepareLocalTableToCommit(
         transaction::Transaction* transaction, LocalTableData* localTable) override;

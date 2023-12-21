@@ -1,10 +1,19 @@
 #pragma once
 
+#include <uv.h>
 #include <cstdint>
 #include <string>
 
 namespace kuzu {
 namespace common {
+
+struct NodeGroupInfo {
+    uint64_t byteSize = 0;
+    uint64_t totalReq = 0;
+
+    uint64_t receivedSize = 0;
+    uint64_t receivedReq = 0;
+};
 
 class FileSystem;
 
@@ -26,6 +35,8 @@ struct FileInfo {
     int64_t readFile(void* buf, size_t nbyte);
 
     void writeFile(const uint8_t* buffer, uint64_t numBytes, uint64_t offset);
+
+    void writeFileAsync(const uint8_t* buffer, uint64_t numBytes, uint64_t offset, uv_loop_t* loop, NodeGroupInfo* info);
 
     int64_t seek(uint64_t offset, int whence);
 

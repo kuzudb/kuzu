@@ -41,6 +41,8 @@ protected:
 
     virtual void writeFile(
         FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset) = 0;
+    virtual void writeFileAsync(FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+        uint64_t offset, uv_loop_t* loop, NodeGroupInfo* info) = 0;
 
     virtual int64_t seek(FileInfo* fileInfo, uint64_t offset, int whence) = 0;
 

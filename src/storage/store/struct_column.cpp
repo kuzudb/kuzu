@@ -101,6 +101,16 @@ void StructColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     }
 }
 
+void StructColumn::appendAsync(ColumnChunk* columnChunk, uint64_t nodeGroupIdx, uv_loop_t* loop,
+    common::NodeGroupInfo* info) {
+    Column::append(columnChunk, nodeGroupIdx);
+    KU_ASSERT(columnChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto structColumnChunk = static_cast<StructColumnChunk*>(columnChunk);
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        childColumns[i]->appendAsync(structColumnChunk->getChild(i), nodeGroupIdx, loop, info);
+    }
+}
+
 void StructColumn::checkpointInMemory() {
     Column::checkpointInMemory();
     for (const auto& childColumn : childColumns) {

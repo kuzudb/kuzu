@@ -39,6 +39,10 @@ void FileInfo::writeFile(const uint8_t* buffer, uint64_t numBytes, uint64_t offs
     fileSystem->writeFile(this, buffer, numBytes, offset);
 }
 
+void FileInfo::writeFileAsync(const uint8_t* buffer, uint64_t numBytes, uint64_t offset, uv_loop_t* loop, NodeGroupInfo* info) {
+    fileSystem->writeFileAsync(this, buffer, numBytes, offset, loop, info);
+}
+
 int64_t FileInfo::seek(uint64_t offset, int whence) {
     return fileSystem->seek(this, offset, whence);
 }

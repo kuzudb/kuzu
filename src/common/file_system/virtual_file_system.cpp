@@ -61,6 +61,11 @@ void VirtualFileSystem::writeFile(
     KU_UNREACHABLE;
 }
 
+void VirtualFileSystem::writeFileAsync(FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+    uint64_t offset, uv_loop_t* loop, NodeGroupInfo* info) {
+    KU_UNREACHABLE;
+}
+
 int64_t VirtualFileSystem::seek(FileInfo* /*fileInfo*/, uint64_t /*offset*/, int /*whence*/) {
     KU_UNREACHABLE;
 }

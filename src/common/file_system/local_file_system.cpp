@@ -11,6 +11,7 @@
 
 #include <fcntl.h>
 
+#include <uv.h>
 #include <cstring>
 
 #include "common/assert.h"
@@ -21,6 +22,14 @@
 
 namespace kuzu {
 namespace common {
+
+static bool hasEnding(std::string const &fullString, std::string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
 
 std::unique_ptr<FileInfo> LocalFileSystem::openFile(
     const std::string& path, int flags, FileLockType lock_type) {
@@ -55,7 +64,15 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
     }
     return std::make_unique<FileInfo>(path, handle, this);
 #else
-    int fd = open(path.c_str(), flags, 0644);
+    int fd;
+    if (hasEnding(path, "/data.kz")) {
+        uv_fs_t openReq;
+        uv_fs_open(NULL,  &openReq, path.c_str(), flags, 0644, NULL);
+        fd = openReq.result;
+        uv_fs_req_cleanup(&openReq);
+    } else {
+        fd = open(path.c_str(), flags, 0644);
+    }
     if (fd == -1) {
         throw Exception("Cannot open file: " + path);
     }
@@ -223,6 +240,51 @@ void LocalFileSystem::writeFile(
     }
 }
 
+
+static void onWrite(uv_fs_t* req) {
+    if (req->result < 0) {
+        throw Exception("on write error");
+    } else {
+        NodeGroupInfo* info = static_cast<NodeGroupInfo*>(req->data);
+        info->receivedReq++;
+        info->receivedSize += req->result;
+    }
+
+    // Cleanup request
+    uv_fs_req_cleanup(req);
+    delete req;
+}
+
+void LocalFileSystem::writeFileAsync(
+    FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset, uv_loop_t* loop, NodeGroupInfo* info) {
+    uint64_t remainingNumBytesToWrite = numBytes;
+    uint64_t bufferOffset = 0;
+    // Split large writes to 1GB at a time
+    uint64_t maxBytesToWriteAtOnce = 1ull << 30; // 1ull << 30 = 1G
+    while (remainingNumBytesToWrite > 0) {
+        uint64_t numBytesToWrite = std::min(remainingNumBytesToWrite, maxBytesToWriteAtOnce);
+        uv_fs_t writeReq;
+        uv_buf_t iov = uv_buf_init((char *)(buffer + bufferOffset), numBytesToWrite);
+        uv_fs_write(NULL, &writeReq, fileInfo->fd, &iov, 1, offset, NULL);
+        // info->totalReq++;
+        // info->byteSize += numBytesToWrite;
+        // info->receivedReq++;
+        if (numBytesToWrite != writeReq.result) {
+            throw Exception(
+                stringFormat("Cannot write to file. path: {} fileDescriptor: {} offsetToWrite: {} "
+                             "numBytesToWrite: {} numBytesWritten: {}. Error: {}",
+                    fileInfo->path, fileInfo->fd, offset, numBytesToWrite, numBytesToWrite,
+                    posixErrMessage()));
+        }
+        // info->receivedSize += writeReq.result;
+        uv_fs_req_cleanup(&writeReq);
+        // free(writeReq);
+        remainingNumBytesToWrite -= numBytesToWrite;
+        offset += numBytesToWrite;
+        bufferOffset += numBytesToWrite;
+    }
+}
+
 int64_t LocalFileSystem::seek(FileInfo* fileInfo, uint64_t offset, int whence) {
 #if defined(_WIN32)
     LARGE_INTEGER result;
@@ -265,6 +327,7 @@ void LocalFileSystem::truncate(FileInfo* fileInfo, uint64_t size) {
     }
 #endif
 }
+
 
 uint64_t LocalFileSystem::getFileSize(kuzu::common::FileInfo* fileInfo) {
 #ifdef _WIN32

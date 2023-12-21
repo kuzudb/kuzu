@@ -115,6 +115,10 @@ public:
         storage::PrimaryKeyIndexBuilder* pkIndex, common::column_id_t pkColumnID,
         storage::NodeTable* table, storage::NodeGroup* nodeGroup);
 
+    void writeNodeGroupAsync(common::node_group_idx_t nodeGroupIdx,
+        storage::PrimaryKeyIndexBuilder* pkIndex, common::column_id_t pkColumnID,
+        storage::NodeTable* table, storage::NodeGroup* nodeGroup);
+
 private:
     static void populatePKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
         storage::ColumnChunk* chunk, common::offset_t startNodeOffset, common::offset_t numNodes);
@@ -134,7 +138,10 @@ protected:
     common::DataChunkState* columnState;
     std::vector<std::shared_ptr<common::ValueVector>> nullColumnVectors;
     std::vector<common::ValueVector*> columnVectors;
-    std::unique_ptr<storage::NodeGroup> localNodeGroup;
+    uint8_t k = 2;
+    uint8_t currentNodeGroup = 0;
+    std::vector<std::unique_ptr<storage::NodeGroup>> localNodeGroup;
+    std::vector<std::unique_ptr<common::NodeGroupInfo>> nodeInfo;
 };
 
 template<>

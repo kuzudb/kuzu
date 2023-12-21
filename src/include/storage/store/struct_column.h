@@ -19,6 +19,8 @@ public:
         common::ValueVector* resultVector, uint64_t offsetInVector) override;
 
     void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
+    void appendAsync(ColumnChunk* columnChunk, uint64_t nodeGroupIdx, uv_loop_t* loop,
+        common::NodeGroupInfo* info) override;
 
     void checkpointInMemory() override;
     void rollbackInMemory() override;
