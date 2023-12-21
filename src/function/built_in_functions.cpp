@@ -25,7 +25,7 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
-#include "processor/operator/persistent/reader/rdf/rdf_reader.h"
+#include "processor/operator/persistent/reader/rdf/rdf_scan.h"
 
 using namespace kuzu::common;
 

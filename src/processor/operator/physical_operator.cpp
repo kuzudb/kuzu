@@ -210,9 +210,8 @@ PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
     children.push_back(std::move(right));
 }
 
-PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
-    std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
-    const std::string& paramsString)
+PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType, physical_op_vector_t children,
+    uint32_t id, const std::string& paramsString)
     : PhysicalOperator{operatorType, id, paramsString} {
     for (auto& child : children) {
         this->children.push_back(std::move(child));

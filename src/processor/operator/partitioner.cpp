@@ -27,13 +27,19 @@ std::vector<std::unique_ptr<PartitioningInfo>> PartitioningInfo::copy(
     return result;
 }
 
+static common::partition_idx_t getNumPartitions(offset_t maxOffset) {
+    return (maxOffset + StorageConstants::NODE_GROUP_SIZE) / StorageConstants::NODE_GROUP_SIZE;
+}
+
 void PartitionerSharedState::initialize() {
-    KU_ASSERT(maxNodeOffsets.size() == 2);
-    numPartitions.resize(maxNodeOffsets.size());
-    for (auto i = 0u; i < maxNodeOffsets.size(); i++) {
-        numPartitions[i] = (maxNodeOffsets[i] + StorageConstants::NODE_GROUP_SIZE) /
-                           StorageConstants::NODE_GROUP_SIZE;
-    }
+    maxNodeOffsets.resize(2);
+    maxNodeOffsets[0] =
+        srcNodeTable->getMaxNodeOffset(transaction::Transaction::getDummyWriteTrx().get());
+    maxNodeOffsets[1] =
+        dstNodeTable->getMaxNodeOffset(transaction::Transaction::getDummyWriteTrx().get());
+    numPartitions.resize(2);
+    numPartitions[0] = getNumPartitions(maxNodeOffsets[0]);
+    numPartitions[1] = getNumPartitions(maxNodeOffsets[1]);
     Partitioner::initializePartitioningStates(partitioningBuffers, numPartitions, mm);
 }
 

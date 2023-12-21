@@ -15,6 +15,7 @@ struct TableFuncBindData {
     common::logical_types_t columnTypes;
     std::vector<std::string> columnNames;
 
+    TableFuncBindData() = default;
     TableFuncBindData(common::logical_types_t columnTypes, std::vector<std::string> columnNames)
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)} {}
     TableFuncBindData(const TableFuncBindData& other)

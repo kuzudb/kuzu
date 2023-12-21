@@ -88,6 +88,9 @@ public:
     common::NumericMetric& numOutputTuple;
 };
 
+class PhysicalOperator;
+using physical_op_vector_t = std::vector<std::unique_ptr<PhysicalOperator>>;
+
 class PhysicalOperator {
 public:
     // Leaf operator
@@ -101,8 +104,7 @@ public:
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> left,
         std::unique_ptr<PhysicalOperator> right, uint32_t id, const std::string& paramsString);
     // This constructor is used by UnionAllScan only since it may have multiple children.
-    PhysicalOperator(PhysicalOperatorType operatorType,
-        std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
+    PhysicalOperator(PhysicalOperatorType operatorType, physical_op_vector_t children, uint32_t id,
         const std::string& paramsString);
 
     virtual ~PhysicalOperator() = default;
@@ -164,7 +166,7 @@ protected:
     std::unique_ptr<OperatorMetrics> metrics;
     PhysicalOperatorType operatorType;
 
-    std::vector<std::unique_ptr<PhysicalOperator>> children;
+    physical_op_vector_t children;
     transaction::Transaction* transaction;
     ResultSet* resultSet;
 

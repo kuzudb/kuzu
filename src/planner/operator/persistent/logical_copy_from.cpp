@@ -6,15 +6,31 @@ namespace kuzu {
 namespace planner {
 
 void LogicalCopyFrom::computeFactorizedSchema() {
-    copyChildSchema(0);
+    switch (info->tableSchema->tableType) {
+    case TableType::RDF: {
+        createEmptySchema();
+    } break;
+    default:
+        copyChildSchema(0);
+    }
     auto flatGroup = schema->createGroup();
-    schema->insertToGroupAndScope(outputExpression, flatGroup);
+    for (auto& expr : outExprs) {
+        schema->insertToGroupAndScope(expr, flatGroup);
+    }
 }
 
 void LogicalCopyFrom::computeFlatSchema() {
-    copyChildSchema(0);
+    switch (info->tableSchema->tableType) {
+    case TableType::RDF: {
+        createEmptySchema();
+    } break;
+    default:
+        copyChildSchema(0);
+    }
     schema->createGroup();
-    schema->insertToGroupAndScope(outputExpression, 0);
+    for (auto& expr : outExprs) {
+        schema->insertToGroupAndScope(expr, 0);
+    }
 }
 
 } // namespace planner

@@ -192,8 +192,7 @@ std::shared_ptr<FactorizedTable> PlanMapper::getSingleStringColumnFTable() {
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
             LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
-    auto fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
-    return fTable;
+    return std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
 }
 
 } // namespace processor

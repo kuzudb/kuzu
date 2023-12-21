@@ -69,8 +69,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
     auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     switch (tableSchema->tableType) {
-    case TableType::REL_GROUP:
-    case TableType::RDF: {
+    case TableType::REL_GROUP: {
         throw BinderException(stringFormat("Cannot copy into {} table with type {}.", tableName,
             TableTypeUtils::toString(tableSchema->tableType)));
     }
@@ -88,24 +87,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     }
     switch (tableSchema->tableType) {
     case TableType::NODE:
-        switch (readerConfig->fileType) {
-        case FileType::TURTLE:
-        case FileType::NQUADS: {
-            return bindCopyRdfNodeFrom(statement, std::move(readerConfig), tableSchema);
-        }
-        default:
-            return bindCopyNodeFrom(statement, std::move(readerConfig), tableSchema);
-        }
-    case TableType::REL: {
-        switch (readerConfig->fileType) {
-        case FileType::TURTLE:
-        case FileType::NQUADS: {
-            return bindCopyRdfRelFrom(statement, std::move(readerConfig), tableSchema);
-        }
-        default:
-            return bindCopyRelFrom(statement, std::move(readerConfig), tableSchema);
-        }
-    }
+        return bindCopyNodeFrom(statement, std::move(readerConfig), tableSchema);
+    case TableType::REL:
+        return bindCopyRelFrom(statement, std::move(readerConfig), tableSchema);
+    case TableType::RDF:
+        return bindCopyRdfFrom(statement, std::move(readerConfig), tableSchema);
         // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
@@ -133,7 +119,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
     }
     auto offset = expressionBinder.createVariableExpression(
-        LogicalType(LogicalTypeID::INT64), InternalKeyword::ANONYMOUS);
+        LogicalType(LogicalTypeID::INT64), std::string(InternalKeyword::ANONYMOUS));
     auto boundFileScanInfo =
         std::make_unique<BoundFileScanInfo>(func, std::move(bindData), columns, std::move(offset));
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(

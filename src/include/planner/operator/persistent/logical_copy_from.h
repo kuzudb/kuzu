@@ -7,13 +7,16 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalCopyFrom : public LogicalOperator {
+class LogicalCopyFrom final : public LogicalOperator {
 public:
     LogicalCopyFrom(std::unique_ptr<binder::BoundCopyFromInfo> info,
-        std::shared_ptr<binder::Expression> outputExpression,
-        std::shared_ptr<LogicalOperator> child)
+        binder::expression_vector outExprs, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::COPY_FROM, std::move(child)}, info{std::move(info)},
-          outputExpression{std::move(outputExpression)} {}
+          outExprs{std::move(outExprs)} {}
+    LogicalCopyFrom(std::unique_ptr<binder::BoundCopyFromInfo> info,
+        binder::expression_vector outExprs, logical_op_vector_t children)
+        : LogicalOperator{LogicalOperatorType::COPY_FROM, std::move(children)},
+          info{std::move(info)}, outExprs{std::move(outExprs)} {}
 
     inline std::string getExpressionsForPrinting() const override {
         return info->tableSchema->tableName;
@@ -23,16 +26,16 @@ public:
     void computeFlatSchema() override;
 
     inline binder::BoundCopyFromInfo* getInfo() const { return info.get(); }
-    inline binder::Expression* getOutputExpression() const { return outputExpression.get(); }
+    inline binder::expression_vector getOutExprs() const { return outExprs; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCopyFrom>(
-            info->copy(), outputExpression->copy(), children[0]->copy());
+            info->copy(), outExprs, LogicalOperator::copy(children));
     }
 
 private:
     std::unique_ptr<binder::BoundCopyFromInfo> info;
-    std::shared_ptr<binder::Expression> outputExpression;
+    binder::expression_vector outExprs;
 };
 
 } // namespace planner
