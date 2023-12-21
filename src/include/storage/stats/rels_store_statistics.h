@@ -46,6 +46,8 @@ public:
     void removeMetadataDAHInfo(common::table_id_t tableID, common::column_id_t columnID);
     MetadataDAHInfo* getCSROffsetMetadataDAHInfo(transaction::Transaction* transaction,
         common::table_id_t tableID, common::RelDataDirection direction);
+    MetadataDAHInfo* getCSRLengthMetadataDAHInfo(transaction::Transaction* transaction,
+        common::table_id_t tableID, common::RelDataDirection direction);
     MetadataDAHInfo* getAdjMetadataDAHInfo(transaction::Transaction* transaction,
         common::table_id_t tableID, common::RelDataDirection direction);
     MetadataDAHInfo* getPropertyMetadataDAHInfo(transaction::Transaction* transaction,

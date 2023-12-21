@@ -110,5 +110,20 @@ void NodeGroup::finalize(uint64_t nodeGroupIdx_) {
     }
 }
 
+void CSRHeaderChunks::init(bool enableCompression) {
+    offset =
+        ColumnChunkFactory::createColumnChunk(common::LogicalType::UINT64(), enableCompression);
+    length =
+        ColumnChunkFactory::createColumnChunk(common::LogicalType::UINT64(), enableCompression);
+}
+
+CSRNodeGroup::CSRNodeGroup(
+    const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes, bool enableCompression)
+    // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
+    // should be resized after csr offset calculation (e.g., during CopyRel).
+    : NodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
+    csrHeaderChunks.init(enableCompression);
+}
+
 } // namespace storage
 } // namespace kuzu

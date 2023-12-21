@@ -45,6 +45,13 @@ struct PartitionerSharedState {
     common::partition_idx_t getNextPartition(common::vector_idx_t partitioningIdx);
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
+
+    inline common::DataChunkCollection* getPartitionBuffer(
+        common::vector_idx_t partitioningIdx, common::partition_idx_t partitionIdx) {
+        KU_ASSERT(partitioningIdx < partitioningBuffers.size());
+        KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
+        return partitioningBuffers[partitioningIdx]->partitions[partitionIdx].get();
+    }
 };
 
 struct PartitionerLocalState {

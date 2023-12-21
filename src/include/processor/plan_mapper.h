@@ -24,7 +24,7 @@ class NodeInsertExecutor;
 class RelInsertExecutor;
 class NodeSetExecutor;
 class RelSetExecutor;
-class CopyRelSharedState;
+struct CopyRelSharedState;
 struct PartitionerSharedState;
 
 class PlanMapper {

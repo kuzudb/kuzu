@@ -82,6 +82,15 @@ MetadataDAHInfo* RelsStoreStats::getCSROffsetMetadataDAHInfo(
     return tableStats->getCSROffsetMetadataDAHInfo(direction);
 }
 
+MetadataDAHInfo* RelsStoreStats::getCSRLengthMetadataDAHInfo(
+    Transaction* transaction, table_id_t tableID, RelDataDirection direction) {
+    if (transaction->isWriteTransaction()) {
+        initTableStatisticsForWriteTrx();
+    }
+    auto tableStats = getRelStatistics(tableID, transaction);
+    return tableStats->getCSRLengthMetadataDAHInfo(direction);
+}
+
 MetadataDAHInfo* RelsStoreStats::getAdjMetadataDAHInfo(
     Transaction* transaction, table_id_t tableID, RelDataDirection direction) {
     if (transaction->isWriteTransaction()) {
