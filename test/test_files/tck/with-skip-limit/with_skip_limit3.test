@@ -1,0 +1,69 @@
+-GROUP TCKWithSkipLimit3
+-DATASET CSV tck
+
+--
+
+# Get rows in the middle
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'A'}),
+                  (:A {name: 'B'}),
+                  (:A {name: 'C'}),
+                  (:A {name: 'D'}),
+                  (:A {name: 'E'});
+---- ok
+-STATEMENT MATCH (n)
+           WITH n
+           ORDER BY n.name ASC
+           SKIP 2
+           LIMIT 2
+           RETURN n;
+-CHECK_ORDER
+---- 2
+{_ID: 0:2, _LABEL: A, ID: 2, name: C}
+{_ID: 0:3, _LABEL: A, ID: 3, name: D}
+
+# Get rows in the middle by param
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'A'}),
+                  (:A {name: 'B'}),
+                  (:A {name: 'C'}),
+                  (:A {name: 'D'}),
+                  (:A {name: 'E'});
+---- ok
+-STATEMENT MATCH (n)
+           WITH n
+           ORDER BY n.name ASC
+           SKIP $s
+           LIMIT $l
+           RETURN n;
+-CHECK_ORDER
+---- 2
+{_ID: 0:2, _LABEL: A, ID: 2, name: C}
+{_ID: 0:3, _LABEL: A, ID: 3, name: D}
+
+# Limiting amount of rows when there are fewer left than the LIMIT argument
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, count INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND range(0, 15) AS i
+           CREATE (:A {count: i});
+---- ok
+-STATEMENT  MATCH (a)
+            WITH a.count AS count
+              ORDER BY a.count
+              SKIP 10
+              LIMIT 10
+            RETURN count;
+-CHECK_ORDER
+---- 6
+10
+11
+12
+13
+14
+15

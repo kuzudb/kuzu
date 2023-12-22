@@ -1,0 +1,91 @@
+-GROUP TCKWithSkipLimit2
+-DATASET CSV tck
+
+--
+
+# ORDER BY and LIMIT can be used
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE REL(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A), (:B), (:B), (:B),
+                  (a)-[:REL]->(:B);
+---- ok
+-STATEMENT MATCH (a:A)
+           WITH a
+           ORDER BY a.name
+           LIMIT 1
+           MATCH (a)-->(b)
+           RETURN a;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}
+
+# Handle dependencies across WITH with LIMIT
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE End(ID SERIAL, num INT64, id INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Begin(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (a:End {num: 42, id: 0}),
+                        (:End {num: 3}),
+                        (:Begin {num: a.id});
+---- ok
+-STATEMENT MATCH (a:Begin)
+           WITH a.num AS property
+             LIMIT 1
+           MATCH (b)
+           WHERE b.id = property
+           RETURN b;
+---- 1
+{_ID: 0:0, _LABEL: End, ID: 0, num: 42, id: 0}
+
+# Connected components succeeding WITH with LIMIT
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE REL(FROM A TO X);
+---- ok
+-STATEMENT CREATE (:A)-[:REL]->(:X);
+---- ok
+-STATEMENT CREATE (:B);
+---- ok
+-STATEMENT MATCH (n:A)
+           WITH n
+           LIMIT 1
+           MATCH (m:B), (n)-->(x:X)
+           RETURN *;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 2:0, _LABEL: B, ID: 0}|{_ID: 1:0, _LABEL: X, ID: 0}
+
+# Ordering and limiting on aggregate
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Y(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO X, num INT64);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM A TO X, num INT64);
+---- ok
+-STATEMENT CREATE REL TABLE T3(FROM A TO Y, num INT64);
+---- ok
+-STATEMENT CREATE (:A)-[:T1 {num: 3}]->(x:X),
+                  (:A)-[:T2 {num: 2}]->(x),
+                  (:A)-[:T3 {num: 1}]->(:Y);
+---- ok
+-STATEMENT MATCH ()-[r1]->(x)
+           WITH x, sum(r1.num) AS c
+             ORDER BY c LIMIT 1
+           RETURN x, c;
+---- 1
+{_ID: 2:0, _LABEL: Y, ID: 0}|1
