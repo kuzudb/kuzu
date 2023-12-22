@@ -21,6 +21,8 @@ public:
         ColumnChunk* columnChunk) override;
 
     void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx) override;
+    void appendAsync(ColumnChunk* columnChunk, uint64_t nodeGroupIdx, uv_loop_t* loop,
+        common::NodeGroupInfo* info) override;
 
     void writeValue(const ColumnChunkMetadata& chunkMeta, common::node_group_idx_t nodeGroupIdx,
         common::offset_t offsetInChunk, common::ValueVector* vectorToWriteFrom,

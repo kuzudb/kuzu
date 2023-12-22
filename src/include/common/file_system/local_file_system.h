@@ -34,6 +34,8 @@ protected:
 
     void writeFile(
         FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset) override;
+    void writeFileAsync(FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+        uint64_t offset, uv_loop_t* loop, NodeGroupInfo* info) override;
 
     int64_t seek(FileInfo* fileInfo, uint64_t offset, int whence) override;
 

@@ -19,8 +19,20 @@
 #include "common/system_message.h"
 #include "glob/glob.hpp"
 
+int writeCount = 0;
+int returnCount = 0;
+
 namespace kuzu {
 namespace common {
+
+static bool hasEnding(std::string const& fullString, std::string const& ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 ==
+                fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
 
 std::unique_ptr<FileInfo> LocalFileSystem::openFile(
     const std::string& path, int flags, FileLockType lock_type) {
@@ -55,7 +67,15 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
     }
     return std::make_unique<FileInfo>(path, handle, this);
 #else
-    int fd = open(path.c_str(), flags, 0644);
+    int fd;
+    if (hasEnding(path, "/data.kz")) {
+        uv_fs_t openReq;
+        uv_fs_open(NULL, &openReq, path.c_str(), flags, 0644, NULL);
+        fd = openReq.result;
+        uv_fs_req_cleanup(&openReq);
+    } else {
+        fd = open(path.c_str(), flags, 0644);
+    }
     if (fd == -1) {
         throw Exception("Cannot open file: " + path);
     }
@@ -220,6 +240,56 @@ void LocalFileSystem::writeFile(
         remainingNumBytesToWrite -= numBytesWritten;
         offset += numBytesWritten;
         bufferOffset += numBytesWritten;
+    }
+}
+
+struct reqData {
+    NodeGroupInfo* info;
+    uint64_t numBytesToWrite;
+    FileInfo* fileInfo;
+};
+
+static void onWrite(uv_fs_t* req) {
+    if (req->result < 0) {
+        throw Exception("on write error");
+    } else {
+        NodeGroupInfo* info = static_cast<NodeGroupInfo*>(req->data);
+        info->receivedReq++;
+        returnCount++;
+        //        reqData* reqInfo = static_cast<reqData*>(req->data);
+        //        reqInfo->info->receivedReq++;
+        //        if (reqInfo->numBytesToWrite != req->result) {
+        //            throw Exception(stringFormat("Cannot write to file. path: {} fileDescriptor:
+        //            {}"
+        //                                         "numBytesToWrite: {} numBytesWritten: {}. Error:
+        //                                         {}",
+        //                reqInfo->fileInfo->path, reqInfo->fileInfo->fd, reqInfo->numBytesToWrite,
+        //                req->result, posixErrMessage()));
+        //        }
+        //        delete reqInfo;
+    }
+
+    // Cleanup request
+    uv_fs_req_cleanup(req);
+}
+
+void LocalFileSystem::writeFileAsync(FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+    uint64_t offset, uv_loop_t* loop, NodeGroupInfo* info) {
+    uint64_t remainingNumBytesToWrite = numBytes;
+    uint64_t bufferOffset = 0;
+    // Split large writes to 1GB at a time
+    uint64_t maxBytesToWriteAtOnce = 1ull << 30; // 1ull << 30 = 1G
+    while (remainingNumBytesToWrite > 0) {
+        uint64_t numBytesToWrite = std::min(remainingNumBytesToWrite, maxBytesToWriteAtOnce);
+        uv_fs_t* writeReq = new uv_fs_t;
+        writeReq->data = info;
+        uv_buf_t iov = uv_buf_init((char*)(buffer + bufferOffset), numBytesToWrite);
+        uv_fs_write(loop, writeReq, fileInfo->fd, &iov, 1, offset, onWrite);
+        info->totalReq++;
+        writeCount++;
+        remainingNumBytesToWrite -= numBytesToWrite;
+        offset += numBytesToWrite;
+        bufferOffset += numBytesToWrite;
     }
 }
 

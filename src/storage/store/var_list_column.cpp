@@ -110,6 +110,14 @@ void VarListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     dataColumn->append(dataColumnChunk, nodeGroupIdx);
 }
 
+void VarListColumn::appendAsync(
+    ColumnChunk* columnChunk, uint64_t nodeGroupIdx, uv_loop_t* loop, common::NodeGroupInfo* info) {
+    Column::appendAsync(columnChunk, nodeGroupIdx, loop, info);
+    auto dataColumnChunk =
+        ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(columnChunk)->getDataColumnChunk();
+    dataColumn->appendAsync(dataColumnChunk, nodeGroupIdx, loop, info);
+}
+
 void VarListColumn::scanUnfiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     ValueVector* resultVector, const ListOffsetInfoInStorage& listOffsetInfoInStorage) {
     auto numValuesToScan = resultVector->state->selVector->selectedSize;

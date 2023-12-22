@@ -192,6 +192,7 @@ include_directories(third_party/serd/include)
 include_directories(third_party/spdlog)
 include_directories(third_party/utf8proc/include)
 include_directories(third_party/zstd/include)
+include_directories(third_party/libuv/include)
 
 add_subdirectory(third_party)
 add_subdirectory(src)

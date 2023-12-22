@@ -113,6 +113,16 @@ void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
     }
 }
 
+void NodeTableData::appendAsync(
+    kuzu::storage::NodeGroup* nodeGroup, uv_loop_t* loop, NodeGroupInfo* info) {
+    for (auto columnID = 0u; columnID < columns.size(); columnID++) {
+        auto columnChunk = nodeGroup->getColumnChunk(columnID);
+        KU_ASSERT(columnID < columns.size());
+        columns[columnID]->appendAsync(columnChunk, nodeGroup->getNodeGroupIdx(), loop, info);
+        uv_run(loop, UV_RUN_NOWAIT);
+    }
+}
+
 void NodeTableData::prepareLocalTableToCommit(
     Transaction* transaction, LocalTableData* localTable) {
     for (auto& [nodeGroupIdx, nodeGroup] : localTable->nodeGroups) {

@@ -91,6 +91,14 @@ void StringColumn::append(ColumnChunk* columnChunk, node_group_idx_t nodeGroupId
     offsetColumn->append(stringColumnChunk->getOffsetChunk(), nodeGroupIdx);
 }
 
+void StringColumn::appendAsync(ColumnChunk* columnChunk, node_group_idx_t nodeGroupIdx,
+    uv_loop_t* loop, common::NodeGroupInfo* info) {
+    Column::appendAsync(columnChunk, nodeGroupIdx, loop, info);
+    auto stringColumnChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(columnChunk);
+    dataColumn->appendAsync(stringColumnChunk->getDataChunk(), nodeGroupIdx, loop, info);
+    offsetColumn->appendAsync(stringColumnChunk->getOffsetChunk(), nodeGroupIdx, loop, info);
+}
+
 void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_idx_t nodeGroupIdx,
     offset_t offsetInChunk, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto& kuStr = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
