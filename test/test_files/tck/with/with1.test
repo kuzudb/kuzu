@@ -1,0 +1,120 @@
+-GROUP TCKWith1
+-DATASET CSV tck
+
+--
+
+# Forwarding a node variable 1
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE REL(FROM A TO B);
+---- ok
+-STATEMENT CREATE (:A)-[:REL]->(:B);
+---- ok
+-STATEMENT MATCH (a:A)
+           WITH a
+           MATCH (a)-->(b)
+           RETURN *;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
+
+# Forwarding a node variable 2
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE REL(FROM A TO B);
+---- ok
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A)-[:REL]->(:B);
+---- ok
+-STATEMENT CREATE (:X);
+---- ok
+-STATEMENT MATCH (a:A)
+           WITH a
+           MATCH (x:X), (a)-->(b)
+           RETURN *;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 3:0, _LABEL: X, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
+
+# Forwarding a relationship variable
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO X);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM A TO X);
+---- ok
+-STATEMENT CREATE REL TABLE T3(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A)-[:T1]->(:X),
+                  (:A)-[:T2]->(:X),
+                  (:A)-[:T3]->(:A);
+---- ok
+-STATEMENT MATCH ()-[r1]->(:X)
+           WITH r1 AS r2
+           MATCH ()-[r2]->()
+           RETURN r2 AS rel;
+---- 2
+...
+...
+
+# Forwarding a path variable
+-CASE Scenario4
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT MATCH p = (a)
+           WITH p
+           RETURN p;
+---- 1
+...
+
+# Forwarding null
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE Start(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Start TO Start);
+---- ok
+-STATEMENT OPTIONAL MATCH (a:Start)
+           WITH a
+           MATCH (a)-->(b)
+           RETURN *;
+---- 0
+
+# Forwarding a node variable possibly null
+-CASE Scenario6
+-STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+---- ok
+-STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
+---- ok
+-STATEMENT CREATE (s:Single), (a:A {num: 42}),
+                  (b:B {num: 46}), (c:C)
+           CREATE (s)-[:REL_Single_A]->(a),
+                  (s)-[:REL_Single_B]->(b),
+                  (a)-[:REL_A_C]->(c),
+                  (b)-[:LOOP]->(b);
+---- ok
+-STATEMENT OPTIONAL MATCH (a:A)
+           WITH a AS a
+           MATCH (b:B)
+           RETURN a, b;
+---- 1
+{_ID: 1:0, _LABEL: A, ID: 0, num: 42}|{_ID: 2:0, _LABEL: B, ID: 0, num: 46}

@@ -1,0 +1,33 @@
+-GROUP TCKWith5
+-DATASET CSV tck
+
+--
+
+# DISTINCT on an expression
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'A'}),
+                  (:A {name: 'A'}),
+                  (:A {name: 'B'});
+---- ok
+-STATEMENT MATCH (a)
+           WITH DISTINCT a.name AS name
+           RETURN name;
+---- 2
+A
+B
+
+# Handling DISTINCT with lists in maps
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, list STRING[], PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {list: ['A', 'B']}),
+                  (:A {list: ['A', 'B']});
+---- ok
+-STATEMENT MATCH (n)
+           WITH DISTINCT {name: n.list} AS map
+           RETURN count(*);
+---- 1
+1

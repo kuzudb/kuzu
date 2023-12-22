@@ -154,8 +154,8 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableGroupInfo(
         TableType::REL_GROUP, info->tableName, std::move(boundExtraInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCreateTable(const parser::Statement& statement) {
-    auto& createTable = reinterpret_cast<const CreateTable&>(statement);
+std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
+    auto& createTable = ku_dynamic_cast<const Statement&, const CreateTable&>(statement);
     auto tableName = createTable.getTableName();
     if (catalog.containsTable(clientContext->getTx(), tableName)) {
         throw BinderException(tableName + " already exists in catalog.");
@@ -165,7 +165,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const parser::Statement&
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
-    auto& dropTable = reinterpret_cast<const Drop&>(statement);
+    auto& dropTable = ku_dynamic_cast<const Statement&, const Drop&>(statement);
     auto tableName = dropTable.getTableName();
     validateTableExist(tableName);
     auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
@@ -173,7 +173,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     switch (tableSchema->tableType) {
     case TableType::NODE: {
         for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
-            auto relTableSchema = reinterpret_cast<RelTableSchema*>(schema);
+            auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
             if (relTableSchema->isSrcOrDstTable(tableID)) {
                 throw BinderException(
                     stringFormat("Cannot delete node table {} referenced by rel table {}.",
@@ -183,7 +183,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     } break;
     case TableType::REL: {
         for (auto& schema : catalog.getRelTableGroupSchemas(clientContext->getTx())) {
-            auto relTableGroupSchema = reinterpret_cast<RelTableGroupSchema*>(schema);
+            auto relTableGroupSchema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(schema);
             for (auto& relTableID : relTableGroupSchema->getRelTableIDs()) {
                 if (relTableID == tableSchema->getTableID()) {
                     throw BinderException(
@@ -199,8 +199,8 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     return make_unique<BoundDropTable>(tableID, tableName);
 }
 
-std::unique_ptr<BoundStatement> Binder::bindAlter(const parser::Statement& statement) {
-    auto& alter = reinterpret_cast<const Alter&>(statement);
+std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
+    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
     switch (alter.getInfo()->type) {
     case AlterType::RENAME_TABLE: {
         return bindRenameTable(statement);
@@ -222,9 +222,9 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const parser::Statement& state
 }
 
 std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {
-    auto& alter = reinterpret_cast<const Alter&>(statement);
+    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
     auto info = alter.getInfo();
-    auto extraInfo = reinterpret_cast<ExtraRenameTableInfo*>(info->extraInfo.get());
+    auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraRenameTableInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
     auto newName = extraInfo->newName;
     validateTableExist(tableName);
@@ -266,9 +266,9 @@ static void validatePropertyDDLOnTable(TableSchema* tableSchema, const std::stri
 }
 
 std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
-    auto& alter = reinterpret_cast<const Alter&>(statement);
+    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
     auto info = alter.getInfo();
-    auto extraInfo = reinterpret_cast<ExtraAddPropertyInfo*>(info->extraInfo.get());
+    auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraAddPropertyInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
     auto dataType = bindDataType(extraInfo->dataType);
     auto propertyName = extraInfo->propertyName;
@@ -290,9 +290,10 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) {
-    auto& alter = reinterpret_cast<const Alter&>(statement);
+    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
     auto info = alter.getInfo();
-    auto extraInfo = reinterpret_cast<ExtraDropPropertyInfo*>(info->extraInfo.get());
+    auto extraInfo =
+        ku_dynamic_cast<ExtraAlterInfo*, ExtraDropPropertyInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
     auto propertyName = extraInfo->propertyName;
     validateTableExist(tableName);
@@ -302,7 +303,8 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     validatePropertyExist(tableSchema, propertyName);
     auto propertyID = tableSchema->getPropertyID(propertyName);
     if (tableSchema->getTableType() == TableType::NODE &&
-        reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKeyPropertyID() == propertyID) {
+        ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema)->getPrimaryKeyPropertyID() ==
+            propertyID) {
         throw BinderException("Cannot drop primary key of a node table.");
     }
     auto boundExtraInfo = std::make_unique<BoundExtraDropPropertyInfo>(propertyID);
@@ -312,9 +314,10 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
 }
 
 std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& statement) {
-    auto& alter = reinterpret_cast<const Alter&>(statement);
+    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
     auto info = alter.getInfo();
-    auto extraInfo = reinterpret_cast<ExtraRenamePropertyInfo*>(info->extraInfo.get());
+    auto extraInfo =
+        ku_dynamic_cast<ExtraAlterInfo*, ExtraRenamePropertyInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
     auto propertyName = extraInfo->propertyName;
     auto newName = extraInfo->newName;

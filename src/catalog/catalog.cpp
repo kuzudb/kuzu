@@ -12,12 +12,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace catalog {
 
-Catalog::Catalog() : wal{nullptr} {
-    readOnlyVersion = std::make_unique<CatalogContent>();
+Catalog::Catalog(VirtualFileSystem* vfs) : wal{nullptr} {
+    readOnlyVersion = std::make_unique<CatalogContent>(vfs);
 }
 
-Catalog::Catalog(WAL* wal) : wal{wal} {
-    readOnlyVersion = std::make_unique<CatalogContent>(wal->getDirectory());
+Catalog::Catalog(WAL* wal, VirtualFileSystem* vfs) : wal{wal} {
+    readOnlyVersion = std::make_unique<CatalogContent>(wal->getDirectory(), vfs);
 }
 
 uint64_t Catalog::getTableCount(Transaction* tx) const {
@@ -138,7 +138,7 @@ void Catalog::dropTableSchema(table_id_t tableID) {
     auto tableSchema = readWriteVersion->getTableSchema(tableID);
     switch (tableSchema->tableType) {
     case TableType::REL_GROUP: {
-        auto relTableGroupSchema = reinterpret_cast<RelTableGroupSchema*>(tableSchema);
+        auto relTableGroupSchema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(tableSchema);
         auto relTableIDs = relTableGroupSchema->getRelTableIDs();
         readWriteVersion->dropTableSchema(tableID);
         for (auto relTableID : relTableIDs) {

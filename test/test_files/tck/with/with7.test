@@ -1,0 +1,54 @@
+-GROUP TCKWith7
+-DATASET CSV tck
+
+--
+
+# A simple pattern with one bound endpoint
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE REL(FROM A TO B);
+---- ok
+-STATEMENT CREATE (:A)-[:REL]->(:B);
+---- ok
+-STATEMENT MATCH (a:A)-[r:REL]->(b:B)
+           WITH a AS b, b AS tmp, r AS r
+           WITH b AS a, r
+           LIMIT 1
+           MATCH (a)-[r]->(b)
+           RETURN a, r, b;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: REL, _ID: 2:0}->(1:0)|{_ID: 1:0, _LABEL: B, ID: 0}
+
+# Multiple WITHs using a predicate and aggregation
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP REL(FROM A TO A, FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A {name: 'David'}),
+                  (b:A {name: 'Other'}),
+                  (c:A {name: 'NotOther'}),
+                  (d:A {name: 'NotOther2'}),
+                  (a)-[:REL_A_A]->(b),
+                  (a)-[:REL_A_A]->(c),
+                  (a)-[:REL_A_A]->(d),
+                  (b)-[:REL_A_B]->(:B),
+                  (b)-[:REL_A_B]->(:B),
+                  (c)-[:REL_A_B]->(:B),
+                  (c)-[:REL_A_B]->(:B),
+                  (d)-[:REL_A_B]->(:B);
+---- ok
+-STATEMENT MATCH (david {name: 'David'})--(otherPerson)-->()
+           WITH otherPerson, count(*) AS foaf
+           WHERE foaf > 1
+           WITH otherPerson
+           WHERE otherPerson.name <> 'NotOther'
+           RETURN count(*);
+---- 1
+1

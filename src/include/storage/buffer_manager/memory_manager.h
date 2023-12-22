@@ -8,6 +8,10 @@
 #include "common/types/types.h"
 
 namespace kuzu {
+namespace common {
+class VirtualFileSystem;
+}
+
 namespace storage {
 
 class MemoryAllocator;
@@ -29,7 +33,7 @@ class MemoryAllocator {
     friend class MemoryBuffer;
 
 public:
-    explicit MemoryAllocator(BufferManager* bm);
+    explicit MemoryAllocator(BufferManager* bm, common::VirtualFileSystem* vfs);
     ~MemoryAllocator();
 
     std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false);
@@ -63,8 +67,8 @@ private:
  */
 class MemoryManager {
 public:
-    explicit MemoryManager(BufferManager* bm) : bm{bm} {
-        allocator = std::make_unique<MemoryAllocator>(bm);
+    explicit MemoryManager(BufferManager* bm, common::VirtualFileSystem* vfs) : bm{bm} {
+        allocator = std::make_unique<MemoryAllocator>(bm, vfs);
     }
 
     inline std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false) {

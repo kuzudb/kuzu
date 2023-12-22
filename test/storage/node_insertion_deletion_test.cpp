@@ -1,3 +1,7 @@
+#include <fcntl.h>
+
+#include "common/constants.h"
+#include "common/file_system/local_file_system.h"
 #include "graph_test/graph_test.h"
 
 using namespace kuzu::common;
@@ -105,4 +109,31 @@ TEST_F(NodeInsertionDeletionTests, InsertManyNodesTest) {
         EXPECT_EQ(10000 + i++, tuple->getValue(0)->getValue<int64_t>());
     }
     ASSERT_EQ(i, BufferPoolConstants::PAGE_4KB_SIZE);
+}
+
+TEST_F(NodeInsertionDeletionTests, TruncatedWalTest) {
+    auto preparedStatement = conn->prepare("CREATE (:person {ID:$id});");
+    auto fs = LocalFileSystem();
+    // Note: this test will fail if the transaction is small enough to fit the wal headers in a
+    // single page, since we currently may fail to recover if the headers are intact but shadow
+    // pages are missing. Pages are flushed before writing the commit record to make sure that
+    // doesn't happen during a regular interruption.
+    for (int64_t i = 0; i < 100; i++) {
+        auto result =
+            conn->execute(preparedStatement.get(), std::make_pair(std::string("id"), 10000 + i));
+        ASSERT_TRUE(result->isSuccess()) << result->toString();
+    }
+    conn->query("COMMIT_SKIP_CHECKPOINT");
+    auto databasePath = this->databasePath;
+    auto walPath = fs.joinPath(databasePath, StorageConstants::WAL_FILE_SUFFIX);
+    // Close database
+    database.reset();
+    {
+        auto walFileInfo = fs.openFile(walPath, O_RDWR);
+        ASSERT_GT(walFileInfo->getFileSize(), BufferPoolConstants::PAGE_4KB_SIZE)
+            << "Test needs a wal file with more than one page";
+        walFileInfo->truncate(BufferPoolConstants::PAGE_4KB_SIZE);
+    }
+    // Re-open database
+    database = std::make_unique<Database>(databasePath);
 }

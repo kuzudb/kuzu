@@ -535,6 +535,15 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1flat_1tuple_1to_1stri
  * All DataType native functions
  */
 
+namespace kuzu::common {
+struct JavaAPIHelper {
+    static inline LogicalType* createLogicalType(
+        LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
+        return new LogicalType(typeID, std::move(extraTypeInfo));
+    }
+};
+} // namespace kuzu::common
+
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1create(
     JNIEnv* env, jclass, jobject id, jobject child_type, jlong fixed_num_elements_in_list) {
     jclass javaIDClass = env->GetObjectClass(id);
@@ -552,7 +561,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1create(
                                  std::make_unique<FixedListTypeInfo>(
                                      std::move(child_type_pty), fixed_num_elements_in_list) :
                                  std::make_unique<VarListTypeInfo>(std::move(child_type_pty));
-        data_type = new LogicalType(logicalTypeID, std::move(extraTypeInfo));
+        data_type = JavaAPIHelper::createLogicalType(logicalTypeID, std::move(extraTypeInfo));
     }
     uint64_t address = reinterpret_cast<uint64_t>(data_type);
     return static_cast<jlong>(address);

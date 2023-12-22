@@ -1,5 +1,6 @@
 #include "storage/storage_structure/disk_array.h"
 
+#include "common/cast.h"
 #include "common/string_format.h"
 #include "common/utils.h"
 #include "storage/index/hash_index_header.h"
@@ -19,12 +20,12 @@ DiskArrayHeader::DiskArrayHeader(uint64_t elementSize)
       firstPIPPageIdx{DBFileUtils::NULL_PAGE_IDX}, numElements{0}, numAPs{0} {}
 
 void DiskArrayHeader::saveToDisk(FileHandle& fileHandle, uint64_t headerPageIdx) {
-    FileUtils::writeToFile(fileHandle.getFileInfo(), reinterpret_cast<uint8_t*>(this),
-        sizeof(DiskArrayHeader), headerPageIdx * fileHandle.getPageSize());
+    fileHandle.getFileInfo()->writeFile(reinterpret_cast<uint8_t*>(this), sizeof(DiskArrayHeader),
+        headerPageIdx * fileHandle.getPageSize());
 }
 
 void DiskArrayHeader::readFromFile(FileHandle& fileHandle, uint64_t headerPageIdx) {
-    FileUtils::readFromFile(fileHandle.getFileInfo(), reinterpret_cast<uint8_t*>(this),
+    fileHandle.getFileInfo()->readFromFile(reinterpret_cast<uint8_t*>(this),
         sizeof(DiskArrayHeader), headerPageIdx * fileHandle.getPageSize());
 }
 
@@ -44,7 +45,8 @@ BaseDiskArray<U>::BaseDiskArray(FileHandle& fileHandle, DBFileID dbFileID, page_
     : fileHandle{fileHandle}, dbFileID{dbFileID}, headerPageIdx{headerPageIdx},
       hasTransactionalUpdates{false}, bufferManager{bufferManager}, wal{wal} {
     auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
-        reinterpret_cast<BMFileHandle&>(fileHandle), headerPageIdx, *wal, transaction->getType());
+        ku_dynamic_cast<FileHandle&, BMFileHandle&>(fileHandle), headerPageIdx, *wal,
+        transaction->getType());
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin,
         [&](uint8_t* frame) -> void { memcpy(&header, frame, sizeof(DiskArrayHeader)); });
     if (this->header.firstPIPPageIdx != DBFileUtils::NULL_PAGE_IDX) {
@@ -134,7 +136,7 @@ template<typename U>
 uint64_t BaseDiskArray<U>::resize(uint64_t newNumElements) {
     std::unique_lock xLck{diskArraySharedMtx};
     hasTransactionalUpdates = true;
-    auto currentNumElements = getNumElementsNoLock(transaction::TransactionType::WRITE);
+    auto currentNumElements = getNumElementsNoLock(TransactionType::WRITE);
     U val{};
     while (currentNumElements < newNumElements) {
         pushBackNoLock(val);
@@ -283,6 +285,7 @@ bool BaseDiskArray<U>::hasPIPUpdatesNoLock(uint64_t pipIdx) {
 template<typename U>
 uint64_t BaseDiskArray<U>::readUInt64HeaderFieldNoLock(
     TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp) {
+    // TODO(Guodong): Fix the casting here, which can be incorrect for HashIndexBuilder.
     auto bmFileHandle = reinterpret_cast<BMFileHandle*>(&fileHandle);
     if ((trxType == TransactionType::READ_ONLY) ||
         !bmFileHandle->hasWALPageVersionNoWALPageIdxLock(headerPageIdx)) {
@@ -402,7 +405,7 @@ void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
     uint64_t numOldAPs = this->getNumAPsNoLock(TransactionType::READ_ONLY);
     for (uint64_t apIdx = 0; apIdx < numOldAPs; ++apIdx) {
         uint64_t apPageIdx = this->getAPPageIdxNoLock(apIdx, TransactionType::READ_ONLY);
-        if (reinterpret_cast<BMFileHandle&>(this->fileHandle)
+        if (ku_dynamic_cast<FileHandle&, BMFileHandle&>(this->fileHandle)
                 .hasWALPageVersionNoWALPageIdxLock(apPageIdx)) {
             // Note we can directly read the new image from disk because the WALReplayer checkpoints
             // the disk image of the page before calling

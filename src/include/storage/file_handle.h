@@ -5,10 +5,14 @@
 
 #include "common/assert.h"
 #include "common/constants.h"
-#include "common/file_utils.h"
+#include "common/file_system/file_info.h"
 #include "common/types/types.h"
 
 namespace kuzu {
+namespace common {
+class VirtualFileSystem;
+}
+
 namespace storage {
 // FileHandle holds basic state information of a file, including FileInfo, flags, pageSize,
 // numPages, and pageCapacity. Also, FileHandle provides utility methods to read/write pages from/to
@@ -27,7 +31,7 @@ public:
     constexpr static uint8_t O_PERSISTENT_FILE_CREATE_NOT_EXISTS{0b0000'0100};
     constexpr static uint8_t O_IN_MEM_TEMP_FILE{0b0000'0011};
 
-    FileHandle(const std::string& path, uint8_t flags);
+    FileHandle(const std::string& path, uint8_t flags, common::VirtualFileSystem* vfs);
     virtual ~FileHandle() = default;
 
     common::page_idx_t addNewPage();
@@ -35,13 +39,11 @@ public:
 
     inline void readPage(uint8_t* frame, common::page_idx_t pageIdx) const {
         KU_ASSERT(pageIdx < numPages);
-        common::FileUtils::readFromFile(
-            fileInfo.get(), frame, getPageSize(), pageIdx * getPageSize());
+        fileInfo->readFromFile(frame, getPageSize(), pageIdx * getPageSize());
     }
     inline void writePage(uint8_t* buffer, common::page_idx_t pageIdx) const {
         KU_ASSERT(pageIdx < numPages);
-        common::FileUtils::writeToFile(
-            fileInfo.get(), buffer, getPageSize(), pageIdx * getPageSize());
+        fileInfo->writeFile(buffer, getPageSize(), pageIdx * getPageSize());
     }
 
     inline bool isLargePaged() const { return flags & isLargePagedMask; }
@@ -58,7 +60,7 @@ public:
 
 protected:
     virtual common::page_idx_t addNewPageWithoutLock();
-    void constructExistingFileHandle(const std::string& path);
+    void constructExistingFileHandle(const std::string& path, common::VirtualFileSystem* vfs);
     void constructNewFileHandle(const std::string& path);
 
 protected:

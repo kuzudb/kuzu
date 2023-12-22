@@ -1,0 +1,150 @@
+-GROUP TCKWith6
+-DATASET CSV tck
+
+--
+
+# Implicit grouping with single expression as grouping key and single aggregation
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'A'}),
+                  (:A {name: 'A'}),
+                  (:A {name: 'B'});
+---- ok
+-STATEMENT MATCH (a)
+           WITH a.name AS name, count(*) AS relCount
+           RETURN name, relCount;
+---- 2
+A|2
+B|1
+
+# Implicit grouping with single relationship variable as grouping key and single aggregation
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO X);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM A TO X);
+---- ok
+-STATEMENT CREATE REL TABLE T3(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A)-[:T1]->(:X),
+                  (:A)-[:T2]->(:X),
+                  (:A)-[:T3]->(:A);
+---- ok
+-STATEMENT MATCH ()-[r1]->(:X)
+           WITH r1 AS r2, count(*) AS c
+           MATCH ()-[r2]->()
+           RETURN r2 AS rel;
+---- 2
+...
+...
+
+# Implicit grouping with multiple node and relationship variables as grouping key and single aggregation
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO X);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM A TO X);
+---- ok
+-STATEMENT CREATE REL TABLE T3(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A)-[:T1]->(:X),
+                  (:A)-[:T2]->(:X),
+                  (:A)-[:T3]->(:A);
+---- ok
+-STATEMENT MATCH (a)-[r1]->(b:X)
+           WITH a, r1 AS r2, b, count(*) AS c
+           MATCH (a)-[r2]->(b)
+           RETURN r2 AS rel;
+---- 2
+...
+...
+
+# Implicit grouping with single path variable as grouping key and single aggregation
+-CASE Scenario4
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (n1:A {num: 1}), (n2:A {num: 2}),
+                  (n3:A {num: 3}), (n4:A {num: 4})
+           CREATE (n1)-[:T]->(n2),
+                  (n3)-[:T]->(n4);
+---- ok
+-STATEMENT MATCH p = ()-[*]->()
+           WITH count(*) AS count, p AS p
+           RETURN nodes(p) AS nodes;
+---- 2
+[...]
+[...]
+
+# Handle constants and parameters inside an expression which contains an aggregation expression
+-CASE Scenario5
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (person)
+           WITH $age + avg(person.age) - 1000 AS agg
+           RETURN *;
+---- 1
+
+
+# Handle projected variables inside an expression which contains an aggregation expression
+-CASE Scenario6
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           WITH me.age AS age, you
+           WITH age, age + count(you.age) AS agg
+           RETURN *;
+---- 0
+
+# Handle projected property accesses inside an expression which contains an aggregation expression
+-CASE Scenario7
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           WITH me.age AS age, me.age + count(you.age) AS agg
+           RETURN *;
+---- 0
+
+# Fail if not projected variables are used inside an expression which contains an aggregation expression
+-CASE Scenario8
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           WITH me.age + count(you.age) AS agg
+           RETURN *;
+---- error
+Cannot evaluate expression with type PROPERTY.
+
+# Fail if more complex expression, even if projected, are used inside expression which contains an aggregation expression
+-CASE Scenario9
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           WITH me.age + you.age AS grp, me.age + you.age + count(*) AS agg
+           RETURN *;
+---- error
+AmbiguousAggregationExpression

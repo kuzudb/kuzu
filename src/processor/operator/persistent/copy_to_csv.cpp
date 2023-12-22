@@ -1,5 +1,8 @@
 #include "processor/operator/persistent/copy_to_csv.h"
 
+#include <fcntl.h>
+
+#include "common/file_system/virtual_file_system.h"
 #include "function/cast/vector_cast_functions.h"
 
 namespace kuzu {
@@ -19,7 +22,7 @@ uint64_t CopyToCSVInfo::getNumFlatVectors() {
 }
 
 void CopyToCSVLocalState::init(CopyToInfo* info, MemoryManager* mm, ResultSet* resultSet) {
-    auto copyToCSVInfo = reinterpret_cast<CopyToCSVInfo*>(info);
+    auto copyToCSVInfo = ku_dynamic_cast<CopyToInfo*, CopyToCSVInfo*>(info);
     serializer = std::make_unique<BufferedSerializer>();
     vectorsToCast.reserve(info->dataPoses.size());
     auto numFlatVectors = copyToCSVInfo->getNumFlatVectors();
@@ -47,11 +50,11 @@ void CopyToCSVLocalState::init(CopyToInfo* info, MemoryManager* mm, ResultSet* r
 }
 
 void CopyToCSVLocalState::sink(CopyToSharedState* sharedState, CopyToInfo* info) {
-    auto copyToCSVInfo = reinterpret_cast<CopyToCSVInfo*>(info);
+    auto copyToCSVInfo = ku_dynamic_cast<CopyToInfo*, CopyToCSVInfo*>(info);
     writeHeader(sharedState, copyToCSVInfo);
     writeRows(copyToCSVInfo);
     if (serializer->getSize() > CopyToCSVConstants::DEFAULT_CSV_FLUSH_SIZE) {
-        reinterpret_cast<CopyToCSVSharedState*>(sharedState)
+        ku_dynamic_cast<CopyToSharedState*, CopyToCSVSharedState*>(sharedState)
             ->writeRows(serializer->getBlobData(), serializer->getSize());
         serializer->reset();
     }
@@ -59,7 +62,7 @@ void CopyToCSVLocalState::sink(CopyToSharedState* sharedState, CopyToInfo* info)
 
 void CopyToCSVLocalState::finalize(CopyToSharedState* sharedState) {
     if (serializer->getSize() > 0) {
-        reinterpret_cast<CopyToCSVSharedState*>(sharedState)
+        ku_dynamic_cast<CopyToSharedState*, CopyToCSVSharedState*>(sharedState)
             ->writeRows(serializer->getBlobData(), serializer->getSize());
         serializer->reset();
     }
@@ -175,7 +178,8 @@ void CopyToCSVLocalState::writeRows(CopyToCSVInfo* copyToCsvInfo) {
 }
 
 void CopyToCSVLocalState::writeHeader(CopyToSharedState* sharedState, CopyToCSVInfo* info) {
-    auto copyToCSVSharedState = reinterpret_cast<CopyToCSVSharedState*>(sharedState);
+    auto copyToCSVSharedState =
+        ku_dynamic_cast<CopyToSharedState*, CopyToCSVSharedState*>(sharedState);
     if (!copyToCSVSharedState->writeHeader()) {
         return;
     }
@@ -189,14 +193,14 @@ void CopyToCSVLocalState::writeHeader(CopyToSharedState* sharedState, CopyToCSVI
     serializer->writeBufferData(CopyToCSVConstants::DEFAULT_CSV_NEWLINE);
 }
 
-void CopyToCSVSharedState::init(CopyToInfo* info, MemoryManager* /*mm*/) {
-    fileInfo = FileUtils::openFile(info->fileName, O_WRONLY | O_CREAT | O_TRUNC);
-    outputHeader = reinterpret_cast<CopyToCSVInfo*>(info)->copyToOption->hasHeader;
+void CopyToCSVSharedState::init(CopyToInfo* info, MemoryManager* /*mm*/, VirtualFileSystem* vfs) {
+    fileInfo = vfs->openFile(info->fileName, O_WRONLY | O_CREAT | O_TRUNC);
+    outputHeader = ku_dynamic_cast<CopyToInfo*, CopyToCSVInfo*>(info)->copyToOption->hasHeader;
 }
 
 void CopyToCSVSharedState::writeRows(const uint8_t* data, uint64_t size) {
     std::lock_guard<std::mutex> lck(mtx);
-    FileUtils::writeToFile(fileInfo.get(), data, size, offset);
+    fileInfo->writeFile(data, size, offset);
     offset += size;
 }
 

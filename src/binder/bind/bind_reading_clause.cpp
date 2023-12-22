@@ -43,19 +43,23 @@ std::unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClaus
 }
 
 std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& readingClause) {
-    auto& matchClause = reinterpret_cast<const MatchClause&>(readingClause);
-    auto [queryGraphCollection, propertyCollection] =
-        bindGraphPattern(matchClause.getPatternElements());
-    auto boundMatchClause = make_unique<BoundMatchClause>(
-        std::move(queryGraphCollection), matchClause.getMatchClauseType());
-    std::shared_ptr<Expression> whereExpression;
+    auto& matchClause = ku_dynamic_cast<const ReadingClause&, const MatchClause&>(readingClause);
+    auto boundGraphPattern = bindGraphPattern(matchClause.getPatternElements());
     if (matchClause.hasWherePredicate()) {
-        whereExpression = bindWhereExpression(*matchClause.getWherePredicate());
+        boundGraphPattern->where = bindWhereExpression(*matchClause.getWherePredicate());
     }
+    rewriteMatchPattern(*boundGraphPattern);
+    auto boundMatch = make_unique<BoundMatchClause>(
+        std::move(boundGraphPattern->queryGraphCollection), matchClause.getMatchClauseType());
+    boundMatch->setPredicate(boundGraphPattern->where);
+    return boundMatch;
+}
+
+void Binder::rewriteMatchPattern(BoundGraphPattern& boundGraphPattern) {
     // Rewrite self loop edge
     // e.g. rewrite (a)-[e]->(a) as [a]-[e]->(b) WHERE id(a) = id(b)
     expression_vector selfLoopEdgePredicates;
-    auto graphCollection = boundMatchClause->getQueryGraphCollection();
+    auto graphCollection = boundGraphPattern.queryGraphCollection.get();
     for (auto i = 0u; i < graphCollection->getNumQueryGraphs(); ++i) {
         auto queryGraph = graphCollection->getQueryGraph(i);
         for (auto& queryRel : queryGraph->getQueryRels()) {
@@ -72,23 +76,20 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
             selfLoopEdgePredicates.push_back(std::move(predicate));
         }
     }
+    auto where = boundGraphPattern.where;
     for (auto& predicate : selfLoopEdgePredicates) {
-        whereExpression = expressionBinder.combineBooleanExpressions(
-            ExpressionType::AND, predicate, whereExpression);
+        where = expressionBinder.combineBooleanExpressions(ExpressionType::AND, predicate, where);
     }
     // Rewrite key value pairs in MATCH clause as predicate
-    for (auto& [key, val] : propertyCollection->getKeyVals()) {
+    for (auto& [key, val] : boundGraphPattern.propertyKeyValCollection->getKeyVals()) {
         auto predicate = expressionBinder.createEqualityComparisonExpression(key, val);
-        whereExpression = expressionBinder.combineBooleanExpressions(
-            ExpressionType::AND, predicate, whereExpression);
+        where = expressionBinder.combineBooleanExpressions(ExpressionType::AND, predicate, where);
     }
-
-    boundMatchClause->setWherePredicate(std::move(whereExpression));
-    return boundMatchClause;
+    boundGraphPattern.where = std::move(where);
 }
 
 std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {
-    auto& unwindClause = reinterpret_cast<const UnwindClause&>(readingClause);
+    auto& unwindClause = ku_dynamic_cast<const ReadingClause&, const UnwindClause&>(readingClause);
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
     boundExpression =
         ExpressionBinder::implicitCastIfNecessary(boundExpression, LogicalTypeID::VAR_LIST);
@@ -98,13 +99,15 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
 }
 
 std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause& readingClause) {
-    auto& call = reinterpret_cast<const InQueryCallClause&>(readingClause);
-    auto funcExpr = reinterpret_cast<ParsedFunctionExpression*>(call.getFunctionExpression());
+    auto& call = ku_dynamic_cast<const ReadingClause&, const InQueryCallClause&>(readingClause);
+    auto funcExpr =
+        ku_dynamic_cast<ParsedExpression*, ParsedFunctionExpression*>(call.getFunctionExpression());
     auto funcName = funcExpr->getFunctionName();
     StringUtils::toUpper(funcName);
     if (funcName == common::READ_PANDAS_FUNC_NAME && clientContext->replaceFunc) {
         auto replacedValue = clientContext->replaceFunc(
-            reinterpret_cast<ParsedLiteralExpression*>(funcExpr->getChild(0))->getValue());
+            ku_dynamic_cast<ParsedExpression*, ParsedLiteralExpression*>(funcExpr->getChild(0))
+                ->getValue());
         auto parameterExpression =
             std::make_unique<ParsedLiteralExpression>(std::move(replacedValue), "pd");
         auto inQueryCallParameterReplacer = std::make_unique<InQueryCallParameterReplacer>(
@@ -118,13 +121,14 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         if (parameter->getExpressionType() != ExpressionType::LITERAL) {
             throw BinderException{"Parameters in table function must be a literal expression."};
         }
-        auto expressionValue = reinterpret_cast<ParsedLiteralExpression*>(parameter)->getValue();
+        auto expressionValue =
+            ku_dynamic_cast<ParsedExpression*, ParsedLiteralExpression*>(parameter)->getValue();
         inputTypes.push_back(expressionValue->getDataType());
         inputValues.push_back(expressionValue->copy());
     }
     // TODO: this is dangerous because we could match to a scan function.
-    auto tableFunction = reinterpret_cast<function::TableFunction*>(
-        catalog.getBuiltInFunctions()->matchScalarFunction(funcName, inputTypes));
+    auto tableFunction = ku_dynamic_cast<function::Function*, function::TableFunction*>(
+        catalog.getBuiltInFunctions()->matchFunction(funcName, inputTypes));
     auto bindInput = std::make_unique<function::TableFuncBindInput>();
     bindInput->inputs = std::move(inputValues);
     auto bindData =
@@ -139,14 +143,13 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         tableFunction, std::move(bindData), std::move(columns), offset);
     if (call.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*call.getWherePredicate());
-        boundInQueryCall->setWherePredicate(std::move(wherePredicate));
+        boundInQueryCall->setPredicate(std::move(wherePredicate));
     }
     return boundInQueryCall;
 }
 
-std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
-    const parser::ReadingClause& readingClause) {
-    auto& loadFrom = reinterpret_cast<const LoadFrom&>(readingClause);
+std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& readingClause) {
+    auto& loadFrom = ku_dynamic_cast<const ReadingClause&, const LoadFrom&>(readingClause);
     auto csvReaderConfig = bindParsingOptions(loadFrom.getParsingOptionsRef());
     auto filePaths = bindFilePaths(loadFrom.getFilePaths());
     auto fileType = bindFileType(filePaths);
@@ -173,7 +176,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
     }
     auto scanFunction = getScanFunction(readerConfig->fileType, *readerConfig);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager,
-        *readerConfig, std::move(expectedColumnNames), std::move(expectedColumnTypes));
+        *readerConfig, std::move(expectedColumnNames), std::move(expectedColumnTypes), vfs);
     auto bindData =
         scanFunction->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;
@@ -187,7 +190,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
     auto boundLoadFrom = std::make_unique<BoundLoadFrom>(std::move(info));
     if (loadFrom.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*loadFrom.getWherePredicate());
-        boundLoadFrom->setWherePredicate(std::move(wherePredicate));
+        boundLoadFrom->setPredicate(std::move(wherePredicate));
     }
     return boundLoadFrom;
 }

@@ -21,18 +21,16 @@ function_set StructPackFunctions::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> StructPackFunctions::bindFunc(
     const binder::expression_vector& arguments, Function* /*function*/) {
-    std::vector<std::unique_ptr<StructField>> fields;
+    std::vector<StructField> fields;
     for (auto& argument : arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             binder::ExpressionBinder::resolveAnyDataType(
                 *argument, LogicalType{LogicalTypeID::STRING});
         }
-        fields.emplace_back(
-            std::make_unique<StructField>(argument->getAlias(), argument->getDataType().copy()));
+        fields.emplace_back(argument->getAlias(), argument->getDataType().copy());
     }
-    auto resultType =
-        LogicalType(LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(fields)));
-    return std::make_unique<FunctionBindData>(resultType);
+    auto resultType = LogicalType::STRUCT(std::move(fields));
+    return std::make_unique<FunctionBindData>(std::move(resultType));
 }
 
 void StructPackFunctions::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
@@ -104,14 +102,14 @@ std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(
         throw BinderException(stringFormat("Invalid struct field name: {}.", key));
     }
     return std::make_unique<StructExtractBindData>(
-        *(StructType::getFieldTypes(&structType))[fieldIdx], fieldIdx);
+        (StructType::getFieldTypes(&structType))[fieldIdx]->copy(), fieldIdx);
 }
 
 void StructExtractFunctions::compileFunc(FunctionBindData* bindData,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     KU_ASSERT(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
-    auto structBindData = reinterpret_cast<StructExtractBindData*>(bindData);
+    auto structBindData = ku_dynamic_cast<FunctionBindData*, StructExtractBindData*>(bindData);
     result = StructVector::getFieldVector(parameters[0].get(), structBindData->childIdx);
     result->state = parameters[0]->state;
 }

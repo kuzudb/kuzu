@@ -1,0 +1,114 @@
+-GROUP TCKWith4
+-DATASET CSV tck
+
+--
+
+# Aliasing relationship variable
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO A);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A)-[:T1]->(:A),
+                  (:A)-[:T2]->(:A);
+---- ok
+-STATEMENT MATCH ()-[r1]->()
+           WITH r1 AS r2
+           RETURN r2 AS rel;
+---- 2
+(0:0)-{_LABEL: T1, _ID: 1:0}->(0:1)
+(0:2)-{_LABEL: T2, _ID: 2:0}->(0:3)
+
+# Aliasing expression to new variable name
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE Beginn(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Endd(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:Beginn {num: 42}),
+                  (:Endd {num: 42}),
+                  (:Endd {num: 3});
+---- ok
+-STATEMENT MATCH (a:Beginn)
+           WITH a.num AS property
+           MATCH (b:Endd)
+           WHERE property = b.num
+           RETURN b;
+---- 1
+{_ID: 1:0, _LABEL: Endd, ID: 0, num: 42}
+
+# Aliasing expression to existing variable name
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 1, name: 'King Kong'}),
+                  (:A {num: 2, name: 'Ann Darrow'});
+---- ok
+-STATEMENT MATCH (n)
+           WITH n.name AS n
+           RETURN n;
+---- 2
+Ann Darrow
+King Kong
+
+# Fail when forwarding multiple aliases with the same name
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT WITH 1 AS a, 2 AS a
+           RETURN a;
+---- error
+Binder exception: Multiple result column with the same name a are not supported.
+
+# Fail when not aliasing expressions in WITH
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (a)
+           WITH a, count(*)
+           RETURN a;
+---- error
+Binder exception: Expression in WITH must be aliased (use AS).
+
+# Reusing variable names in WITH
+-CASE Scenario6
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Message(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE LIKE(FROM Person TO Message, creationDate INT64);
+---- ok
+-STATEMENT CREATE REL TABLE POSTED_BY(FROM Message TO Person);
+---- ok
+-STATEMENT CREATE (a:Person), (b:Person), (m:Message {id: 10})
+           CREATE (a)-[:LIKE {creationDate: 20160614}]->(m)-[:POSTED_BY]->(b);
+---- ok
+-STATEMENT MATCH (person:Person)<--(message)<-[like]-(:Person)
+           WITH like.creationDate AS likeTime, person AS person
+             ORDER BY likeTime, message.id
+           WITH head(collect({likeTime: likeTime})) AS latestLike, person AS person
+           WITH latestLike.likeTime AS likeTime
+             ORDER BY likeTime
+           RETURN likeTime;
+-CHECK_ORDER
+---- 1
+20160614
+
+# Multiple aliasing and backreferencing
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE A(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (m:A {id: 0})
+           WITH {first: m.id} AS m
+           WITH {second: m.first} AS m
+           RETURN m.second;
+---- 1
+0
+# Test side effects
+-STATEMENT MATCH (n)
+           RETURN n;
+---- 1
+{_ID: 0:0, _LABEL: A, id: 0}

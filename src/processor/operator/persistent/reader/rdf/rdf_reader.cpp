@@ -42,16 +42,16 @@ void RdfReader::initReader() {
     fp = fopen(this->filePath.c_str(), "rb");
     SerdStatementSink statementHandle;
     switch (mode) {
-    case common::RdfReaderMode::RESOURCE: {
+    case RdfReaderMode::RESOURCE: {
         statementHandle = rHandle;
     } break;
-    case common::RdfReaderMode::LITERAL: {
+    case RdfReaderMode::LITERAL: {
         statementHandle = lHandle;
     } break;
-    case common::RdfReaderMode::RESOURCE_TRIPLE: {
+    case RdfReaderMode::RESOURCE_TRIPLE: {
         statementHandle = rrrHandle;
     } break;
-    case common::RdfReaderMode::LITERAL_TRIPLE: {
+    case RdfReaderMode::LITERAL_TRIPLE: {
         statementHandle = rrlHandle;
     } break;
     default:
@@ -272,64 +272,6 @@ offset_t RdfReader::read(DataChunk* dataChunk) {
     }
     dataChunk->state->selVector->selectedSize = vectorSize;
     return vectorSize;
-}
-
-void RdfScanSharedState::read(common::DataChunk& dataChunk) {
-    std::lock_guard<std::mutex> mtx{lock};
-    do {
-        if (fileIdx > readerConfig.getNumFiles()) {
-            return;
-        }
-        if (reader->read(&dataChunk) > 0) {
-            return;
-        }
-        fileIdx++;
-        initReader();
-    } while (true);
-}
-
-void RdfScanSharedState::initReader() {
-    if (fileIdx >= readerConfig.getNumFiles()) {
-        return;
-    }
-    auto path = readerConfig.filePaths[fileIdx];
-    auto rdfConfig = reinterpret_cast<RdfReaderConfig*>(readerConfig.extraConfig.get());
-    reader = std::make_unique<RdfReader>(path, readerConfig.fileType, *rdfConfig);
-    reader->initReader();
-}
-
-function::function_set RdfScan::getFunctionSet() {
-    function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_FUNC_NAME, tableFunc, bindFunc,
-        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
-void RdfScan::tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk) {
-    auto sharedState = reinterpret_cast<RdfScanSharedState*>(input.sharedState);
-    sharedState->read(outputChunk);
-}
-
-std::unique_ptr<function::TableFuncBindData> RdfScan::bindFunc(main::ClientContext* /*context*/,
-    function::TableFuncBindInput* input, catalog::Catalog* /*catalog*/,
-    storage::StorageManager* /*storageManager*/) {
-    auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
-    return std::make_unique<function::ScanBindData>(
-        common::LogicalType::copy(scanInput->expectedColumnTypes), scanInput->expectedColumnNames,
-        scanInput->mm, scanInput->config);
-}
-
-std::unique_ptr<function::TableFuncSharedState> RdfScan::initSharedState(
-    function::TableFunctionInitInput& input) {
-    auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
-    return std::make_unique<RdfScanSharedState>(bindData->config, 0 /* numRows */);
-}
-
-std::unique_ptr<function::TableFuncLocalState> RdfScan::initLocalState(
-    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/,
-    storage::MemoryManager* /*mm*/) {
-    return std::make_unique<TableFuncLocalState>();
 }
 
 } // namespace processor

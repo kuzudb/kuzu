@@ -36,7 +36,8 @@ class CopyToSharedState {
 public:
     virtual ~CopyToSharedState() = default;
 
-    virtual void init(CopyToInfo* info, storage::MemoryManager* mm) = 0;
+    virtual void init(
+        CopyToInfo* info, storage::MemoryManager* mm, common::VirtualFileSystem* vfs) = 0;
 
     virtual void finalize() = 0;
 };

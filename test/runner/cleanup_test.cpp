@@ -6,7 +6,7 @@ using namespace kuzu::common;
 void deleteMatchingDir(const std::string& dirPath, const std::string& match) {
     for (const auto& entry : std::filesystem::directory_iterator(dirPath)) {
         if (entry.path().filename().string().find(match) != std::string::npos) {
-            FileUtils::removeDir(entry.path().string());
+            std::filesystem::remove_all(entry.path().string());
         }
     }
 }

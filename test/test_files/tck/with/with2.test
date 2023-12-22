@@ -1,0 +1,30 @@
+-GROUP TCKWith2
+-DATASET CSV tck
+
+--
+
+# Forwarding a property to express a join
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE End(ID SERIAL, num INT64, id INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Begin(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (a:End {num: 42, id: 0}),
+                  (:End {num: 3}),
+                  (:Begin {num: a.id});
+---- ok
+-STATEMENT MATCH (a:Begin)
+           WITH a.num AS property
+           MATCH (b)
+           WHERE b.id = property
+           RETURN b;
+---- 1
+{_ID: 0:0, _LABEL: End, ID: 0, num: 42, id: 0}
+
+# Forwarding a node variable 2
+-CASE Scenario2
+-STATEMENT WITH {name: {name2: 'baz'}} AS nestedMap
+           RETURN nestedMap.name.name2;
+---- 1
+baz

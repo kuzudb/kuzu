@@ -12,16 +12,16 @@ class RelsStoreStats : public TablesStatistics {
 public:
     // Should only be used by saveInitialRelsStatisticsToFile to start a database from an empty
     // directory.
-    RelsStoreStats() : TablesStatistics{nullptr, nullptr, nullptr} {};
+    explicit RelsStoreStats(common::VirtualFileSystem* vfs)
+        : TablesStatistics{
+              nullptr /* metadataFH */, nullptr /* bufferManager */, nullptr /* wal */, vfs} {};
     // Should be used when an already loaded database is started from a directory.
-    RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal);
+    RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        common::VirtualFileSystem* vfs);
 
-    // Should only be used by tests.
-    explicit RelsStoreStats(std::unordered_map<common::table_id_t, std::unique_ptr<RelTableStats>>
-            relStatisticPerTable_);
-
-    static inline void saveInitialRelsStatisticsToFile(const std::string& directory) {
-        std::make_unique<RelsStoreStats>()->saveToFile(
+    static inline void saveInitialRelsStatisticsToFile(
+        common::VirtualFileSystem* vfs, const std::string& directory) {
+        std::make_unique<RelsStoreStats>(vfs)->saveToFile(
             directory, common::FileVersionType::ORIGINAL, transaction::TransactionType::READ_ONLY);
     }
 
@@ -46,6 +46,8 @@ public:
     void removeMetadataDAHInfo(common::table_id_t tableID, common::column_id_t columnID);
     MetadataDAHInfo* getCSROffsetMetadataDAHInfo(transaction::Transaction* transaction,
         common::table_id_t tableID, common::RelDataDirection direction);
+    MetadataDAHInfo* getCSRLengthMetadataDAHInfo(transaction::Transaction* transaction,
+        common::table_id_t tableID, common::RelDataDirection direction);
     MetadataDAHInfo* getAdjMetadataDAHInfo(transaction::Transaction* transaction,
         common::table_id_t tableID, common::RelDataDirection direction);
     MetadataDAHInfo* getPropertyMetadataDAHInfo(transaction::Transaction* transaction,
@@ -65,7 +67,7 @@ protected:
 
     inline std::string getTableStatisticsFilePath(
         const std::string& directory, common::FileVersionType dbFileType) override {
-        return StorageUtils::getRelsStatisticsFilePath(directory, dbFileType);
+        return StorageUtils::getRelsStatisticsFilePath(vfs, directory, dbFileType);
     }
 
     inline void increaseNextRelOffset(common::table_id_t relTableID, uint64_t numTuples) {

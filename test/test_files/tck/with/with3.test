@@ -1,0 +1,29 @@
+-GROUP TCKWith3
+-DATASET CSV tck
+
+--
+
+# Forwarding multiple node and relationship variables
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO X, id INT64);
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T2(FROM A TO X, FROM A TO A, id INT64);
+---- ok
+-STATEMENT CREATE (:A)-[:T1 {id: 0}]->(:X),
+                  (:A)-[:T2_A_X {id: 1}]->(:X),
+                  (:A)-[:T2_A_A {id: 2}]->(:A);
+---- ok
+-STATEMENT MATCH (a)-[r]->(b:X)
+           WITH a, r, b
+           MATCH (a)-[r]->(b)
+           RETURN r AS rel
+             ORDER BY rel.id;
+-CHECK_ORDER
+---- 2
+...
+...

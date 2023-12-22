@@ -1,5 +1,7 @@
 #include "catalog/catalog_content.h"
 
+#include <fcntl.h>
+
 #include "catalog/node_table_schema.h"
 #include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
@@ -7,6 +9,7 @@
 #include "common/cast.h"
 #include "common/exception/catalog.h"
 #include "common/exception/runtime.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -22,11 +25,11 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace catalog {
 
-CatalogContent::CatalogContent() : nextTableID{0} {
+CatalogContent::CatalogContent(common::VirtualFileSystem* vfs) : nextTableID{0}, vfs{vfs} {
     registerBuiltInFunctions();
 }
 
-CatalogContent::CatalogContent(const std::string& directory) {
+CatalogContent::CatalogContent(const std::string& directory, VirtualFileSystem* vfs) : vfs{vfs} {
     readFromFile(directory, FileVersionType::ORIGINAL);
     registerBuiltInFunctions();
 }
@@ -41,7 +44,8 @@ static void assignPropertyIDAndTableID(
 
 table_id_t CatalogContent::addNodeTableSchema(const BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
-    auto extraInfo = reinterpret_cast<BoundExtraCreateNodeTableInfo*>(info.extraInfo.get());
+    auto extraInfo = ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateNodeTableInfo*>(
+        info.extraInfo.get());
     auto properties = Property::copy(extraInfo->properties);
     assignPropertyIDAndTableID(properties, tableID);
     auto nodeTableSchema = std::make_unique<NodeTableSchema>(
@@ -60,7 +64,8 @@ static void addRelInternalIDProperty(std::vector<std::unique_ptr<Property>>& pro
 
 table_id_t CatalogContent::addRelTableSchema(const BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
-    auto extraInfo = reinterpret_cast<BoundExtraCreateRelTableInfo*>(info.extraInfo.get());
+    auto extraInfo = ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRelTableInfo*>(
+        info.extraInfo.get());
     auto properties = Property::copy(extraInfo->properties);
     addRelInternalIDProperty(properties);
     assignPropertyIDAndTableID(properties, tableID);
@@ -68,7 +73,6 @@ table_id_t CatalogContent::addRelTableSchema(const BoundCreateTableInfo& info) {
         ku_dynamic_cast<TableSchema*, NodeTableSchema*>(getTableSchema(extraInfo->srcTableID));
     auto dstNodeTableSchema =
         ku_dynamic_cast<TableSchema*, NodeTableSchema*>(getTableSchema(extraInfo->dstTableID));
-    KU_ASSERT(srcNodeTableSchema && dstNodeTableSchema);
     srcNodeTableSchema->addFwdRelTableID(tableID);
     dstNodeTableSchema->addBwdRelTableID(tableID);
     auto relTableSchema = std::make_unique<RelTableSchema>(info.tableName, tableID,
@@ -97,15 +101,18 @@ table_id_t CatalogContent::addRelTableGroupSchema(const binder::BoundCreateTable
 
 table_id_t CatalogContent::addRdfGraphSchema(const BoundCreateTableInfo& info) {
     table_id_t rdfGraphID = assignNextTableID();
-    auto extraInfo = reinterpret_cast<BoundExtraCreateRdfGraphInfo*>(info.extraInfo.get());
+    auto extraInfo = ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRdfGraphInfo*>(
+        info.extraInfo.get());
     auto resourceInfo = extraInfo->resourceInfo.get();
     auto literalInfo = extraInfo->literalInfo.get();
     auto resourceTripleInfo = extraInfo->resourceTripleInfo.get();
     auto literalTripleInfo = extraInfo->literalTripleInfo.get();
     auto resourceTripleExtraInfo =
-        reinterpret_cast<BoundExtraCreateRelTableInfo*>(resourceTripleInfo->extraInfo.get());
+        ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRelTableInfo*>(
+            resourceTripleInfo->extraInfo.get());
     auto literalTripleExtraInfo =
-        reinterpret_cast<BoundExtraCreateRelTableInfo*>(literalTripleInfo->extraInfo.get());
+        ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRelTableInfo*>(
+            literalTripleInfo->extraInfo.get());
     // Resource table
     auto resourceTableID = addNodeTableSchema(*resourceInfo);
     // Literal table
@@ -131,7 +138,7 @@ void CatalogContent::dropTableSchema(table_id_t tableID) {
     auto tableSchema = getTableSchema(tableID);
     switch (tableSchema->tableType) {
     case common::TableType::REL_GROUP: {
-        auto relTableGroupSchema = reinterpret_cast<RelTableGroupSchema*>(tableSchema);
+        auto relTableGroupSchema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(tableSchema);
         for (auto& relTableID : relTableGroupSchema->getRelTableIDs()) {
             dropTableSchema(relTableID);
         }
@@ -182,9 +189,9 @@ static void writeMagicBytes(Serializer& serializer) {
 }
 
 void CatalogContent::saveToFile(const std::string& directory, FileVersionType dbFileType) {
-    auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
+    auto catalogPath = StorageUtils::getCatalogFilePath(vfs, directory, dbFileType);
     Serializer serializer(
-        std::make_unique<BufferedFileWriter>(FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT)));
+        std::make_unique<BufferedFileWriter>(vfs->openFile(catalogPath, O_WRONLY | O_CREAT)));
     writeMagicBytes(serializer);
     serializer.serializeValue(StorageVersionInfo::getStorageVersion());
     serializer.serializeValue(tableSchemas.size());
@@ -197,9 +204,9 @@ void CatalogContent::saveToFile(const std::string& directory, FileVersionType db
 }
 
 void CatalogContent::readFromFile(const std::string& directory, FileVersionType dbFileType) {
-    auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
+    auto catalogPath = StorageUtils::getCatalogFilePath(vfs, directory, dbFileType);
     Deserializer deserializer(
-        std::make_unique<BufferedFileReader>(FileUtils::openFile(catalogPath, O_RDONLY)));
+        std::make_unique<BufferedFileReader>(vfs->openFile(catalogPath, O_RDONLY)));
     validateMagicBytes(deserializer);
     storage_version_t savedStorageVersion;
     deserializer.deserializeValue(savedStorageVersion);
@@ -259,7 +266,7 @@ std::unique_ptr<CatalogContent> CatalogContent::copy() const {
         macrosToCopy.emplace(macro.first, macro.second->copy());
     }
     return std::make_unique<CatalogContent>(std::move(tableSchemasToCopy), tableNameToIDMap,
-        nextTableID, builtInFunctions->copy(), std::move(macrosToCopy));
+        nextTableID, builtInFunctions->copy(), std::move(macrosToCopy), vfs);
 }
 
 void CatalogContent::registerBuiltInFunctions() {

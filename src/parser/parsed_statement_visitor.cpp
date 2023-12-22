@@ -1,6 +1,6 @@
 #include "parser/parsed_statement_visitor.h"
 
-#include "common/assert.h"
+#include "common/cast.h"
 #include "parser/explain_statement.h"
 #include "parser/query/regular_query.h"
 
@@ -50,12 +50,12 @@ void StatementVisitor::visit(const Statement& statement) {
 }
 
 void StatementVisitor::visitExplain(const Statement& statement) {
-    auto& explainStatement = reinterpret_cast<const ExplainStatement&>(statement);
+    auto& explainStatement = ku_dynamic_cast<const Statement&, const ExplainStatement&>(statement);
     visit(*explainStatement.getStatementToExplain());
 }
 
 void StatementVisitor::visitQuery(const Statement& statement) {
-    auto& regularQuery = reinterpret_cast<const RegularQuery&>(statement);
+    auto& regularQuery = ku_dynamic_cast<const Statement&, const RegularQuery&>(statement);
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); ++i) {
         visitSingleQuery(regularQuery.getSingleQuery(i));
     }

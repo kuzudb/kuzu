@@ -147,7 +147,7 @@ struct ListFunction {
     template<typename OPERATION>
     static std::unique_ptr<FunctionBindData> bindFuncListAggr(
         const binder::expression_vector& arguments, Function* function) {
-        auto scalarFunction = reinterpret_cast<ScalarFunction*>(function);
+        auto scalarFunction = common::ku_dynamic_cast<Function*, ScalarFunction*>(function);
         auto resultType = common::VarListType::getChildType(&arguments[0]->dataType);
         switch (resultType->getLogicalTypeID()) {
         case common::LogicalTypeID::SERIAL:
@@ -212,7 +212,7 @@ struct ListFunction {
                     common::LogicalTypeUtils::toString(resultType->getLogicalTypeID())));
         }
         }
-        return std::make_unique<FunctionBindData>(*resultType);
+        return std::make_unique<FunctionBindData>(resultType->copy());
     }
 };
 

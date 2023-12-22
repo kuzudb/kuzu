@@ -28,10 +28,10 @@ void CopyToParquetLocalState::finalize(CopyToSharedState* sharedState) {
     reinterpret_cast<CopyToParquetSharedState*>(sharedState)->flush(*ft);
 }
 
-void CopyToParquetSharedState::init(CopyToInfo* info, MemoryManager* mm) {
+void CopyToParquetSharedState::init(CopyToInfo* info, MemoryManager* mm, VirtualFileSystem* vfs) {
     auto parquetInfo = reinterpret_cast<CopyToParquetInfo*>(info);
     writer = std::make_unique<ParquetWriter>(parquetInfo->fileName,
-        LogicalType::copy(parquetInfo->types), parquetInfo->names, parquetInfo->codec, mm);
+        LogicalType::copy(parquetInfo->types), parquetInfo->names, parquetInfo->codec, mm, vfs);
 }
 
 void CopyToParquetSharedState::finalize() {

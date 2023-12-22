@@ -58,9 +58,9 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindInsertClause(
     auto& insertClause = (InsertClause&)updatingClause;
     auto nodeRelScope = populateNodeRelScope(*scope);
     // bindGraphPattern will update scope.
-    auto [queryGraphCollection, propertyCollection] =
-        bindGraphPattern(insertClause.getPatternElementsRef());
-    auto createInfos = bindCreateInfos(*queryGraphCollection, *propertyCollection, nodeRelScope);
+    auto boundGraphPattern = bindGraphPattern(insertClause.getPatternElementsRef());
+    auto createInfos = bindCreateInfos(*boundGraphPattern->queryGraphCollection,
+        *boundGraphPattern->propertyKeyValCollection, nodeRelScope);
     return std::make_unique<BoundInsertClause>(std::move(createInfos));
 }
 
@@ -69,16 +69,17 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     auto& mergeClause = (MergeClause&)updatingClause;
     auto nodeRelScope = populateNodeRelScope(*scope);
     // bindGraphPattern will update scope.
-    auto [queryGraphCollection, propertyCollection] =
-        bindGraphPattern(mergeClause.getPatternElementsRef());
+    auto boundGraphPattern = bindGraphPattern(mergeClause.getPatternElementsRef());
     std::shared_ptr<Expression> predicate = nullptr;
-    for (auto& [key, val] : propertyCollection->getKeyVals()) {
+    for (auto& [key, val] : boundGraphPattern->propertyKeyValCollection->getKeyVals()) {
         predicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
             expressionBinder.createEqualityComparisonExpression(key, val), predicate);
     }
-    auto createInfos = bindCreateInfos(*queryGraphCollection, *propertyCollection, nodeRelScope);
-    auto boundMergeClause = std::make_unique<BoundMergeClause>(
-        std::move(queryGraphCollection), std::move(predicate), std::move(createInfos));
+    auto createInfos = bindCreateInfos(*boundGraphPattern->queryGraphCollection,
+        *boundGraphPattern->propertyKeyValCollection, nodeRelScope);
+    auto boundMergeClause =
+        std::make_unique<BoundMergeClause>(std::move(boundGraphPattern->queryGraphCollection),
+            std::move(predicate), std::move(createInfos));
     if (mergeClause.hasOnMatchSetItems()) {
         for (auto& [lhs, rhs] : mergeClause.getOnMatchSetItemsRef()) {
             auto setPropertyInfo = bindSetPropertyInfo(lhs.get(), rhs.get());
@@ -127,7 +128,7 @@ std::vector<std::unique_ptr<BoundInsertInfo>> Binder::bindCreateInfos(
 static void validatePrimaryKeyExistence(const PropertyKeyValCollection& collection,
     TableSchema* tableSchema, const std::shared_ptr<Expression>& node) {
     auto tableID = tableSchema->getTableID();
-    auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(tableSchema);
+    auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     std::shared_ptr<Expression> primaryKeyExpression;
     for (auto& [key, val] : collection.getKeyVals(node)) {

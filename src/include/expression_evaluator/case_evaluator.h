@@ -48,31 +48,11 @@ protected:
         const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
 
 private:
-    template<typename T>
-    void fillEntry(common::sel_t resultPos, const common::ValueVector& thenVector);
+    void fillSelected(const common::SelectionVector& selVector, common::ValueVector* srcVector);
 
-    template<typename T>
-    inline void fillSelected(
-        const common::SelectionVector& selVector, const common::ValueVector& thenVector) {
-        for (auto i = 0u; i < selVector.selectedSize; ++i) {
-            auto resultPos = selVector.selectedPositions[i];
-            fillEntry<T>(resultPos, thenVector);
-        }
-    }
+    void fillAll(common::ValueVector* srcVector);
 
-    template<typename T>
-    inline void fillAll(const common::ValueVector& thenVector) {
-        auto resultSelVector = resultVector->state->selVector.get();
-        for (auto i = 0u; i < resultSelVector->selectedSize; ++i) {
-            auto resultPos = resultSelVector->selectedPositions[i];
-            fillEntry<T>(resultPos, thenVector);
-        }
-    }
-
-    void fillAllSwitch(const common::ValueVector& thenVector);
-
-    void fillSelectedSwitch(
-        const common::SelectionVector& selVector, const common::ValueVector& thenVector);
+    void fillEntry(common::sel_t resultPos, common::ValueVector* srcVector);
 
 private:
     std::shared_ptr<binder::Expression> expression;

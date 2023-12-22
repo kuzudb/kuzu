@@ -102,11 +102,9 @@ struct CollectFunction {
         KU_ASSERT(arguments.size() == 1);
         auto aggFuncDefinition = reinterpret_cast<AggregateFunction*>(definition);
         aggFuncDefinition->parameterTypeIDs[0] = arguments[0]->dataType.getLogicalTypeID();
-        auto varListTypeInfo = std::make_unique<common::VarListTypeInfo>(
+        auto returnType = common::LogicalType::VAR_LIST(
             std::make_unique<common::LogicalType>(arguments[0]->dataType));
-        auto returnType =
-            common::LogicalType(common::LogicalTypeID::VAR_LIST, std::move(varListTypeInfo));
-        return std::make_unique<FunctionBindData>(returnType);
+        return std::make_unique<FunctionBindData>(std::move(returnType));
     }
 };
 

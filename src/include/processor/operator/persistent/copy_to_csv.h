@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/copier_config/csv_reader_config.h"
-#include "common/file_utils.h"
+#include "common/file_system/file_info.h"
 #include "common/serializer/buffered_serializer.h"
 #include "copy_to.h"
 #include "function/scalar_function.h"
@@ -57,7 +57,8 @@ private:
 
 class CopyToCSVSharedState final : public CopyToSharedState {
 public:
-    void init(CopyToInfo* info, storage::MemoryManager* mm) override;
+    void init(
+        CopyToInfo* info, storage::MemoryManager* mm, common::VirtualFileSystem* vfs) override;
 
     void finalize() override {}
 
@@ -79,7 +80,7 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : CopyTo{std::move(resultSetDescriptor), std::move(info),
               std::make_unique<CopyToCSVLocalState>(), std::move(sharedState),
-              PhysicalOperatorType::COPY_TO_CSV, std::move(child), id, paramsString} {}
+              PhysicalOperatorType::COPY_TO, std::move(child), id, paramsString} {}
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CopyToCSV>(resultSetDescriptor->copy(), info->copy(), sharedState,

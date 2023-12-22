@@ -11,36 +11,36 @@ namespace kuzu {
 namespace storage {
 
 StorageManager::StorageManager(bool readOnly, const Catalog& catalog, MemoryManager& memoryManager,
-    WAL* wal, bool enableCompression)
-    : memoryManager{memoryManager}, wal{wal}, enableCompression{enableCompression} {
+    WAL* wal, bool enableCompression, VirtualFileSystem* vfs)
+    : memoryManager{memoryManager}, wal{wal}, enableCompression{enableCompression}, vfs{vfs} {
     dataFH = memoryManager.getBufferManager()->getBMFileHandle(
-        StorageUtils::getDataFName(wal->getDirectory()),
+        StorageUtils::getDataFName(vfs, wal->getDirectory()),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE);
+        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
     metadataFH = memoryManager.getBufferManager()->getBMFileHandle(
-        StorageUtils::getMetadataFName(wal->getDirectory()),
+        StorageUtils::getMetadataFName(vfs, wal->getDirectory()),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE);
+        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
     nodesStatisticsAndDeletedIDs = std::make_unique<NodesStoreStatsAndDeletedIDs>(
-        metadataFH.get(), memoryManager.getBufferManager(), wal);
-    relsStatistics =
-        std::make_unique<RelsStoreStats>(metadataFH.get(), memoryManager.getBufferManager(), wal);
+        metadataFH.get(), memoryManager.getBufferManager(), wal, vfs);
+    relsStatistics = std::make_unique<RelsStoreStats>(
+        metadataFH.get(), memoryManager.getBufferManager(), wal, vfs);
     loadTables(readOnly, catalog);
 }
 
 void StorageManager::loadTables(bool readOnly, const catalog::Catalog& catalog) {
     for (auto& schema : catalog.getNodeTableSchemas(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(schema->tableID));
-        auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(schema);
+        auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(schema);
         tables[schema->tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
             nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal, readOnly,
-            enableCompression);
+            enableCompression, vfs);
     }
     for (auto schema : catalog.getRelTableSchemas(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(schema->tableID));
-        auto relTableSchema = dynamic_cast<RelTableSchema*>(schema);
+        auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
         tables[schema->tableID] = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
             relsStatistics.get(), &memoryManager, relTableSchema, wal, enableCompression);
     }
@@ -51,13 +51,13 @@ void StorageManager::createTable(
     auto tableSchema = catalog->getTableSchema(transaction, tableID);
     switch (tableSchema->tableType) {
     case TableType::NODE: {
-        auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(tableSchema);
+        auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
         tables[tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
             nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal,
-            false /* readOnly */, enableCompression);
+            false /* readOnly */, enableCompression, vfs);
     } break;
     case TableType::REL: {
-        auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
+        auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema);
         tables[tableID] = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
             relsStatistics.get(), &memoryManager, relTableSchema, wal, enableCompression);
     } break;

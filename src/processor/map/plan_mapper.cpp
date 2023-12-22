@@ -11,7 +11,7 @@ namespace processor {
 static void setPhysicalPlanIfProfile(
     planner::LogicalPlan* logicalPlan, PhysicalPlan* physicalPlan) {
     if (logicalPlan->isProfile()) {
-        reinterpret_cast<Profile*>(physicalPlan->lastOperator->getChild(0))
+        ku_dynamic_cast<PhysicalOperator*, Profile*>(physicalPlan->lastOperator->getChild(0))
             ->setPhysicalPlan(physicalPlan);
     }
 }
@@ -44,6 +44,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     } break;
     case LogicalOperatorType::INDEX_SCAN_NODE: {
         physicalOperator = mapIndexScan(logicalOperator);
+    } break;
+    case LogicalOperatorType::EMPTY_RESULT: {
+        physicalOperator = mapEmptyResult(logicalOperator);
     } break;
     case LogicalOperatorType::UNWIND: {
         physicalOperator = mapUnwind(logicalOperator);
@@ -189,8 +192,7 @@ std::shared_ptr<FactorizedTable> PlanMapper::getSingleStringColumnFTable() {
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
             LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
-    auto fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
-    return fTable;
+    return std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
 }
 
 } // namespace processor

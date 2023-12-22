@@ -60,7 +60,7 @@ void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx
 
 void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     kuzu::storage::ColumnChunk* columnChunk) {
-    auto varListColumnChunk = reinterpret_cast<VarListColumnChunk*>(columnChunk);
+    auto varListColumnChunk = ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(columnChunk);
     if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
         varListColumnChunk->setNumValues(0);
     } else {
@@ -105,7 +105,8 @@ void VarListColumn::lookupValue(Transaction* transaction, offset_t nodeOffset,
 
 void VarListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     Column::append(columnChunk, nodeGroupIdx);
-    auto dataColumnChunk = reinterpret_cast<VarListColumnChunk*>(columnChunk)->getDataColumnChunk();
+    auto dataColumnChunk =
+        ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(columnChunk)->getDataColumnChunk();
     dataColumn->append(dataColumnChunk, nodeGroupIdx);
 }
 

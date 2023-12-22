@@ -55,6 +55,9 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphColle
         // Extract predicates for current query graph
         std::unordered_set<uint32_t> predicateToEvaluateIndices;
         for (auto j = 0u; j < predicates.size(); ++j) {
+            if (predicates[j]->expressionType == ExpressionType::LITERAL) {
+                continue;
+            }
             if (evaluatedPredicatesIndices.contains(j)) {
                 continue;
             }
@@ -388,11 +391,11 @@ static LogicalOperator* getSequentialScan(LogicalOperator* op) {
 
 // Check whether given node ID has sequential guarantee on the plan.
 static bool isNodeSequentialOnPlan(LogicalPlan& plan, const NodeExpression& node) {
-    auto sequentialScan =
-        reinterpret_cast<LogicalScanInternalID*>(getSequentialScan(plan.getLastOperator().get()));
-    if (sequentialScan == nullptr) {
+    auto seqScan = getSequentialScan(plan.getLastOperator().get());
+    if (seqScan == nullptr) {
         return false;
     }
+    auto sequentialScan = ku_dynamic_cast<LogicalOperator*, LogicalScanInternalID*>(seqScan);
     return sequentialScan->getInternalID()->getUniqueName() ==
            node.getInternalID()->getUniqueName();
 }

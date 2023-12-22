@@ -46,18 +46,21 @@ CallFuncMorsel CallFuncSharedState::getMorsel() {
 }
 
 std::unique_ptr<TableFuncSharedState> CallFunction::initSharedState(TableFunctionInitInput& input) {
-    auto callTableFuncBindData = reinterpret_cast<CallTableFuncBindData*>(input.bindData);
+    auto callTableFuncBindData =
+        ku_dynamic_cast<TableFuncBindData*, CallTableFuncBindData*>(input.bindData);
     return std::make_unique<CallFuncSharedState>(callTableFuncBindData->maxOffset);
 }
 
 void CurrentSettingFunction::tableFunc(TableFunctionInput& data, DataChunk& output) {
-    auto sharedState = reinterpret_cast<CallFuncSharedState*>(data.sharedState);
+    auto sharedState =
+        ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(data.sharedState);
     auto outputVector = output.getValueVector(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         output.state->selVector->selectedSize = 0;
         return;
     }
-    auto currentSettingBindData = reinterpret_cast<CurrentSettingBindData*>(data.bindData);
+    auto currentSettingBindData =
+        ku_dynamic_cast<TableFuncBindData*, CurrentSettingBindData*>(data.bindData);
     auto pos = output.state->selVector->selectedPositions[0];
     outputVector->setValue(pos, currentSettingBindData->result);
     outputVector->setNull(pos, false);
@@ -83,7 +86,8 @@ function_set DBVersionFunction::getFunctionSet() {
 }
 
 void DBVersionFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
-    auto sharedState = reinterpret_cast<CallFuncSharedState*>(input.sharedState);
+    auto sharedState =
+        ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState);
     auto outputVector = outputChunk.getValueVector(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         outputChunk.state->selVector->selectedSize = 0;
@@ -113,13 +117,16 @@ function_set ShowTablesFunction::getFunctionSet() {
 }
 
 void ShowTablesFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
-    auto sharedState = reinterpret_cast<CallFuncSharedState*>(input.sharedState);
+    auto sharedState =
+        ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState);
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         outputChunk.getValueVector(0)->state->selVector->selectedSize = 0;
         return;
     }
-    auto tables = reinterpret_cast<function::ShowTablesBindData*>(input.bindData)->tables;
+    auto tables =
+        ku_dynamic_cast<function::TableFuncBindData*, function::ShowTablesBindData*>(input.bindData)
+            ->tables;
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto tableSchema = tables[morsel.startOffset + i];
@@ -154,12 +161,15 @@ function_set TableInfoFunction::getFunctionSet() {
 }
 
 void TableInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
-    auto morsel = reinterpret_cast<CallFuncSharedState*>(input.sharedState)->getMorsel();
+    auto morsel = ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState)
+                      ->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         outputChunk.getValueVector(0)->state->selVector->selectedSize = 0;
         return;
     }
-    auto tableSchema = reinterpret_cast<function::TableInfoBindData*>(input.bindData)->tableSchema;
+    auto tableSchema =
+        ku_dynamic_cast<function::TableFuncBindData*, function::TableInfoBindData*>(input.bindData)
+            ->tableSchema;
     auto numPropertiesToOutput = morsel.endOffset - morsel.startOffset;
     auto outVectorPos = 0;
     for (auto i = 0u; i < numPropertiesToOutput; i++) {
@@ -173,8 +183,8 @@ void TableInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputCh
         outputChunk.getValueVector(2)->setValue(outVectorPos, property->getDataType()->toString());
 
         if (tableSchema->tableType == TableType::NODE) {
-            auto primaryKeyID =
-                reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKeyPropertyID();
+            auto primaryKeyID = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema)
+                                    ->getPrimaryKeyPropertyID();
             outputChunk.getValueVector(3)->setValue(
                 outVectorPos, primaryKeyID == property->getPropertyID());
         }
@@ -215,8 +225,8 @@ void ShowConnectionFunction::outputRelTableConnection(ValueVector* srcTableNameV
     ValueVector* dstTableNameVector, uint64_t outputPos, Catalog* catalog, table_id_t tableID) {
     auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
     KU_ASSERT(tableSchema->tableType == TableType::REL);
-    auto srcTableID = reinterpret_cast<RelTableSchema*>(tableSchema)->getSrcTableID();
-    auto dstTableID = reinterpret_cast<RelTableSchema*>(tableSchema)->getDstTableID();
+    auto srcTableID = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema)->getSrcTableID();
+    auto dstTableID = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema)->getDstTableID();
     srcTableNameVector->setValue(
         outputPos, catalog->getTableName(&DUMMY_READ_TRANSACTION, srcTableID));
     dstTableNameVector->setValue(
@@ -224,13 +234,15 @@ void ShowConnectionFunction::outputRelTableConnection(ValueVector* srcTableNameV
 }
 
 void ShowConnectionFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
-    auto morsel = reinterpret_cast<CallFuncSharedState*>(input.sharedState)->getMorsel();
+    auto morsel = ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState)
+                      ->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         outputChunk.state->selVector->selectedSize = 0;
         return;
     }
     auto showConnectionBindData =
-        reinterpret_cast<function::ShowConnectionBindData*>(input.bindData);
+        ku_dynamic_cast<function::TableFuncBindData*, function::ShowConnectionBindData*>(
+            input.bindData);
     auto tableSchema = showConnectionBindData->tableSchema;
     auto numRelationsToOutput = morsel.endOffset - morsel.startOffset;
     auto catalog = showConnectionBindData->catalog;
@@ -242,7 +254,7 @@ void ShowConnectionFunction::tableFunc(TableFunctionInput& input, DataChunk& out
         vectorPos++;
     } break;
     case TableType::REL_GROUP: {
-        auto schema = reinterpret_cast<RelTableGroupSchema*>(tableSchema);
+        auto schema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(tableSchema);
         auto relTableIDs = schema->getRelTableIDs();
         for (; vectorPos < numRelationsToOutput; vectorPos++) {
             outputRelTableConnection(outputChunk.getValueVector(0).get(),
@@ -275,7 +287,7 @@ std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(ClientContex
         std::move(returnColumnNames),
         schema->tableType == TableType::REL ?
             1 :
-            reinterpret_cast<RelTableGroupSchema*>(schema)->getRelTableIDs().size());
+            ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(schema)->getRelTableIDs().size());
 }
 
 std::unique_ptr<TableFuncBindData> StorageInfoFunction::bindFunc(ClientContext* context,
@@ -340,7 +352,9 @@ void StorageInfoSharedState::collectColumns(Table* table) {
 std::vector<Column*> StorageInfoSharedState::collectColumns(Column* column) {
     std::vector<Column*> result;
     result.push_back(column);
-    result.push_back(column->getNullColumn());
+    if (column->getNullColumn()) {
+        result.push_back(column->getNullColumn());
+    }
     switch (column->getDataType()->getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         auto structColumn = ku_dynamic_cast<Column*, StructColumn*>(column);
@@ -369,7 +383,8 @@ std::vector<Column*> StorageInfoSharedState::collectColumns(Column* column) {
 
 std::unique_ptr<TableFuncSharedState> StorageInfoFunction::initSharedState(
     TableFunctionInitInput& input) {
-    auto storageInfoBindData = reinterpret_cast<StorageInfoBindData*>(input.bindData);
+    auto storageInfoBindData =
+        ku_dynamic_cast<TableFuncBindData*, StorageInfoBindData*>(input.bindData);
     return std::make_unique<StorageInfoSharedState>(
         storageInfoBindData->table, storageInfoBindData->maxOffset);
 }
@@ -401,12 +416,15 @@ void StorageInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& output
             localState->currChunkIdx++;
             return;
         }
-        auto morsel = reinterpret_cast<CallFuncSharedState*>(input.sharedState)->getMorsel();
+        auto morsel =
+            ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState)
+                ->getMorsel();
         if (!morsel.hasMoreToOutput()) {
             outputChunk.state->selVector->selectedSize = 0;
             return;
         }
-        auto storageInfoBindData = reinterpret_cast<StorageInfoBindData*>(input.bindData);
+        auto storageInfoBindData =
+            ku_dynamic_cast<TableFuncBindData*, StorageInfoBindData*>(input.bindData);
         auto tableSchema = storageInfoBindData->schema;
         std::string tableType = tableSchema->getTableType() == TableType::NODE ? "NODE" : "REL";
         for (auto columnID = 0u; columnID < sharedState->columns.size(); columnID++) {

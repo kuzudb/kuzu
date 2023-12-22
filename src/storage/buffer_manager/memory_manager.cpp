@@ -18,10 +18,10 @@ MemoryBuffer::~MemoryBuffer() {
     }
 }
 
-MemoryAllocator::MemoryAllocator(BufferManager* bm) : bm{bm} {
+MemoryAllocator::MemoryAllocator(BufferManager* bm, VirtualFileSystem* vfs) : bm{bm} {
     pageSize = BufferPoolConstants::PAGE_256KB_SIZE;
     fh = bm->getBMFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE,
-        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, PAGE_256KB);
+        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs, PAGE_256KB);
 }
 
 MemoryAllocator::~MemoryAllocator() = default;

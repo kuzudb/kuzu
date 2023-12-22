@@ -1,7 +1,6 @@
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
 #include "catalog/rel_table_schema.h"
-#include "common/copier_config/rdf_reader_config.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
@@ -27,7 +26,8 @@ static void appendIndexScan(
 }
 
 static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan) {
-    auto extraInfo = reinterpret_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
+    auto extraInfo = ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRelInfo*>(
+        copyFromInfo->extraInfo.get());
     expression_vector payloads;
     for (auto& column : extraInfo->propertyColumns) {
         payloads.push_back(column);
@@ -38,7 +38,7 @@ static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan
     }
     std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
     // Partitioner for FWD direction rel data.
-    auto relSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
+    auto relSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(copyFromInfo->tableSchema);
     infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->fromOffset, payloads,
         relSchema->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
                                                                  ColumnDataFormat::CSR,
@@ -54,58 +54,84 @@ static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan
     plan.setLastOperator(std::move(partitioner));
 }
 
-static void appendCopyFrom(const BoundCopyFrom& copyFrom, LogicalPlan& plan) {
-    auto copyFromInfo = copyFrom.getInfo();
-    auto op = make_shared<LogicalCopyFrom>(copyFromInfo->copy(),
-        copyFrom.getStatementResult()->getSingleColumnExpr(), plan.getLastOperator());
+static void appendCopyFrom(
+    const BoundCopyFromInfo& info, expression_vector outExprs, LogicalPlan& plan) {
+    auto op =
+        make_shared<LogicalCopyFrom>(info.copy(), std::move(outExprs), plan.getLastOperator());
     op->computeFactorizedSchema();
     plan.setLastOperator(std::move(op));
 }
 
-static void planCopyNode(const BoundCopyFrom& copyFrom, LogicalPlan& plan,
-    catalog::Catalog* catalog, storage::StorageManager* storageManager) {
-    auto copyFromInfo = copyFrom.getInfo();
-    auto scanInfo = copyFromInfo->fileScanInfo.get();
-    auto readerConfig = reinterpret_cast<ScanBindData*>(scanInfo->bindData.get())->config;
-    auto fileType = readerConfig.fileType;
-    if (FileTypeUtils::isRdf(fileType)) {
-        auto extraInfo = reinterpret_cast<RdfReaderConfig*>(readerConfig.extraConfig.get());
-        if (extraInfo->mode == common::RdfReaderMode::RESOURCE) {
-            auto planner = QueryPlanner(*catalog, storageManager);
-            KU_ASSERT(scanInfo->columns.size() == 1);
-            planner.appendDistinct(scanInfo->columns, plan);
-        }
-    }
-    appendCopyFrom(copyFrom, plan);
-}
-
-static void planCopyRel(const BoundCopyFrom& copyFrom, LogicalPlan& plan) {
-    auto copyFromInfo = copyFrom.getInfo();
-    auto scanInfo = copyFromInfo->fileScanInfo.get();
-    auto readerConfig = reinterpret_cast<ScanBindData*>(scanInfo->bindData.get())->config;
-    auto extraInfo = dynamic_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
-    appendIndexScan(IndexLookupInfo::copy(extraInfo->infos), plan);
-    appendPartitioner(copyFromInfo, plan);
-    appendCopyFrom(copyFrom, plan);
-}
-
 std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& statement) {
-    auto& copyFrom = dynamic_cast<const BoundCopyFrom&>(statement);
+    auto& copyFrom = ku_dynamic_cast<const BoundStatement&, const BoundCopyFrom&>(statement);
+    auto outExprs = statement.getStatementResult()->getColumns();
     auto copyFromInfo = copyFrom.getInfo();
-    auto plan = std::make_unique<LogicalPlan>();
-    QueryPlanner::appendScanFile(copyFromInfo->fileScanInfo.get(), *plan);
     auto tableType = copyFromInfo->tableSchema->tableType;
-    if (tableType == TableType::REL) {
-        planCopyRel(copyFrom, *plan);
-    } else {
-        KU_ASSERT(tableType == TableType::NODE);
-        planCopyNode(copyFrom, *plan, catalog, storageManager);
+    switch (tableType) {
+    case TableType::NODE: {
+        return planCopyNodeFrom(copyFromInfo, outExprs);
     }
+    case TableType::REL: {
+        return planCopyRelFrom(copyFromInfo, outExprs);
+    }
+    case TableType::RDF: {
+        return planCopyRdfFrom(copyFromInfo, outExprs);
+    }
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(
+    BoundCopyFromInfo* info, binder::expression_vector results) {
+    auto plan = std::make_unique<LogicalPlan>();
+    auto scanInfo = info->fileScanInfo.get();
+    QueryPlanner::appendScanFile(scanInfo, *plan);
+    appendCopyFrom(*info, results, *plan);
     return plan;
 }
 
+std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(
+    BoundCopyFromInfo* info, binder::expression_vector results) {
+    auto plan = std::make_unique<LogicalPlan>();
+    auto scanInfo = info->fileScanInfo.get();
+    QueryPlanner::appendScanFile(scanInfo, *plan);
+    QueryPlanner(*catalog, storageManager).appendDistinct(scanInfo->columns, *plan);
+    appendCopyFrom(*info, results, *plan);
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(
+    BoundCopyFromInfo* info, binder::expression_vector results) {
+    auto plan = std::make_unique<LogicalPlan>();
+    QueryPlanner::appendScanFile(info->fileScanInfo.get(), *plan);
+    auto extraInfo =
+        ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRelInfo*>(info->extraInfo.get());
+    appendIndexScan(IndexLookupInfo::copy(extraInfo->infos), *plan);
+    appendPartitioner(info, *plan);
+    appendCopyFrom(*info, results, *plan);
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCopyRdfFrom(
+    BoundCopyFromInfo* info, binder::expression_vector results) {
+    auto extraRdfInfo =
+        ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRdfInfo*>(info->extraInfo.get());
+    auto rPlan = planCopyResourceFrom(extraRdfInfo->rInfo.get(), results);
+    auto lPlan = planCopyNodeFrom(extraRdfInfo->lInfo.get(), results);
+    auto rrrPlan = planCopyRelFrom(extraRdfInfo->rrrInfo.get(), results);
+    auto rrlPlan = planCopyRelFrom(extraRdfInfo->rrlInfo.get(), results);
+    auto children = logical_op_vector_t{rrlPlan->getLastOperator(), rrrPlan->getLastOperator(),
+        lPlan->getLastOperator(), rPlan->getLastOperator()};
+    auto resultPlan = std::make_unique<LogicalPlan>();
+    auto op = make_shared<LogicalCopyFrom>(info->copy(), results, children);
+    op->computeFactorizedSchema();
+    resultPlan->setLastOperator(std::move(op));
+    return resultPlan;
+}
+
 std::unique_ptr<LogicalPlan> Planner::planCopyTo(const BoundStatement& statement) {
-    auto& boundCopy = reinterpret_cast<const BoundCopyTo&>(statement);
+    auto& boundCopy = ku_dynamic_cast<const BoundStatement&, const BoundCopyTo&>(statement);
     auto regularQuery = boundCopy.getRegularQuery();
     KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
     auto plan = QueryPlanner(*catalog, storageManager).getBestPlan(*regularQuery);

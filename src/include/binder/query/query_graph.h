@@ -188,5 +188,11 @@ private:
     expression_map<std::unordered_map<std::string, expression_pair>> propertyKeyValMap;
 };
 
+struct BoundGraphPattern {
+    std::unique_ptr<QueryGraphCollection> queryGraphCollection;
+    std::unique_ptr<PropertyKeyValCollection> propertyKeyValCollection;
+    std::shared_ptr<Expression> where;
+};
+
 } // namespace binder
 } // namespace kuzu

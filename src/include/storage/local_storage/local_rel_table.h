@@ -134,6 +134,7 @@ private:
 
 class LocalRelTableData final : public LocalTableData {
     friend class RelTableData;
+    friend class CSRRelTableData;
 
 public:
     LocalRelTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm,

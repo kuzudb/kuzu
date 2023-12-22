@@ -22,7 +22,7 @@ static std::unique_ptr<ScanRelTableInfo> getRelTableScanInfo(TableSchema* tableS
     auto relTable = storageManager.getRelTable(relTableID);
     std::vector<column_id_t> columnIDs;
     for (auto& property : properties) {
-        auto propertyExpression = reinterpret_cast<PropertyExpression*>(property.get());
+        auto propertyExpression = ku_dynamic_cast<Expression*, PropertyExpression*>(property.get());
         columnIDs.push_back(
             propertyExpression->hasPropertyID(relTableID) ?
                 tableSchema->getColumnID(propertyExpression->getPropertyID(relTableID)) :
@@ -36,7 +36,7 @@ static std::unique_ptr<RelTableCollectionScanner> populateRelTableCollectionScan
     const expression_vector& properties, StorageManager& storageManager, const Catalog& catalog) {
     std::vector<std::unique_ptr<ScanRelTableInfo>> scanInfos;
     for (auto relTableID : rel.getTableIDs()) {
-        auto relTableSchema = reinterpret_cast<RelTableSchema*>(
+        auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
             catalog.getTableSchema(&transaction::DUMMY_READ_TRANSACTION, relTableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {

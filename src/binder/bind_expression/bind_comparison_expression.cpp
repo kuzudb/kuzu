@@ -26,15 +26,15 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     for (auto& child : children) {
         childrenTypes.push_back(&child->dataType);
     }
-    auto function = reinterpret_cast<function::ScalarFunction*>(
-        builtInFunctions->matchScalarFunction(functionName, childrenTypes));
+    auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
+        builtInFunctions->matchFunction(functionName, childrenTypes));
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         childrenAfterCast.push_back(
             implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
     }
-    auto bindData =
-        std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
+    auto bindData = std::make_unique<function::FunctionBindData>(
+        std::make_unique<LogicalType>(function->returnTypeID));
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),

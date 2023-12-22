@@ -9,6 +9,7 @@
 #include "common/exception/buffer_manager.h"
 #include <errhandlingapi.h>
 #include <handleapi.h>
+#include <io.h>
 #include <memoryapi.h>
 #else
 #include <sys/mman.h>
@@ -273,7 +274,7 @@ std::unique_ptr<function::TableFuncBindData> NpyScanFunction::bindFunc(
         reader->validate(*resultColumnTypes[i], numRows);
     }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->mm, scanInput->config);
+        std::move(resultColumnNames), scanInput->mm, scanInput->config, scanInput->vfs);
 }
 
 std::unique_ptr<function::TableFuncSharedState> NpyScanFunction::initSharedState(
@@ -311,8 +312,7 @@ static std::unique_ptr<LogicalType> bindFixedListType(
     }
     auto childShape = std::vector<size_t>{shape.begin() + 1, shape.end()};
     auto childType = bindFixedListType(childShape, typeID);
-    auto extraInfo = std::make_unique<FixedListTypeInfo>(std::move(childType), (uint32_t)shape[0]);
-    return std::make_unique<LogicalType>(LogicalTypeID::FIXED_LIST, std::move(extraInfo));
+    return LogicalType::FIXED_LIST(std::move(childType), (uint32_t)shape[0]);
 }
 
 void NpyScanFunction::bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,

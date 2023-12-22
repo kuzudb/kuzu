@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "common/file_utils.h"
+#include "common/file_system/file_info.h"
 
 namespace kuzu {
 namespace common {
@@ -31,7 +31,7 @@ void BufferedFileWriter::write(const uint8_t* data, uint64_t size) {
 }
 
 void BufferedFileWriter::flush() {
-    FileUtils::writeToFile(fileInfo.get(), buffer.get(), bufferOffset, fileOffset);
+    fileInfo->writeFile(buffer.get(), bufferOffset, fileOffset);
     fileOffset += bufferOffset;
     bufferOffset = 0;
     memset(buffer.get(), 0, BUFFER_SIZE);
@@ -59,7 +59,7 @@ void BufferedFileReader::read(uint8_t* data, uint64_t size) {
 }
 
 void BufferedFileReader::readNextPage() {
-    FileUtils::readFromFile(fileInfo.get(), buffer.get(), BUFFER_SIZE, fileOffset);
+    fileInfo->readFromFile(buffer.get(), BUFFER_SIZE, fileOffset);
     fileOffset += BUFFER_SIZE;
     bufferOffset = 0;
 }

@@ -25,16 +25,8 @@ std::unique_ptr<FunctionBindData> MapCreationFunctions::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
     auto keyType = VarListType::getChildType(&arguments[0]->dataType);
     auto valueType = VarListType::getChildType(&arguments[1]->dataType);
-    std::vector<std::unique_ptr<StructField>> structFields;
-    structFields.emplace_back(std::make_unique<StructField>(
-        InternalKeyword::MAP_KEY, std::make_unique<LogicalType>(*keyType)));
-    structFields.emplace_back(std::make_unique<StructField>(
-        InternalKeyword::MAP_VALUE, std::make_unique<LogicalType>(*valueType)));
-    auto mapStructType = std::make_unique<LogicalType>(
-        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(structFields)));
-    auto resultType = LogicalType(
-        LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(mapStructType)));
-    return std::make_unique<FunctionBindData>(resultType);
+    auto resultType = LogicalType::MAP(*keyType, *valueType);
+    return std::make_unique<FunctionBindData>(std::move(resultType));
 }
 
 function_set MapExtractFunctions::getFunctionSet() {
@@ -56,14 +48,12 @@ static void validateKeyType(const std::shared_ptr<binder::Expression>& mapExpres
 std::unique_ptr<FunctionBindData> MapExtractFunctions::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::Function* function) {
     validateKeyType(arguments[0], arguments[1]);
-    auto scalarFunction = reinterpret_cast<ScalarFunction*>(function);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     scalarFunction->execFunc =
         ListFunction::getBinaryListExecFuncSwitchRight<MapExtract, list_entry_t>(
             arguments[1]->getDataType());
-    auto returnListInfo = std::make_unique<VarListTypeInfo>(
-        std::make_unique<LogicalType>(*MapType::getValueType(&arguments[0]->dataType)));
-    return std::make_unique<FunctionBindData>(
-        LogicalType(LogicalTypeID::VAR_LIST, std::move(returnListInfo)));
+    return std::make_unique<FunctionBindData>(LogicalType::VAR_LIST(
+        std::make_unique<LogicalType>(*MapType::getValueType(&arguments[0]->dataType))));
 }
 
 function_set MapKeysFunctions::getFunctionSet() {
@@ -78,10 +68,8 @@ function_set MapKeysFunctions::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> MapKeysFunctions::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
-    auto returnListInfo = std::make_unique<VarListTypeInfo>(
-        std::make_unique<LogicalType>(*MapType::getKeyType(&arguments[0]->dataType)));
-    return std::make_unique<FunctionBindData>(
-        LogicalType(LogicalTypeID::VAR_LIST, std::move(returnListInfo)));
+    return std::make_unique<FunctionBindData>(LogicalType::VAR_LIST(
+        std::make_unique<LogicalType>(*MapType::getKeyType(&arguments[0]->dataType))));
 }
 
 function_set MapValuesFunctions::getFunctionSet() {
@@ -96,10 +84,8 @@ function_set MapValuesFunctions::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> MapValuesFunctions::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
-    auto returnListInfo = std::make_unique<VarListTypeInfo>(
-        std::make_unique<LogicalType>(*MapType::getValueType(&arguments[0]->dataType)));
-    return std::make_unique<FunctionBindData>(
-        LogicalType(LogicalTypeID::VAR_LIST, std::move(returnListInfo)));
+    return std::make_unique<FunctionBindData>(LogicalType::VAR_LIST(
+        std::make_unique<LogicalType>(*MapType::getValueType(&arguments[0]->dataType))));
 }
 
 } // namespace function

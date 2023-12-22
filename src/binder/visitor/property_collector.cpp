@@ -30,27 +30,29 @@ void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
             properties.insert(rel->getInternalIDProperty());
         }
     }
-    if (matchClause.hasWherePredicate()) {
-        collectPropertyExpressions(matchClause.getWherePredicate());
+    if (matchClause.hasPredicate()) {
+        collectPropertyExpressions(matchClause.getPredicate());
     }
 }
 
 void PropertyCollector::visitUnwind(const BoundReadingClause& readingClause) {
     auto& unwindClause = (BoundUnwindClause&)readingClause;
-    collectPropertyExpressions(unwindClause.getExpression());
+    collectPropertyExpressions(unwindClause.getInExpr());
 }
 
 void PropertyCollector::visitLoadFrom(const BoundReadingClause& readingClause) {
-    auto& loadFromClause = reinterpret_cast<const BoundLoadFrom&>(readingClause);
-    if (loadFromClause.hasWherePredicate()) {
-        collectPropertyExpressions(loadFromClause.getWherePredicate());
+    auto& loadFromClause =
+        ku_dynamic_cast<const BoundReadingClause&, const BoundLoadFrom&>(readingClause);
+    if (loadFromClause.hasPredicate()) {
+        collectPropertyExpressions(loadFromClause.getPredicate());
     }
 }
 
 void PropertyCollector::visitInQueryCall(const BoundReadingClause& readingClause) {
-    auto& inQueryCallClause = reinterpret_cast<const BoundInQueryCall&>(readingClause);
-    if (inQueryCallClause.hasWherePredicate()) {
-        collectPropertyExpressions(inQueryCallClause.getWherePredicate());
+    auto& inQueryCallClause =
+        ku_dynamic_cast<const BoundReadingClause&, const BoundInQueryCall&>(readingClause);
+    if (inQueryCallClause.hasPredicate()) {
+        collectPropertyExpressions(inQueryCallClause.getPredicate());
     }
 }
 

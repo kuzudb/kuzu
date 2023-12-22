@@ -33,11 +33,14 @@ struct CopyRelInfo {
     inline std::unique_ptr<CopyRelInfo> copy() { return std::make_unique<CopyRelInfo>(*this); }
 };
 
-class CopyRel;
-class CopyRelSharedState {
-    friend class CopyRel;
+struct CopyRelSharedState {
+    common::table_id_t tableID;
+    storage::RelTable* table;
+    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
+    storage::RelsStoreStats* relsStatistics;
+    std::shared_ptr<FactorizedTable> fTable;
+    std::atomic<common::row_idx_t> numRows;
 
-public:
     CopyRelSharedState(common::table_id_t tableID, storage::RelTable* table,
         std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
         storage::RelsStoreStats* relsStatistics, storage::MemoryManager* memoryManager);
@@ -47,16 +50,9 @@ public:
         numRows.fetch_add(numRowsToIncrement);
     }
     inline void updateRelsStatistics() { relsStatistics->setNumTuplesForTable(tableID, numRows); }
-
-    inline std::shared_ptr<FactorizedTable> getFTable() { return fTable; }
-
-private:
-    common::table_id_t tableID;
-    storage::RelTable* table;
-    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
-    storage::RelsStoreStats* relsStatistics;
-    std::shared_ptr<FactorizedTable> fTable;
-    std::atomic<common::row_idx_t> numRows;
+    inline common::offset_t getNextRelOffset(transaction::Transaction* transaction) const {
+        return relsStatistics->getRelStatistics(tableID, transaction)->getNextRelOffset();
+    }
 };
 
 struct CopyRelLocalState {
@@ -75,6 +71,8 @@ public:
           info{std::move(info)}, partitionerSharedState{std::move(partitionerSharedState)},
           sharedState{std::move(sharedState)} {}
 
+    inline std::shared_ptr<CopyRelSharedState> getSharedState() const { return sharedState; }
+
     inline bool isSource() const final { return true; }
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
@@ -90,14 +88,16 @@ public:
 
 private:
     inline bool isCopyAllowed() const {
-        return sharedState->relsStatistics
-                   ->getRelStatistics(
-                       info->schema->tableID, transaction::Transaction::getDummyReadOnlyTrx().get())
-                   ->getNextRelOffset() == 0;
+        return sharedState->getNextRelOffset(
+                   transaction::Transaction::getDummyReadOnlyTrx().get()) == 0;
     }
 
-    static void populateCSROffsets(storage::ColumnChunk* csrOffsetChunk,
-        common::DataChunkCollection* partition, common::vector_idx_t offsetVectorIdx);
+    void prepareCSRNodeGroup(common::DataChunkCollection* partition,
+        common::vector_idx_t offsetVectorIdx, common::offset_t numNodes);
+
+    static void populateCSROffsetsAndLengths(storage::CSRNodeGroup* csrNodeGroup,
+        common::offset_t numNodes, common::DataChunkCollection* partition,
+        common::vector_idx_t offsetVectorIdx);
     static void setOffsetToWithinNodeGroup(
         common::ValueVector* vector, common::offset_t startOffset);
     static void setOffsetFromCSROffsets(

@@ -1,6 +1,7 @@
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_table.h"
+#include "common/cast.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_drop_table.h"
@@ -19,7 +20,8 @@ std::unique_ptr<LogicalPlan> Planner::getSimplePlan(std::shared_ptr<LogicalOpera
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateTable(const BoundStatement& statement) {
-    auto& creatTable = reinterpret_cast<const BoundCreateTable&>(statement);
+    auto& creatTable =
+        common::ku_dynamic_cast<const BoundStatement&, const BoundCreateTable&>(statement);
     auto info = creatTable.getInfo();
     auto logicalCreateTable = make_shared<LogicalCreateTable>(
         info->tableName, info->copy(), statement.getStatementResult()->getSingleColumnExpr());
@@ -27,14 +29,15 @@ std::unique_ptr<LogicalPlan> Planner::planCreateTable(const BoundStatement& stat
 }
 
 std::unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statement) {
-    auto& dropTable = reinterpret_cast<const BoundDropTable&>(statement);
+    auto& dropTable =
+        common::ku_dynamic_cast<const BoundStatement&, const BoundDropTable&>(statement);
     auto logicalDropTable = make_shared<LogicalDropTable>(dropTable.getTableID(),
         dropTable.getTableName(), statement.getStatementResult()->getSingleColumnExpr());
     return getSimplePlan(std::move(logicalDropTable));
 }
 
 std::unique_ptr<LogicalPlan> Planner::planAlter(const BoundStatement& statement) {
-    auto& alter = reinterpret_cast<const BoundAlter&>(statement);
+    auto& alter = common::ku_dynamic_cast<const BoundStatement&, const BoundAlter&>(statement);
     auto info = alter.getInfo();
     auto logicalAlter = std::make_shared<LogicalAlter>(
         info->copy(), info->tableName, statement.getStatementResult()->getSingleColumnExpr());

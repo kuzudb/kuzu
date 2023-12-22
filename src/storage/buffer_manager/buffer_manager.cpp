@@ -300,7 +300,7 @@ void BufferManager::cachePageIntoFrame(
     auto pageState = fileHandle.getPageState(pageIdx);
     pageState->clearDirty();
     if (pageReadPolicy == PageReadPolicy::READ_PAGE) {
-        FileUtils::readFromFile(fileHandle.getFileInfo(), (void*)getFrame(fileHandle, pageIdx),
+        fileHandle.getFileInfo()->readFromFile((void*)getFrame(fileHandle, pageIdx),
             fileHandle.getPageSize(), pageIdx * fileHandle.getPageSize());
     }
 }
@@ -308,8 +308,8 @@ void BufferManager::cachePageIntoFrame(
 void BufferManager::flushIfDirtyWithoutLock(BMFileHandle& fileHandle, page_idx_t pageIdx) {
     auto pageState = fileHandle.getPageState(pageIdx);
     if (pageState->isDirty()) {
-        FileUtils::writeToFile(fileHandle.getFileInfo(), getFrame(fileHandle, pageIdx),
-            fileHandle.getPageSize(), pageIdx * fileHandle.getPageSize());
+        fileHandle.getFileInfo()->writeFile(getFrame(fileHandle, pageIdx), fileHandle.getPageSize(),
+            pageIdx * fileHandle.getPageSize());
     }
 }
 

@@ -51,18 +51,26 @@ private:
     common::row_idx_t numRows;
 };
 
+struct CSRHeaderChunks {
+    std::unique_ptr<ColumnChunk> offset;
+    std::unique_ptr<ColumnChunk> length;
+
+    void init(bool enableCompression);
+};
+
 class CSRNodeGroup : public NodeGroup {
 public:
     CSRNodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression)
-        // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
-        // should be resized after csr offset calculation (e.g., during CopyRel).
-        : NodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
-        csrOffsetChunk =
-            ColumnChunkFactory::createColumnChunk(common::LogicalType::INT64(), enableCompression);
-    }
+        bool enableCompression);
 
-    inline ColumnChunk* getCSROffsetChunk() { return csrOffsetChunk.get(); }
+    inline ColumnChunk* getCSROffsetChunk() const {
+        KU_ASSERT(csrHeaderChunks.offset != nullptr);
+        return csrHeaderChunks.offset.get();
+    }
+    inline ColumnChunk* getCSRLengthChunk() const {
+        KU_ASSERT(csrHeaderChunks.length != nullptr);
+        return csrHeaderChunks.length.get();
+    }
 
     inline void writeToColumnChunk(common::vector_idx_t chunkIdx, common::vector_idx_t vectorIdx,
         common::DataChunk* dataChunk, common::ValueVector* offsetVector) override {
@@ -71,7 +79,7 @@ public:
     }
 
 private:
-    std::unique_ptr<ColumnChunk> csrOffsetChunk;
+    CSRHeaderChunks csrHeaderChunks;
 };
 
 struct NodeGroupFactory {

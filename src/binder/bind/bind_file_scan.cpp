@@ -3,6 +3,7 @@
 #include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
 
@@ -18,7 +19,7 @@ namespace binder {
  */
 FileType Binder::bindFileType(const std::string& filePath) {
     std::filesystem::path fileName(filePath);
-    auto extension = FileUtils::getFileExtension(fileName);
+    auto extension = vfs->getFileExtension(fileName);
     auto fileType = FileTypeUtils::getFileTypeFromExtension(extension);
     return fileType;
 }
@@ -38,7 +39,7 @@ FileType Binder::bindFileType(const std::vector<std::string>& filePaths) {
 std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {
     std::vector<std::string> boundFilePaths;
     for (auto& filePath : filePaths) {
-        auto globbedFilePaths = FileUtils::globFilePath(filePath);
+        auto globbedFilePaths = vfs->glob(filePath);
         if (globbedFilePaths.empty()) {
             throw BinderException{
                 stringFormat("No file found that matches the pattern: {}.", filePath)};

@@ -37,7 +37,7 @@ VarListColumnChunk::VarListColumnChunk(
 void VarListColumnChunk::append(
     ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     nullChunk->append(other->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
-    auto otherListChunk = reinterpret_cast<VarListColumnChunk*>(other);
+    auto otherListChunk = ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(other);
     auto offsetInDataChunkToAppend = varListDataColumnChunk->getNumValues();
     for (auto i = 0u; i < numValuesToAppend; i++) {
         offsetInDataChunkToAppend += otherListChunk->getListLen(startPosInOtherChunk + i);

@@ -49,6 +49,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::DUMMY_SCAN: {
         return "DUMMY_SCAN";
     }
+    case LogicalOperatorType::EMPTY_RESULT: {
+        return "EMPTY_RESULT";
+    }
     case LogicalOperatorType::EXTEND: {
         return "EXTEND";
     }
@@ -164,7 +167,7 @@ LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
 }
 
 LogicalOperator::LogicalOperator(
-    LogicalOperatorType operatorType, const std::vector<std::shared_ptr<LogicalOperator>>& children)
+    LogicalOperatorType operatorType, const logical_op_vector_t& children)
     : operatorType{operatorType} {
     for (auto& child : children) {
         this->children.push_back(child);
@@ -182,6 +185,15 @@ std::string LogicalOperator::toString(uint64_t depth) const {
         for (auto& child : children) {
             result += "\n" + padding + "CHILD:\n" + child->toString(depth + 1);
         }
+    }
+    return result;
+}
+
+logical_op_vector_t LogicalOperator::copy(const logical_op_vector_t& ops) {
+    logical_op_vector_t result;
+    result.reserve(ops.size());
+    for (auto& op : ops) {
+        result.push_back(op->copy());
     }
     return result;
 }

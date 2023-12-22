@@ -10,9 +10,10 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-RelsStoreStats::RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
-    : TablesStatistics{metadataFH, bufferManager, wal} {
-    readFromFile(wal->getDirectory());
+RelsStoreStats::RelsStoreStats(
+    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, VirtualFileSystem* vfs)
+    : TablesStatistics{metadataFH, bufferManager, wal, vfs} {
+    readFromFile();
 }
 
 // We should only call this function after we call setNumRelsPerDirectionBoundTableID.
@@ -79,6 +80,15 @@ MetadataDAHInfo* RelsStoreStats::getCSROffsetMetadataDAHInfo(
     }
     auto tableStats = getRelStatistics(tableID, transaction);
     return tableStats->getCSROffsetMetadataDAHInfo(direction);
+}
+
+MetadataDAHInfo* RelsStoreStats::getCSRLengthMetadataDAHInfo(
+    Transaction* transaction, table_id_t tableID, RelDataDirection direction) {
+    if (transaction->isWriteTransaction()) {
+        initTableStatisticsForWriteTrx();
+    }
+    auto tableStats = getRelStatistics(tableID, transaction);
+    return tableStats->getCSRLengthMetadataDAHInfo(direction);
 }
 
 MetadataDAHInfo* RelsStoreStats::getAdjMetadataDAHInfo(

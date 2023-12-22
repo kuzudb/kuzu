@@ -75,7 +75,8 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const BoundStatem
 }
 
 std::unique_ptr<LogicalPlan> Planner::planStandaloneCall(const BoundStatement& statement) {
-    auto& standaloneCallClause = reinterpret_cast<const BoundStandaloneCall&>(statement);
+    auto& standaloneCallClause =
+        ku_dynamic_cast<const BoundStatement&, const BoundStandaloneCall&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto logicalStandaloneCall = make_shared<LogicalStandaloneCall>(
         standaloneCallClause.getOption(), standaloneCallClause.getOptionValue());
@@ -84,7 +85,8 @@ std::unique_ptr<LogicalPlan> Planner::planStandaloneCall(const BoundStatement& s
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCommentOn(const BoundStatement& statement) {
-    auto& commentOnClause = reinterpret_cast<const BoundCommentOn&>(statement);
+    auto& commentOnClause =
+        ku_dynamic_cast<const BoundStatement&, const BoundCommentOn&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto logicalCommentOn = make_shared<LogicalCommentOn>(
         statement.getStatementResult()->getSingleColumnExpr(), commentOnClause.getTableID(),
@@ -94,7 +96,7 @@ std::unique_ptr<LogicalPlan> Planner::planCommentOn(const BoundStatement& statem
 }
 
 std::unique_ptr<LogicalPlan> Planner::planExplain(const BoundStatement& statement) {
-    auto& explain = reinterpret_cast<const BoundExplain&>(statement);
+    auto& explain = ku_dynamic_cast<const BoundStatement&, const BoundExplain&>(statement);
     auto statementToExplain = explain.getStatementToExplain();
     auto plan = getBestPlan(*statementToExplain);
     auto logicalExplain = make_shared<LogicalExplain>(plan->getLastOperator(),
@@ -105,7 +107,7 @@ std::unique_ptr<LogicalPlan> Planner::planExplain(const BoundStatement& statemen
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateMacro(const BoundStatement& statement) {
-    auto& createMacro = reinterpret_cast<const BoundCreateMacro&>(statement);
+    auto& createMacro = ku_dynamic_cast<const BoundStatement&, const BoundCreateMacro&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto logicalCreateMacro =
         make_shared<LogicalCreateMacro>(statement.getStatementResult()->getSingleColumnExpr(),
@@ -127,7 +129,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllQueryPlans(
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllExplainPlans(
     const BoundStatement& statement) {
-    auto& explainStatement = reinterpret_cast<const BoundExplain&>(statement);
+    auto& explainStatement = ku_dynamic_cast<const BoundStatement&, const BoundExplain&>(statement);
     auto statementToExplain = explainStatement.getStatementToExplain();
     auto plans = getAllPlans(*statementToExplain);
     for (auto& plan : plans) {

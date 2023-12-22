@@ -38,8 +38,8 @@ public:
     }
 
     void TearDown() override {
-        FileUtils::removeDir(databasePath);
-        FileUtils::removeDir(parquetTempDatasetPath);
+        std::filesystem::remove_all(databasePath);
+        std::filesystem::remove_all(parquetTempDatasetPath);
     }
 
     void TestBody() override { runTest(testStatements, checkpointWaitTimeout, connNames); }
@@ -99,7 +99,7 @@ void scanTestFiles(const std::string& path) {
         return;
     }
     for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
-        if (!entry.is_regular_file() || FileUtils::getFileExtension(entry) != ".test")
+        if (!entry.is_regular_file() || std::filesystem::path(entry).extension() != ".test")
             continue;
         parseAndRegisterTestGroup(entry.path().string(), true);
     }
@@ -121,7 +121,7 @@ void checkGtestParams(int argc, char** argv) {
     if (argc > 1) {
         std::string argument = argv[1];
         if (argument == "--gtest_list_tests") {
-            FileUtils::removeFileIfExists(TestHelper::getTestListFile());
+            std::filesystem::remove_all(TestHelper::getTestListFile());
             scanTestFiles(TestHelper::appendKuzuRootPath(TestHelper::E2E_TEST_FILES_DIRECTORY));
         }
         if (argument.starts_with("--gtest_filter=")) {
@@ -140,8 +140,8 @@ int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     if (argc > 1) {
         auto path = TestHelper::appendKuzuRootPath(
-            FileUtils::joinPath(TestHelper::E2E_TEST_FILES_DIRECTORY, argv[1]));
-        if (!FileUtils::fileOrPathExists(path)) {
+            (std::filesystem::path(TestHelper::E2E_TEST_FILES_DIRECTORY) / argv[1]).string());
+        if (!std::filesystem::exists(path)) {
             throw TestException("Test path not exists [" + path + "].");
         }
         scanTestFiles(path);

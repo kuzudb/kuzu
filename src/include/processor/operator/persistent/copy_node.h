@@ -18,10 +18,10 @@ class CopyNodeSharedState {
 
 public:
     CopyNodeSharedState()
-        : pkIndex{nullptr}, readerSharedState{nullptr}, distinctSharedState{nullptr},
+        : indexBuilder{nullptr}, readerSharedState{nullptr}, distinctSharedState{nullptr},
           currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {};
 
-    void init();
+    void init(common::VirtualFileSystem* vfs);
 
     inline common::offset_t getNextNodeGroupIdx() {
         std::unique_lock<std::mutex> lck{mtx};
@@ -35,6 +35,15 @@ public:
 private:
     inline common::offset_t getNextNodeGroupIdxWithoutLock() { return currentNodeGroupIdx++; }
 
+    void calculateNumTuples();
+
+public:
+    std::shared_ptr<storage::PrimaryKeyIndexBuilder> indexBuilder;
+    // Number of tuples loaded.
+    uint64_t numTuples;
+    // Table storing result message.
+    std::shared_ptr<FactorizedTable> fTable;
+
 private:
     std::mutex mtx;
     storage::WAL* wal;
@@ -42,14 +51,10 @@ private:
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     // Primary key info
     common::vector_idx_t pkColumnIdx;
-    std::unique_ptr<common::LogicalType> pkType;
-    std::unique_ptr<storage::PrimaryKeyIndexBuilder> pkIndex;
+    common::LogicalType pkType;
 
     InQueryCallSharedState* readerSharedState;
     HashAggregateSharedState* distinctSharedState;
-
-    // Table storing result message.
-    std::shared_ptr<FactorizedTable> fTable;
 
     uint64_t currentNodeGroupIdx;
     // The sharedNodeGroup is to accumulate left data within local node groups in CopyNode ops.
@@ -88,6 +93,8 @@ public:
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child),
               id, paramsString},
           sharedState{std::move(sharedState)}, info{std::move(info)} {}
+
+    inline std::shared_ptr<CopyNodeSharedState> getSharedState() const { return sharedState; }
 
     inline bool canParallel() const final { return !info->containsSerial; }
 

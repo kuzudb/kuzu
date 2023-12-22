@@ -5,12 +5,17 @@
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
+namespace common {
+class FileSystem;
+}
+
 namespace function {
 
 struct TableFuncBindData {
     common::logical_types_t columnTypes;
     std::vector<std::string> columnNames;
 
+    TableFuncBindData() = default;
     TableFuncBindData(common::logical_types_t columnTypes, std::vector<std::string> columnNames)
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)} {}
     TableFuncBindData(const TableFuncBindData& other)
@@ -25,13 +30,15 @@ struct TableFuncBindData {
 struct ScanBindData : public TableFuncBindData {
     storage::MemoryManager* mm;
     common::ReaderConfig config;
+    common::VirtualFileSystem* vfs;
 
     ScanBindData(common::logical_types_t columnTypes, std::vector<std::string> columnNames,
-        storage::MemoryManager* mm, const common::ReaderConfig& config)
-        : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, mm{mm}, config{
-                                                                                         config} {}
+        storage::MemoryManager* mm, const common::ReaderConfig& config,
+        common::VirtualFileSystem* vfs)
+        : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, mm{mm}, config{config},
+          vfs{vfs} {}
     ScanBindData(const ScanBindData& other)
-        : TableFuncBindData{other}, mm{other.mm}, config{other.config} {}
+        : TableFuncBindData{other}, mm{other.mm}, config{other.config}, vfs{other.vfs} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<ScanBindData>(*this);

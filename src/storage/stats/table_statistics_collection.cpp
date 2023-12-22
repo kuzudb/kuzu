@@ -1,5 +1,8 @@
 #include "storage/stats/table_statistics_collection.h"
 
+#include <fcntl.h>
+
+#include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -11,19 +14,20 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-TablesStatistics::TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
-    : metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal} {
+TablesStatistics::TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    common::VirtualFileSystem* vfs)
+    : metadataFH{metadataFH}, bufferManager{bufferManager}, vfs{vfs}, wal{wal} {
     tablesStatisticsContentForReadOnlyTrx = std::make_unique<TablesStatisticsContent>();
 }
 
-void TablesStatistics::readFromFile(const std::string& directory) {
-    readFromFile(directory, FileVersionType::ORIGINAL);
+void TablesStatistics::readFromFile() {
+    readFromFile(FileVersionType::ORIGINAL);
 }
 
-void TablesStatistics::readFromFile(const std::string& directory, FileVersionType fileVersionType) {
-    auto filePath = getTableStatisticsFilePath(directory, fileVersionType);
+void TablesStatistics::readFromFile(FileVersionType fileVersionType) {
+    auto filePath = getTableStatisticsFilePath(wal->getDirectory(), fileVersionType);
     auto deser =
-        Deserializer(std::make_unique<BufferedFileReader>(FileUtils::openFile(filePath, O_RDONLY)));
+        Deserializer(std::make_unique<BufferedFileReader>(vfs->openFile(filePath, O_RDONLY)));
     deser.deserializeUnorderedMap(tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable);
 }
 
@@ -31,7 +35,7 @@ void TablesStatistics::saveToFile(const std::string& directory, FileVersionType 
     transaction::TransactionType transactionType) {
     auto filePath = getTableStatisticsFilePath(directory, fileVersionType);
     auto ser = Serializer(
-        std::make_unique<BufferedFileWriter>(FileUtils::openFile(filePath, O_WRONLY | O_CREAT)));
+        std::make_unique<BufferedFileWriter>(vfs->openFile(filePath, O_WRONLY | O_CREAT)));
     auto& tablesStatisticsContent = (transactionType == transaction::TransactionType::READ_ONLY ||
                                         tablesStatisticsContentForWriteTrx == nullptr) ?
                                         tablesStatisticsContentForReadOnlyTrx :

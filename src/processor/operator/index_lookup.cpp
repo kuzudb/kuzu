@@ -15,7 +15,7 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     }
     for (auto& info : infos) {
         KU_ASSERT(info);
-        indexLookup(context->clientContext->getTx(), *info);
+        lookup(context->clientContext->getTx(), *info);
     }
     return true;
 }
@@ -30,7 +30,14 @@ std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
         std::move(copiedInfos), children[0]->clone(), getOperatorID(), paramsString);
 }
 
-void IndexLookup::indexLookup(transaction::Transaction* transaction, const IndexLookupInfo& info) {
+void IndexLookup::setCopyNodeSharedState(std::shared_ptr<CopyNodeSharedState> sharedState) {
+    for (auto& info : infos) {
+        KU_ASSERT(info->copyNodeSharedState == nullptr);
+        info->copyNodeSharedState = sharedState;
+    }
+}
+
+void IndexLookup::lookup(transaction::Transaction* transaction, const IndexLookupInfo& info) {
     auto keyVector = resultSet->getValueVector(info.keyVectorPos).get();
     checkNullKeys(keyVector);
     auto resultVector = resultSet->getValueVector(info.resultVectorPos).get();
@@ -58,20 +65,45 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
     auto numKeys = keyVector->state->selVector->selectedSize;
     switch (info.pkDataType->getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
-        for (auto i = 0u; i < numKeys; i++) {
-            auto pos = keyVector->state->selVector->selectedPositions[i];
-            auto key = keyVector->getValue<int64_t>(pos);
-            if (!info.pkIndex->lookup(transaction, key, offsets[i])) {
-                throw RuntimeException(ExceptionMessage::nonExistPKException(std::to_string(key)));
+        if (info.copyNodeSharedState == nullptr) {
+            for (auto i = 0u; i < numKeys; i++) {
+                auto pos = keyVector->state->selVector->selectedPositions[i];
+                auto key = keyVector->getValue<int64_t>(pos);
+                if (!info.index->lookup(transaction, key, offsets[i])) {
+                    throw RuntimeException(
+                        ExceptionMessage::nonExistPKException(std::to_string(key)));
+                }
+            }
+        } else {
+            for (auto i = 0u; i < numKeys; i++) {
+                auto pos = keyVector->state->selVector->selectedPositions[i];
+                auto key = keyVector->getValue<int64_t>(pos);
+                if (!info.copyNodeSharedState->indexBuilder->lookup(key, offsets[i])) {
+                    throw RuntimeException(
+                        ExceptionMessage::nonExistPKException(std::to_string(key)));
+                }
             }
         }
     } break;
     case LogicalTypeID::STRING: {
-        for (auto i = 0u; i < numKeys; i++) {
-            auto key =
-                keyVector->getValue<ku_string_t>(keyVector->state->selVector->selectedPositions[i]);
-            if (!info.pkIndex->lookup(transaction, key.getAsString().c_str(), offsets[i])) {
-                throw RuntimeException(ExceptionMessage::nonExistPKException(key.getAsString()));
+        if (info.copyNodeSharedState == nullptr) {
+            for (auto i = 0u; i < numKeys; i++) {
+                auto key = keyVector->getValue<ku_string_t>(
+                    keyVector->state->selVector->selectedPositions[i]);
+                if (!info.index->lookup(transaction, key.getAsString().c_str(), offsets[i])) {
+                    throw RuntimeException(
+                        ExceptionMessage::nonExistPKException(key.getAsString()));
+                }
+            }
+        } else {
+            for (auto i = 0u; i < numKeys; i++) {
+                auto key = keyVector->getValue<ku_string_t>(
+                    keyVector->state->selVector->selectedPositions[i]);
+                if (!info.copyNodeSharedState->indexBuilder->lookup(
+                        key.getAsString().c_str(), offsets[i])) {
+                    throw RuntimeException(
+                        ExceptionMessage::nonExistPKException(key.getAsString()));
+                }
             }
         }
     } break;

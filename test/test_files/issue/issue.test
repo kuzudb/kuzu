@@ -173,3 +173,144 @@ foo
 -STATEMENT OPTIONAL MATCH (b {id: "non existent id"})-[r]->(c) RETURN b is NULL, r is NULL, c is NULL;
 ---- 1
 True|True|True
+
+-CASE 2578
+-STATEMENT CREATE NODE TABLE T(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE CHILD_OF(FROM T TO T);
+---- ok
+-STATEMENT CREATE (t1:T {id: "t1"}),
+ (t11:T {id: "t11"}),
+ (t12:T {id: "t12"}),
+ (t13:T {id: "t13"}),
+ (t111:T {id: "t111"}),
+ (t112:T {id: "t112"}),
+ (t1111:T {id: "t1111"}),
+ (t2:T {id: "t2"}),
+ (t21:T {id: "t21"}),
+ (t22:T {id: "t22"}),
+ (t3:T {id: "t3"}),
+ (t1111)-[:CHILD_OF]->(t111),
+ (t111)-[:CHILD_OF]->(t11),
+ (t112)-[:CHILD_OF]->(t11),
+ (t11)-[:CHILD_OF]->(t1),
+ (t12)-[:CHILD_OF]->(t1),
+ (t13)-[:CHILD_OF]->(t1),
+ (t21)-[:CHILD_OF]->(t2),
+ (t22)-[:CHILD_OF]->(t2);
+---- ok
+-STATEMENT WITH "t1" as parentid
+           MATCH p = (t1:T)<-[e:CHILD_OF*0..1]-(t0:T)
+           WHERE CASE
+             WHEN parentid IS NULL THEN NOT EXISTS {MATCH (t1)-[:CHILD_OF]->(:T)}
+             ELSE EXISTS {MATCH (t1)-[:CHILD_OF]->(:T {id: parentid})}
+           END
+           AND (NOT EXISTS {MATCH (:T)-[:CHILD_OF]->(t0)} OR length(e) = 1)
+           RETURN properties(nodes(p),'id');
+---- 4
+[t11,t111]
+[t11,t112]
+[t12]
+[t13]
+-STATEMENT WITH NULL as parentid
+           MATCH p = (t1:T)<-[e:CHILD_OF*0..1]-(t0:T)
+           WHERE CASE
+             WHEN parentid IS NULL THEN NOT EXISTS {MATCH (t1)-[:CHILD_OF]->(:T)}
+             ELSE EXISTS {MATCH (t1)-[:CHILD_OF]->(:T {id: parentid})}
+           END
+           AND (NOT EXISTS {MATCH (:T)-[:CHILD_OF]->(t0)} OR length(e) = 1)
+           RETURN properties(nodes(p),'id');
+---- 6
+[t1,t11]
+[t1,t12]
+[t1,t13]
+[t2,t21]
+[t2,t22]
+[t3]
+
+
+-CASE 2587
+-STATEMENT CREATE NODE TABLE T (id STRING, descr STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE (:T {id: "foo"});
+---- ok
+-STATEMENT CREATE (:T {id: "123456789012"});
+---- ok
+-STATEMENT CREATE (:T {id: "bar", descr: "fe38f9dc-f761-4184-8b8b-ec9a1b5ffb83"});
+---- ok
+-STATEMENT CREATE (:T {id: "ge38f9dc-f751-4174-8b8b-ec9a1b6gab83"});
+---- ok
+-STATEMENT CREATE (:T {id: "1234567890123"});
+---- ok
+-STATEMENT MATCH (t:T) RETURN t.*;
+---- 5
+foo|
+123456789012|
+bar|fe38f9dc-f761-4184-8b8b-ec9a1b5ffb83
+ge38f9dc-f751-4174-8b8b-ec9a1b6gab83|
+1234567890123|
+
+-CASE 2588
+-STATEMENT CREATE NODE TABLE T (id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (:T {id: "t1"}),(:T {id: "t2"});
+---- ok
+-STATEMENT CALL SHOW_TABLES() WHERE true RETURN *;
+---- 1
+T|NODE|
+-STATEMENT CALL SHOW_TABLES() WHERE false RETURN *;
+---- 0
+
+-STATEMENT MATCH (t:T) WHERE false RETURN t.*;
+---- 0
+
+-STATEMENT MATCH (t:T) WHERE true RETURN t.*;
+---- 2
+t1
+t2
+-STATEMENT MATCH (t:T) WHERE NULL RETURN t.*;
+---- 0
+
+-STATEMENT MATCH (t:T) WHERE 2 > 1 + 1 RETURN t.*;
+---- 0
+
+-STATEMENT MATCH (t:T) WHERE "aa" STARTS WITH "a" RETURN t.*;
+---- 2
+t1
+t2
+-STATEMENT MATCH (t:T) WHERE 1 > null RETURN t.*;
+---- 0
+
+-STATEMENT MATCH (t:T) WHERE NULL WITH t MATCH (t2:T) RETURN t.*;
+---- 0
+
+-STATEMENT MATCH (t:T) WITH t OPTIONAL MATCH (t2:T) WHERE NULL RETURN t.*;
+---- 2
+t1
+t2
+
+-CASE 2589
+-STATEMENT CREATE NODE TABLE T (id STRING,PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE E (FROM T TO T);
+---- ok
+-STATEMENT CREATE (t1:T{id:"t1"})-[:E]->(t2:T{id:"t2"});
+---- ok
+-STATEMENT WITH "node_after" as selected
+        MATCH (t1:T{id: "t1"})-[:E]->(t2:T{id: "t2"})
+        WITH
+        CASE WHEN selected = "node_after" THEN t2
+            ELSE t1
+        END as ret
+        RETURN ret;
+---- 1
+{_ID: 0:1, _LABEL: T, id: t2}
+-STATEMENT WITH "node_after" as selected
+        MATCH (t1:T{id: "t1"})-[:E]->(t2:T{id: "t2"})
+        WITH
+        CASE WHEN selected <> "node_after" THEN t2
+            ELSE t1
+        END as ret
+        RETURN ret;
+---- 1
+{_ID: 0:0, _LABEL: T, id: t1}

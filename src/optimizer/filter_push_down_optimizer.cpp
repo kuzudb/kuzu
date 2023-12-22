@@ -1,7 +1,10 @@
 #include "optimizer/filter_push_down_optimizer.h"
 
+#include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
+#include "common/cast.h"
+#include "planner/operator/logical_empty_result.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/scan/logical_dummy_scan.h"
@@ -46,7 +49,16 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitOperator
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitFilterReplace(
     const std::shared_ptr<LogicalOperator>& op) {
     auto filter = (LogicalFilter*)op.get();
-    predicateSet->addPredicate(filter->getPredicate());
+    auto predicate = filter->getPredicate();
+    if (predicate->expressionType == ExpressionType::LITERAL) {
+        // Avoid executing child plan if literal is Null or False.
+        auto literalExpr = ku_dynamic_cast<Expression*, LiteralExpression*>(predicate.get());
+        if (literalExpr->isNull() || !literalExpr->getValue()->getValue<bool>()) {
+            return std::make_shared<LogicalEmptyResult>(*op->getSchema());
+        }
+    } else {
+        predicateSet->addPredicate(predicate);
+    }
     return visitOperator(filter->getChild(0));
 }
 

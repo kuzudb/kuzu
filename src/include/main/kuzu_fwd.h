@@ -31,6 +31,7 @@ namespace common {
 enum class StatementType : uint8_t;
 class Value;
 struct FileInfo;
+class VirtualFileSystem;
 } // namespace common
 
 namespace storage {

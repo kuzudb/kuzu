@@ -20,6 +20,7 @@ enum class LogicalOperatorType : uint8_t {
     DISTINCT,
     DROP_TABLE,
     DUMMY_SCAN,
+    EMPTY_RESULT,
     EXPLAIN,
     EXPRESSIONS_SCAN,
     EXTEND,
@@ -59,6 +60,9 @@ public:
     static std::string logicalOperatorTypeToString(LogicalOperatorType type);
 };
 
+class LogicalOperator;
+using logical_op_vector_t = std::vector<std::shared_ptr<LogicalOperator>>;
+
 class LogicalOperator {
 public:
     // Leaf operator.
@@ -69,8 +73,7 @@ public:
     // Binary operator.
     explicit LogicalOperator(LogicalOperatorType operatorType,
         std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right);
-    explicit LogicalOperator(LogicalOperatorType operatorType,
-        const std::vector<std::shared_ptr<LogicalOperator>>& children);
+    explicit LogicalOperator(LogicalOperatorType operatorType, const logical_op_vector_t& children);
 
     virtual ~LogicalOperator() = default;
 
@@ -81,9 +84,7 @@ public:
     inline void setChild(uint64_t idx, std::shared_ptr<LogicalOperator> child) {
         children[idx] = std::move(child);
     }
-    inline void setChildren(std::vector<std::shared_ptr<LogicalOperator>> children_) {
-        children = std::move(children_);
-    }
+    inline void setChildren(logical_op_vector_t children_) { children = std::move(children_); }
 
     inline LogicalOperatorType getOperatorType() const { return operatorType; }
 
@@ -98,6 +99,7 @@ public:
 
     // TODO: remove this function once planner do not share operator across plans
     virtual std::unique_ptr<LogicalOperator> copy() = 0;
+    static logical_op_vector_t copy(const logical_op_vector_t& ops);
 
 protected:
     inline void createEmptySchema() { schema = std::make_unique<Schema>(); }
@@ -106,7 +108,7 @@ protected:
 protected:
     LogicalOperatorType operatorType;
     std::unique_ptr<Schema> schema;
-    std::vector<std::shared_ptr<LogicalOperator>> children;
+    logical_op_vector_t children;
 };
 
 } // namespace planner

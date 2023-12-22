@@ -38,7 +38,6 @@
 
 # Join between node properties of adjacent nodes
 -CASE Scenario3
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, animal STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, animal STRING, PRIMARY KEY(ID));

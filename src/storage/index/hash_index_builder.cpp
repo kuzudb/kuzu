@@ -16,10 +16,11 @@ slot_id_t BaseHashIndex::getPrimarySlotIdForKey(
 }
 
 template<typename T>
-HashIndexBuilder<T>::HashIndexBuilder(const std::string& fName, const LogicalType& keyDataType)
+HashIndexBuilder<T>::HashIndexBuilder(
+    const std::string& fName, const LogicalType& keyDataType, VirtualFileSystem* vfs)
     : BaseHashIndex{keyDataType}, numEntries{0} {
     fileHandle =
-        std::make_unique<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
+        std::make_unique<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);
     indexHeader = std::make_unique<HashIndexHeader>(keyDataType.getLogicalTypeID());
     fileHandle->addNewPage(); // INDEX_HEADER_ARRAY_HEADER_PAGE
     fileHandle->addNewPage(); // P_SLOTS_HEADER_PAGE
@@ -33,7 +34,8 @@ HashIndexBuilder<T>::HashIndexBuilder(const std::string& fName, const LogicalTyp
         *fileHandle, O_SLOTS_HEADER_PAGE_IDX, 1 /* numElements */);
     allocatePSlots(2);
     if (keyDataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        inMemOverflowFile = std::make_unique<InMemFile>(StorageUtils::getOverflowFileName(fName));
+        inMemOverflowFile =
+            std::make_unique<InMemFile>(StorageUtils::getOverflowFileName(fName), vfs);
     }
     keyInsertFunc = InMemHashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);
     keyEqualsFunc = InMemHashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
@@ -175,15 +177,16 @@ template class HashIndexBuilder<int64_t>;
 template class HashIndexBuilder<ku_string_t>;
 
 PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
-    const std::string& fName, const LogicalType& keyDataType)
+    const std::string& fName, const LogicalType& keyDataType, VirtualFileSystem* vfs)
     : keyDataTypeID{keyDataType.getLogicalTypeID()} {
     switch (keyDataTypeID) {
     case LogicalTypeID::INT64: {
-        hashIndexBuilderForInt64 = std::make_unique<HashIndexBuilder<int64_t>>(fName, keyDataType);
+        hashIndexBuilderForInt64 =
+            std::make_unique<HashIndexBuilder<int64_t>>(fName, keyDataType, vfs);
     } break;
     case LogicalTypeID::STRING: {
         hashIndexBuilderForString =
-            std::make_unique<HashIndexBuilder<ku_string_t>>(fName, keyDataType);
+            std::make_unique<HashIndexBuilder<ku_string_t>>(fName, keyDataType, vfs);
     } break;
     default: {
         KU_UNREACHABLE;

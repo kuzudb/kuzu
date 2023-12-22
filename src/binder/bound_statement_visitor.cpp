@@ -2,6 +2,7 @@
 
 #include "binder/bound_explain.h"
 #include "binder/query/bound_regular_query.h"
+#include "common/cast.h"
 
 using namespace kuzu::common;
 
@@ -49,7 +50,8 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
 }
 
 void BoundStatementVisitor::visitRegularQuery(const BoundStatement& statement) {
-    auto& regularQuery = reinterpret_cast<const BoundRegularQuery&>(statement);
+    auto& regularQuery =
+        ku_dynamic_cast<const BoundStatement&, const BoundRegularQuery&>(statement);
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); ++i) {
         visitSingleQuery(*regularQuery.getSingleQuery(i));
     }

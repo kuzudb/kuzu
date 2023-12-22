@@ -24,7 +24,7 @@ class NodeInsertExecutor;
 class RelInsertExecutor;
 class NodeSetExecutor;
 class RelSetExecutor;
-class CopyRelSharedState;
+struct CopyRelSharedState;
 struct PartitionerSharedState;
 
 class PlanMapper {
@@ -45,6 +45,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapScanInternalID(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapFillTableID(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIndexScan(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapEmptyResult(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUnwind(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExtend(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapRecursiveExtend(planner::LogicalOperator* logicalOperator);
@@ -85,7 +86,8 @@ private:
     std::unique_ptr<PhysicalOperator> mapCopyFrom(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyTo(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyNodeFrom(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapCopyRelFrom(planner::LogicalOperator* logicalOperator);
+    physical_op_vector_t mapCopyRelFrom(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCopyRdfFrom(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapPartitioner(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDropTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAlter(planner::LogicalOperator* logicalOperator);

@@ -1,6 +1,9 @@
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 
+#include <fcntl.h>
+
 #include "common/data_chunk/data_chunk.h"
+#include "common/file_system/virtual_file_system.h"
 #include "thrift/protocol/TCompactProtocol.h"
 
 namespace kuzu {
@@ -11,13 +14,13 @@ using namespace kuzu::common;
 
 ParquetWriter::ParquetWriter(std::string fileName,
     std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> columnNames,
-    kuzu_parquet::format::CompressionCodec::type codec, storage::MemoryManager* mm)
+    kuzu_parquet::format::CompressionCodec::type codec, storage::MemoryManager* mm,
+    VirtualFileSystem* vfs)
     : fileName{std::move(fileName)}, types{std::move(types)},
       columnNames{std::move(columnNames)}, codec{codec}, fileOffset{0}, mm{mm} {
-    fileInfo = common::FileUtils::openFile(this->fileName, O_WRONLY | O_CREAT | O_TRUNC);
+    fileInfo = vfs->openFile(this->fileName, O_WRONLY | O_CREAT | O_TRUNC);
     // Parquet files start with the string "PAR1".
-    common::FileUtils::writeToFile(fileInfo.get(),
-        reinterpret_cast<const uint8_t*>(ParquetConstants::PARQUET_MAGIC_WORDS),
+    fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ParquetConstants::PARQUET_MAGIC_WORDS),
         strlen(ParquetConstants::PARQUET_MAGIC_WORDS), fileOffset);
     fileOffset += strlen(ParquetConstants::PARQUET_MAGIC_WORDS);
     kuzu_apache::thrift::protocol::TCompactProtocolFactoryT<ParquetWriterTransport> tprotoFactory;
@@ -270,13 +273,12 @@ void ParquetWriter::finalize() {
     auto startOffset = fileOffset;
     fileMetaData.write(protocol.get());
     uint32_t metadataSize = fileOffset - startOffset;
-    FileUtils::writeToFile(fileInfo.get(), reinterpret_cast<const uint8_t*>(&metadataSize),
-        sizeof(metadataSize), fileOffset);
+    fileInfo->writeFile(
+        reinterpret_cast<const uint8_t*>(&metadataSize), sizeof(metadataSize), fileOffset);
     fileOffset += sizeof(uint32_t);
 
     // Parquet files also end with the string "PAR1".
-    FileUtils::writeToFile(fileInfo.get(),
-        reinterpret_cast<const uint8_t*>(ParquetConstants::PARQUET_MAGIC_WORDS),
+    fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ParquetConstants::PARQUET_MAGIC_WORDS),
         strlen(ParquetConstants::PARQUET_MAGIC_WORDS), fileOffset);
     fileOffset += strlen(ParquetConstants::PARQUET_MAGIC_WORDS);
 }

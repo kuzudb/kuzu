@@ -10,6 +10,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+static inline common::ColumnDataFormat getDataFormatFromSchema(
+    catalog::RelTableSchema* tableSchema, common::RelDataDirection direction) {
+    return tableSchema->isSingleMultiplicity(direction) ? common::ColumnDataFormat::REGULAR :
+                                                          common::ColumnDataFormat::CSR;
+}
+
 RelDetachDeleteState::RelDetachDeleteState() {
     auto tempSharedState = std::make_shared<DataChunkState>();
     dstNodeIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
@@ -21,10 +27,18 @@ RelDetachDeleteState::RelDetachDeleteState() {
 RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStats* relsStoreStats,
     MemoryManager* memoryManager, RelTableSchema* tableSchema, WAL* wal, bool enableCompression)
     : Table{tableSchema, relsStoreStats, memoryManager, wal} {
-    fwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal,
-        tableSchema, relsStoreStats, RelDataDirection::FWD, enableCompression);
-    bwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal,
-        tableSchema, relsStoreStats, RelDataDirection::BWD, enableCompression);
+    fwdRelTableData =
+        getDataFormatFromSchema(tableSchema, RelDataDirection::FWD) == ColumnDataFormat::REGULAR ?
+            std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal, tableSchema,
+                relsStoreStats, RelDataDirection::FWD, enableCompression) :
+            std::make_unique<CSRRelTableData>(dataFH, metadataFH, bufferManager, wal, tableSchema,
+                relsStoreStats, RelDataDirection::FWD, enableCompression);
+    bwdRelTableData =
+        getDataFormatFromSchema(tableSchema, RelDataDirection::BWD) == ColumnDataFormat::REGULAR ?
+            std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal, tableSchema,
+                relsStoreStats, RelDataDirection::BWD, enableCompression) :
+            std::make_unique<CSRRelTableData>(dataFH, metadataFH, bufferManager, wal, tableSchema,
+                relsStoreStats, RelDataDirection::BWD, enableCompression);
 }
 
 void RelTable::read(Transaction* transaction, TableReadState& readState,

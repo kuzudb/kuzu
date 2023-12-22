@@ -57,8 +57,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     for (auto& child : children) {
         childrenTypes.push_back(&child->dataType);
     }
-    auto function = reinterpret_cast<function::ScalarFunction*>(
-        builtInFunctions->matchScalarFunction(functionName, childrenTypes));
+    auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
+        builtInFunctions->matchFunction(functionName, childrenTypes));
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CAST_FUNC_NAME) {
@@ -74,8 +74,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         if (function->bindFunc) {
             bindData = function->bindFunc(childrenAfterCast, function);
         } else {
-            bindData =
-                std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
+            bindData = std::make_unique<function::FunctionBindData>(
+                std::make_unique<LogicalType>(function->returnTypeID));
         }
     }
     auto uniqueExpressionName =
@@ -114,8 +114,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     if (function->bindFunc) {
         bindData = function->bindFunc(children, function.get());
     } else {
-        bindData =
-            std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
+        bindData = std::make_unique<function::FunctionBindData>(
+            std::make_unique<LogicalType>(function->returnTypeID));
     }
     return make_shared<AggregateFunctionExpression>(functionName, std::move(bindData),
         std::move(children), std::move(function), uniqueExpressionName);
@@ -126,7 +126,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
     auto scalarMacroFunction = binder->catalog.getScalarMacroFunction(macroName);
     auto macroExpr = scalarMacroFunction->expression->copy();
     auto parameterVals = scalarMacroFunction->getDefaultParameterVals();
-    auto& parsedFuncExpr = reinterpret_cast<const ParsedFunctionExpression&>(parsedExpression);
+    auto& parsedFuncExpr =
+        ku_dynamic_cast<const ParsedExpression&, const ParsedFunctionExpression&>(parsedExpression);
     auto positionalArgs = scalarMacroFunction->getPositionalArgs();
     if (parsedFuncExpr.getNumChildren() > scalarMacroFunction->getNumArgs() ||
         parsedFuncExpr.getNumChildren() < positionalArgs.size()) {
@@ -193,8 +194,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
         return bindNodeOrRelPropertyExpression(*expression, InternalKeyword::ID);
     }
     KU_ASSERT(expression->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
-    auto stringValue =
-        std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, InternalKeyword::ID);
+    auto stringValue = std::make_unique<Value>(LogicalType::STRING(), InternalKeyword::ID);
     return bindScalarFunctionExpression(
         expression_vector{expression, createLiteralExpression(std::move(stringValue))},
         STRUCT_EXTRACT_FUNC_NAME);
@@ -208,21 +208,17 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(std::vector<table
     labels.resize(maxTableID + 1);
     for (auto i = 0u; i < labels.size(); ++i) {
         if (tableIDsSet.contains(i)) {
-            labels[i] = std::make_unique<Value>(
-                LogicalType{LogicalTypeID::STRING}, catalog.getTableName(tx, i));
+            labels[i] = std::make_unique<Value>(LogicalType::STRING(), catalog.getTableName(tx, i));
         } else {
             // TODO(Xiyang/Guodong): change to null literal once we support null in LIST type.
-            labels[i] =
-                std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, std::string(""));
+            labels[i] = std::make_unique<Value>(LogicalType::STRING(), std::string(""));
         }
     }
     return labels;
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression& expression) {
-    auto varListTypeInfo = std::make_unique<VarListTypeInfo>(LogicalType::STRING());
-    auto listType =
-        std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST, std::move(varListTypeInfo));
+    auto listType = LogicalType::VAR_LIST(LogicalType::STRING());
     expression_vector children;
     switch (expression.getDataType().getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
@@ -231,11 +227,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             auto labelName = binder->catalog.getTableName(
                 binder->clientContext->getTx(), node.getSingleTableID());
             return createLiteralExpression(
-                std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, labelName));
+                std::make_unique<Value>(LogicalType::STRING(), labelName));
         }
         auto nodeTableIDs = binder->catalog.getNodeTableIDs(binder->clientContext->getTx());
         children.push_back(node.getInternalID());
-        auto labelsValue = std::make_unique<Value>(*listType,
+        auto labelsValue = std::make_unique<Value>(std::move(listType),
             populateLabelValues(nodeTableIDs, binder->catalog, binder->clientContext->getTx()));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
@@ -245,11 +241,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             auto labelName = binder->catalog.getTableName(
                 binder->clientContext->getTx(), rel.getSingleTableID());
             return createLiteralExpression(
-                std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, labelName));
+                std::make_unique<Value>(LogicalType::STRING(), labelName));
         }
         auto relTableIDs = binder->catalog.getRelTableIDs(binder->clientContext->getTx());
         children.push_back(rel.getInternalIDProperty());
-        auto labelsValue = std::make_unique<Value>(*listType,
+        auto labelsValue = std::make_unique<Value>(std::move(listType),
             populateLabelValues(relTableIDs, binder->catalog, binder->clientContext->getTx()));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
@@ -257,8 +253,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         KU_UNREACHABLE;
     }
     auto execFunc = function::LabelFunction::execFunction;
-    auto bindData =
-        std::make_unique<function::FunctionBindData>(LogicalType(LogicalTypeID::STRING));
+    auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::STRING());
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
     return std::make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, ExpressionType::FUNCTION,
         std::move(bindData), std::move(children), execFunc, nullptr, uniqueExpressionName);
@@ -298,16 +293,17 @@ std::shared_ptr<Expression> ExpressionBinder::bindRecursiveJoinLengthFunction(
         expression_vector children;
         children.push_back(std::move(numRelsExpression));
         children.push_back(
-            reinterpret_cast<RelExpression&>(*recursiveRels[0]).getLengthExpression());
+            ku_dynamic_cast<Expression&, RelExpression&>(*recursiveRels[0]).getLengthExpression());
         auto result = bindScalarFunctionExpression(children, ADD_FUNC_NAME);
         for (auto i = 1u; i < recursiveRels.size(); ++i) {
             children[0] = std::move(result);
-            children[1] = reinterpret_cast<RelExpression&>(*recursiveRels[i]).getLengthExpression();
+            children[1] = ku_dynamic_cast<Expression&, RelExpression&>(*recursiveRels[i])
+                              .getLengthExpression();
             result = bindScalarFunctionExpression(children, ADD_FUNC_NAME);
         }
         return result;
     } else if (ExpressionUtil::isRecursiveRelPattern(expression)) {
-        auto& recursiveRel = reinterpret_cast<const RelExpression&>(expression);
+        auto& recursiveRel = ku_dynamic_cast<const Expression&, const RelExpression&>(expression);
         return recursiveRel.getLengthExpression();
     }
     return nullptr;

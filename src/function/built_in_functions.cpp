@@ -25,7 +25,7 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
-#include "processor/operator/persistent/reader/rdf/rdf_reader.h"
+#include "processor/operator/persistent/reader/rdf/rdf_scan.h"
 
 using namespace kuzu::common;
 
@@ -65,8 +65,8 @@ void BuiltInFunctions::registerAggregateFunctions() {
     registerCollect();
 }
 
-Function* BuiltInFunctions::matchScalarFunction(
-    const std::string& name, const std::vector<LogicalType*>& inputTypes) {
+Function* BuiltInFunctions::matchFunction(
+    const std::string& name, const std::vector<common::LogicalType*>& inputTypes) {
     auto& functionSet = functions.at(name);
     bool isOverload = functionSet.size() > 1;
     std::vector<Function*> candidateFunctions;
@@ -100,7 +100,7 @@ AggregateFunction* BuiltInFunctions::matchAggregateFunction(
     auto& functionSet = functions.at(name);
     std::vector<AggregateFunction*> candidateFunctions;
     for (auto& function : functionSet) {
-        auto aggregateFunction = reinterpret_cast<AggregateFunction*>(function.get());
+        auto aggregateFunction = ku_dynamic_cast<Function*, AggregateFunction*>(function.get());
         auto cost = getAggregateFunctionCost(inputTypes, isDistinct, aggregateFunction);
         if (cost == UINT32_MAX) {
             continue;
@@ -189,7 +189,7 @@ void BuiltInFunctions::validateNonEmptyCandidateFunctions(
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
         for (auto& function : functions.at(name)) {
-            auto aggregateFunction = reinterpret_cast<AggregateFunction*>(function.get());
+            auto aggregateFunction = ku_dynamic_cast<Function*, AggregateFunction*>(function.get());
             if (aggregateFunction->isDistinct) {
                 supportedInputsString += "DISTINCT ";
             }
@@ -425,7 +425,7 @@ uint32_t BuiltInFunctions::getFunctionCost(
     const std::vector<LogicalType*>& inputTypes, Function* function, bool isOverload) {
     switch (function->type) {
     case FunctionType::SCALAR: {
-        auto scalarFunction = reinterpret_cast<ScalarFunction*>(function);
+        auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
         if (scalarFunction->isVarLength) {
             KU_ASSERT(function->parameterTypeIDs.size() == 1);
             return matchVarLengthParameters(inputTypes, function->parameterTypeIDs[0], isOverload);
@@ -475,8 +475,7 @@ void BuiltInFunctions::validateNonEmptyCandidateFunctions(
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
         for (auto& function : functions.at(name)) {
-            auto baseScalarFunction = reinterpret_cast<BaseScalarFunction*>(function.get());
-            supportedInputsString += baseScalarFunction->signatureToString() + "\n";
+            supportedInputsString += function->signatureToString() + "\n";
         }
         throw BinderException("Cannot match a built-in function for given function " + name +
                               LogicalTypeUtils::toString(inputTypes) + ". Supported inputs are\n" +
@@ -710,8 +709,7 @@ void BuiltInFunctions::registerCount() {
     for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             functionSet.push_back(AggregateFunctionUtil::getAggFunc<CountFunction>(COUNT_FUNC_NAME,
-                type.getLogicalTypeID(), LogicalTypeID::INT64, isDistinct,
-                CountFunction::paramRewriteFunc));
+                type, LogicalTypeID::INT64, isDistinct, CountFunction::paramRewriteFunc));
         }
     }
     functions.insert({COUNT_FUNC_NAME, std::move(functionSet)});

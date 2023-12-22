@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/data_chunk/data_chunk_collection.h"
+#include "processor/operator/persistent/copy_node.h"
 #include "processor/operator/sink.h"
 
 namespace kuzu {
@@ -25,12 +26,18 @@ struct PartitioningBuffer {
 // NOTE: Currently, Partitioner is tightly coupled with CopyRel. We should generalize it later when
 // necessary. Here, each partition is essentially a node group.
 struct PartitionerSharedState {
-    storage::MemoryManager* mm;
     std::mutex mtx;
+    storage::MemoryManager* mm;
+    storage::NodeTable* srcNodeTable;
+    storage::NodeTable* dstNodeTable;
+
+    // FIXME(Guodong): we should not maintain maxNodeOffsets.
     std::vector<common::offset_t> maxNodeOffsets;       // max node offset in each direction.
     std::vector<common::partition_idx_t> numPartitions; // num of partitions in each direction.
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
     common::partition_idx_t nextPartitionIdx = 0;
+    // In copy rdf, we need to access num nodes before it is available in statistics.
+    std::vector<std::shared_ptr<CopyNodeSharedState>> copyNodeSharedStates;
 
     explicit PartitionerSharedState(storage::MemoryManager* mm) : mm{mm} {}
 
@@ -38,6 +45,13 @@ struct PartitionerSharedState {
     common::partition_idx_t getNextPartition(common::vector_idx_t partitioningIdx);
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
+
+    inline common::DataChunkCollection* getPartitionBuffer(
+        common::vector_idx_t partitioningIdx, common::partition_idx_t partitionIdx) {
+        KU_ASSERT(partitioningIdx < partitioningBuffers.size());
+        KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
+        return partitioningBuffers[partitioningIdx]->partitions[partitionIdx].get();
+    }
 };
 
 struct PartitionerLocalState {

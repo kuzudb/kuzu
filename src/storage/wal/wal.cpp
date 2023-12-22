@@ -1,6 +1,7 @@
 #include "storage/wal/wal.h"
 
 #include "common/exception/runtime.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/utils.h"
 #include "spdlog/spdlog.h" // IWYU pragma: keep: public interface to spdlog.
 #include "storage/storage_utils.h"
@@ -10,14 +11,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager)
+WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
+    VirtualFileSystem* vfs)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::WAL)}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
     fileHandle = bufferManager.getBMFileHandle(
-        FileUtils::joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
+        vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE);
+        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs);
     initCurrentPage();
 }
 
@@ -41,6 +43,9 @@ page_idx_t WAL::logPageInsertRecord(DBFileID dbFileID, page_idx_t pageIdxInOrigi
 
 void WAL::logCommit(uint64_t transactionID) {
     lock_t lck{mtx};
+    // Flush all pages before committing to make sure that commits only show up in the file when
+    // their data is also written.
+    flushAllPages();
     WALRecord walRecord = WALRecord::newCommitRecord(transactionID);
     addNewWALRecordNoLock(walRecord);
 }
@@ -195,9 +200,12 @@ void WALIterator::getNextRecord(WALRecord& retVal) {
     if ((numRecordsReadInCurrentHeaderPage == getNumRecordsInCurrentHeaderPage()) &&
         (getNextHeaderPageOfCurrentHeaderPage() != UINT32_MAX)) {
         page_idx_t nextHeaderPageIdx = getNextHeaderPageOfCurrentHeaderPage();
-        fileHandle->readPage(currentHeaderPageBuffer.get(), nextHeaderPageIdx);
-        offsetInCurrentHeaderPage = WAL_HEADER_PAGE_PREFIX_FIELD_SIZES;
-        numRecordsReadInCurrentHeaderPage = 0;
+        // If we were interrupted and pages are missing, don't try to read them
+        if (fileHandle->getNumPages() > nextHeaderPageIdx) {
+            fileHandle->readPage(currentHeaderPageBuffer.get(), nextHeaderPageIdx);
+            offsetInCurrentHeaderPage = WAL_HEADER_PAGE_PREFIX_FIELD_SIZES;
+            numRecordsReadInCurrentHeaderPage = 0;
+        }
     }
 }
 

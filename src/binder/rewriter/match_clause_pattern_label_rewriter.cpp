@@ -8,7 +8,8 @@ namespace kuzu {
 namespace binder {
 
 void MatchClausePatternLabelRewriter::visitMatch(const BoundReadingClause& readingClause) {
-    auto matchClause = reinterpret_cast<const BoundMatchClause&>(readingClause);
+    auto matchClause =
+        ku_dynamic_cast<const BoundReadingClause&, const BoundMatchClause&>(readingClause);
     if (matchClause.getMatchClauseType() == MatchClauseType::OPTIONAL_MATCH) {
         return;
     }

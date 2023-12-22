@@ -7,7 +7,8 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindCommentOn(const parser::Statement& statement) {
-    auto& commentOnStatement = reinterpret_cast<const parser::CommentOn&>(statement);
+    auto& commentOnStatement =
+        common::ku_dynamic_cast<const parser::Statement&, const parser::CommentOn&>(statement);
     auto tableName = commentOnStatement.getTable();
     auto comment = commentOnStatement.getComment();
     validateTableExist(tableName);

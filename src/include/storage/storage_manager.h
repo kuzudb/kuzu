@@ -14,7 +14,7 @@ namespace storage {
 class StorageManager {
 public:
     StorageManager(bool readOnly, const catalog::Catalog& catalog, MemoryManager& memoryManager,
-        WAL* wal, bool enableCompression);
+        WAL* wal, bool enableCompression, common::VirtualFileSystem* vfs);
 
     void createTable(common::table_id_t tableID, catalog::Catalog* catalog,
         transaction::Transaction* transaction);
@@ -31,14 +31,12 @@ public:
         KU_ASSERT(tables.contains(tableID) &&
                   tables.at(tableID)->getTableType() == common::TableType::NODE);
         auto table = common::ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
-        KU_ASSERT(table);
         return table;
     }
     inline RelTable* getRelTable(common::table_id_t tableID) const {
         KU_ASSERT(tables.contains(tableID) &&
                   tables.at(tableID)->getTableType() == common::TableType::REL);
         auto table = common::ku_dynamic_cast<Table*, RelTable*>(tables.at(tableID).get());
-        KU_ASSERT(table);
         return table;
     }
 
@@ -67,6 +65,7 @@ private:
     MemoryManager& memoryManager;
     WAL* wal;
     bool enableCompression;
+    common::VirtualFileSystem* vfs;
 };
 
 } // namespace storage
