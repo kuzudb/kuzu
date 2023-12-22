@@ -1,0 +1,149 @@
+-GROUP TCKTemporal6
+-DATASET CSV tck
+
+--
+
+
+#  Should serialize date
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS d
+           RETURN toString(d) AS ts, date(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11'|True
+
+#  Should serialize local time
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS d
+           RETURN toString(d) AS ts, localtime(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876123'|True
+
+#  Should serialize time
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS d
+           RETURN toString(d) AS ts, time(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876123+01:00'|True
+
+#  Should serialize local date time
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS d
+           RETURN toString(d) AS ts, localdatetime(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123'|True
+
+#  Should serialize date time
+-CASE Scenario5
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS d
+           RETURN toString(d) AS ts, datetime(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123+01:00'|True
+
+#  Should serialize duration
+-CASE Scenario6
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70, nanoseconds: 1}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'P12Y5M14DT16H13M10.000000001S'|True
+
+-STATEMENT WITH duration({years: 12, months: 5, days: -14, hours: 16}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'P12Y5M-14DT16H'|True
+
+-STATEMENT WITH duration({minutes: 12, seconds: -60}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'PT11M'|True
+
+-STATEMENT WITH duration({seconds: 2, milliseconds: -1}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'PT1.999S'|True
+
+-STATEMENT WITH duration({seconds: -2, milliseconds: 1}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'PT-1.999S'|True
+
+-STATEMENT WITH duration({seconds: -2, milliseconds: -1}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'PT-2.001S'|True
+
+-STATEMENT WITH duration({days: 1, milliseconds: 1}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'P1DT0.001S'|True
+
+-STATEMENT WITH duration({days: 1, milliseconds: -1}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'P1DT-0.001S'|True
+
+-STATEMENT WITH duration({seconds: 60, milliseconds: -1}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'PT59.999S'|True
+
+-STATEMENT WITH duration({seconds: -60, milliseconds: 1}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'PT-59.999S'|True
+
+-STATEMENT WITH duration({seconds: -60, milliseconds: -1}) AS d
+           RETURN toString(d) AS ts, duration(toString(d)) = d AS b;
+## Outcome: the result should be, in any order:
+---- 1
+'PT-1M-0.001S'|True
+
+#  Should serialize timezones correctly
+-CASE Scenario17
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 2017, month: 8, day: 8, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: 'Europe/Stockholm'}) AS d
+           RETURN toString(d) AS ts;
+## Outcome: the result should be, in any order:
+---- 1
+'2017-08-08T12:31:14.645876123+02:00[Europe/Stockholm]'
