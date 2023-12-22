@@ -45,6 +45,7 @@ using node_group_idx_t = uint64_t;
 constexpr node_group_idx_t INVALID_NODE_GROUP_IDX = UINT64_MAX;
 using partition_idx_t = uint64_t;
 constexpr partition_idx_t INVALID_PARTITION_IDX = UINT64_MAX;
+using length_t = uint64_t;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {

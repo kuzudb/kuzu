@@ -136,7 +136,7 @@ template<typename U>
 uint64_t BaseDiskArray<U>::resize(uint64_t newNumElements) {
     std::unique_lock xLck{diskArraySharedMtx};
     hasTransactionalUpdates = true;
-    auto currentNumElements = getNumElementsNoLock(transaction::TransactionType::WRITE);
+    auto currentNumElements = getNumElementsNoLock(TransactionType::WRITE);
     U val{};
     while (currentNumElements < newNumElements) {
         pushBackNoLock(val);

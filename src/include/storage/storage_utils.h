@@ -89,9 +89,10 @@ public:
         OFFSET = 2, // This is used for offset columns in VAR_LIST and STRING columns.
         DATA = 3,   // This is used for data columns in VAR_LIST and STRING columns.
         CSR_OFFSET = 4,
-        ADJ = 5,
-        STRUCT_CHILD = 6,
-        NULL_MASK = 7,
+        CSR_LENGTH = 5,
+        ADJ = 6,
+        STRUCT_CHILD = 7,
+        NULL_MASK = 8,
     };
 
     static std::string getColumnName(

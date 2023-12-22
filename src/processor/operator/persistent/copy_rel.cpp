@@ -51,40 +51,25 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
             break;
         }
         // Read the whole partition, and set to node group.
-        auto partitioningBuffer = partitionerSharedState->partitioningBuffers[info->partitioningIdx]
-                                      ->partitions[localState->currentPartition]
-                                      .get();
+        auto partitioningBuffer = partitionerSharedState->getPartitionBuffer(
+            info->partitioningIdx, localState->currentPartition);
         auto startOffset = StorageUtils::getStartOffsetOfNodeGroup(localState->currentPartition);
         auto offsetVectorIdx = info->dataDirection == RelDataDirection::FWD ? 0 : 1;
-        row_idx_t numRels = 0;
         for (auto dataChunk : partitioningBuffer->getChunks()) {
-            auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
-            setOffsetToWithinNodeGroup(offsetVector, startOffset);
-            numRels += offsetVector->state->selVector->selectedSize;
+            setOffsetToWithinNodeGroup(
+                dataChunk->getValueVector(offsetVectorIdx).get(), startOffset);
         }
-        ColumnChunk* csrOffsetChunk = nullptr;
         // Calculate num of source nodes in this node group.
         // This will be used to set the num of values of the node group.
         auto numNodes = std::min(StorageConstants::NODE_GROUP_SIZE,
             partitionerSharedState->maxNodeOffsets[info->partitioningIdx] - startOffset + 1);
         if (info->dataFormat == ColumnDataFormat::CSR) {
-            auto csrNodeGroup = static_cast<CSRNodeGroup*>(localState->nodeGroup.get());
-            csrOffsetChunk = csrNodeGroup->getCSROffsetChunk();
-            // CSR offset chunk should be aligned with num of source nodes in this node group.
-            csrOffsetChunk->setNumValues(numNodes);
-            populateCSROffsets(csrOffsetChunk, partitioningBuffer, offsetVectorIdx);
-            // Resize csr data column chunks.
-            localState->nodeGroup->resizeChunks(numRels);
+            prepareCSRNodeGroup(partitioningBuffer, offsetVectorIdx, numNodes);
         } else {
             localState->nodeGroup->setAllNull();
             localState->nodeGroup->getColumnChunk(0)->setNumValues(numNodes);
         }
         for (auto dataChunk : partitioningBuffer->getChunks()) {
-            if (info->dataFormat == ColumnDataFormat::CSR) {
-                KU_ASSERT(csrOffsetChunk);
-                auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
-                setOffsetFromCSROffsets(offsetVector, (offset_t*)csrOffsetChunk->getData());
-            }
             localState->nodeGroup->write(dataChunk, offsetVectorIdx);
         }
         localState->nodeGroup->finalize(localState->currentPartition);
@@ -95,31 +80,53 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
     }
 }
 
-void CopyRel::populateCSROffsets(
-    ColumnChunk* csrOffsetChunk, DataChunkCollection* partition, vector_idx_t offsetVectorIdx) {
+void CopyRel::prepareCSRNodeGroup(
+    DataChunkCollection* partition, vector_idx_t offsetVectorIdx, offset_t numNodes) {
+    auto csrNodeGroup = ku_dynamic_cast<NodeGroup*, CSRNodeGroup*>(localState->nodeGroup.get());
+    auto csrOffsetChunk = csrNodeGroup->getCSROffsetChunk();
+    csrOffsetChunk->setNumValues(numNodes);
+    csrNodeGroup->getCSRLengthChunk()->setNumValues(numNodes);
+    populateCSROffsetsAndLengths(csrNodeGroup, numNodes, partition, offsetVectorIdx);
+    // Resize csr data column chunks.
+    offset_t numRels = 0;
+    for (auto dataChunk : partition->getChunks()) {
+        numRels += dataChunk->getValueVector(offsetVectorIdx).get()->state->selVector->selectedSize;
+    }
+    localState->nodeGroup->resizeChunks(numRels);
+    for (auto dataChunk : partition->getChunks()) {
+        auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
+        setOffsetFromCSROffsets(offsetVector, (offset_t*)csrOffsetChunk->getData());
+    }
+}
+
+void CopyRel::populateCSROffsetsAndLengths(CSRNodeGroup* csrNodeGroup, offset_t numNodes,
+    common::DataChunkCollection* partition, common::vector_idx_t offsetVectorIdx) {
+    auto csrOffsetChunk = csrNodeGroup->getCSROffsetChunk();
+    csrOffsetChunk->setNumValues(numNodes);
+    auto csrLengthChunk = csrNodeGroup->getCSRLengthChunk();
+    csrLengthChunk->setNumValues(numNodes);
     auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
+    auto csrLengths = (length_t*)csrLengthChunk->getData();
     std::fill(csrOffsets, csrOffsets + csrOffsetChunk->getCapacity(), 0);
-    // Calculate num of tuples for each node. Store the num of tuples of node i at csrOffsets[i+1].
+    std::fill(csrLengths, csrLengths + csrLengthChunk->getCapacity(), 0);
+    // Calculate length for each node. Store the num of tuples of node i at csrOffsets[i].
     for (auto chunk : partition->getChunks()) {
         auto offsetVector = chunk->getValueVector(offsetVectorIdx);
         for (auto i = 0u; i < offsetVector->state->selVector->selectedSize; i++) {
             auto pos = offsetVector->state->selVector->selectedPositions[i];
             auto nodeOffset = offsetVector->getValue<offset_t>(pos);
-            if (nodeOffset >= StorageConstants::NODE_GROUP_SIZE - 1) {
-                continue;
-            }
-            csrOffsets[nodeOffset + 1]++;
+            csrLengths[nodeOffset]++;
         }
     }
     // Calculate starting offset of each node.
     for (auto i = 1u; i < csrOffsetChunk->getCapacity(); i++) {
-        csrOffsets[i] = csrOffsets[i] + csrOffsets[i - 1];
+        csrOffsets[i] = csrOffsets[i - 1] + csrLengths[i - 1];
     }
 }
 
 void CopyRel::setOffsetToWithinNodeGroup(ValueVector* vector, offset_t startOffset) {
-    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
-    KU_ASSERT(vector->state->selVector->isUnfiltered());
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
+              vector->state->selVector->isUnfiltered());
     auto offsets = (offset_t*)vector->getData();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         offsets[i] -= startOffset;
@@ -127,8 +134,8 @@ void CopyRel::setOffsetToWithinNodeGroup(ValueVector* vector, offset_t startOffs
 }
 
 void CopyRel::setOffsetFromCSROffsets(ValueVector* offsetVector, offset_t* csrOffsets) {
-    KU_ASSERT(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
-    KU_ASSERT(offsetVector->state->selVector->isUnfiltered());
+    KU_ASSERT(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
+              offsetVector->state->selVector->isUnfiltered());
     for (auto i = 0u; i < offsetVector->state->selVector->selectedSize; i++) {
         auto nodeOffset = offsetVector->getValue<offset_t>(i);
         offsetVector->setValue(i, csrOffsets[nodeOffset]);
@@ -137,14 +144,14 @@ void CopyRel::setOffsetFromCSROffsets(ValueVector* offsetVector, offset_t* csrOf
 }
 
 void CopyRel::finalize(ExecutionContext* context) {
-    if (info->partitioningIdx == 1) {
+    if (info->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1) {
         sharedState->updateRelsStatistics();
         auto outputMsg = stringFormat("{} number of tuples has been copied to table {}.",
             sharedState->numRows.load(), info->schema->tableName);
         FactorizedTableUtils::appendStringToTable(
             sharedState->fTable.get(), outputMsg, context->memoryManager);
     }
-    sharedState->numRows = 0;
+    sharedState->numRows.store(0);
     partitionerSharedState->resetState();
     partitionerSharedState->partitioningBuffers[info->partitioningIdx].reset();
 }

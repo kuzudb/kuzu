@@ -43,6 +43,10 @@ public:
         return direction == common::RelDataDirection::FWD ? fwdCSROffsetMetadataDAHInfo.get() :
                                                             bwdCSROffsetMetadataDAHInfo.get();
     }
+    inline MetadataDAHInfo* getCSRLengthMetadataDAHInfo(common::RelDataDirection direction) {
+        return direction == common::RelDataDirection::FWD ? fwdCSRLengthMetadataDAHInfo.get() :
+                                                            bwdCSRLengthMetadataDAHInfo.get();
+    }
     inline MetadataDAHInfo* getAdjMetadataDAHInfo(common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ? fwdNbrIDMetadataDAHInfo.get() :
                                                             bwdNbrIDMetadataDAHInfo.get();
@@ -74,6 +78,8 @@ private:
     // CSROffsetMetadataDAHInfo are only valid for CSRColumns.
     std::unique_ptr<MetadataDAHInfo> fwdCSROffsetMetadataDAHInfo;
     std::unique_ptr<MetadataDAHInfo> bwdCSROffsetMetadataDAHInfo;
+    std::unique_ptr<MetadataDAHInfo> fwdCSRLengthMetadataDAHInfo;
+    std::unique_ptr<MetadataDAHInfo> bwdCSRLengthMetadataDAHInfo;
     std::unique_ptr<MetadataDAHInfo> fwdNbrIDMetadataDAHInfo;
     std::unique_ptr<MetadataDAHInfo> bwdNbrIDMetadataDAHInfo;
     std::vector<std::unique_ptr<MetadataDAHInfo>> fwdPropertyMetadataDAHInfos;
