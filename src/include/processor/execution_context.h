@@ -15,12 +15,15 @@ struct ExecutionContext {
     storage::BufferManager* bufferManager;
     main::ClientContext* clientContext;
     common::VirtualFileSystem* vfs;
+    main::Database* database;
 
     ExecutionContext(uint64_t numThreads, common::Profiler* profiler,
         storage::MemoryManager* memoryManager, storage::BufferManager* bufferManager,
-        main::ClientContext* clientContext, common::VirtualFileSystem* vfs)
+        main::ClientContext* clientContext, common::VirtualFileSystem* vfs,
+        main::Database* database)
         : numThreads{numThreads}, profiler{profiler}, memoryManager{memoryManager},
-          bufferManager{bufferManager}, clientContext{clientContext}, vfs{vfs} {}
+          bufferManager{bufferManager}, clientContext{clientContext}, vfs{vfs}, database{database} {
+    }
 };
 
 } // namespace processor

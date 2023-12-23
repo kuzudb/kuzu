@@ -3,21 +3,18 @@
 #include <cstdint>
 #include <string>
 
+#include "common/api.h"
+
 namespace kuzu {
 namespace common {
 
 class FileSystem;
 
-struct FileInfo {
-#ifdef _WIN32
-    FileInfo(std::string path, const void* handle, FileSystem* fileSystem)
-        : path{std::move(path)}, handle{handle}, fileSystem{fileSystem} {}
-#else
-    FileInfo(std::string path, const int fd, FileSystem* fileSystem)
-        : path{std::move(path)}, fd{fd}, fileSystem{fileSystem} {}
-#endif
+struct KUZU_API FileInfo {
+    FileInfo(std::string path, FileSystem* fileSystem)
+        : path{std::move(path)}, fileSystem{fileSystem} {}
 
-    ~FileInfo();
+    virtual ~FileInfo() = default;
 
     uint64_t getFileSize();
 
@@ -32,11 +29,7 @@ struct FileInfo {
     void truncate(uint64_t size);
 
     const std::string path;
-#ifdef _WIN32
-    const void* handle;
-#else
-    const int fd;
-#endif
+
     FileSystem* fileSystem;
 };
 

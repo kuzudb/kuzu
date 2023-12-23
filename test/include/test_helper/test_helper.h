@@ -18,7 +18,7 @@ struct TestQueryConfig {
 
 class TestHelper {
 public:
-    static constexpr char E2E_TEST_FILES_DIRECTORY[] = "test/test_files";
+    static constexpr char E2E_TEST_FILES_DIRECTORY[] = TEST_FILES_DIR;
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
     static constexpr char PARQUET_TEMP_DATASET_PATH[] = "dataset/parquet_temp_";

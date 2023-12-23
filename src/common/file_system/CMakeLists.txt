@@ -1,6 +1,7 @@
 add_library(kuzu_file_system
         OBJECT
         file_info.cpp
+        file_system.cpp
         local_file_system.cpp
         virtual_file_system.cpp)
 

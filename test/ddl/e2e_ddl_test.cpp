@@ -27,7 +27,7 @@ public:
             std::make_unique<MemoryManager>(bufferManager.get(), getFileSystem(*database));
         executionContext = std::make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
             memoryManager.get(), bufferManager.get(), conn->clientContext.get(),
-            getFileSystem(*database));
+            getFileSystem(*database), database.get());
         personTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, "person");
         studyAtTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, "studyAt");
     }

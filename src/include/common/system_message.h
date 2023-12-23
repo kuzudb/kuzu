@@ -6,6 +6,7 @@
 
 namespace kuzu {
 namespace common {
+
 inline std::string systemErrMessage(int code) {
     // System errors are unexpected. For anything expected, we should catch it explicitly and
     // provide a better error message to the user.
@@ -13,10 +14,14 @@ inline std::string systemErrMessage(int code) {
     return std::system_category().message(code);
     // LCOV_EXCL_STOP
 }
+
 inline std::string posixErrMessage() {
     // LCOV_EXCL_START
     return systemErrMessage(errno);
     // LCOV_EXCL_STOP
 }
+
+std::string dlErrMessage();
+
 } // namespace common
 } // namespace kuzu

@@ -54,6 +54,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     case StatementType::TRANSACTION: {
         plan = planTransaction(statement);
     } break;
+    case StatementType::LOAD_EXTENSION: {
+        plan = planLoadExtension(statement);
+    } break;
     default:
         KU_UNREACHABLE;
     }

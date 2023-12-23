@@ -8,6 +8,10 @@
 #include "kuzu_fwd.h"
 
 namespace kuzu {
+namespace common {
+class FileSystem;
+} // namespace common
+
 namespace function {
 struct Function;
 } // namespace function
@@ -79,6 +83,8 @@ public:
     // add function through the extension module.
     void addBuiltInFunction(
         std::string name, std::vector<std::unique_ptr<function::Function>> functionSet);
+
+    KUZU_API void registerFileSystem(std::unique_ptr<common::FileSystem> fs);
 
 private:
     void openLockFile();

@@ -1,6 +1,6 @@
 #include "common/file_system/local_file_system.h"
 
-#include <cstring>
+#include "common/cast.h"
 
 #if defined(_WIN32)
 #include <fileapi.h>
@@ -23,6 +23,18 @@
 
 namespace kuzu {
 namespace common {
+
+LocalFileInfo::~LocalFileInfo() {
+#ifdef _WIN32
+    if (handle != nullptr) {
+        CloseHandle((HANDLE)handle);
+    }
+#else
+    if (fd != -1) {
+        close(fd);
+    }
+#endif
+}
 
 std::unique_ptr<FileInfo> LocalFileSystem::openFile(
     const std::string& path, int flags, FileLockType lock_type) {
@@ -55,7 +67,7 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
             throw Exception("Could not set lock on file : " + path);
         }
     }
-    return std::make_unique<FileInfo>(path, handle, this);
+    return std::make_unique<LocalFileInfo>(path, handle, this);
 #else
     int fd = open(path.c_str(), flags, 0644);
     if (fd == -1) {
@@ -73,7 +85,7 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
             throw Exception("Could not set lock on file : " + path);
         }
     }
-    return std::make_unique<FileInfo>(path, fd, this);
+    return std::make_unique<LocalFileInfo>(path, fd, this);
 #endif
 }
 
@@ -133,58 +145,54 @@ bool LocalFileSystem::fileOrPathExists(const std::string& path) {
     return std::filesystem::exists(path);
 }
 
-std::string LocalFileSystem::joinPath(const std::string& base, const std::string& part) {
-    return (std::filesystem::path(base) / part).string();
-}
-
-std::string LocalFileSystem::getFileExtension(const std::filesystem::path& path) {
-    return path.extension().string();
-}
-
 void LocalFileSystem::readFromFile(
     FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
+    auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     DWORD numBytesRead;
     OVERLAPPED overlapped{0, 0, 0, 0};
     overlapped.Offset = position & 0xffffffff;
     overlapped.OffsetHigh = position >> 32;
-    if (!ReadFile((HANDLE)fileInfo->handle, buffer, numBytes, &numBytesRead, &overlapped)) {
+    if (!ReadFile((HANDLE)localFileInfo->handle, buffer, numBytes, &numBytesRead, &overlapped)) {
         auto error = GetLastError();
         throw Exception(
             stringFormat("Cannot read from file: {} handle: {} "
                          "numBytesRead: {} numBytesToRead: {} position: {}. Error {}: {}",
-                fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position, error,
-                std::system_category().message(error)));
+                fileInfo->path, (intptr_t)localFileInfo->handle, numBytesRead, numBytes, position,
+                error, std::system_category().message(error)));
     }
     if (numBytesRead != numBytes && fileInfo->getFileSize() != position + numBytesRead) {
         throw Exception(stringFormat("Cannot read from file: {} handle: {} "
                                      "numBytesRead: {} numBytesToRead: {} position: {}",
-            fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position));
+            fileInfo->path, (intptr_t)localFileInfo->handle, numBytesRead, numBytes, position));
     }
 #else
-    auto numBytesRead = pread(fileInfo->fd, buffer, numBytes, position);
-    if ((uint64_t)numBytesRead != numBytes && fileInfo->getFileSize() != position + numBytesRead) {
+    auto numBytesRead = pread(localFileInfo->fd, buffer, numBytes, position);
+    if ((uint64_t)numBytesRead != numBytes &&
+        localFileInfo->getFileSize() != position + numBytesRead) {
         // LCOV_EXCL_START
         throw Exception(stringFormat("Cannot read from file: {} fileDescriptor: {} "
                                      "numBytesRead: {} numBytesToRead: {} position: {}",
-            fileInfo->path, fileInfo->fd, numBytesRead, numBytes, position));
+            fileInfo->path, localFileInfo->fd, numBytesRead, numBytes, position));
         // LCOV_EXCL_STOP
     }
 #endif
 }
 
 int64_t LocalFileSystem::readFile(FileInfo* fileInfo, void* buf, size_t nbyte) {
+    auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     DWORD numBytesRead;
-    ReadFile((HANDLE)fileInfo->handle, buf, nbyte, &numBytesRead, nullptr);
+    ReadFile((HANDLE)localFileInfo->handle, buf, nbyte, &numBytesRead, nullptr);
     return numBytesRead;
 #else
-    return read(fileInfo->fd, buf, nbyte);
+    return read(localFileInfo->fd, buf, nbyte);
 #endif
 }
 
 void LocalFileSystem::writeFile(
     FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
+    auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
     uint64_t remainingNumBytesToWrite = numBytes;
     uint64_t bufferOffset = 0;
     // Split large writes to 1GB at a time
@@ -197,24 +205,24 @@ void LocalFileSystem::writeFile(
         OVERLAPPED overlapped{0, 0, 0, 0};
         overlapped.Offset = offset & 0xffffffff;
         overlapped.OffsetHigh = offset >> 32;
-        if (!WriteFile((HANDLE)fileInfo->handle, buffer + bufferOffset, numBytesToWrite,
+        if (!WriteFile((HANDLE)localFileInfo->handle, buffer + bufferOffset, numBytesToWrite,
                 &numBytesWritten, &overlapped)) {
             auto error = GetLastError();
             throw Exception(
                 stringFormat("Cannot write to file. path: {} handle: {} offsetToWrite: {} "
                              "numBytesToWrite: {} numBytesWritten: {}. Error {}: {}.",
-                    fileInfo->path, (intptr_t)fileInfo->handle, offset, numBytesToWrite,
+                    fileInfo->path, (intptr_t)localFileInfo->handle, offset, numBytesToWrite,
                     numBytesWritten, error, std::system_category().message(error)));
         }
 #else
-        uint64_t numBytesWritten =
-            pwrite(fileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
-        if (numBytesWritten != numBytesToWrite) {
+        auto numBytesWritten =
+            pwrite(localFileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
+        if (numBytesWritten != (int64_t)numBytesToWrite) {
             // LCOV_EXCL_START
             throw Exception(
                 stringFormat("Cannot write to file. path: {} fileDescriptor: {} offsetToWrite: {} "
                              "numBytesToWrite: {} numBytesWritten: {}. Error: {}",
-                    fileInfo->path, fileInfo->fd, offset, numBytesToWrite, numBytesWritten,
+                    fileInfo->path, localFileInfo->fd, offset, numBytesToWrite, numBytesWritten,
                     posixErrMessage()));
             // LCOV_EXCL_STOP
         }
@@ -226,40 +234,42 @@ void LocalFileSystem::writeFile(
 }
 
 int64_t LocalFileSystem::seek(FileInfo* fileInfo, uint64_t offset, int whence) {
+    auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     LARGE_INTEGER result;
     LARGE_INTEGER offset_;
     offset_.QuadPart = offset;
-    SetFilePointerEx((HANDLE)fileInfo->handle, offset_, &result, whence);
+    SetFilePointerEx((HANDLE)localFileInfo->handle, offset_, &result, whence);
     return result.QuadPart;
 #else
-    return lseek(fileInfo->fd, offset, whence);
+    return lseek(localFileInfo->fd, offset, whence);
 #endif
 }
 
 void LocalFileSystem::truncate(FileInfo* fileInfo, uint64_t size) {
+    auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     auto offsetHigh = (LONG)(size >> 32);
     LONG* offsetHighPtr = NULL;
     if (offsetHigh > 0)
         offsetHighPtr = &offsetHigh;
-    if (SetFilePointer((HANDLE)fileInfo->handle, size & 0xffffffff, offsetHighPtr, FILE_BEGIN) ==
-        INVALID_SET_FILE_POINTER) {
+    if (SetFilePointer((HANDLE)localFileInfo->handle, size & 0xffffffff, offsetHighPtr,
+            FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
         auto error = GetLastError();
         throw Exception(stringFormat("Cannot set file pointer for file: {} handle: {} "
                                      "new position: {}. Error {}: {}",
-            fileInfo->path, (intptr_t)fileInfo->handle, size, error,
+            fileInfo->path, (intptr_t)localFileInfo->handle, size, error,
             std::system_category().message(error)));
     }
-    if (!SetEndOfFile((HANDLE)fileInfo->handle)) {
+    if (!SetEndOfFile((HANDLE)localFileInfo->handle)) {
         auto error = GetLastError();
         throw Exception(stringFormat("Cannot truncate file: {} handle: {} "
                                      "size: {}. Error {}: {}",
-            fileInfo->path, (intptr_t)fileInfo->handle, size, error,
+            fileInfo->path, (intptr_t)localFileInfo->handle, size, error,
             std::system_category().message(error)));
     }
 #else
-    if (ftruncate(fileInfo->fd, size) < 0) {
+    if (ftruncate(localFileInfo->fd, size) < 0) {
         // LCOV_EXCL_START
         throw Exception(
             stringFormat("Failed to truncate file {}: {}", fileInfo->path, posixErrMessage()));
@@ -269,9 +279,10 @@ void LocalFileSystem::truncate(FileInfo* fileInfo, uint64_t size) {
 }
 
 uint64_t LocalFileSystem::getFileSize(kuzu::common::FileInfo* fileInfo) {
+    auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #ifdef _WIN32
     LARGE_INTEGER size;
-    if (!GetFileSizeEx((HANDLE)fileInfo->handle, &size)) {
+    if (!GetFileSizeEx((HANDLE)localFileInfo->handle, &size)) {
         auto error = GetLastError();
         throw Exception(stringFormat("Cannot read size of file. path: {} - Error {}: {}",
             fileInfo->path, error, systemErrMessage(error)));
@@ -279,7 +290,7 @@ uint64_t LocalFileSystem::getFileSize(kuzu::common::FileInfo* fileInfo) {
     return size.QuadPart;
 #else
     struct stat s;
-    if (fstat(fileInfo->fd, &s) == -1) {
+    if (fstat(localFileInfo->fd, &s) == -1) {
         throw Exception(stringFormat("Cannot read size of file. path: {} - Error {}: {}",
             fileInfo->path, errno, posixErrMessage()));
     }

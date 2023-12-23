@@ -109,21 +109,7 @@ escape:
 }
 
 bool BaseCSVReader::isEOF() const {
-    uint64_t offset = getFileOffset();
-    auto end = fileInfo->seek(0, SEEK_END);
-    if (end == -1) {
-        // LCOV_EXCL_START
-        throw CopyException(stringFormat(
-            "Could not seek to end of file {}: {}", fileInfo->path, posixErrMessage()));
-        // LCOV_EXCL_STOP
-    }
-    if (fileInfo->seek(offset, SEEK_SET) == -1) {
-        // LCOV_EXCL_START
-        throw CopyException(stringFormat(
-            "Could not reset position of file {}: {}", fileInfo->path, posixErrMessage()));
-        // LCOV_EXCL_STOP
-    }
-    return offset >= (uint64_t)end;
+    return getFileOffset() >= fileInfo->getFileSize();
 }
 
 template<typename Driver>

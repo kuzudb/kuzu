@@ -47,6 +47,7 @@ private:
     virtual void visitCreateMacro(const Statement& /*statement*/) {}
     virtual void visitCommentOn(const Statement& /*statement*/) {}
     virtual void visitTransaction(const Statement& /*statement*/) {}
+    virtual void visitLoadExtension(const Statement& /*statement*/) {}
     // LCOV_EXCL_STOP
 };
 

@@ -20,7 +20,8 @@ add_library(kuzu_common
         profiler.cpp
         type_utils.cpp
         utils.cpp
-        string_utils.cpp)
+        string_utils.cpp
+        system_message.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common>

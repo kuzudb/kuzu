@@ -44,6 +44,9 @@ void StatementVisitor::visit(const Statement& statement) {
     case StatementType::TRANSACTION: {
         visitTransaction(statement);
     } break;
+    case StatementType::LOAD_EXTENSION: {
+        visitLoadExtension(statement);
+    } break;
     default:
         KU_UNREACHABLE;
     }

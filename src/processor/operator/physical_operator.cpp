@@ -7,189 +7,130 @@ namespace processor {
 // LCOV_EXCL_START
 std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType operatorType) {
     switch (operatorType) {
-    case PhysicalOperatorType::ADD_PROPERTY: {
+    case PhysicalOperatorType::ADD_PROPERTY:
         return "ADD_PROPERTY";
-    }
-    case PhysicalOperatorType::AGGREGATE: {
+    case PhysicalOperatorType::AGGREGATE:
         return "AGGREGATE";
-    }
-    case PhysicalOperatorType::AGGREGATE_SCAN: {
+    case PhysicalOperatorType::AGGREGATE_SCAN:
         return "AGGREGATE_SCAN";
-    }
-    case PhysicalOperatorType::STANDALONE_CALL: {
+    case PhysicalOperatorType::STANDALONE_CALL:
         return "STANDALONE_CALL";
-    }
-    case PhysicalOperatorType::COPY_TO: {
+    case PhysicalOperatorType::COPY_TO:
         return "COPY_TO";
-    }
-    case PhysicalOperatorType::COPY_NODE: {
+    case PhysicalOperatorType::COPY_NODE:
         return "COPY_NODE";
-    }
-    case PhysicalOperatorType::COPY_RDF: {
+    case PhysicalOperatorType::COPY_RDF:
         return "COPY_RDF";
-    }
-    case PhysicalOperatorType::COPY_REL: {
+    case PhysicalOperatorType::COPY_REL:
         return "COPY_REL";
-    }
-    case PhysicalOperatorType::CREATE_MACRO: {
+    case PhysicalOperatorType::CREATE_MACRO:
         return "CREATE_MACRO";
-    }
-    case PhysicalOperatorType::READER: {
+    case PhysicalOperatorType::READER:
         return "READER";
-    }
-    case PhysicalOperatorType::INSERT_NODE: {
+    case PhysicalOperatorType::INSERT_NODE:
         return "INSERT_NODE";
-    }
-    case PhysicalOperatorType::CREATE_NODE_TABLE: {
+    case PhysicalOperatorType::CREATE_NODE_TABLE:
         return "CREATE_NODE_TABLE";
-    }
-    case PhysicalOperatorType::INSERT_REL: {
+    case PhysicalOperatorType::INSERT_REL:
         return "INSERT_REL";
-    }
-    case PhysicalOperatorType::CREATE_REL_TABLE: {
+    case PhysicalOperatorType::CREATE_REL_TABLE:
         return "CREATE_REL_TABLE";
-    }
-    case PhysicalOperatorType::CREATE_RDF_GRAPH: {
+    case PhysicalOperatorType::CREATE_RDF_GRAPH:
         return "CREATE_RDF_TABLE";
-    }
-    case PhysicalOperatorType::CROSS_PRODUCT: {
+    case PhysicalOperatorType::CROSS_PRODUCT:
         return "CROSS_PRODUCT";
-    }
-    case PhysicalOperatorType::DELETE_NODE: {
+    case PhysicalOperatorType::DELETE_NODE:
         return "DELETE_NODE";
-    }
-    case PhysicalOperatorType::DELETE_REL: {
+    case PhysicalOperatorType::DELETE_REL:
         return "DELETE_REL";
-    }
-    case PhysicalOperatorType::DROP_PROPERTY: {
+    case PhysicalOperatorType::DROP_PROPERTY:
         return "DROP_PROPERTY";
-    }
-    case PhysicalOperatorType::DROP_TABLE: {
+    case PhysicalOperatorType::DROP_TABLE:
         return "DROP_TABLE";
-    }
-    case PhysicalOperatorType::EMPTY_RESULT: {
+    case PhysicalOperatorType::EMPTY_RESULT:
         return "EMPTY_RESULT";
-    }
-    case PhysicalOperatorType::FACTORIZED_TABLE_SCAN: {
+    case PhysicalOperatorType::FACTORIZED_TABLE_SCAN:
         return "FACTORIZED_TABLE_SCAN";
-    }
-    case PhysicalOperatorType::FILL_TABLE_ID: {
+    case PhysicalOperatorType::FILL_TABLE_ID:
         return "FILL_TABLE_ID";
-    }
-    case PhysicalOperatorType::FILTER: {
+    case PhysicalOperatorType::FILTER:
         return "FILTER";
-    }
-    case PhysicalOperatorType::FLATTEN: {
+    case PhysicalOperatorType::FLATTEN:
         return "FLATTEN";
-    }
-    case PhysicalOperatorType::HASH_JOIN_BUILD: {
+    case PhysicalOperatorType::HASH_JOIN_BUILD:
         return "HASH_JOIN_BUILD";
-    }
-    case PhysicalOperatorType::HASH_JOIN_PROBE: {
+    case PhysicalOperatorType::HASH_JOIN_PROBE:
         return "HASH_JOIN_PROBE";
-    }
-    case PhysicalOperatorType::INDEX_LOOKUP: {
+    case PhysicalOperatorType::INDEX_LOOKUP:
         return "INDEX_LOOKUP";
-    }
-    case PhysicalOperatorType::INDEX_SCAN: {
+    case PhysicalOperatorType::INDEX_SCAN:
         return "INDEX_SCAN";
-    }
-    case PhysicalOperatorType::INTERSECT_BUILD: {
+    case PhysicalOperatorType::INTERSECT_BUILD:
         return "INTERSECT_BUILD";
-    }
-    case PhysicalOperatorType::INTERSECT: {
+    case PhysicalOperatorType::INTERSECT:
         return "INTERSECT";
-    }
-    case PhysicalOperatorType::LIMIT: {
+    case PhysicalOperatorType::LIMIT:
         return "LIMIT";
-    }
-    case PhysicalOperatorType::MERGE: {
+    case PhysicalOperatorType::LOAD_EXTENSION:
+        return "LOAD EXTENSION";
+    case PhysicalOperatorType::MERGE:
         return "MERGE";
-    }
-    case PhysicalOperatorType::MULTIPLICITY_REDUCER: {
+    case PhysicalOperatorType::MULTIPLICITY_REDUCER:
         return "MULTIPLICITY_REDUCER";
-    }
-    case PhysicalOperatorType::PARTITIONER: {
+    case PhysicalOperatorType::PARTITIONER:
         return "PARTITIONER";
-    }
-    case PhysicalOperatorType::PATH_PROPERTY_PROBE: {
+    case PhysicalOperatorType::PATH_PROPERTY_PROBE:
         return "PATH_PROPERTY_PROBE";
-    }
-    case PhysicalOperatorType::PROJECTION: {
+    case PhysicalOperatorType::PROJECTION:
         return "PROJECTION";
-    }
-    case PhysicalOperatorType::RECURSIVE_JOIN: {
+    case PhysicalOperatorType::RECURSIVE_JOIN:
         return "RECURSIVE_JOIN";
-    }
-    case PhysicalOperatorType::RENAME_PROPERTY: {
+    case PhysicalOperatorType::RENAME_PROPERTY:
         return "RENAME_PROPERTY";
-    }
-    case PhysicalOperatorType::RENAME_TABLE: {
+    case PhysicalOperatorType::RENAME_TABLE:
         return "RENAME_TABLE";
-    }
-    case PhysicalOperatorType::RESULT_COLLECTOR: {
+    case PhysicalOperatorType::RESULT_COLLECTOR:
         return "RESULT_COLLECTOR";
-    }
-    case PhysicalOperatorType::SCAN_FRONTIER: {
+    case PhysicalOperatorType::SCAN_FRONTIER:
         return "SCAN_FRONTIER";
-    }
-    case PhysicalOperatorType::SCAN_MULTI_NODE_TABLES: {
+    case PhysicalOperatorType::SCAN_MULTI_NODE_TABLES:
         return "SCAN_MULTI_NODE_TABLES";
-    }
-    case PhysicalOperatorType::SCAN_MULTI_REL_TABLES: {
+    case PhysicalOperatorType::SCAN_MULTI_REL_TABLES:
         return "SCAN_MULTI_REL_TABLES";
-    }
-    case PhysicalOperatorType::SCAN_NODE_ID: {
+    case PhysicalOperatorType::SCAN_NODE_ID:
         return "SCAN_NODE_ID";
-    }
-    case PhysicalOperatorType::SCAN_NODE_TABLE: {
+    case PhysicalOperatorType::SCAN_NODE_TABLE:
         return "SCAN_NODE_TABLE";
-    }
-    case PhysicalOperatorType::SCAN_REL_TABLE: {
+    case PhysicalOperatorType::SCAN_REL_TABLE:
         return "SCAN_REL_TABLE";
-    }
-    case PhysicalOperatorType::SEMI_MASKER: {
+    case PhysicalOperatorType::SEMI_MASKER:
         return "SEMI_MASKER";
-    }
-    case PhysicalOperatorType::SET_NODE_PROPERTY: {
+    case PhysicalOperatorType::SET_NODE_PROPERTY:
         return "SET_NODE_PROPERTY";
-    }
-    case PhysicalOperatorType::SET_REL_PROPERTY: {
+    case PhysicalOperatorType::SET_REL_PROPERTY:
         return "SET_REL_PROPERTY";
-    }
-    case PhysicalOperatorType::SKIP: {
+    case PhysicalOperatorType::SKIP:
         return "SKIP";
-    }
-    case PhysicalOperatorType::TOP_K: {
+    case PhysicalOperatorType::TOP_K:
         return "TOP_K";
-    }
-    case PhysicalOperatorType::TOP_K_SCAN: {
+    case PhysicalOperatorType::TOP_K_SCAN:
         return "TOP_K_SCAN";
-    }
-    case PhysicalOperatorType::TRANSACTION: {
+    case PhysicalOperatorType::TRANSACTION:
         return "TRANSACTION";
-    }
-    case PhysicalOperatorType::ORDER_BY: {
+    case PhysicalOperatorType::ORDER_BY:
         return "ORDER_BY";
-    }
-    case PhysicalOperatorType::ORDER_BY_MERGE: {
+    case PhysicalOperatorType::ORDER_BY_MERGE:
         return "ORDER_BY_MERGE";
-    }
-    case PhysicalOperatorType::ORDER_BY_SCAN: {
+    case PhysicalOperatorType::ORDER_BY_SCAN:
         return "ORDER_BY_SCAN";
-    }
-    case PhysicalOperatorType::UNION_ALL_SCAN: {
+    case PhysicalOperatorType::UNION_ALL_SCAN:
         return "UNION_ALL_SCAN";
-    }
-    case PhysicalOperatorType::UNWIND: {
+    case PhysicalOperatorType::UNWIND:
         return "UNWIND";
-    }
-    case PhysicalOperatorType::IN_QUERY_CALL: {
+    case PhysicalOperatorType::IN_QUERY_CALL:
         return "IN_QUERY_CALL";
-    }
-    case PhysicalOperatorType::PROFILE: {
+    case PhysicalOperatorType::PROFILE:
         return "PROFILE";
-    }
     default:
         KU_UNREACHABLE;
     }
