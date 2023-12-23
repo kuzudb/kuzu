@@ -25,12 +25,12 @@ HashIndexBuilder<T>::HashIndexBuilder(const std::shared_ptr<FileHandle>& fileHan
       inMemOverflowFile(overflowFile), numEntries{0} {
     indexHeader = std::make_unique<HashIndexHeader>(keyDataType.getLogicalTypeID());
     headerArray = std::make_unique<InMemDiskArrayBuilder<HashIndexHeader>>(*fileHandle,
-        HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, 0 /* numElements */);
+        NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, 0 /* numElements */);
     pSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(
-        *fileHandle, HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, 0 /* numElements */);
+        *fileHandle, NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, 0 /* numElements */);
     // Reserve a slot for oSlots, which is always skipped, as we treat slot idx 0 as NULL.
     oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(
-        *fileHandle, HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, 1 /* numElements */);
+        *fileHandle, NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, 1 /* numElements */);
     allocatePSlots(2);
     keyInsertFunc = InMemHashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);
     keyEqualsFunc = InMemHashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
@@ -182,7 +182,7 @@ PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
     : keyDataTypeID{keyDataType.getLogicalTypeID()} {
     auto fileHandle =
         std::make_shared<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);
-    fileHandle->addNewPages(HEADER_PAGES * NUM_HASH_INDEXES);
+    fileHandle->addNewPages(NUM_HEADER_PAGES * NUM_HASH_INDEXES);
     if (keyDataType.getLogicalTypeID() == LogicalTypeID::STRING) {
         overflowFile = std::make_shared<Mutex<InMemFile>>(
             InMemFile(StorageUtils::getOverflowFileName(fileHandle->getFileInfo()->path), vfs));

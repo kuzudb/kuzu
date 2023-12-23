@@ -2,6 +2,8 @@
 
 // This file defines many macros for controlling copy constructors and move constructors on classes.
 
+// NOLINTBEGIN(bugprone-macro-parentheses): Although this is a good check in general, here, we
+// cannot add parantheses around the arguments, for it would be invalid syntax.
 #define DELETE_COPY_CONSTRUCT(Object) Object(const Object& other) = delete
 #define DELETE_COPY_ASSN(Object) Object& operator=(const Object& other) = delete
 // NOLINTBEGIN
@@ -60,3 +62,5 @@
 #define DELETE_COPY_AND_MOVE(Object)                                                               \
     DELETE_BOTH_COPY(Object);                                                                      \
     DELETE_BOTH_MOVE(Object)
+
+// NOLINTEND(bugprone-macro-parentheses)

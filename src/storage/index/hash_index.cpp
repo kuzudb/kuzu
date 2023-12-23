@@ -128,17 +128,17 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
       fileHandle(fileHandle), diskOverflowFile(overflowFile) {
     slotCapacity = getSlotCapacity<T>();
     headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
-        dbFileIDAndName.dbFileID, HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm,
-        wal, Transaction::getDummyReadOnlyTrx().get());
+        dbFileIDAndName.dbFileID, NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX,
+        &bm, wal, Transaction::getDummyReadOnlyTrx().get());
     // Read indexHeader from the headerArray, which contains only one element.
     indexHeader = std::make_unique<HashIndexHeader>(
         headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
     KU_ASSERT(indexHeader->keyDataTypeID == keyDataType.getLogicalTypeID());
     pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
-        HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, &bm, wal,
+        NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, &bm, wal,
         Transaction::getDummyReadOnlyTrx().get());
     oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
-        HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, &bm, wal,
+        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, &bm, wal,
         Transaction::getDummyReadOnlyTrx().get());
     // Initialize functions.
     keyHashFunc = HashIndexUtils::initializeHashFunc(indexHeader->keyDataTypeID);

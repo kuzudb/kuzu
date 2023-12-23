@@ -1,5 +1,6 @@
 -GROUP Spb1kInMemory
 -DATASET TTL EMPTY
+-SKIP
 
 --
 
