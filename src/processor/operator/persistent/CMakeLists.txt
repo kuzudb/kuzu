@@ -11,6 +11,7 @@ add_library(kuzu_processor_operator_persistent
         copy_to_parquet.cpp
         delete.cpp
         delete_executor.cpp
+        index_builder.cpp
         insert.cpp
         insert_executor.cpp
         merge.cpp

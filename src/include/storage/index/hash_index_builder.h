@@ -13,7 +13,7 @@ namespace storage {
 static constexpr common::page_idx_t INDEX_HEADER_ARRAY_HEADER_PAGE_IDX = 0;
 static constexpr common::page_idx_t P_SLOTS_HEADER_PAGE_IDX = 1;
 static constexpr common::page_idx_t O_SLOTS_HEADER_PAGE_IDX = 2;
-static constexpr common::page_idx_t HEADER_PAGES = 3;
+static constexpr common::page_idx_t NUM_HEADER_PAGES = 3;
 static constexpr uint64_t INDEX_HEADER_IDX_IN_ARRAY = 0;
 
 /**

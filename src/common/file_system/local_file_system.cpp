@@ -1,5 +1,7 @@
 #include "common/file_system/local_file_system.h"
 
+#include <cstring>
+
 #if defined(_WIN32)
 #include <fileapi.h>
 #include <io.h>
@@ -57,7 +59,7 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
 #else
     int fd = open(path.c_str(), flags, 0644);
     if (fd == -1) {
-        throw Exception("Cannot open file: " + path);
+        throw Exception(stringFormat("Cannot open file {}: {}", path, posixErrMessage()));
     }
     if (lock_type != FileLockType::NO_LOCK) {
         struct flock fl;

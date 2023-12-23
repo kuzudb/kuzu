@@ -1,7 +1,5 @@
 #include "main/client_context.h"
 
-#include <thread>
-
 #include "common/constants.h"
 #include "common/exception/runtime.h"
 #include "main/database.h"
@@ -22,7 +20,7 @@ void ActiveQuery::reset() {
 }
 
 ClientContext::ClientContext(Database* database)
-    : numThreadsForExecution{std::thread::hardware_concurrency()},
+    : numThreadsForExecution{database->systemConfig.maxNumThreads},
       timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS},
       varLengthExtendMaxDepth{DEFAULT_VAR_LENGTH_EXTEND_MAX_DEPTH}, enableSemiMask{
                                                                         DEFAULT_ENABLE_SEMI_MASK} {

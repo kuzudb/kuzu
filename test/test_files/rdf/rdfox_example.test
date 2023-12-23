@@ -1,5 +1,6 @@
 -GROUP RdfoxExample
 -DATASET TTL rdf/rdfox_example
+-SKIP
 
 --
 

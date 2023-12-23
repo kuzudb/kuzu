@@ -43,11 +43,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
     }
     case TableType::RDF:
         return mapCopyRdfFrom(logicalOperator);
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
     }
-    // LCOV_EXCL_STOP
 }
 
 static void getNodeColumnsInCopyOrder(

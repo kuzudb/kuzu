@@ -4,6 +4,7 @@
 
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/call/in_query_call.h"
+#include "processor/operator/persistent/index_builder.h"
 #include "processor/operator/sink.h"
 #include "storage/store/node_group.h"
 #include "storage/store/node_table.h"
@@ -18,19 +19,22 @@ class CopyNodeSharedState {
 
 public:
     CopyNodeSharedState()
-        : indexBuilder{nullptr}, readerSharedState{nullptr}, distinctSharedState{nullptr},
-          currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {};
+        : readerSharedState{nullptr}, distinctSharedState{nullptr}, currentNodeGroupIdx{0},
+          sharedNodeGroup{nullptr} {};
 
-    void init(common::VirtualFileSystem* vfs);
+    void init();
 
     inline common::offset_t getNextNodeGroupIdx() {
-        std::unique_lock<std::mutex> lck{mtx};
+        std::unique_lock lck{mtx};
         return getNextNodeGroupIdxWithoutLock();
     }
 
     inline uint64_t getCurNodeGroupIdx() const { return currentNodeGroupIdx; }
 
-    void appendLocalNodeGroup(std::unique_ptr<storage::NodeGroup> localNodeGroup);
+    void appendIncompleteNodeGroup(std::unique_ptr<storage::NodeGroup> localNodeGroup,
+        std::optional<IndexBuilder>& indexBuilder);
+
+    void addLastNodeGroup(std::optional<IndexBuilder>& indexBuilder);
 
 private:
     inline common::offset_t getNextNodeGroupIdxWithoutLock() { return currentNodeGroupIdx++; }
@@ -89,10 +93,12 @@ class CopyNode : public Sink {
 public:
     CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, std::unique_ptr<CopyNodeInfo> info,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString,
+        std::optional<IndexBuilder> indexBuilder = std::nullopt)
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child),
               id, paramsString},
-          sharedState{std::move(sharedState)}, info{std::move(info)} {}
+          sharedState{std::move(sharedState)}, info{std::move(info)},
+          indexBuilder(std::move(indexBuilder)) {}
 
     inline std::shared_ptr<CopyNodeSharedState> getSharedState() const { return sharedState; }
 
@@ -108,41 +114,30 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<CopyNode>(sharedState, info->copy(), resultSetDescriptor->copy(),
-            children[0]->clone(), id, paramsString);
+            children[0]->clone(), id, paramsString,
+            indexBuilder ? std::make_optional<IndexBuilder>(indexBuilder->clone()) : std::nullopt);
     }
 
     static void writeAndResetNodeGroup(common::node_group_idx_t nodeGroupIdx,
-        storage::PrimaryKeyIndexBuilder* pkIndex, common::column_id_t pkColumnID,
+        std::optional<IndexBuilder>& indexBuilder, common::column_id_t pkColumnID,
         storage::NodeTable* table, storage::NodeGroup* nodeGroup);
 
 private:
-    static void populatePKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
-        storage::ColumnChunk* chunk, common::offset_t startNodeOffset, common::offset_t numNodes);
-    static void checkNonNullConstraint(
-        storage::NullColumnChunk* nullChunk, common::offset_t numNodes);
-
-    template<typename T>
-    static uint64_t appendToPKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
-        storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
-
     void copyToNodeGroup();
+    void initGlobalIndexBuilder(ExecutionContext* context);
+    void initLocalIndexBuilder(ExecutionContext* context);
 
 protected:
     std::shared_ptr<CopyNodeSharedState> sharedState;
     std::unique_ptr<CopyNodeInfo> info;
+
+    std::optional<IndexBuilder> indexBuilder;
 
     common::DataChunkState* columnState;
     std::vector<std::shared_ptr<common::ValueVector>> nullColumnVectors;
     std::vector<common::ValueVector*> columnVectors;
     std::unique_ptr<storage::NodeGroup> localNodeGroup;
 };
-
-template<>
-uint64_t CopyNode::appendToPKIndex<int64_t>(storage::PrimaryKeyIndexBuilder* pkIndex,
-    storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
-template<>
-uint64_t CopyNode::appendToPKIndex<std::string>(storage::PrimaryKeyIndexBuilder* pkIndex,
-    storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
 
 } // namespace processor
 } // namespace kuzu
