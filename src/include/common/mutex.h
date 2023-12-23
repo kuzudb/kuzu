@@ -15,7 +15,7 @@ class MutexGuard {
     MutexGuard(T& data, std::unique_lock<std::mutex> lck) : data(&data), lck(std::move(lck)) {}
 
 public:
-    NO_COPY(MutexGuard);
+    DELETE_COPY_DEFAULT_MOVE(MutexGuard);
 
     T* operator->() & { return data; }
     T& operator*() & { return *data; }
@@ -37,7 +37,7 @@ class Mutex {
 public:
     Mutex() : data() {}
     explicit Mutex(T data) : data(std::move(data)) {}
-    NO_MOVE_OR_COPY(Mutex);
+    DELETE_COPY_AND_MOVE(Mutex);
 
     MutexGuard<T> lock() {
         std::unique_lock lck{mtx};
