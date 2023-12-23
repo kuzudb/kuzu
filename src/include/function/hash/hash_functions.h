@@ -16,7 +16,13 @@ namespace function {
 constexpr const uint64_t NULL_HASH = UINT64_MAX;
 
 inline common::hash_t murmurhash64(uint64_t x) {
-    return x * UINT64_C(0xbf58476d1ce4e5b9);
+    // taken from https://nullprogram.com/blog/2018/07/31.
+    x ^= x >> 32;
+    x *= 0xd6e8feb86659fd93U;
+    x ^= x >> 32;
+    x *= 0xd6e8feb86659fd93U;
+    x ^= x >> 32;
+    return x;
 }
 
 inline common::hash_t combineHashScalar(common::hash_t a, common::hash_t b) {
