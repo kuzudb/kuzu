@@ -120,34 +120,31 @@ void HashIndexLocalStorage::clear() {
 }
 
 template<typename T>
-HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
-    const LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal, VirtualFileSystem* vfs)
-    : BaseHashIndex{keyDataType}, dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal} {
+HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
+    const std::shared_ptr<BMFileHandle>& fileHandle,
+    const std::shared_ptr<DiskOverflowFile>& overflowFile, uint64_t indexPos,
+    const LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
+    : BaseHashIndex{keyDataType}, dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal},
+      fileHandle(fileHandle), diskOverflowFile(overflowFile) {
     slotCapacity = getSlotCapacity<T>();
-    fileHandle = bufferManager.getBMFileHandle(dbFileIDAndName.fName,
-        readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                   FileHandle::O_PERSISTENT_FILE_NO_CREATE,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
-    headerArray =
-        std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle, dbFileIDAndName.dbFileID,
-            INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal, Transaction::getDummyReadOnlyTrx().get());
+    headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
+        dbFileIDAndName.dbFileID, HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm,
+        wal, Transaction::getDummyReadOnlyTrx().get());
     // Read indexHeader from the headerArray, which contains only one element.
     indexHeader = std::make_unique<HashIndexHeader>(
         headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
     KU_ASSERT(indexHeader->keyDataTypeID == keyDataType.getLogicalTypeID());
     pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
-        P_SLOTS_HEADER_PAGE_IDX, &bm, wal, Transaction::getDummyReadOnlyTrx().get());
+        HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, &bm, wal,
+        Transaction::getDummyReadOnlyTrx().get());
     oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
-        O_SLOTS_HEADER_PAGE_IDX, &bm, wal, Transaction::getDummyReadOnlyTrx().get());
+        HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, &bm, wal,
+        Transaction::getDummyReadOnlyTrx().get());
     // Initialize functions.
     keyHashFunc = HashIndexUtils::initializeHashFunc(indexHeader->keyDataTypeID);
     keyInsertFunc = HashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);
     keyEqualsFunc = HashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
     localStorage = std::make_unique<HashIndexLocalStorage>(keyDataType);
-    if (keyDataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        diskOverflowFile =
-            std::make_unique<DiskOverflowFile>(dbFileIDAndName, &bm, wal, readOnly, vfs);
-    }
 }
 
 // For read transactions, local storage is skipped, lookups are performed on the persistent
@@ -423,7 +420,7 @@ void HashIndex<T>::checkpointInMemory() {
 }
 
 template<typename T>
-void HashIndex<T>::rollbackInMemory() const {
+void HashIndex<T>::rollbackInMemory() {
     if (!localStorage->hasUpdates()) {
         return;
     }
@@ -436,17 +433,54 @@ void HashIndex<T>::rollbackInMemory() const {
 template class HashIndex<int64_t>;
 template class HashIndex<ku_string_t>;
 
-bool PrimaryKeyIndex::lookup(
-    Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, offset_t& result) {
-    KU_ASSERT(!keyVector->isNull(vectorPos));
-    if (keyDataTypeID == LogicalTypeID::INT64) {
-        auto key = keyVector->getValue<int64_t>(vectorPos);
-        return hashIndexForInt64->lookupInternal(
-            trx, reinterpret_cast<const uint8_t*>(&key), result);
+PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
+    const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal,
+    VirtualFileSystem* vfs)
+    : keyDataTypeID(keyDataType.getLogicalTypeID()) {
+    fileHandle = bufferManager.getBMFileHandle(dbFileIDAndName.fName,
+        readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                   FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
+
+    if (keyDataType.getLogicalTypeID() == LogicalTypeID::STRING) {
+        overflowFile =
+            std::make_shared<DiskOverflowFile>(dbFileIDAndName, &bufferManager, wal, readOnly, vfs);
+    }
+
+    if (keyDataTypeID == LogicalTypeID::STRING) {
+        hashIndexForString.reserve(NUM_HASH_INDEXES);
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            hashIndexForString.push_back(std::make_unique<HashIndex<ku_string_t>>(
+                dbFileIDAndName, fileHandle, overflowFile, i, keyDataType, bufferManager, wal));
+        }
     } else {
+        hashIndexForInt64.reserve(NUM_HASH_INDEXES);
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            hashIndexForInt64.push_back(std::make_unique<HashIndex<int64_t>>(
+                dbFileIDAndName, fileHandle, overflowFile, i, keyDataType, bufferManager, wal));
+        }
+    }
+}
+
+bool PrimaryKeyIndex::lookup(Transaction* trx, common::ValueVector* keyVector, uint64_t vectorPos,
+    common::offset_t& result) {
+    if (keyDataTypeID == LogicalTypeID::STRING) {
         auto key = keyVector->getValue<ku_string_t>(vectorPos).getAsString();
-        return hashIndexForString->lookupInternal(
-            trx, reinterpret_cast<const uint8_t*>(key.c_str()), result);
+        return lookup(trx, key.c_str(), result);
+    } else {
+        auto key = keyVector->getValue<int64_t>(vectorPos);
+        return lookup(trx, key, result);
+    }
+}
+
+bool PrimaryKeyIndex::insert(
+    common::ValueVector* keyVector, uint64_t vectorPos, common::offset_t value) {
+    if (keyDataTypeID == LogicalTypeID::STRING) {
+        auto key = keyVector->getValue<ku_string_t>(vectorPos).getAsString();
+        return insert(key.c_str(), value);
+    } else {
+        auto key = keyVector->getValue<int64_t>(vectorPos);
+        return insert(key, value);
     }
 }
 
@@ -458,7 +492,7 @@ void PrimaryKeyIndex::delete_(ValueVector* keyVector) {
                 continue;
             }
             auto key = keyVector->getValue<int64_t>(pos);
-            hashIndexForInt64->deleteInternal(reinterpret_cast<const uint8_t*>(&key));
+            delete_(key);
         }
     } else {
         for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
@@ -467,20 +501,56 @@ void PrimaryKeyIndex::delete_(ValueVector* keyVector) {
                 continue;
             }
             auto key = keyVector->getValue<ku_string_t>(pos).getAsString();
-            hashIndexForString->deleteInternal(reinterpret_cast<const uint8_t*>(key.c_str()));
+            delete_(key.c_str());
         }
     }
 }
 
-bool PrimaryKeyIndex::insert(ValueVector* keyVector, uint64_t vectorPos, offset_t value) {
-    KU_ASSERT(!keyVector->isNull(vectorPos));
-    if (keyDataTypeID == LogicalTypeID::INT64) {
-        auto key = keyVector->getValue<int64_t>(vectorPos);
-        return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), value);
+void PrimaryKeyIndex::checkpointInMemory() {
+    if (keyDataTypeID == LogicalTypeID::STRING) {
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            hashIndexForString[i]->checkpointInMemory();
+        }
     } else {
-        auto key = keyVector->getValue<ku_string_t>(vectorPos).getAsString();
-        return hashIndexForString->insertInternal(
-            reinterpret_cast<const uint8_t*>(key.c_str()), value);
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            hashIndexForInt64[i]->checkpointInMemory();
+        }
+    }
+}
+
+void PrimaryKeyIndex::rollbackInMemory() {
+    if (keyDataTypeID == LogicalTypeID::STRING) {
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            hashIndexForString[i]->rollbackInMemory();
+        }
+    } else {
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            hashIndexForInt64[i]->rollbackInMemory();
+        }
+    }
+}
+
+void PrimaryKeyIndex::prepareCommit() {
+    if (keyDataTypeID == LogicalTypeID::STRING) {
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            hashIndexForString[i]->prepareCommit();
+        }
+    } else {
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            hashIndexForInt64[i]->prepareCommit();
+        }
+    }
+}
+
+void PrimaryKeyIndex::prepareRollback() {
+    if (keyDataTypeID == LogicalTypeID::STRING) {
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            hashIndexForString[i]->prepareRollback();
+        }
+    } else {
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            hashIndexForInt64[i]->prepareRollback();
+        }
     }
 }
 

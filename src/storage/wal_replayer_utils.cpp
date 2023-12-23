@@ -19,29 +19,14 @@ void WALReplayerUtils::removeHashIndexFile(
 void WALReplayerUtils::createEmptyHashIndexFiles(catalog::NodeTableSchema* nodeTableSchema,
     const std::string& directory, VirtualFileSystem* vfs) {
     auto pk = nodeTableSchema->getPrimaryKey();
-    switch (pk->getDataType()->getLogicalTypeID()) {
-    case LogicalTypeID::INT64: {
-        auto pkIndex = make_unique<HashIndexBuilder<int64_t>>(
+    auto dt = pk->getDataType();
+    if (dt->getLogicalTypeID() != LogicalTypeID::SERIAL) {
+        auto pkIndex = make_unique<PrimaryKeyIndexBuilder>(
             StorageUtils::getNodeIndexFName(
                 vfs, directory, nodeTableSchema->tableID, FileVersionType::ORIGINAL),
             *pk->getDataType(), vfs);
         pkIndex->bulkReserve(0 /* numNodes */);
         pkIndex->flush();
-    } break;
-    case LogicalTypeID::STRING: {
-        auto pkIndex = make_unique<HashIndexBuilder<ku_string_t>>(
-            StorageUtils::getNodeIndexFName(
-                vfs, directory, nodeTableSchema->tableID, FileVersionType::ORIGINAL),
-            *pk->getDataType(), vfs);
-        pkIndex->bulkReserve(0 /* numNodes */);
-        pkIndex->flush();
-    } break;
-    case LogicalTypeID::SERIAL: {
-        // DO NOTHING.
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
     }
 }
 

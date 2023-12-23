@@ -28,6 +28,20 @@ using in_mem_insert_function_t =
 using in_mem_equals_function_t =
     std::function<bool(const uint8_t*, const uint8_t*, const InMemFile*)>;
 
+const uint64_t NUM_HASH_INDEXES_LOG2 = 8;
+const uint64_t NUM_HASH_INDEXES = 1 << NUM_HASH_INDEXES_LOG2;
+
+inline uint64_t getHashIndexPosition(int64_t key) {
+    common::hash_t hash;
+    function::Hash::operation(key, hash);
+    return (hash >> (64 - NUM_HASH_INDEXES_LOG2)) & (NUM_HASH_INDEXES - 1);
+}
+inline uint64_t getHashIndexPosition(const char* key) {
+    auto view = std::string_view(key);
+    return (std::hash<std::string_view>()(view) >> (64 - NUM_HASH_INDEXES_LOG2)) &
+           (NUM_HASH_INDEXES - 1);
+}
+
 class InMemHashIndexUtils {
 public:
     static in_mem_equals_function_t initializeEqualsFunc(common::LogicalTypeID dataTypeID);
