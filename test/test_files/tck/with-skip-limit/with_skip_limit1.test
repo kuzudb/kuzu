@@ -1,0 +1,48 @@
+-GROUP TCKWithSkipLimit1
+-DATASET CSV tck
+
+--
+
+# Handle dependencies across WITH with SKIP
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(name STRING, num INT64, id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:A {name: 'A', num: 0, id: 0}),
+                  (:A {name: 'B', num: a.id, id: 1}),
+                  (:A {name: 'C', num: 0, id: 2});
+---- ok
+-STATEMENT MATCH (a)
+           WITH a.name AS property, a.num AS idToUse
+             ORDER BY property
+             SKIP 1
+           MATCH (b)
+           WHERE b.id = idToUse
+           RETURN DISTINCT b;
+---- 1
+{_ID: 0:0, _LABEL: A, name: A, num: 0, id: 0}
+
+# Ordering and skipping on aggregate
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Y(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO X, num INT64);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM A TO X, num INT64);
+---- ok
+-STATEMENT CREATE REL TABLE T3(FROM A TO Y, num INT64);
+---- ok
+-STATEMENT CREATE (:A)-[:T1 {num: 3}]->(x:X),
+                  (:A)-[:T2 {num: 2}]->(x),
+                  (:A)-[:T3 {num: 1}]->(:Y);
+---- ok
+-STATEMENT MATCH ()-[r1]->(x)
+           WITH x, sum(r1.num) AS c
+             ORDER BY c SKIP 1
+           RETURN x, c;
+---- 1
+{_ID: 1:0, _LABEL: X, ID: 0}|5
