@@ -7,13 +7,13 @@
 
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 5
-example_literal_triples_t|REL|
-example_literal_t|NODE|
-example_resource_triples_t|REL|
-example_resource_t|NODE|
+example_lt|REL|
+example_l|NODE|
+example_rt|REL|
+example_r|NODE|
 example|RDF|
 
--STATEMENT MATCH (s:example_resource_t) RETURN s.iri ORDER BY offset(id(s));
+-STATEMENT MATCH (s:example_r) RETURN s.iri ORDER BY offset(id(s));
 ---- 14
 :andy
 :literal
@@ -31,7 +31,7 @@ http://www.w3.org/1999/02/22-rdf-syntax-ns#type
 :brian
 
 
--STATEMENT MATCH (s:example_literal_t) RETURN s.iri ORDER BY s.id ;
+-STATEMENT MATCH (s:example_l) RETURN s.val ORDER BY s.id ;
 -CHECK_ORDER
 ---- 16
 12
@@ -51,12 +51,12 @@ Stewie
 male
 Brian
 
--STATEMENT MATCH (s:example_literal_t) RETURN s.iri,
-        to_int64(s.iri) + 1, to_int32(s.iri), to_int16(s.iri), to_int8(s.iri) * 2,
-        to_uint64(s.iri), to_uint32(s.iri), to_uint16(s.iri), to_uint8(s.iri),
-        to_double(s.iri), to_float(s.iri), to_bool(s.iri), to_blob(s.iri),
-        date(s.iri), timestamp(s.iri), cast(s.iri, "TIMESTAMP_NS"), cast(s.iri, "TIMESTAMP_MS"),
-        cast(s.iri, "TIMESTAMP_SEC"), cast(s.iri, "TIMESTAMP_TZ"), interval(s.iri), to_string(s.iri)
+-STATEMENT MATCH (s:example_l) RETURN s.val,
+        to_int64(s.val) + 1, to_int32(s.val), to_int16(s.val), to_int8(s.val) * 2,
+        to_uint64(s.val), to_uint32(s.val), to_uint16(s.val), to_uint8(s.val),
+        to_double(s.val), to_float(s.val), to_bool(s.val), to_blob(s.val),
+        date(s.val), timestamp(s.val), cast(s.val, "TIMESTAMP_NS"), cast(s.val, "TIMESTAMP_MS"),
+        cast(s.val, "TIMESTAMP_SEC"), cast(s.val, "TIMESTAMP_TZ"), interval(s.val), to_string(s.val)
         ORDER BY s.id LIMIT 6;
 -CHECK_ORDER
 ---- 6
@@ -67,7 +67,7 @@ True|||||||||||True|||||||||True
 1999-08-16|||||||||||||1999-08-16|||||||1999-08-16
 Peter||||||||||||||||||||Peter
 
--STATEMENT MATCH (s:example_literal_t) RETURN s.iri +1, s.iri * 2, s.iri * 2.0, s.iri = true, dayname(s.iri), concat(s.iri, 'a')
+-STATEMENT MATCH (s:example_l) RETURN s.val +1, s.val * 2, s.val * 2.0, s.val = true, dayname(s.val), concat(s.val, 'a')
         ORDER BY s.id LIMIT 6;
 -CHECK_ORDER
 ---- 6
@@ -78,7 +78,7 @@ Peter||||||||||||||||||||Peter
 ||||Monday|1999-08-16a
 |||||Petera
 
--STATEMENT MATCH (a:example_resource_t)-[e:example]->(b:example_resource_t) RETURN a.iri, e.iri, b.iri
+-STATEMENT MATCH (a:example_r)-[e:example]->(b:example_r) RETURN a.iri, e.iri, b.iri
 ---- 10
 :peter|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
 :peter|:marriedTo|:lois
@@ -91,7 +91,7 @@ Peter||||||||||||||||||||Peter
 :stewie|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
 :stewie|:hasParent|:lois
 
--STATEMENT MATCH (a:example_resource_t)-[e:example]->(b:example_literal_t) RETURN a.iri, e.iri, b.iri
+-STATEMENT MATCH (a:example_r)-[e:example]->(b:example_l) RETURN a.iri, e.iri, b.val
 ---- 16
 :andy|:literal|12
 :andy|:literal|-14.900000
@@ -109,3 +109,32 @@ Peter||||||||||||||||||||Peter
 :stewie|:forename|Stewie
 :stewie|:gender|male
 :brian|:forename|Brian
+
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
+---- 26
+:andy|:literal||-14.900000
+:andy|:literal||0.016630
+:andy|:literal||12
+:andy|:literal||1999-08-16
+:andy|:literal||True
+:brian|:forename||Brian
+:chris|:forename||Chris
+:chris|:gender||male
+:chris|:hasParent|:peter|
+:chris|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
+:lois|:forename||Lois
+:lois|:gender||female
+:lois|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
+:meg|:forename||Meg
+:meg|:gender||female
+:meg|:hasParent|:lois|
+:meg|:hasParent|:peter|
+:meg|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
+:peter|:forename||Peter
+:peter|:gender||male
+:peter|:marriedTo|:lois|
+:peter|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
+:stewie|:forename||Stewie
+:stewie|:gender||male
+:stewie|:hasParent|:lois|
+:stewie|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|

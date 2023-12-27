@@ -22,7 +22,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     auto offset = expressionBinder.createVariableExpression(
         *LogicalType::INT64(), InternalKeyword::ROW_OFFSET);
     auto r = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::IRI);
-    auto l = expressionBinder.createVariableExpression(*RdfVariantType::getType(), rdf::IRI);
+    auto l = expressionBinder.createVariableExpression(*RdfVariantType::getType(), rdf::VAL);
     auto s = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::SUBJECT);
     auto p = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::PREDICATE);
     auto o = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::OBJECT);

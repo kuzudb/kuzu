@@ -7,18 +7,16 @@ namespace common {
 namespace rdf {
 
 static constexpr std::string_view IRI = "iri";
+static constexpr std::string_view VAL = "val";
 static constexpr std::string_view ID = "id";
 static constexpr std::string_view PID = "pid"; // TODO: rename
 static constexpr std::string_view SUBJECT = "subject";
 static constexpr std::string_view PREDICATE = "predicate";
 static constexpr std::string_view OBJECT = "object";
-static constexpr std::string_view SUBJECT_OFFSET = "subject_offset";
-static constexpr std::string_view PREDICATE_OFFSET = "predicate_offset";
-static constexpr std::string_view OBJECT_OFFSET = "object_offset";
-static constexpr std::string_view RESOURCE_TABLE_SUFFIX = "_resource_t";
-static constexpr std::string_view LITERAL_TABLE_SUFFIX = "_literal_t";
-static constexpr std::string_view RESOURCE_TRIPLE_TABLE_SUFFIX = "_resource_triples_t";
-static constexpr std::string_view LITERAL_TRIPLE_TABLE_SUFFIX = "_literal_triples_t";
+static constexpr std::string_view RESOURCE_TABLE_SUFFIX = "_r";
+static constexpr std::string_view LITERAL_TABLE_SUFFIX = "_l";
+static constexpr std::string_view RESOURCE_TRIPLE_TABLE_SUFFIX = "_rt";
+static constexpr std::string_view LITERAL_TRIPLE_TABLE_SUFFIX = "_lt";
 
 // Common RDF prefix
 static constexpr std::string_view XSD = "http://www.w3.org/2001/XMLSchema#";
