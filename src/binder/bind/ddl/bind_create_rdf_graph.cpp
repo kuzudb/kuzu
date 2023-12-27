@@ -46,7 +46,7 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRdfGraphInfo(const Creat
     literalProperties.push_back(
         std::make_unique<Property>(std::string(rdf::ID), serialType.copy()));
     literalProperties.push_back(
-        std::make_unique<Property>(std::string(rdf::IRI), RdfVariantType::getType()));
+        std::make_unique<Property>(std::string(rdf::VAL), RdfVariantType::getType()));
     auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(
         0 /* primaryKeyIdx */, std::move(literalProperties));
     auto literalCreateInfo = std::make_unique<BoundCreateTableInfo>(

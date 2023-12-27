@@ -171,10 +171,7 @@ void CopyNodeSharedState::calculateNumTuples() {
 
 void CopyNode::finalize(ExecutionContext* context) {
     sharedState->calculateNumTuples();
-    //    uint64_t numNodes =
-    //    StorageUtils::getStartOffsetOfNodeGroup(sharedState->getCurNodeGroupIdx());
     if (sharedState->sharedNodeGroup) {
-        //        numNodes += sharedState->sharedNodeGroup->getNumRows();
         auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
         writeAndResetNodeGroup(nodeGroupIdx, sharedState->indexBuilder.get(),
             sharedState->pkColumnIdx, sharedState->table, sharedState->sharedNodeGroup.get());

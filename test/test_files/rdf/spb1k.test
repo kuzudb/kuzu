@@ -5,12 +5,15 @@
 
 -CASE SPB
 
--STATEMENT MATCH (s:spb_resource_t) RETURN COUNT(*);
+-STATEMENT MATCH (s:spb_r) RETURN COUNT(*);
 ---- 1
 567
--STATEMENT MATCH (s:spb_resource_t)-[]->(:spb_resource_t) WHERE s.iri = "http://www.bbc.co.uk/things/3#id" RETURN COUNT(*);
+-STATEMENT MATCH (s:spb_r)-[]->(:spb_r) WHERE s.iri = "http://www.bbc.co.uk/things/3#id" RETURN COUNT(*);
 ---- 1
 16
--STATEMENT MATCH (s:spb_resource_t)-[]->(:spb_literal_t) WHERE s.iri = "http://www.bbc.co.uk/things/3#id" RETURN COUNT(*);
+-STATEMENT MATCH (s:spb_r)-[]->(:spb_l) WHERE s.iri = "http://www.bbc.co.uk/things/3#id" RETURN COUNT(*);
 ---- 1
 7
+-STATEMENT MATCH (s)-[]->() WHERE s.iri = "http://www.bbc.co.uk/things/3#id" RETURN COUNT(*);
+---- 1
+23
