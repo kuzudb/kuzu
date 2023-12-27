@@ -1,0 +1,541 @@
+-GROUP TCKTemporal4
+-DATASET CSV tck
+
+--
+
+#  Should store date
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({created: date({year: 1984, month: 10, day: 11})});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.created;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11'
+
+#  Should store date array
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [date({year: 1984, month: 10, day: 12})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['1984-10-12']
+
+#  Should store date array
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [date({year: 1984, month: 10, day: 13}), date({year: 1984, month: 10, day: 14}), date({year: 1984, month: 10, day: 15})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['1984-10-13', '1984-10-14', '1984-10-15']
+
+#  Should store local time
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({created: localtime({hour: 12})});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.created;
+## Outcome: the result should be, in any order:
+---- 1
+'12:00'
+
+#  Should store local time array
+-CASE Scenario5
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [localtime({hour: 13})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['13:00']
+
+#  Should store local time array
+-CASE Scenario6
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [localtime({hour: 14}), localtime({hour: 15}), localtime({hour: 16})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['14:00', '15:00', '16:00']
+
+#  Should store time
+-CASE Scenario7
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({created: time({hour: 12})});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.created;
+## Outcome: the result should be, in any order:
+---- 1
+'12:00Z'
+
+#  Should store time array
+-CASE Scenario8
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [time({hour: 13})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['13:00Z']
+
+#  Should store time array
+-CASE Scenario9
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [time({hour: 14}), time({hour: 15}), time({hour: 16})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['14:00Z', '15:00Z', '16:00Z']
+
+#  Should store local date time
+-CASE Scenario10
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({created: localdatetime({year: 1912})});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.created;
+## Outcome: the result should be, in any order:
+---- 1
+'1912-01-01T00:00'
+
+#  Should store local date time array
+-CASE Scenario11
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [localdatetime({year: 1913})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['1913-01-01T00:00']
+
+#  Should store local date time array
+-CASE Scenario12
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [localdatetime({year: 1914}), localdatetime({year: 1915}), localdatetime({year: 1916})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['1914-01-01T00:00', '1915-01-01T00:00', '1916-01-01T00:00']
+
+#  Should store date time
+-CASE Scenario13
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({created: datetime({year: 1912})});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.created;
+## Outcome: the result should be, in any order:
+---- 1
+'1912-01-01T00:00Z'
+
+#  Should store date time array
+-CASE Scenario14
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [datetime({year: 1913})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['1913-01-01T00:00Z']
+
+#  Should store date time array
+-CASE Scenario15
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [datetime({year: 1914}), datetime({year: 1915}), datetime({year: 1916})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['1914-01-01T00:00Z', '1915-01-01T00:00Z', '1916-01-01T00:00Z']
+
+#  Should store duration
+-CASE Scenario16
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({created: duration({seconds: 12})});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.created;
+## Outcome: the result should be, in any order:
+---- 1
+'PT12S'
+
+#  Should store duration array
+-CASE Scenario17
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [duration({seconds: 13})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['PT13S']
+
+#  Should store duration array
+-CASE Scenario18
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ({dates: [duration({seconds: 14}), duration({seconds: 15}), duration({seconds: 16})]});
+## Outcome: the result should be empty
+## Outcome: the side effects should be:
+---- 1
++properties|1
+## Action: executing control query:
+-STATEMENT MATCH (n)
+           RETURN n.dates;
+## Outcome: the result should be, in any order:
+---- 1
+['PT14S', 'PT15S', 'PT16S']
+
+#  Should propagate null
+-CASE Scenario19
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN date(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario20
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN date.transaction(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario21
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN date.statement(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario22
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN date.realtime(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario23
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN localtime(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario24
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN localtime.transaction(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario25
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN localtime.statement(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario26
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN localtime.realtime(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario27
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN time(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario28
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN time.transaction(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario29
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN time.statement(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario30
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN time.realtime(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario31
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN localdatetime(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario32
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN localdatetime.transaction(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario33
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN localdatetime.statement(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario34
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN localdatetime.realtime(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario35
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN datetime(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario36
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN datetime.transaction(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario37
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN datetime.statement(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario38
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN datetime.realtime(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Should propagate null
+-CASE Scenario39
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN duration(null) AS t;
+## Outcome: the result should be, in any order:
+---- 1
+null

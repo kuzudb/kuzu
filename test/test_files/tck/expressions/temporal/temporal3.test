@@ -1,0 +1,1326 @@
+-GROUP TCKTemporal3
+-DATASET CSV tck
+
+--
+
+
+#  Should select date
+-CASE Scenario1
+-STATEMENT WITH date({year: 1984, month: 11, day: 11}) AS other
+           RETURN date(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-11-11'
+
+-STATEMENT WITH date({year: 1984, month: 11, day: 11}) AS other
+           RETURN date({date: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-11-11'
+
+-STATEMENT WITH date({year: 1984, month: 11, day: 11}) AS other
+           RETURN date({date: other, year: 28}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'0028-11-11'
+
+-STATEMENT WITH date({year: 1984, month: 11, day: 11}) AS other
+           RETURN date({date: other, day: 28}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-11-28'
+
+-STATEMENT WITH date({year: 1984, month: 11, day: 11}) AS other
+           RETURN date({date: other, week: 1}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-01-08'
+
+-STATEMENT WITH date({year: 1984, month: 11, day: 11}) AS other
+           RETURN date({date: other, ordinalDay: 28}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-01-28'
+
+-STATEMENT WITH date({year: 1984, month: 11, day: 11}) AS other
+           RETURN date({date: other, quarter: 3}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-08-11'
+
+-STATEMENT WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN date(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-11-11'
+
+-STATEMENT WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN date({date: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-11-11'
+
+-STATEMENT WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN date({date: other, year: 28}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'0028-11-11'
+
+-STATEMENT WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN date({date: other, day: 28}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-11-28'
+
+-STATEMENT WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN date({date: other, week: 1}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-01-08'
+
+-STATEMENT WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN date({date: other, ordinalDay: 28}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-01-28'
+
+-STATEMENT WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN date({date: other, quarter: 3}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-08-11'
+
+-STATEMENT WITH datetime({year: 1984, month: 11, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN date(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-11-11'
+
+-STATEMENT WITH datetime({year: 1984, month: 11, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN date({date: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-11-11'
+
+-STATEMENT WITH datetime({year: 1984, month: 11, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN date({date: other, year: 28}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'0028-11-11'
+
+-STATEMENT WITH datetime({year: 1984, month: 11, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN date({date: other, day: 28}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-11-28'
+
+-STATEMENT WITH datetime({year: 1984, month: 11, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN date({date: other, week: 1}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-01-08'
+
+-STATEMENT WITH datetime({year: 1984, month: 11, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN date({date: other, ordinalDay: 28}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-01-28'
+
+-STATEMENT WITH datetime({year: 1984, month: 11, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN date({date: other, quarter: 3}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-08-11'
+
+#  Should select local time
+-CASE Scenario22
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN localtime(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876123'
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN localtime({time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876123'
+
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN localtime({time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:42.645876123'
+
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN localtime(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876'
+
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN localtime({time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876'
+
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN localtime({time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:42.645876'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN localtime(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN localtime({time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN localtime({time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:42.645'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN localtime(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN localtime({time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN localtime({time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:00:42'
+
+#  Should select time
+-CASE Scenario34
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN time(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876123Z'
+
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN time({time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876123Z'
+
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN time({time: other, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876123+05:00'
+
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN time({time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:42.645876123Z'
+
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN time({time: other, second: 42, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:42.645876123+05:00'
+
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN time(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876+01:00'
+
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN time({time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645876+01:00'
+
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN time({time: other, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'16:31:14.645876+05:00'
+
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN time({time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:42.645876+01:00'
+
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN time({time: other, second: 42, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'16:31:42.645876+05:00'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN time(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645Z'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN time({time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645Z'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN time({time: other, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:14.645+05:00'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN time({time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:42.645Z'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN time({time: other, second: 42, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:31:42.645+05:00'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN time(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:00+01:00'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN time({time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:00+01:00'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN time({time: other, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'16:00+05:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN time({time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'12:00:42+01:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN time({time: other, second: 42, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'16:00:42+05:00'
+
+#  Should select date into local date time
+-CASE Scenario54
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS other
+           RETURN localdatetime({date: other, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T10:10:10'
+
+#  Should select date into local date time
+-CASE Scenario55
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS other
+           RETURN localdatetime({date: other, day: 28, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T10:10:10'
+
+#  Should select date into local date time
+-CASE Scenario56
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN localdatetime({date: other, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T10:10:10'
+
+#  Should select date into local date time
+-CASE Scenario57
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN localdatetime({date: other, day: 28, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T10:10:10'
+
+#  Should select date into local date time
+-CASE Scenario58
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN localdatetime({date: other, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T10:10:10'
+
+#  Should select date into local date time
+-CASE Scenario59
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN localdatetime({date: other, day: 28, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T10:10:10'
+
+#  Should select time into local date time
+-CASE Scenario60
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN localdatetime({year: 1984, month: 10, day: 11, time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123'
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN localdatetime({year: 1984, month: 10, day: 11, time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:42.645876123'
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN localdatetime({year: 1984, month: 10, day: 11, time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876'
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN localdatetime({year: 1984, month: 10, day: 11, time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:42.645876'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN localdatetime({year: 1984, month: 10, day: 11, time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN localdatetime({year: 1984, month: 10, day: 11, time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:42.645'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN localdatetime({year: 1984, month: 10, day: 11, time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN localdatetime({year: 1984, month: 10, day: 11, time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00:42'
+
+#  Should select date and time into local date time
+-CASE Scenario68
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123'
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645876123'
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876'
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645876'
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645'
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645'
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00'
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:00:42'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645876123'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645876123'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645876'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645876'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:00'
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:00:42'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645876123'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645876'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00'
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherTime
+           RETURN localdatetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:00:42'
+
+#  Should select datetime into local date time
+-CASE Scenario92
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN localdatetime(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645'
+
+#  Should select datetime into local date time
+-CASE Scenario93
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN localdatetime({datetime: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645'
+
+#  Should select datetime into local date time
+-CASE Scenario94
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN localdatetime({datetime: other, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645'
+
+#  Should select datetime into local date time
+-CASE Scenario95
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN localdatetime(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00'
+
+#  Should select datetime into local date time
+-CASE Scenario96
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN localdatetime({datetime: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00'
+
+#  Should select datetime into local date time
+-CASE Scenario97
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN localdatetime({datetime: other, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:00:42'
+
+#  Should select date into date time
+-CASE Scenario98
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS other
+           RETURN datetime({date: other, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T10:10:10Z'
+
+#  Should select date into date time
+-CASE Scenario99
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS other
+           RETURN datetime({date: other, hour: 10, minute: 10, second: 10, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T10:10:10+05:00'
+
+#  Should select date into date time
+-CASE Scenario100
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS other
+           RETURN datetime({date: other, day: 28, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T10:10:10Z'
+
+#  Should select date into date time
+-CASE Scenario101
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS other
+           RETURN datetime({date: other, day: 28, hour: 10, minute: 10, second: 10, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T10:10:10-10:00[Pacific/Honolulu]'
+
+#  Should select date into date time
+-CASE Scenario102
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({date: other, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T10:10:10Z'
+
+#  Should select date into date time
+-CASE Scenario103
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({date: other, hour: 10, minute: 10, second: 10, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T10:10:10+05:00'
+
+#  Should select date into date time
+-CASE Scenario104
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({date: other, day: 28, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T10:10:10Z'
+
+#  Should select date into date time
+-CASE Scenario105
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({date: other, day: 28, hour: 10, minute: 10, second: 10, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T10:10:10-10:00[Pacific/Honolulu]'
+
+#  Should select date into date time
+-CASE Scenario106
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN datetime({date: other, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T10:10:10Z'
+
+#  Should select date into date time
+-CASE Scenario107
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN datetime({date: other, hour: 10, minute: 10, second: 10, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T10:10:10+05:00'
+
+#  Should select date into date time
+-CASE Scenario108
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN datetime({date: other, day: 28, hour: 10, minute: 10, second: 10}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T10:10:10Z'
+
+#  Should select date into date time
+-CASE Scenario109
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS other
+           RETURN datetime({date: other, day: 28, hour: 10, minute: 10, second: 10, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T10:10:10-10:00[Pacific/Honolulu]'
+
+#  Should select time into date time
+-CASE Scenario110
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123Z'
+
+#  Should select time into date time
+-CASE Scenario111
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123+05:00'
+
+#  Should select time into date time
+-CASE Scenario112
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:42.645876123Z'
+
+#  Should select time into date time
+-CASE Scenario113
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:42.645876123-10:00[Pacific/Honolulu]'
+
+#  Should select time into date time
+-CASE Scenario114
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876+01:00'
+
+#  Should select time into date time
+-CASE Scenario115
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T16:31:14.645876+05:00'
+
+#  Should select time into date time
+-CASE Scenario116
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:42.645876+01:00'
+
+#  Should select time into date time
+-CASE Scenario117
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T01:31:42.645876-10:00[Pacific/Honolulu]'
+
+#  Should select time into date time
+-CASE Scenario118
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645Z'
+
+#  Should select time into date time
+-CASE Scenario119
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645+05:00'
+
+#  Should select time into date time
+-CASE Scenario120
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:42.645Z'
+
+#  Should select time into date time
+-CASE Scenario121
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:42.645-10:00[Pacific/Honolulu]'
+
+#  Should select time into date time
+-CASE Scenario122
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00+01:00[Europe/Stockholm]'
+
+#  Should select time into date time
+-CASE Scenario123
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T16:00+05:00'
+
+#  Should select time into date time
+-CASE Scenario124
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00:42+01:00[Europe/Stockholm]'
+
+#  Should select time into date time
+-CASE Scenario125
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN datetime({year: 1984, month: 10, day: 11, time: other, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T01:00:42-10:00[Pacific/Honolulu]'
+
+#  Should select date and time into date time
+-CASE Scenario126
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123Z'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123+05:00'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645876123Z'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645876123-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876+01:00'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T16:31:14.645876+05:00'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645876+01:00'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T01:31:42.645876-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645Z'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645+05:00'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645Z'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00+01:00[Europe/Stockholm]'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T16:00+05:00'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:00:42+01:00[Europe/Stockholm]'
+
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T01:00:42-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645876123Z'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645876123+05:00'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645876123Z'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645876123-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645876+01:00'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T16:31:14.645876+05:00'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645876+01:00'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T01:31:42.645876-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645Z'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645+05:00'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645Z'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:00+01:00[Europe/Stockholm]'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T16:00+05:00'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:00:42+02:00[Europe/Stockholm]'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T00:00:42-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123Z'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876123+05:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645876123Z'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645876123-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645876+01:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T16:31:14.645876+05:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645876+01:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, time({hour: 12, minute: 31, second: 14, microsecond: 645876, timezone: '+01:00'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T01:31:42.645876-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645Z'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:31:14.645+05:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645Z'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:31:42.645-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00+01:00[Europe/Stockholm]'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T16:00+05:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:00:42+01:00[Europe/Stockholm]'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: '+01:00'}) AS otherDate, datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS otherTime
+           RETURN datetime({date: otherDate, time: otherTime, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T01:00:42-10:00[Pacific/Honolulu]'
+
+#  Should datetime into date time
+-CASE Scenario174
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645Z'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({datetime: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645Z'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({datetime: other, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-07T12:31:14.645+05:00'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({datetime: other, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645Z'
+
+-STATEMENT WITH localdatetime({year: 1984, week: 10, dayOfWeek: 3, hour: 12, minute: 31, second: 14, millisecond: 645}) AS other
+           RETURN datetime({datetime: other, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-03-28T12:31:42.645-10:00[Pacific/Honolulu]'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN datetime(other) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00+01:00[Europe/Stockholm]'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN datetime({datetime: other}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T12:00+01:00[Europe/Stockholm]'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN datetime({datetime: other, timezone: '+05:00'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-11T16:00+05:00'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN datetime({datetime: other, day: 28, second: 42}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T12:00:42+01:00[Europe/Stockholm]'
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, timezone: 'Europe/Stockholm'}) AS other
+           RETURN datetime({datetime: other, day: 28, second: 42, timezone: 'Pacific/Honolulu'}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'1984-10-28T01:00:42-10:00[Pacific/Honolulu]'

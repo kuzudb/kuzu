@@ -1,0 +1,176 @@
+-GROUP TCKTemporal2
+-DATASET CSV tck
+
+--
+
+#  Should parse date from string
+-CASE Scenario1
+-STATEMENT RETURN date('2015-07-21') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21'
+
+-STATEMENT RETURN date('20150721') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21'
+
+-STATEMENT RETURN date('2015-07') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-01'
+
+-STATEMENT RETURN date('201507') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-01'
+
+-STATEMENT RETURN date('2015-W30-2') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21'
+
+-STATEMENT RETURN date('2015W302') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21'
+
+-STATEMENT RETURN date('2015-W30') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-20'
+
+-STATEMENT RETURN date('2015W30') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-20'
+
+-STATEMENT RETURN date('2015-202') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21'
+
+-STATEMENT RETURN date('2015202') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21'
+
+-STATEMENT RETURN date('2015') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-01-01'
+
+
+#  Should parse local time from string
+-CASE Scenario2
+-STATEMENT RETURN localtime('21:40:32.142') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40:32.142'
+-STATEMENT RETURN localtime('214032.142') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40:32.142'
+
+-STATEMENT RETURN localtime('21:40:32') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40:32'
+
+-STATEMENT RETURN localtime('214032') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40:32'
+
+-STATEMENT RETURN localtime('21:40') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40'
+
+-STATEMENT RETURN localtime('2140') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40'
+
+-STATEMENT RETURN localtime('21') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:00'
+
+
+#  Should parse time from string
+-CASE Scenario3
+-STATEMENT RETURN time('21:40:32.142+0100') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40:32.142+01:00'
+-STATEMENT RETURN time('214032.142Z') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40:32.142Z'
+-STATEMENT RETURN time('21:40:32+01:00') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40:32+01:00'
+-STATEMENT RETURN time('214032-0100') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40:32-01:00'
+-STATEMENT RETURN time('21:40-01:30') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40-01:30'
+
+-STATEMENT RETURN time('2140-00:00') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40Z'
+
+-STATEMENT RETURN time('2140-02') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'21:40-02:00'
+
+-STATEMENT RETURN time('22+18:00') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'22:00+18:00'
+
+
+#  Should parse local date time from string
+-CASE Scenario4
+-STATEMENT RETURN localdatetime('2015-07-21T21:40:32.142') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21T21:40:32.142'
+-STATEMENT RETURN localdatetime('2015-W30-2T214032.142') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21T21:40:32.142'
+
+-STATEMENT RETURN localdatetime('2015-202T21:40:32') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21T21:40:32'
+
+-STATEMENT RETURN localdatetime('2015T214032') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-01-01T21:40:32'
+
+-STATEMENT RETURN localdatetime('20150721T21:40') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21T21:40'
+
+-STATEMENT RETURN localdatetime('2015-W30T2140') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-20T21:40'
+
+-STATEMENT RETURN localdatetime('2015202T21') AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2015-07-21T21:00'
+
+

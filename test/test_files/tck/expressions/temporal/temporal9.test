@@ -1,0 +1,480 @@
+-GROUP TCKTemporal9
+-DATASET CSV tck
+
+--
+
+#  Should truncate date
+-CASE Scenario1
+-STATEMENT RETURN date.truncate('millennium', date({year: 2017, month: 10, day: 11}), {day: 2}) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+'2000-01-02'
+-STATEMENT RETURN date.truncate('millennium', date({year: 2017, month: 10, day: 11}), {}) AS result;
+---- 1
+'2000-01-01'
+-STATEMENT RETURN date.truncate('millennium', datetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'2000-01-02'
+-STATEMENT RETURN date.truncate('millennium', datetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'2000-01-01'
+-STATEMENT RETURN date.truncate('millennium', localdatetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'2000-01-02'
+-STATEMENT RETURN date.truncate('millennium', localdatetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'2000-01-01'
+-STATEMENT RETURN date.truncate('century', date({year: 1984, month: 10, day: 11}), {day: 2}) AS result;
+---- 1
+'1900-01-02'
+-STATEMENT RETURN date.truncate('century', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1900-01-01'
+-STATEMENT RETURN date.truncate('century', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'1900-01-02'
+-STATEMENT RETURN date.truncate('century', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1900-01-01'
+-STATEMENT RETURN date.truncate('century', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'1900-01-02'
+-STATEMENT RETURN date.truncate('century', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1900-01-01'
+-STATEMENT RETURN date.truncate('decade', date({year: 1984, month: 10, day: 11}), {day: 2}) AS result;
+---- 1
+'1980-01-02'
+-STATEMENT RETURN date.truncate('decade', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1980-01-01'
+-STATEMENT RETURN date.truncate('decade', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'1980-01-02'
+-STATEMENT RETURN date.truncate('decade', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1980-01-01'
+-STATEMENT RETURN date.truncate('decade', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'1980-01-02'
+-STATEMENT RETURN date.truncate('decade', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1980-01-01'
+-STATEMENT RETURN date.truncate('year', date({year: 1984, month: 10, day: 11}), {day: 2}) AS result;
+---- 1
+'1984-01-02'
+-STATEMENT RETURN date.truncate('year', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1984-01-01'
+-STATEMENT RETURN date.truncate('year', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'1984-01-02'
+-STATEMENT RETURN date.truncate('year', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-01-01'
+-STATEMENT RETURN date.truncate('year', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'1984-01-02'
+-STATEMENT RETURN date.truncate('year', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-01-01'
+-STATEMENT RETURN date.truncate('weekYear', date({year: 1984, month: 2, day: 1}), {day: 5}) AS result;
+---- 1
+'1984-01-05'
+-STATEMENT RETURN date.truncate('weekYear', date({year: 1984, month: 2, day: 1}), {}) AS result;
+---- 1
+'1984-01-02'
+-STATEMENT RETURN date.truncate('weekYear', datetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 5}) AS result;
+---- 1
+'1983-01-05'
+-STATEMENT RETURN date.truncate('weekYear', datetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1983-01-03'
+-STATEMENT RETURN date.truncate('weekYear', localdatetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 5}) AS result;
+---- 1
+'1983-01-05'
+-STATEMENT RETURN date.truncate('weekYear', localdatetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1983-01-03'
+-STATEMENT RETURN date.truncate('quarter', date({year: 1984, month: 11, day: 11}), {day: 2}) AS result;
+---- 1
+'1984-10-02'
+-STATEMENT RETURN date.truncate('quarter', date({year: 1984, month: 11, day: 11}), {}) AS result;
+---- 1
+'1984-10-01'
+-STATEMENT RETURN date.truncate('quarter', datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'1984-10-02'
+-STATEMENT RETURN date.truncate('quarter', datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-01'
+-STATEMENT RETURN date.truncate('quarter', localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'1984-10-02'
+-STATEMENT RETURN date.truncate('quarter', localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-01'
+-STATEMENT RETURN date.truncate('month', date({year: 1984, month: 10, day: 11}), {day: 2}) AS result;
+---- 1
+'1984-10-02'
+-STATEMENT RETURN date.truncate('month', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1984-10-01'
+-STATEMENT RETURN date.truncate('month', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'1984-10-02'
+-STATEMENT RETURN date.truncate('month', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-01'
+-STATEMENT RETURN date.truncate('month', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'1984-10-02'
+-STATEMENT RETURN date.truncate('month', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-01'
+-STATEMENT RETURN date.truncate('week', date({year: 1984, month: 10, day: 11}), {dayOfWeek: 2}) AS result;
+---- 1
+'1984-10-09'
+-STATEMENT RETURN date.truncate('week', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1984-10-08'
+-STATEMENT RETURN date.truncate('week', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {dayOfWeek: 2}) AS result;
+---- 1
+'1984-10-09'
+-STATEMENT RETURN date.truncate('week', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-08'
+-STATEMENT RETURN date.truncate('week', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {dayOfWeek: 2}) AS result;
+---- 1
+'1984-10-09'
+-STATEMENT RETURN date.truncate('week', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-08'
+-STATEMENT RETURN date.truncate('day', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1984-10-11'
+-STATEMENT RETURN date.truncate('day', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-11'
+-STATEMENT RETURN date.truncate('day', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-11'
+
+
+#  Should truncate datetime
+-CASE Scenario2
+-STATEMENT RETURN datetime.truncate('millennium', date({year: 2017, month: 10, day: 11}), {day: 2}) AS result;
+---- 1
+'2000-01-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('millennium', date({year: 2017, month: 10, day: 11}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'2000-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('millennium', date({year: 2017, month: 10, day: 11}), {}) AS result;
+---- 1
+'2000-01-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('millennium', datetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'2000-01-02T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('millennium', datetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'2000-01-01T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('millennium', datetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'2000-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('millennium', localdatetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'2000-01-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('millennium', localdatetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'2000-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('millennium', localdatetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'2000-01-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('century', date({year: 1984, month: 10, day: 11}), {day: 2}) AS result;
+---- 1
+'1900-01-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('century', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1900-01-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('century', date({year: 2017, month: 10, day: 11}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'2000-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('century', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'1900-01-02T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('century', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1900-01-01T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('century', datetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'2000-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('century', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'1900-01-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('century', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1900-01-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('century', localdatetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'2000-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('decade', date({year: 1984, month: 10, day: 11}), {day: 2}) AS result;
+---- 1
+'1980-01-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('decade', date({year: 1984, month: 10, day: 11}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1980-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('decade', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1980-01-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('decade', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'1980-01-02T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('decade', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1980-01-01T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('decade', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1980-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('decade', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'1980-01-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('decade', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1980-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('decade', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1980-01-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('year', date({year: 1984, month: 10, day: 11}), {day: 2}) AS result;
+---- 1
+'1984-01-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('year', date({year: 1984, month: 10, day: 11}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('year', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1984-01-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('year', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'1984-01-02T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('year', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-01-01T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('year', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('year', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'1984-01-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('year', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-01-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('year', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-01-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('weekYear', date({year: 1984, month: 2, day: 1}), {day: 5}) AS result;
+---- 1
+'1984-01-05T00:00Z'
+-STATEMENT RETURN datetime.truncate('weekYear', date({year: 1984, month: 2, day: 1}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-01-02T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('weekYear', date({year: 1984, month: 2, day: 1}), {}) AS result;
+---- 1
+'1984-01-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('weekYear', datetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 5}) AS result;
+---- 1
+'1983-01-05T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('weekYear', datetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1983-01-03T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('weekYear', datetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1983-01-03T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('weekYear', localdatetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 5}) AS result;
+---- 1
+'1983-01-05T00:00Z'
+-STATEMENT RETURN datetime.truncate('weekYear', localdatetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1983-01-03T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('weekYear', localdatetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1983-01-03T00:00Z'
+-STATEMENT RETURN datetime.truncate('quarter', date({year: 1984, month: 11, day: 11}), {day: 2}) AS result;
+---- 1
+'1984-10-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('quarter', date({year: 1984, month: 11, day: 11}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('quarter', date({year: 1984, month: 11, day: 11}), {}) AS result;
+---- 1
+'1984-10-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('quarter', datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'1984-10-02T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('quarter', datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-01T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('quarter', datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('quarter', localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'1984-10-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('quarter', localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('quarter', localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('month', date({year: 1984, month: 10, day: 11}), {day: 2}) AS result;
+---- 1
+'1984-10-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('month', date({year: 1984, month: 10, day: 11}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('month', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1984-10-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('month', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {day: 2}) AS result;
+---- 1
+'1984-10-02T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('month', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-01T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('month', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('month', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {day: 2}) AS result;
+---- 1
+'1984-10-02T00:00Z'
+-STATEMENT RETURN datetime.truncate('month', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-01T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('month', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-01T00:00Z'
+-STATEMENT RETURN datetime.truncate('week', date({year: 1984, month: 10, day: 11}), {dayOfWeek: 2}) AS result;
+---- 1
+'1984-10-09T00:00Z'
+-STATEMENT RETURN datetime.truncate('week', date({year: 1984, month: 10, day: 11}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-08T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('week', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1984-10-08T00:00Z'
+-STATEMENT RETURN datetime.truncate('week', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {dayOfWeek: 2}) AS result;
+---- 1
+'1984-10-09T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('week', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-08T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('week', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-08T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('week', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {dayOfWeek: 2}) AS result;
+---- 1
+'1984-10-09T00:00Z'
+-STATEMENT RETURN datetime.truncate('week', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-08T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('week', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-08T00:00Z'
+-STATEMENT RETURN datetime.truncate('day', date({year: 1984, month: 10, day: 11}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T00:00:00.000000002Z'
+-STATEMENT RETURN datetime.truncate('day', date({year: 1984, month: 10, day: 11}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-11T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('day', date({year: 1984, month: 10, day: 11}), {}) AS result;
+---- 1
+'1984-10-11T00:00Z'
+-STATEMENT RETURN datetime.truncate('day', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T00:00:00.000000002+01:00'
+-STATEMENT RETURN datetime.truncate('day', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-11T00:00+01:00'
+-STATEMENT RETURN datetime.truncate('day', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-11T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('day', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T00:00:00.000000002Z'
+-STATEMENT RETURN datetime.truncate('day', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-11T00:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('day', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-11T00:00Z'
+-STATEMENT RETURN datetime.truncate('hour', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T12:00:00.000000002-01:00'
+-STATEMENT RETURN datetime.truncate('hour', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-11T12:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('hour', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {}) AS result;
+---- 1
+'1984-10-11T12:00-01:00'
+-STATEMENT RETURN datetime.truncate('hour', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T12:00:00.000000002Z'
+-STATEMENT RETURN datetime.truncate('hour', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-11T12:00+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('hour', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-11T12:00Z'
+-STATEMENT RETURN datetime.truncate('minute', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T12:31:00.000000002-01:00'
+-STATEMENT RETURN datetime.truncate('minute', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-11T12:31+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('minute', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}), {}) AS result;
+---- 1
+'1984-10-11T12:31-01:00'
+-STATEMENT RETURN datetime.truncate('minute', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T12:31:00.000000002Z'
+-STATEMENT RETURN datetime.truncate('minute', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {timezone: 'Europe/Stockholm'}) AS result;
+---- 1
+'1984-10-11T12:31+01:00[Europe/Stockholm]'
+-STATEMENT RETURN datetime.truncate('minute', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-11T12:31Z'
+-STATEMENT RETURN datetime.truncate('second', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T12:31:14.000000002+01:00'
+-STATEMENT RETURN datetime.truncate('second', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-11T12:31:14+01:00'
+-STATEMENT RETURN datetime.truncate('second', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T12:31:14.000000002Z'
+-STATEMENT RETURN datetime.truncate('second', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-11T12:31:14Z'
+-STATEMENT RETURN datetime.truncate('millisecond', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T12:31:14.645000002+01:00'
+-STATEMENT RETURN datetime.truncate('millisecond', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-11T12:31:14.645+01:00'
+-STATEMENT RETURN datetime.truncate('millisecond', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T12:31:14.645000002Z'
+-STATEMENT RETURN datetime.truncate('millisecond', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-11T12:31:14.645Z'
+-STATEMENT RETURN datetime.truncate('microsecond', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T12:31:14.645876002+01:00'
+-STATEMENT RETURN datetime.truncate('microsecond', datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}), {}) AS result;
+---- 1
+'1984-10-11T12:31:14.645876+01:00'
+-STATEMENT RETURN datetime.truncate('microsecond', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {nanosecond: 2}) AS result;
+---- 1
+'1984-10-11T12:31:14.645876002Z'
+-STATEMENT RETURN datetime.truncate('microsecond', localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}), {}) AS result;
+---- 1
+'1984-10-11T12:31:14.645876Z'

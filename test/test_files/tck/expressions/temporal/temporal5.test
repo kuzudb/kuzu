@@ -1,0 +1,103 @@
+-GROUP TCKTemporal5
+-DATASET CSV tck
+
+--
+
+
+#  Should provide accessors for date
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:Val {date: date({year: 1984, month: 10, day: 11})});
+-STATEMENT MATCH (v:Val)
+           WITH v.date AS d
+           RETURN d.year, d.quarter, d.month, d.week, d.weekYear, d.day, d.ordinalDay, d.weekDay, d.dayOfQuarter;
+## Outcome: the result should be, in any order:
+---- 1
+1984|4|10|41|1984|11|285|4|11
+
+#  Should provide accessors for date in last weekYear
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:Val {date: date({year: 1984, month: 1, day: 1})});
+-STATEMENT MATCH (v:Val)
+           WITH v.date AS d
+           RETURN d.year, d.weekYear, d.week, d.weekDay;
+## Outcome: the result should be, in any order:
+---- 1
+1984|1983|52|7
+
+#  Should provide accessors for local time
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:Val {date: localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123})});
+-STATEMENT MATCH (v:Val)
+           WITH v.date AS d
+           RETURN d.hour, d.minute, d.second, d.millisecond, d.microsecond, d.nanosecond;
+## Outcome: the result should be, in any order:
+---- 1
+12|31|14|645|645876|645876123
+
+#  Should provide accessors for time
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:Val {date: time({hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'})});
+-STATEMENT MATCH (v:Val)
+           WITH v.date AS d
+           RETURN d.hour, d.minute, d.second, d.millisecond, d.microsecond, d.nanosecond, d.timezone, d.offset, d.offsetMinutes, d.offsetSeconds;
+## Outcome: the result should be, in any order:
+---- 1
+12|31|14|645|645876|645876123|'+01:00'|'+01:00'|60|3600
+
+#  Should provide accessors for local date time
+-CASE Scenario5
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:Val {date: localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123})});
+-STATEMENT MATCH (v:Val)
+           WITH v.date AS d
+           RETURN d.year, d.quarter, d.month, d.week, d.weekYear, d.day, d.ordinalDay, d.weekDay, d.dayOfQuarter,
+                  d.hour, d.minute, d.second, d.millisecond, d.microsecond, d.nanosecond;
+## Outcome: the result should be, in any order:
+---- 1
+1984|4|11|45|1984|11|316|7|42|12|31|14|645|645876|645876123
+
+#  Should provide accessors for date time
+-CASE Scenario6
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:Val {date: datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: 'Europe/Stockholm'})});
+-STATEMENT MATCH (v:Val)
+           WITH v.date AS d
+           RETURN d.year, d.quarter, d.month, d.week, d.weekYear, d.day, d.ordinalDay, d.weekDay, d.dayOfQuarter,
+                  d.hour, d.minute, d.second, d.millisecond, d.microsecond, d.nanosecond,
+                  d.timezone, d.offset, d.offsetMinutes, d.offsetSeconds, d.epochSeconds, d.epochMillis;
+## Outcome: the result should be, in any order:
+---- 1
+1984|4|11|45|1984|11|316|7|42|12|31|14|645|645876|645876123|'Europe/Stockholm'|'+01:00'|60|3600|469020674|469020674645
+
+#  Should provide accessors for duration
+-CASE Scenario7
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:Val {date: duration({years: 1, months: 4, days: 10, hours: 1, minutes: 1, seconds: 1, nanoseconds: 111111111})});
+-STATEMENT MATCH (v:Val)
+           WITH v.date AS d
+           RETURN d.years, d.quarters, d.months, d.weeks, d.days,
+                  d.hours, d.minutes, d.seconds, d.milliseconds, d.microseconds, d.nanoseconds,
+                  d.quartersOfYear, d.monthsOfQuarter, d.monthsOfYear, d.daysOfWeek, d.minutesOfHour, d.secondsOfMinute, d.millisecondsOfSecond, d.microsecondsOfSecond, d.nanosecondsOfSecond;
+## Outcome: the result should be, in any order:
+---- 1
+1|5|16|1|10|1|61|3661|3661111|3661111111|3661111111111|1|1|4|3|1|1|111|111111|111111111
+
+

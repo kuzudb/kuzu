@@ -1,0 +1,147 @@
+-GROUP TCKTemporal7
+-DATASET CSV tck
+
+--
+
+
+#  Should compare dates
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH date({year: 1980, month: 12, day: 24}) AS x, date({year: 1984, month: 10, day: 11}) AS d
+           RETURN x > d, x < d, x >= d, x <= d, x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False|True|False|True|False
+
+#  Should compare dates
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH date({year: 1984, month: 10, day: 11}) AS x, date({year: 1984, month: 10, day: 11}) AS d
+           RETURN x > d, x < d, x >= d, x <= d, x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True|True|True
+
+#  Should compare local times
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localtime({hour: 10, minute: 35}) AS x, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS d
+           RETURN x > d, x < d, x >= d, x <= d, x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False|True|False|True|False
+
+#  Should compare local times
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS x, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS d
+           RETURN x > d, x < d, x >= d, x <= d, x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True|True|True
+
+#  Should compare times
+-CASE Scenario5
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH time({hour: 10, minute: 0, timezone: '+01:00'}) AS x, time({hour: 9, minute: 35, second: 14, nanosecond: 645876123, timezone: '+00:00'}) AS d
+           RETURN x > d, x < d, x >= d, x <= d, x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False|True|False|True|False
+
+#  Should compare times
+-CASE Scenario6
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH time({hour: 9, minute: 35, second: 14, nanosecond: 645876123, timezone: '+00:00'}) AS x, time({hour: 9, minute: 35, second: 14, nanosecond: 645876123, timezone: '+00:00'}) AS d
+           RETURN x > d, x < d, x >= d, x <= d, x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True|True|True
+
+#  Should compare local date times
+-CASE Scenario7
+-STATEMENT WITH localdatetime({year: 1980, month: 12, day: 11, hour: 12, minute: 31, second: 14}) AS x, localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS d
+           RETURN x > d, x < d, x >= d, x <= d, x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False|True|False|True|False
+-STATEMENT WITH localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS x, localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS d
+           RETURN x > d, x < d, x >= d, x <= d, x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True|True|True
+
+#  Should compare date times
+-CASE Scenario9
+-STATEMENT WITH datetime({year: 1980, month: 12, day: 11, hour: 12, minute: 31, second: 14, timezone: '+00:00'}) AS x, datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, timezone: '+05:00'}) AS d
+           RETURN x > d, x < d, x >= d, x <= d, x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False|True|False|True|False
+
+-STATEMENT WITH datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, timezone: '+05:00'}) AS x, datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, timezone: '+05:00'}) AS d
+           RETURN x > d, x < d, x >= d, x <= d, x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True|True|True
+
+#  Should compare durations for equality
+-CASE Scenario11
+-STATEMENT WITH duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70}) AS x, date({year: 1984, month: 10, day: 11}) AS d
+           RETURN x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False
+-STATEMENT WITH duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70}) AS x, localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS d
+           RETURN x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False
+-STATEMENT WITH duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70}) AS x, time({hour: 9, minute: 35, second: 14, nanosecond: 645876123, timezone: '+00:00'}) AS d
+           RETURN x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False
+-STATEMENT WITH duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70}) AS x, localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS d
+           RETURN x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False
+-STATEMENT WITH duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70}) AS x, datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, timezone: '+05:00'}) AS d
+           RETURN x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False
+-STATEMENT WITH duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70}) AS x, duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70}) AS d
+           RETURN x = d;
+## Outcome: the result should be, in any order:
+---- 1
+True
+-STATEMENT WITH duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70}) AS x, duration({years: 12, months: 5, days: 14, hours: 16, minutes: 13, seconds: 10}) AS d
+           RETURN x = d;
+## Outcome: the result should be, in any order:
+---- 1
+True
+-STATEMENT WITH duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70}) AS x, duration({years: 12, months: 5, days: 13, hours: 40, minutes: 13, seconds: 10}) AS d
+           RETURN x = d;
+## Outcome: the result should be, in any order:
+---- 1
+False
