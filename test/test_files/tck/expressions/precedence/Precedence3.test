@@ -1,0 +1,70 @@
+-GROUP TCKPrecedence3
+-DATASET CSV tck
+
+--
+
+#  List element access takes precedence over list appending
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN [[1], [2, 3], [4, 5]] + [5, [6, 7], [8, 9], 10][3] AS a,
+                  [[1], [2, 3], [4, 5]] + ([5, [6, 7], [8, 9], 10][3]) AS b,
+                  ([[1], [2, 3], [4, 5]] + [5, [6, 7], [8, 9], 10])[3] AS c;
+## Outcome: the result should be, in any order:
+---- 1
+[[1], [2, 3], [4, 5], 10]|[[1], [2, 3], [4, 5], 10]|5
+
+#  List element access takes precedence over list concatenation
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN [[1], [2, 3], [4, 5]] + [5, [6, 7], [8, 9], 10][2] AS a,
+                  [[1], [2, 3], [4, 5]] + ([5, [6, 7], [8, 9], 10][2]) AS b,
+                  ([[1], [2, 3], [4, 5]] + [5, [6, 7], [8, 9], 10])[2] AS c;
+## Outcome: the result should be, in any order:
+---- 1
+[[1], [2, 3], [4, 5], 8, 9]|[[1], [2, 3], [4, 5], 8, 9]|[4, 5]
+
+#  List slicing takes precedence over list concatenation
+-CASE Scenario3
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN [[1], [2, 3], [4, 5]] + [5, [6, 7], [8, 9], 10][1..3] AS a,
+                  [[1], [2, 3], [4, 5]] + ([5, [6, 7], [8, 9], 10][1..3]) AS b,
+                  ([[1], [2, 3], [4, 5]] + [5, [6, 7], [8, 9], 10])[1..3] AS c;
+## Outcome: the result should be, in any order:
+---- 1
+[[1], [2, 3], [4, 5], [6, 7], [8, 9]]|[[1], [2, 3], [4, 5], [6, 7], [8, 9]]|[[2, 3], [4, 5]]
+
+#  List appending takes precedence over list element containment
+-CASE Scenario4
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN [1]+2 IN [3]+4 AS a,
+                  ([1]+2) IN ([3]+4) AS b,
+                  [1]+(2 IN [3])+4 AS c;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|[1, False, 4]
+
+#  List concatenation takes precedence over list element containment
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN [1]+[2] IN [3]+[4] AS a,
+                  ([1]+[2]) IN ([3]+[4]) AS b,
+                  (([1]+[2]) IN [3])+[4] AS c,
+                  [1]+([2] IN [3])+[4] AS d;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|[False, 4]|[1, False, 4]

@@ -1,0 +1,126 @@
+-GROUP TCKList5
+-DATASET CSV tck
+
+--
+
+#  IN should work with nested list subscripting
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [[1,2,3]] AS list
+           RETURN 3 IN list[0] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#  IN should work with nested literal list subscripting
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN 3 IN [[1,2,3]][0] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#  IN should work with list slices
+-CASE Scenario3
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [1,2,3] AS list
+           RETURN 3 IN list[1:2] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  IN should work with literal list slices
+-CASE Scenario4
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN 3 IN [1,2,3][1:2] AS r;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  IN should return false when matching a number with a string
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN 1 IN ['1',2] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  IN should return false when matching a number with a string - list version
+-CASE Scenario6
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1,2] IN [1,[1,'2']] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  IN should return false when types of LHS and RHS don't match - singleton list
+-CASE Scenario7
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1] IN [1,2] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  IN should return false when types of LHS and RHS don't match - list
+-CASE Scenario8
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1,2] IN [1,2] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+#  IN should return true when types of LHS and RHS match - singleton list
+-CASE Scenario9
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1] IN [1,2,[1]] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#  IN should return true when types of LHS and RHS match - list
+-CASE Scenario10
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1,2] IN [1,[1,2]] AS res;
+## Outcome: the result should be, in any order:
+---- 1
+True

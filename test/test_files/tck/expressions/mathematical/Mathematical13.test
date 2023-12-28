@@ -1,0 +1,16 @@
+-GROUP TCKMathematical13
+-DATASET CSV tck
+
+--
+
+
+#  `sqrt()` returning float values
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN sqrt(12.96);
+## Outcome: the result should be, in any order:
+---- 1
+3.600000

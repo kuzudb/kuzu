@@ -1,0 +1,30 @@
+-GROUP TCKComparison4
+-DATASET CSV tck
+
+--
+
+
+#  Handling long chains of operators
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, prop1 INT64, prop2 INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, prop1 INT64, prop2 INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, prop1 INT64, prop2 INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE R(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE S(FROM B TO C);
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM C TO A);
+---- ok
+-STATEMENT CREATE (a:A {prop1: 3, prop2: 4}), (b:B {prop1: 4, prop2: 5}), (c:C {prop1: 4, prop2: 4}), (a)-[:R]->(b),
+           (b)-[:S]->(c), (c)-[:T]->(a);
+---- ok
+-STATEMENT MATCH (n)-[]->(m)
+           WHERE n.prop1 < m.prop1 AND n.prop2 = m.prop1 AND n.prop2 <> m.prop2
+           RETURN LABEL(m);
+## Outcome: the result should be, in any order:
+---- 1
+B

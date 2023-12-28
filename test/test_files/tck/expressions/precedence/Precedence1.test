@@ -1,0 +1,273 @@
+-GROUP TCKPrecedence1
+-DATASET CSV tck
+
+--
+
+
+#  Exclusive disjunction takes precedence over inclusive disjunction
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN True OR True XOR True AS a,
+                  True OR (True XOR True) AS b,
+                  (True OR True) XOR True AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+#  Conjunction disjunction takes precedence over exclusive disjunction
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN True XOR False AND False AS a,
+                  True XOR (False AND False) AS b,
+                  (True XOR False) AND False AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+#  Conjunction disjunction takes precedence over inclusive disjunction
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN True OR False AND False AS a,
+                  True OR (False AND False) AS b,
+                  (True OR False) AND False AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+#  Negation takes precedence over conjunction
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN NOT True AND False AS a,
+                  (NOT True) AND False AS b,
+                  NOT (True AND False) AS c;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True
+
+#  Negation takes precedence over inclusive disjunction
+-CASE Scenario5
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN NOT False OR True AS a,
+                  (NOT False) OR True AS b,
+                  NOT (False OR True) AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+#  Comparison operator takes precedence over boolean negation
+-CASE Scenario6
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN NOT False >= False AS a,
+                  NOT (False >= False) AS b,
+                  (NOT False) >= False AS c;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True
+
+#  Comparison operator takes precedence over binary boolean operator
+-CASE Scenario7
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN True OR False = False AS a,
+                  True OR (False = False) AS b,
+                  (True OR False) = False AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+#  Null predicate takes precedence over comparison operator
+-CASE Scenario8
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN False = True IS NULL AS a,
+                  False = (True IS NULL) AS b,
+                  (False = True) IS NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+#  Null predicate takes precedence over negation
+-CASE Scenario9
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN NOT False IS NULL AS a,
+                  NOT (False IS NULL) AS b,
+                  (NOT False) IS NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+#  Null predicate takes precedence over boolean operator
+-CASE Scenario10
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN True OR False IS NULL AS a,
+                  True OR (False IS NULL) AS b,
+                  (True OR False) IS NULL AS c;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|False
+
+#  List predicate takes precedence over comparison operator
+-CASE Scenario11
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN False = True IN [True, False] AS a,
+                  False = (True IN [True, False]) AS b,
+                  (False = True) IN [True, False] AS c;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True
+
+#  List predicate takes precedence over negation
+-CASE Scenario12
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN NOT True IN [True, False] AS a,
+                  NOT (True IN [True, False]) AS b,
+                  (NOT True) IN [True, False] AS c;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True
+
+#  List predicate takes precedence over boolean operator
+-CASE Scenario13
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN False AND True IN [True, False] AS a,
+                  False AND (True IN [True, False]) AS b,
+                  (False AND True) IN [True, False] AS c;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True
+
+#  Exclusive disjunction takes precedence over inclusive disjunction in every combination of truth values
+-CASE Scenario14
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [True, False, null] AS a
+           UNWIND [True, False, null] AS b
+           UNWIND [True, False, null] AS c
+           WITH collect((a OR b XOR c) = (a OR (b XOR c))) AS eq,
+                collect((a OR b XOR c) <> ((a OR b) XOR c)) AS neq
+           RETURN all(x IN eq WHERE x) AND any(x IN neq WHERE x) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#  Conjunction takes precedence over exclusive disjunction in every combination of truth values
+-CASE Scenario15
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [True, False, null] AS a
+           UNWIND [True, False, null] AS b
+           UNWIND [True, False, null] AS c
+           WITH collect((a XOR b AND c) = (a XOR (b AND c))) AS eq,
+                collect((a XOR b AND c) <> ((a XOR b) AND c)) AS neq
+           RETURN all(x IN eq WHERE x) AND any(x IN neq WHERE x) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#  Conjunction takes precedence over inclusive disjunction in every combination of truth values
+-CASE Scenario16
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [True, False, null] AS a
+           UNWIND [True, False, null] AS b
+           UNWIND [True, False, null] AS c
+           WITH collect((a OR b AND c) = (a OR (b AND c))) AS eq,
+                collect((a OR b AND c) <> ((a OR b) AND c)) AS neq
+           RETURN all(x IN eq WHERE x) AND any(x IN neq WHERE x) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#  Negation takes precedence over conjunction in every combination of truth values
+-CASE Scenario17
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [True, False, null] AS a
+           UNWIND [True, False, null] AS b
+           WITH collect((NOT a AND b) = ((NOT a) AND b)) AS eq,
+                collect((NOT a AND b) <> (NOT (a AND b))) AS neq
+           RETURN all(x IN eq WHERE x) AND any(x IN neq WHERE x) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#  Negation takes precedence over inclusive disjunction in every combination of truth values
+-CASE Scenario18
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [True, False, null] AS a
+           UNWIND [True, False, null] AS b
+           WITH collect((NOT a OR b) = ((NOT a) OR b)) AS eq,
+                collect((NOT a OR b) <> (NOT (a OR b))) AS neq
+           RETURN all(x IN eq WHERE x) AND any(x IN neq WHERE x) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#  Comparison operators takes precedence over boolean negation in every combination of truth values
+-CASE Scenario19
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [True, False, null] AS a
+           UNWIND [True, False, null] AS b
+           WITH collect((NOT a <= b) = (NOT (a <= b))) AS eq,
+                collect((NOT a <= b) <> ((NOT a) <= b)) AS neq
+           RETURN all(x IN eq WHERE x) AND any(x IN neq WHERE x) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+#  Comparison operators takes precedence over boolean negation in every combination of truth values
+-CASE Scenario20
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND [True, False, null] AS a
+           UNWIND [True, False, null] AS b
+           WITH collect((NOT a >= b) = (NOT (a >= b))) AS eq,
+                collect((NOT a >= b) <> ((NOT a) >= b)) AS neq
+           RETURN all(x IN eq WHERE x) AND any(x IN neq WHERE x) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True

@@ -1,0 +1,53 @@
+-GROUP TCKAggregation8
+-DATASET CSV tck
+
+--
+
+
+#  Distinct on unbound node
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT OPTIONAL MATCH (a)
+           RETURN count(DISTINCT a);
+## Outcome: the result should be, in any order:
+---- 1
+0
+
+#  Distinct on null
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ();
+-STATEMENT MATCH (a)
+           RETURN count(DISTINCT a.name);
+## Outcome: the result should be, in any order:
+---- 1
+0
+
+#  Collect distinct nulls
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [null, null] AS x
+           RETURN collect(DISTINCT x) AS c;
+## Outcome: the result should be, in any order:
+---- 1
+
+
+#  Collect distinct values mixed with nulls
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [null, 1, null] AS x
+           RETURN collect(DISTINCT x) AS c;
+## Outcome: the result should be, in any order:
+---- 1
+[1]

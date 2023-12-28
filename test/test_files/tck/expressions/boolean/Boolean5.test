@@ -1,0 +1,204 @@
+-GROUP TCKBoolean5
+-DATASET CSV tck
+
+--
+
+
+#  Disjunction is distributive over conjunction on non-null
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           UNWIND [true, false] AS c
+           RETURN a, b, c, (a OR (b AND c)) = ((a OR b) AND (a OR c)) AS result;
+## Outcome: the result should be, in any order:
+---- 8
+False|False|False|True
+False|False|True|True
+False|True|False|True
+False|True|True|True
+True|False|False|True
+True|False|True|True
+True|True|False|True
+True|True|True|True
+
+#  Disjunction is distributive over conjunction on null
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false, null] AS a
+           UNWIND [true, false, null] AS b
+           UNWIND [true, false, null] AS c
+           WITH a, b, c WHERE a IS NULL OR b IS NULL OR c IS NULL
+           RETURN a, b, c, (a OR (b AND c)) IS NULL = ((a OR b) AND (a OR c)) IS NULL AS result;
+## Outcome: the result should be, in any order:
+---- 19
+true | true | null | true
+true | false | null | true
+true | null | true | true
+true | null | false | true
+true | null | null | true
+false | true | null | true
+false | false | null | true
+false | null | true | true
+false | null | false | true
+false | null | null | true
+null | true | true | true
+null | true | false | true
+null | true | null | true
+null | false | true | true
+null | false | false | true
+null | false | null | true
+null | null | true | true
+null | null | false | true
+null | null | null | true
+
+#  Conjunction is distributive over disjunction on non-null
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           UNWIND [true, false] AS c
+           RETURN a, b, c, (a AND (b OR c)) = ((a AND b) OR (a AND c)) AS result;
+## Outcome: the result should be, in any order:
+---- 8
+False|False|False|True
+False|False|True|True
+False|True|False|True
+False|True|True|True
+True|False|False|True
+True|False|True|True
+True|True|False|True
+True|True|True|True
+
+#  Conjunction is distributive over disjunction on null
+-CASE Scenario4
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false, null] AS a
+           UNWIND [true, false, null] AS b
+           UNWIND [true, false, null] AS c
+           WITH a, b, c WHERE a IS NULL OR b IS NULL OR c IS NULL
+           RETURN a, b, c, (a AND (b OR c)) IS NULL = ((a AND b) OR (a AND c)) IS NULL AS result;
+## Outcome: the result should be, in any order:
+---- 19
+true | true | null | true
+true | false | null | true
+true | null | true | true
+true | null | false | true
+true | null | null | true
+false | true | null | true
+false | false | null | true
+false | null | true | true
+false | null | false | true
+false | null | null | true
+null | true | true | true
+null | true | false | true
+null | true | null | true
+null | false | true | true
+null | false | false | true
+null | false | null | true
+null | null | true | true
+null | null | false | true
+null | null | null | true
+
+#  Conjunction is distributive over exclusive disjunction on non-null
+-CASE Scenario5
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           UNWIND [true, false] AS c
+           RETURN a, b, c, (a AND (b XOR c)) = ((a AND b) XOR (a AND c)) AS result;
+## Outcome: the result should be, in any order:
+---- 8
+True|True|True|True
+True|True|False|True
+True|False|True|True
+True|False|False|True
+False|True|True|True
+False|True|False|True
+False|False|True|True
+False|False|False|True
+
+#  Conjunction is not distributive over exclusive disjunction on null
+-CASE Scenario6
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false, null] AS a
+           UNWIND [true, false, null] AS b
+           UNWIND [true, false, null] AS c
+           WITH a, b, c WHERE a IS NULL OR b IS NULL OR c IS NULL
+           RETURN a, b, c, (a AND (b XOR c)) IS NULL = ((a AND b) XOR (a AND c)) IS NULL AS result;
+## Outcome: the result should be, in any order:
+---- 19
+True|True||True
+True|False||True
+True||True|True
+true | null | false | true
+true | null | null | true
+false | true | null | true
+false | false | null | true
+false | null | true | true
+false | null | false | true
+false | null | null | true
+null | true | true | false
+null | true | false | true
+null | true | null | true
+null | false | true | true
+null | false | false | true
+null | false | null | true
+null | null | true | true
+null | null | false | true
+null | null | null | true
+
+#  De Morgan's law on non-null: the negation of a disjunction is the conjunction of the negations
+-CASE Scenario7
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           RETURN a, b, NOT (a OR b) = (NOT (a) AND NOT (b)) AS result;
+## Outcome: the result should be, in any order:
+---- 4
+False|False|False
+False|True|True
+True|False|True
+True|True|True
+
+#  De Morgan's law on non-null: the negation of a conjunction is the disjunction of the negations
+-CASE Scenario8
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           RETURN a, b, NOT (a AND b) = (NOT (a) OR NOT (b)) AS result;
+## Outcome: the result should be, in any order:
+---- 4
+True|True|True
+True|False|True
+False|True|True
+False|False|True

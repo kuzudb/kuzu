@@ -1,0 +1,36 @@
+-GROUP TCKAggregation5
+-DATASET CSV tck
+
+--
+
+
+#  `collect()` filtering nulls
+-CASE Scenario1
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+
+-STATEMENT CREATE ();
+---- ok
+-STATEMENT MATCH (n)
+           OPTIONAL MATCH (n)-[:NOT_EXIST]->(x)
+           RETURN n, collect(x);
+## Outcome: the result should be, in any order:
+---- 1
+|[]
+
+#  OPTIONAL MATCH and `collect()` on node property
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE DoesExist(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:DoesExist {num: 42}), (:DoesExist {num: 43}), (:DoesExist {num: 44});
+---- ok
+-STATEMENT OPTIONAL MATCH (f:DoesExist)
+           OPTIONAL MATCH (n:DoesNotExist)
+           RETURN collect(DISTINCT n.num) AS a, collect(DISTINCT f.num) AS b;
+## Outcome: the result should be (ignoring element order for lists):
+---- 1
+[]|[42,43,44]

@@ -1,0 +1,150 @@
+-GROUP TCKMap1
+-DATASET CSV tck
+
+--
+
+
+#  Statically access a field of a non-null map
+-CASE Scenario1
+-STATEMENT WITH {existing: 42, notMissing: null} AS m
+           RETURN m.notMissing, m.existing;
+## Outcome: the result should be, in any order:
+---- 1
+|42
+
+#  Statically access a field of a null map
+-CASE Scenario2
+-SKIP
+-STATEMENT WITH null AS m
+           RETURN m.missing;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Statically access a field of a map resulting from an expression
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [{existing: 42, notMissing: null}, {existing: 42, notMissing: null}] AS list
+           RETURN (list[1]).notMissing, (list[1]).existing;
+## Outcome: the result should be, in any order:
+---- 1
+|42
+
+#  Statically access a field is case-sensitive
+-CASE Scenario4
+-STATEMENT WITH {name: 'Mats', nome: 'Pontus'} AS map
+           RETURN map.name AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Mats
+
+-STATEMENT WITH {name: 'Mats', Name: 'Pontus'} AS map
+           RETURN map.name AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Mats
+
+
+-STATEMENT WITH {name: 'Mats', Name: 'Pontus'} AS map
+           RETURN map.nAMe AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Mats
+
+-CASE Scenario4_error
+-SKIP
+-STATEMENT WITH {name: 'Mats', Name: 'Pontus'} AS map
+           RETURN map.Name AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Pontus
+
+-STATEMENT WITH {name: 'Mats', Name: 'Pontus'} AS map
+           RETURN map.nAMe AS result;
+## Outcome: the result should be, in any order:
+---- 1
+
+
+#  Statically access a field with a delimited identifier
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH {name: 'Mats', nome: 'Pontus'} AS map
+           RETURN map.`name` AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Mats
+
+-STATEMENT WITH {name: 'Mats', nome: 'Pontus'} AS map
+           RETURN map.`nome` AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Pontus
+
+-STATEMENT WITH {name: 'Mats', nome: 'Pontus'} AS map
+           RETURN map.`Mats` AS result;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+-STATEMENT WITH {name: 'Mats', nome: 'Pontus'} AS map
+           RETURN map.`null` AS result;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+-STATEMENT WITH {null: 'Mats', NULL: 'Pontus'} AS map
+           RETURN map.`null` AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Mats
+
+-STATEMENT WITH {null: 'Mats', NULL: 'Pontus'} AS map
+           RETURN map.NULL` AS result;
+## Outcome: the result should be, in any order:
+---- 1
+Pontus
+
+#  Fail when performing property access on a non-map
+-CASE Scenario6
+-STATEMENT WITH 123 AS nonMap
+           RETURN nonMap.num;
+## Outcome: an Error should be raised at compile time: InvalidArgumentType
+---- error
+Binder exception: nonMap has data type INT64 but (NODE,REL,STRUCT) was expected.
+
+-STATEMENT WITH 42.45 AS nonMap
+           RETURN nonMap.num;
+## Outcome: an Error should be raised at compile time: InvalidArgumentType
+---- error
+Binder exception: nonMap has data type DOUBLE but (NODE,REL,STRUCT) was expected.
+
+-STATEMENT WITH True AS nonMap
+           RETURN nonMap.num;
+## Outcome: an Error should be raised at compile time: InvalidArgumentType
+---- error
+Binder exception: nonMap has data type BOOL but (NODE,REL,STRUCT) was expected.
+
+-STATEMENT WITH False AS nonMap
+           RETURN nonMap.num;
+## Outcome: an Error should be raised at compile time: InvalidArgumentType
+---- error
+Binder exception: nonMap has data type BOOL but (NODE,REL,STRUCT) was expected.
+
+-STATEMENT WITH 'string' AS nonMap
+           RETURN nonMap.num;
+## Outcome: an Error should be raised at compile time: InvalidArgumentType
+---- error
+Binder exception: nonMap has data type STRING but (NODE,REL,STRUCT) was expected.
+
+-STATEMENT WITH [123, True] AS nonMap
+           RETURN nonMap.num;
+## Outcome: an Error should be raised at compile time: InvalidArgumentType
+---- error
+Binder exception: Cannot bind LIST_CREATION with parameter type INT64 and BOOL.

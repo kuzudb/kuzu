@@ -1,0 +1,14 @@
+-GROUP TCKMathematical3
+-DATASET CSV tck
+
+--
+
+
+#  Fail for invalid Unicode hyphen in subtraction
+-CASE Scenario1
+-STATEMENT RETURN 42 — 41;
+---- error
+Parser exception: Invalid input < —>: expected rule oC_Cypher (line: 1, offset: 10)
+"RETURN 42 — 41;"
+           ^
+

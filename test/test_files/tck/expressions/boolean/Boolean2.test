@@ -1,0 +1,258 @@
+-GROUP TCKBoolean2
+-DATASET CSV tck
+
+--
+
+
+#  Disjunction of two truth values
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN true OR true AS tt,
+                  true OR false AS tf,
+                  true OR null AS tn,
+                  false OR true AS ft,
+                  false OR false AS ff,
+                  false OR null AS fn,
+                  null OR true AS nt,
+                  null OR false AS nf,
+                  null OR null AS nn;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|True|True|False||True||
+
+#  Disjunction of three truth values
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN true OR true OR true AS ttt,
+                  true OR true OR false AS ttf,
+                  true OR true OR null AS ttn,
+                  true OR false OR true AS tft,
+                  true OR false OR false AS tff,
+                  true OR false OR null AS tfn,
+                  true OR null OR true AS tnt,
+                  true OR null OR false AS tnf,
+                  true OR null OR null AS tnn,
+                  false OR true OR true AS ftt,
+                  false OR true OR false AS ftf,
+                  false OR true OR null AS ftn,
+                  false OR false OR true AS fft,
+                  false OR false OR false AS fff,
+                  false OR false OR null AS ffn,
+                  false OR null OR true AS fnt,
+                  false OR null OR false AS fnf,
+                  false OR null OR null AS fnn,
+                  null OR true OR true AS ntt,
+                  null OR true OR false AS ntf,
+                  null OR true OR null AS ntn,
+                  null OR false OR true AS nft,
+                  null OR false OR false AS nff,
+                  null OR false OR null AS nfn,
+                  null OR null OR true AS nnt,
+                  null OR null OR false AS nnf,
+                  null OR null OR null AS nnn;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|True|True|True|True|True|True|True|True|True|True|True|False||True|||True|True|True|True|||True||
+
+#  Disjunction of many truth values
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN true OR true OR true OR true OR true OR true OR true OR true OR true OR true OR true AS t,
+                  true OR true OR true OR false OR true OR true OR true OR true OR true OR true OR true AS tsf,
+                  true OR true OR true OR null OR true OR true OR true OR true OR true OR true OR true AS tsn,
+                  false OR false OR false OR false OR false OR false OR false OR false OR false OR false OR false AS f,
+                  false OR false OR false OR false OR true OR false OR false OR false OR false OR false OR false AS fst,
+                  false OR false OR false OR false OR false OR false OR null OR false OR false OR false OR false AS fsn,
+                  null OR null OR null OR null OR null OR null OR null OR null OR null OR null OR null AS n,
+                  null OR null OR null OR null OR true OR null OR null OR null OR null OR null OR null AS nst,
+                  null OR null OR null OR null OR false OR null OR null OR null OR null OR null OR null AS nsf,
+                  true OR false OR false OR false OR true OR false OR false OR true OR true OR true OR false AS m1,
+                  true OR true OR false OR false OR true OR false OR false OR true OR true OR true OR false AS m2,
+                  true OR true OR false OR false OR true OR null OR false OR true OR true OR null OR false AS m3;
+## Outcome: the result should be, in any order:
+---- 1
+True|True|True|False|True|||True||True|True|True
+
+#  Disjunction is commutative on non-null
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           RETURN a, b, (a OR b) = (b OR a) AS result;
+## Outcome: the result should be, in any order:
+---- 4
+False|False|True
+False|True|True
+True|False|True
+True|True|True
+
+
+#  Disjunction is commutative on null
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false, null] AS a
+           UNWIND [true, false, null] AS b
+           WITH a, b WHERE a IS NULL OR b IS NULL
+           RETURN a, b, (a OR b) IS NULL = (b OR a) IS NULL AS result;
+## Outcome: the result should be, in any order:
+---- 5
+true | null | true
+false | null | true
+null | true | true
+null | false | true
+null | null | true
+
+#  Disjunction is associative on non-null
+-CASE Scenario6
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           UNWIND [true, false] AS c
+           RETURN a, b, c, (a OR (b OR c)) = ((a OR b) OR c) AS result;
+## Outcome: the result should be, in any order:
+---- 8
+False|False|False|True
+False|False|True|True
+False|True|False|True
+False|True|True|True
+True|False|False|True
+True|False|True|True
+True|True|False|True
+True|True|True|True
+
+#  Disjunction is associative on null
+-CASE Scenario7
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false, null] AS a
+           UNWIND [true, false, null] AS b
+           UNWIND [true, false, null] AS c
+           WITH a, b, c WHERE a IS NULL OR b IS NULL OR c IS NULL
+           RETURN a, b, c, (a OR (b OR c)) IS NULL = ((a OR b) OR c) IS NULL AS result;
+## Outcome: the result should be, in any order:
+---- 19
+true | true | null | true
+true | false | null | true
+true | null | true | true
+true | null | false | true
+true | null | null | true
+false | true | null | true
+false | false | null | true
+false | null | true | true
+false | null | false | true
+false | null | null | true
+null | true | true | true
+null | true | false | true
+null | true | null | true
+null | false | true | true
+null | false | false | true
+null | false | null | true
+null | null | true | true
+null | null | false | true
+null | null | null | true
+
+#  Fail on disjunction of at least one non-booleans
+-CASE Scenario8
+-STATEMENT RETURN 123 OR true;
+---- error
+Binder exception: Expression 123 has data type INT64 but expected BOOL. Implicit cast is not supported.
+-STATEMENT RETURN 123.4 OR true;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+-STATEMENT RETURN 123.4 OR null;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 'foo' OR true;
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [] OR false;
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [true] OR false;
+---- error
+Binder exception: Expression LIST_CREATION(True) has data type BOOL[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [null] OR null;
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN {x: []} OR true;
+---- error
+Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x:STRING[]) but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN false OR 123;
+---- error
+Binder exception: Expression 123 has data type INT64 but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN true OR 123.4;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN false OR 'foo';
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN null OR 'foo';
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN true OR [];
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN true OR [false];
+---- error
+Binder exception: Expression LIST_CREATION(False) has data type BOOL[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN null OR [null];
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN false OR {x: []};
+---- error
+Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x:STRING[]) but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 123 OR 'foo';
+---- error
+Binder exception: Expression 123 has data type INT64 but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 123.4 OR 123.4;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 'foo' OR {x: []};
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [true] OR [true];
+---- error
+Binder exception: Expression LIST_CREATION(True) has data type BOOL[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN {x: []} OR [123];
+---- error
+Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x:STRING[]) but expected BOOL. Implicit cast is not supported.

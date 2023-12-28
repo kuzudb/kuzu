@@ -1,0 +1,183 @@
+-GROUP TCKComparison2
+-DATASET CSV tck
+
+--
+
+
+#  Comparing strings and integers using > in an AND'd predicate
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE Root(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Child(ID SERIAL, var STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Root TO Child);
+---- ok
+-STATEMENT CREATE (root:Root)-[:T]->(:Child {var: '0'}),
+                  (root)-[:T]->(:Child {var: 'xx'}),
+                  (root)-[:T]->(:Child);
+---- ok
+-STATEMENT MATCH (:Root)-->(i:Child)
+           WHERE i.var IS NOT NULL AND i.var > 'x'
+           RETURN i.var;
+## Outcome: the result should be, in any order:
+---- 1
+xx
+
+#  Comparing strings and integers using > in a OR'd predicate
+-CASE Scenario2
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE Root(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Child(ID SERIAL, var STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Root TO Child);
+---- ok
+-STATEMENT CREATE (root:Root)-[:T]->(:Child {var: '0'}),
+                  (root)-[:T]->(:Child {var: 'xx'}),
+                  (root)-[:T]->(:Child);
+-STATEMENT MATCH (:Root)-->(i:Child)
+           WHERE i.var IS NULL OR i.var > 'x'
+           RETURN i.var;
+## Outcome: the result should be, in any order:
+---- 2
+xx
+
+
+#  Comparing across types yields null, except numbers
+-CASE Scenario3
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ()-[:T]->();
+-STATEMENT MATCH p = (n)-[r]->()
+           WITH [n, r, p, '', 1, 3.14, True, null, [], {}] AS types
+           UNWIND range(0, size(types) - 1) AS i
+           UNWIND range(0, size(types) - 1) AS j
+           WITH types[i] AS lhs, types[j] AS rhs
+           WHERE i <> j
+           WITH lhs, rhs, lhs < rhs AS result
+           WHERE result
+           RETURN lhs, rhs;
+## Outcome: the result should be, in any order:
+---- 1
+1|3.14
+
+-STATEMENT CREATE ()-[:T]->();
+-STATEMENT MATCH p = (n)-[r]->()
+           WITH [n, r, p, '', 1, 3.14, True, null, [], {}] AS types
+           UNWIND range(0, size(types) - 1) AS i
+           UNWIND range(0, size(types) - 1) AS j
+           WITH types[i] AS lhs, types[j] AS rhs
+           WHERE i <> j
+           WITH lhs, rhs, lhs <= rhs AS result
+           WHERE result
+           RETURN lhs, rhs;
+## Outcome: the result should be, in any order:
+---- 1
+1|3.14
+
+-STATEMENT CREATE ()-[:T]->();
+-STATEMENT MATCH p = (n)-[r]->()
+           WITH [n, r, p, '', 1, 3.14, True, null, [], {}] AS types
+           UNWIND range(0, size(types) - 1) AS i
+           UNWIND range(0, size(types) - 1) AS j
+           WITH types[i] AS lhs, types[j] AS rhs
+           WHERE i <> j
+           WITH lhs, rhs, lhs >= rhs AS result
+           WHERE result
+           RETURN lhs, rhs;
+## Outcome: the result should be, in any order:
+---- 1
+3.14|1
+
+-STATEMENT CREATE ()-[:T]->();
+-STATEMENT MATCH p = (n)-[r]->()
+           WITH [n, r, p, '', 1, 3.14, True, null, [], {}] AS types
+           UNWIND range(0, size(types) - 1) AS i
+           UNWIND range(0, size(types) - 1) AS j
+           WITH types[i] AS lhs, types[j] AS rhs
+           WHERE i <> j
+           WITH lhs, rhs, lhs > rhs AS result
+           WHERE result
+           RETURN lhs, rhs;
+## Outcome: the result should be, in any order:
+---- 1
+3.14|1
+
+
+#  Comparing lists
+-CASE Scenario7
+-STATEMENT RETURN [1, 0] >= [1] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+-STATEMENT RETURN [1, null] >= [1] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+True
+
+-STATEMENT RETURN [1, 2] >= [1, null] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN [1, 2] >= [3, null] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-CASE Scenario7_error
+-SKIP
+-STATEMENT RETURN [1, 'a'] >= [1, null] AS result;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+#  Comparing NaN
+-CASE Scenario8
+-STATEMENT RETURN 0.0 / 0.0 > 1 AS gt, 0.0 / 0.0 >= 1 AS gtE, 0.0 / 0.0 < 1 AS lt, 0.0 / 0.0 <= 1 AS ltE;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True|True
+
+-STATEMENT RETURN 0.0 / 0.0 > 1.0 AS gt, 0.0 / 0.0 >= 1.0 AS gtE, 0.0 / 0.0 < 1.0 AS lt, 0.0 / 0.0 <= 1.0 AS ltE;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True|True
+
+-STATEMENT RETURN 0.0 / 0.0 > 0.0 / 0.0 AS gt, 0.0 / 0.0 >= 0.0 / 0.0 AS gtE, 0.0 / 0.0 < 0.0 / 0.0 AS lt, 0.0 / 0.0 <= 0.0 / 0.0 AS ltE;
+## Outcome: the result should be, in any order:
+---- 1
+False|False|True|True
+
+
+#  Comparability between numbers and strings
+-CASE Scenario9
+## Context: any graph
+-STATEMENT RETURN 1.0 < 1.0 AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-STATEMENT RETURN 1 < 1.0 AS result;
+## Outcome: the result should be, in any order:
+---- 1
+False
+
+-CASE Scenario9_error
+-SKIP
+-STATEMENT RETURN '1.0' < 1.0 AS result;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+-STATEMENT RETURN '1' < 1 AS result;
+## Outcome: the result should be, in any order:
+---- 1
+null
+
+

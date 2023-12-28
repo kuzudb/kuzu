@@ -1,0 +1,260 @@
+-GROUP TCKBoolean1
+-DATASET CSV tck
+
+--
+
+
+
+# [1] Conjunction of two truth values
+-CASE Scenario1
+
+
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN true AND true AS tt,
+                  true AND false AS tf,
+                  true AND null AS tn,
+                  false AND true AS ft,
+                  false AND false AS ff,
+                  false AND null AS fn,
+                  null AND true AS nt,
+                  null AND false AS nf,
+                  null AND null AS nn;
+---- 1
+True|False||False|False|False||False|
+
+
+# [2] Conjunction of three truth values
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN true AND true AND true AS ttt,
+                  true AND true AND false AS ttf,
+                  true AND true AND null AS ttn,
+                  true AND false AND true AS tft,
+                  true AND false AND false AS tff,
+                  true AND false AND null AS tfn,
+                  true AND null AND true AS tnt,
+                  true AND null AND false AS tnf,
+                  true AND null AND null AS tnn,
+                  false AND true AND true AS ftt,
+                  false AND true AND false AS ftf,
+                  false AND true AND null AS ftn,
+                  false AND false AND true AS fft,
+                  false AND false AND false AS fff,
+                  false AND false AND null AS ffn,
+                  false AND null AND true AS fnt,
+                  false AND null AND false AS fnf,
+                  false AND null AND null AS fnn,
+                  null AND true AND true AS ntt,
+                  null AND true AND false AS ntf,
+                  null AND true AND null AS ntn,
+                  null AND false AND true AS nft,
+                  null AND false AND false AS nff,
+                  null AND false AND null AS nfn,
+                  null AND null AND true AS nnt,
+                  null AND null AND false AS nnf,
+                  null AND null AND null AS nnn;
+## Outcome: the result should be, in any order:
+---- 1
+True|False||False|False|False||False||False|False|False|False|False|False|False|False|False||False||False|False|False||False|
+
+
+# [3] Conjunction of many truth values
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN true AND true AND true AND true AND true AND true AND true AND true AND true AND true AND true AS t,
+                  true AND true AND true AND false AND true AND true AND true AND true AND true AND true AND true AS tsf,
+                  true AND true AND true AND null AND true AND true AND true AND true AND true AND true AND true AS tsn,
+                  false AND false AND false AND false AND false AND false AND false AND false AND false AND false AND false AS f,
+                  false AND false AND false AND false AND true AND false AND false AND false AND false AND false AND false AS fst,
+                  false AND false AND false AND false AND false AND false AND null AND false AND false AND false AND false AS fsn,
+                  null AND null AND null AND null AND null AND null AND null AND null AND null AND null AND null AS n,
+                  null AND null AND null AND null AND true AND null AND null AND null AND null AND null AND null AS nst,
+                  null AND null AND null AND null AND false AND null AND null AND null AND null AND null AND null AS nsf,
+                  true AND false AND false AND false AND true AND false AND false AND true AND true AND true AND false AS m1,
+                  true AND true AND false AND false AND true AND false AND false AND true AND true AND true AND false AS m2,
+                  true AND true AND false AND false AND true AND null AND false AND true AND true AND null AND false AS m3;
+## Outcome: the result should be, in any order:
+---- 1
+True|False||False|False|False|||False|False|False|False
+
+# [4] Conjunction is commutative on non-null
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           RETURN a, b, (a AND b) = (b AND a) AS result;
+## Outcome: the result should be, in any order:
+---- 4
+False|False|True
+False|True|True
+True|False|True
+True|True|True
+
+# [5] Conjunction is commutative on null
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false, null] AS a
+           UNWIND [true, false, null] AS b
+           WITH a, b WHERE a IS NULL OR b IS NULL
+           RETURN a, b, (a AND b) IS NULL = (b AND a) IS NULL AS result;
+## Outcome: the result should be, in any order:
+---- 5
+true | null | true
+false | null | true
+null | true | true
+null | false | true
+null | null | true
+
+
+#  Conjunction is associative on non-null
+-CASE Scenario6
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           UNWIND [true, false] AS c
+           RETURN a, b, c, (a AND (b AND c)) = ((a AND b) AND c) AS result;
+## Outcome: the result should be, in any order:
+---- 8
+False|False|False|True
+False|False|True|True
+False|True|False|True
+False|True|True|True
+True|False|False|True
+True|False|True|True
+True|True|False|True
+True|True|True|True
+
+#  Conjunction is associative on null
+-CASE Scenario7
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false, null] AS a
+           UNWIND [true, false, null] AS b
+           UNWIND [true, false, null] AS c
+           WITH a, b, c WHERE a IS NULL OR b IS NULL OR c IS NULL
+           RETURN a, b, c, (a AND (b AND c)) IS NULL = ((a AND b) AND c) IS NULL AS result;
+## Outcome: the result should be, in any order:
+---- 19
+true | true | null | true
+true | false | null | true
+true | null | true | true
+true | null | false | true
+true | null | null | true
+false | true | null | true
+false | false | null | true
+false | null | true | true
+false | null | false | true
+false | null | null | true
+null | true | true | true
+null | true | false | true
+null | true | null | true
+null | false | true | true
+null | false | false | true
+null | false | null | true
+null | null | true | true
+null | null | false | true
+null | null | null | true
+
+#  Fail on conjunction of at least one non-booleans
+-CASE Scenario8
+-STATEMENT RETURN 123 AND true;
+---- error
+Binder exception: Expression 123 has data type INT64 but expected BOOL. Implicit cast is not supported.
+-STATEMENT RETURN 123.4 AND true;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+-STATEMENT RETURN 123.4 AND null;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 'foo' AND true;
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [] AND false;
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [true] AND false;
+---- error
+Binder exception: Expression LIST_CREATION(True) has data type BOOL[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [null] AND null;
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN {x: []} AND true;
+---- error
+Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x:STRING[]) but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN false AND 123;
+---- error
+Binder exception: Expression 123 has data type INT64 but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN true AND 123.4;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN false AND 'foo';
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN null AND 'foo';
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN true AND [];
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN true AND [false];
+---- error
+Binder exception: Expression LIST_CREATION(False) has data type BOOL[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN null AND [null];
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN false AND {x: []};
+---- error
+Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x:STRING[]) but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 123 AND 'foo';
+---- error
+Binder exception: Expression 123 has data type INT64 but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 123.4 AND 123.4;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 'foo' AND {x: []};
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [true] AND [true];
+---- error
+Binder exception: Expression LIST_CREATION(True) has data type BOOL[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN {x: []} AND [123];
+---- error
+Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x:STRING[]) but expected BOOL. Implicit cast is not supported.

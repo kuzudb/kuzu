@@ -1,0 +1,257 @@
+-GROUP TCKBoolean3
+-DATASET CSV tck
+
+--
+
+
+#  Exclusive disjunction of two truth values
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN true XOR true AS tt,
+                  true XOR false AS tf,
+                  true XOR null AS tn,
+                  false XOR true AS ft,
+                  false XOR false AS ff,
+                  false XOR null AS fn,
+                  null XOR true AS nt,
+                  null XOR false AS nf,
+                  null XOR null AS nn;
+## Outcome: the result should be, in any order:
+---- 1
+False|True||True|False||||
+
+#  Exclusive disjunction of three truth values
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN true XOR true XOR true AS ttt,
+                  true XOR true XOR false AS ttf,
+                  true XOR true XOR null AS ttn,
+                  true XOR false XOR true AS tft,
+                  true XOR false XOR false AS tff,
+                  true XOR false XOR null AS tfn,
+                  true XOR null XOR true AS tnt,
+                  true XOR null XOR false AS tnf,
+                  true XOR null XOR null AS tnn,
+                  false XOR true XOR true AS ftt,
+                  false XOR true XOR false AS ftf,
+                  false XOR true XOR null AS ftn,
+                  false XOR false XOR true AS fft,
+                  false XOR false XOR false AS fff,
+                  false XOR false XOR null AS ffn,
+                  false XOR null XOR true AS fnt,
+                  false XOR null XOR false AS fnf,
+                  false XOR null XOR null AS fnn,
+                  null XOR true XOR true AS ntt,
+                  null XOR true XOR false AS ntf,
+                  null XOR true XOR null AS ntn,
+                  null XOR false XOR true AS nft,
+                  null XOR false XOR false AS nff,
+                  null XOR false XOR null AS nfn,
+                  null XOR null XOR true AS nnt,
+                  null XOR null XOR false AS nnf,
+                  null XOR null XOR null AS nnn;
+## Outcome: the result should be, in any order:
+---- 1
+True|False||False|True|||||False|True||True|False|||||||||||||
+
+#  Exclusive disjunction of many truth values
+-CASE Scenario3
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN true XOR true XOR true XOR true XOR true XOR true XOR true XOR true XOR true XOR true XOR true AS t,
+                  true XOR true XOR true XOR false XOR true XOR true XOR true XOR true XOR true XOR true XOR true AS tsf,
+                  true XOR true XOR true XOR null XOR true XOR true XOR true XOR true XOR true XOR true XOR true AS tsn,
+                  false XOR false XOR false XOR false XOR false XOR false XOR false XOR false XOR false XOR false XOR false AS f,
+                  false XOR false XOR false XOR false XOR true XOR false XOR false XOR false XOR false XOR false XOR false AS fst,
+                  false XOR false XOR false XOR false XOR false XOR false XOR null XOR false XOR false XOR false XOR false AS fsn,
+                  null XOR null XOR null XOR null XOR null XOR null XOR null XOR null XOR null XOR null XOR null AS n,
+                  null XOR null XOR null XOR null XOR true XOR null XOR null XOR null XOR null XOR null XOR null AS nst,
+                  null XOR null XOR null XOR null XOR false XOR null XOR null XOR null XOR null XOR null XOR null AS nsf,
+                  true XOR false XOR false XOR false XOR true XOR false XOR false XOR true XOR true XOR true XOR false AS m1,
+                  true XOR true XOR false XOR false XOR true XOR false XOR false XOR true XOR true XOR true XOR false AS m2,
+                  true XOR true XOR false XOR false XOR true XOR null XOR false XOR true XOR true XOR null XOR false AS m3;
+## Outcome: the result should be, in any order:
+---- 1
+True|False||False|True|||||True|False|
+
+#  Exclusive disjunction is commutative on non-null
+-CASE Scenario4
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           RETURN a, b, (a XOR b) = (b XOR a) AS result;
+## Outcome: the result should be, in any order:
+---- 4
+True|True|True
+True|False|True
+False|True|True
+False|False|True
+
+#  Exclusive disjunction is commutative on null
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false, null] AS a
+           UNWIND [true, false, null] AS b
+           WITH a, b WHERE a IS NULL OR b IS NULL
+           RETURN a, b, (a XOR b) IS NULL = (b XOR a) IS NULL AS result;
+## Outcome: the result should be, in any order:
+---- 5
+true | null | true
+false | null | true
+null | true | true
+null | false | true
+null | null | true
+
+#  Exclusive disjunction is associative on non-null
+-CASE Scenario6
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false] AS a
+           UNWIND [true, false] AS b
+           UNWIND [true, false] AS c
+           RETURN a, b, c, (a XOR (b XOR c)) = ((a XOR b) XOR c) AS result;
+## Outcome: the result should be, in any order:
+---- 8
+True|True|True|True
+True|True|False|True
+True|False|True|True
+True|False|False|True
+False|True|True|True
+False|True|False|True
+False|False|True|True
+False|False|False|True
+
+#  Exclusive disjunction is associative on null
+-CASE Scenario7
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT UNWIND [true, false, null] AS a
+           UNWIND [true, false, null] AS b
+           UNWIND [true, false, null] AS c
+           WITH a, b, c WHERE a IS NULL OR b IS NULL OR c IS NULL
+           RETURN a, b, c, (a XOR (b XOR c)) IS NULL = ((a XOR b) XOR c) IS NULL AS result;
+## Outcome: the result should be, in any order:
+---- 19
+true | true | null | true
+true | false | null | true
+true | null | true | true
+true | null | false | true
+true | null | null | true
+false | true | null | true
+false | false | null | true
+false | null | true | true
+false | null | false | true
+false | null | null | true
+null | true | true | true
+null | true | false | true
+null | true | null | true
+null | false | true | true
+null | false | false | true
+null | false | null | true
+null | null | true | true
+null | null | false | true
+null | null | null | true
+
+#  Fail on exclusive disjunction of at least one non-booleans
+-CASE Scenario8
+-STATEMENT RETURN 123 XOR true;
+---- error
+Binder exception: Expression 123 has data type INT64 but expected BOOL. Implicit cast is not supported.
+-STATEMENT RETURN 123.4 XOR true;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+-STATEMENT RETURN 123.4 XOR null;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 'foo' XOR true;
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [] XOR false;
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [true] XOR false;
+---- error
+Binder exception: Expression LIST_CREATION(True) has data type BOOL[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [null] XOR null;
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN {x: []} XOR true;
+---- error
+Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x:STRING[]) but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN false XOR 123;
+---- error
+Binder exception: Expression 123 has data type INT64 but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN true XOR 123.4;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN false XOR 'foo';
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN null XOR 'foo';
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN true XOR [];
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN true XOR [false];
+---- error
+Binder exception: Expression LIST_CREATION(False) has data type BOOL[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN null XOR [null];
+---- error
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN false XOR {x: []};
+---- error
+Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x:STRING[]) but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 123 XOR 'foo';
+---- error
+Binder exception: Expression 123 has data type INT64 but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 123.4 XOR 123.4;
+---- error
+Binder exception: Expression 123.400000 has data type DOUBLE but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN 'foo' XOR {x: []};
+---- error
+Binder exception: Expression foo has data type STRING but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN [true] XOR [true];
+---- error
+Binder exception: Expression LIST_CREATION(True) has data type BOOL[] but expected BOOL. Implicit cast is not supported.
+
+-STATEMENT RETURN {x: []} XOR [123];
+---- error
+Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x:STRING[]) but expected BOOL. Implicit cast is not supported.

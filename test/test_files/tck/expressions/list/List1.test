@@ -1,0 +1,135 @@
+-GROUP TCKList1
+-DATASET CSV tck
+
+--
+
+
+#  Indexing into literal list
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [1, 2, 3][1] AS value;
+## Outcome: the result should be, in any order:
+---- 1
+1
+
+#  Indexing into nested literal lists
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT RETURN [[1]][1][1];
+## Outcome: the result should be, in any order:
+---- 1
+1
+
+
+#  Use list lookup based on parameters when there is no type information
+-CASE Scenario3
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+#parameters are:
+#expr | ['Apa']
+#idx | 0
+-STATEMENT WITH $expr AS expr, $idx AS idx
+           RETURN expr[idx] AS value;
+## Outcome: the result should be, in any order:
+---- 1
+'Apa'
+
+#  Use list lookup based on parameters when there is lhs type information
+-CASE Scenario4
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+#parameters are:
+#idx | 0
+-STATEMENT WITH ['Apa'] AS expr
+           RETURN expr[$idx] AS value;
+## Outcome: the result should be, in any order:
+---- 1
+'Apa'
+
+#  Use list lookup based on parameters when there is rhs type information
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+#parameters are:
+#expr | ['Apa']
+#idx | 0
+-STATEMENT WITH $expr AS expr, $idx AS idx
+           RETURN expr[toInteger(idx)] AS value;
+## Outcome: the result should be, in any order:
+---- 1
+'Apa'
+
+#Fail when indexing a non-list #Example: boolean
+-CASE Scenario6
+-STATEMENT WITH true AS list, 1 AS idx
+                                   RETURN list[idx];
+---- error
+Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(BOOL,INT64). Supported inputs are
+(VAR_LIST,INT64) -> ANY
+(STRING,INT64) -> STRING
+
+-STATEMENT WITH 123 AS list, 0 AS idx
+                                   RETURN list[idx];
+---- error
+Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64,INT64). Supported inputs are
+(VAR_LIST,INT64) -> ANY
+(STRING,INT64) -> STRING
+
+-STATEMENT WITH 4.7 AS list, 0 AS idx
+                                   RETURN list[idx];
+---- error
+Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(DOUBLE,INT64). Supported inputs are
+(VAR_LIST,INT64) -> ANY
+(STRING,INT64) -> STRING
+
+#  Fail when indexing with a non-integer #Example: boolean
+-CASE Scenario8
+## Context: any graph
+-STATEMENT WITH [1, 2, 3, 4, 5] AS list, true AS idx
+           RETURN list[idx];
+---- error
+Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(VAR_LIST,BOOL). Supported inputs are
+(VAR_LIST,INT64) -> ANY
+(STRING,INT64) -> STRING
+
+-STATEMENT WITH [1, 2, 3, 4, 5] AS list, 4.7 AS idx
+           RETURN list[idx];
+---- error
+Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(VAR_LIST,DOUBLE). Supported inputs are
+(VAR_LIST,INT64) -> ANY
+(STRING,INT64) -> STRING
+
+-STATEMENT WITH [1, 2, 3, 4, 5] AS list, '1' AS idx
+           RETURN list[idx];
+---- error
+Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(VAR_LIST,STRING). Supported inputs are
+(VAR_LIST,INT64) -> ANY
+(STRING,INT64) -> STRING
+
+-STATEMENT WITH [1, 2, 3, 4, 5] AS list, [1] AS idx
+           RETURN list[idx];
+---- error
+Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(VAR_LIST,VAR_LIST). Supported inputs are
+(VAR_LIST,INT64) -> ANY
+(STRING,INT64) -> STRING
+
+-STATEMENT WITH [1, 2, 3, 4, 5] AS list, {x: 3} AS idx
+           RETURN list[idx];
+---- error
+Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(VAR_LIST,STRUCT). Supported inputs are
+(VAR_LIST,INT64) -> ANY
+(STRING,INT64) -> STRING

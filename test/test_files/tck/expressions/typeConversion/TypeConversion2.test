@@ -1,0 +1,111 @@
+-GROUP TCKTypeConversion2
+-DATASET CSV tck
+
+--
+
+
+#  `toInteger()` on float
+-CASE Scenario1
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH 82.9 AS weight
+           RETURN to_int64(weight);
+## Outcome: the result should be, in any order:
+---- 1
+83
+
+#  `toInteger()` returning error on non-numerical string
+-CASE Scenario2
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH 'foo' AS foo_string, '' AS empty_string
+           RETURN to_int64(foo_string) AS foo, to_int64(empty_string) AS empty;
+## Outcome: the result should be, in any order:
+---- error
+Conversion exception: Cast failed. foo is not in INT64 range.
+
+#  `toInteger()` handling mixed number types
+-CASE Scenario3
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [2, 2.9] AS numbers
+           RETURN [n IN numbers | toInteger(n)] AS int_numbers;
+## Outcome: the result should be, in any order:
+---- 1
+[2, 2]
+
+#  `toInteger()` handling Any type
+-CASE Scenario4
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH [2, 2.9, '1.7'] AS things
+           RETURN [n IN things | toInteger(n)] AS int_numbers;
+## Outcome: the result should be, in any order:
+---- 1
+[2, 2, 1]
+
+#  `toInteger()` on a list of strings
+-CASE Scenario5
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+-STATEMENT WITH ['2', '2.9', 'foo'] AS numbers
+           RETURN [n IN numbers | toInteger(n)] AS int_numbers;
+## Outcome: the result should be, in any order:
+---- 1
+[2, 2, null]
+
+#  `toInteger()` on a complex-typed expression
+-CASE Scenario6
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+## Context: any graph
+## Context: parameters are:
+#parameters are:
+#param | 1
+-STATEMENT RETURN to_Int64(1 - $param) AS result;
+## Outcome: the result should be, in any order:
+---- 1
+0
+
+#  `toInteger()` on node property
+-CASE Scenario7
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:Person {name: '42'});
+-STATEMENT MATCH (p:Person { name: '42' })
+           WITH *
+           MATCH (n)
+           RETURN to_int64(n.name) AS name;
+## Outcome: the result should be, in any order:
+---- 1
+42
+
+#  Fail `toInteger()` on invalid types #Example: list
+-CASE Scenario8
+-SKIP
+## VERIFY
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE ()-[:T]->();
+-STATEMENT MATCH p = (n)-[r:T]->()
+           RETURN [x IN [1, []] | toInteger(x) ] AS list;
+## Outcome: a TypeError should be raised at runtime: InvalidArgumentValue
+---- error
+123
