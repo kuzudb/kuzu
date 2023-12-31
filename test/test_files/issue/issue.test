@@ -314,3 +314,18 @@ t2
         RETURN ret;
 ---- 1
 {_ID: 0:0, _LABEL: T, id: t1}
+
+-CASE 2297
+-STATEMENT CREATE NODE TABLE T2(id SERIAL, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (:T2),(:T2),(:T2);
+---- ok
+-STATEMENT MATCH (t:T2) RETURN t.id;
+---- 3
+0
+1
+2
+-STATEMENT MATCH (t:T2) WHERE list_contains([0,1], t.id) RETURN t.id;
+---- 2
+0
+1
