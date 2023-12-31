@@ -29,7 +29,7 @@ public:
         wherePredicate = std::move(expression);
     }
     inline bool hasWherePredicate() const { return wherePredicate != nullptr; }
-    inline ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
+    inline const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
 
 private:
     std::vector<std::string> filePaths;

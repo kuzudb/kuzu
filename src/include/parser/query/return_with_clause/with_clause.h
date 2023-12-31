@@ -5,14 +5,10 @@
 namespace kuzu {
 namespace parser {
 
-/**
- * WIth clause may have where expression
- */
 class WithClause : public ReturnClause {
-
 public:
-    explicit WithClause(std::unique_ptr<ProjectionBody> projectionBody)
-        : ReturnClause{std::move(projectionBody)} {}
+    explicit WithClause(ProjectionBody projectionBody) : ReturnClause{std::move(projectionBody)} {}
+    DELETE_COPY_DEFAULT_MOVE(WithClause);
 
     inline void setWhereExpression(std::unique_ptr<ParsedExpression> expression) {
         whereExpression = std::move(expression);

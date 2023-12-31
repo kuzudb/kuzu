@@ -25,7 +25,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto fileType = bindFileType(boundFilePath);
     std::vector<std::string> columnNames;
     std::vector<std::unique_ptr<LogicalType>> columnTypes;
-    auto query = bindQuery(*copyToStatement.getRegularQuery());
+    auto parsedQuery =
+        ku_dynamic_cast<const Statement*, const RegularQuery*>(copyToStatement.getStatement());
+    auto query = bindQuery(*parsedQuery);
     auto columns = query->getStatementResult()->getColumns();
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();

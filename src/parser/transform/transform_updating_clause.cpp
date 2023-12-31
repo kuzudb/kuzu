@@ -51,7 +51,7 @@ std::unique_ptr<UpdatingClause> Transformer::transformSet(CypherParser::OC_SetCo
     return setClause;
 }
 
-parsed_expression_pair Transformer::transformSetItem(CypherParser::OC_SetItemContext& ctx) {
+parsed_expr_pair Transformer::transformSetItem(CypherParser::OC_SetItemContext& ctx) {
     return make_pair(
         transformProperty(*ctx.oC_PropertyExpression()), transformExpression(*ctx.oC_Expression()));
 }

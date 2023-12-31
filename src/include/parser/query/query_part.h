@@ -8,10 +8,8 @@ namespace kuzu {
 namespace parser {
 
 class QueryPart {
-
 public:
-    explicit QueryPart(std::unique_ptr<WithClause> withClause)
-        : withClause{std::move(withClause)} {}
+    explicit QueryPart(WithClause withClause) : withClause{std::move(withClause)} {}
 
     inline uint32_t getNumUpdatingClauses() const { return updatingClauses.size(); }
     inline UpdatingClause* getUpdatingClause(uint32_t idx) const {
@@ -27,12 +25,12 @@ public:
         readingClauses.push_back(std::move(readingClause));
     }
 
-    inline WithClause* getWithClause() const { return withClause.get(); }
+    inline const WithClause* getWithClause() const { return &withClause; }
 
 private:
     std::vector<std::unique_ptr<ReadingClause>> readingClauses;
     std::vector<std::unique_ptr<UpdatingClause>> updatingClauses;
-    std::unique_ptr<WithClause> withClause;
+    WithClause withClause;
 };
 
 } // namespace parser

@@ -22,8 +22,8 @@ public:
               std::move(rawName)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
-    ParsedFunctionExpression(std::string alias, std::string rawName,
-        parsed_expression_vector children, std::string functionName, bool isDistinct)
+    ParsedFunctionExpression(std::string alias, std::string rawName, parsed_expr_vector children,
+        std::string functionName, bool isDistinct)
         : ParsedExpression{common::ExpressionType::FUNCTION, std::move(alias), std::move(rawName),
               std::move(children)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}

@@ -5,25 +5,19 @@
 namespace kuzu {
 namespace parser {
 
-/**
- * PatternElementChain represents " - RelPattern - NodePattern"
- */
 class PatternElementChain {
-
 public:
-    PatternElementChain(
-        std::unique_ptr<RelPattern> relPattern, std::unique_ptr<NodePattern> nodePattern)
+    PatternElementChain(RelPattern relPattern, NodePattern nodePattern)
         : relPattern{std::move(relPattern)}, nodePattern{std::move(nodePattern)} {}
+    DELETE_COPY_DEFAULT_MOVE(PatternElementChain);
 
-    ~PatternElementChain() = default;
+    inline const RelPattern* getRelPattern() const { return &relPattern; }
 
-    inline RelPattern* getRelPattern() const { return relPattern.get(); }
-
-    inline NodePattern* getNodePattern() const { return nodePattern.get(); }
+    inline const NodePattern* getNodePattern() const { return &nodePattern; }
 
 private:
-    std::unique_ptr<RelPattern> relPattern;
-    std::unique_ptr<NodePattern> nodePattern;
+    RelPattern relPattern;
+    NodePattern nodePattern;
 };
 
 } // namespace parser

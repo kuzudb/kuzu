@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "parser/expression/parsed_expression.h"
-#include "parser/query/regular_query.h"
 #include "parser/statement.h"
 
 namespace kuzu {
@@ -44,16 +43,16 @@ private:
 
 class CopyTo : public Copy {
 public:
-    CopyTo(std::string filePath, std::unique_ptr<RegularQuery> regularQuery)
-        : Copy{common::StatementType::COPY_TO}, filePath{std::move(filePath)},
-          regularQuery{std::move(regularQuery)} {}
+    CopyTo(std::string filePath, std::unique_ptr<Statement> statement)
+        : Copy{common::StatementType::COPY_TO}, filePath{std::move(filePath)}, statement{std::move(
+                                                                                   statement)} {}
 
     inline std::string getFilePath() const { return filePath; }
-    inline RegularQuery* getRegularQuery() const { return regularQuery.get(); }
+    inline const Statement* getStatement() const { return statement.get(); }
 
 private:
     std::string filePath;
-    std::unique_ptr<RegularQuery> regularQuery;
+    std::unique_ptr<Statement> statement;
 };
 
 } // namespace parser

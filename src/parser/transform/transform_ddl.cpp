@@ -41,44 +41,41 @@ std::unique_ptr<Statement> Transformer::transformAlterTable(
 std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     CypherParser::KU_CreateNodeTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    auto propertyDefinitions = transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     std::string pkName;
     if (ctx.kU_CreateNodeConstraint()) {
         pkName = transformPrimaryKey(*ctx.kU_CreateNodeConstraint());
     }
-    auto extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
-    auto createTableInfo = std::make_unique<CreateTableInfo>(
-        TableType::NODE, tableName, propertyDefinitions, std::move(extraInfo));
-    return std::make_unique<CreateTable>(tableName, std::move(createTableInfo));
+    auto createTableInfo = CreateTableInfo(TableType::NODE, tableName);
+    createTableInfo.propertyNameDataTypes =
+        transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
+    return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
 std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     CypherParser::KU_CreateRelTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    std::vector<std::pair<std::string, std::string>> propertyDefinitions;
-    if (ctx.kU_PropertyDefinitions()) {
-        propertyDefinitions = transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
-    }
     std::string relMultiplicity = "MANY_MANY";
     if (ctx.oC_SymbolicName()) {
         relMultiplicity = transformSymbolicName(*ctx.oC_SymbolicName());
     }
     auto srcTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(0));
     auto dstTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(1));
-    auto extraInfo = std::make_unique<ExtraCreateRelTableInfo>(
+    auto createTableInfo = CreateTableInfo(TableType::REL, tableName);
+    if (ctx.kU_PropertyDefinitions()) {
+        createTableInfo.propertyNameDataTypes =
+            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
+    }
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableInfo>(
         relMultiplicity, std::move(srcTableName), std::move(dstTableName));
-    auto createTableInfo = std::make_unique<CreateTableInfo>(
-        TableType::REL, tableName, propertyDefinitions, std::move(extraInfo));
-    return std::make_unique<CreateTable>(tableName, std::move(createTableInfo));
+    return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
 std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
     CypherParser::KU_CreateRelTableGroupContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     std::vector<std::pair<std::string, std::string>> propertyDefinitions;
-    if (ctx.kU_PropertyDefinitions()) {
-        propertyDefinitions = transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
-    }
+
     std::string relMultiplicity = "MANY_MANY";
     if (ctx.oC_SymbolicName()) {
         relMultiplicity = transformSymbolicName(*ctx.oC_SymbolicName());
@@ -89,18 +86,21 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
         auto dstTableName = transformSchemaName(*connection->oC_SchemaName(1));
         srcDstTablePairs.emplace_back(srcTableName, dstTableName);
     }
-    auto extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(
+    auto createTableInfo = CreateTableInfo(TableType::REL_GROUP, tableName);
+    if (ctx.kU_PropertyDefinitions()) {
+        createTableInfo.propertyNameDataTypes =
+            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
+    }
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(
         relMultiplicity, std::move(srcDstTablePairs));
-    auto createTableInfo = std::make_unique<CreateTableInfo>(
-        TableType::REL_GROUP, tableName, propertyDefinitions, std::move(extraInfo));
-    return std::make_unique<CreateTable>(tableName, std::move(createTableInfo));
+    return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
 std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
     CypherParser::KU_CreateRdfGraphContext& ctx) {
     auto rdfGraphName = transformSchemaName(*ctx.oC_SchemaName());
-    auto createTableInfo = std::make_unique<CreateTableInfo>(TableType::RDF, rdfGraphName);
-    return std::make_unique<CreateTable>(rdfGraphName, std::move(createTableInfo));
+    auto createTableInfo = CreateTableInfo(TableType::RDF, rdfGraphName);
+    return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
 std::unique_ptr<Statement> Transformer::transformDropTable(CypherParser::KU_DropTableContext& ctx) {
@@ -113,8 +113,7 @@ std::unique_ptr<Statement> Transformer::transformRenameTable(
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto newName = transformSchemaName(*ctx.kU_AlterOptions()->kU_RenameTable()->oC_SchemaName());
     auto extraInfo = std::make_unique<ExtraRenameTableInfo>(std::move(newName));
-    auto info =
-        std::make_unique<AlterInfo>(AlterType::RENAME_TABLE, tableName, std::move(extraInfo));
+    auto info = AlterInfo(AlterType::RENAME_TABLE, tableName, std::move(extraInfo));
     return std::make_unique<Alter>(std::move(info));
 }
 
@@ -128,13 +127,11 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     if (addPropertyCtx->oC_Expression()) {
         defaultValue = transformExpression(*addPropertyCtx->oC_Expression());
     } else {
-        defaultValue =
-            std::make_unique<ParsedLiteralExpression>(Value::createNullValue().copy(), "NULL");
+        defaultValue = std::make_unique<ParsedLiteralExpression>(Value::createNullValue(), "NULL");
     }
     auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(
         std::move(propertyName), std::move(dataType), std::move(defaultValue));
-    auto info =
-        std::make_unique<AlterInfo>(AlterType::ADD_PROPERTY, tableName, std::move(extraInfo));
+    auto info = AlterInfo(AlterType::ADD_PROPERTY, tableName, std::move(extraInfo));
     return std::make_unique<Alter>(std::move(info));
 }
 
@@ -144,8 +141,7 @@ std::unique_ptr<Statement> Transformer::transformDropProperty(
     auto propertyName =
         transformPropertyKeyName(*ctx.kU_AlterOptions()->kU_DropProperty()->oC_PropertyKeyName());
     auto extraInfo = std::make_unique<ExtraDropPropertyInfo>(std::move(propertyName));
-    auto info =
-        std::make_unique<AlterInfo>(AlterType::DROP_PROPERTY, tableName, std::move(extraInfo));
+    auto info = AlterInfo(AlterType::DROP_PROPERTY, tableName, std::move(extraInfo));
     return std::make_unique<Alter>(std::move(info));
 }
 
@@ -157,8 +153,7 @@ std::unique_ptr<Statement> Transformer::transformRenameProperty(
     auto newName = transformPropertyKeyName(
         *ctx.kU_AlterOptions()->kU_RenameProperty()->oC_PropertyKeyName()[1]);
     auto extraInfo = std::make_unique<ExtraRenamePropertyInfo>(propertyName, newName);
-    auto info =
-        std::make_unique<AlterInfo>(AlterType::RENAME_PROPERTY, tableName, std::move(extraInfo));
+    auto info = AlterInfo(AlterType::RENAME_PROPERTY, tableName, std::move(extraInfo));
     return std::make_unique<Alter>(std::move(info));
 }
 

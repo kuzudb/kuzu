@@ -4,11 +4,11 @@
 namespace kuzu {
 namespace parser {
 
-std::unique_ptr<RegularQuery> Transformer::transformQuery(CypherParser::OC_QueryContext& ctx) {
+std::unique_ptr<Statement> Transformer::transformQuery(CypherParser::OC_QueryContext& ctx) {
     return transformRegularQuery(*ctx.oC_RegularQuery());
 }
 
-std::unique_ptr<RegularQuery> Transformer::transformRegularQuery(
+std::unique_ptr<Statement> Transformer::transformRegularQuery(
     CypherParser::OC_RegularQueryContext& ctx) {
     auto regularQuery = std::make_unique<RegularQuery>(transformSingleQuery(*ctx.oC_SingleQuery()));
     for (auto unionClause : ctx.oC_Union()) {
@@ -18,42 +18,40 @@ std::unique_ptr<RegularQuery> Transformer::transformRegularQuery(
     return regularQuery;
 }
 
-std::unique_ptr<SingleQuery> Transformer::transformSingleQuery(
-    CypherParser::OC_SingleQueryContext& ctx) {
+SingleQuery Transformer::transformSingleQuery(CypherParser::OC_SingleQueryContext& ctx) {
     auto singleQuery =
         ctx.oC_MultiPartQuery() ?
             transformSinglePartQuery(*ctx.oC_MultiPartQuery()->oC_SinglePartQuery()) :
             transformSinglePartQuery(*ctx.oC_SinglePartQuery());
     if (ctx.oC_MultiPartQuery()) {
         for (auto queryPart : ctx.oC_MultiPartQuery()->kU_QueryPart()) {
-            singleQuery->addQueryPart(transformQueryPart(*queryPart));
+            singleQuery.addQueryPart(transformQueryPart(*queryPart));
         }
     }
     return singleQuery;
 }
 
-std::unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
-    CypherParser::OC_SinglePartQueryContext& ctx) {
-    auto singleQuery = std::make_unique<SingleQuery>();
+SingleQuery Transformer::transformSinglePartQuery(CypherParser::OC_SinglePartQueryContext& ctx) {
+    auto singleQuery = SingleQuery();
     for (auto& readingClause : ctx.oC_ReadingClause()) {
-        singleQuery->addReadingClause(transformReadingClause(*readingClause));
+        singleQuery.addReadingClause(transformReadingClause(*readingClause));
     }
     for (auto& updatingClause : ctx.oC_UpdatingClause()) {
-        singleQuery->addUpdatingClause(transformUpdatingClause(*updatingClause));
+        singleQuery.addUpdatingClause(transformUpdatingClause(*updatingClause));
     }
     if (ctx.oC_Return()) {
-        singleQuery->setReturnClause(transformReturn(*ctx.oC_Return()));
+        singleQuery.setReturnClause(transformReturn(*ctx.oC_Return()));
     }
     return singleQuery;
 }
 
-std::unique_ptr<QueryPart> Transformer::transformQueryPart(CypherParser::KU_QueryPartContext& ctx) {
-    auto queryPart = std::make_unique<QueryPart>(transformWith(*ctx.oC_With()));
+QueryPart Transformer::transformQueryPart(CypherParser::KU_QueryPartContext& ctx) {
+    auto queryPart = QueryPart(transformWith(*ctx.oC_With()));
     for (auto& readingClause : ctx.oC_ReadingClause()) {
-        queryPart->addReadingClause(transformReadingClause(*readingClause));
+        queryPart.addReadingClause(transformReadingClause(*readingClause));
     }
     for (auto& updatingClause : ctx.oC_UpdatingClause()) {
-        queryPart->addUpdatingClause(transformUpdatingClause(*updatingClause));
+        queryPart.addUpdatingClause(transformUpdatingClause(*updatingClause));
     }
     return queryPart;
 }

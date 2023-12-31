@@ -7,35 +7,29 @@
 namespace kuzu {
 namespace parser {
 
-/**
- * PatternElement represents "NodePattern - PatternElementChain - ..."
- */
 class PatternElement {
-
 public:
-    explicit PatternElement(std::unique_ptr<NodePattern> nodePattern)
-        : nodePattern{std::move(nodePattern)} {}
-
-    ~PatternElement() = default;
+    explicit PatternElement(NodePattern nodePattern) : nodePattern{std::move(nodePattern)} {}
+    DELETE_COPY_DEFAULT_MOVE(PatternElement);
 
     inline void setPathName(std::string name) { pathName = std::move(name); }
     inline bool hasPathName() const { return !pathName.empty(); }
     inline std::string getPathName() const { return pathName; }
 
-    inline NodePattern* getFirstNodePattern() const { return nodePattern.get(); }
+    inline const NodePattern* getFirstNodePattern() const { return &nodePattern; }
 
-    inline void addPatternElementChain(std::unique_ptr<PatternElementChain> patternElementChain) {
-        patternElementChains.push_back(std::move(patternElementChain));
+    inline void addPatternElementChain(PatternElementChain chain) {
+        patternElementChains.push_back(std::move(chain));
     }
     inline uint32_t getNumPatternElementChains() const { return patternElementChains.size(); }
-    inline PatternElementChain* getPatternElementChain(uint32_t idx) const {
-        return patternElementChains[idx].get();
+    inline const PatternElementChain* getPatternElementChain(uint32_t idx) const {
+        return &patternElementChains[idx];
     }
 
 private:
     std::string pathName;
-    std::unique_ptr<NodePattern> nodePattern;
-    std::vector<std::unique_ptr<PatternElementChain>> patternElementChains;
+    NodePattern nodePattern;
+    std::vector<PatternElementChain> patternElementChains;
 };
 
 } // namespace parser

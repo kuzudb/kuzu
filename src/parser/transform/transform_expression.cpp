@@ -283,8 +283,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression
 }
 
 static std::unique_ptr<ParsedLiteralExpression> getZeroLiteral() {
-    auto literal = std::make_unique<Value>(0);
-    return std::make_unique<ParsedLiteralExpression>(std::move(literal), "0");
+    return std::make_unique<ParsedLiteralExpression>(Value(0), "0");
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
@@ -402,12 +401,11 @@ std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
         return transformBooleanLiteral(*ctx.oC_BooleanLiteral());
     } else if (ctx.StringLiteral()) {
         return std::make_unique<ParsedLiteralExpression>(
-            std::make_unique<Value>(
-                LogicalType::STRING(), transformStringLiteral(*ctx.StringLiteral())),
+            Value(LogicalType::STRING(), transformStringLiteral(*ctx.StringLiteral())),
             ctx.getText());
     } else if (ctx.NULL_()) {
         return std::make_unique<ParsedLiteralExpression>(
-            std::make_unique<Value>(Value::createNullValue()), ctx.getText());
+            Value(Value::createNullValue()), ctx.getText());
     } else if (ctx.kU_StructLiteral()) {
         return transformStructLiteral(*ctx.kU_StructLiteral());
     } else {
@@ -418,14 +416,12 @@ std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
 
 std::unique_ptr<ParsedExpression> Transformer::transformBooleanLiteral(
     CypherParser::OC_BooleanLiteralContext& ctx) {
-    std::unique_ptr<Value> literal;
     if (ctx.TRUE()) {
-        literal = std::make_unique<Value>(true);
+        return std::make_unique<ParsedLiteralExpression>(Value(true), ctx.getText());
     } else if (ctx.FALSE()) {
-        literal = std::make_unique<Value>(false);
+        return std::make_unique<ParsedLiteralExpression>(Value(false), ctx.getText());
     }
-    KU_ASSERT(literal);
-    return std::make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());
+    KU_UNREACHABLE;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformListLiteral(
@@ -440,7 +436,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformListLiteral(
         if (listEntry->oC_Expression() == nullptr) {
             auto nullValue = Value::createNullValue();
             listCreation->addChild(
-                std::make_unique<ParsedLiteralExpression>(nullValue.copy(), nullValue.toString()));
+                std::make_unique<ParsedLiteralExpression>(nullValue, nullValue.toString()));
         } else {
             listCreation->addChild(transformExpression(*listEntry->oC_Expression()));
         }
@@ -513,10 +509,9 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionParameterExpress
 std::unique_ptr<ParsedExpression> Transformer::transformPathPattern(
     CypherParser::OC_PathPatternsContext& ctx) {
     auto subquery = std::make_unique<ParsedSubqueryExpression>(SubqueryType::EXISTS, ctx.getText());
-    auto patternElement =
-        std::make_unique<PatternElement>(transformNodePattern(*ctx.oC_NodePattern()));
+    auto patternElement = PatternElement(transformNodePattern(*ctx.oC_NodePattern()));
     for (auto& chain : ctx.oC_PatternElementChain()) {
-        patternElement->addPatternElementChain(transformPatternElementChain(*chain));
+        patternElement.addPatternElementChain(transformPatternElementChain(*chain));
     }
     subquery->addPatternElement(std::move(patternElement));
     return subquery;
@@ -576,12 +571,11 @@ std::unique_ptr<ParsedExpression> Transformer::transformCaseExpression(
     return parsedCaseExpression;
 }
 
-std::unique_ptr<ParsedCaseAlternative> Transformer::transformCaseAlternative(
+ParsedCaseAlternative Transformer::transformCaseAlternative(
     CypherParser::OC_CaseAlternativeContext& ctx) {
     auto whenExpression = transformExpression(*ctx.oC_Expression(0));
     auto thenExpression = transformExpression(*ctx.oC_Expression(1));
-    return std::make_unique<ParsedCaseAlternative>(
-        std::move(whenExpression), std::move(thenExpression));
+    return ParsedCaseAlternative(std::move(whenExpression), std::move(thenExpression));
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformNumberLiteral(
@@ -610,13 +604,11 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     ku_string_t literal{text.c_str(), text.length()};
     int64_t result;
     if (function::CastString::tryCast(literal, result)) {
-        return std::make_unique<ParsedLiteralExpression>(
-            std::make_unique<Value>(result), ctx.getText());
+        return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
     }
     int128_t result128;
     function::CastString::operation(literal, result128);
-    return std::make_unique<ParsedLiteralExpression>(
-        std::make_unique<Value>(result128), ctx.getText());
+    return std::make_unique<ParsedLiteralExpression>(Value(result128), ctx.getText());
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
@@ -625,8 +617,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     ku_string_t literal{text.c_str(), text.length()};
     double_t result;
     function::CastString::operation(literal, result);
-    return std::make_unique<ParsedLiteralExpression>(
-        std::make_unique<Value>(result), ctx.getText());
+    return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
 }
 
 } // namespace parser

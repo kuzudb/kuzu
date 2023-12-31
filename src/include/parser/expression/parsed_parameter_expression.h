@@ -14,15 +14,14 @@ public:
 
     inline std::string getParameterName() const { return parameterName; }
 
-    static std::unique_ptr<ParsedParameterExpression> deserialize(
-        common::Deserializer& /*deserializer*/) {
+    static std::unique_ptr<ParsedParameterExpression> deserialize(common::Deserializer&) {
         KU_UNREACHABLE;
     }
 
     inline std::unique_ptr<ParsedExpression> copy() const override { KU_UNREACHABLE; }
 
 private:
-    void serializeInternal(common::Serializer& /*serializer*/) const override { KU_UNREACHABLE; }
+    void serializeInternal(common::Serializer&) const override { KU_UNREACHABLE; }
 
 private:
     std::string parameterName;

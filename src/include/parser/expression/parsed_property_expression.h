@@ -14,8 +14,8 @@ public:
         : ParsedExpression{common::ExpressionType::PROPERTY, std::move(child), std::move(raw)},
           propertyName{std::move(propertyName)} {}
 
-    ParsedPropertyExpression(std::string alias, std::string rawName,
-        parsed_expression_vector children, std::string propertyName)
+    ParsedPropertyExpression(std::string alias, std::string rawName, parsed_expr_vector children,
+        std::string propertyName)
         : ParsedExpression{common::ExpressionType::PROPERTY, std::move(alias), std::move(rawName),
               std::move(children)},
           propertyName{std::move(propertyName)} {}

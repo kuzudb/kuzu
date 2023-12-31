@@ -57,8 +57,7 @@ std::vector<std::string> Transformer::transformFilePaths(
     return csvFiles;
 }
 
-std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>
-Transformer::transformParsingOptions(CypherParser::KU_ParsingOptionsContext& ctx) {
+parsing_option_t Transformer::transformParsingOptions(CypherParser::KU_ParsingOptionsContext& ctx) {
     std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> copyOptions;
     for (auto loadOption : ctx.kU_ParsingOption()) {
         auto optionName = transformSymbolicName(*loadOption->oC_SymbolicName());

@@ -16,35 +16,32 @@ public:
 
     inline common::SubqueryType getSubqueryType() const { return subqueryType; }
 
-    inline void addPatternElement(std::unique_ptr<PatternElement> element) {
+    inline void addPatternElement(PatternElement element) {
         patternElements.push_back(std::move(element));
     }
-    inline void setPatternElements(std::vector<std::unique_ptr<PatternElement>> elements) {
+    inline void setPatternElements(std::vector<PatternElement> elements) {
         patternElements = std::move(elements);
     }
-    inline const std::vector<std::unique_ptr<PatternElement>>& getPatternElements() const {
-        return patternElements;
-    }
+    inline const std::vector<PatternElement>& getPatternElements() const { return patternElements; }
 
     inline void setWhereClause(std::unique_ptr<ParsedExpression> expression) {
         whereClause = std::move(expression);
     }
     inline bool hasWhereClause() const { return whereClause != nullptr; }
-    inline ParsedExpression* getWhereClause() const { return whereClause.get(); }
+    inline const ParsedExpression* getWhereClause() const { return whereClause.get(); }
 
-    static std::unique_ptr<ParsedSubqueryExpression> deserialize(
-        common::Deserializer& /*deserializer*/) {
+    static std::unique_ptr<ParsedSubqueryExpression> deserialize(common::Deserializer&) {
         KU_UNREACHABLE;
     }
 
     std::unique_ptr<ParsedExpression> copy() const override { KU_UNREACHABLE; }
 
 private:
-    void serializeInternal(common::Serializer& /*serializer*/) const override { KU_UNREACHABLE; }
+    void serializeInternal(common::Serializer&) const override { KU_UNREACHABLE; }
 
 private:
     common::SubqueryType subqueryType;
-    std::vector<std::unique_ptr<PatternElement>> patternElements;
+    std::vector<PatternElement> patternElements;
     std::unique_ptr<ParsedExpression> whereClause;
 };
 

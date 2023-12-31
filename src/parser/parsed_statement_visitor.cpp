@@ -71,7 +71,9 @@ void StatementVisitor::visitSingleQuery(const SingleQuery* singleQuery) {
     for (auto i = 0u; i < singleQuery->getNumUpdatingClauses(); ++i) {
         visitUpdatingClause(singleQuery->getUpdatingClause(i));
     }
-    visitReturnClause(singleQuery->getReturnClause());
+    if (singleQuery->hasReturnClause()) {
+        visitReturnClause(singleQuery->getReturnClause());
+    }
 }
 
 void StatementVisitor::visitQueryPart(const QueryPart* queryPart) {
