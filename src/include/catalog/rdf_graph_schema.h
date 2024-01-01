@@ -11,7 +11,8 @@ public:
     RdfGraphSchema(std::string tableName, common::table_id_t rdfID,
         common::table_id_t resourceTableID, common::table_id_t literalTabelID,
         common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID)
-        : TableSchema{std::move(tableName), rdfID, common::TableType::RDF, property_vector_t{}},
+        : TableSchema{std::move(tableName), rdfID, common::TableType::RDF,
+              std::vector<std::unique_ptr<Property>>{}},
           resourceTableID{resourceTableID}, literalTableID{literalTabelID},
           resourceTripleTableID{resourceTripleTableID}, literalTripleTableID{literalTripleTableID} {
     }

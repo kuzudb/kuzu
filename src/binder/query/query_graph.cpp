@@ -188,12 +188,11 @@ bool QueryGraph::isConnected(const QueryGraph& other) {
     return false;
 }
 
-void QueryGraphCollection::addAndMergeQueryGraphIfConnected(
-    std::unique_ptr<QueryGraph> queryGraphToAdd) {
+void QueryGraphCollection::addAndMergeQueryGraphIfConnected(QueryGraph queryGraphToAdd) {
     bool isMerged = false;
     for (auto& queryGraph : queryGraphs) {
-        if (queryGraph->isConnected(*queryGraphToAdd)) {
-            queryGraph->merge(*queryGraphToAdd);
+        if (queryGraph.isConnected(queryGraphToAdd)) {
+            queryGraph.merge(queryGraphToAdd);
             isMerged = true;
         }
     }
@@ -205,7 +204,7 @@ void QueryGraphCollection::addAndMergeQueryGraphIfConnected(
 std::vector<std::shared_ptr<NodeExpression>> QueryGraphCollection::getQueryNodes() const {
     std::vector<std::shared_ptr<NodeExpression>> result;
     for (auto& queryGraph : queryGraphs) {
-        for (auto& node : queryGraph->getQueryNodes()) {
+        for (auto& node : queryGraph.getQueryNodes()) {
             result.push_back(node);
         }
     }
@@ -215,17 +214,9 @@ std::vector<std::shared_ptr<NodeExpression>> QueryGraphCollection::getQueryNodes
 std::vector<std::shared_ptr<RelExpression>> QueryGraphCollection::getQueryRels() const {
     std::vector<std::shared_ptr<RelExpression>> result;
     for (auto& queryGraph : queryGraphs) {
-        for (auto& rel : queryGraph->getQueryRels()) {
+        for (auto& rel : queryGraph.getQueryRels()) {
             result.push_back(rel);
         }
-    }
-    return result;
-}
-
-std::unique_ptr<QueryGraphCollection> QueryGraphCollection::copy() const {
-    auto result = std::make_unique<QueryGraphCollection>();
-    for (auto& queryGraph : queryGraphs) {
-        result->queryGraphs.push_back(queryGraph->copy());
     }
     return result;
 }

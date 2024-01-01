@@ -633,7 +633,7 @@ std::unique_ptr<function::TableFuncBindData> ParquetScanFunction::bindFunc(
             scanInput->expectedColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes);
     }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->mm, scanInput->config, scanInput->vfs);
+        std::move(resultColumnNames), scanInput->mm, scanInput->config.copy(), scanInput->vfs);
 }
 
 std::unique_ptr<function::TableFuncSharedState> ParquetScanFunction::initSharedState(
@@ -645,8 +645,8 @@ std::unique_ptr<function::TableFuncSharedState> ParquetScanFunction::initSharedS
             path, parquetScanBindData->mm, parquetScanBindData->vfs);
         numRows += reader->getMetadata()->num_rows;
     }
-    return std::make_unique<ParquetScanSharedState>(
-        parquetScanBindData->config, parquetScanBindData->mm, numRows, parquetScanBindData->vfs);
+    return std::make_unique<ParquetScanSharedState>(parquetScanBindData->config.copy(),
+        parquetScanBindData->mm, numRows, parquetScanBindData->vfs);
 }
 
 std::unique_ptr<function::TableFuncLocalState> ParquetScanFunction::initLocalState(

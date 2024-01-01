@@ -34,12 +34,20 @@ CatalogContent::CatalogContent(const std::string& directory, VirtualFileSystem* 
     registerBuiltInFunctions();
 }
 
-static void assignPropertyIDAndTableID(
-    std::vector<std::unique_ptr<Property>>& properties, table_id_t tableID) {
+static void assignPropertyIDAndTableID(std::vector<Property>& properties, table_id_t tableID) {
     for (auto i = 0u; i < properties.size(); ++i) {
-        properties[i]->setPropertyID(i);
-        properties[i]->setTableID(tableID);
+        properties[i].setPropertyID(i);
+        properties[i].setTableID(tableID);
     }
+}
+
+static std::vector<std::unique_ptr<Property>> getPropertiesUniquePtr(
+    const std::vector<Property>& properties) {
+    std::vector<std::unique_ptr<Property>> result;
+    for (auto& property : properties) {
+        result.push_back(std::make_unique<Property>(property.copy()));
+    }
+    return result;
 }
 
 table_id_t CatalogContent::addNodeTableSchema(const BoundCreateTableInfo& info) {
@@ -49,16 +57,15 @@ table_id_t CatalogContent::addNodeTableSchema(const BoundCreateTableInfo& info) 
     auto properties = Property::copy(extraInfo->properties);
     assignPropertyIDAndTableID(properties, tableID);
     auto nodeTableSchema = std::make_unique<NodeTableSchema>(
-        info.tableName, tableID, extraInfo->primaryKeyIdx, std::move(properties));
+        info.tableName, tableID, extraInfo->primaryKeyIdx, getPropertiesUniquePtr(properties));
     tableNameToIDMap.emplace(nodeTableSchema->tableName, tableID);
     tableSchemas.emplace(tableID, std::move(nodeTableSchema));
     return tableID;
 }
 
 // TODO(Xiyang): move this to binding stage
-static void addRelInternalIDProperty(std::vector<std::unique_ptr<Property>>& properties) {
-    auto relInternalIDProperty =
-        std::make_unique<Property>(InternalKeyword::ID, LogicalType::INTERNAL_ID());
+static void addRelInternalIDProperty(std::vector<Property>& properties) {
+    auto relInternalIDProperty = Property(InternalKeyword::ID, LogicalType::INTERNAL_ID());
     properties.insert(properties.begin(), std::move(relInternalIDProperty));
 }
 
@@ -76,7 +83,7 @@ table_id_t CatalogContent::addRelTableSchema(const BoundCreateTableInfo& info) {
     srcNodeTableSchema->addFwdRelTableID(tableID);
     dstNodeTableSchema->addBwdRelTableID(tableID);
     auto relTableSchema = std::make_unique<RelTableSchema>(info.tableName, tableID,
-        std::move(properties), extraInfo->srcMultiplicity, extraInfo->dstMultiplicity,
+        getPropertiesUniquePtr(properties), extraInfo->srcMultiplicity, extraInfo->dstMultiplicity,
         extraInfo->srcTableID, extraInfo->dstTableID);
     tableNameToIDMap.emplace(relTableSchema->tableName, tableID);
     tableSchemas.emplace(tableID, std::move(relTableSchema));
@@ -89,7 +96,7 @@ table_id_t CatalogContent::addRelTableGroupSchema(const binder::BoundCreateTable
     std::vector<table_id_t> relTableIDs;
     relTableIDs.reserve(extraInfo->infos.size());
     for (auto& childInfo : extraInfo->infos) {
-        relTableIDs.push_back(addRelTableSchema(*childInfo));
+        relTableIDs.push_back(addRelTableSchema(childInfo));
     }
     auto relTableGroupName = info.tableName;
     auto relTableGroupSchema = std::make_unique<RelTableGroupSchema>(
@@ -103,28 +110,28 @@ table_id_t CatalogContent::addRdfGraphSchema(const BoundCreateTableInfo& info) {
     table_id_t rdfGraphID = assignNextTableID();
     auto extraInfo = ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRdfGraphInfo*>(
         info.extraInfo.get());
-    auto resourceInfo = extraInfo->resourceInfo.get();
-    auto literalInfo = extraInfo->literalInfo.get();
-    auto resourceTripleInfo = extraInfo->resourceTripleInfo.get();
-    auto literalTripleInfo = extraInfo->literalTripleInfo.get();
+    auto& resourceInfo = extraInfo->resourceInfo;
+    auto& literalInfo = extraInfo->literalInfo;
+    auto& resourceTripleInfo = extraInfo->resourceTripleInfo;
+    auto& literalTripleInfo = extraInfo->literalTripleInfo;
     auto resourceTripleExtraInfo =
         ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRelTableInfo*>(
-            resourceTripleInfo->extraInfo.get());
+            resourceTripleInfo.extraInfo.get());
     auto literalTripleExtraInfo =
         ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRelTableInfo*>(
-            literalTripleInfo->extraInfo.get());
+            literalTripleInfo.extraInfo.get());
     // Resource table
-    auto resourceTableID = addNodeTableSchema(*resourceInfo);
+    auto resourceTableID = addNodeTableSchema(resourceInfo);
     // Literal table
-    auto literalTableID = addNodeTableSchema(*literalInfo);
+    auto literalTableID = addNodeTableSchema(literalInfo);
     // Resource triple table
     resourceTripleExtraInfo->srcTableID = resourceTableID;
     resourceTripleExtraInfo->dstTableID = resourceTableID;
-    auto resourceTripleTableID = addRelTableSchema(*resourceTripleInfo);
+    auto resourceTripleTableID = addRelTableSchema(resourceTripleInfo);
     // Literal triple table
     literalTripleExtraInfo->srcTableID = resourceTableID;
     literalTripleExtraInfo->dstTableID = literalTableID;
-    auto literalTripleTableID = addRelTableSchema(*literalTripleInfo);
+    auto literalTripleTableID = addRelTableSchema(literalTripleInfo);
     // Rdf table schema
     auto rdfGraphName = info.tableName;
     auto rdfGraphSchema = std::make_unique<RdfGraphSchema>(rdfGraphName, rdfGraphID,

@@ -9,7 +9,7 @@ namespace binder {
 void BoundStatementRewriter::rewrite(
     BoundStatement& boundStatement, const catalog::Catalog& catalog) {
     auto withClauseProjectionRewriter = WithClauseProjectionRewriter();
-    withClauseProjectionRewriter.visit(boundStatement);
+    withClauseProjectionRewriter.visitUnsafe(boundStatement);
 
     auto matchClausePatternLabelRewriter = MatchClausePatternLabelRewriter(catalog);
     matchClausePatternLabelRewriter.visit(boundStatement);

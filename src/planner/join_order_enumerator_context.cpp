@@ -6,7 +6,7 @@ namespace kuzu {
 namespace planner {
 
 void JoinOrderEnumeratorContext::init(
-    QueryGraph* queryGraph_, const expression_vector& predicates) {
+    const QueryGraph* queryGraph_, const expression_vector& predicates) {
     whereExpressionsSplitOnAND = predicates;
     this->queryGraph = queryGraph_;
     // clear and resize subPlansTable

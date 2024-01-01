@@ -11,9 +11,9 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, std::string filePath,
-    common::FileType fileType, std::unique_ptr<common::CSVOption> copyToOption,
-    std::vector<std::string> columnNames, std::vector<std::unique_ptr<LogicalType>> columnsTypes,
-    std::vector<DataPos> vectorsToCopyPos, std::vector<bool> isFlat) {
+    common::FileType fileType, common::CSVOption copyToOption, std::vector<std::string> columnNames,
+    std::vector<std::unique_ptr<LogicalType>> columnsTypes, std::vector<DataPos> vectorsToCopyPos,
+    std::vector<bool> isFlat) {
     switch (fileType) {
     case FileType::PARQUET: {
         auto copyToSchema = std::make_unique<FactorizedTableSchema>();
@@ -57,7 +57,10 @@ static std::shared_ptr<CopyToSharedState> getCopyToSharedState(FileType fileType
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logicalOperator) {
     auto copy = (LogicalCopyTo*)logicalOperator;
     auto columnNames = copy->getColumnNames();
-    auto columnTypes = LogicalType::copy(copy->getColumnTypesRef());
+    std::vector<std::unique_ptr<LogicalType>> columnTypes;
+    for (auto& type : copy->getColumnTypesRef()) {
+        columnTypes.push_back(std::make_unique<LogicalType>(type));
+    }
     auto childSchema = logicalOperator->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<DataPos> vectorsToCopyPos;
@@ -66,10 +69,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
         vectorsToCopyPos.emplace_back(childSchema->getExpressionPos(*expression));
         isFlat.push_back(childSchema->getGroup(expression)->isFlat());
     }
-    std::unique_ptr<CopyToInfo> copyToInfo =
-        getCopyToInfo(childSchema, copy->getFilePath(), copy->getFileType(),
-            std::make_unique<CSVOption>(*copy->getCopyOption()), std::move(columnNames),
-            std::move(columnTypes), std::move(vectorsToCopyPos), std::move(isFlat));
+    std::unique_ptr<CopyToInfo> copyToInfo = getCopyToInfo(childSchema, copy->getFilePath(),
+        copy->getFileType(), copy->getCopyOption()->copy(), std::move(columnNames),
+        std::move(columnTypes), std::move(vectorsToCopyPos), std::move(isFlat));
     auto sharedState = getCopyToSharedState(copy->getFileType());
     std::unique_ptr<CopyTo> copyTo;
     if (copy->getFileType() == common::FileType::PARQUET) {

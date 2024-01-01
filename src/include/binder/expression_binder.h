@@ -23,6 +23,14 @@ public:
 
     static void resolveAnyDataType(Expression& expression, const common::LogicalType& targetType);
 
+    /****** validation *****/
+    static void validateExpectedDataType(
+        const Expression& expression, common::LogicalTypeID target) {
+        validateExpectedDataType(expression, std::vector<common::LogicalTypeID>{target});
+    }
+    static void validateExpectedDataType(
+        const Expression& expression, const std::vector<common::LogicalTypeID>& targets);
+
 private:
     // TODO(Xiyang): move to an expression rewriter
     std::shared_ptr<Expression> foldExpression(const std::shared_ptr<Expression>& expression);
@@ -108,12 +116,6 @@ private:
         const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType);
 
     /****** validation *****/
-    static void validateExpectedDataType(
-        const Expression& expression, common::LogicalTypeID target) {
-        validateExpectedDataType(expression, std::vector<common::LogicalTypeID>{target});
-    }
-    static void validateExpectedDataType(
-        const Expression& expression, const std::vector<common::LogicalTypeID>& targets);
     // E.g. SUM(SUM(a.age)) is not allowed
     static void validateAggregationExpressionIsNotNested(const Expression& expression);
 

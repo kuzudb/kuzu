@@ -102,15 +102,11 @@ private:
         const std::string& name, const common::LogicalType& dataType);
 
     /*** bind DDL ***/
-    std::unique_ptr<BoundCreateTableInfo> bindCreateTableInfo(const parser::CreateTableInfo* info);
-    std::unique_ptr<BoundCreateTableInfo> bindCreateNodeTableInfo(
-        const parser::CreateTableInfo* info);
-    std::unique_ptr<BoundCreateTableInfo> bindCreateRelTableInfo(
-        const parser::CreateTableInfo* info);
-    std::unique_ptr<BoundCreateTableInfo> bindCreateRelTableGroupInfo(
-        const parser::CreateTableInfo* info);
-    std::unique_ptr<BoundCreateTableInfo> bindCreateRdfGraphInfo(
-        const parser::CreateTableInfo* info);
+    BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo* info);
+    BoundCreateTableInfo bindCreateNodeTableInfo(const parser::CreateTableInfo* info);
+    BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo* info);
+    BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo* info);
+    BoundCreateTableInfo bindCreateRdfGraphInfo(const parser::CreateTableInfo* info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
 
     std::unique_ptr<BoundStatement> bindDropTable(const parser::Statement& statement);
@@ -120,7 +116,7 @@ private:
     std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
 
-    std::vector<std::unique_ptr<catalog::Property>> bindProperties(
+    std::vector<catalog::Property> bindProperties(
         const std::vector<std::pair<std::string, std::string>>& propertyNameDataTypes);
 
     /*** bind copy ***/
@@ -149,8 +145,8 @@ private:
 
     /*** bind query ***/
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);
-    std::unique_ptr<NormalizedSingleQuery> bindSingleQuery(const parser::SingleQuery& singleQuery);
-    std::unique_ptr<NormalizedQueryPart> bindQueryPart(const parser::QueryPart& queryPart);
+    NormalizedSingleQuery bindSingleQuery(const parser::SingleQuery& singleQuery);
+    NormalizedQueryPart bindQueryPart(const parser::QueryPart& queryPart);
 
     /*** bind call ***/
     std::unique_ptr<BoundStatement> bindStandaloneCall(const parser::Statement& statement);
@@ -189,24 +185,22 @@ private:
     std::unique_ptr<BoundUpdatingClause> bindDeleteClause(
         const parser::UpdatingClause& updatingClause);
 
-    std::vector<std::unique_ptr<BoundInsertInfo>> bindCreateInfos(
-        const QueryGraphCollection& queryGraphCollection,
+    std::vector<BoundInsertInfo> bindCreateInfos(const QueryGraphCollection& queryGraphCollection,
         const PropertyKeyValCollection& keyValCollection, const expression_set& nodeRelScope_);
-    std::unique_ptr<BoundInsertInfo> bindInsertNodeInfo(
+    BoundInsertInfo bindInsertNodeInfo(
         std::shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection);
-    std::unique_ptr<BoundInsertInfo> bindInsertRelInfo(
+    BoundInsertInfo bindInsertRelInfo(
         std::shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
     std::vector<expression_pair> bindSetItems(const PropertyKeyValCollection& collection,
         catalog::TableSchema* tableSchema, const std::shared_ptr<Expression>& nodeOrRel);
-    std::unique_ptr<BoundSetPropertyInfo> bindSetPropertyInfo(
+    BoundSetPropertyInfo bindSetPropertyInfo(
         parser::ParsedExpression* lhs, parser::ParsedExpression* rhs);
     expression_pair bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs);
 
     /*** bind projection clause ***/
-    std::unique_ptr<BoundWithClause> bindWithClause(const parser::WithClause& withClause);
-    std::unique_ptr<BoundReturnClause> bindReturnClause(const parser::ReturnClause& returnClause);
-    std::unique_ptr<BoundProjectionBody> bindProjectionBody(
-        const parser::ProjectionBody& projectionBody,
+    BoundWithClause bindWithClause(const parser::WithClause& withClause);
+    BoundReturnClause bindReturnClause(const parser::ReturnClause& returnClause);
+    BoundProjectionBody bindProjectionBody(const parser::ProjectionBody& projectionBody,
         const expression_vector& projectionExpressions);
 
     expression_vector bindProjectionExpressions(
@@ -220,10 +214,9 @@ private:
     void resolveAnyDataTypeWithDefaultType(const expression_vector& expressions);
 
     /*** bind graph pattern ***/
-    std::unique_ptr<BoundGraphPattern> bindGraphPattern(
-        const std::vector<parser::PatternElement>& graphPattern);
+    BoundGraphPattern bindGraphPattern(const std::vector<parser::PatternElement>& graphPattern);
 
-    std::unique_ptr<QueryGraph> bindPatternElement(
+    QueryGraph bindPatternElement(
         const parser::PatternElement& patternElement, PropertyKeyValCollection& collection);
     std::shared_ptr<Expression> createPath(
         const std::string& pathName, const expression_vector& children);
@@ -267,11 +260,6 @@ private:
 
     static void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
-
-    static void validateUnionColumnsOfTheSameType(
-        const std::vector<std::unique_ptr<NormalizedSingleQuery>>& normalizedSingleQueries);
-
-    static void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
     // We don't support read after write for simplicity. User should instead querying through
     // multiple statement.

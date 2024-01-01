@@ -22,13 +22,12 @@ struct BoundAlterInfo {
         std::unique_ptr<BoundExtraAlterInfo> extraInfo)
         : alterType{alterType}, tableName{std::move(tableName)}, tableID{tableID},
           extraInfo{std::move(extraInfo)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(BoundAlterInfo);
+
+private:
     BoundAlterInfo(const BoundAlterInfo& other)
         : alterType{other.alterType}, tableName{other.tableName}, tableID{other.tableID},
           extraInfo{other.extraInfo->copy()} {}
-
-    inline std::unique_ptr<BoundAlterInfo> copy() const {
-        return std::make_unique<BoundAlterInfo>(*this);
-    }
 };
 
 struct BoundExtraRenameTableInfo : public BoundExtraAlterInfo {
@@ -44,16 +43,16 @@ struct BoundExtraRenameTableInfo : public BoundExtraAlterInfo {
 
 struct BoundExtraAddPropertyInfo : public BoundExtraAlterInfo {
     std::string propertyName;
-    std::unique_ptr<common::LogicalType> dataType;
+    common::LogicalType dataType;
     std::shared_ptr<Expression> defaultValue;
 
-    BoundExtraAddPropertyInfo(std::string propertyName,
-        std::unique_ptr<common::LogicalType> dataType, std::shared_ptr<Expression> defaultValue)
+    BoundExtraAddPropertyInfo(std::string propertyName, common::LogicalType dataType,
+        std::shared_ptr<Expression> defaultValue)
         : propertyName{std::move(propertyName)}, dataType{std::move(dataType)},
           defaultValue{std::move(defaultValue)} {}
     BoundExtraAddPropertyInfo(const BoundExtraAddPropertyInfo& other)
-        : propertyName{other.propertyName}, dataType{other.dataType->copy()},
-          defaultValue{other.defaultValue} {}
+        : propertyName{other.propertyName}, dataType{other.dataType}, defaultValue{
+                                                                          other.defaultValue} {}
 
     inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
         return std::make_unique<BoundExtraAddPropertyInfo>(*this);

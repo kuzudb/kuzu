@@ -59,7 +59,7 @@ public:
     common::TableType tableType;
     std::string tableName;
     common::table_id_t tableID;
-    property_vector_t properties;
+    std::vector<std::unique_ptr<Property>> properties;
     std::string comment;
     common::property_id_t nextPropertyID;
 };

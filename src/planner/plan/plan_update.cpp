@@ -67,14 +67,14 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
     std::shared_ptr<Expression> mark;
     auto& createInfos = mergeClause.getInsertInfosRef();
     KU_ASSERT(!createInfos.empty());
-    auto createInfo = createInfos[0].get();
-    switch (createInfo->updateTableType) {
+    auto& createInfo = createInfos[0];
+    switch (createInfo.updateTableType) {
     case binder::UpdateTableType::NODE: {
-        auto node = (NodeExpression*)createInfo->nodeOrRel.get();
+        auto node = (NodeExpression*)createInfo.nodeOrRel.get();
         mark = node->getInternalID();
     } break;
     case binder::UpdateTableType::REL: {
-        auto rel = (RelExpression*)createInfo->nodeOrRel.get();
+        auto rel = (RelExpression*)createInfo.nodeOrRel.get();
         mark = rel->getInternalIDProperty();
     } break;
     default:

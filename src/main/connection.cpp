@@ -130,7 +130,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
             database->storageManager.get(), database->vfs.get(), clientContext.get());
         auto boundStatement = binder.bind(*statement);
         preparedStatement->parameterMap = binder.getParameterMap();
-        preparedStatement->statementResult = boundStatement->getStatementResult()->copy();
+        preparedStatement->statementResult =
+            std::make_unique<BoundStatementResult>(boundStatement->getStatementResult()->copy());
         // planning
         auto planner = Planner(database->catalog.get(), database->storageManager.get());
         std::vector<std::unique_ptr<LogicalPlan>> plans;

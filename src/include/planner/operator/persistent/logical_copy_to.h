@@ -10,9 +10,8 @@ namespace planner {
 class LogicalCopyTo : public LogicalOperator {
 public:
     LogicalCopyTo(std::string filePath, common::FileType fileType,
-        std::vector<std::string> columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
-        std::unique_ptr<common::CSVOption> copyToOption, std::shared_ptr<LogicalOperator> child)
+        std::vector<std::string> columnNames, std::vector<common::LogicalType> columnTypes,
+        common::CSVOption copyToOption, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child)},
           filePath{std::move(filePath)}, fileType{fileType}, columnNames{std::move(columnNames)},
           columnTypes{std::move(columnTypes)}, copyToOption{std::move(copyToOption)} {}
@@ -27,22 +26,20 @@ public:
     inline std::string getFilePath() const { return filePath; }
     inline common::FileType getFileType() const { return fileType; }
     inline std::vector<std::string> getColumnNames() const { return columnNames; }
-    inline const std::vector<std::unique_ptr<common::LogicalType>>& getColumnTypesRef() const {
-        return columnTypes;
-    }
-    inline common::CSVOption* getCopyOption() const { return copyToOption.get(); }
+    inline const std::vector<common::LogicalType>& getColumnTypesRef() const { return columnTypes; }
+    inline const common::CSVOption* getCopyOption() const { return &copyToOption; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyTo>(filePath, fileType, columnNames,
-            common::LogicalType::copy(columnTypes), copyToOption->copy(), children[0]->copy());
+        return make_unique<LogicalCopyTo>(
+            filePath, fileType, columnNames, columnTypes, copyToOption.copy(), children[0]->copy());
     }
 
 private:
     std::string filePath;
     common::FileType fileType;
     std::vector<std::string> columnNames;
-    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
-    std::unique_ptr<common::CSVOption> copyToOption;
+    std::vector<common::LogicalType> columnTypes;
+    common::CSVOption copyToOption;
 };
 
 } // namespace planner

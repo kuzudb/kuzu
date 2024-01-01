@@ -59,7 +59,7 @@ void PropertyCollector::visitInQueryCall(const BoundReadingClause& readingClause
 void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
     auto& boundSetClause = (BoundSetClause&)updatingClause;
     for (auto& info : boundSetClause.getInfosRef()) {
-        collectPropertyExpressions(info->setItem.second);
+        collectPropertyExpressions(info.setItem.second);
     }
 }
 
@@ -74,7 +74,7 @@ void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
 void PropertyCollector::visitInsert(const BoundUpdatingClause& updatingClause) {
     auto& insertClause = (BoundInsertClause&)updatingClause;
     for (auto& info : insertClause.getInfosRef()) {
-        for (auto& setItem : info->setItems) {
+        for (auto& setItem : info.setItems) {
             collectPropertyExpressions(setItem.second);
         }
     }
@@ -91,15 +91,15 @@ void PropertyCollector::visitMerge(const BoundUpdatingClause& updatingClause) {
         collectPropertyExpressions(boundMergeClause.getPredicate());
     }
     for (auto& info : boundMergeClause.getInsertInfosRef()) {
-        for (auto& setItem : info->setItems) {
+        for (auto& setItem : info.setItems) {
             collectPropertyExpressions(setItem.second);
         }
     }
     for (auto& info : boundMergeClause.getOnMatchSetInfosRef()) {
-        collectPropertyExpressions(info->setItem.second);
+        collectPropertyExpressions(info.setItem.second);
     }
     for (auto& info : boundMergeClause.getOnCreateSetInfosRef()) {
-        collectPropertyExpressions(info->setItem.second);
+        collectPropertyExpressions(info.setItem.second);
     }
 }
 

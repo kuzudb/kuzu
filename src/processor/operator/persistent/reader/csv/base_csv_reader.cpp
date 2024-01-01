@@ -15,10 +15,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-BaseCSVReader::BaseCSVReader(const std::string& filePath, const common::CSVOption& option,
+BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption option,
     uint64_t numColumns, VirtualFileSystem* vfs)
-    : option{option}, numColumns(numColumns), buffer(nullptr), bufferSize(0), position(0),
-      osFileOffset(0), rowEmpty(false) {
+    : option{std::move(option)}, numColumns(numColumns), buffer(nullptr), bufferSize(0),
+      position(0), osFileOffset(0), rowEmpty(false) {
     fileInfo = vfs->openFile(filePath, O_RDONLY
 #ifdef _WIN32
                                            | _O_BINARY

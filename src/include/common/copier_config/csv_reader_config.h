@@ -1,8 +1,7 @@
 #pragma once
 
-#include <memory>
-
 #include "common/constants.h"
+#include "common/copy_constructors.h"
 #include "common/types/value/value.h"
 
 namespace kuzu {
@@ -20,13 +19,12 @@ struct CSVOption {
           delimiter{CopyConstants::DEFAULT_CSV_DELIMITER},
           quoteChar{CopyConstants::DEFAULT_CSV_QUOTE_CHAR},
           hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
+
+private:
     CSVOption(const CSVOption& other)
         : escapeChar{other.escapeChar}, delimiter{other.delimiter}, quoteChar{other.quoteChar},
           hasHeader{other.hasHeader} {}
-
-    virtual ~CSVOption() = default;
-
-    inline std::unique_ptr<CSVOption> copy() const { return std::make_unique<CSVOption>(*this); }
 };
 
 struct CSVReaderConfig {
@@ -34,10 +32,13 @@ struct CSVReaderConfig {
     bool parallel;
 
     CSVReaderConfig() : option{}, parallel{CopyConstants::DEFAULT_CSV_PARALLEL} {}
-    CSVReaderConfig(const CSVReaderConfig& other)
-        : option{other.option}, parallel{other.parallel} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(CSVReaderConfig);
 
     static CSVReaderConfig construct(const std::unordered_map<std::string, common::Value>& options);
+
+private:
+    CSVReaderConfig(const CSVReaderConfig& other)
+        : option{other.option.copy()}, parallel{other.parallel} {}
 };
 
 } // namespace common

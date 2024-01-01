@@ -16,13 +16,12 @@ struct BoundDeleteInfo {
         common::DeleteClauseType deleteClauseType)
         : deleteClauseType{deleteClauseType}, updateTableType{updateTableType}, nodeOrRel{std::move(
                                                                                     nodeOrRel)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(BoundDeleteInfo);
+
+private:
     BoundDeleteInfo(const BoundDeleteInfo& other)
         : deleteClauseType{other.deleteClauseType},
           updateTableType{other.updateTableType}, nodeOrRel{other.nodeOrRel} {}
-
-    inline std::unique_ptr<BoundDeleteInfo> copy() {
-        return std::make_unique<BoundDeleteInfo>(*this);
-    }
 };
 
 } // namespace binder

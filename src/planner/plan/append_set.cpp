@@ -8,13 +8,13 @@ namespace kuzu {
 namespace planner {
 
 std::unique_ptr<LogicalSetPropertyInfo> QueryPlanner::createLogicalSetPropertyInfo(
-    BoundSetPropertyInfo* boundSetPropertyInfo) {
+    const BoundSetPropertyInfo* boundSetPropertyInfo) {
     return std::make_unique<LogicalSetPropertyInfo>(
         boundSetPropertyInfo->nodeOrRel, boundSetPropertyInfo->setItem);
 }
 
 void QueryPlanner::appendSetNodeProperty(
-    const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
+    const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalInfos;
     logicalInfos.reserve(boundInfos.size());
     for (auto& boundInfo : boundInfos) {
@@ -31,7 +31,7 @@ void QueryPlanner::appendSetNodeProperty(
 }
 
 void QueryPlanner::appendSetRelProperty(
-    const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
+    const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalInfos;
     logicalInfos.reserve(boundInfos.size());
     for (auto& boundInfo : boundInfos) {

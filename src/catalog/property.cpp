@@ -26,12 +26,11 @@ std::unique_ptr<Property> Property::deserialize(Deserializer& deserializer) {
     return std::make_unique<Property>(name, std::move(dataType), propertyID, tableID);
 }
 
-std::vector<std::unique_ptr<Property>> Property::copy(
-    const std::vector<std::unique_ptr<Property>>& properties) {
-    std::vector<std::unique_ptr<Property>> result;
+std::vector<Property> Property::copy(const std::vector<Property>& properties) {
+    std::vector<Property> result;
     result.reserve(properties.size());
     for (auto& property : properties) {
-        result.push_back(property->copy());
+        result.push_back(property.copy());
     }
     return result;
 }

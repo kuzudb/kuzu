@@ -12,8 +12,8 @@ namespace processor {
 //! Serial CSV reader is a class that reads values from a stream in a single thread.
 class SerialCSVReader final : public BaseCSVReader {
 public:
-    SerialCSVReader(const std::string& filePath, const common::CSVOption& option,
-        uint64_t numColumns, common::VirtualFileSystem* vfs);
+    SerialCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
+        common::VirtualFileSystem* vfs);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
     std::vector<std::pair<std::string, common::LogicalType>> sniffCSV();
@@ -28,7 +28,7 @@ struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
         uint64_t numColumns, common::VirtualFileSystem* vfs,
         common::CSVReaderConfig csvReaderConfig)
         : ScanFileSharedState{std::move(readerConfig), numRows, vfs}, numColumns{numColumns},
-          csvReaderConfig{csvReaderConfig} {
+          csvReaderConfig{std::move(csvReaderConfig)} {
         initReader();
     }
 

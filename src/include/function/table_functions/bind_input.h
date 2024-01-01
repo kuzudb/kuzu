@@ -23,15 +23,15 @@ struct ScanTableFuncBindInput final : public TableFuncBindInput {
     std::vector<std::string> expectedColumnNames;
     std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
 
-    explicit ScanTableFuncBindInput(common::ReaderConfig& config) : config{config} {};
-    ScanTableFuncBindInput(storage::MemoryManager* mm, const common::ReaderConfig& config,
+    explicit ScanTableFuncBindInput(common::ReaderConfig config) : config{std::move(config)} {};
+    ScanTableFuncBindInput(storage::MemoryManager* mm, common::ReaderConfig config,
         std::vector<std::string> expectedColumnNames,
         std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes,
         common::VirtualFileSystem* vfs)
-        : TableFuncBindInput{}, mm{mm}, config{config}, vfs{vfs},
+        : TableFuncBindInput{}, mm{mm}, config{std::move(config)}, vfs{vfs},
           expectedColumnNames{std::move(expectedColumnNames)}, expectedColumnTypes{
                                                                    std::move(expectedColumnTypes)} {
-        inputs.push_back(common::Value::createValue(config.filePaths[0]).copy());
+        inputs.push_back(common::Value::createValue(this->config.filePaths[0]).copy());
     }
 };
 

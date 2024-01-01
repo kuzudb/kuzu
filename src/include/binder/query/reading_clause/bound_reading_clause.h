@@ -9,8 +9,7 @@ namespace binder {
 class BoundReadingClause {
 public:
     explicit BoundReadingClause(common::ClauseType clauseType) : clauseType{clauseType} {}
-    BoundReadingClause(const BoundReadingClause& other)
-        : clauseType{other.clauseType}, predicate{other.predicate} {}
+    DELETE_COPY_DEFAULT_MOVE(BoundReadingClause);
     virtual ~BoundReadingClause() = default;
 
     common::ClauseType getClauseType() const { return clauseType; }
@@ -23,8 +22,6 @@ public:
     inline expression_vector getConjunctivePredicates() const {
         return hasPredicate() ? predicate->splitOnAND() : expression_vector{};
     }
-
-    inline virtual std::unique_ptr<BoundReadingClause> copy() = 0;
 
 private:
     common::ClauseType clauseType;

@@ -8,20 +8,20 @@ namespace binder {
 
 class BoundReturnClause {
 public:
-    explicit BoundReturnClause(std::unique_ptr<BoundProjectionBody> projectionBody)
-        : projectionBody{std::move(projectionBody)}, statementResult{nullptr} {}
-    BoundReturnClause(std::unique_ptr<BoundProjectionBody> projectionBody,
-        std::unique_ptr<BoundStatementResult> statementResult)
+    explicit BoundReturnClause(BoundProjectionBody projectionBody)
+        : projectionBody{std::move(projectionBody)}, statementResult{} {}
+    BoundReturnClause(BoundProjectionBody projectionBody, BoundStatementResult statementResult)
         : projectionBody{std::move(projectionBody)}, statementResult{std::move(statementResult)} {}
+    DELETE_COPY_DEFAULT_MOVE(BoundReturnClause);
     virtual ~BoundReturnClause() = default;
 
-    inline BoundProjectionBody* getProjectionBody() { return projectionBody.get(); }
+    inline const BoundProjectionBody* getProjectionBody() const { return &projectionBody; }
 
-    inline BoundStatementResult* getStatementResult() const { return statementResult.get(); }
+    inline const BoundStatementResult* getStatementResult() const { return &statementResult; }
 
 protected:
-    std::unique_ptr<BoundProjectionBody> projectionBody;
-    std::unique_ptr<BoundStatementResult> statementResult;
+    BoundProjectionBody projectionBody;
+    BoundStatementResult statementResult;
 };
 
 } // namespace binder

@@ -133,13 +133,13 @@ void QueryPlanner::planLoadFrom(
     for (auto& plan : plans) {
         if (!plan->isEmpty()) {
             auto tmpPlan = std::make_unique<LogicalPlan>();
-            appendScanFile(loadFrom->getInfo(), *tmpPlan);
+            appendScanFile(*loadFrom->getInfo(), *tmpPlan);
             if (!predicatesToPushDown.empty()) {
                 appendFilters(predicatesToPushDown, *tmpPlan);
             }
             appendCrossProduct(AccumulateType::REGULAR, *plan, *tmpPlan);
         } else {
-            appendScanFile(loadFrom->getInfo(), *plan);
+            appendScanFile(*loadFrom->getInfo(), *plan);
             if (!predicatesToPushDown.empty()) {
                 appendFilters(predicatesToPushDown, *plan);
             }

@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundCommentOn : public BoundStatement {
+class BoundCommentOn final : public BoundStatement {
 public:
     BoundCommentOn(common::table_id_t tableID, std::string tableName, std::string comment)
         : BoundStatement{common::StatementType::COMMENT_ON,

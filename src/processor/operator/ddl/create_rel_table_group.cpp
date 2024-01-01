@@ -12,7 +12,7 @@ namespace kuzu {
 namespace processor {
 
 void CreateRelTableGroup::executeDDLInternal(ExecutionContext* context) {
-    auto newRelTableGroupID = catalog->addRelTableGroupSchema(*info);
+    auto newRelTableGroupID = catalog->addRelTableGroupSchema(info);
     auto tx = context->clientContext->getTx();
     auto newRelTableGroupSchema =
         reinterpret_cast<RelTableGroupSchema*>(catalog->getTableSchema(tx, newRelTableGroupID));
@@ -27,7 +27,7 @@ void CreateRelTableGroup::executeDDLInternal(ExecutionContext* context) {
 }
 
 std::string CreateRelTableGroup::getOutputMsg() {
-    return stringFormat("Rel table group: {} has been created.", info->tableName);
+    return stringFormat("Rel table group: {} has been created.", info.tableName);
 }
 
 } // namespace processor

@@ -61,9 +61,9 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
         columnBindData.clear();
     }
 
-    std::vector<std::unique_ptr<PandasColumnBindData>> copyColumnBindData();
+    std::vector<std::unique_ptr<PandasColumnBindData>> copyColumnBindData() const;
 
-    std::unique_ptr<function::TableFuncBindData> copy() override {
+    std::unique_ptr<function::TableFuncBindData> copy() const override {
         return std::make_unique<PandasScanFunctionData>(
             common::LogicalType::copy(columnTypes), columnNames, df, numRows, copyColumnBindData());
     }

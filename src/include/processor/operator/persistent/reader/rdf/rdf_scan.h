@@ -15,11 +15,11 @@ struct RdfScanSharedState final : public function::ScanSharedState {
 
     RdfScanSharedState(common::ReaderConfig readerConfig, common::RdfReaderMode mode,
         std::shared_ptr<RdfStore> store)
-        : ScanSharedState{readerConfig, 0}, mode{mode}, store{std::move(store)} {
+        : ScanSharedState{std::move(readerConfig), 0}, mode{mode}, store{std::move(store)} {
         initReader();
     }
     RdfScanSharedState(common::ReaderConfig readerConfig, common::RdfReaderMode mode)
-        : RdfScanSharedState{readerConfig, mode, nullptr} {}
+        : RdfScanSharedState{std::move(readerConfig), mode, nullptr} {}
 
     void read(common::DataChunk& dataChunk);
 
@@ -30,14 +30,15 @@ struct RdfScanBindData final : public function::ScanBindData {
     std::shared_ptr<RdfStore> store;
 
     RdfScanBindData(common::logical_types_t columnTypes, std::vector<std::string> columnNames,
-        storage::MemoryManager* mm, const common::ReaderConfig& config,
-        common::VirtualFileSystem* vfs, std::shared_ptr<RdfStore> store)
-        : function::ScanBindData{std::move(columnTypes), std::move(columnNames), mm, config, vfs},
+        storage::MemoryManager* mm, common::ReaderConfig config, common::VirtualFileSystem* vfs,
+        std::shared_ptr<RdfStore> store)
+        : function::ScanBindData{std::move(columnTypes), std::move(columnNames), mm,
+              std::move(config), vfs},
           store{std::move(store)} {}
     RdfScanBindData(const RdfScanBindData& other)
         : function::ScanBindData{other}, store{other.store} {}
 
-    inline std::unique_ptr<TableFuncBindData> copy() override {
+    inline std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<RdfScanBindData>(*this);
     }
 };

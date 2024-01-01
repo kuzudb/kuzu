@@ -20,9 +20,9 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
-std::vector<std::unique_ptr<Property>> Binder::bindProperties(
+std::vector<Property> Binder::bindProperties(
     const std::vector<std::pair<std::string, std::string>>& propertyNameDataTypes) {
-    std::vector<std::unique_ptr<Property>> boundPropertyNameDataTypes;
+    std::vector<Property> boundPropertyNameDataTypes;
     std::unordered_set<std::string> boundPropertyNames;
     boundPropertyNames.reserve(propertyNameDataTypes.size());
     boundPropertyNameDataTypes.reserve(propertyNameDataTypes.size());
@@ -36,8 +36,8 @@ std::vector<std::unique_ptr<Property>> Binder::bindProperties(
                 stringFormat("PropertyName: {} is an internal reserved propertyName.",
                     propertyNameDataType.first));
         }
-        boundPropertyNameDataTypes.push_back(std::make_unique<Property>(
-            propertyNameDataType.first, bindDataType(propertyNameDataType.second)));
+        boundPropertyNameDataTypes.emplace_back(
+            propertyNameDataType.first, bindDataType(propertyNameDataType.second));
         boundPropertyNames.emplace(propertyNameDataType.first);
     }
     return boundPropertyNameDataTypes;
@@ -70,8 +70,7 @@ static uint32_t bindPrimaryKey(const std::string& pkColName,
     return primaryKeyIdx;
 }
 
-std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateTableInfo(
-    const parser::CreateTableInfo* info) {
+BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* info) {
     switch (info->tableType) {
     case TableType::NODE: {
         return bindCreateNodeTableInfo(info);
@@ -89,32 +88,30 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateTableInfo(
         KU_UNREACHABLE;
     }
     }
-    return nullptr;
 }
 
-std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateNodeTableInfo(const CreateTableInfo* info) {
+BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info) {
     auto boundProperties = bindProperties(info->propertyNameDataTypes);
     auto extraInfo = (ExtraCreateNodeTableInfo*)info->extraInfo.get();
     auto primaryKeyIdx = bindPrimaryKey(extraInfo->pKName, info->propertyNameDataTypes);
     for (auto i = 0u; i < boundProperties.size(); ++i) {
-        if (boundProperties[i]->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL &&
+        if (boundProperties[i].getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL &&
             primaryKeyIdx != i) {
             throw BinderException("Serial property in node table must be the primary key.");
         }
     }
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx, std::move(boundProperties));
-    return std::make_unique<BoundCreateTableInfo>(
-        TableType::NODE, info->tableName, std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::NODE, info->tableName, std::move(boundExtraInfo));
 }
 
-std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
+BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
     auto boundProperties = bindProperties(info->propertyNameDataTypes);
     for (auto& boundProperty : boundProperties) {
-        if (boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
-            boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::MAP) {
+        if (boundProperty.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
+            boundProperty.getDataType()->getLogicalTypeID() == LogicalTypeID::MAP) {
             throw BinderException(stringFormat("{} property is not supported in rel table.",
-                boundProperty->getDataType()->toString()));
+                boundProperty.getDataType()->toString()));
         }
     }
     auto extraInfo = (ExtraCreateRelTableInfo*)info->extraInfo.get();
@@ -126,16 +123,14 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableInfo(const Creat
     validateTableType(dstTableID, TableType::NODE);
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
         srcMultiplicity, dstMultiplicity, srcTableID, dstTableID, std::move(boundProperties));
-    return std::make_unique<BoundCreateTableInfo>(
-        TableType::REL, info->tableName, std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::REL, info->tableName, std::move(boundExtraInfo));
 }
 
-std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableGroupInfo(
-    const CreateTableInfo* info) {
+BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* info) {
     auto relGroupName = info->tableName;
     auto extraInfo = (ExtraCreateRelTableGroupInfo*)info->extraInfo.get();
     auto relMultiplicity = extraInfo->relMultiplicity;
-    std::vector<std::unique_ptr<BoundCreateTableInfo>> boundCreateRelTableInfos;
+    std::vector<BoundCreateTableInfo> boundCreateRelTableInfos;
     for (auto& [srcTableName, dstTableName] : extraInfo->srcDstTablePairs) {
         auto relTableName = std::string(relGroupName)
                                 .append("_")
@@ -150,8 +145,7 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableGroupInfo(
     }
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(boundCreateRelTableInfos));
-    return std::make_unique<BoundCreateTableInfo>(
-        TableType::REL_GROUP, info->tableName, std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::REL_GROUP, info->tableName, std::move(boundExtraInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
@@ -233,8 +227,8 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
     }
     auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
     auto boundExtraInfo = std::make_unique<BoundExtraRenameTableInfo>(newName);
-    auto boundInfo = std::make_unique<BoundAlterInfo>(
-        AlterType::RENAME_TABLE, tableName, tableID, std::move(boundExtraInfo));
+    auto boundInfo =
+        BoundAlterInfo(AlterType::RENAME_TABLE, tableName, tableID, std::move(boundExtraInfo));
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
@@ -282,10 +276,10 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     }
     auto defaultVal = ExpressionBinder::implicitCastIfNecessary(
         expressionBinder.bindExpression(*extraInfo->defaultValue), *dataType);
-    auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(
-        propertyName, dataType->copy(), std::move(defaultVal));
-    auto boundInfo = std::make_unique<BoundAlterInfo>(
-        AlterType::ADD_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
+    auto boundExtraInfo =
+        std::make_unique<BoundExtraAddPropertyInfo>(propertyName, *dataType, std::move(defaultVal));
+    auto boundInfo =
+        BoundAlterInfo(AlterType::ADD_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
@@ -308,9 +302,9 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
         throw BinderException("Cannot drop primary key of a node table.");
     }
     auto boundExtraInfo = std::make_unique<BoundExtraDropPropertyInfo>(propertyID);
-    auto boundInfo = std::make_unique<BoundAlterInfo>(
-        AlterType::DROP_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
-    return make_unique<BoundAlter>(std::move(boundInfo));
+    auto boundInfo =
+        BoundAlterInfo(AlterType::DROP_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
+    return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& statement) {
@@ -329,8 +323,8 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     auto propertyID = tableSchema->getPropertyID(propertyName);
     validatePropertyNotExist(tableSchema, newName);
     auto boundExtraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(propertyID, newName);
-    auto boundInfo = std::make_unique<BoundAlterInfo>(
-        AlterType::RENAME_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
+    auto boundInfo =
+        BoundAlterInfo(AlterType::RENAME_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 

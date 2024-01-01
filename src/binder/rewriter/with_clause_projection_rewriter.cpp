@@ -43,13 +43,13 @@ static expression_vector rewriteExpressions(
     return expression_vector{distinctResult.begin(), distinctResult.end()};
 }
 
-void WithClauseProjectionRewriter::visitSingleQuery(const NormalizedSingleQuery& singleQuery) {
+void WithClauseProjectionRewriter::visitSingleQueryUnsafe(NormalizedSingleQuery& singleQuery) {
     auto propertyCollector = PropertyCollector();
     propertyCollector.visitSingleQuery(singleQuery);
     auto properties = propertyCollector.getProperties();
     for (auto i = 0u; i < singleQuery.getNumQueryParts() - 1; ++i) {
-        auto queryPart = singleQuery.getQueryPart(i);
-        auto projectionBody = queryPart->getProjectionBody();
+        auto queryPart = singleQuery.getQueryPartUnsafe(i);
+        auto projectionBody = queryPart->getProjectionBodyUnsafe();
         auto newProjectionExpressions =
             rewriteExpressions(projectionBody->getProjectionExpressions(), properties);
         projectionBody->setProjectionExpressions(std::move(newProjectionExpressions));

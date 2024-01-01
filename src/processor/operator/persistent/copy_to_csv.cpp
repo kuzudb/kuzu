@@ -76,9 +76,9 @@ bool CopyToCSVLocalState::requireQuotes(
         return true;
     }
     for (auto i = 0u; i < len; i++) {
-        if (str[i] == copyToCsvInfo->copyToOption->quoteChar ||
+        if (str[i] == copyToCsvInfo->copyToOption.quoteChar ||
             str[i] == CopyToCSVConstants::DEFAULT_CSV_NEWLINE[0] ||
-            str[i] == copyToCsvInfo->copyToOption->delimiter) {
+            str[i] == copyToCsvInfo->copyToOption.delimiter) {
             return true;
         }
     }
@@ -113,30 +113,30 @@ void CopyToCSVLocalState::writeString(
     if (forceQuote) {
         bool requiresEscape = false;
         for (auto i = 0u; i < strLen; i++) {
-            if (strData[i] == copyToCsvInfo->copyToOption->quoteChar ||
-                strData[i] == copyToCsvInfo->copyToOption->escapeChar) {
+            if (strData[i] == copyToCsvInfo->copyToOption.quoteChar ||
+                strData[i] == copyToCsvInfo->copyToOption.escapeChar) {
                 requiresEscape = true;
                 break;
             }
         }
 
         if (!requiresEscape) {
-            serializer->writeBufferData(copyToCsvInfo->copyToOption->quoteChar);
+            serializer->writeBufferData(copyToCsvInfo->copyToOption.quoteChar);
             serializer->write(strData, strLen);
-            serializer->writeBufferData(copyToCsvInfo->copyToOption->quoteChar);
+            serializer->writeBufferData(copyToCsvInfo->copyToOption.quoteChar);
             return;
         }
 
         std::string strValToWrite = std::string(reinterpret_cast<const char*>(strData), strLen);
-        strValToWrite = addEscapes(copyToCsvInfo->copyToOption->escapeChar,
-            copyToCsvInfo->copyToOption->escapeChar, strValToWrite);
-        if (copyToCsvInfo->copyToOption->escapeChar != copyToCsvInfo->copyToOption->quoteChar) {
-            strValToWrite = addEscapes(copyToCsvInfo->copyToOption->quoteChar,
-                copyToCsvInfo->copyToOption->escapeChar, strValToWrite);
+        strValToWrite = addEscapes(copyToCsvInfo->copyToOption.escapeChar,
+            copyToCsvInfo->copyToOption.escapeChar, strValToWrite);
+        if (copyToCsvInfo->copyToOption.escapeChar != copyToCsvInfo->copyToOption.quoteChar) {
+            strValToWrite = addEscapes(copyToCsvInfo->copyToOption.quoteChar,
+                copyToCsvInfo->copyToOption.escapeChar, strValToWrite);
         }
-        serializer->writeBufferData(copyToCsvInfo->copyToOption->quoteChar);
+        serializer->writeBufferData(copyToCsvInfo->copyToOption.quoteChar);
         serializer->writeBufferData(strValToWrite);
-        serializer->writeBufferData(copyToCsvInfo->copyToOption->quoteChar);
+        serializer->writeBufferData(copyToCsvInfo->copyToOption.quoteChar);
     } else {
         serializer->write(strData, strLen);
     }
@@ -157,7 +157,7 @@ void CopyToCSVLocalState::writeRows(CopyToCSVInfo* copyToCsvInfo) {
     for (auto i = 0u; i < numRowsToWrite; i++) {
         for (auto j = 0u; j < castVectors.size(); j++) {
             if (j != 0) {
-                serializer->writeBufferData(copyToCsvInfo->copyToOption->delimiter);
+                serializer->writeBufferData(copyToCsvInfo->copyToOption.delimiter);
             }
             auto vector = castVectors[j];
             auto pos = vector->state->isFlat() ? vector->state->selVector->selectedPositions[0] :
@@ -185,7 +185,7 @@ void CopyToCSVLocalState::writeHeader(CopyToSharedState* sharedState, CopyToCSVI
     }
     for (auto i = 0u; i < info->names.size(); i++) {
         if (i != 0) {
-            serializer->writeBufferData(info->copyToOption->delimiter);
+            serializer->writeBufferData(info->copyToOption.delimiter);
         }
         writeString(info, reinterpret_cast<const uint8_t*>(info->names[i].c_str()),
             info->names[i].length(), false /* forceQuote */);
@@ -195,7 +195,7 @@ void CopyToCSVLocalState::writeHeader(CopyToSharedState* sharedState, CopyToCSVI
 
 void CopyToCSVSharedState::init(CopyToInfo* info, MemoryManager* /*mm*/, VirtualFileSystem* vfs) {
     fileInfo = vfs->openFile(info->fileName, O_WRONLY | O_CREAT | O_TRUNC);
-    outputHeader = ku_dynamic_cast<CopyToInfo*, CopyToCSVInfo*>(info)->copyToOption->hasHeader;
+    outputHeader = ku_dynamic_cast<CopyToInfo*, CopyToCSVInfo*>(info)->copyToOption.hasHeader;
 }
 
 void CopyToCSVSharedState::writeRows(const uint8_t* data, uint64_t size) {

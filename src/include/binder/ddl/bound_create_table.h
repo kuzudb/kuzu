@@ -6,17 +6,17 @@
 namespace kuzu {
 namespace binder {
 
-class BoundCreateTable : public BoundStatement {
+class BoundCreateTable final : public BoundStatement {
 public:
-    explicit BoundCreateTable(std::unique_ptr<BoundCreateTableInfo> info)
+    explicit BoundCreateTable(BoundCreateTableInfo info)
         : BoundStatement{common::StatementType::CREATE_TABLE,
               BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)} {}
 
-    inline BoundCreateTableInfo* getInfo() const { return info.get(); }
+    inline const BoundCreateTableInfo* getInfo() const { return &info; }
 
 private:
-    std::unique_ptr<BoundCreateTableInfo> info;
+    BoundCreateTableInfo info;
 };
 
 } // namespace binder

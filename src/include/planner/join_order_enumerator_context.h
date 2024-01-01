@@ -21,7 +21,7 @@ public:
           queryGraph{nullptr}, subqueryType{SubqueryType::NONE}, correlatedExpressionsCardinality{
                                                                      1} {}
 
-    void init(binder::QueryGraph* queryGraph, const binder::expression_vector& predicates);
+    void init(const binder::QueryGraph* queryGraph, const binder::expression_vector& predicates);
 
     inline binder::expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
 
@@ -42,7 +42,7 @@ public:
     }
     binder::SubqueryGraph getFullyMatchedSubqueryGraph() const;
 
-    inline binder::QueryGraph* getQueryGraph() { return queryGraph; }
+    inline const binder::QueryGraph* getQueryGraph() { return queryGraph; }
 
     inline binder::expression_vector getCorrelatedExpressions() const {
         return correlatedExpressions;
@@ -59,7 +59,7 @@ private:
     uint32_t maxLevel;
 
     std::unique_ptr<SubPlansTable> subPlansTable;
-    binder::QueryGraph* queryGraph;
+    const binder::QueryGraph* queryGraph;
 
     SubqueryType subqueryType;
     binder::expression_vector correlatedExpressions;

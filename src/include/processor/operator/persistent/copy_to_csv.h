@@ -11,11 +11,10 @@ namespace processor {
 
 struct CopyToCSVInfo final : public CopyToInfo {
     std::vector<bool> isFlat;
-    std::unique_ptr<common::CSVOption> copyToOption;
+    common::CSVOption copyToOption;
 
     CopyToCSVInfo(std::vector<std::string> names, std::vector<DataPos> dataPoses,
-        std::string fileName, std::vector<bool> isFlat,
-        std::unique_ptr<common::CSVOption> copyToOption)
+        std::string fileName, std::vector<bool> isFlat, common::CSVOption copyToOption)
         : CopyToInfo{std::move(names), std::move(dataPoses), std::move(fileName)},
           isFlat{std::move(isFlat)}, copyToOption{std::move(copyToOption)} {}
 
@@ -23,7 +22,7 @@ struct CopyToCSVInfo final : public CopyToInfo {
 
     inline std::unique_ptr<CopyToInfo> copy() override {
         return std::make_unique<CopyToCSVInfo>(
-            names, dataPoses, fileName, isFlat, copyToOption->copy());
+            names, dataPoses, fileName, isFlat, copyToOption.copy());
     }
 };
 

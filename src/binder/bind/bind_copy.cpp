@@ -24,7 +24,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto boundFilePath = copyToStatement.getFilePath();
     auto fileType = bindFileType(boundFilePath);
     std::vector<std::string> columnNames;
-    std::vector<std::unique_ptr<LogicalType>> columnTypes;
+    std::vector<LogicalType> columnTypes;
     auto parsedQuery =
         ku_dynamic_cast<const Statement*, const RegularQuery*>(copyToStatement.getStatement());
     auto query = bindQuery(*parsedQuery);
@@ -32,7 +32,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnNames.push_back(columnName);
-        columnTypes.push_back(column->getDataType().copy());
+        columnTypes.push_back(column->getDataType());
     }
     if (fileType != FileType::CSV && fileType != FileType::PARQUET) {
         throw BinderException(ExceptionMessage::validateCopyToCSVParquetExtensionsException());
@@ -112,8 +112,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
     bindExpectedNodeColumns(
         tableSchema, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
-    auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager, *config,
-        std::move(expectedColumnNames), std::move(expectedColumnTypes), vfs);
+    auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager,
+        config->copy(), std::move(expectedColumnNames), std::move(expectedColumnTypes), vfs);
     auto bindData =
         func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;
@@ -124,7 +124,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         LogicalType(LogicalTypeID::INT64), std::string(InternalKeyword::ANONYMOUS));
     auto boundFileScanInfo =
         std::make_unique<BoundFileScanInfo>(func, std::move(bindData), columns, std::move(offset));
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
+    auto boundCopyFromInfo = BoundCopyFromInfo(
         tableSchema, std::move(boundFileScanInfo), containsSerial, nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
@@ -169,17 +169,15 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto dstOffset = createVariable(InternalKeyword::DST_OFFSET, LogicalTypeID::INT64);
     auto srcPkType = srcSchema->getPrimaryKey()->getDataType();
     auto dstPkType = dstSchema->getPrimaryKey()->getDataType();
-    auto srcLookUpInfo =
-        std::make_unique<IndexLookupInfo>(srcTableID, srcOffset, srcKey, srcPkType->copy());
-    auto dstLookUpInfo =
-        std::make_unique<IndexLookupInfo>(dstTableID, dstOffset, dstKey, dstPkType->copy());
+    auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey, *srcPkType);
+    auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey, *dstPkType);
     auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>();
     extraCopyRelInfo->fromOffset = srcOffset;
     extraCopyRelInfo->toOffset = dstOffset;
     extraCopyRelInfo->propertyColumns = std::move(propertyColumns);
     extraCopyRelInfo->infos.push_back(std::move(srcLookUpInfo));
     extraCopyRelInfo->infos.push_back(std::move(dstLookUpInfo));
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
+    auto boundCopyFromInfo = BoundCopyFromInfo(
         tableSchema, std::move(boundFileScanInfo), containsSerial, std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }

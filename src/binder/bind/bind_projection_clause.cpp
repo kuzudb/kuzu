@@ -46,34 +46,33 @@ static expression_vector rewriteProjectionInWithClause(const expression_vector& 
     return ExpressionUtil::removeDuplication(result);
 }
 
-std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause) {
+BoundWithClause Binder::bindWithClause(const WithClause& withClause) {
     auto projectionBody = withClause.getProjectionBody();
     auto projectionExpressions =
         bindProjectionExpressions(projectionBody->getProjectionExpressions());
     validateProjectionColumnsInWithClauseAreAliased(projectionExpressions);
     auto boundProjectionBody =
         bindProjectionBody(*projectionBody, rewriteProjectionInWithClause(projectionExpressions));
-    validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
+    validateOrderByFollowedBySkipOrLimitInWithClause(boundProjectionBody);
     scope->clear();
     addExpressionsToScope(projectionExpressions);
-    auto boundWithClause = std::make_unique<BoundWithClause>(std::move(boundProjectionBody));
+    auto boundWithClause = BoundWithClause(std::move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
-        boundWithClause->setWhereExpression(bindWhereExpression(*withClause.getWhereExpression()));
+        boundWithClause.setWhereExpression(bindWhereExpression(*withClause.getWhereExpression()));
     }
     return boundWithClause;
 }
 
-std::unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& returnClause) {
+BoundReturnClause Binder::bindReturnClause(const ReturnClause& returnClause) {
     auto projectionBody = returnClause.getProjectionBody();
     auto boundProjectionExpressions =
         bindProjectionExpressions(projectionBody->getProjectionExpressions());
-    auto statementResult = std::make_unique<BoundStatementResult>();
+    auto statementResult = BoundStatementResult();
     for (auto& expression : boundProjectionExpressions) {
-        statementResult->addColumn(expression);
+        statementResult.addColumn(expression);
     }
-    auto boundProjectionBody = bindProjectionBody(*projectionBody, statementResult->getColumns());
-    return std::make_unique<BoundReturnClause>(
-        std::move(boundProjectionBody), std::move(statementResult));
+    auto boundProjectionBody = bindProjectionBody(*projectionBody, statementResult.getColumns());
+    return BoundReturnClause(std::move(boundProjectionBody), std::move(statementResult));
 }
 
 static bool isAggregateExpression(
@@ -110,10 +109,10 @@ static expression_vector getAggregateExpressions(
     return result;
 }
 
-std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
+BoundProjectionBody Binder::bindProjectionBody(
     const parser::ProjectionBody& projectionBody, const expression_vector& projectionExpressions) {
-    auto boundProjectionBody = std::make_unique<BoundProjectionBody>(
-        projectionBody.getIsDistinct(), projectionExpressions);
+    auto boundProjectionBody =
+        BoundProjectionBody(projectionBody.getIsDistinct(), projectionExpressions);
     // Bind group by & aggregate.
     expression_vector groupByExpressions;
     expression_vector aggregateExpressions;
@@ -141,9 +140,9 @@ std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
                     augmentedGroupByExpressions.push_back(rel->getInternalIDProperty());
                 }
             }
-            boundProjectionBody->setGroupByExpressions(std::move(augmentedGroupByExpressions));
+            boundProjectionBody.setGroupByExpressions(std::move(augmentedGroupByExpressions));
         }
-        boundProjectionBody->setAggregateExpressions(std::move(aggregateExpressions));
+        boundProjectionBody.setAggregateExpressions(std::move(aggregateExpressions));
     }
     // Bind order by
     if (projectionBody.hasOrderByExpressions()) {
@@ -152,7 +151,7 @@ std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
         // Cypher rule of ORDER BY expression scope: if projection contains aggregation, only
         // expressions in projection are available. Otherwise, expressions before projection are
         // also available
-        if (boundProjectionBody->hasAggregateExpressions()) {
+        if (boundProjectionBody.hasAggregateExpressions()) {
             // TODO(Xiyang): abstract return/with clause as a temporary table and introduce
             // reference expression to solve this. Our property expression should also be changed to
             // reference expression.
@@ -165,17 +164,17 @@ std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
                 }
             }
         }
-        boundProjectionBody->setOrderByExpressions(
+        boundProjectionBody.setOrderByExpressions(
             std::move(orderByExpressions), projectionBody.getSortOrders());
     }
     // Bind skip
     if (projectionBody.hasSkipExpression()) {
-        boundProjectionBody->setSkipNumber(
+        boundProjectionBody.setSkipNumber(
             bindSkipLimitExpression(*projectionBody.getSkipExpression()));
     }
     // Bind limit
     if (projectionBody.hasLimitExpression()) {
-        boundProjectionBody->setLimitNumber(
+        boundProjectionBody.setLimitNumber(
             bindSkipLimitExpression(*projectionBody.getLimitExpression()));
     }
     return boundProjectionBody;

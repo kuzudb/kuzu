@@ -76,23 +76,23 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphColle
         case SubqueryType::NONE: {
             // Plan current query graph as an isolated query graph.
             plans = enumerateQueryGraph(
-                SubqueryType::NONE, expression_vector{}, queryGraph, predicatesToEvaluate);
+                SubqueryType::NONE, expression_vector{}, *queryGraph, predicatesToEvaluate);
         } break;
         case SubqueryType::INTERNAL_ID_CORRELATED: {
             // All correlated expressions are node IDs. Plan as isolated query graph but do not scan
             // any properties of correlated node IDs because they must be scanned in outer query.
             plans = enumerateQueryGraph(SubqueryType::INTERNAL_ID_CORRELATED,
-                context->correlatedExpressions, queryGraph, predicatesToEvaluate);
+                context->correlatedExpressions, *queryGraph, predicatesToEvaluate);
         } break;
         case SubqueryType::CORRELATED: {
             if (i == (uint32_t)queryGraphIdxToPlanExpressionsScan) {
                 // Plan ExpressionsScan with current query graph.
                 plans = enumerateQueryGraph(SubqueryType::CORRELATED,
-                    context->correlatedExpressions, queryGraph, predicatesToEvaluate);
+                    context->correlatedExpressions, *queryGraph, predicatesToEvaluate);
             } else {
                 // Plan current query graph as an isolated query graph.
                 plans = enumerateQueryGraph(
-                    SubqueryType::NONE, expression_vector{}, queryGraph, predicatesToEvaluate);
+                    SubqueryType::NONE, expression_vector{}, *queryGraph, predicatesToEvaluate);
             }
         } break;
         default:
@@ -133,8 +133,8 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphColle
 
 std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraph(
     SubqueryType subqueryType, const expression_vector& correlatedExpressions,
-    QueryGraph* queryGraph, expression_vector& predicates) {
-    context->init(queryGraph, predicates);
+    const QueryGraph& queryGraph, expression_vector& predicates) {
+    context->init(&queryGraph, predicates);
     cardinalityEstimator->initNodeIDDom(queryGraph);
     planBaseTableScans(subqueryType, correlatedExpressions);
     context->currentLevel++;

@@ -107,8 +107,8 @@ private:
         const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates);
     std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraph(SubqueryType subqueryType,
-        const binder::expression_vector& correlatedExpressions, binder::QueryGraph* queryGraph,
-        binder::expression_vector& predicates);
+        const binder::expression_vector& correlatedExpressions,
+        const binder::QueryGraph& queryGraph, binder::expression_vector& predicates);
 
     // Plan node/rel table scan
     void planBaseTableScans(
@@ -148,23 +148,23 @@ private:
 
     // Append updating operators
     void appendInsertNode(
-        const std::vector<binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan);
+        const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan);
     void appendInsertRel(
-        const std::vector<binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan);
+        const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan);
     void appendSetNodeProperty(
-        const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
+        const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
     void appendSetRelProperty(
-        const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
+        const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
     void appendDeleteNode(
-        const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
+        const std::vector<const binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
     void appendDeleteRel(
-        const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
+        const std::vector<const binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
     std::unique_ptr<LogicalInsertNodeInfo> createLogicalInsertNodeInfo(
-        binder::BoundInsertInfo* boundInsertInfo);
+        const binder::BoundInsertInfo* boundInsertInfo);
     std::unique_ptr<LogicalInsertRelInfo> createLogicalInsertRelInfo(
-        binder::BoundInsertInfo* boundInsertInfo);
+        const binder::BoundInsertInfo* boundInsertInfo);
     std::unique_ptr<LogicalSetPropertyInfo> createLogicalSetPropertyInfo(
-        binder::BoundSetPropertyInfo* boundSetPropertyInfo);
+        const binder::BoundSetPropertyInfo* boundSetPropertyInfo);
 
     // Append projection operators
     void appendProjection(const binder::expression_vector& expressionsToProject, LogicalPlan& plan);
@@ -236,7 +236,7 @@ private:
     void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
     void appendFilter(const std::shared_ptr<binder::Expression>& predicate, LogicalPlan& plan);
 
-    static void appendScanFile(binder::BoundFileScanInfo* fileScanInfo, LogicalPlan& plan);
+    static void appendScanFile(const binder::BoundFileScanInfo& fileScanInfo, LogicalPlan& plan);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);

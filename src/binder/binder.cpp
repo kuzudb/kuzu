@@ -148,37 +148,6 @@ void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
     }
 }
 
-void Binder::validateUnionColumnsOfTheSameType(
-    const std::vector<std::unique_ptr<NormalizedSingleQuery>>& normalizedSingleQueries) {
-    if (normalizedSingleQueries.size() <= 1) {
-        return;
-    }
-    auto columns = normalizedSingleQueries[0]->getStatementResult()->getColumns();
-    for (auto i = 1u; i < normalizedSingleQueries.size(); i++) {
-        auto otherColumns = normalizedSingleQueries[i]->getStatementResult()->getColumns();
-        if (columns.size() != otherColumns.size()) {
-            throw BinderException("The number of columns to union/union all must be the same.");
-        }
-        // Check whether the dataTypes in union expressions are exactly the same in each single
-        // query.
-        for (auto j = 0u; j < columns.size(); j++) {
-            ExpressionBinder::validateExpectedDataType(
-                *otherColumns[j], columns[j]->dataType.getLogicalTypeID());
-        }
-    }
-}
-
-void Binder::validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
-    auto unionAllExpressionCounter = 0u;
-    for (auto i = 0u; i < regularQuery.getNumSingleQueries() - 1; i++) {
-        unionAllExpressionCounter += regularQuery.getIsUnionAll(i);
-    }
-    if ((0 < unionAllExpressionCounter) &&
-        (unionAllExpressionCounter < regularQuery.getNumSingleQueries() - 1)) {
-        throw BinderException("Union and union all can't be used together.");
-    }
-}
-
 void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery) {
     bool hasSeenUpdateClause = false;
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {

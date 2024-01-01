@@ -105,7 +105,7 @@ void PandasScanFunction::tableFunc(
     pandasLocalState->start += numValuesToOutput;
 }
 
-std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyColumnBindData() {
+std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyColumnBindData() const {
     std::vector<std::unique_ptr<PandasColumnBindData>> result;
     result.reserve(columnBindData.size());
     for (auto& bindData : columnBindData) {

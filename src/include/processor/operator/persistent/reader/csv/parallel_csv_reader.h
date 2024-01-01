@@ -16,8 +16,8 @@ class ParallelCSVReader final : public BaseCSVReader {
     friend class ParallelParsingDriver;
 
 public:
-    ParallelCSVReader(const std::string& filePath, const common::CSVOption& option,
-        uint64_t numColumns, common::VirtualFileSystem* vfs);
+    ParallelCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
+        common::VirtualFileSystem* vfs);
 
     bool hasMoreToRead() const;
     uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) override;
@@ -41,7 +41,7 @@ struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {
         uint64_t numColumns, common::VirtualFileSystem* vfs,
         common::CSVReaderConfig csvReaderConfig)
         : ScanFileSharedState{std::move(readerConfig), numRows, vfs}, numColumns{numColumns},
-          csvReaderConfig{csvReaderConfig} {}
+          csvReaderConfig{std::move(csvReaderConfig)} {}
 
     void setFileComplete(uint64_t completedFileIdx);
 

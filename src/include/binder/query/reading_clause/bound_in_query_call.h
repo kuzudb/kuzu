@@ -16,21 +16,14 @@ public:
         : BoundReadingClause{common::ClauseType::IN_QUERY_CALL}, tableFunc{tableFunc},
           bindData{std::move(bindData)}, outExprs{std::move(outExprs)}, rowIdxExpr{std::move(
                                                                             rowIdxExpr)} {}
-    BoundInQueryCall(const BoundInQueryCall& other)
-        : BoundReadingClause{other}, tableFunc{other.tableFunc}, bindData{other.bindData->copy()},
-          outExprs{other.outExprs}, rowIdxExpr{other.rowIdxExpr} {}
 
     inline function::TableFunction* getTableFunc() const { return tableFunc; }
 
-    inline function::TableFuncBindData* getBindData() const { return bindData.get(); }
+    inline const function::TableFuncBindData* getBindData() const { return bindData.get(); }
 
     inline expression_vector getOutExprs() const { return outExprs; }
 
     inline std::shared_ptr<Expression> getRowIdxExpr() const { return rowIdxExpr; }
-
-    inline std::unique_ptr<BoundReadingClause> copy() override {
-        return std::make_unique<BoundInQueryCall>(*this);
-    }
 
 private:
     function::TableFunction* tableFunc;

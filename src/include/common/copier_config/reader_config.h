@@ -1,9 +1,9 @@
 #pragma once
 
-#include <memory>
 #include <string>
 #include <vector>
 
+#include "common/copy_constructors.h"
 #include "common/types/value/value.h"
 
 namespace kuzu {
@@ -30,15 +30,13 @@ struct ReaderConfig {
 
     ReaderConfig(FileType fileType, std::vector<std::string> filePaths)
         : fileType{fileType}, filePaths{std::move(filePaths)} {}
-    ReaderConfig(const ReaderConfig& other)
-        : fileType{other.fileType}, filePaths{other.filePaths}, options{other.options} {}
-    ReaderConfig(ReaderConfig&& other) = default;
+    EXPLICIT_COPY_DEFAULT_MOVE(ReaderConfig);
 
     inline uint32_t getNumFiles() const { return filePaths.size(); }
 
-    inline std::unique_ptr<ReaderConfig> copy() const {
-        return std::make_unique<ReaderConfig>(*this);
-    }
+private:
+    ReaderConfig(const ReaderConfig& other)
+        : fileType{other.fileType}, filePaths{other.filePaths}, options{other.options} {}
 };
 
 } // namespace common

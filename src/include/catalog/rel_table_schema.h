@@ -15,9 +15,10 @@ struct RelMultiplicityUtils {
 class RelTableSchema : public TableSchema {
 public:
     RelTableSchema() : TableSchema(common::TableType::REL) {}
-    RelTableSchema(std::string tableName, common::table_id_t tableID, property_vector_t properties,
-        RelMultiplicity srcMultiplicity, RelMultiplicity dstMultiplicity,
-        common::table_id_t srcTableID, common::table_id_t dstTableID)
+    RelTableSchema(std::string tableName, common::table_id_t tableID,
+        std::vector<std::unique_ptr<Property>> properties, RelMultiplicity srcMultiplicity,
+        RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
+        common::table_id_t dstTableID)
         : TableSchema{std::move(tableName), tableID, common::TableType::REL, std::move(properties)},
           srcMultiplicity{srcMultiplicity}, dstMultiplicity{dstMultiplicity},
           srcTableID{srcTableID}, dstTableID{dstTableID} {}

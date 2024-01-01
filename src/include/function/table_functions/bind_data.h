@@ -24,7 +24,7 @@ struct TableFuncBindData {
 
     virtual ~TableFuncBindData() = default;
 
-    virtual std::unique_ptr<TableFuncBindData> copy() = 0;
+    virtual std::unique_ptr<TableFuncBindData> copy() const = 0;
 };
 
 struct ScanBindData : public TableFuncBindData {
@@ -33,14 +33,13 @@ struct ScanBindData : public TableFuncBindData {
     common::VirtualFileSystem* vfs;
 
     ScanBindData(common::logical_types_t columnTypes, std::vector<std::string> columnNames,
-        storage::MemoryManager* mm, const common::ReaderConfig& config,
-        common::VirtualFileSystem* vfs)
-        : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, mm{mm}, config{config},
-          vfs{vfs} {}
+        storage::MemoryManager* mm, common::ReaderConfig config, common::VirtualFileSystem* vfs)
+        : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, mm{mm},
+          config{std::move(config)}, vfs{vfs} {}
     ScanBindData(const ScanBindData& other)
-        : TableFuncBindData{other}, mm{other.mm}, config{other.config}, vfs{other.vfs} {}
+        : TableFuncBindData{other}, mm{other.mm}, config{other.config.copy()}, vfs{other.vfs} {}
 
-    inline std::unique_ptr<TableFuncBindData> copy() override {
+    inline std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ScanBindData>(*this);
     }
 };

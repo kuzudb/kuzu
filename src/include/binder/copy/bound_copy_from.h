@@ -24,23 +24,22 @@ struct BoundCopyFromInfo {
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
         : tableSchema{tableSchema}, fileScanInfo{std::move(fileScanInfo)},
           containsSerial{containsSerial}, extraInfo{std::move(extraInfo)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(BoundCopyFromInfo);
+
+private:
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
         : tableSchema{other.tableSchema}, containsSerial{other.containsSerial} {
         if (other.fileScanInfo) {
-            fileScanInfo = other.fileScanInfo->copy();
+            fileScanInfo = std::make_unique<BoundFileScanInfo>(other.fileScanInfo->copy());
         }
         if (other.extraInfo) {
             extraInfo = other.extraInfo->copy();
         }
     }
-
-    inline std::unique_ptr<BoundCopyFromInfo> copy() const {
-        return std::make_unique<BoundCopyFromInfo>(*this);
-    }
 };
 
 struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
-    std::vector<std::unique_ptr<IndexLookupInfo>> infos;
+    std::vector<IndexLookupInfo> infos;
     std::shared_ptr<Expression> fromOffset;
     std::shared_ptr<Expression> toOffset;
     expression_vector propertyColumns;
@@ -56,15 +55,18 @@ struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
 };
 
 struct ExtraBoundCopyRdfInfo final : public ExtraBoundCopyFromInfo {
-    std::unique_ptr<BoundCopyFromInfo> rInfo;
-    std::unique_ptr<BoundCopyFromInfo> lInfo;
-    std::unique_ptr<BoundCopyFromInfo> rrrInfo;
-    std::unique_ptr<BoundCopyFromInfo> rrlInfo;
+    BoundCopyFromInfo rInfo;
+    BoundCopyFromInfo lInfo;
+    BoundCopyFromInfo rrrInfo;
+    BoundCopyFromInfo rrlInfo;
 
-    ExtraBoundCopyRdfInfo() = default;
+    ExtraBoundCopyRdfInfo(BoundCopyFromInfo rInfo, BoundCopyFromInfo lInfo,
+        BoundCopyFromInfo rrrInfo, BoundCopyFromInfo rrlInfo)
+        : rInfo{std::move(rInfo)}, lInfo{std::move(lInfo)}, rrrInfo{std::move(rrrInfo)},
+          rrlInfo{std::move(rrlInfo)} {}
     ExtraBoundCopyRdfInfo(const ExtraBoundCopyRdfInfo& other)
-        : rInfo{other.rInfo->copy()}, lInfo{other.lInfo->copy()}, rrrInfo{other.rrrInfo->copy()},
-          rrlInfo{other.rrlInfo->copy()} {}
+        : rInfo{other.rInfo.copy()}, lInfo{other.lInfo.copy()}, rrrInfo{other.rrrInfo.copy()},
+          rrlInfo{other.rrlInfo.copy()} {}
 
     inline std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
         return std::make_unique<ExtraBoundCopyRdfInfo>(*this);
@@ -73,15 +75,15 @@ struct ExtraBoundCopyRdfInfo final : public ExtraBoundCopyFromInfo {
 
 class BoundCopyFrom : public BoundStatement {
 public:
-    explicit BoundCopyFrom(std::unique_ptr<BoundCopyFromInfo> info)
+    explicit BoundCopyFrom(BoundCopyFromInfo info)
         : BoundStatement{common::StatementType::COPY_FROM,
               BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)} {}
 
-    inline BoundCopyFromInfo* getInfo() const { return info.get(); }
+    inline const BoundCopyFromInfo* getInfo() const { return &info; }
 
 private:
-    std::unique_ptr<BoundCopyFromInfo> info;
+    BoundCopyFromInfo info;
 };
 
 } // namespace binder

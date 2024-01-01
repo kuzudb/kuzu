@@ -9,7 +9,7 @@ class NodeTableSchema : public TableSchema {
 public:
     NodeTableSchema() : TableSchema{common::TableType::NODE} {}
     NodeTableSchema(std::string tableName, common::table_id_t tableID,
-        common::property_id_t primaryPropertyId, property_vector_t properties)
+        common::property_id_t primaryPropertyId, std::vector<std::unique_ptr<Property>> properties)
         : TableSchema{std::move(tableName), tableID, common::TableType::NODE,
               std::move(properties)},
           primaryKeyPropertyID{primaryPropertyId} {}

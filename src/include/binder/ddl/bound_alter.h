@@ -6,17 +6,17 @@
 namespace kuzu {
 namespace binder {
 
-class BoundAlter : public BoundStatement {
+class BoundAlter final : public BoundStatement {
 public:
-    explicit BoundAlter(std::unique_ptr<BoundAlterInfo> info)
+    explicit BoundAlter(BoundAlterInfo info)
         : BoundStatement{common::StatementType::ALTER,
               BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)} {}
 
-    inline BoundAlterInfo* getInfo() const { return info.get(); }
+    inline const BoundAlterInfo* getInfo() const { return &info; }
 
 private:
-    std::unique_ptr<BoundAlterInfo> info;
+    BoundAlterInfo info;
 };
 
 } // namespace binder

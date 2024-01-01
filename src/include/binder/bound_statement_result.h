@@ -9,12 +9,11 @@ class BoundStatementResult {
 public:
     BoundStatementResult() = default;
     explicit BoundStatementResult(expression_vector columns) : columns{std::move(columns)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(BoundStatementResult);
 
-    static std::unique_ptr<BoundStatementResult> createEmptyResult() {
-        return std::make_unique<BoundStatementResult>();
-    }
+    static BoundStatementResult createEmptyResult() { return BoundStatementResult(); }
 
-    static std::unique_ptr<BoundStatementResult> createSingleStringColumnResult(
+    static BoundStatementResult createSingleStringColumnResult(
         const std::string& columnName = "result");
 
     inline void addColumn(std::shared_ptr<Expression> column) {
@@ -22,14 +21,13 @@ public:
     }
     inline expression_vector getColumns() const { return columns; }
 
-    inline std::shared_ptr<Expression> getSingleColumnExpr() {
+    inline std::shared_ptr<Expression> getSingleColumnExpr() const {
         KU_ASSERT(columns.size() == 1);
         return columns[0];
     }
 
-    inline std::unique_ptr<BoundStatementResult> copy() {
-        return std::make_unique<BoundStatementResult>(columns);
-    }
+private:
+    BoundStatementResult(const BoundStatementResult& other) : columns{other.columns} {}
 
 private:
     expression_vector columns;

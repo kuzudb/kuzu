@@ -6,6 +6,7 @@
 #include <unordered_set>
 
 #include "common/assert.h"
+#include "common/copy_constructors.h"
 #include "common/enums/expression_type.h"
 #include "common/exception/internal.h"
 #include "common/types/types.h"
@@ -49,6 +50,7 @@ public:
         common::ExpressionType expressionType, common::LogicalType dataType, std::string uniqueName)
         : Expression{
               expressionType, std::move(dataType), expression_vector{}, std::move(uniqueName)} {}
+    DELETE_COPY_DEFAULT_MOVE(Expression);
     virtual ~Expression() = default;
 
     inline void setAlias(const std::string& name) { alias = name; }
