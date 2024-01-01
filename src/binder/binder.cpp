@@ -229,15 +229,10 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
         func = functions->matchFunction(READ_NPY_FUNC_NAME, inputTypes);
     } break;
     case FileType::CSV: {
-        auto csvConfig =
-            ku_dynamic_cast<ExtraReaderConfig*, CSVReaderConfig*>(config.extraConfig.get());
+        auto csvConfig = CSVReaderConfig::construct(config.options);
         func = functions->matchFunction(
-            csvConfig->parallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
+            csvConfig.parallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
             inputTypes);
-    } break;
-    case FileType::NQUADS:
-    case FileType::TURTLE: {
-        func = functions->matchFunction(READ_RDF_FUNC_NAME, inputTypes);
     } break;
     default:
         KU_UNREACHABLE;

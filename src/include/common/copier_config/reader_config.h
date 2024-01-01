@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "common/types/value/value.h"
+
 namespace kuzu {
 namespace common {
 
@@ -18,29 +20,18 @@ enum class FileType : uint8_t {
 
 struct FileTypeUtils {
     static FileType getFileTypeFromExtension(std::string_view extension);
-    static bool isRdf(FileType fileType);
     static std::string toString(FileType fileType);
-};
-
-struct ExtraReaderConfig {
-    virtual ~ExtraReaderConfig() = default;
-    virtual std::unique_ptr<ExtraReaderConfig> copy() = 0;
 };
 
 struct ReaderConfig {
     FileType fileType = FileType::UNKNOWN;
     std::vector<std::string> filePaths;
-    std::unique_ptr<ExtraReaderConfig> extraConfig;
+    std::unordered_map<std::string, Value> options;
 
-    ReaderConfig(FileType fileType, std::vector<std::string> filePaths,
-        std::unique_ptr<ExtraReaderConfig> extraConfig)
-        : fileType{fileType}, filePaths{std::move(filePaths)}, extraConfig{std::move(extraConfig)} {
-    }
-    ReaderConfig(const ReaderConfig& other) : fileType{other.fileType}, filePaths{other.filePaths} {
-        if (other.extraConfig != nullptr) {
-            extraConfig = other.extraConfig->copy();
-        }
-    }
+    ReaderConfig(FileType fileType, std::vector<std::string> filePaths)
+        : fileType{fileType}, filePaths{std::move(filePaths)} {}
+    ReaderConfig(const ReaderConfig& other)
+        : fileType{other.fileType}, filePaths{other.filePaths}, options{other.options} {}
     ReaderConfig(ReaderConfig&& other) = default;
 
     inline uint32_t getNumFiles() const { return filePaths.size(); }

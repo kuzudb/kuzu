@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "common/constants.h"
-#include "reader_config.h"
+#include "common/types/value/value.h"
 
 namespace kuzu {
 namespace common {
@@ -29,7 +29,7 @@ struct CSVOption {
     inline std::unique_ptr<CSVOption> copy() const { return std::make_unique<CSVOption>(*this); }
 };
 
-struct CSVReaderConfig final : public ExtraReaderConfig {
+struct CSVReaderConfig {
     CSVOption option;
     bool parallel;
 
@@ -37,9 +37,7 @@ struct CSVReaderConfig final : public ExtraReaderConfig {
     CSVReaderConfig(const CSVReaderConfig& other)
         : option{other.option}, parallel{other.parallel} {}
 
-    inline std::unique_ptr<ExtraReaderConfig> copy() override {
-        return std::make_unique<CSVReaderConfig>(*this);
-    }
+    static CSVReaderConfig construct(const std::unordered_map<std::string, common::Value>& options);
 };
 
 } // namespace common

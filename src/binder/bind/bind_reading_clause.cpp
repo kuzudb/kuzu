@@ -149,11 +149,10 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
 
 std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& readingClause) {
     auto& loadFrom = ku_dynamic_cast<const ReadingClause&, const LoadFrom&>(readingClause);
-    auto csvReaderConfig = bindParsingOptions(loadFrom.getParsingOptionsRef());
     auto filePaths = bindFilePaths(loadFrom.getFilePaths());
     auto fileType = bindFileType(filePaths);
-    auto readerConfig =
-        std::make_unique<ReaderConfig>(fileType, std::move(filePaths), std::move(csvReaderConfig));
+    auto readerConfig = std::make_unique<ReaderConfig>(fileType, std::move(filePaths));
+    readerConfig->options = bindParsingOptions(loadFrom.getParsingOptionsRef());
     if (readerConfig->getNumFiles() > 1) {
         throw BinderException("Load from multiple files is not supported.");
     }

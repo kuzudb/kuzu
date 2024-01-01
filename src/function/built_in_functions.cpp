@@ -65,6 +65,10 @@ void BuiltInFunctions::registerAggregateFunctions() {
     registerCollect();
 }
 
+Function* BuiltInFunctions::matchFunction(const std::string& name) {
+    return matchFunction(name, std::vector<common::LogicalType*>{});
+}
+
 Function* BuiltInFunctions::matchFunction(
     const std::string& name, const std::vector<common::LogicalType*>& inputTypes) {
     auto& functionSet = functions.at(name);
@@ -779,7 +783,22 @@ void BuiltInFunctions::registerTableFunctions() {
     functions.insert({READ_NPY_FUNC_NAME, processor::NpyScanFunction::getFunctionSet()});
     functions.insert({READ_CSV_SERIAL_FUNC_NAME, processor::SerialCSVScan::getFunctionSet()});
     functions.insert({READ_CSV_PARALLEL_FUNC_NAME, processor::ParallelCSVScan::getFunctionSet()});
-    functions.insert({READ_RDF_FUNC_NAME, processor::RdfScan::getFunctionSet()});
+    functions.insert({READ_RDF_RESOURCE_FUNC_NAME, processor::RdfResourceScan::getFunctionSet()});
+    functions.insert({READ_RDF_LITERAL_FUNC_NAME, processor::RdfLiteralScan::getFunctionSet()});
+    functions.insert(
+        {READ_RDF_RESOURCE_TRIPLE_FUNC_NAME, processor::RdfResourceTripleScan::getFunctionSet()});
+    functions.insert(
+        {READ_RDF_LITERAL_TRIPLE_FUNC_NAME, processor::RdfLiteralTripleScan::getFunctionSet()});
+    functions.insert(
+        {READ_RDF_ALL_TRIPLE_FUNC_NAME, processor::RdfAllTripleScan::getFunctionSet()});
+    functions.insert(
+        {IN_MEM_READ_RDF_RESOURCE_FUNC_NAME, processor::RdfResourceInMemScan::getFunctionSet()});
+    functions.insert(
+        {IN_MEM_READ_RDF_LITERAL_FUNC_NAME, processor::RdfLiteralInMemScan::getFunctionSet()});
+    functions.insert({IN_MEM_READ_RDF_RESOURCE_TRIPLE_FUNC_NAME,
+        processor::RdfResourceTripleInMemScan::getFunctionSet()});
+    functions.insert({IN_MEM_READ_RDF_LITERAL_TRIPLE_FUNC_NAME,
+        processor::RdfLiteralTripleInMemScan::getFunctionSet()});
     functions.insert({STORAGE_INFO_FUNC_NAME, StorageInfoFunction::getFunctionSet()});
 }
 

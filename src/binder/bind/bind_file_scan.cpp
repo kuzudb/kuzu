@@ -1,11 +1,9 @@
 #include "binder/binder.h"
 #include "binder/expression/literal_expression.h"
-#include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
-#include "common/string_utils.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::binder;
@@ -50,88 +48,17 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
     return boundFilePaths;
 }
 
-/*
- * Bind parsing options.
- */
-static char bindParsingOptionValue(std::string value) {
-    if (value == "\\t") {
-        return '\t';
+std::unordered_map<std::string, Value> Binder::bindParsingOptions(
+    const parser::parsing_option_t& parsingOptions) {
+    std::unordered_map<std::string, Value> options;
+    for (auto& option : parsingOptions) {
+        auto name = option.first;
+        auto expr = expressionBinder.bindExpression(*option.second);
+        KU_ASSERT(expr->expressionType == ExpressionType::LITERAL);
+        auto literalExpr = ku_dynamic_cast<Expression*, LiteralExpression*>(expr.get());
+        options.insert({name, *literalExpr->getValue()});
     }
-    if (value.length() < 1 || value.length() > 2 || (value.length() == 2 && value[0] != '\\')) {
-        throw BinderException("Copy csv option value must be a single character with an "
-                              "optional escape character.");
-    }
-    return value[value.length() - 1];
-}
-
-static void bindBoolParsingOption(
-    CSVReaderConfig& config, const std::string& optionName, bool optionValue) {
-    if (optionName == "HEADER") {
-        config.option.hasHeader = optionValue;
-    } else if (optionName == "PARALLEL") {
-        config.parallel = optionValue;
-    }
-}
-
-static void bindStringParsingOption(
-    CSVReaderConfig& config, const std::string& optionName, std::string& optionValue) {
-    auto parsingOptionValue = bindParsingOptionValue(optionValue);
-    if (optionName == "ESCAPE") {
-        config.option.escapeChar = parsingOptionValue;
-    } else if (optionName == "DELIM") {
-        config.option.delimiter = parsingOptionValue;
-    } else if (optionName == "QUOTE") {
-        config.option.quoteChar = parsingOptionValue;
-    }
-}
-
-template<uint64_t size>
-static bool hasOption(const char* const (&arr)[size], const std::string& option) {
-    return std::find(std::begin(arr), std::end(arr), option) != std::end(arr);
-}
-
-static bool validateBoolParsingOptionName(const std::string& parsingOptionName) {
-    return hasOption(CopyConstants::BOOL_CSV_PARSING_OPTIONS, parsingOptionName);
-}
-
-static bool validateStringParsingOptionName(const std::string& parsingOptionName) {
-    return hasOption(CopyConstants::STRING_CSV_PARSING_OPTIONS, parsingOptionName);
-}
-
-std::unique_ptr<CSVReaderConfig> Binder::bindParsingOptions(
-    const std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>& parsingOptions) {
-    auto csvReaderConfig = std::make_unique<CSVReaderConfig>();
-    for (auto& parsingOption : parsingOptions) {
-        auto copyOptionName = parsingOption.first;
-        StringUtils::toUpper(copyOptionName);
-
-        bool isValidStringParsingOption = validateStringParsingOptionName(copyOptionName);
-        bool isValidBoolParsingOption = validateBoolParsingOptionName(copyOptionName);
-
-        auto copyOptionExpression = parsingOption.second.get();
-        auto boundCopyOptionExpression = expressionBinder.bindExpression(*copyOptionExpression);
-        KU_ASSERT(boundCopyOptionExpression->expressionType == ExpressionType::LITERAL);
-        if (isValidBoolParsingOption) {
-            if (boundCopyOptionExpression->dataType.getLogicalTypeID() != LogicalTypeID::BOOL) {
-                throw BinderException(
-                    "The type of csv parsing option " + copyOptionName + " must be a boolean.");
-            }
-            auto copyOptionValue =
-                ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<bool>();
-            bindBoolParsingOption(*csvReaderConfig, copyOptionName, copyOptionValue);
-        } else if (isValidStringParsingOption) {
-            if (boundCopyOptionExpression->dataType.getLogicalTypeID() != LogicalTypeID::STRING) {
-                throw BinderException(
-                    "The type of csv parsing option " + copyOptionName + " must be a string.");
-            }
-            auto copyOptionValue =
-                ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<std::string>();
-            bindStringParsingOption(*csvReaderConfig, copyOptionName, copyOptionValue);
-        } else {
-            throw BinderException("Unrecognized csv parsing option: " + copyOptionName + ".");
-        }
-    }
-    return csvReaderConfig;
+    return options;
 }
 
 } // namespace binder

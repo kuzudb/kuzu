@@ -314,7 +314,7 @@ Binder exception: No file found that matches the pattern: wrong_path.csv.
 Binder exception: No file found that matches the pattern: wrong_path.parquet.
 
 -LOG CopyCSVInvalidParsingOption
--STATEMENT COPY person FROM "person_0_0.csv" (pk=",")
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (pk=",")
 ---- error
 Binder exception: Unrecognized csv parsing option: PK.
 -STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_END=")") RETURN * ;
@@ -330,27 +330,27 @@ Binder exception: Unrecognized csv parsing option: LIST_BEGIN.
 Binder exception: Number of columns mismatch. Expected 1 but got 3.
 
 -LOG CopyCSVInvalidSchemaName
--STATEMENT COPY university FROM "person_0_0.csv" (pk=",")
+-STATEMENT COPY university FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (pk=",")
 ---- error
 Binder exception: Table university does not exist.
 
 -LOG CopyCSVInvalidEscapeChar
--STATEMENT COPY person FROM "person_0_0.csv" (ESCAPE="..")
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (ESCAPE="..")
 ---- error
 Binder exception: Copy csv option value must be a single character with an optional escape character.
 
 -LOG CopyCSVEmptyEscapeChar
--STATEMENT COPY person FROM "person_0_0.csv" (ESCAPE="")
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (ESCAPE="")
 ---- error
 Binder exception: Copy csv option value must be a single character with an optional escape character.
 
 -LOG CopyCSVWrongOptionType1
--STATEMENT COPY person FROM "person_0_0.csv" (ESCAPE=TRUE)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (ESCAPE=TRUE)
 ---- error
 Binder exception: The type of csv parsing option ESCAPE must be a string.
 
 -LOG CopyCSVWrongOptionType2
--STATEMENT COPY person FROM "person_0_0.csv" (HEADER=" ")
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=" ")
 ---- error
 Binder exception: The type of csv parsing option HEADER must be a boolean.
 

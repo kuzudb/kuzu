@@ -4,16 +4,13 @@
 
 #include "common/constants.h"
 #include "common/exception/copy.h"
-#include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "common/vector/value_vector.h"
-#include "function/cast/functions/cast_string_non_nested_functions.h"
+#include "processor/operator/persistent/reader/rdf/rdf_utils.h"
 #include "serd.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
-using namespace kuzu::common::rdf;
-using namespace kuzu::function;
 
 namespace kuzu {
 namespace processor {
@@ -53,6 +50,9 @@ void RdfReader::initReader() {
     } break;
     case RdfReaderMode::LITERAL_TRIPLE: {
         statementHandle = rrlHandle;
+    } break;
+    case RdfReaderMode::ALL: {
+        statementHandle = allHandle;
     } break;
     default:
         KU_UNREACHABLE;
@@ -102,65 +102,14 @@ static void addResourceToVector(
         vector, vectorPos, reinterpret_cast<const char*>(resourceNode->buf), resourceNode->n_bytes);
 }
 
-template<typename T>
-static void addVariant(ValueVector* vector, uint32_t pos, LogicalTypeID typeID, T val) {
-    auto typeVector = StructVector::getFieldVector(vector, 0).get();
-    auto valVector = StructVector::getFieldVector(vector, 1).get();
-    typeVector->setValue<uint8_t>(pos, static_cast<uint8_t>(typeID));
-    BlobVector::addBlob(valVector, pos, (uint8_t*)&val, sizeof(T));
-}
-static void addVariant(ValueVector* vector, uint32_t pos, const char* src, uint32_t length) {
-    auto typeVector = StructVector::getFieldVector(vector, 0).get();
-    auto valVector = StructVector::getFieldVector(vector, 1).get();
-    typeVector->setValue<uint8_t>(pos, static_cast<uint8_t>(LogicalTypeID::STRING));
-    BlobVector::addBlob(valVector, pos, src, length);
-}
-
 static void addLiteralToVector(common::ValueVector* vector, uint32_t pos,
     const SerdNode* literalNode, const SerdNode* typeNode) {
-    auto data = reinterpret_cast<const char*>(literalNode->buf);
-    auto length = literalNode->n_bytes;
     if (typeNode == nullptr) { // No type information available. Treat as string.
-        addVariant(vector, pos, data, length);
+        RdfUtils::addRdfLiteral(vector, pos, (const char*)literalNode->buf, literalNode->n_bytes);
         return;
     }
-    bool resolveAsString = true;
-    auto type = std::string_view(reinterpret_cast<const char*>(typeNode->buf), typeNode->n_bytes);
-    if (type.starts_with(XSD)) {
-        if (type.ends_with(XSD_integer)) {
-            // XSD:integer
-            int64_t result;
-            if (function::trySimpleIntegerCast<int64_t>(data, length, result)) {
-                addVariant<int64_t>(vector, pos, LogicalTypeID::INT64, result);
-                resolveAsString = false;
-            }
-        } else if (type.ends_with(XSD_double) || type.ends_with(XSD_decimal)) {
-            // XSD:double or XSD:decimal
-            double_t result;
-            if (function::tryDoubleCast(data, length, result)) {
-                addVariant<double_t>(vector, pos, LogicalTypeID::DOUBLE, result);
-                resolveAsString = false;
-            }
-        } else if (type.ends_with(XSD_boolean)) {
-            // XSD:bool
-            bool result;
-            if (function::tryCastToBool(data, length, result)) {
-                addVariant<bool>(vector, pos, LogicalTypeID::BOOL, result);
-                resolveAsString = false;
-            }
-        } else if (type.ends_with(XSD_date)) {
-            // XSD:date
-            date_t result;
-            uint64_t dummy = 0;
-            if (Date::tryConvertDate(data, length, dummy, result)) {
-                addVariant<date_t>(vector, pos, LogicalTypeID::DATE, result);
-                resolveAsString = false;
-            }
-        }
-    }
-    if (resolveAsString) {
-        addVariant(vector, pos, data, length);
-    }
+    RdfUtils::addRdfLiteral(vector, pos, (const char*)literalNode->buf, literalNode->n_bytes,
+        (const char*)typeNode->buf, typeNode->n_bytes);
 }
 
 SerdStatus RdfReader::rHandle(void* handle, SerdStatementFlags, const SerdNode*,
@@ -170,10 +119,12 @@ SerdStatus RdfReader::rHandle(void* handle, SerdStatementFlags, const SerdNode*,
         return SERD_SUCCESS;
     }
     auto reader = reinterpret_cast<RdfReader*>(handle);
-    addResourceToVector(reader->sVector, reader->vectorSize++, subject);
-    addResourceToVector(reader->sVector, reader->vectorSize++, predicate);
+    auto sVector = reader->dataChunk->getValueVector(0).get();
+    auto& selectedSize = reader->dataChunk->state->selVector->selectedSize;
+    addResourceToVector(sVector, selectedSize++, subject);
+    addResourceToVector(sVector, selectedSize++, predicate);
     if (object->type != SERD_LITERAL) {
-        addResourceToVector(reader->sVector, reader->vectorSize++, object);
+        addResourceToVector(sVector, selectedSize++, object);
     }
     return SERD_SUCCESS;
 }
@@ -185,10 +136,12 @@ SerdStatus RdfReader::lHandle(void* handle, SerdStatementFlags, const SerdNode*,
         return SERD_SUCCESS;
     }
     auto reader = reinterpret_cast<RdfReader*>(handle);
+    auto lVector = reader->dataChunk->getValueVector(0).get();
     if (object->type != SERD_LITERAL) {
         return SERD_SUCCESS;
     }
-    addLiteralToVector(reader->sVector, reader->vectorSize++, object, object_datatype);
+    auto& selectedSize = reader->dataChunk->state->selVector->selectedSize;
+    addLiteralToVector(lVector, selectedSize++, object, object_datatype);
     reader->rowOffset++;
     return SERD_SUCCESS;
 }
@@ -203,10 +156,14 @@ SerdStatus RdfReader::rrrHandle(void* handle, SerdStatementFlags, const SerdNode
     if (object->type == SERD_LITERAL) {
         return SERD_SUCCESS;
     }
-    addResourceToVector(reader->sVector, reader->vectorSize, subject);
-    addResourceToVector(reader->pVector, reader->vectorSize, predicate);
-    addResourceToVector(reader->oVector, reader->vectorSize, object);
-    reader->vectorSize++;
+    auto sVector = reader->dataChunk->getValueVector(0).get();
+    auto pVector = reader->dataChunk->getValueVector(1).get();
+    auto oVector = reader->dataChunk->getValueVector(2).get();
+    auto& selectedSize = reader->dataChunk->state->selVector->selectedSize;
+    addResourceToVector(sVector, selectedSize, subject);
+    addResourceToVector(pVector, selectedSize, predicate);
+    addResourceToVector(oVector, selectedSize, object);
+    selectedSize++;
     return SERD_SUCCESS;
 }
 
@@ -221,11 +178,43 @@ SerdStatus RdfReader::rrlHandle(void* handle, SerdStatementFlags, const SerdNode
     if (object->type != SERD_LITERAL) {
         return SERD_SUCCESS;
     }
-    addResourceToVector(reader->sVector, reader->vectorSize, subject);
-    addResourceToVector(reader->pVector, reader->vectorSize, predicate);
-    reader->oVector->setValue<int64_t>(reader->vectorSize, reader->rowOffset);
-    reader->vectorSize++;
+    auto sVector = reader->dataChunk->getValueVector(0).get();
+    auto pVector = reader->dataChunk->getValueVector(1).get();
+    auto oVector = reader->dataChunk->getValueVector(2).get();
+    auto& selectedSize = reader->dataChunk->state->selVector->selectedSize;
+    addResourceToVector(sVector, selectedSize, subject);
+    addResourceToVector(pVector, selectedSize, predicate);
+    oVector->setValue<int64_t>(selectedSize, reader->rowOffset);
+    selectedSize++;
     reader->rowOffset++;
+    return SERD_SUCCESS;
+}
+
+static void addNode(std::vector<std::string>& vector, const SerdNode* node) {
+    vector.emplace_back((const char*)node->buf, node->n_bytes);
+}
+
+SerdStatus RdfReader::allHandle(void* handle, SerdStatementFlags, const SerdNode*,
+    const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
+    const SerdNode* object_datatype, const SerdNode*) {
+    if (!supportTriple(subject, predicate, object)) {
+        return SERD_SUCCESS;
+    }
+    auto reader = reinterpret_cast<RdfReader*>(handle);
+    if (object->type == SERD_LITERAL) {
+        addNode(reader->store->literalTripleStore.subjects, subject);
+        addNode(reader->store->literalTripleStore.predicates, predicate);
+        addNode(reader->store->literalTripleStore.objects, object);
+        if (object_datatype != nullptr) {
+            addNode(reader->store->literalTripleStore.objectType, object_datatype);
+        } else {
+            reader->store->literalTripleStore.objectType.push_back("");
+        }
+    } else {
+        addNode(reader->store->resourceTripleStore.subjects, subject);
+        addNode(reader->store->resourceTripleStore.predicates, predicate);
+        addNode(reader->store->resourceTripleStore.objects, object);
+    }
     return SERD_SUCCESS;
 }
 
@@ -235,28 +224,16 @@ SerdStatus RdfReader::prefixHandle(void* handle, const SerdNode* /*name*/, const
     return SERD_SUCCESS;
 }
 
-offset_t RdfReader::read(DataChunk* dataChunk) {
+offset_t RdfReader::read(DataChunk* dataChunk_) {
     if (status) {
         return 0;
     }
-
-    switch (mode) {
-    case RdfReaderMode::RESOURCE_TRIPLE:
-    case RdfReaderMode::LITERAL_TRIPLE: {
-        sVector = dataChunk->getValueVector(0).get();
-        pVector = dataChunk->getValueVector(1).get();
-        oVector = dataChunk->getValueVector(2).get();
-    } break;
-    default: {
-        sVector = dataChunk->getValueVector(0).get();
-    } break;
-    }
-    vectorSize = 0;
+    dataChunk = dataChunk_;
     while (true) {
         status = serd_reader_read_chunk(reader);
         // See comment below.
-        if (vectorSize > DEFAULT_VECTOR_CAPACITY) {
-            printf("warning\n");
+        if (dataChunk->state->selVector->selectedSize > DEFAULT_VECTOR_CAPACITY) {
+            throw RuntimeException("Vector size exceed DEFAULT_VECTOR_CAPACITY.");
         }
         if (status == SERD_ERR_BAD_SYNTAX) {
             // Skip to the next line.
@@ -266,12 +243,12 @@ offset_t RdfReader::read(DataChunk* dataChunk) {
         // We cannot control how many rows being read in each serd_reader_read_chunk(). Empirically,
         // a chunk shouldn't be too large. We leave a buffer size 100 to avoid vector size exceed
         // 2048 after reading the last chunk.
-        if (status != SERD_SUCCESS || vectorSize + 100 >= DEFAULT_VECTOR_CAPACITY) {
+        if (status != SERD_SUCCESS ||
+            dataChunk->state->selVector->selectedSize + 100 >= DEFAULT_VECTOR_CAPACITY) {
             break;
         }
     }
-    dataChunk->state->selVector->selectedSize = vectorSize;
-    return vectorSize;
+    return dataChunk->state->selVector->selectedSize;
 }
 
 } // namespace processor

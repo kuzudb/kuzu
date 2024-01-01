@@ -133,6 +133,10 @@ struct CopyConstants {
     static constexpr uint64_t PANDAS_PARTITION_COUNT = 50 * DEFAULT_VECTOR_CAPACITY;
 };
 
+struct RdfConstants {
+    static constexpr const char IN_MEMORY_OPTION[] = "IN_MEMORY";
+};
+
 struct LoggerConstants {
     enum class LoggerEnum : uint8_t {
         DATABASE = 0,

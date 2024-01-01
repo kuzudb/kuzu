@@ -40,9 +40,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
         throw BinderException{"Only copy to csv can have options."};
     }
-    auto csvConfig = bindParsingOptions(copyToStatement.getParsingOptionsRef());
+    auto csvConfig =
+        CSVReaderConfig::construct(bindParsingOptions(copyToStatement.getParsingOptionsRef()));
     return std::make_unique<BoundCopyTo>(boundFilePath, fileType, std::move(columnNames),
-        std::move(columnTypes), std::move(query), csvConfig->option.copy());
+        std::move(columnTypes), std::move(query), csvConfig.option.copy());
 }
 
 // As a temporary constraint, we require npy files loaded with COPY FROM BY COLUMN keyword.
@@ -78,11 +79,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     default:
         break;
     }
-    auto csvConfig = bindParsingOptions(copyStatement.getParsingOptionsRef());
     auto filePaths = bindFilePaths(copyStatement.getFilePaths());
     auto fileType = bindFileType(filePaths);
-    auto readerConfig =
-        std::make_unique<ReaderConfig>(fileType, std::move(filePaths), std::move(csvConfig));
+    auto readerConfig = std::make_unique<ReaderConfig>(fileType, std::move(filePaths));
+    readerConfig->options = bindParsingOptions(copyStatement.getParsingOptionsRef());
     validateByColumnKeyword(readerConfig->fileType, copyStatement.byColumn());
     if (readerConfig->fileType == FileType::NPY) {
         validateCopyNpyNotForRelTables(tableSchema);

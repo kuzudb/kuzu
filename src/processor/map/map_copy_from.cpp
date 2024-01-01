@@ -231,6 +231,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* lo
     auto logicalRRRChild = logicalOperator->getChild(1).get();
     auto logicalLChild = logicalOperator->getChild(2).get();
     auto logicalRChild = logicalOperator->getChild(3).get();
+    std::unique_ptr<PhysicalOperator> scanChild;
+    if (logicalOperator->getNumChildren() > 4) {
+        auto logicalScanChild = logicalOperator->getChild(4).get();
+        scanChild = mapOperator(logicalScanChild);
+        scanChild = createResultCollector(AccumulateType::REGULAR, expression_vector{},
+            logicalScanChild->getSchema(), std::move(scanChild));
+    }
+
     auto rChild = mapCopyNodeFrom(logicalRChild);
     KU_ASSERT(rChild->getOperatorType() == PhysicalOperatorType::COPY_NODE);
     auto rCopy = ku_dynamic_cast<PhysicalOperator*, CopyNode*>(rChild.get());
@@ -264,6 +272,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* lo
     }
     copyRdf->addChild(std::move(lChild));
     copyRdf->addChild(std::move(rChild));
+    if (scanChild != nullptr) {
+        copyRdf->addChild(std::move(scanChild));
+    }
     return createFactorizedTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
         DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(copyRdf));
 }
