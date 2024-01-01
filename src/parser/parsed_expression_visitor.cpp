@@ -64,7 +64,7 @@ void ParsedExpressionChildrenVisitor::setCaseChild(kuzu::parser::ParsedExpressio
         parsedCaseExpr.caseExpression = std::move(expressionToSet);
     } else if (idx < 1 + parsedCaseExpr.getNumCaseAlternative() * 2) {
         auto caseAlternativeIdx = (idx - 1) / 2;
-        auto caseAlternative = parsedCaseExpr.getCaseAlternative(caseAlternativeIdx);
+        auto caseAlternative = parsedCaseExpr.getCaseAlternativeUnsafe(caseAlternativeIdx);
         if (idx % 2 == 0) {
             caseAlternative->thenExpression = std::move(expressionToSet);
         } else {

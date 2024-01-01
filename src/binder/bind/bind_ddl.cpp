@@ -142,10 +142,10 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableGroupInfo(
                                 .append(srcTableName)
                                 .append("_")
                                 .append(dstTableName);
-        auto relExtraInfo =
+        auto relCreateInfo = std::make_unique<CreateTableInfo>(TableType::REL, relTableName);
+        relCreateInfo->propertyNameDataTypes = info->propertyNameDataTypes;
+        relCreateInfo->extraInfo =
             std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity, srcTableName, dstTableName);
-        auto relCreateInfo = std::make_unique<CreateTableInfo>(
-            TableType::REL, relTableName, info->propertyNameDataTypes, std::move(relExtraInfo));
         boundCreateRelTableInfos.push_back(bindCreateRelTableInfo(relCreateInfo.get()));
     }
     auto boundExtraInfo =
@@ -156,7 +156,7 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableGroupInfo(
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
     auto& createTable = ku_dynamic_cast<const Statement&, const CreateTable&>(statement);
-    auto tableName = createTable.getTableName();
+    auto tableName = createTable.getInfo()->tableName;
     if (catalog.containsTable(clientContext->getTx(), tableName)) {
         throw BinderException(tableName + " already exists in catalog.");
     }

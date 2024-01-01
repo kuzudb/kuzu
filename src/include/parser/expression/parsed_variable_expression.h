@@ -13,8 +13,8 @@ public:
         : ParsedExpression{common::ExpressionType::VARIABLE, std::move(raw)},
           variableName{std::move(variableName)} {}
 
-    ParsedVariableExpression(std::string alias, std::string rawName,
-        parsed_expression_vector children, std::string variableName)
+    ParsedVariableExpression(std::string alias, std::string rawName, parsed_expr_vector children,
+        std::string variableName)
         : ParsedExpression{common::ExpressionType::VARIABLE, std::move(alias), std::move(rawName),
               std::move(children)},
           variableName{std::move(variableName)} {}

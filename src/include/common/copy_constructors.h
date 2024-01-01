@@ -4,8 +4,10 @@
 
 #define DELETE_COPY_CONSTRUCT(Object) Object(const Object& other) = delete
 #define DELETE_COPY_ASSN(Object) Object& operator=(const Object& other) = delete
+// NOLINTBEGIN
 #define DELETE_MOVE_CONSTRUCT(Object) Object(Object&& other) = delete
 #define DELETE_MOVE_ASSN(Object) Object& operator=(Object&& other) = delete
+// NOLINTEND
 
 #define DELETE_BOTH_COPY(Object)                                                                   \
     DELETE_COPY_CONSTRUCT(Object);                                                                 \
@@ -15,8 +17,10 @@
     DELETE_MOVE_CONSTRUCT(Object);                                                                 \
     DELETE_MOVE_ASSN(Object)
 
+// NOLINTBEGIN
 #define DEFAULT_MOVE_CONSTRUCT(Object) Object(Object&& other) = default
 #define DEFAULT_MOVE_ASSN(Object) Object& operator=(Object&& other) = default
+// NOLINTEND
 
 #define DEFAULT_BOTH_MOVE(Object)                                                                  \
     DEFAULT_MOVE_CONSTRUCT(Object);                                                                \

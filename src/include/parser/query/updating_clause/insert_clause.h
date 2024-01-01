@@ -6,18 +6,18 @@
 namespace kuzu {
 namespace parser {
 
-class InsertClause : public UpdatingClause {
+class InsertClause final : public UpdatingClause {
 public:
-    explicit InsertClause(std::vector<std::unique_ptr<PatternElement>> patternElements)
+    explicit InsertClause(std::vector<PatternElement> patternElements)
         : UpdatingClause{common::ClauseType::INSERT}, patternElements{
                                                           std::move(patternElements)} {};
 
-    inline const std::vector<std::unique_ptr<PatternElement>>& getPatternElementsRef() const {
+    inline const std::vector<PatternElement>& getPatternElementsRef() const {
         return patternElements;
     }
 
 private:
-    std::vector<std::unique_ptr<PatternElement>> patternElements;
+    std::vector<PatternElement> patternElements;
 };
 
 } // namespace parser

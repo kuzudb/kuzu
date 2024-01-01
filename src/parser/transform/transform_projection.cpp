@@ -7,22 +7,20 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace parser {
 
-std::unique_ptr<WithClause> Transformer::transformWith(CypherParser::OC_WithContext& ctx) {
-    auto withClause =
-        std::make_unique<WithClause>(transformProjectionBody(*ctx.oC_ProjectionBody()));
+WithClause Transformer::transformWith(CypherParser::OC_WithContext& ctx) {
+    auto withClause = WithClause(transformProjectionBody(*ctx.oC_ProjectionBody()));
     if (ctx.oC_Where()) {
-        withClause->setWhereExpression(transformWhere(*ctx.oC_Where()));
+        withClause.setWhereExpression(transformWhere(*ctx.oC_Where()));
     }
     return withClause;
 }
 
-std::unique_ptr<ReturnClause> Transformer::transformReturn(CypherParser::OC_ReturnContext& ctx) {
-    return std::make_unique<ReturnClause>(transformProjectionBody(*ctx.oC_ProjectionBody()));
+ReturnClause Transformer::transformReturn(CypherParser::OC_ReturnContext& ctx) {
+    return ReturnClause(transformProjectionBody(*ctx.oC_ProjectionBody()));
 }
 
-std::unique_ptr<ProjectionBody> Transformer::transformProjectionBody(
-    CypherParser::OC_ProjectionBodyContext& ctx) {
-    auto projectionBody = std::make_unique<ProjectionBody>(
+ProjectionBody Transformer::transformProjectionBody(CypherParser::OC_ProjectionBodyContext& ctx) {
+    auto projectionBody = ProjectionBody(
         nullptr != ctx.DISTINCT(), transformProjectionItems(*ctx.oC_ProjectionItems()));
     if (ctx.oC_Order()) {
         std::vector<std::unique_ptr<ParsedExpression>> orderByExpressions;
@@ -31,14 +29,13 @@ std::unique_ptr<ProjectionBody> Transformer::transformProjectionBody(
             orderByExpressions.push_back(transformExpression(*sortItem->oC_Expression()));
             isAscOrders.push_back(!(sortItem->DESC() || sortItem->DESCENDING()));
         }
-        projectionBody->setOrderByExpressions(
-            std::move(orderByExpressions), std::move(isAscOrders));
+        projectionBody.setOrderByExpressions(std::move(orderByExpressions), std::move(isAscOrders));
     }
     if (ctx.oC_Skip()) {
-        projectionBody->setSkipExpression(transformExpression(*ctx.oC_Skip()->oC_Expression()));
+        projectionBody.setSkipExpression(transformExpression(*ctx.oC_Skip()->oC_Expression()));
     }
     if (ctx.oC_Limit()) {
-        projectionBody->setLimitExpression(transformExpression(*ctx.oC_Limit()->oC_Expression()));
+        projectionBody.setLimitExpression(transformExpression(*ctx.oC_Limit()->oC_Expression()));
     }
     return projectionBody;
 }

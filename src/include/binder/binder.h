@@ -210,7 +210,7 @@ private:
         const expression_vector& projectionExpressions);
 
     expression_vector bindProjectionExpressions(
-        const parser::parsed_expression_vector& parsedExpressions);
+        const parser::parsed_expr_vector& parsedExpressions);
 
     expression_vector bindOrderByExpressions(
         const std::vector<std::unique_ptr<parser::ParsedExpression>>& orderByExpressions);
@@ -221,7 +221,7 @@ private:
 
     /*** bind graph pattern ***/
     std::unique_ptr<BoundGraphPattern> bindGraphPattern(
-        const std::vector<std::unique_ptr<parser::PatternElement>>& graphPattern);
+        const std::vector<parser::PatternElement>& graphPattern);
 
     std::unique_ptr<QueryGraph> bindPatternElement(
         const parser::PatternElement& patternElement, PropertyKeyValCollection& collection);

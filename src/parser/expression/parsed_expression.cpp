@@ -28,8 +28,8 @@ ParsedExpression::ParsedExpression(ExpressionType type, std::unique_ptr<ParsedEx
     children.push_back(std::move(right));
 }
 
-parsed_expression_vector ParsedExpression::copyChildren() const {
-    parsed_expression_vector childrenCopy;
+parsed_expr_vector ParsedExpression::copyChildren() const {
+    parsed_expr_vector childrenCopy;
     childrenCopy.reserve(children.size());
     for (auto& child : children) {
         childrenCopy.push_back(child->copy());
@@ -49,7 +49,7 @@ std::unique_ptr<ParsedExpression> ParsedExpression::deserialize(Deserializer& de
     ExpressionType type;
     std::string alias;
     std::string rawName;
-    parsed_expression_vector children;
+    parsed_expr_vector children;
     deserializer.deserializeValue(type);
     deserializer.deserializeValue(alias);
     deserializer.deserializeValue(rawName);

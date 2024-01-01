@@ -28,12 +28,12 @@ namespace binder {
 // We do not store key-value pairs in query graph primarily because we will merge key-value
 // std::pairs with other predicates specified in WHERE clause.
 std::unique_ptr<BoundGraphPattern> Binder::bindGraphPattern(
-    const std::vector<std::unique_ptr<PatternElement>>& graphPattern) {
+    const std::vector<PatternElement>& graphPattern) {
     auto propertyCollection = std::make_unique<PropertyKeyValCollection>();
     auto queryGraphCollection = std::make_unique<QueryGraphCollection>();
     for (auto& patternElement : graphPattern) {
         queryGraphCollection->addAndMergeQueryGraphIfConnected(
-            bindPatternElement(*patternElement, *propertyCollection));
+            bindPatternElement(patternElement, *propertyCollection));
     }
     auto boundPattern = std::make_unique<BoundGraphPattern>();
     boundPattern->queryGraphCollection = std::move(queryGraphCollection);

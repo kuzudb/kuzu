@@ -44,7 +44,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClaus
 
 std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& readingClause) {
     auto& matchClause = ku_dynamic_cast<const ReadingClause&, const MatchClause&>(readingClause);
-    auto boundGraphPattern = bindGraphPattern(matchClause.getPatternElements());
+    auto boundGraphPattern = bindGraphPattern(matchClause.getPatternElementsRef());
     if (matchClause.hasWherePredicate()) {
         boundGraphPattern->where = bindWhereExpression(*matchClause.getWherePredicate());
     }
@@ -105,11 +105,10 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto funcName = funcExpr->getFunctionName();
     StringUtils::toUpper(funcName);
     if (funcName == common::READ_PANDAS_FUNC_NAME && clientContext->replaceFunc) {
-        auto replacedValue = clientContext->replaceFunc(
-            ku_dynamic_cast<ParsedExpression*, ParsedLiteralExpression*>(funcExpr->getChild(0))
-                ->getValue());
-        auto parameterExpression =
-            std::make_unique<ParsedLiteralExpression>(std::move(replacedValue), "pd");
+        auto literalExpr =
+            ku_dynamic_cast<ParsedExpression*, ParsedLiteralExpression*>(funcExpr->getChild(0));
+        auto replacedValue = clientContext->replaceFunc(literalExpr->getValueUnsafe());
+        auto parameterExpression = std::make_unique<ParsedLiteralExpression>(*replacedValue, "pd");
         auto inQueryCallParameterReplacer = std::make_unique<InQueryCallParameterReplacer>(
             std::make_pair(funcName, parameterExpression.get()));
         funcExpr = inQueryCallParameterReplacer->visit(funcExpr);

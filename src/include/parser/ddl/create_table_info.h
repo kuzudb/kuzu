@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/copy_constructors.h"
 #include "common/enums/table_type.h"
 
 namespace kuzu {
@@ -22,12 +23,7 @@ struct CreateTableInfo {
 
     CreateTableInfo(common::TableType tableType, std::string tableName)
         : tableType{tableType}, tableName{std::move(tableName)}, extraInfo{nullptr} {}
-    CreateTableInfo(common::TableType tableType, std::string tableName,
-        std::vector<std::pair<std::string, std::string>> propertyNameDataTypes,
-        std::unique_ptr<ExtraCreateTableInfo> extraInfo)
-        : tableType{tableType}, tableName{std::move(tableName)},
-          propertyNameDataTypes{std::move(propertyNameDataTypes)}, extraInfo{
-                                                                       std::move(extraInfo)} {};
+    DELETE_COPY_DEFAULT_MOVE(CreateTableInfo);
 };
 
 struct ExtraCreateNodeTableInfo : public ExtraCreateTableInfo {

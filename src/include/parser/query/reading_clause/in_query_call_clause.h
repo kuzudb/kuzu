@@ -6,18 +6,19 @@
 namespace kuzu {
 namespace parser {
 
-class InQueryCallClause : public ReadingClause {
+class InQueryCallClause final : public ReadingClause {
 public:
     explicit InQueryCallClause(std::unique_ptr<ParsedExpression> functionExpression)
         : ReadingClause{common::ClauseType::IN_QUERY_CALL}, functionExpression{
                                                                 std::move(functionExpression)} {}
-    ParsedExpression* getFunctionExpression() const { return functionExpression.get(); }
+
+    inline ParsedExpression* getFunctionExpression() const { return functionExpression.get(); }
 
     inline void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
         wherePredicate = std::move(expression);
     }
     inline bool hasWherePredicate() const { return wherePredicate != nullptr; }
-    inline ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
+    inline const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
 
 private:
     std::unique_ptr<ParsedExpression> functionExpression;

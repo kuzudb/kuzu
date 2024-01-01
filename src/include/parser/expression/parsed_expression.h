@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/copy_constructors.h"
 #include "common/enums/expression_type.h"
 
 namespace kuzu {
@@ -19,9 +20,10 @@ namespace parser {
 
 class ParsedExpression;
 class ParsedExpressionChildrenVisitor;
-using parsed_expression_vector = std::vector<std::unique_ptr<ParsedExpression>>;
-using parsed_expression_pair =
+using parsed_expr_vector = std::vector<std::unique_ptr<ParsedExpression>>;
+using parsed_expr_pair =
     std::pair<std::unique_ptr<ParsedExpression>, std::unique_ptr<ParsedExpression>>;
+using s_parsed_expr_pair = std::pair<std::string, std::unique_ptr<ParsedExpression>>;
 
 class ParsedExpression {
     friend class ParsedExpressionChildrenVisitor;
@@ -39,10 +41,10 @@ public:
     explicit ParsedExpression(common::ExpressionType type) : type{type} {}
 
     ParsedExpression(common::ExpressionType type, std::string alias, std::string rawName,
-        parsed_expression_vector children)
+        parsed_expr_vector children)
         : type{type}, alias{std::move(alias)}, rawName{std::move(rawName)}, children{std::move(
                                                                                 children)} {}
-
+    DELETE_COPY_DEFAULT_MOVE(ParsedExpression);
     virtual ~ParsedExpression() = default;
 
     inline common::ExpressionType getExpressionType() const { return type; }
@@ -69,16 +71,16 @@ public:
     static std::unique_ptr<ParsedExpression> deserialize(common::Deserializer& deserializer);
 
 protected:
-    parsed_expression_vector copyChildren() const;
+    parsed_expr_vector copyChildren() const;
 
 private:
-    virtual inline void serializeInternal(common::Serializer& /*serializer*/) const {}
+    virtual inline void serializeInternal(common::Serializer&) const {}
 
 protected:
     common::ExpressionType type;
     std::string alias;
     std::string rawName;
-    parsed_expression_vector children;
+    parsed_expr_vector children;
 };
 
 using parsing_option_t = std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>;

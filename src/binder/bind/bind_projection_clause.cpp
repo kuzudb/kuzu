@@ -182,7 +182,7 @@ std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
 }
 
 expression_vector Binder::bindProjectionExpressions(
-    const parsed_expression_vector& projectionExpressions) {
+    const parsed_expr_vector& projectionExpressions) {
     expression_vector result;
     for (auto& expression : projectionExpressions) {
         if (expression->getExpressionType() == ExpressionType::STAR) {

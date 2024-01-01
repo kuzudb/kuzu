@@ -20,7 +20,7 @@ public:
 
 private:
     common::DeleteClauseType deleteClauseType;
-    std::vector<std::unique_ptr<ParsedExpression>> expressions;
+    parsed_expr_vector expressions;
 };
 
 } // namespace parser
