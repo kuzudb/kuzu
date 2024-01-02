@@ -13,6 +13,7 @@ namespace kuzu {
 namespace common {
 
 struct blob_t;
+struct uuid_t;
 
 class TypeUtils {
 
@@ -68,6 +69,8 @@ template<>
 std::string TypeUtils::toString(const ku_string_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const blob_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const uuid_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const list_entry_t& val, void* valueVector);
 template<>

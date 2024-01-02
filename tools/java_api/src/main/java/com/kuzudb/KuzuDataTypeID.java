@@ -35,7 +35,8 @@ public enum KuzuDataTypeID {
     VAR_LIST(52),
     STRUCT(53),
     MAP(54),
-    UNION(55);
+    UNION(55),
+    UUID(56),;
 
     public final int value;
 

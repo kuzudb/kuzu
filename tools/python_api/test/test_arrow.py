@@ -14,8 +14,8 @@ def test_to_arrow(establish_connection):
 
     def _test_person_table(_conn):
         query = "MATCH (a:person) RETURN a.* ORDER BY a.ID"
-        arrow_tbl = _conn.execute(query).get_as_arrow(8)
-        assert arrow_tbl.num_columns == 15
+        arrow_tbl = _conn.execute(query).get_as_arrow(9)
+        assert arrow_tbl.num_columns == 16
 
         id_col = arrow_tbl.column(0)
         assert id_col.type == pa.int64()
@@ -105,6 +105,12 @@ def test_to_arrow(establish_connection):
         assert grades_col.length() == 8
         assert grades_col.to_pylist() == [[96, 54, 86, 92], [98, 42, 93, 88], [91, 75, 21, 95], [76, 88, 99, 89],
                                           [96, 59, 65, 88], [80, 78, 34, 83], [43, 83, 67, 43], [77, 64, 100, 54]]
+
+        uuid_col = arrow_tbl.column(15)
+        assert uuid_col.type ==pa.string()
+        assert uuid_col.length() == 8
+        assert uuid_col.to_pylist() == ['a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14',
+                                          'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18']
 
     def _test_movies_table(_conn):
         query = "MATCH (a:movies) RETURN a.length, a.description ORDER BY a.length"

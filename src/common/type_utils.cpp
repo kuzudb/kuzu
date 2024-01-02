@@ -1,6 +1,7 @@
 #include "common/type_utils.h"
 
 #include "common/types/blob.h"
+#include "common/types/uuid.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -120,6 +121,13 @@ template<>
 std::string TypeUtils::toString(const blob_t& val, void* /*valueVector*/) {
     return Blob::toString(val.value.getData(), val.value.len);
 }
+
+// LCOV_EXCL_START
+template<>
+std::string TypeUtils::toString(const uuid_t& val, void* /*valueVector*/) {
+    return UUID::toString(val.value);
+}
+// LCOV_EXCL_STOP
 
 template<>
 std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {

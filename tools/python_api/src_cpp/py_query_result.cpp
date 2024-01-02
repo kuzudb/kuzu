@@ -7,6 +7,7 @@
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
+#include "common/types/uuid.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
 
@@ -136,6 +137,12 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         auto blobStr = value.getValue<std::string>();
         auto blobBytesArray = blobStr.c_str();
         return py::bytes(blobBytesArray, blobStr.size());
+    }
+    case LogicalTypeID::UUID: {
+        kuzu::common::int128_t result = value.getValue<kuzu::common::int128_t>();
+        std::string uuidString = kuzu::common::UUID::toString(result);
+        py::object UUID = py::module_::import("uuid").attr("UUID");
+        return UUID(uuidString);
     }
     case LogicalTypeID::DATE: {
         auto dateVal = value.getValue<date_t>();

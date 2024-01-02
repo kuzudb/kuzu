@@ -41,6 +41,8 @@ const char* const CAST_TO_UINT16_FUNC_NAME = "TO_UINT16";
 const char* const CAST_TO_UINT8_FUNC_NAME = "TO_UINT8";
 const char* const CAST_BLOB_FUNC_NAME = "BLOB";
 const char* const CAST_TO_BLOB_FUNC_NAME = "TO_BLOB";
+const char* const CAST_UUID_FUNC_NAME = "UUID";
+const char* const CAST_TO_UUID_FUNC_NAME = "TO_UUID";
 const char* const CAST_TO_BOOL_FUNC_NAME = "TO_BOOL";
 const char* const CAST_TO_INT128_FUNC_NAME = "TO_INT128";
 

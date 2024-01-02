@@ -32,6 +32,13 @@
 34|this is a long name
 9|Greg
 
+-CASE InsertNodeWithUUIDTest
+-STATEMENT CREATE (:person {ID:32, fName: 'Emma', age: 25, u: 'A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A20'});
+---- ok
+-STATEMENT MATCH (a:person) where a.fName='Emma' return a.u ;
+---- 1
+a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20
+
 -CASE InsertNodeWithMixedLabelTest
 -STATEMENT CREATE (:person {ID:32, fName:'A'}), (:organisation {ID:33, orgCode:144})
 ---- ok

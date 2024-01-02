@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include "common/types/uuid.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
@@ -162,6 +163,7 @@ std::unique_ptr<ArrowVector> ArrowRowBatch::createVector(
     case LogicalTypeID::INTERVAL: {
         templateInitializeVector<LogicalTypeID::INTERVAL>(result.get(), typeInfo, capacity);
     } break;
+    case LogicalTypeID::UUID:
     case LogicalTypeID::STRING: {
         templateInitializeVector<LogicalTypeID::STRING>(result.get(), typeInfo, capacity);
     } break;
@@ -242,6 +244,17 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRING>(
     offsets[pos + 1] = offsets[pos] + strLength;
     vector->overflow.resize(offsets[pos + 1]);
     std::memcpy(vector->overflow.data() + offsets[pos], value->strVal.data(), strLength);
+}
+
+template<>
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::UUID>(
+    ArrowVector* vector, const main::DataTypeInfo& /*typeInfo*/, Value* value, std::int64_t pos) {
+    auto offsets = (std::uint32_t*)vector->data.data();
+    auto str = UUID::toString(value->val.int128Val);
+    auto strLength = str.length();
+    offsets[pos + 1] = offsets[pos] + strLength;
+    vector->overflow.resize(offsets[pos + 1]);
+    std::memcpy(vector->overflow.data() + offsets[pos], str.data(), strLength);
 }
 
 template<>
@@ -354,6 +367,9 @@ void ArrowRowBatch::copyNonNullValue(
     } break;
     case LogicalTypeID::INT128: {
         templateCopyNonNullValue<LogicalTypeID::INT128>(vector, typeInfo, value, pos);
+    } break;
+    case LogicalTypeID::UUID: {
+        templateCopyNonNullValue<LogicalTypeID::UUID>(vector, typeInfo, value, pos);
     } break;
     case LogicalTypeID::INT64: {
         templateCopyNonNullValue<LogicalTypeID::INT64>(vector, typeInfo, value, pos);
@@ -531,6 +547,7 @@ void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_
     case LogicalTypeID::INTERVAL: {
         templateCopyNullValue<LogicalTypeID::INTERVAL>(vector, pos);
     } break;
+    case LogicalTypeID::UUID:
     case LogicalTypeID::STRING: {
         templateCopyNullValue<LogicalTypeID::STRING>(vector, pos);
     } break;
@@ -727,6 +744,7 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(
     case LogicalTypeID::INTERVAL: {
         return templateCreateArray<LogicalTypeID::INTERVAL>(vector, typeInfo);
     }
+    case LogicalTypeID::UUID:
     case LogicalTypeID::STRING: {
         return templateCreateArray<LogicalTypeID::STRING>(vector, typeInfo);
     }

@@ -4,6 +4,7 @@
 #include "common/copier_config/csv_reader_config.h"
 #include "common/type_utils.h"
 #include "common/types/blob.h"
+#include "common/types/uuid.h"
 #include "common/vector/value_vector.h"
 
 using namespace kuzu::common;
@@ -158,6 +159,10 @@ inline void CastString::operation(const ku_string_t& input, bool& result,
 
 template<>
 void CastString::operation(const ku_string_t& input, blob_t& result, ValueVector* resultVector,
+    uint64_t rowToAdd, const CSVOption* option);
+
+template<>
+void CastString::operation(const ku_string_t& input, uuid_t& result, ValueVector* result_vector,
     uint64_t rowToAdd, const CSVOption* option);
 
 template<>

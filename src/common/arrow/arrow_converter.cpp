@@ -123,6 +123,7 @@ void ArrowConverter::setArrowFormat(
     case LogicalTypeID::INTERVAL: {
         child.format = "tDm";
     } break;
+    case LogicalTypeID::UUID:
     case LogicalTypeID::STRING: {
         child.format = "u";
     } break;

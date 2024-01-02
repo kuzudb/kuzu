@@ -3,6 +3,7 @@ import pytz
 import math
 import sys
 from decimal import Decimal
+from uuid import UUID
 
 import kuzu
 from pandas import Timestamp, Timedelta, isna
@@ -292,6 +293,7 @@ def test_df_get_recursive_join(establish_connection):
                                        'gender': 2,
                                        'grades': [98, 42, 93, 88],
                                        'height': 0.9900000095367432,
+                                       'u': UUID('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12'),
                                        'isStudent': True,
                                        'isWorker': False,
                                        'lastJobDuration': datetime.timedelta(days=3750, seconds=46800, microseconds=24),

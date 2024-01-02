@@ -8,6 +8,7 @@
 #include "common/type_utils.h"
 #include "common/types/blob.h"
 #include "common/types/ku_string.h"
+#include "common/types/uuid.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {
@@ -89,6 +90,8 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value(nodeID_t());
     case LogicalTypeID::BLOB:
         return Value(LogicalType::BLOB(), std::string(""));
+    case LogicalTypeID::UUID:
+        return Value(LogicalType::UUID(), std::string(""));
     case LogicalTypeID::STRING:
         return Value(LogicalType::STRING(), std::string(""));
     case LogicalTypeID::FLOAT:
@@ -309,6 +312,9 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::BLOB: {
         strVal = ((blob_t*)value)->value.getAsString();
     } break;
+    case LogicalTypeID::UUID: {
+        val.int128Val = ((uuid_t*)value)->value;
+    } break;
     case LogicalTypeID::STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
     } break;
@@ -452,6 +458,8 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.internalIDVal);
     case LogicalTypeID::BLOB:
         return Blob::toString(reinterpret_cast<const uint8_t*>(strVal.c_str()), strVal.length());
+    case LogicalTypeID::UUID:
+        return UUID::toString(val.int128Val);
     case LogicalTypeID::STRING:
         return strVal;
     case LogicalTypeID::RDF_VARIANT: {

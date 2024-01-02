@@ -31,6 +31,7 @@ class Type(Enum):
     INTERNAL_ID = "INTERNAL_ID"
     STRING = "STRING"
     BLOB = "BLOB"
+    UUID = "UUID"
     VAR_LIST = "VAR_LIST"
     STRUCT = "STRUCT"
     MAP = "MAP"
