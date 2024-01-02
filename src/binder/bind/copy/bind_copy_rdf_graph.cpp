@@ -33,7 +33,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     auto pOffset = expressionBinder.createVariableExpression(*LogicalType::INT64(), rdf::PID);
     auto oOffset = expressionBinder.createVariableExpression(
         *LogicalType::INT64(), InternalKeyword::DST_OFFSET);
-    auto bindInput = std::make_unique<ScanTableFuncBindInput>(*config);
+    auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy());
     Function* func;
     // Bind file scan;
     auto inMemory = RdfReaderConfig::construct(config->options).inMemory;
@@ -52,8 +52,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
         rScanFunc, bindData->copy(), std::move(rColumns), offset);
     auto rTableID = rdfSchema->getResourceTableID();
     auto rSchema = catalog.getTableSchema(clientContext->getTx(), rTableID);
-    auto rCopyInfo =
-        std::make_unique<BoundCopyFromInfo>(rSchema, std::move(rScanInfo), false, nullptr);
+    auto rCopyInfo = BoundCopyFromInfo(rSchema, std::move(rScanInfo), false, nullptr);
     // Bind copy literal.
     func = inMemory ? functions->matchFunction(IN_MEM_READ_RDF_LITERAL_FUNC_NAME) :
                       functions->matchFunction(READ_RDF_LITERAL_FUNC_NAME);
@@ -63,8 +62,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
         lScanFunc, bindData->copy(), std::move(lColumns), offset);
     auto lTableID = rdfSchema->getLiteralTableID();
     auto lSchema = catalog.getTableSchema(clientContext->getTx(), lTableID);
-    auto lCopyInfo =
-        std::make_unique<BoundCopyFromInfo>(lSchema, std::move(lScanInfo), true, nullptr);
+    auto lCopyInfo = BoundCopyFromInfo(lSchema, std::move(lScanInfo), true, nullptr);
     // Bind copy resource triples
     func = inMemory ? functions->matchFunction(IN_MEM_READ_RDF_RESOURCE_TRIPLE_FUNC_NAME) :
                       functions->matchFunction(READ_RDF_RESOURCE_TRIPLE_FUNC_NAME);
@@ -75,16 +73,16 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     auto rrrTableID = rdfSchema->getResourceTripleTableID();
     auto rrrSchema = catalog.getTableSchema(clientContext->getTx(), rrrTableID);
     auto rrrExtraInfo = std::make_unique<ExtraBoundCopyRelInfo>();
-    auto sLookUp = std::make_unique<IndexLookupInfo>(rTableID, sOffset, s, s->getDataType().copy());
-    auto pLookUp = std::make_unique<IndexLookupInfo>(rTableID, pOffset, p, p->getDataType().copy());
-    auto oLookUp = std::make_unique<IndexLookupInfo>(rTableID, oOffset, o, o->getDataType().copy());
-    rrrExtraInfo->infos.push_back(sLookUp->copy());
-    rrrExtraInfo->infos.push_back(pLookUp->copy());
-    rrrExtraInfo->infos.push_back(oLookUp->copy());
+    auto sLookUp = IndexLookupInfo(rTableID, sOffset, s, s->getDataType());
+    auto pLookUp = IndexLookupInfo(rTableID, pOffset, p, p->getDataType());
+    auto oLookUp = IndexLookupInfo(rTableID, oOffset, o, o->getDataType());
+    rrrExtraInfo->infos.push_back(sLookUp.copy());
+    rrrExtraInfo->infos.push_back(pLookUp.copy());
+    rrrExtraInfo->infos.push_back(oLookUp.copy());
     rrrExtraInfo->fromOffset = sOffset;
     rrrExtraInfo->toOffset = oOffset;
-    auto rrrCopyInfo = std::make_unique<BoundCopyFromInfo>(
-        rrrSchema, std::move(rrrScanInfo), false, std::move(rrrExtraInfo));
+    auto rrrCopyInfo =
+        BoundCopyFromInfo(rrrSchema, std::move(rrrScanInfo), false, std::move(rrrExtraInfo));
     // Bind copy literal triples
     func = inMemory ? functions->matchFunction(IN_MEM_READ_RDF_LITERAL_TRIPLE_FUNC_NAME) :
                       functions->matchFunction(READ_RDF_LITERAL_TRIPLE_FUNC_NAME);
@@ -95,20 +93,17 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     auto rrlTableID = rdfSchema->getLiteralTripleTableID();
     auto rrlSchema = catalog.getTableSchema(clientContext->getTx(), rrlTableID);
     auto rrlExtraInfo = std::make_unique<ExtraBoundCopyRelInfo>();
-    rrlExtraInfo->infos.push_back(sLookUp->copy());
-    rrlExtraInfo->infos.push_back(pLookUp->copy());
+    rrlExtraInfo->infos.push_back(sLookUp.copy());
+    rrlExtraInfo->infos.push_back(pLookUp.copy());
     rrlExtraInfo->propertyColumns.push_back(oOffset);
     rrlExtraInfo->fromOffset = sOffset;
     rrlExtraInfo->toOffset = oOffset;
-    auto rrLCopyInfo = std::make_unique<BoundCopyFromInfo>(
-        rrlSchema, std::move(rrlScanInfo), false, std::move(rrlExtraInfo));
+    auto rrLCopyInfo =
+        BoundCopyFromInfo(rrlSchema, std::move(rrlScanInfo), false, std::move(rrlExtraInfo));
     // Bind copy rdf
-    auto rdfExtraInfo = std::make_unique<ExtraBoundCopyRdfInfo>();
-    rdfExtraInfo->rInfo = std::move(rCopyInfo);
-    rdfExtraInfo->lInfo = std::move(lCopyInfo);
-    rdfExtraInfo->rrrInfo = std::move(rrrCopyInfo);
-    rdfExtraInfo->rrlInfo = std::move(rrLCopyInfo);
-    auto rdfCopyInfo = std::make_unique<BoundCopyFromInfo>(
+    auto rdfExtraInfo = std::make_unique<ExtraBoundCopyRdfInfo>(
+        std::move(rCopyInfo), std::move(lCopyInfo), std::move(rrrCopyInfo), std::move(rrLCopyInfo));
+    auto rdfCopyInfo = BoundCopyFromInfo(
         rdfSchema, inMemory ? std::move(scanInfo) : nullptr, false, std::move(rdfExtraInfo));
     return std::make_unique<BoundCopyFrom>(std::move(rdfCopyInfo));
 }

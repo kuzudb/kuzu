@@ -23,18 +23,11 @@ struct SubqueryGraphHasher {
 };
 
 struct SubqueryGraph {
-
     const QueryGraph& queryGraph;
     std::bitset<MAX_NUM_QUERY_VARIABLES> queryNodesSelector;
     std::bitset<MAX_NUM_QUERY_VARIABLES> queryRelsSelector;
 
     explicit SubqueryGraph(const QueryGraph& queryGraph) : queryGraph{queryGraph} {}
-
-    SubqueryGraph(const SubqueryGraph& other)
-        : queryGraph{other.queryGraph}, queryNodesSelector{other.queryNodesSelector},
-          queryRelsSelector{other.queryRelsSelector} {}
-
-    ~SubqueryGraph() = default;
 
     inline void addQueryNode(uint32_t nodePos) { queryNodesSelector[nodePos] = true; }
     inline void addQueryRel(uint32_t relPos) { queryRelsSelector[relPos] = true; }
@@ -77,13 +70,6 @@ private:
 class QueryGraph {
 public:
     QueryGraph() = default;
-
-    QueryGraph(const QueryGraph& other)
-        : queryNodeNameToPosMap{other.queryNodeNameToPosMap},
-          queryRelNameToPosMap{other.queryRelNameToPosMap},
-          queryNodes{other.queryNodes}, queryRels{other.queryRels} {}
-
-    ~QueryGraph() = default;
 
     inline uint32_t getNumQueryNodes() const { return queryNodes.size(); }
     inline bool containsQueryNode(const std::string& queryNodeName) const {
@@ -149,25 +135,24 @@ private:
 class QueryGraphCollection {
 public:
     QueryGraphCollection() = default;
+    DELETE_COPY_DEFAULT_MOVE(QueryGraphCollection);
 
-    void addAndMergeQueryGraphIfConnected(std::unique_ptr<QueryGraph> queryGraphToAdd);
+    void addAndMergeQueryGraphIfConnected(QueryGraph queryGraphToAdd);
     inline uint32_t getNumQueryGraphs() const { return queryGraphs.size(); }
-    inline QueryGraph* getQueryGraph(uint32_t idx) const { return queryGraphs[idx].get(); }
+    inline QueryGraph* getQueryGraphUnsafe(uint32_t idx) { return &queryGraphs[idx]; }
+    inline const QueryGraph* getQueryGraph(uint32_t idx) const { return &queryGraphs[idx]; }
 
     std::vector<std::shared_ptr<NodeExpression>> getQueryNodes() const;
     std::vector<std::shared_ptr<RelExpression>> getQueryRels() const;
 
-    std::unique_ptr<QueryGraphCollection> copy() const;
-
 private:
-    std::vector<std::unique_ptr<QueryGraph>> queryGraphs;
+    std::vector<QueryGraph> queryGraphs;
 };
 
 class PropertyKeyValCollection {
 public:
     PropertyKeyValCollection() = default;
-    PropertyKeyValCollection(const PropertyKeyValCollection& other)
-        : propertyKeyValMap{other.propertyKeyValMap} {}
+    DELETE_COPY_DEFAULT_MOVE(PropertyKeyValCollection);
 
     void addKeyVal(const std::shared_ptr<Expression>& variable, const std::string& propertyName,
         expression_pair keyVal);
@@ -178,10 +163,6 @@ public:
     expression_pair getKeyVal(
         const std::shared_ptr<Expression>& variable, const std::string& propertyName) const;
 
-    inline std::unique_ptr<PropertyKeyValCollection> copy() const {
-        return std::make_unique<PropertyKeyValCollection>(*this);
-    }
-
 private:
     // First indexed on variable, then indexed on property name.
     // a -> { age -> pair<a.age,12>, name -> pair<name,'Alice'>}
@@ -189,9 +170,12 @@ private:
 };
 
 struct BoundGraphPattern {
-    std::unique_ptr<QueryGraphCollection> queryGraphCollection;
-    std::unique_ptr<PropertyKeyValCollection> propertyKeyValCollection;
+    QueryGraphCollection queryGraphCollection;
+    PropertyKeyValCollection propertyKeyValCollection;
     std::shared_ptr<Expression> where;
+
+    BoundGraphPattern() = default;
+    DELETE_COPY_DEFAULT_MOVE(BoundGraphPattern);
 };
 
 } // namespace binder

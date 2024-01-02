@@ -46,12 +46,12 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
     auto& matchClause = ku_dynamic_cast<const ReadingClause&, const MatchClause&>(readingClause);
     auto boundGraphPattern = bindGraphPattern(matchClause.getPatternElementsRef());
     if (matchClause.hasWherePredicate()) {
-        boundGraphPattern->where = bindWhereExpression(*matchClause.getWherePredicate());
+        boundGraphPattern.where = bindWhereExpression(*matchClause.getWherePredicate());
     }
-    rewriteMatchPattern(*boundGraphPattern);
-    auto boundMatch = make_unique<BoundMatchClause>(
-        std::move(boundGraphPattern->queryGraphCollection), matchClause.getMatchClauseType());
-    boundMatch->setPredicate(boundGraphPattern->where);
+    rewriteMatchPattern(boundGraphPattern);
+    auto boundMatch = std::make_unique<BoundMatchClause>(
+        std::move(boundGraphPattern.queryGraphCollection), matchClause.getMatchClauseType());
+    boundMatch->setPredicate(boundGraphPattern.where);
     return boundMatch;
 }
 
@@ -59,9 +59,9 @@ void Binder::rewriteMatchPattern(BoundGraphPattern& boundGraphPattern) {
     // Rewrite self loop edge
     // e.g. rewrite (a)-[e]->(a) as [a]-[e]->(b) WHERE id(a) = id(b)
     expression_vector selfLoopEdgePredicates;
-    auto graphCollection = boundGraphPattern.queryGraphCollection.get();
-    for (auto i = 0u; i < graphCollection->getNumQueryGraphs(); ++i) {
-        auto queryGraph = graphCollection->getQueryGraph(i);
+    auto& graphCollection = boundGraphPattern.queryGraphCollection;
+    for (auto i = 0u; i < graphCollection.getNumQueryGraphs(); ++i) {
+        auto queryGraph = graphCollection.getQueryGraphUnsafe(i);
         for (auto& queryRel : queryGraph->getQueryRels()) {
             if (!queryRel->isSelfLoop()) {
                 continue;
@@ -81,7 +81,7 @@ void Binder::rewriteMatchPattern(BoundGraphPattern& boundGraphPattern) {
         where = expressionBinder.combineBooleanExpressions(ExpressionType::AND, predicate, where);
     }
     // Rewrite key value pairs in MATCH clause as predicate
-    for (auto& [key, val] : boundGraphPattern.propertyKeyValCollection->getKeyVals()) {
+    for (auto& [key, val] : boundGraphPattern.propertyKeyValCollection.getKeyVals()) {
         auto predicate = expressionBinder.createEqualityComparisonExpression(key, val);
         where = expressionBinder.combineBooleanExpressions(ExpressionType::AND, predicate, where);
     }
@@ -174,7 +174,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     }
     auto scanFunction = getScanFunction(readerConfig->fileType, *readerConfig);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager,
-        *readerConfig, std::move(expectedColumnNames), std::move(expectedColumnTypes), vfs);
+        readerConfig->copy(), std::move(expectedColumnNames), std::move(expectedColumnTypes), vfs);
     auto bindData =
         scanFunction->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;
@@ -183,8 +183,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     }
     auto offset = expressionBinder.createVariableExpression(
         LogicalType(LogicalTypeID::INT64), std::string(InternalKeyword::ROW_OFFSET));
-    auto info = std::make_unique<BoundFileScanInfo>(
-        scanFunction, std::move(bindData), std::move(columns), std::move(offset));
+    auto info =
+        BoundFileScanInfo(scanFunction, std::move(bindData), std::move(columns), std::move(offset));
     auto boundLoadFrom = std::make_unique<BoundLoadFrom>(std::move(info));
     if (loadFrom.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*loadFrom.getWherePredicate());

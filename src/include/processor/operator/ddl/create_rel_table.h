@@ -8,7 +8,7 @@ namespace processor {
 class CreateRelTable final : public DDL {
 public:
     CreateRelTable(catalog::Catalog* catalog, storage::StorageManager* storageManager,
-        std::unique_ptr<binder::BoundCreateTableInfo> info, const DataPos& outputPos, uint32_t id,
+        binder::BoundCreateTableInfo info, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
         : DDL{PhysicalOperatorType::CREATE_REL_TABLE, catalog, outputPos, id, paramsString},
           storageManager{storageManager}, info{std::move(info)} {}
@@ -19,12 +19,12 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<CreateRelTable>(
-            catalog, storageManager, info->copy(), outputPos, id, paramsString);
+            catalog, storageManager, info.copy(), outputPos, id, paramsString);
     }
 
 private:
     storage::StorageManager* storageManager;
-    std::unique_ptr<binder::BoundCreateTableInfo> info;
+    binder::BoundCreateTableInfo info;
 };
 
 } // namespace processor

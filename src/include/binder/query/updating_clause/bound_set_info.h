@@ -15,13 +15,12 @@ struct BoundSetPropertyInfo {
         expression_pair setItem)
         : updateTableType{updateTableType}, nodeOrRel{std::move(nodeOrRel)}, setItem{std::move(
                                                                                  setItem)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(BoundSetPropertyInfo);
+
+private:
     BoundSetPropertyInfo(const BoundSetPropertyInfo& other)
         : updateTableType{other.updateTableType}, nodeOrRel{other.nodeOrRel}, setItem{
                                                                                   other.setItem} {}
-
-    inline std::unique_ptr<BoundSetPropertyInfo> copy() const {
-        return std::make_unique<BoundSetPropertyInfo>(*this);
-    }
 };
 
 } // namespace binder

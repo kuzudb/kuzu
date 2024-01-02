@@ -27,33 +27,32 @@ namespace binder {
 //    - In UPDATE clause, there are properties to set.
 // We do not store key-value pairs in query graph primarily because we will merge key-value
 // std::pairs with other predicates specified in WHERE clause.
-std::unique_ptr<BoundGraphPattern> Binder::bindGraphPattern(
-    const std::vector<PatternElement>& graphPattern) {
-    auto propertyCollection = std::make_unique<PropertyKeyValCollection>();
-    auto queryGraphCollection = std::make_unique<QueryGraphCollection>();
+BoundGraphPattern Binder::bindGraphPattern(const std::vector<PatternElement>& graphPattern) {
+    auto propertyCollection = PropertyKeyValCollection();
+    auto queryGraphCollection = QueryGraphCollection();
     for (auto& patternElement : graphPattern) {
-        queryGraphCollection->addAndMergeQueryGraphIfConnected(
-            bindPatternElement(patternElement, *propertyCollection));
+        queryGraphCollection.addAndMergeQueryGraphIfConnected(
+            bindPatternElement(patternElement, propertyCollection));
     }
-    auto boundPattern = std::make_unique<BoundGraphPattern>();
-    boundPattern->queryGraphCollection = std::move(queryGraphCollection);
-    boundPattern->propertyKeyValCollection = std::move(propertyCollection);
+    auto boundPattern = BoundGraphPattern();
+    boundPattern.queryGraphCollection = std::move(queryGraphCollection);
+    boundPattern.propertyKeyValCollection = std::move(propertyCollection);
     return boundPattern;
 }
 
 // Grammar ensures pattern element is always connected and thus can be bound as a query graph.
-std::unique_ptr<QueryGraph> Binder::bindPatternElement(
+QueryGraph Binder::bindPatternElement(
     const PatternElement& patternElement, PropertyKeyValCollection& collection) {
-    auto queryGraph = std::make_unique<QueryGraph>();
+    auto queryGraph = QueryGraph();
     expression_vector nodeAndRels;
-    auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), *queryGraph, collection);
+    auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), queryGraph, collection);
     nodeAndRels.push_back(leftNode);
     for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
         auto patternElementChain = patternElement.getPatternElementChain(i);
         auto rightNode =
-            bindQueryNode(*patternElementChain->getNodePattern(), *queryGraph, collection);
+            bindQueryNode(*patternElementChain->getNodePattern(), queryGraph, collection);
         auto rel = bindQueryRel(
-            *patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph, collection);
+            *patternElementChain->getRelPattern(), leftNode, rightNode, queryGraph, collection);
         nodeAndRels.push_back(rel);
         nodeAndRels.push_back(rightNode);
         leftNode = rightNode;

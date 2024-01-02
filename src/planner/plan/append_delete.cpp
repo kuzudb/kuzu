@@ -9,7 +9,7 @@ namespace kuzu {
 namespace planner {
 
 void QueryPlanner::appendDeleteNode(
-    const std::vector<BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
+    const std::vector<const BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos;
     infos.reserve(boundInfos.size());
     for (auto& boundInfo : boundInfos) {
@@ -28,7 +28,7 @@ void QueryPlanner::appendDeleteNode(
 }
 
 void QueryPlanner::appendDeleteRel(
-    const std::vector<BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
+    const std::vector<const BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::shared_ptr<RelExpression>> rels;
     for (auto& info : boundInfos) {
         auto rel = std::static_pointer_cast<RelExpression>(info->nodeOrRel);

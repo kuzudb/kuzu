@@ -5,28 +5,21 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-BoundInsertClause::BoundInsertClause(const BoundInsertClause& other)
-    : BoundUpdatingClause{ClauseType::INSERT} {
-    for (auto& info : other.infos) {
-        infos.push_back(info->copy());
-    }
-}
-
 bool BoundInsertClause::hasInfo(const std::function<bool(const BoundInsertInfo&)>& check) const {
     for (auto& info : infos) {
-        if (check(*info)) {
+        if (check(info)) {
             return true;
         }
     }
     return false;
 }
 
-std::vector<BoundInsertInfo*> BoundInsertClause::getInfos(
+std::vector<const BoundInsertInfo*> BoundInsertClause::getInfos(
     const std::function<bool(const BoundInsertInfo&)>& check) const {
-    std::vector<BoundInsertInfo*> result;
+    std::vector<const BoundInsertInfo*> result;
     for (auto& info : infos) {
-        if (check(*info)) {
-            result.push_back(info.get());
+        if (check(info)) {
+            result.push_back(&info);
         }
     }
     return result;

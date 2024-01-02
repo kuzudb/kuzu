@@ -7,10 +7,10 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindCommentOn(const parser::Statement& statement) {
-    auto& commentOnStatement =
+    auto& commentOn =
         common::ku_dynamic_cast<const parser::Statement&, const parser::CommentOn&>(statement);
-    auto tableName = commentOnStatement.getTable();
-    auto comment = commentOnStatement.getComment();
+    auto tableName = commentOn.getTable();
+    auto comment = commentOn.getComment();
     validateTableExist(tableName);
     auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
     return std::make_unique<BoundCommentOn>(tableID, tableName, comment);

@@ -12,16 +12,15 @@ namespace binder {
 class SubqueryExpression : public Expression {
 public:
     SubqueryExpression(common::SubqueryType subqueryType, common::LogicalType dataType,
-        std::unique_ptr<QueryGraphCollection> queryGraphCollection, std::string uniqueName,
-        std::string rawName)
+        QueryGraphCollection queryGraphCollection, std::string uniqueName, std::string rawName)
         : Expression{common::ExpressionType::SUBQUERY, std::move(dataType), std::move(uniqueName)},
           subqueryType{subqueryType},
           queryGraphCollection{std::move(queryGraphCollection)}, rawName{std::move(rawName)} {}
 
     inline common::SubqueryType getSubqueryType() const { return subqueryType; }
 
-    inline QueryGraphCollection* getQueryGraphCollection() const {
-        return queryGraphCollection.get();
+    inline const QueryGraphCollection* getQueryGraphCollection() const {
+        return &queryGraphCollection;
     }
 
     inline void setWhereExpression(std::shared_ptr<Expression> expression) {
@@ -46,7 +45,7 @@ public:
 
 private:
     common::SubqueryType subqueryType;
-    std::unique_ptr<QueryGraphCollection> queryGraphCollection;
+    QueryGraphCollection queryGraphCollection;
     std::shared_ptr<Expression> whereExpression;
     std::shared_ptr<Expression> countStarExpr;
     std::shared_ptr<Expression> projectionExpr;

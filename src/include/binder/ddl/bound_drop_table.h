@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundDropTable : public BoundStatement {
+class BoundDropTable final : public BoundStatement {
 public:
     BoundDropTable(common::table_id_t tableID, std::string tableName)
         : BoundStatement{common::StatementType::DROP_TABLE,

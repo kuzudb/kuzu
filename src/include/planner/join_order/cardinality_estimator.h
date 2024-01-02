@@ -15,7 +15,7 @@ public:
         : nodesStatistics{nodesStatistics}, relsStatistics{relsStatistics} {}
 
     // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.
-    void initNodeIDDom(binder::QueryGraph* queryGraph);
+    void initNodeIDDom(const binder::QueryGraph& queryGraph);
     void addNodeIDDom(
         const binder::Expression& nodeID, const std::vector<common::table_id_t>& tableIDs);
 

@@ -59,8 +59,8 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindInsertClause(
     auto nodeRelScope = populateNodeRelScope(*scope);
     // bindGraphPattern will update scope.
     auto boundGraphPattern = bindGraphPattern(insertClause.getPatternElementsRef());
-    auto createInfos = bindCreateInfos(*boundGraphPattern->queryGraphCollection,
-        *boundGraphPattern->propertyKeyValCollection, nodeRelScope);
+    auto createInfos = bindCreateInfos(boundGraphPattern.queryGraphCollection,
+        boundGraphPattern.propertyKeyValCollection, nodeRelScope);
     return std::make_unique<BoundInsertClause>(std::move(createInfos));
 }
 
@@ -71,14 +71,14 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     // bindGraphPattern will update scope.
     auto boundGraphPattern = bindGraphPattern(mergeClause.getPatternElementsRef());
     std::shared_ptr<Expression> predicate = nullptr;
-    for (auto& [key, val] : boundGraphPattern->propertyKeyValCollection->getKeyVals()) {
+    for (auto& [key, val] : boundGraphPattern.propertyKeyValCollection.getKeyVals()) {
         predicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
             expressionBinder.createEqualityComparisonExpression(key, val), predicate);
     }
-    auto createInfos = bindCreateInfos(*boundGraphPattern->queryGraphCollection,
-        *boundGraphPattern->propertyKeyValCollection, nodeRelScope);
+    auto createInfos = bindCreateInfos(boundGraphPattern.queryGraphCollection,
+        boundGraphPattern.propertyKeyValCollection, nodeRelScope);
     auto boundMergeClause =
-        std::make_unique<BoundMergeClause>(std::move(boundGraphPattern->queryGraphCollection),
+        std::make_unique<BoundMergeClause>(std::move(boundGraphPattern.queryGraphCollection),
             std::move(predicate), std::move(createInfos));
     if (mergeClause.hasOnMatchSetItems()) {
         for (auto& [lhs, rhs] : mergeClause.getOnMatchSetItemsRef()) {
@@ -95,11 +95,11 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     return boundMergeClause;
 }
 
-std::vector<std::unique_ptr<BoundInsertInfo>> Binder::bindCreateInfos(
+std::vector<BoundInsertInfo> Binder::bindCreateInfos(
     const QueryGraphCollection& queryGraphCollection,
     const PropertyKeyValCollection& keyValCollection, const expression_set& nodeRelScope_) {
     auto nodeRelScope = nodeRelScope_;
-    std::vector<std::unique_ptr<BoundInsertInfo>> result;
+    std::vector<BoundInsertInfo> result;
     for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
         auto queryGraph = queryGraphCollection.getQueryGraph(i);
         for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {
@@ -144,7 +144,7 @@ static void validatePrimaryKeyExistence(const PropertyKeyValCollection& collecti
     }
 }
 
-std::unique_ptr<BoundInsertInfo> Binder::bindInsertNodeInfo(
+BoundInsertInfo Binder::bindInsertNodeInfo(
     std::shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection) {
     if (node->isMultiLabeled()) {
         throw BinderException(
@@ -154,11 +154,10 @@ std::unique_ptr<BoundInsertInfo> Binder::bindInsertNodeInfo(
     auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     validatePrimaryKeyExistence(collection, tableSchema, node);
     auto setItems = bindSetItems(collection, tableSchema, node);
-    return std::make_unique<BoundInsertInfo>(
-        UpdateTableType::NODE, std::move(node), std::move(setItems));
+    return BoundInsertInfo(UpdateTableType::NODE, std::move(node), std::move(setItems));
 }
 
-std::unique_ptr<BoundInsertInfo> Binder::bindInsertRelInfo(
+BoundInsertInfo Binder::bindInsertRelInfo(
     std::shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection) {
     if (rel->isMultiLabeled() || rel->isBoundByMultiLabeledNode()) {
         throw BinderException(
@@ -172,8 +171,7 @@ std::unique_ptr<BoundInsertInfo> Binder::bindInsertRelInfo(
     auto relTableID = rel->getSingleTableID();
     auto tableSchema = catalog.getTableSchema(clientContext->getTx(), relTableID);
     auto setItems = bindSetItems(collection, tableSchema, rel);
-    return std::make_unique<BoundInsertInfo>(
-        UpdateTableType::REL, std::move(rel), std::move(setItems));
+    return BoundInsertInfo(UpdateTableType::REL, std::move(rel), std::move(setItems));
 }
 
 std::vector<expression_pair> Binder::bindSetItems(const PropertyKeyValCollection& collection,
@@ -203,15 +201,13 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause&
     return boundSetClause;
 }
 
-std::unique_ptr<BoundSetPropertyInfo> Binder::bindSetPropertyInfo(
+BoundSetPropertyInfo Binder::bindSetPropertyInfo(
     parser::ParsedExpression* lhs, parser::ParsedExpression* rhs) {
     auto boundLhs = expressionBinder.bindExpression(*lhs->getChild(0));
     if (ExpressionUtil::isNodePattern(*boundLhs)) {
-        return std::make_unique<BoundSetPropertyInfo>(
-            UpdateTableType::NODE, boundLhs, bindSetItem(lhs, rhs));
+        return BoundSetPropertyInfo(UpdateTableType::NODE, boundLhs, bindSetItem(lhs, rhs));
     } else if (ExpressionUtil::isRelPattern(*boundLhs)) {
-        return std::make_unique<BoundSetPropertyInfo>(
-            UpdateTableType::REL, boundLhs, bindSetItem(lhs, rhs));
+        return BoundSetPropertyInfo(UpdateTableType::REL, boundLhs, bindSetItem(lhs, rhs));
     } else {
         throw BinderException(
             stringFormat("Cannot set expression {} with type {}. Expect node or rel pattern.",
@@ -233,7 +229,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
     for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
         auto nodeOrRel = expressionBinder.bindExpression(*deleteClause.getExpression(i));
         if (ExpressionUtil::isNodePattern(*nodeOrRel)) {
-            auto deleteNodeInfo = std::make_unique<BoundDeleteInfo>(
+            auto deleteNodeInfo = BoundDeleteInfo(
                 UpdateTableType::NODE, nodeOrRel, deleteClause.getDeleteClauseType());
             boundDeleteClause->addInfo(std::move(deleteNodeInfo));
         } else if (ExpressionUtil::isRelPattern(*nodeOrRel)) {
@@ -245,8 +241,8 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
             if (rel->getDirectionType() == RelDirectionType::BOTH) {
                 throw BinderException("Delete undirected rel is not supported.");
             }
-            auto deleteRel = std::make_unique<BoundDeleteInfo>(
-                UpdateTableType::REL, nodeOrRel, DeleteClauseType::DELETE);
+            auto deleteRel =
+                BoundDeleteInfo(UpdateTableType::REL, nodeOrRel, DeleteClauseType::DELETE);
             boundDeleteClause->addInfo(std::move(deleteRel));
         } else {
             throw BinderException(stringFormat(

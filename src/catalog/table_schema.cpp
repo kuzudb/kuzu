@@ -21,7 +21,9 @@ TableSchema::TableSchema(const TableSchema& other) {
     tableType = other.tableType;
     tableName = other.tableName;
     tableID = other.tableID;
-    properties = Property::copy(other.properties);
+    for (auto& property : other.properties) {
+        properties.push_back(std::make_unique<Property>(property->copy()));
+    }
     comment = other.comment;
     nextPropertyID = other.nextPropertyID;
 }

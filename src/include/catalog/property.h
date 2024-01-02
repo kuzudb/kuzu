@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/copy_constructors.h"
 #include "common/types/types.h"
 
 namespace kuzu {
@@ -8,9 +9,6 @@ class Serializer;
 class Deserializer;
 } // namespace common
 namespace catalog {
-
-class Property;
-using property_vector_t = std::vector<std::unique_ptr<Property>>;
 
 class Property {
 public:
@@ -21,6 +19,7 @@ public:
         common::property_id_t propertyID, common::table_id_t tableID)
         : name{std::move(name)}, dataType{std::move(dataType)},
           propertyID{propertyID}, tableID{tableID} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(Property);
 
     inline std::string getName() const { return name; }
 
@@ -39,12 +38,12 @@ public:
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<Property> deserialize(common::Deserializer& deserializer);
 
-    inline std::unique_ptr<Property> copy() const {
-        return std::make_unique<Property>(name, dataType->copy(), propertyID, tableID);
-    }
+    static std::vector<Property> copy(const std::vector<Property>& properties);
 
-    static std::vector<std::unique_ptr<Property>> copy(
-        const std::vector<std::unique_ptr<Property>>& properties);
+private:
+    Property(const Property& other)
+        : name{other.name}, dataType{other.dataType->copy()},
+          propertyID{other.propertyID}, tableID{other.tableID} {}
 
 private:
     std::string name;

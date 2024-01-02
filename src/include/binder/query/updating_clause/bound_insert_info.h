@@ -15,13 +15,12 @@ struct BoundInsertInfo {
         std::vector<expression_pair> setItems)
         : updateTableType{updateTableType}, nodeOrRel{std::move(nodeOrRel)}, setItems{std::move(
                                                                                  setItems)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(BoundInsertInfo);
+
+private:
     BoundInsertInfo(const BoundInsertInfo& other)
         : updateTableType{other.updateTableType}, nodeOrRel{other.nodeOrRel}, setItems{
                                                                                   other.setItems} {}
-
-    inline std::unique_ptr<BoundInsertInfo> copy() {
-        return std::make_unique<BoundInsertInfo>(*this);
-    }
 };
 
 } // namespace binder

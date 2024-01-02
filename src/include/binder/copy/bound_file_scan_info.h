@@ -18,13 +18,12 @@ struct BoundFileScanInfo {
         std::shared_ptr<Expression> offset)
         : copyFunc{copyFunc}, bindData{std::move(bindData)}, columns{std::move(columns)},
           offset{std::move(offset)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(BoundFileScanInfo);
+
+private:
     BoundFileScanInfo(const BoundFileScanInfo& other)
         : copyFunc{other.copyFunc}, bindData{other.bindData->copy()}, columns{other.columns},
           offset{other.offset} {}
-
-    inline std::unique_ptr<BoundFileScanInfo> copy() const {
-        return std::make_unique<BoundFileScanInfo>(*this);
-    }
 };
 
 } // namespace binder

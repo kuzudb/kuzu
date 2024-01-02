@@ -5,20 +5,15 @@
 namespace kuzu {
 namespace binder {
 
-/**
- * BoundWithClause may not have whereExpression
- */
-class BoundWithClause : public BoundReturnClause {
+class BoundWithClause final : public BoundReturnClause {
 public:
-    explicit BoundWithClause(std::unique_ptr<BoundProjectionBody> projectionBody)
+    explicit BoundWithClause(BoundProjectionBody projectionBody)
         : BoundReturnClause{std::move(projectionBody)} {}
 
     inline void setWhereExpression(std::shared_ptr<Expression> expression) {
         whereExpression = std::move(expression);
     }
-
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
-
     inline std::shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
 
 private:

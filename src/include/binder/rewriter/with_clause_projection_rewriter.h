@@ -14,7 +14,7 @@ namespace binder {
 // See bind_projection_clause.cpp for more details.
 class WithClauseProjectionRewriter : public BoundStatementVisitor {
 public:
-    void visitSingleQuery(const NormalizedSingleQuery& singleQuery) override;
+    void visitSingleQueryUnsafe(NormalizedSingleQuery& singleQuery) override;
 };
 
 } // namespace binder

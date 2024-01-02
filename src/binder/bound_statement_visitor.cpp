@@ -9,7 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement) {
+void BoundStatementVisitor::visit(const BoundStatement& statement) {
     switch (statement.getStatementType()) {
     case StatementType::QUERY: {
         visitRegularQuery(statement);
@@ -49,11 +49,28 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     }
 }
 
+void BoundStatementVisitor::visitUnsafe(BoundStatement& statement) {
+    switch (statement.getStatementType()) {
+    case StatementType::QUERY: {
+        visitRegularQueryUnsafe(statement);
+    } break;
+    default:
+        break;
+    }
+}
+
 void BoundStatementVisitor::visitRegularQuery(const BoundStatement& statement) {
     auto& regularQuery =
         ku_dynamic_cast<const BoundStatement&, const BoundRegularQuery&>(statement);
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); ++i) {
         visitSingleQuery(*regularQuery.getSingleQuery(i));
+    }
+}
+
+void BoundStatementVisitor::visitRegularQueryUnsafe(BoundStatement& statement) {
+    auto& regularQuery = ku_dynamic_cast<BoundStatement&, BoundRegularQuery&>(statement);
+    for (auto i = 0u; i < regularQuery.getNumSingleQueries(); ++i) {
+        visitSingleQueryUnsafe(*regularQuery.getSingleQueryUnsafe(i));
     }
 }
 

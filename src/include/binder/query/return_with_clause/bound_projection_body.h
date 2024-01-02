@@ -12,13 +12,7 @@ public:
     BoundProjectionBody(bool isDistinct, expression_vector projectionExpressions)
         : isDistinct{isDistinct}, projectionExpressions{std::move(projectionExpressions)},
           skipNumber{INVALID_NUMBER}, limitNumber{INVALID_NUMBER} {}
-    BoundProjectionBody(const BoundProjectionBody& other)
-        : isDistinct{other.isDistinct}, projectionExpressions{other.projectionExpressions},
-          groupByExpressions{other.groupByExpressions},
-          aggregateExpressions{other.aggregateExpressions},
-          orderByExpressions{other.orderByExpressions}, isAscOrders{other.isAscOrders},
-          skipNumber{other.skipNumber}, limitNumber{other.limitNumber} {}
-    ~BoundProjectionBody() = default;
+    EXPLICIT_COPY_DEFAULT_MOVE(BoundProjectionBody);
 
     inline bool getIsDistinct() const { return isDistinct; }
 
@@ -56,9 +50,13 @@ public:
 
     inline bool hasSkipOrLimit() const { return hasSkip() || hasLimit(); }
 
-    inline std::unique_ptr<BoundProjectionBody> copy() const {
-        return std::make_unique<BoundProjectionBody>(*this);
-    }
+private:
+    BoundProjectionBody(const BoundProjectionBody& other)
+        : isDistinct{other.isDistinct}, projectionExpressions{other.projectionExpressions},
+          groupByExpressions{other.groupByExpressions},
+          aggregateExpressions{other.aggregateExpressions},
+          orderByExpressions{other.orderByExpressions}, isAscOrders{other.isAscOrders},
+          skipNumber{other.skipNumber}, limitNumber{other.limitNumber} {}
 
 private:
     bool isDistinct;

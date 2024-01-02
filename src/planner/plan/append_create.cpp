@@ -8,7 +8,7 @@ namespace kuzu {
 namespace planner {
 
 std::unique_ptr<LogicalInsertNodeInfo> QueryPlanner::createLogicalInsertNodeInfo(
-    BoundInsertInfo* boundInsertInfo) {
+    const BoundInsertInfo* boundInsertInfo) {
     auto node = std::static_pointer_cast<NodeExpression>(boundInsertInfo->nodeOrRel);
     auto propertiesToReturn = getProperties(*node);
     return std::make_unique<LogicalInsertNodeInfo>(
@@ -16,7 +16,7 @@ std::unique_ptr<LogicalInsertNodeInfo> QueryPlanner::createLogicalInsertNodeInfo
 }
 
 std::unique_ptr<LogicalInsertRelInfo> QueryPlanner::createLogicalInsertRelInfo(
-    BoundInsertInfo* boundInsertInfo) {
+    const BoundInsertInfo* boundInsertInfo) {
     auto rel = std::static_pointer_cast<RelExpression>(boundInsertInfo->nodeOrRel);
     auto propertiesToReturn = getProperties(*rel);
     return std::make_unique<LogicalInsertRelInfo>(
@@ -24,7 +24,7 @@ std::unique_ptr<LogicalInsertRelInfo> QueryPlanner::createLogicalInsertRelInfo(
 }
 
 void QueryPlanner::appendInsertNode(
-    const std::vector<binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
+    const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalInsertNodeInfo>> logicalInfos;
     logicalInfos.reserve(boundInsertInfos.size());
     for (auto& boundInfo : boundInsertInfos) {
@@ -39,7 +39,7 @@ void QueryPlanner::appendInsertNode(
 }
 
 void QueryPlanner::appendInsertRel(
-    const std::vector<binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
+    const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalInsertRelInfo>> logicalInfos;
     logicalInfos.reserve(boundInsertInfos.size());
     for (auto& boundInfo : boundInsertInfos) {

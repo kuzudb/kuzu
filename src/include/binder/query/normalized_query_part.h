@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "binder/query/reading_clause/bound_reading_clause.h"
 #include "binder/query/return_with_clause/bound_projection_body.h"
 #include "binder/query/updating_clause/bound_updating_clause.h"
@@ -10,7 +12,7 @@ namespace binder {
 class NormalizedQueryPart {
 public:
     NormalizedQueryPart() = default;
-    ~NormalizedQueryPart() = default;
+    DELETE_COPY_DEFAULT_MOVE(NormalizedQueryPart);
 
     inline void addReadingClause(std::unique_ptr<BoundReadingClause> boundReadingClause) {
         readingClauses.push_back(std::move(boundReadingClause));
@@ -30,11 +32,18 @@ public:
         return updatingClauses[idx].get();
     }
 
-    inline void setProjectionBody(std::unique_ptr<BoundProjectionBody> boundProjectionBody) {
+    inline void setProjectionBody(BoundProjectionBody boundProjectionBody) {
         projectionBody = std::move(boundProjectionBody);
     }
-    inline bool hasProjectionBody() const { return projectionBody != nullptr; }
-    inline BoundProjectionBody* getProjectionBody() const { return projectionBody.get(); }
+    inline bool hasProjectionBody() const { return projectionBody.has_value(); }
+    inline BoundProjectionBody* getProjectionBodyUnsafe() {
+        KU_ASSERT(projectionBody.has_value());
+        return &projectionBody.value();
+    }
+    inline const BoundProjectionBody* getProjectionBody() const {
+        KU_ASSERT(projectionBody.has_value());
+        return &projectionBody.value();
+    }
 
     inline bool hasProjectionBodyPredicate() const { return projectionBodyPredicate != nullptr; }
     inline std::shared_ptr<Expression> getProjectionBodyPredicate() const {
@@ -47,7 +56,7 @@ public:
 private:
     std::vector<std::unique_ptr<BoundReadingClause>> readingClauses;
     std::vector<std::unique_ptr<BoundUpdatingClause>> updatingClauses;
-    std::unique_ptr<BoundProjectionBody> projectionBody;
+    std::optional<BoundProjectionBody> projectionBody;
     std::shared_ptr<Expression> projectionBodyPredicate;
 };
 

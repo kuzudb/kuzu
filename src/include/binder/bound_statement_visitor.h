@@ -12,22 +12,25 @@ public:
     virtual ~BoundStatementVisitor() = default;
 
     void visit(const BoundStatement& statement);
+    void visitUnsafe(BoundStatement& statement);
 
     virtual void visitSingleQuery(const NormalizedSingleQuery& singleQuery);
 
 protected:
-    virtual void visitCreateTable(const BoundStatement& /*statement*/) {}
-    virtual void visitDropTable(const BoundStatement& /*statement*/) {}
-    virtual void visitAlter(const BoundStatement& /*statement*/) {}
-    virtual void visitCopyFrom(const BoundStatement& /*statement*/) {}
-    virtual void visitCopyTo(const BoundStatement& /*statement*/) {}
-    virtual void visitStandaloneCall(const BoundStatement& /*statement*/) {}
-    virtual void visitCommentOn(const BoundStatement& /*statement*/) {}
-    virtual void visitExplain(const BoundStatement& /*statement*/);
-    virtual void visitCreateMacro(const BoundStatement& /*statement*/) {}
-    virtual void visitTransaction(const BoundStatement& /*statement*/) {}
+    virtual void visitCreateTable(const BoundStatement&) {}
+    virtual void visitDropTable(const BoundStatement&) {}
+    virtual void visitAlter(const BoundStatement&) {}
+    virtual void visitCopyFrom(const BoundStatement&) {}
+    virtual void visitCopyTo(const BoundStatement&) {}
+    virtual void visitStandaloneCall(const BoundStatement&) {}
+    virtual void visitCommentOn(const BoundStatement&) {}
+    virtual void visitExplain(const BoundStatement&);
+    virtual void visitCreateMacro(const BoundStatement&) {}
+    virtual void visitTransaction(const BoundStatement&) {}
 
     virtual void visitRegularQuery(const BoundStatement& statement);
+    virtual void visitRegularQueryUnsafe(BoundStatement& statement);
+    virtual void visitSingleQueryUnsafe(NormalizedSingleQuery&) {}
     virtual void visitQueryPart(const NormalizedQueryPart& queryPart);
     void visitReadingClause(const BoundReadingClause& readingClause);
     virtual void visitMatch(const BoundReadingClause& /*readingClause*/) {}

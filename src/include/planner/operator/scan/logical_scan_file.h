@@ -8,22 +8,22 @@ namespace planner {
 
 class LogicalScanFile : public LogicalOperator {
 public:
-    explicit LogicalScanFile(std::unique_ptr<binder::BoundFileScanInfo> info)
+    explicit LogicalScanFile(binder::BoundFileScanInfo info)
         : LogicalOperator{LogicalOperatorType::SCAN_FILE}, info{std::move(info)} {}
 
     inline std::string getExpressionsForPrinting() const override { return std::string(); }
 
-    inline binder::BoundFileScanInfo* getInfo() const { return info.get(); }
+    inline const binder::BoundFileScanInfo* getInfo() const { return &info; }
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalScanFile>(info->copy());
+        return std::make_unique<LogicalScanFile>(info.copy());
     }
 
 private:
-    std::unique_ptr<binder::BoundFileScanInfo> info;
+    binder::BoundFileScanInfo info;
 };
 
 } // namespace planner

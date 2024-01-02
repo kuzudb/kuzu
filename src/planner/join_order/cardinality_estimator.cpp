@@ -10,13 +10,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void CardinalityEstimator::initNodeIDDom(QueryGraph* queryGraph) {
-    for (auto i = 0u; i < queryGraph->getNumQueryNodes(); ++i) {
-        auto node = queryGraph->getQueryNode(i).get();
+void CardinalityEstimator::initNodeIDDom(const QueryGraph& queryGraph) {
+    for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
+        auto node = queryGraph.getQueryNode(i).get();
         addNodeIDDom(*node->getInternalID(), node->getTableIDs());
     }
-    for (auto i = 0u; i < queryGraph->getNumQueryRels(); ++i) {
-        auto rel = queryGraph->getQueryRel(i);
+    for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
+        auto rel = queryGraph.getQueryRel(i);
         if (QueryRelTypeUtils::isRecursive(rel->getRelType())) {
             auto node = rel->getRecursiveInfo()->node.get();
             addNodeIDDom(*node->getInternalID(), node->getTableIDs());

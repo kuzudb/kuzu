@@ -9,32 +9,31 @@ namespace planner {
 
 class LogicalCopyFrom final : public LogicalOperator {
 public:
-    LogicalCopyFrom(std::unique_ptr<binder::BoundCopyFromInfo> info,
-        binder::expression_vector outExprs, std::shared_ptr<LogicalOperator> child)
+    LogicalCopyFrom(binder::BoundCopyFromInfo info, binder::expression_vector outExprs,
+        std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::COPY_FROM, std::move(child)}, info{std::move(info)},
           outExprs{std::move(outExprs)} {}
-    LogicalCopyFrom(std::unique_ptr<binder::BoundCopyFromInfo> info,
-        binder::expression_vector outExprs, logical_op_vector_t children)
+    LogicalCopyFrom(binder::BoundCopyFromInfo info, binder::expression_vector outExprs,
+        logical_op_vector_t children)
         : LogicalOperator{LogicalOperatorType::COPY_FROM, std::move(children)},
           info{std::move(info)}, outExprs{std::move(outExprs)} {}
 
     inline std::string getExpressionsForPrinting() const override {
-        return info->tableSchema->tableName;
+        return info.tableSchema->tableName;
     }
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline binder::BoundCopyFromInfo* getInfo() const { return info.get(); }
+    inline const binder::BoundCopyFromInfo* getInfo() const { return &info; }
     inline binder::expression_vector getOutExprs() const { return outExprs; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyFrom>(
-            info->copy(), outExprs, LogicalOperator::copy(children));
+        return make_unique<LogicalCopyFrom>(info.copy(), outExprs, LogicalOperator::copy(children));
     }
 
 private:
-    std::unique_ptr<binder::BoundCopyFromInfo> info;
+    binder::BoundCopyFromInfo info;
     binder::expression_vector outExprs;
 };
 

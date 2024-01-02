@@ -5,23 +5,23 @@
 namespace kuzu {
 namespace binder {
 
-class PropertyCollector : public BoundStatementVisitor {
+class PropertyCollector final : public BoundStatementVisitor {
 public:
     expression_vector getProperties();
 
 private:
-    void visitMatch(const BoundReadingClause& readingClause) final;
-    void visitUnwind(const BoundReadingClause& readingClause) final;
-    void visitLoadFrom(const BoundReadingClause& readingClause) final;
-    void visitInQueryCall(const BoundReadingClause& readingClause) final;
+    void visitMatch(const BoundReadingClause& readingClause) override;
+    void visitUnwind(const BoundReadingClause& readingClause) override;
+    void visitLoadFrom(const BoundReadingClause& readingClause) override;
+    void visitInQueryCall(const BoundReadingClause& readingClause) override;
 
-    void visitSet(const BoundUpdatingClause& updatingClause) final;
-    void visitDelete(const BoundUpdatingClause& updatingClause) final;
-    void visitInsert(const BoundUpdatingClause& updatingClause) final;
-    void visitMerge(const BoundUpdatingClause& updatingClause) final;
+    void visitSet(const BoundUpdatingClause& updatingClause) override;
+    void visitDelete(const BoundUpdatingClause& updatingClause) override;
+    void visitInsert(const BoundUpdatingClause& updatingClause) override;
+    void visitMerge(const BoundUpdatingClause& updatingClause) override;
 
-    void visitProjectionBody(const BoundProjectionBody& projectionBody) final;
-    void visitProjectionBodyPredicate(const std::shared_ptr<Expression>& predicate) final;
+    void visitProjectionBody(const BoundProjectionBody& projectionBody) override;
+    void visitProjectionBodyPredicate(const std::shared_ptr<Expression>& predicate) override;
 
     void collectPropertyExpressions(const std::shared_ptr<Expression>& expression);
 

@@ -8,20 +8,24 @@ namespace binder {
 
 class NormalizedSingleQuery {
 public:
-    inline void appendQueryPart(std::unique_ptr<NormalizedQueryPart> queryPart) {
+    NormalizedSingleQuery() = default;
+    DELETE_COPY_DEFAULT_MOVE(NormalizedSingleQuery);
+
+    inline void appendQueryPart(NormalizedQueryPart queryPart) {
         queryParts.push_back(std::move(queryPart));
     }
     inline uint32_t getNumQueryParts() const { return queryParts.size(); }
-    inline NormalizedQueryPart* getQueryPart(uint32_t idx) const { return queryParts[idx].get(); }
+    inline NormalizedQueryPart* getQueryPartUnsafe(uint32_t idx) { return &queryParts[idx]; }
+    inline const NormalizedQueryPart* getQueryPart(uint32_t idx) const { return &queryParts[idx]; }
 
-    inline void setStatementResult(std::unique_ptr<BoundStatementResult> result) {
+    inline void setStatementResult(BoundStatementResult result) {
         statementResult = std::move(result);
     }
-    inline BoundStatementResult* getStatementResult() const { return statementResult.get(); }
+    inline const BoundStatementResult* getStatementResult() const { return &statementResult; }
 
 private:
-    std::vector<std::unique_ptr<NormalizedQueryPart>> queryParts;
-    std::unique_ptr<BoundStatementResult> statementResult;
+    std::vector<NormalizedQueryPart> queryParts;
+    BoundStatementResult statementResult;
 };
 
 } // namespace binder

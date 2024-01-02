@@ -120,11 +120,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
     switch (tableSchema->getTableType()) {
     case TableType::NODE:
         return std::make_unique<AddNodeProperty>(catalog, info->tableID, extraInfo->propertyName,
-            extraInfo->dataType->copy(), std::move(expressionEvaluator), storageManager,
+            extraInfo->dataType.copy(), std::move(expressionEvaluator), storageManager,
             getOutputPos(alter), getOperatorID(), alter->getExpressionsForPrinting());
     case TableType::REL:
         return std::make_unique<AddRelProperty>(catalog, info->tableID, extraInfo->propertyName,
-            extraInfo->dataType->copy(), std::move(expressionEvaluator), storageManager,
+            extraInfo->dataType.copy(), std::move(expressionEvaluator), storageManager,
             getOutputPos(alter), getOperatorID(), alter->getExpressionsForPrinting());
     default:
         KU_UNREACHABLE;

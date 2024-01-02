@@ -11,7 +11,7 @@ namespace processor {
 
 void CreateRdfGraph::executeDDLInternal(ExecutionContext* context) {
     auto tx = context->clientContext->getTx();
-    auto newRdfGraphID = catalog->addRdfGraphSchema(*info);
+    auto newRdfGraphID = catalog->addRdfGraphSchema(info);
     auto rdfGraphSchema =
         reinterpret_cast<RdfGraphSchema*>(catalog->getTableSchema(tx, newRdfGraphID));
     auto resourceTableID = rdfGraphSchema->getResourceTableID();
@@ -35,7 +35,7 @@ void CreateRdfGraph::executeDDLInternal(ExecutionContext* context) {
 }
 
 std::string CreateRdfGraph::getOutputMsg() {
-    return common::stringFormat("RDF graph {} has been created.", info->tableName);
+    return common::stringFormat("RDF graph {} has been created.", info.tableName);
 }
 
 } // namespace processor

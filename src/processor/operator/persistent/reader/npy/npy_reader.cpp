@@ -263,7 +263,7 @@ std::unique_ptr<function::TableFuncBindData> NpyScanFunction::bindFunc(
     std::vector<std::unique_ptr<common::LogicalType>> resultColumnTypes;
     ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
         resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
-    auto config = scanInput->config;
+    auto config = scanInput->config.copy();
     KU_ASSERT(!config.filePaths.empty() && config.getNumFiles() == resultColumnNames.size());
     row_idx_t numRows;
     for (auto i = 0u; i < config.getNumFiles(); i++) {
@@ -274,14 +274,14 @@ std::unique_ptr<function::TableFuncBindData> NpyScanFunction::bindFunc(
         reader->validate(*resultColumnTypes[i], numRows);
     }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->mm, scanInput->config, scanInput->vfs);
+        std::move(resultColumnNames), scanInput->mm, scanInput->config.copy(), scanInput->vfs);
 }
 
 std::unique_ptr<function::TableFuncSharedState> NpyScanFunction::initSharedState(
     function::TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
     auto reader = make_unique<NpyReader>(bindData->config.filePaths[0]);
-    return std::make_unique<NpyScanSharedState>(bindData->config, reader->getNumRows());
+    return std::make_unique<NpyScanSharedState>(bindData->config.copy(), reader->getNumRows());
 }
 
 std::unique_ptr<function::TableFuncLocalState> NpyScanFunction::initLocalState(
