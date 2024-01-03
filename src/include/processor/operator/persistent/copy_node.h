@@ -22,7 +22,7 @@ public:
         : readerSharedState{nullptr}, distinctSharedState{nullptr}, currentNodeGroupIdx{0},
           sharedNodeGroup{nullptr} {};
 
-    void init();
+    void init(ExecutionContext* context);
 
     inline common::offset_t getNextNodeGroupIdx() {
         std::unique_lock lck{mtx};
@@ -34,7 +34,7 @@ public:
     void appendIncompleteNodeGroup(std::unique_ptr<storage::NodeGroup> localNodeGroup,
         std::optional<IndexBuilder>& indexBuilder);
 
-    void addLastNodeGroup(std::optional<IndexBuilder>& indexBuilder);
+    void finalize(ExecutionContext* context);
 
 private:
     inline common::offset_t getNextNodeGroupIdxWithoutLock() { return currentNodeGroupIdx++; }
@@ -42,7 +42,7 @@ private:
     void calculateNumTuples();
 
 public:
-    std::shared_ptr<storage::PrimaryKeyIndexBuilder> indexBuilder;
+    std::shared_ptr<storage::PrimaryKeyIndexBuilder> pkIndex;
     // Number of tuples loaded.
     uint64_t numTuples;
     // Table storing result message.
@@ -56,6 +56,7 @@ private:
     // Primary key info
     common::vector_idx_t pkColumnIdx;
     common::LogicalType pkType;
+    std::optional<IndexBuilder> globalIndexBuilder = std::nullopt;
 
     InQueryCallSharedState* readerSharedState;
     HashAggregateSharedState* distinctSharedState;
@@ -93,12 +94,10 @@ class CopyNode : public Sink {
 public:
     CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, std::unique_ptr<CopyNodeInfo> info,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString,
-        std::optional<IndexBuilder> indexBuilder = std::nullopt)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child),
               id, paramsString},
-          sharedState{std::move(sharedState)}, info{std::move(info)},
-          indexBuilder(std::move(indexBuilder)) {}
+          sharedState{std::move(sharedState)}, info{std::move(info)} {}
 
     inline std::shared_ptr<CopyNodeSharedState> getSharedState() const { return sharedState; }
 
@@ -114,8 +113,7 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<CopyNode>(sharedState, info->copy(), resultSetDescriptor->copy(),
-            children[0]->clone(), id, paramsString,
-            indexBuilder ? std::make_optional<IndexBuilder>(indexBuilder->clone()) : std::nullopt);
+            children[0]->clone(), id, paramsString);
     }
 
     static void writeAndResetNodeGroup(common::node_group_idx_t nodeGroupIdx,
@@ -124,14 +122,12 @@ public:
 
 private:
     void copyToNodeGroup();
-    void initGlobalIndexBuilder(ExecutionContext* context);
-    void initLocalIndexBuilder(ExecutionContext* context);
 
 protected:
     std::shared_ptr<CopyNodeSharedState> sharedState;
     std::unique_ptr<CopyNodeInfo> info;
 
-    std::optional<IndexBuilder> indexBuilder;
+    std::optional<IndexBuilder> localIndexBuilder;
 
     common::DataChunkState* columnState;
     std::vector<std::shared_ptr<common::ValueVector>> nullColumnVectors;

@@ -13,9 +13,25 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void CopyNodeSharedState::init() {
+void CopyNodeSharedState::init(ExecutionContext* context) {
     wal->logCopyTableRecord(table->getTableID(), TableType::NODE);
     wal->flushAllPages();
+    if (pkType != *LogicalType::SERIAL()) {
+        auto indexFName = StorageUtils::getNodeIndexFName(
+            context->vfs, wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
+        pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(indexFName, pkType, context->vfs);
+        uint64_t numRows;
+        if (readerSharedState != nullptr) {
+            KU_ASSERT(distinctSharedState == nullptr);
+            auto scanSharedState =
+                reinterpret_cast<function::ScanSharedState*>(readerSharedState->sharedState.get());
+            numRows = scanSharedState->numRows;
+        } else {
+            numRows = distinctSharedState->getFactorizedTable()->getNumTuples();
+        }
+        pkIndex->bulkReserve(numRows);
+        globalIndexBuilder = IndexBuilder(std::make_shared<IndexBuilderSharedState>(pkIndex.get()));
+    }
 }
 
 void CopyNodeSharedState::appendIncompleteNodeGroup(
@@ -37,6 +53,19 @@ void CopyNodeSharedState::appendIncompleteNodeGroup(
     }
 }
 
+void CopyNodeSharedState::finalize(ExecutionContext* context) {
+    calculateNumTuples();
+    if (sharedNodeGroup) {
+        auto nodeGroupIdx = getNextNodeGroupIdx();
+        CopyNode::writeAndResetNodeGroup(
+            nodeGroupIdx, globalIndexBuilder, pkColumnIdx, table, sharedNodeGroup.get());
+    }
+    table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(table->getTableID(), numTuples);
+    if (globalIndexBuilder) {
+        globalIndexBuilder->finalize(context);
+    }
+}
+
 static bool isEmptyTable(NodeTable* nodeTable) {
     auto nodesStatistics = nodeTable->getNodeStatisticsAndDeletedIDs();
     return nodesStatistics->getNodeStatisticsAndDeletedIDs(nodeTable->getTableID())
@@ -47,34 +76,10 @@ void CopyNode::initGlobalStateInternal(ExecutionContext* context) {
     if (!isEmptyTable(info->table)) {
         throw CopyException(ExceptionMessage::notAllowCopyOnNonEmptyTableException());
     }
-    sharedState->init();
-    initGlobalIndexBuilder(context);
+    sharedState->init(context);
 }
 
-void CopyNode::initGlobalIndexBuilder(ExecutionContext* context) {
-    if (sharedState->pkType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
-        auto indexFName =
-            StorageUtils::getNodeIndexFName(context->vfs, sharedState->wal->getDirectory(),
-                sharedState->table->getTableID(), FileVersionType::ORIGINAL);
-        auto pkIndex =
-            std::make_unique<PrimaryKeyIndexBuilder>(indexFName, sharedState->pkType, context->vfs);
-        uint64_t numRows;
-        if (sharedState->readerSharedState != nullptr) {
-            KU_ASSERT(sharedState->distinctSharedState == nullptr);
-            auto scanSharedState = reinterpret_cast<function::ScanSharedState*>(
-                sharedState->readerSharedState->sharedState.get());
-            numRows = scanSharedState->numRows;
-        } else {
-            numRows = sharedState->distinctSharedState->getFactorizedTable()->getNumTuples();
-        }
-        pkIndex->bulkReserve(numRows);
-
-        indexBuilder = IndexBuilder(std::move(pkIndex));
-        indexBuilder->initGlobalStateInternal(context);
-    }
-}
-
-void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
     std::shared_ptr<DataChunkState> state;
     for (auto& pos : info->columnPositions) {
         if (pos.isValid()) {
@@ -82,9 +87,11 @@ void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* co
         }
     }
 
-    if (indexBuilder) {
-        indexBuilder->initLocalStateInternal(context);
+    // NOLINTBEGIN(bugprone-unchecked-optional-access)
+    if (sharedState->globalIndexBuilder) {
+        localIndexBuilder = sharedState->globalIndexBuilder.value().clone();
     }
+    // NOLINTEND(bugprone-unchecked-optional-access)
 
     KU_ASSERT(state != nullptr);
     for (auto i = 0u; i < info->columnPositions.size(); ++i) {
@@ -107,8 +114,8 @@ void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* co
 
 void CopyNode::executeInternal(ExecutionContext* context) {
     std::optional<ProducerToken> token;
-    if (indexBuilder) {
-        token = indexBuilder->getProducerToken();
+    if (localIndexBuilder) {
+        token = localIndexBuilder->getProducerToken();
     }
 
     while (children[0]->getNextTuple(context)) {
@@ -117,12 +124,12 @@ void CopyNode::executeInternal(ExecutionContext* context) {
         columnState->selVector = std::move(originalSelVector);
     }
     if (localNodeGroup->getNumRows() > 0) {
-        sharedState->appendIncompleteNodeGroup(std::move(localNodeGroup), indexBuilder);
+        sharedState->appendIncompleteNodeGroup(std::move(localNodeGroup), localIndexBuilder);
     }
-    if (indexBuilder) {
+    if (localIndexBuilder) {
         KU_ASSERT(token);
         token->quit();
-        indexBuilder->finishedProducing();
+        localIndexBuilder->finishedProducing();
     }
 }
 
@@ -148,18 +155,7 @@ void CopyNodeSharedState::calculateNumTuples() {
 }
 
 void CopyNode::finalize(ExecutionContext* context) {
-    sharedState->calculateNumTuples();
-    if (sharedState->sharedNodeGroup) {
-        auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
-        writeAndResetNodeGroup(nodeGroupIdx, indexBuilder, sharedState->pkColumnIdx,
-            sharedState->table, sharedState->sharedNodeGroup.get());
-    }
-    sharedState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
-        sharedState->table->getTableID(), sharedState->numTuples);
-    if (indexBuilder) {
-        indexBuilder->finalize(context);
-    }
-
+    sharedState->finalize(context);
     for (auto relTable : info->fwdRelTables) {
         relTable->resizeColumns(context->clientContext->getTx(), RelDataDirection::FWD,
             sharedState->getCurNodeGroupIdx());
@@ -184,7 +180,7 @@ void CopyNode::copyToNodeGroup() {
         if (localNodeGroup->isFull()) {
             node_group_idx_t nodeGroupIdx;
             nodeGroupIdx = sharedState->getNextNodeGroupIdx();
-            writeAndResetNodeGroup(nodeGroupIdx, indexBuilder, sharedState->pkColumnIdx,
+            writeAndResetNodeGroup(nodeGroupIdx, localIndexBuilder, sharedState->pkColumnIdx,
                 sharedState->table, localNodeGroup.get());
         }
         if (numAppendedTuples < numTuplesToAppend) {

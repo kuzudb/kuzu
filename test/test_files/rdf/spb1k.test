@@ -1,6 +1,5 @@
 -GROUP RdfoxExample
 -DATASET TTL rdf/spb1k
--SKIP
 
 --
 
