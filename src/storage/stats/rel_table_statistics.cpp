@@ -36,11 +36,11 @@ RelTableStats::RelTableStats(
     bwdPropertyMetadataDAHInfos.clear();
     fwdPropertyMetadataDAHInfos.reserve(schema.getNumProperties());
     bwdPropertyMetadataDAHInfos.reserve(schema.getNumProperties());
-    for (auto property : schema.getProperties()) {
+    for (auto& property : schema.getPropertiesRef()) {
         fwdPropertyMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
-            *property->getDataType(), *metadataFH, bufferManager, wal));
+            *property.getDataType(), *metadataFH, bufferManager, wal));
         bwdPropertyMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
-            *property->getDataType(), *metadataFH, bufferManager, wal));
+            *property.getDataType(), *metadataFH, bufferManager, wal));
     }
 }
 

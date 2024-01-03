@@ -50,9 +50,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
 
 static void getNodeColumnsInCopyOrder(
     TableSchema* tableSchema, std::vector<std::string>& columnNames, logical_types_t& columnTypes) {
-    for (auto& property : tableSchema->getProperties()) {
-        columnNames.push_back(property->getName());
-        columnTypes.push_back(property->getDataType()->copy());
+    for (auto& property : tableSchema->getPropertiesRef()) {
+        columnNames.push_back(property.getName());
+        columnTypes.push_back(property.getDataType()->copy());
     }
 }
 
@@ -64,10 +64,10 @@ static void getRelColumnNamesInCopyOrder(
     columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
     columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
     columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
-    auto properties = tableSchema->getProperties();
+    auto& properties = tableSchema->getPropertiesRef();
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
-        columnNames.push_back(properties[i]->getName());
-        columnTypes.push_back(properties[i]->getDataType()->copy());
+        columnNames.push_back(properties[i].getName());
+        columnTypes.push_back(properties[i].getDataType()->copy());
     }
 }
 
@@ -207,7 +207,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     std::vector<std::unique_ptr<LogicalType>> columnTypes;
     columnTypes.push_back(LogicalType::INTERNAL_ID()); // ADJ COLUMN.
     for (auto& property : tableSchema->properties) {
-        columnTypes.push_back(property->getDataType()->copy());
+        columnTypes.push_back(property.getDataType()->copy());
     }
     auto copyRelSharedState = std::make_shared<CopyRelSharedState>(tableSchema->tableID,
         storageManager.getRelTable(tableSchema->tableID), std::move(columnTypes),

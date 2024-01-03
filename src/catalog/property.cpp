@@ -15,7 +15,7 @@ void Property::serialize(Serializer& serializer) const {
     serializer.serializeValue(tableID);
 }
 
-std::unique_ptr<Property> Property::deserialize(Deserializer& deserializer) {
+Property Property::deserialize(Deserializer& deserializer) {
     std::string name;
     property_id_t propertyID;
     table_id_t tableID;
@@ -23,16 +23,7 @@ std::unique_ptr<Property> Property::deserialize(Deserializer& deserializer) {
     auto dataType = LogicalType::deserialize(deserializer);
     deserializer.deserializeValue(propertyID);
     deserializer.deserializeValue(tableID);
-    return std::make_unique<Property>(name, std::move(dataType), propertyID, tableID);
-}
-
-std::vector<Property> Property::copy(const std::vector<Property>& properties) {
-    std::vector<Property> result;
-    result.reserve(properties.size());
-    for (auto& property : properties) {
-        result.push_back(property.copy());
-    }
-    return result;
+    return Property(name, std::move(dataType), propertyID, tableID);
 }
 
 } // namespace catalog

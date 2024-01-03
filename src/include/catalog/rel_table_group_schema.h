@@ -10,8 +10,7 @@ public:
     RelTableGroupSchema() : TableSchema{common::TableType::REL_GROUP} {}
     RelTableGroupSchema(std::string tableName, common::table_id_t tableID,
         std::vector<common::table_id_t> relTableIDs)
-        : TableSchema{std::move(tableName), tableID, common::TableType::REL_GROUP,
-              std::vector<std::unique_ptr<Property>>{}},
+        : TableSchema{common::TableType::REL_GROUP, std::move(tableName), tableID},
           relTableIDs{std::move(relTableIDs)} {}
     RelTableGroupSchema(const RelTableGroupSchema& other);
 

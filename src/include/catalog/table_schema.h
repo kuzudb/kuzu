@@ -13,13 +13,10 @@ namespace catalog {
 class TableSchema {
 public:
     explicit TableSchema(common::TableType tableType)
-        : tableType{tableType}, tableName{}, tableID{common::INVALID_TABLE_ID}, comment{},
-          nextPropertyID{0} {}
-    TableSchema(std::string tableName, common::table_id_t tableID, common::TableType tableType,
-        std::vector<std::unique_ptr<Property>> properties)
-        : tableType{tableType}, tableName{std::move(tableName)}, tableID{tableID},
-          properties{std::move(properties)}, comment{},
-          nextPropertyID{(common::property_id_t)this->properties.size()} {}
+        : TableSchema(tableType, "", common::INVALID_TABLE_ID) {}
+    TableSchema(common::TableType tableType, std::string tableName, common::table_id_t tableID)
+        : tableType{tableType}, tableName{std::move(tableName)}, tableID{tableID}, comment{},
+          nextPID{0} {}
     TableSchema(const TableSchema& other);
 
     virtual ~TableSchema() = default;
@@ -35,11 +32,11 @@ public:
     static bool isReservedPropertyName(const std::string& propertyName);
 
     inline uint32_t getNumProperties() const { return properties.size(); }
-    std::vector<Property*> getProperties() const;
+    inline const std::vector<Property>& getPropertiesRef() const { return properties; }
     bool containProperty(const std::string& propertyName) const;
     bool containPropertyType(const common::LogicalType& logicalType) const;
     common::property_id_t getPropertyID(const std::string& propertyName) const;
-    Property* getProperty(common::property_id_t propertyID) const;
+    const Property* getProperty(common::property_id_t propertyID) const;
 
     common::column_id_t getColumnID(common::property_id_t propertyID) const;
 
@@ -59,9 +56,9 @@ public:
     common::TableType tableType;
     std::string tableName;
     common::table_id_t tableID;
-    std::vector<std::unique_ptr<Property>> properties;
+    std::vector<Property> properties;
     std::string comment;
-    common::property_id_t nextPropertyID;
+    common::property_id_t nextPID;
 };
 
 } // namespace catalog

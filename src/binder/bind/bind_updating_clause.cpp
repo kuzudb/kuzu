@@ -177,13 +177,13 @@ BoundInsertInfo Binder::bindInsertRelInfo(
 std::vector<expression_pair> Binder::bindSetItems(const PropertyKeyValCollection& collection,
     TableSchema* tableSchema, const std::shared_ptr<Expression>& nodeOrRel) {
     std::vector<expression_pair> setItems;
-    for (auto& property : tableSchema->getProperties()) {
-        if (collection.hasKeyVal(nodeOrRel, property->getName())) { // input specifies rhs.
-            setItems.emplace_back(collection.getKeyVal(nodeOrRel, property->getName()));
+    for (auto& property : tableSchema->getPropertiesRef()) {
+        if (collection.hasKeyVal(nodeOrRel, property.getName())) { // input specifies rhs.
+            setItems.emplace_back(collection.getKeyVal(nodeOrRel, property.getName()));
             continue;
         }
         auto propertyExpression =
-            expressionBinder.bindNodeOrRelPropertyExpression(*nodeOrRel, property->getName());
+            expressionBinder.bindNodeOrRelPropertyExpression(*nodeOrRel, property.getName());
         auto nullExpression = expressionBinder.createNullLiteralExpression();
         nullExpression =
             ExpressionBinder::implicitCastIfNecessary(nullExpression, propertyExpression->dataType);
