@@ -34,16 +34,15 @@ public:
 
     void finalize(CopyToSharedState* sharedState) override;
 
+    static void writeString(common::BufferedSerializer* serializer, CopyToCSVInfo* info,
+        const uint8_t* strData, uint64_t strLen, bool forceQuote);
+
 private:
-    bool requireQuotes(CopyToCSVInfo* info, const uint8_t* str, uint64_t len);
+    static bool requireQuotes(CopyToCSVInfo* info, const uint8_t* str, uint64_t len);
 
-    std::string addEscapes(char toEscape, char escape, const std::string& val);
-
-    void writeString(CopyToCSVInfo* info, const uint8_t* strData, uint64_t strLen, bool forceQuote);
+    static std::string addEscapes(char toEscape, char escape, const std::string& val);
 
     void writeRows(CopyToCSVInfo* info);
-
-    void writeHeader(CopyToSharedState* sharedState, CopyToCSVInfo* info);
 
 private:
     std::unique_ptr<common::BufferedSerializer> serializer;
@@ -63,13 +62,13 @@ public:
 
     void writeRows(const uint8_t* data, uint64_t size);
 
-    bool writeHeader();
+private:
+    void writeHeader(CopyToInfo* info);
 
 private:
     std::mutex mtx;
     std::unique_ptr<common::FileInfo> fileInfo;
     common::offset_t offset = 0;
-    bool outputHeader;
 };
 
 class CopyToCSV final : public CopyTo {
