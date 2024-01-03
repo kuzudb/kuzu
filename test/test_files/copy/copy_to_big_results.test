@@ -76,7 +76,7 @@
 
 -LOG TestCSV
 
--STATEMENT COPY (MATCH (r:tableOfTypes) RETURN r.*) TO '${DATABASE_PATH}/out.csv';
+-STATEMENT COPY (MATCH (r:tableOfTypes) RETURN r.*) TO '${DATABASE_PATH}/out.csv' (header=true);
 ---- ok
 
 -STATEMENT create node table tableOfTypesCopyCSV (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
@@ -84,7 +84,7 @@ dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING, listOfInt INT64
 
 ---- ok
 
--STATEMENT COPY tableOfTypesCopyCSV FROM '${DATABASE_PATH}/out.csv';
+-STATEMENT COPY tableOfTypesCopyCSV FROM '${DATABASE_PATH}/out.csv' (header=true);
 ---- ok
 
 -INSERT_STATEMENT_BLOCK VALIDATE_RESULT
