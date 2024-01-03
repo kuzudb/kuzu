@@ -16,9 +16,9 @@ NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(BMFileHandle* metadataF
     : TableStatistics{schema}, tableID{schema.tableID} {
     metadataDAHInfos.clear();
     metadataDAHInfos.reserve(schema.getNumProperties());
-    for (auto property : schema.getProperties()) {
+    for (auto& property : schema.getPropertiesRef()) {
         metadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
-            *property->getDataType(), *metadataFH, bufferManager, wal));
+            *property.getDataType(), *metadataFH, bufferManager, wal));
     }
 }
 

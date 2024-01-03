@@ -7,7 +7,6 @@
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
-#include "common/string_utils.h"
 #include "main/client_context.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_table.h"
@@ -20,34 +19,44 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
-std::vector<Property> Binder::bindProperties(
-    const std::vector<std::pair<std::string, std::string>>& propertyNameDataTypes) {
-    std::vector<Property> boundPropertyNameDataTypes;
-    std::unordered_set<std::string> boundPropertyNames;
-    boundPropertyNames.reserve(propertyNameDataTypes.size());
-    boundPropertyNameDataTypes.reserve(propertyNameDataTypes.size());
-    for (auto& propertyNameDataType : propertyNameDataTypes) {
-        if (boundPropertyNames.contains(propertyNameDataType.first)) {
+static void validateUniquePropertyName(const std::vector<PropertyInfo>& infos) {
+    std::unordered_set<std::string> nameSet;
+    for (auto& info : infos) {
+        if (nameSet.contains(info.name)) {
             throw BinderException(
-                stringFormat("Duplicated column name: {}, column name must be unique.",
-                    propertyNameDataType.first));
-        } else if (TableSchema::isReservedPropertyName(propertyNameDataType.first)) {
-            throw BinderException(
-                stringFormat("PropertyName: {} is an internal reserved propertyName.",
-                    propertyNameDataType.first));
+                stringFormat("Duplicated column name: {}, column name must be unique.", info.name));
         }
-        boundPropertyNameDataTypes.emplace_back(
-            propertyNameDataType.first, bindDataType(propertyNameDataType.second));
-        boundPropertyNames.emplace(propertyNameDataType.first);
+        nameSet.insert(info.name);
     }
-    return boundPropertyNameDataTypes;
 }
 
-static uint32_t bindPrimaryKey(const std::string& pkColName,
-    std::vector<std::pair<std::string, std::string>> propertyNameDataTypes) {
+static void validateReservedPropertyName(const std::vector<PropertyInfo>& infos) {
+    for (auto& info : infos) {
+        if (TableSchema::isReservedPropertyName(info.name)) {
+            throw BinderException(
+                stringFormat("PropertyName: {} is an internal reserved propertyName.", info.name));
+        }
+    }
+}
+
+std::vector<PropertyInfo> Binder::bindPropertyInfo(
+    const std::vector<std::pair<std::string, std::string>>& propertyNameDataTypes) {
+    std::vector<PropertyInfo> propertyInfos;
+    propertyInfos.reserve(propertyNameDataTypes.size());
+    for (auto& propertyNameDataType : propertyNameDataTypes) {
+        propertyInfos.emplace_back(
+            propertyNameDataType.first, *bindDataType(propertyNameDataType.second));
+    }
+    validateUniquePropertyName(propertyInfos);
+    validateReservedPropertyName(propertyInfos);
+    return propertyInfos;
+}
+
+static uint32_t bindPrimaryKey(
+    const std::string& pkColName, const std::vector<PropertyInfo>& infos) {
     uint32_t primaryKeyIdx = UINT32_MAX;
-    for (auto i = 0u; i < propertyNameDataTypes.size(); i++) {
-        if (propertyNameDataTypes[i].first == pkColName) {
+    for (auto i = 0u; i < infos.size(); i++) {
+        if (infos[i].name == pkColName) {
             primaryKeyIdx = i;
         }
     }
@@ -55,17 +64,16 @@ static uint32_t bindPrimaryKey(const std::string& pkColName,
         throw BinderException(
             "Primary key " + pkColName + " does not match any of the predefined node properties.");
     }
-    auto primaryKey = propertyNameDataTypes[primaryKeyIdx];
-    StringUtils::toUpper(primaryKey.second);
+    auto pkType = infos[primaryKeyIdx].type;
     // We only support INT64, STRING and SERIAL column as the primary key.
-    switch (LogicalTypeUtils::dataTypeFromString(primaryKey.second).getLogicalTypeID()) {
+    switch (pkType.getLogicalTypeID()) {
     case LogicalTypeID::INT64:
     case LogicalTypeID::STRING:
     case LogicalTypeID::SERIAL:
         break;
     default:
         throw BinderException(
-            "Invalid primary key type: " + primaryKey.second + ". Expected STRING or INT64.");
+            "Invalid primary key type: " + pkType.toString() + ". Expected STRING or INT64.");
     }
     return primaryKeyIdx;
 }
@@ -91,27 +99,31 @@ BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* 
 }
 
 BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info) {
-    auto boundProperties = bindProperties(info->propertyNameDataTypes);
-    auto extraInfo = (ExtraCreateNodeTableInfo*)info->extraInfo.get();
-    auto primaryKeyIdx = bindPrimaryKey(extraInfo->pKName, info->propertyNameDataTypes);
-    for (auto i = 0u; i < boundProperties.size(); ++i) {
-        if (boundProperties[i].getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL &&
-            primaryKeyIdx != i) {
+    auto propertyInfos = bindPropertyInfo(info->propertyNameDataTypes);
+    auto extraInfo = ku_dynamic_cast<const ExtraCreateTableInfo*, const ExtraCreateNodeTableInfo*>(
+        info->extraInfo.get());
+    auto primaryKeyIdx = bindPrimaryKey(extraInfo->pKName, propertyInfos);
+    for (auto i = 0u; i < propertyInfos.size(); ++i) {
+        if (propertyInfos[i].type == *LogicalType::SERIAL() && primaryKeyIdx != i) {
             throw BinderException("Serial property in node table must be the primary key.");
         }
     }
     auto boundExtraInfo =
-        std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx, std::move(boundProperties));
+        std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx, std::move(propertyInfos));
     return BoundCreateTableInfo(TableType::NODE, info->tableName, std::move(boundExtraInfo));
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
-    auto boundProperties = bindProperties(info->propertyNameDataTypes);
-    for (auto& boundProperty : boundProperties) {
-        if (boundProperty.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
-            boundProperty.getDataType()->getLogicalTypeID() == LogicalTypeID::MAP) {
-            throw BinderException(stringFormat("{} property is not supported in rel table.",
-                boundProperty.getDataType()->toString()));
+    std::vector<PropertyInfo> propertyInfos;
+    propertyInfos.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID());
+    for (auto& propertyInfo : bindPropertyInfo(info->propertyNameDataTypes)) {
+        propertyInfos.push_back(propertyInfo.copy());
+    }
+    for (auto& propertyInfo : propertyInfos) {
+        if (propertyInfo.type == *LogicalType::SERIAL() ||
+            propertyInfo.type.getLogicalTypeID() == LogicalTypeID::MAP) {
+            throw BinderException(stringFormat(
+                "{} property is not supported in rel table.", propertyInfo.type.toString()));
         }
     }
     auto extraInfo = (ExtraCreateRelTableInfo*)info->extraInfo.get();
@@ -122,7 +134,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     auto dstTableID = bindTableID(extraInfo->dstTableName);
     validateTableType(dstTableID, TableType::NODE);
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
-        srcMultiplicity, dstMultiplicity, srcTableID, dstTableID, std::move(boundProperties));
+        srcMultiplicity, dstMultiplicity, srcTableID, dstTableID, std::move(propertyInfos));
     return BoundCreateTableInfo(TableType::REL, info->tableName, std::move(boundExtraInfo));
 }
 

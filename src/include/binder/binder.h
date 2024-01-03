@@ -116,7 +116,7 @@ private:
     std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
 
-    std::vector<catalog::Property> bindProperties(
+    std::vector<PropertyInfo> bindPropertyInfo(
         const std::vector<std::pair<std::string, std::string>>& propertyNameDataTypes);
 
     /*** bind copy ***/

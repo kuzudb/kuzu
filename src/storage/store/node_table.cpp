@@ -20,7 +20,7 @@ NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     : Table{nodeTableSchema, nodesStatisticsAndDeletedIDs, memoryManager, wal},
       pkColumnID{nodeTableSchema->getColumnID(nodeTableSchema->getPrimaryKeyPropertyID())} {
     tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, tableID, bufferManager, wal,
-        nodeTableSchema->getProperties(), nodesStatisticsAndDeletedIDs, enableCompression);
+        nodeTableSchema->getPropertiesRef(), nodesStatisticsAndDeletedIDs, enableCompression);
     initializePKIndex(nodeTableSchema, readOnly, vfs);
 }
 

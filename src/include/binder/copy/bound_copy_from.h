@@ -46,8 +46,8 @@ struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
 
     ExtraBoundCopyRelInfo() = default;
     ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other)
-        : infos{IndexLookupInfo::copy(other.infos)}, fromOffset{other.fromOffset},
-          toOffset{other.toOffset}, propertyColumns{other.propertyColumns} {}
+        : infos{copyVector(other.infos)}, fromOffset{other.fromOffset}, toOffset{other.toOffset},
+          propertyColumns{other.propertyColumns} {}
 
     inline std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
         return std::make_unique<ExtraBoundCopyRelInfo>(*this);

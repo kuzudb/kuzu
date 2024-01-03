@@ -91,19 +91,18 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     adjColumn = ColumnFactory::createColumn(adjColName, LogicalType::INTERNAL_ID(),
         *adjMetadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
         RWPropertyStats::empty(), enableCompression);
-    auto properties = tableSchema->getProperties();
+    auto& properties = tableSchema->getPropertiesRef();
     columns.reserve(properties.size());
     for (auto i = 0u; i < properties.size(); i++) {
-        auto property = properties[i];
+        auto& property = properties[i];
         auto metadataDAHInfo = relsStoreStats->getPropertyMetadataDAHInfo(
             &DUMMY_WRITE_TRANSACTION, tableID, i, direction);
         auto colName =
-            StorageUtils::getColumnName(property->getName(), StorageUtils::ColumnType::DEFAULT,
+            StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT,
                 RelDataDirectionUtils::relDirectionToString(direction));
-        columns.push_back(ColumnFactory::createColumn(colName, property->getDataType()->copy(),
+        columns.push_back(ColumnFactory::createColumn(colName, property.getDataType()->copy(),
             *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
-            RWPropertyStats(relsStoreStats, tableID, property->getPropertyID()),
-            enableCompression));
+            RWPropertyStats(relsStoreStats, tableID, property.getPropertyID()), enableCompression));
     }
     // Set common tableID for adjColumn and relIDColumn.
     dynamic_cast<InternalIDColumn*>(adjColumn.get())

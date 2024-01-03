@@ -13,8 +13,8 @@ namespace storage {
 
 TableStatistics::TableStatistics(const catalog::TableSchema& schema)
     : tableType{schema.tableType}, numTuples{0}, tableID{schema.tableID} {
-    for (auto property : schema.getProperties()) {
-        propertyStatistics[property->getPropertyID()] = std::make_unique<PropertyStatistics>();
+    for (auto& property : schema.getPropertiesRef()) {
+        propertyStatistics[property.getPropertyID()] = std::make_unique<PropertyStatistics>();
     }
 }
 

@@ -13,20 +13,20 @@ namespace kuzu {
 namespace storage {
 
 NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, table_id_t tableID,
-    BufferManager* bufferManager, WAL* wal, const std::vector<Property*>& properties,
+    BufferManager* bufferManager, WAL* wal, const std::vector<Property>& properties,
     TablesStatistics* tablesStatistics, bool enableCompression)
     : TableData{dataFH, metadataFH, tableID, bufferManager, wal, enableCompression,
           ColumnDataFormat::REGULAR} {
     columns.reserve(properties.size());
     for (auto i = 0u; i < properties.size(); i++) {
-        auto property = properties[i];
+        auto& property = properties[i];
         auto metadataDAHInfo = dynamic_cast<NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
                                    ->getMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, i);
         auto columnName =
-            StorageUtils::getColumnName(property->getName(), StorageUtils::ColumnType::DEFAULT, "");
-        columns.push_back(ColumnFactory::createColumn(columnName, property->getDataType()->copy(),
+            StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
+        columns.push_back(ColumnFactory::createColumn(columnName, property.getDataType()->copy(),
             *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
-            RWPropertyStats(tablesStatistics, tableID, property->getPropertyID()),
+            RWPropertyStats(tablesStatistics, tableID, property.getPropertyID()),
             enableCompression));
     }
 }

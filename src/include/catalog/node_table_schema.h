@@ -5,22 +5,18 @@
 namespace kuzu {
 namespace catalog {
 
-class NodeTableSchema : public TableSchema {
+class NodeTableSchema final : public TableSchema {
 public:
     NodeTableSchema() : TableSchema{common::TableType::NODE} {}
-    NodeTableSchema(std::string tableName, common::table_id_t tableID,
-        common::property_id_t primaryPropertyId, std::vector<std::unique_ptr<Property>> properties)
-        : TableSchema{std::move(tableName), tableID, common::TableType::NODE,
-              std::move(properties)},
-          primaryKeyPropertyID{primaryPropertyId} {}
+    NodeTableSchema(
+        std::string tableName, common::table_id_t tableID, common::property_id_t primaryKeyPID)
+        : TableSchema{common::TableType::NODE, std::move(tableName), tableID}, primaryKeyPID{
+                                                                                   primaryKeyPID} {}
     NodeTableSchema(const NodeTableSchema& other);
 
-    // TODO(Xiyang): this seems in correct;
-    inline Property* getPrimaryKey() const { return properties[primaryKeyPropertyID].get(); }
+    inline const Property* getPrimaryKey() const { return &properties[primaryKeyPID]; }
 
-    static std::unique_ptr<NodeTableSchema> deserialize(common::Deserializer& deserializer);
-
-    inline common::property_id_t getPrimaryKeyPropertyID() const { return primaryKeyPropertyID; }
+    inline common::property_id_t getPrimaryKeyPropertyID() const { return primaryKeyPID; }
 
     inline void addFwdRelTableID(common::table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
     inline void addBwdRelTableID(common::table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
@@ -31,6 +27,8 @@ public:
         return std::make_unique<NodeTableSchema>(*this);
     }
 
+    static std::unique_ptr<NodeTableSchema> deserialize(common::Deserializer& deserializer);
+
 private:
     void serializeInternal(common::Serializer& serializer) final;
 
@@ -39,7 +37,7 @@ private:
     // a more robust mechanism to keep track of which property is the primary key (e.g., store this
     // information with the property). This is an idx, not an ID, so as the columns/properties of
     // the table change, the idx can change.
-    common::property_id_t primaryKeyPropertyID;
+    common::property_id_t primaryKeyPID;
     common::table_id_set_t fwdRelTableIDSet; // srcNode->rel
     common::table_id_set_t bwdRelTableIDSet; // dstNode->rel
 };

@@ -216,11 +216,11 @@ static void bindExpectedColumns(TableSchema* tableSchema,
     } else {
         // No column specified. Fall back to schema columns.
         for (auto& property : tableSchema->properties) {
-            if (skipPropertyInFile(*property)) {
+            if (skipPropertyInFile(property)) {
                 continue;
             }
-            columnNames.push_back(property->getName());
-            columnTypes.push_back(property->getDataType()->copy());
+            columnNames.push_back(property.getName());
+            columnTypes.push_back(property.getDataType()->copy());
         }
     }
 }

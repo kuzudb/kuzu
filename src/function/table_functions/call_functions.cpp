@@ -173,7 +173,7 @@ void TableInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputCh
     auto numPropertiesToOutput = morsel.endOffset - morsel.startOffset;
     auto outVectorPos = 0;
     for (auto i = 0u; i < numPropertiesToOutput; i++) {
-        auto property = tableSchema->properties[morsel.startOffset + i].get();
+        auto property = &tableSchema->properties[morsel.startOffset + i];
         if (tableSchema->getTableType() == TableType::REL &&
             property->getName() == InternalKeyword::ID) {
             continue;

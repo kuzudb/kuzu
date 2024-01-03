@@ -21,58 +21,44 @@ TableSchema::TableSchema(const TableSchema& other) {
     tableType = other.tableType;
     tableName = other.tableName;
     tableID = other.tableID;
-    for (auto& property : other.properties) {
-        properties.push_back(std::make_unique<Property>(property->copy()));
-    }
+    properties = copyVector(other.properties);
     comment = other.comment;
-    nextPropertyID = other.nextPropertyID;
+    nextPID = other.nextPID;
 }
 
 bool TableSchema::isReservedPropertyName(const std::string& propertyName) {
     return StringUtils::getUpper(propertyName) == InternalKeyword::ID;
 }
 
-std::vector<Property*> TableSchema::getProperties() const {
-    std::vector<Property*> propertiesToReturn;
-    propertiesToReturn.reserve(properties.size());
-    for (auto& property : properties) {
-        propertiesToReturn.push_back(property.get());
-    }
-    return propertiesToReturn;
-}
-
 bool TableSchema::containProperty(const std::string& propertyName) const {
     return std::any_of(properties.begin(), properties.end(),
-        [&propertyName](const std::unique_ptr<Property>& property) {
-            return property->getName() == propertyName;
-        });
+        [&propertyName](const Property& property) { return property.getName() == propertyName; });
 }
 
 bool TableSchema::containPropertyType(const common::LogicalType& logicalType) const {
-    return std::any_of(properties.begin(), properties.end(),
-        [&logicalType](const std::unique_ptr<Property>& property) {
-            return *property->getDataType() == logicalType;
+    return std::any_of(
+        properties.begin(), properties.end(), [&logicalType](const Property& property) {
+            return *property.getDataType() == logicalType;
         });
 }
 
 void TableSchema::addProperty(
     std::string propertyName, std::unique_ptr<common::LogicalType> dataType) {
-    properties.push_back(std::make_unique<Property>(
-        std::move(propertyName), std::move(dataType), nextPropertyID++, tableID));
+    properties.emplace_back(std::move(propertyName), std::move(dataType), nextPID++, tableID);
 }
 
 void TableSchema::dropProperty(common::property_id_t propertyID) {
     properties.erase(std::remove_if(properties.begin(), properties.end(),
-                         [propertyID](const std::unique_ptr<Property>& property) {
-                             return property->getPropertyID() == propertyID;
+                         [propertyID](const Property& property) {
+                             return property.getPropertyID() == propertyID;
                          }),
         properties.end());
 }
 
 property_id_t TableSchema::getPropertyID(const std::string& propertyName) const {
     for (auto& property : properties) {
-        if (property->getName() == propertyName) {
-            return property->getPropertyID();
+        if (property.getName() == propertyName) {
+            return property.getPropertyID();
         }
     }
     // LCOV_EXCL_START
@@ -84,17 +70,17 @@ property_id_t TableSchema::getPropertyID(const std::string& propertyName) const 
 // TODO(Guodong): Instead of looping over properties, cache a map between propertyID and columnID.
 column_id_t TableSchema::getColumnID(const property_id_t propertyID) const {
     for (auto i = 0u; i < properties.size(); i++) {
-        if (properties[i]->getPropertyID() == propertyID) {
+        if (properties[i].getPropertyID() == propertyID) {
             return i;
         }
     }
     return INVALID_COLUMN_ID;
 }
 
-Property* TableSchema::getProperty(property_id_t propertyID) const {
+const Property* TableSchema::getProperty(property_id_t propertyID) const {
     for (auto& property : properties) {
-        if (property->getPropertyID() == propertyID) {
-            return property.get();
+        if (property.getPropertyID() == propertyID) {
+            return &property;
         }
     }
     // LCOV_EXCL_START
@@ -105,8 +91,8 @@ Property* TableSchema::getProperty(property_id_t propertyID) const {
 
 void TableSchema::renameProperty(property_id_t propertyID, const std::string& newName) {
     for (auto& property : properties) {
-        if (property->getPropertyID() == propertyID) {
-            property->rename(newName);
+        if (property.getPropertyID() == propertyID) {
+            property.rename(newName);
             return;
         }
     }
@@ -119,9 +105,9 @@ void TableSchema::serialize(Serializer& serializer) {
     serializer.serializeValue(tableName);
     serializer.serializeValue(tableID);
     serializer.serializeValue(tableType);
-    serializer.serializeVectorOfPtrs(properties);
+    serializer.serializeVector(properties);
     serializer.serializeValue(comment);
-    serializer.serializeValue(nextPropertyID);
+    serializer.serializeValue(nextPID);
     serializeInternal(serializer);
 }
 
@@ -129,15 +115,15 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(Deserializer& deserializer
     std::string tableName;
     table_id_t tableID;
     TableType tableType;
-    std::vector<std::unique_ptr<Property>> properties;
+    std::vector<Property> properties;
     std::string comment;
-    property_id_t nextPropertyID;
+    property_id_t nextPID;
     deserializer.deserializeValue(tableName);
     deserializer.deserializeValue(tableID);
     deserializer.deserializeValue(tableType);
-    deserializer.deserializeVectorOfPtrs(properties);
+    deserializer.deserializeVector(properties);
     deserializer.deserializeValue(comment);
-    deserializer.deserializeValue(nextPropertyID);
+    deserializer.deserializeValue(nextPID);
     std::unique_ptr<TableSchema> result;
     switch (tableType) {
     case TableType::NODE: {
@@ -161,7 +147,7 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(Deserializer& deserializer
     result->tableType = tableType;
     result->properties = std::move(properties);
     result->comment = std::move(comment);
-    result->nextPropertyID = nextPropertyID;
+    result->nextPID = nextPID;
     return result;
 }
 

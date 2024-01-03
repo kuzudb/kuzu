@@ -130,11 +130,11 @@ static std::vector<std::string> getPropertyNames(const std::vector<TableSchema*>
     std::unordered_set<std::string> propertyNamesSet;
     for (auto& tableSchema : tableSchemas) {
         for (auto& property : tableSchema->properties) {
-            if (propertyNamesSet.contains(property->getName())) {
+            if (propertyNamesSet.contains(property.getName())) {
                 continue;
             }
-            propertyNamesSet.insert(property->getName());
-            result.push_back(property->getName());
+            propertyNamesSet.insert(property.getName());
+            result.push_back(property.getName());
         }
     }
     return result;
@@ -150,7 +150,7 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
                        nodeTableSchema->getPropertyID(propertyName);
     }
     std::unordered_map<common::table_id_t, common::property_id_t> tableIDToPropertyID;
-    std::vector<LogicalType*> propertyDataTypes;
+    std::vector<const LogicalType*> propertyDataTypes;
     for (auto& tableSchema : tableSchemas) {
         if (!tableSchema->containProperty(propertyName)) {
             continue;

@@ -19,15 +19,6 @@ struct IndexLookupInfo {
           indexType{std::move(indexType)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(IndexLookupInfo);
 
-    static std::vector<IndexLookupInfo> copy(const std::vector<IndexLookupInfo>& infos) {
-        std::vector<IndexLookupInfo> result;
-        result.reserve(infos.size());
-        for (auto& info : infos) {
-            result.push_back(info.copy());
-        }
-        return result;
-    }
-
 private:
     IndexLookupInfo(const IndexLookupInfo& other)
         : nodeTableID{other.nodeTableID}, offset{other.offset}, key{other.key},

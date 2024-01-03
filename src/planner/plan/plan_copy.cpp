@@ -106,7 +106,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(
     QueryPlanner::appendScanFile(*info.fileScanInfo, *plan);
     auto extraInfo =
         ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRelInfo*>(info.extraInfo.get());
-    appendIndexScan(IndexLookupInfo::copy(extraInfo->infos), *plan);
+    appendIndexScan(copyVector(extraInfo->infos), *plan);
     appendPartitioner(info, *plan);
     appendCopyFrom(info, results, *plan);
     return plan;

@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 
+#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/node_table_schema.h"
 #include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
@@ -34,57 +35,36 @@ CatalogContent::CatalogContent(const std::string& directory, VirtualFileSystem* 
     registerBuiltInFunctions();
 }
 
-static void assignPropertyIDAndTableID(std::vector<Property>& properties, table_id_t tableID) {
-    for (auto i = 0u; i < properties.size(); ++i) {
-        properties[i].setPropertyID(i);
-        properties[i].setTableID(tableID);
-    }
-}
-
-static std::vector<std::unique_ptr<Property>> getPropertiesUniquePtr(
-    const std::vector<Property>& properties) {
-    std::vector<std::unique_ptr<Property>> result;
-    for (auto& property : properties) {
-        result.push_back(std::make_unique<Property>(property.copy()));
-    }
-    return result;
-}
-
 table_id_t CatalogContent::addNodeTableSchema(const BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
     auto extraInfo = ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateNodeTableInfo*>(
         info.extraInfo.get());
-    auto properties = Property::copy(extraInfo->properties);
-    assignPropertyIDAndTableID(properties, tableID);
-    auto nodeTableSchema = std::make_unique<NodeTableSchema>(
-        info.tableName, tableID, extraInfo->primaryKeyIdx, getPropertiesUniquePtr(properties));
+    auto nodeTableSchema =
+        std::make_unique<NodeTableSchema>(info.tableName, tableID, extraInfo->primaryKeyIdx);
+    for (auto& propertyInfo : extraInfo->propertyInfos) {
+        nodeTableSchema->addProperty(propertyInfo.name, propertyInfo.type.copy());
+    }
     tableNameToIDMap.emplace(nodeTableSchema->tableName, tableID);
     tableSchemas.emplace(tableID, std::move(nodeTableSchema));
     return tableID;
-}
-
-// TODO(Xiyang): move this to binding stage
-static void addRelInternalIDProperty(std::vector<Property>& properties) {
-    auto relInternalIDProperty = Property(InternalKeyword::ID, LogicalType::INTERNAL_ID());
-    properties.insert(properties.begin(), std::move(relInternalIDProperty));
 }
 
 table_id_t CatalogContent::addRelTableSchema(const BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
     auto extraInfo = ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRelTableInfo*>(
         info.extraInfo.get());
-    auto properties = Property::copy(extraInfo->properties);
-    addRelInternalIDProperty(properties);
-    assignPropertyIDAndTableID(properties, tableID);
     auto srcNodeTableSchema =
         ku_dynamic_cast<TableSchema*, NodeTableSchema*>(getTableSchema(extraInfo->srcTableID));
     auto dstNodeTableSchema =
         ku_dynamic_cast<TableSchema*, NodeTableSchema*>(getTableSchema(extraInfo->dstTableID));
     srcNodeTableSchema->addFwdRelTableID(tableID);
     dstNodeTableSchema->addBwdRelTableID(tableID);
-    auto relTableSchema = std::make_unique<RelTableSchema>(info.tableName, tableID,
-        getPropertiesUniquePtr(properties), extraInfo->srcMultiplicity, extraInfo->dstMultiplicity,
-        extraInfo->srcTableID, extraInfo->dstTableID);
+    auto relTableSchema =
+        std::make_unique<RelTableSchema>(info.tableName, tableID, extraInfo->srcMultiplicity,
+            extraInfo->dstMultiplicity, extraInfo->srcTableID, extraInfo->dstTableID);
+    for (auto& propertyInfo : extraInfo->propertyInfos) {
+        relTableSchema->addProperty(propertyInfo.name, propertyInfo.type.copy());
+    }
     tableNameToIDMap.emplace(relTableSchema->tableName, tableID);
     tableSchemas.emplace(tableID, std::move(relTableSchema));
     return tableID;
