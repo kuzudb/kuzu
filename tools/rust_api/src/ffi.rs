@@ -82,6 +82,8 @@ pub(crate) mod ffi {
         STRUCT = 53,
         MAP = 54,
         UNION = 55,
+
+        UUID = 58,
     }
 
     #[namespace = "kuzu::common"]
@@ -346,6 +348,7 @@ pub(crate) mod ffi {
         fn create_value_date(value: i64) -> UniquePtr<Value>;
         fn create_value_interval(months: i32, days: i32, micros: i64) -> UniquePtr<Value>;
         fn create_value_int128_t(high: i64, low: u64) -> UniquePtr<Value>;
+        fn create_value_uuid_t(high: i64, low: u64) -> UniquePtr<Value>;
         fn create_value_internal_id(offset: u64, table: u64) -> UniquePtr<Value>;
 
         fn node_value_get_node_id(value: &Value) -> &Value;

@@ -264,6 +264,7 @@ pub enum Value {
         types: Vec<(String, LogicalType)>,
         value: Box<Value>,
     },
+    UUID(uuid::Uuid),
 }
 
 fn display_list<T: std::fmt::Display>(f: &mut fmt::Formatter<'_>, list: &Vec<T>) -> fmt::Result {
@@ -337,6 +338,7 @@ impl std::fmt::Display for Value {
                 write!(f, "}}")
             }
             Value::Union { types: _, value } => write!(f, "{value}"),
+            Value::UUID(x) => write!(f, "{x}"),
         }
     }
 }
@@ -393,6 +395,7 @@ impl From<&Value> for LogicalType {
             Value::Union { types, value: _ } => LogicalType::Union {
                 types: types.clone(),
             },
+            Value::UUID(_) => LogicalType::UUID,
         }
     }
 }
@@ -405,6 +408,14 @@ impl TryFrom<&ffi::Value> for Value {
         if value.isNull() {
             return Ok(Value::Null(value.into()));
         }
+
+        fn get_i128(value: &ffi::Value) -> i128 {
+            let int128_val = ffi::value_get_int128_t(value);
+            let low = int128_val[1];
+            let high = int128_val[0] as i64;
+            (low as i128) + ((high as i128) << 64)
+        }
+
         match ffi::value_get_data_type_id(value) {
             LogicalTypeID::ANY => unimplemented!(),
             LogicalTypeID::BOOL => Ok(Value::Bool(value.get_value_bool())),
@@ -416,14 +427,12 @@ impl TryFrom<&ffi::Value> for Value {
             LogicalTypeID::UINT16 => Ok(Value::UInt16(value.get_value_u16())),
             LogicalTypeID::UINT32 => Ok(Value::UInt32(value.get_value_u32())),
             LogicalTypeID::UINT64 => Ok(Value::UInt64(value.get_value_u64())),
-            LogicalTypeID::INT128 => {
-                let int128_val = ffi::value_get_int128_t(value);
-                let low = int128_val[1];
-                let high = int128_val[0] as i64;
-                Ok(Value::Int128(
-                    (low as i128) + ((high as i128) * (u64::MAX as i128)),
-                ))
-            }
+            LogicalTypeID::INT128 => Ok(Value::Int128(get_i128(value))),
+            LogicalTypeID::UUID => Ok(Value::UUID(uuid::Uuid::from_u128(
+                // values are stored as i128 and the first bit flipped so that they order as if
+                // they are u128
+                get_i128(value) as u128 ^ (1 << 127),
+            ))),
             LogicalTypeID::FLOAT => Ok(Value::Float(value.get_value_float())),
             LogicalTypeID::DOUBLE => Ok(Value::Double(value.get_value_double())),
             LogicalTypeID::STRING => Ok(Value::String(ffi::value_get_string(value).to_string())),
@@ -646,6 +655,10 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
     type Error = crate::error::Error;
 
     fn try_into(self) -> Result<cxx::UniquePtr<ffi::Value>, Self::Error> {
+        fn get_high_low(value: i128) -> (i64, u64) {
+            ((value >> 64) as i64, value as u64)
+        }
+
         match self {
             Value::Null(typ) => Ok(ffi::create_value_null((&typ).into())),
             Value::Bool(value) => Ok(ffi::create_value_bool(value)),
@@ -658,9 +671,14 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             Value::UInt32(value) => Ok(ffi::create_value_u32(value)),
             Value::UInt64(value) => Ok(ffi::create_value_u64(value)),
             Value::Int128(value) => {
-                let low = (value % (u64::MAX as i128)) as u64;
-                let high = ((value - low as i128) / (u64::MAX as i128)) as i64;
+                let (high, low) = get_high_low(value);
                 Ok(ffi::create_value_int128_t(high, low))
+            }
+            Value::UUID(value) => {
+                // values are stored as i128 and the first bit flipped so that they order as if
+                // they are u128
+                let (high, low) = get_high_low(value.as_u128() as i128 ^ (1 << 127));
+                Ok(ffi::create_value_uuid_t(high, low))
             }
             Value::Float(value) => Ok(ffi::create_value_float(value)),
             Value::Double(value) => Ok(ffi::create_value_double(value)),
@@ -885,6 +903,7 @@ mod tests {
     use std::convert::TryInto;
     use std::iter::FromIterator;
     use time::macros::{date, datetime};
+    use uuid::uuid;
 
     // Note: Cargo runs tests in parallel by default, however kuzu does not support
     // working with multiple databases in parallel.
@@ -982,6 +1001,7 @@ mod tests {
         convert_uint32_type: LogicalType::UInt32,
         convert_uint64_type: LogicalType::UInt64,
         convert_int128_type: LogicalType::Int128,
+        convert_uuid_type: LogicalType::UUID,
         convert_float_type: LogicalType::Float,
         convert_double_type: LogicalType::Double,
         convert_timestamp_type: LogicalType::Timestamp,
@@ -1016,7 +1036,11 @@ mod tests {
         convert_uint32: Value::UInt32(2),
         convert_uint64: Value::UInt64(3),
         convert_int128: Value::Int128(1),
+        convert_int128_negative: Value::Int128(-1),
         convert_int128_large: Value::Int128(184467440737095516158),
+        convert_int128_large_negative: Value::Int128(-184467440737095516158),
+        convert_uuid: Value::UUID(uuid!("00000000-0000-0000-0000-ffff00000000")),
+        convert_uuid2: Value::UUID(uuid!("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")),
         convert_float: Value::Float(4.),
         convert_double: Value::Double(5.),
         convert_timestamp: Value::Timestamp(datetime!(2023-06-13 11:25:30 UTC)),
@@ -1071,6 +1095,9 @@ mod tests {
             types: vec![("Num".to_string(), LogicalType::Int8), ("duration".to_string(), LogicalType::Interval)],
             value: Box::new(Value::Int8(-127))
         },
+        display_uuid: Value::UUID(uuid!("00000000-0000-0000-0000-ffff00000000")),
+        display_uuid2: Value::UUID(uuid!("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")),
+        display_uuid3: Value::UUID(uuid!("a1a2a3a4b1b2c1c2d1d2d3d4d5d6d7d8")),
     }
 
     database_tests! {
@@ -1112,6 +1139,8 @@ mod tests {
         db_string: Value::String("Hello World".to_string()), "STRING",
         db_blob: Value::Blob("Hello World".into()), "BLOB",
         db_bool: Value::Bool(true), "BOOLEAN",
+        db_uuid: Value::UUID(uuid!("00000000-0000-0000-0000-ffff00000000")), "UUID",
+        db_uuid2: Value::UUID(uuid!("8f914bce-df4e-4244-9cd4-ea96bf0c58d4")), "UUID",
     }
 
     #[test]

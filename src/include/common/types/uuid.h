@@ -1,4 +1,7 @@
 #pragma once
+// pragma once doesn't appear to work properly on MSVC for this file
+#ifndef KUZU_COMMON_TYPES_UUID
+#define KUZU_COMMON_TYPES_UUID
 
 #include "common/types/int128_t.h"
 
@@ -6,10 +9,6 @@ namespace kuzu {
 namespace common {
 
 struct uuid_t {
-    int128_t value;
-};
-
-struct UUID {
     constexpr static uint8_t UUID_STRING_LENGTH = 36;
     constexpr static char HEX_DIGITS[] = "0123456789abcdef";
     static void byteToHex(char byteVal, char* buf, uint64_t& pos);
@@ -39,7 +38,11 @@ struct UUID {
         toString(input, buff);
         return std::string(buff, UUID_STRING_LENGTH);
     }
+    inline std::string toString() const { return toString(value); }
+
+    int128_t value;
 };
 
 } // namespace common
 } // namespace kuzu
+#endif

@@ -10,6 +10,7 @@
 #include "common/types/interval_t.h"
 #include "common/types/ku_list.h"
 #include "common/types/timestamp_t.h"
+#include "common/types/uuid.h"
 
 namespace kuzu {
 namespace common {
@@ -87,6 +88,10 @@ public:
      * @param val_ the int128_t value to set.
      */
     KUZU_API explicit Value(int128_t val_);
+    /**
+     * @param val_ the UUID value to set.
+     */
+    KUZU_API explicit Value(uuid_t val_);
     /**
      * @param val_ the double value to set.
      */
