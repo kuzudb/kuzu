@@ -1,6 +1,6 @@
 import datetime
 import pytz
-
+from uuid import UUID
 
 def test_bool(establish_connection):
     conn, db = establish_connection
@@ -108,6 +108,13 @@ def test_blob(establish_connection):
     assert not result.has_next()
     result.close()
 
+def test_uuid(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("RETURN UUID('A0EEBC99-9c0b-4ef8-bb6d-6bb9bd380a12')")
+    assert result.has_next()
+    assert result.get_next() == [UUID('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12')]
+    assert not result.has_next()
+    result.close()
 
 def test_date(establish_connection):
     conn, db = establish_connection

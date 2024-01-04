@@ -296,6 +296,8 @@ typedef enum {
     KUZU_STRUCT = 53,
     KUZU_MAP = 54,
     KUZU_UNION = 55,
+
+    KUZU_UUID = 56
 } kuzu_data_type_id;
 
 // Database

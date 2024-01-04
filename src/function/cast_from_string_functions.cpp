@@ -159,6 +159,21 @@ void CastStringHelper::cast(const char* input, uint64_t len, blob_t& /*result*/,
     BlobVector::addBlob(vector, rowToAdd, blobBuffer.get(), blobLen);
 }
 
+//---------------------- cast String to UUID ------------------------------ //
+template<>
+void CastString::operation(const ku_string_t& input, uuid_t& result, ValueVector* /*result_vector*/,
+    uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
+    result.value = UUID::fromString(input.getAsString());
+}
+
+// LCOV_EXCL_START
+template<>
+void CastStringHelper::cast(const char* input, uint64_t len, uuid_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
+    result.value = UUID::fromCString(input, len);
+}
+// LCOV_EXCL_STOP
+
 // ---------------------- cast String to nested types ------------------------------ //
 static void skipWhitespace(const char*& input, const char* end) {
     while (input < end && isspace(*input)) {
@@ -869,6 +884,11 @@ void CastString::copyStringToVector(
     case LogicalTypeID::BLOB: {
         blob_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
+    } break;
+    case LogicalTypeID::UUID: {
+        uuid_t val;
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
+        vector->setValue(rowToAdd, val.value);
     } break;
     case LogicalTypeID::STRING: {
         if (!utf8proc::Utf8Proc::isValid(strVal.data(), strVal.length())) {

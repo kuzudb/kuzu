@@ -65,7 +65,7 @@ Can't execute a write query inside a read-only transaction.
 
 -LOG NodeTableInfo
 -STATEMENT CALL table_info('person') RETURN *
----- 15
+---- 16
 0|ID|INT64|True
 1|fName|STRING|False
 2|gender|INT64|False
@@ -81,6 +81,7 @@ Can't execute a write query inside a read-only transaction.
 12|courseScoresPerTerm|INT64[][]|False
 13|grades|INT64[4]|False
 14|height|FLOAT|False
+15|u|UUID|False
 
 -LOG RelTableInfo
 -STATEMENT CALL table_info('knows') RETURN *
@@ -94,7 +95,7 @@ Can't execute a write query inside a read-only transaction.
 
 -LOG ReturnNodeName
 -STATEMENT CALL table_info('person') WHERE name <> 'ID' RETURN name
----- 14
+---- 15
 fName
 gender
 isStudent
@@ -105,6 +106,7 @@ birthdate
 registerTime
 lastJobDuration
 workedHours
+u
 usedNames
 courseScoresPerTerm
 grades
@@ -187,7 +189,7 @@ Binder exception: Parameters in table function must be a literal expression.
 8
 -STATEMENT CALL storage_info('person') RETURN COUNT(*)
 ---- 1
-35
+37
 -STATEMENT CALL storage_info('knows') RETURN COUNT(*)
 ---- 1
 72

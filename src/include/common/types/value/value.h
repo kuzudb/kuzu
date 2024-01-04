@@ -357,7 +357,8 @@ KUZU_API inline uint8_t Value::getValue() const {
  */
 template<>
 KUZU_API inline int128_t Value::getValue() const {
-    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::INT128);
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::INT128 ||
+              dataType->getLogicalTypeID() == LogicalTypeID::UUID);
     return val.int128Val;
 }
 
@@ -457,7 +458,8 @@ KUZU_API inline internalID_t Value::getValue() const {
 template<>
 KUZU_API inline std::string Value::getValue() const {
     KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::STRING ||
-              dataType->getLogicalTypeID() == LogicalTypeID::BLOB);
+              dataType->getLogicalTypeID() == LogicalTypeID::BLOB ||
+              dataType->getLogicalTypeID() == LogicalTypeID::UUID);
     return strVal;
 }
 

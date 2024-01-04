@@ -116,6 +116,8 @@ enum class KUZU_API LogicalTypeID : uint8_t {
     UNION = 55,
     RDF_VARIANT = 56,
     POINTER = 57,
+
+    UUID = 58
 };
 
 enum class PhysicalTypeID : uint8_t {
@@ -356,6 +358,9 @@ public:
     }
     static std::unique_ptr<LogicalType> BLOB() {
         return std::make_unique<LogicalType>(LogicalTypeID::BLOB);
+    }
+    static std::unique_ptr<LogicalType> UUID() {
+        return std::make_unique<LogicalType>(LogicalTypeID::UUID);
     }
     static std::unique_ptr<LogicalType> POINTER() {
         return std::make_unique<LogicalType>(LogicalTypeID::POINTER);

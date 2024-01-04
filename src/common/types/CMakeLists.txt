@@ -12,7 +12,8 @@ add_library(kuzu_common_types
         rdf_variant_type.cpp
         timestamp_t.cpp
         types.cpp
-        int128_t.cpp)
+        int128_t.cpp
+        uuid.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common_types>

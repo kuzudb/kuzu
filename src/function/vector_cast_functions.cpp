@@ -175,6 +175,7 @@ bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType
         case LogicalTypeID::TIMESTAMP_SEC:
         case LogicalTypeID::TIMESTAMP_TZ:
         case LogicalTypeID::INTERVAL:
+        case LogicalTypeID::UUID:
             return true;
         default:
             return false;
@@ -247,6 +248,10 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
     case LogicalTypeID::BLOB: {
         execFunc =
             ScalarFunction::UnaryCastStringExecFunction<ku_string_t, blob_t, CastString, EXECUTOR>;
+    } break;
+    case LogicalTypeID::UUID: {
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uuid_t, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::STRING: {
         execFunc =
@@ -488,6 +493,9 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
     } break;
     case LogicalTypeID::BLOB: {
         func = ScalarFunction::UnaryCastExecFunction<blob_t, ku_string_t, CastToString, EXECUTOR>;
+    } break;
+    case LogicalTypeID::UUID: {
+        func = ScalarFunction::UnaryCastExecFunction<uuid_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::VAR_LIST: {
         func = ScalarFunction::UnaryCastExecFunction<list_entry_t, ku_string_t, CastToString,
@@ -768,6 +776,13 @@ function_set CastToBlobFunction::getFunctionSet() {
         CAST_TO_BLOB_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::BLOB));
     result.push_back(CastFunction::bindCastFunction(
         CAST_TO_BLOB_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::BLOB));
+    return result;
+}
+
+function_set CastToUUIDFunction::getFunctionSet() {
+    function_set result;
+    result.push_back(CastFunction::bindCastFunction(
+        CAST_TO_UUID_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UUID));
     return result;
 }
 

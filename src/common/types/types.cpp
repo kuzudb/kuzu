@@ -379,6 +379,7 @@ std::string LogicalType::toString() const {
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::INTERVAL:
     case LogicalTypeID::BLOB:
+    case LogicalTypeID::UUID:
     case LogicalTypeID::STRING:
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::RDF_VARIANT:
@@ -483,6 +484,7 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
     case LogicalTypeID::UINT8: {
         return PhysicalTypeID::UINT8;
     } break;
+    case LogicalTypeID::UUID:
     case LogicalTypeID::INT128: {
         return PhysicalTypeID::INT128;
     } break;
@@ -576,6 +578,8 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
         return LogicalTypeID::BOOL;
     } else if ("BYTEA" == upperDataTypeIDString || "BLOB" == upperDataTypeIDString) {
         return LogicalTypeID::BLOB;
+    } else if ("UUID" == upperDataTypeIDString) {
+        return LogicalTypeID::UUID;
     } else if ("STRING" == upperDataTypeIDString) {
         return LogicalTypeID::STRING;
     } else if ("DATE" == upperDataTypeIDString) {
@@ -652,6 +656,8 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
         return "INTERVAL";
     case LogicalTypeID::BLOB:
         return "BLOB";
+    case LogicalTypeID::UUID:
+        return "UUID";
     case LogicalTypeID::STRING:
         return "STRING";
     case LogicalTypeID::VAR_LIST:
@@ -771,7 +777,7 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidComparableLogicalTypes()
         LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
         LogicalTypeID::TIMESTAMP_NS, LogicalTypeID::TIMESTAMP_MS, LogicalTypeID::TIMESTAMP_SEC,
         LogicalTypeID::TIMESTAMP_TZ, LogicalTypeID::INTERVAL, LogicalTypeID::BLOB,
-        LogicalTypeID::STRING, LogicalTypeID::SERIAL};
+        LogicalTypeID::UUID, LogicalTypeID::STRING, LogicalTypeID::SERIAL};
 }
 
 std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
@@ -791,11 +797,11 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypes() {
         LogicalTypeID::INT64, LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::INT8,
         LogicalTypeID::UINT64, LogicalTypeID::UINT32, LogicalTypeID::UINT16, LogicalTypeID::UINT8,
         LogicalTypeID::INT128, LogicalTypeID::DOUBLE, LogicalTypeID::STRING, LogicalTypeID::BLOB,
-        LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP, LogicalTypeID::TIMESTAMP_NS,
-        LogicalTypeID::TIMESTAMP_MS, LogicalTypeID::TIMESTAMP_SEC, LogicalTypeID::TIMESTAMP_TZ,
-        LogicalTypeID::INTERVAL, LogicalTypeID::VAR_LIST, LogicalTypeID::FIXED_LIST,
-        LogicalTypeID::MAP, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL, LogicalTypeID::NODE,
-        LogicalTypeID::REL, LogicalTypeID::STRUCT, LogicalTypeID::UNION,
+        LogicalTypeID::UUID, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
+        LogicalTypeID::TIMESTAMP_NS, LogicalTypeID::TIMESTAMP_MS, LogicalTypeID::TIMESTAMP_SEC,
+        LogicalTypeID::TIMESTAMP_TZ, LogicalTypeID::INTERVAL, LogicalTypeID::VAR_LIST,
+        LogicalTypeID::FIXED_LIST, LogicalTypeID::MAP, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL,
+        LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT, LogicalTypeID::UNION,
         LogicalTypeID::RDF_VARIANT};
 }
 

@@ -616,6 +616,8 @@ void BuiltInFunctions::registerCastFunctions() {
     functions.insert({CAST_TO_STRING_FUNC_NAME, CastToStringFunction::getFunctionSet()});
     functions.insert({CAST_BLOB_FUNC_NAME, CastToBlobFunction::getFunctionSet()});
     functions.insert({CAST_TO_BLOB_FUNC_NAME, CastToBlobFunction::getFunctionSet()});
+    functions.insert({CAST_UUID_FUNC_NAME, CastToUUIDFunction::getFunctionSet()});
+    functions.insert({CAST_TO_UUID_FUNC_NAME, CastToUUIDFunction::getFunctionSet()});
     functions.insert({CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleFunction::getFunctionSet()});
     functions.insert({CAST_TO_FLOAT_FUNC_NAME, CastToFloatFunction::getFunctionSet()});
     functions.insert({CAST_TO_SERIAL_FUNC_NAME, CastToSerialFunction::getFunctionSet()});

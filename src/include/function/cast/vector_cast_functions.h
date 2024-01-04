@@ -41,6 +41,10 @@ struct CastToBlobFunction {
     static function_set getFunctionSet();
 };
 
+struct CastToUUIDFunction {
+    static function_set getFunctionSet();
+};
+
 struct CastToBoolFunction {
     static function_set getFunctionSet();
 };
