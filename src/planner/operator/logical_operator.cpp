@@ -57,10 +57,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "INDEX_SCAN_NODE";
     case LogicalOperatorType::INTERSECT:
         return "INTERSECT";
-    case LogicalOperatorType::INSERT_NODE:
-        return "INSERT_NODE";
-    case LogicalOperatorType::INSERT_REL:
-        return "INSERT_REL";
+    case LogicalOperatorType::INSERT:
+        return "INSERT";
     case LogicalOperatorType::LIMIT:
         return "LIMIT";
     case LogicalOperatorType::MERGE:

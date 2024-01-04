@@ -66,8 +66,8 @@ expression_vector ExpressionChildrenCollector::collectSubqueryChildren(
 expression_vector ExpressionChildrenCollector::collectNodeChildren(const Expression& expression) {
     expression_vector result;
     auto& node = (NodeExpression&)expression;
-    for (auto& property : node.getPropertyExpressions()) {
-        result.push_back(property->copy());
+    for (auto& property : node.getPropertyExprs()) {
+        result.push_back(property);
     }
     result.push_back(node.getInternalID());
     return result;
@@ -78,8 +78,8 @@ expression_vector ExpressionChildrenCollector::collectRelChildren(const Expressi
     auto& rel = (RelExpression&)expression;
     result.push_back(rel.getSrcNode()->getInternalID());
     result.push_back(rel.getDstNode()->getInternalID());
-    for (auto& property : rel.getPropertyExpressions()) {
-        result.push_back(property->copy());
+    for (auto& property : rel.getPropertyExprs()) {
+        result.push_back(property);
     }
     return result;
 }

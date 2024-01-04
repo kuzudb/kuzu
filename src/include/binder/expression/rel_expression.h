@@ -52,6 +52,7 @@ struct RdfPredicateInfo {
     RdfPredicateInfo(
         std::vector<common::table_id_t> resourceTableIDs, std::shared_ptr<Expression> predicateID)
         : resourceTableIDs{std::move(resourceTableIDs)}, predicateID{std::move(predicateID)} {}
+    DELETE_COPY_DEFAULT_MOVE(RdfPredicateInfo);
 };
 
 class RelExpression : public NodeOrRelExpression {

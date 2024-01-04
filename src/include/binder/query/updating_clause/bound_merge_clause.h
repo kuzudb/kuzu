@@ -31,24 +31,20 @@ public:
     }
 
     inline bool hasInsertNodeInfo() const {
-        return hasInsertInfo([](const BoundInsertInfo& info) {
-            return info.updateTableType == UpdateTableType::NODE;
-        });
+        return hasInsertInfo(
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::NODE; });
     }
     inline std::vector<const BoundInsertInfo*> getInsertNodeInfos() const {
-        return getInsertInfos([](const BoundInsertInfo& info) {
-            return info.updateTableType == UpdateTableType::NODE;
-        });
+        return getInsertInfos(
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::NODE; });
     }
     inline bool hasInsertRelInfo() const {
-        return hasInsertInfo([](const BoundInsertInfo& info) {
-            return info.updateTableType == UpdateTableType::REL;
-        });
+        return hasInsertInfo(
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
     }
     inline std::vector<const BoundInsertInfo*> getInsertRelInfos() const {
-        return getInsertInfos([](const BoundInsertInfo& info) {
-            return info.updateTableType == UpdateTableType::REL;
-        });
+        return getInsertInfos(
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
     }
 
     inline bool hasOnMatchSetNodeInfo() const {

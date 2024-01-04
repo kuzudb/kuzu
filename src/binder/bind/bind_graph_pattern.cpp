@@ -28,31 +28,26 @@ namespace binder {
 // We do not store key-value pairs in query graph primarily because we will merge key-value
 // std::pairs with other predicates specified in WHERE clause.
 BoundGraphPattern Binder::bindGraphPattern(const std::vector<PatternElement>& graphPattern) {
-    auto propertyCollection = PropertyKeyValCollection();
     auto queryGraphCollection = QueryGraphCollection();
     for (auto& patternElement : graphPattern) {
-        queryGraphCollection.addAndMergeQueryGraphIfConnected(
-            bindPatternElement(patternElement, propertyCollection));
+        queryGraphCollection.addAndMergeQueryGraphIfConnected(bindPatternElement(patternElement));
     }
     auto boundPattern = BoundGraphPattern();
     boundPattern.queryGraphCollection = std::move(queryGraphCollection);
-    boundPattern.propertyKeyValCollection = std::move(propertyCollection);
     return boundPattern;
 }
 
 // Grammar ensures pattern element is always connected and thus can be bound as a query graph.
-QueryGraph Binder::bindPatternElement(
-    const PatternElement& patternElement, PropertyKeyValCollection& collection) {
+QueryGraph Binder::bindPatternElement(const PatternElement& patternElement) {
     auto queryGraph = QueryGraph();
     expression_vector nodeAndRels;
-    auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), queryGraph, collection);
+    auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), queryGraph);
     nodeAndRels.push_back(leftNode);
     for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
         auto patternElementChain = patternElement.getPatternElementChain(i);
-        auto rightNode =
-            bindQueryNode(*patternElementChain->getNodePattern(), queryGraph, collection);
-        auto rel = bindQueryRel(
-            *patternElementChain->getRelPattern(), leftNode, rightNode, queryGraph, collection);
+        auto rightNode = bindQueryNode(*patternElementChain->getNodePattern(), queryGraph);
+        auto rel =
+            bindQueryRel(*patternElementChain->getRelPattern(), leftNode, rightNode, queryGraph);
         nodeAndRels.push_back(rel);
         nodeAndRels.push_back(rightNode);
         leftNode = rightNode;
@@ -172,8 +167,7 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
 
 std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern,
     const std::shared_ptr<NodeExpression>& leftNode,
-    const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
-    PropertyKeyValCollection& collection) {
+    const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph) {
     auto parsedName = relPattern.getVariableName();
     if (scope->contains(parsedName)) {
         auto prevVariable = scope->getExpression(parsedName);
@@ -222,7 +216,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
                 expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, propertyName);
             auto boundRhs = expressionBinder.bindExpression(*rhs);
             boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
-            collection.addKeyVal(queryRel, propertyName, std::make_pair(boundLhs, boundRhs));
+            queryRel->addPropertyDataExpr(propertyName, std::move(boundRhs));
         }
     }
     queryRel->setAlias(parsedName);
@@ -250,32 +244,48 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     fields.emplace_back(
         InternalKeyword::LABEL, queryRel->getLabelExpression()->getDataType().copy());
     // Bind properties.
-    for (auto& expression : queryRel->getPropertyExpressions()) {
+    for (auto& expression : queryRel->getPropertyExprsRef()) {
         auto property = ku_dynamic_cast<Expression*, PropertyExpression*>(expression.get());
         fields.emplace_back(property->getPropertyName(), property->getDataType().copy());
     }
     auto extraInfo = std::make_unique<StructTypeInfo>(std::move(fields));
     RelType::setExtraTypeInfo(queryRel->getDataTypeReference(), std::move(extraInfo));
-    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableIDs[0]);
-    if (tableSchema->getTableType() == TableType::RDF) {
-        auto predicateID =
-            expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
-        std::vector<common::table_id_t> resourceTableIDs;
-        std::vector<TableSchema*> resourceTableSchemas;
-        for (auto& tableID : tableIDs) {
-            auto rdfGraphSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(
-                catalog.getTableSchema(clientContext->getTx(), tableID));
-            auto resourceTableID = rdfGraphSchema->getResourceTableID();
-            resourceTableIDs.push_back(resourceTableID);
-            resourceTableSchemas.push_back(
-                catalog.getTableSchema(clientContext->getTx(), resourceTableID));
+    // Try bind rdf rel table.
+    // For rdf rel table, we store predicate ID instead of predicate IRI. However, we need to hide
+    // this information from the user. The following code block tries to create a IRI property
+    // expression to mock as if predicate IRI exists in rel table.
+    common::table_id_set_t resourceTableIDSet;
+    for (auto& tableID : relTableIDs) {
+        auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
+        if (tableSchema->hasParentTableID()) {
+            auto parentTableID = tableSchema->getParentTableID();
+            auto parentSchema = catalog.getTableSchema(clientContext->getTx(), parentTableID);
+            KU_ASSERT(parentSchema->getTableType() == TableType::RDF);
+            auto rdfGraphSchema =
+                ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(parentSchema);
+            resourceTableIDSet.insert(rdfGraphSchema->getResourceTableID());
         }
-        auto predicateIRI = createPropertyExpression(std::string(rdf::IRI),
-            queryRel->getUniqueName(), queryRel->getVariableName(), resourceTableSchemas);
-        auto rdfInfo =
-            std::make_unique<RdfPredicateInfo>(std::move(resourceTableIDs), std::move(predicateID));
+    }
+    auto resourceTableIDs =
+        common::table_id_vector_t{resourceTableIDSet.begin(), resourceTableIDSet.end()};
+    if (!resourceTableIDs.empty()) {
+        if (resourceTableIDs.size() > 1) {
+            throw BinderException(stringFormat(
+                "Relationship pattern {} with multiple rdf table labels is not supported.",
+                queryRel->getVariableName()));
+        }
+        auto pID =
+            expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
+        auto rdfInfo = std::make_unique<RdfPredicateInfo>(resourceTableIDs, std::move(pID));
         queryRel->setRdfPredicateInfo(std::move(rdfInfo));
-        queryRel->addPropertyExpression(std::string(rdf::IRI), std::move(predicateIRI));
+        std::vector<TableSchema*> resourceTableSchemas;
+        for (auto tableID : resourceTableIDs) {
+            resourceTableSchemas.push_back(catalog.getTableSchema(clientContext->getTx(), tableID));
+        }
+        // Mock existence of pIRI property.
+        auto pIRI = createPropertyExpression(std::string(rdf::IRI), queryRel->getUniqueName(),
+            queryRel->getVariableName(), resourceTableSchemas);
+        queryRel->addPropertyExpression(std::string(rdf::IRI), std::move(pIRI));
     }
     return queryRel;
 }
@@ -316,7 +326,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         InternalKeyword::LABEL, node->getLabelExpression()->getDataType().copy());
     expression_vector nodeProjectionList;
     if (!recursivePatternInfo->hasProjection) {
-        for (auto& expression : node->getPropertyExpressions()) {
+        for (auto& expression : node->getPropertyExprsRef()) {
             nodeProjectionList.push_back(expression->copy());
         }
     } else {
@@ -335,7 +345,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     scope->addExpression(rel->toString(), rel);
     expression_vector relProjectionList;
     if (!recursivePatternInfo->hasProjection) {
-        for (auto& expression : rel->getPropertyExpressions()) {
+        for (auto& expression : rel->getPropertyExprsRef()) {
             if (((PropertyExpression*)expression.get())->isInternalID()) {
                 continue;
             }
@@ -461,7 +471,7 @@ void Binder::bindQueryRelProperties(RelExpression& rel) {
 }
 
 std::shared_ptr<NodeExpression> Binder::bindQueryNode(
-    const NodePattern& nodePattern, QueryGraph& queryGraph, PropertyKeyValCollection& collection) {
+    const NodePattern& nodePattern, QueryGraph& queryGraph) {
     auto parsedName = nodePattern.getVariableName();
     std::shared_ptr<NodeExpression> queryNode;
     if (scope->contains(parsedName)) { // bind to node in scope
@@ -487,7 +497,7 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(
         auto boundLhs = expressionBinder.bindNodeOrRelPropertyExpression(*queryNode, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
-        collection.addKeyVal(queryNode, propertyName, std::make_pair(boundLhs, boundRhs));
+        queryNode->addPropertyDataExpr(propertyName, std::move(boundRhs));
     }
     queryGraph.addQueryNode(queryNode);
     return queryNode;
@@ -515,7 +525,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(
     fieldTypes.push_back(queryNode->getLabelExpression()->getDataType().copy());
     // Bind properties.
     bindQueryNodeProperties(*queryNode);
-    for (auto& expression : queryNode->getPropertyExpressions()) {
+    for (auto& expression : queryNode->getPropertyExprsRef()) {
         auto property = ku_dynamic_cast<Expression*, PropertyExpression*>(expression.get());
         fieldNames.emplace_back(property->getPropertyName());
         fieldTypes.emplace_back(property->dataType.copy());
@@ -571,20 +581,25 @@ std::vector<table_id_t> Binder::bindTableIDs(
 }
 
 std::vector<table_id_t> Binder::getNodeTableIDs(const std::vector<table_id_t>& tableIDs) {
-    auto tableType = catalog.getTableSchema(clientContext->getTx(), tableIDs[0])->getTableType();
-    switch (tableType) {
-    case TableType::RDF: { // extract node table ID from rdf graph schema.
-        std::vector<table_id_t> result;
-        for (auto& tableID : tableIDs) {
-            auto rdfGraphSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(
-                catalog.getTableSchema(clientContext->getTx(), tableID));
-            result.push_back(rdfGraphSchema->getResourceTableID());
-            result.push_back(rdfGraphSchema->getLiteralTableID());
+    std::vector<table_id_t> result;
+    for (auto& tableID : tableIDs) {
+        for (auto& id : getNodeTableIDs(tableID)) {
+            result.push_back(id);
         }
-        return result;
+    }
+    return result;
+}
+
+std::vector<common::table_id_t> Binder::getNodeTableIDs(table_id_t tableID) {
+    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
+    switch (tableSchema->getTableType()) {
+    case TableType::RDF: {
+        auto rdfGraphSchema =
+            ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(tableSchema);
+        return {rdfGraphSchema->getResourceTableID(), rdfGraphSchema->getLiteralTableID()};
     }
     case TableType::NODE: {
-        return tableIDs;
+        return {tableID};
     }
     default:
         KU_UNREACHABLE;
@@ -592,31 +607,31 @@ std::vector<table_id_t> Binder::getNodeTableIDs(const std::vector<table_id_t>& t
 }
 
 std::vector<table_id_t> Binder::getRelTableIDs(const std::vector<table_id_t>& tableIDs) {
-    auto tableType = catalog.getTableSchema(clientContext->getTx(), tableIDs[0])->getTableType();
-    switch (tableType) {
-    case TableType::RDF: { // extract rel table ID from rdf graph schema.
-        std::vector<table_id_t> result;
-        for (auto& tableID : tableIDs) {
-            auto rdfGraphSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(
-                catalog.getTableSchema(clientContext->getTx(), tableID));
-            result.push_back(rdfGraphSchema->getResourceTripleTableID());
-            result.push_back(rdfGraphSchema->getLiteralTripleTableID());
+    std::vector<table_id_t> result;
+    for (auto& tableID : tableIDs) {
+        for (auto& id : getRelTableIDs(tableID)) {
+            result.push_back(id);
         }
-        return result;
     }
-    case TableType::REL_GROUP: { // extract rel table ID from rel group schema.
-        std::vector<table_id_t> result;
-        for (auto& tableID : tableIDs) {
-            auto relGroupSchema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(
-                catalog.getTableSchema(clientContext->getTx(), tableID));
-            for (auto& relTableID : relGroupSchema->getRelTableIDs()) {
-                result.push_back(relTableID);
-            }
-        }
-        return result;
+    return result;
+}
+
+std::vector<common::table_id_t> Binder::getRelTableIDs(table_id_t tableID) {
+    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
+    switch (tableSchema->getTableType()) {
+    case TableType::RDF: {
+        auto rdfGraphSchema =
+            ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(tableSchema);
+        return {
+            rdfGraphSchema->getResourceTripleTableID(), rdfGraphSchema->getLiteralTripleTableID()};
+    }
+    case TableType::REL_GROUP: {
+        auto relGroupSchema =
+            ku_dynamic_cast<const TableSchema*, const RelTableGroupSchema*>(tableSchema);
+        return relGroupSchema->getRelTableIDs();
     }
     case TableType::REL: {
-        return tableIDs;
+        return {tableID};
     }
     default:
         KU_UNREACHABLE;

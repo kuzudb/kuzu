@@ -13,13 +13,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
     auto inSchema = logicalMerge->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto markPos = DataPos(inSchema->getExpressionPos(*logicalMerge->getMark()));
-    std::vector<std::unique_ptr<NodeInsertExecutor>> nodeInsertExecutors;
+    std::vector<NodeInsertExecutor> nodeInsertExecutors;
     for (auto& info : logicalMerge->getInsertNodeInfosRef()) {
-        nodeInsertExecutors.push_back(getNodeInsertExecutor(info.get(), *inSchema, *outSchema));
+        nodeInsertExecutors.push_back(getNodeInsertExecutor(&info, *inSchema, *outSchema)->copy());
     }
-    std::vector<std::unique_ptr<RelInsertExecutor>> relInsertExecutors;
+    std::vector<RelInsertExecutor> relInsertExecutors;
     for (auto& info : logicalMerge->getInsertRelInfosRef()) {
-        relInsertExecutors.push_back(getRelInsertExecutor(info.get(), *inSchema, *outSchema));
+        relInsertExecutors.push_back(getRelInsertExecutor(&info, *inSchema, *outSchema)->copy());
     }
     std::vector<std::unique_ptr<NodeSetExecutor>> onCreateNodeSetExecutors;
     for (auto& info : logicalMerge->getOnCreateSetNodeInfosRef()) {

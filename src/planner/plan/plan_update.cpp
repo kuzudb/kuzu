@@ -68,29 +68,29 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
     auto& createInfos = mergeClause.getInsertInfosRef();
     KU_ASSERT(!createInfos.empty());
     auto& createInfo = createInfos[0];
-    switch (createInfo.updateTableType) {
-    case binder::UpdateTableType::NODE: {
-        auto node = (NodeExpression*)createInfo.nodeOrRel.get();
+    switch (createInfo.tableType) {
+    case TableType::NODE: {
+        auto node = (NodeExpression*)createInfo.pattern.get();
         mark = node->getInternalID();
     } break;
-    case binder::UpdateTableType::REL: {
-        auto rel = (RelExpression*)createInfo.nodeOrRel.get();
+    case TableType::REL: {
+        auto rel = (RelExpression*)createInfo.pattern.get();
         mark = rel->getInternalIDProperty();
     } break;
     default:
         KU_UNREACHABLE;
     }
-    std::vector<std::unique_ptr<LogicalInsertNodeInfo>> logicalInsertNodeInfos;
+    std::vector<LogicalInsertInfo> logicalInsertNodeInfos;
     if (mergeClause.hasInsertNodeInfo()) {
         auto boundInsertNodeInfos = mergeClause.getInsertNodeInfos();
         for (auto& info : boundInsertNodeInfos) {
-            logicalInsertNodeInfos.push_back(createLogicalInsertNodeInfo(info));
+            logicalInsertNodeInfos.push_back(createLogicalInsertInfo(info)->copy());
         }
     }
-    std::vector<std::unique_ptr<LogicalInsertRelInfo>> logicalInsertRelInfos;
+    std::vector<LogicalInsertInfo> logicalInsertRelInfos;
     if (mergeClause.hasInsertRelInfo()) {
         for (auto& info : mergeClause.getInsertRelInfos()) {
-            logicalInsertRelInfos.push_back(createLogicalInsertRelInfo(info));
+            logicalInsertRelInfos.push_back(createLogicalInsertInfo(info)->copy());
         }
     }
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnCreateSetNodeInfos;

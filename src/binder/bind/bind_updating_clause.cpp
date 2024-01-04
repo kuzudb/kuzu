@@ -1,13 +1,14 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "binder/expression/property_expression.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
 #include "catalog/node_table_schema.h"
+#include "catalog/rdf_graph_schema.h"
 #include "common/assert.h"
 #include "common/exception/binder.h"
+#include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "main/client_context.h"
 #include "parser/query/updating_clause/delete_clause.h"
@@ -59,9 +60,8 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindInsertClause(
     auto nodeRelScope = populateNodeRelScope(*scope);
     // bindGraphPattern will update scope.
     auto boundGraphPattern = bindGraphPattern(insertClause.getPatternElementsRef());
-    auto createInfos = bindCreateInfos(boundGraphPattern.queryGraphCollection,
-        boundGraphPattern.propertyKeyValCollection, nodeRelScope);
-    return std::make_unique<BoundInsertClause>(std::move(createInfos));
+    auto insertInfos = bindInsertInfos(boundGraphPattern.queryGraphCollection, nodeRelScope);
+    return std::make_unique<BoundInsertClause>(std::move(insertInfos));
 }
 
 std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
@@ -70,16 +70,11 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     auto nodeRelScope = populateNodeRelScope(*scope);
     // bindGraphPattern will update scope.
     auto boundGraphPattern = bindGraphPattern(mergeClause.getPatternElementsRef());
-    std::shared_ptr<Expression> predicate = nullptr;
-    for (auto& [key, val] : boundGraphPattern.propertyKeyValCollection.getKeyVals()) {
-        predicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
-            expressionBinder.createEqualityComparisonExpression(key, val), predicate);
-    }
-    auto createInfos = bindCreateInfos(boundGraphPattern.queryGraphCollection,
-        boundGraphPattern.propertyKeyValCollection, nodeRelScope);
+    rewriteMatchPattern(boundGraphPattern);
+    auto createInfos = bindInsertInfos(boundGraphPattern.queryGraphCollection, nodeRelScope);
     auto boundMergeClause =
         std::make_unique<BoundMergeClause>(std::move(boundGraphPattern.queryGraphCollection),
-            std::move(predicate), std::move(createInfos));
+            std::move(boundGraphPattern.where), std::move(createInfos));
     if (mergeClause.hasOnMatchSetItems()) {
         for (auto& [lhs, rhs] : mergeClause.getOnMatchSetItemsRef()) {
             auto setPropertyInfo = bindSetPropertyInfo(lhs.get(), rhs.get());
@@ -95,9 +90,8 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     return boundMergeClause;
 }
 
-std::vector<BoundInsertInfo> Binder::bindCreateInfos(
-    const QueryGraphCollection& queryGraphCollection,
-    const PropertyKeyValCollection& keyValCollection, const expression_set& nodeRelScope_) {
+std::vector<BoundInsertInfo> Binder::bindInsertInfos(
+    const QueryGraphCollection& queryGraphCollection, const expression_set& nodeRelScope_) {
     auto nodeRelScope = nodeRelScope_;
     std::vector<BoundInsertInfo> result;
     for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
@@ -108,7 +102,7 @@ std::vector<BoundInsertInfo> Binder::bindCreateInfos(
                 continue;
             }
             nodeRelScope.insert(node);
-            result.push_back(bindInsertNodeInfo(node, keyValCollection));
+            bindInsertNode(node, result);
         }
         for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
             auto rel = queryGraph->getQueryRel(j);
@@ -116,7 +110,7 @@ std::vector<BoundInsertInfo> Binder::bindCreateInfos(
                 continue;
             }
             nodeRelScope.insert(rel);
-            result.push_back(bindInsertRelInfo(rel, keyValCollection));
+            bindInsertRel(rel, result);
         }
     }
     if (result.empty()) {
@@ -125,40 +119,44 @@ std::vector<BoundInsertInfo> Binder::bindCreateInfos(
     return result;
 }
 
-static void validatePrimaryKeyExistence(const PropertyKeyValCollection& collection,
-    TableSchema* tableSchema, const std::shared_ptr<Expression>& node) {
-    auto tableID = tableSchema->getTableID();
-    auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
+static void validatePrimaryKeyExistence(
+    const TableSchema* tableSchema, const NodeExpression& node) {
+    auto nodeTableSchema = ku_dynamic_cast<const TableSchema*, const NodeTableSchema*>(tableSchema);
     auto primaryKey = nodeTableSchema->getPrimaryKey();
-    std::shared_ptr<Expression> primaryKeyExpression;
-    for (auto& [key, val] : collection.getKeyVals(node)) {
-        auto propertyExpression = static_pointer_cast<PropertyExpression>(key);
-        if (propertyExpression->getPropertyID(tableID) == primaryKey->getPropertyID()) {
-            primaryKeyExpression = val;
-        }
+    if (*primaryKey->getDataType() == *LogicalType::SERIAL()) {
+        return; // No input needed for SERIAL primary key.
     }
-    if (primaryKey->getDataType()->getLogicalTypeID() != LogicalTypeID::SERIAL &&
-        primaryKeyExpression == nullptr) {
-        throw BinderException("Create node " + node->toString() + " expects primary key " +
+    if (!node.hasPropertyDataExpr(primaryKey->getName())) {
+        throw BinderException("Create node " + node.toString() + " expects primary key " +
                               primaryKey->getName() + " as input.");
     }
 }
 
-BoundInsertInfo Binder::bindInsertNodeInfo(
-    std::shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection) {
+void Binder::bindInsertNode(
+    std::shared_ptr<NodeExpression> node, std::vector<BoundInsertInfo>& infos) {
     if (node->isMultiLabeled()) {
         throw BinderException(
             "Create node " + node->toString() + " with multiple node labels is not supported.");
     }
     auto tableID = node->getSingleTableID();
     auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
-    validatePrimaryKeyExistence(collection, tableSchema, node);
-    auto setItems = bindSetItems(collection, tableSchema, node);
-    return BoundInsertInfo(UpdateTableType::NODE, std::move(node), std::move(setItems));
+    KU_ASSERT(tableSchema->getTableType() == TableType::NODE);
+    validatePrimaryKeyExistence(tableSchema, *node);
+    auto insertInfo = BoundInsertInfo(TableType::NODE, node);
+    if (tableSchema->hasParentTableID()) {
+        auto parentTableID = tableSchema->getParentTableID();
+        auto parentTableSchema = catalog.getTableSchema(clientContext->getTx(), parentTableID);
+        KU_ASSERT(parentTableSchema->getTableType() == TableType::RDF);
+        insertInfo.conflictAction = ConflictAction::ON_CONFLICT_DO_NOTHING;
+    }
+    insertInfo.columnExprs = node->getPropertyExprs();
+    insertInfo.columnDataExprs =
+        bindInsertColumnDataExprs(node->getPropertyDataExprRef(), tableSchema->getPropertiesRef());
+    infos.push_back(std::move(insertInfo));
 }
 
-BoundInsertInfo Binder::bindInsertRelInfo(
-    std::shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection) {
+void Binder::bindInsertRel(
+    std::shared_ptr<RelExpression> rel, std::vector<BoundInsertInfo>& infos) {
     if (rel->isMultiLabeled() || rel->isBoundByMultiLabeledNode()) {
         throw BinderException(
             "Create rel " + rel->toString() +
@@ -168,28 +166,56 @@ BoundInsertInfo Binder::bindInsertRelInfo(
         throw BinderException(
             common::stringFormat("Cannot create recursive rel {}.", rel->toString()));
     }
+    rel->setTableIDs(std::vector<common::table_id_t>{rel->getTableIDs()[0]});
     auto relTableID = rel->getSingleTableID();
     auto tableSchema = catalog.getTableSchema(clientContext->getTx(), relTableID);
-    auto setItems = bindSetItems(collection, tableSchema, rel);
-    return BoundInsertInfo(UpdateTableType::REL, std::move(rel), std::move(setItems));
+    if (tableSchema->hasParentTableID()) {
+        auto parentTableID = tableSchema->getParentTableID();
+        auto parentTableSchema = catalog.getTableSchema(clientContext->getTx(), parentTableID);
+        KU_ASSERT(parentTableSchema->getTableType() == TableType::RDF);
+        auto rdfTableSchema =
+            ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(parentTableSchema);
+        // Insert predicate resource node.
+        auto resourceTableID = rdfTableSchema->getResourceTableID();
+        auto pNode = createQueryNode(
+            rel->getVariableName(), std::vector<common::table_id_t>{resourceTableID});
+        pNode->addPropertyDataExpr(
+            std::string(rdf::IRI), rel->getPropertyDataExpr(std::string(rdf::IRI)));
+        bindInsertNode(pNode, infos);
+        // Insert triple rel.
+        auto relInsertInfo = BoundInsertInfo(TableType::REL, rel);
+        std::unordered_map<std::string, std::shared_ptr<Expression>> relPropertyRhsExpr;
+        relPropertyRhsExpr.insert({std::string(rdf::PID), pNode->getInternalID()});
+        relInsertInfo.columnExprs.push_back(
+            rel->getPropertyExpression(std::string(InternalKeyword::ID)));
+        relInsertInfo.columnExprs.push_back(rel->getPropertyExpression(std::string(rdf::PID)));
+        relInsertInfo.columnDataExprs =
+            bindInsertColumnDataExprs(relPropertyRhsExpr, tableSchema->getPropertiesRef());
+        infos.push_back(std::move(relInsertInfo));
+    } else {
+        auto insertInfo = BoundInsertInfo(TableType::REL, rel);
+        insertInfo.columnExprs = rel->getPropertyExprs();
+        insertInfo.columnDataExprs = bindInsertColumnDataExprs(
+            rel->getPropertyDataExprRef(), tableSchema->getPropertiesRef());
+        infos.push_back(std::move(insertInfo));
+    }
 }
 
-std::vector<expression_pair> Binder::bindSetItems(const PropertyKeyValCollection& collection,
-    TableSchema* tableSchema, const std::shared_ptr<Expression>& nodeOrRel) {
-    std::vector<expression_pair> setItems;
-    for (auto& property : tableSchema->getPropertiesRef()) {
-        if (collection.hasKeyVal(nodeOrRel, property.getName())) { // input specifies rhs.
-            setItems.emplace_back(collection.getKeyVal(nodeOrRel, property.getName()));
-            continue;
+expression_vector Binder::bindInsertColumnDataExprs(
+    const std::unordered_map<std::string, std::shared_ptr<Expression>>& propertyRhsExpr,
+    const std::vector<Property>& properties) {
+    expression_vector result;
+    for (auto& property : properties) {
+        std::shared_ptr<Expression> rhs;
+        if (propertyRhsExpr.contains(property.getName())) {
+            rhs = propertyRhsExpr.at(property.getName());
+        } else {
+            rhs = expressionBinder.createNullLiteralExpression();
         }
-        auto propertyExpression =
-            expressionBinder.bindNodeOrRelPropertyExpression(*nodeOrRel, property.getName());
-        auto nullExpression = expressionBinder.createNullLiteralExpression();
-        nullExpression =
-            ExpressionBinder::implicitCastIfNecessary(nullExpression, propertyExpression->dataType);
-        setItems.emplace_back(std::move(propertyExpression), std::move(nullExpression));
+        rhs = ExpressionBinder::implicitCastIfNecessary(rhs, *property.getDataType());
+        result.push_back(std::move(rhs));
     }
-    return setItems;
+    return result;
 }
 
 std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause& updatingClause) {

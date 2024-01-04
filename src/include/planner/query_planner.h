@@ -20,8 +20,7 @@ struct BoundFileScanInfo;
 
 namespace planner {
 
-struct LogicalInsertNodeInfo;
-struct LogicalInsertRelInfo;
+struct LogicalInsertInfo;
 struct LogicalSetPropertyInfo;
 
 class QueryPlanner {
@@ -159,10 +158,7 @@ private:
         const std::vector<const binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
     void appendDeleteRel(
         const std::vector<const binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
-    std::unique_ptr<LogicalInsertNodeInfo> createLogicalInsertNodeInfo(
-        const binder::BoundInsertInfo* boundInsertInfo);
-    std::unique_ptr<LogicalInsertRelInfo> createLogicalInsertRelInfo(
-        const binder::BoundInsertInfo* boundInsertInfo);
+    std::unique_ptr<LogicalInsertInfo> createLogicalInsertInfo(const binder::BoundInsertInfo* info);
     std::unique_ptr<LogicalSetPropertyInfo> createLogicalSetPropertyInfo(
         const binder::BoundSetPropertyInfo* boundSetPropertyInfo);
 

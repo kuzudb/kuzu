@@ -153,14 +153,8 @@ protected:
         return op;
     }
 
-    virtual void visitInsertNode(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitInsertNodeReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
-    virtual void visitInsertRel(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitInsertRelReplace(
+    virtual void visitInsert(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitInsertReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }

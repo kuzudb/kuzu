@@ -81,9 +81,18 @@ void Binder::rewriteMatchPattern(BoundGraphPattern& boundGraphPattern) {
         where = expressionBinder.combineBooleanExpressions(ExpressionType::AND, predicate, where);
     }
     // Rewrite key value pairs in MATCH clause as predicate
-    for (auto& [key, val] : boundGraphPattern.propertyKeyValCollection.getKeyVals()) {
-        auto predicate = expressionBinder.createEqualityComparisonExpression(key, val);
-        where = expressionBinder.combineBooleanExpressions(ExpressionType::AND, predicate, where);
+    for (auto i = 0u; i < graphCollection.getNumQueryGraphs(); ++i) {
+        auto queryGraph = graphCollection.getQueryGraphUnsafe(i);
+        for (auto& pattern : queryGraph->getAllPatterns()) {
+            for (auto& [propertyName, rhs] : pattern->getPropertyDataExprRef()) {
+                auto propertyExpr =
+                    expressionBinder.bindNodeOrRelPropertyExpression(*pattern, propertyName);
+                auto predicate =
+                    expressionBinder.createEqualityComparisonExpression(propertyExpr, rhs);
+                where = expressionBinder.combineBooleanExpressions(
+                    ExpressionType::AND, predicate, where);
+            }
+        }
     }
     boundGraphPattern.where = std::move(where);
 }

@@ -4,6 +4,9 @@
 #include "planner/operator/logical_plan.h"
 
 namespace kuzu {
+namespace planner {
+struct LogicalInsertInfo;
+}
 namespace optimizer {
 
 // ProjectionPushDownOptimizer implements the logic to avoid materializing unnecessary properties
@@ -30,8 +33,8 @@ private:
     void visitUnwind(planner::LogicalOperator* op) override;
     void visitSetNodeProperty(planner::LogicalOperator* op) override;
     void visitSetRelProperty(planner::LogicalOperator* op) override;
-    void visitInsertNode(planner::LogicalOperator* op) override;
-    void visitInsertRel(planner::LogicalOperator* op) override;
+    void visitInsert(planner::LogicalOperator* op) override;
+    void visitInsertInfo(const planner::LogicalInsertInfo* info);
     void visitDeleteNode(planner::LogicalOperator* op) override;
     void visitDeleteRel(planner::LogicalOperator* op) override;
     void visitMerge(planner::LogicalOperator* op) override;

@@ -43,6 +43,18 @@ void NodeTable::read(Transaction* transaction, TableReadState& readState, ValueV
     }
 }
 
+common::offset_t NodeTable::validateUniquenessConstraint(
+    Transaction* tx, const std::vector<common::ValueVector*>& propertyVectors) {
+    auto pkVector = propertyVectors[pkColumnID];
+    KU_ASSERT(pkVector->state->selVector->selectedSize == 1);
+    auto pkVectorPos = pkVector->state->selVector->selectedPositions[0];
+    common::offset_t offset;
+    if (pkIndex->lookup(tx, propertyVectors[pkColumnID], pkVectorPos, offset)) {
+        return offset;
+    }
+    return INVALID_OFFSET;
+}
+
 offset_t NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
     const std::vector<common::ValueVector*>& propertyVectors) {
     auto maxNodeOffset = 0u;

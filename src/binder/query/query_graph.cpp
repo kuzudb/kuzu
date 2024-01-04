@@ -143,6 +143,17 @@ subquery_graph_set_t SubqueryGraph::getNextNbrSubgraphs(const SubqueryGraph& pre
     return result;
 }
 
+std::vector<std::shared_ptr<NodeOrRelExpression>> QueryGraph::getAllPatterns() const {
+    std::vector<std::shared_ptr<NodeOrRelExpression>> patterns;
+    for (auto& p : queryNodes) {
+        patterns.push_back(p);
+    }
+    for (auto& p : queryRels) {
+        patterns.push_back(p);
+    }
+    return patterns;
+}
+
 void QueryGraph::addQueryNode(std::shared_ptr<NodeExpression> queryNode) {
     // Note that a node may be added multiple times. We should only keep one of it.
     // E.g. MATCH (a:person)-[:knows]->(b:person), (a)-[:knows]->(c:person)
@@ -219,53 +230,6 @@ std::vector<std::shared_ptr<RelExpression>> QueryGraphCollection::getQueryRels()
         }
     }
     return result;
-}
-
-void PropertyKeyValCollection::addKeyVal(const std::shared_ptr<Expression>& variable,
-    const std::string& propertyName, expression_pair keyVal) {
-    if (!propertyKeyValMap.contains(variable)) {
-        propertyKeyValMap.insert({variable, std::unordered_map<std::string, expression_pair>{}});
-    }
-    propertyKeyValMap.at(variable).insert({propertyName, std::move(keyVal)});
-}
-
-std::vector<expression_pair> PropertyKeyValCollection::getKeyVals() const {
-    std::vector<expression_pair> result;
-    for (auto& [_, keyVals] : propertyKeyValMap) {
-        for (auto& [_, keyVal] : keyVals) {
-            result.push_back(keyVal);
-        }
-    }
-    return result;
-}
-
-std::vector<expression_pair> PropertyKeyValCollection::getKeyVals(
-    const std::shared_ptr<Expression>& variable) const {
-    std::vector<expression_pair> result;
-    if (!propertyKeyValMap.contains(variable)) {
-        return result;
-    }
-    for (auto& [_, keyVal] : propertyKeyValMap.at(variable)) {
-        result.push_back(keyVal);
-    }
-    return result;
-}
-
-bool PropertyKeyValCollection::hasKeyVal(
-    const std::shared_ptr<Expression>& variable, const std::string& propertyName) const {
-    if (!propertyKeyValMap.contains(variable)) {
-        return false;
-    }
-    if (!propertyKeyValMap.at(variable).contains(propertyName)) {
-        return false;
-    }
-    return true;
-}
-
-expression_pair PropertyKeyValCollection::getKeyVal(
-    const std::shared_ptr<Expression>& variable, const std::string& propertyName) const {
-    KU_ASSERT(hasKeyVal(variable, propertyName));
-    return propertyKeyValMap.at(variable).at(propertyName);
 }
 
 } // namespace binder

@@ -14,24 +14,20 @@ public:
     inline const std::vector<BoundInsertInfo>& getInfosRef() { return infos; }
 
     inline bool hasNodeInfo() const {
-        return hasInfo([](const BoundInsertInfo& info) {
-            return info.updateTableType == UpdateTableType::NODE;
-        });
+        return hasInfo(
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::NODE; });
     }
     inline std::vector<const BoundInsertInfo*> getNodeInfos() const {
-        return getInfos([](const BoundInsertInfo& info) {
-            return info.updateTableType == UpdateTableType::NODE;
-        });
+        return getInfos(
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::NODE; });
     }
     inline bool hasRelInfo() const {
-        return hasInfo([](const BoundInsertInfo& info) {
-            return info.updateTableType == UpdateTableType::REL;
-        });
+        return hasInfo(
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
     }
     inline std::vector<const BoundInsertInfo*> getRelInfos() const {
-        return getInfos([](const BoundInsertInfo& info) {
-            return info.updateTableType == UpdateTableType::REL;
-        });
+        return getInfos(
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
     }
 
 private:

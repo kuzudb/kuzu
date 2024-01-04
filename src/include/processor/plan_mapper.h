@@ -11,8 +11,7 @@
 namespace kuzu {
 namespace planner {
 struct LogicalSetPropertyInfo;
-struct LogicalInsertNodeInfo;
-struct LogicalInsertRelInfo;
+struct LogicalInsertInfo;
 class LogicalCopyFrom;
 } // namespace planner
 
@@ -71,8 +70,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapUnionAll(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAccumulate(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDummyScan(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapInsertNode(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapInsertRel(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapInsert(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetNodeProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetRelProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDeleteNode(planner::LogicalOperator* logicalOperator);
@@ -132,9 +130,10 @@ private:
         planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
         const std::string& paramsString);
 
-    std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(planner::LogicalInsertNodeInfo* info,
-        const planner::Schema& inSchema, const planner::Schema& outSchema) const;
-    std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(planner::LogicalInsertRelInfo* info,
+    std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(
+        const planner::LogicalInsertInfo* info, const planner::Schema& inSchema,
+        const planner::Schema& outSchema) const;
+    std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(const planner::LogicalInsertInfo* info,
         const planner::Schema& inSchema, const planner::Schema& outSchema);
     std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(
         planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) const;

@@ -1,97 +1,57 @@
 #include "planner/operator/persistent/logical_insert.h"
 
+#include "binder/expression/node_expression.h"
+#include "common/cast.h"
 #include "planner/operator/factorization/flatten_resolver.h"
+
+using namespace kuzu::common;
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
-std::vector<std::unique_ptr<LogicalInsertNodeInfo>> LogicalInsertNodeInfo::copy(
-    const std::vector<std::unique_ptr<LogicalInsertNodeInfo>>& infos) {
-    std::vector<std::unique_ptr<LogicalInsertNodeInfo>> infosCopy;
-    infosCopy.reserve(infos.size());
-    for (auto& info : infos) {
-        infosCopy.push_back(info->copy());
-    }
-    return infosCopy;
-}
-
-std::vector<std::unique_ptr<LogicalInsertRelInfo>> LogicalInsertRelInfo::copy(
-    const std::vector<std::unique_ptr<LogicalInsertRelInfo>>& infos) {
-    std::vector<std::unique_ptr<LogicalInsertRelInfo>> infosCopy;
-    infosCopy.reserve(infos.size());
-    for (auto& info : infos) {
-        infosCopy.push_back(info->copy());
-    }
-    return infosCopy;
-}
-
-void LogicalInsertNode::computeFactorizedSchema() {
+void LogicalInsert::computeFactorizedSchema() {
     copyChildSchema(0);
     for (auto& info : infos) {
         auto groupPos = schema->createGroup();
         schema->setGroupAsSingleState(groupPos);
-        for (auto& property : info->propertiesToReturn) {
-            schema->insertToGroupAndScope(property, groupPos);
+        for (auto i = 0u; i < info.columnExprs.size(); ++i) {
+            if (info.isReturnColumnExprs[i]) {
+                schema->insertToGroupAndScope(info.columnExprs[i], groupPos);
+            }
         }
-        schema->insertToGroupAndScopeMayRepeat(info->node->getInternalID(), groupPos);
+        if (info.tableType == TableType::NODE) {
+            auto node = ku_dynamic_cast<Expression*, NodeExpression*>(info.pattern.get());
+            schema->insertToGroupAndScopeMayRepeat(node->getInternalID(), groupPos);
+        }
     }
 }
 
-void LogicalInsertNode::computeFlatSchema() {
+void LogicalInsert::computeFlatSchema() {
     copyChildSchema(0);
     for (auto& info : infos) {
-        for (auto& property : info->propertiesToReturn) {
-            schema->insertToGroupAndScope(property, 0);
+        for (auto i = 0u; i < info.columnExprs.size(); ++i) {
+            if (info.isReturnColumnExprs[i]) {
+                schema->insertToGroupAndScope(info.columnExprs[i], 0);
+            }
         }
-        schema->insertToGroupAndScopeMayRepeat(info->node->getInternalID(), 0);
+        if (info.tableType == TableType::NODE) {
+            auto node = ku_dynamic_cast<Expression*, NodeExpression*>(info.pattern.get());
+            schema->insertToGroupAndScopeMayRepeat(node->getInternalID(), 0);
+        }
     }
 }
 
-std::string LogicalInsertNode::getExpressionsForPrinting() const {
+std::string LogicalInsert::getExpressionsForPrinting() const {
     std::string result;
-    for (auto& info : infos) {
-        result += info->node->toString() + ",";
+    for (auto i = 0u; i < infos.size() - 1; ++i) {
+        result += infos[i].pattern->toString() + ",";
     }
+    result += infos[infos.size() - 1].pattern->toString();
     return result;
 }
 
-f_group_pos_set LogicalInsertNode::getGroupsPosToFlatten() {
-    // Flatten all inputs. E.g. MATCH (a) CREATE (b). We need to create b for each tuple in the
-    // match clause. This is to simplify operator implementation.
-    auto childSchema = children[0]->getSchema();
-    return factorization::FlattenAll::getGroupsPosToFlatten(
-        childSchema->getGroupsPosInScope(), childSchema);
-}
-
-void LogicalInsertRel::computeFactorizedSchema() {
-    copyChildSchema(0);
-    for (auto& info : infos) {
-        auto groupPos = schema->createGroup();
-        schema->setGroupAsSingleState(groupPos);
-        for (auto& property : info->propertiesToReturn) {
-            schema->insertToGroupAndScope(property, groupPos);
-        }
-    }
-}
-
-void LogicalInsertRel::computeFlatSchema() {
-    copyChildSchema(0);
-    for (auto& info : infos) {
-        for (auto& property : info->propertiesToReturn) {
-            schema->insertToGroupAndScope(property, 0);
-        }
-    }
-}
-
-std::string LogicalInsertRel::getExpressionsForPrinting() const {
-    std::string result;
-    for (auto& info : infos) {
-        result += info->rel->toString() + ",";
-    }
-    return result;
-}
-
-f_group_pos_set LogicalInsertRel::getGroupsPosToFlatten() {
+f_group_pos_set LogicalInsert::getGroupsPosToFlatten() {
     auto childSchema = children[0]->getSchema();
     return factorization::FlattenAll::getGroupsPosToFlatten(
         childSchema->getGroupsPosInScope(), childSchema);
