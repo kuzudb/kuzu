@@ -53,6 +53,7 @@ enum class LogicalOperatorType : uint8_t {
     TRANSACTION,
     UNION_ALL,
     UNWIND,
+    LOAD_EXTENSION,
 };
 
 class LogicalOperatorUtils {

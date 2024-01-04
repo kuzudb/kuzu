@@ -39,11 +39,9 @@ void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFil
 
 void FileHandle::constructNewFileHandle(const std::string& path) {
 #ifdef _WIN32
-    fileInfo = make_unique<FileInfo>(path,
-        (const void*)nullptr /* no file descriptor for a new in memory file */, nullptr /* fs */);
+    fileInfo = make_unique<FileInfo>(path, nullptr /* fs */);
 #else
-    fileInfo = make_unique<FileInfo>(
-        path, -1 /* no file descriptor for a new in memory file */, nullptr /* fs */);
+    fileInfo = make_unique<FileInfo>(path, nullptr /* fs */);
 #endif
     numPages = 0;
     pageCapacity = 0;

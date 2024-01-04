@@ -31,6 +31,7 @@ add_library(kuzu_processor_mapper
         map_intersect.cpp
         map_label_filter.cpp
         map_limit.cpp
+        map_load_extension.cpp
         map_merge.cpp
         map_multiplicity_reducer.cpp
         map_order_by.cpp

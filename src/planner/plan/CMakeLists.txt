@@ -26,6 +26,7 @@ add_library(kuzu_planner_plan_operator
         plan_join_order.cpp
         plan_projection.cpp
         plan_read.cpp
+        plan_load_extension.cpp
         plan_single_query.cpp
         plan_subquery.cpp
         plan_transaction.cpp

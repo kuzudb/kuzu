@@ -11,18 +11,6 @@
 namespace kuzu {
 namespace common {
 
-FileInfo::~FileInfo() {
-#ifdef _WIN32
-    if (handle != nullptr) {
-        CloseHandle((HANDLE)handle);
-    }
-#else
-    if (fd != -1) {
-        close(fd);
-    }
-#endif
-}
-
 uint64_t FileInfo::getFileSize() {
     return fileSystem->getFileSize(this);
 }

@@ -1,0 +1,39 @@
+-GROUP HTTPFS
+-DATASET CSV empty
+
+--
+
+-CASE ScanFromHTTPCSV
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT load from "http://localhost/tinysnb/vPerson.csv" (header=true) return * limit 5;
+---- 5
+0|Alice|1|true|false|35|5.0|1900-01-01|2011-08-20 11:25:30Z+00:00|3 years 2 days 13 hours 2 minutes|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731
+2|Bob|2|true|false|30|5.1|1900-01-01|2008-11-03 13:25:30.000526-02:00|10 years 5 months 13 hours 24 us|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.99
+3|Carol|1|false|true|45|5.0|1940-06-22|1911-08-20 02:32:21|48 hours 24 minutes 11 seconds|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.00
+5|Dan|2|false|true|20|4.8|1950-7-23|2031-11-30 12:25:30Z|10 years 5 months 13 hours 24 us|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.30
+7|Elizabeth|1|false|true|20|4.7|1980-10-26|1976-12-23 11:21:42|48 hours 24 minutes 11 seconds|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463
+
+-CASE ScanFromLargeFiles
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT load from "http://localhost/copy-test/node/parquet/types_50k_0.parquet" return count(*);
+---- 1
+16666
+-STATEMENT load from "http://localhost/copy-test/node/csv/types_50k.csv" return count(*);
+---- 1
+50000
+
+-CASE CopyFromHTTPCSV
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT COPY User from "http://localhost/demo-db/csv/user.csv"
+---- ok
+-STATEMENT match (u:User) return u.*
+---- 4
+Adam|30
+Karissa|40
+Zhang|50
+Noura|25

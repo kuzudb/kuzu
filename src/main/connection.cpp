@@ -251,7 +251,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     auto profiler = std::make_unique<Profiler>();
     auto executionContext = std::make_unique<ExecutionContext>(
         clientContext->numThreadsForExecution, profiler.get(), database->memoryManager.get(),
-        database->bufferManager.get(), clientContext.get(), database->vfs.get());
+        database->bufferManager.get(), clientContext.get(), database->vfs.get(), database);
     profiler->enabled = preparedStatement->isProfile();
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();

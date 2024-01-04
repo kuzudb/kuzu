@@ -10,7 +10,16 @@ VirtualFileSystem::VirtualFileSystem() {
     defaultFS = std::make_unique<LocalFileSystem>();
 }
 
-FileSystem* VirtualFileSystem::findFileSystem(const std::string& /*path*/) {
+void VirtualFileSystem::registerFileSystem(std::unique_ptr<FileSystem> fileSystem) {
+    subSystems.push_back(std::move(fileSystem));
+}
+
+FileSystem* VirtualFileSystem::findFileSystem(const std::string& path) {
+    for (auto& subSystem : subSystems) {
+        if (subSystem->canHandleFile(path)) {
+            return subSystem.get();
+        }
+    }
     return defaultFS.get();
 }
 
@@ -37,14 +46,6 @@ void VirtualFileSystem::removeFileIfExists(const std::string& path) {
 
 bool VirtualFileSystem::fileOrPathExists(const std::string& path) {
     return findFileSystem(path)->fileOrPathExists(path);
-}
-
-std::string VirtualFileSystem::joinPath(const std::string& base, const std::string& part) {
-    return findFileSystem(base)->joinPath(base, part);
-}
-
-std::string VirtualFileSystem::getFileExtension(const std::filesystem::path& path) {
-    return findFileSystem(path.string())->getFileExtension(path);
 }
 
 void VirtualFileSystem::readFromFile(

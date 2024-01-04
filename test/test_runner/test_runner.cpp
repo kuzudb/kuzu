@@ -32,6 +32,7 @@ bool TestRunner::testStatement(
     TestStatement* statement, Connection& conn, std::string& databasePath) {
     std::unique_ptr<PreparedStatement> preparedStatement;
     StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", databasePath);
+    StringUtils::replaceAll(statement->query, "${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY);
     if (statement->encodedJoin.empty()) {
         preparedStatement = conn.prepareNoLock(statement->query, statement->enumerate);
     } else {

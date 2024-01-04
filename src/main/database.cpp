@@ -90,6 +90,10 @@ void Database::addBuiltInFunction(std::string name, function::function_set funct
     catalog->addFunction(std::move(name), std::move(functionSet));
 }
 
+void Database::registerFileSystem(std::unique_ptr<common::FileSystem> fs) {
+    vfs->registerFileSystem(std::move(fs));
+}
+
 void Database::openLockFile() {
     int flags;
     FileLockType lock;

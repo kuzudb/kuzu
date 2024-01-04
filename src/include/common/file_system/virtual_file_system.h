@@ -13,6 +13,8 @@ class VirtualFileSystem final : public FileSystem {
 public:
     VirtualFileSystem();
 
+    void registerFileSystem(std::unique_ptr<FileSystem> fileSystem);
+
     std::unique_ptr<FileInfo> openFile(
         const std::string& path, int flags, FileLockType lockType = FileLockType::NO_LOCK) override;
 
@@ -25,10 +27,6 @@ public:
     void removeFileIfExists(const std::string& path) override;
 
     bool fileOrPathExists(const std::string& path) override;
-
-    std::string joinPath(const std::string& base, const std::string& part) override;
-
-    std::string getFileExtension(const std::filesystem::path& path) override;
 
 protected:
     void readFromFile(

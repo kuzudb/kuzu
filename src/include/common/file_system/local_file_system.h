@@ -7,6 +7,24 @@
 namespace kuzu {
 namespace common {
 
+struct LocalFileInfo : public FileInfo {
+#ifdef _WIN32
+    LocalFileInfo(std::string path, const void* handle, FileSystem* fileSystem)
+        : FileInfo{std::move(path), fileSystem}, handle{handle} {}
+#else
+    LocalFileInfo(std::string path, const int fd, FileSystem* fileSystem)
+        : FileInfo{std::move(path), fileSystem}, fd{fd} {}
+#endif
+
+    ~LocalFileInfo() override;
+
+#ifdef _WIN32
+    const void* handle;
+#else
+    const int fd;
+#endif
+};
+
 class LocalFileSystem final : public FileSystem {
 public:
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
@@ -21,10 +39,6 @@ public:
     void removeFileIfExists(const std::string& path) override;
 
     bool fileOrPathExists(const std::string& path) override;
-
-    std::string joinPath(const std::string& base, const std::string& part) override;
-
-    std::string getFileExtension(const std::filesystem::path& path) override;
 
 protected:
     void readFromFile(
