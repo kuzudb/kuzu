@@ -20,7 +20,7 @@ using StringBuffer = common::StaticVector<std::pair<std::string, common::offset_
 
 class IndexBuilderGlobalQueues {
 public:
-    explicit IndexBuilderGlobalQueues(std::unique_ptr<storage::PrimaryKeyIndexBuilder> pkIndex);
+    explicit IndexBuilderGlobalQueues(storage::PrimaryKeyIndexBuilder* pkIndex);
 
     void flushToDisk() const;
 
@@ -35,7 +35,7 @@ private:
     void maybeConsumeIndex(size_t index);
 
     std::array<std::mutex, storage::NUM_HASH_INDEXES> mutexes;
-    std::unique_ptr<storage::PrimaryKeyIndexBuilder> pkIndex;
+    storage::PrimaryKeyIndexBuilder* pkIndex;
 
     using StringQueues = std::array<common::MPSCQueue<StringBuffer>, storage::NUM_HASH_INDEXES>;
     using IntQueues = std::array<common::MPSCQueue<IntBuffer>, storage::NUM_HASH_INDEXES>;
@@ -67,13 +67,14 @@ class IndexBuilderSharedState {
     friend class IndexBuilder;
 
 public:
-    explicit IndexBuilderSharedState(std::unique_ptr<storage::PrimaryKeyIndexBuilder> pkIndex);
-    void consume() { globalQueues.consume(); }
-    void flush() { globalQueues.flushToDisk(); }
+    explicit IndexBuilderSharedState(storage::PrimaryKeyIndexBuilder* pkIndex)
+        : globalQueues{pkIndex} {}
+    inline void consume() { globalQueues.consume(); }
+    inline void flush() { globalQueues.flushToDisk(); }
 
-    void addProducer() { producers.fetch_add(1, std::memory_order_relaxed); }
+    inline void addProducer() { producers.fetch_add(1, std::memory_order_relaxed); }
     void quitProducer();
-    bool isDone() { return done.load(std::memory_order_relaxed); }
+    inline bool isDone() { return done.load(std::memory_order_relaxed); }
 
 private:
     IndexBuilderGlobalQueues globalQueues;
@@ -106,16 +107,13 @@ private:
 };
 
 class IndexBuilder {
-    explicit IndexBuilder(std::shared_ptr<IndexBuilderSharedState> sharedState);
 
 public:
     DELETE_COPY_DEFAULT_MOVE(IndexBuilder);
-    explicit IndexBuilder(std::unique_ptr<storage::PrimaryKeyIndexBuilder> pkIndex);
+    explicit IndexBuilder(std::shared_ptr<IndexBuilderSharedState> sharedState);
 
     IndexBuilder clone() { return IndexBuilder(sharedState); }
 
-    void initGlobalStateInternal(ExecutionContext* /*context*/) {}
-    void initLocalStateInternal(ExecutionContext* /*context*/) {}
     void insert(
         storage::ColumnChunk* chunk, common::offset_t nodeOffset, common::offset_t numNodes);
 

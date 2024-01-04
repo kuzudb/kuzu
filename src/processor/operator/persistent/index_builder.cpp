@@ -13,8 +13,8 @@ namespace processor {
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
-IndexBuilderGlobalQueues::IndexBuilderGlobalQueues(std::unique_ptr<PrimaryKeyIndexBuilder> pkIndex)
-    : pkIndex(std::move(pkIndex)) {
+IndexBuilderGlobalQueues::IndexBuilderGlobalQueues(PrimaryKeyIndexBuilder* pkIndex)
+    : pkIndex(pkIndex) {
     if (this->pkIndex->keyTypeID() == LogicalTypeID::STRING) {
         queues.emplace<StringQueues>();
     } else {
@@ -118,9 +118,6 @@ void IndexBuilderLocalBuffers::flush() {
     }
 }
 
-IndexBuilderSharedState::IndexBuilderSharedState(std::unique_ptr<PrimaryKeyIndexBuilder> pkIndex)
-    : globalQueues(std::move(pkIndex)) {}
-
 IndexBuilder::IndexBuilder(std::shared_ptr<IndexBuilderSharedState> sharedState)
     : sharedState(std::move(sharedState)), localBuffers(this->sharedState->globalQueues) {}
 
@@ -129,9 +126,6 @@ void IndexBuilderSharedState::quitProducer() {
         done.store(true, std::memory_order_relaxed);
     }
 }
-
-IndexBuilder::IndexBuilder(std::unique_ptr<PrimaryKeyIndexBuilder> pkIndex)
-    : IndexBuilder(std::make_shared<IndexBuilderSharedState>(std::move(pkIndex))) {}
 
 void IndexBuilder::insert(ColumnChunk* chunk, offset_t nodeOffset, offset_t numNodes) {
     checkNonNullConstraint(chunk->getNullChunk(), numNodes);
@@ -166,8 +160,9 @@ void IndexBuilder::finishedProducing() {
 }
 
 void IndexBuilder::finalize(ExecutionContext* /*context*/) {
-    // Flush anything added by `addLastNodeGroup()`.
+    // Flush anything added by last node group.
     localBuffers.flush();
+
     sharedState->consume();
     sharedState->flush();
 }

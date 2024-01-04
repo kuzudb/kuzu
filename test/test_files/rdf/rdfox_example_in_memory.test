@@ -1,6 +1,5 @@
 -GROUP RdfoxExampleInMemory
 -DATASET TTL EMPTY
--SKIP
 
 --
 

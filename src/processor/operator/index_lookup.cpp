@@ -78,7 +78,7 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
             for (auto i = 0u; i < numKeys; i++) {
                 auto pos = keyVector->state->selVector->selectedPositions[i];
                 auto key = keyVector->getValue<int64_t>(pos);
-                if (!info.copyNodeSharedState->indexBuilder->lookup(key, offsets[i])) {
+                if (!info.copyNodeSharedState->pkIndex->lookup(key, offsets[i])) {
                     throw RuntimeException(
                         ExceptionMessage::nonExistPKException(std::to_string(key)));
                 }
@@ -99,7 +99,7 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
             for (auto i = 0u; i < numKeys; i++) {
                 auto key = keyVector->getValue<ku_string_t>(
                     keyVector->state->selVector->selectedPositions[i]);
-                if (!info.copyNodeSharedState->indexBuilder->lookup(
+                if (!info.copyNodeSharedState->pkIndex->lookup(
                         key.getAsString().c_str(), offsets[i])) {
                     throw RuntimeException(
                         ExceptionMessage::nonExistPKException(key.getAsString()));

@@ -49,6 +49,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     // Resource triple table.
     auto resourceTripleTableName = getRdfResourceTripleTableName(rdfGraphName);
     std::vector<PropertyInfo> resourceTripleProperties;
+    resourceTripleProperties.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID());
     resourceTripleProperties.emplace_back(std::string(rdf::PID), *LogicalType::INTERNAL_ID());
     auto boundResourceTripleExtraInfo =
         std::make_unique<BoundExtraCreateRelTableInfo>(RelMultiplicity::MANY, RelMultiplicity::MANY,
@@ -58,6 +59,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     // Literal triple table.
     auto literalTripleTableName = getRdfLiteralTripleTableName(rdfGraphName);
     std::vector<PropertyInfo> literalTripleProperties;
+    literalTripleProperties.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID());
     literalTripleProperties.emplace_back(std::string(rdf::PID), *LogicalType::INTERNAL_ID());
     auto boundLiteralTripleExtraInfo =
         std::make_unique<BoundExtraCreateRelTableInfo>(RelMultiplicity::MANY, RelMultiplicity::MANY,
