@@ -101,7 +101,7 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "UNION_ALL";
     case LogicalOperatorType::UNWIND:
         return "UNWIND";
-    case LogicalOperatorType::LOAD_EXTENSION:
+    case LogicalOperatorType::EXTENSION:
         return "LOAD";
     default:
         KU_UNREACHABLE;

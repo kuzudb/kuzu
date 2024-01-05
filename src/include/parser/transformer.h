@@ -214,8 +214,8 @@ private:
     // Transform transaction.
     std::unique_ptr<Statement> transformTransaction(CypherParser::KU_TransactionContext& ctx);
 
-    // Transform load extension.
-    std::unique_ptr<Statement> transformLoadExtension(CypherParser::KU_LoadExtensionContext& ctx);
+    // Transform extension.
+    std::unique_ptr<Statement> transformExtension(CypherParser::KU_ExtensionContext& ctx);
 
     // Transform comment on.
     std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);

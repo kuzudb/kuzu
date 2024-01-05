@@ -102,7 +102,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapExpressionsScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateMacro(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapTransaction(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLoadExtension(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapExtension(planner::LogicalOperator* logicalOperator);
 
     std::unique_ptr<PhysicalOperator> createCopyRel(
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,

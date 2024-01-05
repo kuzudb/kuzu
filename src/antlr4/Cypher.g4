@@ -26,7 +26,7 @@ oC_Statement
         | kU_CreateMacro
         | kU_CommentOn
         | kU_Transaction
-        | kU_LoadExtension ;
+        | kU_Extension ;
 
 kU_CopyFrom
     : COPY SP oC_SchemaName ( ( SP? '(' SP? kU_ColumnNames SP? ')' SP? ) | SP ) FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
@@ -195,6 +195,10 @@ kU_Transaction
         | ROLLBACK
         | ROLLBACK_SKIP_CHECKPOINT;
 
+kU_Extension
+    : kU_LoadExtension
+        | kU_InstallExtension;
+
 BEGIN : ( 'B' | 'b' ) ( 'E' | 'e' ) ( 'G' | 'g' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 TRANSACTION : ( 'T' | 't' ) ( 'R' | 'r' ) ( 'A' | 'a' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ;
@@ -214,7 +218,12 @@ ROLLBACK : ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ( 'B' | 'b' )
 ROLLBACK_SKIP_CHECKPOINT: ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ( 'B' | 'b' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'K' | 'k' ) '_' ( 'S' | 's' ) ( 'K' | 'k' ) ( 'I' | 'i' ) ( 'P' | 'p' ) '_' ( 'C' | 'c' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'K' | 'k' ) ( 'P' | 'p' ) ( 'O' | 'o' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
 
 kU_LoadExtension
-    : LOAD SP EXTENSION SP StringLiteral ;
+    : LOAD SP EXTENSION SP ( StringLiteral | oC_Variable ) ;
+
+kU_InstallExtension
+    : INSTALL SP oC_Variable ;
+
+INSTALL : ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 EXTENSION : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ;
 

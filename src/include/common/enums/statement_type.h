@@ -17,7 +17,7 @@ enum class StatementType : uint8_t {
     CREATE_MACRO = 23,
     COMMENT_ON = 24,
     TRANSACTION = 30,
-    LOAD_EXTENSION = 31,
+    EXTENSION = 31,
 };
 
 struct StatementTypeUtils {

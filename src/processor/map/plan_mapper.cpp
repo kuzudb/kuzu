@@ -171,8 +171,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::TRANSACTION: {
         physicalOperator = mapTransaction(logicalOperator);
     } break;
-    case LogicalOperatorType::LOAD_EXTENSION: {
-        physicalOperator = mapLoadExtension(logicalOperator);
+    case LogicalOperatorType::EXTENSION: {
+        physicalOperator = mapExtension(logicalOperator);
     } break;
     default:
         KU_UNREACHABLE;

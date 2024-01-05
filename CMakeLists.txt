@@ -180,6 +180,7 @@ endfunction()
 
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
+add_definitions(-DKUZU_RELEASE_VERSION="0.1.0")
 
 include_directories(src/include)
 include_directories(third_party/antlr4_cypher/include)
@@ -195,6 +196,7 @@ include_directories(third_party/serd/include)
 include_directories(third_party/spdlog)
 include_directories(third_party/utf8proc/include)
 include_directories(third_party/zstd/include)
+include_directories(third_party/httplib)
 
 add_subdirectory(third_party)
 add_subdirectory(src)
