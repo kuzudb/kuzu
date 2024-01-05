@@ -10,6 +10,7 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 
 public class ValueTest extends TestBase {
 
@@ -705,6 +706,23 @@ public class ValueTest extends TestBase {
         assertTrue(bytes[1] == (byte) 0xBB);
         assertTrue(bytes[2] == (byte) 0xCD);
         assertTrue(bytes[3] == (byte) 0x1A);
+    }
+
+    @Test
+    void ValueGetUUID() throws KuzuObjectRefDestroyedException {
+        KuzuQueryResult result = conn.query("RETURN UUID(\"A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11\");");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        UUID uid = value.getValue();
+        assertTrue(uid.equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")));
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
     }
 
     @Test

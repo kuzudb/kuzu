@@ -296,7 +296,6 @@ typedef enum {
     KUZU_STRUCT = 53,
     KUZU_MAP = 54,
     KUZU_UNION = 55,
-
     KUZU_UUID = 56
 } kuzu_data_type_id;
 
@@ -1062,6 +1061,12 @@ KUZU_C_API char* kuzu_value_get_string(kuzu_value* value);
  * @param value The value to return.
  */
 KUZU_C_API uint8_t* kuzu_value_get_blob(kuzu_value* value);
+/**
+ * @brief Returns the uuid value of the given value.
+ * to a string. The value must be of type UUID.
+ * @param value The value to return.
+ */
+KUZU_C_API char* kuzu_value_get_uuid(kuzu_value* value);
 /**
  * @brief Converts the given value to string.
  * @param value The value to convert.

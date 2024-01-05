@@ -314,6 +314,7 @@ void Value::copyValueFrom(const uint8_t* value) {
     } break;
     case LogicalTypeID::UUID: {
         val.int128Val = ((uuid_t*)value)->value;
+        strVal = UUID::toString(val.int128Val);
     } break;
     case LogicalTypeID::STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
