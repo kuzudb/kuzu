@@ -17,7 +17,7 @@ add_library(
         bind_standalone_call.cpp
         bind_transaction.cpp
         bind_updating_clause.cpp
-        bind_load_extension.cpp)
+        bind_extension.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_binder_bind>

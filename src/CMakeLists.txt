@@ -16,6 +16,7 @@ add_subdirectory(planner)
 add_subdirectory(processor)
 add_subdirectory(storage)
 add_subdirectory(transaction)
+add_subdirectory(extension)
 
 add_library(kuzu STATIC ${ALL_OBJECT_FILES})
 add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})

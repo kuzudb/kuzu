@@ -39,7 +39,7 @@ private:
 
     std::unique_ptr<LogicalPlan> planTransaction(const binder::BoundStatement& statement);
 
-    std::unique_ptr<LogicalPlan> planLoadExtension(const binder::BoundStatement& statement);
+    std::unique_ptr<LogicalPlan> planExtension(const binder::BoundStatement& statement);
 
     std::vector<std::unique_ptr<LogicalPlan>> getAllQueryPlans(
         const binder::BoundStatement& statement);

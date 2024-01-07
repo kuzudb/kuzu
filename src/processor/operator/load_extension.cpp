@@ -13,6 +13,7 @@
 #endif
 
 #include "common/system_message.h"
+#include "extension/extension.h"
 #include "main/database.h"
 
 using namespace kuzu::common;
@@ -21,6 +22,8 @@ typedef void (*ext_init_func_t)(kuzu::main::Database&);
 
 namespace kuzu {
 namespace processor {
+
+using namespace kuzu::extension;
 
 #ifdef _WIN32
 std::wstring utf8ToUnicode(const char* input) {
@@ -55,6 +58,10 @@ bool LoadExtension::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     hasExecuted = true;
+    if (!extension::ExtensionUtils::isFullPath(path)) {
+        path = ExtensionUtils::getExtensionPath(
+            ExtensionUtils::getExtensionDir(context->database), path);
+    }
     auto libHdl = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (libHdl == nullptr) {
         throw common::IOException(

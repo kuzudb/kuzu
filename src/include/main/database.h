@@ -16,6 +16,10 @@ namespace function {
 struct Function;
 } // namespace function
 
+namespace extension {
+struct ExtensionUtils;
+} // namespace extension
+
 namespace main {
 
 /**
@@ -54,6 +58,7 @@ class Database {
     friend class kuzu::testing::BaseGraphTest;
     friend class kuzu::testing::PrivateGraphTest;
     friend class transaction::TransactionContext;
+    friend struct extension::ExtensionUtils;
 
 public:
     /**

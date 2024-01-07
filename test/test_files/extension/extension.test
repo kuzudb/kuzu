@@ -1,0 +1,26 @@
+-GROUP ExtensionTest
+-DATASET CSV empty
+
+--
+
+-CASE ExtensionTest
+
+# TODO: Extension on windows has not been supported yet due to a linking issue.
+-SKIP_WINDOWS
+-LOG InstallExtension
+-STATEMENT INSTALL httpfs;
+---- ok
+-STATEMENT LOAD EXTENSION httpfs;
+---- ok
+-STATEMENT LOAD FROM 'http://extension.kuzudb.com/dataset/test/city.csv' return *;
+---- 3
+Guelph|75000
+Kitchener|200000
+Waterloo|150000
+
+-SKIP
+# TODO: The error message is dependent on platform.
+-LOG InstallInvalidExtension
+-STATEMENT INSTALL http;
+---- error
+IO exception: HTTP Returns: 404, Failed to download extension: "http" from extension.kuzudb.com/v0.1.0/osx_arm64/libhttp.kuzu_extension.

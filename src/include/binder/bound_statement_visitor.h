@@ -27,7 +27,7 @@ protected:
     virtual void visitExplain(const BoundStatement&);
     virtual void visitCreateMacro(const BoundStatement&) {}
     virtual void visitTransaction(const BoundStatement&) {}
-    virtual void visitLoad(const BoundStatement&) {}
+    virtual void visitExtension(const BoundStatement&) {}
 
     virtual void visitRegularQuery(const BoundStatement& statement);
     virtual void visitRegularQueryUnsafe(BoundStatement& statement);

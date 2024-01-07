@@ -69,6 +69,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "INTERSECT_BUILD";
     case PhysicalOperatorType::INTERSECT:
         return "INTERSECT";
+    case PhysicalOperatorType::INSTALL_EXTENSION:
+        return "INSTALL_EXTENSION";
     case PhysicalOperatorType::LIMIT:
         return "LIMIT";
     case PhysicalOperatorType::LOAD_EXTENSION:
