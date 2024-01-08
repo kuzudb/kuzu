@@ -186,7 +186,7 @@ std::string QueryResult::toString() {
 }
 
 void QueryResult::writeToCSV(
-    const std::string& fileName, char delimiter, char escapeCharacter, char newline) {
+    std::string fileName, char delimiter, char escapeCharacter, char newline) {
     std::ofstream file;
     file.open(fileName);
     std::shared_ptr<FlatTuple> nextTuple;

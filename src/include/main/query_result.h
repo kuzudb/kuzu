@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "common/api.h"
 #include "common/arrow/arrow.h"
 #include "common/types/types.h"
@@ -90,8 +92,8 @@ public:
      * @param escapeCharacter escape character of the csv file.
      * @param newline newline character of the csv file.
      */
-    KUZU_API void writeToCSV(const std::string& fileName, char delimiter = ',',
-        char escapeCharacter = '"', char newline = '\n');
+    KUZU_API void writeToCSV(std::string fileName, char delimiter = ',', char escapeCharacter = '"',
+        char newline = '\n');
     /**
      * @brief Resets the result tuple iterator.
      */

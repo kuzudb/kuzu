@@ -65,13 +65,13 @@ public:
      * @param query The query to execute.
      * @return the result of the query.
      */
-    KUZU_API std::unique_ptr<QueryResult> query(const std::string& query);
+    KUZU_API std::unique_ptr<QueryResult> query(std::string_view query);
     /**
      * @brief Prepares the given query and returns the prepared statement.
      * @param query The query to prepare.
      * @return the prepared statement.
      */
-    KUZU_API std::unique_ptr<PreparedStatement> prepare(const std::string& query);
+    KUZU_API std::unique_ptr<PreparedStatement> prepare(std::string_view query);
     /**
      * @brief Executes the given prepared statement with args and returns the result.
      * @param preparedStatement The prepared statement to execute.
@@ -112,29 +112,35 @@ public:
     KUZU_API uint64_t getQueryTimeOut();
 
     template<typename TR, typename... Args>
-    void createScalarFunction(const std::string& name, TR (*udfFunc)(Args...)) {
-        addScalarFunction(name, function::UDF::getFunction<TR, Args...>(name, udfFunc));
-    }
-
-    template<typename TR, typename... Args>
-    void createScalarFunction(const std::string& name,
-        std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
-        TR (*udfFunc)(Args...)) {
-        addScalarFunction(name, function::UDF::getFunction<TR, Args...>(
-                                    name, udfFunc, std::move(parameterTypes), returnType));
-    }
-
-    template<typename TR, typename... Args>
-    void createVectorizedFunction(const std::string& name, function::scalar_exec_func scalarFunc) {
+    void createScalarFunction(std::string name, TR (*udfFunc)(Args...)) {
+        auto nameCopy = std::string(name);
         addScalarFunction(
-            name, function::UDF::getVectorizedFunction<TR, Args...>(name, std::move(scalarFunc)));
+            std::move(nameCopy), function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc));
     }
 
-    void createVectorizedFunction(const std::string& name,
+    template<typename TR, typename... Args>
+    void createScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypes,
+        common::LogicalTypeID returnType, TR (*udfFunc)(Args...)) {
+        auto nameCopy = std::string(name);
+        addScalarFunction(
+            std::move(nameCopy), function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc,
+                                     std::move(parameterTypes), returnType));
+    }
+
+    template<typename TR, typename... Args>
+    void createVectorizedFunction(std::string name, function::scalar_exec_func scalarFunc) {
+        auto nameCopy = std::string(name);
+        addScalarFunction(std::move(nameCopy), function::UDF::getVectorizedFunction<TR, Args...>(
+                                                   std::move(name), std::move(scalarFunc)));
+    }
+
+    void createVectorizedFunction(std::string name,
         std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
         function::scalar_exec_func scalarFunc) {
-        addScalarFunction(name, function::UDF::getVectorizedFunction(name, std::move(scalarFunc),
-                                    std::move(parameterTypes), returnType));
+        auto nameCopy = std::string(name);
+        addScalarFunction(
+            std::move(nameCopy), function::UDF::getVectorizedFunction(std::move(name),
+                                     std::move(scalarFunc), std::move(parameterTypes), returnType));
     }
 
     inline void setReplaceFunc(replace_func_t replaceFunc) {
@@ -142,12 +148,12 @@ public:
     }
 
 private:
-    std::unique_ptr<QueryResult> query(const std::string& query, const std::string& encodedJoin);
+    std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin);
 
-    std::unique_ptr<QueryResult> queryResultWithError(const std::string& errMsg);
+    std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 
-    std::unique_ptr<PreparedStatement> prepareNoLock(const std::string& query,
-        bool enumerateAllPlans = false, const std::string& joinOrder = std::string{});
+    std::unique_ptr<PreparedStatement> prepareNoLock(std::string_view query,
+        bool enumerateAllPlans = false, std::string_view joinOrder = std::string_view());
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,

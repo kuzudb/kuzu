@@ -1,9 +1,43 @@
 #[cfg(feature = "arrow")]
 pub(crate) mod arrow;
 
+use cxx::{type_id, ExternType};
+use std::marker::PhantomData;
+use std::mem::MaybeUninit;
+use std::os::raw::{c_char, c_void};
+
+// See https://github.com/dtolnay/cxx/issues/734
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct StringView<'a> {
+    repr: MaybeUninit<[*const c_void; 2]>,
+    borrow: PhantomData<&'a [c_char]>,
+}
+
+unsafe impl<'a> ExternType for StringView<'a> {
+    type Id = type_id!("std::string_view");
+    type Kind = cxx::kind::Trivial;
+}
+
+impl<'a> StringView<'a> {
+    pub fn new(s: &'a str) -> Self {
+        ffi::string_view_from_str(s)
+    }
+}
+
 #[allow(clippy::module_inception)]
 #[cxx::bridge]
 pub(crate) mod ffi {
+    unsafe extern "C++" {
+        include!("kuzu/include/kuzu_rs.h");
+        #[namespace = "std"]
+        #[cxx_name = "string_view"]
+        type StringView<'a> = crate::ffi::StringView<'a>;
+
+        #[namespace = "kuzu_rs"]
+        fn string_view_from_str(s: &str) -> StringView;
+    }
+
     // From types.h
     // Note: cxx will check if values change, but not if they are added.
     #[namespace = "kuzu::common"]
@@ -57,8 +91,6 @@ pub(crate) mod ffi {
 
     #[namespace = "kuzu::main"]
     unsafe extern "C++" {
-        include!("kuzu/include/kuzu_rs.h");
-
         type PreparedStatement;
         fn isSuccess(&self) -> bool;
 
@@ -84,7 +116,7 @@ pub(crate) mod ffi {
         type Database;
 
         fn new_database(
-            databasePath: &CxxString,
+            databasePath: StringView,
             bufferPoolSize: u64,
             maxNumThreads: u64,
             enableCompression: bool,
@@ -105,9 +137,9 @@ pub(crate) mod ffi {
             database: Pin<&'a mut Database>,
         ) -> Result<UniquePtr<Connection<'a>>>;
 
-        fn prepare(
+        fn prepare<'a>(
             self: Pin<&mut Connection>,
-            query: &CxxString,
+            query: StringView<'a>,
         ) -> Result<UniquePtr<PreparedStatement>>;
 
         #[namespace = "kuzu_rs"]
