@@ -524,7 +524,7 @@ Binder exception: Serial property in node table must be the primary key.
 -LOG SerialInRelTable
 -STATEMENT CREATE REL TABLE test(FROM person TO person, seq SERIAL)
 ---- error
-Binder exception: SERIAL property is not supported in rel table.
+Binder exception: SERIAL properties are not supported in rel tables.
 
 -LOG MatchBuiltIn
 -STATEMENT MATCH (a:person) RETURN a.age + 'hh'

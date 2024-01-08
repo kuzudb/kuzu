@@ -66,6 +66,9 @@ public:
     void copyNodeCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         conn->query(createPersonTableCMD);
         auto preparedStatement = conn->prepare(copyPersonTableCMD);
+        if (!preparedStatement->success) {
+            ASSERT_TRUE(false) << preparedStatement->errMsg;
+        }
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
@@ -172,7 +175,7 @@ public:
         "create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
         "validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer "
         "STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment "
-        "STRING), MANY_MANY);";
+        "STRING), someMap MAP(STRING, STRING), MANY_MANY);";
     std::string copyKnowsTableCMD =
         "COPY knows FROM \"" + TestHelper::appendKuzuRootPath("dataset/tinysnb/eKnows.csv\"");
     std::unique_ptr<Profiler> profiler;

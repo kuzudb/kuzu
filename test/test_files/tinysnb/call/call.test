@@ -85,13 +85,14 @@ Can't execute a write query inside a read-only transaction.
 
 -LOG RelTableInfo
 -STATEMENT CALL table_info('knows') RETURN *
----- 6
+---- 7
 1|date|DATE
 2|meetTime|TIMESTAMP
 3|validInterval|INTERVAL
 4|comments|STRING[]
 5|summary|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
 6|notes|UNION(firstmet:DATE, type:INT16, comment:STRING)
+7|someMap|MAP(STRING: STRING)
 
 -LOG ReturnNodeName
 -STATEMENT CALL table_info('person') WHERE name <> 'ID' RETURN name
@@ -114,21 +115,24 @@ height
 
 -LOG ReturnRelName
 -STATEMENT MATCH (m:movies) CALL table_info('knows') return id(m), type
----- 18
+---- 21
 2:0|DATE
 2:0|INTERVAL
+2:0|MAP(STRING: STRING)
 2:0|STRING[]
 2:0|TIMESTAMP
 2:0|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
 2:0|UNION(firstmet:DATE, type:INT16, comment:STRING)
 2:1|DATE
 2:1|INTERVAL
+2:1|MAP(STRING: STRING)
 2:1|STRING[]
 2:1|TIMESTAMP
 2:1|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
 2:1|UNION(firstmet:DATE, type:INT16, comment:STRING)
 2:2|DATE
 2:2|INTERVAL
+2:2|MAP(STRING: STRING)
 2:2|STRING[]
 2:2|TIMESTAMP
 2:2|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
@@ -192,7 +196,7 @@ Binder exception: Parameters in table function must be a literal expression.
 37
 -STATEMENT CALL storage_info('knows') RETURN COUNT(*)
 ---- 1
-72
+78
 -STATEMENT CALL storage_info('workAt') RETURN COUNT(*)
 ---- 1
 18

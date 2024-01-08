@@ -68,8 +68,8 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
 -LOG ReturnRelStarTest
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID =7 RETURN e.*;
 ---- 2
-1905-12-12|2020-03-01 12:11:41.6552|00:47:58|[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]|{locations: ['waterloo'], transfer: {day: 2000-01-01, amount: [1000,5000]}}|10
-1905-12-12|2025-01-01 11:22:33.52|00:47:58|[ahu2333333333333,12weeeeeeeeeeeeeeeeee]|{locations: ['toronto','thisisalongcityname'], transfer: {day: 1930-11-22, amount: [18,323]}}|8
+1905-12-12|2020-03-01 12:11:41.6552|00:47:58|[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]|{locations: ['waterloo'], transfer: {day: 2000-01-01, amount: [1000,5000]}}|10|
+1905-12-12|2025-01-01 11:22:33.52|00:47:58|[ahu2333333333333,12weeeeeeeeeeeeeeeeee]|{locations: ['toronto','thisisalongcityname'], transfer: {day: 1930-11-22, amount: [18,323]}}|8|
 
 -LOG PersonNodesTestNull
 -STATEMENT MATCH (a:person) RETURN a.ID, a.fName STARTS WITH NULL, a.isWorker, a.isWorker AND null
