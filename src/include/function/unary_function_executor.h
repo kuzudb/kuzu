@@ -67,13 +67,14 @@ struct UnaryCastFunctionWrapper {
     }
 };
 
-struct UnaryTryCastFunctionWrapper {
+struct UnaryRdfVariantCastFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void operation(void* inputVector, uint64_t inputPos, void* resultVector,
         uint64_t resultPos, void* /*dataPtr*/) {
         auto& inputVector_ = *(common::ValueVector*)inputVector;
         auto& resultVector_ = *(common::ValueVector*)resultVector;
-        FUNC::template operation<RESULT_TYPE>(inputVector_, inputPos,
+        FUNC::template operation<OPERAND_TYPE, RESULT_TYPE>(
+            inputVector_.getValue<OPERAND_TYPE>(inputPos), inputVector_, inputPos,
             resultVector_.getValue<RESULT_TYPE>(resultPos), resultVector_, resultPos);
     }
 };

@@ -157,6 +157,10 @@ bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType
     if (LogicalTypeUtils::isNumerical(srcType) && LogicalTypeUtils::isNumerical(dstType)) {
         return true;
     }
+    if (!LogicalTypeUtils::isNested(srcType) &&
+        dstType.getLogicalTypeID() == LogicalTypeID::RDF_VARIANT) {
+        return true;
+    }
     switch (srcType.getLogicalTypeID()) {
     case LogicalTypeID::DATE: {
         switch (dstType.getLogicalTypeID()) {
@@ -325,6 +329,10 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
         execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, union_entry_t,
             CastString, EXECUTOR>;
     } break;
+    case LogicalTypeID::RDF_VARIANT: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<ku_string_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
     default:
         throw ConversionException{stringFormat("Unsupported casting function from STRING to {}.",
             LogicalTypeUtils::toString(targetTypeID))};
@@ -333,79 +341,78 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
         functionName, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, targetTypeID, execFunc);
 }
 
-template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
     const std::string& functionName, LogicalTypeID targetTypeID) {
     scalar_exec_func execFunc;
     switch (targetTypeID) {
     case LogicalTypeID::DATE: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, date_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, date_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::TIMESTAMP_NS:
     case LogicalTypeID::TIMESTAMP_MS:
     case LogicalTypeID::TIMESTAMP_SEC:
     case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::TIMESTAMP: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, timestamp_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, timestamp_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::INTERVAL: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, interval_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, interval_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::BLOB: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, blob_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, blob_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::STRING: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, ku_string_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, ku_string_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::BOOL: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, bool,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, bool,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, double_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, double_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::FLOAT: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, float_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, float_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int64_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, int64_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::INT32: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int32_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, int32_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::INT16: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int16_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, int16_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::INT8: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int8_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, int8_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::UINT64: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint64_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, uint64_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::UINT32: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint32_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, uint32_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::UINT16: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint16_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, uint16_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::UINT8: {
-        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint8_t,
-            CastFromRdfVariant, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, uint8_t,
+            CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
         // LCOV_EXCL_START
     default:
@@ -524,6 +531,89 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
     }
     return std::make_unique<ScalarFunction>(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::STRING, func);
+}
+
+static std::unique_ptr<ScalarFunction> bindCastToRdfVariantFunction(
+    const std::string& functionName, LogicalTypeID sourceTypeID) {
+    scalar_exec_func execFunc;
+    switch (sourceTypeID) {
+    case LogicalTypeID::DATE: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<date_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_SEC:
+    case LogicalTypeID::TIMESTAMP_TZ:
+    case LogicalTypeID::TIMESTAMP: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<timestamp_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::INTERVAL: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<interval_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::BLOB: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<blob_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::STRING: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<ku_string_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::BOOL: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<bool, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::DOUBLE: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<double_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::FLOAT: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<float_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::INT64: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<int64_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::INT32: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<int32_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::INT16: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<int16_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::INT8: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<int8_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::UINT64: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<uint64_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::UINT32: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<uint32_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::UINT16: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<uint16_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+    case LogicalTypeID::UINT8: {
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<uint8_t, struct_entry_t,
+            CastToRdfVariant, UnaryFunctionExecutor>;
+    } break;
+        // LCOV_EXCL_START
+    default:
+        throw ConversionException{
+            stringFormat("Unsupported casting function from RDF_VARIANT to .")};
+        // LCOV_EXCL_STOP
+    }
+    return std::make_unique<ScalarFunction>(functionName, std::vector<LogicalTypeID>{sourceTypeID},
+        LogicalTypeID::RDF_VARIANT, execFunc);
 }
 
 template<typename DST_TYPE, typename OP, typename EXECUTOR = UnaryFunctionExecutor>
@@ -649,11 +739,14 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
         return bindCastFromStringFunction<EXECUTOR>(functionName, targetTypeID);
     }
     if (sourceTypeID == LogicalTypeID::RDF_VARIANT) {
-        return bindCastFromRdfVariantFunction<EXECUTOR>(functionName, targetTypeID);
+        return bindCastFromRdfVariantFunction(functionName, targetTypeID);
     }
     switch (targetTypeID) {
     case LogicalTypeID::STRING: {
         return bindCastToStringFunction<EXECUTOR>(functionName, sourceTypeID);
+    }
+    case LogicalTypeID::RDF_VARIANT: {
+        return bindCastToRdfVariantFunction(functionName, sourceTypeID);
     }
     case LogicalTypeID::DOUBLE: {
         return bindCastToNumericFunction<double_t, CastToDouble, EXECUTOR>(

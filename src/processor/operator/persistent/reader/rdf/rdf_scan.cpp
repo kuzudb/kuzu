@@ -172,7 +172,7 @@ void RdfLiteralInMemScan::tableFunc(TableFunctionInput& input, DataChunk& output
         auto& object = triples->objects[startIdx + i];
         auto& objectType = triples->objectType[startIdx + i];
         if (objectType.empty()) {
-            RdfUtils::addRdfLiteral(oVector, i, object.data(), object.size());
+            RdfVariantVector::addString(oVector, i, object.data(), object.size());
         } else {
             RdfUtils::addRdfLiteral(
                 oVector, i, object.data(), object.size(), objectType.data(), objectType.size());

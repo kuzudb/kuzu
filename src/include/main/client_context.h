@@ -49,10 +49,6 @@ public:
 
     bool isInterrupted() const { return activeQuery.interrupted; }
 
-    inline bool isTimeOut() {
-        return isTimeOutEnabled() && activeQuery.timer.getElapsedTimeInMS() > timeoutInMS;
-    }
-
     inline bool isTimeOutEnabled() const { return timeoutInMS != 0; }
 
     inline uint64_t getTimeoutRemainingInMS() {

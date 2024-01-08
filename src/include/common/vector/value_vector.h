@@ -309,5 +309,13 @@ public:
     }
 };
 
+struct RdfVariantVector {
+    static void addString(ValueVector* vector, sel_t pos, ku_string_t str);
+    static void addString(ValueVector* vector, sel_t pos, const char* str, uint32_t length);
+
+    template<typename T>
+    static void add(ValueVector* vector, sel_t pos, T val);
+};
+
 } // namespace common
 } // namespace kuzu

@@ -45,6 +45,9 @@ void NodeTable::read(Transaction* transaction, TableReadState& readState, ValueV
 
 common::offset_t NodeTable::validateUniquenessConstraint(
     Transaction* tx, const std::vector<common::ValueVector*>& propertyVectors) {
+    if (pkIndex == nullptr) {
+        return INVALID_OFFSET;
+    }
     auto pkVector = propertyVectors[pkColumnID];
     KU_ASSERT(pkVector->state->selVector->selectedSize == 1);
     auto pkVectorPos = pkVector->state->selVector->selectedPositions[0];

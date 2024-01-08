@@ -105,7 +105,8 @@ static void addResourceToVector(
 static void addLiteralToVector(common::ValueVector* vector, uint32_t pos,
     const SerdNode* literalNode, const SerdNode* typeNode) {
     if (typeNode == nullptr) { // No type information available. Treat as string.
-        RdfUtils::addRdfLiteral(vector, pos, (const char*)literalNode->buf, literalNode->n_bytes);
+        RdfVariantVector::addString(
+            vector, pos, (const char*)literalNode->buf, literalNode->n_bytes);
         return;
     }
     RdfUtils::addRdfLiteral(vector, pos, (const char*)literalNode->buf, literalNode->n_bytes,
