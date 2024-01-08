@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "common/exception/test.h"
+#include "common/md5.h"
 #include "common/string_utils.h"
 #include "gtest/gtest.h"
 #include "planner/operator/logical_plan.h"
@@ -83,8 +84,6 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
 
 bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
     const std::string& planStr, uint32_t planIdx) {
-    std::vector<std::string> resultTuples =
-        TestRunner::convertResultToString(*result, statement->checkOutputOrder);
 
     if (!statement->expectedTuplesCSVFile.empty()) {
         std::ifstream expectedTuplesFile(statement->expectedTuplesCSVFile);
@@ -99,7 +98,27 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             sort(statement->expectedTuples.begin(), statement->expectedTuples.end());
         }
     }
-
+    std::vector<std::string> resultTuples =
+        TestRunner::convertResultToString(*result, statement->checkOutputOrder);
+    if (statement->expectHash) {
+        std::string resultHash = TestRunner::convertResultToMD5Hash(*result);
+        if (resultTuples.size() == result->getNumTuples() &&
+            resultHash == statement->expectedHashValue &&
+            resultTuples.size() == statement->expectedNumTuples) {
+            spdlog::info(
+                "PLAN{} PASSED in {}ms.", planIdx, result->getQuerySummary()->getExecutionTime());
+            return true;
+        } else {
+            spdlog::error("PLAN{} NOT PASSED.", planIdx);
+            spdlog::info("PLAN: \n{}", planStr);
+            spdlog::info("RESULT: \n");
+            for (auto& tuple : resultTuples) {
+                spdlog::info(tuple);
+            }
+            spdlog::info("HASH: {}\n", resultHash);
+            return false;
+        }
+    }
     if (resultTuples.size() == result->getNumTuples() &&
         resultTuples == statement->expectedTuples) {
         spdlog::info(
@@ -127,6 +146,24 @@ std::vector<std::string> TestRunner::convertResultToString(
         sort(actualOutput.begin(), actualOutput.end());
     }
     return actualOutput;
+}
+
+std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult) {
+    queryResult.resetIterator();
+    MD5 hasher;
+    while (queryResult.hasNext()) {
+        const auto tuple = queryResult.getNext();
+        for (uint32_t i = 0; i < tuple->len(); i++) {
+            const auto val = tuple->getValue(i);
+            if (val->isNull()) {
+                hasher.addToMD5("NULL\n");
+            } else {
+                hasher.addToMD5(val->toString().c_str());
+                hasher.addToMD5("\n");
+            }
+        }
+    }
+    return std::string(hasher.finishMD5());
 }
 
 std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(

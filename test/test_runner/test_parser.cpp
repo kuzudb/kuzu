@@ -108,6 +108,15 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         statement->expectedError = true;
         statement->errorMessage = extractTextBeforeNextStatement();
         replaceVariables(statement->errorMessage);
+    } else if (result == "hash") {
+        statement->expectHash = true;
+        checkMinimumParams(1);
+        nextLine();
+        tokenize();
+        statement->expectedNumTuples = stoi(currentToken.params[0]);
+        statement->expectedHashValue = currentToken.params.back();
+        statement->checkOutputOrder =
+            true; // this is required because the output order is encoded in the md5 hash
     } else {
         checkMinimumParams(1);
         statement->expectedNumTuples = stoi(result);

@@ -29,6 +29,8 @@ struct TestStatement {
     std::string batchStatmentsCSVFile;
     std::optional<std::string> connName;
     bool reloadDBFlag = false;
+    bool expectHash = false;
+    std::string expectedHashValue;
 };
 
 // Test group is a collection of test cases in a single file.
