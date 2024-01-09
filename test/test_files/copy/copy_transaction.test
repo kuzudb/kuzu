@@ -1,0 +1,63 @@
+-GROUP TinySnbCopyCSVTransactionTest
+-DATASET CSV empty
+
+--
+
+-CASE CopyNodeCommitNormalExecution
+-STATEMENT CREATE NODE TABLE person 
+            (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN,
+            isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE,
+            registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[],
+            usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID,
+            PRIMARY KEY (ID));
+---- ok
+-STATEMENT MATCH (p:person) return *
+---- 0
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true);
+---- ok
+-STATEMENT MATCH (p:person) return p.age
+---- 8
+20
+20
+25
+30
+35
+40
+45
+83
+
+-CASE CopyRelCommitNormalExecution
+-STATEMENT CREATE NODE TABLE person 
+            (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN,
+            isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE,
+            registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[],
+            usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID,
+            PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true);
+---- ok
+-STATEMENT CREATE REL TABLE knows 
+            (FROM person TO person, date DATE,
+            meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[],
+            summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])),
+            notes UNION(firstmet DATE, type INT16, comment STRING),
+            someMap MAP(STRING, STRING), MANY_MANY);
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv"
+---- ok
+-STATEMENT match (:person)-[e:knows]->(:person) return e.date
+---- 14
+1905-12-12
+1905-12-12
+1950-05-14
+1950-05-14
+1950-05-14
+1950-05-14
+2000-01-01
+2000-01-01
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
