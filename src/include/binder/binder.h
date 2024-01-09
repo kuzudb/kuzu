@@ -188,14 +188,14 @@ private:
     std::unique_ptr<BoundUpdatingClause> bindDeleteClause(
         const parser::UpdatingClause& updatingClause);
 
-    std::vector<BoundInsertInfo> bindCreateInfos(const QueryGraphCollection& queryGraphCollection,
-        const PropertyKeyValCollection& keyValCollection, const expression_set& nodeRelScope_);
-    BoundInsertInfo bindInsertNodeInfo(
-        std::shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection);
-    BoundInsertInfo bindInsertRelInfo(
-        std::shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
-    std::vector<expression_pair> bindSetItems(const PropertyKeyValCollection& collection,
-        catalog::TableSchema* tableSchema, const std::shared_ptr<Expression>& nodeOrRel);
+    std::vector<BoundInsertInfo> bindInsertInfos(
+        const QueryGraphCollection& queryGraphCollection, const expression_set& nodeRelScope_);
+    void bindInsertNode(std::shared_ptr<NodeExpression> node, std::vector<BoundInsertInfo>& infos);
+    void bindInsertRel(std::shared_ptr<RelExpression> rel, std::vector<BoundInsertInfo>& infos);
+    expression_vector bindInsertColumnDataExprs(
+        const std::unordered_map<std::string, std::shared_ptr<Expression>>& propertyRhsExpr,
+        const std::vector<catalog::Property>& properties);
+
     BoundSetPropertyInfo bindSetPropertyInfo(
         parser::ParsedExpression* lhs, parser::ParsedExpression* rhs);
     expression_pair bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs);
@@ -219,15 +219,13 @@ private:
     /*** bind graph pattern ***/
     BoundGraphPattern bindGraphPattern(const std::vector<parser::PatternElement>& graphPattern);
 
-    QueryGraph bindPatternElement(
-        const parser::PatternElement& patternElement, PropertyKeyValCollection& collection);
+    QueryGraph bindPatternElement(const parser::PatternElement& patternElement);
     std::shared_ptr<Expression> createPath(
         const std::string& pathName, const expression_vector& children);
 
     std::shared_ptr<RelExpression> bindQueryRel(const parser::RelPattern& relPattern,
         const std::shared_ptr<NodeExpression>& leftNode,
-        const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
-        PropertyKeyValCollection& collection);
+        const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph);
     std::shared_ptr<RelExpression> createNonRecursiveQueryRel(const std::string& parsedName,
         const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
         std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
@@ -237,8 +235,8 @@ private:
     std::pair<uint64_t, uint64_t> bindVariableLengthRelBound(const parser::RelPattern& relPattern);
     void bindQueryRelProperties(RelExpression& rel);
 
-    std::shared_ptr<NodeExpression> bindQueryNode(const parser::NodePattern& nodePattern,
-        QueryGraph& queryGraph, PropertyKeyValCollection& collection);
+    std::shared_ptr<NodeExpression> bindQueryNode(
+        const parser::NodePattern& nodePattern, QueryGraph& queryGraph);
     std::shared_ptr<NodeExpression> createQueryNode(const parser::NodePattern& nodePattern);
     std::shared_ptr<NodeExpression> createQueryNode(
         const std::string& parsedName, const std::vector<common::table_id_t>& tableIDs);
@@ -251,7 +249,9 @@ private:
         const std::vector<std::string>& tableNames, bool nodePattern);
     std::vector<common::table_id_t> getNodeTableIDs(
         const std::vector<common::table_id_t>& tableIDs);
+    std::vector<common::table_id_t> getNodeTableIDs(common::table_id_t tableID);
     std::vector<common::table_id_t> getRelTableIDs(const std::vector<common::table_id_t>& tableIDs);
+    std::vector<common::table_id_t> getRelTableIDs(common::table_id_t tableID);
 
     /*** validations ***/
     // E.g. ... RETURN a, b AS a

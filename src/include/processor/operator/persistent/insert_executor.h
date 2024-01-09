@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/enums/conflict_action.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/execution_context.h"
 #include "storage/store/node_table.h"
@@ -12,75 +13,75 @@ namespace processor {
 class NodeInsertExecutor {
 public:
     NodeInsertExecutor(storage::NodeTable* table,
-        std::unordered_set<storage::RelTable*> fwdRelTablesToInit,
-        std::unordered_set<storage::RelTable*> bwdRelTabkesToInit, const DataPos& nodeIDVectorPos,
-        std::vector<DataPos> propertyLhsPositions,
-        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators)
-        : table{table}, fwdRelTablesToInit{std::move(fwdRelTablesToInit)},
-          bwdRelTabkesToInit{std::move(bwdRelTabkesToInit)}, nodeIDVectorPos{nodeIDVectorPos},
-          propertyLhsPositions{std::move(propertyLhsPositions)},
-          propertyRhsEvaluators{std::move(propertyRhsEvaluators)}, nodeIDVector{nullptr} {}
-    NodeInsertExecutor(const NodeInsertExecutor& other);
+        std::unordered_set<storage::RelTable*> fwdRelTables,
+        std::unordered_set<storage::RelTable*> bwdRelTables, const DataPos& nodeIDVectorPos,
+        std::vector<DataPos> columnVectorsPos,
+        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators,
+        common::ConflictAction conflictAction)
+        : table{table}, fwdRelTables{std::move(fwdRelTables)}, bwdRelTables{std::move(
+                                                                   bwdRelTables)},
+          nodeIDVectorPos{nodeIDVectorPos}, columnVectorsPos{std::move(columnVectorsPos)},
+          columnDataEvaluators{std::move(columnDataEvaluators)}, conflictAction{conflictAction},
+          nodeIDVector{nullptr} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(NodeInsertExecutor);
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
     void insert(transaction::Transaction* transaction);
 
-    inline std::unique_ptr<NodeInsertExecutor> copy() {
-        return std::make_unique<NodeInsertExecutor>(*this);
-    }
-
-    static std::vector<std::unique_ptr<NodeInsertExecutor>> copy(
-        const std::vector<std::unique_ptr<NodeInsertExecutor>>& executors);
+private:
+    NodeInsertExecutor(const NodeInsertExecutor& other);
 
 private:
+    // Node table to insert.
     storage::NodeTable* table;
-    std::unordered_set<storage::RelTable*> fwdRelTablesToInit;
-    std::unordered_set<storage::RelTable*> bwdRelTabkesToInit;
+    // Forward rel table connected to node table.
+    std::unordered_set<storage::RelTable*> fwdRelTables;
+    // Backward rel table connected to node table.
+    std::unordered_set<storage::RelTable*> bwdRelTables;
+
     DataPos nodeIDVectorPos;
-    std::vector<DataPos> propertyLhsPositions;
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators;
+    // Column vector pos is invalid if it doesn't need to be projected.
+    std::vector<DataPos> columnVectorsPos;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators;
+
+    common::ConflictAction conflictAction;
 
     common::ValueVector* nodeIDVector;
-    std::vector<common::ValueVector*> propertyLhsVectors;
-    std::vector<common::ValueVector*> propertyRhsVectors;
+    std::vector<common::ValueVector*> columnVectors;
+    std::vector<common::ValueVector*> columnDataVectors;
 };
 
 class RelInsertExecutor {
 public:
-    RelInsertExecutor(storage::RelsStoreStats& relsStatistics, storage::RelTable* table,
-        const DataPos& srcNodePos, const DataPos& dstNodePos,
-        std::vector<DataPos> propertyLhsPositions,
-        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators)
+    RelInsertExecutor(storage::RelsStoreStats* relsStatistics, storage::RelTable* table,
+        const DataPos& srcNodePos, const DataPos& dstNodePos, std::vector<DataPos> columnVectorsPos,
+        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators)
         : relsStatistics{relsStatistics}, table{table}, srcNodePos{srcNodePos},
-          dstNodePos{dstNodePos}, propertyLhsPositions{std::move(propertyLhsPositions)},
-          propertyRhsEvaluators{std::move(propertyRhsEvaluators)}, srcNodeIDVector{nullptr},
+          dstNodePos{dstNodePos}, columnVectorsPos{std::move(columnVectorsPos)},
+          columnDataEvaluators{std::move(columnDataEvaluators)}, srcNodeIDVector{nullptr},
           dstNodeIDVector{nullptr} {}
-    RelInsertExecutor(const RelInsertExecutor& other);
+    EXPLICIT_COPY_DEFAULT_MOVE(RelInsertExecutor);
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
     void insert(transaction::Transaction* transaction);
 
-    inline std::unique_ptr<RelInsertExecutor> copy() {
-        return std::make_unique<RelInsertExecutor>(*this);
-    }
-
-    static std::vector<std::unique_ptr<RelInsertExecutor>> copy(
-        const std::vector<std::unique_ptr<RelInsertExecutor>>& executors);
+private:
+    RelInsertExecutor(const RelInsertExecutor& other);
 
 private:
-    storage::RelsStoreStats& relsStatistics;
+    storage::RelsStoreStats* relsStatistics;
     storage::RelTable* table;
     DataPos srcNodePos;
     DataPos dstNodePos;
-    std::vector<DataPos> propertyLhsPositions;
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators;
+    std::vector<DataPos> columnVectorsPos;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators;
 
     common::ValueVector* srcNodeIDVector;
     common::ValueVector* dstNodeIDVector;
-    std::vector<common::ValueVector*> propertyLhsVectors;
-    std::vector<common::ValueVector*> propertyRhsVectors;
+    std::vector<common::ValueVector*> columnVectors;
+    std::vector<common::ValueVector*> columnDataVectors;
 };
 
 } // namespace processor

@@ -4,114 +4,115 @@
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace processor {
 
 NodeInsertExecutor::NodeInsertExecutor(const NodeInsertExecutor& other)
-    : table{other.table}, fwdRelTablesToInit{other.fwdRelTablesToInit},
-      bwdRelTabkesToInit{other.bwdRelTabkesToInit}, nodeIDVectorPos{other.nodeIDVectorPos},
-      propertyLhsPositions{other.propertyLhsPositions}, nodeIDVector{nullptr} {
-    for (auto& evaluator : other.propertyRhsEvaluators) {
-        propertyRhsEvaluators.push_back(evaluator->clone());
+    : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables},
+      nodeIDVectorPos{other.nodeIDVectorPos}, columnVectorsPos{other.columnVectorsPos},
+      conflictAction{other.conflictAction} {
+    for (auto& evaluator : other.columnDataEvaluators) {
+        columnDataEvaluators.push_back(evaluator->clone());
     }
 }
 
 void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     nodeIDVector = resultSet->getValueVector(nodeIDVectorPos).get();
-    for (auto& pos : propertyLhsPositions) {
-        if (pos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
-            propertyLhsVectors.push_back(resultSet->getValueVector(pos).get());
+    for (auto& pos : columnVectorsPos) {
+        if (pos.isValid()) {
+            columnVectors.push_back(resultSet->getValueVector(pos).get());
         } else {
-            propertyLhsVectors.push_back(nullptr);
+            columnVectors.push_back(nullptr);
         }
     }
-    for (auto& evaluator : propertyRhsEvaluators) {
+    for (auto& evaluator : columnDataEvaluators) {
         evaluator->init(*resultSet, context->memoryManager);
-        propertyRhsVectors.push_back(evaluator->resultVector.get());
+        columnDataVectors.push_back(evaluator->resultVector.get());
     }
 }
 
-static void writeLhsVector(common::ValueVector* lhsVector, common::ValueVector* rhsVector) {
-    KU_ASSERT(lhsVector->state->selVector->selectedSize == 1 &&
-              rhsVector->state->selVector->selectedSize == 1);
-    auto lhsPos = lhsVector->state->selVector->selectedPositions[0];
-    auto rhsPos = rhsVector->state->selVector->selectedPositions[0];
-    if (rhsVector->isNull(rhsPos)) {
-        lhsVector->setNull(lhsPos, true);
+static void writeColumnVector(common::ValueVector* columnVector, common::ValueVector* dataVector) {
+    KU_ASSERT(columnVector->state->selVector->selectedSize == 1 &&
+              dataVector->state->selVector->selectedSize == 1);
+    auto lhsPos = columnVector->state->selVector->selectedPositions[0];
+    auto rhsPos = dataVector->state->selVector->selectedPositions[0];
+    if (dataVector->isNull(rhsPos)) {
+        columnVector->setNull(lhsPos, true);
     } else {
-        lhsVector->setNull(lhsPos, false);
-        lhsVector->copyFromVectorData(lhsPos, rhsVector, rhsPos);
+        columnVector->setNull(lhsPos, false);
+        columnVector->copyFromVectorData(lhsPos, dataVector, rhsPos);
     }
 }
 
-void NodeInsertExecutor::insert(transaction::Transaction* transaction) {
-    for (auto& evaluator : propertyRhsEvaluators) {
+void NodeInsertExecutor::insert(Transaction* tx) {
+    for (auto& evaluator : columnDataEvaluators) {
         evaluator->evaluate();
     }
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
-    auto maxNodeOffset = table->insert(transaction, nodeIDVector, propertyRhsVectors);
-    for (auto i = 0u; i < propertyLhsVectors.size(); ++i) {
-        auto lhsVector = propertyLhsVectors[i];
-        auto rhsVector = propertyRhsVectors[i];
-        if (lhsVector == nullptr) {
+    if (conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
+        auto off = table->validateUniquenessConstraint(tx, columnDataVectors);
+        if (off != INVALID_OFFSET) {
+            // Conflict. Skip insertion.
+            auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+            nodeIDVector->setNull(nodeIDPos, false);
+            nodeIDVector->setValue<nodeID_t>(nodeIDPos, {off, table->getTableID()});
+            return;
+        }
+    }
+    auto maxNodeOffset = table->insert(tx, nodeIDVector, columnDataVectors);
+    for (auto i = 0u; i < columnVectors.size(); ++i) {
+        auto columnVector = columnVectors[i];
+        auto dataVector = columnDataVectors[i];
+        if (columnVector == nullptr) {
             // No need to project out lhs vector.
             continue;
         }
-        KU_ASSERT(lhsVector->state->selVector->selectedSize == 1 &&
-                  rhsVector->state->selVector->selectedSize == 1);
-        if (lhsVector->dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+        KU_ASSERT(columnVector->state->selVector->selectedSize == 1 &&
+                  dataVector->state->selVector->selectedSize == 1);
+        if (columnVector->dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             // Lhs vector is serial so there is no corresponding rhs vector.
             auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
-            auto lhsPos = lhsVector->state->selVector->selectedPositions[0];
+            auto lhsPos = columnVector->state->selVector->selectedPositions[0];
             auto nodeID = nodeIDVector->getValue<nodeID_t>(nodeIDPos);
-            lhsVector->setNull(lhsPos, false);
-            lhsVector->setValue<int64_t>(lhsPos, nodeID.offset);
+            columnVector->setNull(lhsPos, false);
+            columnVector->setValue<int64_t>(lhsPos, nodeID.offset);
         } else {
-            writeLhsVector(lhsVector, rhsVector);
+            writeColumnVector(columnVector, dataVector);
         }
     }
     auto numNodeGroups = storage::StorageUtils::getNodeGroupIdx(maxNodeOffset) + 1;
-    for (auto relTable : fwdRelTablesToInit) {
-        relTable->resizeColumns(transaction, RelDataDirection::FWD, numNodeGroups);
+    for (auto relTable : bwdRelTables) {
+        relTable->resizeColumns(tx, RelDataDirection::FWD, numNodeGroups);
     }
-    for (auto relTable : bwdRelTabkesToInit) {
-        relTable->resizeColumns(transaction, RelDataDirection::BWD, numNodeGroups);
+    for (auto relTable : bwdRelTables) {
+        relTable->resizeColumns(tx, RelDataDirection::BWD, numNodeGroups);
     }
-}
-
-std::vector<std::unique_ptr<NodeInsertExecutor>> NodeInsertExecutor::copy(
-    const std::vector<std::unique_ptr<NodeInsertExecutor>>& executors) {
-    std::vector<std::unique_ptr<NodeInsertExecutor>> executorsCopy;
-    executorsCopy.reserve(executors.size());
-    for (auto& executor : executors) {
-        executorsCopy.push_back(executor->copy());
-    }
-    return executorsCopy;
 }
 
 RelInsertExecutor::RelInsertExecutor(const RelInsertExecutor& other)
     : relsStatistics{other.relsStatistics}, table{other.table}, srcNodePos{other.srcNodePos},
-      dstNodePos{other.dstNodePos}, propertyLhsPositions{other.propertyLhsPositions},
+      dstNodePos{other.dstNodePos}, columnVectorsPos{other.columnVectorsPos},
       srcNodeIDVector{nullptr}, dstNodeIDVector{nullptr} {
-    for (auto& evaluator : other.propertyRhsEvaluators) {
-        propertyRhsEvaluators.push_back(evaluator->clone());
+    for (auto& evaluator : other.columnDataEvaluators) {
+        columnDataEvaluators.push_back(evaluator->clone());
     }
 }
 
 void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     srcNodeIDVector = resultSet->getValueVector(srcNodePos).get();
     dstNodeIDVector = resultSet->getValueVector(dstNodePos).get();
-    for (auto& pos : propertyLhsPositions) {
+    for (auto& pos : columnVectorsPos) {
         if (pos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
-            propertyLhsVectors.push_back(resultSet->getValueVector(pos).get());
+            columnVectors.push_back(resultSet->getValueVector(pos).get());
         } else {
-            propertyLhsVectors.push_back(nullptr);
+            columnVectors.push_back(nullptr);
         }
     }
-    for (auto& evaluator : propertyRhsEvaluators) {
+    for (auto& evaluator : columnDataEvaluators) {
         evaluator->init(*resultSet, context->memoryManager);
-        propertyRhsVectors.push_back(evaluator->resultVector.get());
+        columnDataVectors.push_back(evaluator->resultVector.get());
     }
 }
 
@@ -120,42 +121,32 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
     auto dstNodeIDPos = dstNodeIDVector->state->selVector->selectedPositions[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos)) {
         // No need to insert.
-        for (auto& lhsVector : propertyLhsVectors) {
-            if (lhsVector == nullptr) {
+        for (auto& columnVector : columnVectors) {
+            if (columnVector == nullptr) {
                 // No need to project out lhs vector.
                 continue;
             }
-            auto lhsPos = lhsVector->state->selVector->selectedPositions[0];
-            lhsVector->setNull(lhsPos, true);
+            auto lhsPos = columnVector->state->selVector->selectedPositions[0];
+            columnVector->setNull(lhsPos, true);
         }
         return;
     }
-    auto offset = relsStatistics.getNextRelOffset(tx, table->getTableID());
-    propertyRhsVectors[0]->setValue(0, offset); // internal ID property
-    propertyRhsVectors[0]->setNull(0, false);
-    for (auto i = 1u; i < propertyRhsEvaluators.size(); ++i) {
-        propertyRhsEvaluators[i]->evaluate();
+    auto offset = relsStatistics->getNextRelOffset(tx, table->getTableID());
+    columnDataVectors[0]->setValue(0, offset); // internal ID property
+    columnDataVectors[0]->setNull(0, false);
+    for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
+        columnDataEvaluators[i]->evaluate();
     }
-    table->insert(tx, srcNodeIDVector, dstNodeIDVector, propertyRhsVectors);
-    for (auto i = 0u; i < propertyLhsVectors.size(); ++i) {
-        auto lhsVector = propertyLhsVectors[i];
-        auto rhsVector = propertyRhsVectors[i];
-        if (lhsVector == nullptr) {
+    table->insert(tx, srcNodeIDVector, dstNodeIDVector, columnDataVectors);
+    for (auto i = 0u; i < columnVectors.size(); ++i) {
+        auto columnVector = columnVectors[i];
+        auto dataVector = columnDataVectors[i];
+        if (columnVector == nullptr) {
             // No need to project out lhs vector.
             continue;
         }
-        writeLhsVector(lhsVector, rhsVector);
+        writeColumnVector(columnVector, dataVector);
     }
-}
-
-std::vector<std::unique_ptr<RelInsertExecutor>> RelInsertExecutor::copy(
-    const std::vector<std::unique_ptr<RelInsertExecutor>>& executors) {
-    std::vector<std::unique_ptr<RelInsertExecutor>> executorsCopy;
-    executorsCopy.reserve(executors.size());
-    for (auto& executor : executors) {
-        executorsCopy.push_back(executor->copy());
-    }
-    return executorsCopy;
 }
 
 } // namespace processor

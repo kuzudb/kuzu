@@ -43,8 +43,8 @@ public:
     inline void addPropertyExpression(
         const std::string& propertyName, std::unique_ptr<Expression> property) {
         KU_ASSERT(!propertyNameToIdx.contains(propertyName));
-        propertyNameToIdx.insert({propertyName, properties.size()});
-        properties.push_back(std::move(property));
+        propertyNameToIdx.insert({propertyName, propertyExprs.size()});
+        propertyExprs.push_back(std::move(property));
     }
     inline bool hasPropertyExpression(const std::string& propertyName) const {
         return propertyNameToIdx.contains(propertyName);
@@ -52,10 +52,17 @@ public:
     inline std::shared_ptr<Expression> getPropertyExpression(
         const std::string& propertyName) const {
         KU_ASSERT(propertyNameToIdx.contains(propertyName));
-        return properties[propertyNameToIdx.at(propertyName)]->copy();
+        return propertyExprs[propertyNameToIdx.at(propertyName)]->copy();
     }
-    inline const std::vector<std::unique_ptr<Expression>>& getPropertyExpressions() const {
-        return properties;
+    inline const std::vector<std::unique_ptr<Expression>>& getPropertyExprsRef() const {
+        return propertyExprs;
+    }
+    inline expression_vector getPropertyExprs() const {
+        expression_vector result;
+        for (auto& expr : propertyExprs) {
+            result.push_back(expr->copy());
+        }
+        return result;
     }
 
     inline void setLabelExpression(std::shared_ptr<Expression> expression) {
@@ -63,14 +70,34 @@ public:
     }
     inline std::shared_ptr<Expression> getLabelExpression() const { return labelExpression; }
 
+    inline void addPropertyDataExpr(std::string propertyName, std::shared_ptr<Expression> expr) {
+        propertyDataExprs.insert({propertyName, expr});
+    }
+    inline const std::unordered_map<std::string, std::shared_ptr<Expression>>&
+    getPropertyDataExprRef() const {
+        return propertyDataExprs;
+    }
+    inline bool hasPropertyDataExpr(const std::string& propertyName) const {
+        return propertyDataExprs.contains(propertyName);
+    }
+    inline std::shared_ptr<Expression> getPropertyDataExpr(const std::string& propertyName) const {
+        KU_ASSERT(propertyDataExprs.contains(propertyName));
+        return propertyDataExprs.at(propertyName);
+    }
+
     inline std::string toStringInternal() const final { return variableName; }
 
 protected:
     std::string variableName;
+    // A pattern may bind to multiple tables.
     std::vector<common::table_id_t> tableIDs;
+    // Index over propertyExprs on property name.
     std::unordered_map<std::string, common::vector_idx_t> propertyNameToIdx;
-    std::vector<std::unique_ptr<Expression>> properties;
+    // Property expressions with order (aligned with catalog).
+    std::vector<std::unique_ptr<Expression>> propertyExprs;
     std::shared_ptr<Expression> labelExpression;
+    // Property data expressions specified by user in the form of "{propertyName : data}"
+    std::unordered_map<std::string, std::shared_ptr<Expression>> propertyDataExprs;
 };
 
 } // namespace binder

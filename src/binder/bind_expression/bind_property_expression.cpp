@@ -41,7 +41,7 @@ expression_vector ExpressionBinder::bindPropertyStarExpression(
 expression_vector ExpressionBinder::bindNodeOrRelPropertyStarExpression(const Expression& child) {
     expression_vector result;
     auto& nodeOrRel = (NodeOrRelExpression&)child;
-    for (auto& expression : nodeOrRel.getPropertyExpressions()) {
+    for (auto& expression : nodeOrRel.getPropertyExprsRef()) {
         auto propertyExpression = (PropertyExpression*)expression.get();
         if (TableSchema::isReservedPropertyName(propertyExpression->getPropertyName())) {
             continue;

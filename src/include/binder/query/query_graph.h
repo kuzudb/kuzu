@@ -71,6 +71,8 @@ class QueryGraph {
 public:
     QueryGraph() = default;
 
+    std::vector<std::shared_ptr<NodeOrRelExpression>> getAllPatterns() const;
+
     inline uint32_t getNumQueryNodes() const { return queryNodes.size(); }
     inline bool containsQueryNode(const std::string& queryNodeName) const {
         return queryNodeNameToPosMap.contains(queryNodeName);
@@ -149,29 +151,8 @@ private:
     std::vector<QueryGraph> queryGraphs;
 };
 
-class PropertyKeyValCollection {
-public:
-    PropertyKeyValCollection() = default;
-    DELETE_COPY_DEFAULT_MOVE(PropertyKeyValCollection);
-
-    void addKeyVal(const std::shared_ptr<Expression>& variable, const std::string& propertyName,
-        expression_pair keyVal);
-    std::vector<expression_pair> getKeyVals() const;
-    std::vector<expression_pair> getKeyVals(const std::shared_ptr<Expression>& variable) const;
-    bool hasKeyVal(
-        const std::shared_ptr<Expression>& variable, const std::string& propertyName) const;
-    expression_pair getKeyVal(
-        const std::shared_ptr<Expression>& variable, const std::string& propertyName) const;
-
-private:
-    // First indexed on variable, then indexed on property name.
-    // a -> { age -> pair<a.age,12>, name -> pair<name,'Alice'>}
-    expression_map<std::unordered_map<std::string, expression_pair>> propertyKeyValMap;
-};
-
 struct BoundGraphPattern {
     QueryGraphCollection queryGraphCollection;
-    PropertyKeyValCollection propertyKeyValCollection;
     std::shared_ptr<Expression> where;
 
     BoundGraphPattern() = default;

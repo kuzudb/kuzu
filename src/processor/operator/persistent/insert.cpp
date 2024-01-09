@@ -6,34 +6,24 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void InsertNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    for (auto& executor : executors) {
-        executor->init(resultSet, context);
+void Insert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto& executor : nodeExecutors) {
+        executor.init(resultSet, context);
+    }
+    for (auto& executor : relExecutors) {
+        executor.init(resultSet, context);
     }
 }
 
-bool InsertNode::getNextTuplesInternal(ExecutionContext* context) {
+bool Insert::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    for (auto& executor : executors) {
-        executor->insert(transaction);
+    for (auto& executor : nodeExecutors) {
+        executor.insert(transaction);
     }
-    return true;
-}
-
-void InsertRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    for (auto& executor : executors) {
-        executor->init(resultSet, context);
-    }
-}
-
-bool InsertRel::getNextTuplesInternal(ExecutionContext* context) {
-    if (!children[0]->getNextTuple(context)) {
-        return false;
-    }
-    for (auto& executor : executors) {
-        executor->insert(transaction);
+    for (auto& executor : relExecutors) {
+        executor.insert(transaction);
     }
     return true;
 }

@@ -9,9 +9,8 @@ namespace processor {
 
 class Merge : public PhysicalOperator {
 public:
-    Merge(const DataPos& markPos,
-        std::vector<std::unique_ptr<NodeInsertExecutor>> nodeInsertExecutors,
-        std::vector<std::unique_ptr<RelInsertExecutor>> relInsertExecutors,
+    Merge(const DataPos& markPos, std::vector<NodeInsertExecutor> nodeInsertExecutors,
+        std::vector<RelInsertExecutor> relInsertExecutors,
         std::vector<std::unique_ptr<NodeSetExecutor>> onCreateNodeSetExecutors,
         std::vector<std::unique_ptr<RelSetExecutor>> onCreateRelSetExecutors,
         std::vector<std::unique_ptr<NodeSetExecutor>> onMatchNodeSetExecutors,
@@ -32,9 +31,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<Merge>(markPos, NodeInsertExecutor::copy(nodeInsertExecutors),
-            RelInsertExecutor::copy(relInsertExecutors),
-            NodeSetExecutor::copy(onCreateNodeSetExecutors),
+        return std::make_unique<Merge>(markPos, copyVector(nodeInsertExecutors),
+            copyVector(relInsertExecutors), NodeSetExecutor::copy(onCreateNodeSetExecutors),
             RelSetExecutor::copy(onCreateRelSetExecutors),
             NodeSetExecutor::copy(onMatchNodeSetExecutors),
             RelSetExecutor::copy(onMatchRelSetExecutors), children[0]->clone(), id, paramsString);
@@ -44,8 +42,8 @@ private:
     DataPos markPos;
     common::ValueVector* markVector = nullptr;
 
-    std::vector<std::unique_ptr<NodeInsertExecutor>> nodeInsertExecutors;
-    std::vector<std::unique_ptr<RelInsertExecutor>> relInsertExecutors;
+    std::vector<NodeInsertExecutor> nodeInsertExecutors;
+    std::vector<RelInsertExecutor> relInsertExecutors;
 
     std::vector<std::unique_ptr<NodeSetExecutor>> onCreateNodeSetExecutors;
     std::vector<std::unique_ptr<RelSetExecutor>> onCreateRelSetExecutors;

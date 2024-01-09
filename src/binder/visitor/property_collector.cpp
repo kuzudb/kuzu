@@ -74,8 +74,8 @@ void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
 void PropertyCollector::visitInsert(const BoundUpdatingClause& updatingClause) {
     auto& insertClause = (BoundInsertClause&)updatingClause;
     for (auto& info : insertClause.getInfosRef()) {
-        for (auto& setItem : info.setItems) {
-            collectPropertyExpressions(setItem.second);
+        for (auto& expr : info.columnDataExprs) {
+            collectPropertyExpressions(expr);
         }
     }
 }
@@ -91,8 +91,8 @@ void PropertyCollector::visitMerge(const BoundUpdatingClause& updatingClause) {
         collectPropertyExpressions(boundMergeClause.getPredicate());
     }
     for (auto& info : boundMergeClause.getInsertInfosRef()) {
-        for (auto& setItem : info.setItems) {
-            collectPropertyExpressions(setItem.second);
+        for (auto& expr : info.columnDataExprs) {
+            collectPropertyExpressions(expr);
         }
     }
     for (auto& info : boundMergeClause.getOnMatchSetInfosRef()) {

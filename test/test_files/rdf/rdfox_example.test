@@ -3,8 +3,36 @@
 
 --
 
--CASE Basic
 
+
+-CASE RdfUpdate
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.iri <> ":brian"  DELETE e;
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
+---- 1
+:brian|:forename||Brian
+-STATEMENT CREATE (a:example_r {iri: "a"})-[e:example_rt {iri: "b"}]->(b:example_r {iri: "c"})
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
+---- 2
+:brian|:forename||Brian
+a|b|c|
+-STATEMENT CREATE (a:example_r {iri: "a"})-[:example_rt {iri: "b"}]->(:example_r {iri: "c"})-[:example_rt {iri: "c"}]->(:example_r {iri: "d"})
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
+---- 4
+:brian|:forename||Brian
+a|b|c|
+a|b|c|
+c|c|d|
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.iri = "a" AND e.iri="b" AND b.iri="c"  DELETE e;
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
+---- 2
+:brian|:forename||Brian
+c|c|d|
+
+-CASE Basic
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 5
 example_lt|REL|

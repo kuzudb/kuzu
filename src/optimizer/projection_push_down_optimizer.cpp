@@ -157,25 +157,25 @@ void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
     collectExpressionsInUse(unwind->getExpression());
 }
 
-void ProjectionPushDownOptimizer::visitInsertNode(planner::LogicalOperator* op) {
-    auto insertNode = (LogicalInsertNode*)op;
-    for (auto& info : insertNode->getInfosRef()) {
-        for (auto& setItem : info->setItems) {
-            collectExpressionsInUse(setItem.second);
-        }
+void ProjectionPushDownOptimizer::visitInsert(planner::LogicalOperator* op) {
+    auto insert = (LogicalInsert*)op;
+    for (auto& info : insert->getInfosRef()) {
+        visitInsertInfo(&info);
     }
 }
 
-void ProjectionPushDownOptimizer::visitInsertRel(planner::LogicalOperator* op) {
-    auto insertRel = (LogicalInsertRel*)op;
-    for (auto& info : insertRel->getInfosRef()) {
-        auto rel = info->rel;
+void ProjectionPushDownOptimizer::visitInsertInfo(const planner::LogicalInsertInfo* info) {
+    if (info->tableType == common::TableType::REL) {
+        auto rel = (RelExpression*)info->pattern.get();
         collectExpressionsInUse(rel->getSrcNode()->getInternalID());
         collectExpressionsInUse(rel->getDstNode()->getInternalID());
         collectExpressionsInUse(rel->getInternalIDProperty());
-        for (auto& setItem : info->setItems) {
-            collectExpressionsInUse(setItem.second);
+    }
+    for (auto i = 0u; i < info->columnExprs.size(); ++i) {
+        if (info->isReturnColumnExprs[i]) {
+            collectExpressionsInUse(info->columnExprs[i]);
         }
+        collectExpressionsInUse(info->columnDataExprs[i]);
     }
 }
 
@@ -200,18 +200,10 @@ void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
     auto merge = (LogicalMerge*)op;
     collectExpressionsInUse(merge->getMark());
     for (auto& info : merge->getInsertNodeInfosRef()) {
-        for (auto& setItem : info->setItems) {
-            collectExpressionsInUse(setItem.second);
-        }
+        visitInsertInfo(&info);
     }
     for (auto& info : merge->getInsertRelInfosRef()) {
-        auto rel = info->rel;
-        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
-        collectExpressionsInUse(rel->getDstNode()->getInternalID());
-        collectExpressionsInUse(rel->getInternalIDProperty());
-        for (auto& setItem : info->setItems) {
-            collectExpressionsInUse(setItem.second);
-        }
+        visitInsertInfo(&info);
     }
     for (auto& info : merge->getOnCreateSetNodeInfosRef()) {
         auto node = (NodeExpression*)info->nodeOrRel.get();

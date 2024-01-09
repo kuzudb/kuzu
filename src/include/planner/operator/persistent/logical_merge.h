@@ -10,8 +10,8 @@ namespace planner {
 class LogicalMerge : public LogicalOperator {
 public:
     LogicalMerge(std::shared_ptr<binder::Expression> mark,
-        std::vector<std::unique_ptr<LogicalInsertNodeInfo>> insertNodeInfos,
-        std::vector<std::unique_ptr<LogicalInsertRelInfo>> insertRelInfos,
+        std::vector<LogicalInsertInfo> insertNodeInfos,
+        std::vector<LogicalInsertInfo> insertRelInfos,
         std::vector<std::unique_ptr<LogicalSetPropertyInfo>> onCreateSetNodeInfos,
         std::vector<std::unique_ptr<LogicalSetPropertyInfo>> onCreateSetRelInfos,
         std::vector<std::unique_ptr<LogicalSetPropertyInfo>> onMatchSetNodeInfos,
@@ -32,11 +32,10 @@ public:
     f_group_pos_set getGroupsPosToFlatten();
 
     inline std::shared_ptr<binder::Expression> getMark() const { return mark; }
-    inline const std::vector<std::unique_ptr<LogicalInsertNodeInfo>>&
-    getInsertNodeInfosRef() const {
+    inline const std::vector<LogicalInsertInfo>& getInsertNodeInfosRef() const {
         return insertNodeInfos;
     }
-    inline const std::vector<std::unique_ptr<LogicalInsertRelInfo>>& getInsertRelInfosRef() const {
+    inline const std::vector<LogicalInsertInfo>& getInsertRelInfosRef() const {
         return insertRelInfos;
     }
     inline const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>&
@@ -57,9 +56,8 @@ public:
     }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalMerge>(mark, LogicalInsertNodeInfo::copy(insertNodeInfos),
-            LogicalInsertRelInfo::copy(insertRelInfos),
-            LogicalSetPropertyInfo::copy(onCreateSetNodeInfos),
+        return std::make_unique<LogicalMerge>(mark, copyVector(insertNodeInfos),
+            copyVector(insertRelInfos), LogicalSetPropertyInfo::copy(onCreateSetNodeInfos),
             LogicalSetPropertyInfo::copy(onCreateSetRelInfos),
             LogicalSetPropertyInfo::copy(onMatchSetNodeInfos),
             LogicalSetPropertyInfo::copy(onMatchSetRelInfos), children[0]->copy());
@@ -68,8 +66,8 @@ public:
 private:
     std::shared_ptr<binder::Expression> mark;
     // Create infos
-    std::vector<std::unique_ptr<LogicalInsertNodeInfo>> insertNodeInfos;
-    std::vector<std::unique_ptr<LogicalInsertRelInfo>> insertRelInfos;
+    std::vector<LogicalInsertInfo> insertNodeInfos;
+    std::vector<LogicalInsertInfo> insertRelInfos;
     // On Create infos
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> onCreateSetNodeInfos;
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> onCreateSetRelInfos;

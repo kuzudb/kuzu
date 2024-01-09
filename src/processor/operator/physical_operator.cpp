@@ -27,12 +27,10 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "CREATE_MACRO";
     case PhysicalOperatorType::READER:
         return "READER";
-    case PhysicalOperatorType::INSERT_NODE:
-        return "INSERT_NODE";
+    case PhysicalOperatorType::INSERT:
+        return "INSERT";
     case PhysicalOperatorType::CREATE_NODE_TABLE:
         return "CREATE_NODE_TABLE";
-    case PhysicalOperatorType::INSERT_REL:
-        return "INSERT_REL";
     case PhysicalOperatorType::CREATE_REL_TABLE:
         return "CREATE_REL_TABLE";
     case PhysicalOperatorType::CREATE_RDF_GRAPH:

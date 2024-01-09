@@ -166,16 +166,10 @@ void FactorizationRewriter::visitDeleteRel(planner::LogicalOperator* op) {
     }
 }
 
-void FactorizationRewriter::visitInsertNode(planner::LogicalOperator* op) {
-    auto insertNode = (LogicalInsertNode*)op;
+void FactorizationRewriter::visitInsert(planner::LogicalOperator* op) {
+    auto insertNode = (LogicalInsert*)op;
     auto groupsPosToFlatten = insertNode->getGroupsPosToFlatten();
     insertNode->setChild(0, appendFlattens(insertNode->getChild(0), groupsPosToFlatten));
-}
-
-void FactorizationRewriter::visitInsertRel(planner::LogicalOperator* op) {
-    auto insertRel = (LogicalInsertRel*)op;
-    auto groupsPosToFlatten = insertRel->getGroupsPosToFlatten();
-    insertRel->setChild(0, appendFlattens(insertRel->getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitMerge(planner::LogicalOperator* op) {

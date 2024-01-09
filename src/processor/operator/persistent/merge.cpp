@@ -6,10 +6,10 @@ namespace processor {
 void Merge::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
     markVector = resultSet->getValueVector(markPos).get();
     for (auto& executor : nodeInsertExecutors) {
-        executor->init(resultSet, context);
+        executor.init(resultSet, context);
     }
     for (auto& executor : relInsertExecutors) {
-        executor->init(resultSet, context);
+        executor.init(resultSet, context);
     }
     for (auto& executor : onCreateNodeSetExecutors) {
         executor->init(resultSet, context);
@@ -40,10 +40,10 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
         }
     } else {
         for (auto& executor : nodeInsertExecutors) {
-            executor->insert(transaction);
+            executor.insert(transaction);
         }
         for (auto& executor : relInsertExecutors) {
-            executor->insert(transaction);
+            executor.insert(transaction);
         }
         for (auto& executor : onCreateNodeSetExecutors) {
             executor->set(context);
