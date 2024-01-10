@@ -71,7 +71,12 @@ public:
     uint64_t scan(std::vector<common::ValueVector*> vectorsToRead);
 
 private:
-    bool scanSingleTuple;
+    bool scanSingleTuple(std::vector<common::ValueVector*> vectorsToRead) const;
+
+    void applyLimitOnResultVectors(std::vector<common::ValueVector*> vectorsToRead);
+
+private:
+    bool hasUnflatColInPayload;
     uint32_t payloadIdxOffset;
     std::vector<uint32_t> colsToScan;
     std::unique_ptr<uint8_t*[]> tuplesToRead;
@@ -80,6 +85,7 @@ private:
     uint32_t nextTupleIdxToReadInMergedKeyBlock;
     uint64_t endTuplesIdxToReadInMergedKeyBlock;
     std::vector<FactorizedTable*> payloadTables;
+    uint64_t limitNumber;
 };
 
 } // namespace processor

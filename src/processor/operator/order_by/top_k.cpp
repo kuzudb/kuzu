@@ -99,13 +99,21 @@ void TopKBuffer::merge(TopKBuffer* other) {
 }
 
 void TopKBuffer::initVectors() {
-    auto payloadState = std::make_shared<common::DataChunkState>();
-    auto lastPayloadState = std::make_shared<common::DataChunkState>();
-    for (auto& type : orderByDataInfo->payloadTypes) {
+    auto payloadUnflatState = std::make_shared<common::DataChunkState>();
+    auto payloadFlatState = common::DataChunkState::getSingleValueDataChunkState();
+    auto lastPayloadUnflatState = std::make_shared<common::DataChunkState>();
+    auto lastPayloadFlatState = common::DataChunkState::getSingleValueDataChunkState();
+    for (auto i = 0u; i < orderByDataInfo->payloadTypes.size(); i++) {
+        auto type = orderByDataInfo->payloadTypes[i].get();
         auto payloadVec = std::make_unique<common::ValueVector>(*type, memoryManager);
         auto lastPayloadVec = std::make_unique<common::ValueVector>(*type, memoryManager);
-        payloadVec->setState(payloadState);
-        lastPayloadVec->setState(lastPayloadState);
+        if (orderByDataInfo->payloadTableSchema->getColumn(i)->isFlat()) {
+            payloadVec->setState(payloadFlatState);
+            lastPayloadVec->setState(lastPayloadFlatState);
+        } else {
+            payloadVec->setState(payloadUnflatState);
+            lastPayloadVec->setState(lastPayloadUnflatState);
+        }
         payloadVecsToScan.push_back(payloadVec.get());
         lastPayloadVecsToScan.push_back(lastPayloadVec.get());
         tmpVectors.push_back(std::move(payloadVec));
