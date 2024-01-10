@@ -182,17 +182,9 @@ public:
     std::unique_ptr<ExecutionContext> executionContext;
 };
 
-//TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCommitNormalExecution) {
-//    copyNodeCSVCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
-//}
-
 TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCommitRecovery) {
     copyNodeCSVCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
-
-//TEST_F(TinySnbCopyCSVTransactionTest, CopyRelCommitNormalExecution) {
-//    copyRelCSVCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
-//}
 
 TEST_F(TinySnbCopyCSVTransactionTest, CopyRelCommitRecovery) {
     copyRelCSVCommitAndRecoveryTest(TransactionTestType::RECOVERY);

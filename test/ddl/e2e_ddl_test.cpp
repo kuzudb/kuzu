@@ -302,57 +302,28 @@ public:
     table_id_t studyAtTableID;
 };
 
-TEST_F(TinySnbDDLTest, CreateNodeTableCommitNormalExecution) {
-    createTable(TableType::NODE, TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, CreateNodeTableCommitRecovery) {
     createTable(TableType::NODE, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, CreateRelTableCommitNormalExecution) {
-    createTable(TableType::REL, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, CreateRelTableCommitRecovery) {
     createTable(TableType::REL, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, DropNodeTableCommitNormalExecution) {
-    dropTableCommitAndRecoveryTest("movies", TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, DropNodeTableCommitRecovery) {
     dropTableCommitAndRecoveryTest("movies", TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, DropRelTableCommitNormalExecution) {
-    dropTableCommitAndRecoveryTest("knows", TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, DropRelTableCommitRecovery) {
     dropTableCommitAndRecoveryTest("knows", TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, DropNodeTablePropertyNormalExecution) {
-    dropNodeTableProperty(TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, DropNodeTablePropertyRecovery) {
     dropNodeTableProperty(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, DropRelTablePropertyNormalExecution) {
-    dropRelTableProperty(TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, DropRelTablePropertyRecovery) {
     dropRelTableProperty(TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddInt64PropertyToPersonTableWithoutDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithoutDefaultValue(
-        "INT64" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddInt64PropertyToPersonTableWithoutDefaultValueRecovery) {
@@ -360,19 +331,9 @@ TEST_F(TinySnbDDLTest, AddInt64PropertyToPersonTableWithoutDefaultValueRecovery)
         "INT64" /* propertyType */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddFixListPropertyToPersonTableWithoutDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithoutDefaultValue(
-        "INT64[3]" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddFixedListPropertyToPersonTableWithoutDefaultValueRecovery) {
     addPropertyToPersonTableWithoutDefaultValue(
         "DOUBLE[5]" /* propertyType */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddStringPropertyToPersonTableWithoutDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithoutDefaultValue(
-        "STRING" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddStringPropertyToPersonTableWithoutDefaultValueRecovery) {
@@ -380,19 +341,9 @@ TEST_F(TinySnbDDLTest, AddStringPropertyToPersonTableWithoutDefaultValueRecovery
         "STRING" /* propertyType */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToPersonTableWithoutDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithoutDefaultValue(
-        "INT64[]" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToPersonTableWithoutDefaultValueRecovery) {
     addPropertyToPersonTableWithoutDefaultValue(
         "INT64[]" /* propertyType */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddListOfStringPropertyToPersonTableWithoutDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithoutDefaultValue(
-        "STRING[]" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddListOfStringPropertyToPersonTableWithoutDefaultValueRecovery) {
@@ -400,20 +351,9 @@ TEST_F(TinySnbDDLTest, AddListOfStringPropertyToPersonTableWithoutDefaultValueRe
         "STRING[]" /* propertyType */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddListOfStructPropertyToPersonTableWithoutDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithoutDefaultValue(
-        "STRUCT(revenue int64, ages double[])[]" /* propertyType */,
-        TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddListOfStructPropertyToPersonTableWithoutDefaultValueRecovery) {
     addPropertyToPersonTableWithoutDefaultValue(
         "STRUCT(revenue int64, ages double[])[]" /* propertyType */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddMapPropertyToPersonTableWithoutDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithoutDefaultValue(
-        "MAP(INT64, INT32)" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddMapPropertyToPersonTableWithoutDefaultValueRecovery) {
@@ -421,20 +361,9 @@ TEST_F(TinySnbDDLTest, AddMapPropertyToPersonTableWithoutDefaultValueRecovery) {
         "MAP(STRING, INT64)" /* propertyType */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddStructPropertyToPersonTableWithoutDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithoutDefaultValue(
-        "STRUCT(revenue int16, location string[])" /* propertyType */,
-        TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddStructPropertyToPersonTableWithoutDefaultValueRecovery) {
     addPropertyToPersonTableWithoutDefaultValue(
         "STRUCT(price INT64[], volume INT64)" /* propertyType */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddInt64PropertyToPersonTableWithDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithDefaultValue(
-        "INT64" /* propertyType */, "8" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddInt64PropertyToPersonTableWithDefaultValueRecovery) {
@@ -442,19 +371,9 @@ TEST_F(TinySnbDDLTest, AddInt64PropertyToPersonTableWithDefaultValueRecovery) {
         "INT64" /* propertyType */, "21" /* defaultVal */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddStringPropertyToPersonTableWithDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithDefaultValue("STRING" /* propertyType */,
-        "'long long string'" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddStringPropertyToPersonTableWithDefaultValueRecovery) {
     addPropertyToPersonTableWithDefaultValue("STRING" /* propertyType */,
         "'long long string'" /* defaultVal */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToPersonTableWithDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithDefaultValue("INT64[]" /* propertyType */,
-        "[142,123,789]" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToPersonTableWithDefaultValueRecovery) {
@@ -462,23 +381,10 @@ TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToPersonTableWithDefaultValueRecove
         "[142,123,789]" /* defaultVal */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddListOfStringPropertyToPersonTableWithDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithDefaultValue("STRING[]" /* propertyType */,
-        "['142','short','long long long string']" /* defaultValue */,
-        TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddListOfStringPropertyToPersonTableWithDefaultValueRecovery) {
     addPropertyToPersonTableWithDefaultValue("STRING[]" /* propertyType */,
         "['142','short','long long long string']" /* defaultValue */,
         TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToPersonTableWithDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithDefaultValue("STRING[][]" /* propertyType */,
-        "[['142','51'],['short','long','123'],['long long long string','short short short short "
-        "short']]" /* defaultValue */,
-        TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToPersonTableWithDefaultValueRecovery) {
@@ -488,25 +394,11 @@ TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToPersonTableWithDefaultValu
         TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddListOfStructPropertyToPersonTableWithDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithDefaultValue(
-        "STRUCT(revenue int64, ages double[])[]" /* propertyType */,
-        "[{revenue: 23, ages: [1.300000,2.500000]},{revenue: 33, ages: [2.700000]},{revenue: "
-        "-4, ages: [22.500000,11.300000,33.200000]}]" /* defaultValue */,
-        TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddListOfStructPropertyToPersonTableWithDefaultValueRecovery) {
     addPropertyToPersonTableWithDefaultValue(
         "STRUCT(revenue int64, ages double[])[]" /* propertyType */,
         "[{revenue: 144, ages: [3.200000,7.200000]}]" /* defaultValue */,
         TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddMapPropertyToPersonTableWithDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithDefaultValue("MAP(STRING, INT64)" /* propertyType */,
-        "map(['key1','key2'],[400,250])" /* defaultValue */, TransactionTestType::NORMAL_EXECUTION,
-        "{key1=400, key2=250}" /* expectedVal */);
 }
 
 TEST_F(TinySnbDDLTest, AddMapPropertyToPersonTableWithDefaultValueRecovery) {
@@ -515,22 +407,10 @@ TEST_F(TinySnbDDLTest, AddMapPropertyToPersonTableWithDefaultValueRecovery) {
         "{key3=[3,2,1]}" /* expectedVal */);
 }
 
-TEST_F(TinySnbDDLTest, AddStructPropertyToPersonTableWithDefaultValueNormalExecution) {
-    addPropertyToPersonTableWithDefaultValue(
-        "STRUCT(revenue int64, ages double[])" /* propertyType */,
-        "{revenue: 123, ages: [1.200000,3.400000,5.600000]}" /* defaultValue */,
-        TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddStructPropertyToPersonTableWithDefaultValueRecovery) {
     addPropertyToPersonTableWithDefaultValue(
         "STRUCT(price INT64[], volume INT64)" /* propertyType */,
         "{price: [5,3,2], volume: 24}" /* defaultValue */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithoutDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithoutDefaultValue(
-        "INT64" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithoutDefaultValueRecovery) {
@@ -538,19 +418,9 @@ TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithoutDefaultValueRecovery
         "INT64" /* propertyType */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithoutDefaultValue(
-        "STRING" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueRecovery) {
     addPropertyToStudyAtTableWithoutDefaultValue(
         "STRING" /* propertyType */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithoutDefaultValue(
-        "INT64[]" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueRecovery) {
@@ -558,19 +428,9 @@ TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueRe
         "INT64[]" /* propertyType */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddListOfStringPropertyToStudyAtTableWithoutDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithoutDefaultValue(
-        "STRING[]" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddListOfStringPropertyToStudyAtTableWithoutDefaultValueRecovery) {
     addPropertyToStudyAtTableWithoutDefaultValue(
         "STRING[]" /* propertyType */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithDefaultValue(
-        "INT64" /* propertyType */, "42" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithDefaultValueRecovery) {
@@ -578,19 +438,9 @@ TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithDefaultValueRecovery) {
         "INT64" /* propertyType */, "42" /* defaultVal */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithDefaultValue("STRING" /* propertyType */,
-        "'VERY LONG STRING!!'" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithDefaultValueRecovery) {
     addPropertyToStudyAtTableWithDefaultValue("STRING" /* propertyType */,
         "'VERY SHORT STRING!!'" /* defaultVal */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddListOfINT64PropertyToStudyAtTableWithDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithDefaultValue("INT64[]" /* propertyType */,
-        "[11,15,20]" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddListOfINT64PropertyToStudyAtTableWithDefaultValueRecovery) {
@@ -598,22 +448,9 @@ TEST_F(TinySnbDDLTest, AddListOfINT64PropertyToStudyAtTableWithDefaultValueRecov
         "[5,6,7,1,3]" /* defaultVal */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddListOfStringPropertyToStudyAtTableWithDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithDefaultValue("STRING[]" /* propertyType */,
-        "['13','15','long string!!']" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, AddListOfStringPropertyToStudyAtTableWithDefaultValueRecovery) {
     addPropertyToStudyAtTableWithDefaultValue("STRING[]" /* propertyType */,
         "['2','SHORT','SUPER LONG STRINGS']" /* defaultVal */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithDefaultValue("STRING[][]" /* propertyType */,
-        "[['hello','good','long long string test'],['6'],['very very long string']]" /* defaultVal
-                                                                                      */
-        ,
-        TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueRecovery) {
@@ -624,24 +461,8 @@ TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToStudyAtTableWithDefaultVal
         TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddPropertyWithComplexExpression) {
-    ASSERT_TRUE(
-        conn->query("ALTER TABLE person ADD random INT64 DEFAULT  2 * abs(-2)")->isSuccess());
-    std::vector<std::string> expectedResult(8, "4");
-    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
-        expectedResult);
-}
-
-TEST_F(TinySnbDDLTest, RenameTableNormalExecution) {
-    renameTable(TransactionTestType::NORMAL_EXECUTION);
-}
-
 TEST_F(TinySnbDDLTest, RenameTableRecovery) {
     renameTable(TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, RenamePropertyNormalExecution) {
-    renameProperty(TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, RenamePropertyRecovery) {

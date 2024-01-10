@@ -63,3 +63,323 @@ Rel table group: likes has been created.
 -STATEMENT Call table_info('likes_person_organisation') RETURN *;
 ---- 1
 1|since|INT64
+
+-CASE CreateNodeTableCommitNormalExecution
+-STATEMENT CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))
+---- ok
+
+-CASE CreateRelTableCommitNormalExecution
+-STATEMENT CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)
+---- ok
+
+-CASE DropNodeTableCommitNormalExecution
+-STATEMENT DROP TABLE movies
+---- ok
+
+-CASE DropRelTableCommitNormalExecution
+-STATEMENT DROP TABLE knows
+---- ok
+
+-CASE DropNodeTablePropertyNormalExecution
+-STATEMENT ALTER TABLE person DROP gender
+---- ok
+-STATEMENT MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1
+---- 1
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
+
+-CASE DropRelTablePropertyNormalExecution
+-STATEMENT ALTER TABLE studyAt DROP places
+---- ok
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-DEFINE_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK [
+-STATEMENT MATCH (p:person) return p.random
+---- 8
+
+
+
+
+
+
+
+
+]
+
+-CASE AddInt64PropertyToPersonTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random INT64
+---- ok
+-INSERT_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK
+
+-CASE AddFixListPropertyToPersonTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random INT64[3]
+---- ok
+-INSERT_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK
+
+-CASE AddStringPropertyToPersonTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random STRING
+---- ok
+-INSERT_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK
+
+-CASE AddListOfInt64PropertyToPersonTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random INT64[]
+---- ok
+-INSERT_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK
+
+-CASE AddListOfStringPropertyToPersonTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random STRING[]
+---- ok
+-INSERT_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK
+
+-CASE AddListOfStructPropertyToPersonTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[]
+---- ok
+-INSERT_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK
+
+-CASE AddMapPropertyToPersonTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random MAP(INT64, INT32)
+---- ok
+-INSERT_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK
+
+-CASE AddStructPropertyToPersonTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int16, location string[])
+---- ok
+-INSERT_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK
+
+-CASE AddInt64PropertyToPersonTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random INT64 DEFAULT 8
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- 8
+8
+8
+8
+8
+8
+8
+8
+8
+
+-CASE AddStringPropertyToPersonTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random STRING DEFAULT 'long long string'
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- 8
+long long string
+long long string
+long long string
+long long string
+long long string
+long long string
+long long string
+long long string
+
+-CASE AddListOfInt64PropertyToPersonTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random INT64[] DEFAULT [142,123,789]
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- 8
+[142,123,789]
+[142,123,789]
+[142,123,789]
+[142,123,789]
+[142,123,789]
+[142,123,789]
+[142,123,789]
+[142,123,789]
+
+-CASE AddListOfStringPropertyToPersonTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random STRING[] DEFAULT ['142','short','long long long string']
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- 8
+[142,short,long long long string]
+[142,short,long long long string]
+[142,short,long long long string]
+[142,short,long long long string]
+[142,short,long long long string]
+[142,short,long long long string]
+[142,short,long long long string]
+[142,short,long long long string]
+
+-CASE AddListOfListOfStringPropertyToPersonTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random STRING[][] 
+            DEFAULT [['142','51'],['short','long','123'],
+            ['long long long string','short short short short short']]
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- 8
+[[142,51],[short,long,123],[long long long string,short short short short short]]
+[[142,51],[short,long,123],[long long long string,short short short short short]]
+[[142,51],[short,long,123],[long long long string,short short short short short]]
+[[142,51],[short,long,123],[long long long string,short short short short short]]
+[[142,51],[short,long,123],[long long long string,short short short short short]]
+[[142,51],[short,long,123],[long long long string,short short short short short]]
+[[142,51],[short,long,123],[long long long string,short short short short short]]
+[[142,51],[short,long,123],[long long long string,short short short short short]]
+
+-CASE AddListOfStructPropertyToPersonTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[]
+            DEFAULT [{revenue: 23, ages: [1.300000,2.500000]},
+            {revenue: 33, ages: [2.700000]},
+            {revenue: -4, ages: [22.500000,11.300000,33.200000]}]
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- 8
+[{revenue: 23, ages: [1.300000,2.500000]},{revenue: 33, ages: [2.700000]},{revenue: -4, ages: [22.500000,11.300000,33.200000]}]
+[{revenue: 23, ages: [1.300000,2.500000]},{revenue: 33, ages: [2.700000]},{revenue: -4, ages: [22.500000,11.300000,33.200000]}]
+[{revenue: 23, ages: [1.300000,2.500000]},{revenue: 33, ages: [2.700000]},{revenue: -4, ages: [22.500000,11.300000,33.200000]}]
+[{revenue: 23, ages: [1.300000,2.500000]},{revenue: 33, ages: [2.700000]},{revenue: -4, ages: [22.500000,11.300000,33.200000]}]
+[{revenue: 23, ages: [1.300000,2.500000]},{revenue: 33, ages: [2.700000]},{revenue: -4, ages: [22.500000,11.300000,33.200000]}]
+[{revenue: 23, ages: [1.300000,2.500000]},{revenue: 33, ages: [2.700000]},{revenue: -4, ages: [22.500000,11.300000,33.200000]}]
+[{revenue: 23, ages: [1.300000,2.500000]},{revenue: 33, ages: [2.700000]},{revenue: -4, ages: [22.500000,11.300000,33.200000]}]
+[{revenue: 23, ages: [1.300000,2.500000]},{revenue: 33, ages: [2.700000]},{revenue: -4, ages: [22.500000,11.300000,33.200000]}]
+
+-CASE AddMapPropertyToPersonTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64) DEFAULT map(['key1','key2'],[400,250])
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- 8
+{key1=400, key2=250}
+{key1=400, key2=250}
+{key1=400, key2=250}
+{key1=400, key2=250}
+{key1=400, key2=250}
+{key1=400, key2=250}
+{key1=400, key2=250}
+{key1=400, key2=250}
+
+-CASE AddStructPropertyToPersonTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])
+            DEFAULT {revenue: 123, ages: [1.200000,3.400000,5.600000]}
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- 8
+{revenue: 123, ages: [1.200000,3.400000,5.600000]}
+{revenue: 123, ages: [1.200000,3.400000,5.600000]}
+{revenue: 123, ages: [1.200000,3.400000,5.600000]}
+{revenue: 123, ages: [1.200000,3.400000,5.600000]}
+{revenue: 123, ages: [1.200000,3.400000,5.600000]}
+{revenue: 123, ages: [1.200000,3.400000,5.600000]}
+{revenue: 123, ages: [1.200000,3.400000,5.600000]}
+{revenue: 123, ages: [1.200000,3.400000,5.600000]}
+
+-DEFINE_STATEMENT_BLOCK STUDY_AT_TABLE_NULL_CHECK [
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+
+
+
+]
+
+-CASE AddInt64PropertyToStudyAtTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE studyAt ADD random INT64
+---- ok
+-INSERT_STATEMENT_BLOCK STUDY_AT_TABLE_NULL_CHECK
+
+-CASE AddStringPropertyToStudyAtTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-INSERT_STATEMENT_BLOCK STUDY_AT_TABLE_NULL_CHECK
+
+-CASE AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE studyAt ADD random INT64[]
+---- ok
+-INSERT_STATEMENT_BLOCK STUDY_AT_TABLE_NULL_CHECK
+
+-CASE AddListOfStringPropertyToStudyAtTableWithoutDefaultValueNormalExecution
+-STATEMENT ALTER TABLE studyAt ADD random STRING[]
+---- ok
+-INSERT_STATEMENT_BLOCK STUDY_AT_TABLE_NULL_CHECK
+
+-CASE AddInt64PropertyToStudyAtTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE studyAt ADD random INT64 DEFAULT 42
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+42
+42
+42
+
+-CASE AddStringPropertyToStudyAtTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE studyAt ADD random STRING DEFAULT 'VERY LONG STRING!!'
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+VERY LONG STRING!!
+VERY LONG STRING!!
+VERY LONG STRING!!
+
+-CASE AddListOfINT64PropertyToStudyAtTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE studyAt ADD random INT64[] DEFAULT [11,15,20]
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[11,15,20]
+[11,15,20]
+[11,15,20]
+
+-CASE AddListOfStringPropertyToStudyAtTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE studyAt ADD random STRING[] DEFAULT ['13','15','long string!!']
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[13,15,long string!!]
+[13,15,long string!!]
+[13,15,long string!!]
+
+-CASE AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueNormalExecution
+-STATEMENT ALTER TABLE studyAt ADD random STRING[][] 
+            DEFAULT [['hello','good','long long string test'],
+            ['6'],['very very long string']]
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[[hello,good,long long string test],[6],[very very long string]]
+[[hello,good,long long string test],[6],[very very long string]]
+[[hello,good,long long string test],[6],[very very long string]]
+
+-CASE AddPropertyWithComplexExpression
+-STATEMENT ALTER TABLE person ADD random INT64 DEFAULT  2 * abs(-2)
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- 8
+4
+4
+4
+4
+4
+4
+4
+4
+
+-CASE RenameTableNormalExecution
+-STATEMENT ALTER TABLE person RENAME TO student
+---- ok
+-CHECK_ORDER
+-STATEMENT MATCH (s:student) return s.age order by s.age
+---- 8
+20
+20
+25
+30
+35
+40
+45
+83
+
+-CASE RenamePropertyNormalExecution
+-STATEMENT ALTER TABLE person RENAME fName TO name
+---- ok
+-CHECK_ORDER
+-STATEMENT MATCH (p:person) return p.name order by p.name
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
