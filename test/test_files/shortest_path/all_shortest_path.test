@@ -10,16 +10,21 @@
 # 10 <- 8 -> 9
 -LOG SingleSourceSingleDst
 -STATEMENT MATCH (a:person)-[r:knows* ALL SHORTEST 1..30]-(b:person) WHERE a.ID = 9 AND b.ID = 10 RETURN COUNT(*)
----- 1
-3
+---- hash
+1 tuples hashed to 6d7fce9fee471194aa8b5b6e47267f03
+#---- 1
+#3
 
 -LOG SingleSource
--STATEMENT MATCH (a:person)-[r:knows* ALL SHORTEST 1..30]->(b:person) WHERE a.ID = 10 RETURN b.ID, length(r), COUNT(*)
----- 7
-0|1|1
-2|2|2
-3|2|2
-5|1|1
-7|1|1
-8|2|1
-9|2|1
+-STATEMENT MATCH (a:person)-[r:knows* ALL SHORTEST 1..30]->(b:person) WHERE a.ID = 10 RETURN b.ID, length(r), COUNT(*) ORDER BY b.ID
+---- hash
+7 tuples hashed to 4aac03f739ba75ec2f5fdf2a418097c8
+
+#---- 7
+#0|1|1
+#2|2|2
+#3|2|2
+#5|1|1
+#7|1|1
+#8|2|1
+#9|2|1

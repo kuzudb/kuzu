@@ -15,6 +15,7 @@ add_library(kuzu_common
         expression_type.cpp
         in_mem_overflow_buffer.cpp
         logging_level_utils.cpp
+        md5.cpp
         metric.cpp
         null_mask.cpp
         profiler.cpp
