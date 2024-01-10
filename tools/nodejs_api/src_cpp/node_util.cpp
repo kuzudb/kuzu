@@ -57,21 +57,13 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     case LogicalTypeID::DOUBLE: {
         return Napi::Number::New(env, value.getValue<double>());
     }
+    case LogicalTypeID::UUID:
     case LogicalTypeID::STRING: {
         return Napi::String::New(env, value.getValue<std::string>());
     }
     case LogicalTypeID::BLOB: {
         auto blobVal = value.getValue<std::string>();
         return Napi::Buffer<char>::Copy(env, blobVal.c_str(), blobVal.size());
-    }
-    case LogicalTypeID::UUID: {
-        auto val = value.getValue<kuzu::common::int128_t>();
-        auto negative = val.high < 0;
-        if (negative) {
-            kuzu::common::Int128_t::negateInPlace(val);
-        }
-        const uint64_t words[] = {val.low, static_cast<uint64_t>(val.high)};
-        return Napi::BigInt::New(env, negative, 2, words);
     }
     case LogicalTypeID::DATE: {
         auto dateVal = value.getValue<date_t>();

@@ -939,6 +939,15 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         jobject ret = env->NewObject(retClass, ctor, iid.tableID, iid.offset);
         return ret;
     }
+    case LogicalTypeID::UUID: {
+        jclass retClass = env->FindClass("java/util/UUID");
+        jmethodID fromString =
+            env->GetStaticMethodID(retClass, "fromString", "(Ljava/lang/String;)Ljava/util/UUID;");
+        std::string str = v->getValue<std::string>();
+        jstring javaStr = env->NewStringUTF(str.c_str());
+        jobject ret = env->CallStaticObjectMethod(retClass, fromString, javaStr);
+        return ret;
+    }
     case LogicalTypeID::STRING: {
         std::string str = v->getValue<std::string>();
         jstring ret = env->NewStringUTF(str.c_str());
