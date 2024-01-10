@@ -1,0 +1,112 @@
+-GROUP RdfoxExample
+-DATASET TTL EMPTY
+
+--
+
+-CASE EmptyUpdate
+-STATEMENT CREATE RDF GRAPH T;
+---- ok
+-STATEMENT CREATE (:T_r {iri:"a"}),
+                  (:T_r {iri:"a"}),
+                  (:T_r {iri:"aa"}),
+                  (:T_r {iri:"aaa"})
+---- ok
+-STATEMENT MATCH (a:T_r) RETURN a.iri;
+---- 3
+a
+aa
+aaa
+-STATEMENT CREATE (:T_l {val:cast(12, "INT64")}),
+                  (:T_l {val:cast(43, "INT32")}),
+                  (:T_l {val:cast(33, "INT16")}),
+                  (:T_l {val:cast(2, "INT8")}),
+                  (:T_l {val:cast(90, "UINT64")}),
+                  (:T_l {val:cast(77, "UINT32")}),
+                  (:T_l {val:cast(12, "UINT16")}),
+                  (:T_l {val:cast(1, "UINT8")}),
+                  (:T_l {val:cast(4.4, "DOUBLE")}),
+                  (:T_l {val:cast(1.2, "FLOAT")}),
+                  (:T_l {val:cast("\\xB2", "BLOB")}),
+                  (:T_l {val:true}),
+                  (:T_l {val:"hhh"}),
+                  (:T_l {val:cast("2024-01-01", "DATE")}),
+                  (:T_l {val:cast("2024-01-01 11:25:30Z+00:00", "TIMESTAMP")}),
+                  (:T_l {val:cast("1 year", "INTERVAL")})
+---- ok
+-STATEMENT MATCH (a:T_l) RETURN a.* ORDER BY a.id;
+-CHECK_ORDER
+---- 16
+0|12
+1|43
+2|33
+3|2
+4|90
+5|77
+6|12
+7|1
+8|4.400000
+9|1.200000
+10|\xB2
+11|True
+12|hhh
+13|2024-01-01
+14|2024-01-01 11:25:30
+15|1 year
+-STATEMENT MATCH (a:T_l)
+            RETURN a.id,
+                   a.val + cast(1, "INT64"),
+                   a.val * cast(2, "INT32"),
+                   a.val + cast(-4, "INT16"),
+                   a.val / cast(-2, "INT8"),
+                   a.val + cast(14, "UINT64"),
+                   a.val * cast(222, "UINT32"),
+                   a.val + cast(0, "UINT16"),
+                   a.val / cast(1, "UINT8"),
+                   a.val * cast(2.0, "DOUBLE"),
+                   a.val / cast(2.0, "FLOAT")
+            ORDER BY a.id;
+-CHECK_ORDER
+---- 16
+0|13|24|8|-6|26|2664|12|12|24.000000|6.000000
+1|44|86|39|-21|57|9546|43|43|86.000000|21.500000
+2|34|66|29|-16|47|7326|33|33|66.000000|16.500000
+3|3|4|-2|-1|16|444|2|2|4.000000|1.000000
+4|91|180|86|-45|104|19980|90|90|180.000000|45.000000
+5|78|154|73|-38|91|17094|77|77|154.000000|38.500000
+6|13|24|8|-6|26|2664|12|12|24.000000|6.000000
+7|2|2|-3|0|15|222|1|1|2.000000|0.500000
+8|5|8|0|-2|18|888|4|4|8.800000|2.200000
+9|2|2|-3|0|15|222|1|1|2.400000|0.600000
+10||||||||||
+11||||||||||
+12||||||||||
+13||||||||||
+14||||||||||
+15||||||||||
+-STATEMENT MATCH (a:T_l)
+            RETURN a.id,
+                   cast(a.val, "BLOB"),
+                   cast(a.val, "BOOL"),
+                   a.val + "a",
+                   cast(a.val, "DATE"),
+                   cast(a.val, "TIMESTAMP"),
+                   cast(a.val, "INTERVAL")
+            ORDER BY a.id;
+-CHECK_ORDER
+---- 16
+0|||12a|||
+1|||43a|||
+2|||33a|||
+3|||2a|||
+4|||90a|||
+5|||77a|||
+6|||12a|||
+7|||1a|||
+8|||4.400000a|||
+9|||1.200000a|||
+10|\xB2||\xB2a|||
+11||True|Truea|||
+12|||hhha|||
+13|||2024-01-01a|2024-01-01||
+14|||2024-01-01 11:25:30a||2024-01-01 11:25:30|
+15|||1 yeara|||1 year

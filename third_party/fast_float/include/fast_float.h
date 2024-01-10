@@ -2353,6 +2353,7 @@ from_chars_result parse_infnan(const char *first, const char *last, T &value)  n
 template<typename T>
 fastfloat_really_inline void to_float(bool negative, adjusted_mantissa am, T &value) {
     uint64_t word = am.mantissa;
+    // NOLINTNEXTLINE
     word |= uint64_t(am.power2) << binary_format<T>::mantissa_explicit_bits();
     word = negative
                ? word | (uint64_t(1) << binary_format<T>::sign_index()) : word;

@@ -31,6 +31,31 @@ c|c|d|
 ---- 2
 :brian|:forename||Brian
 c|c|d|
+-STATEMENT CREATE (a:example_r {iri: "a"})-[:example_lt {iri: "b"}]->(b:example_l {val: 12}),
+                  (a)-[:example_lt {iri: "mm"}]->(:example_l {val:cast("2024-01-01", "DATE")})
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
+---- 4
+:brian|:forename||Brian
+c|c|d|
+a|b||12
+a|mm||2024-01-01
+-STATEMENT MATCH (a)-[e]->(b:example_l {val: 12}) DELETE e;
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
+---- 3
+:brian|:forename||Brian
+c|c|d|
+a|mm||2024-01-01
+-STATEMENT CREATE (a:example_r {iri: "x"})-[:example_lt {iri: "c"}]->(b:example_l {val: "hh"}) RETURN a.iri, b.val
+---- 1
+x|hh
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
+---- 4
+:brian|:forename||Brian
+c|c|d|
+a|mm||2024-01-01
+x|c||hh
 
 -CASE Basic
 -STATEMENT CALL SHOW_TABLES() RETURN *;
