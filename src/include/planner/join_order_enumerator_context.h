@@ -13,13 +13,14 @@ enum class SubqueryType : uint8_t {
 };
 
 class JoinOrderEnumeratorContext {
-    friend class QueryPlanner;
+    friend class Planner;
 
 public:
     JoinOrderEnumeratorContext()
         : currentLevel{0}, maxLevel{0}, subPlansTable{std::make_unique<SubPlansTable>()},
           queryGraph{nullptr}, subqueryType{SubqueryType::NONE}, correlatedExpressionsCardinality{
                                                                      1} {}
+    DELETE_COPY_DEFAULT_MOVE(JoinOrderEnumeratorContext);
 
     void init(const binder::QueryGraph* queryGraph, const binder::expression_vector& predicates);
 

@@ -2,8 +2,9 @@
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
+#include "common/enums/join_type.h"
 #include "planner/operator/persistent/logical_merge.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -11,15 +12,15 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::planUpdatingClause(
-    binder::BoundUpdatingClause& updatingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+void Planner::planUpdatingClause(
+    const BoundUpdatingClause* updatingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
         planUpdatingClause(updatingClause, *plan);
     }
 }
 
-void QueryPlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
-    switch (updatingClause.getClauseType()) {
+void Planner::planUpdatingClause(const BoundUpdatingClause* updatingClause, LogicalPlan& plan) {
+    switch (updatingClause->getClauseType()) {
     case ClauseType::INSERT: {
         planInsertClause(updatingClause, plan);
         return;
@@ -41,31 +42,32 @@ void QueryPlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logic
     }
 }
 
-void QueryPlanner::planInsertClause(
-    binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
-    auto& insertClause = (BoundInsertClause&)updatingClause;
+void Planner::planInsertClause(const BoundUpdatingClause* updatingClause, LogicalPlan& plan) {
+    auto insertClause =
+        ku_dynamic_cast<const BoundUpdatingClause*, const BoundInsertClause*>(updatingClause);
     if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
         appendDummyScan(plan);
     } else {
         appendAccumulate(AccumulateType::REGULAR, plan);
     }
-    if (insertClause.hasNodeInfo()) {
-        appendInsertNode(insertClause.getNodeInfos(), plan);
+    if (insertClause->hasNodeInfo()) {
+        appendInsertNode(insertClause->getNodeInfos(), plan);
     }
-    if (insertClause.hasRelInfo()) {
-        appendInsertRel(insertClause.getRelInfos(), plan);
+    if (insertClause->hasRelInfo()) {
+        appendInsertRel(insertClause->getRelInfos(), plan);
     }
 }
 
-void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
-    auto& mergeClause = (BoundMergeClause&)updatingClause;
+void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, LogicalPlan& plan) {
+    auto mergeClause =
+        ku_dynamic_cast<const BoundUpdatingClause*, const BoundMergeClause*>(updatingClause);
     binder::expression_vector predicates;
-    if (mergeClause.hasPredicate()) {
-        predicates = mergeClause.getPredicate()->splitOnAND();
+    if (mergeClause->hasPredicate()) {
+        predicates = mergeClause->getPredicate()->splitOnAND();
     }
-    planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, plan);
+    planOptionalMatch(*mergeClause->getQueryGraphCollection(), predicates, plan);
     std::shared_ptr<Expression> mark;
-    auto& createInfos = mergeClause.getInsertInfosRef();
+    auto& createInfos = mergeClause->getInsertInfosRef();
     KU_ASSERT(!createInfos.empty());
     auto& createInfo = createInfos[0];
     switch (createInfo.tableType) {
@@ -81,39 +83,39 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
         KU_UNREACHABLE;
     }
     std::vector<LogicalInsertInfo> logicalInsertNodeInfos;
-    if (mergeClause.hasInsertNodeInfo()) {
-        auto boundInsertNodeInfos = mergeClause.getInsertNodeInfos();
+    if (mergeClause->hasInsertNodeInfo()) {
+        auto boundInsertNodeInfos = mergeClause->getInsertNodeInfos();
         for (auto& info : boundInsertNodeInfos) {
             logicalInsertNodeInfos.push_back(createLogicalInsertInfo(info)->copy());
         }
     }
     std::vector<LogicalInsertInfo> logicalInsertRelInfos;
-    if (mergeClause.hasInsertRelInfo()) {
-        for (auto& info : mergeClause.getInsertRelInfos()) {
+    if (mergeClause->hasInsertRelInfo()) {
+        for (auto& info : mergeClause->getInsertRelInfos()) {
             logicalInsertRelInfos.push_back(createLogicalInsertInfo(info)->copy());
         }
     }
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnCreateSetNodeInfos;
-    if (mergeClause.hasOnCreateSetNodeInfo()) {
-        for (auto& info : mergeClause.getOnCreateSetNodeInfos()) {
+    if (mergeClause->hasOnCreateSetNodeInfo()) {
+        for (auto& info : mergeClause->getOnCreateSetNodeInfos()) {
             logicalOnCreateSetNodeInfos.push_back(createLogicalSetPropertyInfo(info));
         }
     }
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnCreateSetRelInfos;
-    if (mergeClause.hasOnCreateSetRelInfo()) {
-        for (auto& info : mergeClause.getOnCreateSetRelInfos()) {
+    if (mergeClause->hasOnCreateSetRelInfo()) {
+        for (auto& info : mergeClause->getOnCreateSetRelInfos()) {
             logicalOnCreateSetRelInfos.push_back(createLogicalSetPropertyInfo(info));
         }
     }
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnMatchSetNodeInfos;
-    if (mergeClause.hasOnMatchSetNodeInfo()) {
-        for (auto& info : mergeClause.getOnMatchSetNodeInfos()) {
+    if (mergeClause->hasOnMatchSetNodeInfo()) {
+        for (auto& info : mergeClause->getOnMatchSetNodeInfos()) {
             logicalOnMatchSetNodeInfos.push_back(createLogicalSetPropertyInfo(info));
         }
     }
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnMatchSetRelInfos;
-    if (mergeClause.hasOnMatchSetRelInfo()) {
-        for (auto& info : mergeClause.getOnMatchSetRelInfos()) {
+    if (mergeClause->hasOnMatchSetRelInfo()) {
+        for (auto& info : mergeClause->getOnMatchSetRelInfos()) {
             logicalOnMatchSetRelInfos.push_back(createLogicalSetPropertyInfo(info));
         }
     }
@@ -127,26 +129,27 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
     plan.setLastOperator(merge);
 }
 
-void QueryPlanner::planSetClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
+void Planner::planSetClause(const BoundUpdatingClause* updatingClause, LogicalPlan& plan) {
     appendAccumulate(AccumulateType::REGULAR, plan);
-    auto& setClause = (BoundSetClause&)updatingClause;
-    if (setClause.hasNodeInfo()) {
-        appendSetNodeProperty(setClause.getNodeInfos(), plan);
+    auto setClause =
+        ku_dynamic_cast<const BoundUpdatingClause*, const BoundSetClause*>(updatingClause);
+    if (setClause->hasNodeInfo()) {
+        appendSetNodeProperty(setClause->getNodeInfos(), plan);
     }
-    if (setClause.hasRelInfo()) {
-        appendSetRelProperty(setClause.getRelInfos(), plan);
+    if (setClause->hasRelInfo()) {
+        appendSetRelProperty(setClause->getRelInfos(), plan);
     }
 }
 
-void QueryPlanner::planDeleteClause(
-    binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
+void Planner::planDeleteClause(const BoundUpdatingClause* updatingClause, LogicalPlan& plan) {
     appendAccumulate(AccumulateType::REGULAR, plan);
-    auto& deleteClause = (BoundDeleteClause&)updatingClause;
-    if (deleteClause.hasRelInfo()) {
-        appendDeleteRel(deleteClause.getRelInfos(), plan);
+    auto deleteClause =
+        ku_dynamic_cast<const BoundUpdatingClause*, const BoundDeleteClause*>(updatingClause);
+    if (deleteClause->hasRelInfo()) {
+        appendDeleteRel(deleteClause->getRelInfos(), plan);
     }
-    if (deleteClause.hasNodeInfo()) {
-        appendDeleteNode(deleteClause.getNodeInfos(), plan);
+    if (deleteClause->hasNodeInfo()) {
+        appendDeleteNode(deleteClause->getNodeInfos(), plan);
     }
 }
 

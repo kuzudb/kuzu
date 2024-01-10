@@ -1,9 +1,8 @@
-#include "planner/query_planner.h"
-
 #include "binder/expression/expression_util.h"
 #include "binder/expression/property_expression.h"
 #include "binder/query/bound_regular_query.h"
 #include "planner/operator/logical_union.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -38,17 +37,16 @@ static std::vector<std::vector<std::unique_ptr<LogicalPlan>>> cartesianProductCh
     return resultChildrenPlans;
 }
 
-std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::getAllPlans(
-    const BoundStatement& boundStatement) {
+std::vector<std::unique_ptr<LogicalPlan>> Planner::planQuery(const BoundStatement& boundStatement) {
     std::vector<std::unique_ptr<LogicalPlan>> resultPlans;
     auto& regularQuery = (BoundRegularQuery&)boundStatement;
     if (regularQuery.getNumSingleQueries() == 1) {
-        resultPlans = planSingleQuery(*regularQuery.getSingleQuery(0));
+        resultPlans = planSingleQuery(regularQuery.getSingleQuery(0));
     } else {
         std::vector<std::vector<std::unique_ptr<LogicalPlan>>> childrenLogicalPlans(
             regularQuery.getNumSingleQueries());
         for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
-            childrenLogicalPlans[i] = planSingleQuery(*regularQuery.getSingleQuery(i));
+            childrenLogicalPlans[i] = planSingleQuery(regularQuery.getSingleQuery(i));
         }
         auto childrenPlans = cartesianProductChildrenPlans(std::move(childrenLogicalPlans));
         for (auto& childrenPlan : childrenPlans) {
@@ -58,8 +56,7 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::getAllPlans(
     return resultPlans;
 }
 
-std::unique_ptr<LogicalPlan> QueryPlanner::getBestPlan(
-    std::vector<std::unique_ptr<LogicalPlan>> plans) {
+std::unique_ptr<LogicalPlan> Planner::getBestPlan(std::vector<std::unique_ptr<LogicalPlan>> plans) {
     auto bestPlan = std::move(plans[0]);
     for (auto i = 1u; i < plans.size(); ++i) {
         if (plans[i]->getCost() < bestPlan->getCost()) {
@@ -69,7 +66,7 @@ std::unique_ptr<LogicalPlan> QueryPlanner::getBestPlan(
     return bestPlan;
 }
 
-std::unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
+std::unique_ptr<LogicalPlan> Planner::createUnionPlan(
     std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll) {
     KU_ASSERT(!childrenPlans.empty());
     auto plan = std::make_unique<LogicalPlan>();
@@ -93,13 +90,13 @@ std::unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
     return plan;
 }
 
-std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::getInitialEmptyPlans() {
+std::vector<std::unique_ptr<LogicalPlan>> Planner::getInitialEmptyPlans() {
     std::vector<std::unique_ptr<LogicalPlan>> plans;
     plans.push_back(std::make_unique<LogicalPlan>());
     return plans;
 }
 
-expression_vector QueryPlanner::getProperties(const binder::Expression& nodeOrRel) {
+expression_vector Planner::getProperties(const binder::Expression& nodeOrRel) {
     KU_ASSERT(ExpressionUtil::isNodePattern(nodeOrRel) || ExpressionUtil::isRelPattern(nodeOrRel));
     expression_vector result;
     for (auto& expression : propertiesToScan) {
@@ -111,17 +108,17 @@ expression_vector QueryPlanner::getProperties(const binder::Expression& nodeOrRe
     return result;
 }
 
-std::unique_ptr<JoinOrderEnumeratorContext> QueryPlanner::enterContext(SubqueryType subqueryType,
+JoinOrderEnumeratorContext Planner::enterContext(SubqueryType subqueryType,
     const expression_vector& correlatedExpressions, uint64_t cardinality) {
     auto prevContext = std::move(context);
-    context = std::make_unique<JoinOrderEnumeratorContext>();
-    context->subqueryType = subqueryType;
-    context->correlatedExpressions = correlatedExpressions;
-    context->correlatedExpressionsCardinality = cardinality;
+    context = JoinOrderEnumeratorContext();
+    context.subqueryType = subqueryType;
+    context.correlatedExpressions = correlatedExpressions;
+    context.correlatedExpressionsCardinality = cardinality;
     return prevContext;
 }
 
-void QueryPlanner::exitContext(std::unique_ptr<JoinOrderEnumeratorContext> prevContext) {
+void Planner::exitContext(JoinOrderEnumeratorContext prevContext) {
     context = std::move(prevContext);
 }
 

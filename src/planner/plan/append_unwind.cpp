@@ -1,17 +1,17 @@
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "planner/operator/logical_unwind.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendUnwind(const BoundReadingClause& boundReadingClause, LogicalPlan& plan) {
+void Planner::appendUnwind(const BoundReadingClause& boundReadingClause, LogicalPlan& plan) {
     auto& boundUnwindClause = (BoundUnwindClause&)boundReadingClause;
     auto unwind = make_shared<LogicalUnwind>(
         boundUnwindClause.getInExpr(), boundUnwindClause.getOutExpr(), plan.getLastOperator());
-    QueryPlanner::appendFlattens(unwind->getGroupsPosToFlatten(), plan);
+    appendFlattens(unwind->getGroupsPosToFlatten(), plan);
     unwind->setChild(0, plan.getLastOperator());
     unwind->computeFactorizedSchema();
     plan.setLastOperator(unwind);

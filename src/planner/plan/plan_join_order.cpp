@@ -1,7 +1,8 @@
 #include "binder/expression_visitor.h"
+#include "common/enums/join_type.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -9,12 +10,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-std::unique_ptr<LogicalPlan> QueryPlanner::planQueryGraphCollection(
+std::unique_ptr<LogicalPlan> Planner::planQueryGraphCollection(
     const QueryGraphCollection& queryGraphCollection, const expression_vector& predicates) {
     return getBestPlan(enumerateQueryGraphCollection(queryGraphCollection, predicates));
 }
 
-std::unique_ptr<LogicalPlan> QueryPlanner::planQueryGraphCollectionInNewContext(
+std::unique_ptr<LogicalPlan> Planner::planQueryGraphCollectionInNewContext(
     SubqueryType subqueryType, const binder::expression_vector& correlatedExpressions,
     uint64_t cardinality, const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates) {
@@ -37,12 +38,12 @@ static int32_t getConnectedQueryGraphIdx(
     return -1;
 }
 
-std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphCollection(
+std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection(
     const QueryGraphCollection& queryGraphCollection, const expression_vector& predicates) {
     KU_ASSERT(queryGraphCollection.getNumQueryGraphs() > 0);
-    auto correlatedExpressionSet = context->getCorrelatedExpressionsSet();
+    auto correlatedExpressionSet = context.getCorrelatedExpressionsSet();
     int32_t queryGraphIdxToPlanExpressionsScan = -1;
-    if (context->subqueryType == SubqueryType::CORRELATED) {
+    if (context.subqueryType == SubqueryType::CORRELATED) {
         // Pick a query graph to plan ExpressionsScan. If -1 is returned, we fall back to cross
         // product.
         queryGraphIdxToPlanExpressionsScan =
@@ -72,7 +73,7 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphColle
             predicatesToEvaluate.push_back(predicates[idx]);
         }
         std::vector<std::unique_ptr<LogicalPlan>> plans;
-        switch (context->subqueryType) {
+        switch (context.subqueryType) {
         case SubqueryType::NONE: {
             // Plan current query graph as an isolated query graph.
             plans = enumerateQueryGraph(
@@ -82,13 +83,13 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphColle
             // All correlated expressions are node IDs. Plan as isolated query graph but do not scan
             // any properties of correlated node IDs because they must be scanned in outer query.
             plans = enumerateQueryGraph(SubqueryType::INTERNAL_ID_CORRELATED,
-                context->correlatedExpressions, *queryGraph, predicatesToEvaluate);
+                context.correlatedExpressions, *queryGraph, predicatesToEvaluate);
         } break;
         case SubqueryType::CORRELATED: {
             if (i == (uint32_t)queryGraphIdxToPlanExpressionsScan) {
                 // Plan ExpressionsScan with current query graph.
-                plans = enumerateQueryGraph(SubqueryType::CORRELATED,
-                    context->correlatedExpressions, *queryGraph, predicatesToEvaluate);
+                plans = enumerateQueryGraph(SubqueryType::CORRELATED, context.correlatedExpressions,
+                    *queryGraph, predicatesToEvaluate);
             } else {
                 // Plan current query graph as an isolated query graph.
                 plans = enumerateQueryGraph(
@@ -102,11 +103,11 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphColle
     }
     // Fail to plan ExpressionsScan with any query graph. Plan it independently and fall back to
     // cross product.
-    if (context->subqueryType == SubqueryType::CORRELATED &&
+    if (context.subqueryType == SubqueryType::CORRELATED &&
         queryGraphIdxToPlanExpressionsScan == -1) {
         auto plan = std::make_unique<LogicalPlan>();
-        appendExpressionsScan(context->getCorrelatedExpressions(), *plan);
-        appendDistinct(context->getCorrelatedExpressions(), *plan);
+        appendExpressionsScan(context.getCorrelatedExpressions(), *plan);
+        appendDistinct(context.getCorrelatedExpressions(), *plan);
         std::vector<std::unique_ptr<LogicalPlan>> plans;
         plans.push_back(std::move(plan));
         plansPerQueryGraph.push_back(std::move(plans));
@@ -131,20 +132,20 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphColle
     return result;
 }
 
-std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraph(
-    SubqueryType subqueryType, const expression_vector& correlatedExpressions,
-    const QueryGraph& queryGraph, expression_vector& predicates) {
-    context->init(&queryGraph, predicates);
-    cardinalityEstimator->initNodeIDDom(queryGraph);
+std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(SubqueryType subqueryType,
+    const expression_vector& correlatedExpressions, const QueryGraph& queryGraph,
+    expression_vector& predicates) {
+    context.init(&queryGraph, predicates);
+    cardinalityEstimator.initNodeIDDom(queryGraph);
     planBaseTableScans(subqueryType, correlatedExpressions);
-    context->currentLevel++;
-    while (context->currentLevel < context->maxLevel) {
-        planLevel(context->currentLevel++);
+    context.currentLevel++;
+    while (context.currentLevel < context.maxLevel) {
+        planLevel(context.currentLevel++);
     }
-    return std::move(context->getPlans(context->getFullyMatchedSubqueryGraph()));
+    return std::move(context.getPlans(context.getFullyMatchedSubqueryGraph()));
 }
 
-void QueryPlanner::planLevel(uint32_t level) {
+void Planner::planLevel(uint32_t level) {
     KU_ASSERT(level > 1);
     if (level > MAX_LEVEL_TO_PLAN_EXACTLY) {
         planLevelApproximately(level);
@@ -153,7 +154,7 @@ void QueryPlanner::planLevel(uint32_t level) {
     }
 }
 
-void QueryPlanner::planLevelExactly(uint32_t level) {
+void Planner::planLevelExactly(uint32_t level) {
     auto maxLeftLevel = floor(level / 2.0);
     for (auto leftLevel = 1u; leftLevel <= maxLeftLevel; ++leftLevel) {
         auto rightLevel = level - leftLevel;
@@ -164,7 +165,7 @@ void QueryPlanner::planLevelExactly(uint32_t level) {
     }
 }
 
-void QueryPlanner::planLevelApproximately(uint32_t level) {
+void Planner::planLevelApproximately(uint32_t level) {
     planInnerJoin(1, level - 1);
 }
 
@@ -197,9 +198,9 @@ static binder::expression_vector getNewlyMatchedExpressions(const SubqueryGraph&
         std::vector<SubqueryGraph>{prevSubgraph}, newSubgraph, expressions);
 }
 
-void QueryPlanner::planBaseTableScans(
+void Planner::planBaseTableScans(
     SubqueryType subqueryType, const expression_vector& correlatedExpressions) {
-    auto queryGraph = context->getQueryGraph();
+    auto queryGraph = context.getQueryGraph();
     auto correlatedExpressionSet =
         expression_set{correlatedExpressions.begin(), correlatedExpressions.end()};
     switch (subqueryType) {
@@ -240,10 +241,10 @@ void QueryPlanner::planBaseTableScans(
     }
 }
 
-void QueryPlanner::planCorrelatedExpressionsScan(
+void Planner::planCorrelatedExpressionsScan(
     const binder::expression_vector& correlatedExpressions) {
-    auto queryGraph = context->getQueryGraph();
-    auto newSubgraph = context->getEmptySubqueryGraph();
+    auto queryGraph = context.getQueryGraph();
+    auto newSubgraph = context.getEmptySubqueryGraph();
     auto correlatedExpressionSet =
         expression_set{correlatedExpressions.begin(), correlatedExpressions.end()};
     for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
@@ -254,35 +255,35 @@ void QueryPlanner::planCorrelatedExpressionsScan(
     }
     auto plan = std::make_unique<LogicalPlan>();
     appendExpressionsScan(correlatedExpressions, *plan);
-    plan->setCardinality(context->correlatedExpressionsCardinality);
+    plan->setCardinality(context.correlatedExpressionsCardinality);
     auto predicates = getNewlyMatchedExpressions(
-        context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
+        context.getEmptySubqueryGraph(), newSubgraph, context.getWhereExpressions());
     appendFilters(predicates, *plan);
     appendDistinct(correlatedExpressions, *plan);
-    context->addPlan(newSubgraph, std::move(plan));
+    context.addPlan(newSubgraph, std::move(plan));
 }
 
-void QueryPlanner::planNodeScan(uint32_t nodePos) {
-    auto node = context->queryGraph->getQueryNode(nodePos);
-    auto newSubgraph = context->getEmptySubqueryGraph();
+void Planner::planNodeScan(uint32_t nodePos) {
+    auto node = context.queryGraph->getQueryNode(nodePos);
+    auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryNode(nodePos);
     auto plan = std::make_unique<LogicalPlan>();
     appendScanInternalID(node->getInternalID(), node->getTableIDs(), *plan);
     auto properties = getProperties(*node);
     appendScanNodeProperties(node->getInternalID(), node->getTableIDs(), properties, *plan);
     auto predicates = getNewlyMatchedExpressions(
-        context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
+        context.getEmptySubqueryGraph(), newSubgraph, context.getWhereExpressions());
     appendFilters(predicates, *plan);
-    context->addPlan(newSubgraph, std::move(plan));
+    context.addPlan(newSubgraph, std::move(plan));
 }
 
-void QueryPlanner::planNodeIDScan(uint32_t nodePos) {
-    auto node = context->queryGraph->getQueryNode(nodePos);
-    auto newSubgraph = context->getEmptySubqueryGraph();
+void Planner::planNodeIDScan(uint32_t nodePos) {
+    auto node = context.queryGraph->getQueryNode(nodePos);
+    auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryNode(nodePos);
     auto plan = std::make_unique<LogicalPlan>();
     appendScanInternalID(node->getInternalID(), node->getTableIDs(), *plan);
-    context->addPlan(newSubgraph, std::move(plan));
+    context.addPlan(newSubgraph, std::move(plan));
 }
 
 static std::pair<std::shared_ptr<NodeExpression>, std::shared_ptr<NodeExpression>>
@@ -293,12 +294,12 @@ getBoundAndNbrNodes(const RelExpression& rel, ExtendDirection direction) {
     return make_pair(boundNode, dstNode);
 }
 
-void QueryPlanner::planRelScan(uint32_t relPos) {
-    auto rel = context->queryGraph->getQueryRel(relPos);
-    auto newSubgraph = context->getEmptySubqueryGraph();
+void Planner::planRelScan(uint32_t relPos) {
+    auto rel = context.queryGraph->getQueryRel(relPos);
+    auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryRel(relPos);
     auto predicates = getNewlyMatchedExpressions(
-        context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
+        context.getEmptySubqueryGraph(), newSubgraph, context.getWhereExpressions());
     // Regardless of whether rel is directed or not,
     // we always enumerate two plans, one from src to dst, and the other from dst to src.
     for (auto direction : {ExtendDirection::FWD, ExtendDirection::BWD}) {
@@ -307,11 +308,11 @@ void QueryPlanner::planRelScan(uint32_t relPos) {
         auto extendDirection = ExtendDirectionUtils::getExtendDirection(*rel, *boundNode);
         appendScanInternalID(boundNode->getInternalID(), boundNode->getTableIDs(), *plan);
         appendExtendAndFilter(boundNode, nbrNode, rel, extendDirection, predicates, *plan);
-        context->addPlan(newSubgraph, std::move(plan));
+        context.addPlan(newSubgraph, std::move(plan));
     }
 }
 
-void QueryPlanner::appendExtendAndFilter(const std::shared_ptr<NodeExpression>& boundNode,
+void Planner::appendExtendAndFilter(const std::shared_ptr<NodeExpression>& boundNode,
     const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan) {
     switch (rel->getRelType()) {
@@ -358,10 +359,10 @@ populateIntersectRelCandidates(const QueryGraph& queryGraph, const SubqueryGraph
     return intersectNodePosToRelsMap;
 }
 
-void QueryPlanner::planWCOJoin(uint32_t leftLevel, uint32_t rightLevel) {
+void Planner::planWCOJoin(uint32_t leftLevel, uint32_t rightLevel) {
     KU_ASSERT(leftLevel <= rightLevel);
-    auto queryGraph = context->getQueryGraph();
-    for (auto& rightSubgraph : context->subPlansTable->getSubqueryGraphs(rightLevel)) {
+    auto queryGraph = context.getQueryGraph();
+    for (auto& rightSubgraph : context.subPlansTable->getSubqueryGraphs(rightLevel)) {
         auto candidates = populateIntersectRelCandidates(*queryGraph, rightSubgraph);
         for (auto& [intersectNodePos, rels] : candidates) {
             if (rels.size() == leftLevel) {
@@ -413,7 +414,7 @@ static std::unique_ptr<LogicalPlan> getWCOJBuildPlanForRel(
     return result;
 }
 
-void QueryPlanner::planWCOJoin(const SubqueryGraph& subgraph,
+void Planner::planWCOJoin(const SubqueryGraph& subgraph,
     const std::vector<std::shared_ptr<RelExpression>>& rels,
     const std::shared_ptr<NodeExpression>& intersectNode) {
     auto newSubgraph = subgraph;
@@ -426,16 +427,16 @@ void QueryPlanner::planWCOJoin(const SubqueryGraph& subgraph,
                              rel->getDstNode() :
                              rel->getSrcNode();
         boundNodeIDs.push_back(boundNode->getInternalID());
-        auto relPos = context->getQueryGraph()->getQueryRelPos(rel->getUniqueName());
-        auto prevSubgraph = context->getEmptySubqueryGraph();
+        auto relPos = context.getQueryGraph()->getQueryRelPos(rel->getUniqueName());
+        auto prevSubgraph = context.getEmptySubqueryGraph();
         prevSubgraph.addQueryRel(relPos);
         prevSubgraphs.push_back(subgraph);
         newSubgraph.addQueryRel(relPos);
         // fetch build plans for rel
-        auto relSubgraph = context->getEmptySubqueryGraph();
+        auto relSubgraph = context.getEmptySubqueryGraph();
         relSubgraph.addQueryRel(relPos);
-        KU_ASSERT(context->subPlansTable->containSubgraphPlans(relSubgraph));
-        auto& relPlanCandidates = context->subPlansTable->getSubgraphPlans(relSubgraph);
+        KU_ASSERT(context.subPlansTable->containSubgraphPlans(relSubgraph));
+        auto& relPlanCandidates = context.subPlansTable->getSubgraphPlans(relSubgraph);
         auto relPlan = getWCOJBuildPlanForRel(relPlanCandidates, *boundNode);
         if (relPlan == nullptr) { // Cannot find a suitable rel plan.
             return;
@@ -443,8 +444,8 @@ void QueryPlanner::planWCOJoin(const SubqueryGraph& subgraph,
         relPlans.push_back(std::move(relPlan));
     }
     auto predicates =
-        getNewlyMatchedExpressions(prevSubgraphs, newSubgraph, context->getWhereExpressions());
-    for (auto& leftPlan : context->getPlans(subgraph)) {
+        getNewlyMatchedExpressions(prevSubgraphs, newSubgraph, context.getWhereExpressions());
+    for (auto& leftPlan : context.getPlans(subgraph)) {
         auto leftPlanCopy = leftPlan->shallowCopy();
         std::vector<std::unique_ptr<LogicalPlan>> rightPlansCopy;
         rightPlansCopy.reserve(relPlans.size());
@@ -456,7 +457,7 @@ void QueryPlanner::planWCOJoin(const SubqueryGraph& subgraph,
         for (auto& predicate : predicates) {
             appendFilter(predicate, *leftPlanCopy);
         }
-        context->subPlansTable->addPlan(newSubgraph, std::move(leftPlanCopy));
+        context.subPlansTable->addPlan(newSubgraph, std::move(leftPlanCopy));
     }
 }
 
@@ -479,19 +480,19 @@ static bool needPruneImplicitJoins(
     return intersectionSize != numJoinNodes;
 }
 
-void QueryPlanner::planInnerJoin(uint32_t leftLevel, uint32_t rightLevel) {
+void Planner::planInnerJoin(uint32_t leftLevel, uint32_t rightLevel) {
     KU_ASSERT(leftLevel <= rightLevel);
-    for (auto& rightSubgraph : context->subPlansTable->getSubqueryGraphs(rightLevel)) {
+    for (auto& rightSubgraph : context.subPlansTable->getSubqueryGraphs(rightLevel)) {
         for (auto& nbrSubgraph : rightSubgraph.getNbrSubgraphs(leftLevel)) {
             // E.g. MATCH (a)->(b) MATCH (b)->(c)
             // Since we merge query graph for multipart query, during enumeration for the second
             // match, the query graph is (a)->(b)->(c). However, we omit plans corresponding to the
             // first match (i.e. (a)->(b)).
-            if (!context->containPlans(nbrSubgraph)) {
+            if (!context.containPlans(nbrSubgraph)) {
                 continue;
             }
             auto joinNodePositions = rightSubgraph.getConnectedNodePos(nbrSubgraph);
-            auto joinNodes = context->queryGraph->getQueryNodes(joinNodePositions);
+            auto joinNodes = context.queryGraph->getQueryNodes(joinNodePositions);
             if (needPruneImplicitJoins(nbrSubgraph, rightSubgraph, joinNodes.size())) {
                 continue;
             }
@@ -504,7 +505,7 @@ void QueryPlanner::planInnerJoin(uint32_t leftLevel, uint32_t rightLevel) {
     }
 }
 
-bool QueryPlanner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
+bool Planner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
     const std::vector<std::shared_ptr<NodeExpression>>& joinNodes) {
     if (joinNodes.size() > 1) {
         return false;
@@ -516,13 +517,13 @@ bool QueryPlanner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryG
         return tryPlanINLJoin(otherSubgraph, subgraph, joinNodes);
     }
     auto relPos = UINT32_MAX;
-    for (auto i = 0u; i < context->queryGraph->getNumQueryRels(); ++i) {
+    for (auto i = 0u; i < context.queryGraph->getNumQueryRels(); ++i) {
         if (otherSubgraph.queryRelsSelector[i]) {
             relPos = i;
         }
     }
     KU_ASSERT(relPos != UINT32_MAX);
-    auto rel = context->queryGraph->getQueryRel(relPos);
+    auto rel = context.queryGraph->getQueryRel(relPos);
     const auto& boundNode = joinNodes[0];
     auto nbrNode =
         boundNode->getUniqueName() == rel->getSrcNodeName() ? rel->getDstNode() : rel->getSrcNode();
@@ -530,41 +531,40 @@ bool QueryPlanner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryG
     auto newSubgraph = subgraph;
     newSubgraph.addQueryRel(relPos);
     auto predicates =
-        getNewlyMatchedExpressions(subgraph, newSubgraph, context->getWhereExpressions());
+        getNewlyMatchedExpressions(subgraph, newSubgraph, context.getWhereExpressions());
     bool hasAppliedINLJoin = false;
-    for (auto& prevPlan : context->getPlans(subgraph)) {
+    for (auto& prevPlan : context.getPlans(subgraph)) {
         if (isNodeSequentialOnPlan(*prevPlan, *boundNode)) {
             auto plan = prevPlan->shallowCopy();
             appendExtendAndFilter(boundNode, nbrNode, rel, extendDirection, predicates, *plan);
-            context->addPlan(newSubgraph, std::move(plan));
+            context.addPlan(newSubgraph, std::move(plan));
             hasAppliedINLJoin = true;
         }
     }
     return hasAppliedINLJoin;
 }
 
-void QueryPlanner::planInnerHashJoin(const SubqueryGraph& subgraph,
-    const SubqueryGraph& otherSubgraph,
+void Planner::planInnerHashJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
     const std::vector<std::shared_ptr<NodeExpression>>& joinNodes, bool flipPlan) {
     auto newSubgraph = subgraph;
     newSubgraph.addSubqueryGraph(otherSubgraph);
-    auto maxCost = context->subPlansTable->getMaxCost(newSubgraph);
+    auto maxCost = context.subPlansTable->getMaxCost(newSubgraph);
     binder::expression_vector joinNodeIDs;
     for (auto& joinNode : joinNodes) {
         joinNodeIDs.push_back(joinNode->getInternalID());
     }
     auto predicates =
         getNewlyMatchedExpressions(std::vector<SubqueryGraph>{subgraph, otherSubgraph}, newSubgraph,
-            context->getWhereExpressions());
-    for (auto& leftPlan : context->getPlans(subgraph)) {
-        for (auto& rightPlan : context->getPlans(otherSubgraph)) {
+            context.getWhereExpressions());
+    for (auto& leftPlan : context.getPlans(subgraph)) {
+        for (auto& rightPlan : context.getPlans(otherSubgraph)) {
             if (CostModel::computeHashJoinCost(joinNodeIDs, *leftPlan, *rightPlan) < maxCost) {
                 auto leftPlanProbeCopy = leftPlan->shallowCopy();
                 auto rightPlanBuildCopy = rightPlan->shallowCopy();
                 appendHashJoin(
                     joinNodeIDs, JoinType::INNER, *leftPlanProbeCopy, *rightPlanBuildCopy);
                 appendFilters(predicates, *leftPlanProbeCopy);
-                context->addPlan(newSubgraph, std::move(leftPlanProbeCopy));
+                context.addPlan(newSubgraph, std::move(leftPlanProbeCopy));
             }
             // flip build and probe side to get another HashJoin plan
             if (flipPlan &&
@@ -574,13 +574,13 @@ void QueryPlanner::planInnerHashJoin(const SubqueryGraph& subgraph,
                 appendHashJoin(
                     joinNodeIDs, JoinType::INNER, *rightPlanProbeCopy, *leftPlanBuildCopy);
                 appendFilters(predicates, *rightPlanProbeCopy);
-                context->addPlan(newSubgraph, std::move(rightPlanProbeCopy));
+                context.addPlan(newSubgraph, std::move(rightPlanProbeCopy));
             }
         }
     }
 }
 
-std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::planCrossProduct(
+std::vector<std::unique_ptr<LogicalPlan>> Planner::planCrossProduct(
     std::vector<std::unique_ptr<LogicalPlan>> leftPlans,
     std::vector<std::unique_ptr<LogicalPlan>> rightPlans) {
     std::vector<std::unique_ptr<LogicalPlan>> result;

@@ -1,19 +1,19 @@
 #include "binder/query/updating_clause/bound_set_info.h"
 #include "planner/operator/persistent/logical_set.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
-std::unique_ptr<LogicalSetPropertyInfo> QueryPlanner::createLogicalSetPropertyInfo(
+std::unique_ptr<LogicalSetPropertyInfo> Planner::createLogicalSetPropertyInfo(
     const BoundSetPropertyInfo* boundSetPropertyInfo) {
     return std::make_unique<LogicalSetPropertyInfo>(
         boundSetPropertyInfo->nodeOrRel, boundSetPropertyInfo->setItem);
 }
 
-void QueryPlanner::appendSetNodeProperty(
+void Planner::appendSetNodeProperty(
     const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalInfos;
     logicalInfos.reserve(boundInfos.size());
@@ -30,7 +30,7 @@ void QueryPlanner::appendSetNodeProperty(
     plan.setLastOperator(setNodeProperty);
 }
 
-void QueryPlanner::appendSetRelProperty(
+void Planner::appendSetRelProperty(
     const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalInfos;
     logicalInfos.reserve(boundInfos.size());

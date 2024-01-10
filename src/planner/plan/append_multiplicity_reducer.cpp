@@ -1,10 +1,10 @@
 #include "planner/operator/logical_multiplcity_reducer.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendMultiplicityReducer(LogicalPlan& plan) {
+void Planner::appendMultiplicityReducer(LogicalPlan& plan) {
     auto multiplicityReducer = make_shared<LogicalMultiplicityReducer>(plan.getLastOperator());
     multiplicityReducer->computeFactorizedSchema();
     plan.setLastOperator(std::move(multiplicityReducer));
