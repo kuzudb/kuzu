@@ -59,6 +59,7 @@ public:
     std::unique_ptr<LocalVectorCollection> getStructChildVectorCollection(
         common::struct_field_idx_t idx);
 
+    // TODO(Guodong): Change this interface to take an extra `SelVector` or `DataChunkState`.
     common::row_idx_t append(common::ValueVector* vector);
 
 private:
