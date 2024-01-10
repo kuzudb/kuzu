@@ -877,6 +877,24 @@ TEST_F(CApiValueTest, GetBlob) {
     kuzu_query_result_destroy(result);
 }
 
+TEST_F(CApiValueTest, GetUUID) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(
+        connection, (char*)R"(RETURN UUID("A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11");)");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+    ASSERT_TRUE(value->_is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(value));
+    auto str = kuzu_value_get_uuid(value);
+    ASSERT_STREQ(str, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11");
+    free(str);
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
 TEST_F(CApiValueTest, ToSting) {
     auto connection = getConnection();
     auto result = kuzu_connection_query(connection,

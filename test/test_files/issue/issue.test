@@ -319,3 +319,21 @@ t2
         RETURN ret;
 ---- 1
 {_ID: 0:0, _LABEL: T, id: t1}
+
+-CASE 2643
+-STATEMENT create node table person (x SERIAL, y STRUCT(a INT64, b INT64), PRIMARY KEY(x));
+---- ok
+-STATEMENT CREATE (:person {y: {a: 1, b: 2}}), (:person {y: {a: 3, b: 4}});
+---- ok
+-STATEMENT MATCH (a:person) RETURN a.*;
+---- 2
+0|{a: 1, b: 2}
+1|{a: 3, b: 4}
+-STATEMENT create node table organisation (x INT64, y STRUCT(a INT64, b INT64), PRIMARY KEY(x));
+---- ok
+-STATEMENT CREATE (:organisation {x: 10, y: {a: 1, b: 2}}), (:organisation {x: 11, y: {a: 3, b: 4}});
+---- ok
+-STATEMENT MATCH (a:organisation) RETURN a.*;
+---- 2
+10|{a: 1, b: 2}
+11|{a: 3, b: 4}

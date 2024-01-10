@@ -55,6 +55,7 @@ std::unique_ptr<LocalVectorCollection> LocalVectorCollection::getStructChildVect
     for (auto i = 0u; i < numRows; i++) {
         auto fieldVector =
             common::StructVector::getFieldVector(getLocalVector(i)->getVector(), idx);
+        fieldVector->state->selVector->selectedPositions[0] = i & (DEFAULT_VECTOR_CAPACITY - 1);
         childCollection->append(fieldVector.get());
     }
     return childCollection;

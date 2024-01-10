@@ -201,6 +201,20 @@ describe("BLOB", function () {
   });
 });
 
+describe("UUID", function () {
+  it("should convert UUID type", async function () {
+    const queryResult = await conn.query(
+      "RETURN UUID('A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11');"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    const value = Object.values(result[0])[0];
+    assert.equal(typeof value, "string");
+    assert.equal(value, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11");
+  });
+});
+
 describe("DATE", function () {
   it("should convert DATE type", async function () {
     const queryResult = await conn.query(

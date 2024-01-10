@@ -389,6 +389,10 @@ uint8_t* kuzu_value_get_blob(kuzu_value* value) {
         static_cast<Value*>(value->_value)->getValue<std::string>());
 }
 
+char* kuzu_value_get_uuid(kuzu_value* value) {
+    return convertToOwnedCString(static_cast<Value*>(value->_value)->getValue<std::string>());
+}
+
 char* kuzu_value_to_string(kuzu_value* value) {
     return convertToOwnedCString(static_cast<Value*>(value->_value)->toString());
 }
