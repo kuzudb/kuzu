@@ -10,159 +10,255 @@ namespace kuzu {
 namespace function {
 
 template<typename T>
-static void castToNumeric(common::ValueVector& inputVector, uint64_t inputPos, T& result,
-    common::ValueVector& resultVector, uint64_t resultPos) {
+static void castToNumeric(ValueVector& inputVector, uint64_t inputPos, T& result,
+    ValueVector& resultVector, uint64_t resultPos) {
     auto typeVector = StructVector::getFieldVector(&inputVector, 0).get();
     auto blobVector = StructVector::getFieldVector(&inputVector, 1).get();
     auto type = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
+    auto& blob = blobVector->getValue<blob_t>(inputPos);
+    bool succeed;
     switch (type) {
     case LogicalTypeID::INT64: {
-        auto val = Blob::getValue<int64_t>(blobVector->getValue<blob_t>(inputPos));
-        if (!tryCastWithOverflowCheck(val, result)) {
-            resultVector.setNull(resultPos, true);
-        }
+        succeed = tryCastWithOverflowCheck(Blob::getValue<int64_t>(blob), result);
+    } break;
+    case LogicalTypeID::INT32: {
+        succeed = tryCastWithOverflowCheck(Blob::getValue<int32_t>(blob), result);
+    } break;
+    case LogicalTypeID::INT16: {
+        succeed = tryCastWithOverflowCheck(Blob::getValue<int16_t>(blob), result);
+    } break;
+    case LogicalTypeID::INT8: {
+        succeed = tryCastWithOverflowCheck(Blob::getValue<int8_t>(blob), result);
+    } break;
+    case LogicalTypeID::UINT64: {
+        succeed = tryCastWithOverflowCheck(Blob::getValue<uint64_t>(blob), result);
+    } break;
+    case LogicalTypeID::UINT32: {
+        succeed = tryCastWithOverflowCheck(Blob::getValue<uint32_t>(blob), result);
+    } break;
+    case LogicalTypeID::UINT16: {
+        succeed = tryCastWithOverflowCheck(Blob::getValue<uint16_t>(blob), result);
+    } break;
+    case LogicalTypeID::UINT8: {
+        succeed = tryCastWithOverflowCheck(Blob::getValue<uint8_t>(blob), result);
     } break;
     case LogicalTypeID::DOUBLE: {
-        auto val = Blob::getValue<double_t>(blobVector->getValue<blob_t>(inputPos));
-        if (!tryCastWithOverflowCheck(val, result)) {
-            resultVector.setNull(resultPos, true);
-        }
+        succeed = tryCastWithOverflowCheck(Blob::getValue<double_t>(blob), result);
+    } break;
+    case LogicalTypeID::FLOAT: {
+        succeed = tryCastWithOverflowCheck(Blob::getValue<float_t>(blob), result);
     } break;
     default:
-        resultVector.setNull(resultPos, true);
+        succeed = false;
     }
+    resultVector.setNull(resultPos, !succeed);
 }
 
 // TODO(Xiyang): add cast to int128
+// RDF_VARIANT -> NUMERIC
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    int64_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    int64_t& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    int32_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    int32_t& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    int16_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    int16_t& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    int8_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    int8_t& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    uint64_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    uint64_t& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    uint32_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    uint32_t& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    uint16_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    uint16_t& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    uint8_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    uint8_t& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    double_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    double_t& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    float_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    float_t& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 
-template<typename T>
-static void castFromString(common::ValueVector& /*inputVector*/, uint64_t /*inputPos*/,
-    T& /*result*/, common::ValueVector& resultVector, uint64_t resultPos) {
-    resultVector.setNull(resultPos, true);
-}
-
+// RDF_VARIANT -> BLOB
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    blob_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
-    castFromString(inputVector, inputPos, result, resultVector, resultPos);
-}
-template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    bool& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    blob_t&, ValueVector& resultVector, uint64_t resultPos) {
     auto typeVector = StructVector::getFieldVector(&inputVector, 0).get();
     auto blobVector = StructVector::getFieldVector(&inputVector, 1).get();
-    auto type = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
-    switch (type) {
-    case LogicalTypeID::BOOL: {
-        result = Blob::getValue<bool>(blobVector->getValue<blob_t>(inputPos));
-    } break;
-    default:
+    auto typeID = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
+    if (typeID == common::LogicalTypeID::BLOB) {
+        auto blob = Blob::getValue<blob_t>(blobVector->getValue<blob_t>(inputPos));
+        BlobVector::addBlob(&resultVector, resultPos, blob.value.getData(), blob.value.len);
+        resultVector.setNull(resultPos, false);
+    } else {
         resultVector.setNull(resultPos, true);
     }
 }
+// RDF_VARIANT -> BOOL
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    date_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    bool&, ValueVector& resultVector, uint64_t resultPos) {
     auto typeVector = StructVector::getFieldVector(&inputVector, 0).get();
     auto blobVector = StructVector::getFieldVector(&inputVector, 1).get();
-    auto type = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
-    switch (type) {
-    case LogicalTypeID::DATE: {
-        result = Blob::getValue<date_t>(blobVector->getValue<blob_t>(inputPos));
-    } break;
-    default:
+    auto typeID = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
+    if (typeID == common::LogicalTypeID::BOOL) {
+        auto& blob = blobVector->getValue<blob_t>(inputPos);
+        resultVector.setValue(resultPos, Blob::getValue<bool>(blob));
+        resultVector.setNull(resultPos, false);
+    } else {
         resultVector.setNull(resultPos, true);
     }
 }
+// RDF_VARIANT -> DATE
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    timestamp_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
-    castFromString(inputVector, inputPos, result, resultVector, resultPos);
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    date_t&, ValueVector& resultVector, uint64_t resultPos) {
+    auto typeVector = StructVector::getFieldVector(&inputVector, 0).get();
+    auto blobVector = StructVector::getFieldVector(&inputVector, 1).get();
+    auto typeID = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
+    if (typeID == common::LogicalTypeID::DATE) {
+        auto& blob = blobVector->getValue<blob_t>(inputPos);
+        resultVector.setValue(resultPos, Blob::getValue<date_t>(blob));
+        resultVector.setNull(resultPos, false);
+    } else {
+        resultVector.setNull(resultPos, true);
+    }
 }
+// RDF_VARIANT -> TIMESTAMP
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    interval_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
-    castFromString(inputVector, inputPos, result, resultVector, resultPos);
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    timestamp_t&, ValueVector& resultVector, uint64_t resultPos) {
+    auto typeVector = StructVector::getFieldVector(&inputVector, 0).get();
+    auto blobVector = StructVector::getFieldVector(&inputVector, 1).get();
+    auto typeID = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
+    if (typeID == common::LogicalTypeID::TIMESTAMP) {
+        auto& blob = blobVector->getValue<blob_t>(inputPos);
+        resultVector.setValue(resultPos, Blob::getValue<timestamp_t>(blob));
+        resultVector.setNull(resultPos, false);
+    } else {
+        resultVector.setNull(resultPos, true);
+    }
+}
+// RDF_VARIANT -> INTERVAL
+template<>
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    interval_t&, ValueVector& resultVector, uint64_t resultPos) {
+    auto typeVector = StructVector::getFieldVector(&inputVector, 0).get();
+    auto blobVector = StructVector::getFieldVector(&inputVector, 1).get();
+    auto typeID = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
+    if (typeID == common::LogicalTypeID::INTERVAL) {
+        auto& blob = blobVector->getValue<blob_t>(inputPos);
+        resultVector.setValue(resultPos, Blob::getValue<interval_t>(blob));
+        resultVector.setNull(resultPos, false);
+    } else {
+        resultVector.setNull(resultPos, true);
+    }
 }
 
+// RDF_VARIANT -> STRING
 template<>
-void CastFromRdfVariant::operation(common::ValueVector& inputVector, uint64_t inputPos,
-    ku_string_t& result, common::ValueVector& resultVector, uint64_t resultPos) {
+void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
+    ku_string_t& result, ValueVector& resultVector, uint64_t) {
     auto typeVector = StructVector::getFieldVector(&inputVector, 0).get();
     auto blobVector = StructVector::getFieldVector(&inputVector, 1).get();
     auto type = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
+    auto& blob = blobVector->getValue<blob_t>(inputPos);
     switch (type) {
     case LogicalTypeID::INT64: {
-        int64_t val = Blob::getValue<int64_t>(blobVector->getValue<blob_t>(inputPos));
-        CastToString::operation(val, result, inputVector, resultVector);
+        auto val = Blob::getValue<int64_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
+    case LogicalTypeID::INT32: {
+        auto val = Blob::getValue<int32_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
+    case LogicalTypeID::INT16: {
+        auto val = Blob::getValue<int16_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
+    case LogicalTypeID::INT8: {
+        auto val = Blob::getValue<int8_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
+    case LogicalTypeID::UINT64: {
+        auto val = Blob::getValue<uint64_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
+    case LogicalTypeID::UINT32: {
+        auto val = Blob::getValue<uint32_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
+    case LogicalTypeID::UINT16: {
+        auto val = Blob::getValue<uint16_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
+    case LogicalTypeID::UINT8: {
+        auto val = Blob::getValue<uint8_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
     } break;
     case LogicalTypeID::DOUBLE: {
-        auto val = Blob::getValue<double_t>(blobVector->getValue<blob_t>(inputPos));
-        CastToString::operation(val, result, inputVector, resultVector);
+        auto val = Blob::getValue<double_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
+    case LogicalTypeID::FLOAT: {
+        auto val = Blob::getValue<float_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
     } break;
     case LogicalTypeID::BOOL: {
-        auto val = Blob::getValue<bool>(blobVector->getValue<blob_t>(inputPos));
-        CastToString::operation(val, result, inputVector, resultVector);
+        auto val = Blob::getValue<bool>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
     } break;
     case LogicalTypeID::DATE: {
-        auto val = Blob::getValue<date_t>(blobVector->getValue<blob_t>(inputPos));
-        CastToString::operation(val, result, inputVector, resultVector);
+        auto val = Blob::getValue<date_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
+    case LogicalTypeID::TIMESTAMP: {
+        auto val = Blob::getValue<timestamp_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
+    case LogicalTypeID::INTERVAL: {
+        auto val = Blob::getValue<interval_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
     } break;
     case LogicalTypeID::STRING: {
         result = blobVector->getValue<blob_t>(inputPos).value;
     } break;
+    case LogicalTypeID::BLOB: {
+        auto val = Blob::getValue<blob_t>(blob);
+        CastToString::operation(val, result, *blobVector, resultVector);
+    } break;
     default:
-        resultVector.setNull(resultPos, true);
+        throw RuntimeException(
+            stringFormat("CastFromRdfVariant::operation on type {} is not implemented.",
+                LogicalTypeUtils::toString(type)));
     }
 }
 
