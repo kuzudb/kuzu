@@ -10,6 +10,7 @@
 namespace kuzu {
 namespace common {
 class FileSystem;
+enum class LogicalTypeID : uint8_t;
 } // namespace common
 
 namespace function {
@@ -18,9 +19,11 @@ struct Function;
 
 namespace extension {
 struct ExtensionUtils;
+struct ExtensionOptions;
 } // namespace extension
 
 namespace main {
+struct ExtensionOption;
 
 /**
  * @brief Stores runtime configuration for creating or opening a Database
@@ -87,6 +90,11 @@ public:
 
     KUZU_API void registerFileSystem(std::unique_ptr<common::FileSystem> fs);
 
+    KUZU_API void addExtensionOption(
+        std::string name, common::LogicalTypeID type, common::Value defaultValue);
+
+    ExtensionOption* getExtensionOption(std::string name);
+
 private:
     void openLockFile();
     void initDBDirAndCoreFilesIfNecessary();
@@ -116,6 +124,7 @@ private:
     std::unique_ptr<storage::WAL> wal;
     std::shared_ptr<spdlog::logger> logger;
     std::unique_ptr<common::FileInfo> lockFile;
+    std::unique_ptr<extension::ExtensionOptions> extensionOptions;
 };
 
 } // namespace main

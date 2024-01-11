@@ -7,10 +7,13 @@
 #endif
 
 #include "common/exception/exception.h"
+#include "common/exception/extension.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/logging_level_utils.h"
 #include "common/utils.h"
+#include "extension/extension.h"
 #include "function/scalar_function.h"
+#include "main/db_config.h"
 #include "processor/processor.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
@@ -73,6 +76,7 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
         *memoryManager, wal.get(), systemConfig.enableCompression, vfs.get());
     transactionManager =
         std::make_unique<transaction::TransactionManager>(*wal, memoryManager.get());
+    extensionOptions = std::make_unique<extension::ExtensionOptions>();
 }
 
 Database::~Database() {
@@ -90,6 +94,18 @@ void Database::addBuiltInFunction(std::string name, function::function_set funct
 
 void Database::registerFileSystem(std::unique_ptr<common::FileSystem> fs) {
     vfs->registerFileSystem(std::move(fs));
+}
+
+void Database::addExtensionOption(
+    std::string name, common::LogicalTypeID type, common::Value defaultValue) {
+    if (extensionOptions->getExtensionOption(name) != nullptr) {
+        throw ExtensionException{common::stringFormat("Extension option {} already exists.", name)};
+    }
+    extensionOptions->addExtensionOption(name, type, std::move(defaultValue));
+}
+
+ExtensionOption* Database::getExtensionOption(std::string name) {
+    return extensionOptions->getExtensionOption(std::move(name));
 }
 
 void Database::openLockFile() {

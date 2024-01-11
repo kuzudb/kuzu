@@ -5,9 +5,14 @@ project(HTTPFSExtension)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED FALSE)
 
+if (NOT WIN32)
+
+find_package(OpenSSL REQUIRED)
+include_directories(${OPENSSL_INCLUDE_DIR})
+add_compile_definitions(CPPHTTPLIB_OPENSSL_SUPPORT)
+
 include_directories(include ../../third_party/httplib ../../src/include)
 
-if (NOT WIN32)
 add_library(httpfs
         SHARED
         src/httpfs.cpp
@@ -22,6 +27,10 @@ set_target_properties(httpfs PROPERTIES
         OUTPUT_NAME httpfs
         SUFFIX ".kuzu_extension"
 )
+
+target_link_libraries(httpfs
+        PRIVATE
+        ${OPENSSL_LIBRARIES})
 endif ()
 
 if (APPLE)

@@ -24,9 +24,10 @@ void PrivateGraphTest::validateQueryBestPlanJoinOrder(
     auto catalog = getCatalog(*database);
     auto statement = parser::Parser::parseQuery(query);
     auto parsedQuery = (parser::RegularQuery*)statement.get();
-    auto boundQuery = Binder(*catalog, database->memoryManager.get(),
-        database->storageManager.get(), database->vfs.get(), conn->clientContext.get())
-                          .bind(*parsedQuery);
+    auto boundQuery =
+        Binder(*catalog, database->memoryManager.get(), database->storageManager.get(),
+            database->vfs.get(), conn->clientContext.get(), database->extensionOptions.get())
+            .bind(*parsedQuery);
     auto planner = Planner(catalog, getStorageManager(*database));
     auto plan = planner.getBestPlan(*boundQuery);
     ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());

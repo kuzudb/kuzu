@@ -1,8 +1,10 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 #include "common/api.h"
+#include "main/db_config.h"
 
 namespace kuzu {
 namespace main {
@@ -33,6 +35,17 @@ struct ExtensionUtils {
     static bool isFullPath(const std::string& extension);
 
     static ExtensionRepoInfo getExtensionRepoInfo(const std::string& extension);
+};
+
+struct ExtensionOptions {
+    std::unordered_map<std::string, main::ExtensionOption> extensionOptions;
+
+    void addExtensionOption(
+        std::string name, common::LogicalTypeID type, common::Value defaultValue);
+
+    main::ExtensionOption* getExtensionOption(std::string name);
+
+    std::unordered_map<std::string, main::ExtensionOption>& getExtensionOptions();
 };
 
 } // namespace extension

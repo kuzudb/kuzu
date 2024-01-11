@@ -14,9 +14,14 @@ namespace parser {
 struct CreateTableInfo;
 }
 
+namespace extension {
+struct ExtensionOptions;
+}
+
 namespace main {
 class ClientContext;
-}
+class Database;
+} // namespace main
 
 namespace function {
 struct TableFunction;
@@ -76,10 +81,10 @@ class Binder {
 public:
     explicit Binder(const catalog::Catalog& catalog, storage::MemoryManager* memoryManager,
         storage::StorageManager* storageManager, common::VirtualFileSystem* vfs,
-        main::ClientContext* clientContext)
+        main::ClientContext* clientContext, extension::ExtensionOptions* extensionOptions)
         : catalog{catalog}, memoryManager{memoryManager}, storageManager{storageManager}, vfs{vfs},
           lastExpressionId{0}, scope{std::make_unique<BinderScope>()}, expressionBinder{this},
-          clientContext{clientContext} {}
+          clientContext{clientContext}, extensionOptions{extensionOptions} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -289,6 +294,7 @@ private:
     std::unique_ptr<BinderScope> scope;
     ExpressionBinder expressionBinder;
     main::ClientContext* clientContext;
+    extension::ExtensionOptions* extensionOptions;
 };
 
 } // namespace binder

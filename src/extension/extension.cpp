@@ -54,5 +54,20 @@ ExtensionRepoInfo ExtensionUtils::getExtensionRepoInfo(const std::string& extens
     return {hostPath, hostURL, extensionURL};
 }
 
+void ExtensionOptions::addExtensionOption(
+    std::string name, common::LogicalTypeID type, common::Value defaultValue) {
+    common::StringUtils::toLower(name);
+    extensionOptions.emplace(name, main::ExtensionOption{name, type, std::move(defaultValue)});
+}
+
+main::ExtensionOption* ExtensionOptions::getExtensionOption(std::string name) {
+    common::StringUtils::toLower(name);
+    return extensionOptions.contains(name) ? &extensionOptions.at(name) : nullptr;
+}
+
+std::unordered_map<std::string, main::ExtensionOption>& ExtensionOptions::getExtensionOptions() {
+    return extensionOptions;
+}
+
 } // namespace extension
 } // namespace kuzu

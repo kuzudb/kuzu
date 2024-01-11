@@ -8,15 +8,14 @@ namespace planner {
 
 class LogicalStandaloneCall : public LogicalOperator {
 public:
-    LogicalStandaloneCall(
-        main::ConfigurationOption option, std::shared_ptr<binder::Expression> optionValue)
+    LogicalStandaloneCall(main::Option* option, std::shared_ptr<binder::Expression> optionValue)
         : LogicalOperator{LogicalOperatorType::STANDALONE_CALL}, option{option},
           optionValue{std::move(optionValue)} {}
 
-    inline main::ConfigurationOption getOption() const { return option; }
+    inline main::Option* getOption() const { return option; }
     inline std::shared_ptr<binder::Expression> getOptionValue() const { return optionValue; }
 
-    inline std::string getExpressionsForPrinting() const override { return option.name; }
+    inline std::string getExpressionsForPrinting() const override { return option->name; }
 
     inline void computeFlatSchema() override { createEmptySchema(); }
 
@@ -27,7 +26,7 @@ public:
     }
 
 protected:
-    main::ConfigurationOption option;
+    main::Option* option;
     std::shared_ptr<binder::Expression> optionValue;
 };
 
