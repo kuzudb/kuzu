@@ -67,18 +67,28 @@ Rel table group: likes has been created.
 -CASE CreateNodeTableCommitNormalExecution
 -STATEMENT CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))
 ---- ok
+-STATEMENT MATCH (e:EXAM_PAPER) RETURN *
+---- 0
 
 -CASE CreateRelTableCommitNormalExecution
 -STATEMENT CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)
 ---- ok
+-STATEMENT MATCH (e:likes) RETURN *
+---- 0
 
 -CASE DropNodeTableCommitNormalExecution
 -STATEMENT DROP TABLE movies
 ---- ok
+-STATEMENT MATCH (m:movies) RETURN count(*)
+---- error
+Binder exception: Table movies does not exist.
 
 -CASE DropRelTableCommitNormalExecution
 -STATEMENT DROP TABLE knows
 ---- ok
+-STATEMENT MATCH (k:knows) RETURN count(*)
+---- error
+Binder exception: Table knows does not exist.
 
 -CASE DropNodeTablePropertyNormalExecution
 -STATEMENT ALTER TABLE person DROP gender
@@ -357,7 +367,6 @@ VERY LONG STRING!!
 -CASE RenameTableNormalExecution
 -STATEMENT ALTER TABLE person RENAME TO student
 ---- ok
--CHECK_ORDER
 -STATEMENT MATCH (s:student) return s.age order by s.age
 ---- 8
 20
@@ -372,7 +381,6 @@ VERY LONG STRING!!
 -CASE RenamePropertyNormalExecution
 -STATEMENT ALTER TABLE person RENAME fName TO name
 ---- ok
--CHECK_ORDER
 -STATEMENT MATCH (p:person) return p.name order by p.name
 ---- 8
 Alice
