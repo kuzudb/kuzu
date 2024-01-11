@@ -1,5 +1,5 @@
 #include "planner/operator/logical_accumulate.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendAccumulate(AccumulateType accumulateType,
+void Planner::appendAccumulate(AccumulateType accumulateType,
     const expression_vector& expressionsToFlatten, LogicalPlan& plan) {
     auto op = make_shared<LogicalAccumulate>(
         accumulateType, expressionsToFlatten, plan.getLastOperator());

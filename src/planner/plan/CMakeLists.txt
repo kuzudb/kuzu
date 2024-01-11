@@ -2,7 +2,7 @@ add_library(kuzu_planner_plan_operator
         OBJECT
         append_accumulate.cpp
         append_aggregate.cpp
-        append_create.cpp
+        append_insert.cpp
         append_cross_product.cpp
         append_delete.cpp
         append_distinct.cpp
@@ -20,16 +20,14 @@ add_library(kuzu_planner_plan_operator
         append_scan_file.cpp
         append_scan_node.cpp
         append_set.cpp
+        append_simple.cpp
         append_unwind.cpp
         plan_copy.cpp
-        plan_ddl.cpp
-        plan_extension.cpp
         plan_join_order.cpp
         plan_projection.cpp
         plan_read.cpp
         plan_single_query.cpp
         plan_subquery.cpp
-        plan_transaction.cpp
         plan_update.cpp)
 
 set(ALL_OBJECT_FILES

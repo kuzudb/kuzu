@@ -1,12 +1,12 @@
 #include "planner/operator/logical_order_by.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendOrderBy(
+void Planner::appendOrderBy(
     const expression_vector& expressions, const std::vector<bool>& isAscOrders, LogicalPlan& plan) {
     auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders, plan.getLastOperator());
     appendFlattens(orderBy->getGroupsPosToFlatten(), plan);

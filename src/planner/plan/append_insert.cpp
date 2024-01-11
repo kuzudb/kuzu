@@ -1,6 +1,6 @@
 #include "binder/query/updating_clause/bound_insert_info.h"
 #include "planner/operator/persistent/logical_insert.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -8,8 +8,7 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-std::unique_ptr<LogicalInsertInfo> QueryPlanner::createLogicalInsertInfo(
-    const BoundInsertInfo* info) {
+std::unique_ptr<LogicalInsertInfo> Planner::createLogicalInsertInfo(const BoundInsertInfo* info) {
     auto insertInfo = std::make_unique<LogicalInsertInfo>(info->tableType, info->pattern,
         info->columnExprs, info->columnDataExprs, info->conflictAction);
     binder::expression_set propertyExprSet;
@@ -22,7 +21,7 @@ std::unique_ptr<LogicalInsertInfo> QueryPlanner::createLogicalInsertInfo(
     return insertInfo;
 }
 
-void QueryPlanner::appendInsertNode(
+void Planner::appendInsertNode(
     const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
     std::vector<LogicalInsertInfo> logicalInfos;
     logicalInfos.reserve(boundInsertInfos.size());
@@ -37,7 +36,7 @@ void QueryPlanner::appendInsertNode(
     plan.setLastOperator(insertNode);
 }
 
-void QueryPlanner::appendInsertRel(
+void Planner::appendInsertRel(
     const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
     std::vector<LogicalInsertInfo> logicalInfos;
     logicalInfos.reserve(boundInsertInfos.size());

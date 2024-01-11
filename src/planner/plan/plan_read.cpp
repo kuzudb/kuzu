@@ -2,7 +2,8 @@
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
-#include "planner/query_planner.h"
+#include "common/enums/join_type.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -10,8 +11,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::planReadingClause(
-    BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& prevPlans) {
+void Planner::planReadingClause(
+    const BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& prevPlans) {
     auto readingClauseType = readingClause->getClauseType();
     switch (readingClauseType) {
     case ClauseType::MATCH: {
@@ -31,10 +32,10 @@ void QueryPlanner::planReadingClause(
     }
 }
 
-void QueryPlanner::planMatchClause(
-    BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+void Planner::planMatchClause(const BoundReadingClause* boundReadingClause,
+    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     auto boundMatchClause =
-        ku_dynamic_cast<BoundReadingClause*, BoundMatchClause*>(boundReadingClause);
+        ku_dynamic_cast<const BoundReadingClause*, const BoundMatchClause*>(boundReadingClause);
     auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
     auto predicates = boundMatchClause->getConjunctivePredicates();
     switch (boundMatchClause->getMatchClauseType()) {
@@ -57,8 +58,8 @@ void QueryPlanner::planMatchClause(
     }
 }
 
-void QueryPlanner::planUnwindClause(
-    BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+void Planner::planUnwindClause(const BoundReadingClause* boundReadingClause,
+    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
         if (plan->isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
             appendDummyScan(*plan);
@@ -78,9 +79,10 @@ static bool hasExternalDependency(const std::shared_ptr<Expression>& expression,
     return false;
 }
 
-void QueryPlanner::planInQueryCall(
-    BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto inQueryCall = ku_dynamic_cast<BoundReadingClause*, BoundInQueryCall*>(readingClause);
+void Planner::planInQueryCall(
+    const BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+    auto inQueryCall =
+        ku_dynamic_cast<const BoundReadingClause*, const BoundInQueryCall*>(readingClause);
     std::unordered_set<std::string> columnNameSet;
     for (auto& column : inQueryCall->getOutExprs()) {
         columnNameSet.insert(column->getUniqueName());
@@ -114,9 +116,9 @@ void QueryPlanner::planInQueryCall(
     }
 }
 
-void QueryPlanner::planLoadFrom(
-    binder::BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto loadFrom = ku_dynamic_cast<BoundReadingClause*, BoundLoadFrom*>(readingClause);
+void Planner::planLoadFrom(
+    const BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+    auto loadFrom = ku_dynamic_cast<const BoundReadingClause*, const BoundLoadFrom*>(readingClause);
     std::unordered_set<std::string> columnNameSet;
     for (auto& column : loadFrom->getInfo()->columns) {
         columnNameSet.insert(column->getUniqueName());
@@ -133,13 +135,13 @@ void QueryPlanner::planLoadFrom(
     for (auto& plan : plans) {
         if (!plan->isEmpty()) {
             auto tmpPlan = std::make_unique<LogicalPlan>();
-            appendScanFile(*loadFrom->getInfo(), *tmpPlan);
+            appendScanFile(loadFrom->getInfo(), *tmpPlan);
             if (!predicatesToPushDown.empty()) {
                 appendFilters(predicatesToPushDown, *tmpPlan);
             }
             appendCrossProduct(AccumulateType::REGULAR, *plan, *tmpPlan);
         } else {
-            appendScanFile(*loadFrom->getInfo(), *plan);
+            appendScanFile(loadFrom->getInfo(), *plan);
             if (!predicatesToPushDown.empty()) {
                 appendFilters(predicatesToPushDown, *plan);
             }

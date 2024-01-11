@@ -105,7 +105,7 @@ uint64_t CardinalityEstimator::estimateFilter(
 uint64_t CardinalityEstimator::getNumNodes(const std::vector<common::table_id_t>& tableIDs) {
     auto numNodes = 0u;
     for (auto& tableID : tableIDs) {
-        numNodes += nodesStatistics.getNodeStatisticsAndDeletedIDs(tableID)->getNumTuples();
+        numNodes += nodesStatistics->getNodeStatisticsAndDeletedIDs(tableID)->getNumTuples();
     }
     return atLeastOne(numNodes);
 }
@@ -115,7 +115,7 @@ uint64_t CardinalityEstimator::getNumRels(const std::vector<common::table_id_t>&
     for (auto tableID : tableIDs) {
         numRels +=
             relsStatistics
-                .getRelStatistics(tableID, transaction::Transaction::getDummyReadOnlyTrx().get())
+                ->getRelStatistics(tableID, transaction::Transaction::getDummyReadOnlyTrx().get())
                 ->getNumTuples();
     }
     return atLeastOne(numRels);
