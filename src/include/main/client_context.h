@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "common/timer.h"
+#include "common/types/value/value.h"
 #include "main/kuzu_fwd.h"
 #include "transaction/transaction_context.h"
 
@@ -70,6 +71,8 @@ public:
         this->replaceFunc = std::move(replaceFunc);
     }
 
+    void setExtensionOption(std::string name, common::Value value);
+
 private:
     inline void resetActiveQuery() { activeQuery.reset(); }
 
@@ -80,6 +83,7 @@ private:
     std::unique_ptr<transaction::TransactionContext> transactionContext;
     bool enableSemiMask;
     replace_func_t replaceFunc;
+    std::unordered_map<std::string, common::Value> extensionOptionValues;
 };
 
 } // namespace main

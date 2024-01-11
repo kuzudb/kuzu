@@ -8,11 +8,11 @@ namespace kuzu {
 namespace processor {
 
 struct StandaloneCallInfo {
-    main::ConfigurationOption option;
+    main::Option* option;
     common::Value optionValue;
     bool hasExecuted = false;
 
-    StandaloneCallInfo(main::ConfigurationOption option, const common::Value& optionValue)
+    StandaloneCallInfo(main::Option* option, const common::Value& optionValue)
         : option{option}, optionValue{optionValue} {}
 
     std::unique_ptr<StandaloneCallInfo> copy() {
