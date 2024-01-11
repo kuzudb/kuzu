@@ -8,22 +8,92 @@
 namespace kuzu {
 namespace processor {
 
-struct RdfScanSharedState final : public function::ScanSharedState {
+struct RdfScanSharedState : public function::ScanSharedState {
     std::unique_ptr<RdfReader> reader;
-    common::RdfReaderMode mode;
     std::shared_ptr<RdfStore> store;
 
-    RdfScanSharedState(common::ReaderConfig readerConfig, common::RdfReaderMode mode,
-        std::shared_ptr<RdfStore> store)
-        : ScanSharedState{std::move(readerConfig), 0}, mode{mode}, store{std::move(store)} {
-        initReader();
-    }
-    RdfScanSharedState(common::ReaderConfig readerConfig, common::RdfReaderMode mode)
-        : RdfScanSharedState{std::move(readerConfig), mode, nullptr} {}
+    RdfScanSharedState(common::ReaderConfig readerConfig, std::shared_ptr<RdfStore> store)
+        : ScanSharedState{std::move(readerConfig), 0}, store{std::move(store)} {}
+    explicit RdfScanSharedState(common::ReaderConfig readerConfig)
+        : RdfScanSharedState{std::move(readerConfig), nullptr} {}
 
     void read(common::DataChunk& dataChunk);
+    void readAll();
 
     void initReader();
+
+private:
+    virtual void createReader(const std::string& path) = 0;
+};
+
+struct RdfResourceScanSharedState final : public RdfScanSharedState {
+
+    explicit RdfResourceScanSharedState(common::ReaderConfig readerConfig)
+        : RdfScanSharedState{std::move(readerConfig)} {
+        KU_ASSERT(store == nullptr);
+        store = std::make_shared<ResourceStore>();
+        initReader();
+    }
+
+    inline void createReader(const std::string& path) override {
+        reader = std::make_unique<RdfResourceReader>(path, readerConfig.fileType, store.get());
+    }
+};
+
+struct RdfLiteralScanSharedState final : public RdfScanSharedState {
+
+    explicit RdfLiteralScanSharedState(common::ReaderConfig readerConfig)
+        : RdfScanSharedState{std::move(readerConfig)} {
+        KU_ASSERT(store == nullptr);
+        store = std::make_shared<LiteralStore>();
+        initReader();
+    }
+
+    inline void createReader(const std::string& path) override {
+        reader = std::make_unique<RdfLiteralReader>(path, readerConfig.fileType, store.get());
+    }
+};
+
+struct RdfResourceTripleScanSharedState final : public RdfScanSharedState {
+
+    explicit RdfResourceTripleScanSharedState(common::ReaderConfig readerConfig)
+        : RdfScanSharedState{std::move(readerConfig)} {
+        KU_ASSERT(store == nullptr);
+        store = std::make_shared<ResourceTripleStore>();
+        initReader();
+    }
+
+    inline void createReader(const std::string& path) override {
+        reader =
+            std::make_unique<RdfResourceTripleReader>(path, readerConfig.fileType, store.get());
+    }
+};
+
+struct RdfLiteralTripleScanSharedState final : public RdfScanSharedState {
+
+    explicit RdfLiteralTripleScanSharedState(common::ReaderConfig readerConfig)
+        : RdfScanSharedState{std::move(readerConfig)} {
+        KU_ASSERT(store == nullptr);
+        store = std::make_shared<LiteralTripleStore>();
+        initReader();
+    }
+
+    void createReader(const std::string& path) override {
+        reader = std::make_unique<RdfLiteralTripleReader>(path, readerConfig.fileType, store.get());
+    }
+};
+
+struct RdfTripleScanSharedState final : public RdfScanSharedState {
+
+    explicit RdfTripleScanSharedState(
+        common::ReaderConfig readerConfig, std::shared_ptr<RdfStore> store)
+        : RdfScanSharedState{std::move(readerConfig), std::move(store)} {
+        initReader();
+    }
+
+    void createReader(const std::string& path) override {
+        reader = std::make_unique<RdfTripleReader>(path, readerConfig.fileType, store.get());
+    }
 };
 
 struct RdfScanBindData final : public function::ScanBindData {
@@ -45,8 +115,8 @@ struct RdfScanBindData final : public function::ScanBindData {
 
 struct RdfInMemScanSharedState : public function::BaseScanSharedState {
     std::shared_ptr<RdfStore> store;
-    uint64_t resourceTripleCursor = 0;
-    uint64_t literalTripleCursor = 0;
+    uint64_t rtCursor = 0;
+    uint64_t ltCursor = 0;
     // Each triple can be read as at most 3 rows (resources). For simplicity, we read 500 triples
     // per batch to avoid exceeding DEFAULT_VECTOR_CAPACITY.
     static constexpr uint64_t batchSize = 500;
@@ -55,14 +125,16 @@ struct RdfInMemScanSharedState : public function::BaseScanSharedState {
         : function::BaseScanSharedState{0}, store{std::move(store)} {}
 
     std::pair<uint64_t, uint64_t> getResourceTripleRange() {
-        return getRange(store->resourceTripleStore, resourceTripleCursor);
+        auto& store_ = common::ku_dynamic_cast<RdfStore&, TripleStore&>(*store);
+        return getRange(store_.rtStore, rtCursor);
     }
     std::pair<uint64_t, uint64_t> getLiteralTripleRange() {
-        return getRange(store->literalTripleStore, literalTripleCursor);
+        auto& store_ = common::ku_dynamic_cast<RdfStore&, TripleStore&>(*store);
+        return getRange(store_.ltStore, ltCursor);
     }
 
 private:
-    std::pair<uint64_t, uint64_t> getRange(const TripleStore& triples, uint64_t& cursor);
+    std::pair<uint64_t, uint64_t> getRange(const RdfStore& store_, uint64_t& cursor);
 };
 
 struct RdfResourceScan {
@@ -96,6 +168,9 @@ struct RdfLiteralTripleScan {
 struct RdfAllTripleScan {
     static function::function_set getFunctionSet();
 
+    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext*,
+        function::TableFuncBindInput* input_, catalog::Catalog*, storage::StorageManager*);
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         function::TableFunctionInitInput& input);
 };

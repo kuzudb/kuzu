@@ -1,19 +1,9 @@
 #pragma once
 
-#include <cstdint>
-
 #include "common/types/value/value.h"
 
 namespace kuzu {
 namespace common {
-
-enum class RdfReaderMode : uint8_t {
-    RESOURCE = 0,
-    LITERAL = 1,
-    RESOURCE_TRIPLE = 2,
-    LITERAL_TRIPLE = 3,
-    ALL = 4,
-};
 
 struct RdfReaderConfig {
     bool inMemory;
