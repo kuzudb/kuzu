@@ -73,7 +73,7 @@ Rel table group: likes has been created.
 -CASE CreateRelTableCommitNormalExecution
 -STATEMENT CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)
 ---- ok
--STATEMENT MATCH (e:likes) RETURN *
+-STATEMENT MATCH (:person)-[e:likes]->(:organisation) RETURN *
 ---- 0
 
 -CASE DropNodeTableCommitNormalExecution
@@ -86,7 +86,7 @@ Binder exception: Table movies does not exist.
 -CASE DropRelTableCommitNormalExecution
 -STATEMENT DROP TABLE knows
 ---- ok
--STATEMENT MATCH (k:knows) RETURN count(*)
+-STATEMENT MATCH ()-[k:knows]->() RETURN count(*)
 ---- error
 Binder exception: Table knows does not exist.
 
