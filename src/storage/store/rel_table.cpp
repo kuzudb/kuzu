@@ -2,6 +2,7 @@
 
 #include "common/cast.h"
 #include "storage/stats/rels_store_statistics.h"
+#include "storage/store/csr_rel_table_data.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

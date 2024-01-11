@@ -56,14 +56,6 @@ void NodeTableData::insert(Transaction* transaction, ValueVector* nodeIDVector,
     const std::vector<ValueVector*>& propertyVectors) {
     // We assume that offsets are given in the ascending order, thus lastOffset is the max one.
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
-    offset_t lastOffset =
-        nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
-    auto currentNumNodeGroups = getNumNodeGroups(transaction);
-    if (lastOffset >= StorageUtils::getStartOffsetOfNodeGroup(currentNumNodeGroups)) {
-        auto newNodeGroup = std::make_unique<NodeGroup>(columns, enableCompression);
-        newNodeGroup->finalize(currentNumNodeGroups);
-        append(newNodeGroup.get());
-    }
     auto localTableData = ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
         transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns));
     localTableData->insert(nodeIDVector, propertyVectors);

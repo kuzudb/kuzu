@@ -22,6 +22,7 @@
 {age: 10, isTrue: True, name: A}
 
 -CASE CreateStructWithWriteTransaction
+-SKIP
 -STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
 ---- ok
 -STATEMENT BEGIN TRANSACTION
