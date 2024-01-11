@@ -1,44 +1,44 @@
 #include "binder/expression_visitor.h"
-#include "planner/query_planner.h"
+#include "binder/query/return_with_clause/bound_projection_body.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::planProjectionBody(const BoundProjectionBody& projectionBody,
+void Planner::planProjectionBody(const BoundProjectionBody* projectionBody,
     const std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
         planProjectionBody(projectionBody, *plan);
     }
 }
 
-void QueryPlanner::planProjectionBody(
-    const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
+void Planner::planProjectionBody(const BoundProjectionBody* projectionBody, LogicalPlan& plan) {
     if (plan.isEmpty()) { // e.g. RETURN 1, COUNT(2)
         appendDummyScan(plan);
     }
-    auto expressionsToProject = projectionBody.getProjectionExpressions();
-    auto expressionsToAggregate = projectionBody.getAggregateExpressions();
-    auto expressionsToGroupBy = projectionBody.getGroupByExpressions();
+    auto expressionsToProject = projectionBody->getProjectionExpressions();
+    auto expressionsToAggregate = projectionBody->getAggregateExpressions();
+    auto expressionsToGroupBy = projectionBody->getGroupByExpressions();
     if (!expressionsToAggregate.empty()) {
         planAggregate(expressionsToAggregate, expressionsToGroupBy, plan);
     }
-    if (projectionBody.hasOrderByExpressions()) {
-        planOrderBy(expressionsToProject, projectionBody.getOrderByExpressions(),
-            projectionBody.getSortingOrders(), plan);
+    if (projectionBody->hasOrderByExpressions()) {
+        planOrderBy(expressionsToProject, projectionBody->getOrderByExpressions(),
+            projectionBody->getSortingOrders(), plan);
     }
     appendProjection(expressionsToProject, plan);
-    if (projectionBody.getIsDistinct()) {
+    if (projectionBody->getIsDistinct()) {
         appendDistinct(expressionsToProject, plan);
     }
-    if (projectionBody.hasSkipOrLimit()) {
+    if (projectionBody->hasSkipOrLimit()) {
         appendMultiplicityReducer(plan);
-        appendLimit(projectionBody.getSkipNumber(), projectionBody.getLimitNumber(), plan);
+        appendLimit(projectionBody->getSkipNumber(), projectionBody->getLimitNumber(), plan);
     }
 }
 
-void QueryPlanner::planAggregate(const expression_vector& expressionsToAggregate,
+void Planner::planAggregate(const expression_vector& expressionsToAggregate,
     const expression_vector& expressionsToGroupBy, LogicalPlan& plan) {
     KU_ASSERT(!expressionsToAggregate.empty());
     expression_vector expressionsToProject;
@@ -56,7 +56,7 @@ void QueryPlanner::planAggregate(const expression_vector& expressionsToAggregate
     appendAggregate(expressionsToGroupBy, expressionsToAggregate, plan);
 }
 
-void QueryPlanner::planOrderBy(const binder::expression_vector& expressionsToProject,
+void Planner::planOrderBy(const binder::expression_vector& expressionsToProject,
     const binder::expression_vector& expressionsToOrderBy, const std::vector<bool>& isAscOrders,
     kuzu::planner::LogicalPlan& plan) {
     auto expressionsToProjectBeforeOrderBy = expressionsToProject;

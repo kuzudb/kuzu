@@ -11,9 +11,9 @@ namespace main {
 #define GET_CONFIGURATION(_PARAM)                                                                  \
     { _PARAM::name, _PARAM::inputType, _PARAM::setContext, _PARAM::getSetting }
 
-static ConfigurationOption options[] = {GET_CONFIGURATION(ThreadsSetting),
-    GET_CONFIGURATION(TimeoutSetting), GET_CONFIGURATION(VarLengthExtendMaxDepthSetting),
-    GET_CONFIGURATION(EnableSemiMaskSetting)};
+static ConfigurationOption options[] = { // NOLINT(cert-err58-cpp):
+    GET_CONFIGURATION(ThreadsSetting), GET_CONFIGURATION(TimeoutSetting),
+    GET_CONFIGURATION(VarLengthExtendMaxDepthSetting), GET_CONFIGURATION(EnableSemiMaskSetting)};
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {
     auto lOptionName = optionName;

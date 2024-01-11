@@ -1,14 +1,14 @@
 #include "binder/query/updating_clause/bound_delete_info.h"
 #include "common/enums/clause_type.h"
 #include "planner/operator/persistent/logical_delete.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendDeleteNode(
+void Planner::appendDeleteNode(
     const std::vector<const BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos;
     infos.reserve(boundInfos.size());
@@ -27,7 +27,7 @@ void QueryPlanner::appendDeleteNode(
     plan.setLastOperator(std::move(deleteNode));
 }
 
-void QueryPlanner::appendDeleteRel(
+void Planner::appendDeleteRel(
     const std::vector<const BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::shared_ptr<RelExpression>> rels;
     for (auto& info : boundInfos) {

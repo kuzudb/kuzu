@@ -1,14 +1,14 @@
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendHashJoin(const binder::expression_vector& joinNodeIDs, JoinType joinType,
+void Planner::appendHashJoin(const binder::expression_vector& joinNodeIDs, JoinType joinType,
     LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     std::vector<join_condition_t> joinConditions;
     for (auto& joinNodeID : joinNodeIDs) {
@@ -35,11 +35,11 @@ void QueryPlanner::appendHashJoin(const binder::expression_vector& joinNodeIDs, 
     probePlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
     // Update cardinality
     probePlan.setCardinality(
-        cardinalityEstimator->estimateHashJoin(joinNodeIDs, probePlan, buildPlan));
+        cardinalityEstimator.estimateHashJoin(joinNodeIDs, probePlan, buildPlan));
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
-void QueryPlanner::appendMarkJoin(const binder::expression_vector& joinNodeIDs,
+void Planner::appendMarkJoin(const binder::expression_vector& joinNodeIDs,
     const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
     LogicalPlan& buildPlan) {
     std::vector<join_condition_t> joinConditions;
@@ -60,7 +60,7 @@ void QueryPlanner::appendMarkJoin(const binder::expression_vector& joinNodeIDs,
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
-void QueryPlanner::appendIntersect(const std::shared_ptr<binder::Expression>& intersectNodeID,
+void Planner::appendIntersect(const std::shared_ptr<binder::Expression>& intersectNodeID,
     binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
     std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
     KU_ASSERT(boundNodeIDs.size() == buildPlans.size());
@@ -87,7 +87,7 @@ void QueryPlanner::appendIntersect(const std::shared_ptr<binder::Expression>& in
     probePlan.setCost(CostModel::computeIntersectCost(probePlan, buildPlans));
     // update cardinality
     probePlan.setCardinality(
-        cardinalityEstimator->estimateIntersect(boundNodeIDs, probePlan, buildPlans));
+        cardinalityEstimator.estimateIntersect(boundNodeIDs, probePlan, buildPlans));
     probePlan.setLastOperator(std::move(intersect));
 }
 

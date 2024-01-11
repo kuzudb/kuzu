@@ -127,7 +127,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         }
         // binding
         auto binder = Binder(*database->catalog, database->memoryManager.get(),
-            database->storageManager.get(), database->vfs.get(), clientContext.get());
+            database->storageManager.get(), database->vfs.get(), clientContext.get(),
+            database->extensionOptions.get());
         auto boundStatement = binder.bind(*statement);
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult =

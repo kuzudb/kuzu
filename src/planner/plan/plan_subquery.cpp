@@ -1,7 +1,7 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_visitor.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -25,7 +25,7 @@ static expression_vector getCorrelatedExpressions(const QueryGraphCollection& co
     return result;
 }
 
-void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
+void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, LogicalPlan& leftPlan) {
     if (leftPlan.isEmpty()) {
         // Optional match is the first clause. No left plan to join.
@@ -60,7 +60,7 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
     appendHashJoin(correlatedExpressions, JoinType::LEFT, leftPlan, *rightPlan);
 }
 
-void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
+void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, LogicalPlan& leftPlan) {
     auto correlatedExpressions =
         getCorrelatedExpressions(queryGraphCollection, predicates, leftPlan.getSchema());
@@ -94,8 +94,7 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
     }
 }
 
-void QueryPlanner::planSubquery(
-    const std::shared_ptr<Expression>& expression, LogicalPlan& outerPlan) {
+void Planner::planSubquery(const std::shared_ptr<Expression>& expression, LogicalPlan& outerPlan) {
     KU_ASSERT(expression->expressionType == ExpressionType::SUBQUERY);
     auto subquery = static_pointer_cast<SubqueryExpression>(expression);
     auto predicates = subquery->getPredicatesSplitOnAnd();
@@ -146,7 +145,7 @@ void QueryPlanner::planSubquery(
     }
 }
 
-void QueryPlanner::planSubqueryIfNecessary(
+void Planner::planSubqueryIfNecessary(
     const std::shared_ptr<Expression>& expression, LogicalPlan& plan) {
     if (ExpressionVisitor::hasSubquery(*expression)) {
         auto expressionCollector = std::make_unique<ExpressionCollector>();

@@ -11,17 +11,17 @@ namespace binder {
 
 class BoundStandaloneCall : public BoundStatement {
 public:
-    BoundStandaloneCall(main::ConfigurationOption option, std::shared_ptr<Expression> optionValue)
+    BoundStandaloneCall(main::Option* option, std::shared_ptr<Expression> optionValue)
         : BoundStatement{common::StatementType::STANDALONE_CALL,
               BoundStatementResult::createEmptyResult()},
           option{option}, optionValue{std::move(optionValue)} {}
 
-    inline main::ConfigurationOption getOption() const { return option; }
+    inline main::Option* getOption() const { return option; }
 
     inline std::shared_ptr<Expression> getOptionValue() const { return optionValue; }
 
 private:
-    main::ConfigurationOption option;
+    main::Option* option;
     std::shared_ptr<Expression> optionValue;
 };
 

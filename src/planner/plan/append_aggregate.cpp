@@ -1,12 +1,12 @@
 #include "planner/operator/logical_aggregate.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendAggregate(const expression_vector& expressionsToGroupBy,
+void Planner::appendAggregate(const expression_vector& expressionsToGroupBy,
     const expression_vector& expressionsToAggregate, LogicalPlan& plan) {
     auto aggregate = make_shared<LogicalAggregate>(
         expressionsToGroupBy, expressionsToAggregate, plan.getLastOperator());

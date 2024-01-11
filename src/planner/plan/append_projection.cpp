@@ -1,14 +1,13 @@
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/logical_projection.h"
-#include "planner/query_planner.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendProjection(
-    const expression_vector& expressionsToProject, LogicalPlan& plan) {
+void Planner::appendProjection(const expression_vector& expressionsToProject, LogicalPlan& plan) {
     for (auto& expression : expressionsToProject) {
         planSubqueryIfNecessary(expression, plan);
     }

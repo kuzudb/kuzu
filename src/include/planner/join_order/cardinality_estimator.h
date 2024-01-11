@@ -10,9 +10,11 @@ namespace planner {
 
 class CardinalityEstimator {
 public:
-    CardinalityEstimator(const storage::NodesStoreStatsAndDeletedIDs& nodesStatistics,
-        const storage::RelsStoreStats& relsStatistics)
+    CardinalityEstimator() = default;
+    CardinalityEstimator(const storage::NodesStoreStatsAndDeletedIDs* nodesStatistics,
+        const storage::RelsStoreStats* relsStatistics)
         : nodesStatistics{nodesStatistics}, relsStatistics{relsStatistics} {}
+    DELETE_COPY_DEFAULT_MOVE(CardinalityEstimator);
 
     // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.
     void initNodeIDDom(const binder::QueryGraph& queryGraph);
@@ -43,8 +45,8 @@ private:
     uint64_t getNumRels(const std::vector<common::table_id_t>& tableIDs);
 
 private:
-    const storage::NodesStoreStatsAndDeletedIDs& nodesStatistics;
-    const storage::RelsStoreStats& relsStatistics;
+    const storage::NodesStoreStatsAndDeletedIDs* nodesStatistics;
+    const storage::RelsStoreStats* relsStatistics;
     // The domain of nodeID is defined as the number of unique value of nodeID, i.e. num nodes.
     std::unordered_map<std::string, uint64_t> nodeIDName2dom;
 };

@@ -83,7 +83,8 @@ void SortLocalState::finalize(kuzu::processor::SortSharedState& sharedState) {
 
 PayloadScanner::PayloadScanner(MergedKeyBlocks* keyBlockToScan,
     std::vector<FactorizedTable*> payloadTables, uint64_t skipNumber, uint64_t limitNumber)
-    : keyBlockToScan{keyBlockToScan}, payloadTables{std::move(payloadTables)} {
+    : keyBlockToScan{keyBlockToScan}, payloadTables{std::move(payloadTables)}, limitNumber{
+                                                                                   limitNumber} {
     if (this->keyBlockToScan == nullptr || this->keyBlockToScan->getNumTuples() == 0) {
         nextTupleIdxToReadInMergedKeyBlock = 0;
         endTuplesIdxToReadInMergedKeyBlock = 0;
@@ -93,8 +94,8 @@ PayloadScanner::PayloadScanner(MergedKeyBlocks* keyBlockToScan,
         this->keyBlockToScan->getNumBytesPerTuple() - OrderByConstants::NUM_BYTES_FOR_PAYLOAD_IDX;
     colsToScan = std::vector<uint32_t>(this->payloadTables[0]->getTableSchema()->getNumColumns());
     iota(colsToScan.begin(), colsToScan.end(), 0);
-    scanSingleTuple = this->payloadTables[0]->hasUnflatCol();
-    if (!scanSingleTuple) {
+    hasUnflatColInPayload = this->payloadTables[0]->hasUnflatCol();
+    if (!hasUnflatColInPayload) {
         tuplesToRead = std::make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
     }
     nextTupleIdxToReadInMergedKeyBlock = skipNumber == UINT64_MAX ? 0 : skipNumber;
@@ -107,52 +108,84 @@ PayloadScanner::PayloadScanner(MergedKeyBlocks* keyBlockToScan,
 }
 
 uint64_t PayloadScanner::scan(std::vector<common::ValueVector*> vectorsToRead) {
-    if (nextTupleIdxToReadInMergedKeyBlock >= endTuplesIdxToReadInMergedKeyBlock) {
+    if (limitNumber <= 0 ||
+        nextTupleIdxToReadInMergedKeyBlock >= endTuplesIdxToReadInMergedKeyBlock) {
         return 0;
+    }
+    if (scanSingleTuple(vectorsToRead)) {
+        auto payloadInfo = blockPtrInfo->curTuplePtr + payloadIdxOffset;
+        auto blockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(payloadInfo);
+        auto blockOffset = OrderByKeyEncoder::getEncodedFTBlockOffset(payloadInfo);
+        auto payloadTable = payloadTables[OrderByKeyEncoder::getEncodedFTIdx(payloadInfo)];
+        payloadTable->scan(vectorsToRead,
+            blockIdx * payloadTable->getNumTuplesPerBlock() + blockOffset, 1 /* numTuples */);
+        blockPtrInfo->curTuplePtr += keyBlockToScan->getNumBytesPerTuple();
+        blockPtrInfo->updateTuplePtrIfNecessary();
+        nextTupleIdxToReadInMergedKeyBlock++;
+        applyLimitOnResultVectors(vectorsToRead);
+        return 1;
     } else {
-        // If there is an unflat col in factorizedTable, we can only read one
-        // tuple at a time. Otherwise, we can read min(DEFAULT_VECTOR_CAPACITY,
-        // numTuplesRemainingInMemBlock) tuples.
-        if (scanSingleTuple) {
-            auto payloadInfo = blockPtrInfo->curTuplePtr + payloadIdxOffset;
-            auto blockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(payloadInfo);
-            auto blockOffset = OrderByKeyEncoder::getEncodedFTBlockOffset(payloadInfo);
-            auto payloadTable = payloadTables[OrderByKeyEncoder::getEncodedFTIdx(payloadInfo)];
-            payloadTable->scan(vectorsToRead,
-                blockIdx * payloadTable->getNumTuplesPerBlock() + blockOffset, 1 /* numTuples */);
-            blockPtrInfo->curTuplePtr += keyBlockToScan->getNumBytesPerTuple();
-            blockPtrInfo->updateTuplePtrIfNecessary();
-            nextTupleIdxToReadInMergedKeyBlock++;
-            return 1;
-        } else {
-            auto numTuplesToRead = std::min(DEFAULT_VECTOR_CAPACITY,
-                endTuplesIdxToReadInMergedKeyBlock - nextTupleIdxToReadInMergedKeyBlock);
-            auto numTuplesRead = 0u;
-            while (numTuplesRead < numTuplesToRead) {
-                auto numTuplesToReadInCurBlock = std::min(
-                    numTuplesToRead - numTuplesRead, blockPtrInfo->getNumTuplesLeftInCurBlock());
-                for (auto i = 0u; i < numTuplesToReadInCurBlock; i++) {
-                    auto payloadInfo = blockPtrInfo->curTuplePtr + payloadIdxOffset;
-                    auto blockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(payloadInfo);
-                    auto blockOffset = OrderByKeyEncoder::getEncodedFTBlockOffset(payloadInfo);
-                    auto ft = payloadTables[OrderByKeyEncoder::getEncodedFTIdx(payloadInfo)];
-                    tuplesToRead[numTuplesRead + i] =
-                        ft->getTuple(blockIdx * ft->getNumTuplesPerBlock() + blockOffset);
-                    blockPtrInfo->curTuplePtr += keyBlockToScan->getNumBytesPerTuple();
-                }
-                blockPtrInfo->updateTuplePtrIfNecessary();
-                numTuplesRead += numTuplesToReadInCurBlock;
+        auto numTuplesToRead = std::min(DEFAULT_VECTOR_CAPACITY,
+            endTuplesIdxToReadInMergedKeyBlock - nextTupleIdxToReadInMergedKeyBlock);
+        auto numTuplesRead = 0u;
+        while (numTuplesRead < numTuplesToRead) {
+            auto numTuplesToReadInCurBlock = std::min(
+                numTuplesToRead - numTuplesRead, blockPtrInfo->getNumTuplesLeftInCurBlock());
+            for (auto i = 0u; i < numTuplesToReadInCurBlock; i++) {
+                auto payloadInfo = blockPtrInfo->curTuplePtr + payloadIdxOffset;
+                auto blockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(payloadInfo);
+                auto blockOffset = OrderByKeyEncoder::getEncodedFTBlockOffset(payloadInfo);
+                auto ft = payloadTables[OrderByKeyEncoder::getEncodedFTIdx(payloadInfo)];
+                tuplesToRead[numTuplesRead + i] =
+                    ft->getTuple(blockIdx * ft->getNumTuplesPerBlock() + blockOffset);
+                blockPtrInfo->curTuplePtr += keyBlockToScan->getNumBytesPerTuple();
             }
-            // TODO(Ziyi): This is a hacky way of using factorizedTable::lookup function,
-            // since the tuples in tuplesToRead may not belong to factorizedTable0. The
-            // lookup function doesn't perform a check on whether it holds all the tuples in
-            // tuplesToRead. We should optimize this lookup function in the orderByScan
-            // optimization PR.
-            payloadTables[0]->lookup(
-                vectorsToRead, colsToScan, tuplesToRead.get(), 0, numTuplesToRead);
-            nextTupleIdxToReadInMergedKeyBlock += numTuplesToRead;
-            return numTuplesRead;
+            blockPtrInfo->updateTuplePtrIfNecessary();
+            numTuplesRead += numTuplesToReadInCurBlock;
         }
+        // TODO(Ziyi): This is a hacky way of using factorizedTable::lookup function,
+        // since the tuples in tuplesToRead may not belong to factorizedTable0. The
+        // lookup function doesn't perform a check on whether it holds all the tuples in
+        // tuplesToRead. We should optimize this lookup function in the orderByScan
+        // optimization PR.
+        payloadTables[0]->lookup(vectorsToRead, colsToScan, tuplesToRead.get(), 0, numTuplesToRead);
+        nextTupleIdxToReadInMergedKeyBlock += numTuplesToRead;
+        return numTuplesRead;
+    }
+}
+
+bool PayloadScanner::scanSingleTuple(std::vector<common::ValueVector*> vectorsToRead) const {
+    // If there is an unflat col in factorizedTable or flat vector in vectorsToRead, we can only
+    // read one tuple at a time. Otherwise, we can read min(DEFAULT_VECTOR_CAPACITY,
+    // numTuplesRemainingInMemBlock) tuples.
+    bool hasFlatVectorToRead = false;
+    for (auto& vector : vectorsToRead) {
+        if (vector->state->isFlat()) {
+            hasFlatVectorToRead = true;
+        }
+    }
+    return hasUnflatColInPayload || hasFlatVectorToRead;
+}
+
+void PayloadScanner::applyLimitOnResultVectors(std::vector<common::ValueVector*> vectorsToRead) {
+    // The query doesn't contain a limit clause.
+    if (limitNumber == UINT64_MAX) {
+        return;
+    }
+    // Otherwise, we have to figure out the number of tuples in current batch exceeds the limit
+    // number.
+    common::ValueVector* unflatVector = nullptr;
+    for (auto& vector : vectorsToRead) {
+        if (!vector->state->isFlat()) {
+            unflatVector = vector;
+        }
+    }
+    if (unflatVector != nullptr) {
+        unflatVector->state->selVector->selectedSize =
+            std::min(limitNumber, unflatVector->state->selVector->selectedSize);
+        limitNumber -= unflatVector->state->selVector->selectedSize;
+    } else {
+        limitNumber--;
     }
 }
 

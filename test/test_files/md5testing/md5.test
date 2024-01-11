@@ -1,0 +1,52 @@
+# The purpose of these tests is just to
+# test using an md5 checksum instead of string comparison
+# to check if the answer is correct
+-GROUP MD5Tests
+-DATASET CSV empty
+
+--
+
+-CASE MD5TinyTest01
+
+-STATEMENT CREATE NODE TABLE T(ID SERIAL, VAL INT32, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:T {VAL:100})
+---- ok
+-STATEMENT MATCH (v:T) RETURN v.VAL;
+---- hash
+1 tuples hashing to 919d117956d3135c4c683ff021352f5c
+
+-CASE MD5TinyTest02
+-STATEMENT CREATE NODE TABLE T(ID SERIAL, VAL INT32, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:T {VAL:100}), (:T {VAL: 50}), (:T {VAL: -10000}), (:T {VAL: 755})
+---- ok
+-STATEMENT MATCH (v:T) return v.VAL ORDER BY v.ID;
+---- hash
+4 tuples hashing to c1b076dd612f51a0c0a74ea82c0745d1
+
+-CASE MD5TinyTest03
+-STATEMENT CREATE NODE TABLE Person(NAME STRING, PRIMARY KEY(NAME));
+---- ok
+-STATEMENT CREATE NODE TABLE Repository(NAME STRING, PRIMARY KEY(NAME));
+---- ok
+-STATEMENT CREATE REL TABLE Owns(FROM Person TO Repository);
+---- ok
+-STATEMENT CREATE (:Person {NAME: "A B C D E F G"});
+---- ok
+-STATEMENT CREATE (:Repository {NAME: "MyRepo"});
+---- ok
+-STATEMENT MATCH (p:Person {NAME: "A B C D E F G"}), (r:Repository {NAME: "MyRepo"}) CREATE (p)-[:Owns]->(r);
+---- ok
+-STATEMENT MATCH (p:Person)-[]->(r:Repository) RETURN p.NAME, r.NAME;
+---- hash
+1 tuples hashing to c440c38754246f863d3d1a662100d4a1
+
+-CASE MD5NullTest
+-STATEMENT CREATE NODE TABLE Person(NAME STRING, AGE INT, PRIMARY KEY(NAME));
+---- ok
+-STATEMENT CREATE (:Person {NAME: "A", AGE: 20}), (:Person {NAME: "B", AGE: NULL});
+---- ok
+-STATEMENT MATCH (p:Person) RETURN p.NAME, p.AGE ORDER BY p.AGE;
+---- hash
+2 tuples hashing to c5c799b6e60c80fe1d2aa7355ccd7dc9
