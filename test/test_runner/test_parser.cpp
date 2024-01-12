@@ -108,9 +108,15 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         statement->expectedError = true;
         statement->errorMessage = extractTextBeforeNextStatement();
         replaceVariables(statement->errorMessage);
-    } else if (result == "hash") {
+    } else if (result.substr(0, 4) == "hash") {
         statement->expectHash = true;
         checkMinimumParams(1);
+        tokenize();
+        if (currentToken.params.size() > 2) {
+            statement->hashSortType = currentToken.params[2];
+        } else {
+            statement->hashSortType = "";
+        }
         nextLine();
         tokenize();
         statement->expectedNumTuples = stoi(currentToken.params[0]);

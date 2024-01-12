@@ -21,9 +21,15 @@
 ---- ok
 -STATEMENT CREATE (:T {VAL:100}), (:T {VAL: 50}), (:T {VAL: -10000}), (:T {VAL: 755})
 ---- ok
--STATEMENT MATCH (v:T) return v.VAL ORDER BY v.ID;
+-STATEMENT MATCH (v:T) return v.VAL, v.ID ORDER BY v.ID;
 ---- hash
-4 tuples hashing to c1b076dd612f51a0c0a74ea82c0745d1
+4 tuples hashing to 98e9f812cbfd569d8d1c3cd9bde37377
+-STATEMENT MATCH (v:T) return v.VAL, v.ID;
+---- hash rowsort
+4 tuples hashing to e23ff6de40c12642a8d240b3b877059f
+-STATEMENT MATCH (v:T) return v.VAL, v.ID;
+---- hash valuesort
+4 tuples hashing to 2d9521c989e4577889c0a7bc00f0362e
 
 -CASE MD5TinyTest03
 -STATEMENT CREATE NODE TABLE Person(NAME STRING, PRIMARY KEY(NAME));

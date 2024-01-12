@@ -30,6 +30,7 @@ struct TestStatement {
     std::optional<std::string> connName;
     bool reloadDBFlag = false;
     bool expectHash = false;
+    std::string hashSortType;
     std::string expectedHashValue;
 };
 
