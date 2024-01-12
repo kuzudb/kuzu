@@ -22,14 +22,9 @@
 -STATEMENT CREATE (:T {VAL:100}), (:T {VAL: 50}), (:T {VAL: -10000}), (:T {VAL: 755})
 ---- ok
 -STATEMENT MATCH (v:T) return v.VAL, v.ID ORDER BY v.ID;
+-CHECK_ORDER
 ---- hash
-4 tuples hashing to 98e9f812cbfd569d8d1c3cd9bde37377
--STATEMENT MATCH (v:T) return v.VAL, v.ID;
----- hash rowsort
-4 tuples hashing to e23ff6de40c12642a8d240b3b877059f
--STATEMENT MATCH (v:T) return v.VAL, v.ID;
----- hash valuesort
-4 tuples hashing to 2d9521c989e4577889c0a7bc00f0362e
+4 tuples hashing to 0fb5957a46751ebf7ff2e38fe85179c6
 
 -CASE MD5TinyTest03
 -STATEMENT CREATE NODE TABLE Person(NAME STRING, PRIMARY KEY(NAME));
@@ -46,7 +41,7 @@
 ---- ok
 -STATEMENT MATCH (p:Person)-[]->(r:Repository) RETURN p.NAME, r.NAME;
 ---- hash
-1 tuples hashing to c440c38754246f863d3d1a662100d4a1
+1 tuples hashing to 460ab403a6a4746e3a10027f032956ed
 
 -CASE MD5NullTest
 -STATEMENT CREATE NODE TABLE Person(NAME STRING, AGE INT, PRIMARY KEY(NAME));
@@ -54,5 +49,6 @@
 -STATEMENT CREATE (:Person {NAME: "A", AGE: 20}), (:Person {NAME: "B", AGE: NULL});
 ---- ok
 -STATEMENT MATCH (p:Person) RETURN p.NAME, p.AGE ORDER BY p.AGE;
+-CHECK_ORDER
 ---- hash
-2 tuples hashing to c5c799b6e60c80fe1d2aa7355ccd7dc9
+2 tuples hashing to 25116b5dae5d1e9a1a4cbd2b96bdf227
