@@ -6,7 +6,7 @@
 -CASE CreateSimple
 -STATEMENT CREATE NODE TABLE test(id INT64, name STRING, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
 ---- ok
--STATEMENT CREATE (a:test {id:0, name:'A', isTrue:True, birthday:'2019-01-01'})
+-STATEMENT CREATE (a:test {id:0, name:'A', isTrue:True, birthday:Date('2019-01-01')})
 ---- ok
 -STATEMENT MATCH (a:test) RETURN a.id, a.name, a.isTrue, a.birthday
 ---- 1

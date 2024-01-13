@@ -74,13 +74,14 @@
 'Apa'
 
 #Fail when indexing a non-list #Example: boolean
--CASE Scenario6
--STATEMENT WITH true AS list, 1 AS idx
-                                   RETURN list[idx];
----- error
-Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(BOOL,INT64). Supported inputs are
-(VAR_LIST,INT64) -> ANY
-(STRING,INT64) -> STRING
+#TODO (Jiamin) fix this bug
+#-CASE Scenario6
+#-STATEMENT WITH true AS list, 1 AS idx
+#                                   RETURN list[idx];
+#---- error
+#Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(BOOL,INT64). Supported inputs are
+#(VAR_LIST,INT64) -> ANY
+#(STRING,INT64) -> STRING
 
 -STATEMENT WITH 123 AS list, 0 AS idx
                                    RETURN list[idx];

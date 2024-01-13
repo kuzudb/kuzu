@@ -178,8 +178,7 @@ Binder exception: Cannot match a built-in function for given function TABLE_INFO
 -LOG WrongParameterType
 -STATEMENT CALL show_connection(123) RETURN *
 ---- error
-Binder exception: Cannot match a built-in function for given function SHOW_CONNECTION(INT64). Supported inputs are
-(STRING)
+Binder exception: Show connection can only bind to String!
 
 -LOG WrongParameterExprType
 -STATEMENT CALL show_connection(upper("person")) RETURN *

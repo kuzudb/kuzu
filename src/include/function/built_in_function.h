@@ -72,6 +72,12 @@ private:
 
     static uint32_t castSerial(common::LogicalTypeID targetTypeID);
 
+    static uint32_t castTimestamp(common::LogicalTypeID targetTypeID);
+
+    static uint32_t castFromString(common::LogicalTypeID inputTypeID);
+
+    static uint32_t castFromRDFVariant(common::LogicalTypeID inputTypeID);
+
     Function* getBestMatch(std::vector<Function*>& functions);
 
     uint32_t getFunctionCost(
@@ -83,6 +89,9 @@ private:
 
     void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctions,
         const std::string& name, const std::vector<common::LogicalType*>& inputTypes);
+
+    void validateSpecialCases(std::vector<Function*>& candidateFunctions, const std::string& name,
+        const std::vector<common::LogicalType*>& inputTypes);
 
     // Scalar functions.
     void registerScalarFunctions();

@@ -96,6 +96,7 @@ Function* BuiltInFunctions::matchFunction(
     if (candidateFunctions.size() > 1) {
         return getBestMatch(candidateFunctions);
     }
+    validateSpecialCases(candidateFunctions, name, inputTypes);
     return candidateFunctions[0];
 }
 
@@ -119,55 +120,54 @@ AggregateFunction* BuiltInFunctions::matchAggregateFunction(
 uint32_t BuiltInFunctions::getCastCost(LogicalTypeID inputTypeID, LogicalTypeID targetTypeID) {
     if (inputTypeID == targetTypeID) {
         return 0;
-    } else {
-        if (targetTypeID == LogicalTypeID::ANY) {
-            // Any inputTypeID can match to type ANY
-            return 0;
-        }
-        switch (inputTypeID) {
-        case LogicalTypeID::ANY:
-            // ANY type can be any type
-            return 0;
-        case LogicalTypeID::RDF_VARIANT:
-            // RDF_VARIANT can be cast to any type.
-            return 1;
-        case LogicalTypeID::INT64:
-            return castInt64(targetTypeID);
-        case LogicalTypeID::INT32:
-            return castInt32(targetTypeID);
-        case LogicalTypeID::INT16:
-            return castInt16(targetTypeID);
-        case LogicalTypeID::INT8:
-            return castInt8(targetTypeID);
-        case LogicalTypeID::UINT64:
-            return castUInt64(targetTypeID);
-        case LogicalTypeID::UINT32:
-            return castUInt32(targetTypeID);
-        case LogicalTypeID::UINT16:
-            return castUInt16(targetTypeID);
-        case LogicalTypeID::UINT8:
-            return castUInt8(targetTypeID);
-        case LogicalTypeID::INT128:
-            return castInt128(targetTypeID);
-        case LogicalTypeID::DOUBLE:
-            return castDouble(targetTypeID);
-        case LogicalTypeID::FLOAT:
-            return castFloat(targetTypeID);
-        case LogicalTypeID::DATE:
-            return castDate(targetTypeID);
-        case LogicalTypeID::SERIAL:
-            return castSerial(targetTypeID);
-        case LogicalTypeID::TIMESTAMP_SEC:
-        case LogicalTypeID::TIMESTAMP_MS:
-        case LogicalTypeID::TIMESTAMP_NS:
-        case LogicalTypeID::TIMESTAMP_TZ:
-            if (targetTypeID == LogicalTypeID::TIMESTAMP) {
-                return 101;
-            }
+    }
+    // TODO(Jiamin): should check any type
+    if (inputTypeID == LogicalTypeID::ANY || targetTypeID == LogicalTypeID::ANY ||
+        inputTypeID == LogicalTypeID::RDF_VARIANT) {
+        // anything can be cast to ANY type for (almost no) cost
+        return 1;
+    }
+    if (targetTypeID == LogicalTypeID::RDF_VARIANT) {
+        return castFromRDFVariant(inputTypeID);
+    }
+    if (targetTypeID == LogicalTypeID::STRING) {
+        return castFromString(inputTypeID);
+    }
+    switch (inputTypeID) {
+    case LogicalTypeID::INT64:
+        return castInt64(targetTypeID);
+    case LogicalTypeID::INT32:
+        return castInt32(targetTypeID);
+    case LogicalTypeID::INT16:
+        return castInt16(targetTypeID);
+    case LogicalTypeID::INT8:
+        return castInt8(targetTypeID);
+    case LogicalTypeID::UINT64:
+        return castUInt64(targetTypeID);
+    case LogicalTypeID::UINT32:
+        return castUInt32(targetTypeID);
+    case LogicalTypeID::UINT16:
+        return castUInt16(targetTypeID);
+    case LogicalTypeID::UINT8:
+        return castUInt8(targetTypeID);
+    case LogicalTypeID::INT128:
+        return castInt128(targetTypeID);
+    case LogicalTypeID::DOUBLE:
+        return castDouble(targetTypeID);
+    case LogicalTypeID::FLOAT:
+        return castFloat(targetTypeID);
+    case LogicalTypeID::DATE:
+        return castDate(targetTypeID);
+    case LogicalTypeID::SERIAL:
+        return castSerial(targetTypeID);
+    case LogicalTypeID::TIMESTAMP_SEC:
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_TZ:
         // currently don't allow timestamp to other timestamp types
-        default:
-            return UNDEFINED_CAST_COST;
-        }
+        return castTimestamp(targetTypeID);
+    default:
+        return UNDEFINED_CAST_COST;
     }
 }
 
@@ -220,33 +220,28 @@ std::unique_ptr<BuiltInFunctions> BuiltInFunctions::copy() {
 
 uint32_t BuiltInFunctions::getTargetTypeCost(LogicalTypeID typeID) {
     switch (typeID) {
-    case LogicalTypeID::INT16:
-    case LogicalTypeID::UINT64:
-    case LogicalTypeID::UINT32:
-    case LogicalTypeID::UINT16: {
-        return 110;
-    }
-    case LogicalTypeID::INT32: {
-        return 103;
-    }
-    case LogicalTypeID::INT64: {
+    case LogicalTypeID::INT64:
         return 101;
-    }
-    case LogicalTypeID::FLOAT: {
-        return 110;
-    }
-    case LogicalTypeID::DOUBLE: {
+    case LogicalTypeID::INT32:
         return 102;
-    }
     case LogicalTypeID::INT128:
-    case LogicalTypeID::TIMESTAMP: {
+        return 103;
+    case LogicalTypeID::DOUBLE:
+        return 104;
+    case LogicalTypeID::TIMESTAMP:
         return 120;
-    }
-        // LCOV_EXCL_START
-    default: {
-        throw InternalException("Unsupported casting operation.");
-        // LCOC_EXCL_STOP
-    }
+    case LogicalTypeID::STRING:
+        return 149;
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::MAP:
+    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::UNION:
+        return 160;
+    case LogicalTypeID::RDF_VARIANT:
+        return 170;
+    default:
+        return 110;
     }
 }
 
@@ -302,6 +297,7 @@ uint32_t BuiltInFunctions::castInt8(LogicalTypeID targetTypeID) {
 
 uint32_t BuiltInFunctions::castUInt64(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
+    case LogicalTypeID::INT128:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
@@ -313,6 +309,7 @@ uint32_t BuiltInFunctions::castUInt64(LogicalTypeID targetTypeID) {
 uint32_t BuiltInFunctions::castUInt32(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     case LogicalTypeID::INT64:
+    case LogicalTypeID::INT128:
     case LogicalTypeID::UINT64:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DOUBLE:
@@ -326,6 +323,7 @@ uint32_t BuiltInFunctions::castUInt16(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT64:
+    case LogicalTypeID::INT128:
     case LogicalTypeID::UINT32:
     case LogicalTypeID::UINT64:
     case LogicalTypeID::FLOAT:
@@ -341,6 +339,7 @@ uint32_t BuiltInFunctions::castUInt8(LogicalTypeID targetTypeID) {
     case LogicalTypeID::INT16:
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT64:
+    case LogicalTypeID::INT128:
     case LogicalTypeID::UINT16:
     case LogicalTypeID::UINT32:
     case LogicalTypeID::UINT64:
@@ -392,7 +391,46 @@ uint32_t BuiltInFunctions::castSerial(LogicalTypeID targetTypeID) {
     case LogicalTypeID::INT64:
         return 0;
     default:
-        return castInt64(targetTypeID);
+        return UNDEFINED_CAST_COST;
+    }
+}
+
+uint32_t BuiltInFunctions::castTimestamp(LogicalTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case LogicalTypeID::TIMESTAMP:
+        return getTargetTypeCost(targetTypeID);
+    default:
+        return UNDEFINED_CAST_COST;
+    }
+}
+
+uint32_t BuiltInFunctions::castFromString(LogicalTypeID inputTypeID) {
+    switch (inputTypeID) {
+    case LogicalTypeID::BLOB:
+    case LogicalTypeID::INTERNAL_ID:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
+        return UNDEFINED_CAST_COST;
+    default: // Any other inputTypeID can be cast to String, but this cast has a high cost
+        return getTargetTypeCost(LogicalTypeID::STRING);
+    }
+}
+
+uint32_t BuiltInFunctions::castFromRDFVariant(LogicalTypeID inputTypeID) {
+    switch (inputTypeID) {
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::UNION:
+    case LogicalTypeID::MAP:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::RDF_VARIANT:
+        return UNDEFINED_CAST_COST;
+    default: // Any other inputTypeID can be cast to RDF_VARIANT, but this cast has a high cost
+        return getTargetTypeCost(LogicalTypeID::RDF_VARIANT);
     }
 }
 
@@ -484,6 +522,31 @@ void BuiltInFunctions::validateNonEmptyCandidateFunctions(
         throw BinderException("Cannot match a built-in function for given function " + name +
                               LogicalTypeUtils::toString(inputTypes) + ". Supported inputs are\n" +
                               supportedInputsString);
+    }
+}
+
+void BuiltInFunctions::validateSpecialCases(std::vector<Function*>& candidateFunctions,
+    const std::string& name, const std::vector<LogicalType*>& inputTypes) {
+    // special case for add func
+    if (name == ADD_FUNC_NAME) {
+        auto targetType0 = candidateFunctions[0]->parameterTypeIDs[0];
+        auto targetType1 = candidateFunctions[0]->parameterTypeIDs[1];
+        auto inputType0 = inputTypes[0]->getLogicalTypeID();
+        auto inputType1 = inputTypes[1]->getLogicalTypeID();
+        if ((inputType0 != LogicalTypeID::STRING || inputType1 != LogicalTypeID::STRING) &&
+            targetType0 == LogicalTypeID::STRING && targetType1 == LogicalTypeID::STRING) {
+            if (inputType0 != inputType1 && (inputType0 == LogicalTypeID::RDF_VARIANT ||
+                                                inputType1 == LogicalTypeID::RDF_VARIANT)) {
+                return;
+            }
+            std::string supportedInputsString;
+            for (auto& function : functions.at(name)) {
+                supportedInputsString += function->signatureToString() + "\n";
+            }
+            throw BinderException("Cannot match a built-in function for given function " + name +
+                                  LogicalTypeUtils::toString(inputTypes) +
+                                  ". Supported inputs are\n" + supportedInputsString);
+        }
     }
 }
 

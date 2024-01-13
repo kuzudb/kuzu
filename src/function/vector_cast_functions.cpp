@@ -153,67 +153,21 @@ static void nestedTypesCastExecFunction(
 }
 
 bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {
+    // TODO(Jiamin): should remove after support list implicit cast
+    if (srcType.getLogicalTypeID() == LogicalTypeID::VAR_LIST &&
+        dstType.getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
+        return false;
+    }
+    if (BuiltInFunctions::getCastCost(srcType.getLogicalTypeID(), dstType.getLogicalTypeID()) !=
+        UNDEFINED_CAST_COST) {
+        return true;
+    }
+    // TODO(Jiamin): there are still other special cases
     // We allow cast between any numerical types
     if (LogicalTypeUtils::isNumerical(srcType) && LogicalTypeUtils::isNumerical(dstType)) {
         return true;
     }
-    if (!LogicalTypeUtils::isNested(srcType) &&
-        dstType.getLogicalTypeID() == LogicalTypeID::RDF_VARIANT) {
-        return true;
-    }
-    switch (srcType.getLogicalTypeID()) {
-    case LogicalTypeID::DATE: {
-        switch (dstType.getLogicalTypeID()) {
-        case LogicalTypeID::TIMESTAMP:
-            return true;
-        default:
-            return false;
-        }
-    }
-    case LogicalTypeID::STRING: {
-        switch (dstType.getLogicalTypeID()) {
-        case LogicalTypeID::DATE:
-        case LogicalTypeID::TIMESTAMP:
-        case LogicalTypeID::TIMESTAMP_MS:
-        case LogicalTypeID::TIMESTAMP_NS:
-        case LogicalTypeID::TIMESTAMP_SEC:
-        case LogicalTypeID::TIMESTAMP_TZ:
-        case LogicalTypeID::INTERVAL:
-        case LogicalTypeID::UUID:
-            return true;
-        default:
-            return false;
-        }
-    }
-    case LogicalTypeID::TIMESTAMP: {
-        switch (dstType.getLogicalTypeID()) {
-        case LogicalTypeID::TIMESTAMP_MS:
-        case LogicalTypeID::TIMESTAMP_NS:
-        case LogicalTypeID::TIMESTAMP_SEC:
-        case LogicalTypeID::TIMESTAMP_TZ:
-            return true;
-        default:
-            return false;
-        }
-    }
-    case LogicalTypeID::TIMESTAMP_MS:
-    case LogicalTypeID::TIMESTAMP_NS:
-    case LogicalTypeID::TIMESTAMP_SEC:
-    case LogicalTypeID::TIMESTAMP_TZ: {
-        switch (dstType.getLogicalTypeID()) {
-        case LogicalTypeID::TIMESTAMP:
-            return true;
-        default:
-            return false;
-        }
-    }
-    case LogicalTypeID::RDF_VARIANT: {
-        // Implicit cast from
-        return true;
-    }
-    default:
-        return false;
-    }
+    return false;
 }
 
 template<typename EXECUTOR = UnaryFunctionExecutor>

@@ -209,9 +209,7 @@ Binder exception: Cannot match a built-in function for given function DATE. Supp
 -LOG BindFunctionWithWrongParamType
 -STATEMENT MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);
 ---- error
-Binder exception: Cannot match a built-in function for given function DATE(INT64). Supported inputs are
-(STRING) -> DATE
-(RDF_VARIANT) -> DATE
+Conversion exception: Error occurred during parsing date. Given: "2012". Expected format: (YYYY-MM-DD)
 
 -LOG OrderByVariableNotInScope
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN SUM(a.age) ORDER BY a.ID;

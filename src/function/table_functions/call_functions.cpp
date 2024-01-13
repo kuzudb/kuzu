@@ -272,6 +272,10 @@ std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(ClientContex
     TableFuncBindInput* input, Catalog* catalog, StorageManager* /*storageManager*/) {
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
+    // Special case here Due to any -> string, but lack implicit cast
+    if (input->inputs[0]->getDataType()->getLogicalTypeID() != LogicalTypeID::STRING) {
+        throw BinderException{"Show connection can only bind to String!"};
+    }
     auto tableName = input->inputs[0]->getValue<std::string>();
     auto tableID = catalog->getTableID(context->getTx(), tableName);
     auto schema = catalog->getTableSchema(context->getTx(), tableID);
