@@ -33,7 +33,7 @@
 9|Greg
 
 -CASE InsertNodeWithUUIDTest
--STATEMENT CREATE (:person {ID:32, fName: 'Emma', age: 25, u: 'A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A20'});
+-STATEMENT CREATE (:person {ID:32, fName: 'Emma', age: 25, u: UUID('A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A20')});
 ---- ok
 -STATEMENT MATCH (a:person) where a.fName='Emma' return a.u ;
 ---- 1
