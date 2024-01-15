@@ -1,9 +1,12 @@
 #include <iostream>
+#include <fcntl.h>
 
 #include "args.hxx"
+#include "common/file_system/virtual_file_system.h"
 #include "embedded_shell.h"
 
 using namespace kuzu::main;
+using namespace kuzu::common;
 
 int main(int argc, char* argv[]) {
     args::ArgumentParser parser("KuzuDB Shell");
@@ -44,17 +47,13 @@ int main(int argc, char* argv[]) {
         pathToHistory += '/';
     }
     pathToHistory += "history.txt";
-    FILE* fp = fopen(pathToHistory.c_str(), "r");
-    if (fp == NULL) {
-        FILE* fp = fopen(pathToHistory.c_str(), "w");
-        if (fp == NULL) {
-            std::cerr << "Invalid path to directory for history file"
-                      << "\n";
-            return 1;
-        }
-        fclose(fp);
-    } else {
-        fclose(fp);
+    std::unique_ptr<VirtualFileSystem> vfs = std::make_unique<VirtualFileSystem>();
+    try {
+        std::unique_ptr<FileInfo> fp = vfs->openFile(pathToHistory, O_CREAT);
+    }
+    catch (std::exception& e) {
+        std::cerr << "Invalid path to directory for history file" << "\n";
+        return 1;
     }
     std::cout << "Opened the database at path: " << databasePath << " in "
               << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
