@@ -2,6 +2,7 @@
 
 #include "common/cast.h"
 #include "common/string_format.h"
+#include "common/types/int128_t.h"
 #include "common/utils.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
@@ -526,25 +527,48 @@ void InMemDiskArrayBuilder<T>::setNumElementsAndAllocateDiskAPsForBuilding(
     this->header.numAPs = newNumArrayPages;
 }
 
-template class BaseDiskArray<uint32_t>;
+template class BaseDiskArray<Slot<uint64_t>>;
+template class BaseDiskArray<Slot<uint32_t>>;
+template class BaseDiskArray<Slot<uint16_t>>;
+template class BaseDiskArray<Slot<uint8_t>>;
 template class BaseDiskArray<Slot<int64_t>>;
+template class BaseDiskArray<Slot<int32_t>>;
+template class BaseDiskArray<Slot<int16_t>>;
+template class BaseDiskArray<Slot<int8_t>>;
+template class BaseDiskArray<Slot<double>>;
+template class BaseDiskArray<Slot<float>>;
+template class BaseDiskArray<Slot<int128_t>>;
 template class BaseDiskArray<Slot<ku_string_t>>;
 template class BaseDiskArray<HashIndexHeader>;
 template class BaseDiskArray<ColumnChunkMetadata>;
-template class BaseInMemDiskArray<uint32_t>;
+template class BaseInMemDiskArray<Slot<uint8_t>>;
+template class BaseInMemDiskArray<Slot<uint16_t>>;
+template class BaseInMemDiskArray<Slot<uint32_t>>;
+template class BaseInMemDiskArray<Slot<uint64_t>>;
+template class BaseInMemDiskArray<Slot<int8_t>>;
+template class BaseInMemDiskArray<Slot<int16_t>>;
+template class BaseInMemDiskArray<Slot<int32_t>>;
 template class BaseInMemDiskArray<Slot<int64_t>>;
+template class BaseInMemDiskArray<Slot<double>>;
+template class BaseInMemDiskArray<Slot<float>>;
+template class BaseInMemDiskArray<Slot<int128_t>>;
 template class BaseInMemDiskArray<Slot<ku_string_t>>;
 template class BaseInMemDiskArray<HashIndexHeader>;
 template class BaseInMemDiskArray<ColumnChunkMetadata>;
-template class InMemDiskArrayBuilder<uint32_t>;
+template class InMemDiskArrayBuilder<Slot<uint8_t>>;
+template class InMemDiskArrayBuilder<Slot<uint16_t>>;
+template class InMemDiskArrayBuilder<Slot<uint32_t>>;
+template class InMemDiskArrayBuilder<Slot<uint64_t>>;
+template class InMemDiskArrayBuilder<Slot<int8_t>>;
+template class InMemDiskArrayBuilder<Slot<int16_t>>;
+template class InMemDiskArrayBuilder<Slot<int32_t>>;
 template class InMemDiskArrayBuilder<Slot<int64_t>>;
+template class InMemDiskArrayBuilder<Slot<double>>;
+template class InMemDiskArrayBuilder<Slot<float>>;
+template class InMemDiskArrayBuilder<Slot<int128_t>>;
 template class InMemDiskArrayBuilder<Slot<ku_string_t>>;
 template class InMemDiskArrayBuilder<HashIndexHeader>;
 template class InMemDiskArrayBuilder<ColumnChunkMetadata>;
-template class InMemDiskArray<uint32_t>;
-template class InMemDiskArray<Slot<int64_t>>;
-template class InMemDiskArray<Slot<ku_string_t>>;
-template class InMemDiskArray<HashIndexHeader>;
 template class InMemDiskArray<ColumnChunkMetadata>;
 
 } // namespace storage

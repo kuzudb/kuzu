@@ -24,7 +24,7 @@ void WALReplayerUtils::createEmptyHashIndexFiles(catalog::NodeTableSchema* nodeT
         auto pkIndex = make_unique<PrimaryKeyIndexBuilder>(
             StorageUtils::getNodeIndexFName(
                 vfs, directory, nodeTableSchema->tableID, FileVersionType::ORIGINAL),
-            *pk->getDataType(), vfs);
+            pk->getDataType()->getPhysicalType(), vfs);
         pkIndex->bulkReserve(0 /* numNodes */);
         pkIndex->flush();
     }

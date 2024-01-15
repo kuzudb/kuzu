@@ -3,6 +3,7 @@
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
 #include "function/table_functions/scan_functions.h"
 #include "processor/result/factorized_table.h"
 
@@ -16,11 +17,11 @@ namespace processor {
 void CopyNodeSharedState::init(ExecutionContext* context) {
     wal->logCopyTableRecord(table->getTableID(), TableType::NODE);
     wal->flushAllPages();
-    if (pkType != *LogicalType::SERIAL()) {
+    if (pkType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
         auto indexFName = StorageUtils::getNodeIndexFName(context->clientContext->getVFSUnsafe(),
             wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
-            indexFName, pkType, context->clientContext->getVFSUnsafe());
+            indexFName, pkType.getPhysicalType(), context->clientContext->getVFSUnsafe());
         uint64_t numRows;
         if (readerSharedState != nullptr) {
             KU_ASSERT(distinctSharedState == nullptr);

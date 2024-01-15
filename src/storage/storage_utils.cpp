@@ -2,12 +2,14 @@
 
 #include <fcntl.h>
 
+#include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/null_buffer.h"
 #include "common/string_format.h"
 #include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
+#include "common/types/types.h"
 
 using namespace kuzu::common;
 
@@ -81,6 +83,25 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
     }
     }
     return vfs->openFile(fName, O_RDWR);
+}
+
+uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {
+    switch (type) {
+    case PhysicalTypeID::STRING: {
+        return sizeof(ku_string_t);
+    }
+    case PhysicalTypeID::VAR_LIST: {
+        return sizeof(ku_list_t);
+    }
+    case PhysicalTypeID::FIXED_LIST:
+    case PhysicalTypeID::STRUCT: {
+        // Not calculable using this interface!
+        KU_UNREACHABLE;
+    }
+    default: {
+        return PhysicalTypeUtils::getFixedTypeSize(type);
+    }
+    }
 }
 
 uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {

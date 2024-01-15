@@ -4,6 +4,7 @@
 
 #include "common/exception/overflow.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "function/hash/hash_functions.h"
 
 namespace kuzu::common {
 
@@ -620,3 +621,10 @@ int128_t::operator int64_t() const {
 }
 
 } // namespace kuzu::common
+
+std::size_t std::hash<kuzu::common::int128_t>::operator()(
+    const kuzu::common::int128_t& v) const noexcept {
+    kuzu::common::hash_t hash;
+    kuzu::function::Hash::operation(v, hash);
+    return hash;
+}

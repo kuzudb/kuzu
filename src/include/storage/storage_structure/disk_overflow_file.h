@@ -29,7 +29,10 @@ public:
 
     std::string readString(transaction::TransactionType trxType, const common::ku_string_t& str);
 
-    common::ku_string_t writeString(const char* rawString);
+    common::ku_string_t writeString(std::string_view rawString);
+    inline common::ku_string_t writeString(const char* rawString) {
+        return writeString(std::string_view(rawString));
+    }
 
     inline BMFileHandle* getFileHandle() { return fileHandle.get(); }
     inline void resetNextBytePosToWriteTo(uint64_t nextBytePosToWriteTo_) {

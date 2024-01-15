@@ -44,11 +44,7 @@ struct SlotEntry {
 
 template<typename T>
 static constexpr uint8_t getSlotCapacity() {
-    if (std::is_same<T, int64_t>::value) {
-        return common::HashIndexConstants::INT64_SLOT_CAPACITY;
-    } else {
-        return common::HashIndexConstants::STRING_SLOT_CAPACITY;
-    }
+    return common::HashIndexConstants::SLOT_CAPACITY_BYTES / (sizeof(T) + sizeof(common::offset_t));
 }
 
 template<typename T>
