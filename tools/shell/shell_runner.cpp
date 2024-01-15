@@ -50,8 +50,7 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<VirtualFileSystem> vfs = std::make_unique<VirtualFileSystem>();
     try {
         std::unique_ptr<FileInfo> fp = vfs->openFile(pathToHistory, O_CREAT);
-    }
-    catch (std::exception& e) {
+    } catch (Exception& e) {
         std::cerr << "Invalid path to directory for history file" << "\n";
         return 1;
     }
