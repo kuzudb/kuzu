@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
         auto queryResult = conn->query("CALL db_version() RETURN version");
         if (queryResult->isSuccess()) {
             std::string dbVersion = queryResult->getNext()->getValue(0)->toString();
-            std::cout << "Kùzu " << dbVersion << '\n';
+            std::cout << "Kuzu " << dbVersion << '\n';
             return 0;
         } else {
             std::cerr << "Unable to find current database version" << '\n';
