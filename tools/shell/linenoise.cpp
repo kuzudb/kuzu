@@ -1227,6 +1227,24 @@ static int linenoiseEdit(
         }
         switch (c) {
         case CTRL_C: /* ctrl-c */
+            if (mlmode) {
+                linenoiseEditMoveEnd(&l);
+            }
+            l.buf[0] = '\3';
+            // we keep track of whether or not the line was empty by writing \3 to the second
+            // position of the line this is because at a higher level we might want to know if we
+            // pressed ctrl c to clear the line or to exit the process
+            if (l.len > 0) {
+                l.buf[1] = '\3';
+                l.buf[2] = '\0';
+                l.pos = 2;
+                l.len = 2;
+            } else {
+                l.buf[1] = '\0';
+                l.pos = 1;
+                l.len = 1;
+            }
+            return (int)l.len;
         case ENTER:  /* enter */
             if (pastedInput(l.ifd)) {
                 linenoiseEditInsert(&l, ' ');
