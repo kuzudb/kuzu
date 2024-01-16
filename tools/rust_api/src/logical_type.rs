@@ -80,6 +80,7 @@ pub enum LogicalType {
     Union {
         types: Vec<(String, LogicalType)>,
     },
+    UUID,
 }
 
 impl From<&ffi::Value> for LogicalType {
@@ -172,6 +173,7 @@ impl From<&ffi::LogicalType> for LogicalType {
                         .collect(),
                 }
             }
+            LogicalTypeID::UUID => LogicalType::UUID,
             // Should be unreachable, as cxx will check that the LogicalTypeID enum matches the one
             // on the C++ side.
             x => panic!("Unsupported type {:?}", x),
@@ -208,7 +210,8 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
             | LogicalType::Blob
             | LogicalType::Node
             | LogicalType::Rel
-            | LogicalType::RecursiveRel => ffi::create_logical_type(typ.id()),
+            | LogicalType::RecursiveRel
+            | LogicalType::UUID => ffi::create_logical_type(typ.id()),
             LogicalType::VarList { child_type } => {
                 ffi::create_logical_type_var_list(child_type.as_ref().into())
             }
@@ -280,6 +283,7 @@ impl LogicalType {
             LogicalType::RecursiveRel => LogicalTypeID::RECURSIVE_REL,
             LogicalType::Map { .. } => LogicalTypeID::MAP,
             LogicalType::Union { .. } => LogicalTypeID::UNION,
+            LogicalType::UUID => LogicalTypeID::UUID,
         }
     }
 }

@@ -125,7 +125,7 @@ std::string TypeUtils::toString(const blob_t& val, void* /*valueVector*/) {
 // LCOV_EXCL_START
 template<>
 std::string TypeUtils::toString(const uuid_t& val, void* /*valueVector*/) {
-    return UUID::toString(val.value);
+    return val.toString();
 }
 // LCOV_EXCL_STOP
 

@@ -163,14 +163,14 @@ void CastStringHelper::cast(const char* input, uint64_t len, blob_t& /*result*/,
 template<>
 void CastString::operation(const ku_string_t& input, uuid_t& result, ValueVector* /*result_vector*/,
     uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    result.value = UUID::fromString(input.getAsString());
+    result.value = uuid_t::fromString(input.getAsString());
 }
 
 // LCOV_EXCL_START
 template<>
 void CastStringHelper::cast(const char* input, uint64_t len, uuid_t& result,
     ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    result.value = UUID::fromCString(input, len);
+    result.value = uuid_t::fromCString(input, len);
 }
 // LCOV_EXCL_STOP
 

@@ -3,12 +3,12 @@
 namespace kuzu {
 namespace common {
 
-void UUID::byteToHex(char byteVal, char* buf, uint64_t& pos) {
+void uuid_t::byteToHex(char byteVal, char* buf, uint64_t& pos) {
     buf[pos++] = HEX_DIGITS[(byteVal >> 4) & 0xf];
     buf[pos++] = HEX_DIGITS[byteVal & 0xf];
 }
 
-unsigned char UUID::hex2Char(char ch) {
+unsigned char uuid_t::hex2Char(char ch) {
     if (ch >= '0' && ch <= '9') {
         return ch - '0';
     }
@@ -21,7 +21,7 @@ unsigned char UUID::hex2Char(char ch) {
     return 0;
 };
 
-bool UUID::fromString(std::string str, int128_t& result) {
+bool uuid_t::fromString(std::string str, int128_t& result) {
     if (str.empty()) {
         return false;
     }
@@ -57,7 +57,7 @@ bool UUID::fromString(std::string str, int128_t& result) {
     return count == 32;
 }
 
-void UUID::toString(int128_t input, char* buf) {
+void uuid_t::toString(int128_t input, char* buf) {
     // Flip back before convert to string
     int64_t high = input.high ^ (int64_t(1) << 63);
     uint64_t pos = 0;

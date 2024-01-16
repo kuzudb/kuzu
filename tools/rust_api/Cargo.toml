@@ -30,6 +30,7 @@ num-derive = "0.3"
 num-traits = "0.2"
 time = "0.3"
 arrow = {version="43", optional=true, default-features=false, features=["ffi"]}
+uuid = "1.6"
 
 [build-dependencies]
 cxx-build = "1.0"

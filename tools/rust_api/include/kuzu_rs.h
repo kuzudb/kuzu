@@ -169,6 +169,11 @@ std::unique_ptr<kuzu::common::Value> create_value_null(
 std::unique_ptr<kuzu::common::Value> create_value_int128_t(int64_t high, uint64_t low);
 std::unique_ptr<kuzu::common::Value> create_value_internal_id(uint64_t offset, uint64_t table);
 
+inline std::unique_ptr<kuzu::common::Value> create_value_uuid_t(int64_t high, uint64_t low) {
+    return std::make_unique<kuzu::common::Value>(
+        kuzu::common::uuid_t{kuzu::common::int128_t(low, high)});
+}
+
 template<typename T>
 std::unique_ptr<kuzu::common::Value> create_value(const T value) {
     return std::make_unique<kuzu::common::Value>(value);
