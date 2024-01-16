@@ -217,8 +217,24 @@ void EmbeddedShell::run() {
     char* line;
     std::string query;
     std::stringstream ss;
+    const char ctrl_c = '\3';
+    int numCtrlC = 0;
     while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT)) != nullptr) {
         auto lineStr = std::string(line);
+        if (!lineStr.empty() && lineStr[0] == ctrl_c) {
+            if (!continueLine && lineStr[1] == '\0') {
+                numCtrlC++;
+                if (numCtrlC >= 2) {
+                    free(line);
+                    break;
+                }
+            }
+            currLine = "";
+            continueLine = false;
+            free(line);
+            continue;
+        }
+        numCtrlC = 0;
         if (continueLine) {
             lineStr = std::move(currLine) + std::move(lineStr);
             currLine = "";
