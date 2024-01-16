@@ -1,6 +1,7 @@
 #include "expression_evaluator/reference_evaluator.h"
 
 using namespace kuzu::common;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace evaluator {
@@ -10,7 +11,8 @@ inline static bool isTrue(ValueVector& vector, uint64_t pos) {
     return !vector.isNull(pos) && vector.getValue<bool>(pos);
 }
 
-bool ReferenceExpressionEvaluator::select(SelectionVector& selVector) {
+bool ReferenceExpressionEvaluator::select(
+    SelectionVector& selVector, ClientContext* /*clientContext*/) {
     uint64_t numSelectedValues = 0;
     auto selectedBuffer = resultVector->state->selVector->getSelectedPositionsBuffer();
     if (resultVector->state->selVector->isUnfiltered()) {

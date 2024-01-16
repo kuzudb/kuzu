@@ -16,6 +16,10 @@ namespace binder {
 class Binder;
 }
 
+namespace common {
+class RandomEngine;
+}
+
 namespace main {
 class Database;
 
@@ -73,6 +77,8 @@ public:
 
     void setExtensionOption(std::string name, common::Value value);
 
+    inline common::RandomEngine* getRandomEngine() { return randomEngine.get(); }
+
 private:
     inline void resetActiveQuery() { activeQuery.reset(); }
 
@@ -84,6 +90,7 @@ private:
     bool enableSemiMask;
     replace_func_t replaceFunc;
     std::unordered_map<std::string, common::Value> extensionOptionValues;
+    std::unique_ptr<common::RandomEngine> randomEngine;
 };
 
 } // namespace main

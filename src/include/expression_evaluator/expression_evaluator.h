@@ -3,6 +3,10 @@
 #include "processor/result/result_set.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace evaluator {
 
 class ExpressionEvaluator {
@@ -18,9 +22,9 @@ public:
 
     virtual void init(const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager);
 
-    virtual void evaluate() = 0;
+    virtual void evaluate(main::ClientContext* clientContext) = 0;
 
-    virtual bool select(common::SelectionVector& selVector) = 0;
+    virtual bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) = 0;
 
     virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
 

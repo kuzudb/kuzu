@@ -1,5 +1,6 @@
 #include "expression_evaluator/case_evaluator.h"
 
+using namespace kuzu::main;
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
@@ -22,15 +23,16 @@ void CaseExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* me
     ExpressionEvaluator::init(resultSet, memoryManager);
 }
 
-void CaseExpressionEvaluator::evaluate() {
+void CaseExpressionEvaluator::evaluate(ClientContext* clientContext) {
     filledMask.reset();
     for (auto& alternativeEvaluator : alternativeEvaluators) {
         auto whenSelVector = alternativeEvaluator->whenSelVector.get();
-        auto hasAtLeastOneValue = alternativeEvaluator->whenEvaluator->select(*whenSelVector);
+        auto hasAtLeastOneValue =
+            alternativeEvaluator->whenEvaluator->select(*whenSelVector, clientContext);
         if (!hasAtLeastOneValue) {
             continue;
         }
-        alternativeEvaluator->thenEvaluator->evaluate();
+        alternativeEvaluator->thenEvaluator->evaluate(clientContext);
         auto thenVector = alternativeEvaluator->thenEvaluator->resultVector.get();
         if (alternativeEvaluator->whenEvaluator->isResultFlat()) {
             fillAll(thenVector);
@@ -41,12 +43,12 @@ void CaseExpressionEvaluator::evaluate() {
             return;
         }
     }
-    elseEvaluator->evaluate();
+    elseEvaluator->evaluate(clientContext);
     fillAll(elseEvaluator->resultVector.get());
 }
 
-bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
-    evaluate();
+bool CaseExpressionEvaluator::select(SelectionVector& selVector, ClientContext* clientContext) {
+    evaluate(clientContext);
     KU_ASSERT(resultVector->state->selVector->selectedSize == selVector.selectedSize);
     auto numSelectedValues = 0u;
     auto selectedPosBuffer = selVector.getSelectedPositionsBuffer();

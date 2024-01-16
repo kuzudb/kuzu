@@ -22,7 +22,7 @@ bool Projection::getNextTuplesInternal(ExecutionContext* context) {
     }
     saveMultiplicity();
     for (auto& expressionEvaluator : expressionEvaluators) {
-        expressionEvaluator->evaluate();
+        expressionEvaluator->evaluate(context->clientContext);
     }
     if (!discardedDataChunksPos.empty()) {
         resultSet->multiplicity *=

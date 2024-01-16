@@ -27,7 +27,7 @@ public:
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
-    void insert(transaction::Transaction* transaction);
+    void insert(transaction::Transaction* transaction, ExecutionContext* context);
 
 private:
     NodeInsertExecutor(const NodeInsertExecutor& other);
@@ -65,7 +65,7 @@ public:
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
-    void insert(transaction::Transaction* transaction);
+    void insert(transaction::Transaction* transaction, ExecutionContext* context);
 
 private:
     RelInsertExecutor(const RelInsertExecutor& other);

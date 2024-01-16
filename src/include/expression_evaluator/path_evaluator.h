@@ -4,6 +4,10 @@
 #include "expression_evaluator.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace evaluator {
 
 class PathExpressionEvaluator final : public ExpressionEvaluator {
@@ -15,9 +19,12 @@ public:
     void init(
         const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
 
-    void evaluate() override;
+    void evaluate(main::ClientContext* clientContext) override;
 
-    bool select(common::SelectionVector& /*selVector*/) override { KU_UNREACHABLE; }
+    bool select(
+        common::SelectionVector& /*selVector*/, main::ClientContext* /*clientContext*/) override {
+        KU_UNREACHABLE;
+    }
 
     inline std::unique_ptr<ExpressionEvaluator> clone() override {
         std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;

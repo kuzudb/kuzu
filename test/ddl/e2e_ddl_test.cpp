@@ -168,8 +168,8 @@ public:
 
     void executeQueryWithoutCommit(std::string query) {
         auto preparedStatement = conn->prepare(query);
-        auto mapper = PlanMapper(
-            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
+        auto mapper = PlanMapper(*getStorageManager(*database), getMemoryManager(*database),
+            getCatalog(*database), conn->getClientContext());
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());

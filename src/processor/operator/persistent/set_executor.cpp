@@ -47,7 +47,7 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
         }
         return;
     }
-    evaluator->evaluate();
+    evaluator->evaluate(context->clientContext);
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
     auto lhsPos = nodeIDVector->state->selVector->selectedPositions[0];
     auto rhsPos = rhsVector->state->selVector->selectedPositions[0];
@@ -59,7 +59,7 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
 }
 
 void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
-    evaluator->evaluate();
+    evaluator->evaluate(context->clientContext);
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1 &&
               rhsVector->state->selVector->selectedSize == 1);
     auto lhsPos = nodeIDVector->state->selVector->selectedPositions[0];
@@ -119,7 +119,7 @@ void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
         }
         return;
     }
-    evaluator->evaluate();
+    evaluator->evaluate(context->clientContext);
     table->update(context->clientContext->getTx(), columnID, srcNodeIDVector, dstNodeIDVector,
         relIDVector, rhsVector);
     if (lhsVector != nullptr) {
@@ -128,7 +128,7 @@ void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
 }
 
 void MultiLabelRelSetExecutor::set(ExecutionContext* context) {
-    evaluator->evaluate();
+    evaluator->evaluate(context->clientContext);
     KU_ASSERT(relIDVector->state->isFlat());
     auto pos = relIDVector->state->selVector->selectedPositions[0];
     auto relID = relIDVector->getValue<internalID_t>(pos);

@@ -2,16 +2,17 @@
 
 #include "function/struct/vector_struct_functions.h"
 
+using namespace kuzu::main;
 using namespace kuzu::common;
 using namespace kuzu::function;
 
 namespace kuzu {
 namespace evaluator {
 
-void NodeRelExpressionEvaluator::evaluate() {
+void NodeRelExpressionEvaluator::evaluate(ClientContext* clientContext) {
     resultVector->resetAuxiliaryBuffer();
     for (auto& child : children) {
-        child->evaluate();
+        child->evaluate(clientContext);
     }
     StructPackFunctions::execFunc(parameters, *resultVector);
     auto structType = nodeOrRel->getDataType();

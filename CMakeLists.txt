@@ -197,6 +197,7 @@ include_directories(third_party/spdlog)
 include_directories(third_party/utf8proc/include)
 include_directories(third_party/zstd/include)
 include_directories(third_party/httplib)
+include_directories(third_party/pcg)
 
 add_subdirectory(third_party)
 add_subdirectory(src)

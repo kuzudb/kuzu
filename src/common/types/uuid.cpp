@@ -1,5 +1,7 @@
 #include "common/types/uuid.h"
 
+#include "common/random_engine.h"
+
 namespace kuzu {
 namespace common {
 
@@ -81,6 +83,40 @@ void uuid_t::toString(int128_t input, char* buf) {
     byteToHex(input.low >> 16 & 0xFF, buf, pos);
     byteToHex(input.low >> 8 & 0xFF, buf, pos);
     byteToHex(input.low & 0xFF, buf, pos);
+}
+
+uuid_t uuid_t::generateRandomUUID(RandomEngine* engine) {
+    uint8_t bytes[16];
+    for (int i = 0; i < 16; i += 4) {
+        *reinterpret_cast<uint32_t*>(bytes + i) = engine->nextRandomInteger();
+    }
+    // variant must be 10xxxxxx
+    bytes[8] &= 0xBF;
+    bytes[8] |= 0x80;
+    // version must be 0100xxxx
+    bytes[6] &= 0x4F;
+    bytes[6] |= 0x40;
+
+    int128_t result;
+    result.high = 0;
+    result.high |= ((int64_t)bytes[0] << 56);
+    result.high |= ((int64_t)bytes[1] << 48);
+    result.high |= ((int64_t)bytes[2] << 40);
+    result.high |= ((int64_t)bytes[3] << 32);
+    result.high |= ((int64_t)bytes[4] << 24);
+    result.high |= ((int64_t)bytes[5] << 16);
+    result.high |= ((int64_t)bytes[6] << 8);
+    result.high |= bytes[7];
+    result.low = 0;
+    result.low |= ((uint64_t)bytes[8] << 56);
+    result.low |= ((uint64_t)bytes[9] << 48);
+    result.low |= ((uint64_t)bytes[10] << 40);
+    result.low |= ((uint64_t)bytes[11] << 32);
+    result.low |= ((uint64_t)bytes[12] << 24);
+    result.low |= ((uint64_t)bytes[13] << 16);
+    result.low |= ((uint64_t)bytes[14] << 8);
+    result.low |= bytes[15];
+    return uuid_t{result};
 }
 
 } // namespace common

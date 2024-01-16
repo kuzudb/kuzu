@@ -46,9 +46,9 @@ static void writeColumnVector(common::ValueVector* columnVector, common::ValueVe
     }
 }
 
-void NodeInsertExecutor::insert(Transaction* tx) {
+void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->evaluate();
+        evaluator->evaluate(context->clientContext);
     }
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
     if (conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
@@ -116,7 +116,7 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     }
 }
 
-void RelInsertExecutor::insert(transaction::Transaction* tx) {
+void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* context) {
     auto srcNodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
     auto dstNodeIDPos = dstNodeIDVector->state->selVector->selectedPositions[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos)) {
@@ -135,7 +135,7 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
     columnDataVectors[0]->setValue(0, offset); // internal ID property
     columnDataVectors[0]->setNull(0, false);
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
-        columnDataEvaluators[i]->evaluate();
+        columnDataEvaluators[i]->evaluate(context->clientContext);
     }
     table->insert(tx, srcNodeIDVector, dstNodeIDVector, columnDataVectors);
     for (auto i = 0u; i < columnVectors.size(); ++i) {

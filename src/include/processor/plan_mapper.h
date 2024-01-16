@@ -9,6 +9,10 @@
 #include "storage/storage_manager.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace planner {
 struct LogicalSetPropertyInfo;
 struct LogicalInsertInfo;
@@ -30,9 +34,9 @@ class PlanMapper {
 public:
     // Create plan mapper with default mapper context.
     PlanMapper(storage::StorageManager& storageManager, storage::MemoryManager* memoryManager,
-        catalog::Catalog* catalog)
-        : storageManager{storageManager}, memoryManager{memoryManager},
-          expressionMapper{}, catalog{catalog}, physicalOperatorID{0} {}
+        catalog::Catalog* catalog, main::ClientContext* clientContext)
+        : storageManager{storageManager}, memoryManager{memoryManager}, expressionMapper{},
+          catalog{catalog}, clientContext{clientContext}, physicalOperatorID{0} {}
 
     std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
         planner::LogicalPlan* logicalPlan, const binder::expression_vector& expressionsToCollect);
@@ -159,6 +163,7 @@ public:
     storage::MemoryManager* memoryManager;
     ExpressionMapper expressionMapper;
     catalog::Catalog* catalog;
+    main::ClientContext* clientContext;
 
 private:
     std::unordered_map<planner::LogicalOperator*, PhysicalOperator*> logicalOpToPhysicalOpMap;

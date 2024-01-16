@@ -28,7 +28,7 @@ public:
     std::string getOutputMsg() override { return {"Add Succeed."}; }
 
 protected:
-    common::ValueVector* getDefaultValVector();
+    common::ValueVector* getDefaultValVector(ExecutionContext* context);
 
 protected:
     common::table_id_t tableID;
