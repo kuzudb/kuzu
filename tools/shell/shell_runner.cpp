@@ -22,6 +22,8 @@ int main(int argc, char* argv[]) {
         parser, "readOnly", "Open database at read-only mode.", {'r', "readOnly"});
     args::ValueFlag<std::string> historyPathFlag(
         parser, "", "Path to directory for shell history", {'p'});
+    args::Flag version(
+        parser, "version", "Display current database version", {'v', "version"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (std::exception& e) {
@@ -43,6 +45,19 @@ int main(int argc, char* argv[]) {
     if (readOnlyMode) {
         systemConfig.readOnly = true;
     }
+    if (version) {
+        std::unique_ptr<Database> database = std::make_unique<Database>(databasePath, systemConfig);
+        std::unique_ptr<Connection> conn = std::make_unique<Connection>(database.get());
+        auto queryResult = conn->query("CALL db_version() RETURN version");
+        if (queryResult->isSuccess()) {
+            std::string dbVersion = queryResult->getNext()->getValue(0)->toString();
+            std::cout << "Kùzu " << dbVersion << '\n';
+            return 0;
+        } else {
+            std::cerr << "Unable to find current database version" << '\n';
+            return 1;
+        }
+    }
     if (!pathToHistory.empty() && pathToHistory.back() != '/') {
         pathToHistory += '/';
     }
@@ -51,7 +66,7 @@ int main(int argc, char* argv[]) {
     try {
         std::unique_ptr<FileInfo> fp = vfs->openFile(pathToHistory, O_CREAT);
     } catch (Exception& e) {
-        std::cerr << "Invalid path to directory for history file" << "\n";
+        std::cerr << "Invalid path to directory for history file" << '\n';
         return 1;
     }
     std::cout << "Opened the database at path: " << databasePath << " in "
