@@ -12,7 +12,8 @@ namespace main {
 class EmbeddedShell {
 
 public:
-    EmbeddedShell(const std::string& databasePath, const SystemConfig& systemConfig);
+    EmbeddedShell(
+        const std::string& databasePath, const SystemConfig& systemConfig, const char* pathToHistory);
 
     void run();
 
@@ -37,6 +38,7 @@ private:
 private:
     std::unique_ptr<Database> database;
     std::unique_ptr<Connection> conn;
+    const char* path_to_history;
 };
 
 } // namespace main

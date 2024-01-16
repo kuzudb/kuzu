@@ -22,8 +22,6 @@ namespace main {
 // prompt for user input
 const char* PROMPT = "kuzu> ";
 const char* ALTPROMPT = "..> ";
-// file to read/write shell history
-const char* HISTORY_PATH = "history.txt";
 
 // build-in shell command
 struct ShellCommand {
@@ -202,8 +200,10 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
     strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
 }
 
-EmbeddedShell::EmbeddedShell(const std::string& databasePath, const SystemConfig& systemConfig) {
-    linenoiseHistoryLoad(HISTORY_PATH);
+EmbeddedShell::EmbeddedShell(
+    const std::string& databasePath, const SystemConfig& systemConfig, const char* pathToHistory) {
+    path_to_history = pathToHistory;
+    linenoiseHistoryLoad(path_to_history);
     linenoiseSetCompletionCallback(completion);
     linenoiseSetHighlightCallback(highlight);
     database = std::make_unique<Database>(databasePath, systemConfig);
@@ -257,7 +257,7 @@ void EmbeddedShell::run() {
         updateTableNames();
 
         linenoiseHistoryAdd(line);
-        linenoiseHistorySave("history.txt");
+        linenoiseHistorySave(path_to_history);
         free(line);
     }
 }

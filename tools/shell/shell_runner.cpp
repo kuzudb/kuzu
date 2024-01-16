@@ -1,9 +1,12 @@
 #include <iostream>
+#include <fcntl.h>
 
 #include "args.hxx"
+#include "common/file_system/virtual_file_system.h"
 #include "embedded_shell.h"
 
 using namespace kuzu::main;
+using namespace kuzu::common;
 
 int main(int argc, char* argv[]) {
     args::ArgumentParser parser("KuzuDB Shell");
@@ -17,6 +20,8 @@ int main(int argc, char* argv[]) {
         parser, "nocompression", "Disable compression", {"nocompression"});
     args::Flag readOnlyMode(
         parser, "readOnly", "Open database at read-only mode.", {'r', "readOnly"});
+    args::ValueFlag<std::string> historyPathFlag(
+        parser, "", "Path to directory for shell history", {'p'});
     try {
         parser.ParseCLI(argc, argv);
     } catch (std::exception& e) {
@@ -25,6 +30,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     auto databasePath = args::get(inputDirFlag);
+    auto pathToHistory = args::get(historyPathFlag);
     uint64_t bpSizeInMB = args::get(bpSizeInMBFlag);
     uint64_t bpSizeInBytes = -1u;
     if (bpSizeInMB != -1u) {
@@ -37,11 +43,22 @@ int main(int argc, char* argv[]) {
     if (readOnlyMode) {
         systemConfig.readOnly = true;
     }
+    if (!pathToHistory.empty() && pathToHistory.back() != '/') {
+        pathToHistory += '/';
+    }
+    pathToHistory += "history.txt";
+    std::unique_ptr<VirtualFileSystem> vfs = std::make_unique<VirtualFileSystem>();
+    try {
+        std::unique_ptr<FileInfo> fp = vfs->openFile(pathToHistory, O_CREAT);
+    } catch (Exception& e) {
+        std::cerr << "Invalid path to directory for history file" << "\n";
+        return 1;
+    }
     std::cout << "Opened the database at path: " << databasePath << " in "
               << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
     std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
     try {
-        auto shell = EmbeddedShell(databasePath, systemConfig);
+        auto shell = EmbeddedShell(databasePath, systemConfig, pathToHistory.c_str());
         shell.run();
     } catch (std::exception& e) {
         std::cerr << e.what() << '\n';
