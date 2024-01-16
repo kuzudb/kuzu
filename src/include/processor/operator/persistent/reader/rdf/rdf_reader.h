@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/copier_config/rdf_reader_config.h"
 #include "common/copier_config/reader_config.h"
 #include "common/data_chunk/data_chunk.h"
 #include "serd.h"
@@ -11,53 +10,117 @@ namespace processor {
 
 class RdfReader {
 public:
-    RdfReader(std::string filePath, common::FileType fileType, common::RdfReaderMode mode,
-        RdfStore* store)
-        : filePath{std::move(filePath)}, fileType{fileType}, mode{mode}, store{store},
-          reader{nullptr}, rowOffset{0}, status{SERD_SUCCESS}, dataChunk{nullptr} {}
+    RdfReader(std::string filePath, common::FileType fileType, RdfStore* store_)
+        : store_{store_}, cursor{0}, rowOffset{0}, filePath{std::move(filePath)},
+          fileType{fileType}, reader{nullptr}, status{SERD_SUCCESS} {}
 
-    ~RdfReader();
+    virtual ~RdfReader();
 
-    void initReader();
+    virtual void init() = 0;
 
-    common::offset_t read(common::DataChunk* dataChunk);
+    common::offset_t readChunk(common::DataChunk* dataChunk);
+    void readAll();
 
-private:
+protected:
+    void initInternal(SerdStatementSink statementHandle);
+
+    virtual uint64_t readToVector(common::DataChunk* dataChunk) = 0;
+
     static SerdStatus errorHandle(void* handle, const SerdError* error);
-
-    static SerdStatus rHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
-        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
-        const SerdNode* object_datatype, const SerdNode* object_lang);
-    static SerdStatus lHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
-        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
-        const SerdNode* object_datatype, const SerdNode* object_lang);
-    static SerdStatus rrrHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
-        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
-        const SerdNode* object_datatype, const SerdNode* object_lang);
-    static SerdStatus rrlHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
-        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
-        const SerdNode* object_datatype, const SerdNode* object_lang);
-    static SerdStatus allHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
-        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
-        const SerdNode* object_datatype, const SerdNode* object_lang);
-
     static SerdStatus prefixHandle(void* handle, const SerdNode* name, const SerdNode* uri);
 
+public:
+    RdfStore* store_;
+
+protected:
+    uint64_t cursor = 0;
+    common::offset_t rowOffset;
+
 private:
-    const std::string filePath;
+    std::string filePath;
     common::FileType fileType;
-    common::RdfReaderMode mode;
-    RdfStore* store;
 
     FILE* fp;
     SerdReader* reader;
 
     // TODO(Xiyang): use prefix to expand CURIE.
     const char* currentPrefix;
-    common::offset_t rowOffset;
     SerdStatus status;
+};
 
-    common::DataChunk* dataChunk;
+class RdfResourceReader final : public RdfReader {
+public:
+    RdfResourceReader(std::string filePath, common::FileType fileType, RdfStore* store_)
+        : RdfReader{filePath, fileType, store_} {}
+
+    inline void init() override { initInternal(handle); }
+
+private:
+    static SerdStatus handle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
+        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
+        const SerdNode* object_datatype, const SerdNode* object_lang);
+
+    uint64_t readToVector(common::DataChunk* dataChunk) override;
+};
+
+class RdfLiteralReader final : public RdfReader {
+public:
+    RdfLiteralReader(std::string filePath, common::FileType fileType, RdfStore* store_)
+        : RdfReader{filePath, fileType, store_} {}
+
+    inline void init() override { initInternal(handle); }
+
+private:
+    static SerdStatus handle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
+        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
+        const SerdNode* object_datatype, const SerdNode* object_lang);
+
+    uint64_t readToVector(common::DataChunk* dataChunk) override;
+};
+
+class RdfResourceTripleReader final : public RdfReader {
+public:
+    RdfResourceTripleReader(std::string filePath, common::FileType fileType, RdfStore* store_)
+        : RdfReader{filePath, fileType, store_} {}
+
+    inline void init() override { initInternal(handle); }
+
+private:
+    static SerdStatus handle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
+        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
+        const SerdNode* object_datatype, const SerdNode* object_lang);
+
+    uint64_t readToVector(common::DataChunk* dataChunk) override;
+};
+
+class RdfLiteralTripleReader final : public RdfReader {
+public:
+    RdfLiteralTripleReader(std::string filePath, common::FileType fileType, RdfStore* store_)
+        : RdfReader{filePath, fileType, store_} {}
+
+    inline void init() override { initInternal(handle); }
+
+private:
+    static SerdStatus handle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
+        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
+        const SerdNode* object_datatype, const SerdNode* object_lang);
+
+    uint64_t readToVector(common::DataChunk* dataChunk) override;
+};
+
+class RdfTripleReader final : public RdfReader {
+public:
+    RdfTripleReader(std::string filePath, common::FileType fileType, RdfStore* store_)
+        : RdfReader{filePath, fileType, store_} {}
+
+    inline void init() override { initInternal(handle); }
+
+private:
+    static SerdStatus handle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
+        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
+        const SerdNode* object_datatype, const SerdNode* object_lang);
+
+    uint64_t readToVector(common::DataChunk*) override { KU_UNREACHABLE; }
 };
 
 } // namespace processor
