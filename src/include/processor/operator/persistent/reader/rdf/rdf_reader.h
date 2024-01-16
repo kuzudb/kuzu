@@ -20,6 +20,7 @@ public:
 
     common::offset_t readChunk(common::DataChunk* dataChunk);
     void readAll();
+    void addNode(std::vector<std::string>& vector, const SerdNode* node);
 
 protected:
     void initInternal(SerdStatementSink statementHandle);
@@ -27,7 +28,7 @@ protected:
     virtual uint64_t readToVector(common::DataChunk* dataChunk) = 0;
 
     static SerdStatus errorHandle(void* handle, const SerdError* error);
-    static SerdStatus prefixHandle(void* handle, const SerdNode* name, const SerdNode* uri);
+    static SerdStatus prefixHandle(void* handle, const SerdNode* nameNode, const SerdNode* uriNode);
 
 public:
     RdfStore* store_;
@@ -43,8 +44,8 @@ private:
     FILE* fp;
     SerdReader* reader;
 
-    // TODO(Xiyang): use prefix to expand CURIE.
-    const char* currentPrefix;
+    std::string defaultPrefix;
+    std::unordered_map<std::string, std::string> prefixMap;
     SerdStatus status;
 };
 

@@ -3,7 +3,6 @@
 #include <cstdio>
 
 #include "common/constants.h"
-#include "common/exception/copy.h"
 #include "common/string_format.h"
 #include "common/vector/value_vector.h"
 #include "processor/operator/persistent/reader/rdf/rdf_utils.h"
@@ -39,20 +38,25 @@ void RdfReader::initInternal(SerdStatementSink statementSink) {
     fp = fopen(this->filePath.c_str(), "rb");
     reader = serd_reader_new(
         getSerdSyntax(fileType), this, nullptr, nullptr, prefixHandle, statementSink, nullptr);
-    serd_reader_set_strict(reader, false /* strict */);
+    serd_reader_set_strict(reader, true /* strict */);
     serd_reader_set_error_sink(reader, errorHandle, this);
     auto fileName = this->filePath.substr(this->filePath.find_last_of("/\\") + 1);
     serd_reader_start_stream(reader, fp, reinterpret_cast<const uint8_t*>(fileName.c_str()), true);
 }
 
-SerdStatus RdfReader::errorHandle(void*, const SerdError* error) {
-    if (error->status == SERD_ERR_BAD_SYNTAX) {
-        return error->status;
+SerdStatus RdfReader::errorHandle(void* handle, const SerdError* error) {
+    auto reader = reinterpret_cast<RdfReader*>(handle);
+    switch (error->status) {
+    case SERD_SUCCESS:
+    case SERD_FAILURE:
+        break;
+    default: {
+        serd_reader_skip_until_byte(reader->reader, (uint8_t)'\n');
+        // TODO: we should probably have a strict mode where exceptions are being thrown.
+        //        common::stringFormat("{} while reading rdf file at line {} and col {}",
+        //                (char*)serd_strerror(error->status), error->line, error->col));
+        break;
     }
-    if (error->status != SERD_SUCCESS && error->status != SERD_FAILURE) {
-        throw common::CopyException(
-            common::stringFormat("{} while reading rdf file at line {} and col {}",
-                (char*)serd_strerror(error->status), error->line, error->col));
     }
     return error->status;
 }
@@ -76,13 +80,28 @@ static bool supportTriple(
            supportSerdType(object->type);
 }
 
-static void addNode(std::vector<std::string>& vector, const SerdNode* node) {
-    vector.emplace_back((const char*)node->buf, node->n_bytes);
+static std::string getAsString(const SerdNode* node) {
+    return std::string((const char*)node->buf, node->n_bytes);
 }
 
-SerdStatus RdfReader::prefixHandle(void* handle, const SerdNode* /*name*/, const SerdNode* uri) {
+static std::string_view getAsStringView(const SerdNode* node) {
+    return std::string_view((const char*)node->buf, node->n_bytes);
+}
+
+SerdStatus RdfReader::prefixHandle(
+    void* handle, const SerdNode* nameNode, const SerdNode* uriNode) {
     auto reader = reinterpret_cast<RdfReader*>(handle);
-    reader->currentPrefix = reinterpret_cast<const char*>(uri->buf);
+    auto name = getAsString(nameNode);
+    auto uri = getAsString(uriNode);
+    if (name.empty()) {
+        reader->defaultPrefix = uri;
+        return SERD_SUCCESS;
+    }
+    if (!reader->prefixMap.contains(name)) {
+        reader->prefixMap.insert({name, uri});
+    } else {
+        throw RuntimeException(stringFormat("Detect duplicate prefix {}.", name));
+    }
     return SERD_SUCCESS;
 }
 
@@ -91,16 +110,10 @@ offset_t RdfReader::readChunk(DataChunk* dataChunk) {
         cursor = 0;
         store_->clear();
         while (true) {
-            if (status != SERD_SUCCESS || store_->size() > DEFAULT_VECTOR_CAPACITY) {
+            if (status == SERD_FAILURE || store_->size() > DEFAULT_VECTOR_CAPACITY) {
                 break;
             }
             status = serd_reader_read_chunk(reader);
-            if (status == SERD_ERR_BAD_SYNTAX) {
-                // Skip to the next line.
-                serd_reader_skip_until_byte(reader, (uint8_t)'\n');
-                status = SERD_SUCCESS;
-                continue;
-            }
         }
     }
     if (store_->isEmpty()) {
@@ -113,19 +126,37 @@ offset_t RdfReader::readChunk(DataChunk* dataChunk) {
 }
 
 void RdfReader::readAll() {
-    if (status) {
-        return;
-    }
     while (true) {
         status = serd_reader_read_chunk(reader);
-        if (status == SERD_ERR_BAD_SYNTAX) {
-            // Skip to the next line.
-            serd_reader_skip_until_byte(reader, (uint8_t)'\n');
-            continue;
-        }
-        if (status != SERD_SUCCESS) {
+        if (status == SERD_FAILURE) {
             return;
         }
+    }
+}
+
+void RdfReader::addNode(std::vector<std::string>& vector, const SerdNode* node) {
+    if (prefixMap.empty() && defaultPrefix.empty()) {
+        // No need to expand prefix
+        vector.emplace_back((const char*)node->buf, node->n_bytes);
+        return;
+    }
+    auto nodeStr = getAsStringView(node);
+    auto prefixEndPos = nodeStr.find_first_of(':');
+    if (prefixEndPos == std::string::npos) {
+        vector.emplace_back((const char*)node->buf, node->n_bytes);
+        return;
+    }
+    auto suffix = nodeStr.substr(prefixEndPos + 1);
+    if (prefixEndPos == 0) {
+        vector.emplace_back(defaultPrefix + std::string(suffix));
+        return;
+    }
+    auto prefix = nodeStr.substr(0, prefixEndPos);
+    if (prefixMap.contains(std::string(prefix))) {
+        auto expandedPrefix = prefixMap.at(std::string(prefix));
+        vector.emplace_back(expandedPrefix + std::string(suffix));
+    } else {
+        vector.emplace_back((const char*)node->buf, node->n_bytes);
     }
 }
 
@@ -138,12 +169,12 @@ SerdStatus RdfResourceReader::handle(void* handle, SerdStatementFlags, const Ser
     auto reader = reinterpret_cast<RdfReader*>(handle);
     auto& store = ku_dynamic_cast<RdfStore&, ResourceStore&>(*reader->store_);
     if (object->type == SERD_LITERAL) {
-        addNode(store.resources, subject);
-        addNode(store.resources, predicate);
+        reader->addNode(store.resources, subject);
+        reader->addNode(store.resources, predicate);
     } else {
-        addNode(store.resources, subject);
-        addNode(store.resources, predicate);
-        addNode(store.resources, object);
+        reader->addNode(store.resources, subject);
+        reader->addNode(store.resources, predicate);
+        reader->addNode(store.resources, object);
     }
     return SERD_SUCCESS;
 }
@@ -167,9 +198,9 @@ SerdStatus RdfLiteralReader::handle(void* handle, SerdStatementFlags, const Serd
     auto reader = reinterpret_cast<RdfReader*>(handle);
     auto& store = ku_dynamic_cast<RdfStore&, LiteralStore&>(*reader->store_);
     if (object->type == SERD_LITERAL) {
-        addNode(store.literals, object);
+        reader->addNode(store.literals, object);
         if (object_datatype != nullptr) {
-            addNode(store.literalTypes, object_datatype);
+            reader->addNode(store.literalTypes, object_datatype);
         } else {
             store.literalTypes.push_back("");
         }
@@ -203,9 +234,9 @@ SerdStatus RdfResourceTripleReader::handle(void* handle, SerdStatementFlags, con
     auto reader = reinterpret_cast<RdfReader*>(handle);
     auto& store = ku_dynamic_cast<RdfStore&, ResourceTripleStore&>(*reader->store_);
     if (object->type != SERD_LITERAL) {
-        addNode(store.subjects, subject);
-        addNode(store.predicates, predicate);
-        addNode(store.objects, object);
+        reader->addNode(store.subjects, subject);
+        reader->addNode(store.predicates, predicate);
+        reader->addNode(store.objects, object);
     }
     return SERD_SUCCESS;
 }
@@ -233,8 +264,8 @@ SerdStatus RdfLiteralTripleReader::handle(void* handle, SerdStatementFlags, cons
     auto reader = reinterpret_cast<RdfReader*>(handle);
     auto& store = ku_dynamic_cast<RdfStore&, LiteralTripleStore&>(*reader->store_);
     if (object->type == SERD_LITERAL) {
-        addNode(store.subjects, subject);
-        addNode(store.predicates, predicate);
+        reader->addNode(store.subjects, subject);
+        reader->addNode(store.predicates, predicate);
     }
     return SERD_SUCCESS;
 }
@@ -263,18 +294,18 @@ SerdStatus RdfTripleReader::handle(void* handle, SerdStatementFlags, const SerdN
     auto reader = reinterpret_cast<RdfReader*>(handle);
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*reader->store_);
     if (object->type == SERD_LITERAL) {
-        addNode(store.ltStore.subjects, subject);
-        addNode(store.ltStore.predicates, predicate);
-        addNode(store.ltStore.objects, object);
+        reader->addNode(store.ltStore.subjects, subject);
+        reader->addNode(store.ltStore.predicates, predicate);
+        reader->addNode(store.ltStore.objects, object);
         if (object_datatype != nullptr) {
-            addNode(store.ltStore.objectTypes, object_datatype);
+            reader->addNode(store.ltStore.objectTypes, object_datatype);
         } else {
             store.ltStore.objectTypes.push_back("");
         }
     } else {
-        addNode(store.rtStore.subjects, subject);
-        addNode(store.rtStore.predicates, predicate);
-        addNode(store.rtStore.objects, object);
+        reader->addNode(store.rtStore.subjects, subject);
+        reader->addNode(store.rtStore.predicates, predicate);
+        reader->addNode(store.rtStore.objects, object);
     }
     return SERD_SUCCESS;
 }

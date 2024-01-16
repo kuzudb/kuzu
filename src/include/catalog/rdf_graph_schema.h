@@ -23,6 +23,10 @@ public:
     inline common::table_id_t getLiteralTripleTableID() const { return literalTripleTableID; }
 
     static std::unique_ptr<RdfGraphSchema> deserialize(common::Deserializer& deserializer);
+    static std::string getResourceTableName(const std::string& graphName);
+    static std::string getLiteralTableName(const std::string& graphName);
+    static std::string getResourceTripleTableName(const std::string& graphName);
+    static std::string getLiteralTripleTableName(const std::string& graphName);
 
     inline std::unique_ptr<TableSchema> copy() const final {
         return std::make_unique<RdfGraphSchema>(*this);

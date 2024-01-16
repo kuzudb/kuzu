@@ -1,0 +1,22 @@
+@prefix a: <12 .
+@prefix b: http .
+@prefix c: http .
+@prefix : <p/> .
+
+:a :b :c ;
+
+a b c ;
+  d ;
+  e .
+\x
+
+\\\\\\\\\\ ;
+$$$$$$$$ ;
+中文 ;
+
+:x :y :z .
+
+
+:冯 :西 :洋 .
+
+@@<> .
