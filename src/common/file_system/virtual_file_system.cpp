@@ -2,6 +2,7 @@
 
 #include "common/assert.h"
 #include "common/file_system/local_file_system.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace common {
@@ -24,8 +25,8 @@ FileSystem* VirtualFileSystem::findFileSystem(const std::string& path) {
 }
 
 std::unique_ptr<FileInfo> VirtualFileSystem::openFile(
-    const std::string& path, int flags, FileLockType lockType) {
-    return findFileSystem(path)->openFile(path, flags, lockType);
+    const std::string& path, int flags, main::ClientContext* context, FileLockType lockType) {
+    return findFileSystem(path)->openFile(path, flags, context, lockType);
 }
 
 std::vector<std::string> VirtualFileSystem::glob(const std::string& path) {

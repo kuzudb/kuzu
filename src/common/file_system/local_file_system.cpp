@@ -37,7 +37,7 @@ LocalFileInfo::~LocalFileInfo() {
 }
 
 std::unique_ptr<FileInfo> LocalFileSystem::openFile(
-    const std::string& path, int flags, FileLockType lock_type) {
+    const std::string& path, int flags, main::ClientContext* /*context*/, FileLockType lock_type) {
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
     auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;

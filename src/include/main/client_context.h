@@ -62,7 +62,7 @@ public:
 
     void startTimingIfEnabled();
 
-    std::string getCurrentSetting(const std::string& optionName);
+    KUZU_API std::string getCurrentSetting(const std::string& optionName);
 
     transaction::Transaction* getTx() const;
     transaction::TransactionContext* getTransactionContext() const;

@@ -17,7 +17,7 @@ class BaseCSVReader {
 
 public:
     BaseCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
-        common::VirtualFileSystem* vfs);
+        common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     virtual ~BaseCSVReader() = default;
 

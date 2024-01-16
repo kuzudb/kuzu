@@ -28,6 +28,7 @@ struct LocalFileInfo : public FileInfo {
 class LocalFileSystem final : public FileSystem {
 public:
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
+        main::ClientContext* context = nullptr,
         FileLockType lock_type = FileLockType::NO_LOCK) override;
 
     std::vector<std::string> glob(const std::string& path) override;

@@ -21,7 +21,9 @@ HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
 
 HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags)
     : FileInfo{std::move(path), fileSystem}, flags{flags}, length{0},
-      availableBuffer{0}, bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0} {
+      availableBuffer{0}, bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0} {}
+
+void HTTPFileInfo::initialize() {
     initializeClient();
     auto hfs = ku_dynamic_cast<FileSystem*, HTTPFileSystem*>(fileSystem);
     auto res = hfs->headRequest(ku_dynamic_cast<HTTPFileInfo*, FileInfo*>(this), this->path, {});
@@ -34,8 +36,8 @@ HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags)
                 hfs->getRangeRequest(this, this->path, {}, 0, nullptr /* buffer */, 2);
             if (rangeRequest->code != 206) {
                 // LCOV_EXCL_START
-                throw IOException(stringFormat("Unable to connect to URL \"{}}\": {} ({})",
-                    this->path, res->code, res->error));
+                throw IOException(stringFormat(
+                    "Unable to connect to URL \"{}\": {} ({})", this->path, res->code, res->error));
                 // LCOV_EXCL_STOP
             }
             auto rangeFound = rangeRequest->headers["Content-Range"].find("/");
@@ -104,9 +106,11 @@ void HTTPFileInfo::initializeClient() {
     httpClient = HTTPFileSystem::getClient(host.c_str());
 }
 
-std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(
-    const std::string& path, int flags, common::FileLockType /*lock_type*/) {
-    return std::make_unique<HTTPFileInfo>(path, this, flags);
+std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& path, int flags,
+    main::ClientContext* /*context*/, common::FileLockType /*lock_type*/) {
+    auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags);
+    httpFileInfo->initialize();
+    return std::move(httpFileInfo);
 }
 
 std::vector<std::string> HTTPFileSystem::glob(const std::string& path) {
@@ -150,11 +154,11 @@ void HTTPFileSystem::readFromFile(
         }
 
         if (numBytesToRead > 0 && httpFileInfo->availableBuffer == 0) {
-            auto new_buffer_available = std::min<uint64_t>(
+            auto newBufferAvailableSize = std::min<uint64_t>(
                 httpFileInfo->READ_BUFFER_LEN, httpFileInfo->length - httpFileInfo->fileOffset);
 
             // Bypass buffer if we read more than buffer size.
-            if (numBytesToRead > new_buffer_available) {
+            if (numBytesToRead > newBufferAvailableSize) {
                 getRangeRequest(httpFileInfo, httpFileInfo->path, {}, position + bufferOffset,
                     (char*)buffer + bufferOffset, numBytesToRead);
                 httpFileInfo->availableBuffer = 0;
@@ -163,11 +167,11 @@ void HTTPFileSystem::readFromFile(
                 break;
             } else {
                 getRangeRequest(httpFileInfo, httpFileInfo->path, {}, httpFileInfo->fileOffset,
-                    (char*)httpFileInfo->readBuffer.get(), new_buffer_available);
-                httpFileInfo->availableBuffer = new_buffer_available;
+                    (char*)httpFileInfo->readBuffer.get(), newBufferAvailableSize);
+                httpFileInfo->availableBuffer = newBufferAvailableSize;
                 httpFileInfo->bufferIdx = 0;
                 httpFileInfo->bufferStartPos = httpFileInfo->fileOffset;
-                httpFileInfo->bufferEndPos = httpFileInfo->bufferStartPos + new_buffer_available;
+                httpFileInfo->bufferEndPos = httpFileInfo->bufferStartPos + newBufferAvailableSize;
             }
         }
     }

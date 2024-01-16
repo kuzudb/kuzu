@@ -17,7 +17,7 @@ class ParallelCSVReader final : public BaseCSVReader {
 
 public:
     ParallelCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
-        common::VirtualFileSystem* vfs);
+        common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     bool hasMoreToRead() const;
     uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) override;
@@ -38,10 +38,10 @@ struct ParallelCSVLocalState final : public function::TableFuncLocalState {
 
 struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {
     explicit ParallelCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
-        uint64_t numColumns, common::VirtualFileSystem* vfs,
+        uint64_t numColumns, common::VirtualFileSystem* vfs, main::ClientContext* context,
         common::CSVReaderConfig csvReaderConfig)
-        : ScanFileSharedState{std::move(readerConfig), numRows, vfs}, numColumns{numColumns},
-          csvReaderConfig{std::move(csvReaderConfig)} {}
+        : ScanFileSharedState{std::move(readerConfig), numRows, vfs, context},
+          numColumns{numColumns}, csvReaderConfig{std::move(csvReaderConfig)} {}
 
     void setFileComplete(uint64_t completedFileIdx);
 

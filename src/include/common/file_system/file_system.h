@@ -7,6 +7,10 @@
 #include "file_info.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+} // namespace main
+
 namespace common {
 
 enum class FileLockType : uint8_t { NO_LOCK = 0, READ_LOCK = 1, WRITE_LOCK = 2 };
@@ -17,8 +21,8 @@ class KUZU_API FileSystem {
 public:
     virtual ~FileSystem() = default;
 
-    virtual std::unique_ptr<FileInfo> openFile(
-        const std::string& path, int flags, FileLockType lock_type = FileLockType::NO_LOCK) = 0;
+    virtual std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
+        main::ClientContext* context = nullptr, FileLockType lock_type = FileLockType::NO_LOCK) = 0;
 
     virtual std::vector<std::string> glob(const std::string& path) = 0;
 

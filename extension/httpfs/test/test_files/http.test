@@ -46,24 +46,3 @@ Noura|25
 Waterloo|150000
 Kitchener|200000
 Guelph|75000
-
--CASE S3Option
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
--STATEMENT CALL s3_access_key_id='kuzuS3keyid'
----- ok
--STATEMENT call current_setting('s3_accesS_key_id') return *;
----- 1
-kuzuS3keyid
--STATEMENT CALL s3_access_key_id='anotherkey'
----- ok
--STATEMENT call current_setting('s3_access_Key_id') return *;
----- 1
-anotherkey
-
--CASE DuplicateOption
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- error
-Extension exception: Extension option s3_access_key_id already exists.

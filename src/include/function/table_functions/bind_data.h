@@ -2,6 +2,7 @@
 
 #include "common/copier_config/reader_config.h"
 #include "common/types/types.h"
+#include "main/client_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -31,13 +32,16 @@ struct ScanBindData : public TableFuncBindData {
     storage::MemoryManager* mm;
     common::ReaderConfig config;
     common::VirtualFileSystem* vfs;
+    main::ClientContext* context;
 
     ScanBindData(common::logical_types_t columnTypes, std::vector<std::string> columnNames,
-        storage::MemoryManager* mm, common::ReaderConfig config, common::VirtualFileSystem* vfs)
+        storage::MemoryManager* mm, common::ReaderConfig config, common::VirtualFileSystem* vfs,
+        main::ClientContext* context)
         : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, mm{mm},
-          config{std::move(config)}, vfs{vfs} {}
+          config{std::move(config)}, vfs{vfs}, context{context} {}
     ScanBindData(const ScanBindData& other)
-        : TableFuncBindData{other}, mm{other.mm}, config{other.config.copy()}, vfs{other.vfs} {}
+        : TableFuncBindData{other}, mm{other.mm}, config{other.config.copy()}, vfs{other.vfs},
+          context{other.context} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ScanBindData>(*this);

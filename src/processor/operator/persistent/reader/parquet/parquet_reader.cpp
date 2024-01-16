@@ -18,9 +18,9 @@ namespace processor {
 using namespace kuzu::function;
 using namespace kuzu::common;
 
-ParquetReader::ParquetReader(
-    const std::string& filePath, storage::MemoryManager* memoryManager, VirtualFileSystem* vfs)
-    : filePath{filePath}, memoryManager{memoryManager} {
+ParquetReader::ParquetReader(const std::string& filePath, storage::MemoryManager* memoryManager,
+    VirtualFileSystem* vfs, main::ClientContext* context)
+    : filePath{filePath}, memoryManager{memoryManager}, context{context} {
     initMetadata(vfs);
 }
 
@@ -32,7 +32,7 @@ void ParquetReader::initializeScan(
     state.groupIdxList = std::move(groups_to_read);
     if (!state.fileInfo || state.fileInfo->path != filePath) {
         state.prefetchMode = false;
-        state.fileInfo = vfs->openFile(filePath, O_RDONLY);
+        state.fileInfo = vfs->openFile(filePath, O_RDONLY, context);
     }
 
     state.thriftFileProto = createThriftProtocol(state.fileInfo.get(), state.prefetchMode);
@@ -166,7 +166,7 @@ void ParquetReader::scan(processor::ParquetReaderScanState& state, DataChunk& re
 }
 
 void ParquetReader::initMetadata(common::VirtualFileSystem* vfs) {
-    auto fileInfo = vfs->openFile(filePath, O_RDONLY);
+    auto fileInfo = vfs->openFile(filePath, O_RDONLY, context);
     auto proto = createThriftProtocol(fileInfo.get(), false);
     auto& transport = reinterpret_cast<ThriftFileTransport&>(*proto->getTransport());
     auto fileSize = transport.GetSize();
@@ -559,10 +559,12 @@ uint64_t ParquetReader::getGroupOffset(ParquetReaderScanState& state) {
 }
 
 ParquetScanSharedState::ParquetScanSharedState(common::ReaderConfig readerConfig,
-    storage::MemoryManager* memoryManager, uint64_t numRows, VirtualFileSystem* vfs)
-    : ScanFileSharedState{std::move(readerConfig), numRows, vfs}, memoryManager{memoryManager} {
-    readers.push_back(
-        std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx], memoryManager, vfs));
+    storage::MemoryManager* memoryManager, uint64_t numRows, VirtualFileSystem* vfs,
+    main::ClientContext* context)
+    : ScanFileSharedState{std::move(readerConfig), numRows, vfs, context}, memoryManager{
+                                                                               memoryManager} {
+    readers.push_back(std::make_unique<ParquetReader>(
+        this->readerConfig.filePaths[fileIdx], memoryManager, vfs, context));
 }
 
 function_set ParquetScanFunction::getFunctionSet() {
@@ -594,7 +596,7 @@ bool parquetSharedStateNext(
             }
             sharedState.readers.push_back(std::make_unique<ParquetReader>(
                 sharedState.readerConfig.filePaths[sharedState.fileIdx], sharedState.memoryManager,
-                sharedState.vfs));
+                sharedState.vfs, sharedState.context));
             continue;
         }
     }
@@ -633,7 +635,8 @@ std::unique_ptr<function::TableFuncBindData> ParquetScanFunction::bindFunc(
             scanInput->expectedColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes);
     }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->mm, scanInput->config.copy(), scanInput->vfs);
+        std::move(resultColumnNames), scanInput->mm, scanInput->config.copy(), scanInput->vfs,
+        scanInput->context);
 }
 
 std::unique_ptr<function::TableFuncSharedState> ParquetScanFunction::initSharedState(
@@ -642,11 +645,11 @@ std::unique_ptr<function::TableFuncSharedState> ParquetScanFunction::initSharedS
     row_idx_t numRows = 0;
     for (const auto& path : parquetScanBindData->config.filePaths) {
         auto reader = std::make_unique<ParquetReader>(
-            path, parquetScanBindData->mm, parquetScanBindData->vfs);
+            path, parquetScanBindData->mm, parquetScanBindData->vfs, parquetScanBindData->context);
         numRows += reader->getMetadata()->num_rows;
     }
     return std::make_unique<ParquetScanSharedState>(parquetScanBindData->config.copy(),
-        parquetScanBindData->mm, numRows, parquetScanBindData->vfs);
+        parquetScanBindData->mm, numRows, parquetScanBindData->vfs, parquetScanBindData->context);
 }
 
 std::unique_ptr<function::TableFuncLocalState> ParquetScanFunction::initLocalState(
@@ -677,8 +680,8 @@ void ParquetScanFunction::bindColumns(const ScanTableFuncBindInput* bindInput,
 void ParquetScanFunction::bindColumns(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
     std::vector<std::string>& columnNames,
     std::vector<std::unique_ptr<common::LogicalType>>& columnTypes) {
-    auto reader =
-        ParquetReader(bindInput->config.filePaths[fileIdx], bindInput->mm, bindInput->vfs);
+    auto reader = ParquetReader(
+        bindInput->config.filePaths[fileIdx], bindInput->mm, bindInput->vfs, bindInput->context);
     auto state = std::make_unique<processor::ParquetReaderScanState>();
     reader.initializeScan(*state, std::vector<uint64_t>{}, bindInput->vfs);
     for (auto i = 0u; i < reader.getNumColumns(); ++i) {
