@@ -25,6 +25,41 @@
 ---- 1
 10|12
 
+-CASE CreateOneToOneInBatch
+-STATEMENT create node table animal(id int64, primary key(id));
+---- ok
+-STATEMENT create node table person(id int64, primary key(id));
+---- ok
+-STATEMENT create rel table own(from person to animal, ONE_ONE);
+---- ok
+-STATEMENT create (:person {id:1});
+---- ok
+-STATEMENT create (:animal {id:1});
+---- ok
+-STATEMENT create (:person {id:2});
+---- ok
+-STATEMENT create (:animal {id:2});
+---- ok
+-STATEMENT create (:person {id:3});
+---- ok
+-STATEMENT create (:animal {id:3});
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT match (a:animal), (p:person) where a.id=1 and p.id=1 create (p)-[e:own]->(a);
+---- ok
+-STATEMENT match (a:animal), (p:person) where a.id=2 and p.id=2 create (p)-[e:own]->(a);
+---- ok
+-STATEMENT match (a:animal), (p:person) where a.id=3 and p.id=3 create (p)-[e:own]->(a);
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT match (a)-[e]->(b) return e;
+---- 3
+(1:0)-{_LABEL: own, _ID: 2:0}->(0:0)
+(1:1)-{_LABEL: own, _ID: 2:1}->(0:1)
+(1:2)-{_LABEL: own, _ID: 2:2}->(0:2)
+
 -CASE CreateOneToOneRelOnLargeNodeTable
 -STATEMENT CREATE NODE TABLE N1(ID INT64, PRIMARY KEY(ID));
 ---- ok
