@@ -12,6 +12,7 @@ enum class TokenType {
     DATASET,
     GROUP,
     SKIP,
+    SKIP_MUSL,
     SKIP_WINDOWS,
     // body
     BEGIN_READ_ONLY_TRANSACTION,
@@ -49,6 +50,7 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenTyp
     {"-BEGIN_WRITE_TRANSACTION", TokenType::BEGIN_WRITE_TRANSACTION},
     {"-BEGIN_READ_ONLY_TRANSACTION", TokenType::BEGIN_READ_ONLY_TRANSACTION},
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-SKIP", TokenType::SKIP},
+    {"-SKIP_MUSL", TokenType::SKIP_MUSL}, {"-SKIP_LINE", TokenType::DEFINE},
     {"-SKIP_WINDOWS", TokenType::SKIP_WINDOWS}, {"-DEFINE", TokenType::DEFINE},
     {"-STATEMENT", TokenType::STATEMENT},
     {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
