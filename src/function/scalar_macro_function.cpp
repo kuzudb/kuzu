@@ -29,7 +29,7 @@ std::unique_ptr<ScalarMacroFunction> ScalarMacroFunction::copy() const {
 void ScalarMacroFunction::serialize(Serializer& serializer) const {
     expression->serialize(serializer);
     serializer.serializeVector(positionalArgs);
-    auto vectorSize = defaultArgs.size();
+    uint64_t vectorSize = defaultArgs.size();
     serializer.serializeValue(vectorSize);
     for (auto& defaultArg : defaultArgs) {
         serializer.serializeValue(defaultArg.first);

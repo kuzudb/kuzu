@@ -19,7 +19,7 @@ struct AvgFunction {
 
         T sum;
         uint64_t count = 0;
-        double_t avg = 0;
+        double avg = 0;
     };
 
     static std::unique_ptr<AggregateState> initialize() { return std::make_unique<AvgState>(); }
@@ -81,7 +81,7 @@ struct AvgFunction {
     static void finalize(uint8_t* state_) {
         auto* state = reinterpret_cast<AvgState*>(state_);
         if (!state->isNull) {
-            state->avg = state->sum / (double_t)state->count;
+            state->avg = state->sum / (double)state->count;
         }
     }
 };

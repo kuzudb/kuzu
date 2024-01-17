@@ -220,8 +220,8 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
             ScalarFunction::UnaryCastStringExecFunction<ku_string_t, bool, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, double_t, CastString,
-            EXECUTOR>;
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, double, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::FLOAT: {
         execFunc =
@@ -328,11 +328,11 @@ static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
             CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, double_t,
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, double,
             CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::FLOAT: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, float_t,
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, float,
             CastFromRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::SERIAL:
@@ -416,10 +416,10 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
         func = ScalarFunction::UnaryCastExecFunction<uint8_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        func = ScalarFunction::UnaryCastExecFunction<double_t, ku_string_t, CastToString, EXECUTOR>;
+        func = ScalarFunction::UnaryCastExecFunction<double, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::FLOAT: {
-        func = ScalarFunction::UnaryCastExecFunction<float_t, ku_string_t, CastToString, EXECUTOR>;
+        func = ScalarFunction::UnaryCastExecFunction<float, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::DATE: {
         func = ScalarFunction::UnaryCastExecFunction<date_t, ku_string_t, CastToString, EXECUTOR>;
@@ -520,11 +520,11 @@ static std::unique_ptr<ScalarFunction> bindCastToRdfVariantFunction(
             CastToRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<double_t, struct_entry_t,
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<double, struct_entry_t,
             CastToRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::FLOAT: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<float_t, struct_entry_t,
+        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<float, struct_entry_t,
             CastToRdfVariant, UnaryFunctionExecutor>;
     } break;
     case LogicalTypeID::SERIAL:
@@ -604,10 +604,10 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(
         func = ScalarFunction::UnaryExecFunction<int128_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::FLOAT: {
-        func = ScalarFunction::UnaryExecFunction<float_t, DST_TYPE, OP, EXECUTOR>;
+        func = ScalarFunction::UnaryExecFunction<float, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        func = ScalarFunction::UnaryExecFunction<double_t, DST_TYPE, OP, EXECUTOR>;
+        func = ScalarFunction::UnaryExecFunction<double, DST_TYPE, OP, EXECUTOR>;
     } break;
     default:
         throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
@@ -703,11 +703,11 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
         return bindCastToRdfVariantFunction(functionName, sourceTypeID);
     }
     case LogicalTypeID::DOUBLE: {
-        return bindCastToNumericFunction<double_t, CastToDouble, EXECUTOR>(
+        return bindCastToNumericFunction<double, CastToDouble, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::FLOAT: {
-        return bindCastToNumericFunction<float_t, CastToFloat, EXECUTOR>(
+        return bindCastToNumericFunction<float, CastToFloat, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::INT128: {

@@ -1,7 +1,5 @@
 #include "common/types/types.h"
 
-#include <cmath>
-
 #include "common/cast.h"
 #include "common/constants.h"
 #include "common/exception/binder.h"
@@ -88,9 +86,9 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
     case PhysicalTypeID::INT128:
         return sizeof(int128_t);
     case PhysicalTypeID::DOUBLE:
-        return sizeof(double_t);
+        return sizeof(double);
     case PhysicalTypeID::FLOAT:
-        return sizeof(float_t);
+        return sizeof(float);
     case PhysicalTypeID::INTERVAL:
         return sizeof(interval_t);
     case PhysicalTypeID::INTERNAL_ID:

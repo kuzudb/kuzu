@@ -181,7 +181,7 @@ void CatalogContent::saveToFile(const std::string& directory, FileVersionType db
         std::make_unique<BufferedFileWriter>(vfs->openFile(catalogPath, O_WRONLY | O_CREAT)));
     writeMagicBytes(serializer);
     serializer.serializeValue(StorageVersionInfo::getStorageVersion());
-    serializer.serializeValue(tableSchemas.size());
+    serializer.serializeValue((uint64_t)tableSchemas.size());
     for (auto& [tableID, tableSchema] : tableSchemas) {
         serializer.serializeValue(tableID);
         tableSchema->serialize(serializer);

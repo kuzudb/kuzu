@@ -32,9 +32,9 @@ std::string TypeUtils::castValueToString(
     case LogicalTypeID::INT128:
         return TypeUtils::toString(*reinterpret_cast<const int128_t*>(value));
     case LogicalTypeID::DOUBLE:
-        return TypeUtils::toString(*reinterpret_cast<const double_t*>(value));
+        return TypeUtils::toString(*reinterpret_cast<const double*>(value));
     case LogicalTypeID::FLOAT:
-        return TypeUtils::toString(*reinterpret_cast<const float_t*>(value));
+        return TypeUtils::toString(*reinterpret_cast<const float*>(value));
     case LogicalTypeID::DATE:
         return TypeUtils::toString(*reinterpret_cast<const date_t*>(value));
     case LogicalTypeID::TIMESTAMP_NS:

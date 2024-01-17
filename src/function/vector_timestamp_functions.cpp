@@ -27,7 +27,7 @@ function_set ToTimestampFunction::getFunctionSet() {
     function_set result;
     result.push_back(make_unique<ScalarFunction>(TO_TIMESTAMP_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::DOUBLE}, LogicalTypeID::TIMESTAMP,
-        ScalarFunction::UnaryExecFunction<double_t, timestamp_t, ToTimestamp>));
+        ScalarFunction::UnaryExecFunction<double, timestamp_t, ToTimestamp>));
     return result;
 }
 

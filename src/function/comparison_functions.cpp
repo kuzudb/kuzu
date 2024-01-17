@@ -1,7 +1,5 @@
 #include "function/comparison/comparison_functions.h"
 
-#include <cmath>
-
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
 
@@ -65,14 +63,13 @@ static void executeNestedOperation(uint8_t& result, ValueVector* leftVector,
             nullptr /* right */);
     } break;
     case PhysicalTypeID::DOUBLE: {
-        OP::operation(leftVector->getValue<double_t>(leftPos),
-            rightVector->getValue<double_t>(rightPos), result, nullptr /* left */,
+        OP::operation(leftVector->getValue<double>(leftPos),
+            rightVector->getValue<double>(rightPos), result, nullptr /* left */,
             nullptr /* right */);
     } break;
     case PhysicalTypeID::FLOAT: {
-        OP::operation(leftVector->getValue<float_t>(leftPos),
-            rightVector->getValue<float_t>(rightPos), result, nullptr /* left */,
-            nullptr /* right */);
+        OP::operation(leftVector->getValue<float>(leftPos), rightVector->getValue<float>(rightPos),
+            result, nullptr /* left */, nullptr /* right */);
     } break;
     case PhysicalTypeID::STRING: {
         OP::operation(leftVector->getValue<ku_string_t>(leftPos),

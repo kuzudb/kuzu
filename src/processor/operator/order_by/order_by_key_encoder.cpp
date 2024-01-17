@@ -243,11 +243,11 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
         return;
     }
     case PhysicalTypeID::DOUBLE: {
-        func = encodeTemplate<double_t>;
+        func = encodeTemplate<double>;
         return;
     }
     case PhysicalTypeID::FLOAT: {
-        func = encodeTemplate<float_t>;
+        func = encodeTemplate<float>;
         return;
     }
     case PhysicalTypeID::STRING: {
@@ -338,7 +338,7 @@ void OrderByKeyEncoder::encodeData(bool data, uint8_t* resultPtr, bool /*swapByt
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(double_t data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(double data, uint8_t* resultPtr, bool swapBytes) {
     memcpy(resultPtr, &data, sizeof(data));
     uint64_t* dataBytes = (uint64_t*)resultPtr;
     if (swapBytes) {
@@ -385,7 +385,7 @@ void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool /*
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(float_t data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(float data, uint8_t* resultPtr, bool swapBytes) {
     memcpy(resultPtr, &data, sizeof(data));
     uint32_t* dataBytes = (uint32_t*)resultPtr;
     if (swapBytes) {

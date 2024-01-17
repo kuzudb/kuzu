@@ -43,7 +43,13 @@ SystemConfig::SystemConfig(
             (std::uint64_t)sysconf(_SC_PHYS_PAGES) * (std::uint64_t)sysconf(_SC_PAGESIZE);
 #endif
         bufferPoolSize_ = (uint64_t)(BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM *
-                                     (double_t)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
+                                     (double)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
+        // On 32-bit systems or systems with extremely large memory, the buffer pool size may
+        // exceed the maximum size of a VMRegion. In this case, we set the buffer pool size to
+        // 80% of the maximum size of a VMRegion.
+        bufferPoolSize_ = (uint64_t)std::min(
+            (double)bufferPoolSize_, BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE *
+                                         BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM);
     }
     bufferPoolSize = bufferPoolSize_;
     if (maxNumThreads == 0) {

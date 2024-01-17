@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cmath>
 #include <utility>
 
 #include "common/api.h"
@@ -99,7 +98,7 @@ public:
     /**
      * @param val_ the float value to set.
      */
-    KUZU_API explicit Value(float_t val_);
+    KUZU_API explicit Value(float val_);
     /**
      * @param val_ the date value to set.
      */
@@ -571,7 +570,7 @@ KUZU_API inline int128_t& Value::getValueReference() {
  * @return the reference to the float value.
  */
 template<>
-KUZU_API inline float_t& Value::getValueReference() {
+KUZU_API inline float& Value::getValueReference() {
     KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::FLOAT);
     return val.floatVal;
 }
@@ -580,7 +579,7 @@ KUZU_API inline float_t& Value::getValueReference() {
  * @return the reference to the double value.
  */
 template<>
-KUZU_API inline double_t& Value::getValueReference() {
+KUZU_API inline double& Value::getValueReference() {
     KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::DOUBLE);
     return val.doubleVal;
 }

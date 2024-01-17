@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cmath>
 #include <cstdint>
 #include <unordered_set>
 
@@ -109,12 +108,12 @@ inline void Hash::operation(const common::int128_t& key, common::hash_t& result)
 }
 
 template<>
-inline void Hash::operation(const double_t& key, common::hash_t& result) {
+inline void Hash::operation(const double& key, common::hash_t& result) {
     result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const float_t& key, common::hash_t& result) {
+inline void Hash::operation(const float& key, common::hash_t& result) {
     result = murmurhash64(key);
 }
 

@@ -82,6 +82,7 @@ void TestParser::parseHeader() {
 #ifdef _WIN32
             testGroup->group = "DISABLED_" + testGroup->group;
 #endif
+            break;
         }
         case TokenType::SEPARATOR: {
             return;

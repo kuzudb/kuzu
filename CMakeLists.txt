@@ -40,6 +40,14 @@ if(UNIX AND NOT APPLE)
   set(OS_NAME "linux") # sorry BSD
 endif()
 
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(STATUS "64-bit architecture detected")
+    add_compile_definitions(__64BIT__)
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(STATUS "32-bit architecture detected")
+    add_compile_definitions(__32BIT__)
+endif()
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()

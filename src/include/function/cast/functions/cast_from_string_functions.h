@@ -92,16 +92,16 @@ inline void CastString::operation(const ku_string_t& input, uint8_t& result,
 }
 
 template<>
-inline void CastString::operation(const ku_string_t& input, float_t& result,
+inline void CastString::operation(const ku_string_t& input, float& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    doubleCast<float_t>(
+    doubleCast<float>(
         reinterpret_cast<const char*>(input.getData()), input.len, result, LogicalTypeID::FLOAT);
 }
 
 template<>
-inline void CastString::operation(const ku_string_t& input, double_t& result,
+inline void CastString::operation(const ku_string_t& input, double& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    doubleCast<double_t>(
+    doubleCast<double>(
         reinterpret_cast<const char*>(input.getData()), input.len, result, LogicalTypeID::DOUBLE);
 }
 

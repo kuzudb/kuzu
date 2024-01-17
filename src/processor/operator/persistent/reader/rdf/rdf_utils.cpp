@@ -24,7 +24,7 @@ void RdfUtils::addRdfLiteral(common::ValueVector* vector, uint32_t pos, const ch
             }
         } else if (type.ends_with(XSD_double) || type.ends_with(XSD_decimal)) {
             // XSD:double or XSD:decimal
-            double_t result;
+            double result;
             if (function::tryDoubleCast(buf, length, result)) {
                 RdfVariantVector::add(vector, pos, result);
                 resolveAsString = false;

@@ -39,7 +39,7 @@ TEST_F(ApiTest, PrepareDouble) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.age = 35 RETURN a.eyeSight + $1");
     auto result =
-        conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), (double_t)10.5));
+        conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), (double)10.5));
     ASSERT_TRUE(result->hasNext());
     checkTuple(result->getNext().get(), "15.500000\n");
     ASSERT_FALSE(result->hasNext());

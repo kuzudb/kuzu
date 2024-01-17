@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 #include "common/utils.h"
 #include "processor/result/factorized_table.h"
 #include "storage/buffer_manager/memory_manager.h"

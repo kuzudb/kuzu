@@ -54,7 +54,7 @@ jobs:
       - name: Extension test
         run: |
           cd scripts/ && python3 http-server.py &
-          make extension-test   
+          make extension-test
 
       - name: Build
         run: make all
@@ -81,6 +81,33 @@ jobs:
         with:
           file: cover.info
           functionalities: "search"
+
+  gcc-build-test-x86:
+    name: gcc build & test 32-bit
+    needs: [clang-formatting-check, sanity-checks]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Start Docker container
+        run: |
+         docker run -d --name kuzu-x86 \
+                    -v $PWD:/kuzu -w /kuzu \
+                    -e NUM_THREADS=2 -e GEN=ninja -e CC=gcc -e CXX=g++ \
+                    i386/debian:latest tail -f /dev/null
+
+      - name: Install dependencies
+        run: |
+          docker exec kuzu-x86 apt-get update
+          docker exec kuzu-x86 apt-get install -y git python3 ninja-build build-essential cmake libssl-dev
+
+      - name: Build & Test
+        run: |
+          docker exec kuzu-x86 make test
+      
+      - name: Stop Docker container
+        run: docker stop kuzu-x86
 
   rust-build-test:
     name: rust build & test

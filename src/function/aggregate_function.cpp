@@ -36,9 +36,9 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunc(std::string
     case common::LogicalTypeID::UINT8:
         return getAggFunc<SumFunction<uint8_t>>(name, inputType, resultType, isDistinct);
     case common::LogicalTypeID::DOUBLE:
-        return getAggFunc<SumFunction<double_t>>(name, inputType, resultType, isDistinct);
+        return getAggFunc<SumFunction<double>>(name, inputType, resultType, isDistinct);
     case common::LogicalTypeID::FLOAT:
-        return getAggFunc<SumFunction<float_t>>(name, inputType, resultType, isDistinct);
+        return getAggFunc<SumFunction<float>>(name, inputType, resultType, isDistinct);
     default:
         KU_UNREACHABLE;
     }
@@ -71,10 +71,9 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunc(std::string
     case common::LogicalTypeID::UINT8:
         return getAggFunc<AvgFunction<uint8_t>>(std::move(name), inputType, resultType, isDistinct);
     case common::LogicalTypeID::DOUBLE:
-        return getAggFunc<AvgFunction<double_t>>(
-            std::move(name), inputType, resultType, isDistinct);
+        return getAggFunc<AvgFunction<double>>(std::move(name), inputType, resultType, isDistinct);
     case common::LogicalTypeID::FLOAT:
-        return getAggFunc<AvgFunction<float_t>>(std::move(name), inputType, resultType, isDistinct);
+        return getAggFunc<AvgFunction<float>>(std::move(name), inputType, resultType, isDistinct);
     default:
         KU_UNREACHABLE;
     }
@@ -153,15 +152,14 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(std:
             MinMaxFunction<uint8_t>::combine<FUNC>, MinMaxFunction<uint8_t>::finalize, isDistinct);
     case PhysicalTypeID::DOUBLE:
         return std::make_unique<AggregateFunction>(std::move(name), std::move(inputTypes),
-            resultType, MinMaxFunction<double_t>::initialize,
-            MinMaxFunction<double_t>::updateAll<FUNC>, MinMaxFunction<double_t>::updatePos<FUNC>,
-            MinMaxFunction<double_t>::combine<FUNC>, MinMaxFunction<double_t>::finalize,
-            isDistinct);
+            resultType, MinMaxFunction<double>::initialize, MinMaxFunction<double>::updateAll<FUNC>,
+            MinMaxFunction<double>::updatePos<FUNC>, MinMaxFunction<double>::combine<FUNC>,
+            MinMaxFunction<double>::finalize, isDistinct);
     case PhysicalTypeID::FLOAT:
         return std::make_unique<AggregateFunction>(std::move(name), std::move(inputTypes),
-            resultType, MinMaxFunction<float_t>::initialize,
-            MinMaxFunction<float_t>::updateAll<FUNC>, MinMaxFunction<float_t>::updatePos<FUNC>,
-            MinMaxFunction<float_t>::combine<FUNC>, MinMaxFunction<float_t>::finalize, isDistinct);
+            resultType, MinMaxFunction<float>::initialize, MinMaxFunction<float>::updateAll<FUNC>,
+            MinMaxFunction<float>::updatePos<FUNC>, MinMaxFunction<float>::combine<FUNC>,
+            MinMaxFunction<float>::finalize, isDistinct);
     case PhysicalTypeID::INTERVAL:
         return std::make_unique<AggregateFunction>(std::move(name), std::move(inputTypes),
             resultType, MinMaxFunction<interval_t>::initialize,

@@ -615,7 +615,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
     auto text = ctx.RegularDecimalReal()->getText();
     ku_string_t literal{text.c_str(), text.length()};
-    double_t result;
+    double result;
     function::CastString::operation(literal, result);
     return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
 }

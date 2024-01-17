@@ -145,10 +145,10 @@ void TopKBuffer::getSelectComparisonFunction(
         selectFunc = function::BinaryFunctionExecutor::selectComparison<int16_t, int16_t, FUNC>;
     } break;
     case common::PhysicalTypeID::DOUBLE: {
-        selectFunc = function::BinaryFunctionExecutor::selectComparison<double_t, double_t, FUNC>;
+        selectFunc = function::BinaryFunctionExecutor::selectComparison<double, double, FUNC>;
     } break;
     case common::PhysicalTypeID::FLOAT: {
-        selectFunc = function::BinaryFunctionExecutor::selectComparison<float_t, float_t, FUNC>;
+        selectFunc = function::BinaryFunctionExecutor::selectComparison<float, float, FUNC>;
     } break;
     case common::PhysicalTypeID::BOOL: {
         selectFunc = function::BinaryFunctionExecutor::selectComparison<bool, bool, FUNC>;

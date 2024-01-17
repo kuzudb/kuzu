@@ -71,8 +71,12 @@ struct BufferPoolConstants {
     // `removeNonEvictableCandidates` to remove candidates that are not evictable. See
     // `EvictionQueue::removeNonEvictableCandidates()` for more details.
     static constexpr uint64_t EVICTION_QUEUE_PURGING_INTERVAL = 1024;
-    // The default max size for a VMRegion.
+// The default max size for a VMRegion.
+#ifdef __32BIT__
+    static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 30; // (1GB)
+#else
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 43; // (8TB)
+#endif
 
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
 };

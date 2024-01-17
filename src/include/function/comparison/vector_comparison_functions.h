@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cmath>
-
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
 #include "comparison_functions.h"
@@ -163,10 +161,10 @@ private:
             func = BinaryComparisonSelectFunction<common::int128_t, common::int128_t, FUNC>;
         } break;
         case common::PhysicalTypeID::DOUBLE: {
-            func = BinaryComparisonSelectFunction<double_t, double_t, FUNC>;
+            func = BinaryComparisonSelectFunction<double, double, FUNC>;
         } break;
         case common::PhysicalTypeID::FLOAT: {
-            func = BinaryComparisonSelectFunction<float_t, float_t, FUNC>;
+            func = BinaryComparisonSelectFunction<float, float, FUNC>;
         } break;
         case common::PhysicalTypeID::BOOL: {
             func = BinaryComparisonSelectFunction<uint8_t, uint8_t, FUNC>;

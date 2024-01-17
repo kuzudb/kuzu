@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cmath>
-
 #include "common/exception/overflow.h"
 #include "common/string_format.h"
 #include "common/type_utils.h"
@@ -53,7 +51,7 @@ inline void CastDateToTimestamp::operation(common::date_t& input, common::timest
 
 struct CastToDouble {
     template<typename T>
-    static inline void operation(T& input, double_t& result) {
+    static inline void operation(T& input, double& result) {
         if (!tryCastWithOverflowCheck(input, result)) {
             throw common::OverflowException{common::stringFormat(
                 "Value {} is not within DOUBLE range", common::TypeUtils::toString(input))};
@@ -62,7 +60,7 @@ struct CastToDouble {
 };
 
 template<>
-inline void CastToDouble::operation(common::int128_t& input, double_t& result) {
+inline void CastToDouble::operation(common::int128_t& input, double& result) {
     if (!common::Int128_t::tryCast(input, result)) { // LCOV_EXCL_START
         throw common::OverflowException{common::stringFormat(
             "Value {} is not within DOUBLE range", common::TypeUtils::toString(input))};
@@ -71,7 +69,7 @@ inline void CastToDouble::operation(common::int128_t& input, double_t& result) {
 
 struct CastToFloat {
     template<typename T>
-    static inline void operation(T& input, float_t& result) {
+    static inline void operation(T& input, float& result) {
         if (!tryCastWithOverflowCheck(input, result)) {
             throw common::OverflowException{common::stringFormat(
                 "Value {} is not within FLOAT range", common::TypeUtils::toString(input))};
@@ -80,7 +78,7 @@ struct CastToFloat {
 };
 
 template<>
-inline void CastToFloat::operation(common::int128_t& input, float_t& result) {
+inline void CastToFloat::operation(common::int128_t& input, float& result) {
     if (!common::Int128_t::tryCast(input, result)) { // LCOV_EXCL_START
         throw common::OverflowException{common::stringFormat(
             "Value {} is not within FLOAT range", common::TypeUtils::toString(input))};

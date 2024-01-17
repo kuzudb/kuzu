@@ -71,7 +71,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::BOOL:
         return Value(true);
     case LogicalTypeID::DOUBLE:
-        return Value((double_t)0);
+        return Value((double)0);
     case LogicalTypeID::DATE:
         return Value(date_t());
     case LogicalTypeID::TIMESTAMP_NS:
@@ -95,7 +95,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::STRING:
         return Value(LogicalType::STRING(), std::string(""));
     case LogicalTypeID::FLOAT:
-        return Value((float_t)0);
+        return Value((float)0);
     case LogicalTypeID::FIXED_LIST: {
         std::vector<std::unique_ptr<Value>> children;
         auto childType = FixedListType::getChildType(&dataType);
@@ -186,7 +186,7 @@ Value::Value(uuid_t val_) : isNull_{false} {
     val.int128Val = val_.value;
 }
 
-Value::Value(float_t val_) : isNull_{false} {
+Value::Value(float val_) : isNull_{false} {
     dataType = LogicalType::FLOAT();
     val.floatVal = val_;
 }
@@ -306,7 +306,7 @@ void Value::copyValueFrom(const uint8_t* value) {
         val.doubleVal = *((double*)value);
     } break;
     case LogicalTypeID::FLOAT: {
-        val.floatVal = *((float_t*)value);
+        val.floatVal = *((float*)value);
     } break;
     case LogicalTypeID::INTERVAL: {
         val.intervalVal = *((interval_t*)value);
@@ -741,10 +741,10 @@ std::string Value::rdfVariantToString() const {
         return TypeUtils::toString(Blob::getValue<uint8_t>(blobData));
     }
     case LogicalTypeID::DOUBLE: {
-        return TypeUtils::toString(Blob::getValue<double_t>(blobData));
+        return TypeUtils::toString(Blob::getValue<double>(blobData));
     }
     case LogicalTypeID::FLOAT: {
-        return TypeUtils::toString(Blob::getValue<float_t>(blobData));
+        return TypeUtils::toString(Blob::getValue<float>(blobData));
     }
     case LogicalTypeID::BOOL: {
         return TypeUtils::toString(Blob::getValue<bool>(blobData));
