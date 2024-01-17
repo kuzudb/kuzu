@@ -6,6 +6,12 @@
 #include <unistd.h>
 #endif
 
+#if defined(__linux__) && defined(__GLIBC__)
+// Do nothing if glibc is used
+#else
+#define __MUSL__
+#endif
+
 #include <filesystem>
 
 #include "common/string_utils.h"
@@ -81,6 +87,13 @@ void TestParser::parseHeader() {
         case TokenType::SKIP_WINDOWS: {
 #ifdef _WIN32
             testGroup->group = "DISABLED_" + testGroup->group;
+            break;
+#endif
+        }
+        case TokenType::SKIP_MUSL: {
+#ifdef __MUSL__
+            testGroup->group = "DISABLED_" + testGroup->group;
+            break;
 #endif
         }
         case TokenType::SEPARATOR: {
@@ -327,8 +340,14 @@ void TestParser::parseBody() {
         case TokenType::SKIP_WINDOWS: {
 #ifdef _WIN32
             testCaseName = "DISABLED_" + testCaseName;
-#endif
             break;
+#endif
+        }
+        case TokenType::SKIP_MUSL: {
+#ifdef __MUSL__
+            testCaseName = "DISABLED_" + testCaseName;
+            break;
+#endif
         }
         case TokenType::EMPTY: {
             break;

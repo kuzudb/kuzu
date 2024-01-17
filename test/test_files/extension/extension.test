@@ -7,6 +7,8 @@
 
 # TODO: Extension on windows has not been supported yet due to a linking issue.
 -SKIP_WINDOWS
+# TODO: Extension on musl libc has not been supported yet due to no prebuilt binary.
+-SKIP_MUSL
 -LOG InstallExtension
 -STATEMENT INSTALL httpfs;
 ---- ok
@@ -18,6 +20,7 @@ Guelph|75000
 Kitchener|200000
 Waterloo|150000
 
+-CASE ExtensionErrorTest
 -SKIP
 # TODO: The error message is dependent on platform.
 -LOG InstallInvalidExtension
