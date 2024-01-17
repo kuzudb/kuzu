@@ -61,4 +61,4 @@
 -LOG MultiLabelNodePruning
 -STATEMENT MATCH (a:person)-[:knows]->(b)<-[:studyAt]-(c) RETURN COUNT(*)
 ---- error
-Binder exception: Cannot find a label for node b that connects to all of its neighbour relationships.
+Binder exception: Query node b violates schema. Expected labels are organisation.

@@ -29,29 +29,43 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
             continue;
         }
         common::table_id_set_t candidates;
+        std::unordered_set<std::string> candidateNamesSet;
         auto isSrcConnect = *queryRel->getSrcNode() == node;
         auto isDstConnect = *queryRel->getDstNode() == node;
+        auto tx = &DUMMY_READ_TRANSACTION;
         if (queryRel->getDirectionType() == RelDirectionType::BOTH) {
             if (isSrcConnect || isDstConnect) {
                 for (auto relTableID : queryRel->getTableIDs()) {
                     auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-                        catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
-                    candidates.insert(relTableSchema->getSrcTableID());
-                    candidates.insert(relTableSchema->getDstTableID());
+                        catalog.getTableSchema(tx, relTableID));
+                    auto srcTableID = relTableSchema->getSrcTableID();
+                    auto dstTableID = relTableSchema->getDstTableID();
+                    candidates.insert(srcTableID);
+                    candidates.insert(dstTableID);
+                    auto srcTableSchema = catalog.getTableSchema(tx, srcTableID);
+                    auto dstTableSchema = catalog.getTableSchema(tx, dstTableID);
+                    candidateNamesSet.insert(srcTableSchema->tableName);
+                    candidateNamesSet.insert(dstTableSchema->tableName);
                 }
             }
         } else {
             if (isSrcConnect) {
                 for (auto relTableID : queryRel->getTableIDs()) {
                     auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-                        catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
-                    candidates.insert(relTableSchema->getSrcTableID());
+                        catalog.getTableSchema(tx, relTableID));
+                    auto srcTableID = relTableSchema->getSrcTableID();
+                    candidates.insert(srcTableID);
+                    auto srcTableSchema = catalog.getTableSchema(tx, srcTableID);
+                    candidateNamesSet.insert(srcTableSchema->tableName);
                 }
             } else if (isDstConnect) {
                 for (auto relTableID : queryRel->getTableIDs()) {
                     auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-                        catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
-                    candidates.insert(relTableSchema->getDstTableID());
+                        catalog.getTableSchema(tx, relTableID));
+                    auto dstTableID = relTableSchema->getDstTableID();
+                    candidates.insert(dstTableID);
+                    auto dstTableSchema = catalog.getTableSchema(tx, dstTableID);
+                    candidateNamesSet.insert(dstTableSchema->tableName);
                 }
             }
         }
@@ -66,9 +80,15 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
             prunedTableIDs.push_back(tableID);
         }
         if (prunedTableIDs.empty()) {
-            throw BinderException(stringFormat("Cannot find a label for node {} that connects to "
-                                               "all of its neighbour relationships.",
-                node.toString()));
+            auto candidateNames =
+                std::vector<std::string>{candidateNamesSet.begin(), candidateNamesSet.end()};
+            auto candidateStr = candidateNames[0];
+            for (auto j = 1u; j < candidateNames.size(); ++j) {
+                candidateStr += ", " + candidateNames[j];
+            }
+            throw BinderException(
+                stringFormat("Query node {} violates schema. Expected labels are {}.",
+                    node.toString(), candidateStr));
         }
         node.setTableIDs(std::move(prunedTableIDs));
     }
