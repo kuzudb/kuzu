@@ -20,7 +20,7 @@ void NPArrayWrapper::appendElement(Value* value) {
             ((uint8_t*)dataBuffer)[numElements] = value->getValue<bool>();
         } break;
         case LogicalTypeID::INT128: {
-            Int128_t::tryCast(value->getValue<int128_t>(), ((double_t*)dataBuffer)[numElements]);
+            Int128_t::tryCast(value->getValue<int128_t>(), ((double*)dataBuffer)[numElements]);
         } break;
         case LogicalTypeID::INT64: {
             ((int64_t*)dataBuffer)[numElements] = value->getValue<int64_t>();
@@ -47,10 +47,10 @@ void NPArrayWrapper::appendElement(Value* value) {
             ((uint8_t*)dataBuffer)[numElements] = value->getValue<uint8_t>();
         } break;
         case LogicalTypeID::DOUBLE: {
-            ((double_t*)dataBuffer)[numElements] = value->getValue<double>();
+            ((double*)dataBuffer)[numElements] = value->getValue<double>();
         } break;
         case LogicalTypeID::FLOAT: {
-            ((float_t*)dataBuffer)[numElements] = value->getValue<float>();
+            ((float*)dataBuffer)[numElements] = value->getValue<float>();
         } break;
         case LogicalTypeID::DATE: {
             ((int64_t*)dataBuffer)[numElements] =

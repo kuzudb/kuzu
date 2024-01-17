@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cmath>
-
 #include "common/types/date_t.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
@@ -24,7 +22,7 @@ public:
                       std::is_same<T, int16_t>::value || std::is_same<T, int8_t>::value ||
                       std::is_same<T, uint64_t>::value || std::is_same<T, uint32_t>::value ||
                       std::is_same<T, uint16_t>::value || std::is_same<T, uint8_t>::value ||
-                      std::is_same<T, double_t>::value || std::is_same<T, float_t>::value);
+                      std::is_same<T, double>::value || std::is_same<T, float>::value);
         return std::to_string(val);
     }
 

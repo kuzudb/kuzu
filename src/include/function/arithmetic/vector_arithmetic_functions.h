@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cmath>
-
 #include "common/types/int128_t.h"
 #include "function/scalar_function.h"
 
@@ -78,10 +76,10 @@ private:
                 FUNC>;
         } break;
         case common::LogicalTypeID::DOUBLE: {
-            func = ScalarFunction::UnaryExecFunction<double_t, double_t, FUNC>;
+            func = ScalarFunction::UnaryExecFunction<double, double, FUNC>;
         } break;
         case common::LogicalTypeID::FLOAT: {
-            func = ScalarFunction::UnaryExecFunction<float_t, float_t, FUNC>;
+            func = ScalarFunction::UnaryExecFunction<float, float, FUNC>;
         } break;
         default:
             KU_UNREACHABLE;
@@ -121,10 +119,10 @@ private:
                 kuzu::common::int128_t, kuzu::common::int128_t, FUNC>;
         } break;
         case common::LogicalTypeID::DOUBLE: {
-            func = ScalarFunction::BinaryExecFunction<double_t, double_t, double_t, FUNC>;
+            func = ScalarFunction::BinaryExecFunction<double, double, double, FUNC>;
         } break;
         case common::LogicalTypeID::FLOAT: {
-            func = ScalarFunction::BinaryExecFunction<float_t, float_t, float_t, FUNC>;
+            func = ScalarFunction::BinaryExecFunction<float, float, float, FUNC>;
         } break;
         default:
             KU_UNREACHABLE;

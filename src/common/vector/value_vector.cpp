@@ -209,10 +209,10 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
                 memcpy(bufferToWrite, &val->getValueReference<int16_t>(), numBytesPerChildValue);
             } break;
             case PhysicalTypeID::DOUBLE: {
-                memcpy(bufferToWrite, &val->getValueReference<double_t>(), numBytesPerChildValue);
+                memcpy(bufferToWrite, &val->getValueReference<double>(), numBytesPerChildValue);
             } break;
             case PhysicalTypeID::FLOAT: {
-                memcpy(bufferToWrite, &val->getValueReference<float_t>(), numBytesPerChildValue);
+                memcpy(bufferToWrite, &val->getValueReference<float>(), numBytesPerChildValue);
             } break;
             default: {
                 KU_UNREACHABLE;
@@ -267,10 +267,10 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
         value->val.int128Val = getValue<int128_t>(pos);
     } break;
     case PhysicalTypeID::DOUBLE: {
-        value->val.doubleVal = getValue<double_t>(pos);
+        value->val.doubleVal = getValue<double>(pos);
     } break;
     case PhysicalTypeID::FLOAT: {
-        value->val.floatVal = getValue<float_t>(pos);
+        value->val.floatVal = getValue<float>(pos);
     } break;
     case PhysicalTypeID::BOOL: {
         value->val.booleanVal = getValue<bool>(pos);
@@ -404,8 +404,8 @@ template KUZU_API void ValueVector::setValue<uint32_t>(uint32_t pos, uint32_t va
 template KUZU_API void ValueVector::setValue<uint16_t>(uint32_t pos, uint16_t val);
 template KUZU_API void ValueVector::setValue<uint8_t>(uint32_t pos, uint8_t val);
 template KUZU_API void ValueVector::setValue<int128_t>(uint32_t pos, int128_t val);
-template KUZU_API void ValueVector::setValue<double_t>(uint32_t pos, double_t val);
-template KUZU_API void ValueVector::setValue<float_t>(uint32_t pos, float_t val);
+template KUZU_API void ValueVector::setValue<double>(uint32_t pos, double val);
+template KUZU_API void ValueVector::setValue<float>(uint32_t pos, float val);
 template KUZU_API void ValueVector::setValue<date_t>(uint32_t pos, date_t val);
 template KUZU_API void ValueVector::setValue<timestamp_t>(uint32_t pos, timestamp_t val);
 template KUZU_API void ValueVector::setValue<timestamp_ns_t>(uint32_t pos, timestamp_ns_t val);
@@ -754,11 +754,11 @@ void RdfVariantVector::add(ValueVector* vector, sel_t pos, uint8_t val) {
     addRdfVariant(vector, pos, LogicalTypeID::UINT8, val);
 }
 template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, double_t val) {
+void RdfVariantVector::add(ValueVector* vector, sel_t pos, double val) {
     addRdfVariant(vector, pos, LogicalTypeID::DOUBLE, val);
 }
 template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, float_t val) {
+void RdfVariantVector::add(ValueVector* vector, sel_t pos, float val) {
     addRdfVariant(vector, pos, LogicalTypeID::FLOAT, val);
 }
 template<>

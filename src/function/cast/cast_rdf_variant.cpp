@@ -43,10 +43,10 @@ static void castToNumeric(ValueVector& inputVector, uint64_t inputPos, T& result
         succeed = tryCastWithOverflowCheck(Blob::getValue<uint8_t>(blob), result);
     } break;
     case LogicalTypeID::DOUBLE: {
-        succeed = tryCastWithOverflowCheck(Blob::getValue<double_t>(blob), result);
+        succeed = tryCastWithOverflowCheck(Blob::getValue<double>(blob), result);
     } break;
     case LogicalTypeID::FLOAT: {
-        succeed = tryCastWithOverflowCheck(Blob::getValue<float_t>(blob), result);
+        succeed = tryCastWithOverflowCheck(Blob::getValue<float>(blob), result);
     } break;
     default:
         succeed = false;
@@ -98,12 +98,12 @@ void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, ui
 }
 template<>
 void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
-    double_t& result, ValueVector& resultVector, uint64_t resultPos) {
+    double& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 template<>
 void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
-    float_t& result, ValueVector& resultVector, uint64_t resultPos) {
+    float& result, ValueVector& resultVector, uint64_t resultPos) {
     castToNumeric(inputVector, inputPos, result, resultVector, resultPos);
 }
 
@@ -225,11 +225,11 @@ void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, ui
         CastToString::operation(val, result, *blobVector, resultVector);
     } break;
     case LogicalTypeID::DOUBLE: {
-        auto val = Blob::getValue<double_t>(blob);
+        auto val = Blob::getValue<double>(blob);
         CastToString::operation(val, result, *blobVector, resultVector);
     } break;
     case LogicalTypeID::FLOAT: {
-        auto val = Blob::getValue<float_t>(blob);
+        auto val = Blob::getValue<float>(blob);
         CastToString::operation(val, result, *blobVector, resultVector);
     } break;
     case LogicalTypeID::BOOL: {

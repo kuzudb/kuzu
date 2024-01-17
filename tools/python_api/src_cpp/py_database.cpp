@@ -21,10 +21,10 @@ void PyDatabase::initialize(py::handle& m) {
         .def("scan_node_table_as_int16", &PyDatabase::scanNodeTable<std::int16_t>,
             py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
             py::arg("num_threads"))
-        .def("scan_node_table_as_double", &PyDatabase::scanNodeTable<std::double_t>,
+        .def("scan_node_table_as_double", &PyDatabase::scanNodeTable<double>,
             py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
             py::arg("num_threads"))
-        .def("scan_node_table_as_float", &PyDatabase::scanNodeTable<std::float_t>,
+        .def("scan_node_table_as_float", &PyDatabase::scanNodeTable<float>,
             py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
             py::arg("num_threads"))
         .def("scan_node_table_as_bool", &PyDatabase::scanNodeTable<bool>, py::arg("table_name"),

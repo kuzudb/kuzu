@@ -705,11 +705,11 @@ void AggregateHashTable::getCompareEntryWithKeysFunc(
         return;
     }
     case PhysicalTypeID::DOUBLE: {
-        func = compareEntry<double_t>;
+        func = compareEntry<double>;
         return;
     }
     case PhysicalTypeID::FLOAT: {
-        func = compareEntry<float_t>;
+        func = compareEntry<float>;
         return;
     }
     case PhysicalTypeID::STRING: {

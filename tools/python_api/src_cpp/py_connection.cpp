@@ -184,7 +184,7 @@ Value transformPythonValue(py::handle val) {
     } else if (py::isinstance<py::int_>(val)) {
         return Value::createValue<int64_t>(val.cast<int64_t>());
     } else if (py::isinstance<py::float_>(val)) {
-        return Value::createValue<double_t>(val.cast<double_t>());
+        return Value::createValue<double>(val.cast<double>());
     } else if (py::isinstance<py::str>(val)) {
         return Value::createValue<std::string>(val.cast<std::string>());
     } else if (py::isinstance(val, datetime_datetime)) {

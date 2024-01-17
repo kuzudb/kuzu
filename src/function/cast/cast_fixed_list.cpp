@@ -280,10 +280,10 @@ static void getFixedListChildFuncHelper(scalar_cast_func& func, LogicalTypeID in
         func = UnaryFunctionWrapper::operation<uint64_t, DST_TYPE, OP>;
     } break;
     case LogicalTypeID::FLOAT: {
-        func = UnaryFunctionWrapper::operation<float_t, DST_TYPE, OP>;
+        func = UnaryFunctionWrapper::operation<float, DST_TYPE, OP>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        func = UnaryFunctionWrapper::operation<double_t, DST_TYPE, OP>;
+        func = UnaryFunctionWrapper::operation<double, DST_TYPE, OP>;
     } break;
     default: {
         throw ConversionException{
@@ -307,10 +307,10 @@ static void getFixedListChildCastFunc(
         return getFixedListChildFuncHelper<int16_t, CastToInt16>(func, inputType);
     }
     case LogicalTypeID::DOUBLE: {
-        return getFixedListChildFuncHelper<double_t, CastToDouble>(func, inputType);
+        return getFixedListChildFuncHelper<double, CastToDouble>(func, inputType);
     }
     case LogicalTypeID::FLOAT: {
-        return getFixedListChildFuncHelper<float_t, CastToFloat>(func, inputType);
+        return getFixedListChildFuncHelper<float, CastToFloat>(func, inputType);
     }
     default: {
         throw RuntimeException("Unsupported FIXED_LIST type: Function::getFixedListChildCastFunc");

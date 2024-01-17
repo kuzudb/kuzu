@@ -19,7 +19,9 @@ std::string getOS() {
 
 std::string getArch() {
     std::string arch = "amd64";
-#if defined(__aarch64__) || defined(__ARM_ARCH_ISA_A64)
+#if defined(__i386__) || defined(_M_IX86)
+    arch = "x86";
+#elif defined(__aarch64__) || defined(__ARM_ARCH_ISA_A64)
     arch = "arm64";
 #endif
     return arch;

@@ -22,7 +22,7 @@ struct EpochMs {
 };
 
 struct ToTimestamp {
-    static inline void operation(double_t& sec, common::timestamp_t& result) {
+    static inline void operation(double& sec, common::timestamp_t& result) {
         int64_t ms;
         if (!tryCastWithOverflowCheck(sec * common::Interval::MICROS_PER_SEC, ms)) {
             throw common::ConversionException("Could not convert epoch seconds to TIMESTAMP");

@@ -128,8 +128,8 @@ function_set ModuloFunction::getFunctionSet() {
 
 function_set PowerFunction::getFunctionSet() {
     function_set result;
-    // double_t ^ double_t -> double_t
-    result.push_back(ArithmeticFunction::getBinaryFunction<Power, double_t>(
+    // double ^ double -> double
+    result.push_back(ArithmeticFunction::getBinaryFunction<Power, double>(
         POWER_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
@@ -168,49 +168,49 @@ function_set CeilFunction::getFunctionSet() {
 
 function_set SinFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Sin, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Sin, double>(
         SIN_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set CosFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Cos, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Cos, double>(
         COS_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set TanFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Tan, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Tan, double>(
         TAN_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set CotFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Cot, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Cot, double>(
         COT_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set AsinFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Asin, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Asin, double>(
         ASIN_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set AcosFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Acos, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Acos, double>(
         ACOS_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set AtanFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Atan, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Atan, double>(
         ATAN_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
@@ -225,70 +225,70 @@ function_set FactorialFunction::getFunctionSet() {
 
 function_set SqrtFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Sqrt, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Sqrt, double>(
         SQRT_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set CbrtFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Cbrt, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Cbrt, double>(
         CBRT_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set GammaFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Gamma, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Gamma, double>(
         GAMMA_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set LgammaFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Lgamma, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Lgamma, double>(
         LGAMMA_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set LnFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Ln, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Ln, double>(
         LN_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set LogFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Log, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Log, double>(
         LOG_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set Log2Function::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Log2, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Log2, double>(
         LOG2_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set DegreesFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Degrees, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Degrees, double>(
         DEGREES_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set RadiansFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Radians, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Radians, double>(
         RADIANS_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set EvenFunction::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getUnaryFunction<Even, double_t>(
+    result.push_back(ArithmeticFunction::getUnaryFunction<Even, double>(
         EVEN_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
@@ -306,7 +306,7 @@ function_set SignFunction::getFunctionSet() {
 
 function_set Atan2Function::getFunctionSet() {
     function_set result;
-    result.push_back(ArithmeticFunction::getBinaryFunction<Atan2, double_t>(
+    result.push_back(ArithmeticFunction::getBinaryFunction<Atan2, double>(
         ATAN2_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::DOUBLE));
     return result;
 }
@@ -315,8 +315,7 @@ function_set RoundFunction::getFunctionSet() {
     function_set result;
     result.push_back(make_unique<ScalarFunction>(ROUND_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::DOUBLE, LogicalTypeID::INT64},
-        LogicalTypeID::DOUBLE,
-        ScalarFunction::BinaryExecFunction<double_t, int64_t, double_t, Round>));
+        LogicalTypeID::DOUBLE, ScalarFunction::BinaryExecFunction<double, int64_t, double, Round>));
     return result;
 }
 
@@ -358,7 +357,7 @@ function_set BitShiftRightFunction::getFunctionSet() {
 function_set PiFunction::getFunctionSet() {
     function_set result;
     result.push_back(make_unique<ScalarFunction>(PI_FUNC_NAME, std::vector<LogicalTypeID>{},
-        LogicalTypeID::DOUBLE, ScalarFunction::ConstExecFunction<double_t, Pi>));
+        LogicalTypeID::DOUBLE, ScalarFunction::ConstExecFunction<double, Pi>));
     return result;
 }
 

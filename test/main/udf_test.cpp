@@ -30,8 +30,8 @@ TEST_F(ApiTest, UnaryUDFAddDate) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
-static float_t times2(int64_t x) {
-    return float_t(2 * x);
+static float times2(int64_t x) {
+    return float(2 * x);
 }
 
 TEST_F(ApiTest, UnaryUDFFloat) {
@@ -43,8 +43,8 @@ TEST_F(ApiTest, UnaryUDFFloat) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
-static double_t timesFloat(int32_t x) {
-    return (double_t)2.4 * x;
+static double timesFloat(int32_t x) {
+    return (double)2.4 * x;
 }
 
 TEST_F(ApiTest, UnaryUDFDouble) {

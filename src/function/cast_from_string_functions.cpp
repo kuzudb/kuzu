@@ -73,15 +73,15 @@ inline void CastStringHelper::cast(const char* input, uint64_t len, uint8_t& res
 }
 
 template<>
-inline void CastStringHelper::cast(const char* input, uint64_t len, float_t& result,
+inline void CastStringHelper::cast(const char* input, uint64_t len, float& result,
     ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    doubleCast<float_t>(input, len, result, LogicalTypeID::FLOAT);
+    doubleCast<float>(input, len, result, LogicalTypeID::FLOAT);
 }
 
 template<>
-inline void CastStringHelper::cast(const char* input, uint64_t len, double_t& result,
+inline void CastStringHelper::cast(const char* input, uint64_t len, double& result,
     ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    doubleCast<double_t>(input, len, result, LogicalTypeID::DOUBLE);
+    doubleCast<double>(input, len, result, LogicalTypeID::DOUBLE);
 }
 
 template<>
@@ -409,11 +409,11 @@ void CastStringHelper::castToFixedList(const char* input, uint64_t len, ValueVec
         startListCast(input, len, split, option, vector);
     } break;
     case LogicalTypeID::FLOAT: {
-        SplitStringFixedListOperation<float_t> split{startOffset, vector};
+        SplitStringFixedListOperation<float> split{startOffset, vector};
         startListCast(input, len, split, option, vector);
     } break;
     case LogicalTypeID::DOUBLE: {
-        SplitStringFixedListOperation<double_t> split{startOffset, vector};
+        SplitStringFixedListOperation<double> split{startOffset, vector};
         startListCast(input, len, split, option, vector);
     } break;
     default: {
@@ -721,12 +721,12 @@ static bool tryCastUnionField(
         testAndSetValue(vector, rowToAdd, result, success);
     } break;
     case LogicalTypeID::DOUBLE: {
-        double_t result;
+        double result;
         success = function::tryDoubleCast(input, len, result);
         testAndSetValue(vector, rowToAdd, result, success);
     } break;
     case LogicalTypeID::FLOAT: {
-        float_t result;
+        float result;
         success = function::tryDoubleCast(input, len, result);
         testAndSetValue(vector, rowToAdd, result, success);
     } break;
@@ -867,12 +867,12 @@ void CastString::copyStringToVector(
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::FLOAT: {
-        float_t val;
+        float val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::DOUBLE: {
-        double_t val;
+        double val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;

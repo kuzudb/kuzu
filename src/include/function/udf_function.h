@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cmath>
-
 #include "common/exception/binder.h"
 #include "common/exception/catalog.h"
 #include "common/types/blob.h"
@@ -187,9 +185,9 @@ struct UDF {
             return common::LogicalTypeID::INT32;
         } else if (std::is_same<T, int64_t>()) {
             return common::LogicalTypeID::INT64;
-        } else if (std::is_same<T, float_t>()) {
+        } else if (std::is_same<T, float>()) {
             return common::LogicalTypeID::FLOAT;
-        } else if (std::is_same<T, double_t>()) {
+        } else if (std::is_same<T, double>()) {
             return common::LogicalTypeID::DOUBLE;
         } else if (std::is_same<T, common::ku_string_t>()) {
             return common::LogicalTypeID::STRING;

@@ -1,3 +1,4 @@
+#include "graph_test/api_graph_test.h"
 #include "main_test_helper/main_test_helper.h"
 
 using namespace kuzu::common;
@@ -9,7 +10,7 @@ TEST_F(ApiTest, ClientConfig) {
     ASSERT_EQ(conn->getMaxNumThreadForExec(), 2);
 }
 
-TEST_F(ApiTest, DatabasePathIncorrect) {
+TEST_F(APIEmptyDBTest, DatabasePathIncorrect) {
     try {
         std::make_unique<Database>("0:* /? \" < > |");
         FAIL();

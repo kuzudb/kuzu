@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cmath>
-
 #include "common/exception/binder.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
@@ -56,11 +54,11 @@ struct ListFunction {
                 common::int128_t, RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::DOUBLE: {
-            execFunc = ScalarFunction::BinaryExecListStructFunction<common::list_entry_t, double_t,
+            execFunc = ScalarFunction::BinaryExecListStructFunction<common::list_entry_t, double,
                 RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::FLOAT: {
-            execFunc = ScalarFunction::BinaryExecListStructFunction<common::list_entry_t, float_t,
+            execFunc = ScalarFunction::BinaryExecListStructFunction<common::list_entry_t, float,
                 RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::STRING: {
@@ -198,13 +196,12 @@ struct ListFunction {
         } break;
         case common::LogicalTypeID::DOUBLE: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, double_t,
+                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, double,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::FLOAT: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, float_t,
-                    OPERATION>;
+                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, float, OPERATION>;
         } break;
         default: {
             throw common::BinderException(

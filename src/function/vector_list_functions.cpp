@@ -189,11 +189,11 @@ std::unique_ptr<FunctionBindData> ListExtractFunction::bindFunc(
     } break;
     case PhysicalTypeID::DOUBLE: {
         scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, double_t, ListExtract>;
+            BinaryExecListExtractFunction<list_entry_t, int64_t, double, ListExtract>;
     } break;
     case PhysicalTypeID::FLOAT: {
         scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, float_t, ListExtract>;
+            BinaryExecListExtractFunction<list_entry_t, int64_t, float, ListExtract>;
     } break;
     case PhysicalTypeID::INTERVAL: {
         scalarFunction->execFunc =
@@ -405,10 +405,10 @@ std::unique_ptr<FunctionBindData> ListSortFunction::bindFunc(
         getExecFunction<int128_t>(arguments, scalarFunction->execFunc);
     } break;
     case LogicalTypeID::DOUBLE: {
-        getExecFunction<double_t>(arguments, scalarFunction->execFunc);
+        getExecFunction<double>(arguments, scalarFunction->execFunc);
     } break;
     case LogicalTypeID::FLOAT: {
-        getExecFunction<float_t>(arguments, scalarFunction->execFunc);
+        getExecFunction<float>(arguments, scalarFunction->execFunc);
     } break;
     case LogicalTypeID::BOOL: {
         getExecFunction<uint8_t>(arguments, scalarFunction->execFunc);
@@ -507,10 +507,10 @@ std::unique_ptr<FunctionBindData> ListReverseSortFunction::bindFunc(
         getExecFunction<int128_t>(arguments, scalarFunction->execFunc);
     } break;
     case LogicalTypeID::DOUBLE: {
-        getExecFunction<double_t>(arguments, scalarFunction->execFunc);
+        getExecFunction<double>(arguments, scalarFunction->execFunc);
     } break;
     case LogicalTypeID::FLOAT: {
-        getExecFunction<float_t>(arguments, scalarFunction->execFunc);
+        getExecFunction<float>(arguments, scalarFunction->execFunc);
     } break;
     case LogicalTypeID::BOOL: {
         getExecFunction<uint8_t>(arguments, scalarFunction->execFunc);
@@ -629,11 +629,11 @@ std::unique_ptr<FunctionBindData> ListDistinctFunction::bindFunc(
     } break;
     case LogicalTypeID::DOUBLE: {
         scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
-            list_entry_t, ListDistinct<double_t>>;
+            list_entry_t, ListDistinct<double>>;
     } break;
     case LogicalTypeID::FLOAT: {
         scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
-            list_entry_t, ListDistinct<float_t>>;
+            list_entry_t, ListDistinct<float>>;
     } break;
     case LogicalTypeID::BOOL: {
         scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
@@ -732,12 +732,12 @@ std::unique_ptr<FunctionBindData> ListUniqueFunction::bindFunc(
             int64_t, ListUnique<int128_t>>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
-            int64_t, ListUnique<double_t>>;
+        scalarFunction->execFunc =
+            ScalarFunction::UnaryExecListStructFunction<list_entry_t, int64_t, ListUnique<double>>;
     } break;
     case LogicalTypeID::FLOAT: {
         scalarFunction->execFunc =
-            ScalarFunction::UnaryExecListStructFunction<list_entry_t, int64_t, ListUnique<float_t>>;
+            ScalarFunction::UnaryExecListStructFunction<list_entry_t, int64_t, ListUnique<float>>;
     } break;
     case LogicalTypeID::BOOL: {
         scalarFunction->execFunc =
@@ -838,11 +838,11 @@ std::unique_ptr<FunctionBindData> ListAnyValueFunction::bindFunc(
     } break;
     case LogicalTypeID::DOUBLE: {
         scalarFunction->execFunc =
-            ScalarFunction::UnaryExecListStructFunction<list_entry_t, double_t, ListAnyValue>;
+            ScalarFunction::UnaryExecListStructFunction<list_entry_t, double, ListAnyValue>;
     } break;
     case LogicalTypeID::FLOAT: {
         scalarFunction->execFunc =
-            ScalarFunction::UnaryExecListStructFunction<list_entry_t, float_t, ListAnyValue>;
+            ScalarFunction::UnaryExecListStructFunction<list_entry_t, float, ListAnyValue>;
     } break;
     case LogicalTypeID::BOOL: {
         scalarFunction->execFunc =

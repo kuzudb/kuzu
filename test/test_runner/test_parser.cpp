@@ -95,6 +95,7 @@ void TestParser::parseHeader() {
             testGroup->group = "DISABLED_" + testGroup->group;
             break;
 #endif
+            break;
         }
         case TokenType::SEPARATOR: {
             return;
