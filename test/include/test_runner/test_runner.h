@@ -24,7 +24,7 @@ private:
     static std::vector<std::string> convertResultToString(
         main::QueryResult& queryResult, bool checkOutputOrder = false);
     static std::string convertResultToMD5Hash(main::QueryResult& queryResult,
-        std::string sortType); // returns hash and number of values hashed
+        bool checkOutputOrder); // returns hash and number of values hashed
     static bool checkPlanResult(std::unique_ptr<main::QueryResult>& result,
         TestStatement* statement, const std::string& planStr, uint32_t planIndex);
 };

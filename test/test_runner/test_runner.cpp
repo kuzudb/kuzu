@@ -113,7 +113,7 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         TestRunner::convertResultToString(*result, statement->checkOutputOrder);
     if (statement->expectHash) {
         std::string resultHash =
-            TestRunner::convertResultToMD5Hash(*result, statement->hashSortType);
+            TestRunner::convertResultToMD5Hash(*result, statement->checkOutputOrder);
         if (resultTuples.size() == result->getNumTuples() &&
             resultHash == statement->expectedHashValue &&
             resultTuples.size() == statement->expectedNumTuples) {
@@ -156,67 +156,20 @@ std::vector<std::string> TestRunner::convertResultToString(
     }
     if (!checkOutputOrder) {
         sort(actualOutput.begin(), actualOutput.end());
+        // NOTE: If you wish to change this sorting in a
+        // way that alters its result, you may break existing
+        // hashed test cases
     }
     return actualOutput;
 }
 
-std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, std::string sortType) {
+std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool checkOutputOrder) {
     queryResult.resetIterator();
     MD5 hasher;
-    if (sortType == "nosort" || sortType == "") {
-        while (queryResult.hasNext()) {
-            const auto tuple = queryResult.getNext();
-            for (uint32_t i = 0; i < tuple->len(); i++) {
-                const auto val = tuple->getValue(i);
-                if (val->isNull()) {
-                    hasher.addToMD5("NULL\n");
-                } else {
-                    hasher.addToMD5(val->toString().c_str());
-                    hasher.addToMD5("\n");
-                }
-            }
-        }
-    } else if (sortType == "rowsort") {
-        std::vector<std::vector<std::string>> buffer;
-        while (queryResult.hasNext()) {
-            const auto tuple = queryResult.getNext();
-            buffer.push_back(std::vector<std::string>());
-            for (uint32_t i = 0; i < tuple->len(); i++) {
-                const auto val = tuple->getValue(i);
-                if (val->isNull()) {
-                    buffer.back().push_back("NULL");
-                } else {
-                    buffer.back().push_back(val->toString());
-                }
-            }
-        }
-        sort(buffer.begin(), buffer.end());
-        for (const auto& i : buffer) {
-            for (const auto& i2 : i) {
-                hasher.addToMD5(i2.c_str());
-                hasher.addToMD5("\n");
-            }
-        }
-    } else if (sortType == "valuesort") {
-        std::vector<std::string> buffer;
-        while (queryResult.hasNext()) {
-            const auto tuple = queryResult.getNext();
-            for (uint32_t i = 0; i < tuple->len(); i++) {
-                const auto val = tuple->getValue(i);
-                if (val->isNull()) {
-                    buffer.push_back("NULL");
-                } else {
-                    buffer.push_back(val->toString());
-                }
-            }
-        }
-        sort(buffer.begin(), buffer.end());
-        for (const auto& i : buffer) {
-            hasher.addToMD5(i.c_str());
-            hasher.addToMD5("\n");
-        }
-    } else {
-        return "error: invalid sort type \"" + sortType + "\"";
+    std::vector<std::string> stringRep = convertResultToString(queryResult, checkOutputOrder);
+    for (std::string line : stringRep) {
+        hasher.addToMD5(line.c_str());
+        hasher.addToMD5("\n");
     }
     return std::string(hasher.finishMD5());
 }

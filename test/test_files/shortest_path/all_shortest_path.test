@@ -17,8 +17,9 @@
 
 -LOG SingleSource
 -STATEMENT MATCH (a:person)-[r:knows* ALL SHORTEST 1..30]->(b:person) WHERE a.ID = 10 RETURN b.ID, length(r), COUNT(*) ORDER BY b.ID
+-CHECK_ORDER
 ---- hash
-7 tuples hashed to 4aac03f739ba75ec2f5fdf2a418097c8
+7 tuples hashed to 11065b8084b9a2b8ebe386d22d287117
 
 #---- 7
 #0|1|1
