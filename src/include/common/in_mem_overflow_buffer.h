@@ -59,8 +59,8 @@ public:
 private:
     inline bool requireNewBlock(uint64_t sizeToAllocate) {
         if (sizeToAllocate > BufferPoolConstants::PAGE_256KB_SIZE) {
-            throw RuntimeException("Require size " + std::to_string(sizeToAllocate) +
-                                   " greater than single block size " +
+            throw RuntimeException("Required size " + std::to_string(sizeToAllocate) +
+                                   " is greater than the single block size of " +
                                    std::to_string(BufferPoolConstants::PAGE_256KB_SIZE) + ".");
         }
         return currentBlock == nullptr ||

@@ -60,7 +60,7 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index) {
         while ((*stringQueues)[index].pop(elem)) {
             for (auto [key, value] : elem) {
                 if (!pkIndex->appendWithIndexPos(key.c_str(), value, index)) {
-                    throw CopyException(ExceptionMessage::existedPKException(std::move(key)));
+                    throw CopyException(ExceptionMessage::duplicatePKException(std::move(key)));
                 }
             }
         }
@@ -70,7 +70,8 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index) {
         while (intQueues[index].pop(elem)) {
             for (auto [key, value] : elem) {
                 if (!pkIndex->appendWithIndexPos(key, value, index)) {
-                    throw CopyException(ExceptionMessage::existedPKException(std::to_string(key)));
+                    throw CopyException(
+                        ExceptionMessage::duplicatePKException(std::to_string(key)));
                 }
             }
         }

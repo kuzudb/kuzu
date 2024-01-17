@@ -71,7 +71,7 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
                 auto key = keyVector->getValue<int64_t>(pos);
                 if (!info.index->lookup(transaction, key, offsets[i])) {
                     throw RuntimeException(
-                        ExceptionMessage::nonExistPKException(std::to_string(key)));
+                        ExceptionMessage::nonExistentPKException(std::to_string(key)));
                 }
             }
         } else {
@@ -80,7 +80,7 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
                 auto key = keyVector->getValue<int64_t>(pos);
                 if (!info.copyNodeSharedState->pkIndex->lookup(key, offsets[i])) {
                     throw RuntimeException(
-                        ExceptionMessage::nonExistPKException(std::to_string(key)));
+                        ExceptionMessage::nonExistentPKException(std::to_string(key)));
                 }
             }
         }
@@ -92,7 +92,7 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
                     keyVector->state->selVector->selectedPositions[i]);
                 if (!info.index->lookup(transaction, key.getAsString().c_str(), offsets[i])) {
                     throw RuntimeException(
-                        ExceptionMessage::nonExistPKException(key.getAsString()));
+                        ExceptionMessage::nonExistentPKException(key.getAsString()));
                 }
             }
         } else {
@@ -102,7 +102,7 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
                 if (!info.copyNodeSharedState->pkIndex->lookup(
                         key.getAsString().c_str(), offsets[i])) {
                     throw RuntimeException(
-                        ExceptionMessage::nonExistPKException(key.getAsString()));
+                        ExceptionMessage::nonExistentPKException(key.getAsString()));
                 }
             }
         }
