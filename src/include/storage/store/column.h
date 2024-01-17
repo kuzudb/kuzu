@@ -144,12 +144,14 @@ protected:
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo);
 
+    virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit();
+
 private:
     static bool containsVarList(common::LogicalType& dataType);
     virtual bool canCommitInPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
-    void commitLocalChunkOutOfPlace(transaction::Transaction* transaction,
+    virtual void commitLocalChunkOutOfPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         bool isNewNodeGroup, const offset_to_row_idx_t& insertInfo,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
@@ -163,8 +165,6 @@ private:
     static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
         return val >= start && val < end;
     }
-
-    virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit();
 
 protected:
     std::string name;

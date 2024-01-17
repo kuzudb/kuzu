@@ -136,7 +136,6 @@ void CopyNode::executeInternal(ExecutionContext* context) {
 void CopyNode::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
     std::optional<IndexBuilder>& indexBuilder, column_id_t pkColumnID, NodeTable* table,
     NodeGroup* nodeGroup) {
-
     nodeGroup->finalize(nodeGroupIdx);
     if (indexBuilder) {
         auto nodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);

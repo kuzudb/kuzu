@@ -266,11 +266,19 @@ public:
     }
 
 protected:
-    void commitLocalChunkInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    void commitLocalChunkInPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
         LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override {
-        Column::commitLocalChunkInPlace(
-            transaction, nodeGroupIdx, localChunk, insertInfo, updateInfo, deleteInfo);
+        for (auto& [offsetInChunk, rowIdx] : updateInfo) {
+            auto localVector = localChunk->getLocalVector(rowIdx);
+            auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+            write(nodeGroupIdx, offsetInChunk, localVector->getVector(), offsetInVector);
+        }
+        for (auto& [offsetInChunk, rowIdx] : insertInfo) {
+            auto localVector = localChunk->getLocalVector(rowIdx);
+            auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+            write(nodeGroupIdx, offsetInChunk, localVector->getVector(), offsetInVector);
+        }
         // Set nulls based on deleteInfo. Note that this code path actually only gets executed when
         // the column is a regular format one. This is not a good design, should be unified with csr
         // one in the future.
@@ -314,6 +322,46 @@ public:
             resultVector->setNull(pos, false);
             resultVector->setValue<offset_t>(pos, offset);
         }
+    }
+
+    bool canCommitInPlace(Transaction* /*transaction*/, node_group_idx_t /*nodeGroupIdx*/,
+        LocalVectorCollection* /*localChunk*/, const offset_to_row_idx_t& /*insertInfo*/,
+        const offset_to_row_idx_t& updateInfo) override {
+        KU_ASSERT(updateInfo.empty());
+        return true;
+    }
+
+    void commitLocalChunkInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+        LocalVectorCollection* /*localChunk*/, const offset_to_row_idx_t& insertInfo,
+        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override {
+        KU_ASSERT(updateInfo.empty() && deleteInfo.empty());
+        auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+        auto numValues = chunkMeta.numValues;
+        for (auto& [offsetInChunk, _] : insertInfo) {
+            if (offsetInChunk >= numValues) {
+                numValues = offsetInChunk + 1;
+            }
+        }
+        if (numValues > chunkMeta.numValues) {
+            chunkMeta.numValues = numValues;
+            metadataDA->update(nodeGroupIdx, chunkMeta);
+        }
+    }
+
+    void commitLocalChunkOutOfPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
+        LocalVectorCollection* /*localChunk*/, bool isNewNodeGroup,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo) override {
+        KU_ASSERT(isNewNodeGroup && updateInfo.empty() && deleteInfo.empty());
+        // Only when a new node group is created, we need to commit out of place.
+        auto numValues = 0u;
+        for (auto& [offsetInChunk, _] : insertInfo) {
+            numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
+        }
+        ColumnChunkMetadata chunkMeta;
+        chunkMeta.numValues = numValues;
+        metadataDA->resize(nodeGroupIdx + 1);
+        metadataDA->update(nodeGroupIdx, chunkMeta);
     }
 
     void append(ColumnChunk* /*columnChunk*/, uint64_t nodeGroupIdx) override {
@@ -721,7 +769,7 @@ void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t no
                 insertInfo, updateInfo, deleteInfo);
         }
         if (nullColumn) {
-            // Uses functions written for the nullchunk which only access the localColumnChunk's
+            // Uses functions written for the null chunk which only access the localColumnChunk's
             // null information
             if (nullColumn->canCommitInPlace(
                     transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo)) {
@@ -756,7 +804,6 @@ bool Column::containsVarList(LogicalType& dataType) {
     return false;
 }
 
-// TODO(Guodong): This should be moved inside `LocalVectorCollection`.
 bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
     const offset_to_row_idx_t& updateInfo) {
@@ -779,6 +826,9 @@ bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGro
     for (auto rowIdx : rowIdxesToRead) {
         auto localVector = localChunk->getLocalVector(rowIdx);
         auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+        if (localVector->getVector()->isNull(offsetInVector)) {
+            continue;
+        }
         if (!metadata.compMeta.canUpdateInPlace(
                 localVector->getVector()->getData(), offsetInVector, dataType->getPhysicalType())) {
             return false;
@@ -839,7 +889,9 @@ void Column::applyLocalChunkToColumn(node_group_idx_t nodeGroupIdx,
     for (auto& [offsetInChunk, rowIdx] : updateInfo) {
         auto localVector = localChunk->getLocalVector(rowIdx);
         auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        write(nodeGroupIdx, offsetInChunk, localVector->getVector(), offsetInVector);
+        if (!localVector->getVector()->isNull(offsetInVector)) {
+            write(nodeGroupIdx, offsetInChunk, localVector->getVector(), offsetInVector);
+        }
     }
 }
 
