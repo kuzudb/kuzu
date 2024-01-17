@@ -91,7 +91,7 @@
 ---- ok
 -STATEMENT CREATE (a)-[:T]->(b1), (a)-[:T]->(b2)
 ---- error
-Binder exception: Create node a with multiple node labels is not supported.
+Binder exception: Create node b2 with multiple node labels is not supported.
 
 # Matching nodes with many labels
 #-CASE Scenario7

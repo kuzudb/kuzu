@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/query/query_graph_label_analyzer.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
@@ -94,8 +95,11 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(
     const QueryGraphCollection& queryGraphCollection, const expression_set& nodeRelScope_) {
     auto nodeRelScope = nodeRelScope_;
     std::vector<BoundInsertInfo> result;
+    auto analyzer = QueryGraphLabelAnalyzer(catalog);
     for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
         auto queryGraph = queryGraphCollection.getQueryGraph(i);
+        // Ensure query graph does not violate declared schema.
+        analyzer.pruneLabel(*queryGraph);
         for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {
             auto node = queryGraph->getQueryNode(j);
             if (nodeRelScope.contains(node)) {
@@ -145,8 +149,8 @@ void Binder::bindInsertNode(
     auto insertInfo = BoundInsertInfo(TableType::NODE, node);
     if (tableSchema->hasParentTableID()) {
         auto parentTableID = tableSchema->getParentTableID();
-        auto parentTableSchema = catalog.getTableSchema(clientContext->getTx(), parentTableID);
-        KU_ASSERT(parentTableSchema->getTableType() == TableType::RDF);
+        KU_ASSERT(catalog.getTableSchema(clientContext->getTx(), parentTableID)->getTableType() ==
+                  TableType::RDF);
         insertInfo.conflictAction = ConflictAction::ON_CONFLICT_DO_NOTHING;
     }
     insertInfo.columnExprs = node->getPropertyExprs();

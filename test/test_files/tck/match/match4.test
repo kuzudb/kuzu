@@ -153,8 +153,7 @@ Binder exception: Bind relationship r to relationship with same name is not supp
 -STATEMENT CREATE (a:A), (b:B), (c:C)
            CREATE (a)-[:Y]->(b),
                   (b)-[:Y]->(c)
----- error
-Binder exception: Create rel  with multiple rel labels or bound by multiple node labels is not supported.
+---- ok
 -STATEMENT  MATCH ()-[r1]->()-[r2]->()
             WITH [r1, r2] AS rs
             LIMIT 1
