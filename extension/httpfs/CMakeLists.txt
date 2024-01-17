@@ -11,16 +11,21 @@ find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 add_compile_definitions(CPPHTTPLIB_OPENSSL_SUPPORT)
 
-include_directories(include ../../third_party/httplib ../../src/include)
+add_subdirectory(third_party/mbedtls)
+
+include_directories(src/include ../../third_party/httplib ../../src/include third_party/mbedtls/include)
 
 add_library(httpfs
         SHARED
         src/httpfs.cpp
-        src/httpfs_extension.cpp)
+        src/httpfs_extension.cpp
+        src/s3fs.cpp
+        src/crypto.cpp)
 
 target_link_libraries(httpfs
         PRIVATE
         dl  # For dlopen, dlsym, etc.
+        mbedtls
 )
 
 set_target_properties(httpfs PROPERTIES

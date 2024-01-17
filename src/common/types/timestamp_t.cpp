@@ -1,5 +1,7 @@
 #include "common/types/timestamp_t.h"
 
+#include <chrono>
+
 #include "common/exception/conversion.h"
 #include "common/string_utils.h"
 #include "function/arithmetic/multiply.h"
@@ -339,6 +341,12 @@ int64_t Timestamp::getEpochMilliSeconds(const timestamp_t& timestamp) {
 
 int64_t Timestamp::getEpochSeconds(const timestamp_t& timestamp) {
     return timestamp.value / Interval::MICROS_PER_SEC;
+}
+
+timestamp_t Timestamp::getCurrentTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    return Timestamp::fromEpochMilliSeconds(
+        duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
 }
 
 } // namespace common

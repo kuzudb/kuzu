@@ -274,7 +274,8 @@ std::unique_ptr<function::TableFuncBindData> NpyScanFunction::bindFunc(
         reader->validate(*resultColumnTypes[i], numRows);
     }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->mm, scanInput->config.copy(), scanInput->vfs);
+        std::move(resultColumnNames), scanInput->mm, scanInput->config.copy(), scanInput->vfs,
+        scanInput->context);
 }
 
 std::unique_ptr<function::TableFuncSharedState> NpyScanFunction::initSharedState(

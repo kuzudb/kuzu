@@ -15,8 +15,9 @@ public:
 
     void registerFileSystem(std::unique_ptr<FileSystem> fileSystem);
 
-    std::unique_ptr<FileInfo> openFile(
-        const std::string& path, int flags, FileLockType lockType = FileLockType::NO_LOCK) override;
+    std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
+        main::ClientContext* context = nullptr,
+        FileLockType lockType = FileLockType::NO_LOCK) override;
 
     std::vector<std::string> glob(const std::string& path) override;
 

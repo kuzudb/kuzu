@@ -7,6 +7,10 @@
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace function {
 
 struct TableFuncBindInput {
@@ -22,15 +26,16 @@ struct ScanTableFuncBindInput final : public TableFuncBindInput {
     common::VirtualFileSystem* vfs;
     std::vector<std::string> expectedColumnNames;
     std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
+    main::ClientContext* context;
 
     explicit ScanTableFuncBindInput(common::ReaderConfig config) : config{std::move(config)} {};
     ScanTableFuncBindInput(storage::MemoryManager* mm, common::ReaderConfig config,
         std::vector<std::string> expectedColumnNames,
         std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes,
-        common::VirtualFileSystem* vfs)
+        common::VirtualFileSystem* vfs, main::ClientContext* context)
         : TableFuncBindInput{}, mm{mm}, config{std::move(config)}, vfs{vfs},
-          expectedColumnNames{std::move(expectedColumnNames)}, expectedColumnTypes{
-                                                                   std::move(expectedColumnTypes)} {
+          expectedColumnNames{std::move(expectedColumnNames)},
+          expectedColumnTypes{std::move(expectedColumnTypes)}, context{context} {
         inputs.push_back(common::Value::createValue(this->config.filePaths[0]).copy());
     }
 };

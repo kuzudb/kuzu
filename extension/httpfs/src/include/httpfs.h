@@ -1,12 +1,29 @@
 #pragma once
 
 #include "common/file_system/file_system.h"
+#include "common/string_utils.h"
 #include "httplib.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace httpfs {
 
-using HeaderMap = std::unordered_map<std::string, std::string>;
+struct CaseInsensitiveStringHashFunction {
+    uint64_t operator()(const std::string& str) const {
+        return common::StringUtils::caseInsensitiveHash(str);
+    }
+};
+
+struct CaseInsensitiveStringEquality {
+    bool operator()(const std::string& left, const std::string& right) const {
+        return common::StringUtils::caseInsensitiveEquals(left, right);
+    }
+};
+
+template<typename T>
+using case_insensitive_map_t = std::unordered_map<std::string, T, CaseInsensitiveStringHashFunction,
+    CaseInsensitiveStringEquality>;
+using HeaderMap = case_insensitive_map_t<std::string>;
 
 struct HTTPResponse {
     HTTPResponse(httplib::Response& res, const std::string& url);
@@ -30,7 +47,9 @@ struct HTTPParams {
 struct HTTPFileInfo : public common::FileInfo {
     HTTPFileInfo(std::string path, common::FileSystem* fileSystem, int flags);
 
-    void initializeClient();
+    virtual void initialize();
+
+    virtual void initializeClient();
 
     // We keep a http client stored for connection reuse with keep-alive headers.
     std::unique_ptr<httplib::Client> httpClient;
@@ -46,16 +65,19 @@ struct HTTPFileInfo : public common::FileInfo {
     constexpr static uint64_t READ_BUFFER_LEN = 1000000;
 };
 
-class HTTPFileSystem final : public common::FileSystem {
+class HTTPFileSystem : public common::FileSystem {
     friend struct HTTPFileInfo;
 
 public:
-    std::unique_ptr<common::FileInfo> openFile(
-        const std::string& path, int flags, common::FileLockType lock_type) override;
+    std::unique_ptr<common::FileInfo> openFile(const std::string& path, int flags,
+        main::ClientContext* context = nullptr,
+        common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
 
     std::vector<std::string> glob(const std::string& path) override;
 
     bool canHandleFile(const std::string& path) override;
+
+    static std::unique_ptr<httplib::Client> getClient(const std::string& host);
 
 protected:
     void readFromFile(
@@ -67,9 +89,6 @@ protected:
 
     uint64_t getFileSize(common::FileInfo* fileInfo) override;
 
-private:
-    static std::unique_ptr<httplib::Client> getClient(const std::string& host);
-
     static void parseUrl(const std::string& url, std::string& hostPath, std::string& host);
 
     static std::unique_ptr<httplib::Headers> getHttpHeaders(HeaderMap& headerMap);
@@ -78,11 +97,11 @@ private:
         const std::function<httplib::Result(void)>& request, const std::string& url,
         std::string method, const std::function<void(void)>& retry = {});
 
-    std::unique_ptr<HTTPResponse> headRequest(
+    virtual std::unique_ptr<HTTPResponse> headRequest(
         common::FileInfo* fileInfo, std::string url, HeaderMap headerMap);
 
-    std::unique_ptr<HTTPResponse> getRangeRequest(common::FileInfo* fileInfo,
-        const std::string& dataLen, HeaderMap headerMap, uint64_t fileOffset, char* buffer,
+    virtual std::unique_ptr<HTTPResponse> getRangeRequest(common::FileInfo* fileInfo,
+        const std::string& url, HeaderMap headerMap, uint64_t fileOffset, char* buffer,
         uint64_t bufferLen);
 };
 

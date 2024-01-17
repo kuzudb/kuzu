@@ -111,6 +111,8 @@ public:
         return "Error occurred during parsing " + typeID + ". Given: \"" + std::string(str, len) +
                "\". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])";
     }
+
+    KUZU_API static timestamp_t getCurrentTimestamp();
 };
 
 } // namespace common

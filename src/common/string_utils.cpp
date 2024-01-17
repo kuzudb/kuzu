@@ -99,5 +99,32 @@ std::string StringUtils::removeEscapedCharacters(const std::string& input) {
     return resultStr;
 }
 
+// Jenkins hash function: https://en.wikipedia.org/wiki/Jenkins_hash_function.
+// We transform each character to its lower case and apply one_at_a_time hash.
+uint64_t StringUtils::caseInsensitiveHash(const std::string& str) {
+    uint32_t hash = 0;
+    for (auto c : str) {
+        hash += tolower(c);
+        hash += hash << 10;
+        hash ^= hash >> 6;
+    }
+    hash += hash << 3;
+    hash ^= hash >> 11;
+    hash += hash << 15;
+    return hash;
+}
+
+bool StringUtils::caseInsensitiveEquals(const std::string& left, const std::string& right) {
+    if (left.size() != right.size()) {
+        return false;
+    }
+    for (auto c = 0u; c < left.size(); c++) {
+        if (asciiToLowerCaseMap[(uint8_t)left[c]] != asciiToLowerCaseMap[(uint8_t)right[c]]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace common
 } // namespace kuzu

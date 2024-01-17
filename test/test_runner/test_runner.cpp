@@ -29,11 +29,22 @@ void TestRunner::runTest(TestStatement* statement, Connection& conn, std::string
     ASSERT_TRUE(testStatement(statement, conn, databasePath));
 }
 
+void replaceEnv(std::string& queryToReplace, const std::string& env) {
+    auto envValue = std::getenv(env.c_str()); // NOLINT(*-mt-unsafe);
+    if (envValue != nullptr) {
+        StringUtils::replaceAll(queryToReplace, "${" + env + "}", envValue);
+    }
+}
+
 bool TestRunner::testStatement(
     TestStatement* statement, Connection& conn, std::string& databasePath) {
     std::unique_ptr<PreparedStatement> preparedStatement;
     StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", databasePath);
     StringUtils::replaceAll(statement->query, "${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY);
+    replaceEnv(statement->query, "UW_S3_ACCESS_KEY_ID");
+    replaceEnv(statement->query, "UW_S3_SECRET_ACCESS_KEY");
+    replaceEnv(statement->query, "AWS_S3_ACCESS_KEY_ID");
+    replaceEnv(statement->query, "AWS_S3_SECRET_ACCESS_KEY");
     if (statement->encodedJoin.empty()) {
         preparedStatement = conn.prepareNoLock(statement->query, statement->enumerate);
     } else {

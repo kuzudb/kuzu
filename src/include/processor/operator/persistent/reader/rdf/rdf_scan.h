@@ -101,9 +101,9 @@ struct RdfScanBindData final : public function::ScanBindData {
 
     RdfScanBindData(common::logical_types_t columnTypes, std::vector<std::string> columnNames,
         storage::MemoryManager* mm, common::ReaderConfig config, common::VirtualFileSystem* vfs,
-        std::shared_ptr<RdfStore> store)
+        main::ClientContext* context, std::shared_ptr<RdfStore> store)
         : function::ScanBindData{std::move(columnTypes), std::move(columnNames), mm,
-              std::move(config), vfs},
+              std::move(config), vfs, context},
           store{std::move(store)} {}
     RdfScanBindData(const RdfScanBindData& other)
         : function::ScanBindData{other}, store{other.store} {}

@@ -2,14 +2,19 @@
 
 #include "common/types/types.h"
 #include "common/types/value/value.h"
-#include "httpfs.h"
+#include "s3fs.h"
 
 namespace kuzu {
 namespace httpfs {
 
 void HttpfsExtension::load(main::Database& db) {
     db.registerFileSystem(std::make_unique<HTTPFileSystem>());
+    db.registerFileSystem(std::make_unique<S3FileSystem>());
     db.addExtensionOption("s3_access_key_id", common::LogicalTypeID::STRING, common::Value{""});
+    db.addExtensionOption("s3_secret_access_key", common::LogicalTypeID::STRING, common::Value{""});
+    db.addExtensionOption("s3_endpoint", common::LogicalTypeID::STRING, common::Value{""});
+    db.addExtensionOption("s3_url_style", common::LogicalTypeID::STRING, common::Value{""});
+    db.addExtensionOption("s3_region", common::LogicalTypeID::STRING, common::Value{""});
 }
 
 } // namespace httpfs
