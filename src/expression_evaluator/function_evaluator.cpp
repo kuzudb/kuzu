@@ -5,6 +5,7 @@
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace evaluator {
@@ -17,9 +18,9 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager
     }
 }
 
-void FunctionExpressionEvaluator::evaluate() {
+void FunctionExpressionEvaluator::evaluate(ClientContext* clientContext) {
     for (auto& child : children) {
-        child->evaluate();
+        child->evaluate(clientContext);
     }
     auto expr =
         ku_dynamic_cast<binder::Expression*, binder::ScalarFunctionExpression*>(expression.get());
@@ -28,13 +29,14 @@ void FunctionExpressionEvaluator::evaluate() {
         return;
     }
     if (execFunc != nullptr) {
-        execFunc(parameters, *resultVector, nullptr);
+        execFunc(parameters, *resultVector, clientContext);
     }
 }
 
-bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
+bool FunctionExpressionEvaluator::select(
+    SelectionVector& selVector, ClientContext* /*ClientContext*/) {
     for (auto& child : children) {
-        child->evaluate();
+        child->evaluate(nullptr);
     }
     // Temporary code path for function whose return type is BOOL but select interface is not
     // implemented (e.g. list_contains). We should remove this if statement eventually.

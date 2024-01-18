@@ -4,6 +4,10 @@
 #include "function/scalar_function.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace evaluator {
 
 class FunctionExpressionEvaluator : public ExpressionEvaluator {
@@ -16,9 +20,9 @@ public:
     void init(
         const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
 
-    void evaluate() override;
+    void evaluate(main::ClientContext* clientContext) override;
 
-    bool select(common::SelectionVector& selVector) override;
+    bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
 
     std::unique_ptr<ExpressionEvaluator> clone() override;
 

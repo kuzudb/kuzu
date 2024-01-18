@@ -27,7 +27,8 @@ add_library(kuzu_function
         vector_struct_functions.cpp
         vector_map_functions.cpp
         vector_union_functions.cpp
-        vector_blob_functions.cpp)
+        vector_blob_functions.cpp
+        vector_uuid_functions.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_function>

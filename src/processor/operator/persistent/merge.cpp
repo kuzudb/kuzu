@@ -40,10 +40,10 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
         }
     } else {
         for (auto& executor : nodeInsertExecutors) {
-            executor.insert(transaction);
+            executor.insert(transaction, context);
         }
         for (auto& executor : relInsertExecutors) {
-            executor.insert(transaction);
+            executor.insert(transaction, context);
         }
         for (auto& executor : onCreateNodeSetExecutors) {
             executor->set(context);

@@ -1,0 +1,98 @@
+-GROUP TinySnbReadTest
+-DATASET CSV empty
+
+--
+
+-CASE UUIDfunctions
+
+-LOG UUIDOrderByTest
+-STATEMENT CREATE NODE TABLE Person(name STRING, u UUID, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob', u: gen_random_uuid()});
+---- ok
+-STATEMENT MATCH (p:Person) where p.name='Bob' set p.u=UUID('A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11');
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob1', u: null});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob2', u: UUID('47183823-2574-4bfd-b411-99ed177d3e43')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob3', u: UUID('{10203040506070800102030405060708}')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob4', u: UUID('A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A12')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob5', u: UUID('47183823-2574-4bfd-b411-99ed177d3e43')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob6', u: UUID('{10203040506070800102030405060708}')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob7', u: UUID('00000000-0000-0000-0000-000000000000')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob8', u: UUID('00000000-0000-0000-0000-000000000001')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob9', u: UUID('00000000-0000-0000-0000-000000000001')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob10', u: UUID('00000000-0000-0000-0000-000000000000')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob11', u: UUID('00000000-0000-0000-0000-000000000000')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob12', u: UUID('80000000-0000-0000-8fff-ffffffffffff')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob13', u: UUID('80000000-0000-0000-ffff-ffffffffffff')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob14', u: UUID('8fffffff-ffff-ffff-0000-000000000000')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob15', u: UUID('8fffffff-ffff-ffff-8000-000000000000')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob16', u: UUID('8fffffff-ffff-ffff-8fff-ffffffffffff')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob17', u: UUID('8fffffff-ffff-ffff-ffff-ffffffffffff')});
+---- ok
+-STATEMENT CREATE (:Person {name: 'Bob18', u: UUID('ffffffff-ffff-ffff-ffff-ffffffffffff')});
+---- ok
+-STATEMENT MATCH (a:Person) RETURN a.u ORDER BY a.u;
+---- 19
+
+00000000-0000-0000-0000-000000000000
+00000000-0000-0000-0000-000000000000
+00000000-0000-0000-0000-000000000000
+00000000-0000-0000-0000-000000000001
+00000000-0000-0000-0000-000000000001
+10203040-5060-7080-0102-030405060708
+10203040-5060-7080-0102-030405060708
+47183823-2574-4bfd-b411-99ed177d3e43
+47183823-2574-4bfd-b411-99ed177d3e43
+80000000-0000-0000-8fff-ffffffffffff
+80000000-0000-0000-ffff-ffffffffffff
+8fffffff-ffff-ffff-0000-000000000000
+8fffffff-ffff-ffff-8000-000000000000
+8fffffff-ffff-ffff-8fff-ffffffffffff
+8fffffff-ffff-ffff-ffff-ffffffffffff
+a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+ffffffff-ffff-ffff-ffff-ffffffffffff
+
+-STATEMENT MATCH (a:Person) RETURN COUNT(DISTINCT a.u);
+---- 1
+13
+-STATEMENT MATCH (a:Person) RETURN MIN(a.u);
+---- 1
+00000000-0000-0000-0000-000000000000
+-STATEMENT MATCH (a:Person) RETURN MAX(a.u);
+---- 1
+ffffffff-ffff-ffff-ffff-ffffffffffff
+-STATEMENT MATCH (a:Person) where a.u > UUID('10203040-5060-7080-0102-030405060708') return a.u order by a.u
+---- 11
+47183823-2574-4bfd-b411-99ed177d3e43
+47183823-2574-4bfd-b411-99ed177d3e43
+80000000-0000-0000-8fff-ffffffffffff
+80000000-0000-0000-ffff-ffffffffffff
+8fffffff-ffff-ffff-0000-000000000000
+8fffffff-ffff-ffff-8000-000000000000
+8fffffff-ffff-ffff-8fff-ffffffffffff
+8fffffff-ffff-ffff-ffff-ffffffffffff
+a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+ffffffff-ffff-ffff-ffff-ffffffffffff
+
+-STATEMENT MATCH (a:Person) RETURN collect(a.u) 
+---- 1
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11,47183823-2574-4bfd-b411-99ed177d3e43,10203040-5060-7080-0102-030405060708,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12,47183823-2574-4bfd-b411-99ed177d3e43,10203040-5060-7080-0102-030405060708,00000000-0000-0000-0000-000000000000,00000000-0000-0000-0000-000000000001,00000000-0000-0000-0000-000000000001,00000000-0000-0000-0000-000000000000,00000000-0000-0000-0000-000000000000,80000000-0000-0000-8fff-ffffffffffff,80000000-0000-0000-ffff-ffffffffffff,8fffffff-ffff-ffff-0000-000000000000,8fffffff-ffff-ffff-8000-000000000000,8fffffff-ffff-ffff-8fff-ffffffffffff,8fffffff-ffff-ffff-ffff-ffffffffffff,ffffffff-ffff-ffff-ffff-ffffffffffff]

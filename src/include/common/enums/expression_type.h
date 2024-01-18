@@ -223,6 +223,9 @@ const char* const OCTET_LENGTH_FUNC_NAME = "OCTET_LENGTH";
 const char* const ENCODE_FUNC_NAME = "ENCODE";
 const char* const DECODE_FUNC_NAME = "DECODE";
 
+// UUID functions
+const char* const GEN_RANDOM_UUID_FUNC_NAME = "GEN_RANDOM_UUID";
+
 // TABLE functions
 const char* const TABLE_INFO_FUNC_NAME = "TABLE_INFO";
 const char* const DB_VERSION_FUNC_NAME = "DB_VERSION";

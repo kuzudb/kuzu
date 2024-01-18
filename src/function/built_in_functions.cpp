@@ -21,6 +21,7 @@
 #include "function/table_functions/call_functions.h"
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
+#include "function/uuid/vector_uuid_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
@@ -53,6 +54,7 @@ void BuiltInFunctions::registerScalarFunctions() {
     registerNodeRelFunctions();
     registerPathFunctions();
     registerBlobFunctions();
+    registerUUIDFunctions();
 }
 
 void BuiltInFunctions::registerAggregateFunctions() {
@@ -158,6 +160,8 @@ uint32_t BuiltInFunctions::getCastCost(LogicalTypeID inputTypeID, LogicalTypeID 
         return castFloat(targetTypeID);
     case LogicalTypeID::DATE:
         return castDate(targetTypeID);
+    case LogicalTypeID::UUID:
+        return castUUID(targetTypeID);
     case LogicalTypeID::SERIAL:
         return castSerial(targetTypeID);
     case LogicalTypeID::TIMESTAMP_SEC:
@@ -355,6 +359,15 @@ uint32_t BuiltInFunctions::castInt128(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DOUBLE:
+        return getTargetTypeCost(targetTypeID);
+    default:
+        return UNDEFINED_CAST_COST;
+    }
+}
+
+uint32_t BuiltInFunctions::castUUID(LogicalTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case LogicalTypeID::STRING:
         return getTargetTypeCost(targetTypeID);
     default:
         return UNDEFINED_CAST_COST;
@@ -637,6 +650,10 @@ void BuiltInFunctions::registerBlobFunctions() {
     functions.insert({OCTET_LENGTH_FUNC_NAME, OctetLengthFunctions::getFunctionSet()});
     functions.insert({ENCODE_FUNC_NAME, EncodeFunctions::getFunctionSet()});
     functions.insert({DECODE_FUNC_NAME, DecodeFunctions::getFunctionSet()});
+}
+
+void BuiltInFunctions::registerUUIDFunctions() {
+    functions.insert({GEN_RANDOM_UUID_FUNC_NAME, GenRandomUUIDFunction::getFunctionSet()});
 }
 
 void BuiltInFunctions::registerStringFunctions() {

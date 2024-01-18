@@ -57,6 +57,8 @@ std::string TypeUtils::castValueToString(
         return TypeUtils::toString(*reinterpret_cast<const list_entry_t*>(value), valueVector);
     case LogicalTypeID::STRUCT:
         return TypeUtils::toString(*reinterpret_cast<const struct_entry_t*>(value), valueVector);
+    case LogicalTypeID::UUID:
+        return TypeUtils::toString(*reinterpret_cast<const uuid_t*>(value));
     default:
         KU_UNREACHABLE;
     }
@@ -122,12 +124,10 @@ std::string TypeUtils::toString(const blob_t& val, void* /*valueVector*/) {
     return Blob::toString(val.value.getData(), val.value.len);
 }
 
-// LCOV_EXCL_START
 template<>
 std::string TypeUtils::toString(const uuid_t& val, void* /*valueVector*/) {
     return val.toString();
 }
-// LCOV_EXCL_STOP
 
 template<>
 std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {

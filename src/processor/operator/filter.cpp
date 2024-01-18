@@ -19,8 +19,8 @@ bool Filter::getNextTuplesInternal(ExecutionContext* context) {
             return false;
         }
         saveSelVector(dataChunkToSelect->state->selVector);
-        hasAtLeastOneSelectedValue =
-            expressionEvaluator->select(*dataChunkToSelect->state->selVector);
+        hasAtLeastOneSelectedValue = expressionEvaluator->select(
+            *dataChunkToSelect->state->selVector, context->clientContext);
         if (!dataChunkToSelect->state->isFlat() &&
             dataChunkToSelect->state->selVector->isUnfiltered()) {
             dataChunkToSelect->state->selVector->resetSelectorToValuePosBuffer();

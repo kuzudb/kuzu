@@ -8,6 +8,8 @@
 namespace kuzu {
 namespace common {
 
+class RandomEngine;
+
 struct uuid_t {
     constexpr static uint8_t UUID_STRING_LENGTH = 36;
     constexpr static char HEX_DIGITS[] = "0123456789abcdef";
@@ -17,7 +19,7 @@ struct uuid_t {
         return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
     }
 
-    //! Convert a uuid string to a int128_t object
+    // Convert a uuid string to a int128_t object
     static bool fromString(std::string str, int128_t& result);
 
     static inline int128_t fromString(std::string str) {
@@ -30,7 +32,7 @@ struct uuid_t {
         return fromString(std::string(str, len));
     }
 
-    //! Convert a int128_t object to a uuid style string
+    // Convert a int128_t object to a uuid style string
     static void toString(int128_t input, char* buf);
 
     static inline std::string toString(int128_t input) {
@@ -41,6 +43,9 @@ struct uuid_t {
     inline std::string toString() const { return toString(value); }
 
     int128_t value;
+
+    // generate a random uuid object
+    static uuid_t generateRandomUUID(RandomEngine* engine);
 };
 
 } // namespace common

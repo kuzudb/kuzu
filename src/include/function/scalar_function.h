@@ -3,6 +3,7 @@
 #include "binary_function_executor.h"
 #include "const_function_executor.h"
 #include "function.h"
+#include "pointer_function_executor.h"
 #include "ternary_function_executor.h"
 #include "unary_function_executor.h"
 
@@ -155,6 +156,14 @@ struct ScalarFunction final : public BaseScalarFunction {
         KU_ASSERT(params.empty());
         (void)params;
         ConstFunctionExecutor::execute<RESULT_TYPE, FUNC>(result);
+    }
+
+    template<typename RESULT_TYPE, typename FUNC>
+    static void PoniterExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result, void* dataPtr) {
+        KU_ASSERT(params.empty());
+        (void)params;
+        PointerFunctionExecutor::execute<RESULT_TYPE, FUNC>(result, dataPtr);
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>

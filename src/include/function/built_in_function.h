@@ -78,6 +78,8 @@ private:
 
     static uint32_t castFromRDFVariant(common::LogicalTypeID inputTypeID);
 
+    static uint32_t castUUID(common::LogicalTypeID targetTypeID);
+
     Function* getBestMatch(std::vector<Function*>& functions);
 
     uint32_t getFunctionCost(
@@ -101,6 +103,7 @@ private:
     void registerTimestampFunctions();
     void registerIntervalFunctions();
     void registerBlobFunctions();
+    void registerUUIDFunctions();
     void registerStringFunctions();
     void registerCastFunctions();
     void registerListFunctions();

@@ -3,8 +3,8 @@
 namespace kuzu {
 namespace processor {
 
-common::ValueVector* AddProperty::getDefaultValVector() {
-    defaultValueEvaluator->evaluate();
+common::ValueVector* AddProperty::getDefaultValVector(ExecutionContext* context) {
+    defaultValueEvaluator->evaluate(context->clientContext);
     return defaultValueEvaluator->resultVector.get();
 }
 

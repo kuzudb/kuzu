@@ -3,6 +3,10 @@
 #include "expression_evaluator.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace evaluator {
 
 class ReferenceExpressionEvaluator : public ExpressionEvaluator {
@@ -10,9 +14,9 @@ public:
     explicit ReferenceExpressionEvaluator(const processor::DataPos& vectorPos, bool isResultFlat)
         : ExpressionEvaluator{isResultFlat}, vectorPos{vectorPos} {}
 
-    inline void evaluate() override {}
+    inline void evaluate(main::ClientContext* /* clientContext */) override {}
 
-    bool select(common::SelectionVector& selVector) override;
+    bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
 
     inline std::unique_ptr<ExpressionEvaluator> clone() override {
         return std::make_unique<ReferenceExpressionEvaluator>(vectorPos, isResultFlat_);

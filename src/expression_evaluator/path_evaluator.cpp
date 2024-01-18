@@ -4,6 +4,7 @@
 #include "binder/expression/rel_expression.h"
 #include "common/string_utils.h"
 
+using namespace kuzu::main;
 using namespace kuzu::common;
 using namespace kuzu::binder;
 
@@ -78,10 +79,10 @@ void PathExpressionEvaluator::init(
     }
 }
 
-void PathExpressionEvaluator::evaluate() {
+void PathExpressionEvaluator::evaluate(ClientContext* clientContext) {
     resultVector->resetAuxiliaryBuffer();
     for (auto& child : children) {
-        child->evaluate();
+        child->evaluate(clientContext);
     }
     auto selVector = resultVector->state->selVector;
     for (auto i = 0u; i < selVector->selectedSize; ++i) {
