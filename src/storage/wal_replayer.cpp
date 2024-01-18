@@ -287,6 +287,9 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                 storageManager->dropTable(tableID);
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
+            case TableType::RDF: {
+                // Do nothing.
+            } break;
             default: {
                 KU_UNREACHABLE;
             }
@@ -303,7 +306,8 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
                 WALReplayerUtils::removeHashIndexFile(vfs, tableID, wal->getDirectory());
             } break;
-            case TableType::REL: {
+            case TableType::REL:
+            case TableType::RDF: {
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
             default: {

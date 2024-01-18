@@ -1,0 +1,36 @@
+-GROUP MalformedRdf
+-DATASET TTL EMPTY
+
+--
+
+-CASE MalformedRdf
+
+-STATEMENT CREATE RDF GRAPH R;
+---- ok
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/duplicate_prefix.ttl" (in_memory=1);
+---- error
+Binder exception: The type of option IN_MEMORY must be a boolean.
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/duplicate_prefix.ttl" (x=1);
+---- error
+Binder exception: Unrecognized parsing option: X.
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/duplicate_prefix.ttl";
+---- error
+Runtime exception: Detect duplicate prefix b.
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_syntax.ttl" (in_memory=true);
+---- ok
+-STATEMENT MATCH (a:R_r) RETURN a.iri;
+---- 9
+p/a
+p/b
+p/c
+p/x
+p/y
+p/z
+p/冯
+p/洋
+p/西
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri;
+---- 3
+p/a|p/b|p/c
+p/x|p/y|p/z
+p/冯|p/西|p/洋

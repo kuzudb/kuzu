@@ -1,0 +1,2 @@
+@prefix b: <12> .
+@prefix b: <http> .

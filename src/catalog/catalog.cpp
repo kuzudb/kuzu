@@ -1,5 +1,6 @@
 #include "catalog/catalog.h"
 
+#include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
@@ -145,6 +146,24 @@ void Catalog::dropTableSchema(table_id_t tableID) {
             wal->logDropTableRecord(relTableID);
         }
     } break;
+    case TableType::RDF: {
+        auto rdfGraphSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(tableSchema);
+        auto graphID = rdfGraphSchema->getTableID();
+        auto rtTableID = rdfGraphSchema->getResourceTripleTableID();
+        auto ltTableID = rdfGraphSchema->getLiteralTripleTableID();
+        auto rTableID = rdfGraphSchema->getResourceTableID();
+        auto lTableID = rdfGraphSchema->getLiteralTableID();
+        readWriteVersion->dropTableSchema(rtTableID);
+        readWriteVersion->dropTableSchema(ltTableID);
+        readWriteVersion->dropTableSchema(rTableID);
+        readWriteVersion->dropTableSchema(lTableID);
+        readWriteVersion->dropTableSchema(graphID);
+        wal->logDropTableRecord(rtTableID);
+        wal->logDropTableRecord(ltTableID);
+        wal->logDropTableRecord(rTableID);
+        wal->logDropTableRecord(lTableID);
+        wal->logDropTableRecord(graphID);
+    } break;
     default: {
         readWriteVersion->dropTableSchema(tableID);
         wal->logDropTableRecord(tableID);
@@ -154,7 +173,24 @@ void Catalog::dropTableSchema(table_id_t tableID) {
 
 void Catalog::renameTable(table_id_t tableID, const std::string& newName) {
     KU_ASSERT(readWriteVersion != nullptr);
-    readWriteVersion->renameTable(tableID, newName);
+    auto tableSchema = readWriteVersion->getTableSchema(tableID);
+    switch (tableSchema->tableType) {
+    case TableType::RDF: {
+        auto rdfGraphSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(tableSchema);
+        readWriteVersion->renameTable(
+            rdfGraphSchema->getResourceTableID(), RdfGraphSchema::getResourceTableName(newName));
+        readWriteVersion->renameTable(
+            rdfGraphSchema->getLiteralTableID(), RdfGraphSchema::getLiteralTableName(newName));
+        readWriteVersion->renameTable(rdfGraphSchema->getResourceTripleTableID(),
+            RdfGraphSchema::getResourceTripleTableName(newName));
+        readWriteVersion->renameTable(rdfGraphSchema->getLiteralTripleTableID(),
+            RdfGraphSchema::getLiteralTripleTableName(newName));
+        readWriteVersion->renameTable(tableID, newName);
+    } break;
+    default: {
+        readWriteVersion->renameTable(tableID, newName);
+    }
+    }
 }
 
 void Catalog::addNodeProperty(
