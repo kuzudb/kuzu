@@ -141,6 +141,11 @@ pytest: python
 rusttest: rust
 	cd tools/rust_api && cargo test --all-features -- --test-threads=1
 
+wasm:
+	$(call mkdirp,build/wasm) && cd build/wasm && \
+	emcmake cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_WASM=TRUE -DBUILD_BENCHMARK=FALSE -DBUILD_TESTS=FALSE -DBUILD_SHELL=FALSE -DBUILD_PYTHON_API=FALSE -DENABLE_WERROR=FALSE ../.. && \
+	cmake --build . --config Release
+
 # Other misc build targets
 benchmark:
 	$(call run-cmake-release, -DBUILD_BENCHMARK=TRUE)
@@ -180,7 +185,6 @@ clangd-diagnostics: | allconfig java_native_header
 # Installation
 install:
 	cmake --install build/release --prefix $(PREFIX) --strip
-
 
 # Cleaning
 clean-python-api:

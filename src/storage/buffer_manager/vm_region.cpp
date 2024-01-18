@@ -11,6 +11,8 @@
 #include <sys/mman.h>
 #endif
 
+#include <iostream>
+
 #include "common/exception/buffer_manager.h"
 
 using namespace kuzu::common;
@@ -19,9 +21,14 @@ namespace kuzu {
 namespace storage {
 
 VMRegion::VMRegion(PageSizeClass pageSizeClass, uint64_t maxRegionSize) : numFrameGroups{0} {
+    #ifdef EMSCRIPTEN
+    std::cout << "EMSCRIPTEN: maxRegionSize is " << maxRegionSize << std::endl;
+    // Skip
+    #else
     if (maxRegionSize > (std::size_t)-1) {
         throw BufferManagerException("maxRegionSize is beyond the max available mmap region size.");
     }
+    #endif
     frameSize = pageSizeClass == PageSizeClass::PAGE_4KB ? BufferPoolConstants::PAGE_4KB_SIZE :
                                                            BufferPoolConstants::PAGE_256KB_SIZE;
     auto numBytesForFrameGroup = frameSize * StorageConstants::PAGE_GROUP_SIZE;

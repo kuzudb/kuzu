@@ -53,6 +53,8 @@ tools/java_api/*.jar
 tools/java_api/*.class
 tools/java_api/*.log
 
+# WASM
+tools/wasm/server/node_modules
 # Generated docs
 scripts/generate-cpp-docs/c/kuzu.h
 scripts/generate-cpp-docs/cpp/headers

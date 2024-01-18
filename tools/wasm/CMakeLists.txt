@@ -1,0 +1,5 @@
+set(CMAKE_EXECUTABLE_SUFFIX ".html")
+set(CMAKE_CXX_STANDARD 20)
+include_directories(../../src/include/)
+add_executable(main-wasm main.cpp)
+target_link_libraries(main-wasm kuzu)
