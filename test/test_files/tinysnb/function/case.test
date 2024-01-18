@@ -5,6 +5,16 @@
 
 -CASE FunctionCase
 
+-LOG CaseNull
+-STATEMENT return case 25 when 25 then null else 25 end;
+---- 1
+
+-STATEMENT return case 25 when 24 then NULL else 25 end;
+---- 1
+25
+-STATEMENT return case 25 when 24 then 25 else NULL end;
+---- 1
+
 -LOG CaseIntTest
 -STATEMENT MATCH (a:person) WHERE a.ID < 6 RETURN CASE a.age WHEN 35 THEN a.age + 1 ELSE 0 END
 ---- 4
