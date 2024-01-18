@@ -34,12 +34,13 @@ const uint64_t NUM_HASH_INDEXES = 1 << NUM_HASH_INDEXES_LOG2;
 inline uint64_t getHashIndexPosition(int64_t key) {
     common::hash_t hash;
     function::Hash::operation(key, hash);
-    return (hash >> (64 - NUM_HASH_INDEXES_LOG2)) & (NUM_HASH_INDEXES - 1);
+    auto shiftOffset = (64 - NUM_HASH_INDEXES_LOG2) & (NUM_HASH_INDEXES - 1);
+    return hash >> (size_t)shiftOffset;
 }
 inline uint64_t getHashIndexPosition(const char* key) {
     auto view = std::string_view(key);
-    return (std::hash<std::string_view>()(view) >> (64 - NUM_HASH_INDEXES_LOG2)) &
-           (NUM_HASH_INDEXES - 1);
+    auto shiftOffset = (64 - NUM_HASH_INDEXES_LOG2) & (NUM_HASH_INDEXES - 1);
+    return (std::hash<std::string_view>()(view) >> (size_t)shiftOffset);
 }
 
 class InMemHashIndexUtils {
