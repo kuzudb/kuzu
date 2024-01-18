@@ -337,3 +337,26 @@ t2
 ---- 2
 10|{a: 1, b: 2}
 11|{a: 3, b: 4}
+
+-CASE 2675
+-STATEMENT CREATE NODE TABLE V1 (id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE V2 (id STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE NODE TABLE V3 (id STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP MYREL(FROM V3 TO V2, FROM V2 TO V1);
+---- ok
+-STATEMENT CREATE REL TABLE E(FROM V1 TO V2);
+---- ok
+-STATEMENT CREATE (v21: V2 {id: "v21"})-[:E]->(v11:V1 {id: "v11"});
+---- error
+Binder exception: Query node v21 violates schema. Expected labels are V1.
+-STATEMENT CREATE (v22:V2 {id: "v22"})-[:E]->(v23: V2 {id: "v23"});
+---- error
+Binder exception: Query node v22 violates schema. Expected labels are V1.
+-STATEMENT CREATE (:V3 {id: "v3"})-[:MYREL]->(:V2 {id: "v2"})
+---- ok
+-STATEMENT MATCH (a:V3)-[:MYREL]->(b:V2) RETURN a.*, b.*;
+---- 1
+v3|v2

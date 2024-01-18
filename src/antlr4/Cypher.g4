@@ -481,7 +481,7 @@ oC_AndExpression
 AND : ( 'A' | 'a' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ;
 
 oC_NotExpression
-    : ( NOT SP? )?  oC_ComparisonExpression ;
+    : ( NOT SP? )*  oC_ComparisonExpression ;
 
 NOT : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'T' | 't' ) ;
 
@@ -520,7 +520,7 @@ oC_PowerOfExpression
     : oC_UnaryAddSubtractOrFactorialExpression ( SP? '^' SP? oC_UnaryAddSubtractOrFactorialExpression )* ;
 
 oC_UnaryAddSubtractOrFactorialExpression
-    : ( MINUS SP? )? oC_StringListNullOperatorExpression (SP? FACTORIAL)? ;
+    : ( MINUS SP? )* oC_StringListNullOperatorExpression (SP? FACTORIAL)? ;
 
 MINUS : '-' ;
 

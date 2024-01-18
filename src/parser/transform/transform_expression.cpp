@@ -68,11 +68,15 @@ std::unique_ptr<ParsedExpression> Transformer::transformAndExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformNotExpression(
     CypherParser::OC_NotExpressionContext& ctx) {
-    if (ctx.NOT()) {
-        return std::make_unique<ParsedExpression>(ExpressionType::NOT,
-            transformComparisonExpression(*ctx.oC_ComparisonExpression()), ctx.getText());
+    auto result = transformComparisonExpression(*ctx.oC_ComparisonExpression());
+    if (!ctx.NOT().empty()) {
+        for ([[maybe_unused]] auto& _ : ctx.NOT()) {
+            auto rawName = "NOT " + result->toString();
+            result = std::make_unique<ParsedExpression>(
+                ExpressionType::NOT, std::move(result), std::move(rawName));
+        }
     }
-    return transformComparisonExpression(*ctx.oC_ComparisonExpression());
+    return result;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformComparisonExpression(
@@ -219,22 +223,21 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactorialExpression(
     CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx) {
-    if (ctx.MINUS() && ctx.FACTORIAL()) {
-        auto exp1 = std::make_unique<ParsedFunctionExpression>(FACTORIAL_FUNC_NAME,
-            transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
-            ctx.getText());
-        return std::make_unique<ParsedFunctionExpression>(
-            NEGATE_FUNC_NAME, std::move(exp1), ctx.getText());
-    } else if (ctx.MINUS()) {
-        return std::make_unique<ParsedFunctionExpression>(NEGATE_FUNC_NAME,
-            transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
-            ctx.getText());
-    } else if (ctx.FACTORIAL()) {
-        return std::make_unique<ParsedFunctionExpression>(FACTORIAL_FUNC_NAME,
-            transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
-            ctx.getText());
+    auto result =
+        transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression());
+    if (ctx.FACTORIAL()) { // Factorial has a higher
+        auto raw = result->toString() + "!";
+        result = std::make_unique<ParsedFunctionExpression>(
+            FACTORIAL_FUNC_NAME, std::move(result), std::move(raw));
     }
-    return transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression());
+    if (!ctx.MINUS().empty()) {
+        for ([[maybe_unused]] auto& _ : ctx.MINUS()) {
+            auto raw = "-" + result->toString();
+            result = std::make_unique<ParsedFunctionExpression>(
+                NEGATE_FUNC_NAME, std::move(result), std::move(raw));
+        }
+    }
+    return result;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformStringListNullOperatorExpression(
