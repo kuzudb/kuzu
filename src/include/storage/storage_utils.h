@@ -20,24 +20,10 @@ struct DBFileIDAndName {
     std::string fName;
 };
 
-struct PageByteCursor {
-    PageByteCursor(common::page_idx_t pageIdx, uint16_t offsetInPage)
-        : pageIdx{pageIdx}, offsetInPage{offsetInPage} {};
-    PageByteCursor() : PageByteCursor{UINT32_MAX, UINT16_MAX} {};
-
-    inline void resetValue() {
-        pageIdx = UINT32_MAX;
-        offsetInPage = UINT16_MAX;
-    }
-
-    common::page_idx_t pageIdx;
-    uint16_t offsetInPage;
-};
-
-struct PageElementCursor {
-    PageElementCursor(common::page_idx_t pageIdx, uint16_t posInPage)
+struct PageCursor {
+    PageCursor(common::page_idx_t pageIdx, uint16_t posInPage)
         : pageIdx{pageIdx}, elemPosInPage{posInPage} {};
-    PageElementCursor() : PageElementCursor{UINT32_MAX, UINT16_MAX} {};
+    PageCursor() : PageCursor{UINT32_MAX, UINT16_MAX} {};
 
     inline void nextPage() {
         pageIdx++;
@@ -66,18 +52,10 @@ struct PageUtils {
 
     // This function returns the page pageIdx of the page where element will be found and the pos of
     // the element in the page as the offset.
-    static inline PageElementCursor getPageElementCursorForPos(
-        uint64_t elementPos, uint32_t numElementsPerPage) {
+    static inline PageCursor getPageCursorForPos(uint64_t elementPos, uint32_t numElementsPerPage) {
         KU_ASSERT((elementPos / numElementsPerPage) < UINT32_MAX);
-        return PageElementCursor{(common::page_idx_t)(elementPos / numElementsPerPage),
+        return PageCursor{(common::page_idx_t)(elementPos / numElementsPerPage),
             (uint16_t)(elementPos % numElementsPerPage)};
-    }
-
-    static inline PageByteCursor getPageByteCursorForPos(
-        uint64_t elementPos, uint32_t numElementsPerPage, uint64_t elementSize) {
-        KU_ASSERT((elementPos / numElementsPerPage) < UINT32_MAX);
-        return PageByteCursor{(common::page_idx_t)(elementPos / numElementsPerPage),
-            (uint16_t)(elementPos % numElementsPerPage * elementSize)};
     }
 };
 

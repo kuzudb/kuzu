@@ -92,14 +92,14 @@ U BaseDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
         !bmFileHandle.hasWALPageVersionNoWALPageIdxLock(apPageIdx)) {
         U retVal;
         bufferManager->optimisticRead(bmFileHandle, apPageIdx,
-            [&](const uint8_t* frame) -> void { retVal = *(U*)(frame + apCursor.offsetInPage); });
+            [&](const uint8_t* frame) -> void { retVal = *(U*)(frame + apCursor.elemPosInPage); });
         return retVal;
     } else {
         U retVal;
         ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(apPageIdx);
         DBFileUtils::readWALVersionOfPage(bmFileHandle, apPageIdx, *bufferManager, *wal,
             [&retVal, &apCursor](
-                const uint8_t* frame) -> void { retVal = *(U*)(frame + apCursor.offsetInPage); });
+                const uint8_t* frame) -> void { retVal = *(U*)(frame + apCursor.elemPosInPage); });
         return retVal;
     }
 }
@@ -122,7 +122,7 @@ void BaseDiskArray<U>::update(uint64_t idx, U val) {
     page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, TransactionType::WRITE);
     DBFileUtils::updatePage((BMFileHandle&)fileHandle, dbFileID, apPageIdx,
         false /* not inserting a new page */, *bufferManager, *wal,
-        [&apCursor, &val](uint8_t* frame) -> void { *(U*)(frame + apCursor.offsetInPage) = val; });
+        [&apCursor, &val](uint8_t* frame) -> void { *(U*)(frame + apCursor.elemPosInPage) = val; });
 }
 
 template<typename U>
@@ -159,7 +159,7 @@ uint64_t BaseDiskArray<U>::pushBackNoLock(U val) {
             // Now do the push back.
             DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, apPageIdx, isNewlyAdded,
                 *bufferManager, *wal, [&apCursor, &val](uint8_t* frame) -> void {
-                    *(U*)(frame + apCursor.offsetInPage) = val;
+                    *(U*)(frame + apCursor.elemPosInPage) = val;
                 });
             updatedDiskArrayHeader->numElements++;
         });
@@ -376,7 +376,7 @@ template<typename U>
 U& BaseInMemDiskArray<U>::operator[](uint64_t idx) {
     auto apCursor = BaseDiskArray<U>::getAPIdxAndOffsetInAP(idx);
     KU_ASSERT(apCursor.pageIdx < this->header.numAPs);
-    return *(U*)(inMemArrayPages[apCursor.pageIdx].get() + apCursor.offsetInPage);
+    return *(U*)(inMemArrayPages[apCursor.pageIdx].get() + apCursor.elemPosInPage);
 }
 
 template<typename U>

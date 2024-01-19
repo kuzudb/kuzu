@@ -42,7 +42,7 @@ bool InMemHashIndexUtils::equalsFuncForString(
         return memcmp(keyToLookup, kuStringInEntry->prefix, kuStringInEntry->len) == 0;
     } else {
         // For long strings, read overflow values and check if they are true.
-        PageElementCursor cursor;
+        PageCursor cursor;
         TypeUtils::decodeOverflowPtr(
             kuStringInEntry->overflowPtr, cursor.pageIdx, cursor.elemPosInPage);
         auto lengthRead = 0u;

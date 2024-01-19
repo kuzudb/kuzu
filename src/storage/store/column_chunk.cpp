@@ -300,9 +300,9 @@ void ColumnChunk::populateWithDefaultVal(ValueVector* defaultValueVector) {
 offset_t ColumnChunk::getOffsetInBuffer(offset_t pos) const {
     auto numElementsInAPage =
         PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
-    auto posCursor = PageUtils::getPageByteCursorForPos(pos, numElementsInAPage, numBytesPerValue);
-    auto offsetInBuffer =
-        posCursor.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE + posCursor.offsetInPage;
+    auto posCursor = PageUtils::getPageCursorForPos(pos, numElementsInAPage);
+    auto offsetInBuffer = posCursor.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE +
+                          posCursor.elemPosInPage * numBytesPerValue;
     KU_ASSERT(offsetInBuffer + numBytesPerValue <= bufferSize);
     return offsetInBuffer;
 }

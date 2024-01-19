@@ -18,7 +18,7 @@ std::string DiskOverflowFile::readString(TransactionType trxType, const ku_strin
     if (ku_string_t::isShortString(str.len)) {
         return str.getAsShortString();
     } else {
-        PageElementCursor cursor;
+        PageCursor cursor;
         TypeUtils::decodeOverflowPtr(str.overflowPtr, cursor.pageIdx, cursor.elemPosInPage);
         std::string retVal;
         retVal.reserve(str.len);
@@ -43,8 +43,8 @@ std::string DiskOverflowFile::readString(TransactionType trxType, const ku_strin
 }
 
 void DiskOverflowFile::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {
-    PageElementCursor byteCursor = PageUtils::getPageElementCursorForPos(
-        nextBytePosToWriteTo, BufferPoolConstants::PAGE_4KB_SIZE);
+    PageCursor byteCursor =
+        PageUtils::getPageCursorForPos(nextBytePosToWriteTo, BufferPoolConstants::PAGE_4KB_SIZE);
     if ((byteCursor.elemPosInPage == 0) ||
         ((byteCursor.elemPosInPage + numBytesToAppend - 1) > BufferPoolConstants::PAGE_4KB_SIZE)) {
         DBFileUtils::insertNewPage(*fileHandle, dbFileID, *bufferManager, *wal);
@@ -104,8 +104,7 @@ void DiskOverflowFile::logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock
 
 WALPageIdxPosInPageAndFrame DiskOverflowFile::createWALVersionOfPageIfNecessaryForElement(
     uint64_t elementOffset, uint64_t numElementsPerPage) {
-    auto originalPageCursor =
-        PageUtils::getPageElementCursorForPos(elementOffset, numElementsPerPage);
+    auto originalPageCursor = PageUtils::getPageCursorForPos(elementOffset, numElementsPerPage);
     bool insertingNewPage = false;
     if (originalPageCursor.pageIdx >= fileHandle->getNumPages()) {
         KU_ASSERT(originalPageCursor.pageIdx == fileHandle->getNumPages());
