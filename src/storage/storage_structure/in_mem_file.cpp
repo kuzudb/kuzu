@@ -15,7 +15,7 @@ namespace kuzu {
 namespace storage {
 
 InMemFile::InMemFile(std::string filePath, common::VirtualFileSystem* vfs)
-    : filePath{std::move(filePath)}, nextPageIdxToAppend{0}, nextOffsetInPageToAppend{0} {
+    : filePath{std::move(filePath)}, nextPosToAppend(0, 0) {
     fileInfo = vfs->openFile(this->filePath, O_CREAT | O_WRONLY);
     addANewPage();
 }
@@ -43,22 +43,21 @@ ku_string_t InMemFile::appendString(const char* rawString) {
         int32_t remainingLength = length;
         // There should always be some space to write. The constructor adds an empty page, and
         // we always add new pages if we run out of space at the end of the following loop
-        KU_ASSERT(nextOffsetInPageToAppend < BufferPoolConstants::PAGE_4KB_SIZE);
+        KU_ASSERT(nextPosToAppend.elemPosInPage < BufferPoolConstants::PAGE_4KB_SIZE);
 
         TypeUtils::encodeOverflowPtr(
-            result.overflowPtr, nextPageIdxToAppend, nextOffsetInPageToAppend);
+            result.overflowPtr, nextPosToAppend.pageIdx, nextPosToAppend.elemPosInPage);
         while (remainingLength > 0) {
             auto numBytesToWriteInPage = std::min(static_cast<uint64_t>(remainingLength),
-                BufferPoolConstants::PAGE_4KB_SIZE - nextOffsetInPageToAppend);
-            pages[nextPageIdxToAppend]->write(nextOffsetInPageToAppend,
+                BufferPoolConstants::PAGE_4KB_SIZE - nextPosToAppend.elemPosInPage);
+            pages[nextPosToAppend.pageIdx]->write(nextPosToAppend.elemPosInPage,
                 (uint8_t*)rawString + (length - remainingLength), numBytesToWriteInPage);
-            nextOffsetInPageToAppend += numBytesToWriteInPage;
             remainingLength -= numBytesToWriteInPage;
             // Allocate a new page if necessary.
-            if (nextOffsetInPageToAppend >= BufferPoolConstants::PAGE_4KB_SIZE) {
+            nextPosToAppend.elemPosInPage += numBytesToWriteInPage;
+            if (nextPosToAppend.elemPosInPage >= common::BufferPoolConstants::PAGE_4KB_SIZE) {
+                nextPosToAppend.nextPage();
                 addANewPage();
-                nextOffsetInPageToAppend = 0;
-                nextPageIdxToAppend++;
             }
         }
     }
@@ -70,20 +69,19 @@ std::string InMemFile::readString(ku_string_t* strInInMemOvfFile) {
     if (ku_string_t::isShortString(length)) {
         return strInInMemOvfFile->getAsShortString();
     } else {
-        page_idx_t pageIdx = UINT32_MAX;
-        uint16_t pagePos = UINT16_MAX;
-        TypeUtils::decodeOverflowPtr(strInInMemOvfFile->overflowPtr, pageIdx, pagePos);
+        PageCursor cursor;
+        TypeUtils::decodeOverflowPtr(
+            strInInMemOvfFile->overflowPtr, cursor.pageIdx, cursor.elemPosInPage);
         std::string result;
         result.reserve(length);
         auto remainingLength = length;
         while (remainingLength > 0) {
             auto numBytesToReadInPage = std::min(static_cast<uint64_t>(remainingLength),
-                BufferPoolConstants::PAGE_4KB_SIZE - pagePos);
-            result +=
-                std::string_view(reinterpret_cast<const char*>(pages[pageIdx++]->data) + pagePos,
-                    numBytesToReadInPage);
-            // After the first page we always start reading from the beginning of the page.
-            pagePos = 0;
+                BufferPoolConstants::PAGE_4KB_SIZE - cursor.elemPosInPage);
+            result += std::string_view(
+                reinterpret_cast<const char*>(pages[cursor.pageIdx]->data) + cursor.elemPosInPage,
+                numBytesToReadInPage);
+            cursor.nextPage();
             remainingLength -= numBytesToReadInPage;
         }
         return result;
@@ -96,7 +94,7 @@ void InMemFile::flush() {
     }
     auto lastPage = pages.size();
     // If we didn't write to the last page, don't flush it.
-    if (nextOffsetInPageToAppend == 0) {
+    if (nextPosToAppend.elemPosInPage == 0) {
         lastPage = pages.size() - 1;
     }
     for (auto pageIdx = 0u; pageIdx < lastPage; pageIdx++) {
