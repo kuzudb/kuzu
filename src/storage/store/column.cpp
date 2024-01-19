@@ -43,21 +43,17 @@ private:
 
 struct WriteInternalIDValuesToPage {
     WriteInternalIDValuesToPage() : compressedWriter{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
-    void operator()(uint8_t* frame, uint16_t posInFrame, const uint8_t* data, uint32_t dataOffset,
-        offset_t numValues, const CompressionMetadata& metadata) {
-        auto internalIDValues = reinterpret_cast<const internalID_t*>(data);
-
-        for (auto i = 0u; i < numValues; i++) {
-            compressedWriter(frame, posInFrame,
-                reinterpret_cast<const uint8_t*>(&internalIDValues[dataOffset + i].offset),
-                0 /*dataOffset*/, 1 /*numValues*/, metadata);
-        }
+    void operator()(uint8_t* /*frame*/, uint16_t /*posInFrame*/, const uint8_t* /*data*/,
+        uint32_t /*dataOffset*/, offset_t /*numValues*/, const CompressionMetadata& /*metadata*/) {
+        KU_ASSERT(false);
     }
     void operator()(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
         uint32_t offsetInVector, const CompressionMetadata& metadata) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-        compressedWriter(
-            frame, posInFrame, vector->getData(), offsetInVector, 1 /*numValues*/, metadata);
+        compressedWriter(frame, posInFrame,
+            reinterpret_cast<const uint8_t*>(
+                &vector->getValue<internalID_t>(offsetInVector).offset),
+            0 /*dataOffset*/, 1 /*numValues*/, metadata);
     }
 
 private:
