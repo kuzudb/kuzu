@@ -25,6 +25,7 @@ static constexpr std::string_view XSD_double = "double";
 static constexpr std::string_view XSD_decimal = "decimal";
 static constexpr std::string_view XSD_boolean = "boolean";
 static constexpr std::string_view XSD_date = "date";
+static constexpr std::string_view XSD_dateTime = "dateTime";
 
 } // namespace rdf
 } // namespace common
