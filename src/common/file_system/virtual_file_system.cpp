@@ -16,12 +16,13 @@ void VirtualFileSystem::registerFileSystem(std::unique_ptr<FileSystem> fileSyste
 }
 
 std::unique_ptr<FileInfo> VirtualFileSystem::openFile(
-    const std::string& path, int flags, main::ClientContext* context, FileLockType lockType) const {
+    const std::string& path, int flags, main::ClientContext* context, FileLockType lockType) {
     return findFileSystem(path)->openFile(path, flags, context, lockType);
 }
 
-std::vector<std::string> VirtualFileSystem::glob(const std::string& path) const {
-    return findFileSystem(path)->glob(path);
+std::vector<std::string> VirtualFileSystem::glob(
+    main::ClientContext* context, const std::string& path) const {
+    return findFileSystem(path)->glob(context, path);
 }
 
 void VirtualFileSystem::overwriteFile(const std::string& from, const std::string& to) const {

@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace httpfs {
 
-void sha256(const char* in, size_t inLen, hashBytes& out) {
+void sha256(const char* in, size_t inLen, hash_bytes& out) {
     mbedtls_sha256_context shaContext;
     mbedtls_sha256_init(&shaContext);
     if (mbedtls_sha256_starts(&shaContext, false) ||
@@ -18,7 +18,7 @@ void sha256(const char* in, size_t inLen, hashBytes& out) {
     mbedtls_sha256_free(&shaContext);
 }
 
-void hmac256(const std::string& message, const char* secret, size_t secretLen, hashBytes& out) {
+void hmac256(const std::string& message, const char* secret, size_t secretLen, hash_bytes& out) {
     mbedtls_md_context_t hmacCtx;
     const mbedtls_md_info_t* mdType = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
     if (!mdType) {
@@ -36,11 +36,11 @@ void hmac256(const std::string& message, const char* secret, size_t secretLen, h
     mbedtls_md_free(&hmacCtx);
 }
 
-void hmac256(std::string message, hashBytes secret, hashBytes& out) {
-    hmac256(message, (char*)secret, sizeof(hashBytes), out);
+void hmac256(std::string message, hash_bytes secret, hash_bytes& out) {
+    hmac256(message, (char*)secret, sizeof(hash_bytes), out);
 }
 
-void hex256(hashBytes& in, hashStr& out) {
+void hex256(hash_bytes& in, hash_str& out) {
     const char* hex = "0123456789abcdef";
     unsigned char* pin = in;
     unsigned char* pout = out;

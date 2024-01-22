@@ -16,6 +16,7 @@ SET(OPENSSL_USE_STATIC_LIBS TRUE)
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 add_compile_definitions(CPPHTTPLIB_OPENSSL_SUPPORT)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(third_party/mbedtls)
 

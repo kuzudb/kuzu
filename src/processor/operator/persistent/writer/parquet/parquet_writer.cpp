@@ -4,6 +4,7 @@
 
 #include "common/data_chunk/data_chunk.h"
 #include "common/file_system/virtual_file_system.h"
+#include "main/client_context.h"
 #include "thrift/protocol/TCompactProtocol.h"
 
 namespace kuzu {
@@ -14,11 +15,11 @@ using namespace kuzu::common;
 
 ParquetWriter::ParquetWriter(std::string fileName,
     std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> columnNames,
-    kuzu_parquet::format::CompressionCodec::type codec, storage::MemoryManager* mm,
-    const VirtualFileSystem* vfs)
-    : fileName{std::move(fileName)}, types{std::move(types)},
-      columnNames{std::move(columnNames)}, codec{codec}, fileOffset{0}, mm{mm} {
-    fileInfo = vfs->openFile(this->fileName, O_WRONLY | O_CREAT | O_TRUNC);
+    kuzu_parquet::format::CompressionCodec::type codec, main::ClientContext* context)
+    : fileName{std::move(fileName)}, types{std::move(types)}, columnNames{std::move(columnNames)},
+      codec{codec}, fileOffset{0}, mm{context->getMemoryManager()} {
+    fileInfo =
+        context->getVFSUnsafe()->openFile(this->fileName, O_WRONLY | O_CREAT | O_TRUNC, context);
     // Parquet files start with the string "PAR1".
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ParquetConstants::PARQUET_MAGIC_WORDS),
         strlen(ParquetConstants::PARQUET_MAGIC_WORDS), fileOffset);

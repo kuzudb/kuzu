@@ -41,8 +41,7 @@ private:
 
 class CopyToParquetSharedState final : public CopyToSharedState {
 public:
-    void init(CopyToInfo* info, storage::MemoryManager* mm,
-        const common::VirtualFileSystem* vfs) override;
+    void init(CopyToInfo* info, main::ClientContext* context) override;
 
     void finalize() override;
 

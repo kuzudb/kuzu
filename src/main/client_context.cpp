@@ -70,7 +70,7 @@ void ClientContext::setExtensionOption(std::string name, common::Value value) {
     extensionOptionValues.insert_or_assign(name, std::move(value));
 }
 
-const VirtualFileSystem* ClientContext::getVFS() const {
+VirtualFileSystem* ClientContext::getVFSUnsafe() const {
     return database->vfs.get();
 }
 

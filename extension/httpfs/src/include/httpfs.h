@@ -45,7 +45,7 @@ struct HTTPParams {
 };
 
 struct HTTPFileInfo : public common::FileInfo {
-    HTTPFileInfo(std::string path, const common::FileSystem* fileSystem, int flags);
+    HTTPFileInfo(std::string path, common::FileSystem* fileSystem, int flags);
 
     virtual void initialize();
 
@@ -71,13 +71,16 @@ class HTTPFileSystem : public common::FileSystem {
 public:
     std::unique_ptr<common::FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
-        common::FileLockType lock_type = common::FileLockType::NO_LOCK) const override;
+        common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
 
-    std::vector<std::string> glob(const std::string& path) const override;
+    std::vector<std::string> glob(
+        main::ClientContext* context, const std::string& path) const override;
 
     bool canHandleFile(const std::string& path) const override;
 
     static std::unique_ptr<httplib::Client> getClient(const std::string& host);
+
+    static std::unique_ptr<httplib::Headers> getHTTPHeaders(HeaderMap& headerMap);
 
 protected:
     void readFromFile(common::FileInfo* fileInfo, void* buffer, uint64_t numBytes,
@@ -89,20 +92,27 @@ protected:
 
     uint64_t getFileSize(common::FileInfo* fileInfo) const override;
 
-    static void parseUrl(const std::string& url, std::string& hostPath, std::string& host);
-
-    static std::unique_ptr<httplib::Headers> getHttpHeaders(HeaderMap& headerMap);
+    static std::pair<std::string, std::string> parseUrl(const std::string& url);
 
     static std::unique_ptr<HTTPResponse> runRequestWithRetry(
         const std::function<httplib::Result(void)>& request, const std::string& url,
         std::string method, const std::function<void(void)>& retry = {});
 
     virtual std::unique_ptr<HTTPResponse> headRequest(
-        common::FileInfo* fileInfo, std::string url, HeaderMap headerMap) const;
+        common::FileInfo* fileInfo, const std::string& url, HeaderMap headerMap) const;
 
     virtual std::unique_ptr<HTTPResponse> getRangeRequest(common::FileInfo* fileInfo,
         const std::string& url, HeaderMap headerMap, uint64_t fileOffset, char* buffer,
         uint64_t bufferLen) const;
+
+    virtual std::unique_ptr<HTTPResponse> postRequest(common::FileInfo* fileInfo,
+        const std::string& url, HeaderMap headerMap, std::unique_ptr<uint8_t[]>& outputBuffer,
+        uint64_t& outputBufferLen, const uint8_t* inputBuffer, uint64_t inputBufferLen,
+        std::string params = "") const;
+
+    virtual std::unique_ptr<HTTPResponse> putRequest(common::FileInfo* fileInfo,
+        const std::string& url, HeaderMap headerMap, const uint8_t* inputBuffer,
+        uint64_t inputBufferLen, std::string params = "") const;
 };
 
 } // namespace httpfs

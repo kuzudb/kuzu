@@ -36,8 +36,8 @@ LocalFileInfo::~LocalFileInfo() {
 #endif
 }
 
-std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* /*context*/, FileLockType lock_type) const {
+std::unique_ptr<FileInfo> LocalFileSystem::openFile(
+    const std::string& path, int flags, main::ClientContext* /*context*/, FileLockType lock_type) {
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
     auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
@@ -89,7 +89,8 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
 #endif
 }
 
-std::vector<std::string> LocalFileSystem::glob(const std::string& path) const {
+std::vector<std::string> LocalFileSystem::glob(
+    main::ClientContext* /*context*/, const std::string& path) const {
     std::vector<std::string> result;
     for (auto& resultPath : glob::glob(path)) {
         result.emplace_back(resultPath.string());

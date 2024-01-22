@@ -37,7 +37,7 @@ FileType Binder::bindFileType(const std::vector<std::string>& filePaths) {
 std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {
     std::vector<std::string> boundFilePaths;
     for (auto& filePath : filePaths) {
-        auto globbedFilePaths = vfs->glob(filePath);
+        auto globbedFilePaths = vfs->glob(clientContext, filePath);
         if (globbedFilePaths.empty()) {
             throw BinderException{
                 stringFormat("No file found that matches the pattern: {}.", filePath)};
