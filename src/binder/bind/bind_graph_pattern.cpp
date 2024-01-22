@@ -32,6 +32,7 @@ BoundGraphPattern Binder::bindGraphPattern(const std::vector<PatternElement>& gr
     for (auto& patternElement : graphPattern) {
         queryGraphCollection.addAndMergeQueryGraphIfConnected(bindPatternElement(patternElement));
     }
+    queryGraphCollection.finalize();
     auto boundPattern = BoundGraphPattern();
     boundPattern.queryGraphCollection = std::move(queryGraphCollection);
     return boundPattern;
