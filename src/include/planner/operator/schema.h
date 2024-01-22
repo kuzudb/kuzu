@@ -91,10 +91,7 @@ public:
         return getGroupPos(expression.getUniqueName());
     }
 
-    inline f_group_pos getGroupPos(const std::string& expressionName) const {
-        KU_ASSERT(expressionNameToGroupPos.contains(expressionName));
-        return expressionNameToGroupPos.at(expressionName);
-    }
+    f_group_pos getGroupPos(const std::string& expressionName) const;
 
     inline std::pair<f_group_pos, uint32_t> getExpressionPos(
         const binder::Expression& expression) const {

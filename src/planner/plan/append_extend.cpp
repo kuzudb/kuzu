@@ -86,6 +86,16 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
     return result;
 }
 
+static std::shared_ptr<Expression> getIRIProperty(const expression_vector& properties) {
+    for (auto& property : properties) {
+        auto propertyExpr = ku_dynamic_cast<Expression*, PropertyExpression*>(property.get());
+        if (propertyExpr->isIRI()) {
+            return property;
+        }
+    }
+    return nullptr;
+}
+
 void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
     const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
@@ -97,20 +107,17 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     }
     // Check for each bound node, can we extend to more than 1 nbr node.
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, *catalog);
-    // Split properties that cannot be scanned from rel table, specifically RDF predicate IRI.
-    expression_vector propertiesToScanFromRelTable;
-    std::shared_ptr<Expression> iri;
-    for (auto& property : properties) {
-        if (ku_dynamic_cast<Expression*, PropertyExpression*>(property.get())->isIRI()) {
-            iri = property;
-            propertiesToScanFromRelTable.push_back(rel->getRdfPredicateInfo()->predicateID);
-        } else {
-            propertiesToScanFromRelTable.push_back(property);
-        }
+    auto properties_ = properties;
+    auto iri = getIRIProperty(properties);
+    if (iri != nullptr) {
+        // IRI cannot be scanned directly from rel table. Instead, we scan PID.
+        properties_.push_back(rel->getRdfPredicateInfo()->predicateID);
+        // Remove duplicate predicate ID.
+        properties_ = ExpressionUtil::removeDuplication(properties_);
     }
     // Append extend
-    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction,
-        propertiesToScanFromRelTable, hasAtMostOneNbr, plan.getLastOperator());
+    auto extend = make_shared<LogicalExtend>(
+        boundNode, nbrNode, rel, direction, properties_, hasAtMostOneNbr, plan.getLastOperator());
     appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
@@ -127,6 +134,7 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         appendNodeLabelFilter(nbrNode->getInternalID(), nbrNode->getTableIDsSet(), plan);
     }
     if (iri) {
+        // Use additional hash join to convert PID to IRI.
         auto rdfInfo = rel->getRdfPredicateInfo();
         appendFillTableID(rdfInfo->predicateID, rdfInfo->resourceTableIDs[0], plan);
         // Append hash join for remaining properties
@@ -225,8 +233,22 @@ void Planner::createRecursivePlan(
     }
     auto relProperties = collectPropertiesToRead(recursiveInfo.relPredicate);
     relProperties.push_back(rel->getInternalIDProperty());
-    appendNonRecursiveExtend(
-        boundNode, nbrNode, rel, direction, ExpressionUtil::removeDuplication(relProperties), plan);
+    auto iri = getIRIProperty(relProperties);
+    if (iri != nullptr) {
+        // IRI Cannot be scanned directly from rel table. For recursive plan filter, we first read
+        // PID, then lookup resource node table to convert PID to IRI.
+        relProperties = ExpressionUtil::excludeExpression(relProperties, *iri);
+        relProperties.push_back(rel->getRdfPredicateInfo()->predicateID);
+        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction,
+            ExpressionUtil::removeDuplication(relProperties), plan);
+        auto rdfInfo = rel->getRdfPredicateInfo();
+        appendFillTableID(rdfInfo->predicateID, rdfInfo->resourceTableIDs[0], plan);
+        appendScanNodeProperties(
+            rdfInfo->predicateID, rdfInfo->resourceTableIDs, expression_vector{iri}, plan);
+    } else {
+        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction,
+            ExpressionUtil::removeDuplication(relProperties), plan);
+    }
     if (recursiveInfo.relPredicate) {
         appendFilters(recursiveInfo.relPredicate->splitOnAND(), plan);
     }

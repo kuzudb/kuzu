@@ -53,6 +53,11 @@ void Schema::insertToGroupAndScope(
     }
 }
 
+f_group_pos Schema::getGroupPos(const std::string& expressionName) const {
+    KU_ASSERT(expressionNameToGroupPos.contains(expressionName));
+    return expressionNameToGroupPos.at(expressionName);
+}
+
 bool Schema::isExpressionInScope(const binder::Expression& expression) const {
     for (auto& expressionInScope : expressionsInScope) {
         if (expressionInScope->getUniqueName() == expression.getUniqueName()) {

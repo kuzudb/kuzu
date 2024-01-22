@@ -179,6 +179,10 @@ void Binder::bindInsertRel(
         KU_ASSERT(parentTableSchema->getTableType() == TableType::RDF);
         auto rdfTableSchema =
             ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(parentTableSchema);
+        if (!rel->hasPropertyDataExpr(std::string(rdf::IRI))) {
+            throw BinderException(stringFormat(
+                "Insert relationship {} expects {} property as input.", rel->toString(), rdf::IRI));
+        }
         // Insert predicate resource node.
         auto resourceTableID = rdfTableSchema->getResourceTableID();
         auto pNode = createQueryNode(
