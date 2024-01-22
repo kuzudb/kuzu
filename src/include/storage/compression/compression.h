@@ -15,7 +15,7 @@ class ValueVector;
 namespace storage {
 class ColumnChunk;
 
-struct PageElementCursor;
+struct PageCursor;
 
 // Returns the size of the data type in bytes
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType);
@@ -312,9 +312,8 @@ public:
         : CompressedFunctor(logicalType) {}
     ReadCompressedValuesFromPageToVector(const ReadCompressedValuesFromPageToVector&) = default;
 
-    void operator()(const uint8_t* frame, PageElementCursor& pageCursor,
-        common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
-        const CompressionMetadata& metadata);
+    void operator()(const uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
+        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata);
 };
 
 class ReadCompressedValuesFromPage : public CompressedFunctor {
@@ -323,7 +322,7 @@ public:
         : CompressedFunctor(logicalType) {}
     ReadCompressedValuesFromPage(const ReadCompressedValuesFromPage&) = default;
 
-    void operator()(const uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
+    void operator()(const uint8_t* frame, PageCursor& pageCursor, uint8_t* result,
         uint32_t startPosInResult, uint64_t numValuesToRead, const CompressionMetadata& metadata);
 };
 

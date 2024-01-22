@@ -4,10 +4,10 @@ namespace kuzu {
 namespace common {
 
 uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
-    KU_ASSERT(size <= BufferPoolConstants::PAGE_256KB_SIZE);
     if (requireNewBlock(size)) {
         allocateNewBlock();
     }
+    KU_ASSERT(size <= BufferPoolConstants::PAGE_256KB_SIZE);
     auto data = currentBlock->block->buffer + currentBlock->currentOffset;
     currentBlock->currentOffset += size;
     return data;

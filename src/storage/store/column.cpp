@@ -25,7 +25,7 @@ static inline bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata&
 
 struct ReadInternalIDValuesToVector {
     ReadInternalIDValuesToVector() : compressedReader{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
-    void operator()(const uint8_t* frame, PageElementCursor& pageCursor, ValueVector* resultVector,
+    void operator()(const uint8_t* frame, PageCursor& pageCursor, ValueVector* resultVector,
         uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata) {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
 
@@ -61,7 +61,7 @@ private:
 };
 
 struct NullColumnFunc {
-    static void readValuesFromPageToVector(const uint8_t* frame, PageElementCursor& pageCursor,
+    static void readValuesFromPageToVector(const uint8_t* frame, PageCursor& pageCursor,
         ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
         const CompressionMetadata& metadata) {
         // Read bit-packed null flags from the frame into the result vector
@@ -452,7 +452,7 @@ void Column::scan(
         columnChunk->setNumValues(0);
     } else {
         auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
-        auto cursor = PageElementCursor(chunkMetadata.pageIdx, 0);
+        auto cursor = PageCursor(chunkMetadata.pageIdx, 0);
         uint64_t numValuesPerPage =
             chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
         uint64_t numValuesScanned = 0u;
@@ -511,7 +511,7 @@ void Column::scanInternal(
     }
 }
 
-void Column::scanUnfiltered(Transaction* transaction, PageElementCursor& pageCursor,
+void Column::scanUnfiltered(Transaction* transaction, PageCursor& pageCursor,
     uint64_t numValuesToScan, ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta,
     uint64_t startPosInVector) {
     uint64_t numValuesScanned = 0;
@@ -531,7 +531,7 @@ void Column::scanUnfiltered(Transaction* transaction, PageElementCursor& pageCur
     }
 }
 
-void Column::scanFiltered(Transaction* transaction, PageElementCursor& pageCursor,
+void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
     ValueVector* nodeIDVector, ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta) {
     auto numValuesToScan = nodeIDVector->state->getOriginalSize();
     auto numValuesScanned = 0u;
@@ -699,9 +699,8 @@ offset_t Column::appendValues(
     return startOffset;
 }
 
-PageElementCursor Column::getPageCursorForOffsetInGroup(
-    offset_t offsetInChunk, const ReadState& state) {
-    auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInChunk, state.numValuesPerPage);
+PageCursor Column::getPageCursorForOffsetInGroup(offset_t offsetInChunk, const ReadState& state) {
+    auto pageCursor = PageUtils::getPageCursorForPos(offsetInChunk, state.numValuesPerPage);
     pageCursor.pageIdx += state.metadata.pageIdx;
     return pageCursor;
 }
@@ -930,7 +929,7 @@ void Column::populateWithDefaultVal(const Property& property, Column* column,
     }
 }
 
-PageElementCursor Column::getPageCursorForOffset(
+PageCursor Column::getPageCursorForOffset(
     TransactionType transactionType, node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
     auto state = getReadState(transactionType, nodeGroupIdx);
     return getPageCursorForOffsetInGroup(offsetInChunk, state);

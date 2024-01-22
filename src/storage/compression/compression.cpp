@@ -589,9 +589,9 @@ BitpackHeader BitpackHeader::readHeader(
     return header;
 }
 
-void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame,
-    PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-    uint32_t numValuesToRead, const CompressionMetadata& metadata) {
+void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame, PageCursor& pageCursor,
+    common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
+    const CompressionMetadata& metadata) {
     switch (metadata.compression) {
     case CompressionType::CONSTANT:
         return constant.decompressFromPage(frame, pageCursor.elemPosInPage, resultVector->getData(),
@@ -649,7 +649,7 @@ void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame,
     }
 }
 
-void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageElementCursor& pageCursor,
+void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageCursor& pageCursor,
     uint8_t* result, uint32_t startPosInResult, uint64_t numValuesToRead,
     const CompressionMetadata& metadata) {
     switch (metadata.compression) {

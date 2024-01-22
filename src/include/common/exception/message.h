@@ -7,8 +7,8 @@ namespace kuzu {
 namespace common {
 
 struct ExceptionMessage {
-    static std::string existedPKException(const std::string& pkString);
-    static std::string nonExistPKException(const std::string& pkString);
+    static std::string duplicatePKException(const std::string& pkString);
+    static std::string nonExistentPKException(const std::string& pkString);
     static std::string invalidPKType(const std::string& type);
     static inline std::string nullPKException() {
         return "Found NULL, which violates the non-null constraint of the primary key column.";

@@ -182,7 +182,7 @@ void NodeTable::insertPK(ValueVector* nodeIDVector, ValueVector* primaryKeyVecto
                 primaryKeyVector->dataType.getLogicalTypeID() == LogicalTypeID::INT64 ?
                     std::to_string(primaryKeyVector->getValue<int64_t>(pkPos)) :
                     primaryKeyVector->getValue<ku_string_t>(pkPos).getAsString();
-            throw RuntimeException(ExceptionMessage::existedPKException(pkStr));
+            throw RuntimeException(ExceptionMessage::duplicatePKException(pkStr));
         }
     }
 }

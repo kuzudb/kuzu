@@ -160,7 +160,7 @@ void VarListColumn::rollbackInMemory() {
 offset_t VarListColumn::readOffset(
     Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
-    auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInNodeGroup,
+    auto pageCursor = PageUtils::getPageCursorForPos(offsetInNodeGroup,
         chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType));
     pageCursor.pageIdx += chunkMeta.pageIdx;
     offset_t value;

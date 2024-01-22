@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/constants.h"
+#include "common/exception/message.h"
 #include "common/exception/overflow.h"
 #include "common/string_format.h"
 #include "common/type_utils.h"
@@ -15,6 +17,10 @@ struct CastToString {
         common::ValueVector& inputVector, common::ValueVector& resultVector) {
         std::string resultStr = common::TypeUtils::toString(input, (void*)&inputVector);
         if (resultStr.length() > common::ku_string_t::SHORT_STR_LENGTH) {
+            if (resultStr.length() > common::BufferPoolConstants::PAGE_256KB_SIZE) {
+                throw common::RuntimeException(
+                    common::ExceptionMessage::overLargeStringValueException(resultStr.length()));
+            }
             result.overflowPtr = reinterpret_cast<uint64_t>(
                 common::StringVector::getInMemOverflowBuffer(&resultVector)
                     ->allocateSpace(resultStr.length()));

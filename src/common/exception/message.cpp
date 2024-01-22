@@ -5,14 +5,14 @@
 namespace kuzu {
 namespace common {
 
-std::string ExceptionMessage::existedPKException(const std::string& pkString) {
+std::string ExceptionMessage::duplicatePKException(const std::string& pkString) {
     return stringFormat("Found duplicated primary key value {}, which violates the uniqueness"
                         " constraint of the primary key column.",
         pkString);
 }
 
-std::string ExceptionMessage::nonExistPKException(const std::string& pkString) {
-    return stringFormat("Found non-existed primary key value {}.", pkString);
+std::string ExceptionMessage::nonExistentPKException(const std::string& pkString) {
+    return stringFormat("Unable to find primary key value {}.", pkString);
 }
 
 std::string ExceptionMessage::invalidPKType(const std::string& type) {
@@ -22,7 +22,7 @@ std::string ExceptionMessage::invalidPKType(const std::string& type) {
 }
 
 std::string ExceptionMessage::overLargeStringPKValueException(uint64_t length) {
-    return stringFormat("The maximum length of primary key strings is 4096 bytes. The input "
+    return stringFormat("The maximum length of primary key strings is 262144 bytes. The input "
                         "string's length was {}.",
         length);
 }

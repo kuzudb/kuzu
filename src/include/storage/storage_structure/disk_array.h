@@ -151,14 +151,14 @@ protected:
 
     virtual void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
 
-    inline PageByteCursor getAPIdxAndOffsetInAP(uint64_t idx) {
+    inline PageCursor getAPIdxAndOffsetInAP(uint64_t idx) {
         // We assume that `numElementsPerPageLog2`, `elementPageOffsetMask`,
         // `alignedElementSizeLog2` are never modified throughout transactional updates, thus, we
         // directly use them from header here.
         common::page_idx_t apIdx = idx >> header.numElementsPerPageLog2;
         uint16_t byteOffsetInAP = (idx & header.elementPageOffsetMask)
                                   << header.alignedElementSizeLog2;
-        return PageByteCursor{apIdx, byteOffsetInAP};
+        return PageCursor{apIdx, byteOffsetInAP};
     }
 
 private:

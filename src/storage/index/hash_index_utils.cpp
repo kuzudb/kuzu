@@ -1,5 +1,6 @@
 #include "storage/index/hash_index_utils.h"
 
+#include "common/constants.h"
 #include "common/exception/copy.h"
 #include "common/exception/storage.h"
 #include "common/type_utils.h"
@@ -41,12 +42,23 @@ bool InMemHashIndexUtils::equalsFuncForString(
         return memcmp(keyToLookup, kuStringInEntry->prefix, kuStringInEntry->len) == 0;
     } else {
         // For long strings, read overflow values and check if they are true.
-        PageByteCursor cursor;
+        PageCursor cursor;
         TypeUtils::decodeOverflowPtr(
-            kuStringInEntry->overflowPtr, cursor.pageIdx, cursor.offsetInPage);
-        return memcmp(keyToLookup,
-                   inMemOverflowFile->getPage(cursor.pageIdx)->data + cursor.offsetInPage,
-                   kuStringInEntry->len) == 0;
+            kuStringInEntry->overflowPtr, cursor.pageIdx, cursor.elemPosInPage);
+        auto lengthRead = 0u;
+        while (lengthRead < kuStringInEntry->len) {
+            auto numBytesToCheckInPage =
+                std::min(static_cast<uint64_t>(kuStringInEntry->len) - lengthRead,
+                    BufferPoolConstants::PAGE_4KB_SIZE - cursor.elemPosInPage);
+            if (memcmp(keyToLookup + lengthRead,
+                    inMemOverflowFile->getPage(cursor.pageIdx)->data + cursor.elemPosInPage,
+                    numBytesToCheckInPage) != 0) {
+                return false;
+            }
+            cursor.nextPage();
+            lengthRead += numBytesToCheckInPage;
+        }
+        return true;
     }
 }
 

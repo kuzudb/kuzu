@@ -11,9 +11,9 @@ namespace storage {
 
 struct CompressionMetadata;
 
-using read_values_to_vector_func_t = std::function<void(uint8_t* frame,
-    PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-    uint32_t numValuesToRead, const CompressionMetadata& metadata)>;
+using read_values_to_vector_func_t =
+    std::function<void(uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
+        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata)>;
 using write_values_from_vector_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
     common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata)>;
 using write_values_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
@@ -21,7 +21,7 @@ using write_values_func_t = std::function<void(uint8_t* frame, uint16_t posInFra
     const CompressionMetadata& metadata)>;
 
 using read_values_to_page_func_t =
-    std::function<void(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
+    std::function<void(uint8_t* frame, PageCursor& pageCursor, uint8_t* result,
         uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>;
 // This is a special usage for the `batchLookup` interface.
 using batch_lookup_func_t = read_values_to_page_func_t;
@@ -109,10 +109,10 @@ public:
 protected:
     virtual void scanInternal(transaction::Transaction* transaction,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
-    void scanUnfiltered(transaction::Transaction* transaction, PageElementCursor& pageCursor,
+    void scanUnfiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
         uint64_t numValuesToScan, common::ValueVector* resultVector,
         const ColumnChunkMetadata& chunkMeta, uint64_t startPosInVector = 0);
-    void scanFiltered(transaction::Transaction* transaction, PageElementCursor& pageCursor,
+    void scanFiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector,
         const ColumnChunkMetadata& chunkMeta);
     virtual void lookupInternal(transaction::Transaction* transaction,
@@ -130,11 +130,11 @@ protected:
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk, const uint8_t* data);
 
     // Produces a page cursor for the offset relative to the given node group
-    PageElementCursor getPageCursorForOffsetInGroup(
+    PageCursor getPageCursorForOffsetInGroup(
         common::offset_t offsetInChunk, const ReadState& state);
 
     // Produces a page cursor for the absolute node offset
-    PageElementCursor getPageCursorForOffset(transaction::TransactionType transactionType,
+    PageCursor getPageCursorForOffset(transaction::TransactionType transactionType,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
     WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);

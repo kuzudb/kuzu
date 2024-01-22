@@ -3,6 +3,7 @@
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/storage_structure/in_mem_page.h"
+#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace common {
@@ -33,8 +34,7 @@ private:
     std::string filePath;
     std::unique_ptr<common::FileInfo> fileInfo;
     std::vector<std::unique_ptr<InMemPage>> pages;
-    common::page_idx_t nextPageIdxToAppend;
-    common::page_offset_t nextOffsetInPageToAppend;
+    PageCursor nextPosToAppend;
 };
 
 } // namespace storage
