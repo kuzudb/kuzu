@@ -336,6 +336,14 @@ void StorageInfoSharedState::collectColumns(Table* table) {
     } break;
     case TableType::REL: {
         auto relTable = ku_dynamic_cast<Table*, RelTable*>(table);
+        if (relTable->getTableDataFormat(RelDataDirection::FWD) == ColumnDataFormat::CSR) {
+            columns.push_back(relTable->getCSROffsetColumn(RelDataDirection::FWD));
+            columns.push_back(relTable->getCSRLengthColumn(RelDataDirection::FWD));
+        }
+        if (relTable->getTableDataFormat(RelDataDirection::BWD) == ColumnDataFormat::CSR) {
+            columns.push_back(relTable->getCSROffsetColumn(RelDataDirection::BWD));
+            columns.push_back(relTable->getCSRLengthColumn(RelDataDirection::BWD));
+        }
         columns.push_back(relTable->getAdjColumn(RelDataDirection::FWD));
         columns.push_back(relTable->getAdjColumn(RelDataDirection::BWD));
         for (auto columnID = 0u; columnID < relTable->getNumColumns(); columnID++) {

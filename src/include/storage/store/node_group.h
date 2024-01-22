@@ -55,7 +55,13 @@ struct CSRHeaderChunks {
     std::unique_ptr<ColumnChunk> offset;
     std::unique_ptr<ColumnChunk> length;
 
-    void init(bool enableCompression);
+    CSRHeaderChunks() {}
+    explicit CSRHeaderChunks(
+        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+
+    common::offset_t getStartCSROffset(common::offset_t nodeOffset) const;
+    common::offset_t getEndCSROffset(common::offset_t nodeOffset) const;
+    common::length_t getCSRLength(common::offset_t nodeOffset) const;
 };
 
 class CSRNodeGroup : public NodeGroup {

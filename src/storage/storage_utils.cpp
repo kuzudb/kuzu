@@ -30,7 +30,10 @@ std::string StorageUtils::getColumnName(
         return stringFormat("{}_offset", propertyName);
     }
     case StorageUtils::ColumnType::CSR_OFFSET: {
-        return stringFormat("{}_csr_offset", propertyName);
+        return stringFormat("{}_csr_offset", prefix);
+    }
+    case StorageUtils::ColumnType::CSR_LENGTH: {
+        return stringFormat("{}_csr_length", prefix);
     }
     case StorageUtils::ColumnType::ADJ: {
         return stringFormat("{}_adj", prefix);

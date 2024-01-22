@@ -28,6 +28,9 @@ public:
     void append(NodeGroup* nodeGroup) override;
     void resizeColumns(common::node_group_idx_t numNodeGroups) override;
 
+    inline Column* getCSROffsetColumn() const override { return csrHeaderColumns.offset.get(); }
+    inline Column* getCSRLengthColumn() const override { return csrHeaderColumns.length.get(); }
+
     void prepareLocalTableToCommit(
         transaction::Transaction* transaction, LocalTableData* localTable) override;
 

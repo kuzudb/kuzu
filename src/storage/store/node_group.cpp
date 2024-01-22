@@ -110,19 +110,39 @@ void NodeGroup::finalize(uint64_t nodeGroupIdx_) {
     }
 }
 
-void CSRHeaderChunks::init(bool enableCompression) {
+CSRHeaderChunks::CSRHeaderChunks(bool enableCompression, uint64_t capacity) {
     offset =
-        ColumnChunkFactory::createColumnChunk(common::LogicalType::UINT64(), enableCompression);
+        ColumnChunkFactory::createColumnChunk(LogicalType::UINT64(), enableCompression, capacity);
     length =
-        ColumnChunkFactory::createColumnChunk(common::LogicalType::UINT64(), enableCompression);
+        ColumnChunkFactory::createColumnChunk(LogicalType::UINT64(), enableCompression, capacity);
+}
+
+offset_t CSRHeaderChunks::getStartCSROffset(offset_t nodeOffset) const {
+    if (nodeOffset == 0 || offset->getNumValues() == 0) {
+        return 0;
+    }
+    return offset->getValue<offset_t>(
+        nodeOffset >= offset->getNumValues() ? (offset->getNumValues() - 1) : (nodeOffset - 1));
+}
+
+offset_t CSRHeaderChunks::getEndCSROffset(offset_t nodeOffset) const {
+    if (offset->getNumValues() == 0) {
+        return 0;
+    }
+    return offset->getValue<offset_t>(
+        nodeOffset >= offset->getNumValues() ? (offset->getNumValues() - 1) : nodeOffset);
+}
+
+length_t CSRHeaderChunks::getCSRLength(offset_t nodeOffset) const {
+    return nodeOffset >= length->getNumValues() ? 0 : length->getValue<length_t>(nodeOffset);
 }
 
 CSRNodeGroup::CSRNodeGroup(
-    const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes, bool enableCompression)
+    const std::vector<std::unique_ptr<LogicalType>>& columnTypes, bool enableCompression)
     // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
     // should be resized after csr offset calculation (e.g., during CopyRel).
     : NodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
-    csrHeaderChunks.init(enableCompression);
+    csrHeaderChunks = CSRHeaderChunks(enableCompression);
 }
 
 } // namespace storage

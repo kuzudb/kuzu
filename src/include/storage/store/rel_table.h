@@ -84,6 +84,14 @@ public:
         direction == common::RelDataDirection::FWD ? fwdRelTableData->append(nodeGroup) :
                                                      bwdRelTableData->append(nodeGroup);
     }
+    inline Column* getCSROffsetColumn(common::RelDataDirection direction) {
+        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSROffsetColumn() :
+                                                            bwdRelTableData->getCSROffsetColumn();
+    }
+    inline Column* getCSRLengthColumn(common::RelDataDirection direction) {
+        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSRLengthColumn() :
+                                                            bwdRelTableData->getCSRLengthColumn();
+    }
 
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareRollback(LocalTableData* localTable) override;
