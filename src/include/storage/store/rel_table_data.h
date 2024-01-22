@@ -17,7 +17,7 @@ struct RelDataReadState : public TableReadState {
     common::offset_t posInCurrentCSR;
     std::vector<common::list_entry_t> csrListEntries;
     // Temp auxiliary data structure to scan the offset of each CSR node in the offset column chunk.
-    CSRHeaderChunks csrHeaderChunks;
+    CSRHeaderChunks csrHeaderChunks = CSRHeaderChunks(false /*enableCompression*/);
 
     // Following fields are used for local storage.
     bool readFromLocalStorage;
@@ -76,6 +76,9 @@ public:
 
     inline Column* getAdjColumn() const { return adjColumn.get(); }
     inline common::ColumnDataFormat getDataFormat() const { return dataFormat; }
+
+    virtual inline Column* getCSROffsetColumn() const { KU_UNREACHABLE; }
+    virtual inline Column* getCSRLengthColumn() const { KU_UNREACHABLE; }
 
     void prepareLocalTableToCommit(
         transaction::Transaction* transaction, LocalTableData* localTable) override;

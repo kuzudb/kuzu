@@ -16,7 +16,6 @@ RelDataReadState::RelDataReadState(ColumnDataFormat dataFormat)
     : dataFormat{dataFormat}, startNodeOffset{0}, numNodes{0}, currentNodeOffset{0},
       posInCurrentCSR{0}, readFromLocalStorage{false}, localNodeGroup{nullptr} {
     csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
-    csrHeaderChunks.init(false /*enableCompression*/);
 }
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
@@ -57,14 +56,11 @@ bool RelDataReadState::hasMoreToRead(transaction::Transaction* transaction) {
 }
 
 void RelDataReadState::populateCSRListEntries() {
-    csrListEntries[0].offset = 0;
-    csrListEntries[0].size = numNodes == 0 ? 0 : csrHeaderChunks.length->getValue<length_t>(0);
-    for (auto i = 1u; i < numNodes; i++) {
-        csrListEntries[i].size = csrHeaderChunks.length->getValue<length_t>(i);
-        KU_ASSERT(csrListEntries[i].size == csrHeaderChunks.offset->getValue<offset_t>(i) -
-                                                csrHeaderChunks.offset->getValue<offset_t>(i - 1));
-        csrListEntries[i].offset =
-            csrHeaderChunks.offset->getValue<offset_t>(i) - csrListEntries[i].size;
+    for (auto i = 0u; i < numNodes; i++) {
+        csrListEntries[i].size = csrHeaderChunks.getCSRLength(i);
+        KU_ASSERT(csrListEntries[i].size <=
+                  csrHeaderChunks.getEndCSROffset(i) - csrHeaderChunks.getStartCSROffset(i));
+        csrListEntries[i].offset = csrHeaderChunks.getStartCSROffset(i);
     }
 }
 

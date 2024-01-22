@@ -195,7 +195,7 @@ Binder exception: Parameters in table function must be a literal expression.
 37
 -STATEMENT CALL storage_info('knows') RETURN COUNT(*)
 ---- 1
-78
+82
 -STATEMENT CALL storage_info('workAt') RETURN COUNT(*)
 ---- 1
-18
+20
