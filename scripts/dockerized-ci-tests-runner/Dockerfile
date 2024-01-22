@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     python3-pip \
     software-properties-common \
+    unzip \
     wget
 
 RUN wget https://apt.llvm.org/llvm.sh && \
