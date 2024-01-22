@@ -39,6 +39,11 @@ RUN wget https://apt.llvm.org/llvm.sh && \
     ln /usr/bin/run-clang-tidy-17 /usr/bin/run-clang-tidy && \
     ln /usr/bin/clangd-17 /usr/bin/clangd
 
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" &&\
+    unzip awscliv2.zip &&\
+    sudo ./aws/install &&\
+    rm -r awscliv2.zip aws
+
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 RUN useradd --create-home runner
 USER runner
