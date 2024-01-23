@@ -95,4 +95,4 @@ You can use the following BibTeX citation:
 ```
 
 ## Contact Us
-You can contact us at [contact@kuzudb.com](mailto:contact@kuzudb.com) or [join our Discord community](https://discord.gg/cnxYf3Yc).
+You can contact us at [contact@kuzudb.com](mailto:contact@kuzudb.com) or [join our Discord community](https://discord.gg/VtX2gw9Rug).
