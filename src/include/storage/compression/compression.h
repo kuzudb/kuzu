@@ -139,6 +139,7 @@ class Uncompressed : public CompressionAlg {
 public:
     explicit Uncompressed(const common::LogicalType& logicalType)
         : numBytesPerValue{getDataTypeSizeInChunk(logicalType)} {}
+    explicit Uncompressed(uint8_t numBytesPerValue) : numBytesPerValue{numBytesPerValue} {}
 
     Uncompressed(const Uncompressed&) = default;
 
@@ -240,8 +241,11 @@ public:
     CompressionMetadata getCompressionMetadata(
         const uint8_t* srcBuffer, uint64_t numValues) const override {
         auto header = getBitWidth(srcBuffer, numValues);
-        CompressionMetadata metadata{CompressionType::INTEGER_BITPACKING, header.getData()};
-        return metadata;
+        // Use uncompressed if the bitwidth is equal to the size of the type in bits
+        if (header.bitWidth >= sizeof(T) * 8) {
+            return CompressionMetadata();
+        }
+        return CompressionMetadata(CompressionType::INTEGER_BITPACKING, header.getData());
     }
 
     uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,

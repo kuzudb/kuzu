@@ -20,6 +20,8 @@
 #include <cstdint>
 #include <type_traits>
 
+#include "common/assert.h"
+
 namespace kuzu {
 namespace storage {
 
@@ -38,6 +40,7 @@ T Load(const uint8_t* ptr) {
 // Sign bit extension
 template<class T, class T_U = typename std::make_unsigned<T>::type, uint64_t CHUNK_SIZE>
 static void SignExtend(uint8_t* dst, uint8_t width) {
+    KU_ASSERT(width < sizeof(T) * 8);
     T const mask = T_U(1) << (width - 1);
     for (uint64_t i = 0; i < CHUNK_SIZE; ++i) {
         T value = Load<T>(dst + i * sizeof(T));
