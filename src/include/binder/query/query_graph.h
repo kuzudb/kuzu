@@ -140,6 +140,8 @@ public:
     DELETE_COPY_DEFAULT_MOVE(QueryGraphCollection);
 
     void addAndMergeQueryGraphIfConnected(QueryGraph queryGraphToAdd);
+    void finalize();
+
     inline uint32_t getNumQueryGraphs() const { return queryGraphs.size(); }
     inline QueryGraph* getQueryGraphUnsafe(uint32_t idx) { return &queryGraphs[idx]; }
     inline const QueryGraph* getQueryGraph(uint32_t idx) const { return &queryGraphs[idx]; }

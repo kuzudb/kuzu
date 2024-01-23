@@ -360,3 +360,17 @@ Binder exception: Query node v22 violates schema. Expected labels are V1.
 -STATEMENT MATCH (a:V3)-[:MYREL]->(b:V2) RETURN a.*, b.*;
 ---- 1
 v3|v2
+
+-CASE 2701
+-STATEMENT CREATE NODE TABLE T (id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE R (FROM T TO T);
+---- ok
+-STATEMENT CREATE ({id: 1})-[:R]->({id:2});
+---- ok
+-STATEMENT MATCH (a {id: 1}) CREATE (a)-[:R]->(a);
+---- ok
+-STATEMENT MATCH (n1), (n2)<-[]-(n2), (n1)<-[]-(n2) RETURN n1.id, n2.id
+---- 2
+1|1
+2|1

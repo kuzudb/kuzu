@@ -166,7 +166,9 @@ void QueryGraph::addQueryNode(std::shared_ptr<NodeExpression> queryNode) {
 }
 
 void QueryGraph::addQueryRel(std::shared_ptr<RelExpression> queryRel) {
-    KU_ASSERT(!containsQueryRel(queryRel->getUniqueName()));
+    if (containsQueryRel(queryRel->getUniqueName())) {
+        return;
+    }
     queryRelNameToPosMap.insert({queryRel->getUniqueName(), queryRels.size()});
     queryRels.push_back(std::move(queryRel));
 }
@@ -210,6 +212,40 @@ void QueryGraphCollection::addAndMergeQueryGraphIfConnected(QueryGraph queryGrap
     if (!isMerged) {
         queryGraphs.push_back(std::move(queryGraphToAdd));
     }
+}
+
+void QueryGraphCollection::finalize() {
+    auto baseGraph = std::move(queryGraphs[0]);
+    std::unordered_set<common::vector_idx_t> mergedGraphIndices;
+    mergedGraphIndices.insert(0);
+    while (true) {
+        // find graph to merge
+        common::vector_idx_t graphToMergeIdx = common::INVALID_VECTOR_IDX;
+        for (auto i = 1u; i < queryGraphs.size(); ++i) {
+            if (mergedGraphIndices.contains(i)) { // graph has been merged.
+                continue;
+            }
+            if (baseGraph.isConnected(queryGraphs[i])) { // find graph to merge.
+                graphToMergeIdx = i;
+                break;
+            }
+        }
+        if (graphToMergeIdx == common::INVALID_VECTOR_IDX) { // No graph can be merged. Terminate.
+            break;
+        }
+        // Perform merge
+        baseGraph.merge(queryGraphs[graphToMergeIdx]);
+        mergedGraphIndices.insert(graphToMergeIdx);
+    }
+    std::vector<QueryGraph> finalGraphs;
+    finalGraphs.push_back(std::move(baseGraph));
+    for (auto i = 1u; i < queryGraphs.size(); ++i) {
+        if (mergedGraphIndices.contains(i)) {
+            continue;
+        }
+        finalGraphs.push_back(std::move(queryGraphs[i]));
+    }
+    queryGraphs = std::move(finalGraphs);
 }
 
 std::vector<std::shared_ptr<NodeExpression>> QueryGraphCollection::getQueryNodes() const {
