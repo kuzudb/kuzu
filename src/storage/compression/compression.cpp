@@ -57,6 +57,7 @@ bool CompressionMetadata::canAlwaysUpdateInPlace() const {
     }
     }
 }
+
 bool CompressionMetadata::canUpdateInPlace(
     const uint8_t* data, uint32_t pos, PhysicalTypeID physicalType) const {
     if (canAlwaysUpdateInPlace()) {
@@ -395,14 +396,16 @@ void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, o
     U chunk[CHUNK_SIZE];
     fastunpack(chunkStart, chunk, header.bitWidth);
     for (offset_t i = 0; i < numValues; i++) {
-        auto value = ((T*)srcBuffer)[posInSrc];
+        auto value = ((T*)srcBuffer)[posInSrc + i];
         KU_ASSERT(canUpdateInPlace(value, header));
-        chunk[startPosInChunk + i] = (U)(value - (T)header.offset);
-        if (startPosInChunk + i + 1 >= CHUNK_SIZE && i + 1 < numValues) {
+        chunk[startPosInChunk] = (U)(value - (T)header.offset);
+        if (startPosInChunk + 1 >= CHUNK_SIZE && i + 1 < numValues) {
             fastpack(chunk, chunkStart, header.bitWidth);
             chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst + i + 1, header.bitWidth);
             fastunpack(chunkStart, chunk, header.bitWidth);
             startPosInChunk = 0;
+        } else {
+            startPosInChunk++;
         }
     }
     fastpack(chunk, chunkStart, header.bitWidth);
@@ -763,7 +766,7 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
         }
     }
     case CompressionType::BOOLEAN_BITPACKING:
-        return booleanBitpacking.setValuesFromUncompressed(
+        return booleanBitpacking.copyFromPage(
             data, dataOffset, frame, posInFrame, numValues, metadata);
 
     default:
@@ -773,7 +776,12 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
 
 void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame,
     common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata) {
-    (*this)(frame, posInFrame, vector->getData(), posInVector, 1, metadata);
+    if (metadata.compression == CompressionType::BOOLEAN_BITPACKING) {
+        booleanBitpacking.setValuesFromUncompressed(
+            vector->getData(), posInVector, frame, posInFrame, 1, metadata);
+    } else {
+        (*this)(frame, posInFrame, vector->getData(), posInVector, 1, metadata);
+    }
 }
 
 } // namespace storage
