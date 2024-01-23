@@ -54,7 +54,10 @@ void VarListColumnChunk::append(
 
 void VarListColumnChunk::resetToEmpty() {
     ColumnChunk::resetToEmpty();
-    varListDataColumnChunk.reset();
+    varListDataColumnChunk =
+        std::make_unique<VarListDataColumnChunk>(ColumnChunkFactory::createColumnChunk(
+            VarListType::getChildType(this->dataType.get())->copy(), enableCompression,
+            0 /* capacity */));
 }
 
 void VarListColumnChunk::append(ValueVector* vector) {
