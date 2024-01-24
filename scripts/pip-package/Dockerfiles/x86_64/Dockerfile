@@ -4,7 +4,7 @@ FROM quay.io/pypa/manylinux2014_x86_64
 # ulimit workaround from https://stackoverflow.com/questions/74345206/centos-7-docker-yum-installation-gets-stuck
 RUN ulimit -n 4096 && yum --disablerepo=epel -y upgrade curl ca-certificates
 RUN ulimit -n 4096 && yum update -y
-RUN ulimit -n 4096 && yum install -y cmake nodejs npm jq git perl-Digest-SHA libicu libicu-devel libcurl-devel openssl-devel java-11-openjdk-devel ccache devtoolset-11-toolchain
+RUN ulimit -n 4096 && yum install -y cmake nodejs npm jq git perl-Digest-SHA libicu libicu-devel libcurl-devel openssl-devel java-11-openjdk-devel ccache devtoolset-11-toolchain openssl11 openssl11-devel
 
 RUN useradd --create-home runner
 USER runner
