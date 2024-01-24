@@ -1,6 +1,8 @@
 add_library(kuzu_function_arithmetic
         OBJECT
-        multiply.cpp)
+        multiply.cpp
+        add.cpp
+        subtract.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_function_arithmetic>
