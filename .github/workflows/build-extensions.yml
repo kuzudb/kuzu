@@ -3,7 +3,7 @@ name: Build-Extensions
 on: workflow_dispatch
 
 jobs:
-  build-precompiled-extensions-x86_64:
+  build-linux-extensions-x86_64:
     runs-on: 
       - kuzu-self-hosted-linux-building
       - uw1
@@ -24,4 +24,24 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: kuzu-extensions_linux-x86_64
+          path: extension-artifacts/*.kuzu_extension
+  
+  build-linux-extensions-aarch64:
+    runs-on: kuzu-self-hosted-linux-building-aarch64
+      
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build precompiled binaries
+        run: make extension-release LTO=1 NUM_THREADS=$(nproc)
+
+      - name: Collect built artifacts
+        run: |
+          mkdir -p extension-artifacts
+          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-extensions_linux-aarch64
           path: extension-artifacts/*.kuzu_extension
