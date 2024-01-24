@@ -7,8 +7,6 @@ jobs:
     runs-on: 
       - kuzu-self-hosted-linux-building
       - uw1
-    env:
-      OPENSSL_ROOT_DIR: /usr/local
     steps:
       - uses: actions/checkout@v3
 
