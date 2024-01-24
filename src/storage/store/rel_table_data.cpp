@@ -4,6 +4,7 @@
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/stats/rels_store_statistics.h"
+#include "storage/store/null_column.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -203,7 +204,8 @@ void RelTableData::insert(transaction::Transaction* transaction, ValueVector* sr
     auto [nodeGroupIdx, offset] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(
         srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
             .offset);
-    if (checkPersistentStorage && !adjColumn->isNull(transaction, nodeGroupIdx, offset)) {
+    if (checkPersistentStorage && !ku_dynamic_cast<Column*, NullColumn*>(adjColumn->getNullColumn())
+                                       ->isNull(transaction, nodeGroupIdx, offset)) {
         throw RuntimeException{"Many-one, one-one relationship violated."};
     }
 }
@@ -229,7 +231,8 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction, ValueVector* src
     auto nodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
     auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-    return !adjColumn->isNull(transaction, nodeGroupIdx, offsetInChunk);
+    return !ku_dynamic_cast<Column*, NullColumn*>(adjColumn->getNullColumn())
+                ->isNull(transaction, nodeGroupIdx, offsetInChunk);
 }
 
 void RelTableData::append(NodeGroup* nodeGroup) {

@@ -54,7 +54,8 @@ public:
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) final;
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk) final;
+        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+        common::offset_t endOffset = common::INVALID_OFFSET) final;
 
     inline Column* getDataColumn() { return dataColumn.get(); }
 
@@ -78,17 +79,22 @@ private:
     void scanUnfiltered(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::ValueVector* resultVector,
         const ListOffsetInfoInStorage& listOffsetInfoInStorage);
-
     void scanFiltered(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::ValueVector* offsetVector, const ListOffsetInfoInStorage& listOffsetInfoInStorage);
 
-    void checkpointInMemory() final;
+    inline bool canCommitInPlace(transaction::Transaction* /*transaction*/,
+        common::node_group_idx_t /*nodeGroupIdx*/, LocalVectorCollection* /*localChunk*/,
+        const offset_to_row_idx_t& /*insertInfo*/,
+        const offset_to_row_idx_t& /*updateInfo*/) override {
+        // Always perform out-of-place commit for VAR_LIST columns.
+        return false;
+    }
 
+    void checkpointInMemory() final;
     void rollbackInMemory() final;
 
     common::offset_t readOffset(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup);
-
     ListOffsetInfoInStorage getListOffsetInfoInStorage(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInNodeGroup,
         common::offset_t endOffsetInNodeGroup,

@@ -18,7 +18,8 @@ public:
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk) override;
+        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+        common::offset_t endOffset = common::INVALID_OFFSET) override;
 
     void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx) override;
 
