@@ -4,13 +4,13 @@ on: workflow_dispatch
 
 jobs:
   build-linux-extensions-x86_64:
-    runs-on: 
+    runs-on:
       - kuzu-self-hosted-linux-building
       - uw1
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build precompiled binaries
+      - name: Build precompiled extensions
         run: |
           source /opt/rh/devtoolset-11/enable
           make extension-release LTO=1 NUM_THREADS=$(nproc)
@@ -25,14 +25,14 @@ jobs:
         with:
           name: kuzu-extensions_linux-x86_64
           path: extension-artifacts/*.kuzu_extension
-  
+
   build-linux-extensions-aarch64:
     runs-on: kuzu-self-hosted-linux-building-aarch64
-      
+
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build precompiled binaries
+      - name: Build precompiled extensions
         run: make extension-release LTO=1 NUM_THREADS=$(nproc)
 
       - name: Collect built artifacts
@@ -44,4 +44,26 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: kuzu-extensions_linux-aarch64
+          path: extension-artifacts/*.kuzu_extension
+
+  build-precompiled-bin-arm64:
+    runs-on: self-hosted-mac-x64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build precompiled extensions
+        run: make extension-release LTO=1 NUM_THREADS=$(nproc)
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+          CMAKE_OSX_ARCHITECTURES: "arm64"
+
+      - name: Collect built artifacts
+        run: |
+          mkdir -p extension-artifacts
+          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-extensions_osx-arm64
           path: extension-artifacts/*.kuzu_extension
