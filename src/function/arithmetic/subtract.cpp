@@ -1,16 +1,17 @@
+#include "function/arithmetic/subtract.h"
+
 #include "common/exception/overflow.h"
 #include "common/string_format.h"
 #include "common/type_utils.h"
-#include "function/arithmetic/subtract.h"
 #include "function/cast/functions/numeric_limits.h"
 
 namespace kuzu {
 namespace function {
 
-// reference from duckDB sub.cpp
+// reference from duckDB subtract.cpp
 template<class SRC_TYPE, class DST_TYPE>
-static inline bool SubtractInPlaceWithOverflowCheck(SRC_TYPE left, SRC_TYPE right,
-    SRC_TYPE& result) {
+static inline bool SubtractInPlaceWithOverflowCheck(
+    SRC_TYPE left, SRC_TYPE right, SRC_TYPE& result) {
     DST_TYPE uresult;
     uresult = static_cast<DST_TYPE>(left) - static_cast<DST_TYPE>(right);
     if (uresult < NumericLimits<SRC_TYPE>::minimum() ||
