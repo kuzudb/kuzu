@@ -127,6 +127,20 @@ bool CSRRelNGInfo::delete_(offset_t srcOffsetInChunk, offset_t relOffset) {
     return true;
 }
 
+bool CSRRelNGInfo::hasUpdates() {
+    for (auto& updateInfo : updateInfoPerChunk) {
+        if (!updateInfo.empty()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const update_insert_info_t& CSRRelNGInfo::getEmptyInfo() {
+    static update_insert_info_t emptyInfo;
+    return emptyInfo;
+}
+
 uint64_t CSRRelNGInfo::getNumInsertedTuples(offset_t srcOffsetInChunk) {
     return adjInsertInfo.contains(srcOffsetInChunk) ? adjInsertInfo.at(srcOffsetInChunk).size() : 0;
 }
@@ -241,7 +255,7 @@ void LocalRelNG::applyLocalChangesForRegularColumns(offset_t offsetInChunk,
 }
 
 void LocalRelNG::applyCSRUpdates(offset_t srcOffsetInChunk, column_id_t columnID,
-    const offset_to_offset_to_row_idx_t& updateInfo, ValueVector* relIDVector,
+    const update_insert_info_t& updateInfo, ValueVector* relIDVector,
     const std::vector<ValueVector*>& outputVector) {
     if (!updateInfo.contains(srcOffsetInChunk) || updateInfo.at(srcOffsetInChunk).empty()) {
         return;
@@ -260,7 +274,7 @@ void LocalRelNG::applyCSRUpdates(offset_t srcOffsetInChunk, column_id_t columnID
 }
 
 void LocalRelNG::applyCSRDeletions(
-    offset_t srcOffsetInChunk, const offset_to_offset_set_t& deleteInfo, ValueVector* relIDVector) {
+    offset_t srcOffsetInChunk, const delete_info_t& deleteInfo, ValueVector* relIDVector) {
     auto& deleteInfoForOffset = deleteInfo.at(srcOffsetInChunk);
     auto selectPos = 0u;
     auto selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);

@@ -9,6 +9,44 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+bool CSRHeaderChunks::sanityCheck() const {
+    if (offset->getNumValues() != length->getNumValues()) {
+        return false;
+    }
+    if (offset->getNumValues() == 0) {
+        return true;
+    }
+    if (offset->getValue<offset_t>(0) < length->getValue<length_t>(0)) {
+        return false;
+    }
+    for (auto i = 1u; i < offset->getNumValues(); i++) {
+        if (offset->getValue<offset_t>(i - 1) + length->getValue<length_t>(i) >
+            offset->getValue<offset_t>(i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// TODO(Guodong): Should be refactored to use copy of ColumnChunk.
+void CSRHeaderChunks::copyFrom(const CSRHeaderChunks& other) const {
+    auto numValues = other.offset->getNumValues();
+    memcpy(offset->getData(), other.offset->getData(), numValues * sizeof(offset_t));
+    memcpy(length->getData(), other.length->getData(), numValues * sizeof(length_t));
+    length->setNumValues(numValues);
+    offset->setNumValues(numValues);
+}
+
+void CSRHeaderChunks::fillDefaultValues(offset_t newNumValues) const {
+    auto lastCSROffset = getEndCSROffset(length->getNumValues() - 1);
+    for (auto i = length->getNumValues(); i < newNumValues; i++) {
+        offset->setValue<offset_t>(lastCSROffset, i);
+        length->setValue<length_t>(0, i);
+    }
+    KU_ASSERT(
+        offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
+}
+
 NodeGroup::NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
     bool enableCompression, uint64_t capacity)
     : nodeGroupIdx{UINT64_MAX}, numRows{0} {

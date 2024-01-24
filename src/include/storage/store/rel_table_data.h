@@ -76,7 +76,6 @@ public:
 
     inline Column* getAdjColumn() const { return adjColumn.get(); }
     inline common::ColumnDataFormat getDataFormat() const { return dataFormat; }
-
     virtual inline Column* getCSROffsetColumn() const { KU_UNREACHABLE; }
     virtual inline Column* getCSRLengthColumn() const { KU_UNREACHABLE; }
 
