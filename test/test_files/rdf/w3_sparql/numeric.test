@@ -1,0 +1,141 @@
+-GROUP W3Sparql
+-DATASET TTL rdf/w3_sparql/numeric
+
+--
+
+-CASE W3SparqlNumericRead
+
+#PREFIX : <http://www.example.org/>
+#SELECT (AVG(?o) AS ?avg)
+#WHERE {
+#	?s :dec ?o
+#}
+
+-LOG AVG1
+-STATEMENT MATCH (s)-[p]->(o)
+        WHERE p.iri = "http://www.example.org/dec"
+        RETURN AVG(cast(o.val, "DOUBLE"))
+---- 1
+2.220000
+
+#PREFIX : <http://www.example.org/>
+#SELECT ?s (AVG(?o) AS ?avg)
+#WHERE {
+#	?s ?p ?o
+#}
+#GROUP BY ?s
+#HAVING (AVG(?o) <= 2.0)
+-LOG AVG2
+-STATEMENT MATCH (s)-[p]->(o)
+        WITH s.iri AS s_iri, AVG(cast(o.val, "DOUBLE")) AS avg
+        WHERE avg <= 2.0
+        RETURN s_iri, avg
+---- 3
+http://www.example.org/ints|2.000000
+http://www.example.org/mixed1|1.600000
+http://www.example.org/mixed2|1.200000
+
+#PREFIX ex: <http://example.com/>
+#SELECT ?x (MAX(?value) AS ?max)
+#WHERE {
+#	?x ex:p ?value
+#} GROUP BY ?x
+-LOG EmptyAVG
+-STATEMENT MATCH (x)-[p]->(value)
+        WHERE p.iri = "http://example.com/p"
+        RETURN x.iri AS x_iri, MAX(cast(value.val, "DOUBLE")) AS max
+---- 0
+
+-LOG Collect
+-STATEMENT MATCH (x)-[p]->(o)
+        WHERE x.iri = "http://www.example.org/decimals"
+        RETURN collect(o.val)
+---- 1
+[1.000000,2.200000,3.500000]
+
+#PREFIX : <http://www.example.org/>
+#SELECT (MAX(?o) AS ?max)
+#WHERE {
+#	?s ?p ?o
+#}
+-LOG Max
+-STATEMENT MATCH (s)-[p]->(o)
+        RETURN MAX(cast(o.val, "INT64"))
+---- 1
+30000
+
+#PREFIX : <http://www.example.org/>
+#SELECT ?s (MIN(?o) AS ?max)
+#WHERE {
+#	?s ?p ?o
+#}
+#GROUP BY ?s
+-LOG Min
+-STATEMENT MATCH (s)-[p]->(o)
+        WITH s.iri AS s_iri, MIN(cast(o.val, "DOUBLE")) AS min
+        RETURN s_iri, min
+---- 5
+http://www.example.org/decimals|1.000000
+http://www.example.org/doubles|100.000000
+http://www.example.org/ints|1.000000
+http://www.example.org/mixed1|1.000000
+http://www.example.org/mixed2|0.200000
+
+-LOG Sum
+-STATEMENT MATCH (s)-[p]->(o)
+        RETURN SUM(cast(o.val, "DOUBLE"))
+---- 1
+32118.300000
+
+#SELECT (COUNT(?O) AS ?C)
+#WHERE { ?S ?P ?O }
+-LOG Count
+-STATEMENT MATCH (s)-[p]->(o)
+        RETURN COUNT(*)
+---- 1
+13
+
+#SELECT ?P (COUNT(?O) AS ?C)
+#WHERE { ?S ?P ?O }
+#GROUP BY ?P
+-STATEMENT MATCH (s)-[p]->(o)
+        RETURN p.iri, COUNT(*)
+---- 3
+http://www.example.org/dec|5
+http://www.example.org/double|4
+http://www.example.org/int|4
+
+-STATEMENT MATCH (s)-[p]->(o1),
+         (s)-[q]->(o2)
+         WHERE s.iri = "http://www.example.org/ints"
+        RETURN cast(o1.val, "INT64") + o2.val AS o12, COUNT(*)
+        ORDER BY o12
+---- 5
+2|1
+3|2
+4|3
+5|2
+6|1
+
+#SELECT ?z
+#{
+#  ?s ?p ?o .
+#  BIND(?o+10 AS ?z)
+#}
+-LOG Bind
+-STATEMENT MATCH (s)-[p]->(o)
+        WHERE s.iri = "http://www.example.org/ints"
+        RETURN o.val + 10 AS z
+---- 3
+11
+12
+13
+
+-STATEMENT MATCH (s1)-[p1]->(o1),
+                (s2)-[p2]->(o2)
+        WHERE s1.iri = "http://www.example.org/ints"
+        AND o2.val = o1.val + 1.0
+        RETURN s1.iri, o1.val, s2.iri, o2.val
+---- 2
+http://www.example.org/ints|1|http://www.example.org/ints|2
+http://www.example.org/ints|2|http://www.example.org/ints|3

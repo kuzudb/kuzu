@@ -61,6 +61,17 @@ std::string ExpressionUtil::toString(const expression_pair& expressionPair) {
     return expressionPair.first->toString() + "=" + expressionPair.second->toString();
 }
 
+expression_vector ExpressionUtil::excludeExpression(
+    const expression_vector& exprs, const Expression& exprToExclude) {
+    expression_vector result;
+    for (auto& expr : exprs) {
+        if (*expr != exprToExclude) {
+            result.push_back(expr);
+        }
+    }
+    return result;
+}
+
 expression_vector ExpressionUtil::excludeExpressions(
     const expression_vector& expressions, const expression_vector& expressionsToExclude) {
     expression_set excludeSet;

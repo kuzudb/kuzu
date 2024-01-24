@@ -24,8 +24,8 @@ public:
           onMatchSetNodeInfos{std::move(onMatchSetNodeInfos)}, onMatchSetRelInfos{
                                                                    std::move(onMatchSetRelInfos)} {}
 
-    inline void computeFactorizedSchema() final { copyChildSchema(0); }
-    inline void computeFlatSchema() final { copyChildSchema(0); }
+    void computeFactorizedSchema() final;
+    void computeFlatSchema() final;
 
     inline std::string getExpressionsForPrinting() const final { return std::string(""); }
 

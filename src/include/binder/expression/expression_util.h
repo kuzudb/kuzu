@@ -20,6 +20,8 @@ struct ExpressionUtil {
     // Print as a1=a2
     static std::string toString(const expression_pair& expressionPair);
 
+    static expression_vector excludeExpression(
+        const expression_vector& exprs, const Expression& exprToExclude);
     static expression_vector excludeExpressions(
         const expression_vector& expressions, const expression_vector& expressionsToExclude);
 

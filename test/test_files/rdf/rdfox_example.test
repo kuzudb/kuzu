@@ -192,3 +192,16 @@ https://rdfox.com/getting-started/stewie|http://www.w3.org/1999/02/22-rdf-syntax
 https://rdfox.com/getting-started/stewie|https://rdfox.com/getting-started/forename||Stewie
 https://rdfox.com/getting-started/stewie|https://rdfox.com/getting-started/gender||male
 https://rdfox.com/getting-started/stewie|https://rdfox.com/getting-started/hasParent|https://rdfox.com/getting-started/lois|
+
+# Internal offset is not deterministic across platforms. So we don't check result
+-STATEMENT MATCH (a)-[e]->(b)
+            WHERE a.iri = "https://rdfox.com/getting-started/brian"
+            RETURN a, e, b
+---- ok
+-STATEMENT MATCH (a)-[e*]->(b)
+            WHERE a.iri = "https://rdfox.com/getting-started/brian"
+            RETURN e
+---- ok
+-STATEMENT RETURN 1;
+---- 1
+1
