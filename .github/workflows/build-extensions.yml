@@ -5,6 +5,8 @@ on: workflow_dispatch
 jobs:
   build-precompiled-extensions-x86_64:
     runs-on: kuzu-self-hosted-linux-building
+    env:
+      OPENSSL_ROOT_DIR: /usr/local
     steps:
       - uses: actions/checkout@v3
 
