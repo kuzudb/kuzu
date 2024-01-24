@@ -2,6 +2,8 @@
 
 #include "common/types/timestamp_t.h"
 #include "pandas/pandas_bind.h"
+#include "py_str_utils.h"
+#include "utf8proc_wrapper.h"
 
 namespace kuzu {
 
@@ -38,6 +40,28 @@ void ScanNumpyFpColumn(
     memcpy(outputVector->getData(), srcData + offset, count * sizeof(T));
     for (auto i = 0u; i < count; i++) {
         setNullIfNan(outputVector->getValue<T>(i), i, outputVector);
+    }
+}
+
+template<class T>
+static void appendPythonUnicode(
+    T* codepoints, uint64_t codepointLength, ValueVector* vectorToAppend, uint64_t pos) {
+    uint64_t utf8StrLen = 0;
+    for (auto i = 0u; i < codepointLength; i++) {
+        auto len = utf8proc::Utf8Proc::codepointLength(int(codepoints[i]));
+        KU_ASSERT(len >= 1);
+        utf8StrLen += len;
+    }
+    auto& strToAppend = StringVector::reserveString(vectorToAppend, pos, utf8StrLen);
+    // utf8proc_codepoint_to_utf8 requires that:
+    // 1. codePointLen must be an int.
+    // 2. dataToWrite must be a char*.
+    int codePointLen;
+    auto dataToWrite = (char*)strToAppend.getData();
+    for (auto i = 0u; i < codepointLength; i++) {
+        utf8proc::Utf8Proc::codepointToUtf8(int(codepoints[i]), codePointLen, dataToWrite);
+        KU_ASSERT(codePointLen >= 1);
+        dataToWrite += codePointLen;
     }
 }
 
@@ -112,6 +136,60 @@ void NumpyScan::scan(PandasColumnBindData* bindData, uint64_t count, uint64_t of
             interval.micros = micro;
             dstData[i] = interval;
             outputVector->setNull(i, false /* isNull */);
+        }
+        break;
+    }
+    case NumpyNullableType::OBJECT: {
+        auto sourceData = (PyObject**)array.data();
+        if (outputVector->dataType.getLogicalTypeID() != LogicalTypeID::STRING) {
+            // LCOV_EXCL_START
+            throw RuntimeException{"Scanning pandas generic object column is not supported."};
+            // LCOV_EXCL_STOP
+        }
+        auto dstData = reinterpret_cast<ku_string_t*>(outputVector->getData());
+        py::gil_scoped_acquire gil;
+        for (auto i = 0u; i < count; i++) {
+            auto pos = i + offset;
+            PyObject* val = sourceData[pos];
+            py::handle strHandle(val);
+            if (!py::isinstance<py::str>(strHandle)) {
+                outputVector->setNull(i, true /* isNull */);
+                continue;
+            }
+            outputVector->setNull(i, false /* isNull */);
+            if (PyStrUtil::isPyUnicodeCompatibleAscii(strHandle)) {
+                dstData[i] = ku_string_t{PyStrUtil::getUnicodeStrData(strHandle),
+                    PyStrUtil::getUnicodeStrLen(strHandle)};
+            } else {
+                auto unicodeObj = reinterpret_cast<PyCompactUnicodeObject*>(val);
+                if (unicodeObj->utf8) {
+                    dstData[i] = ku_string_t(
+                        reinterpret_cast<const char*>(unicodeObj->utf8), unicodeObj->utf8_length);
+                } else if (PyStrUtil::isPyUnicodeCompact(unicodeObj) &&
+                           !PyStrUtil::isPyUnicodeASCII(unicodeObj)) {
+                    auto kind = PyStrUtil::getPyUnicodeKind(strHandle);
+                    switch (kind) {
+                    case PyUnicode_1BYTE_KIND:
+                        appendPythonUnicode<Py_UCS1>(PyStrUtil::PyUnicode1ByteData(strHandle),
+                            PyStrUtil::getUnicodeStrLen(strHandle), outputVector, i);
+                        break;
+                    case PyUnicode_2BYTE_KIND:
+                        appendPythonUnicode<Py_UCS2>(PyStrUtil::PyUnicode2ByteData(strHandle),
+                            PyStrUtil::getUnicodeStrLen(strHandle), outputVector, i);
+                        break;
+                    case PyUnicode_4BYTE_KIND:
+                        appendPythonUnicode<Py_UCS4>(PyStrUtil::PyUnicode4ByteData(strHandle),
+                            PyStrUtil::getUnicodeStrLen(strHandle), outputVector, i);
+                        break;
+                    default:
+                        KU_UNREACHABLE;
+                    }
+                } else {
+                    // LCOV_EXCL_START
+                    throw common::RuntimeException("Unsupported string format.");
+                    // LCOC_EXCL_STOP
+                }
+            }
         }
         break;
     }

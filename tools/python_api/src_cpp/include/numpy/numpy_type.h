@@ -23,6 +23,7 @@ enum class NumpyNullableType : uint8_t {
     FLOAT_16,    //! float16, half
     FLOAT_32,    //! float32, single
     FLOAT_64,    //! float64, float_, double
+    OBJECT,      //! object
     DATETIME_S,  //! datetime64[s], <M8[s]
     DATETIME_MS, //! datetime64[ms], <M8[ms]
     DATETIME_NS, //! datetime64[ns], <M8[ns]
