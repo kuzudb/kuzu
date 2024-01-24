@@ -1,3 +1,5 @@
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 if(POLICY CMP0063)
     cmake_policy(SET CMP0063 NEW)
 endif()
@@ -33,4 +35,3 @@ add_library(mbedtls STATIC
         library/sha512.cpp)
 
 set_property(TARGET mbedtls PROPERTY C_STANDARD 99)
-set_property(TARGET mbedtls PROPERTY POSITION_INDEPENDENT_CODE ON)
