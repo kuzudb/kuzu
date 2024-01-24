@@ -140,3 +140,42 @@ Overflow exception: INT128 is out of range: cannot add.
 					+ CAST(-41183460469231731687303715884105727, "INT128")
 ---- error
 Overflow exception: INT128 is out of range: cannot add.
+
+-CASE AddDifferentUINT
+-STATEMENT RETURN CAST(12, "UINT8") + CAST(300, "UINT16")
+---- 1
+312
+-STATEMENT RETURN CAST(255, "UINT8") + CAST(65530, "UINT16")
+---- error
+Overflow exception: Value 255 + 65530 is not within UINT16 range.
+
+-CASE AddDifferentINT
+-STATEMENT RETURN CAST(24, "INT8") + CAST(400, "INT16")
+---- 1
+424
+-STATEMENT RETURN CAST(24, "INT8") + CAST(-400, "INT16")
+---- 1
+-376
+-STATEMENT RETURN CAST(-24, "INT8") + CAST(-400, "INT16")
+---- 1
+-424
+-STATEMENT RETURN CAST(-24, "INT8") + CAST(400, "INT16")
+---- 1
+376
+-STATEMENT RETURN CAST(127, "INT8") + CAST(32767, "INT16")
+---- error
+Overflow exception: Value 127 + 32767 is not within INT16 range.
+-STATEMENT RETURN CAST(-120, "INT8") + CAST(-32767, "INT16")
+---- error
+Overflow exception: Value -120 + -32767 is not within INT16 range.
+
+-CASE AddUINTANDINT
+-STATEMENT RETURN CAST(24, "UINT8") + CAST(400, "INT16")
+---- 1
+424
+-STATEMENT RETURN CAST(24, "UINT8") + CAST(-400, "INT16")
+---- 1
+-376
+-STATEMENT RETURN CAST(255, "UINT8") + CAST(32767, "INT16")
+---- error
+Overflow exception: Value 255 + 32767 is not within INT16 range.
