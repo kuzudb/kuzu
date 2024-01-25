@@ -103,12 +103,14 @@ jobs:
       - name: Detect release version
         run: |
           echo "RELEASE_VERSION=v$(cat CMakeLists.txt | grep "DKUZU_RELEASE_VERSION" | cut -d '"' -f 2 )" >> $GITHUB_ENV
+      
+      - name: Delete checked out repository
+        run: cd .. && rm -rf kuzudb
 
       - uses: actions/checkout@v3
         with:
           repository: kuzudb/extension
           token: ${{ secrets.DOC_PUSH_TOKEN }}
-          path: extensionRepo
 
       - name: Ensure extension directories
         run: |
