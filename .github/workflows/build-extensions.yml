@@ -46,6 +46,44 @@ jobs:
           name: kuzu-extensions_linux-aarch64
           path: extension-artifacts/*.kuzu_extension
 
+  build-linux-extensions-x86:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Start Docker container
+        run: |
+          docker run -d --name kuzu-x86 \
+                     -v $PWD:/kuzu -w /kuzu \
+                     -e NUM_THREADS=2 -e GEN=ninja -e CC=gcc -e CXX=g++ \
+                     i386/debian:latest tail -f /dev/null
+
+      - name: Install dependencies
+        run: |
+          docker exec kuzu-x86 apt-get update
+          docker exec kuzu-x86 apt-get install -y git python3 ninja-build build-essential cmake libssl-dev
+
+      - name: Build precompiled extensions
+        run: |
+          docker exec kuzu-x86 make extension-release LTO=1 NUM_THREADS=$(nproc)
+      
+      - name: Collect built artifacts
+        run: |
+          rm -rf extension
+          docker cp kuzu-x86:/kuzu/extension extension
+          mkdir -p extension-artifacts
+          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-extensions_linux-x86
+          path: extension-artifacts/*.kuzu_extension
+
+      - name: Stop Docker container
+        run: docker stop kuzu-x86
+
   build-mac-extensions-arm64:
     runs-on: self-hosted-mac-x64
     steps:
@@ -95,6 +133,7 @@ jobs:
     needs:
       - build-linux-extensions-x86_64
       - build-linux-extensions-aarch64
+      - build-linux-extensions-x86
       - build-mac-extensions-arm64
       - build-mac-extensions-x86_64
     steps:
@@ -103,7 +142,7 @@ jobs:
       - name: Detect release version
         run: |
           echo "RELEASE_VERSION=v$(cat CMakeLists.txt | grep "DKUZU_RELEASE_VERSION" | cut -d '"' -f 2 )" >> $GITHUB_ENV
-      
+
       - name: Delete checked out repository
         run: cd .. && rm -rf kuzudb
 
@@ -116,6 +155,7 @@ jobs:
         run: |
           mkdir -p releases/$RELEASE_VERSION/linux_amd64
           mkdir -p releases/$RELEASE_VERSION/linux_arm64
+          mkdir -p releases/$RELEASE_VERSION/linux_x86
           mkdir -p releases/$RELEASE_VERSION/osx_amd64
           mkdir -p releases/$RELEASE_VERSION/osx_arm64
 
@@ -123,6 +163,7 @@ jobs:
         run: |
           rm -rf releases/$RELEASE_VERSION/linux_amd64/*
           rm -rf releases/$RELEASE_VERSION/linux_arm64/*
+          rm -rf releases/$RELEASE_VERSION/linux_x86/*
           rm -rf releases/$RELEASE_VERSION/osx_amd64/*
           rm -rf releases/$RELEASE_VERSION/osx_arm64/*
 
@@ -131,6 +172,7 @@ jobs:
           mkdir -p extension-artifacts
           mkdir -p extension-artifacts/linux_amd64
           mkdir -p extension-artifacts/linux_arm64
+          mkdir -p extension-artifacts/linux_x86
           mkdir -p extension-artifacts/osx_amd64
           mkdir -p extension-artifacts/osx_arm64
 
@@ -145,6 +187,12 @@ jobs:
         with:
           name: kuzu-extensions_linux-aarch64
           path: extension-artifacts/linux_arm64
+
+      - name: Download built artifacts for linux-x86
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-extensions_linux-x86
+          path: extension-artifacts/linux_x86
 
       - name: Download built artifacts for osx-x86_64
         uses: actions/download-artifact@v3
@@ -162,16 +210,18 @@ jobs:
         run: |
           cp extension-artifacts/linux_amd64/*.kuzu_extension releases/$RELEASE_VERSION/linux_amd64
           cp extension-artifacts/linux_arm64/*.kuzu_extension releases/$RELEASE_VERSION/linux_arm64
+          cp extension-artifacts/linux_x86/*.kuzu_extension releases/$RELEASE_VERSION/linux_x86
           cp extension-artifacts/osx_amd64/*.kuzu_extension releases/$RELEASE_VERSION/osx_amd64
           cp extension-artifacts/osx_arm64/*.kuzu_extension releases/$RELEASE_VERSION/osx_arm64
 
       - name: Remove temporary directory
         run: rm -rf extension-artifacts
-      
+
       - name: Set artifact permissions
         run: |
           chmod 755 releases/$RELEASE_VERSION/linux_amd64/*
           chmod 755 releases/$RELEASE_VERSION/linux_arm64/*
+          chmod 755 releases/$RELEASE_VERSION/linux_x86/*
           chmod 755 releases/$RELEASE_VERSION/osx_amd64/*
           chmod 755 releases/$RELEASE_VERSION/osx_arm64/*
 
