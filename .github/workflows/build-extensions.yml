@@ -167,6 +167,13 @@ jobs:
 
       - name: Remove temporary directory
         run: rm -rf extension-artifacts
+      
+      - name: Set artifact permissions
+        run: |
+          chmod 755 releases/$RELEASE_VERSION/linux_amd64/*
+          chmod 755 releases/$RELEASE_VERSION/linux_arm64/*
+          chmod 755 releases/$RELEASE_VERSION/osx_amd64/*
+          chmod 755 releases/$RELEASE_VERSION/osx_arm64/*
 
       - name: List downloaded artifacts
         run: ls -R releases/$RELEASE_VERSION
