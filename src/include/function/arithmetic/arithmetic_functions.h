@@ -9,23 +9,6 @@
 namespace kuzu {
 namespace function {
 
-struct Divide {
-    template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result) {
-        result = left / right;
-    }
-};
-
-template<>
-inline void Divide::operation(int64_t& left, int64_t& right, int64_t& result) {
-    if (right == 0) {
-        // According to c++ standard, only INT64 / 0(INT64) is undefined. (eg. DOUBLE / 0(INT64) and
-        // INT64 / 0.0(DOUBLE) are well-defined).
-        throw common::RuntimeException("Divide by zero.");
-    }
-    result = left / right;
-}
-
 struct Modulo {
     template<class A, class B, class R>
     static inline void operation(A& left, B& right, R& result) {
