@@ -6,7 +6,6 @@ jobs:
   build-linux-extensions-x86_64:
     runs-on:
       - kuzu-self-hosted-linux-building
-      - uw1
     steps:
       - uses: actions/checkout@v3
 
