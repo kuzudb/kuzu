@@ -6,6 +6,7 @@
 #include "function/arithmetic/add.h"
 #include "function/arithmetic/arithmetic_functions.h"
 #include "function/arithmetic/divide.h"
+#include "function/arithmetic/modulo.h"
 #include "function/arithmetic/multiply.h"
 #include "function/arithmetic/subtract.h"
 #include "function/list/functions/list_concat_function.h"

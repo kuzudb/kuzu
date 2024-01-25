@@ -9,36 +9,6 @@
 namespace kuzu {
 namespace function {
 
-struct Modulo {
-    template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result) {
-        result = fmod(left, right);
-    }
-};
-
-template<>
-inline void Modulo::operation(int64_t& left, int64_t& right, int64_t& result) {
-    if (right == 0) {
-        // According to c++ standard, only INT64 % 0(INT64) is undefined. (eg. DOUBLE % 0(INT64) and
-        // INT64 % 0.0(DOUBLE) are well-defined).
-        throw common::RuntimeException("Modulo by zero.");
-    }
-    result = left % right;
-}
-
-template<>
-inline void Modulo::operation(
-    common::int128_t& left, common::int128_t& right, common::int128_t& result) {
-    // LCOV_EXCL_START
-    if (right == 0) {
-        // According to c++ standard, only INT128 % 0(INT128) is undefined. (eg. DOUBLE % 0(INT128)
-        // and INT128 % 0.0(DOUBLE) are well-defined).
-        throw common::RuntimeException("Modulo by zero.");
-    }
-    // LCOV_EXCL_STOP
-    result = left % right;
-}
-
 struct Power {
     template<class A, class B, class R>
     static inline void operation(A& left, B& right, R& result) {
