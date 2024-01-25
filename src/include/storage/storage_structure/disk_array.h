@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "db_file_utils.h"
@@ -7,6 +9,7 @@
 #include "storage/storage_utils.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
+#include <span>
 
 namespace kuzu {
 namespace storage {
@@ -94,31 +97,32 @@ struct PIPUpdates {
  *   <li> apPageIdx: the physical disk pageIdx of some PIP.
  * </ul>
  */
-template<typename U>
-class BaseDiskArray {
+class BaseDiskArrayInternal {
 public:
     // Used by copiers.
-    BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
+    BaseDiskArrayInternal(
+        FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
     // Used when loading from file
-    BaseDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
-        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction);
+    BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
+        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction);
 
-    virtual ~BaseDiskArray() = default;
+    virtual ~BaseDiskArrayInternal() = default;
 
     uint64_t getNumElements(
         transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY);
 
-    U get(uint64_t idx, transaction::TransactionType trxType);
+    void get(uint64_t idx, transaction::TransactionType trxType, std::span<uint8_t> val);
 
     // Note: This function is to be used only by the WRITE trx.
-    void update(uint64_t idx, U val);
+    void update(uint64_t idx, std::span<uint8_t> val);
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
-    uint64_t pushBack(U val);
+    uint64_t pushBack(std::span<uint8_t> val);
 
     // Note: Currently, this function doesn't support shrinking the size of the array.
-    uint64_t resize(uint64_t newNumElements);
+    uint64_t resize(uint64_t newNumElements, std::span<uint8_t> defaultVal);
 
     virtual inline void checkpointInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
@@ -130,7 +134,7 @@ public:
     }
 
 protected:
-    uint64_t pushBackNoLock(U val);
+    uint64_t pushBackNoLock(std::span<uint8_t> val);
 
     uint64_t getNumElementsNoLock(transaction::TransactionType trxType);
 
@@ -151,7 +155,7 @@ protected:
 
     virtual void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
 
-    inline PageCursor getAPIdxAndOffsetInAP(uint64_t idx) {
+    inline PageCursor getAPIdxAndOffsetInAP(uint64_t idx) const {
         // We assume that `numElementsPerPageLog2`, `elementPageOffsetMask`,
         // `alignedElementSizeLog2` are never modified throughout transactional updates, thus, we
         // directly use them from header here.
@@ -189,7 +193,53 @@ protected:
 };
 
 template<typename U>
-class BaseInMemDiskArray : public BaseDiskArray<U> {
+inline std::span<uint8_t> getSpan(U& val) {
+    return std::span(reinterpret_cast<uint8_t*>(&val), sizeof(U));
+}
+
+template<typename U>
+class BaseDiskArray {
+public:
+    // Used by copiers.
+    BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize)
+        : diskArray(fileHandle, headerPageIdx, elementSize) {}
+    // Used when loading from file
+    BaseDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction)
+        : diskArray(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction) {}
+
+    // Note: This function is to be used only by the WRITE trx.
+    // The return value is the idx of val in array.
+    inline uint64_t pushBack(U val) { return diskArray.pushBack(getSpan(val)); }
+
+    // Note: This function is to be used only by the WRITE trx.
+    inline void update(uint64_t idx, U val) { diskArray.update(idx, getSpan(val)); }
+
+    inline U get(uint64_t idx, transaction::TransactionType trxType) {
+        U val;
+        diskArray.get(idx, trxType, getSpan(val));
+        return val;
+    }
+
+    // Note: Currently, this function doesn't support shrinking the size of the array.
+    inline uint64_t resize(uint64_t newNumElements) {
+        U defaultVal;
+        return diskArray.resize(newNumElements, getSpan(defaultVal));
+    }
+
+    inline uint64_t getNumElements(
+        transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY) {
+        return diskArray.getNumElements(trxType);
+    }
+
+    inline void checkpointInMemoryIfNecessary() { diskArray.checkpointInMemoryIfNecessary(); }
+    inline void rollbackInMemoryIfNecessary() { diskArray.rollbackInMemoryIfNecessary(); }
+
+private:
+    BaseDiskArrayInternal diskArray;
+};
+
+class BaseInMemDiskArray : public BaseDiskArrayInternal {
 protected:
     BaseInMemDiskArray(
         FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
@@ -200,7 +250,7 @@ public:
     // [] operator can be used to update elements, e.g., diskArray[5] = 4, when building an
     // InMemDiskArrayBuilder without transactional updates. This changes the contents directly in
     // memory and not on disk (nor on the wal).
-    U& operator[](uint64_t idx);
+    uint8_t* operator[](uint64_t idx);
 
 protected:
     inline uint64_t addInMemoryArrayPage(bool setToZero) {
@@ -226,15 +276,15 @@ protected:
  * Designed currently to be used by lists headers and metadata, where we want to avoid using
  * pins/unpins when accessing data through the buffer manager.
  */
-template<typename T>
-class InMemDiskArray : public BaseInMemDiskArray<T> {
+class InMemDiskArrayInternal : public BaseInMemDiskArray {
 public:
-    InMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
-        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction);
+    InMemDiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
+        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction);
 
     static inline common::page_idx_t addDAHPageToFile(
-        BMFileHandle& fileHandle, BufferManager* bufferManager, WAL* wal) {
-        DiskArrayHeader daHeader(sizeof(T));
+        BMFileHandle& fileHandle, BufferManager* bufferManager, WAL* wal, size_t size) {
+        DiskArrayHeader daHeader(size);
         return DBFileUtils::insertNewPage(fileHandle, DBFileID{DBFileType::METADATA},
             *bufferManager, *wal,
             [&](uint8_t* frame) -> void { memcpy(frame, &daHeader, sizeof(DiskArrayHeader)); });
@@ -253,11 +303,51 @@ private:
     void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) override;
 };
 
-template<typename T>
-class InMemDiskArrayBuilder : public BaseInMemDiskArray<T> {
+template<typename U>
+class InMemDiskArray {
 public:
-    InMemDiskArrayBuilder(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
-        uint64_t numElements, bool setToZero = false);
+    InMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction)
+        : diskArray(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction) {}
+
+    inline U& operator[](uint64_t idx) { return *(U*)diskArray[idx]; }
+
+    static inline common::page_idx_t addDAHPageToFile(
+        BMFileHandle& fileHandle, BufferManager* bufferManager, WAL* wal) {
+        return InMemDiskArrayInternal::addDAHPageToFile(fileHandle, bufferManager, wal, sizeof(U));
+    }
+
+    // Note: This function is to be used only by the WRITE trx.
+    inline void update(uint64_t idx, U val) { diskArray.update(idx, getSpan(val)); }
+
+    inline U get(uint64_t idx, transaction::TransactionType trxType) {
+        U val;
+        diskArray.get(idx, trxType, getSpan(val));
+        return val;
+    }
+
+    // Note: Currently, this function doesn't support shrinking the size of the array.
+    inline uint64_t resize(uint64_t newNumElements) {
+        U defaultVal;
+        return diskArray.resize(newNumElements, getSpan(defaultVal));
+    }
+
+    inline uint64_t getNumElements(
+        transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY) {
+        return diskArray.getNumElements(trxType);
+    }
+
+    inline void checkpointInMemoryIfNecessary() { diskArray.checkpointInMemoryIfNecessary(); }
+    inline void rollbackInMemoryIfNecessary() { diskArray.rollbackInMemoryIfNecessary(); }
+
+private:
+    InMemDiskArrayInternal diskArray;
+};
+
+class InMemDiskArrayBuilderInternal : public BaseInMemDiskArray {
+public:
+    InMemDiskArrayBuilderInternal(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
+        uint64_t numElements, size_t elementSize, bool setToZero = false);
 
     // This function is designed to be used during building of a disk array, i.e., during loading.
     // In particular, it changes the needed capacity non-transactionally, i.e., without writing
@@ -274,6 +364,30 @@ private:
     void addNewArrayPageForBuilding();
 
     void setNumElementsAndAllocateDiskAPsForBuilding(uint64_t newNumElements);
+};
+
+template<typename U>
+class InMemDiskArrayBuilder {
+public:
+    InMemDiskArrayBuilder(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
+        uint64_t numElements, bool setToZero = false)
+        : diskArray(fileHandle, headerPageIdx, numElements, sizeof(U), setToZero) {}
+
+    inline U& operator[](uint64_t idx) { return *(U*)diskArray[idx]; }
+
+    inline void resize(uint64_t newNumElements, bool setToZero) {
+        diskArray.resize(newNumElements, setToZero);
+    }
+
+    inline uint64_t getNumElements(
+        transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY) {
+        return diskArray.getNumElements(trxType);
+    }
+
+    inline void saveToDisk() { diskArray.saveToDisk(); }
+
+private:
+    InMemDiskArrayBuilderInternal diskArray;
 };
 
 } // namespace storage
