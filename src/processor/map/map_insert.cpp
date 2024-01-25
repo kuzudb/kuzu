@@ -71,7 +71,7 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
     evaluators.reserve(info->columnDataExprs.size());
     for (auto& expr : info->columnDataExprs) {
-        evaluators.push_back(ExpressionMapper::getEvaluator(expr, &inSchema));
+        evaluators.push_back(ExpressionMapper::getEvaluator(expr, &outSchema));
     }
     return std::make_unique<RelInsertExecutor>(storageManager.getRelsStatistics(), table,
         srcNodePos, dstNodePos, std::move(returnVectorsPos), std::move(evaluators));

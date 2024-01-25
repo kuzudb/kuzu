@@ -237,20 +237,6 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
         std::move(dstNode), directionType, QueryRelType::NON_RECURSIVE);
     queryRel->setAlias(parsedName);
     bindQueryRelProperties(*queryRel);
-    std::vector<StructField> fields;
-    fields.emplace_back(InternalKeyword::SRC, LogicalType::INTERNAL_ID());
-    fields.emplace_back(InternalKeyword::DST, LogicalType::INTERNAL_ID());
-    // Bind internal expressions.
-    queryRel->setLabelExpression(expressionBinder.bindLabelFunction(*queryRel));
-    fields.emplace_back(
-        InternalKeyword::LABEL, queryRel->getLabelExpression()->getDataType().copy());
-    // Bind properties.
-    for (auto& expression : queryRel->getPropertyExprsRef()) {
-        auto property = ku_dynamic_cast<Expression*, PropertyExpression*>(expression.get());
-        fields.emplace_back(property->getPropertyName(), property->getDataType().copy());
-    }
-    auto extraInfo = std::make_unique<StructTypeInfo>(std::move(fields));
-    RelType::setExtraTypeInfo(queryRel->getDataTypeReference(), std::move(extraInfo));
     // Try bind rdf rel table.
     // For rdf rel table, we store predicate ID instead of predicate IRI. However, we need to hide
     // this information from the user. The following code block tries to create a IRI property
@@ -288,6 +274,20 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
             queryRel->getVariableName(), resourceTableSchemas);
         queryRel->addPropertyExpression(std::string(rdf::IRI), std::move(pIRI));
     }
+    std::vector<StructField> fields;
+    fields.emplace_back(InternalKeyword::SRC, LogicalType::INTERNAL_ID());
+    fields.emplace_back(InternalKeyword::DST, LogicalType::INTERNAL_ID());
+    // Bind internal expressions.
+    queryRel->setLabelExpression(expressionBinder.bindLabelFunction(*queryRel));
+    fields.emplace_back(
+        InternalKeyword::LABEL, queryRel->getLabelExpression()->getDataType().copy());
+    // Bind properties.
+    for (auto& expression : queryRel->getPropertyExprsRef()) {
+        auto property = ku_dynamic_cast<Expression*, PropertyExpression*>(expression.get());
+        fields.emplace_back(property->getPropertyName(), property->getDataType().copy());
+    }
+    auto extraInfo = std::make_unique<StructTypeInfo>(std::move(fields));
+    RelType::setExtraTypeInfo(queryRel->getDataTypeReference(), std::move(extraInfo));
     return queryRel;
 }
 
