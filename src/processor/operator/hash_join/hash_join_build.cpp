@@ -27,8 +27,8 @@ void HashJoinBuild::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (auto& pos : info->payloadsPos) {
         payloadVectors.push_back(resultSet->getValueVector(pos).get());
     }
-    hashTable = std::make_unique<JoinHashTable>(
-        *context->memoryManager, std::move(keyTypes), info->tableSchema->copy());
+    hashTable = std::make_unique<JoinHashTable>(*context->clientContext->getMemoryManager(),
+        std::move(keyTypes), info->tableSchema->copy());
 }
 
 void HashJoinBuild::setKeyState(common::DataChunkState* state) {

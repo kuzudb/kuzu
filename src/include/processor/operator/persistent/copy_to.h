@@ -37,7 +37,7 @@ public:
     virtual ~CopyToSharedState() = default;
 
     virtual void init(
-        CopyToInfo* info, storage::MemoryManager* mm, common::VirtualFileSystem* vfs) = 0;
+        CopyToInfo* info, storage::MemoryManager* mm, const common::VirtualFileSystem* vfs) = 0;
 
     virtual void finalize() = 0;
 };

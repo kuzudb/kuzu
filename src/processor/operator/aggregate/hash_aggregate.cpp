@@ -68,8 +68,9 @@ void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     }
     leadingState = unFlatKeyVectors.empty() ? flatKeyVectors[0]->state.get() :
                                               unFlatKeyVectors[0]->state.get();
-    localAggregateHashTable = make_unique<AggregateHashTable>(
-        *context->memoryManager, keyDataTypes, payloadDataTypes, aggregateFunctions, 0);
+    localAggregateHashTable =
+        make_unique<AggregateHashTable>(*context->clientContext->getMemoryManager(), keyDataTypes,
+            payloadDataTypes, aggregateFunctions, 0);
 }
 
 void HashAggregate::executeInternal(ExecutionContext* context) {
@@ -81,7 +82,7 @@ void HashAggregate::executeInternal(ExecutionContext* context) {
 }
 
 void HashAggregate::finalize(ExecutionContext* context) {
-    sharedState->combineAggregateHashTable(*context->memoryManager);
+    sharedState->combineAggregateHashTable(*context->clientContext->getMemoryManager());
     sharedState->finalizeAggregateHashTable();
 }
 

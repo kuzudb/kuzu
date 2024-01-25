@@ -7,7 +7,7 @@ namespace processor {
 
 void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<SortLocalState>();
-    localState->init(*info, *sharedState, context->memoryManager);
+    localState->init(*info, *sharedState, context->clientContext->getMemoryManager());
     for (auto& dataPos : info->payloadsPos) {
         payloadVectors.push_back(resultSet->getValueVector(dataPos).get());
     }

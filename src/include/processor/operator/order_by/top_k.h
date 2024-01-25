@@ -153,7 +153,8 @@ public:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     inline void initGlobalStateInternal(ExecutionContext* context) override {
-        sharedState->init(*info, context->memoryManager, skipNumber, limitNumber);
+        sharedState->init(
+            *info, context->clientContext->getMemoryManager(), skipNumber, limitNumber);
     }
 
     void executeInternal(ExecutionContext* context) override;

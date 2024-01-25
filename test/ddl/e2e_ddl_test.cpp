@@ -25,9 +25,8 @@ public:
             BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         memoryManager =
             std::make_unique<MemoryManager>(bufferManager.get(), getFileSystem(*database));
-        executionContext = std::make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
-            memoryManager.get(), bufferManager.get(), conn->clientContext.get(),
-            getFileSystem(*database), database.get());
+        executionContext =
+            std::make_unique<ExecutionContext>(profiler.get(), conn->clientContext.get());
         personTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, "person");
         studyAtTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, "studyAt");
     }

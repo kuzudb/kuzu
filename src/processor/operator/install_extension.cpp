@@ -16,7 +16,7 @@ using namespace kuzu::extension;
 bool InstallExtension::getNextTuplesInternal(ExecutionContext* context) {
     if (!hasExecuted) {
         hasExecuted = true;
-        installExtension(context->vfs, context->database);
+        installExtension(context->clientContext);
     }
     return false;
 }
@@ -44,9 +44,10 @@ std::string InstallExtension::tryDownloadExtension() {
 }
 
 void InstallExtension::saveExtensionToLocalFile(
-    const std::string& extensionData, VirtualFileSystem* vfs, main::Database* database) {
-    auto extensionDir = ExtensionUtils::getExtensionDir(database);
+    const std::string& extensionData, main::ClientContext* context) {
+    auto extensionDir = context->getExtensionDir();
     auto extensionPath = ExtensionUtils::getExtensionPath(extensionDir, name);
+    auto vfs = context->getVFS();
     if (!vfs->fileOrPathExists(extensionDir)) {
         vfs->createDir(extensionDir);
     }
@@ -55,9 +56,9 @@ void InstallExtension::saveExtensionToLocalFile(
         extensionData.size(), 0 /* offset */);
 }
 
-void InstallExtension::installExtension(VirtualFileSystem* vfs, main::Database* database) {
+void InstallExtension::installExtension(main::ClientContext* context) {
     auto extensionData = tryDownloadExtension();
-    saveExtensionToLocalFile(extensionData, vfs, database);
+    saveExtensionToLocalFile(extensionData, context);
 }
 
 } // namespace processor

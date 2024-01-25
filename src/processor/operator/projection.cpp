@@ -8,7 +8,7 @@ namespace processor {
 void Projection::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto i = 0u; i < expressionEvaluators.size(); ++i) {
         auto& expressionEvaluator = *expressionEvaluators[i];
-        expressionEvaluator.init(*resultSet, context->memoryManager);
+        expressionEvaluator.init(*resultSet, context->clientContext->getMemoryManager());
         auto [outDataChunkPos, outValueVectorPos] = expressionsOutputPos[i];
         auto dataChunk = resultSet->dataChunks[outDataChunkPos];
         dataChunk->valueVectors[outValueVectorPos] = expressionEvaluator.resultVector;

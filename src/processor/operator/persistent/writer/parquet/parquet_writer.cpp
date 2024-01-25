@@ -15,7 +15,7 @@ using namespace kuzu::common;
 ParquetWriter::ParquetWriter(std::string fileName,
     std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> columnNames,
     kuzu_parquet::format::CompressionCodec::type codec, storage::MemoryManager* mm,
-    VirtualFileSystem* vfs)
+    const VirtualFileSystem* vfs)
     : fileName{std::move(fileName)}, types{std::move(types)},
       columnNames{std::move(columnNames)}, codec{codec}, fileOffset{0}, mm{mm} {
     fileInfo = vfs->openFile(this->fileName, O_WRONLY | O_CREAT | O_TRUNC);

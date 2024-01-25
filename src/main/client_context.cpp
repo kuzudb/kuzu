@@ -25,14 +25,10 @@ void ActiveQuery::reset() {
 ClientContext::ClientContext(Database* database)
     : numThreadsForExecution{database->systemConfig.maxNumThreads},
       timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS},
-      varLengthExtendMaxDepth{DEFAULT_VAR_LENGTH_EXTEND_MAX_DEPTH}, enableSemiMask{
-                                                                        DEFAULT_ENABLE_SEMI_MASK} {
+      varLengthExtendMaxDepth{DEFAULT_VAR_LENGTH_EXTEND_MAX_DEPTH},
+      enableSemiMask{DEFAULT_ENABLE_SEMI_MASK}, database{database} {
     transactionContext = std::make_unique<TransactionContext>(database);
     randomEngine = std::make_unique<common::RandomEngine>();
-    for (auto& [name, option] : database->extensionOptions->getExtensionOptions()) {
-        StringUtils::toLower(option.name);
-        extensionOptionValues.emplace(option.name, option.defaultValue);
-    }
 }
 
 void ClientContext::startTimingIfEnabled() {
@@ -41,15 +37,22 @@ void ClientContext::startTimingIfEnabled() {
     }
 }
 
-std::string ClientContext::getCurrentSetting(const std::string& optionName) {
+Value ClientContext::getCurrentSetting(const std::string& optionName) {
     auto lowerCaseOptionName = optionName;
     StringUtils::toLower(lowerCaseOptionName);
+    // Firstly, try to find in built-in options.
     auto option = main::DBConfig::getOptionByName(lowerCaseOptionName);
     if (option != nullptr) {
         return option->getSetting(this);
     }
+    // Secondly, try to find in current client session.
     if (extensionOptionValues.contains(lowerCaseOptionName)) {
-        return extensionOptionValues.at(lowerCaseOptionName).toString();
+        return extensionOptionValues.at(lowerCaseOptionName);
+    }
+    // Lastly, find the default value in db config.
+    auto defaultOption = database->extensionOptions->getExtensionOption(lowerCaseOptionName);
+    if (defaultOption != nullptr) {
+        return defaultOption->defaultValue;
     }
     throw RuntimeException{"Invalid option name: " + lowerCaseOptionName + "."};
 }
@@ -65,6 +68,18 @@ TransactionContext* ClientContext::getTransactionContext() const {
 void ClientContext::setExtensionOption(std::string name, common::Value value) {
     StringUtils::toLower(name);
     extensionOptionValues.insert_or_assign(name, std::move(value));
+}
+
+const VirtualFileSystem* ClientContext::getVFS() const {
+    return database->vfs.get();
+}
+
+std::string ClientContext::getExtensionDir() const {
+    return common::stringFormat("{}/extension", database->databasePath);
+}
+
+storage::MemoryManager* ClientContext::getMemoryManager() {
+    return database->memoryManager.get();
 }
 
 } // namespace main

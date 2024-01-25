@@ -45,7 +45,7 @@ struct HTTPParams {
 };
 
 struct HTTPFileInfo : public common::FileInfo {
-    HTTPFileInfo(std::string path, common::FileSystem* fileSystem, int flags);
+    HTTPFileInfo(std::string path, const common::FileSystem* fileSystem, int flags);
 
     virtual void initialize();
 
@@ -71,23 +71,23 @@ class HTTPFileSystem : public common::FileSystem {
 public:
     std::unique_ptr<common::FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
-        common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
+        common::FileLockType lock_type = common::FileLockType::NO_LOCK) const override;
 
-    std::vector<std::string> glob(const std::string& path) override;
+    std::vector<std::string> glob(const std::string& path) const override;
 
-    bool canHandleFile(const std::string& path) override;
+    bool canHandleFile(const std::string& path) const override;
 
     static std::unique_ptr<httplib::Client> getClient(const std::string& host);
 
 protected:
-    void readFromFile(
-        common::FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) override;
+    void readFromFile(common::FileInfo* fileInfo, void* buffer, uint64_t numBytes,
+        uint64_t position) const override;
 
-    int64_t readFile(common::FileInfo* fileInfo, void* buf, size_t numBytes) override;
+    int64_t readFile(common::FileInfo* fileInfo, void* buf, size_t numBytes) const override;
 
-    int64_t seek(common::FileInfo* fileInfo, uint64_t offset, int whence) override;
+    int64_t seek(common::FileInfo* fileInfo, uint64_t offset, int whence) const override;
 
-    uint64_t getFileSize(common::FileInfo* fileInfo) override;
+    uint64_t getFileSize(common::FileInfo* fileInfo) const override;
 
     static void parseUrl(const std::string& url, std::string& hostPath, std::string& host);
 
@@ -98,11 +98,11 @@ protected:
         std::string method, const std::function<void(void)>& retry = {});
 
     virtual std::unique_ptr<HTTPResponse> headRequest(
-        common::FileInfo* fileInfo, std::string url, HeaderMap headerMap);
+        common::FileInfo* fileInfo, std::string url, HeaderMap headerMap) const;
 
     virtual std::unique_ptr<HTTPResponse> getRangeRequest(common::FileInfo* fileInfo,
         const std::string& url, HeaderMap headerMap, uint64_t fileOffset, char* buffer,
-        uint64_t bufferLen);
+        uint64_t bufferLen) const;
 };
 
 } // namespace httpfs

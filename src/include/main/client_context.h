@@ -66,18 +66,24 @@ public:
 
     void startTimingIfEnabled();
 
-    KUZU_API std::string getCurrentSetting(const std::string& optionName);
+    KUZU_API common::Value getCurrentSetting(const std::string& optionName);
 
     transaction::Transaction* getTx() const;
     transaction::TransactionContext* getTransactionContext() const;
 
-    inline void setReplaceFunc(replace_func_t replaceFunc) {
-        this->replaceFunc = std::move(replaceFunc);
-    }
+    void setReplaceFunc(replace_func_t replaceFunc) { this->replaceFunc = std::move(replaceFunc); }
 
     void setExtensionOption(std::string name, common::Value value);
 
-    inline common::RandomEngine* getRandomEngine() { return randomEngine.get(); }
+    common::RandomEngine* getRandomEngine() { return randomEngine.get(); }
+
+    const common::VirtualFileSystem* getVFS() const;
+
+    std::string getExtensionDir() const;
+
+    Database* getDatabase() const { return database; }
+
+    storage::MemoryManager* getMemoryManager();
 
 private:
     inline void resetActiveQuery() { activeQuery.reset(); }
@@ -91,6 +97,7 @@ private:
     replace_func_t replaceFunc;
     std::unordered_map<std::string, common::Value> extensionOptionValues;
     std::unique_ptr<common::RandomEngine> randomEngine;
+    Database* database;
 };
 
 } // namespace main

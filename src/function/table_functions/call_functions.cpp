@@ -74,8 +74,9 @@ std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(ClientContex
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back(optionName);
     returnTypes.push_back(LogicalType::STRING());
-    return std::make_unique<CurrentSettingBindData>(context->getCurrentSetting(optionName),
-        std::move(returnTypes), std::move(returnColumnNames), 1 /* one row result */);
+    return std::make_unique<CurrentSettingBindData>(
+        context->getCurrentSetting(optionName).toString(), std::move(returnTypes),
+        std::move(returnColumnNames), 1 /* one row result */);
 }
 
 function_set DBVersionFunction::getFunctionSet() {

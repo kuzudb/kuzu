@@ -213,7 +213,7 @@ void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     }
     scanFrontier = (ScanFrontier*)op;
     localResultSet = std::make_unique<ResultSet>(
-        dataInfo->localResultSetDescriptor.get(), context->memoryManager);
+        dataInfo->localResultSetDescriptor.get(), context->clientContext->getMemoryManager());
     vectors->recursiveDstNodeIDVector =
         localResultSet->getValueVector(dataInfo->recursiveDstNodeIDPos).get();
     vectors->recursiveEdgeIDVector =

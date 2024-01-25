@@ -176,7 +176,8 @@ void CopyToCSVLocalState::writeRows(CopyToCSVInfo* copyToCsvInfo) {
     }
 }
 
-void CopyToCSVSharedState::init(CopyToInfo* info, MemoryManager* /*mm*/, VirtualFileSystem* vfs) {
+void CopyToCSVSharedState::init(
+    CopyToInfo* info, MemoryManager* /*mm*/, const VirtualFileSystem* vfs) {
     fileInfo = vfs->openFile(info->fileName, O_WRONLY | O_CREAT | O_TRUNC);
     writeHeader(info);
 }

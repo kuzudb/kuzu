@@ -51,8 +51,8 @@ std::string StorageUtils::getColumnName(
     }
 }
 
-std::string StorageUtils::getNodeIndexFName(VirtualFileSystem* vfs, const std::string& directory,
-    const table_id_t& tableID, FileVersionType fileVersionType) {
+std::string StorageUtils::getNodeIndexFName(const VirtualFileSystem* vfs,
+    const std::string& directory, const table_id_t& tableID, FileVersionType fileVersionType) {
     auto fName = stringFormat("n-{}", tableID);
     return appendWALFileSuffixIfNecessary(
         vfs->joinPath(directory, fName + StorageConstants::INDEX_FILE_SUFFIX), fileVersionType);

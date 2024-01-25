@@ -13,7 +13,7 @@ struct S3AuthParams {
 
 class S3FileInfo final : public HTTPFileInfo {
 public:
-    S3FileInfo(std::string path, common::FileSystem* fileSystem, int flags,
+    S3FileInfo(std::string path, const common::FileSystem* fileSystem, int flags,
         const S3AuthParams& authParams);
 
     void initializeClient() override;
@@ -44,9 +44,9 @@ private:
 public:
     std::unique_ptr<common::FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
-        common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
+        common::FileLockType lock_type = common::FileLockType::NO_LOCK) const override;
 
-    bool canHandleFile(const std::string& path) override;
+    bool canHandleFile(const std::string& path) const override;
 
     static std::string encodeURL(const std::string& input, bool encodeSlash = false);
 
@@ -54,11 +54,11 @@ public:
 
 protected:
     std::unique_ptr<HTTPResponse> headRequest(
-        common::FileInfo* fileInfo, std::string url, HeaderMap headerMap) override;
+        common::FileInfo* fileInfo, std::string url, HeaderMap headerMap) const override;
 
     std::unique_ptr<HTTPResponse> getRangeRequest(common::FileInfo* fileInfo,
         const std::string& url, HeaderMap headerMap, uint64_t fileOffset, char* buffer,
-        uint64_t bufferLen) override;
+        uint64_t bufferLen) const override;
 
 private:
     static HeaderMap createS3Header(std::string url, std::string query, std::string host,

@@ -117,7 +117,7 @@ private:
 class PrimaryKeyIndexBuilder {
 public:
     PrimaryKeyIndexBuilder(const std::string& fName, const common::LogicalType& keyDataType,
-        common::VirtualFileSystem* vfs);
+        const common::VirtualFileSystem* vfs);
 
     void bulkReserve(uint32_t numEntries);
 

@@ -36,8 +36,8 @@ LocalFileInfo::~LocalFileInfo() {
 #endif
 }
 
-std::unique_ptr<FileInfo> LocalFileSystem::openFile(
-    const std::string& path, int flags, main::ClientContext* /*context*/, FileLockType lock_type) {
+std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int flags,
+    main::ClientContext* /*context*/, FileLockType lock_type) const {
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
     auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
@@ -89,7 +89,7 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
 #endif
 }
 
-std::vector<std::string> LocalFileSystem::glob(const std::string& path) {
+std::vector<std::string> LocalFileSystem::glob(const std::string& path) const {
     std::vector<std::string> result;
     for (auto& resultPath : glob::glob(path)) {
         result.emplace_back(resultPath.string());
@@ -97,7 +97,7 @@ std::vector<std::string> LocalFileSystem::glob(const std::string& path) {
     return result;
 }
 
-void LocalFileSystem::overwriteFile(const std::string& from, const std::string& to) {
+void LocalFileSystem::overwriteFile(const std::string& from, const std::string& to) const {
     if (!fileOrPathExists(from) || !fileOrPathExists(to))
         return;
     std::error_code errorCode;
@@ -110,7 +110,7 @@ void LocalFileSystem::overwriteFile(const std::string& from, const std::string& 
     }
 }
 
-void LocalFileSystem::createDir(const std::string& dir) {
+void LocalFileSystem::createDir(const std::string& dir) const {
     try {
         if (std::filesystem::exists(dir)) {
             // LCOV_EXCL_START
@@ -130,7 +130,7 @@ void LocalFileSystem::createDir(const std::string& dir) {
     }
 }
 
-void LocalFileSystem::removeFileIfExists(const std::string& path) {
+void LocalFileSystem::removeFileIfExists(const std::string& path) const {
     if (!fileOrPathExists(path))
         return;
     if (remove(path.c_str()) != 0) {
@@ -141,12 +141,12 @@ void LocalFileSystem::removeFileIfExists(const std::string& path) {
     }
 }
 
-bool LocalFileSystem::fileOrPathExists(const std::string& path) {
+bool LocalFileSystem::fileOrPathExists(const std::string& path) const {
     return std::filesystem::exists(path);
 }
 
 void LocalFileSystem::readFromFile(
-    FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
+    FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     DWORD numBytesRead;
@@ -179,7 +179,7 @@ void LocalFileSystem::readFromFile(
 #endif
 }
 
-int64_t LocalFileSystem::readFile(FileInfo* fileInfo, void* buf, size_t nbyte) {
+int64_t LocalFileSystem::readFile(FileInfo* fileInfo, void* buf, size_t nbyte) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     DWORD numBytesRead;
@@ -191,7 +191,7 @@ int64_t LocalFileSystem::readFile(FileInfo* fileInfo, void* buf, size_t nbyte) {
 }
 
 void LocalFileSystem::writeFile(
-    FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
+    FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
     uint64_t remainingNumBytesToWrite = numBytes;
     uint64_t bufferOffset = 0;
@@ -233,7 +233,7 @@ void LocalFileSystem::writeFile(
     }
 }
 
-int64_t LocalFileSystem::seek(FileInfo* fileInfo, uint64_t offset, int whence) {
+int64_t LocalFileSystem::seek(FileInfo* fileInfo, uint64_t offset, int whence) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     LARGE_INTEGER result;
@@ -246,7 +246,7 @@ int64_t LocalFileSystem::seek(FileInfo* fileInfo, uint64_t offset, int whence) {
 #endif
 }
 
-void LocalFileSystem::truncate(FileInfo* fileInfo, uint64_t size) {
+void LocalFileSystem::truncate(FileInfo* fileInfo, uint64_t size) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     auto offsetHigh = (LONG)(size >> 32);
@@ -278,7 +278,7 @@ void LocalFileSystem::truncate(FileInfo* fileInfo, uint64_t size) {
 #endif
 }
 
-uint64_t LocalFileSystem::getFileSize(kuzu::common::FileInfo* fileInfo) {
+uint64_t LocalFileSystem::getFileSize(kuzu::common::FileInfo* fileInfo) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #ifdef _WIN32
     LARGE_INTEGER size;

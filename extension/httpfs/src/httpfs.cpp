@@ -19,13 +19,13 @@ HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
     }
 }
 
-HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags)
+HTTPFileInfo::HTTPFileInfo(std::string path, const FileSystem* fileSystem, int flags)
     : FileInfo{std::move(path), fileSystem}, flags{flags}, length{0},
       availableBuffer{0}, bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0} {}
 
 void HTTPFileInfo::initialize() {
     initializeClient();
-    auto hfs = ku_dynamic_cast<FileSystem*, HTTPFileSystem*>(fileSystem);
+    auto hfs = ku_dynamic_cast<const FileSystem*, const HTTPFileSystem*>(fileSystem);
     auto res = hfs->headRequest(ku_dynamic_cast<HTTPFileInfo*, FileInfo*>(this), this->path, {});
     std::string rangeLength;
 
@@ -107,23 +107,23 @@ void HTTPFileInfo::initializeClient() {
 }
 
 std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* /*context*/, common::FileLockType /*lock_type*/) {
+    main::ClientContext* /*context*/, common::FileLockType /*lock_type*/) const {
     auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags);
     httpFileInfo->initialize();
     return std::move(httpFileInfo);
 }
 
-std::vector<std::string> HTTPFileSystem::glob(const std::string& path) {
+std::vector<std::string> HTTPFileSystem::glob(const std::string& path) const {
     // Glob is not supported on HTTPFS, simply return the path itself.
     return {path};
 }
 
-bool HTTPFileSystem::canHandleFile(const std::string& path) {
+bool HTTPFileSystem::canHandleFile(const std::string& path) const {
     return path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0;
 }
 
 void HTTPFileSystem::readFromFile(
-    common::FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
+    common::FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     auto numBytesToRead = numBytes;
     auto bufferOffset = 0;
@@ -177,7 +177,7 @@ void HTTPFileSystem::readFromFile(
     }
 }
 
-int64_t HTTPFileSystem::readFile(common::FileInfo* fileInfo, void* buf, size_t numBytes) {
+int64_t HTTPFileSystem::readFile(common::FileInfo* fileInfo, void* buf, size_t numBytes) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     auto maxNumBytesToRead = httpFileInfo->length - httpFileInfo->fileOffset;
     numBytes = std::min<uint64_t>(maxNumBytesToRead, numBytes);
@@ -188,13 +188,13 @@ int64_t HTTPFileSystem::readFile(common::FileInfo* fileInfo, void* buf, size_t n
     return numBytes;
 }
 
-int64_t HTTPFileSystem::seek(common::FileInfo* fileInfo, uint64_t offset, int /*whence*/) {
+int64_t HTTPFileSystem::seek(common::FileInfo* fileInfo, uint64_t offset, int /*whence*/) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     httpFileInfo->fileOffset = offset;
     return offset;
 }
 
-uint64_t HTTPFileSystem::getFileSize(common::FileInfo* fileInfo) {
+uint64_t HTTPFileSystem::getFileSize(common::FileInfo* fileInfo) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     return httpFileInfo->length;
 }
@@ -301,7 +301,7 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::runRequestWithRetry(
 }
 
 std::unique_ptr<HTTPResponse> HTTPFileSystem::headRequest(
-    FileInfo* fileInfo, std::string url, HeaderMap headerMap) {
+    FileInfo* fileInfo, std::string url, HeaderMap headerMap) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     std::string hostPath, host;
     parseUrl(url, hostPath, host);
@@ -317,7 +317,7 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::headRequest(
 
 std::unique_ptr<HTTPResponse> HTTPFileSystem::getRangeRequest(FileInfo* fileInfo,
     const std::string& url, HeaderMap headerMap, uint64_t fileOffset, char* buffer,
-    uint64_t bufferLen) {
+    uint64_t bufferLen) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     std::string hostPath, host;
     parseUrl(url, hostPath, host);

@@ -27,8 +27,8 @@ void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
     }
     localState->rowIDVector = resultSet->getValueVector(inQueryCallInfo->rowIDPos).get();
     function::TableFunctionInitInput tableFunctionInitInput{inQueryCallInfo->bindData.get()};
-    localState->localState = inQueryCallInfo->function->initLocalStateFunc(
-        tableFunctionInitInput, sharedState->sharedState.get(), context->memoryManager);
+    localState->localState = inQueryCallInfo->function->initLocalStateFunc(tableFunctionInitInput,
+        sharedState->sharedState.get(), context->clientContext->getMemoryManager());
     localState->tableFunctionInput = function::TableFunctionInput{inQueryCallInfo->bindData.get(),
         localState->localState.get(), sharedState->sharedState.get()};
 }

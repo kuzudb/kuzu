@@ -6,7 +6,7 @@ namespace kuzu {
 namespace processor {
 
 void IndexScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    indexEvaluator->init(*resultSet, context->memoryManager);
+    indexEvaluator->init(*resultSet, context->clientContext->getMemoryManager());
     indexVector = indexEvaluator->resultVector.get();
     outVector = resultSet->getValueVector(outDataPos).get();
 }

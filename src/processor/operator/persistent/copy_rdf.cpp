@@ -9,7 +9,7 @@ namespace processor {
 void CopyRdf::finalize(ExecutionContext* context) {
     auto outputMsg = common::stringFormat("Done copy rdf graph.");
     FactorizedTableUtils::appendStringToTable(
-        sharedState->fTable.get(), outputMsg, context->memoryManager);
+        sharedState->fTable.get(), outputMsg, context->clientContext->getMemoryManager());
 }
 
 } // namespace processor
