@@ -169,24 +169,22 @@ jobs:
       - name: List downloaded artifacts
         run: ls -R releases/$RELEASE_VERSION
 
-      # - name: Push changes
-      #   working-directory: kuzudb.github.io
-      #   run: |
-      #     git checkout -b "api-documentation-update-${{ github.sha }}"
-      #     git config --global user.name "CI User"
-      #     git config --global user.email "contact@kuzudb.com"
-      #     git add .
-      #     git commit -m "Update API documentations"
-      #     git push -u origin "api-documentation-update-${{ github.sha }}"
+      - name: Push changes
+        run: |
+          git checkout -b "extensions-update-${{ github.sha }}"
+          git config --global user.name "CI User"
+          git config --global user.email "contact@kuzudb.com"
+          git add -A
+          git commit -m "Update extensions (CI) - $RELEASE_VERSION"
+          git push -u origin "extensions-update-${{ github.sha }}"
 
-      # - name: Create pull request
-      #   working-directory: kuzudb.github.io
-      #   run: |
-      #     echo "${{ secrets.DOC_PUSH_TOKEN }}" > token.txt
-      #     gh auth login --with-token < token.txt
-      #     rm -rf token.txt
-      #     gh pr create \
-      #       --body "Action triggered by CI workflow." \
-      #       --title "Update API documentations" \
-      #       --head "api-documentation-update-${{ github.sha }}" \
-      #       --base "main"
+      - name: Create pull request
+        run: |
+          echo "${{ secrets.DOC_PUSH_TOKEN }}" > token.txt
+          gh auth login --with-token < token.txt
+          rm -rf token.txt
+          gh pr create \
+            --body "Action triggered by CI workflow." \
+            --title "Update extensions (CI) - $RELEASE_VERSION" \
+            --head "extensions-update-${{ github.sha }}" \
+            --base "main"
