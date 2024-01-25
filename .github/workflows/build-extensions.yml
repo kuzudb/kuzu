@@ -103,7 +103,6 @@ jobs:
       - name: Detect release version
         run: |
           echo "RELEASE_VERSION=v$(cat CMakeLists.txt | grep "DKUZU_RELEASE_VERSION" | cut -d '"' -f 2 )" >> $GITHUB_ENV
-          echo $RELEASE_VERSION
 
       - uses: actions/checkout@v3
         with:
@@ -124,30 +123,48 @@ jobs:
           rm -rf releases/$RELEASE_VERSION/linux_arm64/*
           rm -rf releases/$RELEASE_VERSION/osx_amd64/*
           rm -rf releases/$RELEASE_VERSION/osx_arm64/*
-          
+
+      - name: Create temporary directory for artifacts
+        run: |
+          mkdir -p extension-artifacts
+          mkdir -p extension-artifacts/linux_amd64
+          mkdir -p extension-artifacts/linux_arm64
+          mkdir -p extension-artifacts/osx_amd64
+          mkdir -p extension-artifacts/osx_arm64
+
       - name: Download built artifacts for linux-x86_64
         uses: actions/download-artifact@v3
         with:
           name: kuzu-extensions_linux-x86_64
-          path: releases/$RELEASE_VERSION/linux_amd64
-        
+          path: extension-artifacts/linux_amd64
+
       - name: Download built artifacts for linux-aarch64
         uses: actions/download-artifact@v3
         with:
           name: kuzu-extensions_linux-aarch64
-          path: releases/$RELEASE_VERSION/linux_arm64
-      
+          path: extension-artifacts/linux_arm64
+
       - name: Download built artifacts for osx-x86_64
         uses: actions/download-artifact@v3
         with:
           name: kuzu-extensions_osx-x86_64
-          path: releases/$RELEASE_VERSION/osx_amd64
+          path: extension-artifacts/osx_amd64
 
       - name: Download built artifacts for osx-aarch64
         uses: actions/download-artifact@v3
         with:
           name: kuzu-extensions_osx-arm64
-          path: releases/$RELEASE_VERSION/osx_arm64
+          path: extension-artifacts/osx_arm64
+
+      - name: Copy built artifacts
+        run: |
+          cp extension-artifacts/linux_amd64/*.kuzu_extension releases/$RELEASE_VERSION/linux_amd64
+          cp extension-artifacts/linux_arm64/*.kuzu_extension releases/$RELEASE_VERSION/linux_arm64
+          cp extension-artifacts/osx_amd64/*.kuzu_extension releases/$RELEASE_VERSION/osx_amd64
+          cp extension-artifacts/osx_arm64/*.kuzu_extension releases/$RELEASE_VERSION/osx_arm64
+
+      - name: Remove temporary directory
+        run: rm -rf extension-artifacts
 
       - name: List downloaded artifacts
         run: ls -R releases/$RELEASE_VERSION
