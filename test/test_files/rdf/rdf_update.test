@@ -1,4 +1,4 @@
--GROUP RdfUpdate
+-GROUP Rdf
 -DATASET TTL EMPTY
 
 --
@@ -71,7 +71,7 @@ aaa
                   (:T_l {val:cast("2024-01-01 11:25:30Z+00:00", "TIMESTAMP")}),
                   (:T_l {val:cast("1 year", "INTERVAL")})
 ---- ok
--STATEMENT MATCH (a:T_l) RETURN a.* ORDER BY a.id;
+-STATEMENT MATCH (a:T_l) RETURN a.id, a.val ORDER BY a.id;
 -CHECK_ORDER
 ---- 16
 0|12

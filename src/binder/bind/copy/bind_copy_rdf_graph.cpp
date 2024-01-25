@@ -4,7 +4,6 @@
 #include "common/constants.h"
 #include "common/copier_config/rdf_reader_config.h"
 #include "common/keyword/rdf_keyword.h"
-#include "common/types/rdf_variant_type.h"
 #include "function/table_functions/bind_input.h"
 #include "main/client_context.h"
 
@@ -24,7 +23,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     auto offset = expressionBinder.createVariableExpression(
         *LogicalType::INT64(), InternalKeyword::ROW_OFFSET);
     auto r = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::IRI);
-    auto l = expressionBinder.createVariableExpression(*RdfVariantType::getType(), rdf::VAL);
+    auto l = expressionBinder.createVariableExpression(*LogicalType::RDF_VARIANT(), rdf::VAL);
+    auto lang = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::LANG);
     auto s = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::SUBJECT);
     auto p = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::PREDICATE);
     auto o = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::OBJECT);
@@ -57,7 +57,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     func = inMemory ? functions->matchFunction(IN_MEM_READ_RDF_LITERAL_FUNC_NAME) :
                       functions->matchFunction(READ_RDF_LITERAL_FUNC_NAME);
     auto lScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
-    auto lColumns = expression_vector{l};
+    auto lColumns = expression_vector{l, lang};
     auto lScanInfo = std::make_unique<BoundFileScanInfo>(
         lScanFunc, bindData->copy(), std::move(lColumns), offset);
     auto lTableID = rdfSchema->getLiteralTableID();

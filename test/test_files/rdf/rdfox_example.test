@@ -1,4 +1,4 @@
--GROUP RdfoxExample
+-GROUP Rdf
 -DATASET TTL rdf/rdfox_example
 
 --

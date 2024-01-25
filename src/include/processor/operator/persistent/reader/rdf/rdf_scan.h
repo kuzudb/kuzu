@@ -13,7 +13,8 @@ struct RdfScanSharedState : public function::ScanSharedState {
     std::shared_ptr<RdfStore> store;
 
     RdfScanSharedState(common::ReaderConfig readerConfig, std::shared_ptr<RdfStore> store)
-        : ScanSharedState{std::move(readerConfig), 0}, store{std::move(store)} {}
+        : ScanSharedState{std::move(readerConfig), 0}, store{std::move(store)},
+          numLiteralTriplesScanned{0} {}
     explicit RdfScanSharedState(common::ReaderConfig readerConfig)
         : RdfScanSharedState{std::move(readerConfig), nullptr} {}
 
@@ -23,7 +24,9 @@ struct RdfScanSharedState : public function::ScanSharedState {
     void initReader();
 
 private:
-    virtual void createReader(const std::string& path) = 0;
+    virtual void createReader(const std::string& path, common::offset_t startOffset) = 0;
+
+    common::offset_t numLiteralTriplesScanned;
 };
 
 struct RdfResourceScanSharedState final : public RdfScanSharedState {
@@ -35,7 +38,7 @@ struct RdfResourceScanSharedState final : public RdfScanSharedState {
         initReader();
     }
 
-    inline void createReader(const std::string& path) override {
+    inline void createReader(const std::string& path, common::offset_t) override {
         reader = std::make_unique<RdfResourceReader>(path, readerConfig.fileType, store.get());
     }
 };
@@ -49,7 +52,7 @@ struct RdfLiteralScanSharedState final : public RdfScanSharedState {
         initReader();
     }
 
-    inline void createReader(const std::string& path) override {
+    inline void createReader(const std::string& path, common::offset_t) override {
         reader = std::make_unique<RdfLiteralReader>(path, readerConfig.fileType, store.get());
     }
 };
@@ -63,7 +66,7 @@ struct RdfResourceTripleScanSharedState final : public RdfScanSharedState {
         initReader();
     }
 
-    inline void createReader(const std::string& path) override {
+    inline void createReader(const std::string& path, common::offset_t) override {
         reader =
             std::make_unique<RdfResourceTripleReader>(path, readerConfig.fileType, store.get());
     }
@@ -78,8 +81,9 @@ struct RdfLiteralTripleScanSharedState final : public RdfScanSharedState {
         initReader();
     }
 
-    void createReader(const std::string& path) override {
-        reader = std::make_unique<RdfLiteralTripleReader>(path, readerConfig.fileType, store.get());
+    void createReader(const std::string& path, common::offset_t startOffset) override {
+        reader = std::make_unique<RdfLiteralTripleReader>(
+            path, readerConfig.fileType, store.get(), startOffset);
     }
 };
 
@@ -91,7 +95,7 @@ struct RdfTripleScanSharedState final : public RdfScanSharedState {
         initReader();
     }
 
-    void createReader(const std::string& path) override {
+    void createReader(const std::string& path, common::offset_t) override {
         reader = std::make_unique<RdfTripleReader>(path, readerConfig.fileType, store.get());
     }
 };

@@ -1,4 +1,4 @@
--GROUP LargeBlock
+-GROUP Rdf
 -DATASET TTL rdf/large_block
 
 --

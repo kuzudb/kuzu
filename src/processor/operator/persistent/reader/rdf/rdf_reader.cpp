@@ -61,25 +61,6 @@ SerdStatus RdfReader::errorHandle(void* handle, const SerdError* error) {
     return error->status;
 }
 
-static bool supportSerdType(SerdType type) {
-    switch (type) {
-    case SERD_URI:
-    case SERD_CURIE:
-    case SERD_LITERAL:
-        return true;
-    case SERD_BLANK:
-        return false;
-    default:
-        KU_UNREACHABLE;
-    }
-}
-
-static bool supportTriple(
-    const SerdNode* subject, const SerdNode* predicate, const SerdNode* object) {
-    return supportSerdType(subject->type) && supportSerdType(predicate->type) &&
-           supportSerdType(object->type);
-}
-
 static std::string getAsString(const SerdNode* node) {
     return std::string((const char*)node->buf, node->n_bytes);
 }
@@ -135,8 +116,13 @@ void RdfReader::readAll() {
 }
 
 void RdfReader::addNode(std::vector<std::string>& vector, const SerdNode* node) {
-    if (prefixMap.empty() && defaultPrefix.empty()) {
+    if (node->type == SerdType::SERD_URI) {
         // No need to expand prefix
+        vector.emplace_back((const char*)node->buf, node->n_bytes);
+        return;
+    }
+    if (prefixMap.empty() && defaultPrefix.empty()) {
+        // No prefix to expand
         vector.emplace_back((const char*)node->buf, node->n_bytes);
         return;
     }
@@ -163,9 +149,6 @@ void RdfReader::addNode(std::vector<std::string>& vector, const SerdNode* node) 
 SerdStatus RdfResourceReader::handle(void* handle, SerdStatementFlags, const SerdNode*,
     const SerdNode* subject, const SerdNode* predicate, const SerdNode* object, const SerdNode*,
     const SerdNode*) {
-    if (!supportTriple(subject, predicate, object)) {
-        return SERD_SUCCESS;
-    }
     auto reader = reinterpret_cast<RdfReader*>(handle);
     auto& store = ku_dynamic_cast<RdfStore&, ResourceStore&>(*reader->store_);
     if (object->type == SERD_LITERAL) {
@@ -190,19 +173,23 @@ uint64_t RdfResourceReader::readToVector(DataChunk* dataChunk) {
 }
 
 SerdStatus RdfLiteralReader::handle(void* handle, SerdStatementFlags, const SerdNode*,
-    const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
-    const SerdNode* object_datatype, const SerdNode*) {
-    if (!supportTriple(subject, predicate, object)) {
-        return SERD_SUCCESS;
-    }
+    const SerdNode*, const SerdNode*, const SerdNode* object, const SerdNode* object_datatype,
+    const SerdNode* object_lang) {
     auto reader = reinterpret_cast<RdfReader*>(handle);
     auto& store = ku_dynamic_cast<RdfStore&, LiteralStore&>(*reader->store_);
     if (object->type == SERD_LITERAL) {
         reader->addNode(store.literals, object);
         if (object_datatype != nullptr) {
-            reader->addNode(store.literalTypes, object_datatype);
+            auto typeID = RdfUtils::getLogicalTypeID(
+                (const char*)object_datatype->buf, object_datatype->n_bytes);
+            store.literalTypes.push_back(typeID);
         } else {
-            store.literalTypes.push_back("");
+            store.literalTypes.push_back(LogicalTypeID::STRING);
+        }
+        if (object_lang != nullptr) {
+            reader->addNode(store.langs, object_lang);
+        } else {
+            store.langs.push_back("");
         }
     }
     return SERD_SUCCESS;
@@ -210,17 +197,15 @@ SerdStatus RdfLiteralReader::handle(void* handle, SerdStatementFlags, const Serd
 
 uint64_t RdfLiteralReader::readToVector(common::DataChunk* dataChunk) {
     auto lVector = dataChunk->getValueVector(0).get();
+    auto langVector = dataChunk->getValueVector(1).get();
     auto& store = ku_dynamic_cast<RdfStore&, LiteralStore&>(*store_);
     auto numTuplesToScan = std::min(store.size() - cursor, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         auto& literal = store.literals[cursor + i];
         auto& type = store.literalTypes[cursor + i];
-        if (type.empty()) {
-            RdfVariantVector::addString(lVector, i, literal.data(), literal.size());
-        } else {
-            RdfUtils::addRdfLiteral(
-                lVector, i, literal.data(), literal.size(), type.data(), type.size());
-        }
+        auto& lang = store.langs[cursor + i];
+        RdfUtils::addRdfLiteral(lVector, i, literal, type);
+        StringVector::addString(langVector, i, lang);
     }
     return numTuplesToScan;
 }
@@ -228,9 +213,6 @@ uint64_t RdfLiteralReader::readToVector(common::DataChunk* dataChunk) {
 SerdStatus RdfResourceTripleReader::handle(void* handle, SerdStatementFlags, const SerdNode*,
     const SerdNode* subject, const SerdNode* predicate, const SerdNode* object, const SerdNode*,
     const SerdNode*) {
-    if (!supportTriple(subject, predicate, object)) {
-        return SERD_SUCCESS;
-    }
     auto reader = reinterpret_cast<RdfReader*>(handle);
     auto& store = ku_dynamic_cast<RdfStore&, ResourceTripleStore&>(*reader->store_);
     if (object->type != SERD_LITERAL) {
@@ -258,9 +240,6 @@ uint64_t RdfResourceTripleReader::readToVector(DataChunk* dataChunk) {
 SerdStatus RdfLiteralTripleReader::handle(void* handle, SerdStatementFlags, const SerdNode*,
     const SerdNode* subject, const SerdNode* predicate, const SerdNode* object, const SerdNode*,
     const SerdNode*) {
-    if (!supportTriple(subject, predicate, object)) {
-        return SERD_SUCCESS;
-    }
     auto reader = reinterpret_cast<RdfReader*>(handle);
     auto& store = ku_dynamic_cast<RdfStore&, LiteralTripleStore&>(*reader->store_);
     if (object->type == SERD_LITERAL) {
@@ -279,18 +258,15 @@ uint64_t RdfLiteralTripleReader::readToVector(DataChunk* dataChunk) {
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         StringVector::addString(sVector, i, store.subjects[cursor + i]);
         StringVector::addString(pVector, i, store.predicates[cursor + i]);
-        oVector->setValue(i, rowOffset + i);
+        oVector->setValue(i, startOffset + numLiteralTriplesScanned + i);
     }
-    rowOffset += numTuplesToScan;
+    numLiteralTriplesScanned += numTuplesToScan;
     return numTuplesToScan;
 }
 
 SerdStatus RdfTripleReader::handle(void* handle, SerdStatementFlags, const SerdNode*,
     const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
-    const SerdNode* object_datatype, const SerdNode*) {
-    if (!supportTriple(subject, predicate, object)) {
-        return SERD_SUCCESS;
-    }
+    const SerdNode* object_datatype, const SerdNode* object_lang) {
     auto reader = reinterpret_cast<RdfReader*>(handle);
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*reader->store_);
     if (object->type == SERD_LITERAL) {
@@ -298,9 +274,16 @@ SerdStatus RdfTripleReader::handle(void* handle, SerdStatementFlags, const SerdN
         reader->addNode(store.ltStore.predicates, predicate);
         reader->addNode(store.ltStore.objects, object);
         if (object_datatype != nullptr) {
-            reader->addNode(store.ltStore.objectTypes, object_datatype);
+            auto typeID = RdfUtils::getLogicalTypeID(
+                (const char*)object_datatype->buf, object_datatype->n_bytes);
+            store.ltStore.objectTypes.push_back(typeID);
         } else {
-            store.ltStore.objectTypes.push_back("");
+            store.ltStore.objectTypes.push_back(LogicalTypeID::STRING);
+        }
+        if (object_lang != nullptr) {
+            reader->addNode(store.ltStore.langs, object_lang);
+        } else {
+            store.ltStore.langs.push_back("");
         }
     } else {
         reader->addNode(store.rtStore.subjects, subject);

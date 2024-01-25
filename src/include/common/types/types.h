@@ -374,8 +374,7 @@ public:
 
     static KUZU_API std::unique_ptr<LogicalType> REL(std::unique_ptr<StructTypeInfo> typeInfo);
 
-    static KUZU_API std::unique_ptr<LogicalType> RDF_VARIANT(
-        std::unique_ptr<StructTypeInfo> typeInfo);
+    static KUZU_API std::unique_ptr<LogicalType> RDF_VARIANT();
 
     static KUZU_API std::unique_ptr<LogicalType> UNION(std::vector<StructField>&& fields);
 
