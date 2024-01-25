@@ -16,29 +16,6 @@ struct Power {
     }
 };
 
-struct Negate {
-    template<class T>
-    static inline void operation(T& input, T& result) {
-        result = -input;
-    }
-};
-
-struct Abs {
-    template<class T>
-    static inline void operation(T& input, T& result) {
-        if constexpr (std::is_unsigned_v<T>) {
-            result = input;
-        } else {
-            result = std::abs(input);
-        }
-    }
-};
-
-template<>
-inline void Abs::operation(common::int128_t& input, common::int128_t& result) {
-    result = input < 0 ? -input : input;
-}
-
 struct Floor {
     template<class T>
     static inline void operation(T& input, T& result) {
