@@ -1,0 +1,32 @@
+name: LSQB-Benchmark
+
+env:
+  RUNTIME_CHECKS: 1
+  WERROR: 1
+
+on:
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: benchmark
+    env:
+      NUM_THREADS: 30
+      GEN: ninja
+    runs-on: kuzu-self-hosted-benchmarking
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: |
+          pip install -r tools/python_api/requirements_dev.txt 
+          make python LTO=1
+
+      - name: Benchmark
+        run: python3 benchmark/lsqb/benchmark_runner.py --sf 100 --thread 30
+
+      - name: Upload Result CSV
+        uses: actions/upload-artifact@v3
+        with:
+          name: lsqb-benchmark-result
+          path: /tmp/benchmark_result/results.csv
