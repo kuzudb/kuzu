@@ -11,8 +11,7 @@ namespace processor {
 class RdfReader {
 public:
     RdfReader(std::string filePath, common::FileType fileType, RdfStore* store_)
-        : store_{store_}, cursor{0}, rowOffset{0}, filePath{std::move(filePath)},
-          fileType{fileType}, reader{nullptr}, status{SERD_SUCCESS} {}
+        : RdfReader{std::move(filePath), fileType, store_, 0} {}
 
     virtual ~RdfReader();
 
@@ -22,7 +21,15 @@ public:
     void readAll();
     void addNode(std::vector<std::string>& vector, const SerdNode* node);
 
+    inline uint64_t getNumLiteralTriplesScanned() const { return numLiteralTriplesScanned; }
+
 protected:
+    RdfReader(std::string filePath, common::FileType fileType, RdfStore* store_,
+        const common::offset_t startOffset)
+        : store_{store_}, cursor{0}, startOffset{startOffset}, numLiteralTriplesScanned{0},
+          filePath{std::move(filePath)}, fileType{fileType}, reader{nullptr}, status{SERD_SUCCESS} {
+    }
+
     void initInternal(SerdStatementSink statementHandle);
 
     virtual uint64_t readToVector(common::DataChunk* dataChunk) = 0;
@@ -35,7 +42,12 @@ public:
 
 protected:
     uint64_t cursor = 0;
-    common::offset_t rowOffset;
+    // We use row offset as the primary key for rdf literal. During rel table insertion, we use row
+    // offset directly and save the primary key look up. To do so, we need to record how many
+    // literal triples have been scanned from previous files (startOffset) and in current file
+    // (numLiteralTriplesScanned).
+    const common::offset_t startOffset;
+    uint64_t numLiteralTriplesScanned;
 
 private:
     std::string filePath;
@@ -96,8 +108,9 @@ private:
 
 class RdfLiteralTripleReader final : public RdfReader {
 public:
-    RdfLiteralTripleReader(std::string filePath, common::FileType fileType, RdfStore* store_)
-        : RdfReader{filePath, fileType, store_} {}
+    RdfLiteralTripleReader(std::string filePath, common::FileType fileType, RdfStore* store_,
+        const common::offset_t startOffset)
+        : RdfReader{filePath, fileType, store_, startOffset} {}
 
     inline void init() override { initInternal(handle); }
 

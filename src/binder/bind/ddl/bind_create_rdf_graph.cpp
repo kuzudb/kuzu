@@ -2,7 +2,6 @@
 #include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/keyword/rdf_keyword.h"
-#include "common/types/rdf_variant_type.h"
 #include "parser/ddl/create_table_info.h"
 
 using namespace kuzu::parser;
@@ -26,7 +25,8 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto literalTableName = RdfGraphSchema::getLiteralTableName(rdfGraphName);
     std::vector<PropertyInfo> literalProperties;
     literalProperties.emplace_back(std::string(rdf::ID), *LogicalType::SERIAL());
-    literalProperties.emplace_back(std::string(rdf::VAL), *RdfVariantType::getType());
+    literalProperties.emplace_back(std::string(rdf::VAL), *LogicalType::RDF_VARIANT());
+    literalProperties.emplace_back(std::string(rdf::LANG), *LogicalType::STRING());
     auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(
         0 /* primaryKeyIdx */, std::move(literalProperties));
     auto literalCreateInfo =

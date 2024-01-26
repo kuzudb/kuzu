@@ -1,0 +1,25 @@
+-GROUP Rdf
+-DATASET TTL rdf/multi_file
+
+--
+
+-CASE MultiFile
+
+-STATEMENT MATCH (a:W_r) RETURN a.iri;
+---- 9
+:mm
+:p0
+:p1
+:p2
+:p3
+:s0
+:s1
+:s2
+:x
+-STATEMENT MATCH (a)-[p]->(o) RETURN a.iri, p.iri, o.iri, o.val;
+---- 5
+:s0|:p0|:mm|
+:s0|:p0||0
+:s0|:p3|:x|
+:s1|:p1||1
+:s2|:p2||2

@@ -1,9 +1,9 @@
--GROUP RdfoxExampleInMemory
+-GROUP Rdf
 -DATASET TTL EMPTY
 
 --
 
--CASE BASIC
+-CASE RdfoxInMemory
 
 -STATEMENT CREATE RDF GRAPH example;
 ---- ok

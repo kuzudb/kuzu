@@ -19,6 +19,8 @@ void RdfScanSharedState::read(common::DataChunk& dataChunk) {
         if (reader->readChunk(&dataChunk) > 0) {
             return;
         }
+        // No more to read in current file, move to next.
+        numLiteralTriplesScanned += reader->getNumLiteralTriplesScanned();
         fileIdx++;
         initReader();
         store->clear();
@@ -42,7 +44,7 @@ void RdfScanSharedState::initReader() {
         return;
     }
     auto path = readerConfig.filePaths[fileIdx];
-    createReader(path);
+    createReader(path, numLiteralTriplesScanned);
     reader->init();
 }
 
@@ -186,17 +188,15 @@ void RdfLiteralInMemScan::tableFunc(TableFunctionInput& input, DataChunk& output
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
     auto oVector = outputChunk.getValueVector(0).get();
+    auto langVector = outputChunk.getValueVector(1).get();
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
     auto [startIdx, numTuplesToScan] = sharedState->getLiteralTripleRange();
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         auto& object = store.ltStore.objects[startIdx + i];
         auto& objectType = store.ltStore.objectTypes[startIdx + i];
-        if (objectType.empty()) {
-            RdfVariantVector::addString(oVector, i, object.data(), object.size());
-        } else {
-            RdfUtils::addRdfLiteral(
-                oVector, i, object.data(), object.size(), objectType.data(), objectType.size());
-        }
+        auto& lang = store.ltStore.langs[startIdx + i];
+        RdfUtils::addRdfLiteral(oVector, i, object, objectType);
+        StringVector::addString(langVector, i, lang);
     }
     outputChunk.state->selVector->selectedSize = numTuplesToScan;
 }

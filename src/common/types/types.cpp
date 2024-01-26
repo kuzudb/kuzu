@@ -912,9 +912,13 @@ std::unique_ptr<LogicalType> LogicalType::REL(std::unique_ptr<StructTypeInfo> ty
     return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::REL, std::move(typeInfo)));
 }
 
-std::unique_ptr<LogicalType> LogicalType::RDF_VARIANT(std::unique_ptr<StructTypeInfo> typeInfo) {
+std::unique_ptr<LogicalType> LogicalType::RDF_VARIANT() {
+    std::vector<StructField> fields;
+    fields.emplace_back("_type", LogicalType::UINT8());
+    fields.emplace_back("_value", LogicalType::BLOB());
+    auto extraInfo = std::make_unique<StructTypeInfo>(std::move(fields));
     return std::unique_ptr<LogicalType>(
-        new LogicalType(LogicalTypeID::RDF_VARIANT, std::move(typeInfo)));
+        new LogicalType(LogicalTypeID::RDF_VARIANT, std::move(extraInfo)));
 }
 
 std::unique_ptr<LogicalType> LogicalType::UNION(std::vector<StructField>&& fields) {
