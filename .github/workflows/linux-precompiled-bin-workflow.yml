@@ -19,26 +19,22 @@ jobs:
           path: kuzu.hpp
 
   build-precompiled-bin-x86_64:
-    runs-on: kuzu-self-hosted-linux-building-x86_64_ubuntu1804
+    runs-on: kuzu-self-hosted-linux-building-x86_64_centos8
     needs: generate-single-file-header
     steps:
       - uses: actions/checkout@v3
 
       - name: Build precompiled binaries
         run: |
-          make LTO=1 NUM_THREADS=$(nproc) SKIP_SINGLE_FILE_HEADER=true
+          make LTO=1 NUM_THREADS=$(nproc)
           make install
 
       - name: Collect artifacts
         run: |
           mv install/include/kuzu.h .
-          mv install/lib/libkuzu.so .
+          mv install/include/kuzu.hpp .
+          mv install/lib64/libkuzu.so .
           mv install/bin/kuzu_shell kuzu
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: kuzu-single-file-header
-          path: .
 
       - uses: actions/upload-artifact@v3
         with:
