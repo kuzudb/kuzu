@@ -5,8 +5,22 @@ on:
   workflow_call:
 
 jobs:
+  generate-single-file-header:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Generate single file header
+        run: python3 scripts/collect-single-file-header.py
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-single-file-header
+          path: kuzu.h
+
   build-precompiled-bin-x86_64:
     runs-on: kuzu-self-hosted-linux-building-x86_64_ubuntu1804
+    needs: generate-single-file-header
     steps:
       - uses: actions/checkout@v3
 
@@ -18,14 +32,20 @@ jobs:
       - name: Collect artifacts
         run: |
           mv install/include/kuzu.h .
-          mv install/lib64/libkuzu.so .
+          mv install/lib/libkuzu.so .
           mv install/bin/kuzu_shell kuzu
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: kuzu-single-file-header
+          path: .
 
       - uses: actions/upload-artifact@v3
         with:
           name: libkuzu-linux-x86_64
           path: |
             kuzu.h
+            kuzu.hpp
             libkuzu.so
 
       - uses: actions/upload-artifact@v3
