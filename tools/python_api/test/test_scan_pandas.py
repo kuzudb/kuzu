@@ -4,7 +4,6 @@ import datetime
 import pytest
 import re
 from zoneinfo import ZoneInfo
-
 import kuzu
 
 
@@ -59,7 +58,8 @@ def test_scan_pandas(get_tmp_path):
             np.timedelta64(1000000000, 'ns'),
             np.timedelta64(2500000000, 'ns'),
             np.timedelta64(3022000000, 'ns')
-        ]
+        ],
+        'name': [None, 'Ascii only', 'ñ中国字', '😂'],
     }
     df = pd.DataFrame(data)
     df['datetime_microseconds_tz'] = df['datetime_microseconds_tz'].dt.tz_localize("US/Eastern")
@@ -70,28 +70,28 @@ def test_scan_pandas(get_tmp_path):
                                   datetime.datetime(1996, 4, 1, 12, 0, 11, 500001),
                                   datetime.datetime(1996, 4, 1, 12, 0, 11, 500000),
                                   datetime.datetime(1996, 4, 1, 12, 0, 11),
-                                  datetime.timedelta(microseconds=500)]
+                                  datetime.timedelta(microseconds=500), None]
     assert results.get_next() == [False, 2, 20, 200, 2000, -2, -20, -200, -2000, None, 24.222,
                                   datetime.datetime(1981, 11, 13, 22, 2, 52, 2),
                                   datetime.datetime(1981, 11, 13, 22, 2, 52, 2, ZoneInfo("US/Eastern")),
                                   datetime.datetime(1981, 11, 13, 22, 2, 52, 2),
                                   datetime.datetime(1981, 11, 13, 22, 2, 52),
                                   datetime.datetime(1981, 11, 13, 22, 2, 52),
-                                  datetime.timedelta(seconds=1)]
+                                  datetime.timedelta(seconds=1), 'Ascii only']
     assert results.get_next() == [True, 3, 30, 300, 3000, -3, -30, -300, -3000, -3.299999952316284, None,
                                   datetime.datetime(1972, 12, 21, 12, 5, 44, 500003),
                                   datetime.datetime(1972, 12, 21, 12, 5, 44, 500003, ZoneInfo("US/Eastern")),
                                   datetime.datetime(1972, 12, 21, 12, 5, 44, 500003),
                                   datetime.datetime(1972, 12, 21, 12, 5, 44, 500000),
                                   datetime.datetime(1972, 12, 21, 12, 5, 44),
-                                  datetime.timedelta(seconds=2, milliseconds=500)]
+                                  datetime.timedelta(seconds=2, milliseconds=500), 'ñ中国字']
     assert results.get_next() == [False, 4, 40, 400, 4000, -4, -40, -400, -4000, 4.400000095367432, 4.444,
                                   datetime.datetime(2008, 1, 11, 22, 10, 3, 4),
                                   datetime.datetime(2008, 1, 11, 22, 10, 3, 4, ZoneInfo("US/Eastern")),
                                   datetime.datetime(2008, 1, 11, 22, 10, 3, 4),
                                   datetime.datetime(2008, 1, 11, 22, 10, 3),
                                   datetime.datetime(2008, 1, 11, 22, 10, 3),
-                                  datetime.timedelta(seconds=3, milliseconds=22)]
+                                  datetime.timedelta(seconds=3, milliseconds=22), '😂']
 
 
 def test_scan_pandas_with_filter(get_tmp_path):
@@ -99,14 +99,15 @@ def test_scan_pandas_with_filter(get_tmp_path):
     conn = kuzu.Connection(db)
     data = {
         'id': np.array([22, 3, 100], dtype=np.uint8),
-        'weight': np.array([23.2, 31.7, 42.9], dtype=np.float64)
+        'weight': np.array([23.2, 31.7, 42.9], dtype=np.float64),
+        'name': ['ñ', '日本字', '😊']
     }
     df = pd.DataFrame(data)
     # Dummy query to ensure the READ_PANDAS function is persistent after a write transaction.
     conn.execute("CREATE NODE TABLE PERSON1(ID INT64, PRIMARY KEY(ID))")
-    results = conn.execute("CALL READ_PANDAS('df') WHERE id > 20 RETURN id + 5, weight")
-    assert results.get_next() == [27, 23.2]
-    assert results.get_next() == [105, 42.9]
+    results = conn.execute("CALL READ_PANDAS('df') WHERE id > 20 RETURN id + 5, weight, name")
+    assert results.get_next() == [27, 23.2, 'ñ']
+    assert results.get_next() == [105, 42.9, '😊']
 
 
 def test_scan_invalid_pandas(get_tmp_path):

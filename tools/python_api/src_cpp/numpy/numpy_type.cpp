@@ -80,6 +80,9 @@ static NumpyNullableType convertNumpyTypeInternal(const std::string& colTypeStr)
         return NumpyNullableType::DATETIME_NS;
     }
     // LCOV_EXCL_STOP
+    if (colTypeStr == "object" || colTypeStr == "string") {
+        return NumpyNullableType::OBJECT;
+    }
     KU_UNREACHABLE;
 }
 
@@ -136,6 +139,8 @@ std::unique_ptr<LogicalType> NumpyTypeUtils::numpyToLogicalType(const NumpyType&
         return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_MS);
     case NumpyNullableType::DATETIME_S:
         return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_SEC);
+    case NumpyNullableType::OBJECT:
+        return std::make_unique<LogicalType>(LogicalTypeID::STRING);
     default:
         KU_UNREACHABLE;
     }

@@ -25,6 +25,10 @@ public:
     static int32_t utf8ToCodepoint(const char* c, int& size);
 
     static uint32_t renderWidth(const char* s, size_t pos);
+
+    static int codepointLength(int cp);
+
+    static bool codepointToUtf8(int cp, int &sz, char *c);
 };
 
 } // namespace utf8proc
