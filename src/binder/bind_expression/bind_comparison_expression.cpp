@@ -22,9 +22,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     ExpressionType expressionType, const expression_vector& children) {
     auto builtInFunctions = binder->catalog.getBuiltInFunctions();
     auto functionName = expressionTypeToString(expressionType);
-    std::vector<LogicalType*> childrenTypes;
+    std::vector<LogicalType> childrenTypes;
     for (auto& child : children) {
-        childrenTypes.push_back(&child->dataType);
+        childrenTypes.push_back(child->dataType);
     }
     auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
         builtInFunctions->matchFunction(functionName, childrenTypes));

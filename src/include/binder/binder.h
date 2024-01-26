@@ -134,10 +134,10 @@ private:
         std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
     void bindExpectedNodeColumns(catalog::TableSchema* tableSchema,
         const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-        common::logical_types_t& columnTypes);
+        std::vector<common::LogicalType>& columnTypes);
     void bindExpectedRelColumns(catalog::TableSchema* tableSchema,
         const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-        common::logical_types_t& columnTypes);
+        std::vector<common::LogicalType>& columnTypes);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 

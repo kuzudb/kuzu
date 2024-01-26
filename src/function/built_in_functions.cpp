@@ -1,6 +1,7 @@
 #include "common/exception/binder.h"
 #include "common/exception/catalog.h"
 #include "common/string_format.h"
+#include "common/string_utils.h"
 #include "function/aggregate/collect.h"
 #include "function/aggregate/count.h"
 #include "function/aggregate/count_star.h"
@@ -68,18 +69,20 @@ void BuiltInFunctions::registerAggregateFunctions() {
 }
 
 Function* BuiltInFunctions::matchFunction(const std::string& name) {
-    return matchFunction(name, std::vector<common::LogicalType*>{});
+    return matchFunction(name, std::vector<common::LogicalType>{});
 }
 
 Function* BuiltInFunctions::matchFunction(
-    const std::string& name, const std::vector<common::LogicalType*>& inputTypes) {
-    auto& functionSet = functions.at(name);
+    const std::string& name, const std::vector<common::LogicalType>& inputTypes) {
+    auto normalizedName = name;
+    StringUtils::toUpper(normalizedName);
+    auto& functionSet = functions.at(normalizedName);
     bool isOverload = functionSet.size() > 1;
     std::vector<Function*> candidateFunctions;
     uint32_t minCost = UINT32_MAX;
     for (auto& function : functionSet) {
         auto func = reinterpret_cast<Function*>(function.get());
-        if (name == CAST_FUNC_NAME) {
+        if (normalizedName == CAST_FUNC_NAME) {
             return func;
         }
         auto cost = getFunctionCost(inputTypes, func, isOverload);
@@ -94,16 +97,16 @@ Function* BuiltInFunctions::matchFunction(
             candidateFunctions.push_back(func);
         }
     }
-    validateNonEmptyCandidateFunctions(candidateFunctions, name, inputTypes);
+    validateNonEmptyCandidateFunctions(candidateFunctions, normalizedName, inputTypes);
     if (candidateFunctions.size() > 1) {
         return getBestMatch(candidateFunctions);
     }
-    validateSpecialCases(candidateFunctions, name, inputTypes);
+    validateSpecialCases(candidateFunctions, normalizedName, inputTypes);
     return candidateFunctions[0];
 }
 
 AggregateFunction* BuiltInFunctions::matchAggregateFunction(
-    const std::string& name, const std::vector<common::LogicalType*>& inputTypes, bool isDistinct) {
+    const std::string& name, const std::vector<common::LogicalType>& inputTypes, bool isDistinct) {
     auto& functionSet = functions.at(name);
     std::vector<AggregateFunction*> candidateFunctions;
     for (auto& function : functionSet) {
@@ -176,7 +179,7 @@ uint32_t BuiltInFunctions::getCastCost(LogicalTypeID inputTypeID, LogicalTypeID 
 }
 
 uint32_t BuiltInFunctions::getAggregateFunctionCost(
-    const std::vector<LogicalType*>& inputTypes, bool isDistinct, AggregateFunction* function) {
+    const std::vector<LogicalType>& inputTypes, bool isDistinct, AggregateFunction* function) {
     if (inputTypes.size() != function->parameterTypeIDs.size() ||
         isDistinct != function->isDistinct) {
         return UINT32_MAX;
@@ -184,7 +187,7 @@ uint32_t BuiltInFunctions::getAggregateFunctionCost(
     for (auto i = 0u; i < inputTypes.size(); ++i) {
         if (function->parameterTypeIDs[i] == LogicalTypeID::ANY) {
             continue;
-        } else if (inputTypes[i]->getLogicalTypeID() != function->parameterTypeIDs[i]) {
+        } else if (inputTypes[i].getLogicalTypeID() != function->parameterTypeIDs[i]) {
             return UINT32_MAX;
         }
     }
@@ -193,7 +196,7 @@ uint32_t BuiltInFunctions::getAggregateFunctionCost(
 
 void BuiltInFunctions::validateNonEmptyCandidateFunctions(
     std::vector<AggregateFunction*>& candidateFunctions, const std::string& name,
-    const std::vector<LogicalType*>& inputTypes, bool isDistinct) {
+    const std::vector<LogicalType>& inputTypes, bool isDistinct) {
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
         for (auto& function : functions.at(name)) {
@@ -477,7 +480,7 @@ Function* BuiltInFunctions::getBestMatch(std::vector<Function*>& functionsToMatc
 }
 
 uint32_t BuiltInFunctions::getFunctionCost(
-    const std::vector<LogicalType*>& inputTypes, Function* function, bool isOverload) {
+    const std::vector<LogicalType>& inputTypes, Function* function, bool isOverload) {
     switch (function->type) {
     case FunctionType::SCALAR: {
         auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
@@ -495,14 +498,14 @@ uint32_t BuiltInFunctions::getFunctionCost(
     }
 }
 
-uint32_t BuiltInFunctions::matchParameters(const std::vector<LogicalType*>& inputTypes,
+uint32_t BuiltInFunctions::matchParameters(const std::vector<LogicalType>& inputTypes,
     const std::vector<LogicalTypeID>& targetTypeIDs, bool /*isOverload*/) {
     if (inputTypes.size() != targetTypeIDs.size()) {
         return UINT32_MAX;
     }
     auto cost = 0u;
     for (auto i = 0u; i < inputTypes.size(); ++i) {
-        auto castCost = getCastCost(inputTypes[i]->getLogicalTypeID(), targetTypeIDs[i]);
+        auto castCost = getCastCost(inputTypes[i].getLogicalTypeID(), targetTypeIDs[i]);
         if (castCost == UNDEFINED_CAST_COST) {
             return UINT32_MAX;
         }
@@ -512,10 +515,10 @@ uint32_t BuiltInFunctions::matchParameters(const std::vector<LogicalType*>& inpu
 }
 
 uint32_t BuiltInFunctions::matchVarLengthParameters(
-    const std::vector<LogicalType*>& inputTypes, LogicalTypeID targetTypeID, bool /*isOverload*/) {
+    const std::vector<LogicalType>& inputTypes, LogicalTypeID targetTypeID, bool /*isOverload*/) {
     auto cost = 0u;
     for (auto inputType : inputTypes) {
-        auto castCost = getCastCost(inputType->getLogicalTypeID(), targetTypeID);
+        auto castCost = getCastCost(inputType.getLogicalTypeID(), targetTypeID);
         if (castCost == UNDEFINED_CAST_COST) {
             return UINT32_MAX;
         }
@@ -526,7 +529,7 @@ uint32_t BuiltInFunctions::matchVarLengthParameters(
 
 void BuiltInFunctions::validateNonEmptyCandidateFunctions(
     std::vector<Function*>& candidateFunctions, const std::string& name,
-    const std::vector<LogicalType*>& inputTypes) {
+    const std::vector<LogicalType>& inputTypes) {
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
         for (auto& function : functions.at(name)) {
@@ -539,13 +542,13 @@ void BuiltInFunctions::validateNonEmptyCandidateFunctions(
 }
 
 void BuiltInFunctions::validateSpecialCases(std::vector<Function*>& candidateFunctions,
-    const std::string& name, const std::vector<LogicalType*>& inputTypes) {
+    const std::string& name, const std::vector<LogicalType>& inputTypes) {
     // special case for add func
     if (name == ADD_FUNC_NAME) {
         auto targetType0 = candidateFunctions[0]->parameterTypeIDs[0];
         auto targetType1 = candidateFunctions[0]->parameterTypeIDs[1];
-        auto inputType0 = inputTypes[0]->getLogicalTypeID();
-        auto inputType1 = inputTypes[1]->getLogicalTypeID();
+        auto inputType0 = inputTypes[0].getLogicalTypeID();
+        auto inputType1 = inputTypes[1].getLogicalTypeID();
         if ((inputType0 != LogicalTypeID::STRING || inputType1 != LogicalTypeID::STRING) &&
             targetType0 == LogicalTypeID::STRING && targetType1 == LogicalTypeID::STRING) {
             if (inputType0 != inputType1 && (inputType0 == LogicalTypeID::RDF_VARIANT ||

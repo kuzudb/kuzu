@@ -11,8 +11,8 @@ namespace kuzu {
 namespace processor {
 
 SerialCSVReader::SerialCSVReader(const std::string& filePath, common::CSVOption option,
-    uint64_t numColumns, VirtualFileSystem* vfs, main::ClientContext* context)
-    : BaseCSVReader{filePath, std::move(option), numColumns, vfs, context} {}
+    uint64_t numColumns, main::ClientContext* context)
+    : BaseCSVReader{filePath, std::move(option), numColumns, context} {}
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
@@ -61,8 +61,8 @@ void SerialCSVScanSharedState::read(common::DataChunk& outputChunk) {
 
 void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
     if (fileIdx < readerConfig.getNumFiles()) {
-        reader = std::make_unique<SerialCSVReader>(readerConfig.filePaths[fileIdx],
-            csvReaderConfig.option.copy(), numColumns, vfs, context);
+        reader = std::make_unique<SerialCSVReader>(
+            readerConfig.filePaths[fileIdx], csvReaderConfig.option.copy(), numColumns, context);
     }
 }
 
@@ -84,15 +84,14 @@ std::unique_ptr<function::TableFuncBindData> SerialCSVScan::bindFunc(
     catalog::Catalog* /*catalog*/, storage::StorageManager* /*storageManager*/) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
-    std::vector<std::unique_ptr<common::LogicalType>> detectedColumnTypes;
+    std::vector<common::LogicalType> detectedColumnTypes;
     bindColumns(scanInput, detectedColumnNames, detectedColumnTypes);
     std::vector<std::string> resultColumnNames;
-    std::vector<std::unique_ptr<common::LogicalType>> resultColumnTypes;
+    std::vector<common::LogicalType> resultColumnTypes;
     ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
         resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->mm, scanInput->config.copy(), scanInput->vfs,
-        scanInput->context);
+        std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
 }
 
 std::unique_ptr<function::TableFuncSharedState> SerialCSVScan::initSharedState(
@@ -101,12 +100,12 @@ std::unique_ptr<function::TableFuncSharedState> SerialCSVScan::initSharedState(
     auto csvConfig = CSVReaderConfig::construct(bindData->config.options);
     common::row_idx_t numRows = 0;
     for (const auto& path : bindData->config.filePaths) {
-        auto reader = make_unique<SerialCSVReader>(path, csvConfig.option.copy(),
-            bindData->columnNames.size(), bindData->vfs, bindData->context);
+        auto reader = make_unique<SerialCSVReader>(
+            path, csvConfig.option.copy(), bindData->columnNames.size(), bindData->context);
         numRows += reader->countRows();
     }
     return std::make_unique<SerialCSVScanSharedState>(bindData->config.copy(), numRows,
-        bindData->columnNames.size(), bindData->vfs, csvConfig.copy(), bindData->context);
+        bindData->columnNames.size(), csvConfig.copy(), bindData->context);
 }
 
 std::unique_ptr<function::TableFuncLocalState> SerialCSVScan::initLocalState(
@@ -116,27 +115,26 @@ std::unique_ptr<function::TableFuncLocalState> SerialCSVScan::initLocalState(
 }
 
 void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
-    std::vector<std::string>& columnNames, std::vector<std::unique_ptr<LogicalType>>& columnTypes) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     KU_ASSERT(bindInput->config.getNumFiles() > 0);
     bindColumns(bindInput, 0, columnNames, columnTypes);
     for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
         std::vector<std::string> tmpColumnNames;
-        std::vector<std::unique_ptr<LogicalType>> tmpColumnTypes;
+        std::vector<LogicalType> tmpColumnTypes;
         bindColumns(bindInput, i, tmpColumnNames, tmpColumnTypes);
         ReaderBindUtils::validateNumColumns(columnTypes.size(), tmpColumnTypes.size());
     }
 }
 
 void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-    std::vector<std::string>& columnNames,
-    std::vector<std::unique_ptr<common::LogicalType>>& columnTypes) {
+    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
     auto csvConfig = CSVReaderConfig::construct(bindInput->config.options);
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvConfig.option.copy(),
-        0 /* numColumns */, bindInput->vfs, bindInput->context);
+        0 /* numColumns */, bindInput->context);
     auto sniffedColumns = csvReader.sniffCSV();
     for (auto& [name, type] : sniffedColumns) {
         columnNames.push_back(name);
-        columnTypes.push_back(type.copy());
+        columnTypes.push_back(type);
     }
 }
 

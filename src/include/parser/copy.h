@@ -29,6 +29,7 @@ public:
     inline bool byColumn() const { return byColumn_; }
 
     inline std::vector<std::string> getFilePaths() const { return filePaths; }
+
     inline std::string getTableName() const { return tableName; }
 
     inline void setColumnNames(std::vector<std::string> names) { columnNames = std::move(names); }

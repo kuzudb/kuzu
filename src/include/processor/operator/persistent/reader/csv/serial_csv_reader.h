@@ -13,7 +13,7 @@ namespace processor {
 class SerialCSVReader final : public BaseCSVReader {
 public:
     SerialCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+        main::ClientContext* context);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
     std::vector<std::pair<std::string, common::LogicalType>> sniffCSV();
@@ -29,10 +29,9 @@ struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     common::CSVReaderConfig csvReaderConfig;
 
     SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
-        uint64_t numColumns, common::VirtualFileSystem* vfs,
-        common::CSVReaderConfig csvReaderConfig, main::ClientContext* context)
-        : ScanFileSharedState{std::move(readerConfig), numRows, vfs, context},
-          numColumns{numColumns}, csvReaderConfig{std::move(csvReaderConfig)} {
+        uint64_t numColumns, common::CSVReaderConfig csvReaderConfig, main::ClientContext* context)
+        : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
+          csvReaderConfig{std::move(csvReaderConfig)} {
         initReader(context);
     }
 
@@ -58,11 +57,9 @@ struct SerialCSVScan {
         storage::MemoryManager* /*mm*/);
 
     static void bindColumns(const function::ScanTableFuncBindInput* bindInput,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes);
     static void bindColumns(const function::ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes);
 };
 
 } // namespace processor

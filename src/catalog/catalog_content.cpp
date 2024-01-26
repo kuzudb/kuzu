@@ -293,7 +293,9 @@ std::vector<TableSchema*> CatalogContent::getTableSchemas(TableType tableType) c
 }
 
 table_id_t CatalogContent::getTableID(const std::string& tableName) const {
-    KU_ASSERT(tableNameToIDMap.contains(tableName));
+    if (!tableNameToIDMap.contains(tableName)) {
+        throw CatalogException(stringFormat("Cannot find a table with name {}.", tableName));
+    }
     return tableNameToIDMap.at(tableName);
 }
 

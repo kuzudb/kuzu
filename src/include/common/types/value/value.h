@@ -136,6 +136,10 @@ public:
      */
     KUZU_API explicit Value(const char* val_);
     /**
+     * @param val_ the string value to set.
+     */
+    KUZU_API explicit Value(const std::string& val_);
+    /**
      * @param val_ the uint8_t* value to set.
      */
     KUZU_API explicit Value(uint8_t* val_);

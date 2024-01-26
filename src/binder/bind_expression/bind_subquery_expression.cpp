@@ -32,7 +32,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindSubqueryExpression(
     boundSubqueryExpr->setWhereExpression(boundGraphPattern.where);
     // Bind projection
     auto function = binder->catalog.getBuiltInFunctions()->matchAggregateFunction(
-        COUNT_STAR_FUNC_NAME, std::vector<LogicalType*>{}, false);
+        COUNT_STAR_FUNC_NAME, std::vector<LogicalType>{}, false);
     auto bindData =
         std::make_unique<FunctionBindData>(std::make_unique<LogicalType>(function->returnTypeID));
     auto countStarExpr = std::make_shared<AggregateFunctionExpression>(COUNT_STAR_FUNC_NAME,

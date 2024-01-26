@@ -241,6 +241,11 @@ Value::Value(const char* val_) : isNull_{false} {
     strVal = std::string(val_);
 }
 
+Value::Value(const std::string& val_) : isNull_{false} {
+    dataType = LogicalType::STRING();
+    strVal = val_;
+}
+
 Value::Value(uint8_t* val_) : isNull_{false} {
     dataType = LogicalType::POINTER();
     val.pointer = val_;
@@ -446,6 +451,8 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.doubleVal);
     case LogicalTypeID::FLOAT:
         return TypeUtils::toString(val.floatVal);
+    case LogicalTypeID::POINTER:
+        return TypeUtils::toString((uint64_t)val.pointer);
     case LogicalTypeID::DATE:
         return TypeUtils::toString(date_t{val.int32Val});
     case LogicalTypeID::TIMESTAMP_NS:

@@ -40,9 +40,9 @@ private:
     py::object getter;
 };
 
-static std::unique_ptr<common::LogicalType> bindColumn(PandasBindColumn& bindColumn,
+static common::LogicalType bindColumn(PandasBindColumn& bindColumn,
     PandasColumnBindData* bindData) {
-    std::unique_ptr<common::LogicalType> columnType;
+    common::LogicalType columnType;
     auto& column = bindColumn.handle;
 
     bindData->npType = NumpyTypeUtils::convertNumpyType(bindColumn.type);
@@ -57,7 +57,7 @@ static std::unique_ptr<common::LogicalType> bindColumn(PandasBindColumn& bindCol
         bindData->pandasCol =
             std::make_unique<PandasNumpyColumn>(py::array(column.attr("to_numpy")("float32")));
         bindData->npType.type = NumpyNullableType::FLOAT_32;
-        columnType = NumpyTypeUtils::numpyToLogicalType(bindData->npType);
+        columnType = *NumpyTypeUtils::numpyToLogicalType(bindData->npType);
     } else {
         auto pandasArray = column.attr("array");
         if (py::hasattr(pandasArray, "_data")) {
@@ -73,14 +73,14 @@ static std::unique_ptr<common::LogicalType> bindColumn(PandasBindColumn& bindCol
             bindData->pandasCol =
                 std::make_unique<PandasNumpyColumn>(py::array(column.attr("to_numpy")()));
         }
-        columnType = NumpyTypeUtils::numpyToLogicalType(bindData->npType);
+        columnType = *NumpyTypeUtils::numpyToLogicalType(bindData->npType);
     }
     return columnType;
 }
 
 void Pandas::bind(py::handle dfToBind,
     std::vector<std::unique_ptr<PandasColumnBindData>>& columnBindData,
-    std::vector<std::unique_ptr<common::LogicalType>>& returnTypes,
+    std::vector<common::LogicalType>& returnTypes,
     std::vector<std::string>& names) {
 
     PandasDataFrameBind df(dfToBind);

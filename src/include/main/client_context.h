@@ -14,7 +14,8 @@ namespace kuzu {
 
 namespace binder {
 class Binder;
-}
+class ExpressionBinder;
+} // namespace binder
 
 namespace common {
 class RandomEngine;
@@ -40,6 +41,7 @@ using replace_func_t = std::function<std::unique_ptr<common::Value>(common::Valu
 class ClientContext {
     friend class Connection;
     friend class binder::Binder;
+    friend class binder::ExpressionBinder;
     friend class testing::TinySnbDDLTest;
     friend class testing::TinySnbCopyCSVTransactionTest;
     friend struct ThreadsSetting;
@@ -71,7 +73,8 @@ public:
     transaction::Transaction* getTx() const;
     transaction::TransactionContext* getTransactionContext() const;
 
-    void setReplaceFunc(replace_func_t replaceFunc) { this->replaceFunc = std::move(replaceFunc); }
+    inline bool hasReplaceFunc() { return replaceFunc != nullptr; }
+    inline void setReplaceFunc(replace_func_t func) { replaceFunc = func; }
 
     void setExtensionOption(std::string name, common::Value value);
 

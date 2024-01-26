@@ -103,11 +103,11 @@ struct RdfTripleScanSharedState final : public RdfScanSharedState {
 struct RdfScanBindData final : public function::ScanBindData {
     std::shared_ptr<RdfStore> store;
 
-    RdfScanBindData(common::logical_types_t columnTypes, std::vector<std::string> columnNames,
-        storage::MemoryManager* mm, common::ReaderConfig config, common::VirtualFileSystem* vfs,
+    RdfScanBindData(std::vector<common::LogicalType> columnTypes,
+        std::vector<std::string> columnNames, common::ReaderConfig config,
         main::ClientContext* context, std::shared_ptr<RdfStore> store)
-        : function::ScanBindData{std::move(columnTypes), std::move(columnNames), mm,
-              std::move(config), vfs, context},
+        : function::ScanBindData{std::move(columnTypes), std::move(columnNames), std::move(config),
+              context},
           store{std::move(store)} {}
     RdfScanBindData(const RdfScanBindData& other)
         : function::ScanBindData{other}, store{other.store} {}

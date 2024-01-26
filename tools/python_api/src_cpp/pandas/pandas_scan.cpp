@@ -23,9 +23,9 @@ std::unique_ptr<function::TableFuncBindData> PandasScanFunction::bindFunc(
     main::ClientContext* /*context*/, TableFuncBindInput* input, Catalog* /*catalog*/,
     storage::StorageManager* /*storageManager*/) {
     py::gil_scoped_acquire acquire;
-    py::handle df(reinterpret_cast<PyObject*>(input->inputs[0]->getValue<uint8_t*>()));
+    py::handle df(reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>()));
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
-    std::vector<std::unique_ptr<LogicalType>> returnTypes;
+    std::vector<LogicalType> returnTypes;
     std::vector<std::string> names;
     if (py::isinstance<py::dict>(df)) {
         KU_UNREACHABLE;
@@ -148,7 +148,7 @@ std::unique_ptr<common::Value> replacePD(common::Value* value) {
         }
         currentFrame = currentFrame.attr("f_back");
     }
-    return value->copy();
+    return nullptr;
 }
 
 } // namespace kuzu

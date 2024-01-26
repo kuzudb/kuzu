@@ -53,9 +53,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const expression_vector& children, const std::string& functionName) {
     auto builtInFunctions = binder->catalog.getBuiltInFunctions();
-    std::vector<LogicalType*> childrenTypes;
+    std::vector<LogicalType> childrenTypes;
     for (auto& child : children) {
-        childrenTypes.push_back(&child->dataType);
+        childrenTypes.push_back(child->dataType);
     }
     auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
         builtInFunctions->matchFunction(functionName, childrenTypes));
@@ -88,7 +88,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     const ParsedExpression& parsedExpression, const std::string& functionName, bool isDistinct) {
     auto builtInFunctions = binder->catalog.getBuiltInFunctions();
-    std::vector<LogicalType*> childrenTypes;
+    std::vector<LogicalType> childrenTypes;
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
@@ -97,7 +97,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
             (childTypeID == LogicalTypeID::NODE || childTypeID == LogicalTypeID::REL)) {
             throw BinderException{"DISTINCT is not supported for NODE or REL type."};
         }
-        childrenTypes.push_back(&child->dataType);
+        childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
     }
     auto function =

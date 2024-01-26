@@ -680,11 +680,11 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
     // LCOV_EXCL_STOP
 }
 
-std::string LogicalTypeUtils::toString(const std::vector<LogicalType*>& dataTypes) {
+std::string LogicalTypeUtils::toString(const std::vector<LogicalType>& dataTypes) {
     std::vector<LogicalTypeID> dataTypeIDs;
     dataTypeIDs.reserve(dataTypes.size());
     for (auto& dataType : dataTypes) {
-        dataTypeIDs.push_back(dataType->typeID);
+        dataTypeIDs.push_back(dataType.typeID);
     }
     return toString(dataTypeIDs);
 }

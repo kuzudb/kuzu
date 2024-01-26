@@ -4,7 +4,6 @@
 
 #include "common/copier_config/reader_config.h"
 #include "common/types/value/value.h"
-#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace main {
@@ -14,29 +13,27 @@ class ClientContext;
 namespace function {
 
 struct TableFuncBindInput {
-    std::vector<std::unique_ptr<common::Value>> inputs;
+    std::vector<common::Value> inputs;
 
     TableFuncBindInput() = default;
+    DELETE_COPY_DEFAULT_MOVE(TableFuncBindInput);
     virtual ~TableFuncBindInput() = default;
 };
 
 struct ScanTableFuncBindInput final : public TableFuncBindInput {
-    storage::MemoryManager* mm;
     common::ReaderConfig config;
-    common::VirtualFileSystem* vfs;
     std::vector<std::string> expectedColumnNames;
-    std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
+    std::vector<common::LogicalType> expectedColumnTypes;
     main::ClientContext* context;
 
     explicit ScanTableFuncBindInput(common::ReaderConfig config) : config{std::move(config)} {};
-    ScanTableFuncBindInput(storage::MemoryManager* mm, common::ReaderConfig config,
+    ScanTableFuncBindInput(common::ReaderConfig config,
         std::vector<std::string> expectedColumnNames,
-        std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes,
-        common::VirtualFileSystem* vfs, main::ClientContext* context)
-        : TableFuncBindInput{}, mm{mm}, config{std::move(config)}, vfs{vfs},
-          expectedColumnNames{std::move(expectedColumnNames)},
+        std::vector<common::LogicalType> expectedColumnTypes, main::ClientContext* context)
+        : TableFuncBindInput{}, config{std::move(config)}, expectedColumnNames{std::move(
+                                                               expectedColumnNames)},
           expectedColumnTypes{std::move(expectedColumnTypes)}, context{context} {
-        inputs.push_back(common::Value::createValue(this->config.filePaths[0]).copy());
+        inputs.push_back(common::Value::createValue(this->config.filePaths[0]));
     }
 };
 
