@@ -5,22 +5,8 @@ on:
   workflow_call:
 
 jobs:
-  generate-single-file-header:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Generate single file header
-        run: python3 scripts/collect-single-file-header.py
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: kuzu-single-file-header
-          path: kuzu.hpp
-
   build-precompiled-bin-x86_64:
     runs-on: kuzu-self-hosted-linux-building-x86_64_centos8
-    needs: generate-single-file-header
     steps:
       - uses: actions/checkout@v3
 
