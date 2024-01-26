@@ -49,6 +49,10 @@ ifdef LTO
 	CMAKE_FLAGS += -DENABLE_LTO=$(LTO)
 endif
 
+ifdef SKIP_SINGLE_FILE_HEADER
+	CMAKE_FLAGS += -DBUILD_SINGLE_FILE_HEADER=FALSE
+endif
+
 # Must be first in the Makefile so that it is the default target.
 release:
 	$(call run-cmake-release,)

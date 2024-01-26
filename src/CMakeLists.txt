@@ -59,4 +59,8 @@ if(${BUILD_SINGLE_FILE_HEADER})
         add_custom_target(single_file_header ALL DEPENDS kuzu.hpp)
 endif()
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kuzu.hpp ${CMAKE_CURRENT_SOURCE_DIR}/include/c_api/kuzu.h TYPE INCLUDE)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/c_api/kuzu.h TYPE INCLUDE)
+
+if(${BUILD_SINGLE_FILE_HEADER})
+        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kuzu.hpp  TYPE INCLUDE)
+endif()
