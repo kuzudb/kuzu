@@ -10,9 +10,9 @@ namespace extension {
 std::string getOS() {
     std::string os = "linux";
 #if !defined(_GLIBCXX_USE_CXX11_ABI) || _GLIBCXX_USE_CXX11_ABI == 0
-	if (os == "linux") {
-		os = "linux_old";
-	}
+    if (os == "linux") {
+        os = "linux_old";
+    }
 #endif
 #ifdef _WIN32
     os = "windows";
