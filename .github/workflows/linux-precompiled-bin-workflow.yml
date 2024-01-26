@@ -6,23 +6,18 @@ on:
 
 jobs:
   build-precompiled-bin-x86_64:
-    runs-on: kuzu-self-hosted-linux-building
+    runs-on: kuzu-self-hosted-linux-building-x86_64_ubuntu1804
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install networkx
-        run: /opt/python/cp310-cp310/bin/python -m pip install networkx --user
-
       - name: Build precompiled binaries
         run: |
-          source /opt/rh/devtoolset-11/enable
-          make LTO=1 NUM_THREADS=$(nproc)
+          make LTO=1 NUM_THREADS=$(nproc) SKIP_SINGLE_FILE_HEADER=true
           make install
 
       - name: Collect artifacts
         run: |
           mv install/include/kuzu.h .
-          mv install/include/kuzu.hpp .
           mv install/lib64/libkuzu.so .
           mv install/bin/kuzu_shell kuzu
 
@@ -31,7 +26,6 @@ jobs:
           name: libkuzu-linux-x86_64
           path: |
             kuzu.h
-            kuzu.hpp
             libkuzu.so
 
       - uses: actions/upload-artifact@v3
