@@ -151,6 +151,7 @@ jobs:
   update-extensions-repo:
     runs-on: ubuntu-latest
     needs:
+      - build-linux-extensions-x86_64
       - build-linux-extensions-x86_64-old
       - build-linux-extensions-aarch64
       - build-linux-extensions-x86
