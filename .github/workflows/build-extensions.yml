@@ -113,6 +113,7 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           CMAKE_OSX_ARCHITECTURES: "arm64"
+          OPENSSL_ROOT_DIR: /opt/homebrew/Cellar/openssl@3/3.2.0_1/
 
       - name: Collect built artifacts
         run: |
