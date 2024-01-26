@@ -16,7 +16,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: kuzu-single-file-header
-          path: kuzu.h
+          path: kuzu.hpp
 
   build-precompiled-bin-x86_64:
     runs-on: kuzu-self-hosted-linux-building-x86_64_ubuntu1804
