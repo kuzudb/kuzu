@@ -22,10 +22,10 @@ public:
     virtual ~FileSystem() = default;
 
     virtual std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
-        main::ClientContext* context = nullptr,
-        FileLockType lock_type = FileLockType::NO_LOCK) const = 0;
+        main::ClientContext* context = nullptr, FileLockType lock_type = FileLockType::NO_LOCK) = 0;
 
-    virtual std::vector<std::string> glob(const std::string& path) const = 0;
+    virtual std::vector<std::string> glob(
+        main::ClientContext* context, const std::string& path) const = 0;
 
     virtual void overwriteFile(const std::string& from, const std::string& to) const;
 

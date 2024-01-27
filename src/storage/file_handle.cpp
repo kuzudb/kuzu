@@ -12,7 +12,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-FileHandle::FileHandle(const std::string& path, uint8_t flags, const VirtualFileSystem* vfs)
+FileHandle::FileHandle(const std::string& path, uint8_t flags, VirtualFileSystem* vfs)
     : flags{flags} {
     if (!isNewTmpFile()) {
         constructExistingFileHandle(path, vfs);
@@ -21,8 +21,7 @@ FileHandle::FileHandle(const std::string& path, uint8_t flags, const VirtualFile
     }
 }
 
-void FileHandle::constructExistingFileHandle(
-    const std::string& path, const VirtualFileSystem* vfs) {
+void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFileSystem* vfs) {
     int openFlags;
     if (isReadOnlyFile()) {
         openFlags = O_RDONLY;

@@ -45,6 +45,7 @@ bool TestRunner::testStatement(
     replaceEnv(statement->query, "UW_S3_SECRET_ACCESS_KEY");
     replaceEnv(statement->query, "AWS_S3_ACCESS_KEY_ID");
     replaceEnv(statement->query, "AWS_S3_SECRET_ACCESS_KEY");
+    replaceEnv(statement->query, "RUN_ID");
     if (statement->encodedJoin.empty()) {
         preparedStatement = conn.prepareNoLock(statement->query, statement->enumerate);
     } else {

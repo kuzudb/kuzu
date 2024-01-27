@@ -77,7 +77,7 @@ public:
 
     common::RandomEngine* getRandomEngine() { return randomEngine.get(); }
 
-    const common::VirtualFileSystem* getVFS() const;
+    common::VirtualFileSystem* getVFSUnsafe() const;
 
     std::string getExtensionDir() const;
 

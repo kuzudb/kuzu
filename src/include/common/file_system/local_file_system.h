@@ -9,10 +9,10 @@ namespace common {
 
 struct LocalFileInfo : public FileInfo {
 #ifdef _WIN32
-    LocalFileInfo(std::string path, const void* handle, const FileSystem* fileSystem)
+    LocalFileInfo(std::string path, const void* handle, FileSystem* fileSystem)
         : FileInfo{std::move(path), fileSystem}, handle{handle} {}
 #else
-    LocalFileInfo(std::string path, const int fd, const FileSystem* fileSystem)
+    LocalFileInfo(std::string path, const int fd, FileSystem* fileSystem)
         : FileInfo{std::move(path), fileSystem}, fd{fd} {}
 #endif
 
@@ -29,9 +29,10 @@ class LocalFileSystem final : public FileSystem {
 public:
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
-        FileLockType lock_type = FileLockType::NO_LOCK) const override;
+        FileLockType lock_type = FileLockType::NO_LOCK) override;
 
-    std::vector<std::string> glob(const std::string& path) const override;
+    std::vector<std::string> glob(
+        main::ClientContext* context, const std::string& path) const override;
 
     void overwriteFile(const std::string& from, const std::string& to) const override;
 

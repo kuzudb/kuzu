@@ -17,9 +17,10 @@ public:
 
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
-        FileLockType lockType = FileLockType::NO_LOCK) const override;
+        FileLockType lockType = FileLockType::NO_LOCK) override;
 
-    std::vector<std::string> glob(const std::string& path) const override;
+    std::vector<std::string> glob(
+        main::ClientContext* context, const std::string& path) const override;
 
     void overwriteFile(const std::string& from, const std::string& to) const override;
 

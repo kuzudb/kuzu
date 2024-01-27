@@ -8,8 +8,7 @@ void CopyTo::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
 }
 
 void CopyTo::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->init(
-        info.get(), context->clientContext->getMemoryManager(), context->clientContext->getVFS());
+    sharedState->init(info.get(), context->clientContext);
 }
 
 void CopyTo::finalize(ExecutionContext* /*context*/) {

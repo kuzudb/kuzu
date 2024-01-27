@@ -47,7 +47,7 @@ void InstallExtension::saveExtensionToLocalFile(
     const std::string& extensionData, main::ClientContext* context) {
     auto extensionDir = context->getExtensionDir();
     auto extensionPath = ExtensionUtils::getExtensionPath(extensionDir, name);
-    auto vfs = context->getVFS();
+    auto vfs = context->getVFSUnsafe();
     if (!vfs->fileOrPathExists(extensionDir)) {
         vfs->createDir(extensionDir);
     }

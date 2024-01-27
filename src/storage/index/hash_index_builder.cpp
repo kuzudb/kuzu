@@ -178,7 +178,7 @@ template class HashIndexBuilder<int64_t>;
 template class HashIndexBuilder<ku_string_t>;
 
 PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
-    const std::string& fName, const LogicalType& keyDataType, const VirtualFileSystem* vfs)
+    const std::string& fName, const LogicalType& keyDataType, VirtualFileSystem* vfs)
     : keyDataTypeID{keyDataType.getLogicalTypeID()} {
     auto fileHandle =
         std::make_shared<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);

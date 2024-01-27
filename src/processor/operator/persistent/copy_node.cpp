@@ -17,10 +17,10 @@ void CopyNodeSharedState::init(ExecutionContext* context) {
     wal->logCopyTableRecord(table->getTableID(), TableType::NODE);
     wal->flushAllPages();
     if (pkType != *LogicalType::SERIAL()) {
-        auto indexFName = StorageUtils::getNodeIndexFName(context->clientContext->getVFS(),
+        auto indexFName = StorageUtils::getNodeIndexFName(context->clientContext->getVFSUnsafe(),
             wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
-            indexFName, pkType, context->clientContext->getVFS());
+            indexFName, pkType, context->clientContext->getVFSUnsafe());
         uint64_t numRows;
         if (readerSharedState != nullptr) {
             KU_ASSERT(distinctSharedState == nullptr);

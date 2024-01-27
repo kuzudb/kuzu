@@ -15,7 +15,7 @@ namespace storage {
 // InMemFile holds a collection of in-memory page in the memory.
 class InMemFile {
 public:
-    explicit InMemFile(std::string filePath, const common::VirtualFileSystem* vfs);
+    explicit InMemFile(std::string filePath, common::VirtualFileSystem* vfs);
 
     uint32_t addANewPage(bool setToZero = false);
 

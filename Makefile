@@ -160,7 +160,13 @@ extension-release:
 
 extension-test: extension-release
 	$(call run-cmake-release,-DBUILD_EXTENSION_TESTS=TRUE)
+	mkdir -p ~/.aws
+	echo "[default]" > ~/.aws/credentials
+	echo "aws_access_key_id = ${AWS_S3_ACCESS_KEY_ID}" >> ~/.aws/credentials
+	echo "aws_secret_access_key = ${AWS_S3_SECRET_ACCESS_KEY}" >> ~/.aws/credentials
 	ctest --test-dir build/release/extension/httpfs/test --output-on-failure -j ${TEST_JOBS}
+	# Clean up test files
+	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 # Clang-related tools and checks
 

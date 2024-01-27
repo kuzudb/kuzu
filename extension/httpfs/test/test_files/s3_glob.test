@@ -1,0 +1,26 @@
+-GROUP S3
+-DATASET CSV empty
+
+--
+
+-CASE GlobS3Folder
+-SKIP
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL s3_access_key_id='${AWS_S3_ACCESS_KEY_ID}'
+---- ok
+-STATEMENT CALL s3_secret_access_key='${AWS_S3_SECRET_ACCESS_KEY}'
+---- ok
+-STATEMENT CALL s3_endpoint='s3.amazonaws.com'
+---- ok
+-STATEMENT CALL s3_url_style='vhost'
+---- ok
+-STATEMENT CALL s3_region='us-east-1'
+---- ok
+-STATEMENT create node table tableOfTypes (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN, dateColumn DATE, stringColumn STRING, listOfInt64 INT64[], listOfString STRING[], listOfListOfInt64 INT64[][], structColumn STRUCT(ID int64, name STRING), PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY tableOfTypes FROM "s3://kuzu-dataset-us/glob-test/types_50k_*.parquet"
+---- ok
+-STATEMENT MATCH (t:tableOfTypes) RETURN count(t)
+---- 1
+49999
