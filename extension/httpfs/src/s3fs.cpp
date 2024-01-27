@@ -11,8 +11,8 @@ namespace httpfs {
 
 using namespace kuzu::common;
 
-S3FileInfo::S3FileInfo(
-    std::string path, common::FileSystem* fileSystem, int flags, const S3AuthParams& authParams)
+S3FileInfo::S3FileInfo(std::string path, const common::FileSystem* fileSystem, int flags,
+    const S3AuthParams& authParams)
     : HTTPFileInfo{std::move(path), fileSystem, flags}, authParams{authParams} {}
 
 void S3FileInfo::initializeClient() {
@@ -27,23 +27,23 @@ std::string ParsedS3URL::getHTTPURL() const {
 
 S3AuthParams getS3AuthParams(main::ClientContext* context) {
     S3AuthParams authParams;
-    authParams.accessKeyID = context->getCurrentSetting("s3_access_key_id");
-    authParams.secretAccessKey = context->getCurrentSetting("s3_secret_access_key");
-    authParams.endpoint = context->getCurrentSetting("s3_endpoint");
-    authParams.urlStyle = context->getCurrentSetting("s3_url_style");
-    authParams.region = context->getCurrentSetting("s3_region");
+    authParams.accessKeyID = context->getCurrentSetting("s3_access_key_id").toString();
+    authParams.secretAccessKey = context->getCurrentSetting("s3_secret_access_key").toString();
+    authParams.endpoint = context->getCurrentSetting("s3_endpoint").toString();
+    authParams.urlStyle = context->getCurrentSetting("s3_url_style").toString();
+    authParams.region = context->getCurrentSetting("s3_region").toString();
     return authParams;
 }
 
 std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* context, common::FileLockType /*lock_type*/) {
+    main::ClientContext* context, common::FileLockType /*lock_type*/) const {
     auto authParams = getS3AuthParams(context);
     auto s3FileInfo = std::make_unique<S3FileInfo>(path, this, flags, std::move(authParams));
     s3FileInfo->initialize();
     return std::move(s3FileInfo);
 }
 
-bool S3FileSystem::canHandleFile(const std::string& path) {
+bool S3FileSystem::canHandleFile(const std::string& path) const {
     return path.rfind("s3://", 0) == 0;
 }
 
@@ -169,7 +169,7 @@ std::string getDateTimeHeader(const timestamp_t& timestamp) {
 }
 
 std::unique_ptr<HTTPResponse> S3FileSystem::headRequest(
-    common::FileInfo* fileInfo, std::string url, HeaderMap /*headerMap*/) {
+    common::FileInfo* fileInfo, std::string url, HeaderMap /*headerMap*/) const {
     auto& authParams = ku_dynamic_cast<FileInfo*, S3FileInfo*>(fileInfo)->getAuthParams();
     auto parsedS3URL = parseS3URL(url, authParams);
     auto httpURL = parsedS3URL.getHTTPURL();
@@ -179,7 +179,7 @@ std::unique_ptr<HTTPResponse> S3FileSystem::headRequest(
 
 std::unique_ptr<HTTPResponse> S3FileSystem::getRangeRequest(common::FileInfo* fileInfo,
     const std::string& url, HeaderMap /*headerMap*/, uint64_t fileOffset, char* buffer,
-    uint64_t bufferLen) {
+    uint64_t bufferLen) const {
     auto& authParams = ku_dynamic_cast<FileInfo*, S3FileInfo*>(fileInfo)->getAuthParams();
     auto parsedS3URL = parseS3URL(url, authParams);
     auto s3HTTPUrl = parsedS3URL.getHTTPURL();

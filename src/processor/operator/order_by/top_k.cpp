@@ -272,7 +272,8 @@ void TopKLocalState::append(const std::vector<common::ValueVector*>& keyVectors,
 
 void TopK::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<TopKLocalState>();
-    localState->init(*info, context->memoryManager, *resultSet, skipNumber, limitNumber);
+    localState->init(
+        *info, context->clientContext->getMemoryManager(), *resultSet, skipNumber, limitNumber);
     for (auto& dataPos : info->payloadsPos) {
         payloadVectors.push_back(resultSet->getValueVector(dataPos).get());
     }

@@ -14,7 +14,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-InMemFile::InMemFile(std::string filePath, common::VirtualFileSystem* vfs)
+InMemFile::InMemFile(std::string filePath, const common::VirtualFileSystem* vfs)
     : filePath{std::move(filePath)}, nextPosToAppend(0, 0) {
     fileInfo = vfs->openFile(this->filePath, O_CREAT | O_WRONLY);
     addANewPage();

@@ -20,7 +20,7 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
         DDL::initLocalStateInternal(resultSet, context);
-        defaultValueEvaluator->init(*resultSet, context->memoryManager);
+        defaultValueEvaluator->init(*resultSet, context->clientContext->getMemoryManager());
     }
 
     void executeDDLInternal(ExecutionContext* context) override = 0;

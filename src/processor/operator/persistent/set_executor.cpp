@@ -10,7 +10,7 @@ void NodeSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     if (lhsVectorPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
         lhsVector = resultSet->getValueVector(lhsVectorPos).get();
     }
-    evaluator->init(*resultSet, context->memoryManager);
+    evaluator->init(*resultSet, context->clientContext->getMemoryManager());
     rhsVector = evaluator->resultVector.get();
 }
 
@@ -87,7 +87,7 @@ void RelSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     if (lhsVectorPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
         lhsVector = resultSet->getValueVector(lhsVectorPos).get();
     }
-    evaluator->init(*resultSet, context->memoryManager);
+    evaluator->init(*resultSet, context->clientContext->getMemoryManager());
     rhsVector = evaluator->resultVector.get();
 }
 

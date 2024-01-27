@@ -91,8 +91,8 @@ void Partitioner::initGlobalStateInternal(ExecutionContext* /*context*/) {
 
 void Partitioner::initLocalStateInternal(ResultSet* /*resultSet*/, ExecutionContext* context) {
     localState = std::make_unique<PartitionerLocalState>();
-    initializePartitioningStates(
-        localState->partitioningBuffers, sharedState->numPartitions, context->memoryManager);
+    initializePartitioningStates(localState->partitioningBuffers, sharedState->numPartitions,
+        context->clientContext->getMemoryManager());
 }
 
 static void constructDataChunk(DataChunk* dataChunk, const std::vector<DataPos>& columnPositions,

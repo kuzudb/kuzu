@@ -1,9 +1,16 @@
 #include "processor/processor_task.h"
 
+#include "main/settings.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
+
+ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
+    : Task{executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
+               .getValue<uint64_t>()},
+      sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {}
 
 void ProcessorTask::run() {
     // We need the lock when cloning because multiple threads can be accessing to clone,
@@ -16,12 +23,13 @@ void ProcessorTask::run() {
     auto clonedPipelineRoot = sink->clone();
     lck.unlock();
     auto currentSink = (Sink*)clonedPipelineRoot.get();
-    auto resultSet = populateResultSet(currentSink, executionContext->memoryManager);
+    auto resultSet =
+        populateResultSet(currentSink, executionContext->clientContext->getMemoryManager());
     currentSink->execute(resultSet.get(), executionContext);
 }
 
 void ProcessorTask::finalizeIfNecessary() {
-    auto resultSet = populateResultSet(sink, executionContext->memoryManager);
+    auto resultSet = populateResultSet(sink, executionContext->clientContext->getMemoryManager());
     sink->initLocalState(resultSet.get(), executionContext);
     sink->finalize(executionContext);
 }

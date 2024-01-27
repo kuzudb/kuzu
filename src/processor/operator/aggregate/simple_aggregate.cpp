@@ -48,24 +48,25 @@ void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         localAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
     }
     distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
-        *context->memoryManager, std::vector<LogicalType>{}, this->aggregateFunctions);
+        *context->clientContext->getMemoryManager(), std::vector<LogicalType>{},
+        this->aggregateFunctions);
 }
 
 void SimpleAggregate::executeInternal(ExecutionContext* context) {
+    auto memoryManager = context->clientContext->getMemoryManager();
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
             auto aggregateFunction = aggregateFunctions[i].get();
             if (aggregateFunction->isFunctionDistinct()) {
                 computeDistinctAggregate(distinctHashTables[i].get(), aggregateFunction,
-                    aggregateInputs[i].get(), localAggregateStates[i].get(),
-                    context->memoryManager);
+                    aggregateInputs[i].get(), localAggregateStates[i].get(), memoryManager);
             } else {
                 computeAggregate(aggregateFunction, aggregateInputs[i].get(),
-                    localAggregateStates[i].get(), context->memoryManager);
+                    localAggregateStates[i].get(), memoryManager);
             }
         }
     }
-    sharedState->combineAggregateStates(localAggregateStates, context->memoryManager);
+    sharedState->combineAggregateStates(localAggregateStates, memoryManager);
 }
 
 void SimpleAggregate::computeDistinctAggregate(AggregateHashTable* distinctHT,

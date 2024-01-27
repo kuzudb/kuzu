@@ -13,8 +13,8 @@ struct ThreadsSetting {
         KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::INT64);
         context->numThreadsForExecution = parameter.getValue<int64_t>();
     }
-    static std::string getSetting(ClientContext* context) {
-        return std::to_string(context->numThreadsForExecution);
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->numThreadsForExecution);
     }
 };
 
@@ -26,8 +26,8 @@ struct TimeoutSetting {
         context->timeoutInMS = parameter.getValue<int64_t>();
         context->startTimingIfEnabled();
     }
-    static std::string getSetting(ClientContext* context) {
-        return std::to_string(context->timeoutInMS);
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->timeoutInMS);
     }
 };
 
@@ -38,8 +38,8 @@ struct VarLengthExtendMaxDepthSetting {
         KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::INT64);
         context->varLengthExtendMaxDepth = parameter.getValue<int64_t>();
     }
-    static std::string getSetting(ClientContext* context) {
-        return std::to_string(context->varLengthExtendMaxDepth);
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->varLengthExtendMaxDepth);
     }
 };
 
@@ -50,8 +50,8 @@ struct EnableSemiMaskSetting {
         KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::BOOL);
         context->enableSemiMask = parameter.getValue<bool>();
     }
-    static std::string getSetting(ClientContext* context) {
-        return context->enableSemiMask ? "true" : "false";
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->enableSemiMask);
     }
 };
 

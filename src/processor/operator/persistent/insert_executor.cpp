@@ -28,7 +28,7 @@ void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
         }
     }
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->init(*resultSet, context->memoryManager);
+        evaluator->init(*resultSet, context->clientContext->getMemoryManager());
         columnDataVectors.push_back(evaluator->resultVector.get());
     }
 }
@@ -111,7 +111,7 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
         }
     }
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->init(*resultSet, context->memoryManager);
+        evaluator->init(*resultSet, context->clientContext->getMemoryManager());
         columnDataVectors.push_back(evaluator->resultVector.get());
     }
 }

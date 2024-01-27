@@ -2,7 +2,6 @@
 
 #include "common/string_format.h"
 #include "common/string_utils.h"
-#include "main/database.h"
 
 namespace kuzu {
 namespace extension {
@@ -34,10 +33,6 @@ std::string getArch() {
 
 std::string getPlatform() {
     return getOS() + "_" + getArch();
-}
-
-std::string ExtensionUtils::getExtensionDir(kuzu::main::Database* database) {
-    return common::stringFormat("{}/extension", database->databasePath);
 }
 
 std::string ExtensionUtils::getExtensionPath(

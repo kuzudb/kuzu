@@ -17,9 +17,10 @@ void CopyNodeSharedState::init(ExecutionContext* context) {
     wal->logCopyTableRecord(table->getTableID(), TableType::NODE);
     wal->flushAllPages();
     if (pkType != *LogicalType::SERIAL()) {
-        auto indexFName = StorageUtils::getNodeIndexFName(
-            context->vfs, wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
-        pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(indexFName, pkType, context->vfs);
+        auto indexFName = StorageUtils::getNodeIndexFName(context->clientContext->getVFS(),
+            wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
+        pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
+            indexFName, pkType, context->clientContext->getVFS());
         uint64_t numRows;
         if (readerSharedState != nullptr) {
             KU_ASSERT(distinctSharedState == nullptr);
@@ -166,7 +167,7 @@ void CopyNode::finalize(ExecutionContext* context) {
     auto outputMsg = stringFormat("{} number of tuples has been copied to table: {}.",
         sharedState->numTuples, info->tableName.c_str());
     FactorizedTableUtils::appendStringToTable(
-        sharedState->fTable.get(), outputMsg, context->memoryManager);
+        sharedState->fTable.get(), outputMsg, context->clientContext->getMemoryManager());
 }
 
 void CopyNode::copyToNodeGroup() {

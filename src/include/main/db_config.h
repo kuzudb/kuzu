@@ -8,7 +8,7 @@ namespace kuzu {
 namespace main {
 
 typedef void (*set_context)(ClientContext* context, const common::Value& parameter);
-typedef std::string (*get_setting)(ClientContext* context);
+typedef common::Value (*get_setting)(ClientContext* context);
 
 enum class OptionType : uint8_t { CONFIGURATION = 0, EXTENSION = 1 };
 

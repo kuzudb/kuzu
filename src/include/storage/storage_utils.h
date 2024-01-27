@@ -90,7 +90,7 @@ public:
         return std::make_pair(nodeGroupIdx, offsetInChunk);
     }
 
-    static std::string getNodeIndexFName(common::VirtualFileSystem* vfs,
+    static std::string getNodeIndexFName(const common::VirtualFileSystem* vfs,
         const std::string& directory, const common::table_id_t& tableID,
         common::FileVersionType dbFileType);
 

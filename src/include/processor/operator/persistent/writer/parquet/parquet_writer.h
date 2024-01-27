@@ -41,7 +41,7 @@ class ParquetWriter {
 public:
     ParquetWriter(std::string fileName, std::vector<std::unique_ptr<common::LogicalType>> types,
         std::vector<std::string> names, kuzu_parquet::format::CompressionCodec::type codec,
-        storage::MemoryManager* mm, common::VirtualFileSystem* vfs);
+        storage::MemoryManager* mm, const common::VirtualFileSystem* vfs);
 
     inline common::offset_t getOffset() const { return fileOffset; }
     inline void write(const uint8_t* buf, uint32_t len) {

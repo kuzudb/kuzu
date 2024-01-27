@@ -23,10 +23,9 @@ public:
 private:
     std::string tryDownloadExtension();
 
-    void saveExtensionToLocalFile(
-        const std::string& extensionData, common::VirtualFileSystem* vfs, main::Database* database);
+    void saveExtensionToLocalFile(const std::string& extensionData, main::ClientContext* context);
 
-    void installExtension(common::VirtualFileSystem* vfs, main::Database* database);
+    void installExtension(main::ClientContext* context);
 
 private:
     std::string name;

@@ -57,16 +57,12 @@ Zhang|Noura|2022
 ---- ok
 -STATEMENT CALL s3_secret_access_key='${AWS_S3_SECRET_ACCESS_KEY}'
 ---- ok
--STATEMENT CALL s3_endpoint='s3.amazonaws.com'
----- ok
 ]
 
 -CASE ScanFromDifferentAWSS3File
 -SKIP
 -INSERT_STATEMENT_BLOCK AWS_S3_SETUP
 -STATEMENT CALL s3_url_style='path'
----- ok
--STATEMENT CALL s3_region='us-east-1'
 ---- ok
 -STATEMENT load from 's3://kuzu-dataset-us/user.csv' return *;
 ---- 4

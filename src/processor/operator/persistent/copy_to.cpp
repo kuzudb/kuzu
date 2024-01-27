@@ -4,11 +4,12 @@ namespace kuzu {
 namespace processor {
 
 void CopyTo::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    localState->init(info.get(), context->memoryManager, resultSet);
+    localState->init(info.get(), context->clientContext->getMemoryManager(), resultSet);
 }
 
 void CopyTo::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->init(info.get(), context->memoryManager, context->vfs);
+    sharedState->init(
+        info.get(), context->clientContext->getMemoryManager(), context->clientContext->getVFS());
 }
 
 void CopyTo::finalize(ExecutionContext* /*context*/) {

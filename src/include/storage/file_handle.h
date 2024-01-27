@@ -31,7 +31,7 @@ public:
     constexpr static uint8_t O_PERSISTENT_FILE_CREATE_NOT_EXISTS{0b0000'0100};
     constexpr static uint8_t O_IN_MEM_TEMP_FILE{0b0000'0011};
 
-    FileHandle(const std::string& path, uint8_t flags, common::VirtualFileSystem* vfs);
+    FileHandle(const std::string& path, uint8_t flags, const common::VirtualFileSystem* vfs);
     virtual ~FileHandle() = default;
 
     common::page_idx_t addNewPage();
@@ -60,7 +60,7 @@ public:
 
 protected:
     virtual common::page_idx_t addNewPageWithoutLock();
-    void constructExistingFileHandle(const std::string& path, common::VirtualFileSystem* vfs);
+    void constructExistingFileHandle(const std::string& path, const common::VirtualFileSystem* vfs);
     void constructNewFileHandle(const std::string& path);
 
 protected:

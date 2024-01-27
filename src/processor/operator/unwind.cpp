@@ -6,7 +6,7 @@ namespace kuzu {
 namespace processor {
 
 void Unwind::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    expressionEvaluator->init(*resultSet, context->memoryManager);
+    expressionEvaluator->init(*resultSet, context->clientContext->getMemoryManager());
     outValueVector = resultSet->getValueVector(outDataPos);
 }
 
