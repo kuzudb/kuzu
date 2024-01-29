@@ -55,5 +55,29 @@ struct EnableSemiMaskSetting {
     }
 };
 
+struct HomeDirectorySetting {
+    static constexpr const char* name = "home_directory";
+    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::STRING;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::STRING);
+        context->homeDirectory = parameter.getValue<std::string>();
+    }
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value::createValue(context->homeDirectory);
+    }
+};
+
+struct FileSearchPathSetting {
+    static constexpr const char* name = "file_search_path";
+    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::STRING;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::STRING);
+        context->fileSearchPath = parameter.getValue<std::string>();
+    }
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value::createValue(context->fileSearchPath);
+    }
+};
+
 } // namespace main
 } // namespace kuzu
