@@ -3,7 +3,7 @@ name: Multiplatform Build & Test
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *'
+    - cron: "0 8 * * *"
 
 jobs:
   ubuntu-2004-build-test:
@@ -27,6 +27,7 @@ jobs:
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip install --user backports.zoneinfo
 
       - name: Ensure Node.js dependencies
         working-directory: tools/nodejs_api
@@ -70,7 +71,7 @@ jobs:
   macos-build-test:
     strategy:
       matrix:
-        runner: [macos-11, macos-12]
+        runner: [macos-12, macos-13]
       fail-fast: false
     name: ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
@@ -79,7 +80,7 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Ensure Python dependencies
         run: |
@@ -153,7 +154,7 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Ensure Python dependencies
         shell: cmd
@@ -214,7 +215,7 @@ jobs:
   debian-ubuntu-build-test:
     strategy:
       matrix:
-        image: ['ubuntu:23.04', 'ubuntu:23.10', 'debian:12', 'debian:sid']
+        image: ["ubuntu:23.04", "ubuntu:23.10", "debian:12", "debian:sid"]
       fail-fast: false
     name: ${{ matrix.image }}
     runs-on: ubuntu-latest
@@ -290,7 +291,7 @@ jobs:
   rhel-fedora-build-test:
     strategy:
       matrix:
-        image: ['rockylinux:8', 'rockylinux:9', 'fedora:38']
+        image: ["rockylinux:8", "rockylinux:9", "fedora:38"]
       fail-fast: false
     name: ${{ matrix.image }}
     runs-on: ubuntu-latest
@@ -300,6 +301,7 @@ jobs:
       CC: gcc
       CXX: g++
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk
+      HOME: /root
     steps:
       - name: Enable EPEL
         if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
@@ -314,8 +316,8 @@ jobs:
 
       - name: Install packages
         run: |
-          yum install https://rpm.nodesource.com/pub_20.x/nodistro/repo/nodesource-release-nodistro-1.noarch.rpm -y
-          dnf install --setopt=nodesource-nodejs.module_hotfixes=1 -y git cmake ${{ matrix.image == 'rockylinux:8' && 'gcc-toolset-12 python39 python39-devel' || 'gcc gcc-c++ python3-devel' }} java-17-openjdk-devel nodejs
+          curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+          dnf install -y git cmake ${{ matrix.image == 'rockylinux:8' && 'gcc-toolset-12 python39 python39-devel' || 'gcc gcc-c++ python3-devel' }} java-17-openjdk-devel nodejs
 
       - name: Enable gcc-toolset-12 and python39 on Rocky Linux 8
         if: matrix.image == 'rockylinux:8'
@@ -331,8 +333,10 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
+          python3 -m venv /opt/venv
+          source /opt/venv/bin/activate
           pip3 install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
       - name: Ensure Node.js dependencies
         working-directory: tools/nodejs_api
@@ -354,7 +358,9 @@ jobs:
         run: make example NUM_THREADS=$(nproc)
 
       - name: Python test
-        run: make pytest NUM_THREADS=$(nproc)
+        run: |
+          source /opt/venv/bin/activate
+          make pytest NUM_THREADS=$(nproc)
 
       - name: Node.js test
         run: make nodejstest NUM_THREADS=$(nproc)
