@@ -20,7 +20,7 @@ jobs:
         run: |
           mv install/include/kuzu.h .
           mv install/include/kuzu.hpp .
-          mv install/lib64/libkuzu.so .
+          mv install/lib/libkuzu.so .
           mv install/bin/kuzu_shell kuzu
 
       - uses: actions/upload-artifact@v3
