@@ -335,8 +335,8 @@ jobs:
         run: |
           python3 -m venv /opt/venv
           source /opt/venv/bin/activate
-          pip3 install --user torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip3 install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
       - name: Ensure Node.js dependencies
         working-directory: tools/nodejs_api
