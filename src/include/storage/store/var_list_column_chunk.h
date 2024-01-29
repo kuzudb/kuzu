@@ -55,6 +55,10 @@ public:
 
     void finalize() final;
 
+    inline common::offset_t getListOffset(common::offset_t offset) const {
+        return offset == 0 ? 0 : getValue<uint64_t>(offset - 1);
+    }
+
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
 
@@ -74,9 +78,6 @@ private:
     }
     inline uint64_t getListLen(common::offset_t offset) const {
         return getListOffset(offset + 1) - getListOffset(offset);
-    }
-    inline common::offset_t getListOffset(common::offset_t offset) const {
-        return offset == 0 ? 0 : getValue<uint64_t>(offset - 1);
     }
 
     void resetFromOtherChunk(VarListColumnChunk* other);

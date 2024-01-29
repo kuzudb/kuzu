@@ -6,6 +6,7 @@ add_library(kuzu_storage_store
         node_group.cpp
         node_table.cpp
         node_table_data.cpp
+        null_column.cpp
         rel_table.cpp
         rel_table_data.cpp
         string_column_chunk.cpp

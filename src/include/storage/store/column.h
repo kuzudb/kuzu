@@ -44,7 +44,7 @@ public:
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression, bool requireNullColumn = true);
-    virtual ~Column() = default;
+    virtual ~Column();
 
     // Expose for feature store
     virtual void batchLookup(transaction::Transaction* transaction,
@@ -56,15 +56,12 @@ public:
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector);
     virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk);
+        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+        common::offset_t endOffset = common::INVALID_OFFSET);
     virtual void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
     virtual void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx);
-
-    virtual bool isNull(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
-    virtual void setNull(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
 
     inline common::LogicalType* getDataType() const { return dataType.get(); }
     inline uint32_t getNumBytesPerValue() const { return numBytesPerFixedSizedValue; }
@@ -72,7 +69,7 @@ public:
         return metadataDA->getNumElements(transaction->getType());
     }
 
-    inline Column* getNullColumn() { return nullColumn.get(); }
+    Column* getNullColumn();
 
     virtual void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
@@ -147,7 +144,6 @@ protected:
     virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit();
 
 private:
-    static bool containsVarList(common::LogicalType& dataType);
     virtual bool canCommitInPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
@@ -178,7 +174,7 @@ protected:
     BufferManager* bufferManager;
     WAL* wal;
     std::unique_ptr<InMemDiskArray<ColumnChunkMetadata>> metadataDA;
-    std::unique_ptr<Column> nullColumn;
+    std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;
     write_values_from_vector_func_t writeFromVectorFunc;
     write_values_func_t writeFunc;

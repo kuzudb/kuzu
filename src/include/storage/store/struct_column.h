@@ -13,7 +13,8 @@ public:
         RWPropertyStats propertyStatistics, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk) override;
+        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+        common::offset_t endOffset = common::INVALID_OFFSET) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) override;
@@ -29,7 +30,6 @@ public:
     }
     void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
-    void setNull(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk) override;
 
     void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
@@ -41,6 +41,10 @@ protected:
         common::ValueVector* resultVector) override;
     void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) override;
+
+    bool canCommitInPlace(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo) override;
 
 private:
     std::vector<std::unique_ptr<Column>> childColumns;

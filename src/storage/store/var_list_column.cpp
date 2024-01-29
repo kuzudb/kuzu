@@ -1,7 +1,9 @@
 #include "storage/store/var_list_column.h"
 
 #include "storage/store/column.h"
+#include "storage/store/null_column.h"
 #include "storage/store/var_list_column_chunk.h"
+#include <bit>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -59,16 +61,18 @@ void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx
 }
 
 void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    kuzu::storage::ColumnChunk* columnChunk) {
+    kuzu::storage::ColumnChunk* columnChunk, offset_t startOffset, offset_t endOffset) {
     auto varListColumnChunk = ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(columnChunk);
     if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
         varListColumnChunk->setNumValues(0);
     } else {
-        Column::scan(transaction, nodeGroupIdx, columnChunk);
-        auto dataColumnMetadata = dataColumn->getMetadata(nodeGroupIdx, transaction->getType());
-        varListColumnChunk->resizeDataColumnChunk(
-            dataColumnMetadata.numPages * BufferPoolConstants::PAGE_4KB_SIZE);
-        dataColumn->scan(transaction, nodeGroupIdx, varListColumnChunk->getDataColumnChunk());
+        Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
+        auto startVarListOffset = varListColumnChunk->getListOffset(0);
+        auto endVarListOffset = varListColumnChunk->getListOffset(columnChunk->getNumValues());
+        auto numElements = endVarListOffset - startVarListOffset + 1;
+        varListColumnChunk->resizeDataColumnChunk(std::bit_ceil(numElements));
+        dataColumn->scan(transaction, nodeGroupIdx, varListColumnChunk->getDataColumnChunk(),
+            startVarListOffset, endVarListOffset);
     }
 }
 

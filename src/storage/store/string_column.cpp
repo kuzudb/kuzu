@@ -1,5 +1,6 @@
 #include "storage/store/string_column.h"
 
+#include "storage/store/null_column.h"
 #include "storage/store/string_column_chunk.h"
 #include <bit>
 
@@ -61,9 +62,9 @@ void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
         offsetInVector);
 }
 
-void StringColumn::scan(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
-    Column::scan(transaction, nodeGroupIdx, columnChunk);
+void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    ColumnChunk* columnChunk, offset_t startOffset, offset_t endOffset) {
+    Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
     if (columnChunk->getNumValues() == 0) {
         return;
     }
