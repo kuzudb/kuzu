@@ -8,7 +8,7 @@ namespace httpfs {
 
 class HttpfsExtension : public extension::Extension {
 public:
-    static void load(main::Database& db);
+    static void load(main::ClientContext* context);
 };
 
 } // namespace httpfs

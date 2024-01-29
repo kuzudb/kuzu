@@ -46,6 +46,8 @@ class ClientContext {
     friend struct TimeoutSetting;
     friend struct VarLengthExtendMaxDepthSetting;
     friend struct EnableSemiMaskSetting;
+    friend struct HomeDirectorySetting;
+    friend struct FileSearchPathSetting;
 
 public:
     explicit ClientContext(Database* database);
@@ -73,7 +75,7 @@ public:
 
     void setReplaceFunc(replace_func_t replaceFunc) { this->replaceFunc = std::move(replaceFunc); }
 
-    void setExtensionOption(std::string name, common::Value value);
+    KUZU_API void setExtensionOption(std::string name, common::Value value);
 
     common::RandomEngine* getRandomEngine() { return randomEngine.get(); }
 
@@ -81,9 +83,11 @@ public:
 
     std::string getExtensionDir() const;
 
-    Database* getDatabase() const { return database; }
+    KUZU_API Database* getDatabase() const { return database; }
 
     storage::MemoryManager* getMemoryManager();
+
+    KUZU_API std::string getEnvVariable(const std::string& name);
 
 private:
     inline void resetActiveQuery() { activeQuery.reset(); }
@@ -97,6 +101,8 @@ private:
     replace_func_t replaceFunc;
     std::unordered_map<std::string, common::Value> extensionOptionValues;
     std::unique_ptr<common::RandomEngine> randomEngine;
+    std::string homeDirectory;
+    std::string fileSearchPath;
     Database* database;
 };
 

@@ -1,6 +1,9 @@
 #include "common/file_system/local_file_system.h"
 
 #include "common/cast.h"
+#include "common/string_utils.h"
+#include "main/client_context.h"
+#include "main/settings.h"
 
 #if defined(_WIN32)
 #include <fileapi.h>
@@ -37,7 +40,11 @@ LocalFileInfo::~LocalFileInfo() {
 }
 
 std::unique_ptr<FileInfo> LocalFileSystem::openFile(
-    const std::string& path, int flags, main::ClientContext* /*context*/, FileLockType lock_type) {
+    const std::string& path, int flags, main::ClientContext* context, FileLockType lock_type) {
+    auto fullPath = path;
+    if (path.starts_with('~')) {
+        fullPath = context->getEnvVariable("HOME") + fullPath.substr(1);
+    }
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
     auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
@@ -50,10 +57,10 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
         dwDesiredAccess |= GENERIC_READ;
     }
 
-    HANDLE handle = CreateFileA(path.c_str(), dwDesiredAccess, dwShareMode, nullptr,
+    HANDLE handle = CreateFileA(fullPath.c_str(), dwDesiredAccess, dwShareMode, nullptr,
         dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (handle == INVALID_HANDLE_VALUE) {
-        throw Exception(stringFormat("Cannot open file. path: {} - Error {}: {}", path,
+        throw Exception(stringFormat("Cannot open file. path: {} - Error {}: {}", fullPath,
             GetLastError(), std::system_category().message(GetLastError())));
     }
     if (lock_type != FileLockType::NO_LOCK) {
@@ -64,14 +71,14 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
         overlapped.Offset = 0;
         BOOL rc = LockFileEx(handle, dwFlags, 0, 0, 0, &overlapped);
         if (!rc) {
-            throw Exception("Could not set lock on file : " + path);
+            throw Exception("Could not set lock on file : " + fullPath);
         }
     }
-    return std::make_unique<LocalFileInfo>(path, handle, this);
+    return std::make_unique<LocalFileInfo>(fullPath, handle, this);
 #else
-    int fd = open(path.c_str(), flags, 0644);
+    int fd = open(fullPath.c_str(), flags, 0644);
     if (fd == -1) {
-        throw Exception(stringFormat("Cannot open file {}: {}", path, posixErrMessage()));
+        throw Exception(stringFormat("Cannot open file {}: {}", fullPath, posixErrMessage()));
     }
     if (lock_type != FileLockType::NO_LOCK) {
         struct flock fl;
@@ -82,18 +89,45 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
         fl.l_len = 0;
         int rc = fcntl(fd, F_SETLK, &fl);
         if (rc == -1) {
-            throw Exception("Could not set lock on file : " + path);
+            throw Exception("Could not set lock on file : " + fullPath);
         }
     }
-    return std::make_unique<LocalFileInfo>(path, fd, this);
+    return std::make_unique<LocalFileInfo>(fullPath, fd, this);
 #endif
 }
 
 std::vector<std::string> LocalFileSystem::glob(
-    main::ClientContext* /*context*/, const std::string& path) const {
+    main::ClientContext* context, const std::string& path) const {
+    if (path.empty()) {
+        return std::vector<std::string>();
+    }
+    std::vector<std::string> pathsToGlob;
+    if (path[0] == '/' || (std::isalpha(path[0]) && path[1] == ':')) {
+        // Note:
+        // Unix absolute path starts with '/'
+        // Windows absolute path starts with "[DiskID]://"
+        pathsToGlob.push_back(path);
+    } else if (path[0] == '~') {
+        // Expands home directory
+        auto homeDirectory =
+            context->getCurrentSetting(main::HomeDirectorySetting::name).getValue<std::string>();
+        pathsToGlob.push_back(homeDirectory + path.substr(1));
+    } else {
+        // Relative path to the file search path.
+        auto fileSearchPath =
+            context->getCurrentSetting(main::FileSearchPathSetting::name).getValue<std::string>();
+        auto searchPaths = common::StringUtils::split(fileSearchPath, ",");
+        for (auto& searchPath : searchPaths) {
+            pathsToGlob.push_back(common::stringFormat("{}/{}", searchPath, path));
+        }
+        // Relative path to the current directory.
+        pathsToGlob.push_back(path);
+    }
     std::vector<std::string> result;
-    for (auto& resultPath : glob::glob(path)) {
-        result.emplace_back(resultPath.string());
+    for (auto& pathToGlob : pathsToGlob) {
+        for (auto& resultPath : glob::glob(pathToGlob)) {
+            result.emplace_back(resultPath.string());
+        }
     }
     return result;
 }

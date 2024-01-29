@@ -4,7 +4,6 @@ global.expect = chai.expect;
 chai.should();
 chai.config.includeStack = true;
 
-process.env.NODE_ENV = "test";
 const TEST_INSTALLED = process.env.TEST_INSTALLED || false;
 if (TEST_INSTALLED) {
   console.log("Testing installed package...");

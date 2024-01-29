@@ -9,6 +9,10 @@
 #include "main/db_config.h"
 #include "transaction/transaction_context.h"
 
+#if defined(_WIN32)
+#include "common/windows_utils.h"
+#endif
+
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
@@ -29,6 +33,8 @@ ClientContext::ClientContext(Database* database)
       enableSemiMask{DEFAULT_ENABLE_SEMI_MASK}, database{database} {
     transactionContext = std::make_unique<TransactionContext>(database);
     randomEngine = std::make_unique<common::RandomEngine>();
+    fileSearchPath = "";
+    homeDirectory = getEnvVariable("HOME");
 }
 
 void ClientContext::startTimingIfEnabled() {
@@ -81,6 +87,24 @@ std::string ClientContext::getExtensionDir() const {
 storage::MemoryManager* ClientContext::getMemoryManager() {
     return database->memoryManager.get();
 }
+
+std::string ClientContext::getEnvVariable(const std::string& name) {
+#if defined(_WIN32)
+    auto envValue = common::WindowsUtils::utf8ToUnicode(name.c_str());
+    auto result = _wgetenv(envValue.c_str());
+    if (!result) {
+        return std::string();
+    }
+    return WindowsUtils::unicodeToUTF8(result);
+}
+#else
+    const char* env = getenv(name.c_str()); // NOLINT(*-mt-unsafe)
+    if (!env) {
+        return std::string();
+    }
+    return env;
+}
+#endif
 
 } // namespace main
 } // namespace kuzu

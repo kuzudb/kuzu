@@ -201,6 +201,17 @@ TestStatement* TestParser::extractStatement(
         statement->query = query;
         break;
     }
+    case TokenType::SET: {
+        auto envName = getParam(1);
+        auto envValue = getParam(2);
+#if defined(_WIN32)
+        _putenv_s(envName.c_str(), envValue.c_str());
+#else
+        // NOLINTNEXTLINE(*-mt-unsafe)
+        setenv(envName.c_str(), envValue.c_str(), 1 /* overwrite existing env*/);
+#endif
+        break;
+    }
     case TokenType::BATCH_STATEMENTS: {
         std::string query = paramsToString(1);
         extractConnName(query, statement);
