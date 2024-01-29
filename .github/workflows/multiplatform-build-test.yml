@@ -301,6 +301,7 @@ jobs:
       CC: gcc
       CXX: g++
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk
+      HOME: /root
     steps:
       - name: Enable EPEL
         if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
