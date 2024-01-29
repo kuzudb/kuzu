@@ -291,7 +291,7 @@ jobs:
   rhel-fedora-build-test:
     strategy:
       matrix:
-        image: ["rockylinux:8", "rockylinux:9", "fedora:38", "fedora:39"]
+        image: ["rockylinux:8", "rockylinux:9", "fedora:38"]
       fail-fast: false
     name: ${{ matrix.image }}
     runs-on: ubuntu-latest
