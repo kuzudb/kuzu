@@ -108,14 +108,12 @@ kU_RelTableConnection
     : FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
 
 kU_CreateRdfGraph
-    : CREATE SP RDF SP GRAPH SP oC_SchemaName ;
+    : CREATE SP RDFGRAPH SP oC_SchemaName ;
 
-RDF : ('R' | 'r') ('D' | 'd') ('F' | 'f') ;
-
-GRAPH : ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
+RDFGRAPH : ('R' | 'r') ('D' | 'd') ('F' | 'f') ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
 
 kU_DropTable
-    : DROP SP TABLE SP oC_SchemaName ;
+    : DROP SP (TABLE | RDFGRAPH) SP oC_SchemaName ;
 
 DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
 

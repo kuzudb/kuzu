@@ -7,18 +7,10 @@ namespace kuzu {
 namespace function {
 
 class BuiltInFunctions {
-
 public:
     BuiltInFunctions();
 
-    inline bool containsFunction(const std::string& functionName) {
-        return functions.contains(functionName);
-    }
-
-    FunctionType getFunctionType(const std::string& functionName) {
-        KU_ASSERT(containsFunction(functionName));
-        return functions.at(functionName)[0]->type;
-    }
+    FunctionType getFunctionType(const std::string& name);
 
     Function* matchFunction(const std::string& name);
     // TODO(Ziyi): We should have a unified interface for matching table, aggregate and scalar
@@ -33,13 +25,6 @@ public:
         common::LogicalTypeID inputTypeID, common::LogicalTypeID targetTypeID);
 
     void addFunction(std::string name, function::function_set definitions);
-
-    uint32_t getAggregateFunctionCost(const std::vector<common::LogicalType>& inputTypes,
-        bool isDistinct, AggregateFunction* function);
-
-    void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candidateFunctions,
-        const std::string& name, const std::vector<common::LogicalType>& inputTypes,
-        bool isDistinct);
 
     std::unique_ptr<BuiltInFunctions> copy();
 
@@ -88,9 +73,8 @@ private:
         const std::vector<common::LogicalTypeID>& targetTypeIDs, bool isOverload);
     uint32_t matchVarLengthParameters(const std::vector<common::LogicalType>& inputTypes,
         common::LogicalTypeID targetTypeID, bool isOverload);
-
-    void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctions,
-        const std::string& name, const std::vector<common::LogicalType>& inputTypes);
+    uint32_t getAggregateFunctionCost(const std::vector<common::LogicalType>& inputTypes,
+        bool isDistinct, AggregateFunction* function);
 
     void validateSpecialCases(std::vector<Function*>& candidateFunctions, const std::string& name,
         const std::vector<common::LogicalType>& inputTypes);
@@ -125,6 +109,14 @@ private:
 
     // Table functions.
     void registerTableFunctions();
+
+    // Validations
+    void validateFunctionExists(const std::string& name);
+    void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candidateFunctions,
+        const std::string& name, const std::vector<common::LogicalType>& inputTypes,
+        bool isDistinct);
+    void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctions,
+        const std::string& name, const std::vector<common::LogicalType>& inputTypes);
 
 private:
     std::unordered_map<std::string, function_set> functions;

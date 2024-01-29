@@ -213,22 +213,18 @@ void CatalogContent::readFromFile(const std::string& directory, FileVersionType 
 }
 
 ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
-    auto upperCaseName = StringUtils::getUpper(name);
-    if (macros.contains(upperCaseName)) {
+    auto normalizedName = StringUtils::getUpper(name);
+    if (macros.contains(normalizedName)) {
         return ExpressionType::MACRO;
-    } else if (!builtInFunctions->containsFunction(name)) {
-        throw CatalogException(name + " function does not exist.");
-    } else {
-        // TODO(Ziyi): we should let table function use the same interface to bind.
-        auto funcType = builtInFunctions->getFunctionType(upperCaseName);
-        switch (funcType) {
-        case function::FunctionType::SCALAR:
-            return ExpressionType::FUNCTION;
-        case function::FunctionType::AGGREGATE:
-            return ExpressionType::AGGREGATE_FUNCTION;
-        default:
-            KU_UNREACHABLE;
-        }
+    }
+    auto functionType = builtInFunctions->getFunctionType(name);
+    switch (functionType) {
+    case function::FunctionType::SCALAR:
+        return ExpressionType::FUNCTION;
+    case function::FunctionType::AGGREGATE:
+        return ExpressionType::AGGREGATE_FUNCTION;
+    default:
+        KU_UNREACHABLE;
     }
 }
 

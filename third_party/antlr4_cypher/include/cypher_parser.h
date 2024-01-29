@@ -20,25 +20,25 @@ public:
     T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, T__37 = 38, 
     T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
     T__44 = 45, CALL = 46, COMMENT = 47, MACRO = 48, GLOB = 49, COPY = 50, 
-    FROM = 51, COLUMN = 52, NODE = 53, TABLE = 54, GROUP = 55, RDF = 56, 
-    GRAPH = 57, DROP = 58, ALTER = 59, DEFAULT = 60, RENAME = 61, ADD = 62, 
-    PRIMARY = 63, KEY = 64, REL = 65, TO = 66, EXPLAIN = 67, PROFILE = 68, 
-    BEGIN = 69, TRANSACTION = 70, READ = 71, ONLY = 72, WRITE = 73, COMMIT = 74, 
-    COMMIT_SKIP_CHECKPOINT = 75, ROLLBACK = 76, ROLLBACK_SKIP_CHECKPOINT = 77, 
-    INSTALL = 78, EXTENSION = 79, UNION = 80, ALL = 81, LOAD = 82, HEADERS = 83, 
-    OPTIONAL = 84, MATCH = 85, UNWIND = 86, CREATE = 87, MERGE = 88, ON = 89, 
-    SET = 90, DETACH = 91, DELETE = 92, WITH = 93, RETURN = 94, DISTINCT = 95, 
-    STAR = 96, AS = 97, ORDER = 98, BY = 99, L_SKIP = 100, LIMIT = 101, 
-    ASCENDING = 102, ASC = 103, DESCENDING = 104, DESC = 105, WHERE = 106, 
-    SHORTEST = 107, OR = 108, XOR = 109, AND = 110, NOT = 111, INVALID_NOT_EQUAL = 112, 
-    MINUS = 113, FACTORIAL = 114, COLON = 115, IN = 116, STARTS = 117, ENDS = 118, 
-    CONTAINS = 119, IS = 120, NULL_ = 121, TRUE = 122, FALSE = 123, COUNT = 124, 
-    EXISTS = 125, CASE = 126, ELSE = 127, END = 128, WHEN = 129, THEN = 130, 
-    StringLiteral = 131, EscapedChar = 132, DecimalInteger = 133, HexLetter = 134, 
-    HexDigit = 135, Digit = 136, NonZeroDigit = 137, NonZeroOctDigit = 138, 
-    ZeroDigit = 139, RegularDecimalReal = 140, UnescapedSymbolicName = 141, 
-    IdentifierStart = 142, IdentifierPart = 143, EscapedSymbolicName = 144, 
-    SP = 145, WHITESPACE = 146, Comment = 147, Unknown = 148
+    FROM = 51, COLUMN = 52, NODE = 53, TABLE = 54, GROUP = 55, RDFGRAPH = 56, 
+    DROP = 57, ALTER = 58, DEFAULT = 59, RENAME = 60, ADD = 61, PRIMARY = 62, 
+    KEY = 63, REL = 64, TO = 65, EXPLAIN = 66, PROFILE = 67, BEGIN = 68, 
+    TRANSACTION = 69, READ = 70, ONLY = 71, WRITE = 72, COMMIT = 73, COMMIT_SKIP_CHECKPOINT = 74, 
+    ROLLBACK = 75, ROLLBACK_SKIP_CHECKPOINT = 76, INSTALL = 77, EXTENSION = 78, 
+    UNION = 79, ALL = 80, LOAD = 81, HEADERS = 82, OPTIONAL = 83, MATCH = 84, 
+    UNWIND = 85, CREATE = 86, MERGE = 87, ON = 88, SET = 89, DETACH = 90, 
+    DELETE = 91, WITH = 92, RETURN = 93, DISTINCT = 94, STAR = 95, AS = 96, 
+    ORDER = 97, BY = 98, L_SKIP = 99, LIMIT = 100, ASCENDING = 101, ASC = 102, 
+    DESCENDING = 103, DESC = 104, WHERE = 105, SHORTEST = 106, OR = 107, 
+    XOR = 108, AND = 109, NOT = 110, INVALID_NOT_EQUAL = 111, MINUS = 112, 
+    FACTORIAL = 113, COLON = 114, IN = 115, STARTS = 116, ENDS = 117, CONTAINS = 118, 
+    IS = 119, NULL_ = 120, TRUE = 121, FALSE = 122, COUNT = 123, EXISTS = 124, 
+    CASE = 125, ELSE = 126, END = 127, WHEN = 128, THEN = 129, StringLiteral = 130, 
+    EscapedChar = 131, DecimalInteger = 132, HexLetter = 133, HexDigit = 134, 
+    Digit = 135, NonZeroDigit = 136, NonZeroOctDigit = 137, ZeroDigit = 138, 
+    RegularDecimalReal = 139, UnescapedSymbolicName = 140, IdentifierStart = 141, 
+    IdentifierPart = 142, EscapedSymbolicName = 143, SP = 144, WHITESPACE = 145, 
+    Comment = 146, Unknown = 147
   };
 
   enum {
@@ -579,8 +579,7 @@ public:
     antlr4::tree::TerminalNode *CREATE();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
-    antlr4::tree::TerminalNode *RDF();
-    antlr4::tree::TerminalNode *GRAPH();
+    antlr4::tree::TerminalNode *RDFGRAPH();
     OC_SchemaNameContext *oC_SchemaName();
 
    
@@ -595,8 +594,9 @@ public:
     antlr4::tree::TerminalNode *DROP();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
-    antlr4::tree::TerminalNode *TABLE();
     OC_SchemaNameContext *oC_SchemaName();
+    antlr4::tree::TerminalNode *TABLE();
+    antlr4::tree::TerminalNode *RDFGRAPH();
 
    
   };

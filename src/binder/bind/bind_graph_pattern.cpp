@@ -243,14 +243,13 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     // expression to mock as if predicate IRI exists in rel table.
     common::table_id_set_t resourceTableIDSet;
     for (auto& tableID : relTableIDs) {
-        auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
-        if (tableSchema->hasParentTableID()) {
-            auto parentTableID = tableSchema->getParentTableID();
-            auto parentSchema = catalog.getTableSchema(clientContext->getTx(), parentTableID);
-            KU_ASSERT(parentSchema->getTableType() == TableType::RDF);
-            auto rdfGraphSchema =
-                ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(parentSchema);
-            resourceTableIDSet.insert(rdfGraphSchema->getResourceTableID());
+        for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+            if (schema->isParent(tableID)) {
+                KU_ASSERT(schema->getTableType() == TableType::RDF);
+                auto rdfGraphSchema =
+                    ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(schema);
+                resourceTableIDSet.insert(rdfGraphSchema->getResourceTableID());
+            }
         }
     }
     auto resourceTableIDs =
@@ -603,7 +602,8 @@ std::vector<common::table_id_t> Binder::getNodeTableIDs(table_id_t tableID) {
         return {tableID};
     }
     default:
-        KU_UNREACHABLE;
+        throw BinderException(
+            stringFormat("Cannot bind {} as a node pattern label.", tableSchema->getName()));
     }
 }
 
@@ -635,7 +635,8 @@ std::vector<common::table_id_t> Binder::getRelTableIDs(table_id_t tableID) {
         return {tableID};
     }
     default:
-        KU_UNREACHABLE;
+        throw BinderException(stringFormat(
+            "Cannot bind {} as a relationship pattern label.", tableSchema->getName()));
     }
 }
 

@@ -77,6 +77,10 @@ std::vector<TableSchema*> Catalog::getRelTableGroupSchemas(Transaction* tx) cons
     return getVersion(tx)->getTableSchemas(TableType::REL_GROUP);
 }
 
+std::vector<TableSchema*> Catalog::getRdfGraphSchemas(transaction::Transaction* tx) const {
+    return getVersion(tx)->getTableSchemas(TableType::RDF);
+}
+
 std::vector<TableSchema*> Catalog::getTableSchemas(Transaction* tx) const {
     std::vector<TableSchema*> result;
     for (auto& [_, schema] : getVersion(tx)->tableSchemas) {

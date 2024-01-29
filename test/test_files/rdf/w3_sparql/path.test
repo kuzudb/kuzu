@@ -5,7 +5,7 @@
 
 -CASE W3SparqlRecursivePath
 
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "knows"}]->(b:R_r {iri: "b"}),
                   (b)-[{iri: "knows"}]->(:R_r {iri: "c"});
@@ -35,7 +35,7 @@ b|c
 #---- 1
 
 -CASE W3SparqlDiamondTail
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "p"}]->(:R_r {iri: "b"})-[{iri: "p"}]->(z:R_r {iri: "z"}),
                   (a)-[{iri: "p"}]->(:R_r {iri: "c"})-[{iri: "p"}]->(z),

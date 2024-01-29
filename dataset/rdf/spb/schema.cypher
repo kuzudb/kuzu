@@ -1,1 +1,1 @@
-CREATE RDF GRAPH spb;
+CREATE RDFGraph spb;

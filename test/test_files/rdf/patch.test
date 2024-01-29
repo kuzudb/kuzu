@@ -1,0 +1,51 @@
+-GROUP Rdf
+-DATASET TTL EMPTY
+
+--
+
+-CASE CatalogInfo
+
+-STATEMENT CREATE RDFGraph X;
+---- ok
+-STATEMENT CREATE NODE TABLE N(x SERIAL, PRIMARY KEY(x));
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 6
+N|NODE|
+X_lt|REL|
+X_l|NODE|
+X_rt|REL|
+X_r|NODE|
+X|RDF|
+-STATEMENT RETURN dummy();
+---- error
+Catalog exception: DUMMY function does not exist.
+-STATEMENT CALL show_tables('x') RETURN *;
+---- error
+Binder exception: Cannot match a built-in function for given function SHOW_TABLES(STRING). Expect empty inputs.
+-STATEMENT MATCH (a:X_lt) RETURN *;
+---- error
+Binder exception: Cannot bind X_lt as a node pattern label.
+-STATEMENT MATCH (a)-[e:X_r]->(b) RETURN *;
+---- error
+Binder exception: Cannot bind X_r as a relationship pattern label.
+-STATEMENT DROP TABLE X_lt;
+---- error
+Binder exception: Cannot delete relationship table X_lt because it is referenced by rdfGraph X.
+-STATEMENT ALTER TABLE X_r RENAME TO X_r2;
+---- error
+Binder exception: Cannot alter table X_r because it is referenced by rdfGraph X.
+-STATEMENT CREATE (a)-[e]->(b);
+---- error
+Binder exception: Create node a expects primary key iri as input.
+-STATEMENT CREATE (a {iri: "a"})-[e]->(b {iri: "b"});
+---- error
+Binder exception: Create node b with multiple node labels is not supported.
+-STATEMENT CREATE (a {iri: "a"})-[e]->(b:X_r {iri: "b"});
+---- error
+Binder exception: Insert relationship e expects iri property as input.
+-STATEMENT CREATE (a {iri: "a"})-[e {iri: "b"}]->(b:X_r {iri: "a"});
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri;
+---- 1
+a|b|a
