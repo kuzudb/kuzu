@@ -333,6 +333,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
+          python3 -m venv /opt/venv
+          source /opt/venv/bin/activate
           pip3 install --user torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip3 install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
@@ -356,7 +358,9 @@ jobs:
         run: make example NUM_THREADS=$(nproc)
 
       - name: Python test
-        run: make pytest NUM_THREADS=$(nproc)
+        run: |
+          source /opt/venv/bin/activate
+          make pytest NUM_THREADS=$(nproc)
 
       - name: Node.js test
         run: make nodejstest NUM_THREADS=$(nproc)
@@ -408,8 +412,6 @@ jobs:
       - name: Ensure Python dependencies
         run: |
           ln -s /usr/local/bin/python3.10 /usr/bin/python3
-          python3 -m venv /opt/venv
-          source /opt/venv/bin/activate
           python3 -m pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           python3 -m pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
@@ -433,9 +435,7 @@ jobs:
         run: make example NUM_THREADS=$(nproc)
 
       - name: Python test
-        run: |
-          source /opt/venv/bin/activate
-          make pytest NUM_THREADS=$(nproc)
+        run: make pytest NUM_THREADS=$(nproc)
 
       - name: Node.js test
         run: make nodejstest NUM_THREADS=$(nproc)
