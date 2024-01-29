@@ -4,8 +4,7 @@ on: workflow_dispatch
 
 jobs:
   build-linux-extensions-x86_64:
-    runs-on:
-      - kuzu-self-hosted-linux-building-x86_64_centos8
+    runs-on: kuzu-self-hosted-linux-building-x86_64_centos8
     steps:
       - uses: actions/checkout@v3
 
@@ -24,8 +23,7 @@ jobs:
           path: extension-artifacts/*.kuzu_extension
 
   build-linux-extensions-x86_64-old:
-    runs-on:
-      - kuzu-self-hosted-linux-building-x86_64_centos7
+    runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
     steps:
       - uses: actions/checkout@v3
 
