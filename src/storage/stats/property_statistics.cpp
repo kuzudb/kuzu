@@ -45,8 +45,10 @@ void RWPropertyStats::setHasNull(const transaction::Transaction& transaction) {
     // properly align properties and chunks.
     if (propertyID != common::INVALID_PROPERTY_ID) {
         KU_ASSERT(tablesStatistics);
-        tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID)
-            .setHasNull();
+        auto propStats =
+            tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID);
+        propStats.setHasNull();
+        tablesStatistics->setPropertyStatisticsForTable(tableID, propertyID, propStats);
     }
 }
 

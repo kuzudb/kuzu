@@ -88,8 +88,8 @@ public:
 
 private:
     inline bool isCopyAllowed() const {
-        return sharedState->getNextRelOffset(
-                   transaction::Transaction::getDummyReadOnlyTrx().get()) == 0;
+        return sharedState->getNextRelOffset(transaction::Transaction::getDummyWriteTrx().get()) ==
+               0;
     }
 
     void prepareCSRNodeGroup(common::DataChunkCollection* partition,

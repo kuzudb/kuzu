@@ -20,10 +20,9 @@ RelsStoreStats::RelsStoreStats(
 void RelsStoreStats::setNumTuplesForTable(table_id_t relTableID, uint64_t numRels) {
     std::unique_lock lck{mtx};
     initTableStatisticsForWriteTrxNoLock();
-    KU_ASSERT(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(relTableID));
-    auto relStatistics =
-        (RelTableStats*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
-            .get();
+    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(relTableID));
+    setToUpdated();
+    auto relStatistics = (RelTableStats*)readWriteVersion->tableStatisticPerTable[relTableID].get();
     increaseNextRelOffset(relTableID, numRels - relStatistics->getNumTuples());
     relStatistics->setNumTuples(numRels);
 }
@@ -31,9 +30,9 @@ void RelsStoreStats::setNumTuplesForTable(table_id_t relTableID, uint64_t numRel
 void RelsStoreStats::updateNumRelsByValue(table_id_t relTableID, int64_t value) {
     std::unique_lock lck{mtx};
     initTableStatisticsForWriteTrxNoLock();
-    auto relStatistics =
-        (RelTableStats*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
-            .get();
+    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(relTableID));
+    setToUpdated();
+    auto relStatistics = (RelTableStats*)readWriteVersion->tableStatisticPerTable[relTableID].get();
     auto numRelsBeforeUpdate = relStatistics->getNumTuples();
     KU_ASSERT(!(numRelsBeforeUpdate == 0 && value < 0));
     auto numRelsAfterUpdate = relStatistics->getNumTuples() + value;
@@ -47,18 +46,19 @@ void RelsStoreStats::updateNumRelsByValue(table_id_t relTableID, int64_t value) 
 offset_t RelsStoreStats::getNextRelOffset(
     transaction::Transaction* transaction, table_id_t tableID) {
     std::unique_lock lck{mtx};
-    auto& tableStatisticContent =
-        (transaction->isReadOnly() || tablesStatisticsContentForWriteTrx == nullptr) ?
-            tablesStatisticsContentForReadOnlyTrx :
-            tablesStatisticsContentForWriteTrx;
+    auto& tableStatisticContent = (transaction->isReadOnly() || readWriteVersion == nullptr) ?
+                                      readOnlyVersion :
+                                      readWriteVersion;
     return ((RelTableStats*)tableStatisticContent->tableStatisticPerTable.at(tableID).get())
         ->getNextRelOffset();
 }
 
 void RelsStoreStats::addMetadataDAHInfo(table_id_t tableID, const LogicalType& dataType) {
     initTableStatisticsForWriteTrx();
-    auto tableStats = dynamic_cast<RelTableStats*>(
-        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID].get());
+    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+    setToUpdated();
+    auto tableStats =
+        dynamic_cast<RelTableStats*>(readWriteVersion->tableStatisticPerTable[tableID].get());
     tableStats->addMetadataDAHInfoForColumn(
         createMetadataDAHInfo(dataType, *metadataFH, bufferManager, wal), RelDataDirection::FWD);
     tableStats->addMetadataDAHInfoForColumn(
@@ -67,8 +67,10 @@ void RelsStoreStats::addMetadataDAHInfo(table_id_t tableID, const LogicalType& d
 
 void RelsStoreStats::removeMetadataDAHInfo(table_id_t tableID, column_id_t columnID) {
     initTableStatisticsForWriteTrx();
-    auto tableStats = dynamic_cast<RelTableStats*>(
-        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID].get());
+    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+    setToUpdated();
+    auto tableStats =
+        dynamic_cast<RelTableStats*>(readWriteVersion->tableStatisticPerTable[tableID].get());
     tableStats->removeMetadataDAHInfoForColumn(columnID, RelDataDirection::FWD);
     tableStats->removeMetadataDAHInfoForColumn(columnID, RelDataDirection::BWD);
 }
