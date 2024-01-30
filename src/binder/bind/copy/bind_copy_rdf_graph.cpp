@@ -18,7 +18,7 @@ namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     const parser::Statement&, std::unique_ptr<ReaderConfig> config, TableSchema* tableSchema) {
-    auto functions = catalog.getBuiltInFunctions();
+    auto functions = catalog.getBuiltInFunctions(clientContext->getTx());
     auto rdfSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(tableSchema);
     auto offset = expressionBinder.createVariableExpression(
         *LogicalType::INT64(), InternalKeyword::ROW_OFFSET);

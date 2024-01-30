@@ -113,34 +113,42 @@ public:
 
     template<typename TR, typename... Args>
     void createScalarFunction(std::string name, TR (*udfFunc)(Args...)) {
+        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
         addScalarFunction(
             std::move(nameCopy), function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc));
+        commitUDFTrx(autoTrx);
     }
 
     template<typename TR, typename... Args>
     void createScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypes,
         common::LogicalTypeID returnType, TR (*udfFunc)(Args...)) {
+        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
         addScalarFunction(
             std::move(nameCopy), function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc,
                                      std::move(parameterTypes), returnType));
+        commitUDFTrx(autoTrx);
     }
 
     template<typename TR, typename... Args>
     void createVectorizedFunction(std::string name, function::scalar_exec_func scalarFunc) {
+        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
         addScalarFunction(std::move(nameCopy), function::UDF::getVectorizedFunction<TR, Args...>(
                                                    std::move(name), std::move(scalarFunc)));
+        commitUDFTrx(autoTrx);
     }
 
     void createVectorizedFunction(std::string name,
         std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
         function::scalar_exec_func scalarFunc) {
+        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
         addScalarFunction(
             std::move(nameCopy), function::UDF::getVectorizedFunction(std::move(name),
                                      std::move(scalarFunc), std::move(parameterTypes), returnType));
+        commitUDFTrx(autoTrx);
     }
 
     inline void setReplaceFunc(replace_func_t replaceFunc) {
@@ -174,6 +182,10 @@ private:
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
 
     KUZU_API void addScalarFunction(std::string name, function::function_set definitions);
+
+    KUZU_API bool startUDFAutoTrx(transaction::TransactionContext* trx);
+
+    KUZU_API void commitUDFTrx(bool isAutoCommitTrx);
 
 private:
     Database* database;

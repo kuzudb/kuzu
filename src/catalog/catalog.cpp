@@ -109,8 +109,8 @@ void Catalog::checkpointInMemory() {
     }
 }
 
-ExpressionType Catalog::getFunctionType(const std::string& name) const {
-    return readOnlyVersion->getFunctionType(name);
+ExpressionType Catalog::getFunctionType(Transaction* tx, const std::string& name) const {
+    return getVersion(tx)->getFunctionType(name);
 }
 
 table_id_t Catalog::addNodeTableSchema(const binder::BoundCreateTableInfo& info) {
@@ -218,6 +218,11 @@ void Catalog::renameProperty(
 }
 
 void Catalog::addFunction(std::string name, function::function_set functionSet) {
+    initCatalogContentForWriteTrxIfNecessary();
+    readWriteVersion->addFunction(std::move(name), std::move(functionSet));
+}
+
+void Catalog::addBuiltInFunction(std::string name, function::function_set functionSet) {
     readOnlyVersion->addFunction(std::move(name), std::move(functionSet));
 }
 
