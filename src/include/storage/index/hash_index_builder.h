@@ -3,11 +3,9 @@
 #include "common/mutex.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
-#include "storage/index/base_hash_index.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/in_mem_file.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {
@@ -28,8 +26,7 @@ public:
  *
  * 2. Given a key, it is mapped to one of the pSlots based on its hash value and the level and
  * splitting info. The actual key and value are either stored in the pSlot, or in a chained overflow
- * slots (oSlots) of the pSlot. Each pSlot corresponds to an mutex, whose unique lock is obtained
- * before any insertions or deletions to that pSlot or its chained oSlots.
+ * slots (oSlots) of the pSlot.
  *
  * The slot data structure:
  * Each slot (p/oSlot) consists of a slot header and several entries. The max number of entries in
@@ -46,8 +43,10 @@ public:
  *
  *  */
 
+// T is the key type used to access values
+// S is the stored type, which is usually the same as T, with the exception of strings
 template<common::IndexHashable T, typename S = T>
-class HashIndexBuilder final : public InMemHashIndex, BaseHashIndex<T, S> {
+class HashIndexBuilder final : public InMemHashIndex {
 public:
     HashIndexBuilder(const std::shared_ptr<FileHandle>& handle,
         const std::shared_ptr<common::Mutex<InMemFile>>& overflowFile, uint64_t indexPos,
@@ -57,62 +56,75 @@ public:
     // Reserves space for at least the specified number of elements.
     void bulkReserve(uint32_t numEntries) override;
 
-    // Note: append assumes that bulkReserve has been called before it and the index has reserved
-    // enough space already.
     bool append(T key, common::offset_t value);
     bool lookup(T key, common::offset_t& result);
 
-    // Non-thread safe. This should only be called in the copyCSV and never be called in parallel.
     void flush() override;
 
 private:
-    template<bool IS_LOOKUP>
-    bool lookupOrExistsInSlotWithoutLock(Slot<S>* slot, T key, common::offset_t* result = nullptr);
-    void insertToSlotWithoutLock(Slot<S>* slot, T key, common::offset_t value);
     Slot<S>* getSlot(const SlotInfo& slotInfo);
 
-    inline Slot<S> getSlot(
-        transaction::TransactionType /*trxType*/, const SlotInfo& slotInfo) override {
-        return *getSlot(slotInfo);
-    }
-    void updateSlot(const SlotInfo& slotInfo, const Slot<S>& slot) override {
-        *getSlot(slotInfo) = slot;
-    }
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
-    inline uint32_t appendPSlot() override { return allocatePSlots(1); }
     uint32_t allocateAOSlot();
-    uint64_t appendOverflowSlot(Slot<S>&& slot) override {
-        auto index = allocateAOSlot();
-        updateSlot(SlotInfo{index, SlotType::OVF}, slot);
-        return index;
-    }
+    /*
+     * When a slot is split, we add a new slot, which ends up with an
+     * id equal to the slot to split's ID + (1 << header.currentLevel).
+     * Values are then rehashed using a hash index which is one bit wider than before,
+     * meaning they either stay in the existing slot, or move into the new one.
+     */
+    void splitSlot(HashIndexHeader& header);
 
-    inline bool equals(T keyToLookup, const S& keyInEntry, const InMemFile* /*inMemOverflowFile*/) {
+    inline bool equals(
+        T keyToLookup, const S& keyInEntry, const InMemFile* /*inMemOverflowFile*/) const {
         return keyToLookup == keyInEntry;
     }
 
-    // Overridden so that we can specialize for strings
-    inline void insert(T key, uint8_t* entry, common::offset_t offset) override {
-        return BaseHashIndex<T, S>::insert(key, entry, offset);
+    inline void updateForNewEntry(Slot<S>* slot, uint8_t entryPos) {
+        slot->header.setEntryValid(entryPos);
+        slot->header.numEntries++;
     }
-    common::hash_t hashStored(
-        transaction::TransactionType /*trxType*/, const S& key) const override;
-    void insertNoGuard(
-        T key, uint8_t* entry, common::offset_t offset, InMemFile* /*inMemOverflowFile*/) {
-        insert(key, entry, offset);
+
+    inline void insert(
+        T key, Slot<S>* slot, uint8_t entryPos, common::offset_t value, InMemFile* /*memFile*/) {
+        auto entry = slot->entries[entryPos].data;
+        memcpy(entry, &key, sizeof(T));
+        memcpy(entry + sizeof(T), &value, sizeof(common::offset_t));
+        updateForNewEntry(slot, entryPos);
+    }
+    void copy(const uint8_t* oldEntry, slot_id_t newSlotId);
+    void insertToNewOvfSlot(
+        T key, Slot<S>* previousSlot, common::offset_t offset, InMemFile* memFile);
+    common::hash_t hashStored(const S& key, const InMemFile* inMemFile) const;
+
+    struct SlotIterator {
+        explicit SlotIterator(slot_id_t newSlotId, HashIndexBuilder<T, S>* builder)
+            : slotInfo{newSlotId, SlotType::PRIMARY}, slot(builder->getSlot(slotInfo)) {}
+        SlotInfo slotInfo;
+        Slot<S>* slot;
+    };
+
+    inline bool nextChainedSlot(SlotIterator& iter) {
+        if (iter.slot->header.nextOvfSlotId != 0) {
+            iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
+            iter.slotInfo.slotType = SlotType::OVF;
+            iter.slot = getSlot(iter.slotInfo);
+            return true;
+        }
+        return false;
     }
 
 private:
     std::shared_ptr<FileHandle> fileHandle;
     std::shared_ptr<common::Mutex<InMemFile>> inMemOverflowFile;
     std::unique_ptr<InMemDiskArrayBuilder<HashIndexHeader>> headerArray;
-    std::shared_mutex oSlotsSharedMutex;
     std::unique_ptr<InMemDiskArrayBuilder<Slot<S>>> pSlots;
     std::unique_ptr<InMemDiskArrayBuilder<Slot<S>>> oSlots;
-    std::vector<std::unique_ptr<std::mutex>> pSlotsMutexes;
-    uint8_t slotCapacity;
-    std::atomic<uint64_t> numEntries;
+    std::unique_ptr<HashIndexHeader> indexHeader;
 };
+
+template<>
+bool HashIndexBuilder<std::string_view, common::ku_string_t>::equals(std::string_view keyToLookup,
+    const common::ku_string_t& keyInEntry, const InMemFile* inMemOverflowFile) const;
 
 class PrimaryKeyIndexBuilder {
 public:
@@ -123,16 +135,15 @@ public:
 
     // Note: append assumes that bulkRserve has been called before it and the index has reserved
     // enough space already.
-    template<typename T>
-    requires common::HashablePrimitive<T> bool append(T key, common::offset_t value) {
+    template<common::HashablePrimitive T>
+    bool append(T key, common::offset_t value) {
         return appendWithIndexPos(key, value, getHashIndexPosition(key));
     }
     bool append(std::string_view key, common::offset_t value) {
         return appendWithIndexPos(key, value, getHashIndexPosition(key));
     }
-    template<typename T>
-    requires common::HashablePrimitive<T> bool appendWithIndexPos(
-        T key, common::offset_t value, uint64_t indexPos) {
+    template<common::HashablePrimitive T>
+    bool appendWithIndexPos(T key, common::offset_t value, uint64_t indexPos) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         KU_ASSERT(getHashIndexPosition(key) == indexPos);
         return getTypedHashIndex<T>(indexPos)->append(key, value);
@@ -143,8 +154,8 @@ public:
         return getTypedHashIndex<std::string_view, common::ku_string_t>(indexPos)->append(
             key, value);
     }
-    template<typename T>
-    requires common::HashablePrimitive<T> bool lookup(T key, common::offset_t& result) {
+    template<common::HashablePrimitive T>
+    bool lookup(T key, common::offset_t& result) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex<T>(getHashIndexPosition(key))->lookup(key, result);
     }
@@ -167,8 +178,8 @@ private:
     }
 
 private:
-    std::mutex mtx;
     common::PhysicalTypeID keyDataTypeID;
+    // TODO(bmwinger): use a rwlock so that reads can be done concurrently
     std::shared_ptr<common::Mutex<InMemFile>> overflowFile;
     std::vector<std::unique_ptr<InMemHashIndex>> hashIndexBuilders;
 };

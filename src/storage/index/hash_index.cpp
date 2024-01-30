@@ -10,6 +10,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/index/hash_index_utils.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -98,8 +99,8 @@ HashIndex<T, S>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
     const std::shared_ptr<BMFileHandle>& fileHandle,
     const std::shared_ptr<DiskOverflowFile>& overflowFile, uint64_t indexPos,
     BufferManager& bufferManager, WAL* wal)
-    : BaseHashIndex<T, S>{}, dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal},
-      fileHandle(fileHandle), diskOverflowFile(overflowFile) {
+    : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal}, fileHandle(fileHandle),
+      diskOverflowFile(overflowFile) {
     headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
         dbFileIDAndName.dbFileID, NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX,
         &bm, wal, Transaction::getDummyReadOnlyTrx().get());
@@ -171,74 +172,55 @@ bool HashIndex<T, S>::insertInternal(T key, offset_t value) {
 }
 
 template<typename T, typename S>
-template<ChainedSlotsAction action>
-bool HashIndex<T, S>::performActionInChainedSlots(
-    TransactionType trxType, HashIndexHeader& header, SlotInfo& slotInfo, T key, offset_t& result) {
-    while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId != 0) {
-        auto slot = getSlot(trxType, slotInfo);
-        if constexpr (action == ChainedSlotsAction::FIND_FREE_SLOT) {
-            if (slot.header.numEntries < this->slotCapacity || slot.header.nextOvfSlotId == 0) {
-                // Found a slot with empty space.
-                break;
-            }
-        } else {
-            auto entryPos = findMatchedEntryInSlot(trxType, slot, key);
-            if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
-                if constexpr (action == ChainedSlotsAction::LOOKUP_IN_SLOTS) {
-                    result = *(
-                        offset_t*)(slot.entries[entryPos].data + this->indexHeader->numBytesPerKey);
-                } else if constexpr (action == ChainedSlotsAction::DELETE_IN_SLOTS) {
-                    slot.header.setEntryInvalid(entryPos);
-                    slot.header.numEntries--;
-                    updateSlot(slotInfo, slot);
-                    header.numEntries--;
-                }
-                return true;
-            }
-        }
-        slotInfo.slotId = slot.header.nextOvfSlotId;
-        slotInfo.slotType = SlotType::OVF;
-    }
-    return false;
-}
-
-template<typename T, typename S>
 bool HashIndex<T, S>::lookupInPersistentIndex(TransactionType trxType, T key, offset_t& result) {
     auto header = trxType == TransactionType::READ_ONLY ?
                       *this->indexHeader :
                       headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
-    SlotInfo slotInfo{this->getPrimarySlotIdForKey(header, key), SlotType::PRIMARY};
-    return performActionInChainedSlots<ChainedSlotsAction::LOOKUP_IN_SLOTS>(
-        trxType, header, slotInfo, key, result);
+    auto iter = getSlotIterator(HashIndexUtils::getPrimarySlotIdForKey(header, key), trxType);
+    do {
+        auto entryPos = findMatchedEntryInSlot(trxType, iter.slot, key);
+        if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
+            result = *(common::offset_t*)(iter.slot.entries[entryPos].data +
+                                          this->indexHeader->numBytesPerKey);
+            return true;
+        }
+    } while (nextChainedSlot(trxType, iter));
+    return false;
 }
 
 template<typename T, typename S>
 void HashIndex<T, S>::insertIntoPersistentIndex(T key, offset_t value) {
     auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
-    slot_id_t numRequiredEntries = this->getNumRequiredEntries(header.numEntries, 1);
-    while (
-        numRequiredEntries > pSlots->getNumElements(TransactionType::WRITE) * this->slotCapacity) {
+    slot_id_t numRequiredEntries = HashIndexUtils::getNumRequiredEntries(header.numEntries, 1);
+    while (numRequiredEntries >
+           pSlots->getNumElements(TransactionType::WRITE) * getSlotCapacity<S>()) {
         this->splitSlot(header);
     }
-    auto pSlotId = this->getPrimarySlotIdForKey(header, key);
-    SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
-    offset_t result;
-    performActionInChainedSlots<ChainedSlotsAction::FIND_FREE_SLOT>(
-        TransactionType::WRITE, header, slotInfo, key, result);
-    Slot slot = getSlot(TransactionType::WRITE, slotInfo);
-    BaseHashIndex<T, S>::template copyKVOrEntryToSlot<T, false /* insert kv */>(
-        slotInfo, slot, key, value);
+    auto iter = getSlotIterator(
+        HashIndexUtils::getPrimarySlotIdForKey(header, key), TransactionType::WRITE);
+    // Find a slot with free entries
+    while (iter.slot.header.numEntries == getSlotCapacity<S>() &&
+           nextChainedSlot(TransactionType::WRITE, iter))
+        ;
+    copyKVOrEntryToSlot<T, false /* insert kv */>(iter.slotInfo, iter.slot, key, value);
     header.numEntries++;
     headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, header);
 }
 
 template<typename T, typename S>
 void HashIndex<T, S>::deleteFromPersistentIndex(T key) {
-    auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
-    SlotInfo slotInfo{this->getPrimarySlotIdForKey(header, key), SlotType::PRIMARY};
-    offset_t result;
-    performActionInChainedSlots<ChainedSlotsAction::DELETE_IN_SLOTS>(
-        TransactionType::WRITE, header, slotInfo, key, result);
+    auto trxType = TransactionType::WRITE;
+    auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, trxType);
+    auto iter = getSlotIterator(HashIndexUtils::getPrimarySlotIdForKey(header, key), trxType);
+    do {
+        auto entryPos = findMatchedEntryInSlot(trxType, iter.slot, key);
+        if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
+            iter.slot.header.setEntryInvalid(entryPos);
+            iter.slot.header.numEntries--;
+            updateSlot(iter.slotInfo, iter.slot);
+            header.numEntries--;
+        }
+    } while (nextChainedSlot(trxType, iter));
     headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, header);
 }
 
@@ -254,7 +236,7 @@ inline common::hash_t HashIndex<std::string_view, ku_string_t>::hashStored(
 template<typename T, typename S>
 entry_pos_t HashIndex<T, S>::findMatchedEntryInSlot(
     TransactionType trxType, const Slot<S>& slot, T key) const {
-    for (auto entryPos = 0u; entryPos < this->slotCapacity; entryPos++) {
+    for (auto entryPos = 0u; entryPos < getSlotCapacity<S>(); entryPos++) {
         if (!slot.header.isEntryValid(entryPos)) {
             continue;
         }
@@ -324,6 +306,52 @@ inline void HashIndex<std::string_view, ku_string_t>::insert(
     auto kuString = diskOverflowFile->writeString(key);
     memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
     memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
+}
+
+template<typename T, typename S>
+void HashIndex<T, S>::rehashSlots(HashIndexHeader& header) {
+    auto slotsToSplit = getChainedSlots(header.nextSplitSlotId);
+    for (auto& [slotInfo, slot] : slotsToSplit) {
+        auto slotHeader = slot.header;
+        slot.header.reset();
+        updateSlot(slotInfo, slot);
+        for (auto entryPos = 0u; entryPos < getSlotCapacity<S>(); entryPos++) {
+            if (!slotHeader.isEntryValid(entryPos)) {
+                continue; // Skip invalid entries.
+            }
+            auto key = (S*)slot.entries[entryPos].data;
+            hash_t hash = this->hashStored(TransactionType::WRITE, *key);
+            auto newSlotId = hash & header.higherLevelHashMask;
+            copyEntryToSlot(newSlotId, *key);
+        }
+    }
+}
+
+template<typename T, typename S>
+std::vector<std::pair<SlotInfo, Slot<S>>> HashIndex<T, S>::getChainedSlots(slot_id_t pSlotId) {
+    std::vector<std::pair<SlotInfo, Slot<S>>> slots;
+    SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
+    while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId != 0) {
+        auto slot = getSlot(TransactionType::WRITE, slotInfo);
+        slots.emplace_back(slotInfo, slot);
+        slotInfo.slotId = slot.header.nextOvfSlotId;
+        slotInfo.slotType = SlotType::OVF;
+    }
+    return slots;
+}
+
+template<typename T, typename S>
+void HashIndex<T, S>::copyEntryToSlot(slot_id_t slotId, const S& entry) {
+    auto iter = getSlotIterator(slotId, TransactionType::WRITE);
+    do {
+        if (iter.slot.header.numEntries < getSlotCapacity<S>()) {
+            // Found a slot with empty space.
+            break;
+        }
+    } while (nextChainedSlot(TransactionType::WRITE, iter));
+    copyKVOrEntryToSlot<const S&, true /* copy entry */>(
+        iter.slotInfo, iter.slot, entry, UINT32_MAX);
+    updateSlot(iter.slotInfo, iter.slot);
 }
 
 template<typename T, typename S>

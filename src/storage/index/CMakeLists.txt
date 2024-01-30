@@ -1,6 +1,5 @@
 add_library(kuzu_storage_index
         OBJECT
-        base_hash_index.cpp
         hash_index.cpp
         hash_index_builder.cpp)
 

@@ -5,7 +5,6 @@
 #include "common/types/types.h"
 #include "hash_index_header.h"
 #include "hash_index_slot.h"
-#include "storage/index/base_hash_index.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/disk_overflow_file.h"
@@ -44,8 +43,11 @@ public:
 //   First check if the key to be inserted already exists in local insertions or the persistent
 //   store. If the key doesn't exist yet, append it to local insertions, and also remove it from
 //   local deletions if it was marked as deleted.
+//
+// T is the key type used to access values
+// S is the stored type, which is usually the same as T, with the exception of strings
 template<typename T, typename S = T>
-class HashIndex final : public OnDiskHashIndex, public BaseHashIndex<T, S> {
+class HashIndex final : public OnDiskHashIndex {
 
 public:
     HashIndex(const DBFileIDAndName& dbFileIDAndName,
@@ -67,9 +69,6 @@ public:
     inline BMFileHandle* getFileHandle() const { return fileHandle.get(); }
 
 private:
-    template<ChainedSlotsAction action>
-    bool performActionInChainedSlots(transaction::TransactionType trxType, HashIndexHeader& header,
-        SlotInfo& slotInfo, T key, common::offset_t& result);
     bool lookupInPersistentIndex(
         transaction::TransactionType trxType, T key, common::offset_t& result);
     // The following two functions are only used in prepareCommit, and are not thread-safe.
@@ -79,36 +78,95 @@ private:
     entry_pos_t findMatchedEntryInSlot(
         transaction::TransactionType trxType, const Slot<S>& slot, T key) const;
 
-    inline void updateSlot(const SlotInfo& slotInfo, const Slot<S>& slot) override {
+    inline void updateSlot(const SlotInfo& slotInfo, const Slot<S>& slot) {
         slotInfo.slotType == SlotType::PRIMARY ? pSlots->update(slotInfo.slotId, slot) :
                                                  oSlots->update(slotInfo.slotId, slot);
     }
 
-    inline Slot<S> getSlot(
-        transaction::TransactionType trxType, const SlotInfo& slotInfo) override {
+    inline Slot<S> getSlot(transaction::TransactionType trxType, const SlotInfo& slotInfo) {
         return slotInfo.slotType == SlotType::PRIMARY ? pSlots->get(slotInfo.slotId, trxType) :
                                                         oSlots->get(slotInfo.slotId, trxType);
     }
 
-    inline uint32_t appendPSlot() override { return pSlots->pushBack(Slot<S>{}); }
+    inline uint32_t appendPSlot() { return pSlots->pushBack(Slot<S>{}); }
 
-    inline uint64_t appendOverflowSlot(Slot<S>&& newSlot) override {
-        return oSlots->pushBack(newSlot);
+    inline uint64_t appendOverflowSlot(Slot<S>&& newSlot) { return oSlots->pushBack(newSlot); }
+
+    inline void splitSlot(HashIndexHeader& header) {
+        appendPSlot();
+        rehashSlots(header);
+        header.incrementNextSplitSlotId();
     }
+    void rehashSlots(HashIndexHeader& header);
 
     inline bool equals(
         transaction::TransactionType /*trxType*/, T keyToLookup, const S& keyInEntry) const {
         return keyToLookup == keyInEntry;
     }
+    template<typename K, bool isCopyEntry>
+    void copyAndUpdateSlotHeader(
+        Slot<S>& slot, entry_pos_t entryPos, K key, common::offset_t value) {
+        if constexpr (isCopyEntry) {
+            memcpy(slot.entries[entryPos].data, &key, this->indexHeader->numBytesPerEntry);
+        } else {
+            insert(key, slot.entries[entryPos].data, value);
+        }
+        slot.header.setEntryValid(entryPos);
+        slot.header.numEntries++;
+    }
 
-    // Overridden so that we can specialize for strings
-    inline void insert(T key, uint8_t* entry, common::offset_t offset) override {
-        return BaseHashIndex<T, S>::insert(key, entry, offset);
+    inline void insert(T key, uint8_t* entry, common::offset_t offset) {
+        memcpy(entry, &key, sizeof(T));
+        memcpy(entry + sizeof(T), &offset, sizeof(common::offset_t));
     }
-    inline common::hash_t hashStored(
-        transaction::TransactionType /*trxType*/, const S& key) const override {
-        return this->hash(key);
+    inline common::hash_t hashStored(transaction::TransactionType /*trxType*/, const S& key) const {
+        return HashIndexUtils::hash(key);
     }
+
+    struct SlotIterator {
+        SlotInfo slotInfo;
+        Slot<S> slot;
+    };
+
+    SlotIterator getSlotIterator(slot_id_t slotId, transaction::TransactionType trxType) {
+        return SlotIterator{SlotInfo{slotId, SlotType::PRIMARY},
+            getSlot(trxType, SlotInfo{slotId, SlotType::PRIMARY})};
+    }
+
+    bool nextChainedSlot(transaction::TransactionType trxType, SlotIterator& iter) {
+        if (iter.slot.header.nextOvfSlotId != 0) {
+            iter.slotInfo.slotId = iter.slot.header.nextOvfSlotId;
+            iter.slotInfo.slotType = SlotType::OVF;
+            iter.slot = getSlot(trxType, iter.slotInfo);
+            return true;
+        }
+        return false;
+    }
+
+    std::vector<std::pair<SlotInfo, Slot<S>>> getChainedSlots(slot_id_t pSlotId);
+
+    template<typename K, bool isCopyEntry>
+    void copyKVOrEntryToSlot(
+        const SlotInfo& slotInfo, Slot<S>& slot, K key, common::offset_t value) {
+        if (slot.header.numEntries == getSlotCapacity<S>()) {
+            // Allocate a new oSlot, insert the entry to the new oSlot, and update slot's
+            // nextOvfSlotId.
+            Slot<S> newSlot;
+            auto entryPos = 0u; // Always insert to the first entry when there is a new slot.
+            copyAndUpdateSlotHeader<K, isCopyEntry>(newSlot, entryPos, key, value);
+            slot.header.nextOvfSlotId = appendOverflowSlot(std::move(newSlot));
+        } else {
+            for (auto entryPos = 0u; entryPos < getSlotCapacity<S>(); entryPos++) {
+                if (!slot.header.isEntryValid(entryPos)) {
+                    copyAndUpdateSlotHeader<K, isCopyEntry>(slot, entryPos, key, value);
+                    break;
+                }
+            }
+        }
+        updateSlot(slotInfo, slot);
+    }
+
+    void copyEntryToSlot(slot_id_t slotId, const S& entry);
 
 private:
     // Local Storage for strings stores an std::string, but still takes std::string_view as keys to
@@ -124,11 +182,17 @@ private:
     std::unique_ptr<BaseDiskArray<Slot<S>>> oSlots;
     std::shared_ptr<DiskOverflowFile> diskOverflowFile;
     std::unique_ptr<HashIndexLocalStorage<T, LocalStorageType>> localStorage;
+    std::unique_ptr<HashIndexHeader> indexHeader;
 };
 
 template<>
 common::hash_t HashIndex<std::string_view, common::ku_string_t>::hashStored(
-    transaction::TransactionType /*trxType*/, const common::ku_string_t& key) const;
+    transaction::TransactionType trxType, const common::ku_string_t& key) const;
+
+template<>
+inline bool HashIndex<std::string_view, common::ku_string_t>::equals(
+    transaction::TransactionType trxType, std::string_view keyToLookup,
+    const common::ku_string_t& keyInEntry) const;
 
 class PrimaryKeyIndex {
 public:

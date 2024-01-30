@@ -356,6 +356,8 @@ public:
 
     void saveToDisk();
 
+    inline uint64_t getNumElements() { return header.numElements; }
+
 private:
     inline uint64_t getNumArrayPagesNeededForElements(uint64_t numElements) {
         return (numElements >> this->header.numElementsPerPageLog2) +
@@ -379,10 +381,7 @@ public:
         diskArray.resize(newNumElements, setToZero);
     }
 
-    inline uint64_t getNumElements(
-        transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY) {
-        return diskArray.getNumElements(trxType);
-    }
+    inline uint64_t getNumElements() { return diskArray.getNumElements(); }
 
     inline void saveToDisk() { diskArray.saveToDisk(); }
 
