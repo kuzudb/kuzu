@@ -12,21 +12,6 @@
 namespace kuzu {
 namespace main {
 
-struct DataTypeInfo {
-public:
-    DataTypeInfo(common::LogicalTypeID typeID, std::string name)
-        : typeID{typeID}, name{std::move(name)}, numValuesPerList{0} {}
-
-    common::LogicalTypeID typeID;
-    std::string name;
-    std::vector<std::unique_ptr<DataTypeInfo>> childrenTypesInfo;
-    // Used by fixedList only.
-    uint64_t numValuesPerList;
-
-    static std::unique_ptr<DataTypeInfo> getInfoForDataType(
-        const common::LogicalType& type, const std::string& name);
-};
-
 /**
  * @brief QueryResult stores the result of a query execution.
  */
@@ -73,8 +58,6 @@ public:
      * options.
      */
     KUZU_API QuerySummary* getQuerySummary() const;
-
-    std::vector<std::unique_ptr<DataTypeInfo>> getColumnTypesInfo() const;
     /**
      * @return whether there are more tuples to read.
      */

@@ -265,8 +265,8 @@ py::object PyQueryResult::getAsDF() {
     return QueryResultConverter(queryResult.get()).toDF();
 }
 
-bool PyQueryResult::getNextArrowChunk(const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo,
-    py::list& batches, std::int64_t chunkSize) {
+bool PyQueryResult::getNextArrowChunk(const std::vector<kuzu::common::LogicalType>& types,
+    const std::vector<std::string>& names, py::list& batches, std::int64_t chunkSize) {
     if (!queryResult->hasNext()) {
         return false;
     }
@@ -276,16 +276,16 @@ bool PyQueryResult::getNextArrowChunk(const std::vector<std::unique_ptr<DataType
     // TODO(Ziyi): use import cache to improve performance.
     auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
     auto batchImportFunc = pyarrowLibModule.attr("RecordBatch").attr("_import_from_c");
-    auto schema = ArrowConverter::toArrowSchema(typesInfo);
+    auto schema = ArrowConverter::toArrowSchema(types, names);
     batches.append(batchImportFunc((std::uint64_t)&data, (std::uint64_t)schema.get()));
     return true;
 }
 
-py::object PyQueryResult::getArrowChunks(
-    const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, std::int64_t chunkSize) {
+py::object PyQueryResult::getArrowChunks(const std::vector<kuzu::common::LogicalType>& types,
+    const std::vector<std::string>& names, std::int64_t chunkSize) {
     auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
     py::list batches;
-    while (getNextArrowChunk(typesInfo, batches, chunkSize)) {}
+    while (getNextArrowChunk(types, names, batches, chunkSize)) {}
     return batches;
 }
 
@@ -296,9 +296,10 @@ kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize) {
     auto fromBatchesFunc = pyarrowLibModule.attr("Table").attr("from_batches");
     auto schemaImportFunc = pyarrowLibModule.attr("Schema").attr("_import_from_c");
 
-    auto typesInfo = queryResult->getColumnTypesInfo();
-    py::list batches = getArrowChunks(typesInfo, chunkSize);
-    auto schema = ArrowConverter::toArrowSchema(typesInfo);
+    auto types = queryResult->getColumnDataTypes();
+    auto names = queryResult->getColumnNames();
+    py::list batches = getArrowChunks(types, names, chunkSize);
+    auto schema = ArrowConverter::toArrowSchema(types, names);
     auto schemaObj = schemaImportFunc((std::uint64_t)schema.get());
     return py::cast<kuzu::pyarrow::Table>(fromBatchesFunc(batches, schemaObj));
 }
