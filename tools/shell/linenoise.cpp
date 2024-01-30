@@ -974,10 +974,8 @@ static void refreshLine(struct linenoiseState* l) {
         refreshSingleLine(l);
 }
 
-static void truncateSearchText(size_t& render_pos, char*& buf, size_t& len, size_t pos, size_t cols,
+static void truncateSearchText(char*& buf, size_t& len, size_t pos, size_t cols,
     size_t plen) {
-    uint32_t renderWidth = render_pos;
-    uint32_t renderPos = 0;
     if (Utf8Proc::isValid(buf, len)) {
         // UTF8 in prompt, handle rendering.
         size_t remainingRenderWidth = cols - plen - 1;
@@ -1005,13 +1003,8 @@ static void truncateSearchText(size_t& render_pos, char*& buf, size_t& len, size
                         uint32_t newStart = utf8proc_next_grapheme(buf, len, startPos);
                         totalRenderWidth -= startCharWidth;
                         startPos = newStart;
-                        renderWidth -= startCharWidth;
                     }
                 }
-            }
-            if (posCounter <= pos) {
-                renderWidth += charRenderWidth;
-                renderPos += charRenderWidth;
             }
         }
         buf = buf + startPos;
@@ -1026,7 +1019,6 @@ static void truncateSearchText(size_t& render_pos, char*& buf, size_t& len, size
         while (plen + len > cols) {
             len--;
         }
-        renderPos = pos;
     }
 }
 
@@ -1178,10 +1170,9 @@ static void refreshSearch(struct linenoiseState* l) {
 
         char* search_buf = (char*) search_text.c_str();
         size_t search_len = search_text.size();
-        size_t search_render_pos = 0;
         
         size_t cols = l->cols - search_prompt.length() - 1;
-        truncateSearchText(search_render_pos, search_buf, search_len, search_len, cols, 0);
+        truncateSearchText(search_buf, search_len, search_len, cols, 0);
         search_prompt += std::string(search_buf, search_len);
         search_prompt += "_";
     }
