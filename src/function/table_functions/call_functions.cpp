@@ -69,11 +69,11 @@ void CurrentSettingFunction::tableFunc(TableFunctionInput& data, DataChunk& outp
 
 std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(ClientContext* context,
     TableFuncBindInput* input, Catalog* /*catalog*/, StorageManager* /*storageManager*/) {
-    auto optionName = input->inputs[0]->getValue<std::string>();
+    auto optionName = input->inputs[0].getValue<std::string>();
     std::vector<std::string> returnColumnNames;
-    std::vector<std::unique_ptr<LogicalType>> returnTypes;
+    std::vector<LogicalType> returnTypes;
     returnColumnNames.emplace_back(optionName);
-    returnTypes.push_back(LogicalType::STRING());
+    returnTypes.push_back(*LogicalType::STRING());
     return std::make_unique<CurrentSettingBindData>(
         context->getCurrentSetting(optionName).toString(), std::move(returnTypes),
         std::move(returnColumnNames), 1 /* one row result */);
@@ -103,9 +103,9 @@ void DBVersionFunction::tableFunc(TableFunctionInput& input, DataChunk& outputCh
 std::unique_ptr<TableFuncBindData> DBVersionFunction::bindFunc(ClientContext* /*context*/,
     TableFuncBindInput* /*input*/, Catalog* /*catalog*/, StorageManager* /*storageManager*/) {
     std::vector<std::string> returnColumnNames;
-    std::vector<std::unique_ptr<LogicalType>> returnTypes;
+    std::vector<LogicalType> returnTypes;
     returnColumnNames.emplace_back("version");
-    returnTypes.emplace_back(LogicalType::STRING());
+    returnTypes.emplace_back(*LogicalType::STRING());
     return std::make_unique<CallTableFuncBindData>(
         std::move(returnTypes), std::move(returnColumnNames), 1 /* one row result */);
 }
@@ -142,13 +142,13 @@ void ShowTablesFunction::tableFunc(TableFunctionInput& input, DataChunk& outputC
 std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(ClientContext* context,
     TableFuncBindInput* /*input*/, Catalog* catalog, StorageManager* /*storageManager*/) {
     std::vector<std::string> returnColumnNames;
-    std::vector<std::unique_ptr<LogicalType>> returnTypes;
+    std::vector<LogicalType> returnTypes;
     returnColumnNames.emplace_back("name");
-    returnTypes.emplace_back(LogicalType::STRING());
+    returnTypes.emplace_back(*LogicalType::STRING());
     returnColumnNames.emplace_back("type");
-    returnTypes.emplace_back(LogicalType::STRING());
+    returnTypes.emplace_back(*LogicalType::STRING());
     returnColumnNames.emplace_back("comment");
-    returnTypes.emplace_back(LogicalType::STRING());
+    returnTypes.emplace_back(*LogicalType::STRING());
     return std::make_unique<ShowTablesBindData>(catalog->getTableSchemas(context->getTx()),
         std::move(returnTypes), std::move(returnColumnNames),
         catalog->getTableCount(context->getTx()));
@@ -197,19 +197,19 @@ void TableInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputCh
 std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(ClientContext* context,
     TableFuncBindInput* input, Catalog* catalog, StorageManager* /*storageManager*/) {
     std::vector<std::string> returnColumnNames;
-    std::vector<std::unique_ptr<LogicalType>> returnTypes;
-    auto tableName = input->inputs[0]->getValue<std::string>();
+    std::vector<LogicalType> returnTypes;
+    auto tableName = input->inputs[0].getValue<std::string>();
     auto tableID = catalog->getTableID(context->getTx(), tableName);
     auto schema = catalog->getTableSchema(context->getTx(), tableID);
     returnColumnNames.emplace_back("property id");
-    returnTypes.push_back(LogicalType::INT64());
+    returnTypes.push_back(*LogicalType::INT64());
     returnColumnNames.emplace_back("name");
-    returnTypes.push_back(LogicalType::STRING());
+    returnTypes.push_back(*LogicalType::STRING());
     returnColumnNames.emplace_back("type");
-    returnTypes.push_back(LogicalType::STRING());
+    returnTypes.push_back(*LogicalType::STRING());
     if (schema->tableType == TableType::NODE) {
         returnColumnNames.emplace_back("primary key");
-        returnTypes.push_back(LogicalType::BOOL());
+        returnTypes.push_back(*LogicalType::BOOL());
     }
     return std::make_unique<TableInfoBindData>(
         schema, std::move(returnTypes), std::move(returnColumnNames), schema->getNumProperties());
@@ -272,12 +272,12 @@ void ShowConnectionFunction::tableFunc(TableFunctionInput& input, DataChunk& out
 std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(ClientContext* context,
     TableFuncBindInput* input, Catalog* catalog, StorageManager* /*storageManager*/) {
     std::vector<std::string> returnColumnNames;
-    std::vector<std::unique_ptr<LogicalType>> returnTypes;
+    std::vector<LogicalType> returnTypes;
     // Special case here Due to any -> string, but lack implicit cast
-    if (input->inputs[0]->getDataType()->getLogicalTypeID() != LogicalTypeID::STRING) {
+    if (input->inputs[0].getDataType()->getLogicalTypeID() != LogicalTypeID::STRING) {
         throw BinderException{"Show connection can only bind to String!"};
     }
-    auto tableName = input->inputs[0]->getValue<std::string>();
+    auto tableName = input->inputs[0].getValue<std::string>();
     auto tableID = catalog->getTableID(context->getTx(), tableName);
     auto schema = catalog->getTableSchema(context->getTx(), tableID);
     auto tableType = schema->getTableType();
@@ -285,9 +285,9 @@ std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(ClientContex
         throw BinderException{"Show connection can only be called on a rel table!"};
     }
     returnColumnNames.emplace_back("source table name");
-    returnTypes.emplace_back(LogicalType::STRING());
+    returnTypes.emplace_back(*LogicalType::STRING());
     returnColumnNames.emplace_back("destination table name");
-    returnTypes.emplace_back(LogicalType::STRING());
+    returnTypes.emplace_back(*LogicalType::STRING());
     return std::make_unique<ShowConnectionBindData>(catalog, schema, std::move(returnTypes),
         std::move(returnColumnNames),
         schema->tableType == TableType::REL ?
@@ -299,16 +299,16 @@ std::unique_ptr<TableFuncBindData> StorageInfoFunction::bindFunc(ClientContext* 
     TableFuncBindInput* input, Catalog* catalog, StorageManager* storageManager) {
     std::vector<std::string> columnNames = {"node_group_id", "column_name", "data_type",
         "table_type", "start_page_idx", "num_pages", "num_values", "compression"};
-    std::vector<std::unique_ptr<LogicalType>> columnTypes;
-    columnTypes.emplace_back(LogicalType::INT64());
-    columnTypes.emplace_back(LogicalType::STRING());
-    columnTypes.emplace_back(LogicalType::STRING());
-    columnTypes.emplace_back(LogicalType::STRING());
-    columnTypes.emplace_back(LogicalType::INT64());
-    columnTypes.emplace_back(LogicalType::INT64());
-    columnTypes.emplace_back(LogicalType::INT64());
-    columnTypes.emplace_back(LogicalType::STRING());
-    auto tableName = input->inputs[0]->getValue<std::string>();
+    std::vector<LogicalType> columnTypes;
+    columnTypes.emplace_back(*LogicalType::INT64());
+    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(*LogicalType::INT64());
+    columnTypes.emplace_back(*LogicalType::INT64());
+    columnTypes.emplace_back(*LogicalType::INT64());
+    columnTypes.emplace_back(*LogicalType::STRING());
+    auto tableName = input->inputs[0].getValue<std::string>();
     if (!catalog->containsTable(context->getTx(), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};
     }

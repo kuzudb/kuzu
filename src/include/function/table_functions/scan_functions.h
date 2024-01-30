@@ -29,12 +29,11 @@ struct ScanSharedState : public BaseScanSharedState {
 };
 
 struct ScanFileSharedState : public ScanSharedState {
-    common::VirtualFileSystem* vfs;
     main::ClientContext* context;
 
-    ScanFileSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
-        common::VirtualFileSystem* vfs, main::ClientContext* context)
-        : ScanSharedState{std::move(readerConfig), numRows}, vfs{vfs}, context{context} {}
+    ScanFileSharedState(
+        common::ReaderConfig readerConfig, uint64_t numRows, main::ClientContext* context)
+        : ScanSharedState{std::move(readerConfig), numRows}, context{context} {}
 };
 
 } // namespace function

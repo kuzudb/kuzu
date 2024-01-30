@@ -301,6 +301,7 @@ public:
     OC_SchemaNameContext *oC_SchemaName();
     antlr4::tree::TerminalNode *FROM();
     KU_FilePathsContext *kU_FilePaths();
+    OC_VariableContext *oC_Variable();
     KU_ParsingOptionsContext *kU_ParsingOptions();
     KU_ColumnNamesContext *kU_ColumnNames();
 
@@ -1014,11 +1015,12 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     antlr4::tree::TerminalNode *FROM();
     KU_FilePathsContext *kU_FilePaths();
+    OC_VariableContext *oC_Variable();
     antlr4::tree::TerminalNode *WITH();
     antlr4::tree::TerminalNode *HEADERS();
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
-    KU_ParsingOptionsContext *kU_ParsingOptions();
     OC_WhereContext *oC_Where();
+    KU_ParsingOptionsContext *kU_ParsingOptions();
 
    
   };

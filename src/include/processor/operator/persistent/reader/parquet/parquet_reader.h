@@ -42,8 +42,7 @@ struct ParquetReaderScanState {
 
 class ParquetReader {
 public:
-    ParquetReader(const std::string& filePath, storage::MemoryManager* memoryManager,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+    ParquetReader(const std::string& filePath, main::ClientContext* context);
     ~ParquetReader() = default;
 
     void initializeScan(ParquetReaderScanState& state, std::vector<uint64_t> groups_to_read,
@@ -74,7 +73,7 @@ private:
     }
     static std::unique_ptr<common::LogicalType> deriveLogicalType(
         const kuzu_parquet::format::SchemaElement& s_ele);
-    void initMetadata(common::VirtualFileSystem* vfs);
+    void initMetadata();
     std::unique_ptr<ColumnReader> createReader();
     std::unique_ptr<ColumnReader> createReaderRecursive(uint64_t depth, uint64_t maxDefine,
         uint64_t maxRepeat, uint64_t& nextSchemaIdx, uint64_t& nextFileIdx);
@@ -90,17 +89,14 @@ private:
     std::vector<std::string> columnNames;
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     std::unique_ptr<kuzu_parquet::format::FileMetaData> metadata;
-    storage::MemoryManager* memoryManager;
     main::ClientContext* context;
 };
 
 struct ParquetScanSharedState final : public function::ScanFileSharedState {
-    explicit ParquetScanSharedState(const common::ReaderConfig readerConfig,
-        storage::MemoryManager* memoryManager, uint64_t numRows, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
+    explicit ParquetScanSharedState(
+        const common::ReaderConfig readerConfig, uint64_t numRows, main::ClientContext* context);
 
     std::vector<std::unique_ptr<ParquetReader>> readers;
-    storage::MemoryManager* memoryManager;
 };
 
 struct ParquetScanLocalState final : public function::TableFuncLocalState {
@@ -127,11 +123,9 @@ struct ParquetScanFunction {
         storage::MemoryManager* /*mm*/);
 
     static void bindColumns(const function::ScanTableFuncBindInput* bindInput,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes);
     static void bindColumns(const function::ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes);
 };
 
 } // namespace processor

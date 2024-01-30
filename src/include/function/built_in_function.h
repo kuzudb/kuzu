@@ -24,21 +24,21 @@ public:
     // TODO(Ziyi): We should have a unified interface for matching table, aggregate and scalar
     // functions.
     Function* matchFunction(
-        const std::string& name, const std::vector<common::LogicalType*>& inputTypes);
+        const std::string& name, const std::vector<common::LogicalType>& inputTypes);
 
     AggregateFunction* matchAggregateFunction(const std::string& name,
-        const std::vector<common::LogicalType*>& inputTypes, bool isDistinct);
+        const std::vector<common::LogicalType>& inputTypes, bool isDistinct);
 
     static uint32_t getCastCost(
         common::LogicalTypeID inputTypeID, common::LogicalTypeID targetTypeID);
 
     void addFunction(std::string name, function::function_set definitions);
 
-    uint32_t getAggregateFunctionCost(const std::vector<common::LogicalType*>& inputTypes,
+    uint32_t getAggregateFunctionCost(const std::vector<common::LogicalType>& inputTypes,
         bool isDistinct, AggregateFunction* function);
 
     void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candidateFunctions,
-        const std::string& name, const std::vector<common::LogicalType*>& inputTypes,
+        const std::string& name, const std::vector<common::LogicalType>& inputTypes,
         bool isDistinct);
 
     std::unique_ptr<BuiltInFunctions> copy();
@@ -83,17 +83,17 @@ private:
     Function* getBestMatch(std::vector<Function*>& functions);
 
     uint32_t getFunctionCost(
-        const std::vector<common::LogicalType*>& inputTypes, Function* function, bool isOverload);
-    uint32_t matchParameters(const std::vector<common::LogicalType*>& inputTypes,
+        const std::vector<common::LogicalType>& inputTypes, Function* function, bool isOverload);
+    uint32_t matchParameters(const std::vector<common::LogicalType>& inputTypes,
         const std::vector<common::LogicalTypeID>& targetTypeIDs, bool isOverload);
-    uint32_t matchVarLengthParameters(const std::vector<common::LogicalType*>& inputTypes,
+    uint32_t matchVarLengthParameters(const std::vector<common::LogicalType>& inputTypes,
         common::LogicalTypeID targetTypeID, bool isOverload);
 
     void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctions,
-        const std::string& name, const std::vector<common::LogicalType*>& inputTypes);
+        const std::string& name, const std::vector<common::LogicalType>& inputTypes);
 
     void validateSpecialCases(std::vector<Function*>& candidateFunctions, const std::string& name,
-        const std::vector<common::LogicalType*>& inputTypes);
+        const std::vector<common::LogicalType>& inputTypes);
 
     // Scalar functions.
     void registerScalarFunctions();

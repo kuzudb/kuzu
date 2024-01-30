@@ -81,11 +81,9 @@ struct NpyScanFunction {
         storage::MemoryManager* /*mm*/);
 
     static void bindColumns(const common::ReaderConfig& readerConfig,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes);
     static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes);
 };
 
 } // namespace processor

@@ -96,6 +96,7 @@ private:
     // Variable expressions.
     std::shared_ptr<Expression> bindVariableExpression(
         const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindVariableExpression(const std::string& varName);
     std::shared_ptr<Expression> createVariableExpression(
         common::LogicalType logicalType, std::string_view name);
     std::shared_ptr<Expression> createVariableExpression(

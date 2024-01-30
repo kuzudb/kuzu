@@ -97,6 +97,13 @@ void TestParser::parseHeader() {
 #endif
             break;
         }
+        case TokenType::SKIP_32BIT: {
+#ifdef __32BIT__
+            testGroup->group = "DISABLED_" + testGroup->group;
+            break;
+#endif
+            break;
+        }
         case TokenType::SEPARATOR: {
             return;
         }
@@ -338,6 +345,12 @@ void TestParser::parseBody() {
         }
         case TokenType::SKIP_MUSL: {
 #ifdef __MUSL__
+            testCaseName = "DISABLED_" + testCaseName;
+            break;
+#endif
+        }
+        case TokenType::SKIP_32BIT: {
+#ifdef __32BIT__
             testCaseName = "DISABLED_" + testCaseName;
             break;
 #endif

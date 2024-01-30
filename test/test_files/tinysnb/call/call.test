@@ -183,7 +183,10 @@ Binder exception: Show connection can only bind to String!
 -LOG WrongParameterExprType
 -STATEMENT CALL show_connection(upper("person")) RETURN *
 ---- error
-Binder exception: Parameters in table function must be a literal expression.
+Catalog exception: Cannot find a table with name PERSON.
+-STATEMENT MATCH (a:person) CALL show_connection(a.fName) RETURN *
+---- error
+Binder exception: Cannot evaluate a.fName as a literal.
 
 -CASE StorageInfo
 -PARALLELISM 1

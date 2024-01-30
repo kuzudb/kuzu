@@ -109,17 +109,16 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = tableSchema->containPropertyType(*LogicalType::SERIAL());
     std::vector<std::string> expectedColumnNames;
-    std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
+    std::vector<common::LogicalType> expectedColumnTypes;
     bindExpectedNodeColumns(
         tableSchema, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
-    auto bindInput =
-        std::make_unique<function::ScanTableFuncBindInput>(memoryManager, config->copy(),
-            std::move(expectedColumnNames), std::move(expectedColumnTypes), vfs, clientContext);
+    auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(config->copy(),
+        std::move(expectedColumnNames), std::move(expectedColumnTypes), clientContext);
     auto bindData =
         func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-        columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
+        columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
     }
     auto offset = expressionBinder.createVariableExpression(
         LogicalType(LogicalTypeID::INT64), std::string(InternalKeyword::ANONYMOUS));
@@ -138,17 +137,16 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto containsSerial = tableSchema->containPropertyType(*LogicalType::SERIAL());
     KU_ASSERT(containsSerial == false);
     std::vector<std::string> expectedColumnNames;
-    logical_types_t expectedColumnTypes;
+    std::vector<common::LogicalType> expectedColumnTypes;
     bindExpectedRelColumns(
         tableSchema, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
-    auto bindInput =
-        std::make_unique<function::ScanTableFuncBindInput>(memoryManager, std::move(*config),
-            std::move(expectedColumnNames), std::move(expectedColumnTypes), vfs, clientContext);
+    auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(std::move(*config),
+        std::move(expectedColumnNames), std::move(expectedColumnTypes), clientContext);
     auto bindData =
         func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-        columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
+        columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
     }
     auto offset = expressionBinder.createVariableExpression(
         *LogicalType::INT64(), std::string(InternalKeyword::ROW_OFFSET));
@@ -191,7 +189,7 @@ static bool skipPropertyInFile(const Property& property) {
 
 static void bindExpectedColumns(TableSchema* tableSchema,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-    logical_types_t& columnTypes) {
+    std::vector<common::LogicalType>& columnTypes) {
     if (!inputColumnNames.empty()) {
         std::unordered_set<std::string> inputColumnNamesSet;
         for (auto& columName : inputColumnNames) {
@@ -213,7 +211,7 @@ static void bindExpectedColumns(TableSchema* tableSchema,
                 continue;
             }
             columnNames.push_back(columnName);
-            columnTypes.push_back(property->getDataType()->copy());
+            columnTypes.push_back(*property->getDataType());
         }
     } else {
         // No column specified. Fall back to schema columns.
@@ -222,21 +220,21 @@ static void bindExpectedColumns(TableSchema* tableSchema,
                 continue;
             }
             columnNames.push_back(property.getName());
-            columnTypes.push_back(property.getDataType()->copy());
+            columnTypes.push_back(*property.getDataType());
         }
     }
 }
 
 void Binder::bindExpectedNodeColumns(catalog::TableSchema* tableSchema,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-    std::vector<std::unique_ptr<common::LogicalType>>& columnTypes) {
+    std::vector<common::LogicalType>& columnTypes) {
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
     bindExpectedColumns(tableSchema, inputColumnNames, columnNames, columnTypes);
 }
 
 void Binder::bindExpectedRelColumns(TableSchema* tableSchema,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-    std::vector<std::unique_ptr<common::LogicalType>>& columnTypes) {
+    std::vector<common::LogicalType>& columnTypes) {
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
     auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema);
     auto srcTable = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
@@ -245,13 +243,13 @@ void Binder::bindExpectedRelColumns(TableSchema* tableSchema,
         catalog.getTableSchema(clientContext->getTx(), relTableSchema->getDstTableID()));
     columnNames.push_back("from");
     columnNames.push_back("to");
-    auto srcPKColumnType = srcTable->getPrimaryKey()->getDataType()->copy();
-    if (srcPKColumnType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        srcPKColumnType = LogicalType::INT64();
+    auto srcPKColumnType = *srcTable->getPrimaryKey()->getDataType();
+    if (srcPKColumnType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+        srcPKColumnType = *LogicalType::INT64();
     }
-    auto dstPKColumnType = dstTable->getPrimaryKey()->getDataType()->copy();
-    if (dstPKColumnType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        dstPKColumnType = LogicalType::INT64();
+    auto dstPKColumnType = *dstTable->getPrimaryKey()->getDataType();
+    if (dstPKColumnType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+        dstPKColumnType = *LogicalType::INT64();
     }
     columnTypes.push_back(std::move(srcPKColumnType));
     columnTypes.push_back(std::move(dstPKColumnType));

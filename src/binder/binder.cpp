@@ -190,8 +190,8 @@ void Binder::restoreScope(std::unique_ptr<BinderScope> prevVariableScope) {
 function::TableFunction* Binder::getScanFunction(FileType fileType, const ReaderConfig& config) {
     function::Function* func;
     auto stringType = LogicalType(LogicalTypeID::STRING);
-    std::vector<LogicalType*> inputTypes;
-    inputTypes.push_back(&stringType);
+    std::vector<LogicalType> inputTypes;
+    inputTypes.push_back(stringType);
     auto functions = catalog.getBuiltInFunctions();
     switch (fileType) {
     case FileType::PARQUET: {

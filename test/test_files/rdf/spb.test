@@ -5,6 +5,7 @@
 --
 
 -CASE SPB
+-SKIP_32BIT
 
 #PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
 #SELECT * WHERE {

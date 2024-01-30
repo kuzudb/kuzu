@@ -8,10 +8,17 @@ namespace parser {
 
 class LoadFrom : public ReadingClause {
 public:
-    explicit LoadFrom(std::vector<std::string> filePaths)
-        : ReadingClause{common::ClauseType::LOAD_FROM}, filePaths{std::move(filePaths)} {}
+    LoadFrom() : ReadingClause{common::ClauseType::LOAD_FROM} {}
 
+    inline bool hasObjectName() const { return !objectName.empty(); }
+    inline std::string getObjectname() const { return objectName; }
+    inline void setObjectName(const std::string& name) { objectName = name; }
+
+    inline bool hasFilePaths() const { return !filePaths.empty(); }
     inline std::vector<std::string> getFilePaths() const { return filePaths; }
+    inline void setFilePaths(std::vector<std::string> filePaths_) {
+        filePaths = std::move(filePaths_);
+    }
 
     inline void setParingOptions(parsing_option_t options) { parsingOptions = std::move(options); }
     inline const parsing_option_t& getParsingOptionsRef() const { return parsingOptions; }
@@ -32,6 +39,7 @@ public:
     inline const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
 
 private:
+    std::string objectName;
     std::vector<std::string> filePaths;
     std::vector<std::pair<std::string, std::string>> columnNameDataTypes;
     parsing_option_t parsingOptions;

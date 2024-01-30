@@ -153,8 +153,8 @@ void RdfAllTripleScan::tableFunc(TableFunctionInput& input, DataChunk&) {
 std::unique_ptr<function::TableFuncBindData> RdfAllTripleScan::bindFunc(main::ClientContext*,
     function::TableFuncBindInput* input_, catalog::Catalog*, storage::StorageManager*) {
     auto input = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input_);
-    return std::make_unique<RdfScanBindData>(common::logical_types_t{}, std::vector<std::string>{},
-        input->mm, input->config.copy(), input->vfs, input->context,
+    return std::make_unique<RdfScanBindData>(std::vector<common::LogicalType>{},
+        std::vector<std::string>{}, input->config.copy(), input->context,
         std::make_shared<TripleStore>());
 }
 

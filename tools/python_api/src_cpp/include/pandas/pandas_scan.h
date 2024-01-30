@@ -50,7 +50,7 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
     uint64_t numRows;
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
 
-    PandasScanFunctionData(std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
+    PandasScanFunctionData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, py::handle df, uint64_t numRows,
         std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData)
         : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, df{df},
@@ -65,7 +65,7 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
 
     std::unique_ptr<function::TableFuncBindData> copy() const override {
         return std::make_unique<PandasScanFunctionData>(
-            common::LogicalType::copy(columnTypes), columnNames, df, numRows, copyColumnBindData());
+            columnTypes, columnNames, df, numRows, copyColumnBindData());
     }
 };
 

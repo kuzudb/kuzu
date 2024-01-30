@@ -36,7 +36,7 @@ struct PandasColumnBindData {
 struct Pandas {
     static void bind(py::handle dfToBind,
         std::vector<std::unique_ptr<PandasColumnBindData>>& columnBindData,
-        std::vector<std::unique_ptr<common::LogicalType>>& returnTypes,
+        std::vector<common::LogicalType>& returnTypes,
         std::vector<std::string>& names);
 };
 
