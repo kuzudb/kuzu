@@ -1,9 +1,7 @@
 #pragma once
 
 #include <cmath>
-#include <cstdlib>
 
-#include "common/exception/runtime.h"
 #include "common/types/int128_t.h"
 
 namespace kuzu {
