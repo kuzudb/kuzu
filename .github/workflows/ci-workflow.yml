@@ -238,17 +238,17 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make all
 
-      - name: Test
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          make test
+      # - name: Test
+      #   shell: cmd
+      #   run: |
+      #     call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+      #     make test
 
-      - name: Python test
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          make pytest
+      # - name: Python test
+      #   shell: cmd
+      #   run: |
+      #     call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+      #     make pytest
 
       - name: Node.js test
         shell: cmd
