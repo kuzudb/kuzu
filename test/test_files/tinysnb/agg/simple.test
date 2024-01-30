@@ -332,11 +332,13 @@ False
 250
 
 -LOG SimpleAggSumUInt8Test
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.ulevel)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) 
+		   WHERE s.year = 2020
+		   RETURN SUM(s.ulevel)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-226
+232
 
 -LOG SimpleAggMaxInt128Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.hugedata)

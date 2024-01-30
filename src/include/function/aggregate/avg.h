@@ -2,7 +2,7 @@
 
 #include "common/types/int128_t.h"
 #include "function/aggregate_function.h"
-#include "function/arithmetic/arithmetic_functions.h"
+#include "function/arithmetic/add.h"
 
 namespace kuzu {
 namespace function {
