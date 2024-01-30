@@ -18,7 +18,7 @@
 
 using namespace kuzu::common;
 
-typedef void (*ext_init_func_t)(kuzu::main::Database&);
+typedef void (*ext_init_func_t)(kuzu::main::ClientContext*);
 
 namespace kuzu {
 namespace processor {
@@ -72,7 +72,7 @@ bool LoadExtension::getNextTuplesInternal(ExecutionContext* context) {
             stringFormat("Extension \"{}\" does not have a valid init function.\nError: {}", path,
                 dlErrMessage()));
     }
-    (*load)(*context->clientContext->getDatabase());
+    (*load)(context->clientContext);
     return true;
 }
 

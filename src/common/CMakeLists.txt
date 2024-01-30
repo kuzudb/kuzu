@@ -23,7 +23,8 @@ add_library(kuzu_common
         utils.cpp
         string_utils.cpp
         system_message.cpp
-        random_engine.cpp)
+        random_engine.cpp
+        windows_utils.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common>

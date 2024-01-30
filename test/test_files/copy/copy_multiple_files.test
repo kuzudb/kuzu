@@ -59,3 +59,36 @@
 -STATEMENT COPY person FROM ["1.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson?.csv"]
 ---- error
 Binder exception: No file found that matches the pattern: 1.csv.
+
+-CASE CopyFilesWithSearchPath
+-STATEMENT CALL file_search_path='${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/person4,${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/person5'
+---- ok
+-STATEMENT COPY person FROM ["vPerson*.csv"]
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID
+---- 6
+402
+403
+409
+509
+561
+582
+
+-CASE CopyFilesWithHomeDir
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson?.csv"
+---- ok
+-STATEMENT COPY (match (p:person) return p.ID) TO "~/id.csv"
+---- ok
+-STATEMENT LOAD FROM '~/id.csv' RETURN *
+---- 11
+1
+12
+15
+20
+21
+4
+5
+6
+7
+8
+9
