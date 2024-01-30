@@ -639,6 +639,52 @@ static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const 
     return result != 0;
 }
 
+template<>
+bool compareEntry<list_entry_t>(
+    common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+    auto dataVector = ListVector::getDataVector(vector);
+    auto listToCompare = vector->getValue<list_entry_t>(vectorPos);
+    auto listEntry = reinterpret_cast<const ku_list_t*>(entry);
+    auto entryNullBytes = reinterpret_cast<uint8_t*>(listEntry->overflowPtr);
+    auto entryValues = entryNullBytes + NullBuffer::getNumBytesForNullValues(listEntry->size);
+    auto rowLayoutSize = LogicalTypeUtils::getRowLayoutSize(dataVector->dataType);
+    compare_function_t compareFunc;
+    AggregateHashTable::getCompareEntryWithKeysFunc(dataVector->dataType, compareFunc);
+    if (listToCompare.size != listEntry->size) {
+        return false;
+    }
+    for (auto i = 0u; i < listEntry->size; i++) {
+        if (!compareFunc(dataVector, listToCompare.offset + i, entryValues)) {
+            return false;
+        }
+        entryValues += rowLayoutSize;
+    }
+    return true;
+}
+
+template<>
+bool compareEntry<struct_entry_t>(
+    common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+    auto numFields = StructType::getNumFields(&vector->dataType);
+    auto entryToCompare = entry + NullBuffer::getNumBytesForNullValues(numFields);
+    for (auto i = 0u; i < numFields; i++) {
+        auto isNullInEntry = NullBuffer::isNull(entry, i);
+        auto fieldVector = StructVector::getFieldVector(vector, i);
+        compare_function_t compareFunc;
+        AggregateHashTable::getCompareEntryWithKeysFunc(fieldVector->dataType, compareFunc);
+        // Firstly check null on left and right side.
+        if (isNullInEntry != fieldVector->isNull(vectorPos)) {
+            return false;
+        }
+        // If both not null, compare the value.
+        if (!isNullInEntry && !compareFunc(fieldVector.get(), vectorPos, entryToCompare)) {
+            return false;
+        }
+        entryToCompare += LogicalTypeUtils::getRowLayoutSize(fieldVector->dataType);
+    }
+    return true;
+}
+
 static bool compareNodeEntry(
     common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
     KU_ASSERT(0 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
@@ -727,7 +773,14 @@ void AggregateHashTable::getCompareEntryWithKeysFunc(
         } else if (logicalType.getLogicalTypeID() == LogicalTypeID::REL) {
             func = compareRelEntry;
             return;
+        } else {
+            func = compareEntry<struct_entry_t>;
+            return;
         }
+    }
+    case PhysicalTypeID::VAR_LIST: {
+        func = compareEntry<list_entry_t>;
+        return;
     }
     default: {
         throw RuntimeException(

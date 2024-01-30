@@ -13,7 +13,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 HashIndexBuilder<T, S>::HashIndexBuilder(const std::shared_ptr<FileHandle>& fileHandle,
     const std::shared_ptr<Mutex<InMemFile>>& overflowFile, uint64_t indexPos,
     PhysicalTypeID keyDataType)
@@ -30,7 +30,7 @@ HashIndexBuilder<T, S>::HashIndexBuilder(const std::shared_ptr<FileHandle>& file
     allocatePSlots(2);
 }
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 void HashIndexBuilder<T, S>::bulkReserve(uint32_t numEntries_) {
     slot_id_t numRequiredEntries = this->getNumRequiredEntries(numEntries.load(), numEntries_);
     // Build from scratch.
@@ -47,7 +47,7 @@ void HashIndexBuilder<T, S>::bulkReserve(uint32_t numEntries_) {
     allocatePSlots(numRequiredSlots);
 }
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 bool HashIndexBuilder<T, S>::append(T key, offset_t value) {
     SlotInfo pSlotInfo{this->getPrimarySlotIdForKey(*this->indexHeader, key), SlotType::PRIMARY};
     auto currentSlotInfo = pSlotInfo;
@@ -70,7 +70,7 @@ bool HashIndexBuilder<T, S>::append(T key, offset_t value) {
     return true;
 }
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 bool HashIndexBuilder<T, S>::lookup(T key, offset_t& result) {
     SlotInfo pSlotInfo{this->getPrimarySlotIdForKey(*this->indexHeader, key), SlotType::PRIMARY};
     SlotInfo currentSlotInfo = pSlotInfo;
@@ -86,7 +86,7 @@ bool HashIndexBuilder<T, S>::lookup(T key, offset_t& result) {
     return false;
 }
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 uint32_t HashIndexBuilder<T, S>::allocatePSlots(uint32_t numSlotsToAllocate) {
     auto oldNumSlots = pSlots->getNumElements();
     auto newNumSlots = oldNumSlots + numSlotsToAllocate;
@@ -94,7 +94,7 @@ uint32_t HashIndexBuilder<T, S>::allocatePSlots(uint32_t numSlotsToAllocate) {
     return oldNumSlots;
 }
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 uint32_t HashIndexBuilder<T, S>::allocateAOSlot() {
     auto oldNumSlots = oSlots->getNumElements();
     auto newNumSlots = oldNumSlots + 1;
@@ -102,7 +102,7 @@ uint32_t HashIndexBuilder<T, S>::allocateAOSlot() {
     return oldNumSlots;
 }
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 Slot<S>* HashIndexBuilder<T, S>::getSlot(const SlotInfo& slotInfo) {
     if (slotInfo.slotType == SlotType::PRIMARY) {
         return &pSlots->operator[](slotInfo.slotId);
@@ -111,7 +111,7 @@ Slot<S>* HashIndexBuilder<T, S>::getSlot(const SlotInfo& slotInfo) {
     }
 }
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 template<bool IS_LOOKUP>
 bool HashIndexBuilder<T, S>::lookupOrExistsInSlotWithoutLock(
     Slot<S>* slot, T key, offset_t* result) {
@@ -131,7 +131,7 @@ bool HashIndexBuilder<T, S>::lookupOrExistsInSlotWithoutLock(
     return false;
 }
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 void HashIndexBuilder<T, S>::insertToSlotWithoutLock(Slot<S>* slot, T key, offset_t value) {
     if (slot->header.numEntries == slotCapacity) {
         // Allocate a new oSlot and change the nextOvfSlotId.
@@ -153,7 +153,7 @@ void HashIndexBuilder<T, S>::insertToSlotWithoutLock(Slot<S>* slot, T key, offse
     }
 }
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 void HashIndexBuilder<T, S>::flush() {
     this->indexHeader->numEntries = numEntries.load();
     headerArray->resize(1, true /* setToZero */);
@@ -184,7 +184,7 @@ void HashIndexBuilder<std::string_view, ku_string_t>::insertNoGuard(
     memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
 }
 
-template<typename T, typename S>
+template<IndexHashable T, typename S>
 common::hash_t HashIndexBuilder<T, S>::hashStored(
     transaction::TransactionType /*trxType*/, const S& key) const {
     return this->hash(key);
@@ -257,22 +257,25 @@ PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
             InMemFile(StorageUtils::getOverflowFileName(fileHandle->getFileInfo()->path), vfs));
     }
     hashIndexBuilders.reserve(NUM_HASH_INDEXES);
-    TypeUtils::visit(keyDataTypeID, [&]<typename T>(T) {
-        if constexpr (std::is_same_v<T, ku_string_t>) {
-            for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                hashIndexBuilders.push_back(
-                    std::make_unique<HashIndexBuilder<std::string_view, ku_string_t>>(
+    TypeUtils::visit(
+        keyDataTypeID,
+        [&]<IndexHashable T>(T) {
+            if constexpr (std::is_same_v<T, ku_string_t>) {
+                for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+                    hashIndexBuilders.push_back(
+                        std::make_unique<HashIndexBuilder<std::string_view, ku_string_t>>(
+                            fileHandle, overflowFile, i, keyDataType));
+                }
+            } else if constexpr (HashablePrimitive<T>) {
+                for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+                    hashIndexBuilders.push_back(std::make_unique<HashIndexBuilder<T>>(
                         fileHandle, overflowFile, i, keyDataType));
+                }
+            } else {
+                KU_UNREACHABLE;
             }
-        } else if (HashablePrimitive<T>) {
-            for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                hashIndexBuilders.push_back(std::make_unique<HashIndexBuilder<T>>(
-                    fileHandle, overflowFile, i, keyDataType));
-            }
-        } else {
-            KU_UNREACHABLE;
-        }
-    });
+        },
+        [](auto) { KU_UNREACHABLE; });
 }
 
 void PrimaryKeyIndexBuilder::bulkReserve(uint32_t numEntries) {

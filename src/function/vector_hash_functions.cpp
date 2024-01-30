@@ -62,14 +62,26 @@ void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) 
                 0 == common::StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
             UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
                 *StructVector::getFieldVector(operand, 0), *result);
-            break;
         } else if (operand->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
             KU_ASSERT(3 == StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
             UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
                 *StructVector::getFieldVector(operand, 3), *result);
-            break;
+        } else {
+            VectorHashFunction::computeHash(
+                StructVector::getFieldVector(operand, 0 /* idx */).get(), result);
+            auto tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
+            for (auto i = 1u; i < StructType::getNumFields(&operand->dataType); i++) {
+                auto fieldVector = StructVector::getFieldVector(operand, i);
+                VectorHashFunction::computeHash(fieldVector.get(), tmpHashVector.get());
+                VectorHashFunction::combineHash(tmpHashVector.get(), result, result);
+            }
         }
-    }
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
+        // TODO(Ziyi): We should pass in the selection state here, and do vectorized hash
+        // computation.
+        UnaryHashFunctionExecutor::execute<list_entry_t, hash_t>(*operand, *result);
+    } break;
         // LCOV_EXCL_START
     default: {
         throw RuntimeException("Cannot hash data type " + operand->dataType.toString());

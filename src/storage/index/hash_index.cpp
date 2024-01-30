@@ -379,7 +379,7 @@ bool PrimaryKeyIndex::lookup(Transaction* trx, common::ValueVector* keyVector, u
     bool retVal = false;
     TypeUtils::visit(
         keyDataTypeID,
-        [&]<Hashable T>(T) {
+        [&]<IndexHashable T>(T) {
             T key = keyVector->getValue<T>(vectorPos);
             retVal = lookup(trx, key, result);
         },
@@ -392,7 +392,7 @@ bool PrimaryKeyIndex::insert(
     bool result = false;
     TypeUtils::visit(
         keyDataTypeID,
-        [&]<Hashable T>(T) {
+        [&]<IndexHashable T>(T) {
             T key = keyVector->getValue<T>(vectorPos);
             result = insert(key, value);
         },
@@ -403,7 +403,7 @@ bool PrimaryKeyIndex::insert(
 void PrimaryKeyIndex::delete_(ValueVector* keyVector) {
     TypeUtils::visit(
         keyDataTypeID,
-        [&]<Hashable T>(T) {
+        [&]<IndexHashable T>(T) {
             for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
                 auto pos = keyVector->state->selVector->selectedPositions[i];
                 if (keyVector->isNull(pos)) {

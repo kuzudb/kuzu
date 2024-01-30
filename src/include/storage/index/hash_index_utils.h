@@ -20,17 +20,9 @@ static const uint32_t NUM_BYTES_FOR_STRING_KEY =
 const uint64_t NUM_HASH_INDEXES_LOG2 = 8;
 const uint64_t NUM_HASH_INDEXES = 1 << NUM_HASH_INDEXES_LOG2;
 
-template<typename T>
-concept HashablePrimitive = ((std::integral<T> && !std::is_same_v<T, bool>) ||
-                             std::floating_point<T> || std::is_same_v<T, common::int128_t>);
-
-template<typename T>
-concept Hashable = ((std::integral<T> && !std::is_same_v<T, bool>) || std::floating_point<T> ||
-                    std::is_same_v<T, common::int128_t> || std::is_same_v<T, common::ku_string_t>);
-
-inline uint64_t getHashIndexPosition(HashablePrimitive auto key) {
+inline uint64_t getHashIndexPosition(common::HashablePrimitive auto key) {
     common::hash_t hash;
-    function::Hash::operation(key, hash);
+    function::Hash::operation(key, hash, nullptr /*keyVector*/);
     return (hash >> (64 - NUM_HASH_INDEXES_LOG2)) & (NUM_HASH_INDEXES - 1);
 }
 inline uint64_t getHashIndexPosition(std::string_view key) {

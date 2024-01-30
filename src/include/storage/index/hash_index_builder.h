@@ -46,7 +46,7 @@ public:
  *
  *  */
 
-template<typename T, typename S = T>
+template<common::IndexHashable T, typename S = T>
 class HashIndexBuilder final : public InMemHashIndex, BaseHashIndex<T, S> {
 public:
     HashIndexBuilder(const std::shared_ptr<FileHandle>& handle,
@@ -124,14 +124,14 @@ public:
     // Note: append assumes that bulkRserve has been called before it and the index has reserved
     // enough space already.
     template<typename T>
-    requires HashablePrimitive<T> bool append(T key, common::offset_t value) {
+    requires common::HashablePrimitive<T> bool append(T key, common::offset_t value) {
         return appendWithIndexPos(key, value, getHashIndexPosition(key));
     }
     bool append(std::string_view key, common::offset_t value) {
         return appendWithIndexPos(key, value, getHashIndexPosition(key));
     }
     template<typename T>
-    requires HashablePrimitive<T> bool appendWithIndexPos(
+    requires common::HashablePrimitive<T> bool appendWithIndexPos(
         T key, common::offset_t value, uint64_t indexPos) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         KU_ASSERT(getHashIndexPosition(key) == indexPos);
@@ -144,7 +144,7 @@ public:
             key, value);
     }
     template<typename T>
-    requires HashablePrimitive<T> bool lookup(T key, common::offset_t& result) {
+    requires common::HashablePrimitive<T> bool lookup(T key, common::offset_t& result) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex<T>(getHashIndexPosition(key))->lookup(key, result);
     }

@@ -154,7 +154,7 @@ public:
         return getTypedHashIndex<std::string_view, common::ku_string_t>(key)->lookupInternal(
             trx, key, result);
     }
-    template<HashablePrimitive T>
+    template<common::HashablePrimitive T>
     inline bool lookup(transaction::Transaction* trx, T key, common::offset_t& result) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->lookupInternal(trx, key, result);
@@ -171,7 +171,7 @@ public:
         return getTypedHashIndex<std::string_view, common::ku_string_t>(key)->insertInternal(
             key, value);
     }
-    template<HashablePrimitive T>
+    template<common::HashablePrimitive T>
     inline bool insert(T key, common::offset_t value) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->insertInternal(key, value);
@@ -183,7 +183,7 @@ public:
         KU_ASSERT(keyDataTypeID == common::PhysicalTypeID::STRING);
         return getTypedHashIndex<std::string_view, common::ku_string_t>(key)->deleteInternal(key);
     }
-    template<HashablePrimitive T>
+    template<common::HashablePrimitive T>
     inline void delete_(T key) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->deleteInternal(key);

@@ -10,7 +10,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-template<typename T, typename S>
+template<common::IndexHashable T, typename S>
 slot_id_t BaseHashIndex<T, S>::getPrimarySlotIdForKey(
     const HashIndexHeader& indexHeader_, T key) const {
     auto hash = this->hash(key);
@@ -21,7 +21,7 @@ slot_id_t BaseHashIndex<T, S>::getPrimarySlotIdForKey(
     return slotId;
 }
 
-template<typename T, typename S>
+template<common::IndexHashable T, typename S>
 void BaseHashIndex<T, S>::loopChainedSlotsToFindOneWithFreeSpace(
     SlotInfo& slotInfo, Slot<S>& slot) {
     while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId > 0) {
@@ -35,14 +35,14 @@ void BaseHashIndex<T, S>::loopChainedSlotsToFindOneWithFreeSpace(
     }
 }
 
-template<typename T, typename S>
+template<common::IndexHashable T, typename S>
 void BaseHashIndex<T, S>::splitSlot(HashIndexHeader& header) {
     appendPSlot();
     rehashSlots(header);
     header.incrementNextSplitSlotId();
 }
 
-template<typename T, typename S>
+template<common::IndexHashable T, typename S>
 void BaseHashIndex<T, S>::rehashSlots(HashIndexHeader& header) {
     auto slotsToSplit = getChainedSlots(header.nextSplitSlotId);
     for (auto& [slotInfo, slot] : slotsToSplit) {
@@ -61,7 +61,7 @@ void BaseHashIndex<T, S>::rehashSlots(HashIndexHeader& header) {
     }
 }
 
-template<typename T, typename S>
+template<common::IndexHashable T, typename S>
 void BaseHashIndex<T, S>::copyEntryToSlot(slot_id_t slotId, const S& entry) {
     SlotInfo slotInfo{slotId, SlotType::PRIMARY};
     Slot<S> slot;
@@ -70,7 +70,7 @@ void BaseHashIndex<T, S>::copyEntryToSlot(slot_id_t slotId, const S& entry) {
     updateSlot(slotInfo, slot);
 }
 
-template<typename T, typename S>
+template<common::IndexHashable T, typename S>
 std::vector<std::pair<SlotInfo, Slot<S>>> BaseHashIndex<T, S>::getChainedSlots(slot_id_t pSlotId) {
     std::vector<std::pair<SlotInfo, Slot<S>>> slots;
     SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
