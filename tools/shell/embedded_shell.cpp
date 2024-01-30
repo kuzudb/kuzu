@@ -50,7 +50,7 @@ const std::array<const char*, 104> keywordList = {"CALL", "CREATE", "DELETE", "D
     "COMMIT_SKIP_CHECKPOINT", "ROLLBACK", "ROLLBACK_SKIP_CHECKPOINT", "INSTALL", "EXTENSION", "SHORTEST"};
 
 const char* keywordColorPrefix = "\033[32m\033[1m";
-const char* keywordResetPostfix = "\033[00m";
+const char* keywordResetPostfix = "\033[39m\033[22m";
 
 // NOLINTNEXTLINE(cert-err58-cpp): OK to have a global regex, even if the constructor allocates.
 const std::regex specialChars{R"([-[\]{}()*+?.,\^$|#\s])"};

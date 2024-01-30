@@ -177,7 +177,10 @@
 
 #include <cstddef>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
+#include "common/string_utils.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 
@@ -206,6 +209,12 @@ static int history_max_len = LINENOISE_DEFAULT_HISTORY_MAX_LEN;
 static int history_len = 0;
 static char** history = NULL;
 
+struct searchMatch {
+    size_t history_index;
+    size_t match_start;
+    size_t match_end;
+};
+
 /* The linenoiseState structure represents the state during line editing.
  * We pass this state to functions implementing specific editing
  * functionalities. */
@@ -223,6 +232,11 @@ struct linenoiseState {
     size_t cols;           /* Number of columns in terminal. */
     size_t maxrows;        /* Maximum num of rows used so far (multiline mode) */
     int history_index;     /* The history index we are currently editing. */
+    bool search;           /* Whether or not we are searching our history */
+    std::string search_buf;                  //! The search buffer
+    std::vector<searchMatch> search_matches; //! The set of search matches in our history
+    std::string prev_search_match;           //! The previous search match
+    size_t search_index;                     //! The current match index
 };
 
 enum KEY_ACTION {
@@ -233,6 +247,7 @@ enum KEY_ACTION {
     CTRL_D = 4,     /* Ctrl-d */
     CTRL_E = 5,     /* Ctrl-e */
     CTRL_F = 6,     /* Ctrl-f */
+    CTRL_G = 7,     /* Ctrl-g */
     CTRL_H = 8,     /* Ctrl-h */
     TAB = 9,        /* Tab */
     CTRL_K = 11,    /* Ctrl+k */
@@ -240,6 +255,7 @@ enum KEY_ACTION {
     ENTER = 13,     /* Enter */
     CTRL_N = 14,    /* Ctrl-n */
     CTRL_P = 16,    /* Ctrl-p */
+    CTRL_R = 18,    /* Ctrl-r */
     CTRL_T = 20,    /* Ctrl-t */
     CTRL_U = 21,    /* Ctrl+u */
     CTRL_W = 23,    /* Ctrl+w */
@@ -958,6 +974,454 @@ static void refreshLine(struct linenoiseState* l) {
         refreshSingleLine(l);
 }
 
+static void truncateSearchText(char*& buf, size_t& len, size_t pos, size_t cols,
+    size_t plen) {
+    if (Utf8Proc::isValid(buf, len)) {
+        // UTF8 in prompt, handle rendering.
+        size_t remainingRenderWidth = cols - plen - 1;
+        size_t startPos = 0;
+        size_t charPos = 0;
+        size_t prevPos = 0;
+        size_t totalRenderWidth = 0;
+        while (charPos < len) {
+            uint32_t charRenderWidth = Utf8Proc::renderWidth(buf, charPos);
+            prevPos = charPos;
+            charPos = utf8proc_next_grapheme(buf, len, charPos);
+            totalRenderWidth += charRenderWidth;
+            if (totalRenderWidth >= remainingRenderWidth) {
+                if (prevPos >= pos) {
+                    // We passed the cursor: break, we no longer need to render.
+                    charPos = prevPos;
+                    break;
+                } else {
+                    // We did not pass the cursor yet, meaning we still need to render.
+                    // Remove characters from the start until it fits again.
+                    while (totalRenderWidth >= remainingRenderWidth) {
+                        uint32_t startCharWidth = Utf8Proc::renderWidth(buf, startPos);
+                        uint32_t newStart = utf8proc_next_grapheme(buf, len, startPos);
+                        totalRenderWidth -= startCharWidth;
+                        startPos = newStart;
+                    }
+                }
+            }
+        }
+        buf = buf + startPos;
+        len = charPos - startPos;
+    } else {
+        // Invalid UTF8: fallback.
+        while ((plen + pos) >= cols) {
+            buf++;
+            len--;
+            pos--;
+        }
+        while (plen + len > cols) {
+            len--;
+        }
+    }
+}
+
+static void highlightSearchMatch(
+    char* buffer, char* resultBuf, const char* search_buffer) {
+    const char* matchUnderlinePrefix = "\033[4m";
+    const char* matchUnderlineResetPostfix = "\033[24m";
+    const char* colorPrefixRegex = "(\\\033\\[39m\\\033\\[22m)?";
+    const char* colorPostfixRegex = "(\\\033\\[32m\\\033\\[1m)?";
+    const std::regex specialChars{R"([-[\]\\{}()*+?.,\^$|#\s])"};
+
+    std::string searchPhrase(search_buffer);
+    std::string buf(buffer);
+#ifndef _WIN32
+    if (!searchPhrase.empty()) {
+        std::string searchPhraseEscaped = regex_replace(searchPhrase, specialChars, R"(\$&)");
+        searchPhraseEscaped = regex_replace(searchPhraseEscaped, std::regex("\\\\ "), 
+            std::string(colorPrefixRegex).append(" ").append(colorPostfixRegex));
+        if (regex_search(buf,
+                std::regex(searchPhraseEscaped, std::regex_constants::icase))) {
+            buf = regex_replace(buf,
+                std::regex(std::string("(")
+                               .append(colorPrefixRegex)
+                               .append(colorPostfixRegex)
+                               .append(searchPhraseEscaped)
+                               .append(")"), std::regex_constants::icase),
+                std::string(matchUnderlinePrefix).append("$1").append(matchUnderlineResetPostfix),
+                std::regex_constants::format_first_only);
+        }
+    }
+#endif
+    strncpy(resultBuf, buf.c_str(), LINENOISE_MAX_LINE - 1);
+}
+
+static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchPrompt) {
+    char seq[64];
+    uint32_t plen = linenoiseComputeRenderWidth(l->prompt, strlen(l->prompt));
+    uint32_t totalLen = linenoiseComputeRenderWidth(l->buf, l->len);
+    uint32_t cursorOldPos = linenoiseComputeRenderWidth(l->buf, l->oldpos);
+    uint32_t cursorPos = linenoiseComputeRenderWidth(l->buf, l->pos);
+    int rows = (plen + totalLen + l->cols - 1) / l->cols; /* Rows used by current buf. */
+    int rpos = (plen + cursorOldPos + l->cols) / l->cols; /* Cursor relative row. */
+    int rpos2;                                            /* rpos after refresh. */
+    int col;                                              /* Colum position, zero-based. */
+    int old_rows = l->maxrows;
+    int fd = l->ofd, j;
+    struct abuf ab;
+    char highlightBuf[LINENOISE_MAX_LINE];
+    char buf[LINENOISE_MAX_LINE];
+    size_t len = l->len;
+
+    highlightCallback(l->buf, highlightBuf, l->len, l->pos);
+    highlightSearchMatch(highlightBuf, buf, l->search_buf.c_str());
+    len = strlen(buf);
+    
+
+    /* Update maxrows if needed. */
+    if (rows > (int)l->maxrows)
+        l->maxrows = rows;
+
+    /* First step: clear all the lines used before. To do so start by
+     * going to the last row. */
+    abInit(&ab);
+    if (old_rows - rpos > 0) {
+        lndebug("go down %d", old_rows - rpos);
+        snprintf(seq, 64, "\x1b[%dB", old_rows - rpos);
+        abAppend(&ab, seq, strlen(seq));
+    }
+
+    /* Now for every row clear it, go up. */
+    for (j = 0; j < old_rows - 1; j++) {
+        lndebug("clear+up");
+        snprintf(seq, 64, "\r\x1b[0K\x1b[1A");
+        abAppend(&ab, seq, strlen(seq));
+    }
+
+    /* Clean the top line. */
+    lndebug("clear");
+    snprintf(seq, 64, "\r\x1b[0K");
+    abAppend(&ab, seq, strlen(seq));
+
+    /* Write the prompt and the current buffer content */
+    abAppend(&ab, l->prompt, strlen(l->prompt));
+    if (maskmode == 1) {
+        unsigned int i;
+        for (i = 0; i < len; i++)
+            abAppend(&ab, "*", 1);
+    } else {
+        abAppend(&ab, buf, len);
+    }
+    if (strlen(searchPrompt) > 0) {
+        lndebug("<newline>");
+        abAppend(&ab, "\n", 1);
+        snprintf(seq, 64, "\r");
+        abAppend(&ab, seq, strlen(seq));
+        rows++;
+        if (rows > (int)l->maxrows)
+            l->maxrows = rows;
+        abAppend(&ab, searchPrompt, strlen(searchPrompt));
+    }
+
+    /* Show hits if any. */
+    refreshShowHints(&ab, l, plen);
+
+    /* Move cursor to right position. */
+    rpos2 = (cursorPos + l->cols) / l->cols; /* current cursor relative row. */
+    lndebug("rpos2 %d", rpos2);
+
+    /* Go up till we reach the expected positon. */
+    if (rows - rpos2 > 0) {
+        lndebug("go-up %d", rows - rpos2);
+        snprintf(seq, 64, "\x1b[%dA", rows - rpos2);
+        abAppend(&ab, seq, strlen(seq));
+    }
+
+    /* Set column. */
+    col = (plen + (int)cursorPos) % (int)l->cols;
+    lndebug("set col %d", 1 + col);
+    if (col)
+        snprintf(seq, 64, "\r\x1b[%dC", col);
+    else
+        snprintf(seq, 64, "\r");
+    abAppend(&ab, seq, strlen(seq));
+
+    lndebug("\n");
+    l->oldpos = l->pos;
+
+    if (write(fd, ab.b, ab.len) == -1) {} /* Can't recover from write error. */
+    abFree(&ab);
+}
+
+static void refreshSearch(struct linenoiseState* l) {
+    std::string search_prompt;
+    std::string no_matches_text = std::string(l->buf);
+    bool no_matches = l->search_index >= l->search_matches.size();
+    if (l->search_buf.empty()) {
+        l->prev_search_match = l->buf;
+        search_prompt = "bck-i-search: _";
+    } else {
+        std::string search_text;
+        std::string matches_text;
+        search_text = l->search_buf;
+        if (!no_matches) {
+            search_prompt = "bck-i-search: ";
+        } else {
+            no_matches_text = std::string(l->prev_search_match);
+            search_prompt = "failing-bck-i-search: ";
+        }
+
+        char* search_buf = (char*) search_text.c_str();
+        size_t search_len = search_text.size();
+        
+        size_t cols = l->cols - search_prompt.length() - 1;
+        truncateSearchText(search_buf, search_len, search_len, cols, 0);
+        search_prompt += std::string(search_buf, search_len);
+        search_prompt += "_";
+    }
+
+    linenoiseState clone = *l;
+    l->plen = search_prompt.size();
+    if (no_matches || l->search_buf.empty()) {
+        // if there are no matches render the no_matches_text
+        l->buf = (char*)no_matches_text.c_str();
+        l->len = no_matches_text.size();
+        l->pos = 0;
+    } else {
+        // if there are matches render the current history item
+        auto search_match = l->search_matches[l->search_index];
+        auto history_index = search_match.history_index;
+        auto cursor_position = search_match.match_end;
+        l->buf = history[history_index];
+        l->len = strlen(history[history_index]);
+        l->pos = cursor_position;
+        l->prev_search_match = l->buf;
+    }
+    refreshSearchMultiLine(l, search_prompt.c_str());
+
+    l->buf = clone.buf;
+    l->len = clone.len;
+    l->pos = clone.pos;
+    l->plen = clone.plen;
+}
+
+static void cancelSearch(linenoiseState* l) {
+    char* tempBuf = l->buf;
+    l->len = 0;
+    l->pos = 0;
+    l->buf = (char*)"";
+    refreshSearchMultiLine(l, (char*)"");
+    l->buf = tempBuf;
+    l->len = strlen(tempBuf);
+    l->pos = l->len;
+
+    l->search = false;
+    l->search_buf = std::string();
+    l->search_matches.clear();
+    l->search_index = 0;
+    refreshLine(l);
+}
+
+static char acceptSearch(linenoiseState* l, char nextCommand) {
+    auto history_entry = (char*) l->prev_search_match.c_str();
+    l->pos = strlen(history_entry);
+    if (l->search_index < l->search_matches.size()) {
+        // if there is a match - copy it into the buffer
+        auto match = l->search_matches[l->search_index];
+        history_entry = history[match.history_index];
+        l->pos = match.match_end;
+    }
+    auto history_len = strlen(history_entry);
+    memcpy(l->buf, history_entry, history_len);
+    l->buf[history_len] = '\0';
+
+    cancelSearch(l);
+    return nextCommand;
+}
+
+static void performSearch(linenoiseState* l) {
+    // we try to maintain the current match while searching
+    size_t current_match = history_len;
+    if (l->search_index < l->search_matches.size()) {
+        current_match = l->search_matches[l->search_index].history_index;
+    }
+    l->search_matches.clear();
+    l->search_index = 0;
+    if (l->search_buf.empty()) {
+        return;
+    }
+    std::unordered_set<std::string> matches;
+    auto lsearch = l->search_buf;
+    kuzu::common::StringUtils::toLower(lsearch);
+    for (size_t i = history_len; i > 0; i--) {
+        size_t history_index = i - 1;
+        auto lhistory = std::string(history[history_index]);
+        kuzu::common::StringUtils::toLower(lhistory);
+        if (matches.find(lhistory) != matches.end()) {
+            continue;
+        }
+        matches.insert(lhistory);
+        auto entry = lhistory.find(lsearch);
+        if (entry != std::string::npos) {
+            if (history_index == current_match) {
+                l->search_index = l->search_matches.size();
+            }
+            searchMatch match;
+            match.history_index = history_index;
+            match.match_start = entry;
+            match.match_end = entry + lsearch.size();
+            l->search_matches.push_back(match);
+        }
+    }
+}
+
+static void searchPrev(linenoiseState* l) {
+    if (l->search_index > 0) {
+        l->search_index--;
+    } else if (l->search_matches.size() > 0) {
+        l->search_index = l->search_matches.size() - 1;
+    }
+}
+
+static void searchNext(linenoiseState* l) {
+    l->search_index += 1;
+    if (l->search_index >= l->search_matches.size()) {
+        l->search_index = 0;
+    }
+}
+
+static char linenoiseSearch(linenoiseState *l, char c) {
+	char seq[64];
+
+	switch (c) {
+	case ENTER: /* enter */
+		// accept search and run
+		return acceptSearch(l, ENTER);
+	case CTRL_R:
+		// move to the next match index
+		searchNext(l);
+		break;
+	case ESC: /* escape sequence */
+		/* Read the next two bytes representing the escape sequence.
+		 * Use two calls to handle slow terminals returning the two
+		 * chars at different times. */
+		// note: in search mode we ignore almost all special commands
+		if (read(l->ifd, seq, 1) == -1)
+			break;
+		if (seq[0] == ESC) {
+			// double escape accepts search without any additional command
+			return acceptSearch(l, 0);
+		}
+		if (seq[0] == 'b' || seq[0] == 'f') {
+			break;
+		}
+		if (read(l->ifd, seq + 1, 1) == -1)
+			break;
+
+		/* ESC [ sequences. */
+		if (seq[0] == '[') {
+			if (seq[1] >= '0' && seq[1] <= '9') {
+				/* Extended escape, read additional byte. */
+				if (read(l->ifd, seq + 2, 1) == -1)
+					break;
+				if (seq[2] == '~') {
+					switch (seq[1]) {
+					case '1':
+						return acceptSearch(l, CTRL_A);
+					case '4':
+					case '8':
+						return acceptSearch(l, CTRL_E);
+					default:
+						break;
+					}
+				} else if (seq[2] == ';') {
+					// read 2 extra bytes
+					if (read(l->ifd, seq + 3, 2) == -1)
+						break;
+				}
+			} else {
+				switch (seq[1]) {
+				case 'A': /* Up */
+					searchPrev(l);
+					break;
+				case 'B': /* Down */
+					searchNext(l);
+					break;
+				case 'D': /* Left */
+					return acceptSearch(l, CTRL_B);
+				case 'C': /* Right */
+					return acceptSearch(l, CTRL_F);
+				case 'H': /* Home */
+					return acceptSearch(l, CTRL_A);
+				case 'F': /* End*/
+					return acceptSearch(l, CTRL_E);
+				default:
+					break;
+				}
+			}
+		}
+		/* ESC O sequences. */
+		else if (seq[0] == 'O') {
+			switch (seq[1]) {
+			case 'H': /* Home */
+				return acceptSearch(l, CTRL_A);
+			case 'F': /* End*/
+				return acceptSearch(l, CTRL_E);
+			default:
+				break;
+			}
+		}
+		break;
+	case CTRL_A: // accept search, move to start of line
+		return acceptSearch(l, CTRL_A);
+	case '\t':
+	case CTRL_E: // accept search - move to end of line
+		return acceptSearch(l, CTRL_E);
+	case CTRL_B: // accept search - move cursor left
+		return acceptSearch(l, CTRL_B);
+	case CTRL_F: // accept search - move cursor right
+		return acceptSearch(l, CTRL_F);
+	case CTRL_T: // accept search: swap character
+		return acceptSearch(l, CTRL_T);
+	case CTRL_U: // accept search, clear buffer
+		return acceptSearch(l, CTRL_U);
+	case CTRL_K: // accept search, clear after cursor
+		return acceptSearch(l, CTRL_K);
+	case CTRL_D: // accept search, delete a character
+		return acceptSearch(l, CTRL_D);
+	case CTRL_L:
+		linenoiseClearScreen();
+		break;
+	case CTRL_P:
+		searchPrev(l);
+		break;
+	case CTRL_N:
+		searchNext(l);
+		break;
+	case CTRL_C:
+	case CTRL_G:
+		// abort search
+		cancelSearch(l);
+		return 0;
+	case BACKSPACE: /* backspace */
+	case 8:         /* ctrl-h */
+	case CTRL_W:    /* ctrl-w */
+		// remove trailing UTF-8 bytes (if any)
+		while (!l->search_buf.empty() && ((l->search_buf.back() & 0xc0) == 0x80)) {
+			l->search_buf.pop_back();
+		}
+		// finally remove the first UTF-8 byte
+		if (!l->search_buf.empty()) {
+			l->search_buf.pop_back();
+		}
+		performSearch(l);
+		break;
+	default:
+		// add input to search buffer
+		l->search_buf += c;
+		// perform the search
+		performSearch(l);
+		break;
+	}
+	refreshSearch(l);
+	return 0;
+}
+
 bool pastedInput(int ifd) {
 #ifdef _WIN32
     fd_set readfds;
@@ -1180,6 +1644,7 @@ static int linenoiseEdit(
     l.cols = getColumns(stdin_fd, stdout_fd);
     l.maxrows = 0;
     l.history_index = 0;
+    l.search = false;
 
     /* Buffer starts empty. */
     l.buf[0] = '\0';
@@ -1215,6 +1680,16 @@ static int linenoiseEdit(
                 return l.len;
         }
 
+        if (l.search) {
+            char ret = linenoiseSearch(&l, c);
+            if (l.search || ret == '\0') {
+                // still searching - continue searching
+                continue;
+            }
+            // run subsequent command
+            c = ret;
+        }
+
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
          * character that should be handled next. */
@@ -1228,6 +1703,7 @@ static int linenoiseEdit(
                 continue;
         }
         switch (c) {
+        case CTRL_G:
         case CTRL_C: /* ctrl-c */
             if (mlmode) {
                 linenoiseEditMoveEnd(&l);
@@ -1247,6 +1723,7 @@ static int linenoiseEdit(
                 l.len = 1;
             }
             return (int)l.len;
+        case 10:
         case ENTER:  /* enter */
             if (pastedInput(l.ifd)) {
                 linenoiseEditInsert(&l, ' ');
@@ -1321,6 +1798,15 @@ static int linenoiseEdit(
         case CTRL_N: /* ctrl-n */
             linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_NEXT);
             break;
+        case CTRL_R: /* ctrl-r */ {
+            // initiate reverse search
+            l.search = true;
+            l.search_buf = std::string();
+            l.search_matches.clear();
+            l.search_index = 0;
+            refreshSearch(&l);
+            break;
+        }
         case ESC: /* escape sequence */
             /* Read the next two bytes representing the escape sequence.
              * Use two calls to handle slow terminals returning the two
