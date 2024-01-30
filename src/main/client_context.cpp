@@ -34,12 +34,11 @@ ClientContext::ClientContext(Database* database)
     transactionContext = std::make_unique<TransactionContext>(database);
     randomEngine = std::make_unique<common::RandomEngine>();
     fileSearchPath = "";
-    #if defined(_WIN32)
+#if defined(_WIN32)
     homeDirectory = "";
-    #else
-
+#else
     homeDirectory = getEnvVariable("HOME");
-    #endif
+#endif
 }
 
 void ClientContext::startTimingIfEnabled() {
