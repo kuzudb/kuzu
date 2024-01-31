@@ -98,9 +98,15 @@ public:
 private:
     CatalogContent* getVersion(transaction::Transaction* tx) const;
 
-    bool hasUpdates() { return readWriteVersion != nullptr; }
+    inline bool hasUpdates() const { return isUpdated; }
+
+    inline void setToUpdated() { isUpdated = true; }
+    inline void resetToNotUpdated() { isUpdated = false; }
 
 protected:
+    // The flat indicates if the readWriteVersion has been updated and is different from the
+    // readOnlyVersion.
+    bool isUpdated;
     std::unique_ptr<CatalogContent> readOnlyVersion;
     std::unique_ptr<CatalogContent> readWriteVersion;
     storage::WAL* wal;

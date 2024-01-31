@@ -28,33 +28,34 @@ public:
             directory, common::FileVersionType::WAL_VERSION, transaction::TransactionType::WRITE);
     }
 
-    inline bool hasUpdates() { return tablesStatisticsContentForWriteTrx != nullptr; }
+    inline bool hasUpdates() const { return isUpdated; }
 
     inline void checkpointInMemoryIfNecessary() {
         std::unique_lock lck{mtx};
-        tablesStatisticsContentForReadOnlyTrx = std::move(tablesStatisticsContentForWriteTrx);
+        readOnlyVersion = std::move(readWriteVersion);
+        resetToNotUpdated();
     }
     inline void rollbackInMemoryIfNecessary() {
         std::unique_lock lck{mtx};
-        tablesStatisticsContentForWriteTrx.reset();
+        readWriteVersion.reset();
+        resetToNotUpdated();
     }
 
-    inline TablesStatisticsContent* getReadOnlyVersion() const {
-        return tablesStatisticsContentForReadOnlyTrx.get();
-    }
+    inline TablesStatisticsContent* getReadOnlyVersion() const { return readOnlyVersion.get(); }
 
     inline void addTableStatistic(catalog::TableSchema* tableSchema) {
+        setToUpdated();
         initTableStatisticsForWriteTrx();
-        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
+        readWriteVersion->tableStatisticPerTable[tableSchema->tableID] =
             constructTableStatistic(tableSchema);
     }
     inline void removeTableStatistic(common::table_id_t tableID) {
-        tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.erase(tableID);
+        setToUpdated();
+        readOnlyVersion->tableStatisticPerTable.erase(tableID);
     }
 
     inline uint64_t getNumTuplesForTable(common::table_id_t tableID) {
-        return tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[tableID]
-            ->getNumTuples();
+        return readOnlyVersion->tableStatisticPerTable[tableID]->getNumTuples();
     }
 
     PropertyStatistics& getPropertyStatisticsForTable(const transaction::Transaction& transaction,
@@ -86,13 +87,17 @@ protected:
 
     void initTableStatisticsForWriteTrxNoLock();
 
+    inline void setToUpdated() { isUpdated = true; }
+    inline void resetToNotUpdated() { isUpdated = false; }
+
 protected:
     BMFileHandle* metadataFH;
     BufferManager* bufferManager;
     common::VirtualFileSystem* vfs;
     WAL* wal;
-    std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForReadOnlyTrx;
-    std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForWriteTrx;
+    bool isUpdated;
+    std::unique_ptr<TablesStatisticsContent> readOnlyVersion;
+    std::unique_ptr<TablesStatisticsContent> readWriteVersion;
     std::mutex mtx;
 };
 

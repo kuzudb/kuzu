@@ -13,11 +13,11 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace catalog {
 
-Catalog::Catalog(VirtualFileSystem* vfs) : wal{nullptr} {
+Catalog::Catalog(VirtualFileSystem* vfs) : isUpdated{false}, wal{nullptr} {
     readOnlyVersion = std::make_unique<CatalogContent>(vfs);
 }
 
-Catalog::Catalog(WAL* wal, VirtualFileSystem* vfs) : wal{wal} {
+Catalog::Catalog(WAL* wal, VirtualFileSystem* vfs) : isUpdated{false}, wal{wal} {
     readOnlyVersion = std::make_unique<CatalogContent>(wal->getDirectory(), vfs);
 }
 
@@ -106,6 +106,7 @@ void Catalog::prepareCommitOrRollback(TransactionAction action) {
 void Catalog::checkpointInMemory() {
     if (hasUpdates()) {
         readOnlyVersion = std::move(readWriteVersion);
+        resetToNotUpdated();
     }
 }
 
@@ -115,27 +116,32 @@ ExpressionType Catalog::getFunctionType(Transaction* tx, const std::string& name
 
 table_id_t Catalog::addNodeTableSchema(const binder::BoundCreateTableInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     return readWriteVersion->addNodeTableSchema(info);
 }
 
 table_id_t Catalog::addRelTableSchema(const binder::BoundCreateTableInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     return readWriteVersion->addRelTableSchema(info);
 }
 
 common::table_id_t Catalog::addRelTableGroupSchema(const binder::BoundCreateTableInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     auto tableID = readWriteVersion->addRelTableGroupSchema(info);
     return tableID;
 }
 
 table_id_t Catalog::addRdfGraphSchema(const binder::BoundCreateTableInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     return readWriteVersion->addRdfGraphSchema(info);
 }
 
 void Catalog::dropTableSchema(table_id_t tableID) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     auto tableSchema = readWriteVersion->getTableSchema(tableID);
     switch (tableSchema->tableType) {
     case TableType::REL_GROUP: {
@@ -173,6 +179,7 @@ void Catalog::dropTableSchema(table_id_t tableID) {
 
 void Catalog::renameTable(table_id_t tableID, const std::string& newName) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     auto tableSchema = readWriteVersion->getTableSchema(tableID);
     switch (tableSchema->tableType) {
     case TableType::RDF: {
@@ -196,17 +203,20 @@ void Catalog::renameTable(table_id_t tableID, const std::string& newName) {
 void Catalog::addNodeProperty(
     table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     readWriteVersion->getTableSchema(tableID)->addProperty(propertyName, std::move(dataType));
 }
 
 void Catalog::addRelProperty(
     table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     readWriteVersion->getTableSchema(tableID)->addProperty(propertyName, std::move(dataType));
 }
 
 void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     readWriteVersion->getTableSchema(tableID)->dropProperty(propertyID);
     wal->logDropPropertyRecord(tableID, propertyID);
 }
@@ -214,11 +224,14 @@ void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {
 void Catalog::renameProperty(
     table_id_t tableID, property_id_t propertyID, const std::string& newName) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     readWriteVersion->getTableSchema(tableID)->renameProperty(propertyID, newName);
 }
 
 void Catalog::addFunction(std::string name, function::function_set functionSet) {
     initCatalogContentForWriteTrxIfNecessary();
+    KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     readWriteVersion->addFunction(std::move(name), std::move(functionSet));
 }
 
@@ -233,11 +246,13 @@ bool Catalog::containsMacro(Transaction* tx, const std::string& macroName) const
 void Catalog::addScalarMacroFunction(
     std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     readWriteVersion->addScalarMacroFunction(std::move(name), std::move(macro));
 }
 
 void Catalog::setTableComment(table_id_t tableID, const std::string& comment) {
     KU_ASSERT(readWriteVersion != nullptr);
+    setToUpdated();
     readWriteVersion->getTableSchema(tableID)->setComment(comment);
 }
 
