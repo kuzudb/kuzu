@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/function_expression.h"
 #include "binder/expression_binder.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -20,7 +21,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     ExpressionType expressionType, const expression_vector& children) {
-    auto builtInFunctions = binder->catalog.getBuiltInFunctions();
+    auto builtInFunctions = binder->catalog.getBuiltInFunctions(binder->clientContext->getTx());
     auto functionName = expressionTypeToString(expressionType);
     std::vector<LogicalType> childrenTypes;
     for (auto& child : children) {

@@ -25,7 +25,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     if (result != nullptr) {
         return result;
     }
-    auto functionType = binder->catalog.getFunctionType(functionName);
+    auto functionType =
+        binder->catalog.getFunctionType(binder->clientContext->getTx(), functionName);
     switch (functionType) {
     case ExpressionType::FUNCTION:
         return bindScalarFunctionExpression(parsedExpression, functionName);
@@ -37,7 +38,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     default:
         KU_UNREACHABLE;
     }
-    return nullptr;
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
@@ -52,7 +52,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const expression_vector& children, const std::string& functionName) {
-    auto builtInFunctions = binder->catalog.getBuiltInFunctions();
+    auto builtInFunctions = binder->catalog.getBuiltInFunctions(binder->clientContext->getTx());
     std::vector<LogicalType> childrenTypes;
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
@@ -87,7 +87,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     const ParsedExpression& parsedExpression, const std::string& functionName, bool isDistinct) {
-    auto builtInFunctions = binder->catalog.getBuiltInFunctions();
+    auto builtInFunctions = binder->catalog.getBuiltInFunctions(binder->clientContext->getTx());
     std::vector<LogicalType> childrenTypes;
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {

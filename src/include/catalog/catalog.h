@@ -44,8 +44,8 @@ public:
     std::vector<TableSchema*> getTableSchemas(
         transaction::Transaction* tx, const common::table_id_vector_t& tableIDs) const;
 
-    inline function::BuiltInFunctions* getBuiltInFunctions() const {
-        return readOnlyVersion->builtInFunctions.get();
+    function::BuiltInFunctions* getBuiltInFunctions(transaction::Transaction* tx) const {
+        return getVersion(tx)->builtInFunctions.get();
     }
     void prepareCommitOrRollback(transaction::TransactionAction action);
     void checkpointInMemory();
@@ -62,7 +62,8 @@ public:
             directory, common::FileVersionType::ORIGINAL);
     }
 
-    common::ExpressionType getFunctionType(const std::string& name) const;
+    common::ExpressionType getFunctionType(
+        transaction::Transaction* tx, const std::string& name) const;
 
     common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
     common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
@@ -82,6 +83,7 @@ public:
         common::table_id_t tableID, common::property_id_t propertyID, const std::string& newName);
 
     void addFunction(std::string name, function::function_set functionSet);
+    void addBuiltInFunction(std::string name, function::function_set functionSet);
     bool containsMacro(transaction::Transaction* tx, const std::string& macroName) const;
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
@@ -94,9 +96,9 @@ public:
     }
 
 private:
-    inline CatalogContent* getVersion(transaction::Transaction* tx) const;
+    CatalogContent* getVersion(transaction::Transaction* tx) const;
 
-    inline bool hasUpdates() { return readWriteVersion != nullptr; }
+    bool hasUpdates() { return readWriteVersion != nullptr; }
 
 protected:
     std::unique_ptr<CatalogContent> readOnlyVersion;
