@@ -26,7 +26,9 @@ void StructColumnChunk::finalize() {
 
 void StructColumnChunk::append(
     ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
-    auto otherStructChunk = dynamic_cast<StructColumnChunk*>(other);
+    KU_ASSERT(other->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto otherStructChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(other);
+    KU_ASSERT(childChunks.size() == otherStructChunk->childChunks.size());
     nullChunk->append(other->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
     for (auto i = 0u; i < childChunks.size(); i++) {
         childChunks[i]->append(
@@ -69,6 +71,9 @@ void StructColumnChunk::write(
     for (auto i = 0u; i < fields.size(); i++) {
         childChunks[i]->write(fields[i].get(), offsetInVector, offsetInChunk);
     }
+    if (offsetInChunk >= numValues) {
+        numValues = offsetInChunk + 1;
+    }
 }
 
 void StructColumnChunk::write(
@@ -83,6 +88,18 @@ void StructColumnChunk::write(
     auto fields = StructVector::getFieldVectors(valueVector);
     for (auto i = 0u; i < fields.size(); i++) {
         childChunks[i]->write(fields[i].get(), offsetInChunkVector, isCSR);
+    }
+}
+
+void StructColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
+    offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
+    KU_ASSERT(srcChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto srcStructChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(srcChunk);
+    KU_ASSERT(childChunks.size() == srcStructChunk->childChunks.size());
+    nullChunk->write(srcChunk->getNullChunk(), srcOffsetInChunk, dstOffsetInChunk, numValuesToCopy);
+    for (auto i = 0u; i < childChunks.size(); i++) {
+        childChunks[i]->write(srcStructChunk->childChunks[i].get(), srcOffsetInChunk,
+            dstOffsetInChunk, numValuesToCopy);
     }
 }
 

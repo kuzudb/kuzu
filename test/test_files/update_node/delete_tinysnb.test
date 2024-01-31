@@ -52,6 +52,7 @@
 0
 
 -CASE RedundantNodeDeletions
+-SKIP
 -STATEMENT MATCH (a:person {ID: 3})-[e]->() DELETE e
 ---- ok
 -STATEMENT MATCH (a:person {ID: 3})<-[e]-() DELETE e

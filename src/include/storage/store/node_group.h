@@ -62,6 +62,10 @@ struct CSRHeaderChunks {
     common::offset_t getStartCSROffset(common::offset_t nodeOffset) const;
     common::offset_t getEndCSROffset(common::offset_t nodeOffset) const;
     common::length_t getCSRLength(common::offset_t nodeOffset) const;
+
+    bool sanityCheck() const;
+    void copyFrom(const CSRHeaderChunks& other) const;
+    void fillDefaultValues(common::offset_t newNumValues) const;
 };
 
 class CSRNodeGroup : public NodeGroup {

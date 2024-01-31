@@ -62,6 +62,14 @@ public:
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getAdjColumn() :
                                                             bwdRelTableData->getAdjColumn();
     }
+    inline Column* getCSROffsetColumn(common::RelDataDirection direction) {
+        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSROffsetColumn() :
+                                                            bwdRelTableData->getCSROffsetColumn();
+    }
+    inline Column* getCSRLengthColumn(common::RelDataDirection direction) {
+        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSRLengthColumn() :
+                                                            bwdRelTableData->getCSRLengthColumn();
+    }
     inline common::column_id_t getNumColumns() {
         KU_ASSERT(fwdRelTableData->getNumColumns() == bwdRelTableData->getNumColumns());
         return fwdRelTableData->getNumColumns();
@@ -83,14 +91,6 @@ public:
     inline void append(NodeGroup* nodeGroup, common::RelDataDirection direction) {
         direction == common::RelDataDirection::FWD ? fwdRelTableData->append(nodeGroup) :
                                                      bwdRelTableData->append(nodeGroup);
-    }
-    inline Column* getCSROffsetColumn(common::RelDataDirection direction) {
-        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSROffsetColumn() :
-                                                            bwdRelTableData->getCSROffsetColumn();
-    }
-    inline Column* getCSRLengthColumn(common::RelDataDirection direction) {
-        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSRLengthColumn() :
-                                                            bwdRelTableData->getCSRLengthColumn();
     }
 
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;

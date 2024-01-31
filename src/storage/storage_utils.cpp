@@ -78,8 +78,7 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
         }
     } break;
     default: {
-        throw RuntimeException("Unsupported dbFileID in "
-                               "StorageUtils::getFileInfoFromdbFileID.");
+        throw RuntimeException("Unsupported dbFileID in StorageUtils::getFileInfoForReadWrite.");
     }
     }
     return vfs->openFile(fName, O_RDWR);

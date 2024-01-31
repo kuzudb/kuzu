@@ -24,6 +24,10 @@ public:
         common::offset_t offsetInChunk) final;
     void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector,
         bool isCSR) final;
+    void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
+    void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) final;
 
     template<typename T>
     T getValue(common::offset_t /*pos*/) const {

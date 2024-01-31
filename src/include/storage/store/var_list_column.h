@@ -89,6 +89,13 @@ private:
         // Always perform out-of-place commit for VAR_LIST columns.
         return false;
     }
+    inline bool canCommitInPlace(transaction::Transaction* /*transaction*/,
+        common::node_group_idx_t /*nodeGroupIdx*/, common::offset_t /*dstOffset*/,
+        ColumnChunk* /*chunk*/, common::offset_t /*startOffset*/,
+        common::length_t /*length*/) override {
+        // Always perform out-of-place commit for VAR_LIST columns.
+        return false;
+    }
 
     void checkpointInMemory() final;
     void rollbackInMemory() final;

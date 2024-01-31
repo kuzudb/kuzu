@@ -59,7 +59,7 @@ std::unique_ptr<function::TableFuncLocalState> PandasScanFunction::initLocalStat
     storage::MemoryManager* /*mm*/) {
     auto localState = std::make_unique<PandasScanLocalState>(0 /* start */, 0 /* end */);
     sharedStateNext(input.bindData, localState.get(), sharedState);
-    return std::move(localState);
+    return localState;
 }
 
 std::unique_ptr<function::TableFuncSharedState> PandasScanFunction::initSharedState(

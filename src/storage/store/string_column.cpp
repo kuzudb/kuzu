@@ -102,7 +102,33 @@ void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_i
     string_index_t index =
         offsetColumn->appendValues(nodeGroupIdx, (const uint8_t*)&startOffset, 1);
     // Write index to main column
-    Column::writeValue(chunkMeta, nodeGroupIdx, offsetInChunk, (uint8_t*)&index);
+    Column::writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, (uint8_t*)&index);
+}
+
+void StringColumn::write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
+    kuzu::storage::ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues) {
+    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+    numValues = std::min(numValues, data->getNumValues() - dataOffset);
+    auto strChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(data);
+    // TODO: This should be optimized for large writes.
+    for (auto i = 0u; i < numValues; i++) {
+        if (strChunk->getNullChunk()->isNull(i + dataOffset)) {
+            continue;
+        }
+        auto strVal = strChunk->getValue<std::string_view>(i + dataOffset);
+        // Write string data to end of dataColumn
+        auto startOffset =
+            dataColumn->appendValues(nodeGroupIdx, (const uint8_t*)strVal.data(), strVal.length());
+        // Write offset
+        string_index_t index =
+            offsetColumn->appendValues(nodeGroupIdx, (const uint8_t*)&startOffset, 1);
+        // Write index to main column
+        Column::writeValues(chunkMeta, nodeGroupIdx, offsetInChunk + i, (uint8_t*)&index);
+    }
+    if (offsetInChunk + numValues > chunkMeta.numValues) {
+        chunkMeta.numValues = offsetInChunk + numValues;
+        metadataDA->update(nodeGroupIdx, chunkMeta);
+    }
 }
 
 void StringColumn::checkpointInMemory() {
@@ -260,11 +286,22 @@ bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
     common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
     const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo) {
     std::vector<row_idx_t> rowIdxesToRead;
-    for (auto& [nodeOffset, rowIdx] : updateInfo) {
+    for (auto& [offset, rowIdx] : updateInfo) {
         rowIdxesToRead.push_back(rowIdx);
     }
-    for (auto& [nodeOffset, rowIdx] : insertInfo) {
+    offset_t maxOffset = 0u;
+    for (auto& [offset, rowIdx] : insertInfo) {
         rowIdxesToRead.push_back(rowIdx);
+        if (offset > maxOffset) {
+            maxOffset = offset;
+        }
+    }
+    auto indexColumnMetadata = getMetadata(nodeGroupIdx, transaction->getType());
+    auto indexCapacity =
+        indexColumnMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType) *
+        indexColumnMetadata.numPages;
+    if (indexCapacity < maxOffset) {
+        return false;
     }
     std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
     auto totalStringLengthToAdd = 0u;
@@ -278,6 +315,31 @@ bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
         totalStringLengthToAdd += kuStr.len;
     }
 
+    return canDictionaryAndIndexCommitInPlace(
+        transaction, nodeGroupIdx, newStrings, totalStringLengthToAdd);
+}
+
+bool StringColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    common::offset_t dstOffset, ColumnChunk* chunk, common::offset_t dataOffset, length_t length) {
+    auto totalStringLengthToAdd = 0u;
+    auto strChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(chunk);
+    length = std::min(length, strChunk->getNumValues());
+    for (auto i = 0u; i < length; i++) {
+        totalStringLengthToAdd += strChunk->getStringLength(i + dataOffset);
+    }
+    auto indexColumnMetadata = getMetadata(nodeGroupIdx, transaction->getType());
+    auto indexCapacity =
+        indexColumnMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType) *
+        indexColumnMetadata.numPages;
+    if (indexCapacity < dstOffset + length) {
+        return false;
+    }
+    return canDictionaryAndIndexCommitInPlace(
+        transaction, nodeGroupIdx, length, totalStringLengthToAdd);
+}
+
+bool StringColumn::canDictionaryAndIndexCommitInPlace(Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, uint64_t numNewStrings, uint64_t totalStringLengthToAdd) {
     // Make sure there is sufficient space in the data chunk (not currently compressed)
     auto dataColumnMetadata = getDataColumn()->getMetadata(nodeGroupIdx, transaction->getType());
     auto totalStringDataAfterUpdate = dataColumnMetadata.numValues + totalStringLengthToAdd;
@@ -294,7 +356,7 @@ bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
         offsetColumnMetadata.compMeta.numValues(
             BufferPoolConstants::PAGE_4KB_SIZE, *getOffsetColumn()->getDataType()) *
         offsetColumnMetadata.numPages;
-    auto totalStringsAfterUpdate = offsetColumnMetadata.numValues + newStrings;
+    auto totalStringsAfterUpdate = offsetColumnMetadata.numValues + numNewStrings;
 
     if (totalStringsAfterUpdate > offsetCapacity ||
         !offsetColumnMetadata.compMeta.canUpdateInPlace(
@@ -317,7 +379,7 @@ bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
     // enough that 2^n minus the first string's size is large enough to fit the other strings,
     // for some n.
     // 32 bits should give plenty of space for updates.
-    if (offsetColumnMetadata.numValues + newStrings >
+    if (offsetColumnMetadata.numValues + numNewStrings >
         std::numeric_limits<StringColumn::string_index_t>::max()) [[unlikely]] {
         return false;
     }
