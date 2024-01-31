@@ -25,7 +25,7 @@
            RETURN list[2:] AS r;
 ## Outcome: the result should be, in any order:
 ---- 1
-[2]
+[2,3]
 
 #  List slice with implicit start
 -CASE Scenario3

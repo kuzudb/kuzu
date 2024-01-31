@@ -530,13 +530,14 @@ oC_StringListNullOperatorExpression
     : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression+ | oC_NullOperatorExpression )? ;
 
 oC_ListOperatorExpression
-    : kU_ListExtractOperatorExpression | kU_ListSliceOperatorExpression  ;
+    : ( SP IN SP? oC_PropertyOrLabelsExpression )
+        | ( '[' oC_Expression ']' )
+        | ( '[' oC_Expression? COLON oC_Expression? ']' )
+        ;
 
-kU_ListExtractOperatorExpression
-    : '[' oC_Expression ']' ;
+COLON : ':' ;
 
-kU_ListSliceOperatorExpression
-    : '[' oC_Expression? ':' oC_Expression? ']' ;
+IN : ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 oC_StringOperatorExpression
     :  ( oC_RegularExpression | ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
@@ -743,6 +744,7 @@ kU_NonReservedKeywords
         | REL
         | BEGIN
         | END
+        | IN
         ;
 
 UnescapedSymbolicName

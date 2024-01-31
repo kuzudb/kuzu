@@ -135,12 +135,6 @@ private:
     std::unique_ptr<ParsedExpression> transformListOperatorExpression(
         CypherParser::OC_ListOperatorExpressionContext& ctx,
         std::unique_ptr<ParsedExpression> childExpression);
-    std::unique_ptr<ParsedExpression> transformListSliceOperatorExpression(
-        CypherParser::KU_ListSliceOperatorExpressionContext& ctx,
-        std::unique_ptr<ParsedExpression> propertyExpression);
-    std::unique_ptr<ParsedExpression> transformListExtractOperatorExpression(
-        CypherParser::KU_ListExtractOperatorExpressionContext& ctx,
-        std::unique_ptr<ParsedExpression> propertyExpression);
     std::unique_ptr<ParsedExpression> transformNullOperatorExpression(
         CypherParser::OC_NullOperatorExpressionContext& ctx,
         std::unique_ptr<ParsedExpression> propertyExpression);

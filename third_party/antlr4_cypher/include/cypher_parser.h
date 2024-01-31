@@ -19,26 +19,26 @@ public:
     T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
     T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, T__37 = 38, 
     T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
-    T__44 = 45, T__45 = 46, CALL = 47, COMMENT = 48, MACRO = 49, GLOB = 50, 
-    COPY = 51, FROM = 52, COLUMN = 53, NODE = 54, TABLE = 55, GROUP = 56, 
-    RDF = 57, GRAPH = 58, DROP = 59, ALTER = 60, DEFAULT = 61, RENAME = 62, 
-    ADD = 63, PRIMARY = 64, KEY = 65, REL = 66, TO = 67, EXPLAIN = 68, PROFILE = 69, 
-    BEGIN = 70, TRANSACTION = 71, READ = 72, ONLY = 73, WRITE = 74, COMMIT = 75, 
-    COMMIT_SKIP_CHECKPOINT = 76, ROLLBACK = 77, ROLLBACK_SKIP_CHECKPOINT = 78, 
-    INSTALL = 79, EXTENSION = 80, UNION = 81, ALL = 82, LOAD = 83, HEADERS = 84, 
-    OPTIONAL = 85, MATCH = 86, UNWIND = 87, CREATE = 88, MERGE = 89, ON = 90, 
-    SET = 91, DETACH = 92, DELETE = 93, WITH = 94, RETURN = 95, DISTINCT = 96, 
-    STAR = 97, AS = 98, ORDER = 99, BY = 100, L_SKIP = 101, LIMIT = 102, 
-    ASCENDING = 103, ASC = 104, DESCENDING = 105, DESC = 106, WHERE = 107, 
-    SHORTEST = 108, OR = 109, XOR = 110, AND = 111, NOT = 112, INVALID_NOT_EQUAL = 113, 
-    MINUS = 114, FACTORIAL = 115, STARTS = 116, ENDS = 117, CONTAINS = 118, 
-    IS = 119, NULL_ = 120, TRUE = 121, FALSE = 122, COUNT = 123, EXISTS = 124, 
-    CASE = 125, ELSE = 126, END = 127, WHEN = 128, THEN = 129, StringLiteral = 130, 
-    EscapedChar = 131, DecimalInteger = 132, HexLetter = 133, HexDigit = 134, 
-    Digit = 135, NonZeroDigit = 136, NonZeroOctDigit = 137, ZeroDigit = 138, 
-    RegularDecimalReal = 139, UnescapedSymbolicName = 140, IdentifierStart = 141, 
-    IdentifierPart = 142, EscapedSymbolicName = 143, SP = 144, WHITESPACE = 145, 
-    Comment = 146, Unknown = 147
+    T__44 = 45, CALL = 46, COMMENT = 47, MACRO = 48, GLOB = 49, COPY = 50, 
+    FROM = 51, COLUMN = 52, NODE = 53, TABLE = 54, GROUP = 55, RDF = 56, 
+    GRAPH = 57, DROP = 58, ALTER = 59, DEFAULT = 60, RENAME = 61, ADD = 62, 
+    PRIMARY = 63, KEY = 64, REL = 65, TO = 66, EXPLAIN = 67, PROFILE = 68, 
+    BEGIN = 69, TRANSACTION = 70, READ = 71, ONLY = 72, WRITE = 73, COMMIT = 74, 
+    COMMIT_SKIP_CHECKPOINT = 75, ROLLBACK = 76, ROLLBACK_SKIP_CHECKPOINT = 77, 
+    INSTALL = 78, EXTENSION = 79, UNION = 80, ALL = 81, LOAD = 82, HEADERS = 83, 
+    OPTIONAL = 84, MATCH = 85, UNWIND = 86, CREATE = 87, MERGE = 88, ON = 89, 
+    SET = 90, DETACH = 91, DELETE = 92, WITH = 93, RETURN = 94, DISTINCT = 95, 
+    STAR = 96, AS = 97, ORDER = 98, BY = 99, L_SKIP = 100, LIMIT = 101, 
+    ASCENDING = 102, ASC = 103, DESCENDING = 104, DESC = 105, WHERE = 106, 
+    SHORTEST = 107, OR = 108, XOR = 109, AND = 110, NOT = 111, INVALID_NOT_EQUAL = 112, 
+    MINUS = 113, FACTORIAL = 114, COLON = 115, IN = 116, STARTS = 117, ENDS = 118, 
+    CONTAINS = 119, IS = 120, NULL_ = 121, TRUE = 122, FALSE = 123, COUNT = 124, 
+    EXISTS = 125, CASE = 126, ELSE = 127, END = 128, WHEN = 129, THEN = 130, 
+    StringLiteral = 131, EscapedChar = 132, DecimalInteger = 133, HexLetter = 134, 
+    HexDigit = 135, Digit = 136, NonZeroDigit = 137, NonZeroOctDigit = 138, 
+    ZeroDigit = 139, RegularDecimalReal = 140, UnescapedSymbolicName = 141, 
+    IdentifierStart = 142, IdentifierPart = 143, EscapedSymbolicName = 144, 
+    SP = 145, WHITESPACE = 146, Comment = 147, Unknown = 148
   };
 
   enum {
@@ -78,20 +78,19 @@ public:
     RuleKU_AddOrSubtractOperator = 101, RuleOC_MultiplyDivideModuloExpression = 102, 
     RuleKU_MultiplyDivideModuloOperator = 103, RuleOC_PowerOfExpression = 104, 
     RuleOC_UnaryAddSubtractOrFactorialExpression = 105, RuleOC_StringListNullOperatorExpression = 106, 
-    RuleOC_ListOperatorExpression = 107, RuleKU_ListExtractOperatorExpression = 108, 
-    RuleKU_ListSliceOperatorExpression = 109, RuleOC_StringOperatorExpression = 110, 
-    RuleOC_RegularExpression = 111, RuleOC_NullOperatorExpression = 112, 
-    RuleOC_PropertyOrLabelsExpression = 113, RuleOC_Atom = 114, RuleOC_Literal = 115, 
-    RuleOC_BooleanLiteral = 116, RuleOC_ListLiteral = 117, RuleKU_ListEntry = 118, 
-    RuleKU_StructLiteral = 119, RuleKU_StructField = 120, RuleOC_ParenthesizedExpression = 121, 
-    RuleOC_FunctionInvocation = 122, RuleOC_FunctionName = 123, RuleKU_FunctionParameter = 124, 
-    RuleOC_PathPatterns = 125, RuleOC_ExistSubquery = 126, RuleKU_CountSubquery = 127, 
-    RuleOC_PropertyLookup = 128, RuleOC_CaseExpression = 129, RuleOC_CaseAlternative = 130, 
-    RuleOC_Variable = 131, RuleOC_NumberLiteral = 132, RuleOC_Parameter = 133, 
-    RuleOC_PropertyExpression = 134, RuleOC_PropertyKeyName = 135, RuleOC_IntegerLiteral = 136, 
-    RuleOC_DoubleLiteral = 137, RuleOC_SchemaName = 138, RuleOC_SymbolicName = 139, 
-    RuleKU_NonReservedKeywords = 140, RuleOC_LeftArrowHead = 141, RuleOC_RightArrowHead = 142, 
-    RuleOC_Dash = 143
+    RuleOC_ListOperatorExpression = 107, RuleOC_StringOperatorExpression = 108, 
+    RuleOC_RegularExpression = 109, RuleOC_NullOperatorExpression = 110, 
+    RuleOC_PropertyOrLabelsExpression = 111, RuleOC_Atom = 112, RuleOC_Literal = 113, 
+    RuleOC_BooleanLiteral = 114, RuleOC_ListLiteral = 115, RuleKU_ListEntry = 116, 
+    RuleKU_StructLiteral = 117, RuleKU_StructField = 118, RuleOC_ParenthesizedExpression = 119, 
+    RuleOC_FunctionInvocation = 120, RuleOC_FunctionName = 121, RuleKU_FunctionParameter = 122, 
+    RuleOC_PathPatterns = 123, RuleOC_ExistSubquery = 124, RuleKU_CountSubquery = 125, 
+    RuleOC_PropertyLookup = 126, RuleOC_CaseExpression = 127, RuleOC_CaseAlternative = 128, 
+    RuleOC_Variable = 129, RuleOC_NumberLiteral = 130, RuleOC_Parameter = 131, 
+    RuleOC_PropertyExpression = 132, RuleOC_PropertyKeyName = 133, RuleOC_IntegerLiteral = 134, 
+    RuleOC_DoubleLiteral = 135, RuleOC_SchemaName = 136, RuleOC_SymbolicName = 137, 
+    RuleKU_NonReservedKeywords = 138, RuleOC_LeftArrowHead = 139, RuleOC_RightArrowHead = 140, 
+    RuleOC_Dash = 141
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -219,8 +218,6 @@ public:
   class OC_UnaryAddSubtractOrFactorialExpressionContext;
   class OC_StringListNullOperatorExpressionContext;
   class OC_ListOperatorExpressionContext;
-  class KU_ListExtractOperatorExpressionContext;
-  class KU_ListSliceOperatorExpressionContext;
   class OC_StringOperatorExpressionContext;
   class OC_RegularExpressionContext;
   class OC_NullOperatorExpressionContext;
@@ -432,6 +429,7 @@ public:
     KU_DefaultArgContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_SymbolicNameContext *oC_SymbolicName();
+    antlr4::tree::TerminalNode *COLON();
     OC_LiteralContext *oC_Literal();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
@@ -1432,6 +1430,8 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     std::vector<OC_PropertyKeyNameContext *> oC_PropertyKeyName();
     OC_PropertyKeyNameContext* oC_PropertyKeyName(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> COLON();
+    antlr4::tree::TerminalNode* COLON(size_t i);
     std::vector<OC_ExpressionContext *> oC_Expression();
     OC_ExpressionContext* oC_Expression(size_t i);
 
@@ -1444,6 +1444,8 @@ public:
   public:
     OC_RelationshipTypesContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    std::vector<antlr4::tree::TerminalNode *> COLON();
+    antlr4::tree::TerminalNode* COLON(size_t i);
     std::vector<OC_RelTypeNameContext *> oC_RelTypeName();
     OC_RelTypeNameContext* oC_RelTypeName(size_t i);
     std::vector<antlr4::tree::TerminalNode *> SP();
@@ -1472,6 +1474,7 @@ public:
   public:
     OC_NodeLabelContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *COLON();
     OC_LabelNameContext *oC_LabelName();
     antlr4::tree::TerminalNode *SP();
 
@@ -1845,36 +1848,18 @@ public:
   public:
     OC_ListOperatorExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    KU_ListExtractOperatorExpressionContext *kU_ListExtractOperatorExpression();
-    KU_ListSliceOperatorExpressionContext *kU_ListSliceOperatorExpression();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *IN();
+    OC_PropertyOrLabelsExpressionContext *oC_PropertyOrLabelsExpression();
+    std::vector<OC_ExpressionContext *> oC_Expression();
+    OC_ExpressionContext* oC_Expression(size_t i);
+    antlr4::tree::TerminalNode *COLON();
 
    
   };
 
   OC_ListOperatorExpressionContext* oC_ListOperatorExpression();
-
-  class  KU_ListExtractOperatorExpressionContext : public antlr4::ParserRuleContext {
-  public:
-    KU_ListExtractOperatorExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    OC_ExpressionContext *oC_Expression();
-
-   
-  };
-
-  KU_ListExtractOperatorExpressionContext* kU_ListExtractOperatorExpression();
-
-  class  KU_ListSliceOperatorExpressionContext : public antlr4::ParserRuleContext {
-  public:
-    KU_ListSliceOperatorExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    std::vector<OC_ExpressionContext *> oC_Expression();
-    OC_ExpressionContext* oC_Expression(size_t i);
-
-   
-  };
-
-  KU_ListSliceOperatorExpressionContext* kU_ListSliceOperatorExpression();
 
   class  OC_StringOperatorExpressionContext : public antlr4::ParserRuleContext {
   public:
@@ -2027,6 +2012,7 @@ public:
   public:
     KU_StructFieldContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *COLON();
     OC_ExpressionContext *oC_Expression();
     OC_SymbolicNameContext *oC_SymbolicName();
     antlr4::tree::TerminalNode *StringLiteral();
@@ -2086,6 +2072,7 @@ public:
     virtual size_t getRuleIndex() const override;
     OC_ExpressionContext *oC_Expression();
     OC_SymbolicNameContext *oC_SymbolicName();
+    antlr4::tree::TerminalNode *COLON();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
 
@@ -2306,6 +2293,7 @@ public:
     antlr4::tree::TerminalNode *REL();
     antlr4::tree::TerminalNode *BEGIN();
     antlr4::tree::TerminalNode *END();
+    antlr4::tree::TerminalNode *IN();
 
    
   };
