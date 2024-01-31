@@ -83,15 +83,15 @@ void DiskOverflowFile::setStringOverflowWithoutLock(
     }
 }
 
-ku_string_t DiskOverflowFile::writeString(const char* rawString) {
+ku_string_t DiskOverflowFile::writeString(std::string_view rawString) {
     lock_t lck{mtx};
     ku_string_t result;
-    result.len = strlen(rawString);
+    result.len = rawString.length();
     auto shortStrLen = ku_string_t::SHORT_STR_LENGTH;
     auto inlineLen = std::min(shortStrLen, (uint64_t)result.len);
-    memcpy(result.prefix, rawString, inlineLen);
+    memcpy(result.prefix, rawString.data(), inlineLen);
     logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
-    setStringOverflowWithoutLock(rawString, result.len, result);
+    setStringOverflowWithoutLock(rawString.data(), result.len, result);
     return result;
 }
 

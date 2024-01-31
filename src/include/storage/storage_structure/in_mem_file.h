@@ -24,7 +24,10 @@ public:
     // This function appends a string if the length of the string is larger than SHORT_STR_LENGTH,
     // otherwise, construct the ku_string for the rawString and return it.
     // Note that this function is not thread safe.
-    common::ku_string_t appendString(const char* rawString);
+    common::ku_string_t appendString(std::string_view rawString);
+    inline common::ku_string_t appendString(const char* rawString) {
+        return appendString(std::string_view(rawString));
+    }
 
     std::string readString(common::ku_string_t* strInInMemOvfFile);
 

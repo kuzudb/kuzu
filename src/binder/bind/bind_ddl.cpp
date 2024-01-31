@@ -6,7 +6,9 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
+#include "common/exception/message.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
 #include "main/client_context.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_table.h"
@@ -66,15 +68,22 @@ static uint32_t bindPrimaryKey(
             "Primary key " + pkColName + " does not match any of the predefined node properties.");
     }
     auto pkType = infos[primaryKeyIdx].type;
-    // We only support INT64, STRING and SERIAL column as the primary key.
-    switch (pkType.getLogicalTypeID()) {
-    case LogicalTypeID::INT64:
-    case LogicalTypeID::STRING:
-    case LogicalTypeID::SERIAL:
+    switch (pkType.getPhysicalType()) {
+    case PhysicalTypeID::UINT8:
+    case PhysicalTypeID::UINT16:
+    case PhysicalTypeID::UINT32:
+    case PhysicalTypeID::UINT64:
+    case PhysicalTypeID::INT8:
+    case PhysicalTypeID::INT16:
+    case PhysicalTypeID::INT32:
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT128:
+    case PhysicalTypeID::STRING:
+    case PhysicalTypeID::FLOAT:
+    case PhysicalTypeID::DOUBLE:
         break;
     default:
-        throw BinderException(
-            "Invalid primary key type: " + pkType.toString() + ". Expected STRING or INT64.");
+        throw BinderException(ExceptionMessage::invalidPKType(pkType.toString()));
     }
     return primaryKeyIdx;
 }

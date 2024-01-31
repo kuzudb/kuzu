@@ -6,6 +6,7 @@
 #include "common/constants.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/null_mask.h"
+#include "common/types/types.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
@@ -174,6 +175,7 @@ public:
         const std::string& directory, DBFileID dbFileID, common::VirtualFileSystem* vfs);
 
     static uint32_t getDataTypeSize(const common::LogicalType& type);
+    static uint32_t getDataTypeSize(common::PhysicalTypeID type);
 
 private:
     static std::string appendSuffixOrInsertBeforeWALSuffix(

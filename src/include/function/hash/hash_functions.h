@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <unordered_set>
 
 #include "common/exception/runtime.h"
@@ -109,12 +110,12 @@ inline void Hash::operation(const common::int128_t& key, common::hash_t& result)
 
 template<>
 inline void Hash::operation(const double& key, common::hash_t& result) {
-    result = murmurhash64(key);
+    result = std::hash<double>()(key);
 }
 
 template<>
 inline void Hash::operation(const float& key, common::hash_t& result) {
-    result = murmurhash64(key);
+    result = std::hash<float>()(key);
 }
 
 template<>
@@ -123,8 +124,13 @@ inline void Hash::operation(const std::string& key, common::hash_t& result) {
 }
 
 template<>
+inline void Hash::operation(const std::string_view& key, common::hash_t& result) {
+    result = std::hash<std::string_view>()(key);
+}
+
+template<>
 inline void Hash::operation(const common::ku_string_t& key, common::hash_t& result) {
-    result = std::hash<std::string>()(key.getAsString());
+    result = std::hash<std::string_view>()(key.getAsStringView());
 }
 
 template<>
