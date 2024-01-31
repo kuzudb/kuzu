@@ -844,7 +844,7 @@ static void refreshSingleLine(struct linenoiseState* l) {
         }
         renderWidth = pos;
     }
-
+    
     abInit(&ab);
     /* Cursor to left edge */
     snprintf(seq, 64, "\r");
@@ -974,8 +974,9 @@ static void refreshLine(struct linenoiseState* l) {
         refreshSingleLine(l);
 }
 
-static void truncateSearchText(char*& buf, size_t& len, size_t pos, size_t cols,
-    size_t plen) {
+static void truncateSearchText(char*& buf, size_t& len, size_t pos, size_t cols, size_t plen,
+    bool highlight, size_t& render_pos, char* highlightBuf, uint32_t& renderWidth) {
+    uint32_t renderPos = render_pos;
     if (Utf8Proc::isValid(buf, len)) {
         // UTF8 in prompt, handle rendering.
         size_t remainingRenderWidth = cols - plen - 1;
@@ -983,10 +984,12 @@ static void truncateSearchText(char*& buf, size_t& len, size_t pos, size_t cols,
         size_t charPos = 0;
         size_t prevPos = 0;
         size_t totalRenderWidth = 0;
+        uint32_t posCounter = 0;
         while (charPos < len) {
             uint32_t charRenderWidth = Utf8Proc::renderWidth(buf, charPos);
             prevPos = charPos;
             charPos = utf8proc_next_grapheme(buf, len, charPos);
+            posCounter++;
             totalRenderWidth += charRenderWidth;
             if (totalRenderWidth >= remainingRenderWidth) {
                 if (prevPos >= pos) {
@@ -1001,12 +1004,22 @@ static void truncateSearchText(char*& buf, size_t& len, size_t pos, size_t cols,
                         uint32_t newStart = utf8proc_next_grapheme(buf, len, startPos);
                         totalRenderWidth -= startCharWidth;
                         startPos = newStart;
+                        renderWidth -= startCharWidth;
                     }
                 }
             }
+            if (posCounter <= pos) {
+                renderWidth += charRenderWidth;
+                renderPos += charRenderWidth;
+            }
         }
-        buf = buf + startPos;
-        len = charPos - startPos;
+        if (highlight) {
+            highlightCallback(buf, highlightBuf, totalRenderWidth, renderPos);
+            len = strlen(highlightBuf);
+        } else {
+            buf = buf + startPos;
+            len = charPos - startPos;
+        }
     } else {
         // Invalid UTF8: fallback.
         while ((plen + pos) >= cols) {
@@ -1051,31 +1064,29 @@ static void highlightSearchMatch(
     strncpy(resultBuf, buf.c_str(), LINENOISE_MAX_LINE - 1);
 }
 
-static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchPrompt) {
+static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchPrompt, const char* searchText) {
     char seq[64];
     uint32_t plen = linenoiseComputeRenderWidth(l->prompt, strlen(l->prompt));
-    uint32_t totalLen = linenoiseComputeRenderWidth(l->buf, l->len);
-    uint32_t cursorOldPos = linenoiseComputeRenderWidth(l->buf, l->oldpos);
-    uint32_t cursorPos = linenoiseComputeRenderWidth(l->buf, l->pos);
-    int rows = (plen + totalLen + l->cols - 1) / l->cols; /* Rows used by current buf. */
-    int rpos = (plen + cursorOldPos + l->cols) / l->cols; /* Cursor relative row. */
+    int rows = 1;                                         /* Rows used by current buf. */
+    int rpos = 1;                                         /* Cursor relative row. */
     int rpos2;                                            /* rpos after refresh. */
-    int col;                                              /* Colum position, zero-based. */
     int old_rows = l->maxrows;
     int fd = l->ofd, j;
     struct abuf ab;
     char highlightBuf[LINENOISE_MAX_LINE];
     char buf[LINENOISE_MAX_LINE];
     size_t len = l->len;
+    size_t render_pos = 0;
+    uint32_t renderWidth = 0;
+    l->maxrows = 1;
 
-    highlightCallback(l->buf, highlightBuf, l->len, l->pos);
-    highlightSearchMatch(highlightBuf, buf, l->search_buf.c_str());
+    truncateSearchText(l->buf, len, l->pos, l->cols, plen, true, render_pos, highlightBuf, renderWidth);
+    if (strlen(highlightBuf) > 0) {
+        highlightSearchMatch(highlightBuf, buf, searchText);
+    } else {
+        highlightSearchMatch(l->buf, buf, searchText);
+    }
     len = strlen(buf);
-    
-
-    /* Update maxrows if needed. */
-    if (rows > (int)l->maxrows)
-        l->maxrows = rows;
 
     /* First step: clear all the lines used before. To do so start by
      * going to the last row. */
@@ -1098,6 +1109,9 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
     snprintf(seq, 64, "\r\x1b[0K");
     abAppend(&ab, seq, strlen(seq));
 
+    /* Cursor to left edge */
+    snprintf(seq, 64, "\r");
+    abAppend(&ab, seq, strlen(seq));
     /* Write the prompt and the current buffer content */
     abAppend(&ab, l->prompt, strlen(l->prompt));
     if (maskmode == 1) {
@@ -1107,41 +1121,43 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
     } else {
         abAppend(&ab, buf, len);
     }
+
+    /* Erase to right */
+    snprintf(seq, 64, "\x1b[0K");
+    abAppend(&ab, seq, strlen(seq));
     if (strlen(searchPrompt) > 0) {
         lndebug("<newline>");
         abAppend(&ab, "\n", 1);
+        /* Cursor to left edge */
         snprintf(seq, 64, "\r");
         abAppend(&ab, seq, strlen(seq));
-        rows++;
-        if (rows > (int)l->maxrows)
-            l->maxrows = rows;
+        rows = 2;
+        l->maxrows = 2;
+        /* Write the search prompt content */
         abAppend(&ab, searchPrompt, strlen(searchPrompt));
+        /* Erase to right */
+        snprintf(seq, 64, "\x1b[0K");
+        abAppend(&ab, seq, strlen(seq));
     }
 
     /* Show hits if any. */
     refreshShowHints(&ab, l, plen);
 
     /* Move cursor to right position. */
-    rpos2 = (cursorPos + l->cols) / l->cols; /* current cursor relative row. */
+    rpos2 = 1;                        /* current cursor relative row. */
     lndebug("rpos2 %d", rpos2);
 
     /* Go up till we reach the expected positon. */
-    if (rows - rpos2 > 0) {
+    if (strlen(searchPrompt) > 0) {
         lndebug("go-up %d", rows - rpos2);
         snprintf(seq, 64, "\x1b[%dA", rows - rpos2);
         abAppend(&ab, seq, strlen(seq));
     }
 
-    /* Set column. */
-    col = (plen + (int)cursorPos) % (int)l->cols;
-    lndebug("set col %d", 1 + col);
-    if (col)
-        snprintf(seq, 64, "\r\x1b[%dC", col);
-    else
-        snprintf(seq, 64, "\r");
+    /* Move cursor to original position. */
+    snprintf(seq, 64, "\r\x1b[%dC", (int)(renderWidth + plen));
     abAppend(&ab, seq, strlen(seq));
 
-    lndebug("\n");
     l->oldpos = l->pos;
 
     if (write(fd, ab.b, ab.len) == -1) {} /* Can't recover from write error. */
@@ -1151,6 +1167,7 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
 static void refreshSearch(struct linenoiseState* l) {
     std::string search_prompt;
     std::string no_matches_text = std::string(l->buf);
+    std::string truncatedSearchText = "";
     bool no_matches = l->search_index >= l->search_matches.size();
     if (l->search_buf.empty()) {
         l->prev_search_match = l->buf;
@@ -1170,8 +1187,13 @@ static void refreshSearch(struct linenoiseState* l) {
         size_t search_len = search_text.size();
         
         size_t cols = l->cols - search_prompt.length() - 1;
-        truncateSearchText(search_buf, search_len, search_len, cols, 0);
-        search_prompt += std::string(search_buf, search_len);
+
+        size_t render_pos = 0;
+        uint32_t renderWidth = 0;
+        char emptyHighlightBuf[LINENOISE_MAX_LINE];
+        truncateSearchText(search_buf, search_len, search_len, cols, false, 0, render_pos, emptyHighlightBuf, renderWidth);
+        truncatedSearchText = std::string(search_buf, search_len);
+        search_prompt += truncatedSearchText;
         search_prompt += "_";
     }
 
@@ -1192,7 +1214,7 @@ static void refreshSearch(struct linenoiseState* l) {
         l->pos = cursor_position;
         l->prev_search_match = l->buf;
     }
-    refreshSearchMultiLine(l, search_prompt.c_str());
+    refreshSearchMultiLine(l, search_prompt.c_str(), truncatedSearchText.c_str());
 
     l->buf = clone.buf;
     l->len = clone.len;
@@ -1205,7 +1227,7 @@ static void cancelSearch(linenoiseState* l) {
     l->len = 0;
     l->pos = 0;
     l->buf = (char*)"";
-    refreshSearchMultiLine(l, (char*)"");
+    refreshSearchMultiLine(l, (char*)"", (char*)"");
     l->buf = tempBuf;
     l->len = strlen(tempBuf);
     l->pos = l->len;
@@ -1679,6 +1701,8 @@ static int linenoiseEdit(
             if (nread <= 0)
                 return l.len;
         }
+
+        l.cols = getColumns(stdin_fd, stdout_fd);
 
         if (l.search) {
             char ret = linenoiseSearch(&l, c);
