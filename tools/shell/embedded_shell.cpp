@@ -37,7 +37,7 @@ struct ShellCommand {
 
 const char* TAB = "    ";
 
-const std::array<const char*, 104> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXISTS",
+const std::array<const char*, 103> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXISTS",
     "FOREACH", "LOAD", "MATCH", "MERGE", "OPTIONAL", "REMOVE", "RETURN", "SET", "START", "UNION",
     "UNWIND", "WITH", "LIMIT", "ORDER", "SKIP", "WHERE", "YIELD", "ASC", "ASCENDING", "ASSERT",
     "BY", "CSV", "DESC", "DESCENDING", "ON", "ALL", "CASE", "ELSE", "END", "THEN", "WHEN", "AND",
@@ -45,7 +45,7 @@ const std::array<const char*, 104> keywordList = {"CALL", "CREATE", "DELETE", "D
     "CONSTRAINT", "DROP", "EXISTS", "INDEX", "NODE", "KEY", "UNIQUE", "INDEX", "JOIN", "PERIODIC",
     "COMMIT", "SCAN", "USING", "FALSE", "NULL", "TRUE", "ADD", "DO", "FOR", "MANDATORY", "OF",
     "REQUIRE", "SCALAR", "EXPLAIN", "PROFILE", "HEADERS", "FROM", "FIELDTERMINATOR", "STAR",
-    "MINUS", "COUNT", "PRIMARY", "COPY", "RDF", "GRAPH", "ALTER", "RENAME", "COMMENT", "MACRO",
+    "MINUS", "COUNT", "PRIMARY", "COPY", "RDFGRAPH", "ALTER", "RENAME", "COMMENT", "MACRO",
     "GLOB", "COLUMN", "GROUP", "DEFAULT", "TO", "BEGIN", "TRANSACTION", "READ", "ONLY", "WRITE",
     "COMMIT_SKIP_CHECKPOINT", "ROLLBACK", "ROLLBACK_SKIP_CHECKPOINT", "INSTALL", "EXTENSION", "SHORTEST"};
 
