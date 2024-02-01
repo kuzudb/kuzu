@@ -3,6 +3,7 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "catalog/node_table_schema.h"
+#include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
@@ -185,36 +186,64 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     switch (tableSchema->tableType) {
     case TableType::NODE: {
-        auto errMsg =
-            stringFormat("Cannot delete node table {} because it is referenced by", tableName);
         // Check node table is not referenced by rel table.
         for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
             if (schema->isParent(tableID)) {
-                throw BinderException(
-                    stringFormat("{} relationship table {}.", errMsg, schema->getName()));
+                throw BinderException(stringFormat("Cannot delete node table {} because it is "
+                                                   "referenced by relationship table {}.",
+                    tableSchema->getName(), schema->getName()));
             }
         }
         // Check node table is not referenced by rdf graph
         for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
             if (schema->isParent(tableID)) {
-                throw BinderException(stringFormat("{} rdfGraph {}.", errMsg, schema->getName()));
+                throw BinderException(stringFormat(
+                    "Cannot delete node table {} because it is referenced by rdfGraph {}.",
+                    tableName, schema->getName()));
             }
         }
     } break;
     case TableType::REL: {
-        auto errMsg = stringFormat(
-            "Cannot delete relationship table {} because it is referenced by", tableName);
         // Check rel table is not referenced by rel group.
         for (auto& schema : catalog.getRelTableGroupSchemas(clientContext->getTx())) {
             if (schema->isParent(tableID)) {
-                throw BinderException(
-                    stringFormat("{} relationship group {}.", errMsg, schema->getName()));
+                throw BinderException(stringFormat("Cannot delete relationship table {} because it "
+                                                   "is referenced by relationship group {}.",
+                    tableName, schema->getName()));
             }
         }
         // Check rel table is not referenced by rdf graph.
         for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
             if (schema->isParent(tableID)) {
-                throw BinderException(stringFormat("{} rdfGraph {}.", errMsg, schema->getName()));
+                throw BinderException(stringFormat(
+                    "Cannot delete relationship table {} because it is referenced by rdfGraph {}.",
+                    tableName, schema->getName()));
+            }
+        }
+    } break;
+    case TableType::RDF: {
+        auto rdfGraphSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(tableSchema);
+        // Check resource table is not referenced by rel table other than its triple table.
+        for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
+            if (schema->getTableID() == rdfGraphSchema->getResourceTripleTableID() ||
+                schema->getTableID() == rdfGraphSchema->getLiteralTripleTableID()) {
+                continue;
+            }
+            if (schema->isParent(rdfGraphSchema->getResourceTableID())) {
+                throw BinderException(stringFormat("Cannot delete rdfGraph {} because its resource "
+                                                   "table is referenced by relationship table {}.",
+                    tableSchema->getName(), schema->getName()));
+            }
+        }
+        // Check literal table is not referenced by rel table other than its triple table.
+        for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
+            if (schema->getTableID() == rdfGraphSchema->getLiteralTripleTableID()) {
+                continue;
+            }
+            if (schema->isParent(rdfGraphSchema->getLiteralTableID())) {
+                throw BinderException(stringFormat("Cannot delete rdfGraph {} because its literal "
+                                                   "table is referenced by relationship table {}.",
+                    tableSchema->getName(), schema->getName()));
             }
         }
     } break;

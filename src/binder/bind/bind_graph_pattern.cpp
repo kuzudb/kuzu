@@ -549,20 +549,20 @@ std::vector<table_id_t> Binder::bindTableIDs(
     const std::vector<std::string>& tableNames, bool nodePattern) {
     auto tx = clientContext->getTx();
     std::unordered_set<common::table_id_t> tableIDSet;
-    if (tableNames.empty()) { // Rewrite empty table names as all tables.
-        if (catalog.containsRdfGraph(tx)) {
-            // If catalog contains rdf graph then it should NOT have any property graph table.
+    if (tableNames.empty()) {               // Rewrite empty table names as all tables.
+        if (catalog.containsRdfGraph(tx)) { // Fill all rdf graph schemas.
             for (auto tableID : catalog.getRdfGraphIDs(tx)) {
                 tableIDSet.insert(tableID);
             }
-        } else if (nodePattern) {
+        }
+        if (nodePattern) { // Fill all node table schemas to node pattern.
             if (!catalog.containsNodeTable(tx)) {
                 throw BinderException("No node table exists in database.");
             }
             for (auto tableID : catalog.getNodeTableIDs(tx)) {
                 tableIDSet.insert(tableID);
             }
-        } else { // rel
+        } else { // Fill all rel table schemas to rel pattern.
             if (!catalog.containsRelTable(tx)) {
                 throw BinderException("No rel table exists in database.");
             }
@@ -581,10 +581,15 @@ std::vector<table_id_t> Binder::bindTableIDs(
 }
 
 std::vector<table_id_t> Binder::getNodeTableIDs(const std::vector<table_id_t>& tableIDs) {
-    std::vector<table_id_t> result;
+    common::table_id_vector_t result; // use vector to preserve input order.
+    common::table_id_set_t tableIDSet;
     for (auto& tableID : tableIDs) {
         for (auto& id : getNodeTableIDs(tableID)) {
+            if (tableIDSet.contains(id)) {
+                continue;
+            }
             result.push_back(id);
+            tableIDSet.insert(id);
         }
     }
     return result;
@@ -608,10 +613,15 @@ std::vector<common::table_id_t> Binder::getNodeTableIDs(table_id_t tableID) {
 }
 
 std::vector<table_id_t> Binder::getRelTableIDs(const std::vector<table_id_t>& tableIDs) {
-    std::vector<table_id_t> result;
+    common::table_id_vector_t result; // use vector to preserve input order.
+    common::table_id_set_t tableIDSet;
     for (auto& tableID : tableIDs) {
         for (auto& id : getRelTableIDs(tableID)) {
+            if (tableIDSet.contains(id)) {
+                continue;
+            }
             result.push_back(id);
+            tableIDSet.insert(id);
         }
     }
     return result;

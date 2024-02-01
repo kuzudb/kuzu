@@ -90,6 +90,8 @@ public:
 
     storage::MemoryManager* getMemoryManager();
 
+    catalog::Catalog* getCatalog();
+
     KUZU_API std::string getEnvVariable(const std::string& name);
 
 private:

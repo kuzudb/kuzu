@@ -88,6 +88,10 @@ storage::MemoryManager* ClientContext::getMemoryManager() {
     return database->memoryManager.get();
 }
 
+catalog::Catalog* ClientContext::getCatalog() {
+    return database->catalog.get();
+}
+
 std::string ClientContext::getEnvVariable(const std::string& name) {
 #if defined(_WIN32)
     auto envValue = common::WindowsUtils::utf8ToUnicode(name.c_str());
