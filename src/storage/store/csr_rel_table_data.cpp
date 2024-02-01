@@ -11,7 +11,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-common::offset_t CSRHeaderColumns::getNumNodes(
+offset_t CSRHeaderColumns::getNumNodes(
     Transaction* transaction, node_group_idx_t nodeGroupIdx) const {
     auto numPersistentNodeGroups = offset->getNumNodeGroups(transaction);
     return nodeGroupIdx >= numPersistentNodeGroups ?
@@ -30,11 +30,11 @@ PackedCSRInfo::PackedCSRInfo() {
         (double)(calibratorTreeHeight);
 }
 
-PackedCSRRegion::PackedCSRRegion(common::vector_idx_t regionIdx, common::vector_idx_t level)
+PackedCSRRegion::PackedCSRRegion(vector_idx_t regionIdx, vector_idx_t level)
     : regionIdx{regionIdx}, level{level} {
     auto startSegmentIdx = regionIdx << level;
-    leftBoundary = startSegmentIdx << common::StorageConstants::CSR_SEGMENT_SIZE_LOG2;
-    rightBoundary = leftBoundary + (common::StorageConstants::CSR_SEGMENT_SIZE << level) - 1;
+    leftBoundary = startSegmentIdx << StorageConstants::CSR_SEGMENT_SIZE_LOG2;
+    rightBoundary = leftBoundary + (StorageConstants::CSR_SEGMENT_SIZE << level) - 1;
 }
 
 void PackedCSRRegion::setSizeChange(const std::vector<int64_t>& sizeChangesPerSegment) {
@@ -100,7 +100,7 @@ void CSRRelTableData::initializeReadState(Transaction* transaction,
 
 void CSRRelTableData::scan(Transaction* transaction, TableReadState& readState,
     ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
-    auto& relReadState = common::ku_dynamic_cast<TableReadState&, RelDataReadState&>(readState);
+    auto& relReadState = ku_dynamic_cast<TableReadState&, RelDataReadState&>(readState);
     KU_ASSERT(dataFormat == ColumnDataFormat::CSR);
     if (relReadState.readFromLocalStorage) {
         auto offsetInChunk = relReadState.currentNodeOffset - relReadState.startNodeOffset;
@@ -240,7 +240,7 @@ density_range_t CSRRelTableData::getDensityRange(uint64_t level) const {
 }
 
 static vector_idx_t getSegmentIdx(offset_t offset) {
-    return offset >> common::StorageConstants::CSR_SEGMENT_SIZE_LOG2;
+    return offset >> StorageConstants::CSR_SEGMENT_SIZE_LOG2;
 }
 
 void CSRRelTableData::LocalState::initChangesPerSegment() {
@@ -340,7 +340,7 @@ void CSRRelTableData::applyDeletionsToChunk(const PersistentState& persistentSta
     }
 }
 
-void CSRRelTableData::distributeAndUpdateRegion(Transaction* transaction,
+void CSRRelTableData::distributeAndUpdateColumn(Transaction* transaction,
     node_group_idx_t nodeGroupIdx, column_id_t columnID, const PersistentState& persistentState,
     LocalState& localState) {
     KU_ASSERT(columnID < columns.size() || columnID == INVALID_COLUMN_ID);
@@ -363,7 +363,6 @@ void CSRRelTableData::distributeAndUpdateRegion(Transaction* transaction,
     auto newSize = localState.rightCSROffset - localState.leftCSROffset + 1;
     auto newChunk = ColumnChunkFactory::createColumnChunk(
         column->getDataType()->copy(), enableCompression, newSize);
-    newChunk->getNullChunk()->resetToAllNull();
     auto maxNumNodesToDistribute = std::min(
         rightNodeBoundary - leftNodeBoundary + 1, persistentState.header.offset->getNumValues());
     // Third, copy the rels to the new chunk.
@@ -380,8 +379,11 @@ void CSRRelTableData::distributeAndUpdateRegion(Transaction* transaction,
     }
     auto& insertInfo = relNGInfo->getInsertInfo(columnID);
     applyInsertionsToChunk(persistentState, localState, localChunk, insertInfo, newChunk.get());
-    column->prepareCommitForChunk(transaction, nodeGroupIdx, localState.leftCSROffset,
-        newChunk.get(), 0 /*dataOffset*/, newChunk->getNumValues());
+    std::vector<offset_t> dstOffsets;
+    dstOffsets.resize(newChunk->getNumValues());
+    fillSequence(dstOffsets, localState.leftCSROffset);
+    column->prepareCommitForChunk(
+        transaction, nodeGroupIdx, dstOffsets, newChunk.get(), 0 /*srcOffset*/);
 }
 
 std::vector<PackedCSRRegion> CSRRelTableData::findRegionsToUpdate(
@@ -412,7 +414,7 @@ std::vector<PackedCSRRegion> CSRRelTableData::findRegionsToUpdate(
     return regions;
 }
 
-void CSRRelTableData::updateColumns(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void CSRRelTableData::updateRegion(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     PersistentState& persistentState, LocalState& localState) {
     auto localInfo = ku_dynamic_cast<RelNGInfo*, CSRRelNGInfo*>(localState.localNG->getRelNGInfo());
     // Scan RelID column chunk when there are updates or deletions.
@@ -427,15 +429,15 @@ void CSRRelTableData::updateColumns(Transaction* transaction, node_group_idx_t n
             persistentState.leftCSROffset, persistentState.rightCSROffset + 1);
     }
     if (localState.region.level == 0) {
-        updateRegion(transaction, nodeGroupIdx, INVALID_COLUMN_ID, persistentState, localState);
+        updateColumn(transaction, nodeGroupIdx, INVALID_COLUMN_ID, persistentState, localState);
         for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-            updateRegion(transaction, nodeGroupIdx, columnID, persistentState, localState);
+            updateColumn(transaction, nodeGroupIdx, columnID, persistentState, localState);
         }
     } else {
-        distributeAndUpdateRegion(
+        distributeAndUpdateColumn(
             transaction, nodeGroupIdx, INVALID_COLUMN_ID, persistentState, localState);
         for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-            distributeAndUpdateRegion(
+            distributeAndUpdateColumn(
                 transaction, nodeGroupIdx, columnID, persistentState, localState);
         }
     }
@@ -453,6 +455,7 @@ void CSRRelTableData::findPositionsForInsertions(
     // Slide for insertions.
     if (numInsertionsLeft > 0) {
         slideForInsertions(nodeOffset, numInsertionsLeft, localState);
+        localState.needSliding = true;
     }
 }
 
@@ -492,8 +495,8 @@ void CSRRelTableData::slideForInsertions(
     }
 }
 
-void CSRRelTableData::slideLeftForInsertions(common::offset_t nodeOffset,
-    common::offset_t leftBoundary, LocalState& localState, uint64_t numValuesToInsert) {
+void CSRRelTableData::slideLeftForInsertions(offset_t nodeOffset, offset_t leftBoundary,
+    LocalState& localState, uint64_t numValuesToInsert) {
     KU_ASSERT(nodeOffset >= 1); // We cannot slide the left neighbor of the first node.
     offset_t leftNodeToSlide = nodeOffset - 1;
     std::unordered_map<offset_t, length_t> leftSlides;
@@ -558,7 +561,7 @@ Column* CSRRelTableData::getColumn(column_id_t columnID) const {
     return columnID == INVALID_COLUMN_ID ? adjColumn.get() : columns[columnID].get();
 }
 
-void CSRRelTableData::updateRegion(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void CSRRelTableData::updateColumn(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     column_id_t columnID, const CSRRelTableData::PersistentState& persistentState,
     LocalState& localState) {
     auto column = getColumn(columnID);
@@ -620,15 +623,10 @@ void CSRRelTableData::applyInsertionsToColumn(Transaction* transaction,
     column->prepareCommitForChunk(transaction, nodeGroupIdx, localChunk, writeInfo, {}, {});
 }
 
-// TODO(Guodong): 1. When there are insertions, we can avoid sliding by caching deleted positions
-//                for insertions.
-//                2. Moving from the back of the CSR list to deleted positions, so we can avoid
-//                slidings and benefit from this when there is few deletions.
-void CSRRelTableData::applyDeletionsToColumn(Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, LocalState& localState, const PersistentState& persistentState,
-    Column* column) {
-    auto relNGInfo = ku_dynamic_cast<RelNGInfo*, CSRRelNGInfo*>(localState.localNG->getRelNGInfo());
-    auto& deleteInfo = relNGInfo->getDeleteInfo();
+std::vector<std::pair<offset_t, offset_t>> CSRRelTableData::getSlidesForDeletions(
+    const PersistentState& persistentState, const LocalState& localState,
+    const delete_info_t& deleteInfo) {
+    std::vector<std::pair<offset_t, offset_t>> slides;
     for (auto& [offset, deletions] : deleteInfo) {
         if (localState.region.isOutOfBoundary(offset)) {
             continue;
@@ -639,42 +637,67 @@ void CSRRelTableData::applyDeletionsToColumn(Transaction* transaction,
             // No need to slide. Just skip.
             continue;
         }
-        auto csrOffset = persistentState.header.getStartCSROffset(offset);
-        auto tmpChunk = ColumnChunkFactory::createColumnChunk(
-            column->getDataType()->copy(), enableCompression, length);
-        column->scan(transaction, nodeGroupIdx, tmpChunk.get(), csrOffset, csrOffset + length);
-        auto newChunk = ColumnChunkFactory::createColumnChunk(
-            column->getDataType()->copy(), enableCompression, newLength);
-        std::vector<offset_t> deletionsInRegion;
+        auto startCSROffset = persistentState.header.getStartCSROffset(offset);
+        std::vector<offset_t> deletionsInChunk;
         for (auto relOffset : deletions) {
             auto posInRegion = findPosOfRelIDFromArray(persistentState.relIDChunk.get(), relOffset);
             KU_ASSERT(posInRegion != UINT64_MAX);
-            deletionsInRegion.push_back(posInRegion + localState.leftCSROffset);
+            deletionsInChunk.push_back(posInRegion + localState.leftCSROffset);
         }
-        std::sort(deletionsInRegion.begin(), deletionsInRegion.end());
-        uint64_t offsetToCopyFrom = 0, offsetToCopyInto = 0;
-        for (auto deletedOffset : deletionsInRegion) {
-            auto offsetInCSRList = deletedOffset - csrOffset;
-            auto numValuesToCopy = offsetInCSRList - offsetToCopyFrom;
-            newChunk->copy(tmpChunk.get(), offsetToCopyFrom, offsetToCopyInto, numValuesToCopy);
+        std::sort(deletionsInChunk.begin(), deletionsInChunk.end());
+        KU_ASSERT(deletionsInChunk.begin() <= deletionsInChunk.end());
+        uint64_t offsetToCopyFrom = startCSROffset, offsetToCopyInto = startCSROffset;
+        for (auto deletedOffset : deletionsInChunk) {
+            auto numValuesToCopy = deletedOffset - offsetToCopyFrom;
+            for (auto k = 0u; k < numValuesToCopy; k++) {
+                slides.push_back({offsetToCopyFrom + k, offsetToCopyInto + k});
+            }
             offsetToCopyInto += numValuesToCopy;
-            offsetToCopyFrom = offsetInCSRList + 1;
+            offsetToCopyFrom = deletedOffset + 1;
         }
-        if (offsetToCopyFrom < length) {
-            newChunk->copy(
-                tmpChunk.get(), offsetToCopyFrom, offsetToCopyInto, length - offsetToCopyFrom);
+        while (offsetToCopyFrom < (startCSROffset + length)) {
+            slides.push_back({offsetToCopyFrom++, offsetToCopyInto++});
         }
-        column->prepareCommitForChunk(
-            transaction, nodeGroupIdx, csrOffset, newChunk.get(), 0, newLength);
     }
+    return slides;
 }
 
-// TODO(Guodong): 1. Check if necessary before call this function to avoid unncessary checks on
-//                old/new offset and length.
-//                2. Optimize the sliding by moving the suffix/prefix depending on shifting
+// TODO(Guodong): 1. When there are insertions, we can avoid sliding by caching deleted positions
+//                for insertions.
+//                2. Moving from the back of the CSR list to deleted positions, so we can avoid
+//                slidings and benefit from this when there is few deletions.
+//                3. `getSlidesForDeletions` can be done once for all columns.
+void CSRRelTableData::applyDeletionsToColumn(Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, LocalState& localState, const PersistentState& persistentState,
+    Column* column) {
+    auto relNGInfo = ku_dynamic_cast<RelNGInfo*, CSRRelNGInfo*>(localState.localNG->getRelNGInfo());
+    auto& deleteInfo = relNGInfo->getDeleteInfo();
+    auto slides = getSlidesForDeletions(persistentState, localState, deleteInfo);
+    if (slides.empty()) {
+        return;
+    }
+    auto chunk = ColumnChunkFactory::createColumnChunk(
+        column->getDataType()->copy(), enableCompression, slides.size());
+    std::vector<offset_t> dstOffsets;
+    dstOffsets.resize(slides.size());
+    auto tmpChunkForRead =
+        ColumnChunkFactory::createColumnChunk(column->getDataType()->copy(), enableCompression, 1);
+    for (auto i = 0u; i < slides.size(); i++) {
+        column->scan(
+            transaction, nodeGroupIdx, tmpChunkForRead.get(), slides[i].first, slides[i].first + 1);
+        chunk->append(tmpChunkForRead.get(), 0, 1);
+        dstOffsets[i] = slides[i].second;
+    }
+    column->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets, chunk.get(), 0);
+}
+
+// TODO(Guodong): Optimize the sliding by moving the suffix/prefix depending on shifting
 //                left/right.
 void CSRRelTableData::applySliding(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     LocalState& localState, const PersistentState& persistentState, Column* column) {
+    if (!localState.needSliding) {
+        return;
+    }
     auto [leftBoundary, rightBoundary] = localState.region.getNodeOffsetBoundaries();
     for (auto i = leftBoundary; i <= rightBoundary; i++) {
         auto oldOffset = persistentState.header.getStartCSROffset(i);
@@ -689,8 +712,11 @@ void CSRRelTableData::applySliding(Transaction* transaction, node_group_idx_t no
         auto chunk = ColumnChunkFactory::createColumnChunk(
             column->getDataType()->copy(), enableCompression, length);
         column->scan(transaction, nodeGroupIdx, chunk.get(), oldOffset, oldOffset + length);
+        std::vector<offset_t> dstOffsets;
+        dstOffsets.resize(length);
+        fillSequence(dstOffsets, newOffset);
         column->prepareCommitForChunk(
-            transaction, nodeGroupIdx, newOffset, chunk.get(), 0 /*dataOffset*/, length);
+            transaction, nodeGroupIdx, dstOffsets, chunk.get(), 0 /*dataOffset*/);
     }
 }
 
@@ -753,12 +779,13 @@ void CSRRelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t
     KU_ASSERT(newHeader.sanityCheck());
     localState.leftCSROffset = newHeader.getStartCSROffset(localState.region.leftBoundary);
     localState.rightCSROffset = newHeader.getEndCSROffset(localState.region.rightBoundary);
-    csrHeaderColumns.offset->prepareCommitForChunk(transaction, nodeGroupIdx,
-        localState.region.leftBoundary, newHeader.offset.get(), localState.region.leftBoundary,
-        newHeader.offset->getNumValues() - localState.region.leftBoundary);
-    csrHeaderColumns.length->prepareCommitForChunk(transaction, nodeGroupIdx,
-        localState.region.leftBoundary, newHeader.length.get(), localState.region.leftBoundary,
-        newHeader.length->getNumValues() - localState.region.leftBoundary);
+    std::vector<offset_t> dstOffsets;
+    dstOffsets.resize(newHeader.offset->getNumValues() - localState.region.leftBoundary);
+    fillSequence(dstOffsets, localState.region.leftBoundary);
+    csrHeaderColumns.offset->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets,
+        newHeader.offset.get(), localState.region.leftBoundary);
+    csrHeaderColumns.length->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets,
+        newHeader.length.get(), localState.region.leftBoundary);
 }
 
 void CSRRelTableData::distributeOffsets(const CSRHeaderChunks& header, LocalState& localState,
@@ -787,6 +814,7 @@ void CSRRelTableData::distributeOffsets(const CSRHeaderChunks& header, LocalStat
         auto newOffset = startCSROffset + newLength + newGap;
         newHeader.offset->setValue(newOffset, nodeOffset);
     }
+    localState.needSliding = true;
 }
 
 void CSRRelTableData::prepareCommitNodeGroup(
@@ -797,11 +825,11 @@ void CSRRelTableData::prepareCommitNodeGroup(
     LocalState localState(localRelNG);
     auto regions = findRegionsToUpdate(persistentState.header, localState);
     for (auto& region : regions) {
-        localState.region = region;
+        localState.setRegion(region);
         updateCSRHeader(transaction, nodeGroupIdx, persistentState, localState);
         KU_ASSERT((region.level >= packedCSRInfo.calibratorTreeHeight && regions.size() == 1) ||
                   region.level < packedCSRInfo.calibratorTreeHeight);
-        updateColumns(transaction, nodeGroupIdx, persistentState, localState);
+        updateRegion(transaction, nodeGroupIdx, persistentState, localState);
     }
 }
 

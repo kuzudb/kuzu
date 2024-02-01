@@ -78,8 +78,8 @@ public:
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo);
     virtual void prepareCommitForChunk(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t csrOffset, ColumnChunk* chunk,
-        common::offset_t dataOffset, common::length_t numValues);
+        common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
+        ColumnChunk* chunk, common::offset_t startSrcOffset);
 
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
@@ -151,6 +151,14 @@ protected:
 
     virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit(uint64_t capacity);
 
+    inline common::offset_t getMaxOffset(const std::vector<common::offset_t>& offsets) {
+        common::offset_t maxOffset = 0u;
+        for (auto offset : offsets) {
+            maxOffset = std::max(maxOffset, offset);
+        }
+        return maxOffset;
+    }
+
 private:
     bool isInsertionsOutOfPagesCapacity(
         const ColumnChunkMetadata& metadata, const offset_to_row_idx_t& insertInfo);
@@ -160,8 +168,8 @@ private:
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
     virtual bool canCommitInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t dstOffset, ColumnChunk* chunk,
-        common::offset_t dataOffset, common::length_t length);
+        common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
+        ColumnChunk* chunk, common::offset_t srcOffset);
     virtual void commitLocalChunkInPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
@@ -171,11 +179,12 @@ private:
         bool isNewNodeGroup, const offset_to_row_idx_t& insertInfo,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
     virtual void commitColumnChunkInPlace(common::node_group_idx_t nodeGroupIdx,
-        common::offset_t dstOffset, ColumnChunk* chunk, common::offset_t srcOffsetInChunk,
-        uint64_t numValues);
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        common::offset_t srcOffset);
     virtual void commitColumnChunkOutOfPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, common::offset_t csrOffset,
-        ColumnChunk* chunk, common::offset_t dataOffset, common::length_t numValues);
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        common::offset_t srcOffset);
 
     void applyLocalChunkToColumn(common::node_group_idx_t nodeGroupIdx,
         LocalVectorCollection* localChunk, const offset_to_row_idx_t& info);

@@ -91,8 +91,8 @@ void StructColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
     }
 }
 
-void StructColumn::write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
-    ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues) {
+void StructColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, ColumnChunk* data,
+    offset_t dataOffset, length_t numValues) {
     KU_ASSERT(data->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
     nullColumn->write(nodeGroupIdx, offsetInChunk, data->getNullChunk(), dataOffset, numValues);
     auto structData = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(data);
@@ -135,9 +135,9 @@ bool StructColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t n
 }
 
 bool StructColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    common::offset_t dstOffset, ColumnChunk* chunk, common::offset_t dataOffset, length_t length) {
+    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
     return nullColumn->canCommitInPlace(
-        transaction, nodeGroupIdx, dstOffset, chunk->getNullChunk(), dataOffset, length);
+        transaction, nodeGroupIdx, dstOffsets, chunk->getNullChunk(), srcOffset);
 }
 
 void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -171,7 +171,7 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
 }
 
 void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t dstOffset, ColumnChunk* chunk, offset_t dataOffset, length_t numValues) {
+    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
     KU_ASSERT(chunk->getDataType()->getPhysicalType() == dataType->getPhysicalType());
     auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
     auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
@@ -179,23 +179,23 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
         // If this is a new node group, updateInfo should be empty. We should perform out-of-place
         // commit with a new column chunk.
         commitColumnChunkOutOfPlace(
-            transaction, nodeGroupIdx, isNewNodeGroup, dstOffset, chunk, dataOffset, numValues);
+            transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk, srcOffset);
     } else {
         // STRUCT column doesn't have actual data stored in buffer. Only need to update the null
         // column.
-        if (canCommitInPlace(transaction, nodeGroupIdx, dstOffset, chunk, dataOffset, numValues)) {
+        if (canCommitInPlace(transaction, nodeGroupIdx, dstOffsets, chunk, srcOffset)) {
             nullColumn->commitColumnChunkInPlace(
-                nodeGroupIdx, dstOffset, chunk->getNullChunk(), dataOffset, numValues);
+                nodeGroupIdx, dstOffsets, chunk->getNullChunk(), srcOffset);
         } else {
             nullColumn->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
-                dstOffset, chunk->getNullChunk(), dataOffset, numValues);
+                dstOffsets, chunk->getNullChunk(), srcOffset);
         }
         // Update each child column separately
         for (auto i = 0u; i < childColumns.size(); i++) {
             const auto& childColumn = childColumns[i];
             auto childChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(chunk)->getChild(i);
             childColumn->prepareCommitForChunk(
-                transaction, nodeGroupIdx, dstOffset, childChunk, dataOffset, numValues);
+                transaction, nodeGroupIdx, dstOffsets, childChunk, srcOffset);
         }
     }
 }

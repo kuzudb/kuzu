@@ -28,10 +28,14 @@ protected:
         bool isCSR) final;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
+    void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     void resize(uint64_t newCapacity) final;
 
     void resetToEmpty() final;
+
+    bool numValuesSanityCheck() const override;
 
 private:
     std::vector<std::unique_ptr<ColumnChunk>> childChunks;

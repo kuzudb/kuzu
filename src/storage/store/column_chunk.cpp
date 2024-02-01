@@ -356,6 +356,13 @@ void ColumnChunk::setNumValues(uint64_t numValues_) {
     }
 }
 
+bool ColumnChunk::numValuesSanityCheck() const {
+    if (nullChunk) {
+        return numValues == nullChunk->getNumValues();
+    }
+    return numValues <= capacity;
+}
+
 ColumnChunkMetadata ColumnChunk::getMetadataToFlush() const {
     KU_ASSERT(numValues <= capacity);
     if (enableCompression) {
@@ -522,8 +529,7 @@ public:
         }
     }
 
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
-        common::offset_t offsetInChunk) final {
+    void write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) final {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::FIXED_LIST);
         KU_ASSERT(offsetInChunk < capacity);
         nullChunk->write(vector, offsetInVector, offsetInChunk);
