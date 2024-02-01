@@ -24,7 +24,7 @@ Conversion exception: Error occurred during parsing TIMESTAMP_NS. Given: "2112-0
 -LOG MissingADigitInDay
 -STATEMENT MATCH (a:person) return timestamp("2112-08-0")
 ---- error
-Conversion exception: Date out of range: 2112-8-0.
+Conversion exception: Error occurred during parsing TIMESTAMP. Given: "2112-08-0". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
 
 -LOG InvalidTimezoneFormat
 -STATEMENT MATCH (a:person) return timestamp("1992-04-28T09:33:56-XX:DD")
