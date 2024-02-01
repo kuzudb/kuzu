@@ -29,11 +29,10 @@ b|c
 [a,b,c]
 [a,b]
 [b,c]
-# TODO(Guodong): The following read fails reading correct iri.
-#-STATEMENT MATCH (a)-[* (r, n | WHERE r.iri = "x")]->(b)
-#        RETURN COUNT(*);
-#---- 1
-
+-STATEMENT MATCH (a)-[* (r, n | WHERE r.iri = "x")]->(b)
+        RETURN COUNT(*);
+---- 1
+1
 -CASE W3SparqlDiamondTail
 -STATEMENT CREATE RDFGraph R;
 ---- ok

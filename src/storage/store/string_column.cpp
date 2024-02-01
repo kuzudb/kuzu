@@ -267,8 +267,8 @@ void StringColumn::lookupInternal(
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (!nodeIDVector->isNull(pos)) {
-            auto offsetInGroup =
-                startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx) + pos;
+            auto offsetInGroup = nodeIDVector->readNodeOffset(pos) -
+                                 StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
             string_index_t index;
             Column::scan(
                 transaction, indexState, offsetInGroup, offsetInGroup + 1, (uint8_t*)&index);
