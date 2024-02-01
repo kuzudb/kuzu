@@ -17,6 +17,23 @@ public:
 
     void finalize() final;
 
+    inline uint64_t getChildNumValues(common::vector_idx_t childIdx) {
+        KU_ASSERT(childIdx < childChunks.size());
+        return childChunks[childIdx]->getNumValues();
+    }
+
+    inline bool checkNumValue(){
+        for (uint32_t i=0; i < childChunks.size(); i++){
+            if(numValues != getChildNumValues(i)){
+                return false;
+            }
+       }
+       return true;
+    }
+
+    void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) final;
+
 protected:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) final;
@@ -32,6 +49,10 @@ protected:
     void resize(uint64_t newCapacity) final;
 
     void resetToEmpty() final;
+
+    void setAllNull() final;
+
+    void setNumValues(uint64_t numValues_) final;
 
 private:
     std::vector<std::unique_ptr<ColumnChunk>> childChunks;

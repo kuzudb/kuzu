@@ -50,6 +50,8 @@ public:
 
     virtual void resetToEmpty();
 
+    virtual void setAllNull();
+
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
@@ -97,7 +99,7 @@ public:
 
     inline uint64_t getCapacity() const { return capacity; }
     inline uint64_t getNumValues() const { return numValues; }
-    void setNumValues(uint64_t numValues_);
+    virtual void setNumValues(uint64_t numValues_);
 
 protected:
     // Initializes the data buffer. Is (and should be) only called in constructor.

@@ -169,6 +169,9 @@ void VarListColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     if (indicesColumnChunk->getNumValues() < dstOffsetInChunk + numValuesToCopy) {
         indicesColumnChunk->setNumValues(dstOffsetInChunk + numValuesToCopy + 1);
     }
+    while (numValues < dstOffsetInChunk) {
+        numValues++;
+    }
 }
 
 void VarListColumnChunk::copy(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,

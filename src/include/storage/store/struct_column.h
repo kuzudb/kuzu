@@ -24,6 +24,20 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
+    inline bool checkNumValues(common::node_group_idx_t nodeGroupIdx, transaction::TransactionType transactionType=transaction::TransactionType::WRITE) {
+        KU_ASSERT(childColumns.size()!=0);
+        auto structNumValue=metadataDA->get(nodeGroupIdx, transactionType).numValues;
+        for (auto &childColumn : childColumns){
+            auto childNumValue=childColumn->getMetadataDA()->get(nodeGroupIdx, transactionType).numValues;
+            if(structNumValue!=childNumValue){
+                return  false;
+            }
+        }
+        return true;
+    }
+
+    bool checkNumValues(ColumnChunk* columnChunk);
+
     inline Column* getChild(common::vector_idx_t childIdx) {
         KU_ASSERT(childIdx < childColumns.size());
         return childColumns[childIdx].get();

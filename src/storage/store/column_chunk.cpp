@@ -203,6 +203,10 @@ void ColumnChunk::resetToEmpty() {
     numValues = 0;
 }
 
+void ColumnChunk::setAllNull() {
+    nullChunk->resetToAllNull();
+}
+
 void ColumnChunk::append(ValueVector* vector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == dataType->getPhysicalType());
     copyVectorToBuffer(vector, numValues);
@@ -273,6 +277,9 @@ void ColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk, offset
         srcChunk->buffer.get() + srcOffsetInChunk * numBytesPerValue,
         numValuesToCopy * numBytesPerValue);
     nullChunk->write(srcChunk->getNullChunk(), srcOffsetInChunk, dstOffsetInChunk, numValuesToCopy);
+    while (numValues < dstOffsetInChunk) {
+        numValues++;
+    }
 }
 
 void ColumnChunk::copy(ColumnChunk* srcChunk, offset_t srcOffsetInChunk, offset_t dstOffsetInChunk,
