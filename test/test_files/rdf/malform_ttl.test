@@ -5,7 +5,7 @@
 
 -CASE MalformedRdf
 
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/duplicate_prefix.ttl" (in_memory=1);
 ---- error

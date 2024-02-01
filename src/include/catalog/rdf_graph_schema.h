@@ -17,6 +17,8 @@ public:
     }
     RdfGraphSchema(const RdfGraphSchema& other);
 
+    bool isParent(common::table_id_t tableID) override;
+
     inline common::table_id_t getResourceTableID() const { return resourceTableID; }
     inline common::table_id_t getLiteralTableID() const { return literalTableID; }
     inline common::table_id_t getResourceTripleTableID() const { return resourceTripleTableID; }

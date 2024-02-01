@@ -68,14 +68,22 @@ void BuiltInFunctions::registerAggregateFunctions() {
     registerCollect();
 }
 
+FunctionType BuiltInFunctions::getFunctionType(const std::string& name) {
+    auto normalizedName = StringUtils::getUpper(name);
+    validateFunctionExists(normalizedName);
+    auto& functionSet = functions.at(normalizedName);
+    KU_ASSERT(!functionSet.empty());
+    return functionSet[0]->type;
+}
+
 Function* BuiltInFunctions::matchFunction(const std::string& name) {
     return matchFunction(name, std::vector<common::LogicalType>{});
 }
 
 Function* BuiltInFunctions::matchFunction(
     const std::string& name, const std::vector<common::LogicalType>& inputTypes) {
-    auto normalizedName = name;
-    StringUtils::toUpper(normalizedName);
+    auto normalizedName = StringUtils::getUpper(name);
+    validateFunctionExists(normalizedName);
     auto& functionSet = functions.at(normalizedName);
     bool isOverload = functionSet.size() > 1;
     std::vector<Function*> candidateFunctions;
@@ -175,41 +183,6 @@ uint32_t BuiltInFunctions::getCastCost(LogicalTypeID inputTypeID, LogicalTypeID 
         return castTimestamp(targetTypeID);
     default:
         return UNDEFINED_CAST_COST;
-    }
-}
-
-uint32_t BuiltInFunctions::getAggregateFunctionCost(
-    const std::vector<LogicalType>& inputTypes, bool isDistinct, AggregateFunction* function) {
-    if (inputTypes.size() != function->parameterTypeIDs.size() ||
-        isDistinct != function->isDistinct) {
-        return UINT32_MAX;
-    }
-    for (auto i = 0u; i < inputTypes.size(); ++i) {
-        if (function->parameterTypeIDs[i] == LogicalTypeID::ANY) {
-            continue;
-        } else if (inputTypes[i].getLogicalTypeID() != function->parameterTypeIDs[i]) {
-            return UINT32_MAX;
-        }
-    }
-    return 0;
-}
-
-void BuiltInFunctions::validateNonEmptyCandidateFunctions(
-    std::vector<AggregateFunction*>& candidateFunctions, const std::string& name,
-    const std::vector<LogicalType>& inputTypes, bool isDistinct) {
-    if (candidateFunctions.empty()) {
-        std::string supportedInputsString;
-        for (auto& function : functions.at(name)) {
-            auto aggregateFunction = ku_dynamic_cast<Function*, AggregateFunction*>(function.get());
-            if (aggregateFunction->isDistinct) {
-                supportedInputsString += "DISTINCT ";
-            }
-            supportedInputsString += aggregateFunction->signatureToString() + "\n";
-        }
-        throw BinderException("Cannot match a built-in function for given function " + name +
-                              (isDistinct ? "DISTINCT " : "") +
-                              LogicalTypeUtils::toString(inputTypes) + ". Supported inputs are\n" +
-                              supportedInputsString);
     }
 }
 
@@ -498,6 +471,22 @@ uint32_t BuiltInFunctions::getFunctionCost(
     }
 }
 
+uint32_t BuiltInFunctions::getAggregateFunctionCost(
+    const std::vector<LogicalType>& inputTypes, bool isDistinct, AggregateFunction* function) {
+    if (inputTypes.size() != function->parameterTypeIDs.size() ||
+        isDistinct != function->isDistinct) {
+        return UINT32_MAX;
+    }
+    for (auto i = 0u; i < inputTypes.size(); ++i) {
+        if (function->parameterTypeIDs[i] == LogicalTypeID::ANY) {
+            continue;
+        } else if (inputTypes[i].getLogicalTypeID() != function->parameterTypeIDs[i]) {
+            return UINT32_MAX;
+        }
+    }
+    return 0;
+}
+
 uint32_t BuiltInFunctions::matchParameters(const std::vector<LogicalType>& inputTypes,
     const std::vector<LogicalTypeID>& targetTypeIDs, bool /*isOverload*/) {
     if (inputTypes.size() != targetTypeIDs.size()) {
@@ -525,20 +514,6 @@ uint32_t BuiltInFunctions::matchVarLengthParameters(
         cost += castCost;
     }
     return cost;
-}
-
-void BuiltInFunctions::validateNonEmptyCandidateFunctions(
-    std::vector<Function*>& candidateFunctions, const std::string& name,
-    const std::vector<LogicalType>& inputTypes) {
-    if (candidateFunctions.empty()) {
-        std::string supportedInputsString;
-        for (auto& function : functions.at(name)) {
-            supportedInputsString += function->signatureToString() + "\n";
-        }
-        throw BinderException("Cannot match a built-in function for given function " + name +
-                              LogicalTypeUtils::toString(inputTypes) + ". Supported inputs are\n" +
-                              supportedInputsString);
-    }
 }
 
 void BuiltInFunctions::validateSpecialCases(std::vector<Function*>& candidateFunctions,
@@ -885,6 +860,57 @@ void BuiltInFunctions::registerTableFunctions() {
     functions.insert({IN_MEM_READ_RDF_LITERAL_TRIPLE_FUNC_NAME,
         processor::RdfLiteralTripleInMemScan::getFunctionSet()});
     functions.insert({STORAGE_INFO_FUNC_NAME, StorageInfoFunction::getFunctionSet()});
+}
+
+void BuiltInFunctions::validateFunctionExists(const std::string& name) {
+    if (!functions.contains(name)) {
+        throw CatalogException(stringFormat("{} function does not exist.", name));
+    }
+}
+
+static std::string getFunctionMatchFailureMsg(const std::string name,
+    const std::vector<LogicalType>& inputTypes, const std::string& supportedInputs,
+    bool isDistinct = false) {
+    auto result = stringFormat("Cannot match a built-in function for given function {}{}{}.", name,
+        isDistinct ? "DISTINCT " : "", LogicalTypeUtils::toString(inputTypes));
+    if (supportedInputs.empty()) {
+        result += " Expect empty inputs.";
+    } else {
+        result += " Supported inputs are\n" + supportedInputs;
+    }
+    return result;
+}
+
+void BuiltInFunctions::validateNonEmptyCandidateFunctions(
+    std::vector<AggregateFunction*>& candidateFunctions, const std::string& name,
+    const std::vector<LogicalType>& inputTypes, bool isDistinct) {
+    if (candidateFunctions.empty()) {
+        std::string supportedInputsString;
+        for (auto& function : functions.at(name)) {
+            auto aggregateFunction = ku_dynamic_cast<Function*, AggregateFunction*>(function.get());
+            if (aggregateFunction->isDistinct) {
+                supportedInputsString += "DISTINCT ";
+            }
+            supportedInputsString += aggregateFunction->signatureToString() + "\n";
+        }
+        throw BinderException(
+            getFunctionMatchFailureMsg(name, inputTypes, supportedInputsString, isDistinct));
+    }
+}
+
+void BuiltInFunctions::validateNonEmptyCandidateFunctions(
+    std::vector<Function*>& candidateFunctions, const std::string& name,
+    const std::vector<LogicalType>& inputTypes) {
+    if (candidateFunctions.empty()) {
+        std::string supportedInputsString;
+        for (auto& function : functions.at(name)) {
+            if (function->parameterTypeIDs.empty()) {
+                continue;
+            }
+            supportedInputsString += function->signatureToString() + "\n";
+        }
+        throw BinderException(getFunctionMatchFailureMsg(name, inputTypes, supportedInputsString));
+    }
 }
 
 void BuiltInFunctions::addFunction(std::string name, function::function_set definitions) {

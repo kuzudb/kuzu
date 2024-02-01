@@ -23,6 +23,10 @@ public:
           srcTableID{srcTableID}, dstTableID{dstTableID} {}
     RelTableSchema(const RelTableSchema& other);
 
+    inline bool isParent(common::table_id_t tableID) override {
+        return srcTableID == tableID || dstTableID == tableID;
+    }
+
     inline bool isSingleMultiplicity(common::RelDataDirection direction) const {
         return getMultiplicity(direction) == RelMultiplicity::ONE;
     }
@@ -30,9 +34,6 @@ public:
         return direction == common::RelDataDirection::FWD ? dstMultiplicity : srcMultiplicity;
     }
 
-    inline bool isSrcOrDstTable(common::table_id_t tableID) const {
-        return srcTableID == tableID || dstTableID == tableID;
-    }
     inline common::table_id_t getBoundTableID(common::RelDataDirection relDirection) const {
         return relDirection == common::RelDataDirection::FWD ? srcTableID : dstTableID;
     }

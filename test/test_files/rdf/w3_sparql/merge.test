@@ -5,7 +5,7 @@
 
 -CASE SqarqlMerge
 
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT MERGE (a:R_r {iri: "a"})-[b{iri: "b"}]->(c:R_r {iri: "c"});
 ---- ok

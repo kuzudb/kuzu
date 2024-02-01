@@ -5,7 +5,7 @@
 
 -CASE SqarqlUpdate
 
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT CREATE (a:R_r)-[]->(:R_r {iri: "o"});
 ---- error
@@ -41,7 +41,7 @@ http://example.org/ns#s|http://example.org/ns#p|http://example.org/ns#o2
 o|p|s
 
 -CASE SparqlDL04
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "type"}]->(:R_r {iri: "Person"}),
                   (b:R_r {iri: "b"})-[{iri: "type"}]->(:R_r {iri: "Person"}),
@@ -65,7 +65,7 @@ a|A|Anick
 b|B|Bnick
 
 -CASE SparqlDL05
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 #:a :p :aa.
 #:dd :t :bb.

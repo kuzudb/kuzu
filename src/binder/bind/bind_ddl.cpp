@@ -3,7 +3,6 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "catalog/node_table_schema.h"
-#include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
@@ -186,27 +185,39 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     switch (tableSchema->tableType) {
     case TableType::NODE: {
+        auto errMsg =
+            stringFormat("Cannot delete node table {} because it is referenced by", tableName);
+        // Check node table is not referenced by rel table.
         for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
-            auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
-            if (relTableSchema->isSrcOrDstTable(tableID)) {
+            if (schema->isParent(tableID)) {
                 throw BinderException(
-                    stringFormat("Cannot delete node table {} referenced by rel table {}.",
-                        tableSchema->tableName, relTableSchema->tableName));
+                    stringFormat("{} relationship table {}.", errMsg, schema->getName()));
+            }
+        }
+        // Check node table is not referenced by rdf graph
+        for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+            if (schema->isParent(tableID)) {
+                throw BinderException(stringFormat("{} rdfGraph {}.", errMsg, schema->getName()));
             }
         }
     } break;
     case TableType::REL: {
+        auto errMsg = stringFormat(
+            "Cannot delete relationship table {} because it is referenced by", tableName);
+        // Check rel table is not referenced by rel group.
         for (auto& schema : catalog.getRelTableGroupSchemas(clientContext->getTx())) {
-            auto relTableGroupSchema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(schema);
-            for (auto& relTableID : relTableGroupSchema->getRelTableIDs()) {
-                if (relTableID == tableSchema->getTableID()) {
-                    throw BinderException(
-                        stringFormat("Cannot delete rel table {} referenced by rel group {}.",
-                            tableSchema->tableName, relTableGroupSchema->tableName));
-                }
+            if (schema->isParent(tableID)) {
+                throw BinderException(
+                    stringFormat("{} relationship group {}.", errMsg, schema->getName()));
             }
         }
-    }
+        // Check rel table is not referenced by rdf graph.
+        for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+            if (schema->isParent(tableID)) {
+                throw BinderException(stringFormat("{} rdfGraph {}.", errMsg, schema->getName()));
+            }
+        }
+    } break;
     default:
         break;
     }
@@ -215,6 +226,14 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
 
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
+    auto tableID = catalog.getTableID(clientContext->getTx(), alter.getInfo()->tableName);
+    for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+        if (schema->isParent(tableID)) {
+            throw BinderException(
+                stringFormat("Cannot alter table {} because it is referenced by rdfGraph {}.",
+                    alter.getInfo()->tableName, schema->getName()));
+        }
+    }
     switch (alter.getInfo()->type) {
     case AlterType::RENAME_TABLE: {
         return bindRenameTable(statement);
@@ -232,7 +251,6 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
         KU_UNREACHABLE;
     }
     }
-    return nullptr;
 }
 
 std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {

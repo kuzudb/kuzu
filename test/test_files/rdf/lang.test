@@ -4,7 +4,7 @@
 --
 
 -CASE LangTagOutofMemory
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/lang/data.ttl" (in_memory=false);
 ---- ok
@@ -19,7 +19,7 @@ http://example.org/vocab/show/218|http://www.w3.org/2000/01/rdf-schema#label|Tha
 
 
 -CASE LangTagInMemory
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/lang/data.ttl" (in_memory=false);
 ---- ok

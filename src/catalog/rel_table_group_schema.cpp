@@ -12,6 +12,15 @@ RelTableGroupSchema::RelTableGroupSchema(const RelTableGroupSchema& other) : Tab
     relTableIDs = other.relTableIDs;
 }
 
+bool RelTableGroupSchema::isParent(common::table_id_t tableID) {
+    for (auto& id : relTableIDs) {
+        if (id == tableID) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void RelTableGroupSchema::serializeInternal(Serializer& serializer) {
     serializer.serializeVector(relTableIDs);
 }
