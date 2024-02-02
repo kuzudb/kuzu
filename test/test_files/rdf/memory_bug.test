@@ -1,5 +1,5 @@
 -GROUP Rdf
--DATASET TTL rdf/memory-bug
+-DATASET TTL rdf/memory_bug
 
 --
 

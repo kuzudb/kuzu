@@ -7,15 +7,12 @@
 
 -STATEMENT CREATE RDFGraph R;
 ---- ok
--STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/duplicate_prefix.ttl" (in_memory=1);
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_syntax.ttl" (in_memory=1);
 ---- error
 Binder exception: The type of option IN_MEMORY must be a boolean.
--STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/duplicate_prefix.ttl" (x=1);
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_syntax.ttl" (x=1);
 ---- error
 Binder exception: Unrecognized parsing option: X.
--STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/duplicate_prefix.ttl";
----- error
-Runtime exception: Detect duplicate prefix b.
 -STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_syntax.ttl" (in_memory=true);
 ---- ok
 -STATEMENT MATCH (a:R_r) RETURN a.iri;

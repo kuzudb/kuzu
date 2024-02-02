@@ -3,7 +3,6 @@
 #include <cstdio>
 
 #include "common/constants.h"
-#include "common/string_format.h"
 #include "common/vector/value_vector.h"
 #include "processor/operator/persistent/reader/rdf/rdf_utils.h"
 #include "serd.h"
@@ -17,6 +16,7 @@ namespace processor {
 RdfReader::~RdfReader() {
     serd_reader_end_stream(reader);
     serd_reader_free(reader);
+    serd_env_free(env);
     // Even if the close fails, the stream is in an undefined state. There really isn't anything we
     // can do.
     (void)fclose(fp);
@@ -37,10 +37,11 @@ void RdfReader::initInternal(SerdStatementSink statementSink) {
     KU_ASSERT(reader == nullptr);
     fp = fopen(this->filePath.c_str(), "rb");
     reader = serd_reader_new(
-        getSerdSyntax(fileType), this, nullptr, nullptr, prefixHandle, statementSink, nullptr);
+        getSerdSyntax(fileType), this, nullptr, baseHandle, prefixHandle, statementSink, nullptr);
     serd_reader_set_error_sink(reader, errorHandle, this);
     auto fileName = this->filePath.substr(this->filePath.find_last_of("/\\") + 1);
     serd_reader_start_stream(reader, fp, reinterpret_cast<const uint8_t*>(fileName.c_str()), true);
+    env = serd_env_new(nullptr);
 }
 
 SerdStatus RdfReader::errorHandle(void*, const SerdError* error) {
@@ -50,28 +51,17 @@ SerdStatus RdfReader::errorHandle(void*, const SerdError* error) {
     return error->status;
 }
 
-static std::string getAsString(const SerdNode* node) {
-    return std::string((const char*)node->buf, node->n_bytes);
-}
-
-static std::string_view getAsStringView(const SerdNode* node) {
-    return std::string_view((const char*)node->buf, node->n_bytes);
+SerdStatus RdfReader::baseHandle(void* handle, const SerdNode* baseNode) {
+    auto reader = reinterpret_cast<RdfReader*>(handle);
+    serd_env_set_base_uri(reader->env, baseNode);
+    reader->hasBaseUri = true;
+    return SERD_SUCCESS;
 }
 
 SerdStatus RdfReader::prefixHandle(
     void* handle, const SerdNode* nameNode, const SerdNode* uriNode) {
     auto reader = reinterpret_cast<RdfReader*>(handle);
-    auto name = getAsString(nameNode);
-    auto uri = getAsString(uriNode);
-    if (name.empty()) {
-        reader->defaultPrefix = uri;
-        return SERD_SUCCESS;
-    }
-    if (!reader->prefixMap.contains(name)) {
-        reader->prefixMap.insert({name, uri});
-    } else {
-        throw RuntimeException(stringFormat("Detect duplicate prefix {}.", name));
-    }
+    serd_env_set_prefix(reader->env, nameNode, uriNode);
     return SERD_SUCCESS;
 }
 
@@ -110,33 +100,50 @@ void RdfReader::readAll() {
     }
 }
 
+static void appendSerdChunk(std::string& str, const SerdChunk& chunk) {
+    if (chunk.len != 0) {
+        str += std::string((const char*)chunk.buf, chunk.len);
+    }
+}
+
 void RdfReader::addNode(std::vector<std::string>& vector, const SerdNode* node) {
-    if (node->type == SerdType::SERD_URI) {
-        // No need to expand prefix
-        vector.emplace_back((const char*)node->buf, node->n_bytes);
-        return;
-    }
-    if (prefixMap.empty() && defaultPrefix.empty()) {
-        // No prefix to expand
-        vector.emplace_back((const char*)node->buf, node->n_bytes);
-        return;
-    }
-    auto nodeStr = getAsStringView(node);
-    auto prefixEndPos = nodeStr.find_first_of(':');
-    if (prefixEndPos == std::string::npos) {
-        vector.emplace_back((const char*)node->buf, node->n_bytes);
-        return;
-    }
-    auto suffix = nodeStr.substr(prefixEndPos + 1);
-    if (prefixEndPos == 0) {
-        vector.emplace_back(defaultPrefix + std::string(suffix));
-        return;
-    }
-    auto prefix = nodeStr.substr(0, prefixEndPos);
-    if (prefixMap.contains(std::string(prefix))) {
-        auto expandedPrefix = prefixMap.at(std::string(prefix));
-        vector.emplace_back(expandedPrefix + std::string(suffix));
-    } else {
+    switch (node->type) {
+    case SERD_URI: {
+        if (!hasBaseUri || serd_uri_string_has_scheme(node->buf)) {
+            vector.emplace_back((const char*)node->buf, node->n_bytes);
+            return;
+        }
+        SerdURI inputUri;
+        serd_uri_parse(node->buf, &inputUri);
+        SerdURI baseUri;
+        serd_env_get_base_uri(env, &baseUri);
+        SerdURI resultUri;
+        serd_uri_resolve(&inputUri, &baseUri, &resultUri);
+        std::string result;
+        appendSerdChunk(result, resultUri.scheme);
+        if (resultUri.scheme.len != 0) {
+            result += "://";
+        }
+        appendSerdChunk(result, resultUri.authority);
+        appendSerdChunk(result, resultUri.path_base);
+        appendSerdChunk(result, resultUri.path);
+        appendSerdChunk(result, resultUri.query);
+        appendSerdChunk(result, resultUri.fragment);
+        vector.push_back(std::move(result));
+    } break;
+    case SERD_CURIE: {
+        SerdChunk prefix = SerdChunk();
+        SerdChunk suffix = SerdChunk();
+        auto st = serd_env_expand(env, node, &prefix, &suffix);
+        if (st == SERD_SUCCESS) {
+            auto expandedUri = std::string((const char*)prefix.buf, prefix.len) +
+                               std::string((const char*)suffix.buf, suffix.len);
+            vector.push_back(std::move(expandedUri));
+        } else {
+            vector.emplace_back((const char*)node->buf, node->n_bytes);
+        }
+    } break;
+    default:
         vector.emplace_back((const char*)node->buf, node->n_bytes);
     }
 }
