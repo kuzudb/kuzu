@@ -31,7 +31,6 @@ add_library(httpfs
 
 target_link_libraries(httpfs
         PRIVATE
-        dl  # For dlopen, dlsym, etc.
         mbedtls
 )
 
