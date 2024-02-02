@@ -129,11 +129,18 @@ static void validatePrimaryKeyExistence(
     auto nodeTableSchema = ku_dynamic_cast<const TableSchema*, const NodeTableSchema*>(tableSchema);
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     if (*primaryKey->getDataType() == *LogicalType::SERIAL()) {
+        if (node.hasPropertyDataExpr(primaryKey->getName())) {
+            throw BinderException(
+                common::stringFormat("The primary key of {} is serial, specifying primary key "
+                                     "value is not allowed in the create statement.",
+                    tableSchema->tableName));
+        }
         return; // No input needed for SERIAL primary key.
     }
     if (!node.hasPropertyDataExpr(primaryKey->getName())) {
-        throw BinderException("Create node " + node.toString() + " expects primary key " +
-                              primaryKey->getName() + " as input.");
+        throw BinderException(
+            common::stringFormat("Create node {} expects primary key {} as input.", node.toString(),
+                primaryKey->getName()));
     }
 }
 
