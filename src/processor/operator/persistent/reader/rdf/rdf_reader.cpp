@@ -38,26 +38,15 @@ void RdfReader::initInternal(SerdStatementSink statementSink) {
     fp = fopen(this->filePath.c_str(), "rb");
     reader = serd_reader_new(
         getSerdSyntax(fileType), this, nullptr, nullptr, prefixHandle, statementSink, nullptr);
-    serd_reader_set_strict(reader, true /* strict */);
     serd_reader_set_error_sink(reader, errorHandle, this);
     auto fileName = this->filePath.substr(this->filePath.find_last_of("/\\") + 1);
     serd_reader_start_stream(reader, fp, reinterpret_cast<const uint8_t*>(fileName.c_str()), true);
 }
 
-SerdStatus RdfReader::errorHandle(void* handle, const SerdError* error) {
-    auto reader = reinterpret_cast<RdfReader*>(handle);
-    switch (error->status) {
-    case SERD_SUCCESS:
-    case SERD_FAILURE:
-        break;
-    default: {
-        serd_reader_skip_until_byte(reader->reader, (uint8_t)'\n');
-        // TODO: we should probably have a strict mode where exceptions are being thrown.
-        //        common::stringFormat("{} while reading rdf file at line {} and col {}",
-        //                (char*)serd_strerror(error->status), error->line, error->col));
-        break;
-    }
-    }
+SerdStatus RdfReader::errorHandle(void*, const SerdError* error) {
+    // TODO: we should probably have a strict mode where exceptions are being thrown.
+    //        common::stringFormat("{} while reading rdf file at line {} and col {}",
+    //                (char*)serd_strerror(error->status), error->line, error->col));
     return error->status;
 }
 
@@ -94,6 +83,9 @@ offset_t RdfReader::readChunk(DataChunk* dataChunk) {
             if (status == SERD_FAILURE || store_->size() > DEFAULT_VECTOR_CAPACITY) {
                 break;
             }
+            if (status > SERD_FAILURE) {
+                serd_reader_skip_until_byte(reader, (uint8_t)'\n');
+            }
             status = serd_reader_read_chunk(reader);
         }
     }
@@ -111,6 +103,9 @@ void RdfReader::readAll() {
         status = serd_reader_read_chunk(reader);
         if (status == SERD_FAILURE) {
             return;
+        }
+        if (status > SERD_FAILURE) {
+            serd_reader_skip_until_byte(reader, (uint8_t)'\n');
         }
     }
 }

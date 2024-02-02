@@ -337,6 +337,11 @@ bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
         return false;
     }
 
+    // TODO(Ziyi): the following check is duplicated in Date::fromDate.
+    // We should pull the check here, because a tryCast function should not throw exception.
+    if (!Date::isValid(year, month, day)) {
+        return false;
+    }
     result = Date::fromDate(year, month, day);
     return true;
 }
