@@ -1,6 +1,5 @@
 -GROUP CreateDeleteInt64NodeTrxTest
 -DATASET CSV node-insertion-deletion-tests/int64-pk
-
 --
 
 -CASE MixedInsertDeleteCommitNormalExecution

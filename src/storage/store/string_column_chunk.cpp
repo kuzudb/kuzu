@@ -74,6 +74,9 @@ void StringColumnChunk::write(
         auto kuStr = vector->getValue<ku_string_t>(offsetInVector);
         setValueFromString(kuStr.getAsString().c_str(), kuStr.len, offsetInChunk);
     }
+    if (offsetInChunk >= numValues) {
+        numValues = offsetInChunk + 1;
+    }
 }
 
 void StringColumnChunk::write(
@@ -98,6 +101,36 @@ void StringColumnChunk::write(
             setValueFromString((const char*)kuStr.getData(), kuStr.len, offsetInChunk);
         }
     }
+}
+
+void StringColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
+    offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
+    KU_ASSERT(srcChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRING);
+    for (auto i = 0u; i < numValuesToCopy; i++) {
+        auto srcPos = srcOffsetInChunk + i;
+        auto dstPos = dstOffsetInChunk + i;
+        nullChunk->setNull(dstPos, srcChunk->getNullChunk()->isNull(srcPos));
+        if (srcChunk->getNullChunk()->isNull(srcPos)) {
+            continue;
+        }
+        auto srcStringChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(srcChunk);
+        auto stringInOtherChunk = srcStringChunk->getValue<std::string_view>(srcPos);
+        setValueFromString(stringInOtherChunk.data(), stringInOtherChunk.size(), dstPos);
+    }
+}
+
+void StringColumnChunk::copy(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
+    offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
+    KU_ASSERT(srcChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRING);
+    KU_ASSERT(dstOffsetInChunk >= numValues);
+    auto indices = reinterpret_cast<string_index_t*>(buffer.get());
+    while (numValues < dstOffsetInChunk) {
+        indices[numValues] = 0;
+        nullChunk->setNull(numValues, true);
+        numValues++;
+    }
+    auto srcStringChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(srcChunk);
+    append(srcStringChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void StringColumnChunk::appendStringColumnChunk(
@@ -212,6 +245,7 @@ std::string_view StringColumnChunk::getValue<std::string_view>(offset_t pos) con
     auto offset = offsetChunk->getValue<string_offset_t>(index);
     return std::string_view((const char*)stringDataChunk->getData() + offset, getStringLength(pos));
 }
+
 template<>
 std::string StringColumnChunk::getValue<std::string>(offset_t pos) const {
     return std::string(getValue<std::string_view>(pos));

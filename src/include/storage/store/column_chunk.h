@@ -74,14 +74,21 @@ public:
         common::offset_t offsetInChunk);
     virtual void write(
         common::ValueVector* vector, common::ValueVector* offsetsInChunk, bool isCSR);
+    virtual void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
+    virtual void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
 
     // numValues must be at least the number of values the ColumnChunk was first initialized
     // with
     virtual void resize(uint64_t newCapacity);
 
     template<typename T>
-    inline void setValue(T val, common::offset_t pos) {
+    void setValue(T val, common::offset_t pos) {
         ((T*)buffer.get())[pos] = val;
+        if (pos >= numValues) {
+            numValues = pos + 1;
+        }
     }
 
     void populateWithDefaultVal(common::ValueVector* defaultValueVector);
@@ -147,29 +154,22 @@ public:
         common::offset_t offsetInChunk) override;
     void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector,
         bool isCSR) final;
+    void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 };
 
-class NullColumnChunk : public BoolColumnChunk {
+class NullColumnChunk final : public BoolColumnChunk {
 public:
     explicit NullColumnChunk(uint64_t capacity, bool enableCompression)
         : BoolColumnChunk(capacity, enableCompression, false /*hasNullChunk*/), mayHaveNullValue{
                                                                                     false} {}
     // Maybe this should be combined with BoolColumnChunk if the only difference is these functions?
     inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
-    inline void setNull(common::offset_t pos, bool isNull) {
-        setValue(isNull, pos);
-        if (isNull) {
-            mayHaveNullValue = true;
-        }
-        // TODO(Guodong): Better let NullColumnChunk also support `append` a vector.
-        if (pos >= numValues) {
-            numValues = pos + 1;
-        }
-    }
+    void setNull(common::offset_t pos, bool isNull);
 
     inline bool mayHaveNull() const { return mayHaveNullValue; }
 
-    inline void resetToEmpty() final {
+    inline void resetToEmpty() override {
         resetToNoNull();
         numValues = 0;
     }
@@ -191,10 +191,12 @@ public:
     }
 
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-        uint32_t numValuesToAppend) final;
+        uint32_t numValuesToAppend) override;
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
-        common::offset_t offsetInChunk) final;
+        common::offset_t offsetInChunk) override;
+    void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
 protected:
     bool mayHaveNullValue;

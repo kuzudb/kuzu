@@ -265,6 +265,27 @@ void ColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset_t o
     }
 }
 
+void ColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk, offset_t dstOffsetInChunk,
+    offset_t numValuesToCopy) {
+    KU_ASSERT(numValues >= (dstOffsetInChunk + numValuesToCopy));
+    KU_ASSERT(srcChunk->dataType->getPhysicalType() == dataType->getPhysicalType());
+    memcpy(buffer.get() + dstOffsetInChunk * numBytesPerValue,
+        srcChunk->buffer.get() + srcOffsetInChunk * numBytesPerValue,
+        numValuesToCopy * numBytesPerValue);
+    nullChunk->write(srcChunk->getNullChunk(), srcOffsetInChunk, dstOffsetInChunk, numValuesToCopy);
+}
+
+void ColumnChunk::copy(ColumnChunk* srcChunk, offset_t srcOffsetInChunk, offset_t dstOffsetInChunk,
+    offset_t numValuesToCopy) {
+    KU_ASSERT(srcChunk->dataType->getPhysicalType() == dataType->getPhysicalType());
+    KU_ASSERT(dstOffsetInChunk >= numValues);
+    while (numValues < dstOffsetInChunk) {
+        nullChunk->setNull(numValues, true);
+        numValues++;
+    }
+    append(srcChunk, srcOffsetInChunk, numValuesToCopy);
+}
+
 void ColumnChunk::resize(uint64_t newCapacity) {
     capacity = newCapacity;
     auto numBytesAfterResize = getBufferSize();
@@ -423,9 +444,34 @@ void BoolColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
 }
 
+void BoolColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
+    offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
+    KU_ASSERT(numValues >= (dstOffsetInChunk + numValuesToCopy));
+    NullMask::copyNullMask((uint64_t*)static_cast<BoolColumnChunk*>(srcChunk)->buffer.get(),
+        srcOffsetInChunk, (uint64_t*)buffer.get(), dstOffsetInChunk, numValuesToCopy);
+}
+
+void NullColumnChunk::setNull(offset_t pos, bool isNull) {
+    setValue(isNull, pos);
+    if (isNull) {
+        mayHaveNullValue = true;
+    }
+    // TODO(Guodong): Better let NullColumnChunk also support `append` a vector.
+    if (pos >= numValues) {
+        numValues = pos + 1;
+    }
+}
+
 void NullColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
     setNull(offsetInChunk, vector->isNull(offsetInVector));
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
+}
+
+void NullColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
+    offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
+    KU_ASSERT(numValues >= (dstOffsetInChunk + numValuesToCopy));
+    copyFromBuffer((uint64_t*)static_cast<NullColumnChunk*>(srcChunk)->buffer.get(),
+        srcOffsetInChunk, dstOffsetInChunk, numValuesToCopy);
 }
 
 void NullColumnChunk::append(
@@ -501,7 +547,7 @@ public:
 
 class InternalIDColumnChunk final : public ColumnChunk {
 public:
-    // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
+    // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,
     explicit InternalIDColumnChunk(uint64_t capacity)
         : ColumnChunk(LogicalType::INT64(), capacity, false /*enableCompression*/) {}
 
@@ -518,6 +564,19 @@ public:
             nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
             memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
                 &relIDsInVector[pos].offset, numBytesPerValue);
+        }
+    }
+
+    void write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) override {
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+        nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
+        auto relIDsInVector = (internalID_t*)vector->getData();
+        if (!vector->isNull(offsetInVector)) {
+            memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
+                &relIDsInVector[offsetInVector].offset, numBytesPerValue);
+        }
+        if (offsetInChunk >= numValues) {
+            numValues = offsetInChunk + 1;
         }
     }
 };

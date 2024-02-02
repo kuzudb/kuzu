@@ -14,6 +14,8 @@ public:
           relTableIDs{std::move(relTableIDs)} {}
     RelTableGroupSchema(const RelTableGroupSchema& other);
 
+    bool isParent(common::table_id_t tableID) override;
+
     inline std::vector<common::table_id_t> getRelTableIDs() const { return relTableIDs; }
 
     static std::unique_ptr<RelTableGroupSchema> deserialize(common::Deserializer& deserializer);

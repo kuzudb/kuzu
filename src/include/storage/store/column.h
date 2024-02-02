@@ -52,9 +52,11 @@ public:
 
     virtual void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
+    // Scan from [startOffsetInGroup, endOffsetInGroup).
     virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector);
+    // Scan from [startOffsetInGroup, endOffsetInGroup).
     virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         ColumnChunk* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET);
@@ -75,6 +77,10 @@ public:
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo);
+    virtual void prepareCommitForChunk(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t csrOffset, ColumnChunk* chunk,
+        common::offset_t dataOffset, common::length_t numValues);
+
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 
@@ -93,8 +99,12 @@ public:
     virtual void scan(transaction::Transaction* transaction, const ReadState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
 
+    // Write a single value from the vectorToWriteFrom.
     virtual void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
+    // Batch write to a set of sequential pages.
+    virtual void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
+        ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues);
 
     // Append values to the end of the node group, resizing it if necessary
     common::offset_t appendValues(
@@ -102,6 +112,9 @@ public:
 
     ReadState getReadState(
         transaction::TransactionType transactionType, common::node_group_idx_t nodeGroupIdx) const;
+
+    static void applyLocalChunkToColumnChunk(LocalVectorCollection* localChunk,
+        ColumnChunk* columnChunk, const offset_to_row_idx_t& info);
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction,
@@ -123,37 +136,47 @@ protected:
     virtual void writeValue(const ColumnChunkMetadata& chunkMeta,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
-    virtual void writeValue(const ColumnChunkMetadata& chunkMeta,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk, const uint8_t* data);
+    virtual void writeValues(const ColumnChunkMetadata& chunkMeta,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk, const uint8_t* data,
+        common::offset_t dataOffset = 0, common::offset_t numValues = 1);
 
     // Produces a page cursor for the offset relative to the given node group
     PageCursor getPageCursorForOffsetInGroup(
         common::offset_t offsetInChunk, const ReadState& state);
-
     // Produces a page cursor for the absolute node offset
     PageCursor getPageCursorForOffset(transaction::TransactionType transactionType,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
     WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
 
+    virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit(uint64_t capacity);
+
+private:
+    bool isInsertionsOutOfPagesCapacity(
+        const ColumnChunkMetadata& metadata, const offset_to_row_idx_t& insertInfo);
+    bool checkUpdateInPlace(const ColumnChunkMetadata& metadata, LocalVectorCollection* localChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
+    virtual bool canCommitInPlace(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
+    virtual bool canCommitInPlace(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t dstOffset, ColumnChunk* chunk,
+        common::offset_t dataOffset, common::length_t length);
     virtual void commitLocalChunkInPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo);
-
-    virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit();
-
-private:
-    virtual bool canCommitInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
-        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
     virtual void commitLocalChunkOutOfPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         bool isNewNodeGroup, const offset_to_row_idx_t& insertInfo,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
+    virtual void commitColumnChunkInPlace(common::node_group_idx_t nodeGroupIdx,
+        common::offset_t dstOffset, ColumnChunk* chunk, common::offset_t srcOffsetInChunk,
+        uint64_t numValues);
+    virtual void commitColumnChunkOutOfPlace(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, common::offset_t csrOffset,
+        ColumnChunk* chunk, common::offset_t dataOffset, common::length_t numValues);
 
-    void applyLocalChunkToColumnChunk(LocalVectorCollection* localChunk, ColumnChunk* columnChunk,
-        const offset_to_row_idx_t& info);
     void applyLocalChunkToColumn(common::node_group_idx_t nodeGroupIdx,
         LocalVectorCollection* localChunk, const offset_to_row_idx_t& info);
 

@@ -16,21 +16,20 @@ public:
         : TableSchema(tableType, "", common::INVALID_TABLE_ID) {}
     TableSchema(common::TableType tableType, std::string tableName, common::table_id_t tableID)
         : tableType{tableType}, tableName{std::move(tableName)}, tableID{tableID}, comment{},
-          nextPID{0}, parentTableID{common::INVALID_TABLE_ID} {}
+          nextPID{0} {}
     TableSchema(const TableSchema& other);
 
     virtual ~TableSchema() = default;
 
     /* Table functions */
+    inline std::string getName() const { return tableName; }
     inline common::table_id_t getTableID() const { return tableID; }
     inline common::TableType getTableType() const { return tableType; }
     inline void renameTable(std::string newName) { tableName = std::move(newName); }
 
     inline void setComment(std::string newComment) { comment = std::move(newComment); }
 
-    inline void setParentTableID(common::table_id_t id) { parentTableID = id; }
-    inline bool hasParentTableID() const { return parentTableID != common::INVALID_TABLE_ID; }
-    inline common::table_id_t getParentTableID() const { return parentTableID; }
+    virtual bool isParent(common::table_id_t tableID) = 0;
 
     /* Property functions */
     static bool isReservedPropertyName(const std::string& propertyName);
@@ -63,7 +62,6 @@ public:
     std::vector<Property> properties;
     std::string comment;
     common::property_id_t nextPID;
-    common::table_id_t parentTableID;
 };
 
 } // namespace catalog

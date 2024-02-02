@@ -192,7 +192,7 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
     auto stringType = LogicalType(LogicalTypeID::STRING);
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(stringType);
-    auto functions = catalog.getBuiltInFunctions();
+    auto functions = catalog.getBuiltInFunctions(clientContext->getTx());
     switch (fileType) {
     case FileType::PARQUET: {
         func = functions->matchFunction(READ_PARQUET_FUNC_NAME, inputTypes);

@@ -1,61 +1,29 @@
 #pragma once
 
-#include <utility>
-
-#include "hash_index_builder.h"
+#include "common/type_utils.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "hash_index_header.h"
+#include "hash_index_slot.h"
+#include "storage/index/base_hash_index.h"
+#include "storage/index/hash_index_utils.h"
+#include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/disk_overflow_file.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {
 
-enum class HashIndexLocalLookupState : uint8_t { KEY_FOUND, KEY_DELETED, KEY_NOT_EXIST };
-enum class ChainedSlotsAction : uint8_t { LOOKUP_IN_SLOTS, DELETE_IN_SLOTS, FIND_FREE_SLOT };
+template<typename T, typename S = T>
+class HashIndexLocalStorage;
 
-template<typename T>
-class TemplatedHashIndexLocalStorage {
+class OnDiskHashIndex {
 public:
-    HashIndexLocalLookupState lookup(const T& key, common::offset_t& result);
-    void deleteKey(const T& key);
-    bool insert(const T& key, common::offset_t value);
-
-    inline bool hasUpdates() const { return !(localInsertions.empty() && localDeletions.empty()); }
-    inline void clear() {
-        localInsertions.clear();
-        localDeletions.clear();
-    }
-
-    std::unordered_map<T, common::offset_t> localInsertions;
-    std::unordered_set<T> localDeletions;
-};
-
-// Local storage consists of two in memory indexes. One (localInsertionIndex) is to keep track of
-// all newly inserted entries, and the other (localDeletionIndex) is to keep track of newly deleted
-// entries (not available in localInsertionIndex). We assume that in a transaction, the insertions
-// and deletions are very small, thus they can be kept in memory.
-class HashIndexLocalStorage {
-public:
-    explicit HashIndexLocalStorage(common::LogicalType keyDataType)
-        : keyDataType{std::move(keyDataType)} {}
-    // Currently, we assume that reads(lookup) and writes(delete/insert) of the local storage will
-    // never happen concurrently. Thus, lookup requires no local storage lock. Writes are
-    // coordinated to execute in serial with the help of the localStorageMutex. This is a
-    // simplification to the lock scheme, but can be relaxed later if necessary.
-    HashIndexLocalLookupState lookup(const uint8_t* key, common::offset_t& result);
-    void deleteKey(const uint8_t* key);
-    bool insert(const uint8_t* key, common::offset_t value);
-    void applyLocalChanges(const std::function<void(const uint8_t*)>& deleteOp,
-        const std::function<void(const uint8_t*, common::offset_t)>& insertOp);
-
-    bool hasUpdates() const;
-    void clear();
-
-public:
-    std::shared_mutex localStorageSharedMutex;
-
-private:
-    common::LogicalType keyDataType;
-    TemplatedHashIndexLocalStorage<int64_t> templatedLocalStorageForInt;
-    TemplatedHashIndexLocalStorage<std::string> templatedLocalStorageForString;
+    virtual ~OnDiskHashIndex() = default;
+    virtual void prepareCommit() = 0;
+    virtual void prepareRollback() = 0;
+    virtual void checkpointInMemory() = 0;
+    virtual void rollbackInMemory() = 0;
 };
 
 // HashIndex is the entrance to handle all updates and lookups into the index after building from
@@ -76,116 +44,151 @@ private:
 //   First check if the key to be inserted already exists in local insertions or the persistent
 //   store. If the key doesn't exist yet, append it to local insertions, and also remove it from
 //   local deletions if it was marked as deleted.
-template<typename T>
-class HashIndex : public BaseHashIndex {
+template<typename T, typename S = T>
+class HashIndex final : public OnDiskHashIndex, public BaseHashIndex<T, S> {
 
 public:
     HashIndex(const DBFileIDAndName& dbFileIDAndName,
         const std::shared_ptr<BMFileHandle>& fileHandle,
         const std::shared_ptr<DiskOverflowFile>& overflowFile, uint64_t indexPos,
-        const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal);
+        BufferManager& bufferManager, WAL* wal);
+
+    ~HashIndex() override;
 
 public:
-    bool lookupInternal(
-        transaction::Transaction* transaction, const uint8_t* key, common::offset_t& result);
-    void deleteInternal(const uint8_t* key) const;
-    bool insertInternal(const uint8_t* key, common::offset_t value);
+    bool lookupInternal(transaction::Transaction* transaction, T key, common::offset_t& result);
+    void deleteInternal(T key) const;
+    bool insertInternal(T key, common::offset_t value);
 
-    void prepareCommit();
-    void prepareRollback();
-    void checkpointInMemory();
-    void rollbackInMemory();
+    void prepareCommit() override;
+    void prepareRollback() override;
+    void checkpointInMemory() override;
+    void rollbackInMemory() override;
     inline BMFileHandle* getFileHandle() const { return fileHandle.get(); }
 
 private:
     template<ChainedSlotsAction action>
     bool performActionInChainedSlots(transaction::TransactionType trxType, HashIndexHeader& header,
-        SlotInfo& slotInfo, const uint8_t* key, common::offset_t& result);
+        SlotInfo& slotInfo, T key, common::offset_t& result);
     bool lookupInPersistentIndex(
-        transaction::TransactionType trxType, const uint8_t* key, common::offset_t& result);
+        transaction::TransactionType trxType, T key, common::offset_t& result);
     // The following two functions are only used in prepareCommit, and are not thread-safe.
-    void insertIntoPersistentIndex(const uint8_t* key, common::offset_t value);
-    void deleteFromPersistentIndex(const uint8_t* key);
-
-    void copyAndUpdateSlotHeader(bool isCopyEntry, Slot<T>& slot, entry_pos_t entryPos,
-        const uint8_t* key, common::offset_t value);
-    void copyKVOrEntryToSlot(bool isCopyEntry, const SlotInfo& slotInfo, Slot<T>& slot,
-        const uint8_t* key, common::offset_t value);
-    void splitSlot(HashIndexHeader& header);
-    void rehashSlots(HashIndexHeader& header);
-    std::vector<std::pair<SlotInfo, Slot<T>>> getChainedSlots(slot_id_t pSlotId);
-    void copyEntryToSlot(slot_id_t slotId, uint8_t* entry);
+    void insertIntoPersistentIndex(T key, common::offset_t value);
+    void deleteFromPersistentIndex(T key);
 
     entry_pos_t findMatchedEntryInSlot(
-        transaction::TransactionType trxType, const Slot<T>& slot, const uint8_t* key) const;
+        transaction::TransactionType trxType, const Slot<S>& slot, T key) const;
 
-    void loopChainedSlotsToFindOneWithFreeSpace(SlotInfo& slotInfo, Slot<T>& slot);
-
-    inline void updateSlot(const SlotInfo& slotInfo, Slot<T>& slot) const {
+    inline void updateSlot(const SlotInfo& slotInfo, const Slot<S>& slot) override {
         slotInfo.slotType == SlotType::PRIMARY ? pSlots->update(slotInfo.slotId, slot) :
                                                  oSlots->update(slotInfo.slotId, slot);
     }
-    inline Slot<T> getSlot(transaction::TransactionType trxType, const SlotInfo& slotInfo) const {
+
+    inline Slot<S> getSlot(
+        transaction::TransactionType trxType, const SlotInfo& slotInfo) override {
         return slotInfo.slotType == SlotType::PRIMARY ? pSlots->get(slotInfo.slotId, trxType) :
                                                         oSlots->get(slotInfo.slotId, trxType);
     }
 
-public:
+    inline uint32_t appendPSlot() override { return pSlots->pushBack(Slot<S>{}); }
+
+    inline uint64_t appendOverflowSlot(Slot<S>&& newSlot) override {
+        return oSlots->pushBack(newSlot);
+    }
+
+    inline bool equals(
+        transaction::TransactionType /*trxType*/, T keyToLookup, const S& keyInEntry) const {
+        return keyToLookup == keyInEntry;
+    }
+
+    // Overridden so that we can specialize for strings
+    inline void insert(T key, uint8_t* entry, common::offset_t offset) override {
+        return BaseHashIndex<T, S>::insert(key, entry, offset);
+    }
+    inline common::hash_t hashStored(
+        transaction::TransactionType /*trxType*/, const S& key) const override {
+        return this->hash(key);
+    }
+
+private:
+    // Local Storage for strings stores an std::string, but still takes std::string_view as keys to
+    // avoid unnecessary copying
+    using LocalStorageType =
+        typename std::conditional<std::is_same<T, std::string_view>::value, std::string, T>::type;
     DBFileIDAndName dbFileIDAndName;
     BufferManager& bm;
     WAL* wal;
     std::shared_ptr<BMFileHandle> fileHandle;
     std::unique_ptr<BaseDiskArray<HashIndexHeader>> headerArray;
-    std::unique_ptr<BaseDiskArray<Slot<T>>> pSlots;
-    std::unique_ptr<BaseDiskArray<Slot<T>>> oSlots;
-    insert_function_t keyInsertFunc;
-    equals_function_t keyEqualsFunc;
+    std::unique_ptr<BaseDiskArray<Slot<S>>> pSlots;
+    std::unique_ptr<BaseDiskArray<Slot<S>>> oSlots;
     std::shared_ptr<DiskOverflowFile> diskOverflowFile;
-    std::unique_ptr<HashIndexLocalStorage> localStorage;
-    uint8_t slotCapacity;
+    std::unique_ptr<HashIndexLocalStorage<T, LocalStorageType>> localStorage;
 };
+
+template<>
+common::hash_t HashIndex<std::string_view, common::ku_string_t>::hashStored(
+    transaction::TransactionType /*trxType*/, const common::ku_string_t& key) const;
 
 class PrimaryKeyIndex {
 public:
     PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
-        const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal,
+        common::PhysicalTypeID keyDataType, BufferManager& bufferManager, WAL* wal,
         common::VirtualFileSystem* vfs);
 
-    bool lookup(transaction::Transaction* trx, const char* key, common::offset_t& result) {
-        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::STRING);
-        return hashIndexForString[getHashIndexPosition(key)]->lookupInternal(
-            trx, reinterpret_cast<const uint8_t*>(key), result);
+    ~PrimaryKeyIndex();
+
+    template<typename T, typename S = T>
+    inline HashIndex<T, S>* getTypedHashIndex(T key) {
+        return common::ku_dynamic_cast<OnDiskHashIndex*, HashIndex<T, S>*>(
+            hashIndices[getHashIndexPosition(key)].get());
     }
-    bool lookup(transaction::Transaction* trx, int64_t key, common::offset_t& result) {
-        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::INT64);
-        return hashIndexForInt64[getHashIndexPosition(key)]->lookupInternal(
-            trx, reinterpret_cast<const uint8_t*>(&key), result);
+
+    inline bool lookup(
+        transaction::Transaction* trx, common::ku_string_t key, common::offset_t& result) {
+        return lookup(trx, key.getAsStringView(), result);
     }
+    inline bool lookup(
+        transaction::Transaction* trx, std::string_view key, common::offset_t& result) {
+        KU_ASSERT(keyDataTypeID == common::PhysicalTypeID::STRING);
+        return getTypedHashIndex<std::string_view, common::ku_string_t>(key)->lookupInternal(
+            trx, key, result);
+    }
+    template<common::HashablePrimitive T>
+    inline bool lookup(transaction::Transaction* trx, T key, common::offset_t& result) {
+        KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        return getTypedHashIndex(key)->lookupInternal(trx, key, result);
+    }
+
     bool lookup(transaction::Transaction* trx, common::ValueVector* keyVector, uint64_t vectorPos,
         common::offset_t& result);
 
-    bool insert(const char* key, common::offset_t value) {
-        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::STRING);
-        return hashIndexForString[getHashIndexPosition(key)]->insertInternal(
-            reinterpret_cast<const uint8_t*>(key), value);
+    inline bool insert(common::ku_string_t key, common::offset_t value) {
+        return insert(key.getAsStringView(), value);
     }
-    bool insert(int64_t key, common::offset_t value) {
-        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::INT64);
-        return hashIndexForInt64[getHashIndexPosition(key)]->insertInternal(
-            reinterpret_cast<const uint8_t*>(&key), value);
+    inline bool insert(std::string_view key, common::offset_t value) {
+        KU_ASSERT(keyDataTypeID == common::PhysicalTypeID::STRING);
+        return getTypedHashIndex<std::string_view, common::ku_string_t>(key)->insertInternal(
+            key, value);
+    }
+    template<common::HashablePrimitive T>
+    inline bool insert(T key, common::offset_t value) {
+        KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        return getTypedHashIndex(key)->insertInternal(key, value);
     }
     bool insert(common::ValueVector* keyVector, uint64_t vectorPos, common::offset_t value);
 
-    void delete_(const char* key) {
-        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::STRING);
-        return hashIndexForString[getHashIndexPosition(key)]->deleteInternal(
-            reinterpret_cast<const uint8_t*>(key));
+    inline void delete_(common::ku_string_t key) { return delete_(key.getAsStringView()); }
+    inline void delete_(std::string_view key) {
+        KU_ASSERT(keyDataTypeID == common::PhysicalTypeID::STRING);
+        return getTypedHashIndex<std::string_view, common::ku_string_t>(key)->deleteInternal(key);
     }
-    void delete_(int64_t key) {
-        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::INT64);
-        return hashIndexForInt64[getHashIndexPosition(key)]->deleteInternal(
-            reinterpret_cast<const uint8_t*>(&key));
+    template<common::HashablePrimitive T>
+    inline void delete_(T key) {
+        KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        return getTypedHashIndex(key)->deleteInternal(key);
     }
+
     void delete_(common::ValueVector* keyVector);
 
     void checkpointInMemory();
@@ -196,11 +199,10 @@ public:
     DiskOverflowFile* getDiskOverflowFile() { return overflowFile.get(); }
 
 private:
-    common::LogicalTypeID keyDataTypeID;
+    common::PhysicalTypeID keyDataTypeID;
     std::shared_ptr<BMFileHandle> fileHandle;
     std::shared_ptr<DiskOverflowFile> overflowFile;
-    std::vector<std::unique_ptr<HashIndex<int64_t>>> hashIndexForInt64;
-    std::vector<std::unique_ptr<HashIndex<common::ku_string_t>>> hashIndexForString;
+    std::vector<std::unique_ptr<OnDiskHashIndex>> hashIndices;
 };
 
 } // namespace storage

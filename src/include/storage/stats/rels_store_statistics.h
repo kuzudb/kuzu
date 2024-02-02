@@ -29,8 +29,8 @@ public:
         common::table_id_t tableID, transaction::Transaction* transaction) const {
         auto& tableStatisticPerTable =
             transaction->getType() == transaction::TransactionType::READ_ONLY ?
-                tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable :
-                tablesStatisticsContentForWriteTrx->tableStatisticPerTable;
+                readOnlyVersion->tableStatisticPerTable :
+                readWriteVersion->tableStatisticPerTable;
         KU_ASSERT(tableStatisticPerTable.contains(tableID));
         return (RelTableStats*)tableStatisticPerTable[tableID].get();
     }
@@ -71,8 +71,7 @@ protected:
     }
 
     inline void increaseNextRelOffset(common::table_id_t relTableID, uint64_t numTuples) {
-        ((RelTableStats*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(relTableID)
-                .get())
+        ((RelTableStats*)readWriteVersion->tableStatisticPerTable.at(relTableID).get())
             ->incrementNextRelOffset(numTuples);
     }
 };

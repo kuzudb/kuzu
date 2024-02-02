@@ -16,8 +16,8 @@ std::string ExceptionMessage::nonExistentPKException(const std::string& pkString
 }
 
 std::string ExceptionMessage::invalidPKType(const std::string& type) {
-    return stringFormat(
-        "Invalid primary key column type {}. Primary key must be either INT64, STRING or SERIAL.",
+    return stringFormat("Invalid primary key column type {}. Primary keys must be either STRING or "
+                        "a numeric type.",
         type);
 }
 

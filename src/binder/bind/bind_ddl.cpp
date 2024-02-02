@@ -3,10 +3,12 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "catalog/node_table_schema.h"
-#include "catalog/rel_table_group_schema.h"
+#include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
+#include "common/exception/message.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
 #include "main/client_context.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_table.h"
@@ -66,15 +68,22 @@ static uint32_t bindPrimaryKey(
             "Primary key " + pkColName + " does not match any of the predefined node properties.");
     }
     auto pkType = infos[primaryKeyIdx].type;
-    // We only support INT64, STRING and SERIAL column as the primary key.
-    switch (pkType.getLogicalTypeID()) {
-    case LogicalTypeID::INT64:
-    case LogicalTypeID::STRING:
-    case LogicalTypeID::SERIAL:
+    switch (pkType.getPhysicalType()) {
+    case PhysicalTypeID::UINT8:
+    case PhysicalTypeID::UINT16:
+    case PhysicalTypeID::UINT32:
+    case PhysicalTypeID::UINT64:
+    case PhysicalTypeID::INT8:
+    case PhysicalTypeID::INT16:
+    case PhysicalTypeID::INT32:
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT128:
+    case PhysicalTypeID::STRING:
+    case PhysicalTypeID::FLOAT:
+    case PhysicalTypeID::DOUBLE:
         break;
     default:
-        throw BinderException(
-            "Invalid primary key type: " + pkType.toString() + ". Expected STRING or INT64.");
+        throw BinderException(ExceptionMessage::invalidPKType(pkType.toString()));
     }
     return primaryKeyIdx;
 }
@@ -177,27 +186,67 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     switch (tableSchema->tableType) {
     case TableType::NODE: {
+        // Check node table is not referenced by rel table.
         for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
-            auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
-            if (relTableSchema->isSrcOrDstTable(tableID)) {
-                throw BinderException(
-                    stringFormat("Cannot delete node table {} referenced by rel table {}.",
-                        tableSchema->tableName, relTableSchema->tableName));
+            if (schema->isParent(tableID)) {
+                throw BinderException(stringFormat("Cannot delete node table {} because it is "
+                                                   "referenced by relationship table {}.",
+                    tableSchema->getName(), schema->getName()));
+            }
+        }
+        // Check node table is not referenced by rdf graph
+        for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+            if (schema->isParent(tableID)) {
+                throw BinderException(stringFormat(
+                    "Cannot delete node table {} because it is referenced by rdfGraph {}.",
+                    tableName, schema->getName()));
             }
         }
     } break;
     case TableType::REL: {
+        // Check rel table is not referenced by rel group.
         for (auto& schema : catalog.getRelTableGroupSchemas(clientContext->getTx())) {
-            auto relTableGroupSchema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(schema);
-            for (auto& relTableID : relTableGroupSchema->getRelTableIDs()) {
-                if (relTableID == tableSchema->getTableID()) {
-                    throw BinderException(
-                        stringFormat("Cannot delete rel table {} referenced by rel group {}.",
-                            tableSchema->tableName, relTableGroupSchema->tableName));
-                }
+            if (schema->isParent(tableID)) {
+                throw BinderException(stringFormat("Cannot delete relationship table {} because it "
+                                                   "is referenced by relationship group {}.",
+                    tableName, schema->getName()));
             }
         }
-    }
+        // Check rel table is not referenced by rdf graph.
+        for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+            if (schema->isParent(tableID)) {
+                throw BinderException(stringFormat(
+                    "Cannot delete relationship table {} because it is referenced by rdfGraph {}.",
+                    tableName, schema->getName()));
+            }
+        }
+    } break;
+    case TableType::RDF: {
+        auto rdfGraphSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(tableSchema);
+        // Check resource table is not referenced by rel table other than its triple table.
+        for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
+            if (schema->getTableID() == rdfGraphSchema->getResourceTripleTableID() ||
+                schema->getTableID() == rdfGraphSchema->getLiteralTripleTableID()) {
+                continue;
+            }
+            if (schema->isParent(rdfGraphSchema->getResourceTableID())) {
+                throw BinderException(stringFormat("Cannot delete rdfGraph {} because its resource "
+                                                   "table is referenced by relationship table {}.",
+                    tableSchema->getName(), schema->getName()));
+            }
+        }
+        // Check literal table is not referenced by rel table other than its triple table.
+        for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
+            if (schema->getTableID() == rdfGraphSchema->getLiteralTripleTableID()) {
+                continue;
+            }
+            if (schema->isParent(rdfGraphSchema->getLiteralTableID())) {
+                throw BinderException(stringFormat("Cannot delete rdfGraph {} because its literal "
+                                                   "table is referenced by relationship table {}.",
+                    tableSchema->getName(), schema->getName()));
+            }
+        }
+    } break;
     default:
         break;
     }
@@ -206,6 +255,14 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
 
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
+    auto tableID = catalog.getTableID(clientContext->getTx(), alter.getInfo()->tableName);
+    for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+        if (schema->isParent(tableID)) {
+            throw BinderException(
+                stringFormat("Cannot alter table {} because it is referenced by rdfGraph {}.",
+                    alter.getInfo()->tableName, schema->getName()));
+        }
+    }
     switch (alter.getInfo()->type) {
     case AlterType::RENAME_TABLE: {
         return bindRenameTable(statement);
@@ -223,7 +280,6 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
         KU_UNREACHABLE;
     }
     }
-    return nullptr;
 }
 
 std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {

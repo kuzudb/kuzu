@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/property_expression.h"
 #include "binder/query/query_graph_label_analyzer.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_insert_clause.h"
@@ -147,13 +148,17 @@ void Binder::bindInsertNode(
     KU_ASSERT(tableSchema->getTableType() == TableType::NODE);
     validatePrimaryKeyExistence(tableSchema, *node);
     auto insertInfo = BoundInsertInfo(TableType::NODE, node);
-    if (tableSchema->hasParentTableID()) {
-        auto parentTableID = tableSchema->getParentTableID();
-        KU_ASSERT(catalog.getTableSchema(clientContext->getTx(), parentTableID)->getTableType() ==
-                  TableType::RDF);
-        insertInfo.conflictAction = ConflictAction::ON_CONFLICT_DO_NOTHING;
+    for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+        if (schema->isParent(tableID)) {
+            insertInfo.conflictAction = ConflictAction::ON_CONFLICT_DO_NOTHING;
+        }
     }
-    insertInfo.columnExprs = node->getPropertyExprs();
+    for (auto& expr : node->getPropertyExprs()) {
+        auto propertyExpr = ku_dynamic_cast<Expression*, PropertyExpression*>(expr.get());
+        if (propertyExpr->hasPropertyID(tableID)) {
+            insertInfo.columnExprs.push_back(expr);
+        }
+    }
     insertInfo.columnDataExprs =
         bindInsertColumnDataExprs(node->getPropertyDataExprRef(), tableSchema->getPropertiesRef());
     infos.push_back(std::move(insertInfo));
@@ -173,12 +178,16 @@ void Binder::bindInsertRel(
     rel->setTableIDs(std::vector<common::table_id_t>{rel->getTableIDs()[0]});
     auto relTableID = rel->getSingleTableID();
     auto tableSchema = catalog.getTableSchema(clientContext->getTx(), relTableID);
-    if (tableSchema->hasParentTableID()) {
-        auto parentTableID = tableSchema->getParentTableID();
-        auto parentTableSchema = catalog.getTableSchema(clientContext->getTx(), parentTableID);
-        KU_ASSERT(parentTableSchema->getTableType() == TableType::RDF);
+    TableSchema* parentSchema = nullptr;
+    for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+        if (schema->isParent(relTableID)) {
+            parentSchema = schema;
+        }
+    }
+    if (parentSchema != nullptr) {
+        KU_ASSERT(parentSchema->getTableType() == TableType::RDF);
         auto rdfTableSchema =
-            ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(parentTableSchema);
+            ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(parentSchema);
         if (!rel->hasPropertyDataExpr(std::string(rdf::IRI))) {
             throw BinderException(stringFormat(
                 "Insert relationship {} expects {} property as input.", rel->toString(), rdf::IRI));

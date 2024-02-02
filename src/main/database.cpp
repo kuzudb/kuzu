@@ -95,7 +95,7 @@ void Database::setLoggingLevel(std::string loggingLevel) {
 }
 
 void Database::addBuiltInFunction(std::string name, function::function_set functionSet) {
-    catalog->addFunction(std::move(name), std::move(functionSet));
+    catalog->addBuiltInFunction(std::move(name), std::move(functionSet));
 }
 
 void Database::registerFileSystem(std::unique_ptr<common::FileSystem> fs) {

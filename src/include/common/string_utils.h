@@ -84,6 +84,17 @@ public:
         208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225,
         226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
         244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255};
+
+    // container hash function for strings which lets you hash both string_view and string
+    // references
+    struct string_hash {
+        using hash_type = std::hash<std::string_view>;
+        using is_transparent = void;
+
+        std::size_t operator()(const char* str) const { return hash_type{}(str); }
+        std::size_t operator()(std::string_view str) const { return hash_type{}(str); }
+        std::size_t operator()(std::string const& str) const { return hash_type{}(str); }
+    };
 };
 
 } // namespace common

@@ -23,6 +23,7 @@ public:
     // TODO(Guodong): Get rid of the following.
     inline CatalogContent* getReadOnlyVersion() const { return readOnlyVersion.get(); }
 
+    // ----------------------------- Table Schemas ----------------------------
     uint64_t getTableCount(transaction::Transaction* tx) const;
 
     bool containsNodeTable(transaction::Transaction* tx) const;
@@ -40,29 +41,10 @@ public:
     std::vector<TableSchema*> getNodeTableSchemas(transaction::Transaction* tx) const;
     std::vector<TableSchema*> getRelTableSchemas(transaction::Transaction* tx) const;
     std::vector<TableSchema*> getRelTableGroupSchemas(transaction::Transaction* tx) const;
+    std::vector<TableSchema*> getRdfGraphSchemas(transaction::Transaction* tx) const;
     std::vector<TableSchema*> getTableSchemas(transaction::Transaction* tx) const;
     std::vector<TableSchema*> getTableSchemas(
         transaction::Transaction* tx, const common::table_id_vector_t& tableIDs) const;
-
-    inline function::BuiltInFunctions* getBuiltInFunctions() const {
-        return readOnlyVersion->builtInFunctions.get();
-    }
-    void prepareCommitOrRollback(transaction::TransactionAction action);
-    void checkpointInMemory();
-
-    inline void initCatalogContentForWriteTrxIfNecessary() {
-        if (!readWriteVersion) {
-            readWriteVersion = readOnlyVersion->copy();
-        }
-    }
-
-    static inline void saveInitialCatalogToFile(
-        const std::string& directory, common::VirtualFileSystem* vfs) {
-        std::make_unique<Catalog>(vfs)->getReadOnlyVersion()->saveToFile(
-            directory, common::FileVersionType::ORIGINAL);
-    }
-
-    common::ExpressionType getFunctionType(const std::string& name) const;
 
     common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
     common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
@@ -81,24 +63,52 @@ public:
     void renameProperty(
         common::table_id_t tableID, common::property_id_t propertyID, const std::string& newName);
 
+    void setTableComment(common::table_id_t tableID, const std::string& comment);
+
+    // ----------------------------- Functions ----------------------------
+    inline function::BuiltInFunctions* getBuiltInFunctions(transaction::Transaction* tx) const {
+        return getVersion(tx)->builtInFunctions.get();
+    }
+    common::ExpressionType getFunctionType(
+        transaction::Transaction* tx, const std::string& name) const;
     void addFunction(std::string name, function::function_set functionSet);
+    void addBuiltInFunction(std::string name, function::function_set functionSet);
     bool containsMacro(transaction::Transaction* tx, const std::string& macroName) const;
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
-
-    void setTableComment(common::table_id_t tableID, const std::string& comment);
-
     // TODO(Ziyi): pass transaction pointer here.
     inline function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const {
         return readOnlyVersion->macros.at(name).get();
     }
 
-private:
-    inline CatalogContent* getVersion(transaction::Transaction* tx) const;
+    // ----------------------------- Tx ----------------------------
+    void prepareCommitOrRollback(transaction::TransactionAction action);
+    void checkpointInMemory();
 
-    inline bool hasUpdates() { return readWriteVersion != nullptr; }
+    inline void initCatalogContentForWriteTrxIfNecessary() {
+        if (!readWriteVersion) {
+            readWriteVersion = readOnlyVersion->copy();
+        }
+    }
+
+    static inline void saveInitialCatalogToFile(
+        const std::string& directory, common::VirtualFileSystem* vfs) {
+        std::make_unique<Catalog>(vfs)->getReadOnlyVersion()->saveToFile(
+            directory, common::FileVersionType::ORIGINAL);
+    }
+
+private:
+    CatalogContent* getVersion(transaction::Transaction* tx) const;
+
+    inline bool hasUpdates() const { return isUpdated; }
+
+    inline void setToUpdated() { isUpdated = true; }
+    inline void resetToNotUpdated() { isUpdated = false; }
 
 protected:
+    // The flat indicates if the readWriteVersion has been updated and is different from the
+    // readOnlyVersion.
+    bool isUpdated;
     std::unique_ptr<CatalogContent> readOnlyVersion;
     std::unique_ptr<CatalogContent> readWriteVersion;
     storage::WAL* wal;

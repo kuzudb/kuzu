@@ -16,6 +16,11 @@ RdfGraphSchema::RdfGraphSchema(const RdfGraphSchema& other) : TableSchema{other}
     literalTripleTableID = other.literalTripleTableID;
 }
 
+bool RdfGraphSchema::isParent(common::table_id_t tableID) {
+    return tableID == resourceTableID || tableID == literalTableID ||
+           tableID == resourceTripleTableID || tableID == literalTripleTableID;
+}
+
 void RdfGraphSchema::serializeInternal(Serializer& serializer) {
     serializer.serializeValue(resourceTableID);
     serializer.serializeValue(literalTableID);

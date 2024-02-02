@@ -14,6 +14,8 @@ public:
                                                                                    primaryKeyPID} {}
     NodeTableSchema(const NodeTableSchema& other);
 
+    inline bool isParent(common::table_id_t) override { return false; }
+
     inline const Property* getPrimaryKey() const { return &properties[primaryKeyPID]; }
 
     inline common::property_id_t getPrimaryKeyPropertyID() const { return primaryKeyPID; }

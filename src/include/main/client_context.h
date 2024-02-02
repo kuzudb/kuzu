@@ -73,7 +73,7 @@ public:
     KUZU_API common::Value getCurrentSetting(const std::string& optionName);
 
     transaction::Transaction* getTx() const;
-    transaction::TransactionContext* getTransactionContext() const;
+    KUZU_API transaction::TransactionContext* getTransactionContext() const;
 
     inline bool hasReplaceFunc() { return replaceFunc != nullptr; }
     inline void setReplaceFunc(replace_func_t func) { replaceFunc = func; }
@@ -89,6 +89,8 @@ public:
     KUZU_API Database* getDatabase() const { return database; }
 
     storage::MemoryManager* getMemoryManager();
+
+    catalog::Catalog* getCatalog();
 
     KUZU_API std::string getEnvVariable(const std::string& name);
 

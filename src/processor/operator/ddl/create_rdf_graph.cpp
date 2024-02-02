@@ -17,22 +17,18 @@ void CreateRdfGraph::executeDDLInternal(ExecutionContext* context) {
     auto resourceTableID = rdfGraphSchema->getResourceTableID();
     auto resourceTableSchema =
         reinterpret_cast<NodeTableSchema*>(catalog->getTableSchema(tx, resourceTableID));
-    resourceTableSchema->setParentTableID(newRdfGraphID);
     nodesStatistics->addNodeStatisticsAndDeletedIDs(resourceTableSchema);
     auto literalTableID = rdfGraphSchema->getLiteralTableID();
     auto literalTableSchema =
         reinterpret_cast<NodeTableSchema*>(catalog->getTableSchema(tx, literalTableID));
-    literalTableSchema->setParentTableID(newRdfGraphID);
     nodesStatistics->addNodeStatisticsAndDeletedIDs(literalTableSchema);
     auto resourceTripleTableID = rdfGraphSchema->getResourceTripleTableID();
     auto resourceTripleTableSchema =
         reinterpret_cast<RelTableSchema*>(catalog->getTableSchema(tx, resourceTripleTableID));
-    resourceTripleTableSchema->setParentTableID(newRdfGraphID);
     relsStatistics->addTableStatistic(resourceTripleTableSchema);
     auto literalTripleTableID = rdfGraphSchema->getLiteralTripleTableID();
     auto literalTripleTableSchema =
         reinterpret_cast<RelTableSchema*>(catalog->getTableSchema(tx, literalTripleTableID));
-    literalTripleTableSchema->setParentTableID(newRdfGraphID);
     relsStatistics->addTableStatistic(literalTripleTableSchema);
     storageManager->getWAL()->logRdfGraphRecord(newRdfGraphID, resourceTableID, literalTableID,
         resourceTripleTableID, literalTripleTableID);

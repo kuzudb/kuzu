@@ -3,6 +3,8 @@
 #include "catalog/node_table_schema.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "storage/store/node_table_data.h"
 #include "transaction/transaction.h"
 
@@ -30,7 +32,8 @@ void NodeTable::initializePKIndex(
         LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(vfs, wal->getDirectory(), tableID), readOnly,
-            *nodeTableSchema->getPrimaryKey()->getDataType(), *bufferManager, wal, vfs);
+            nodeTableSchema->getPrimaryKey()->getDataType()->getPhysicalType(), *bufferManager, wal,
+            vfs);
     }
 }
 
@@ -178,10 +181,14 @@ void NodeTable::insertPK(ValueVector* nodeIDVector, ValueVector* primaryKeyVecto
             throw RuntimeException(ExceptionMessage::nullPKException());
         }
         if (!pkIndex->insert(primaryKeyVector, pkPos, offset)) {
-            std::string pkStr =
-                primaryKeyVector->dataType.getLogicalTypeID() == LogicalTypeID::INT64 ?
-                    std::to_string(primaryKeyVector->getValue<int64_t>(pkPos)) :
-                    primaryKeyVector->getValue<ku_string_t>(pkPos).getAsString();
+            std::string pkStr;
+            TypeUtils::visit(
+                primaryKeyVector->dataType.getPhysicalType(),
+                [&](ku_string_t) {
+                    pkStr = primaryKeyVector->getValue<ku_string_t>(pkPos).getAsString();
+                },
+                [&]<typename T>(
+                    T) { pkStr = TypeUtils::toString(primaryKeyVector->getValue<T>(pkPos)); });
             throw RuntimeException(ExceptionMessage::duplicatePKException(pkStr));
         }
     }

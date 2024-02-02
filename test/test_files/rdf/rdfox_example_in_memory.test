@@ -5,7 +5,7 @@
 
 -CASE RdfoxInMemory
 
--STATEMENT CREATE RDF GRAPH example;
+-STATEMENT CREATE RDFGraph example;
 ---- ok
 -STATEMENT COPY example FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/rdfox_example/data.ttl" (in_memory=true);
 ---- ok

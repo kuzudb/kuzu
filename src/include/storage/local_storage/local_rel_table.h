@@ -57,10 +57,10 @@ struct RegularRelNGInfo final : public RelNGInfo {
 // Info of node groups with CSR chunks for rel tables.
 // Note that srcNodeOffset here are the relative offset within each node group.
 struct CSRRelNGInfo final : public RelNGInfo {
-    offset_to_offset_to_row_idx_t adjInsertInfo;
-    std::vector<offset_to_offset_to_row_idx_t> insertInfoPerChunk;
-    std::vector<offset_to_offset_to_row_idx_t> updateInfoPerChunk;
-    offset_to_offset_set_t deleteInfo;
+    update_insert_info_t adjInsertInfo;
+    std::vector<update_insert_info_t> insertInfoPerChunk;
+    std::vector<update_insert_info_t> updateInfoPerChunk;
+    delete_info_t deleteInfo;
 
     explicit CSRRelNGInfo(common::column_id_t numChunks) {
         insertInfoPerChunk.resize(numChunks);
@@ -74,7 +74,22 @@ struct CSRRelNGInfo final : public RelNGInfo {
         common::column_id_t columnID, common::row_idx_t rowIdx) override;
     bool delete_(common::offset_t srcOffsetInChunk, common::offset_t relOffset) override;
 
+    bool hasUpdates();
+
     uint64_t getNumInsertedTuples(common::offset_t srcOffsetInChunk) override;
+
+    const update_insert_info_t& getUpdateInfo(common::column_id_t columnID) {
+        KU_ASSERT(columnID == common::INVALID_COLUMN_ID || columnID < updateInfoPerChunk.size());
+        return columnID == common::INVALID_COLUMN_ID ? getEmptyInfo() :
+                                                       updateInfoPerChunk[columnID];
+    }
+    const update_insert_info_t& getInsertInfo(common::column_id_t columnID) {
+        KU_ASSERT(columnID == common::INVALID_COLUMN_ID || columnID < insertInfoPerChunk.size());
+        return columnID == common::INVALID_COLUMN_ID ? adjInsertInfo : insertInfoPerChunk[columnID];
+    }
+    const delete_info_t& getDeleteInfo() const { return deleteInfo; }
+
+    const update_insert_info_t& getEmptyInfo();
 };
 
 class LocalRelNG final : public LocalNodeGroup {
@@ -114,10 +129,10 @@ public:
 
 private:
     void applyCSRUpdates(common::offset_t srcOffsetInChunk, common::column_id_t columnID,
-        const offset_to_offset_to_row_idx_t& updateInfo, common::ValueVector* relIDVector,
+        const update_insert_info_t& updateInfo, common::ValueVector* relIDVector,
         const std::vector<common::ValueVector*>& outputVector);
-    void applyCSRDeletions(common::offset_t srcOffsetInChunk,
-        const offset_to_offset_set_t& deleteInfo, common::ValueVector* relIDVector);
+    void applyCSRDeletions(common::offset_t srcOffsetInChunk, const delete_info_t& deleteInfo,
+        common::ValueVector* relIDVector);
     void applyRegularChangesToVector(common::ValueVector* srcNodeIDVector,
         LocalVectorCollection* chunk, const offset_to_row_idx_t& updateInfo,
         const offset_to_row_idx_t& insertInfo, const offset_set_t& deleteInfo,

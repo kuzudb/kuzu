@@ -29,11 +29,11 @@ uint32_t InMemFile::addANewPage(bool setToZero) {
     return newPageIdx;
 }
 
-ku_string_t InMemFile::appendString(const char* rawString) {
+ku_string_t InMemFile::appendString(std::string_view rawString) {
     ku_string_t result;
-    auto length = strlen(rawString);
+    auto length = rawString.length();
     result.len = length;
-    std::memcpy(result.prefix, rawString,
+    std::memcpy(result.prefix, rawString.data(),
         length <= ku_string_t::SHORT_STR_LENGTH ? length : ku_string_t::PREFIX_LENGTH);
     if (length > ku_string_t::SHORT_STR_LENGTH) {
         if (length > BufferPoolConstants::PAGE_256KB_SIZE) {
@@ -51,7 +51,8 @@ ku_string_t InMemFile::appendString(const char* rawString) {
             auto numBytesToWriteInPage = std::min(static_cast<uint64_t>(remainingLength),
                 BufferPoolConstants::PAGE_4KB_SIZE - nextPosToAppend.elemPosInPage);
             pages[nextPosToAppend.pageIdx]->write(nextPosToAppend.elemPosInPage,
-                (uint8_t*)rawString + (length - remainingLength), numBytesToWriteInPage);
+                reinterpret_cast<const uint8_t*>(rawString.data()) + (length - remainingLength),
+                numBytesToWriteInPage);
             remainingLength -= numBytesToWriteInPage;
             // Allocate a new page if necessary.
             nextPosToAppend.elemPosInPage += numBytesToWriteInPage;

@@ -4,7 +4,7 @@
 --
 
 -CASE RdfDDL
--STATEMENT CREATE RDF GRAPH T;
+-STATEMENT CREATE RDFGraph T;
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 5
@@ -13,12 +13,12 @@ T_l|NODE|
 T_rt|REL|
 T_r|NODE|
 T|RDF|
--STATEMENT DROP TABLE T;
+-STATEMENT DROP RDFGraph T;
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 0
 
--STATEMENT CREATE RDF GRAPH T;
+-STATEMENT CREATE RDFGraph T;
 ---- ok
 -STATEMENT ALTER TABLE T RENAME TO X;
 ---- ok
@@ -36,13 +36,11 @@ Binder exception: Table T does not exist.
 ---- 1
 0
 -STATEMENT ALTER TABLE X_r RENAME TO hh;
----- ok
--STATEMENT MATCH (a:X)-[e:X]->(b:X) RETURN COUNT(*);
----- 1
-0
+---- error
+Binder exception: Cannot alter table X_r because it is referenced by rdfGraph X.
 
 -CASE EmptyUpdate
--STATEMENT CREATE RDF GRAPH T;
+-STATEMENT CREATE RDFGraph T;
 ---- ok
 -STATEMENT CREATE (:T_r {iri:"a"}),
                   (:T_r {iri:"a"}),

@@ -76,8 +76,8 @@ void PathPropertyProbe::probe(kuzu::processor::JoinHashTable* hashTable, uint64_
     const std::vector<ft_col_idx_t>& colIndicesToScan) {
     // Hash
     for (auto i = 0u; i < sizeToProbe; ++i) {
-        function::Hash::operation(
-            idVector->getValue<internalID_t>(sizeProbed + i), localState->hashes[i]);
+        function::Hash::operation(idVector->getValue<internalID_t>(sizeProbed + i),
+            localState->hashes[i], nullptr /* keyVector */);
     }
     // Probe hash
     for (auto i = 0u; i < sizeToProbe; ++i) {

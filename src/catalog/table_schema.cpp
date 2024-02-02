@@ -24,7 +24,6 @@ TableSchema::TableSchema(const TableSchema& other) {
     properties = copyVector(other.properties);
     comment = other.comment;
     nextPID = other.nextPID;
-    parentTableID = other.parentTableID;
 }
 
 bool TableSchema::isReservedPropertyName(const std::string& propertyName) {
@@ -109,7 +108,6 @@ void TableSchema::serialize(Serializer& serializer) {
     serializer.serializeVector(properties);
     serializer.serializeValue(comment);
     serializer.serializeValue(nextPID);
-    serializer.serializeValue(parentTableID);
     serializeInternal(serializer);
 }
 
@@ -120,14 +118,12 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(Deserializer& deserializer
     std::vector<Property> properties;
     std::string comment;
     property_id_t nextPID;
-    table_id_t parentTableID;
     deserializer.deserializeValue(tableName);
     deserializer.deserializeValue(tableID);
     deserializer.deserializeValue(tableType);
     deserializer.deserializeVector(properties);
     deserializer.deserializeValue(comment);
     deserializer.deserializeValue(nextPID);
-    deserializer.deserializeValue(parentTableID);
     std::unique_ptr<TableSchema> result;
     switch (tableType) {
     case TableType::NODE: {
@@ -152,7 +148,6 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(Deserializer& deserializer
     result->properties = std::move(properties);
     result->comment = std::move(comment);
     result->nextPID = nextPID;
-    result->parentTableID = parentTableID;
     return result;
 }
 

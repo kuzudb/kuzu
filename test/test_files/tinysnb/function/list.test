@@ -5,6 +5,11 @@
 
 -CASE FunctionList
 
+-LOG ListSliceOutOfRange
+-STATEMENT RETURN [1,2,3][:100], [1,2,3][-1:2], [1,2,3][2:1], [1,2,3][1:-1], [1,2,3][3:4], 'abc'[-1:4]
+---- 1
+[1,2,3]|[1]|[]|[1,2,3]|[3]|abc
+
 -LOG ListAddOperation
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) RETURN p.courseScoresPerTerm + p1.courseScoresPerTerm
 ---- 14
@@ -948,6 +953,24 @@ ad
 0
 0
 0
+
+-LOG ListIn
+-STATEMENT RETURN 1 IN [2,3,4], 2.0 IN [2,3,4], 3 IN [0,0,3]
+---- 1
+False|False|True
+-STATEMENT RETURN [1+1] IN [[2], [3], [3,4,5]], "str" IN ["a", "Xiyang", "str"]
+---- 1
+True|True
+-STATEMENT MATCH (a:person) RETURN a.ID + 1, a.workedHours, (a.ID + 1) IN a.workedHours
+---- 8
+10|[1]|False
+11|[10,11,12,3,4,5,6,7]|True
+1|[10,5]|False
+3|[12,8]|False
+4|[4,5]|True
+6|[1,9]|False
+8|[2]|False
+9|[3,4,5,6,7]|False
 
 -LOG ListContainsListOfInts
 -STATEMENT MATCH (a:person) RETURN list_contains(a.workedHours, 5)

@@ -108,14 +108,12 @@ kU_RelTableConnection
     : FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
 
 kU_CreateRdfGraph
-    : CREATE SP RDF SP GRAPH SP oC_SchemaName ;
+    : CREATE SP RDFGRAPH SP oC_SchemaName ;
 
-RDF : ('R' | 'r') ('D' | 'd') ('F' | 'f') ;
-
-GRAPH : ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
+RDFGRAPH : ('R' | 'r') ('D' | 'd') ('F' | 'f') ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
 
 kU_DropTable
-    : DROP SP TABLE SP oC_SchemaName ;
+    : DROP SP (TABLE | RDFGRAPH) SP oC_SchemaName ;
 
 DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
 
@@ -530,13 +528,14 @@ oC_StringListNullOperatorExpression
     : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression+ | oC_NullOperatorExpression )? ;
 
 oC_ListOperatorExpression
-    : kU_ListExtractOperatorExpression | kU_ListSliceOperatorExpression  ;
+    : ( SP IN SP? oC_PropertyOrLabelsExpression )
+        | ( '[' oC_Expression ']' )
+        | ( '[' oC_Expression? COLON oC_Expression? ']' )
+        ;
 
-kU_ListExtractOperatorExpression
-    : '[' oC_Expression ']' ;
+COLON : ':' ;
 
-kU_ListSliceOperatorExpression
-    : '[' oC_Expression? ':' oC_Expression? ']' ;
+IN : ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 oC_StringOperatorExpression
     :  ( oC_RegularExpression | ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
@@ -743,6 +742,7 @@ kU_NonReservedKeywords
         | REL
         | BEGIN
         | END
+        | IN
         ;
 
 UnescapedSymbolicName

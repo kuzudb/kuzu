@@ -1,19 +1,11 @@
 #pragma once
 
 #include "common/assert.h"
+#include "common/string_utils.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
 namespace storage {
-
-struct string_hash {
-    using hash_type = std::hash<std::string_view>;
-    using is_transparent = void;
-
-    std::size_t operator()(const char* str) const { return hash_type{}(str); }
-    std::size_t operator()(std::string_view str) const { return hash_type{}(str); }
-    std::size_t operator()(std::string const& str) const { return hash_type{}(str); }
-};
 
 class StringColumnChunk : public ColumnChunk {
     using string_offset_t = uint64_t;
@@ -32,6 +24,10 @@ public:
         common::offset_t offsetInChunk) final;
     void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector,
         bool isCSR) final;
+    void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
+    void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) final;
 
     template<typename T>
     T getValue(common::offset_t /*pos*/) const {
@@ -65,7 +61,9 @@ private:
     // of characters stored.
     std::unique_ptr<ColumnChunk> stringDataChunk;
     std::unique_ptr<ColumnChunk> offsetChunk;
-    std::unordered_map<std::string, string_index_t, string_hash, std::equal_to<>> indexTable;
+    std::unordered_map<std::string, string_index_t, common::StringUtils::string_hash,
+        std::equal_to<>>
+        indexTable;
     // If we never update a value, we don't need to prune unused strings in finalize
     bool needFinalize;
 };

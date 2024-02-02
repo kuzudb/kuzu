@@ -325,5 +325,19 @@ TEST_F(ApiTest, vectorizedTernaryConditionalAdd) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
+TEST_F(ApiTest, UDFTrxTest) {
+    conn->beginWriteTransaction();
+    conn->createScalarFunction("add5", &add5);
+    auto actualResult = TestHelper::convertResultToString(*conn->query("return add5(to_int32(5))"));
+    auto expectedResult = std::vector<std::string>{"10"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+    conn->commit();
+    conn->beginWriteTransaction();
+    conn->createScalarFunction("times2", &times2);
+    conn->rollback();
+    ASSERT_EQ(conn->query("return times2(5)")->getErrorMessage(),
+        "Catalog exception: TIMES2 function does not exist.");
+}
+
 } // namespace testing
 } // namespace kuzu

@@ -76,7 +76,7 @@ void NullColumn::scan(transaction::Transaction* transaction, node_group_idx_t no
             auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
             auto numValues = chunkMetadata.numValues == 0 ?
                                  0 :
-                                 std::min(endOffset, chunkMetadata.numValues - 1) - startOffset + 1;
+                                 std::min(endOffset, chunkMetadata.numValues) - startOffset;
             columnChunk->setNumValues(numValues);
         }
     }
@@ -118,12 +118,11 @@ bool NullColumn::isNull(
     return result;
 }
 
-void NullColumn::setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
+void NullColumn::setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, uint64_t value) {
     auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
     propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
     // Must be aligned to an 8-byte chunk for NullMask read to not overflow
-    uint64_t value = true;
-    writeValue(chunkMeta, nodeGroupIdx, offsetInChunk, reinterpret_cast<const uint8_t*>(&value));
+    writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, reinterpret_cast<const uint8_t*>(&value));
     if (offsetInChunk >= chunkMeta.numValues) {
         chunkMeta.numValues = offsetInChunk + 1;
         metadataDA->update(nodeGroupIdx, chunkMeta);
@@ -139,6 +138,22 @@ void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
     }
     if (offsetInChunk >= chunkMeta.numValues) {
         chunkMeta.numValues = offsetInChunk + 1;
+        metadataDA->update(nodeGroupIdx, chunkMeta);
+    }
+}
+
+void NullColumn::write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
+    kuzu::storage::ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues) {
+    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+    writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, data->getData(), dataOffset, numValues);
+    auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(data);
+    for (auto i = 0u; i < numValues; i++) {
+        if (nullChunk->isNull(dataOffset + i)) {
+            propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
+        }
+    }
+    if (offsetInChunk + numValues > chunkMeta.numValues) {
+        chunkMeta.numValues = offsetInChunk + numValues;
         metadataDA->update(nodeGroupIdx, chunkMeta);
     }
 }
@@ -162,6 +177,31 @@ bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nod
         auto localVector = localChunk->getLocalVector(rowIdx);
         auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
         bool value = localVector->getVector()->isNull(offsetInVector);
+        if (!metadata.compMeta.canUpdateInPlace(
+                reinterpret_cast<const uint8_t*>(&value), 0, dataType->getPhysicalType())) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool NullColumn::canCommitInPlace(Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    common::offset_t dstOffset, ColumnChunk* chunk, common::offset_t dataOffset, length_t length) {
+    KU_ASSERT(chunk->getNullChunk() == nullptr &&
+              chunk->getDataType()->getPhysicalType() == PhysicalTypeID::BOOL);
+    auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
+    if ((metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType) *
+            metadata.numPages) < (length + dstOffset)) {
+        // Note that for constant compression, `metadata.numPages` will be equal to 0. Thus, this
+        // function will always return false.
+        return false;
+    }
+    if (metadata.compMeta.canAlwaysUpdateInPlace()) {
+        return true;
+    }
+    auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(chunk);
+    for (auto i = 0u; i < length; i++) {
+        bool value = nullChunk->isNull(dataOffset + i);
         if (!metadata.compMeta.canUpdateInPlace(
                 reinterpret_cast<const uint8_t*>(&value), 0, dataType->getPhysicalType())) {
             return false;

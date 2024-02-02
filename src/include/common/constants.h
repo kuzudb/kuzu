@@ -104,12 +104,18 @@ struct StorageConstants {
 
     static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
     static constexpr uint64_t NODE_GROUP_SIZE = (uint64_t)1 << NODE_GROUP_SIZE_LOG2;
+
+    static constexpr double TOP_CSR_DENSITY = 0.8;
+    static constexpr double LEAF_LOW_CSR_DENSITY = 0.1;
+    static constexpr double LEAF_HIGH_CSR_DENSITY = 1.0;
+    // The number of CSR lists in a segment.
+    static constexpr uint64_t CSR_SEGMENT_SIZE_LOG2 = 10;
+    static constexpr uint64_t CSR_SEGMENT_SIZE = (uint64_t)1 << CSR_SEGMENT_SIZE_LOG2;
 };
 
 // Hash Index Configurations
 struct HashIndexConstants {
-    static constexpr uint8_t INT64_SLOT_CAPACITY = 15;
-    static constexpr uint8_t STRING_SLOT_CAPACITY = 10;
+    static constexpr uint8_t SLOT_CAPACITY_BYTES = 240;
     static constexpr double MAX_LOAD_FACTOR = 0.8;
 };
 

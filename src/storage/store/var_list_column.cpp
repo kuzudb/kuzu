@@ -108,6 +108,7 @@ void VarListColumn::lookupValue(Transaction* transaction, offset_t nodeOffset,
 }
 
 void VarListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
+    KU_ASSERT(columnChunk->getDataType()->getPhysicalType() == dataType->getPhysicalType());
     Column::append(columnChunk, nodeGroupIdx);
     auto dataColumnChunk =
         ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(columnChunk)->getDataColumnChunk();

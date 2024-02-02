@@ -12,8 +12,8 @@ class TableData;
 
 using offset_to_row_idx_t = std::map<common::offset_t, common::row_idx_t>;
 using offset_set_t = std::unordered_set<common::offset_t>;
-using offset_to_offset_to_row_idx_t = std::map<common::offset_t, offset_to_row_idx_t>;
-using offset_to_offset_set_t = std::map<common::offset_t, std::unordered_set<common::offset_t>>;
+using update_insert_info_t = std::map<common::offset_t, offset_to_row_idx_t>;
+using delete_info_t = std::map<common::offset_t, std::unordered_set<common::offset_t>>;
 
 // TODO(Guodong): Instead of using ValueVector, we should switch to ColumnChunk.
 // This class is used to store a chunk of local changes to a column in a node group.

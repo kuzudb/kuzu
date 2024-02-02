@@ -8,7 +8,7 @@
 #:s1 :p 1 .
 #:s1 :q 9 .
 #:s2 :p 2 .
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT CREATE (s1:R_r {iri: "s1"})-[{iri: "p"}]->(:R_l {val: 1}),
                   (s1)-[{iri: "q"}]->(:R_l {val: 9}),
@@ -38,7 +38,7 @@ s1
 
 -CASE W3SparqlEqual
 
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "p"}]->(:R_l {val: 1}),
                   (a)-[{iri: "q"}]->(:R_l {val: 1}),
@@ -69,7 +69,7 @@ a|
 a|2
 
 -CASE W3SparqlOptional
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "p"}]->(:R_l {val: 1}),
                   (a)-[{iri: "q"}]->(:R_l {val: 2}),
@@ -89,7 +89,7 @@ a|3
 b|
 
 -CASE W3SparqlNegatePath
--STATEMENT CREATE RDF GRAPH R;
+-STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "p1"}]->(:R_r {iri: "b"}),
                   (a)-[{iri: "p2"}]->(:R_r {iri: "c"}),

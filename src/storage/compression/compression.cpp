@@ -394,6 +394,8 @@ void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, o
     auto chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst, header.bitWidth);
     auto startPosInChunk = posInDst % CHUNK_SIZE;
     U chunk[CHUNK_SIZE];
+    // TODO(bmwinger): Now I'm a bit confused here. Why do we always need to unpack the chunk first?
+    //      Can't we just unpack the chunk if we need to modify only partial of it?
     fastunpack(chunkStart, chunk, header.bitWidth);
     for (offset_t i = 0; i < numValues; i++) {
         auto value = ((T*)srcBuffer)[posInSrc + i];

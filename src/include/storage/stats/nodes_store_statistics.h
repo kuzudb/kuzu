@@ -39,6 +39,8 @@ public:
 
     inline void setNumTuplesForTable(common::table_id_t tableID, uint64_t numTuples) override {
         initTableStatisticsForWriteTrx();
+        KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+        setToUpdated();
         getNodeTableStats(transaction::TransactionType::WRITE, tableID)->setNumTuples(numTuples);
     }
 
@@ -47,7 +49,7 @@ public:
 
     // This function is only used for testing purpose.
     inline uint32_t getNumNodeStatisticsAndDeleteIDsPerTable() const {
-        return tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.size();
+        return readOnlyVersion->tableStatisticPerTable.size();
     }
 
     // This function assumes that there is a single write transaction. That is why for now we
@@ -55,6 +57,8 @@ public:
     inline common::offset_t addNode(common::table_id_t tableID) {
         lock_t lck{mtx};
         initTableStatisticsForWriteTrxNoLock();
+        KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+        setToUpdated();
         return getNodeTableStats(transaction::TransactionType::WRITE, tableID)->addNode();
     }
 
@@ -62,6 +66,8 @@ public:
     inline void deleteNode(common::table_id_t tableID, common::offset_t nodeOffset) {
         lock_t lck{mtx};
         initTableStatisticsForWriteTrxNoLock();
+        KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+        setToUpdated();
         getNodeTableStats(transaction::TransactionType::WRITE, tableID)->deleteNode(nodeOffset);
     }
 
@@ -102,11 +108,9 @@ private:
         transaction::TransactionType transactionType, common::table_id_t tableID) const {
         return transactionType == transaction::TransactionType::READ_ONLY ?
                    dynamic_cast<NodeTableStatsAndDeletedIDs*>(
-                       tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.at(tableID)
-                           .get()) :
+                       readOnlyVersion->tableStatisticPerTable.at(tableID).get()) :
                    dynamic_cast<NodeTableStatsAndDeletedIDs*>(
-                       tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID)
-                           .get());
+                       readWriteVersion->tableStatisticPerTable.at(tableID).get());
     }
 };
 } // namespace storage

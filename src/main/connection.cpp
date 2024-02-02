@@ -286,5 +286,19 @@ void Connection::addScalarFunction(std::string name, function::function_set defi
     database->catalog->addFunction(std::move(name), std::move(definitions));
 }
 
+bool Connection::startUDFAutoTrx(transaction::TransactionContext* trx) {
+    if (!trx->hasActiveTransaction()) {
+        beginWriteTransaction();
+        return true;
+    }
+    return false;
+}
+
+void Connection::commitUDFTrx(bool isAutoCommitTrx) {
+    if (isAutoCommitTrx) {
+        commit();
+    }
+}
+
 } // namespace main
 } // namespace kuzu
