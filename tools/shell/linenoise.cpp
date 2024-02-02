@@ -1020,35 +1020,84 @@ static void truncateSearchText(char*& buf, size_t& len, size_t pos, size_t cols,
     }
 }
 
-static void highlightSearchMatch(
-    char* buffer, char* resultBuf, const char* search_buffer) {
+static void highlightSearchMatch(char* buffer, char* resultBuf, const char* search_buffer) {
     const char* matchUnderlinePrefix = "\033[4m";
     const char* matchUnderlineResetPostfix = "\033[24m";
-    const char* colorPrefixRegex = "(\\\033\\[39m\\\033\\[22m)?";
-    const char* colorPostfixRegex = "(\\\033\\[32m\\\033\\[1m)?";
-    const std::regex specialChars{R"([-[\]\\{}()*+?.,\^$|#\s])"};
 
     std::string searchPhrase(search_buffer);
     std::string buf(buffer);
+    std::string underlinedBuf = "";
+
 #ifndef _WIN32
-    if (!searchPhrase.empty()) {
-        std::string searchPhraseEscaped = regex_replace(searchPhrase, specialChars, R"(\$&)");
-        searchPhraseEscaped = regex_replace(searchPhraseEscaped, std::regex("\\\\ "), 
-            std::string(colorPrefixRegex).append(" ").append(colorPostfixRegex));
-        if (regex_search(buf,
-                std::regex(searchPhraseEscaped, std::regex_constants::icase))) {
-            buf = regex_replace(buf,
-                std::regex(std::string("(")
-                               .append(colorPrefixRegex)
-                               .append(colorPostfixRegex)
-                               .append(searchPhraseEscaped)
-                               .append(")"), std::regex_constants::icase),
-                std::string(matchUnderlinePrefix).append("$1").append(matchUnderlineResetPostfix),
-                std::regex_constants::format_first_only);
+    std::string matchedWord;
+    auto searchPhrasePos = 0u;
+    bool matching = false;
+    bool matched = false;
+    bool ansiCode = false;
+
+    for (auto i = 0u; i < buf.length(); i++) {
+        if (matched) {
+            underlinedBuf += buf[i];
+            continue;
+        }
+        if (matching) {
+            if (searchPhrasePos >= searchPhrase.length()) {
+                underlinedBuf += std::string(matchUnderlinePrefix);
+                underlinedBuf += matchedWord;
+                underlinedBuf += std::string(matchUnderlineResetPostfix);
+                underlinedBuf += buf[i];
+                matched = true;
+                continue;
+            }
+            if (ansiCode) {
+                if (tolower(buf[i]) == 'm') {
+                    ansiCode = false;
+                }
+            } else if (tolower(buf[i]) == tolower(searchPhrase[searchPhrasePos])) {
+                searchPhrasePos++;
+            } else if (buf[i] == '\033') {
+                ansiCode = true;
+            } else {
+                matching = false;
+                searchPhrasePos = 0;
+                underlinedBuf += matchedWord;
+                underlinedBuf += buf[i];
+                matchedWord = "";
+                continue;
+            }
+            matchedWord += buf[i];
+            continue;
+        } else if (ansiCode) {
+            if (tolower(buf[i]) == 'm') {
+                ansiCode = false;
+            }
+        } else if (buf[i] == '\033') {
+            ansiCode = true;
+        } else if (tolower(buf[i]) == tolower(searchPhrase[searchPhrasePos])) {
+            matchedWord += buf[i];
+            matching = true;
+            searchPhrasePos++;
+            continue;
+        }
+        underlinedBuf += buf[i];
+    }
+
+    if (!matched) {
+        if (searchPhrasePos >= searchPhrase.length()) {
+            underlinedBuf += std::string(matchUnderlinePrefix);
+            underlinedBuf += matchedWord;
+            underlinedBuf += std::string(matchUnderlineResetPostfix);
+        } else {
+            underlinedBuf += matchedWord;
         }
     }
+
 #endif
-    strncpy(resultBuf, buf.c_str(), LINENOISE_MAX_LINE - 1);
+    if (underlinedBuf.empty()) {
+        strncpy(resultBuf, buf.c_str(), LINENOISE_MAX_LINE - 1);
+    } else {
+        strncpy(resultBuf, underlinedBuf.c_str(), LINENOISE_MAX_LINE - 1);
+    }
 }
 
 static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchPrompt) {
@@ -1071,7 +1120,6 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
     highlightCallback(l->buf, highlightBuf, l->len, l->pos);
     highlightSearchMatch(highlightBuf, buf, l->search_buf.c_str());
     len = strlen(buf);
-    
 
     /* Update maxrows if needed. */
     if (rows > (int)l->maxrows)
@@ -1286,7 +1334,7 @@ static void searchNext(linenoiseState* l) {
 }
 
 static char linenoiseSearch(linenoiseState *l, char c) {
-	char seq[64];
+    char seq[64];
 
 	switch (c) {
 	case ENTER: /* enter */
