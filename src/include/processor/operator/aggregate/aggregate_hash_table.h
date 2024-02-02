@@ -87,6 +87,9 @@ public:
 
     void resize(uint64_t newSize);
 
+    static void getCompareEntryWithKeysFunc(
+        const common::LogicalType& logicalType, compare_function_t& func);
+
 private:
     void initializeFT(
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);
@@ -179,9 +182,6 @@ private:
     void addDataBlocksIfNecessary(uint64_t maxNumHashSlots);
 
     void resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys);
-
-    static void getCompareEntryWithKeysFunc(
-        const common::LogicalType& logicalType, compare_function_t& func);
 
     void updateNullAggVectorState(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,

@@ -29,7 +29,7 @@ static constexpr uint64_t INDEX_HEADER_IDX_IN_ARRAY = 0;
 
 // T is the key type used to access values
 // S is the stored type, which is usually the same as T, with the exception of strings
-template<typename T, typename S = T>
+template<common::IndexHashable T, typename S = T>
 class BaseHashIndex {
 public:
     explicit BaseHashIndex() : slotCapacity(getSlotCapacity<S>()) {}
@@ -90,7 +90,7 @@ protected:
         slot.header.numEntries++;
     }
 
-    inline common::hash_t hash(const T& key) const {
+    common::hash_t hash(const T& key) const {
         common::hash_t hash;
         function::Hash::operation(key, hash);
         return hash;

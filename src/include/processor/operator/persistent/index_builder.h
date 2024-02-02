@@ -75,7 +75,7 @@ public:
         stringBuffer.push_back(std::make_pair(key, value)); // NOLINT(bugprone-use-after-move)
     }
 
-    template<storage::HashablePrimitive T>
+    template<common::HashablePrimitive T>
     void insert(T key, common::offset_t value) {
         auto indexPos = storage::getHashIndexPosition(key);
         auto& buffer = (*std::get<UniqueBuffers<T>>(buffers))[indexPos];
