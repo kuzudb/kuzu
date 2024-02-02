@@ -24,18 +24,18 @@ std::wstring WindowsUtils::utf8ToUnicode(const char* input) {
 }
 
 std::string WindowsUtils::unicodeToUTF8(LPCWSTR input) {
-    uint64_t result_size;
+    uint64_t resultSize;
 
-    result_size = WideCharToMultiByte(CP_UTF8, 0, input, -1, 0, 0, 0, 0);
-    if (result_size == 0) {
+    resultSize = WideCharToMultiByte(CP_UTF8, 0, input, -1, 0, 0, 0, 0);
+    if (resultSize == 0) {
         throw IOException("Failure in WideCharToMultiByte");
     }
-    auto buffer = std::make_unique<char>(result_size);
-    result_size = WideCharToMultiByte(CP_UTF8, 0, input, -1, buffer.get(), result_size, 0, 0);
-    if (result_size == 0) {
+    auto buffer = std::make_unique<char[]>(resultSize);
+    resultSize = WideCharToMultiByte(CP_UTF8, 0, input, -1, buffer.get(), resultSize, 0, 0);
+    if (resultSize == 0) {
         throw IOException("Failure in WideCharToMultiByte");
     }
-    return std::string(buffer.get(), result_size - 1);
+    return std::string(buffer.get(), resultSize - 1);
 }
 
 } // namespace common

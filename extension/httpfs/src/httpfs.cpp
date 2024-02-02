@@ -6,10 +6,6 @@
 namespace kuzu {
 namespace httpfs {
 
-#if defined(_WIN32)
-#define O_ACCMODE 0x0003
-#endif
-
 using namespace kuzu::common;
 
 HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
