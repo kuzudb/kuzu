@@ -1,5 +1,4 @@
 #include "binder/expression/property_expression.h"
-#include "planner/operator/logical_fill_table_id.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
 #include "planner/operator/scan/logical_scan_node_property.h"
 #include "planner/planner.h"
@@ -18,14 +17,6 @@ void Planner::appendScanInternalID(
     // update cardinality
     plan.setCardinality(cardinalityEstimator.estimateScanNode(scan.get()));
     plan.setLastOperator(std::move(scan));
-}
-
-void Planner::appendFillTableID(
-    std::shared_ptr<Expression> internalID, table_id_t tableID, LogicalPlan& plan) {
-    auto fill = std::make_shared<LogicalFillTableID>(
-        std::move(internalID), tableID, plan.getLastOperator());
-    fill->computeFactorizedSchema();
-    plan.setLastOperator(std::move(fill));
 }
 
 void Planner::appendScanNodeProperties(std::shared_ptr<Expression> nodeID,

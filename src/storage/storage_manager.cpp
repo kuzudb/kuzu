@@ -1,5 +1,6 @@
 #include "storage/storage_manager.h"
 
+#include "catalog/rdf_graph_schema.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/wal_replayer.h"
 
@@ -30,6 +31,21 @@ StorageManager::StorageManager(bool readOnly, const Catalog& catalog, MemoryMana
     loadTables(readOnly, catalog);
 }
 
+static void setCommonTableIDToRdfRelTable(RelTable* relTable, std::vector<TableSchema*> schemas) {
+    for (auto schema : schemas) {
+        if (schema->isParent(relTable->getTableID())) {
+            auto rdfSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(schema);
+            std::vector<Column*> columns;
+            columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(1));
+            columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(1));
+            for (auto& column : columns) {
+                ku_dynamic_cast<storage::Column*, storage::InternalIDColumn*>(column)
+                    ->setCommonTableID(rdfSchema->getResourceTableID());
+            }
+        }
+    }
+}
+
 void StorageManager::loadTables(bool readOnly, const catalog::Catalog& catalog) {
     for (auto& schema : catalog.getNodeTableSchemas(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(schema->tableID));
@@ -38,11 +54,14 @@ void StorageManager::loadTables(bool readOnly, const catalog::Catalog& catalog) 
             nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal, readOnly,
             enableCompression, vfs);
     }
+    auto rdfGraphSchemas = catalog.getRdfGraphSchemas(&DUMMY_READ_TRANSACTION);
     for (auto schema : catalog.getRelTableSchemas(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(schema->tableID));
         auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
-        tables[schema->tableID] = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
+        auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
             relsStatistics.get(), &memoryManager, relTableSchema, wal, enableCompression);
+        setCommonTableIDToRdfRelTable(relTable.get(), rdfGraphSchemas);
+        tables[schema->tableID] = std::move(relTable);
     }
 }
 
@@ -58,8 +77,10 @@ void StorageManager::createTable(
     } break;
     case TableType::REL: {
         auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema);
-        tables[tableID] = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
+        auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
             relsStatistics.get(), &memoryManager, relTableSchema, wal, enableCompression);
+        setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphSchemas(transaction));
+        tables[tableID] = std::move(relTable);
     } break;
     default: {
         KU_UNREACHABLE;

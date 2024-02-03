@@ -136,7 +136,6 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     if (iri) {
         // Use additional hash join to convert PID to IRI.
         auto rdfInfo = rel->getRdfPredicateInfo();
-        appendFillTableID(rdfInfo->predicateID, rdfInfo->resourceTableIDs[0], plan);
         // Append hash join for remaining properties
         auto tmpPlan = std::make_unique<LogicalPlan>();
         cardinalityEstimator.addNodeIDDom(*rdfInfo->predicateID, rdfInfo->resourceTableIDs);
@@ -242,7 +241,6 @@ void Planner::createRecursivePlan(
         appendNonRecursiveExtend(boundNode, nbrNode, rel, direction,
             ExpressionUtil::removeDuplication(relProperties), plan);
         auto rdfInfo = rel->getRdfPredicateInfo();
-        appendFillTableID(rdfInfo->predicateID, rdfInfo->resourceTableIDs[0], plan);
         appendScanNodeProperties(
             rdfInfo->predicateID, rdfInfo->resourceTableIDs, expression_vector{iri}, plan);
     } else {

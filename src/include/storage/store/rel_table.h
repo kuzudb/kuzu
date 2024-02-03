@@ -98,6 +98,11 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
+    inline RelTableData* getDirectedTableData(common::RelDataDirection direction) {
+        return direction == common::RelDataDirection::FWD ? fwdRelTableData.get() :
+                                                            bwdRelTableData.get();
+    }
+
 private:
     void scan(transaction::Transaction* transaction, RelDataReadState& scanState,
         common::ValueVector* inNodeIDVector,
@@ -114,11 +119,6 @@ private:
         RelTableData* tableData, RelTableData* reverseTableData,
         common::ValueVector* srcNodeIDVector, RelDataReadState* relDataReadState,
         RelDetachDeleteState* deleteState);
-
-    inline RelTableData* getDirectedTableData(common::RelDataDirection direction) {
-        return direction == common::RelDataDirection::FWD ? fwdRelTableData.get() :
-                                                            bwdRelTableData.get();
-    }
 
 private:
     std::unique_ptr<RelTableData> fwdRelTableData;

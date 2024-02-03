@@ -255,11 +255,6 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     auto resourceTableIDs =
         common::table_id_vector_t{resourceTableIDSet.begin(), resourceTableIDSet.end()};
     if (!resourceTableIDs.empty()) {
-        if (resourceTableIDs.size() > 1) {
-            throw BinderException(stringFormat(
-                "Relationship pattern {} with multiple rdf table labels is not supported.",
-                queryRel->getVariableName()));
-        }
         auto pID =
             expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
         auto rdfInfo = std::make_unique<RdfPredicateInfo>(resourceTableIDs, std::move(pID));

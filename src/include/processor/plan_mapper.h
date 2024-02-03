@@ -46,7 +46,6 @@ private:
     std::unique_ptr<PhysicalOperator> mapScanFile(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanFrontier(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanInternalID(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapFillTableID(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIndexScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapEmptyResult(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUnwind(planner::LogicalOperator* logicalOperator);
