@@ -1,1 +1,2 @@
+@prefix : <https://test/> .
 :s2 :p2 2 .

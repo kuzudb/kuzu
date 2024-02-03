@@ -3,7 +3,7 @@
 
 --
 
--CASE MalformedRdf
+-CASE InvalidSyntax
 
 -STATEMENT CREATE RDFGraph R;
 ---- ok
@@ -31,3 +31,19 @@ p/西
 p/a|p/b|p/c
 p/x|p/y|p/z
 p/冯|p/西|p/洋
+
+-CASE InvalidPrefix
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_prefix.ttl" (in_memory=true);
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri;
+---- 0
+-STATEMENT CREATE RDFGraph R2;
+---- ok
+-STATEMENT COPY R2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_prefix.ttl" (in_memory=false);
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri;
+---- 0
+

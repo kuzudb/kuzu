@@ -262,18 +262,20 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(
                 pattern->toString(), expressionTypeToString(pattern->expressionType)));
     }
     auto patternExpr = ku_dynamic_cast<Expression*, NodeOrRelExpression*>(pattern.get());
+    auto boundSetItem = bindSetItem(lhs, rhs);
     for (auto tableID : patternExpr->getTableIDs()) {
         auto tableName = catalog.getTableSchema(clientContext->getTx(), tableID)->getName();
         for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
             if (schema->isParent(tableID)) {
-                throw BinderException(stringFormat(
-                    "Cannot set property of {} because it refers to table {} under rdf graph {}.",
-                    pattern->toString(), tableName, schema->getName()));
+                throw BinderException(
+                    stringFormat("Cannot set properties of RDFGraph tables. Set {} requires "
+                                 "modifying table {} under rdf graph {}.",
+                        boundSetItem.first->toString(), tableName, schema->getName()));
             }
         }
     }
     return BoundSetPropertyInfo(
-        isNode ? UpdateTableType::NODE : UpdateTableType::REL, pattern, bindSetItem(lhs, rhs));
+        isNode ? UpdateTableType::NODE : UpdateTableType::REL, pattern, std::move(boundSetItem));
 }
 
 expression_pair Binder::bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs) {
