@@ -6,12 +6,9 @@ on:
 
 jobs:
   build-precompiled-bin-arm64:
-    runs-on: self-hosted-mac-arm
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install networkx
-        run: python3 -m pip install networkx --user
 
       - name: Build precompiled binaries for Apple Silicon
         run: |
@@ -52,9 +49,6 @@ jobs:
     runs-on: self-hosted-mac-x64
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install networkx
-        run: python3 -m pip install networkx --user
 
       - name: Build precompiled binaries for Intel
         run: |

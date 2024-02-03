@@ -102,16 +102,21 @@ jobs:
         run: docker stop kuzu-x86
 
   build-mac-extensions-arm64:
-    runs-on: self-hosted-mac-arm
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install OpenSSL
+        run: |
+          brew install openssl@3
+          OPENSSL_ROOT=$(readlink -f /opt/homebrew/Cellar/openssl@3/*/)
+          echo "OPENSSL_ROOT_DIR=$OPENSSL_ROOT" >> $GITHUB_ENV
 
       - name: Build precompiled extensions
         run: make extension-release LTO=1 NUM_THREADS=$(nproc)
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           CMAKE_OSX_ARCHITECTURES: "arm64"
-          OPENSSL_ROOT_DIR: /opt/homebrew/Cellar/openssl@3/3.2.0_1/
 
       - name: Collect built artifacts
         run: |

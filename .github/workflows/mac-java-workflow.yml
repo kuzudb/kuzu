@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-mac-java-arm:
-    runs-on: self-hosted-mac-arm
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v3
 
