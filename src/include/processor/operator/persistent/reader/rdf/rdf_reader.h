@@ -35,6 +35,7 @@ protected:
     virtual uint64_t readToVector(common::DataChunk* dataChunk) = 0;
 
     static SerdStatus errorHandle(void* handle, const SerdError* error);
+    static SerdStatus baseHandle(void* handle, const SerdNode* baseNode);
     static SerdStatus prefixHandle(void* handle, const SerdNode* nameNode, const SerdNode* uriNode);
 
 public:
@@ -55,9 +56,9 @@ private:
 
     FILE* fp;
     SerdReader* reader;
+    bool hasBaseUri = false;
+    SerdEnv* env;
 
-    std::string defaultPrefix;
-    std::unordered_map<std::string, std::string> prefixMap;
     SerdStatus status;
 };
 

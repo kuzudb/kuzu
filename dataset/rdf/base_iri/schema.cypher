@@ -1,0 +1,1 @@
+CREATE RDFGraph R;

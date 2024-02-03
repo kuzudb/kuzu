@@ -1,4 +1,5 @@
 @prefix foaf: <x> .
+@prefix : <y> .
 
 _:alice :knows _:bob .
 _:bob :knows _:alice .
