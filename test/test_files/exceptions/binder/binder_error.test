@@ -641,3 +641,10 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INTERVAL,DATE) -> DATE
 (TIMESTAMP,INTERVAL) -> TIMESTAMP
 (INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+-LOG CreateWithSerialPK
+-STATEMENT create node table Person(id serial, primary key(id));
+---- ok
+-STATEMENT create (:Person {id: 0});
+---- error
+Binder exception: The primary key of Person is serial, specifying primary key value is not allowed in the create statement.
