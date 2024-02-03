@@ -109,6 +109,7 @@ void NodeTable::delete_(
         if (nodeIDVector->isNull(pos)) {
             continue;
         }
+        KU_ASSERT(nodeIDVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
         auto nodeOffset = nodeIDVector->readNodeOffset(pos);
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
             ->deleteNode(tableID, nodeOffset);
@@ -175,6 +176,7 @@ void NodeTable::updatePK(Transaction* transaction, column_id_t columnID,
 void NodeTable::insertPK(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[i];
+        KU_ASSERT(nodeIDVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
         auto offset = nodeIDVector->readNodeOffset(nodeIDPos);
         auto pkPos = primaryKeyVector->state->selVector->selectedPositions[i];
         if (primaryKeyVector->isNull(pkPos)) {

@@ -38,6 +38,7 @@ void Intersect::probeHTs() {
     hash_t hashVal;
     for (auto i = 0u; i < probeKeyVectors.size(); i++) {
         KU_ASSERT(probeKeyVectors[i]->state->isFlat());
+        KU_ASSERT(probeKeyVectors[i]->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         probedFlatTuples[i].clear();
         auto key = probeKeyVectors[i]->getValue<nodeID_t>(
             probeKeyVectors[i]->state->selVector->selectedPositions[0]);

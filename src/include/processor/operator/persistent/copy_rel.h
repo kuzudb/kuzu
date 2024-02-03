@@ -86,6 +86,13 @@ public:
             resultSetDescriptor->copy(), id, paramsString);
     }
 
+    // TODO: should remove after rewriting internal id's physical type as STRUCT
+    void rewriteDataChunk(common::table_id_t srcTableID, common::table_id_t dstTableID,
+        common::table_id_t relTableID, storage::MemoryManager* memoryManager,
+        common::DataChunk* dataChunk);
+    std::shared_ptr<common::ValueVector> rewriteInternalIDValueVector(common::table_id_t tableID,
+        std::shared_ptr<common::ValueVector> offsetVector, storage::MemoryManager* memoryManager);
+
 private:
     inline bool isCopyAllowed() const {
         return sharedState->getNextRelOffset(transaction::Transaction::getDummyWriteTrx().get()) ==

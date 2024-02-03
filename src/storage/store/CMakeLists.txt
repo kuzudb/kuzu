@@ -15,7 +15,9 @@ add_library(kuzu_storage_store
         struct_column.cpp
         table_data.cpp
         var_list_column_chunk.cpp
-        var_list_column.cpp)
+        var_list_column.cpp
+        internal_id_column_chunk.cpp
+        internal_id_column.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage_store>

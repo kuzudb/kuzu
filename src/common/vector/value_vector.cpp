@@ -28,6 +28,15 @@ void ValueVector::setState(const std::shared_ptr<DataChunkState>& state_) {
     }
 }
 
+void ValueVector::copyInfoFromVector(ValueVector* another) {
+    this->setState(another->state);
+    this->_isSequential = another->isSequential();
+    for (auto j = 0u; j < this->state->selVector->selectedSize; j++) {
+        auto pos = this->state->selVector->selectedPositions[j];
+        this->setNull(pos, another->isNull(pos));
+    }
+}
+
 bool ValueVector::discardNull(ValueVector& vector) {
     if (vector.hasNoNullsGuarantee()) {
         return true;
@@ -119,6 +128,7 @@ void ValueVector::copyFromVectorData(
 
 void ValueVector::copyFromVectorData(
     uint64_t dstPos, const ValueVector* srcVector, uint64_t srcPos) {
+    KU_ASSERT(srcVector->dataType.getPhysicalType() == dataType.getPhysicalType());
     setNull(dstPos, srcVector->isNull(srcPos));
     if (!isNull(dstPos)) {
         copyFromVectorData(getData() + dstPos * getNumBytesPerValue(), srcVector,
@@ -426,6 +436,12 @@ void ValueVector::setValue(uint32_t pos, std::string val) {
 
 void ValueVector::setNull(uint32_t pos, bool isNull) {
     nullMask->setNull(pos, isNull);
+    if (dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
+        auto childrenVectors = StructVector::getFieldVectors(this);
+        for (auto& childVector : childrenVectors) {
+            childVector->setNull(pos, isNull);
+        }
+    }
 }
 
 void StringVector::addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr) {

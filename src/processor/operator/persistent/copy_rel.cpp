@@ -43,7 +43,35 @@ void CopyRel::initGlobalStateInternal(ExecutionContext* /*context*/) {
     sharedState->logCopyRelWALRecord(info->wal);
 }
 
-void CopyRel::executeInternal(ExecutionContext* /*context*/) {
+void CopyRel::rewriteDataChunk(common::table_id_t srcTableID, common::table_id_t dstTableID,
+    common::table_id_t relTableID, storage::MemoryManager* memoryManager, DataChunk* dataChunk) {
+    dataChunk->insert(
+        0, rewriteInternalIDValueVector(srcTableID, dataChunk->getValueVector(0), memoryManager));
+    dataChunk->insert(
+        1, rewriteInternalIDValueVector(dstTableID, dataChunk->getValueVector(1), memoryManager));
+    dataChunk->insert(
+        2, rewriteInternalIDValueVector(relTableID, dataChunk->getValueVector(2), memoryManager));
+}
+
+std::shared_ptr<common::ValueVector> CopyRel::rewriteInternalIDValueVector(
+    common::table_id_t tableID, std::shared_ptr<ValueVector> offsetVector,
+    storage::MemoryManager* memoryManager) {
+    auto internalIDVector = std::make_shared<ValueVector>(
+        *LogicalType::STRUCT(LogicalTypeID::INTERNAL_ID).get(), memoryManager);
+    auto tableIDVector = std::make_shared<ValueVector>(*LogicalType::INT64().get(), memoryManager);
+    internalIDVector->copyInfoFromVector(offsetVector.get());
+    tableIDVector->copyInfoFromVector(offsetVector.get());
+    internalIDVector->copyInfoFromVector(offsetVector.get());
+    for (auto j = 0u; j < offsetVector->state->selVector->selectedSize; j++) {
+        auto pos = offsetVector->state->selVector->selectedPositions[j];
+        tableIDVector->setValue(pos, tableID);
+    }
+    StructVector::referenceVector(internalIDVector.get(), 0, tableIDVector);
+    StructVector::referenceVector(internalIDVector.get(), 1, offsetVector);
+    return internalIDVector;
+}
+
+void CopyRel::executeInternal(ExecutionContext* context) {
     while (true) {
         localState->currentPartition =
             partitionerSharedState->getNextPartition(info->partitioningIdx);
@@ -70,6 +98,11 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
             localState->nodeGroup->getColumnChunk(0)->setNumValues(numNodes);
         }
         for (auto dataChunk : partitioningBuffer->getChunks()) {
+            // TODO: should remove after rewriting internalID's physical type as STRUCT
+            auto srcTableID = info->schema->getSrcTableID();
+            auto dstTableID = info->schema->getDstTableID();
+            rewriteDataChunk(srcTableID, dstTableID, info->schema->tableID,
+                context->clientContext->getMemoryManager(), dataChunk);
             localState->nodeGroup->write(dataChunk, offsetVectorIdx);
         }
         localState->nodeGroup->finalize(localState->currentPartition);
@@ -95,6 +128,7 @@ void CopyRel::prepareCSRNodeGroup(
     localState->nodeGroup->resizeChunks(numRels);
     for (auto dataChunk : partition->getChunks()) {
         auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
+        KU_ASSERT(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
         setOffsetFromCSROffsets(offsetVector, (offset_t*)csrOffsetChunk->getData());
     }
 }
@@ -112,6 +146,7 @@ void CopyRel::populateCSROffsetsAndLengths(CSRNodeGroup* csrNodeGroup, offset_t 
     // Calculate length for each node. Store the num of tuples of node i at csrOffsets[i].
     for (auto chunk : partition->getChunks()) {
         auto offsetVector = chunk->getValueVector(offsetVectorIdx);
+        KU_ASSERT(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
         for (auto i = 0u; i < offsetVector->state->selVector->selectedSize; i++) {
             auto pos = offsetVector->state->selVector->selectedPositions[i];
             auto nodeOffset = offsetVector->getValue<offset_t>(pos);

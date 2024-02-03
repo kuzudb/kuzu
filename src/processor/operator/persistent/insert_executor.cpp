@@ -1,8 +1,9 @@
 #include "processor/operator/persistent/insert_executor.h"
 
+#include <iostream>
+
 #include "storage/stats/rels_store_statistics.h"
 #include "storage/storage_utils.h"
-
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
@@ -42,6 +43,7 @@ static void writeColumnVector(common::ValueVector* columnVector, common::ValueVe
         columnVector->setNull(lhsPos, true);
     } else {
         columnVector->setNull(lhsPos, false);
+        KU_ASSERT(columnVector->dataType == dataVector->dataType);
         columnVector->copyFromVectorData(lhsPos, dataVector, rhsPos);
     }
 }
@@ -75,6 +77,7 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
             // Lhs vector is serial so there is no corresponding rhs vector.
             auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
             auto lhsPos = columnVector->state->selVector->selectedPositions[0];
+            KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
             auto nodeID = nodeIDVector->getValue<nodeID_t>(nodeIDPos);
             columnVector->setNull(lhsPos, false);
             columnVector->setValue<int64_t>(lhsPos, nodeID.offset);
@@ -82,12 +85,13 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
             writeColumnVector(columnVector, dataVector);
         }
     }
-    auto numNodeGroups = storage::StorageUtils::getNodeGroupIdx(maxNodeOffset) + 1;
-    for (auto relTable : bwdRelTables) {
-        relTable->resizeColumns(tx, RelDataDirection::FWD, numNodeGroups);
+    auto numNodeGroups = storage::StorageUtils::getNodeGroupIdx(maxNodeOffset + 1);
+    auto numNodeNums = storage::StorageUtils::getNodeGroupNums(maxNodeOffset);
+    for (auto relTable : fwdRelTables) {
+        relTable->resizeColumns(tx, RelDataDirection::FWD, numNodeGroups, numNodeNums);
     }
     for (auto relTable : bwdRelTables) {
-        relTable->resizeColumns(tx, RelDataDirection::BWD, numNodeGroups);
+        relTable->resizeColumns(tx, RelDataDirection::BWD, numNodeGroups, numNodeNums);
     }
 }
 
@@ -132,8 +136,9 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* c
         return;
     }
     auto offset = relsStatistics->getNextRelOffset(tx, table->getTableID());
-    columnDataVectors[0]->setValue(0, offset); // internal ID property
+    columnDataVectors[0]->setValue(0, offset);
     columnDataVectors[0]->setNull(0, false);
+    columnDataVectors[0]->setContainNulls(false);
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
         columnDataEvaluators[i]->evaluate(context->clientContext);
     }

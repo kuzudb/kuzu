@@ -28,11 +28,13 @@ using batch_lookup_func_t = read_values_to_page_func_t;
 
 class NullColumn;
 class StructColumn;
+class InternalIDColumn;
 class LocalVectorCollection;
 class Column {
     friend class StringColumn;
     friend class VarListLocalColumn;
     friend class StructColumn;
+    friend class InternalIDColumn;
 
     struct ReadState {
         ColumnChunkMetadata metadata;
@@ -88,11 +90,13 @@ public:
         InMemDiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector,
         uint64_t numNodeGroups) const;
 
-    inline ColumnChunkMetadata getMetadata(
+    virtual inline ColumnChunkMetadata getMetadata(
         common::node_group_idx_t nodeGroupIdx, transaction::TransactionType transaction) const {
         return metadataDA->get(nodeGroupIdx, transaction);
     }
-    inline InMemDiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
+    virtual inline InMemDiskArray<ColumnChunkMetadata>* getMetadataDA() const {
+        return metadataDA.get();
+    }
 
     inline std::string getName() const { return name; }
 
@@ -110,7 +114,7 @@ public:
     common::offset_t appendValues(
         common::node_group_idx_t nodeGroupIdx, const uint8_t* data, common::offset_t numValues);
 
-    ReadState getReadState(
+    virtual ReadState getReadState(
         transaction::TransactionType transactionType, common::node_group_idx_t nodeGroupIdx) const;
 
     static void applyLocalChunkToColumnChunk(LocalVectorCollection* localChunk,
@@ -214,42 +218,6 @@ protected:
     batch_lookup_func_t batchLookupFunc;
     RWPropertyStats propertyStatistics;
     bool enableCompression;
-};
-
-class InternalIDColumn : public Column {
-public:
-    InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats stats);
-
-    inline void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override {
-        Column::scan(transaction, nodeIDVector, resultVector);
-        populateCommonTableID(resultVector);
-    }
-
-    inline void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector) override {
-        Column::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
-            offsetInVector);
-        populateCommonTableID(resultVector);
-    }
-
-    inline void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override {
-        Column::lookup(transaction, nodeIDVector, resultVector);
-        populateCommonTableID(resultVector);
-    }
-
-    // TODO(Guodong): Should figure out a better way to set tableID, and remove this function.
-    inline void setCommonTableID(common::table_id_t tableID) { commonTableID = tableID; }
-
-private:
-    void populateCommonTableID(common::ValueVector* resultVector) const;
-
-private:
-    common::table_id_t commonTableID;
 };
 
 struct ColumnFactory {

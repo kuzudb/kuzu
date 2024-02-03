@@ -102,7 +102,7 @@ public:
     bool checkIfNodeHasRels(
         transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector) override;
     void append(NodeGroup* nodeGroup) override;
-    void resizeColumns(common::node_group_idx_t numNodeGroups) override;
+    void resizeColumns(common::node_group_idx_t numNodeGroups, uint64_t numNodes) override;
 
     inline Column* getCSROffsetColumn() const override { return csrHeaderColumns.offset.get(); }
     inline Column* getCSRLengthColumn() const override { return csrHeaderColumns.length.get(); }

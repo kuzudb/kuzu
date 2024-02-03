@@ -106,6 +106,7 @@ void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
 // that the nodeOffsetVector is always unselected.
 void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     const std::shared_ptr<ValueVector>& nodeOffsetVector) {
+    KU_ASSERT(nodeOffsetVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
     auto morselIdxAndOffset = StorageUtils::getQuotientRemainder(
         nodeOffsetVector->readNodeOffset(0), DEFAULT_VECTOR_CAPACITY);
     if (hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {

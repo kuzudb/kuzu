@@ -5,6 +5,7 @@
 #include "common/assert.h"
 #include "storage/stats/property_statistics.h"
 #include "storage/store/column_chunk.h"
+#include "storage/store/internal_id_column.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column.h"
 #include "storage/store/struct_column.h"
@@ -29,7 +30,6 @@ struct ReadInternalIDValuesToVector {
     void operator()(const uint8_t* frame, PageCursor& pageCursor, ValueVector* resultVector,
         uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata) {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-
         std::unique_ptr<offset_t[]> buffer = std::make_unique<offset_t[]>(numValuesToRead);
         compressedReader(frame, pageCursor, (uint8_t*)buffer.get(), 0, numValuesToRead, metadata);
         auto resultData = (internalID_t*)resultVector->getData();
@@ -102,7 +102,13 @@ public:
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-            auto offset = nodeIDVector->readNodeOffset(pos);
+            //            auto offset = nodeIDVector->readNodeOffset(pos);
+            offset_t offset = 0;
+            if (nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
+                offset = ((offset_t*)StructVector::getFieldVector(nodeIDVector, 1)->getData())[pos];
+            } else {
+                offset = nodeIDVector->readNodeOffset(pos);
+            }
             resultVector->setNull(pos, false);
             resultVector->setValue<offset_t>(pos, offset);
         }
@@ -113,7 +119,12 @@ public:
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-            auto offset = nodeIDVector->readNodeOffset(pos);
+            offset_t offset = 0;
+            if (nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
+                offset = ((offset_t*)StructVector::getFieldVector(nodeIDVector, 1)->getData())[pos];
+            } else {
+                offset = nodeIDVector->readNodeOffset(pos);
+            }
             resultVector->setNull(pos, false);
             resultVector->setValue<offset_t>(pos, offset);
         }
@@ -189,21 +200,6 @@ public:
         metadataDA->resize(nodeGroupIdx + 1);
     }
 };
-
-InternalIDColumn::InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats stats)
-    : Column{name, LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager,
-          wal, transaction, stats, false /* enableCompression */},
-      commonTableID{INVALID_TABLE_ID} {}
-
-void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
-    auto nodeIDs = ((internalID_t*)resultVector->getData());
-    for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
-        auto pos = resultVector->state->selVector->selectedPositions[i];
-        nodeIDs[pos].tableID = commonTableID;
-    }
-}
 
 Column::Column(std::string name, std::unique_ptr<LogicalType> dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
@@ -336,7 +332,12 @@ void Column::scan(Transaction* transaction, const ReadState& state, offset_t sta
 
 void Column::scanInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    auto startNodeOffset = nodeIDVector->readNodeOffset(0);
+    offset_t startNodeOffset = 0;
+    if (nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
+        startNodeOffset = ((offset_t*)StructVector::getFieldVector(nodeIDVector, 1)->getData())[0];
+    } else {
+        startNodeOffset = nodeIDVector->readNodeOffset(0);
+    }
     KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
     // TODO: replace with state
     auto [nodeGroupIdx, offsetInChunk] =
@@ -415,7 +416,12 @@ void Column::lookupInternal(
         if (nodeIDVector->isNull(pos)) {
             continue;
         }
-        auto nodeOffset = nodeIDVector->readNodeOffset(pos);
+        offset_t nodeOffset = 0;
+        if (nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
+            nodeOffset = ((offset_t*)StructVector::getFieldVector(nodeIDVector, 1)->getData())[pos];
+        } else {
+            nodeOffset = nodeIDVector->readNodeOffset(pos);
+        }
         lookupValue(transaction, nodeOffset, resultVector, pos);
     }
 }
@@ -761,7 +767,7 @@ void Column::commitLocalChunkOutOfPlace(Transaction* transaction, node_group_idx
         if (columnChunk->getNullChunk()) {
             // Set nulls based on deleteInfo.
             for (auto offsetInChunk : deleteInfo) {
-                columnChunk->getNullChunk()->setNull(offsetInChunk, true /* isNull */);
+                columnChunk->setNull(offsetInChunk, true /* isNull */);
             }
         }
     }
@@ -873,6 +879,13 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
     bool enableCompression) {
+    // TODO: should rewrite after rewritting internalID's physical type as STRUCT
+    if (dataType->getLogicalTypeID() == LogicalTypeID::INTERNAL_ID) {
+        auto dataType2 = LogicalType::STRUCT(common::LogicalTypeID::INTERNAL_ID);
+        return std::make_unique<InternalIDColumn>(name, std::move(dataType2), metaDAHeaderInfo,
+            dataFH, metadataFH, bufferManager, wal, transaction, propertyStatistics,
+            enableCompression);
+    }
     switch (dataType->getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
     case LogicalTypeID::INT64:
@@ -897,10 +910,6 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name,
     case LogicalTypeID::FIXED_LIST: {
         return std::make_unique<Column>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
-    }
-    case LogicalTypeID::INTERNAL_ID: {
-        return std::make_unique<InternalIDColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
-            bufferManager, wal, transaction, propertyStatistics);
     }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {

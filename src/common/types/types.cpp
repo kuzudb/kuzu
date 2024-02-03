@@ -899,6 +899,16 @@ std::unique_ptr<LogicalType> LogicalType::STRUCT(std::vector<StructField>&& fiel
         LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(fields))));
 }
 
+// only use for internalid column construct
+std::unique_ptr<LogicalType> LogicalType::STRUCT(LogicalTypeID type) {
+    KU_ASSERT(type == LogicalTypeID::INTERNAL_ID);
+    std::vector<kuzu::common::StructField> adjFields;
+    adjFields.emplace_back(std::string("tableID"), LogicalType::INT64());
+    adjFields.emplace_back(std::string("offset"), LogicalType::INT64());
+    return std::unique_ptr<LogicalType>(new LogicalType(
+        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(adjFields))));
+}
+
 std::unique_ptr<LogicalType> LogicalType::RECURSIVE_REL(std::unique_ptr<StructTypeInfo> typeInfo) {
     return std::unique_ptr<LogicalType>(
         new LogicalType(LogicalTypeID::RECURSIVE_REL, std::move(typeInfo)));

@@ -29,6 +29,8 @@ public:
     LocalTableData* getLocalTableData(common::table_id_t tableID, common::vector_idx_t dataIdx = 0);
     std::unordered_set<common::table_id_t> getTableIDsWithUpdates();
 
+    inline storage::MemoryManager* getMemoryManager() { return mm; }
+
 private:
     std::unordered_map<common::table_id_t, std::unique_ptr<LocalTable>> tables;
     storage::MemoryManager* mm;

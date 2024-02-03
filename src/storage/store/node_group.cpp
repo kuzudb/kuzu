@@ -76,7 +76,7 @@ void NodeGroup::resetToEmpty() {
 
 void NodeGroup::setAllNull() {
     for (auto& chunk : chunks) {
-        chunk->getNullChunk()->resetToAllNull();
+        chunk->setAllNull();
     }
 }
 
@@ -126,7 +126,10 @@ offset_t NodeGroup::append(NodeGroup* other, offset_t offsetInOtherNodeGroup) {
 
 void NodeGroup::write(DataChunk* dataChunk, vector_idx_t offsetVectorIdx) {
     KU_ASSERT(dataChunk->getNumValueVectors() == chunks.size() + 1);
-    auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
+    KU_ASSERT(dataChunk->getValueVector(offsetVectorIdx)->dataType.getPhysicalType() ==
+              PhysicalTypeID::STRUCT);
+    auto offsetVector =
+        StructVector::getFieldVector(dataChunk->getValueVector(offsetVectorIdx).get(), 1).get();
     vector_idx_t vectorIdx = 0, chunkIdx = 0;
     for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
         if (i == offsetVectorIdx) {

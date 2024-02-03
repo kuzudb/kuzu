@@ -32,7 +32,7 @@
 -CASE Merge3
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 7  MERGE (a)-[r:knows {date:a.birthdate}]->(b) RETURN r;
 ---- 1
-(0:0)-{_LABEL: knows, _ID: 0:14, date: 1900-01-01}->(0:4)
+(0:0)-{_LABEL: knows, _ID: 3:14, date: 1900-01-01}->(0:4)
 
 -CASE MergeOneToOne
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 9 AND b.ID = 10 MERGE (a)-[r:marries]->(b) ON CREATE SET a.age = 0, r.note = 'merged ntoes'

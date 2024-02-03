@@ -75,6 +75,7 @@ static void sortSelectedPos(ValueVector* nodeIDVector) {
         memcpy(selectedPos, &SelectionVector::INCREMENTAL_SELECTED_POS, size * sizeof(sel_t));
         selVector->resetSelectorToValuePosBuffer();
     }
+    KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     std::sort(selectedPos, selectedPos + size, [nodeIDVector](sel_t left, sel_t right) {
         return nodeIDVector->getValue<nodeID_t>(left) < nodeIDVector->getValue<nodeID_t>(right);
     });

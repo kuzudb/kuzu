@@ -28,6 +28,8 @@ RelDetachDeleteState::RelDetachDeleteState() {
 RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStats* relsStoreStats,
     MemoryManager* memoryManager, RelTableSchema* tableSchema, WAL* wal, bool enableCompression)
     : Table{tableSchema, relsStoreStats, memoryManager, wal} {
+    fwdSrcTableID = tableSchema->getSrcTableID();
+    fwdDstTableID = tableSchema->getDstTableID();
     fwdRelTableData =
         getDataFormatFromSchema(tableSchema, RelDataDirection::FWD) == ColumnDataFormat::REGULAR ?
             std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal, tableSchema,
@@ -42,6 +44,16 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
                 relsStoreStats, RelDataDirection::BWD, enableCompression);
 }
 
+void RelTable::fillTableID(table_id_t inTableID, ValueVector* inNodeIDVector) {
+    // populate table id
+    KU_ASSERT(inNodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+    auto inNodeInternalIDs = (internalID_t*)inNodeIDVector->getData();
+    for (auto i = 0u; i < inNodeIDVector->state->selVector->selectedSize; i++) {
+        auto pos = inNodeIDVector->state->selVector->selectedPositions[i];
+        inNodeIDVector->setValue(pos, internalID_t{inNodeInternalIDs[pos].offset, inTableID});
+    }
+}
+
 void RelTable::read(Transaction* transaction, TableReadState& readState,
     ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
     auto& relReadState = ku_dynamic_cast<TableReadState&, RelDataReadState&>(readState);
@@ -54,8 +66,14 @@ void RelTable::read(Transaction* transaction, TableReadState& readState,
 }
 
 void RelTable::insert(Transaction* transaction, ValueVector* srcNodeIDVector,
-    ValueVector* dstNodeIDVector, const std::vector<ValueVector*>& propertyVectors) {
+    ValueVector* dstNodeIDVector, std::vector<ValueVector*>& propertyVectors) {
+    // populate table id
+    fillTableID(fwdSrcTableID, srcNodeIDVector);
+    fillTableID(fwdDstTableID, dstNodeIDVector);
+    KU_ASSERT(propertyVectors[0]->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+    fillTableID(fwdRelTableData->getTableID(), propertyVectors[0]);
     fwdRelTableData->insert(transaction, srcNodeIDVector, dstNodeIDVector, propertyVectors);
+    fillTableID(bwdRelTableData->getTableID(), propertyVectors[0]);
     bwdRelTableData->insert(transaction, dstNodeIDVector, srcNodeIDVector, propertyVectors);
     auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
     relsStats->updateNumRelsByValue(tableID, 1);
@@ -64,12 +82,20 @@ void RelTable::insert(Transaction* transaction, ValueVector* srcNodeIDVector,
 void RelTable::update(transaction::Transaction* transaction, column_id_t columnID,
     ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector,
     ValueVector* propertyVector) {
+    // populate table id
+    fillTableID(fwdSrcTableID, srcNodeIDVector);
+    fillTableID(fwdDstTableID, dstNodeIDVector);
     fwdRelTableData->update(transaction, columnID, srcNodeIDVector, relIDVector, propertyVector);
     bwdRelTableData->update(transaction, columnID, dstNodeIDVector, relIDVector, propertyVector);
 }
 
 void RelTable::delete_(Transaction* transaction, ValueVector* srcNodeIDVector,
     ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
+    // populate table id
+    fillTableID(fwdSrcTableID, srcNodeIDVector);
+    fillTableID(fwdDstTableID, dstNodeIDVector);
+    KU_ASSERT(relIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+    fillTableID(tableID, relIDVector);
     auto fwdDeleted =
         fwdRelTableData->delete_(transaction, srcNodeIDVector, dstNodeIDVector, relIDVector);
     auto bwdDeleted =
@@ -84,6 +110,9 @@ void RelTable::delete_(Transaction* transaction, ValueVector* srcNodeIDVector,
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     ValueVector* srcNodeIDVector, RelDetachDeleteState* deleteState) {
     KU_ASSERT(srcNodeIDVector->state->selVector->selectedSize == 1);
+    // populate table id
+    auto srcTableID = direction == RelDataDirection::FWD ? fwdSrcTableID : fwdDstTableID;
+    fillTableID(srcTableID, srcNodeIDVector);
     auto tableData =
         direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
     auto reverseTableData =
@@ -149,12 +178,20 @@ common::row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction,
 
 void RelTable::scan(Transaction* transaction, RelDataReadState& scanState,
     ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+    // populate table id
+    auto inTableID =
+        scanState.direction == common::RelDataDirection::FWD ? fwdSrcTableID : fwdDstTableID;
+    fillTableID(inTableID, inNodeIDVector);
     auto tableData = getDirectedTableData(scanState.direction);
     tableData->scan(transaction, scanState, inNodeIDVector, outputVectors);
 }
 
 void RelTable::lookup(Transaction* transaction, RelDataReadState& scanState,
     ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+    // populate table id
+    auto inTableID =
+        scanState.direction == common::RelDataDirection::FWD ? fwdSrcTableID : fwdDstTableID;
+    fillTableID(inTableID, inNodeIDVector);
     auto tableData = getDirectedTableData(scanState.direction);
     tableData->lookup(transaction, scanState, inNodeIDVector, outputVectors);
 }
@@ -182,11 +219,11 @@ void RelTable::addColumn(
     wal->addToUpdatedTables(tableID);
 }
 
-void RelTable::resizeColumns(
-    Transaction* /*transaction*/, RelDataDirection direction, node_group_idx_t numNodeGroups) {
+void RelTable::resizeColumns(Transaction* /*transaction*/, RelDataDirection direction,
+    node_group_idx_t numNodeGroups, offset_t nodeNums) {
     auto tableData = getDirectedTableData(direction);
     if (tableData->getDataFormat() == ColumnDataFormat::REGULAR) {
-        tableData->resizeColumns(numNodeGroups);
+        tableData->resizeColumns(numNodeGroups, nodeNums);
         wal->addToUpdatedTables(tableID);
     }
 }

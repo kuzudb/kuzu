@@ -79,6 +79,7 @@ void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx
 void VarListColumn::scanInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     resultVector->resetAuxiliaryBuffer();
+    KU_ASSERT(nodeIDVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
     auto startNodeOffsetInGroup =

@@ -1,5 +1,7 @@
 #include "storage/local_storage/local_table.h"
 
+#include <iostream>
+
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/store/column.h"
@@ -11,12 +13,14 @@ namespace storage {
 
 void LocalVector::read(
     sel_t offsetInLocalVector, ValueVector* resultVector, sel_t offsetInResultVector) {
+    KU_ASSERT(resultVector->dataType == vector.get()->dataType);
     resultVector->copyFromVectorData(offsetInResultVector, vector.get(), offsetInLocalVector);
 }
 
 void LocalVector::append(ValueVector* valueVector) {
     KU_ASSERT(valueVector->state->selVector->selectedSize == 1);
     auto pos = valueVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(vector->dataType == valueVector->dataType);
     vector->copyFromVectorData(numValues, valueVector, pos);
     numValues++;
 }
@@ -31,6 +35,7 @@ void LocalVectorCollection::read(
 
 row_idx_t LocalVectorCollection::append(ValueVector* vector) {
     prepareAppend();
+    KU_ASSERT(!vectors.empty());
     auto lastVector = vectors.back().get();
     KU_ASSERT(!lastVector->isFull());
     lastVector->append(vector);
@@ -51,7 +56,6 @@ std::unique_ptr<LocalVectorCollection> LocalVectorCollection::getStructChildVect
     common::struct_field_idx_t idx) {
     auto childCollection = std::make_unique<LocalVectorCollection>(
         StructType::getField(dataType.get(), idx)->getType()->copy(), mm);
-
     for (auto i = 0u; i < numRows; i++) {
         auto fieldVector =
             common::StructVector::getFieldVector(getLocalVector(i)->getVector(), idx);

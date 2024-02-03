@@ -36,7 +36,7 @@ struct RegularRelNGInfo final : public RelNGInfo {
     // Note that adj chunk cannot be directly updated. It can only be inserted or deleted.
     offset_to_row_idx_t adjInsertInfo;                   // insert info for adj chunk.
     std::vector<offset_to_row_idx_t> insertInfoPerChunk; // insert info for property chunks.
-    std::vector<offset_to_row_idx_t> updateInfoPerChunk; // insert info for property chunks.
+    std::vector<offset_to_row_idx_t> updateInfoPerChunk; // update info for property chunks.
     offset_set_t deleteInfo;                             // the set of deleted node offsets.
 
     explicit RegularRelNGInfo(common::column_id_t numChunks) {
@@ -126,6 +126,9 @@ public:
         return chunks[columnID].get();
     }
     inline RelNGInfo* getRelNGInfo() { return relNGInfo.get(); }
+
+    std::shared_ptr<common::ValueVector> getOffsetVector(
+        common::ValueVector* vector, MemoryManager* mm);
 
 private:
     void applyCSRUpdates(common::offset_t srcOffsetInChunk, common::column_id_t columnID,

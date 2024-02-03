@@ -34,6 +34,7 @@ static void writeToPropertyVector(ValueVector* internalIDVector, ValueVector* pr
         return;
     }
     propertyVector->setNull(propertyVectorPos, false);
+    KU_ASSERT(propertyVector->dataType == rhsVector->dataType);
     propertyVector->copyFromVectorData(propertyVectorPos, rhsVector, rhsVectorPos);
 }
 

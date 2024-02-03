@@ -48,6 +48,7 @@ bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
         for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             buffer[numSelectValue] = pos;
+            KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
             numSelectValue +=
                 info->nodeLabelSet.contains(nodeIDVector->getValue<nodeID_t>(pos).tableID);
         }

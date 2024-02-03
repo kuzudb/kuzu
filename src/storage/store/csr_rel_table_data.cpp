@@ -1,10 +1,12 @@
 #include "storage/store/csr_rel_table_data.h"
 
+#include "common/assert.h"
 #include "common/column_data_format.h"
 #include "common/enums/rel_direction.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/stats/rels_store_statistics.h"
-
+#include "storage/store/struct_column_chunk.h"
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
@@ -72,6 +74,7 @@ CSRRelTableData::CSRRelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
 void CSRRelTableData::initializeReadState(Transaction* transaction,
     std::vector<column_id_t> columnIDs, ValueVector* inNodeIDVector, RelDataReadState* readState) {
     RelTableData::initializeReadState(transaction, columnIDs, inNodeIDVector, readState);
+    KU_ASSERT(inNodeIDVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
     auto nodeOffset =
         inNodeIDVector->readNodeOffset(inNodeIDVector->state->selVector->selectedPositions[0]);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
@@ -132,6 +135,7 @@ void CSRRelTableData::scan(Transaction* transaction, TableReadState& readState,
             outputVectors[outputVectorId], 0 /* offsetInVector */);
     }
     if (transaction->isWriteTransaction() && relReadState.localNodeGroup) {
+        KU_ASSERT(inNodeIDVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
         auto nodeOffset =
             inNodeIDVector->readNodeOffset(inNodeIDVector->state->selVector->selectedPositions[0]);
         KU_ASSERT(relIDVectorIdx != INVALID_VECTOR_IDX);
@@ -144,6 +148,7 @@ void CSRRelTableData::scan(Transaction* transaction, TableReadState& readState,
 
 bool CSRRelTableData::checkIfNodeHasRels(Transaction* transaction, ValueVector* srcNodeIDVector) {
     auto nodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(srcNodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     auto readState = csrHeaderColumns.length->getReadState(transaction->getType(), nodeGroupIdx);
@@ -165,8 +170,9 @@ void CSRRelTableData::append(NodeGroup* nodeGroup) {
     RelTableData::append(nodeGroup);
 }
 
-void CSRRelTableData::resizeColumns(node_group_idx_t /*numNodeGroups*/) {
-    // NOTE: This is a special logic for regular columns only.
+void CSRRelTableData::resizeColumns(node_group_idx_t /*numNodeGroups*/, uint64_t /*numNodes*/) {
+    // TODO(Guodong): This is a special logic for regular columns only, and should be organized
+    // in a better way.
     return;
 }
 
@@ -199,9 +205,20 @@ static PackedCSRRegion upgradeLevel(const PackedCSRRegion& region) {
 
 // TODO: This is a naive implementation. We can do better by passing in left and right pos for node.
 static uint64_t findPosOfRelIDFromArray(ColumnChunk* relIDInRegion, offset_t relOffset) {
-    for (auto i = 0u; i < relIDInRegion->getNumValues(); i++) {
-        if (relIDInRegion->getValue<offset_t>(i) == relOffset) {
-            return i;
+    if (relIDInRegion->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT) {
+        auto structColumnChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(relIDInRegion);
+        auto relOffsetChunk = structColumnChunk->getChild(1);
+        for (auto i = 0u; i < relOffsetChunk->getNumValues(); i++) {
+            if (relOffsetChunk->getValue<offset_t>(i) == relOffset) {
+                return i;
+            }
+        }
+    } else {
+        KU_ASSERT(relIDInRegion->getDataType()->getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
+        for (auto i = 0u; i < relIDInRegion->getNumValues(); i++) {
+            if (relIDInRegion->getValue<offset_t>(i) == relOffset) {
+                return i;
+            }
         }
     }
     return UINT64_MAX;
@@ -423,8 +440,10 @@ void CSRRelTableData::updateRegion(Transaction* transaction, node_group_idx_t no
         // NOTE: There is an implicit trick happening. Due to the mismatch of storage type and
         // in-memory representation of INTERNAL_ID, we only store offset as INT64 on disk. Here
         // we directly read relID's offset part from disk into an INT64 column chunk.
-        persistentState.relIDChunk = ColumnChunkFactory::createColumnChunk(
-            LogicalType::INT64(), enableCompression, localState.regionCapacity);
+        // TODO: The term of relID and relOffset is mixed. We should use relOffset instead.
+        persistentState.relIDChunk =
+            ColumnChunkFactory::createColumnChunk(LogicalType::STRUCT(LogicalTypeID::INTERNAL_ID),
+                enableCompression, localState.regionCapacity);
         columns[REL_ID_COLUMN_ID]->scan(transaction, nodeGroupIdx, persistentState.relIDChunk.get(),
             persistentState.leftCSROffset, persistentState.rightCSROffset + 1);
     }

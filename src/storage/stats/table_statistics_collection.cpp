@@ -87,6 +87,15 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
         InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
     metadataDAHInfo->nullDAHPageIdx =
         InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
+    // TODO(Jiamin): shold remove after applying internal_id to struct
+    if (dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID) {
+        metadataDAHInfo->childrenInfos.resize(2);
+        for (auto i = 0u; i < 2; i++) {
+            metadataDAHInfo->childrenInfos[i] =
+                createMetadataDAHInfo(*LogicalType::INT64(), metadataFH, bm, wal);
+        }
+        return metadataDAHInfo;
+    }
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         auto fields = StructType::getFields(&dataType);

@@ -16,6 +16,7 @@ void LocalNodeNG::scan(ValueVector* nodeIDVector, const std::vector<column_id_t>
         KU_ASSERT(columnID < chunks.size());
         for (auto pos = 0u; pos < nodeIDVector->state->selVector->selectedSize; pos++) {
             auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[pos];
+            KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
             auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
             auto posInOutputVector = outputVectors[i]->state->selVector->selectedPositions[pos];
             lookup(nodeOffset, columnID, outputVectors[i], posInOutputVector);
@@ -40,6 +41,7 @@ void LocalNodeNG::insert(
     if (nodeIDVector->isNull(nodeIDPos)) {
         return;
     }
+    KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset - nodeGroupStartOffset;
     KU_ASSERT(nodeOffset < StorageConstants::NODE_GROUP_SIZE);
     for (auto columnID = 0u; columnID < chunks.size(); columnID++) {
@@ -56,6 +58,7 @@ void LocalNodeNG::update(
     if (nodeIDVector->isNull(nodeIDPos)) {
         return;
     }
+    KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset - nodeGroupStartOffset;
     KU_ASSERT(nodeOffset < StorageConstants::NODE_GROUP_SIZE);
     auto rowIdx = chunks[columnID]->append(propertyVector);
@@ -73,6 +76,7 @@ void LocalNodeNG::delete_(ValueVector* nodeIDVector) {
     if (nodeIDVector->isNull(nodeIDPos)) {
         return;
     }
+    KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset - nodeGroupStartOffset;
     KU_ASSERT(nodeOffset < StorageConstants::NODE_GROUP_SIZE);
     for (auto i = 0u; i < chunks.size(); i++) {
@@ -97,6 +101,7 @@ row_idx_t LocalNodeNG::getRowIdx(column_id_t columnID, offset_t offsetInChunk) {
 void LocalNodeTableData::scan(ValueVector* nodeIDVector, const std::vector<column_id_t>& columnIDs,
     const std::vector<ValueVector*>& outputVectors) {
     auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {
@@ -112,6 +117,7 @@ void LocalNodeTableData::lookup(ValueVector* nodeIDVector,
     const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[i];
+        KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
         auto localNodeGroup =
             ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(getOrCreateLocalNodeGroup(nodeIDVector));
@@ -144,6 +150,7 @@ void LocalNodeTableData::update(
 
 void LocalNodeTableData::delete_(ValueVector* nodeIDVector) {
     auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {
@@ -156,6 +163,7 @@ void LocalNodeTableData::delete_(ValueVector* nodeIDVector) {
 
 LocalNodeGroup* LocalNodeTableData::getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) {
     auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {

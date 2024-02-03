@@ -50,6 +50,10 @@ public:
 
     virtual void resetToEmpty();
 
+    virtual void setAllNull();
+
+    virtual void setNull(common::offset_t offset, bool isNull);
+
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
@@ -97,7 +101,7 @@ public:
 
     inline uint64_t getCapacity() const { return capacity; }
     inline uint64_t getNumValues() const { return numValues; }
-    void setNumValues(uint64_t numValues_);
+    virtual void setNumValues(uint64_t numValues_);
     virtual bool numValuesSanityCheck() const;
 
 protected:
@@ -166,7 +170,6 @@ public:
                                                                                     false} {}
     // Maybe this should be combined with BoolColumnChunk if the only difference is these functions?
     inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
-    void setNull(common::offset_t pos, bool isNull);
 
     inline bool mayHaveNull() const { return mayHaveNullValue; }
 
@@ -182,6 +185,7 @@ public:
         memset(buffer.get(), 0xFF /* null */, bufferSize);
         mayHaveNullValue = true;
     }
+    void setNull(common::offset_t pos, bool isNull) override;
 
     inline void copyFromBuffer(uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
         uint64_t numBits, bool invert = false) {

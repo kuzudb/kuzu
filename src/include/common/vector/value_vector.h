@@ -34,10 +34,16 @@ public:
 
     KUZU_API ~ValueVector() = default;
 
+    // for special internal id vector
+    void copyInfoFromVector(ValueVector* another);
+
     void setState(const std::shared_ptr<DataChunkState>& state_);
 
     inline void setAllNull() { nullMask->setAllNull(); }
     inline void setAllNonNull() { nullMask->setAllNonNull(); }
+    inline void setContainNulls(bool mayContainNulls) {
+        nullMask->setContainNulls(mayContainNulls);
+    }
     // On return true, there are no null. On return false, there may or may not be nulls.
     inline bool hasNoNullsGuarantee() const { return nullMask->hasNoNullsGuarantee(); }
     inline void setNullRange(uint32_t startPos, uint32_t len, bool value) {
@@ -92,9 +98,10 @@ public:
     // For an unflat vector, its selection vector is also updated to the resultSelVector.
     static bool discardNull(ValueVector& vector);
 
+    void initializeValueBuffer();
+
 private:
     uint32_t getDataTypeSize(const LogicalType& type);
-    void initializeValueBuffer();
 
 public:
     LogicalType dataType;

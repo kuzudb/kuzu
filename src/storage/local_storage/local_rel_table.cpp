@@ -2,7 +2,7 @@
 
 #include "common/cast.h"
 #include "storage/storage_utils.h"
-
+#include "storage/store/internal_id_column.h"
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -73,6 +73,7 @@ bool CSRRelNGInfo::insert(offset_t srcOffsetInChunk, offset_t relOffset, row_idx
         adjInsertInfo[srcOffsetInChunk] = {{relOffset, adjNodeRowIdx}};
     }
     for (auto i = 0u; i < propertyNodesRowIdx.size(); ++i) {
+        KU_ASSERT(!updateInfoPerChunk[i].contains(srcOffsetInChunk));
         if (insertInfoPerChunk[i].contains(srcOffsetInChunk)) {
             insertInfoPerChunk[i].at(srcOffsetInChunk)[relOffset] = propertyNodesRowIdx[i];
         } else {
@@ -159,7 +160,8 @@ LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, ColumnDataFormat dataForma
         KU_UNREACHABLE;
     }
     }
-    adjChunk = std::make_unique<LocalVectorCollection>(LogicalType::INTERNAL_ID(), mm);
+    adjChunk = std::make_unique<LocalVectorCollection>(
+        LogicalType::STRUCT(LogicalTypeID::INTERNAL_ID), mm);
 }
 
 // TODO(Guodong): We should change the map between relID and rowIdx to a vector of pairs, which is
@@ -177,8 +179,16 @@ row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOf
             continue;
         }
         auto posInLocalVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        outputVectors[0]->copyFromVectorData(
-            posInVector++, adjChunk->getLocalVector(rowIdx)->getVector(), posInLocalVector);
+        // TODO(Jiamin): should remove after rewriting internal id's physical type as STRUCT
+        auto chunkVector = adjChunk->getLocalVector(rowIdx)->getVector();
+        if (chunkVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
+            auto offsetVector = getOffsetVector(chunkVector, adjChunk->getMemoryManager());
+            outputVectors[0]->copyFromVectorData(
+                posInVector++, offsetVector.get(), posInLocalVector);
+        } else {
+            KU_ASSERT(chunkVector->dataType == chunkVector->dataType);
+            outputVectors[0]->copyFromVectorData(posInVector++, chunkVector, posInLocalVector);
+        }
     }
     for (auto i = 0u; i < columnIDs.size(); ++i) {
         auto columnID = columnIDs[i];
@@ -191,8 +201,36 @@ row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOf
                 continue;
             }
             auto posInLocalVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-            outputVectors[i + 1]->copyFromVectorData(posInVector++,
-                chunks[columnID]->getLocalVector(rowIdx)->getVector(), posInLocalVector);
+            // TODO(Jiamin): bug outputVector can not copy data
+            std::cout << "***********scan csr here2*******\n";
+            std::cout << "%%%%%%out put vector before%%%%%%%%\n";
+            auto before = (internalID_t*)outputVectors[i + 1]->getData();
+            for (auto j = 0u; j < outputVectors[i + 1]->state->selVector->selectedSize; j++) {
+                auto pos = outputVectors[i + 1]->state->selVector->selectedPositions[j];
+                std::cout << "pos" << pos << " length" << before[pos].offset << " "
+                          << before[pos].tableID << "\n";
+            }
+            auto chunkVector = chunks[columnID]->getLocalVector(rowIdx)->getVector();
+            KU_ASSERT(chunkVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+            auto offsetVector = getOffsetVector(chunkVector, adjChunk->getMemoryManager());
+            std::cout << "%%%%%%chunk vector%%%%%%%%\n";
+            auto tableIDs = (internalID_t*)offsetVector->getData();
+            for (auto j = 0u; j < offsetVector->state->selVector->selectedSize; j++) {
+                auto pos = offsetVector->state->selVector->selectedPositions[j];
+                std::cout << "pos" << pos << " offset" << tableIDs[pos].offset
+                          << " tableid:" << tableIDs[pos].tableID << "\n";
+            }
+            std::cout << "offset info:" << posInVector << " " << posInLocalVector << "\n";
+            KU_ASSERT(outputVectors[i + 1]->dataType == offsetVector->dataType);
+            outputVectors[i + 1]->copyFromVectorData(
+                posInVector++, offsetVector.get(), posInLocalVector);
+            std::cout << "%%%%%%out put vector after%%%%%%%%\n";
+            tableIDs = (internalID_t*)outputVectors[i + 1]->getData();
+            for (auto j = 0u; j < outputVectors[i + 1]->state->selVector->selectedSize; j++) {
+                auto pos = outputVectors[i + 1]->state->selVector->selectedPositions[j];
+                std::cout << "pos" << pos << " offset" << tableIDs[pos].offset
+                          << " tableid:" << tableIDs[pos].tableID << "\n";
+            }
         }
     }
     outputVectors[0]->state->selVector->resetSelectorToUnselectedWithSize(posInVector);
@@ -261,14 +299,22 @@ void LocalRelNG::applyCSRUpdates(offset_t srcOffsetInChunk, column_id_t columnID
         return;
     }
     auto& updateInfoForOffset = updateInfo.at(srcOffsetInChunk);
+    KU_ASSERT(relIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     for (auto i = 0u; i < relIDVector->state->selVector->selectedSize; i++) {
         auto pos = relIDVector->state->selVector->selectedPositions[i];
         auto relOffset = relIDVector->getValue<relID_t>(pos).offset;
         if (updateInfoForOffset.contains(relOffset)) {
             auto rowIdx = updateInfoForOffset.at(relOffset);
             auto posInLocalVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-            outputVector[i + 1]->copyFromVectorData(
-                pos, chunks[columnID]->getLocalVector(rowIdx)->getVector(), posInLocalVector);
+            // TODO(Jiamin): should remove after rewriting internal id's physical type as STRUCT
+            auto chunkVector = chunks[columnID]->getLocalVector(rowIdx)->getVector();
+            if (chunkVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
+                auto offsetVector = getOffsetVector(chunkVector, adjChunk->getMemoryManager());
+                outputVector[i + 1]->copyFromVectorData(pos, offsetVector.get(), posInLocalVector);
+            } else {
+                KU_ASSERT(chunkVector->dataType == chunkVector->dataType);
+                outputVector[i + 1]->copyFromVectorData(pos, chunkVector, posInLocalVector);
+            }
         }
     }
 }
@@ -279,6 +325,7 @@ void LocalRelNG::applyCSRDeletions(
     auto selectPos = 0u;
     auto selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
     selVector->resetSelectorToValuePosBuffer();
+    KU_ASSERT(relIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     for (auto i = 0u; i < relIDVector->state->selVector->selectedSize; i++) {
         auto relIDPos = relIDVector->state->selVector->selectedPositions[i];
         auto relOffset = relIDVector->getValue<relID_t>(relIDPos).offset;
@@ -304,11 +351,26 @@ void LocalRelNG::applyRegularChangesToVector(common::ValueVector* srcNodeIDVecto
     }
     for (auto i = 0u; i < srcNodeIDVector->state->selVector->selectedSize; i++) {
         auto selPos = srcNodeIDVector->state->selVector->selectedPositions[i];
+        KU_ASSERT(srcNodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto offsetInChunk =
             srcNodeIDVector->getValue<nodeID_t>(selPos).offset - nodeGroupStartOffset;
         applyRegularChangesForOffset(
             offsetInChunk, chunk, updateInfo, insertInfo, deleteInfo, outputVector, selPos);
     }
+}
+
+std::shared_ptr<ValueVector> LocalRelNG::getOffsetVector(ValueVector* vector, MemoryManager* mm) {
+    auto resultVector = std::make_shared<ValueVector>(*LogicalType::INTERNAL_ID().get(), mm);
+    auto tableIDs = (table_id_t*)StructVector::getFieldVector(vector, 0)->getData();
+    auto offsets = (offset_t*)StructVector::getFieldVector(vector, 1)->getData();
+    resultVector->copyInfoFromVector(StructVector::getFieldVector(vector, 1).get());
+    for (auto j = 0u; j < vector->state->selVector->selectedSize; j++) {
+        auto pos = vector->state->selVector->selectedPositions[j];
+        resultVector->setValue(pos, internalID_t{offsets[pos], tableIDs[pos]});
+        resultVector->setNull(pos, vector->isNull(pos));
+        std::cout << "internal id:" << offsets[pos] << " " << tableIDs[pos] << "\n";
+    }
+    return resultVector;
 }
 
 void LocalRelNG::applyRegularChangesForOffset(common::offset_t offsetInChunk,
@@ -320,8 +382,16 @@ void LocalRelNG::applyRegularChangesForOffset(common::offset_t offsetInChunk,
                                                             INVALID_ROW_IDX;
     if (rowIdx != INVALID_ROW_IDX) {
         auto posInLocalVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        outputVector->copyFromVectorData(
-            posInVector, chunk->getLocalVector(rowIdx)->getVector(), posInLocalVector);
+        // TODO(Jiamin): should remove after rewriting internal id's physical type as STRUCT
+        auto chunkVector = chunk->getLocalVector(rowIdx)->getVector();
+        if (chunkVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
+            auto offsetVector = getOffsetVector(chunkVector, adjChunk->getMemoryManager());
+            KU_ASSERT(outputVector->dataType == offsetVector->dataType);
+            outputVector->copyFromVectorData(posInVector, offsetVector.get(), posInLocalVector);
+        } else {
+            KU_ASSERT(outputVector->dataType == chunkVector->dataType);
+            outputVector->copyFromVectorData(posInVector, chunkVector, posInLocalVector);
+        }
     } else if (deleteInfo.contains(offsetInChunk)) {
         outputVector->setNull(posInVector, true /* isNull */);
     }
@@ -330,19 +400,32 @@ void LocalRelNG::applyRegularChangesForOffset(common::offset_t offsetInChunk,
 bool LocalRelNG::insert(ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector,
     const std::vector<ValueVector*>& propertyVectors) {
     KU_ASSERT(propertyVectors.size() == chunks.size() && propertyVectors.size() >= 1);
-    auto adjNodeIDRowIdx = adjChunk->append(dstNodeIDVector);
+    // TODO: should rewrite after rewriting internalID's physical type as STRUCT
+    auto mm = adjChunk->getMemoryManager();
+    auto dstNodeIDVectorRewrite = InternalIDColumn::reWriteAsStructIDVector(dstNodeIDVector, mm);
+    auto adjNodeIDRowIdx =
+        adjChunk->append(InternalIDColumn::reWriteAsStructIDVector(dstNodeIDVector, mm).get());
     std::vector<row_idx_t> propertyValuesRowIdx;
     propertyValuesRowIdx.reserve(propertyVectors.size());
     for (auto i = 0u; i < propertyVectors.size(); ++i) {
-        propertyValuesRowIdx.push_back(chunks[i]->append(propertyVectors[i]));
+        if (propertyVectors[i]->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
+            propertyValuesRowIdx.push_back(chunks[i]->append(
+                InternalIDColumn::reWriteAsStructIDVector(propertyVectors[i], mm).get()));
+        } else {
+            propertyValuesRowIdx.push_back(chunks[i]->append(propertyVectors[i]));
+        }
     }
     auto srcNodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(srcNodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto srcNodeOffset =
         srcNodeIDVector->getValue<nodeID_t>(srcNodeIDPos).offset - nodeGroupStartOffset;
     KU_ASSERT(srcNodeOffset < StorageConstants::NODE_GROUP_SIZE);
+    KU_ASSERT(propertyVectors[REL_ID_COLUMN_ID]->dataType.getPhysicalType() ==
+              PhysicalTypeID::INTERNAL_ID);
     auto relIDPos = propertyVectors[REL_ID_COLUMN_ID]->state->selVector->selectedPositions[0];
     auto relOffset = propertyVectors[REL_ID_COLUMN_ID]->getValue<relID_t>(relIDPos).offset;
-    return relNGInfo->insert(srcNodeOffset, relOffset, adjNodeIDRowIdx, propertyValuesRowIdx);
+    return relNGInfo->insert((offset_t)srcNodeOffset, (offset_t)relOffset,
+        (row_idx_t)adjNodeIDRowIdx, propertyValuesRowIdx);
 }
 
 void LocalRelNG::update(ValueVector* srcNodeIDVector, ValueVector* relIDVector,
@@ -350,9 +433,11 @@ void LocalRelNG::update(ValueVector* srcNodeIDVector, ValueVector* relIDVector,
     KU_ASSERT(columnID < chunks.size());
     auto rowIdx = chunks[columnID]->append(propertyVector);
     auto srcNodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(srcNodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto srcNodeOffset =
         srcNodeIDVector->getValue<nodeID_t>(srcNodeIDPos).offset - nodeGroupStartOffset;
     KU_ASSERT(srcNodeOffset < StorageConstants::NODE_GROUP_SIZE);
+    KU_ASSERT(relIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto relIDPos = relIDVector->state->selVector->selectedPositions[0];
     auto relOffset = relIDVector->getValue<relID_t>(relIDPos).offset;
     relNGInfo->update(srcNodeOffset, relOffset, columnID, rowIdx);
@@ -360,9 +445,11 @@ void LocalRelNG::update(ValueVector* srcNodeIDVector, ValueVector* relIDVector,
 
 bool LocalRelNG::delete_(ValueVector* srcNodeIDVector, ValueVector* relIDVector) {
     auto srcNodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(srcNodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto srcNodeOffset =
         srcNodeIDVector->getValue<nodeID_t>(srcNodeIDPos).offset - nodeGroupStartOffset;
     KU_ASSERT(srcNodeOffset < StorageConstants::NODE_GROUP_SIZE);
+    KU_ASSERT(relIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto relIDPos = relIDVector->state->selVector->selectedPositions[0];
     auto relOffset = relIDVector->getValue<relID_t>(relIDPos).offset;
     return relNGInfo->delete_(srcNodeOffset, relOffset);
@@ -414,6 +501,7 @@ bool LocalRelTableData::delete_(
 
 LocalNodeGroup* LocalRelTableData::getOrCreateLocalNodeGroup(ValueVector* nodeIDVector) {
     auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {

@@ -9,6 +9,7 @@ bool ScanMultiNodeTables::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
+    KU_ASSERT(inVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto tableID =
         inVector->getValue<nodeID_t>(inVector->state->selVector->selectedPositions[0]).tableID;
     KU_ASSERT(readStates.contains(tableID) && tables.contains(tableID));

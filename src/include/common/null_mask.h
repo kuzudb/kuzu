@@ -97,6 +97,8 @@ public:
         mayContainNulls = true;
     }
 
+    inline void setContainNulls(bool mayContainNull) { mayContainNulls = mayContainNull; }
+
     inline bool hasNoNullsGuarantee() const { return !mayContainNulls; }
 
     static void setNull(uint64_t* nullEntries, uint32_t pos, bool isNull);

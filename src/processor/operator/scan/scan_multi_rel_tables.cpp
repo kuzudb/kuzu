@@ -80,6 +80,7 @@ bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
             outVectors[0]->state->selVector->selectedSize = 0;
             continue;
         }
+        KU_ASSERT(inVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto nodeID = inVector->getValue<nodeID_t>(currentIdx);
         initCurrentScanner(nodeID);
     }

@@ -175,6 +175,7 @@ bool RecursiveJoin::scanOutput() {
 }
 
 void RecursiveJoin::computeBFS(ExecutionContext* context) {
+    KU_ASSERT(vectors->srcNodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto nodeID = vectors->srcNodeIDVector->getValue<nodeID_t>(
         vectors->srcNodeIDVector->state->selVector->selectedPositions[0]);
     bfsState->markSrc(nodeID);
@@ -199,6 +200,10 @@ void RecursiveJoin::updateVisitedNodes(nodeID_t boundNodeID) {
     auto boundNodeMultiplicity = bfsState->getMultiplicity(boundNodeID);
     for (auto i = 0u; i < vectors->recursiveDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = vectors->recursiveDstNodeIDVector->state->selVector->selectedPositions[i];
+        KU_ASSERT(vectors->recursiveDstNodeIDVector->dataType.getPhysicalType() ==
+                  PhysicalTypeID::INTERNAL_ID);
+        KU_ASSERT(vectors->recursiveEdgeIDVector->dataType.getPhysicalType() ==
+                  PhysicalTypeID::INTERNAL_ID);
         auto nbrNodeID = vectors->recursiveDstNodeIDVector->getValue<nodeID_t>(pos);
         auto edgeID = vectors->recursiveEdgeIDVector->getValue<relID_t>(pos);
         bfsState->markVisited(boundNodeID, nbrNodeID, edgeID, boundNodeMultiplicity);

@@ -72,7 +72,7 @@ public:
     virtual bool checkIfNodeHasRels(
         transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector);
     void append(NodeGroup* nodeGroup) override;
-    virtual void resizeColumns(common::node_group_idx_t numNodeGroups);
+    virtual void resizeColumns(common::node_group_idx_t numNodeGroups, uint64_t numNodes);
 
     inline Column* getAdjColumn() const { return adjColumn.get(); }
     inline common::ColumnDataFormat getDataFormat() const { return dataFormat; }

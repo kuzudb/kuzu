@@ -21,6 +21,7 @@ using delete_info_t = std::map<common::offset_t, std::unordered_set<common::offs
 class LocalVector {
 public:
     LocalVector(const common::LogicalType& dataType, MemoryManager* mm) : numValues{0} {
+        KU_ASSERT(dataType.getPhysicalType() != common::PhysicalTypeID::INTERNAL_ID);
         vector = std::make_unique<common::ValueVector>(dataType, mm);
         vector->setState(std::make_shared<common::DataChunkState>());
         vector->state->selVector->resetSelectorToValuePosBufferWithSize(1);
@@ -61,6 +62,8 @@ public:
 
     // TODO(Guodong): Change this interface to take an extra `SelVector` or `DataChunkState`.
     common::row_idx_t append(common::ValueVector* vector);
+
+    inline MemoryManager* getMemoryManager() { return mm; }
 
 private:
     void prepareAppend();

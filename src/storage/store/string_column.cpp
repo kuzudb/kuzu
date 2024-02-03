@@ -146,6 +146,7 @@ void StringColumn::rollbackInMemory() {
 void StringColumn::scanInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    KU_ASSERT(nodeIDVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
@@ -259,6 +260,7 @@ void StringColumn::scanFiltered(transaction::Transaction* transaction,
 void StringColumn::lookupInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     KU_ASSERT(dataType->getPhysicalType() == PhysicalTypeID::STRING);
+    KU_ASSERT(nodeIDVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
 

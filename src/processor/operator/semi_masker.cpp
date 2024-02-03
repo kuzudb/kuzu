@@ -32,6 +32,7 @@ bool SingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
     auto selVector = keyVector->state->selVector.get();
     for (auto i = 0u; i < selVector->selectedSize; i++) {
         auto pos = selVector->selectedPositions[i];
+        KU_ASSERT(keyVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto nodeID = keyVector->getValue<nodeID_t>(pos);
         for (auto& [mask, maskerIdx] : info->getSingleTableMasks()) {
             mask->incrementMaskValue(nodeID.offset, maskerIdx);
@@ -48,6 +49,7 @@ bool MultiTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
     auto selVector = keyVector->state->selVector.get();
     for (auto i = 0u; i < selVector->selectedSize; i++) {
         auto pos = selVector->selectedPositions[i];
+        KU_ASSERT(keyVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto nodeID = keyVector->getValue<nodeID_t>(pos);
         for (auto& [mask, maskerIdx] : info->getTableMasks(nodeID.tableID)) {
             mask->incrementMaskValue(nodeID.offset, maskerIdx);
@@ -78,6 +80,8 @@ bool PathSingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context)
     }
     auto size = ListVector::getDataVectorSize(pathRelsVector);
     for (auto i = 0u; i < size; ++i) {
+        KU_ASSERT(
+            pathRelsSrcIDDataVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto srcNodeID = pathRelsSrcIDDataVector->getValue<nodeID_t>(i);
         for (auto& [mask, maskerIdx] : info->getSingleTableMasks()) {
             mask->incrementMaskValue(srcNodeID.offset, maskerIdx);
@@ -97,6 +101,8 @@ bool PathMultipleTableSemiMasker::getNextTuplesInternal(ExecutionContext* contex
     }
     auto size = ListVector::getDataVectorSize(pathRelsVector);
     for (auto i = 0u; i < size; ++i) {
+        KU_ASSERT(
+            pathRelsSrcIDDataVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto srcNodeID = pathRelsSrcIDDataVector->getValue<nodeID_t>(i);
         for (auto& [mask, maskerIdx] : info->getTableMasks(srcNodeID.tableID)) {
             mask->incrementMaskValue(srcNodeID.offset, maskerIdx);

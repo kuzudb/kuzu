@@ -91,6 +91,10 @@ public:
         return std::make_pair(nodeGroupIdx, offsetInChunk);
     }
 
+    static inline uint64_t getNodeGroupNums(common::offset_t nodeOffset) {
+        return nodeOffset % common::StorageConstants::NODE_GROUP_SIZE;
+    }
+
     static std::string getNodeIndexFName(const common::VirtualFileSystem* vfs,
         const std::string& directory, const common::table_id_t& tableID,
         common::FileVersionType dbFileType);

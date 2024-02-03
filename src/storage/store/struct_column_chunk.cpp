@@ -9,7 +9,7 @@ namespace storage {
 // null too.
 StructColumnChunk::StructColumnChunk(
     std::unique_ptr<LogicalType> dataType, uint64_t capacity, bool enableCompression)
-    : ColumnChunk{std::move(dataType), capacity} {
+    : ColumnChunk{std::move(dataType), capacity, enableCompression} {
     auto fieldTypes = StructType::getFieldTypes(this->dataType.get());
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
@@ -63,6 +63,27 @@ void StructColumnChunk::resetToEmpty() {
     }
 }
 
+void StructColumnChunk::setAllNull() {
+    ColumnChunk::setAllNull();
+    for (auto& child : childChunks) {
+        child->setAllNull();
+    }
+}
+
+void StructColumnChunk::setNull(common::offset_t offset, bool isNull) {
+    ColumnChunk::setNull(offset, isNull);
+    for (auto& child : childChunks) {
+        child->setNull(offset, isNull);
+    }
+}
+
+void StructColumnChunk::setNumValues(uint64_t numValues_) {
+    ColumnChunk::setNumValues(numValues_);
+    for (auto& child : childChunks) {
+        child->setNumValues(numValues_);
+    }
+}
+
 void StructColumnChunk::write(
     ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
@@ -78,6 +99,7 @@ void StructColumnChunk::write(
 
 void StructColumnChunk::write(
     ValueVector* valueVector, ValueVector* offsetInChunkVector, bool isCSR) {
+    KU_ASSERT(offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
     KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto offsets = reinterpret_cast<offset_t*>(offsetInChunkVector->getData());
     for (auto i = 0u; i < offsetInChunkVector->state->selVector->selectedSize; i++) {

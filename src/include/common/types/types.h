@@ -379,6 +379,8 @@ public:
     }
     static KUZU_API std::unique_ptr<LogicalType> STRUCT(std::vector<StructField>&& fields);
 
+    static KUZU_API std::unique_ptr<LogicalType> STRUCT(LogicalTypeID type);
+
     static KUZU_API std::unique_ptr<LogicalType> RECURSIVE_REL(
         std::unique_ptr<StructTypeInfo> typeInfo);
 

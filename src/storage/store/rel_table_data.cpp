@@ -4,7 +4,9 @@
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/stats/rels_store_statistics.h"
+#include "storage/store/internal_id_column.h"
 #include "storage/store/null_column.h"
+#include "storage/store/struct_column_chunk.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -102,9 +104,9 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
             RWPropertyStats(relsStoreStats, tableID, property.getPropertyID()), enableCompression));
     }
     // Set common tableID for adjColumn and relIDColumn.
-    dynamic_cast<InternalIDColumn*>(adjColumn.get())
-        ->setCommonTableID(tableSchema->getNbrTableID(direction));
-    dynamic_cast<InternalIDColumn*>(columns[REL_ID_COLUMN_ID].get())->setCommonTableID(tableID);
+    //       dynamic_cast<InternalIDColumn*>(adjColumn.get())
+    //           ->setCommonTableID(tableSchema->getNbrTableID(direction));
+    //       dynamic_cast<InternalIDColumn*>(columns[REL_ID_COLUMN_ID].get())->setCommonTableID(tableID);
 }
 
 void RelTableData::initializeReadState(Transaction* /*transaction*/,
@@ -149,6 +151,7 @@ void RelTableData::scan(Transaction* transaction, TableReadState& readState,
             transaction, inNodeIDVector, outputVectors[outputVectorId]);
     }
     if (transaction->isWriteTransaction()) {
+        KU_ASSERT(inNodeIDVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
         auto nodeOffset = inNodeIDVector->readNodeOffset(0);
         auto localNodeGroup =
             getLocalNodeGroup(transaction, StorageUtils::getNodeGroupIdx(nodeOffset));
@@ -181,6 +184,7 @@ void RelTableData::lookup(Transaction* transaction, TableReadState& readState,
     if (transaction->isWriteTransaction()) {
         for (auto pos = 0u; pos < inNodeIDVector->state->selVector->selectedSize; pos++) {
             auto selPos = inNodeIDVector->state->selVector->selectedPositions[pos];
+            KU_ASSERT(inNodeIDVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
             auto nodeOffset = inNodeIDVector->readNodeOffset(selPos);
             auto [nodeGroupIdx, offsetInChunk] =
                 StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
@@ -201,6 +205,7 @@ void RelTableData::insert(transaction::Transaction* transaction, ValueVector* sr
             tableID, columns, TableType::REL, dataFormat, getDataIdxFromDirection(direction)));
     auto checkPersistentStorage =
         localTableData->insert(srcNodeIDVector, dstNodeIDVector, propertyVectors);
+    KU_ASSERT(srcNodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto [nodeGroupIdx, offset] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(
         srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
             .offset);
@@ -229,6 +234,7 @@ bool RelTableData::delete_(transaction::Transaction* transaction, ValueVector* s
 
 bool RelTableData::checkIfNodeHasRels(Transaction* transaction, ValueVector* srcNodeIDVector) {
     auto nodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(srcNodeIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     return !ku_dynamic_cast<Column*, NullColumn*>(adjColumn->getNullColumn())
@@ -243,7 +249,7 @@ void RelTableData::append(NodeGroup* nodeGroup) {
     }
 }
 
-void RelTableData::resizeColumns(node_group_idx_t numNodeGroups) {
+void RelTableData::resizeColumns(node_group_idx_t numNodeGroups, uint64_t numNodes) {
     auto currentNumNodeGroups = adjColumn->getNumNodeGroups(&DUMMY_WRITE_TRANSACTION);
     if (numNodeGroups < currentNumNodeGroups) {
         return;
@@ -257,7 +263,8 @@ void RelTableData::resizeColumns(node_group_idx_t numNodeGroups) {
     auto nodeGroup = std::make_unique<NodeGroup>(
         columnTypes, enableCompression, StorageConstants::NODE_GROUP_SIZE);
     nodeGroup->setAllNull();
-    nodeGroup->setNumValues(0);
+    KU_ASSERT(getDataFormat() == ColumnDataFormat::REGULAR);
+    nodeGroup->setNumValues(numNodes);
     for (auto nodeGroupIdx = currentNumNodeGroups; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
         nodeGroup->finalize(nodeGroupIdx);
         append(nodeGroup.get());

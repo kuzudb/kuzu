@@ -210,6 +210,8 @@ void VarListColumnChunk::finalize() {
         if (indicesColumnChunk->getNullChunk()->isNull(i)) {
             newVarListChunk->appendNullList();
         } else {
+            KU_ASSERT(
+                indicesColumnChunk->getDataType()->getPhysicalType() == PhysicalTypeID::INT64);
             auto index = indicesColumnChunk->getValue<offset_t>(i);
             newColumnChunk->append(this, index, 1);
         }

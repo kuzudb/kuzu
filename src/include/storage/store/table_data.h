@@ -40,6 +40,8 @@ public:
         return columns[columnID].get();
     }
 
+    inline common::table_id_t getTableID() { return tableID; }
+
     virtual void prepareLocalTableToCommit(
         transaction::Transaction* transaction, LocalTableData* localTable) = 0;
     virtual void checkpointInMemory();

@@ -157,13 +157,14 @@ void CopyNodeSharedState::calculateNumTuples() {
 
 void CopyNode::finalize(ExecutionContext* context) {
     sharedState->finalize(context);
+    auto numNodeNums = storage::StorageUtils::getNodeGroupNums(sharedState->numTuples);
     for (auto relTable : info->fwdRelTables) {
         relTable->resizeColumns(context->clientContext->getTx(), RelDataDirection::FWD,
-            sharedState->getCurNodeGroupIdx());
+            sharedState->getCurNodeGroupIdx(), numNodeNums);
     }
     for (auto relTable : info->bwdRelTables) {
         relTable->resizeColumns(context->clientContext->getTx(), RelDataDirection::BWD,
-            sharedState->getCurNodeGroupIdx());
+            sharedState->getCurNodeGroupIdx(), numNodeNums);
     }
     auto outputMsg = stringFormat("{} number of tuples has been copied to table: {}.",
         sharedState->numTuples, info->tableName.c_str());

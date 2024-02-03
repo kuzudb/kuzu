@@ -36,8 +36,7 @@ public:
         const std::vector<common::ValueVector*>& outputVectors) override;
 
     void insert(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
-        common::ValueVector* dstNodeIDVector,
-        const std::vector<common::ValueVector*>& propertyVectors);
+        common::ValueVector* dstNodeIDVector, std::vector<common::ValueVector*>& propertyVectors);
     void update(transaction::Transaction* transaction, common::column_id_t columnID,
         common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector, common::ValueVector* propertyVector);
@@ -82,7 +81,7 @@ public:
     // This is to make sure for X_TO_ONE table, the adj column is aligned with its src node table in
     // terms of num of node groups, and be correctly filled with initialized null values.
     void resizeColumns(transaction::Transaction* transaction, common::RelDataDirection direction,
-        common::node_group_idx_t numNodeGroups);
+        common::node_group_idx_t numNodeGroups, uint64_t nodeNums);
 
     inline common::ColumnDataFormat getTableDataFormat(common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getDataFormat() :
@@ -120,9 +119,14 @@ private:
                                                             bwdRelTableData.get();
     }
 
+    void fillTableID(common::table_id_t tableID, common::ValueVector* inNodeIDVector);
+
 private:
     std::unique_ptr<RelTableData> fwdRelTableData;
     std::unique_ptr<RelTableData> bwdRelTableData;
+
+    common::table_id_t fwdSrcTableID;
+    common::table_id_t fwdDstTableID;
 };
 
 } // namespace storage

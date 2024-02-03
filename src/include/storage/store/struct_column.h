@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace storage {
 
-class StructColumn final : public Column {
+class StructColumn : public Column {
 public:
     StructColumn(std::string name, std::unique_ptr<common::LogicalType> dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
@@ -54,7 +54,6 @@ protected:
         common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunk* chunk, common::offset_t dataOffset) override;
 
-private:
     std::vector<std::unique_ptr<Column>> childColumns;
 };
 
