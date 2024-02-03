@@ -109,8 +109,7 @@ jobs:
       - name: Install OpenSSL
         run: |
           brew install openssl@3
-          OPENSSL_BIN_PATH=$(readlink -f /opt/homebrew/Cellar/openssl@3/*/bin/openssl)
-          OPENSSL_ROOT=dirname $(dirname $OPENSSL_BIN_PATH)
+          OPENSSL_ROOT=$(readlink -f /opt/homebrew/Cellar/openssl@3/*/)
           echo "OPENSSL_ROOT_DIR=$OPENSSL_ROOT" >> $GITHUB_ENV
 
       - name: Build precompiled extensions
