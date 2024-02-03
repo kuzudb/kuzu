@@ -33,6 +33,9 @@ X|RDF|
 ---- error
 Binder exception: Table T does not exist.
 -STATEMENT MATCH (a:X)-[e:X]->(b:X) RETURN COUNT(*);
+---- error
+Binder exception: Cannot bind X as a node pattern label.
+-STATEMENT MATCH (a)-[e:X]->(b) RETURN COUNT(*);
 ---- 1
 0
 -STATEMENT ALTER TABLE X_r RENAME TO hh;

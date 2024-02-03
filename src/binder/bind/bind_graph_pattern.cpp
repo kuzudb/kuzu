@@ -549,13 +549,8 @@ std::vector<table_id_t> Binder::bindTableIDs(
     const std::vector<std::string>& tableNames, bool nodePattern) {
     auto tx = clientContext->getTx();
     std::unordered_set<common::table_id_t> tableIDSet;
-    if (tableNames.empty()) {               // Rewrite empty table names as all tables.
-        if (catalog.containsRdfGraph(tx)) { // Fill all rdf graph schemas.
-            for (auto tableID : catalog.getRdfGraphIDs(tx)) {
-                tableIDSet.insert(tableID);
-            }
-        }
-        if (nodePattern) { // Fill all node table schemas to node pattern.
+    if (tableNames.empty()) { // Rewrite empty table names as all tables.
+        if (nodePattern) {    // Fill all node table schemas to node pattern.
             if (!catalog.containsNodeTable(tx)) {
                 throw BinderException("No node table exists in database.");
             }
@@ -598,11 +593,6 @@ std::vector<table_id_t> Binder::getNodeTableIDs(const std::vector<table_id_t>& t
 std::vector<common::table_id_t> Binder::getNodeTableIDs(table_id_t tableID) {
     auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     switch (tableSchema->getTableType()) {
-    case TableType::RDF: {
-        auto rdfGraphSchema =
-            ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(tableSchema);
-        return {rdfGraphSchema->getResourceTableID(), rdfGraphSchema->getLiteralTableID()};
-    }
     case TableType::NODE: {
         return {tableID};
     }
