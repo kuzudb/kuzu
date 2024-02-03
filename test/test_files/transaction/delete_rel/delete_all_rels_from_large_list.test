@@ -56,7 +56,6 @@
 <FILE>:delete_rels.txt
 
 -CASE detachDeleteNodeWithLageList
--SKIP
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN COUNT(*);
 ---- 1
 2351

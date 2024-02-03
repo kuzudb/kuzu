@@ -105,8 +105,8 @@ void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_i
     Column::writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, (uint8_t*)&index);
 }
 
-void StringColumn::write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
-    kuzu::storage::ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues) {
+void StringColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
+    kuzu::storage::ColumnChunk* data, offset_t dataOffset, length_t numValues) {
     auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
     numValues = std::min(numValues, data->getNumValues() - dataOffset);
     auto strChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(data);
@@ -161,7 +161,7 @@ void StringColumn::scanInternal(
 
 void StringColumn::scanUnfiltered(transaction::Transaction* transaction,
     node_group_idx_t nodeGroupIdx, offset_t startOffsetInGroup, offset_t endOffsetInGroup,
-    common::ValueVector* resultVector, sel_t startPosInVector) {
+    ValueVector* resultVector, sel_t startPosInVector) {
     auto numValuesToRead = endOffsetInGroup - startOffsetInGroup;
     auto indices = std::make_unique<string_index_t[]>(numValuesToRead);
     auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
@@ -232,8 +232,8 @@ void StringColumn::scanValuesToVector(Transaction* transaction, node_group_idx_t
 }
 
 void StringColumn::scanFiltered(transaction::Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInGroup,
-    common::ValueVector* nodeIDVector, common::ValueVector* resultVector) {
+    node_group_idx_t nodeGroupIdx, offset_t startOffsetInGroup, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
 
     auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
 
@@ -283,7 +283,7 @@ void StringColumn::lookupInternal(
 }
 
 bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
-    common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+    node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
     const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo) {
     std::vector<row_idx_t> rowIdxesToRead;
     for (auto& [offset, rowIdx] : updateInfo) {
@@ -320,18 +320,19 @@ bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
 }
 
 bool StringColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    common::offset_t dstOffset, ColumnChunk* chunk, common::offset_t dataOffset, length_t length) {
+    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
     auto totalStringLengthToAdd = 0u;
     auto strChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(chunk);
-    length = std::min(length, strChunk->getNumValues());
+    auto length = std::min((uint64_t)dstOffsets.size(), strChunk->getNumValues());
     for (auto i = 0u; i < length; i++) {
-        totalStringLengthToAdd += strChunk->getStringLength(i + dataOffset);
+        totalStringLengthToAdd += strChunk->getStringLength(i + srcOffset);
     }
+    auto maxDstOffset = getMaxOffset(dstOffsets);
     auto indexColumnMetadata = getMetadata(nodeGroupIdx, transaction->getType());
     auto indexCapacity =
         indexColumnMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType) *
         indexColumnMetadata.numPages;
-    if (indexCapacity < dstOffset + length) {
+    if (indexCapacity < maxDstOffset) {
         return false;
     }
     return canDictionaryAndIndexCommitInPlace(

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/types/types.h"
 #include "storage/store/rel_table_data.h"
 
 namespace kuzu {
@@ -77,8 +78,11 @@ public:
         common::offset_t regionCapacity = 0;
         common::offset_t leftCSROffset = common::INVALID_OFFSET;
         common::offset_t rightCSROffset = common::INVALID_OFFSET;
+        bool needSliding = false;
 
         explicit LocalState(LocalRelNG* localNG) : localNG{localNG} { initChangesPerSegment(); }
+
+        inline void setRegion(PackedCSRRegion& region_) { region = region_; }
 
     private:
         void initChangesPerSegment();
@@ -126,12 +130,12 @@ private:
         LocalState& localState);
     void distributeOffsets(const CSRHeaderChunks& header, LocalState& localState,
         common::offset_t leftBoundary, common::offset_t rightBoundary);
-    void updateColumns(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        PersistentState& persistentState, LocalState& localState);
     void updateRegion(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        common::column_id_t columnID, const PersistentState& persistentState,
+        PersistentState& persistentState, LocalState& localState);
+    void updateColumn(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        common::column_id_t columnID, const CSRRelTableData::PersistentState& persistentState,
         LocalState& localState);
-    void distributeAndUpdateRegion(transaction::Transaction* transaction,
+    void distributeAndUpdateColumn(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::column_id_t columnID,
         const PersistentState& persistentState, LocalState& localState);
 
@@ -165,6 +169,10 @@ private:
     void applySliding(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         LocalState& localState, const PersistentState& persistentState, Column* column);
 
+    std::vector<std::pair<common::offset_t, common::offset_t>> getSlidesForDeletions(
+        const PersistentState& persistentState, const LocalState& localState,
+        const delete_info_t& deleteInfo);
+
     // TODO: Constrain T1 and T2 to numerics.
     template<typename T1, typename T2>
     static uint64_t divideAndRoundUpTo(T1 v1, T2 v2) {
@@ -182,6 +190,12 @@ private:
     LocalVectorCollection* getLocalChunk(
         const LocalState& localState, common::column_id_t columnID);
     Column* getColumn(common::column_id_t columnID) const;
+
+    inline void fillSequence(std::span<common::offset_t> offsets, common::offset_t startOffset) {
+        for (auto i = 0u; i < offsets.size(); i++) {
+            offsets[i] = i + startOffset;
+        }
+    }
 
 private:
     PackedCSRInfo packedCSRInfo;

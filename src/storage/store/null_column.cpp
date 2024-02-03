@@ -142,8 +142,8 @@ void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
     }
 }
 
-void NullColumn::write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
-    kuzu::storage::ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues) {
+void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
+    kuzu::storage::ColumnChunk* data, offset_t dataOffset, length_t numValues) {
     auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
     writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, data->getData(), dataOffset, numValues);
     auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(data);
@@ -185,13 +185,14 @@ bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nod
     return true;
 }
 
-bool NullColumn::canCommitInPlace(Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-    common::offset_t dstOffset, ColumnChunk* chunk, common::offset_t dataOffset, length_t length) {
+bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
     KU_ASSERT(chunk->getNullChunk() == nullptr &&
               chunk->getDataType()->getPhysicalType() == PhysicalTypeID::BOOL);
     auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
+    auto maxDstOffset = getMaxOffset(dstOffsets);
     if ((metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType) *
-            metadata.numPages) < (length + dstOffset)) {
+            metadata.numPages) < maxDstOffset) {
         // Note that for constant compression, `metadata.numPages` will be equal to 0. Thus, this
         // function will always return false.
         return false;
@@ -200,8 +201,8 @@ bool NullColumn::canCommitInPlace(Transaction* transaction, common::node_group_i
         return true;
     }
     auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(chunk);
-    for (auto i = 0u; i < length; i++) {
-        bool value = nullChunk->isNull(dataOffset + i);
+    for (auto i = 0u; i < dstOffsets.size(); i++) {
+        bool value = nullChunk->isNull(srcOffset + i);
         if (!metadata.compMeta.canUpdateInPlace(
                 reinterpret_cast<const uint8_t*>(&value), 0, dataType->getPhysicalType())) {
             return false;

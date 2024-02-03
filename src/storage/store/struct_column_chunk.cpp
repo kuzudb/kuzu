@@ -103,5 +103,33 @@ void StructColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     }
 }
 
+void StructColumnChunk::copy(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
+    offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
+    while (numValues < dstOffsetInChunk) {
+        nullChunk->setNull(numValues, true);
+        numValues++;
+    }
+    nullChunk->append(srcChunk->getNullChunk(), srcOffsetInChunk, numValuesToCopy);
+    auto srcStructChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(srcChunk);
+    for (auto i = 0u; i < childChunks.size(); i++) {
+        childChunks[i]->copy(srcStructChunk->childChunks[i].get(), srcOffsetInChunk,
+            dstOffsetInChunk, numValuesToCopy);
+    }
+    numValues += numValuesToCopy;
+    KU_ASSERT(nullChunk->getNumValues() == numValues);
+}
+
+bool StructColumnChunk::numValuesSanityCheck() const {
+    for (auto& child : childChunks) {
+        if (child->getNumValues() != numValues) {
+            return false;
+        }
+        if (!child->numValuesSanityCheck()) {
+            return false;
+        }
+    }
+    return nullChunk->getNumValues() == numValues;
+}
+
 } // namespace storage
 } // namespace kuzu

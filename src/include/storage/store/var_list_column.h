@@ -90,9 +90,9 @@ private:
         return false;
     }
     inline bool canCommitInPlace(transaction::Transaction* /*transaction*/,
-        common::node_group_idx_t /*nodeGroupIdx*/, common::offset_t /*dstOffset*/,
-        ColumnChunk* /*chunk*/, common::offset_t /*startOffset*/,
-        common::length_t /*length*/) override {
+        common::node_group_idx_t /*nodeGroupIdx*/,
+        const std::vector<common::offset_t>& /*dstOffsets*/, ColumnChunk* /*chunk*/,
+        common::offset_t /*startOffset*/) override {
         // Always perform out-of-place commit for VAR_LIST columns.
         return false;
     }
