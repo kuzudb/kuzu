@@ -253,16 +253,27 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause&
 
 BoundSetPropertyInfo Binder::bindSetPropertyInfo(
     parser::ParsedExpression* lhs, parser::ParsedExpression* rhs) {
-    auto boundLhs = expressionBinder.bindExpression(*lhs->getChild(0));
-    if (ExpressionUtil::isNodePattern(*boundLhs)) {
-        return BoundSetPropertyInfo(UpdateTableType::NODE, boundLhs, bindSetItem(lhs, rhs));
-    } else if (ExpressionUtil::isRelPattern(*boundLhs)) {
-        return BoundSetPropertyInfo(UpdateTableType::REL, boundLhs, bindSetItem(lhs, rhs));
-    } else {
+    auto pattern = expressionBinder.bindExpression(*lhs->getChild(0));
+    auto isNode = ExpressionUtil::isNodePattern(*pattern);
+    auto isRel = ExpressionUtil::isRelPattern(*pattern);
+    if (!isNode && !isRel) {
         throw BinderException(
             stringFormat("Cannot set expression {} with type {}. Expect node or rel pattern.",
-                boundLhs->toString(), expressionTypeToString(boundLhs->expressionType)));
+                pattern->toString(), expressionTypeToString(pattern->expressionType)));
     }
+    auto patternExpr = ku_dynamic_cast<Expression*, NodeOrRelExpression*>(pattern.get());
+    for (auto tableID : patternExpr->getTableIDs()) {
+        auto tableName = catalog.getTableSchema(clientContext->getTx(), tableID)->getName();
+        for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+            if (schema->isParent(tableID)) {
+                throw BinderException(stringFormat(
+                    "Cannot set property of {} because it refers to table {} under rdf graph {}.",
+                    pattern->toString(), tableName, schema->getName()));
+            }
+        }
+    }
+    return BoundSetPropertyInfo(
+        isNode ? UpdateTableType::NODE : UpdateTableType::REL, pattern, bindSetItem(lhs, rhs));
 }
 
 expression_pair Binder::bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs) {
