@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-wheels-arm64:
-    runs-on: self-hosted-mac-arm
+    runs-on: self-hosted-mac-x64
     steps:
       - uses: actions/checkout@v3
 
