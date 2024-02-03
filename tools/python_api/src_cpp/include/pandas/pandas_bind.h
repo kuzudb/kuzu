@@ -3,6 +3,7 @@
 #include "numpy/numpy_type.h"
 #include "pandas_column.h"
 #include "pybind_include.h"
+#include "py_object_container.h"
 
 namespace kuzu {
 
@@ -19,6 +20,7 @@ struct PandasColumnBindData {
     NumpyType npType;
     std::unique_ptr<PandasColumn> pandasCol;
     std::unique_ptr<RegisteredArray> mask;
+    PythonObjectContainer objectStrValContainer;
 
     PandasColumnBindData() = default;
 

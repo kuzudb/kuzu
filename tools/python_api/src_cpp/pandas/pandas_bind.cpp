@@ -1,6 +1,7 @@
 #include "pandas/pandas_bind.h"
 
 #include "common/exception/runtime.h"
+#include "pandas/pandas_analyzer.h"
 
 namespace kuzu {
 
@@ -40,8 +41,8 @@ private:
     py::object getter;
 };
 
-static common::LogicalType bindColumn(PandasBindColumn& bindColumn,
-    PandasColumnBindData* bindData) {
+static common::LogicalType bindColumn(
+    PandasBindColumn& bindColumn, PandasColumnBindData* bindData) {
     common::LogicalType columnType;
     auto& column = bindColumn.handle;
 
@@ -75,13 +76,18 @@ static common::LogicalType bindColumn(PandasBindColumn& bindColumn,
         }
         columnType = *NumpyTypeUtils::numpyToLogicalType(bindData->npType);
     }
+    if (bindData->npType.type == NumpyNullableType::OBJECT) {
+        PandasAnalyzer analyzer;
+        if (analyzer.analyze(column)) {
+            columnType = analyzer.getAnalyzedType();
+        }
+    }
     return columnType;
 }
 
 void Pandas::bind(py::handle dfToBind,
     std::vector<std::unique_ptr<PandasColumnBindData>>& columnBindData,
-    std::vector<common::LogicalType>& returnTypes,
-    std::vector<std::string>& names) {
+    std::vector<common::LogicalType>& returnTypes, std::vector<std::string>& names) {
 
     PandasDataFrameBind df(dfToBind);
     auto numColumns = py::len(df.names);
