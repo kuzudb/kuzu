@@ -146,3 +146,12 @@ aaa
 13|||2024-01-01a|2024-01-01||
 14|||2024-01-01 11:25:30a||2024-01-01 11:25:30|
 15|||1 yeara|||1 year
+-STATEMENT MATCH (a)-[e]->(b) SET a.iri = "x";
+---- error
+Binder exception: Cannot set property of a because it refers to table T_r under rdf graph T.
+-STATEMENT MATCH (a)-[e]->(b) SET e.iri = "x";
+---- error
+Binder exception: Cannot set property of e because it refers to table T_rt under rdf graph T.
+-STATEMENT MATCH (a)-[e]->(b:T_l) SET b.val = "x";
+---- error
+Binder exception: Cannot set property of b because it refers to table T_l under rdf graph T.
