@@ -105,7 +105,7 @@ struct StorageConstants {
     static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
     static constexpr uint64_t NODE_GROUP_SIZE = (uint64_t)1 << NODE_GROUP_SIZE_LOG2;
 
-    static constexpr double TOP_CSR_DENSITY = 0.8;
+    static constexpr double PACKED_CSR_DENSITY = 0.8;
     static constexpr double LEAF_LOW_CSR_DENSITY = 0.1;
     static constexpr double LEAF_HIGH_CSR_DENSITY = 1.0;
     // The number of CSR lists in a segment.
