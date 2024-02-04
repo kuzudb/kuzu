@@ -1,7 +1,9 @@
 #include "numpy/numpy_scan.h"
 
+#include "common/type_utils.h"
 #include "common/types/timestamp_t.h"
 #include "pandas/pandas_bind.h"
+#include "py_conversion.h"
 #include "py_str_utils.h"
 #include "utf8proc_wrapper.h"
 
@@ -142,15 +144,27 @@ void NumpyScan::scan(PandasColumnBindData* bindData, uint64_t count, uint64_t of
     case NumpyNullableType::OBJECT: {
         auto sourceData = (PyObject**)array.data();
         if (outputVector->dataType.getLogicalTypeID() != LogicalTypeID::STRING) {
-            // LCOV_EXCL_START
-            throw RuntimeException{"Scanning pandas generic object column is not supported."};
-            // LCOV_EXCL_STOP
+            scanObjectColumn(sourceData, count, offset, outputVector);
+            return;
         }
         auto dstData = reinterpret_cast<ku_string_t*>(outputVector->getData());
         py::gil_scoped_acquire gil;
         for (auto i = 0u; i < count; i++) {
             auto pos = i + offset;
             PyObject* val = sourceData[pos];
+            if (bindData->npType.type == NumpyNullableType::OBJECT &&
+                !py::isinstance<py::str>(val)) {
+                if (val == Py_None ||
+                    (py::isinstance<py::float_>(val) && std::isnan(PyFloat_AsDouble(val)))) {
+                    outputVector->setNull(pos, true /* isNull */);
+                    continue;
+                }
+                if (!py::isinstance<py::str>(val)) {
+                    bindData->objectStrValContainer.push(std::move(py::str(val)));
+                    val = reinterpret_cast<PyObject*>(
+                        bindData->objectStrValContainer.getLastAddedObject().ptr());
+                }
+            }
             py::handle strHandle(val);
             if (!py::isinstance<py::str>(strHandle)) {
                 outputVector->setNull(i, true /* isNull */);
@@ -195,6 +209,24 @@ void NumpyScan::scan(PandasColumnBindData* bindData, uint64_t count, uint64_t of
     }
     default:
         KU_UNREACHABLE;
+    }
+}
+
+void scanNumpyObject(PyObject* object, uint64_t offset, common::ValueVector* outputVector) {
+    if (object == Py_None) {
+        outputVector->setNull(offset, true /* isNull */);
+        return;
+    }
+    outputVector->setNull(offset, false /* isNull */);
+    transformPythonValue(outputVector, offset, object);
+}
+
+void NumpyScan::scanObjectColumn(
+    PyObject** col, uint64_t count, uint64_t offset, common::ValueVector* outputVector) {
+    py::gil_scoped_acquire gil;
+    auto srcPtr = col + offset;
+    for (auto i = 0u; i < count; i++) {
+        scanNumpyObject(srcPtr[i], i, outputVector);
     }
 }
 
