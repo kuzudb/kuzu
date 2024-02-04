@@ -90,9 +90,10 @@ def test_to_df(establish_connection):
         assert str(pd['r.hugedata'].dtype) == "float64"
 
     def _test_timestamps_to_df(conn):
-        query = ("RETURN cast(\"2012-01-01 11:12:12.12345\", \"TIMESTAMP_NS\") as A, cast(\"2012-01-01 11:12:12.12345\", "
-                 "\"TIMESTAMP_MS\") as B, cast(\"2012-01-01 11:12:12.12345\", \"TIMESTAMP_SEC\") as C, "
-                 "cast(\"2012-01-01 11:12:12.12345\", \"TIMESTAMP_TZ\") as D")
+        query = (
+            "RETURN cast(\"2012-01-01 11:12:12.12345\", \"TIMESTAMP_NS\") as A, cast(\"2012-01-01 11:12:12.12345\", "
+            "\"TIMESTAMP_MS\") as B, cast(\"2012-01-01 11:12:12.12345\", \"TIMESTAMP_SEC\") as C, "
+            "cast(\"2012-01-01 11:12:12.12345\", \"TIMESTAMP_TZ\") as D")
         pd = conn.execute(query).get_as_df()
         assert pd['A'].tolist() == [Timestamp('2012-01-01 11:12:12.123450')]
         assert pd['B'].tolist() == [Timestamp('2012-01-01 11:12:12.123000')]
@@ -146,6 +147,7 @@ def test_to_df(establish_connection):
     _test_study_at_to_df(conn)
     _test_movies_to_df(conn)
     _test_timestamps_to_df(conn)
+
 
 def test_df_multiple_times(establish_connection):
     conn, _ = establish_connection
@@ -324,3 +326,12 @@ def test_df_get_recursive_join(establish_connection):
                                                                'day': datetime.date(2021, 1, 2)}},
                                       'someMap': {'a': 'b'},
                                       'validInterval': datetime.timedelta(days=3750, seconds=46800, microseconds=24)}]}
+
+
+def test_get_rdf_variant(establish_connection):
+    conn, _ = establish_connection
+    res = conn.execute(
+        "MATCH (a:T_l) RETURN a.val ORDER BY a.id").get_as_df()
+    assert res['a.val'].tolist() == [12, 43, 33, 2, 90, 77, 12, 1, 4.4, 1.2000000476837158, True, "hhh",
+                                     datetime.date(2024, 1, 1),
+                                     datetime.datetime(2024, 1, 1, 11, 25, 30), datetime.timedelta(days=2), b'\xb2']
