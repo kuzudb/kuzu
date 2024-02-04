@@ -23,10 +23,10 @@ PackedCSRInfo::PackedCSRInfo() {
     calibratorTreeHeight =
         StorageConstants::NODE_GROUP_SIZE_LOG2 - StorageConstants::CSR_SEGMENT_SIZE_LOG2;
     lowDensityStep =
-        (double)(StorageConstants::TOP_CSR_DENSITY - StorageConstants::LEAF_LOW_CSR_DENSITY) /
+        (double)(StorageConstants::PACKED_CSR_DENSITY - StorageConstants::LEAF_LOW_CSR_DENSITY) /
         (double)(calibratorTreeHeight);
     highDensityStep =
-        (double)(StorageConstants::LEAF_HIGH_CSR_DENSITY - StorageConstants::TOP_CSR_DENSITY) /
+        (double)(StorageConstants::LEAF_HIGH_CSR_DENSITY - StorageConstants::PACKED_CSR_DENSITY) /
         (double)(calibratorTreeHeight);
 }
 
@@ -35,6 +35,17 @@ PackedCSRRegion::PackedCSRRegion(vector_idx_t regionIdx, vector_idx_t level)
     auto startSegmentIdx = regionIdx << level;
     leftBoundary = startSegmentIdx << StorageConstants::CSR_SEGMENT_SIZE_LOG2;
     rightBoundary = leftBoundary + (StorageConstants::CSR_SEGMENT_SIZE << level) - 1;
+}
+
+bool PackedCSRRegion::isWithin(const PackedCSRRegion& other) const {
+    if (other.level >= level) {
+        return false;
+    }
+    auto [left, right] = getSegmentBoundaries();
+    auto [otherLeft, otherRight] = other.getSegmentBoundaries();
+    KU_ASSERT(
+        (left < otherLeft && right > otherRight) || (left >= otherLeft && right <= otherRight));
+    return left >= otherLeft && right <= otherRight;
 }
 
 void PackedCSRRegion::setSizeChange(const std::vector<int64_t>& sizeChangesPerSegment) {
@@ -192,11 +203,6 @@ length_t CSRRelTableData::getNewRegionSize(const CSRHeaderChunks& header,
     return oldSize + region.sizeChange;
 }
 
-static PackedCSRRegion upgradeLevel(const PackedCSRRegion& region) {
-    auto regionIdx = region.regionIdx >> 1;
-    return PackedCSRRegion{regionIdx, region.level + 1};
-}
-
 // TODO: This is a naive implementation. We can do better by passing in left and right pos for node.
 static uint64_t findPosOfRelIDFromArray(ColumnChunk* relIDInRegion, offset_t relOffset) {
     for (auto i = 0u; i < relIDInRegion->getNumValues(); i++) {
@@ -221,22 +227,16 @@ bool CSRRelTableData::isWithinDensityBound(const CSRHeaderChunks& header,
     auto sizeInRegion = getNewRegionSize(header, sizeChangesPerSegment, region);
     auto capacityInRegion = getRegionCapacity(header, region);
     auto ratio = (double)sizeInRegion / (double)capacityInRegion;
-    auto [low, high] = getDensityRange(region.level);
-    return ratio <= high;
+    return ratio <= getHighDensity(region.level);
 }
 
-density_range_t CSRRelTableData::getDensityRange(uint64_t level) const {
+double CSRRelTableData::getHighDensity(uint64_t level) const {
+    KU_ASSERT(level <= packedCSRInfo.calibratorTreeHeight);
     if (level == 0) {
-        return std::make_pair(
-            StorageConstants::LEAF_LOW_CSR_DENSITY, StorageConstants::LEAF_HIGH_CSR_DENSITY);
+        return StorageConstants::LEAF_HIGH_CSR_DENSITY;
     }
-    if (level == packedCSRInfo.calibratorTreeHeight) {
-        return std::make_pair(StorageConstants::TOP_CSR_DENSITY, StorageConstants::TOP_CSR_DENSITY);
-    }
-    auto low = StorageConstants::TOP_CSR_DENSITY - (packedCSRInfo.lowDensityStep * (double)(level));
-    auto high =
-        StorageConstants::TOP_CSR_DENSITY - (packedCSRInfo.highDensityStep * (double)(level));
-    return std::make_pair(low, high);
+    return StorageConstants::PACKED_CSR_DENSITY +
+           (packedCSRInfo.highDensityStep * (double)(packedCSRInfo.calibratorTreeHeight - level));
 }
 
 static vector_idx_t getSegmentIdx(offset_t offset) {
@@ -386,7 +386,12 @@ void CSRRelTableData::distributeAndUpdateColumn(Transaction* transaction,
         transaction, nodeGroupIdx, dstOffsets, newChunk.get(), 0 /*srcOffset*/);
 }
 
-std::vector<PackedCSRRegion> CSRRelTableData::findRegionsToUpdate(
+static PackedCSRRegion upgradeLevel(const PackedCSRRegion& region) {
+    auto regionIdx = region.regionIdx >> 1;
+    return PackedCSRRegion{regionIdx, region.level + 1};
+}
+
+std::vector<PackedCSRRegion> CSRRelTableData::findRegions(
     const CSRHeaderChunks& headerChunks, LocalState& localState) {
     std::vector<PackedCSRRegion> regions;
     auto segmentIdx = 0u;
@@ -403,12 +408,15 @@ std::vector<PackedCSRRegion> CSRRelTableData::findRegionsToUpdate(
         while (!isWithinDensityBound(headerChunks, localState.sizeChangesPerSegment, region)) {
             region = upgradeLevel(region);
             if (region.level > packedCSRInfo.calibratorTreeHeight) {
-                // Already hit the top level. Break here.
-                break;
+                // Already hit the top level. Skip any other segments and directly return here.
+                return {region};
             }
         }
         // Skip segments in the found region.
         segmentIdx = (region.regionIdx << region.level) + (1u << region.level);
+        // Loop through found regions and eliminate the ones that are under the realm of the
+        // currently found region.
+        std::erase_if(regions, [&](const PackedCSRRegion& r) { return r.isWithin(region); });
         regions.push_back(region);
     }
     return regions;
@@ -699,6 +707,7 @@ void CSRRelTableData::applySliding(Transaction* transaction, node_group_idx_t no
         return;
     }
     auto [leftBoundary, rightBoundary] = localState.region.getNodeOffsetBoundaries();
+    std::vector<std::pair<offset_t, offset_t>> slides;
     for (auto i = leftBoundary; i <= rightBoundary; i++) {
         auto oldOffset = persistentState.header.getStartCSROffset(i);
         auto newOffset = localState.header.getStartCSROffset(i);
@@ -709,15 +718,26 @@ void CSRRelTableData::applySliding(Transaction* transaction, node_group_idx_t no
         if (length == 0) {
             continue;
         }
-        auto chunk = ColumnChunkFactory::createColumnChunk(
-            column->getDataType()->copy(), enableCompression, length);
-        column->scan(transaction, nodeGroupIdx, chunk.get(), oldOffset, oldOffset + length);
-        std::vector<offset_t> dstOffsets;
-        dstOffsets.resize(length);
-        fillSequence(dstOffsets, newOffset);
-        column->prepareCommitForChunk(
-            transaction, nodeGroupIdx, dstOffsets, chunk.get(), 0 /*dataOffset*/);
+        for (auto k = 0u; k < length; k++) {
+            slides.push_back({oldOffset + k, newOffset + k});
+        }
     }
+    if (slides.empty()) {
+        return;
+    }
+    auto chunk = ColumnChunkFactory::createColumnChunk(
+        column->getDataType()->copy(), enableCompression, slides.size());
+    std::vector<offset_t> dstOffsets;
+    dstOffsets.resize(slides.size());
+    auto tmpChunkForRead =
+        ColumnChunkFactory::createColumnChunk(column->getDataType()->copy(), enableCompression, 1);
+    for (auto i = 0u; i < slides.size(); i++) {
+        column->scan(
+            transaction, nodeGroupIdx, tmpChunkForRead.get(), slides[i].first, slides[i].first + 1);
+        chunk->append(tmpChunkForRead.get(), 0, 1);
+        dstOffsets[i] = slides[i].second;
+    }
+    column->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets, chunk.get(), 0);
 }
 
 static offset_t getMaxNumNodesInRegion(
@@ -797,7 +817,7 @@ void CSRRelTableData::distributeOffsets(const CSRHeaderChunks& header, LocalStat
         localState.regionSize =
             getNewRegionSize(header, localState.sizeChangesPerSegment, localState.region);
         localState.regionCapacity =
-            divideAndRoundUpTo(localState.regionSize, StorageConstants::TOP_CSR_DENSITY);
+            divideAndRoundUpTo(localState.regionSize, StorageConstants::PACKED_CSR_DENSITY);
     } else {
         localState.regionSize =
             getNewRegionSize(header, localState.sizeChangesPerSegment, localState.region);
@@ -823,7 +843,7 @@ void CSRRelTableData::prepareCommitNodeGroup(
     PersistentState persistentState(numNodesInPersistentStorage);
     csrHeaderColumns.scan(transaction, nodeGroupIdx, persistentState.header);
     LocalState localState(localRelNG);
-    auto regions = findRegionsToUpdate(persistentState.header, localState);
+    auto regions = findRegions(persistentState.header, localState);
     for (auto& region : regions) {
         localState.setRegion(region);
         updateCSRHeader(transaction, nodeGroupIdx, persistentState, localState);

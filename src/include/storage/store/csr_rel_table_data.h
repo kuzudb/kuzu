@@ -45,9 +45,15 @@ struct PackedCSRRegion {
     inline std::pair<common::offset_t, common::offset_t> getNodeOffsetBoundaries() const {
         return std::make_pair(leftBoundary, rightBoundary);
     }
+    inline std::pair<common::vector_idx_t, common::vector_idx_t> getSegmentBoundaries() const {
+        auto left = regionIdx << level;
+        return std::make_pair(left, left + (1 << level) - 1);
+    }
     inline bool isOutOfBoundary(common::offset_t nodeOffset) const {
         return nodeOffset < leftBoundary || nodeOffset > rightBoundary;
     }
+
+    bool isWithin(const PackedCSRRegion& other) const;
 
     void setSizeChange(const std::vector<int64_t>& sizeChangesPerSegment);
 };
@@ -114,13 +120,13 @@ public:
     void rollbackInMemory() override;
 
 private:
-    std::vector<PackedCSRRegion> findRegionsToUpdate(
+    std::vector<PackedCSRRegion> findRegions(
         const CSRHeaderChunks& headerChunks, LocalState& localState);
     common::length_t getNewRegionSize(const CSRHeaderChunks& header,
         const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region);
     bool isWithinDensityBound(const CSRHeaderChunks& headerChunks,
         const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region);
-    density_range_t getDensityRange(uint64_t level) const;
+    double getHighDensity(uint64_t level) const;
 
     void prepareCommitNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalRelNG* localRelNG);

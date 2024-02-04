@@ -66,6 +66,10 @@ struct CSRHeaderChunks {
     bool sanityCheck() const;
     void copyFrom(const CSRHeaderChunks& other) const;
     void fillDefaultValues(common::offset_t newNumValues) const;
+    inline void setNumValues(common::offset_t numValues) const {
+        offset->setNumValues(numValues);
+        length->setNumValues(numValues);
+    }
 };
 
 class CSRNodeGroup : public NodeGroup {
