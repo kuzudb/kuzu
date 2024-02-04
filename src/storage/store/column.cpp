@@ -460,6 +460,7 @@ static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const Logi
 }
 
 void Column::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
+    KU_ASSERT(enableCompression == columnChunk->isCompressionEnabled());
     // Main column chunk.
     auto preScanMetadata = columnChunk->getMetadataToFlush();
     auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
@@ -516,7 +517,7 @@ void Column::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, Column
 
 void Column::writeValues(const ColumnChunkMetadata& chunkMeta,
     common::node_group_idx_t nodeGroupIdx, common::offset_t dstOffset, const uint8_t* data,
-    common::offset_t dataOffset, common::offset_t numValues) {
+    common::offset_t srcOffset, common::offset_t numValues) {
     auto numValuesWritten = 0u;
     auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     while (numValuesWritten < numValues) {
@@ -525,7 +526,7 @@ void Column::writeValues(const ColumnChunkMetadata& chunkMeta,
         auto numValuesToWriteInPage =
             std::min(numValues - numValuesWritten, state.numValuesPerPage - walPageInfo.posInPage);
         try {
-            writeFunc(walPageInfo.frame, walPageInfo.posInPage, data, dataOffset + numValuesWritten,
+            writeFunc(walPageInfo.frame, walPageInfo.posInPage, data, srcOffset + numValuesWritten,
                 numValuesToWriteInPage, chunkMeta.compMeta);
         } catch (Exception& e) {
             DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
@@ -660,6 +661,11 @@ bool Column::isInsertionsOutOfPagesCapacity(
             maxOffset = offset;
         }
     }
+    return isMaxOffsetOutOfPagesCapacity(metadata, maxOffset);
+}
+
+bool Column::isMaxOffsetOutOfPagesCapacity(
+    const ColumnChunkMetadata& metadata, offset_t maxOffset) {
     if (metadata.compMeta.compression != CompressionType::CONSTANT &&
         (metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType) *
             metadata.numPages) <= (maxOffset + 1)) {
@@ -713,11 +719,7 @@ bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGro
     common::offset_t srcOffset) {
     auto maxDstOffset = getMaxOffset(dstOffsets);
     auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
-    if (metadata.compMeta.compression != CompressionType::CONSTANT &&
-        (metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType) *
-            metadata.numPages) <= maxDstOffset) {
-        // Note that for constant compression, `metadata.numPages` will be equal to 0. Thus, this
-        // function will always return false.
+    if (isMaxOffsetOutOfPagesCapacity(metadata, maxDstOffset)) {
         return false;
     }
     if (metadata.compMeta.canAlwaysUpdateInPlace()) {

@@ -380,8 +380,9 @@ std::vector<Column*> StorageInfoSharedState::collectColumns(Column* column) {
     } break;
     case PhysicalTypeID::STRING: {
         auto stringColumn = ku_dynamic_cast<Column*, StringColumn*>(column);
-        result.push_back(stringColumn->getDataColumn());
-        result.push_back(stringColumn->getOffsetColumn());
+        auto& dictionary = stringColumn->getDictionary();
+        result.push_back(dictionary.getDataColumn());
+        result.push_back(dictionary.getOffsetColumn());
     } break;
     case PhysicalTypeID::VAR_LIST: {
         auto varListColumn = ku_dynamic_cast<Column*, VarListColumn*>(column);

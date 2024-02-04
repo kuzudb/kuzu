@@ -28,7 +28,8 @@ struct CopyRelInfo {
           dataFormat{dataFormat}, wal{wal}, compressionEnabled{compressionEnabled} {}
     CopyRelInfo(const CopyRelInfo& other)
         : schema{other.schema}, partitioningIdx{other.partitioningIdx},
-          dataDirection{other.dataDirection}, dataFormat{other.dataFormat}, wal{other.wal} {}
+          dataDirection{other.dataDirection}, dataFormat{other.dataFormat}, wal{other.wal},
+          compressionEnabled{other.compressionEnabled} {}
 
     inline std::unique_ptr<CopyRelInfo> copy() { return std::make_unique<CopyRelInfo>(*this); }
 };

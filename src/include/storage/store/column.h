@@ -34,12 +34,12 @@ class Column {
     friend class VarListLocalColumn;
     friend class StructColumn;
 
+public:
     struct ReadState {
         ColumnChunkMetadata metadata;
         uint64_t numValuesPerPage;
     };
 
-public:
     Column(std::string name, std::unique_ptr<common::LogicalType> dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
@@ -162,6 +162,8 @@ protected:
 private:
     bool isInsertionsOutOfPagesCapacity(
         const ColumnChunkMetadata& metadata, const offset_to_row_idx_t& insertInfo);
+    bool isMaxOffsetOutOfPagesCapacity(
+        const ColumnChunkMetadata& metadata, common::offset_t maxOffset);
     bool checkUpdateInPlace(const ColumnChunkMetadata& metadata, LocalVectorCollection* localChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
     virtual bool canCommitInPlace(transaction::Transaction* transaction,

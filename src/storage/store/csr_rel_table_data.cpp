@@ -371,6 +371,9 @@ void CSRRelTableData::distributeAndUpdateColumn(Transaction* transaction,
         auto csrOffsetInRegion =
             persistentState.header.getStartCSROffset(nodeOffset) - persistentState.leftCSROffset;
         auto length = persistentState.header.getCSRLength(nodeOffset);
+        if (length == 0) {
+            continue;
+        }
         auto newCSROffsetInRegion =
             localState.header.getStartCSROffset(nodeOffset) - localState.leftCSROffset;
         KU_ASSERT(!relNGInfo->deleteInfo.contains(nodeOffset));
