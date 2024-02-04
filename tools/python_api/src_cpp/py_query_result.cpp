@@ -4,18 +4,18 @@
 
 #include "common/arrow/arrow_converter.h"
 #include "common/exception/not_implemented.h"
+#include "common/types/uuid.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
-#include "common/types/uuid.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
 
 using namespace kuzu::common;
 
-#define PyDateTimeTZ_FromDateAndTime(year, month, day, hour, min, sec, usec, timezone) \
-    PyDateTimeAPI->DateTime_FromDateAndTime(year, month, day, hour, \
-        min, sec, usec, timezone, PyDateTimeAPI->DateTimeType)
+#define PyDateTimeTZ_FromDateAndTime(year, month, day, hour, min, sec, usec, timezone)             \
+    PyDateTimeAPI->DateTime_FromDateAndTime(                                                       \
+        year, month, day, hour, min, sec, usec, timezone, PyDateTimeAPI->DateTimeType)
 
 void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
@@ -82,6 +82,74 @@ static py::object converTimestampToPyObject(timestamp_t& timestamp) {
     Time::Convert(time, hour, min, sec, micros);
     return py::cast<py::object>(
         PyDateTime_FromDateAndTime(year, month, day, hour, min, sec, micros));
+}
+
+py::object convertRdfVariantToPyObject(const Value& value) {
+    auto typeVal = NestedVal::getChildVal(&value, 0);
+    auto type = static_cast<LogicalTypeID>(typeVal->getValue<uint8_t>());
+    auto blobData = NestedVal::getChildVal(&value, 1)->strVal.data();
+    switch (type) {
+    case LogicalTypeID::STRING: {
+        return py::str(NestedVal::getChildVal(&value, 1)->strVal);
+    }
+    case LogicalTypeID::BLOB: {
+        auto blobStr = Blob::getValue<blob_t>(blobData).value.getAsString();
+        return py::bytes(blobStr.c_str(), blobStr.size());
+    }
+    case LogicalTypeID::INT64: {
+        return py::cast(Blob::getValue<int64_t>(blobData));
+    }
+    case LogicalTypeID::INT32: {
+        return py::cast(Blob::getValue<int32_t>(blobData));
+    }
+    case LogicalTypeID::INT16: {
+        return py::cast(Blob::getValue<int16_t>(blobData));
+    }
+    case LogicalTypeID::INT8: {
+        return py::cast(Blob::getValue<int8_t>(blobData));
+    }
+    case LogicalTypeID::UINT64: {
+        return py::cast(Blob::getValue<uint64_t>(blobData));
+    }
+    case LogicalTypeID::UINT32: {
+        return py::cast(Blob::getValue<uint32_t>(blobData));
+    }
+    case LogicalTypeID::UINT16: {
+        return py::cast(Blob::getValue<uint16_t>(blobData));
+    }
+    case LogicalTypeID::UINT8: {
+        return py::cast(Blob::getValue<uint8_t>(blobData));
+    }
+    case LogicalTypeID::DOUBLE: {
+        return py::cast(Blob::getValue<double>(blobData));
+    }
+    case LogicalTypeID::FLOAT: {
+        return py::cast(Blob::getValue<float>(blobData));
+    }
+    case LogicalTypeID::BOOL: {
+        return py::cast(Blob::getValue<bool>(blobData));
+    }
+    case LogicalTypeID::DATE: {
+        auto dateVal = Blob::getValue<date_t>(blobData);
+        int32_t year, month, day;
+        Date::convert(dateVal, year, month, day);
+        return py::cast<py::object>(PyDate_FromDate(year, month, day));
+    }
+    case LogicalTypeID::TIMESTAMP: {
+        auto timestampVal = Blob::getValue<timestamp_t>(blobData);
+        return converTimestampToPyObject(timestampVal);
+    }
+    case LogicalTypeID::INTERVAL: {
+        auto intervalVal = Blob::getValue<interval_t>(blobData);
+        auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
+        return py::cast<py::object>(py::module::import("datetime")
+                                        .attr("timedelta")(py::arg("days") = days,
+                                            py::arg("microseconds") = intervalVal.micros));
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
 }
 
 py::object PyQueryResult::convertValueToPyObject(const Value& value) {
@@ -164,19 +232,22 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         Date::convert(date, year, month, day);
         Time::Convert(time, hour, min, sec, micros);
 
-        return py::cast<py::object>(PyDateTimeTZ_FromDateAndTime(year, month, day, hour, min, sec,
-            micros, PyDateTime_TimeZone_UTC));
+        return py::cast<py::object>(PyDateTimeTZ_FromDateAndTime(
+            year, month, day, hour, min, sec, micros, PyDateTime_TimeZone_UTC));
     }
     case LogicalTypeID::TIMESTAMP_NS: {
-        timestamp_t timestampVal = Timestamp::fromEpochNanoSeconds(value.getValue<timestamp_ns_t>().value);
+        timestamp_t timestampVal =
+            Timestamp::fromEpochNanoSeconds(value.getValue<timestamp_ns_t>().value);
         return converTimestampToPyObject(timestampVal);
     }
     case LogicalTypeID::TIMESTAMP_MS: {
-        timestamp_t timestampVal = Timestamp::fromEpochMilliSeconds(value.getValue<timestamp_ms_t>().value);
+        timestamp_t timestampVal =
+            Timestamp::fromEpochMilliSeconds(value.getValue<timestamp_ms_t>().value);
         return converTimestampToPyObject(timestampVal);
     }
     case LogicalTypeID::TIMESTAMP_SEC: {
-        timestamp_t timestampVal = Timestamp::fromEpochSeconds(value.getValue<timestamp_sec_t>().value);
+        timestamp_t timestampVal =
+            Timestamp::fromEpochSeconds(value.getValue<timestamp_sec_t>().value);
         return converTimestampToPyObject(timestampVal);
     }
     case LogicalTypeID::INTERVAL: {
@@ -256,10 +327,15 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::INTERNAL_ID: {
         return convertNodeIdToPyDict(value.getValue<nodeID_t>());
     }
+    case LogicalTypeID::RDF_VARIANT: {
+        return convertRdfVariantToPyObject(value);
+    }
+
     default:
         throw NotImplementedException("Unsupported type: " + dataType->toString());
     }
 }
+
 
 py::object PyQueryResult::getAsDF() {
     return QueryResultConverter(queryResult.get()).toDF();

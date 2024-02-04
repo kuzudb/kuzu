@@ -73,6 +73,29 @@ def init_movie_serial(conn):
         f'copy moviesSerial from "{KUZU_ROOT}/dataset/tinysnb-serial/vMovies.csv"'
     )
 
+def init_rdf(conn):
+    conn.execute("CREATE RDFGraph T;")
+    conn.execute(
+        """    
+        CREATE (:T_l {val:cast(12, "INT64")}),
+            (:T_l {val:cast(43, "INT32")}),
+            (:T_l {val:cast(33, "INT16")}),
+            (:T_l {val:cast(2, "INT8")}),
+            (:T_l {val:cast(90, "UINT64")}),
+            (:T_l {val:cast(77, "UINT32")}),
+            (:T_l {val:cast(12, "UINT16")}),
+            (:T_l {val:cast(1, "UINT8")}),
+            (:T_l {val:cast(4.4, "DOUBLE")}),
+            (:T_l {val:cast(1.2, "FLOAT")}),
+            (:T_l {val:true}),
+            (:T_l {val:"hhh"}),
+            (:T_l {val:cast("2024-01-01", "DATE")}),
+            (:T_l {val:cast("2024-01-01 11:25:30Z+00:00", "TIMESTAMP")}),
+            (:T_l {val:cast("2 day", "INTERVAL")}),
+            (:T_l {val:cast("\\\\xB2", "BLOB")})
+        """
+    )
+
 
 @pytest.fixture
 def init_db(tmp_path):
@@ -86,6 +109,7 @@ def init_db(tmp_path):
     init_tensor(conn)
     init_long_str(conn)
     init_movie_serial(conn)
+    init_rdf(conn)
     return output_path
 
 

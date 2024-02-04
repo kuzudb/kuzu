@@ -291,7 +291,7 @@ def test_struct(establish_connection):
 def test_recursive_rel(establish_connection):
     conn, db = establish_connection
     result = conn.execute(
-        "MATCH (a:person)-[e*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;"
+        "MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;"
     )
     assert result.has_next()
     n = result.get_next()
@@ -305,13 +305,55 @@ def test_recursive_rel(establish_connection):
     excepted_rel = {'_src': {'offset': 0, 'table': 0},
                     '_dst': {'offset': 0, 'table': 1},
                     '_label': 'studyAt',
-                    'date': None, 'meetTime': None, 'validInterval': None,
-                    'comments': None, 'year': 2021,
+                    'year': 2021,
                     'places': ['wwAewsdndweusd', 'wek'],
                     'length': 5, 'level': 5, 'code': 9223372036854775808, 'temprature':32800,
                     'ulength':33768, 'ulevel': 250, 'hugedata': 1844674407370955161811111111,
-                    'grading': None, 'rating': None, 'location': None, 'times': None, 'data': None,
-                    'usedAddress': None, 'address': None, 'note': None, 'notes': None, 'someMap': None, 'summary': None}
+                    }
     assert (rel == excepted_rel)
     assert not result.has_next()
+    result.close()
+
+def test_rdf_variant(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("MATCH (a:T_l) RETURN a.val ORDER BY a.id")
+    assert result.has_next()
+    assert result.get_next() == [12]
+    assert result.has_next()
+    assert result.get_next() == [43]
+    assert result.has_next()
+    assert result.get_next() == [33]
+    assert result.has_next()
+    assert result.get_next() == [2]
+    assert result.has_next()
+    assert result.get_next() == [90]
+    assert result.has_next()
+    assert result.get_next() == [77]
+    assert result.has_next()
+    assert result.get_next() == [12]
+    assert result.has_next()
+    assert result.get_next() == [1]
+    assert result.has_next()
+    float_result = result.get_next()[0]
+    assert abs(float_result - 4.4) < 0.00001
+    assert result.has_next()
+    float_result = result.get_next()[0]
+    assert abs(float_result - 1.2) < 0.00001
+    assert result.has_next()
+    assert result.get_next() == [True]
+    assert result.has_next()
+    assert result.get_next() == ["hhh"]
+    assert result.has_next()
+    assert result.get_next() == [datetime.date(2024, 1, 1)]
+    assert result.has_next()
+    assert result.get_next() == [datetime.datetime(2024, 1, 1, 11, 25, 30)]
+    assert result.has_next()
+    assert result.get_next() == [datetime.timedelta(days=2)]
+    assert result.has_next()
+    result_blob = result.get_next()[0]
+    assert len(result_blob) == 1
+    assert result_blob[0] == 0xB2
+    assert not result.has_next()
+    result.close()
+    result = conn.execute("DROP RDFGraph T;")
     result.close()
