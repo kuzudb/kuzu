@@ -140,7 +140,7 @@ struct UnaryFunctionExecutor {
             auto inputPos = operand.state->selVector->selectedPositions[0];
             auto resultPos = result.state->selVector->selectedPositions[0];
             result.setNull(resultPos, operand.isNull(inputPos));
-            if (!result.isNull(inputPos)) {
+            if (!result.isNull(resultPos)) {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                     operand, inputPos, result, resultPos, dataPtr);
             }

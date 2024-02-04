@@ -81,7 +81,9 @@ Type::type ParquetWriter::convertToParquetType(LogicalType* type) {
     case LogicalTypeID::INTERVAL:
         return Type::FIXED_LEN_BYTE_ARRAY;
     default:
-        KU_UNREACHABLE;
+        throw RuntimeException{
+            stringFormat("Writing a column with type: {} to parquet is not supported.",
+                LogicalTypeUtils::toString(type->getLogicalTypeID()))};
     }
 }
 
