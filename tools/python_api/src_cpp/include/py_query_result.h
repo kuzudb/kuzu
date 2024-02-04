@@ -56,6 +56,7 @@ private:
 
     bool getNextArrowChunk(const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo,
         py::list& batches, std::int64_t chunk_size);
+
     py::object getArrowChunks(
         const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, std::int64_t chunkSize);
 

@@ -57,6 +57,28 @@ const initTests = async () => {
      'copy moviesSerial from "../../dataset/tinysnb-serial/vMovies.csv"'
   );
 
+  await conn.query("CREATE RDFGraph T;");
+  await conn.query(
+      ` 
+        CREATE (:T_l {val:cast(12, "INT64")}),
+            (:T_l {val:cast(43, "INT32")}),
+            (:T_l {val:cast(33, "INT16")}),
+            (:T_l {val:cast(2, "INT8")}),
+            (:T_l {val:cast(90, "UINT64")}),
+            (:T_l {val:cast(77, "UINT32")}),
+            (:T_l {val:cast(12, "UINT16")}),
+            (:T_l {val:cast(1, "UINT8")}),
+            (:T_l {val:cast(4.4, "DOUBLE")}),
+            (:T_l {val:cast(1.2, "FLOAT")}),
+            (:T_l {val:true}),
+            (:T_l {val:"hhh"}),
+            (:T_l {val:cast("2024-01-01", "DATE")}),
+            (:T_l {val:cast("2024-01-01 11:25:30Z+00:00", "TIMESTAMP")}),
+            (:T_l {val:cast("2 day", "INTERVAL")}),
+            (:T_l {val:cast("\\\\xB2", "BLOB")})
+        `
+    );
+
   global.dbPath = dbPath;
   global.db = db;
   global.conn = conn;
