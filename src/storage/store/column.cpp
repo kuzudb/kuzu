@@ -304,7 +304,7 @@ void Column::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx, Colum
             auto numValuesToReadInPage = std::min(
                 numValuesPerPage - cursor.elemPosInPage, numValuesToScan - numValuesScanned);
             KU_ASSERT(isPageIdxValid(cursor.pageIdx, chunkMetadata));
-            readFromPage(&DUMMY_READ_TRANSACTION, cursor.pageIdx, [&](uint8_t* frame) -> void {
+            readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
                 readToPageFunc(frame, cursor, columnChunk->getData(), numValuesScanned,
                     numValuesToReadInPage, chunkMetadata.compMeta);
             });

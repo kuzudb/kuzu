@@ -17,6 +17,11 @@ struct CSRHeaderColumns {
         offset->scan(transaction, nodeGroupIdx, chunks.offset.get());
         length->scan(transaction, nodeGroupIdx, chunks.length.get());
     }
+    inline void append(
+        const CSRHeaderChunks& headerChunks, common::node_group_idx_t nodeGroupIdx) const {
+        offset->append(headerChunks.offset.get(), nodeGroupIdx);
+        length->append(headerChunks.length.get(), nodeGroupIdx);
+    }
 
     common::offset_t getNumNodes(
         transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx) const;
@@ -154,7 +159,7 @@ private:
     void slideRightForInsertions(common::offset_t nodeOffset, common::offset_t rightBoundary,
         LocalState& localState, uint64_t numValuesToInsert);
 
-    void applyUpdatesToChunk(ColumnChunk* relIDChunk, const PackedCSRRegion& region,
+    void applyUpdatesToChunk(const PersistentState& persistentState, const PackedCSRRegion& region,
         LocalVectorCollection* localChunk, const update_insert_info_t& updateInfo,
         ColumnChunk* chunk);
     void applyInsertionsToChunk(const PersistentState& persistentState,
@@ -164,8 +169,8 @@ private:
         const delete_info_t& deleteInfo, ColumnChunk* chunk);
 
     void applyUpdatesToColumn(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::column_id_t columnID, LocalState& localState,
-        ColumnChunk* relIDChunk, Column* column);
+        common::node_group_idx_t nodeGroupIdx, common::column_id_t columnID,
+        const PersistentState& persistentState, LocalState& localState, Column* column);
     void applyInsertionsToColumn(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::column_id_t columnID, LocalState& localState,
         const PersistentState& persistentState, Column* column);
@@ -202,6 +207,9 @@ private:
             offsets[i] = i + startOffset;
         }
     }
+
+    common::offset_t findCSROffsetInRegion(const PersistentState& persistentState,
+        common::offset_t nodeOffset, common::offset_t relOffset) const;
 
 private:
     PackedCSRInfo packedCSRInfo;

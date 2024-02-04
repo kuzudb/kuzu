@@ -96,13 +96,15 @@ private:
     void prepareCSRNodeGroup(common::DataChunkCollection* partition,
         common::vector_idx_t offsetVectorIdx, common::offset_t numNodes);
 
-    static void populateCSROffsetsAndLengths(storage::CSRNodeGroup* csrNodeGroup,
-        common::offset_t numNodes, common::DataChunkCollection* partition,
-        common::vector_idx_t offsetVectorIdx);
+    static void populateStartCSROffsetsAndLengths(storage::CSRHeaderChunks& csrHeader,
+        std::vector<common::offset_t>& gaps, common::offset_t numNodes,
+        common::DataChunkCollection* partition, common::vector_idx_t offsetVectorIdx);
+    static void populateEndCSROffsets(
+        storage::CSRHeaderChunks& csrHeader, std::vector<common::offset_t>& gaps);
     static void setOffsetToWithinNodeGroup(
         common::ValueVector* vector, common::offset_t startOffset);
     static void setOffsetFromCSROffsets(
-        common::ValueVector* offsetVector, common::offset_t* csrOffsets);
+        common::ValueVector* offsetVector, storage::ColumnChunk* offsetChunk);
 
 protected:
     std::unique_ptr<CopyRelInfo> info;
