@@ -63,7 +63,7 @@ struct LiteralTripleStore final : public RdfStore {
     std::vector<std::string> subjects;
     std::vector<std::string> predicates;
     std::vector<std::string> objects;
-    std::vector<common::LogicalTypeID> objectTypes; //
+    std::vector<common::LogicalTypeID> objectTypes;
     std::vector<std::string> langs;
 
     inline bool isEmpty() const override { return subjects.empty(); }

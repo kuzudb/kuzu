@@ -19,7 +19,8 @@ public:
 
     common::offset_t readChunk(common::DataChunk* dataChunk);
     void readAll();
-    void addNode(std::vector<std::string>& vector, const SerdNode* node);
+
+    std::string getAsString(const SerdNode* node);
 
     inline uint64_t getNumLiteralTriplesScanned() const { return numLiteralTriplesScanned; }
 
