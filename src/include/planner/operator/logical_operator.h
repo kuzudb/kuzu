@@ -24,7 +24,6 @@ enum class LogicalOperatorType : uint8_t {
     EXPLAIN,
     EXPRESSIONS_SCAN,
     EXTEND,
-    FILL_TABLE_ID,
     FILTER,
     FLATTEN,
     HASH_JOIN,

@@ -15,7 +15,6 @@ add_library(kuzu_processor_operator
         comment_on.cpp
         cross_product.cpp
         empty_result.cpp
-        fill_table_id.cpp
         filter.cpp
         filtering_operator.cpp
         flatten.cpp

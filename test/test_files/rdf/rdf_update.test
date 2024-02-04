@@ -41,6 +41,19 @@ Binder exception: Cannot bind X as a node pattern label.
 -STATEMENT ALTER TABLE X_r RENAME TO hh;
 ---- error
 Binder exception: Cannot alter table X_r because it is referenced by rdfGraph X.
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "a"})-[:R_rt {iri: "b"}]->(b:R_r {iri: "c"});
+---- ok
+-STATEMENT CREATE (a:X_r {iri: "x"})-[:X_rt {iri: "y"}]->(b:X_r {iri: "z"});
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri
+---- 2
+a|b|c
+x|y|z
+-STATEMENT MATCH (a)-[e:R_rt]->(b) RETURN a.iri, e.iri, b.iri
+---- 1
+a|b|c
 
 -CASE EmptyUpdate
 -STATEMENT CREATE RDFGraph T;
