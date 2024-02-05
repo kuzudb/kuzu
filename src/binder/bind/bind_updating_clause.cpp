@@ -206,6 +206,9 @@ void Binder::bindInsertRel(
         pNode->addPropertyDataExpr(
             std::string(rdf::IRI), rel->getPropertyDataExpr(std::string(rdf::IRI)));
         bindInsertNode(pNode, infos);
+        auto nodeInsertInfo = &infos[infos.size() - 1];
+        KU_ASSERT(nodeInsertInfo->columnExprs.size() == 1);
+        nodeInsertInfo->iriReplaceExpr = rel->getPropertyExpression(std::string(rdf::IRI));
         // Insert triple rel.
         auto relInsertInfo = BoundInsertInfo(TableType::REL, rel);
         std::unordered_map<std::string, std::shared_ptr<Expression>> relPropertyRhsExpr;
