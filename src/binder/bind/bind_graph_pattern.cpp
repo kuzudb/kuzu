@@ -241,20 +241,42 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     // For rdf rel table, we store predicate ID instead of predicate IRI. However, we need to hide
     // this information from the user. The following code block tries to create a IRI property
     // expression to mock as if predicate IRI exists in rel table.
-    common::table_id_set_t resourceTableIDSet;
+    common::table_id_set_t rdfGraphTableIDSet;
+    common::table_id_set_t nonRdfRelTableIDSet;
     for (auto& tableID : relTableIDs) {
+        bool isRdfRelTable = false;
         for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
             if (schema->isParent(tableID)) {
                 KU_ASSERT(schema->getTableType() == TableType::RDF);
-                auto rdfGraphSchema =
-                    ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(schema);
-                resourceTableIDSet.insert(rdfGraphSchema->getResourceTableID());
+                rdfGraphTableIDSet.insert(schema->getTableID());
+                isRdfRelTable = true;
             }
         }
+        if (!isRdfRelTable) {
+            nonRdfRelTableIDSet.insert(tableID);
+        }
     }
-    auto resourceTableIDs =
-        common::table_id_vector_t{resourceTableIDSet.begin(), resourceTableIDSet.end()};
-    if (!resourceTableIDs.empty()) {
+    if (!rdfGraphTableIDSet.empty()) {
+        if (!nonRdfRelTableIDSet.empty()) {
+            auto relTableName =
+                catalog.getTableSchema(clientContext->getTx(), *nonRdfRelTableIDSet.begin())
+                    ->getName();
+            auto rdfGraphName =
+                catalog.getTableSchema(clientContext->getTx(), *rdfGraphTableIDSet.begin())
+                    ->getName();
+            throw BinderException(
+                stringFormat("Relationship pattern {} contains both property graph relationship "
+                             "label {} and RDFGraph label {}. Mixing two tables in the same "
+                             "relationship pattern is not supported.",
+                    parsedName, relTableName, rdfGraphName));
+        }
+        common::table_id_vector_t resourceTableIDs;
+        for (auto& tableID : rdfGraphTableIDSet) {
+            auto schema = catalog.getTableSchema(clientContext->getTx(), tableID);
+            auto rdfGraphSchema =
+                ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(schema);
+            resourceTableIDs.push_back(rdfGraphSchema->getResourceTableID());
+        }
         auto pID =
             expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
         auto rdfInfo = std::make_unique<RdfPredicateInfo>(resourceTableIDs, std::move(pID));
