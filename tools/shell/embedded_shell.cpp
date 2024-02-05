@@ -202,6 +202,25 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
     strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
 }
 
+int EmbeddedShell::processShellCommands(std::string lineStr) {
+    if (lineStr == shellCommand.HELP) {
+        printHelp();
+    } else if (lineStr == shellCommand.CLEAR) {
+        linenoiseClearScreen();
+    } else if (lineStr == shellCommand.QUIT) {
+        return -1;
+    } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
+        setNumThreads(lineStr.substr(strlen(shellCommand.THREAD)));
+    } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
+        setLoggingLevel(lineStr.substr(strlen(shellCommand.LOGGING_LEVEL)));
+    } else if (lineStr.rfind(shellCommand.QUERY_TIMEOUT) == 0) {
+        setQueryTimeout(lineStr.substr(strlen(shellCommand.QUERY_TIMEOUT)));
+    } else {
+        printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
+    }
+    return 0;
+}
+
 EmbeddedShell::EmbeddedShell(
     const std::string& databasePath, const SystemConfig& systemConfig, const char* pathToHistory) {
     path_to_history = pathToHistory;
@@ -223,6 +242,7 @@ void EmbeddedShell::run() {
     int numCtrlC = 0;
     while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT)) != nullptr) {
         auto lineStr = std::string(line);
+        lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
             if (!continueLine && lineStr[1] == '\0') {
                 numCtrlC++;
@@ -242,39 +262,29 @@ void EmbeddedShell::run() {
             currLine = "";
             continueLine = false;
         }
-        if (lineStr == shellCommand.HELP) {
-            printHelp();
-        } else if (lineStr == shellCommand.CLEAR) {
-            linenoiseClearScreen();
-        } else if (lineStr == shellCommand.QUIT) {
+        if (!continueLine && lineStr[0] == ':' && processShellCommands(lineStr) < 0) {
             free(line);
             break;
-        } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
-            setNumThreads(lineStr.substr(strlen(shellCommand.THREAD)));
-        } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
-            setLoggingLevel(lineStr.substr(strlen(shellCommand.LOGGING_LEVEL)));
-        } else if (lineStr.rfind(shellCommand.QUERY_TIMEOUT) == 0) {
-            setQueryTimeout(lineStr.substr(strlen(shellCommand.QUERY_TIMEOUT)));
-        } else if (!lineStr.empty()) {
+        } else if (!lineStr.empty() && lineStr.back() == ';') {
             ss.clear();
             ss.str(lineStr);
             while (getline(ss, query, ';')) {
-                if (ss.eof() && ss.peek() == -1) {
-                    continueLine = true;
-                    currLine += query + " ";
+                auto queryResult = conn->query(query);
+                if (queryResult->isSuccess()) {
+                    printExecutionResult(*queryResult);
                 } else {
-                    auto queryResult = conn->query(query);
-                    if (queryResult->isSuccess()) {
-                        printExecutionResult(*queryResult);
-                    } else {
-                        printf("Error: %s\n", queryResult->getErrorMessage().c_str());
-                    }
+                    printf("Error: %s\n", queryResult->getErrorMessage().c_str());
                 }
             }
+        } else if (!lineStr.empty() && lineStr[0] != ':') {
+            continueLine = true;
+            currLine += lineStr + " ";
         }
         updateTableNames();
 
-        linenoiseHistoryAdd(line);
+        if (!continueLine) {
+            linenoiseHistoryAdd(lineStr.c_str());
+        }
         linenoiseHistorySave(path_to_history);
         free(line);
     }
@@ -384,7 +394,7 @@ void EmbeddedShell::setLoggingLevel(const std::string& loggingLevel) {
     try {
         database->setLoggingLevel(level);
         printf("logging level has been set to: %s.\n", level.c_str());
-    } catch (Exception& e) { printf("%s", e.what()); }
+    } catch (Exception& e) { printf("%s\n", e.what()); }
 }
 
 void EmbeddedShell::setQueryTimeout(const std::string& timeoutInMS) {

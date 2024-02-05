@@ -190,7 +190,7 @@
 
 using namespace kuzu::utf8proc;
 
-#define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
+#define LINENOISE_DEFAULT_HISTORY_MAX_LEN 1000
 #define LINENOISE_MAX_LINE 4096
 #define LINENOISE_HISTORY_NEXT 0
 #define LINENOISE_HISTORY_PREV 1
@@ -443,7 +443,7 @@ static int enableRawMode(int fd) {
     raw.c_cc[VTIME] = 0; /* 1 byte, no timer */
 
     /* put terminal in raw mode after flushing */
-    if (tcsetattr(fd, TCSAFLUSH, &raw) < 0)
+    if (tcsetattr(fd, TCSADRAIN, &raw) < 0)
         goto fatal;
     rawmode = 1;
 #else
@@ -491,7 +491,7 @@ static void disableRawMode(int fd) {
     rawmode = 0;
 #else
     /* Don't even check the return value as it's too late. */
-    if (rawmode && tcsetattr(fd, TCSAFLUSH, &orig_termios) != -1)
+    if (rawmode && tcsetattr(fd, TCSADRAIN, &orig_termios) != -1)
         rawmode = 0;
 #endif
 }
@@ -1780,22 +1780,13 @@ static int linenoiseEdit(
         int nread;
         char seq[5];
 
-        if (inputLeft) {
-            c = oldInput[0];
-            oldInput.erase(0, 1);
-            if (!c) {
-                inputLeft = false;
-            }
-        }
-        if (!inputLeft) {
 #ifdef _WIN32
-            nread = win32read(&c);
+        nread = win32read(&c);
 #else
-            nread = read(l.ifd, &c, 1);
+        nread = read(l.ifd, &c, 1);
 #endif
-            if (nread <= 0)
-                return l.len;
-        }
+        if (nread <= 0)
+            return l.len;
 
         l.cols = getColumns(stdin_fd, stdout_fd);
 
@@ -1812,7 +1803,14 @@ static int linenoiseEdit(
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
          * character that should be handled next. */
-        if (c == 9 && completionCallback != NULL) {
+        if (c == TAB && completionCallback != NULL) {
+            if (pastedInput(l.ifd)) {
+                for (int i = 0; i < 4; i++) {
+                    if (linenoiseEditInsert(&l, ' '))
+                        return -1;
+                }
+                continue;
+            }
             c = completeLine(&l);
             /* Return on errors */
             if (c < 0)
@@ -1844,14 +1842,6 @@ static int linenoiseEdit(
             return (int)l.len;
         case 10:
         case ENTER:  /* enter */
-            if (pastedInput(l.ifd)) {
-                linenoiseEditInsert(&l, ' ');
-                inputLeft = true;
-                while (pastedInput(l.ifd)) {
-                    read(l.ifd, &c, 1);
-                    oldInput += c;
-                }
-            }
             history_len--;
             free(history[history_len]);
             if (mlmode)
@@ -2222,15 +2212,42 @@ int linenoiseHistoryAdd(const char* line) {
         memset(history, 0, (sizeof(char*) * history_max_len));
     }
 
-    /* Don't add duplicated lines. */
-    if (history_len && !strcmp(history[history_len - 1], line))
-        return 0;
-
     /* Add an heap allocated copy of the line in the history.
      * If we reached the max length, remove the older line. */
     linecopy = strdup(line);
     if (!linecopy)
         return 0;
+
+    if (!mlmode) {
+        std::string singleLineCopy = "";
+        int spaceCount = 0;
+        // replace all newlines and tabs with spaces
+        for (auto i = 0u; i < strlen(linecopy); i++) {
+            if (linecopy[i] == '\n' || linecopy[i] == '\r' || linecopy[i] == '\t' ||
+                linecopy[i] == ' ') {
+                spaceCount++;
+                if (spaceCount >= 4) {
+                    spaceCount = 0;
+                    singleLineCopy += ' ';
+                }
+            } else {
+                for (int j = 0; j < spaceCount; j++) {
+                    singleLineCopy += ' ';
+                }
+                spaceCount = 0;
+                singleLineCopy += linecopy[i];
+            }
+        }
+        free(linecopy);
+        linecopy = strdup(singleLineCopy.c_str());
+    }
+
+    /* Don't add duplicated lines. */
+    if (history_len && !strcmp(history[history_len - 1], linecopy)) {
+        free(linecopy);
+        return 0;
+    }
+    
     if (history_len == history_max_len) {
         free(history[0]);
         memmove(history, history + 1, sizeof(char*) * (history_max_len - 1));
@@ -2309,21 +2326,43 @@ int linenoiseHistorySave(const char* filename) {
  * on error -1 is returned. */
 int linenoiseHistoryLoad(const char* filename) {
     FILE* fp = fopen(filename, "r");
-    char buf[LINENOISE_MAX_LINE];
+    char buf[LINENOISE_MAX_LINE + 1];
+    buf[LINENOISE_MAX_LINE] = '\0';
 
     if (fp == NULL)
         return -1;
 
+    std::string result;
     while (fgets(buf, LINENOISE_MAX_LINE, fp) != NULL) {
         char* p;
 
+        // strip the newline first
         p = strchr(buf, '\r');
-        if (!p)
+        if (!p) {
             p = strchr(buf, '\n');
-        if (p)
+        }
+        if (p) {
             *p = '\0';
-        linenoiseHistoryAdd(buf);
+        }
+        if (result.empty() && buf[0] == ':') {
+            // if the first character is a colon this is a colon command
+            // add the full line to the history
+            linenoiseHistoryAdd(buf);
+            continue;
+        }
+        // else we are parsing a Cypher statement
+        result += buf;
+        if (result.back() == ';') {
+            // this line contains a full Cypher statement - add it to the history
+            linenoiseHistoryAdd(result.c_str());
+            result = std::string();
+            continue;
+        }
+        // the result does not contain a full Cypher statement - add a newline deliminator and move on
+        // to the next line
+        result += "\r\n";
     }
     fclose(fp);
+
     return 0;
 }

@@ -20,6 +20,8 @@ public:
     static void interruptHandler(int signal);
 
 private:
+    int processShellCommands(std::string lineStr);
+
     void setNumThreads(const std::string& numThreadsString);
 
     void printNodeSchema(const std::string& tableName);
