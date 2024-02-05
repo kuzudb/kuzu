@@ -100,6 +100,9 @@ void NPArrayWrapper::appendElement(Value* value) {
         case LogicalTypeID::RECURSIVE_REL: {
             ((py::dict*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
         } break;
+        case LogicalTypeID::RDF_VARIANT: {
+            ((py::object*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
+        } break;
         default: {
             KU_UNREACHABLE;
         }
@@ -155,11 +158,11 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     case LogicalTypeID::TIMESTAMP_NS: {
         dtype = "datetime64[ns]";
     } break;
-	case LogicalTypeID::TIMESTAMP_MS: {
-		dtype = "datetime64[ms]";
+    case LogicalTypeID::TIMESTAMP_MS: {
+        dtype = "datetime64[ms]";
     } break;
-	case LogicalTypeID::TIMESTAMP_SEC: {
-		dtype = "datetime64[s]"; 
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        dtype = "datetime64[s]";
     } break;
     case LogicalTypeID::INTERVAL: {
         dtype = "timedelta64[ns]";
@@ -174,7 +177,8 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::STRING:
     case LogicalTypeID::MAP:
-    case LogicalTypeID::RECURSIVE_REL: {
+    case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::RDF_VARIANT: {
         dtype = "object";
     } break;
     default: {
