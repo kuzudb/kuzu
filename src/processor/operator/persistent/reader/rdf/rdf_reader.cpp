@@ -198,8 +198,8 @@ SerdStatus RdfLiteralReader::handle(void* handle, SerdStatementFlags, const Serd
     auto objectStr = reader->getAsString(object);
     store.literals.push_back(std::move(objectStr));
     if (object_datatype != nullptr) {
-        auto typeID =
-            RdfUtils::getLogicalTypeID((const char*)object_datatype->buf, object_datatype->n_bytes);
+        auto objectTypeStr = reader->getAsString(object_datatype);
+        auto typeID = RdfUtils::getLogicalTypeID(objectTypeStr);
         store.literalTypes.push_back(typeID);
     } else {
         store.literalTypes.push_back(LogicalTypeID::STRING);
@@ -311,8 +311,8 @@ SerdStatus RdfTripleReader::handle(void* handle, SerdStatementFlags, const SerdN
         store.ltStore.predicates.push_back(std::move(predicateStr));
         store.ltStore.objects.push_back(std::move(objectStr));
         if (object_datatype != nullptr) {
-            auto typeID = RdfUtils::getLogicalTypeID(
-                (const char*)object_datatype->buf, object_datatype->n_bytes);
+            auto objectTypeStr = reader->getAsString(object_datatype);
+            auto typeID = RdfUtils::getLogicalTypeID(objectTypeStr);
             store.ltStore.objectTypes.push_back(typeID);
         } else {
             store.ltStore.objectTypes.push_back(LogicalTypeID::STRING);

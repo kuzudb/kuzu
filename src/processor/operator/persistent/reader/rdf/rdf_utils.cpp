@@ -10,8 +10,7 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-common::LogicalTypeID RdfUtils::getLogicalTypeID(const char* typeBuf, uint32_t typeLength) {
-    auto type = std::string_view(typeBuf, typeLength);
+common::LogicalTypeID RdfUtils::getLogicalTypeID(const std::string& type) {
     if (type.starts_with(XSD)) {
         if (type.ends_with(XSD_integer)) {
             return LogicalTypeID::INT64;

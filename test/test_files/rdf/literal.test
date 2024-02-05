@@ -1,0 +1,29 @@
+-GROUP Rdf
+-DATASET TTL EMPTY
+
+--
+
+-CASE XSDLiteral
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/literal/data.ttl" (in_memory=true);
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.val + 1.0;
+---- 5
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#foundedIn|30001.000000
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#name|
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#population2|20001.000000
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#population|10001.000000
+http://kuzu.io/rdf-ex#Waterloo|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|
+-STATEMENT CREATE RDFGraph W;
+---- ok
+-STATEMENT COPY W FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/literal/data.ttl" (in_memory=false);
+---- ok
+-STATEMENT MATCH (a)-[e:W]->(b) RETURN a.iri, e.iri, b.val + 1.0;
+---- 5
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#foundedIn|30001.000000
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#name|
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#population2|20001.000000
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#population|10001.000000
+http://kuzu.io/rdf-ex#Waterloo|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|
