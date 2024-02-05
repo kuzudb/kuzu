@@ -262,11 +262,9 @@ void EmbeddedShell::run() {
             currLine = "";
             continueLine = false;
         }
-        if (lineStr[0] == ':') {
-            if (processShellCommands(lineStr) < 0) {
-                free(line);
-                break;
-            }
+        if (!continueLine && lineStr[0] == ':' && processShellCommands(lineStr) < 0) {
+            free(line);
+            break;
         } else if (!lineStr.empty() && lineStr.back() == ';') {
             ss.clear();
             ss.str(lineStr);
@@ -278,7 +276,7 @@ void EmbeddedShell::run() {
                     printf("Error: %s\n", queryResult->getErrorMessage().c_str());
                 }
             }
-        } else if (!lineStr.empty()) {
+        } else if (!lineStr.empty() && lineStr[0] != ':') {
             continueLine = true;
             currLine += lineStr + " ";
         }
