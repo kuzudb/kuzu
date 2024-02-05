@@ -1,0 +1,9 @@
+<http://dbpedia.org/resource/!>
+	<http://dbpedia.org/ontology/wikiPageID> "5878274"^^<http://www.w3.org/2001/XMLSchema#integer> ;
+	<http://dbpedia.org/ontology/wikiPageLength> "84"^^<http://www.w3.org/2001/XMLSchema#nonNegativeInteger> ;
+    <http://dbpedia.org/ontology/numberOfPages> "1176"^^<http://www.w3.org/2001/XMLSchema#positiveInteger> ;
+	<http://www.w3.org/2003/01/geo/wgs84_pos#lat> "38.78944444444444"^^<http://www.w3.org/2001/XMLSchema#float> ;
+    <http://dbpedia.org/ontology/wikiPageID> "899480"^^<http://www.w3.org/2001/XMLSchema#integer> ;
+    <http://dbpedia.org/ontology/area> "101171.41056"^^<http://www.w3.org/2001/XMLSchema#double> ;
+    <http://dbpedia.org/ontology/isHandicappedAccessible> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> ;
+    <http://dbpedia.org/property/opened> "1868-11-01"^^<http://www.w3.org/2001/XMLSchema#date> ;

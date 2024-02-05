@@ -27,6 +27,9 @@ static constexpr std::string_view XSD_decimal = "decimal";
 static constexpr std::string_view XSD_boolean = "boolean";
 static constexpr std::string_view XSD_date = "date";
 static constexpr std::string_view XSD_dateTime = "dateTime";
+static constexpr std::string_view XSD_nonNegativeInteger = "nonNegativeInteger";
+static constexpr std::string_view XSD_positiveInteger = "positiveInteger";
+static constexpr std::string_view XSD_float = "float";
 
 } // namespace rdf
 } // namespace common

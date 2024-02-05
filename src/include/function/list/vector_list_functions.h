@@ -151,57 +151,57 @@ struct ListFunction {
         case common::LogicalTypeID::SERIAL:
         case common::LogicalTypeID::INT64: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, int64_t,
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, int64_t,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::INT32: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, int32_t,
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, int32_t,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::INT16: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, int16_t,
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, int16_t,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::INT8: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, int8_t,
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, int8_t,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::UINT64: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, uint64_t,
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, uint64_t,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::UINT32: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, uint32_t,
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, uint32_t,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::UINT16: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, uint16_t,
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, uint16_t,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::UINT8: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, uint8_t,
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, uint8_t,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::INT128: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, common::int128_t,
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, common::int128_t,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::DOUBLE: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, double,
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, double,
                     OPERATION>;
         } break;
         case common::LogicalTypeID::FLOAT: {
             scalarFunction->execFunc =
-                ScalarFunction::UnaryExecListStructFunction<common::list_entry_t, float, OPERATION>;
+                ScalarFunction::UnaryExecNestedTypeFunction<common::list_entry_t, float, OPERATION>;
         } break;
         default: {
             throw common::BinderException(

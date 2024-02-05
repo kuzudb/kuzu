@@ -1,0 +1,16 @@
+-GROUP Rdf
+-DATASET TTL rdf/rdf_variant_copy
+
+--
+
+-CASE RDFVariant
+-STATEMENT MATCH (s)-[p]->(o) return type(o.val)
+---- 8
+INT64
+UINT64
+UINT64
+FLOAT
+INT64
+DOUBLE
+BOOL
+DATE

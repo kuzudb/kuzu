@@ -127,6 +127,8 @@ public:
     static void addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr);
     static void addString(
         ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length);
+    static void addString(
+        kuzu::common::ValueVector* vector, ku_string_t& dstStr, const std::string& srcStr);
     static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
         InMemOverflowBuffer* rowOverflowBuffer);
 };
