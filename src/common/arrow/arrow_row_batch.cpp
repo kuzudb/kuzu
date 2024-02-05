@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include "common/exception/runtime.h"
 #include "common/types/uuid.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
@@ -186,7 +187,11 @@ std::unique_ptr<ArrowVector> ArrowRowBatch::createVector(
         templateInitializeVector<LogicalTypeID::REL>(result.get(), typeInfo, capacity);
     } break;
     default: {
-        KU_UNREACHABLE;
+        // LCOV_EXCL_START
+        throw common::RuntimeException{
+            common::stringFormat("Unsupported type: {} for arrow conversion.",
+                LogicalTypeUtils::toString(typeInfo.typeID))};
+        // LCOV_EXCL_STOP
     }
     }
     return result;
