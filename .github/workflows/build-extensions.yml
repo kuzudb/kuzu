@@ -167,7 +167,7 @@ jobs:
       - name: Collect built artifacts
         run: |
           mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+          for /r %i in (*.kuzu_extension) do xcopy "%i" extension-artifacts\ /Y  \;
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v3
