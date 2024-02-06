@@ -58,7 +58,7 @@ std::unique_ptr<FunctionBindData> MapExtractFunctions::bindFunc(
 
 function_set MapKeysFunctions::getFunctionSet() {
     auto execFunc =
-        ScalarFunction::UnaryExecListStructFunction<list_entry_t, list_entry_t, MapKeys>;
+        ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, MapKeys>;
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(MAP_KEYS_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::MAP}, LogicalTypeID::VAR_LIST, execFunc, nullptr,
@@ -74,7 +74,7 @@ std::unique_ptr<FunctionBindData> MapKeysFunctions::bindFunc(
 
 function_set MapValuesFunctions::getFunctionSet() {
     auto execFunc =
-        ScalarFunction::UnaryExecListStructFunction<list_entry_t, list_entry_t, MapValues>;
+        ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, MapValues>;
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(MAP_VALUES_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::MAP}, LogicalTypeID::VAR_LIST, execFunc, nullptr,

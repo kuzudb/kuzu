@@ -96,6 +96,7 @@ private:
     void registerUnionFunctions();
     void registerNodeRelFunctions();
     void registerPathFunctions();
+    void registerRDFFunctions();
 
     // Aggregate functions.
     void registerAggregateFunctions();

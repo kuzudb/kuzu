@@ -508,6 +508,11 @@ void StringVector::addString(
     }
 }
 
+void StringVector::addString(
+    kuzu::common::ValueVector* vector, ku_string_t& dstStr, const std::string& srcStr) {
+    addString(vector, dstStr, srcStr.data(), srcStr.length());
+}
+
 void StringVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
     InMemOverflowBuffer* rowOverflowBuffer) {
     auto& srcStr = vector->getValue<ku_string_t>(pos);

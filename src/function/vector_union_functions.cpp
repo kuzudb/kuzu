@@ -51,7 +51,7 @@ function_set UnionTagFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(UNION_TAG_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::UNION}, LogicalTypeID::STRING,
-        ScalarFunction::UnaryExecListStructFunction<union_entry_t, ku_string_t, UnionTag>, nullptr,
+        ScalarFunction::UnaryExecNestedTypeFunction<union_entry_t, ku_string_t, UnionTag>, nullptr,
         nullptr, false /* isVarLength */));
     return functionSet;
 }

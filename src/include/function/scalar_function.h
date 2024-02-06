@@ -142,12 +142,12 @@ struct ScalarFunction final : public BaseScalarFunction {
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryExecListStructFunction(
+    static void UnaryExecNestedTypeFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 1);
         UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
-            UnaryListFunctionWrapper>(*params[0], result, nullptr /* dataPtr */);
+            UnaryNestedTypeFunctionWrapper>(*params[0], result, nullptr /* dataPtr */);
     }
 
     template<typename RESULT_TYPE, typename FUNC>

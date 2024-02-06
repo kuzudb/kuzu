@@ -45,7 +45,7 @@ struct UnaryCastStringFunctionWrapper {
     }
 };
 
-struct UnaryListFunctionWrapper {
+struct UnaryNestedTypeFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static inline void operation(void* inputVector, uint64_t inputPos, void* resultVector,
         uint64_t resultPos, void* /*dataPtr*/) {

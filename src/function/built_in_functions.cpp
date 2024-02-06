@@ -16,6 +16,7 @@
 #include "function/list/vector_list_functions.h"
 #include "function/map/vector_map_functions.h"
 #include "function/path/vector_path_functions.h"
+#include "function/rdf/vector_rdf_functions.h"
 #include "function/schema/vector_node_rel_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
@@ -56,6 +57,7 @@ void BuiltInFunctions::registerScalarFunctions() {
     registerPathFunctions();
     registerBlobFunctions();
     registerUUIDFunctions();
+    registerRDFFunctions();
 }
 
 void BuiltInFunctions::registerAggregateFunctions() {
@@ -632,6 +634,10 @@ void BuiltInFunctions::registerBlobFunctions() {
 
 void BuiltInFunctions::registerUUIDFunctions() {
     functions.insert({GEN_RANDOM_UUID_FUNC_NAME, GenRandomUUIDFunction::getFunctionSet()});
+}
+
+void BuiltInFunctions::registerRDFFunctions() {
+    functions.insert({TYPE_FUNC_NAME, RDFTypeFunction::getFunctionSet()});
 }
 
 void BuiltInFunctions::registerStringFunctions() {

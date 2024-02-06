@@ -20,6 +20,10 @@ common::LogicalTypeID RdfUtils::getLogicalTypeID(const std::string& type) {
             return LogicalTypeID::BOOL;
         } else if (type.ends_with(XSD_date)) {
             return LogicalTypeID::DATE;
+        } else if (type.ends_with(XSD_nonNegativeInteger) || type.ends_with(XSD_positiveInteger)) {
+            return LogicalTypeID::UINT64;
+        } else if (type.ends_with(XSD_float)) {
+            return LogicalTypeID::FLOAT;
         }
     }
     return LogicalTypeID::STRING;
@@ -31,13 +35,27 @@ void RdfUtils::addRdfLiteral(
     switch (targetTypeID) {
     case LogicalTypeID::INT64: {
         int64_t result;
-        if (function::trySimpleIntegerCast<int64_t>(str.data(), str.size(), result)) {
+        if (function::trySimpleIntegerCast(str.data(), str.size(), result)) {
+            RdfVariantVector::add(vector, pos, result);
+            resolveAsString = false;
+        }
+    } break;
+    case LogicalTypeID::UINT64: {
+        uint64_t result;
+        if (function::trySimpleIntegerCast(str.data(), str.size(), result)) {
             RdfVariantVector::add(vector, pos, result);
             resolveAsString = false;
         }
     } break;
     case LogicalTypeID::DOUBLE: {
         double result;
+        if (function::tryDoubleCast(str.data(), str.size(), result)) {
+            RdfVariantVector::add(vector, pos, result);
+            resolveAsString = false;
+        }
+    } break;
+    case LogicalTypeID::FLOAT: {
+        float result;
         if (function::tryDoubleCast(str.data(), str.size(), result)) {
             RdfVariantVector::add(vector, pos, result);
             resolveAsString = false;
