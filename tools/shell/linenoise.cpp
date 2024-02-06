@@ -792,10 +792,13 @@ static void truncateText(char*& buf, size_t& len, size_t pos, size_t cols, size_
         size_t charPos = 0;
         size_t prevPos = 0;
         size_t totalRenderWidth = 0;
+        size_t renderWidth = 0;
+        size_t posCounter = 0;
         while (charPos < len) {
             uint32_t charRenderWidth = Utf8Proc::renderWidth(buf, charPos);
             prevPos = charPos;
             charPos = utf8proc_next_grapheme(buf, len, charPos);
+            posCounter++;
             totalRenderWidth += charPos - prevPos;
             if (totalRenderWidth >= remainingRenderWidth) {
                 if (prevPos >= pos) {
@@ -814,12 +817,15 @@ static void truncateText(char*& buf, size_t& len, size_t pos, size_t cols, size_
                     }
                 }
             }
+            if (posCounter <= pos) {
+                renderWidth += charRenderWidth;
+            }
             if (prevPos < pos) {
                 render_pos += charRenderWidth;
             }
         }
         if (highlight) {
-            highlightCallback(buf, highlightBuf, totalRenderWidth, render_pos);
+            highlightCallback(buf, highlightBuf, totalRenderWidth, renderWidth);
             len = strlen(highlightBuf);
         } else {
             buf = buf + startPos;
