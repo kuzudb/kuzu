@@ -296,7 +296,9 @@ typedef enum {
     KUZU_STRUCT = 53,
     KUZU_MAP = 54,
     KUZU_UNION = 55,
-    KUZU_UUID = 56
+    KUZU_RDF_VARIANT = 56,
+    KUZU_POINTER = 57,
+    KUZU_UUID = 58
 } kuzu_data_type_id;
 
 // Database
@@ -1142,6 +1144,117 @@ KUZU_C_API kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, u
  * @param rel_val The rel value to convert.
  */
 KUZU_C_API char* kuzu_rel_val_to_string(kuzu_value* rel_val);
+/**
+ * @brief Returns the underlying data type of the given rdf variant.
+ * @param rdf_variant The rdf variant.
+ * @return The data type of the rdf variant.
+ */
+KUZU_C_API kuzu_data_type_id kuzu_rdf_variant_get_type(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the string value of the given rdf variant. The value must be of type STRING.
+ * @param rdf_variant The rdf variant.
+ * @return The string value of the rdf variant.
+ */
+KUZU_C_API char* kuzu_rdf_variant_get_string(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the blob value of the given rdf variant. The returned buffer is null-terminated
+ * similar to a string. The value must be of type BLOB.
+ * @param rdf_variant The rdf variant.
+ * @return The blob value of the rdf variant.
+ */
+KUZU_C_API uint8_t* kuzu_rdf_variant_get_blob(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the int64 value of the given rdf variant. The value must be of type INT64.
+ * @param rdf_variant The rdf variant.
+ * @return The int64 value of the rdf variant.
+ */
+KUZU_C_API int64_t kuzu_rdf_variant_get_int64(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the int32 value of the given rdf variant. The value must be of type INT32.
+ * @param rdf_variant The rdf variant.
+ * @return The int32 value of the rdf variant.
+ */
+KUZU_C_API int32_t kuzu_rdf_variant_get_int32(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the int16 value of the given rdf variant. The value must be of type INT16.
+ * @param rdf_variant The rdf variant.
+ * @return The int16 value of the rdf variant.
+ */
+KUZU_C_API int16_t kuzu_rdf_variant_get_int16(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the int8 value of the given rdf variant. The value must be of type INT8.
+ * @param rdf_variant The rdf variant.
+ * @return The int8 value of the rdf variant.
+ */
+KUZU_C_API int8_t kuzu_rdf_variant_get_int8(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the uint64 value of the given rdf variant. The value must be of type UINT64.
+ * @param rdf_variant The rdf variant.
+ * @return The uint64 value of the rdf variant.
+ */
+KUZU_C_API uint64_t kuzu_rdf_variant_get_uint64(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the uint32 value of the given rdf variant. The value must be of type UINT32.
+ * @param rdf_variant The rdf variant.
+ * @return The uint32 value of the rdf variant.
+ */
+KUZU_C_API uint32_t kuzu_rdf_variant_get_uint32(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the uint16 value of the given rdf variant. The value must be of type UINT16.
+ * @param rdf_variant The rdf variant.
+ * @return The uint16 value of the rdf variant.
+ */
+KUZU_C_API uint16_t kuzu_rdf_variant_get_uint16(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the uint8 value of the given rdf variant. The value must be of type UINT8.
+ * @param rdf_variant The rdf variant.
+ * @return The uint8 value of the rdf variant.
+ */
+KUZU_C_API uint8_t kuzu_rdf_variant_get_uint8(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the float value of the given rdf variant. The value must be of type FLOAT.
+ * @param rdf_variant The rdf variant.
+ * @return The float value of the rdf variant.
+ */
+KUZU_C_API float kuzu_rdf_variant_get_float(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the double value of the given rdf variant. The value must be of type DOUBLE.
+ * @param rdf_variant The rdf variant.
+ * @return The double value of the rdf variant.
+ */
+KUZU_C_API double kuzu_rdf_variant_get_double(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the boolean value of the given rdf variant. The value must be of type BOOL.
+ * @param rdf_variant The rdf variant.
+ * @return The boolean value of the rdf variant.
+ */
+KUZU_C_API bool kuzu_rdf_variant_get_bool(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the date value of the given rdf variant. The value must be of type DATE.
+ * @param rdf_variant The rdf variant.
+ * @return The date value of the rdf variant.
+ */
+KUZU_C_API kuzu_date_t kuzu_rdf_variant_get_date(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the timestamp value of the given rdf variant. The value must be of type TIMESTAMP.
+ * @param rdf_variant The rdf variant.
+ * @return The timestamp value of the rdf variant.
+ */
+KUZU_C_API kuzu_timestamp_t kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the interval value of the given rdf variant. The value must be of type INTERVAL.
+ * @param rdf_variant The rdf variant.
+ * @return The interval value of the rdf variant.
+ */
+KUZU_C_API kuzu_interval_t kuzu_rdf_variant_get_interval(kuzu_value* rdf_variant);
+/**
+ * @brief Destroys any string created by the Kùzu C API, including both the error message and the
+ * values returned by the API functions. This function is provided to avoid the inconsistency
+ * between the memory allocation and deallocation across different libraries and is preferred over
+ * using the standard C free function.
+ * @param str The string to destroy.
+ */
+KUZU_C_API void kuzu_destroy_string(char* str);
 
 // QuerySummary
 /**

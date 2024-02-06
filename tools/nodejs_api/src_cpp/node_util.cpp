@@ -4,58 +4,57 @@
 #include "common/types/blob.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
+#include "common/types/value/rdf_variant.h"
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
 
 Napi::Value ConvertRdfVariantToNapiObject(const Value& value, Napi::Env env) {
-    auto typeVal = NestedVal::getChildVal(&value, 0);
-    auto type = static_cast<LogicalTypeID>(typeVal->getValue<uint8_t>());
-    auto blobData = NestedVal::getChildVal(&value, 1)->strVal.data();
+    auto type = RdfVariant::getLogicalTypeID(&value);
     switch (type) {
     case LogicalTypeID::STRING: {
-        auto str = NestedVal::getChildVal(&value, 1)->strVal;
+        auto str = RdfVariant::getValue<std::string>(&value);
         return Napi::String::New(env, str.data(), str.size());
     }
     case LogicalTypeID::BLOB: {
-        auto blobStr = Blob::getValue<blob_t>(blobData).value.getAsString();
+        auto blobStr = RdfVariant::getValue<blob_t>(&value).value.getAsString();
         return Napi::Buffer<char>::Copy(env, blobStr.c_str(), blobStr.size());
     }
     case LogicalTypeID::INT64: {
-        return Napi::Number::New(env, Blob::getValue<int64_t>(blobData));
+        return Napi::Number::New(env, RdfVariant::getValue<int64_t>(&value));
     }
     case LogicalTypeID::INT32: {
-        return Napi::Number::New(env, Blob::getValue<int32_t>(blobData));
+        return Napi::Number::New(env, RdfVariant::getValue<int32_t>(&value));
     }
     case LogicalTypeID::INT16: {
-        return Napi::Number::New(env, Blob::getValue<int16_t>(blobData));
+        return Napi::Number::New(env, RdfVariant::getValue<int16_t>(&value));
     }
     case LogicalTypeID::INT8: {
-        return Napi::Number::New(env, Blob::getValue<int8_t>(blobData));
+        return Napi::Number::New(env, RdfVariant::getValue<int8_t>(&value));
     }
     case LogicalTypeID::UINT64: {
-        return Napi::Number::New(env, Blob::getValue<uint64_t>(blobData));
+        return Napi::Number::New(env, RdfVariant::getValue<uint64_t>(&value));
     }
     case LogicalTypeID::UINT32: {
-        return Napi::Number::New(env, Blob::getValue<uint32_t>(blobData));
+        return Napi::Number::New(env, RdfVariant::getValue<uint32_t>(&value));
     }
     case LogicalTypeID::UINT16: {
-        return Napi::Number::New(env, Blob::getValue<uint16_t>(blobData));
+        return Napi::Number::New(env, RdfVariant::getValue<uint16_t>(&value));
     }
     case LogicalTypeID::UINT8: {
-        return Napi::Number::New(env, Blob::getValue<uint8_t>(blobData));
+        return Napi::Number::New(env, RdfVariant::getValue<uint8_t>(&value));
     }
     case LogicalTypeID::DOUBLE: {
-        return Napi::Number::New(env, Blob::getValue<double>(blobData));
+        return Napi::Number::New(env, RdfVariant::getValue<double>(&value));
     }
     case LogicalTypeID::FLOAT: {
-        return Napi::Number::New(env, Blob::getValue<float>(blobData));
+        return Napi::Number::New(env, RdfVariant::getValue<float>(&value));
     }
     case LogicalTypeID::BOOL: {
-        return Napi::Boolean::New(env, Blob::getValue<bool>(blobData));
+        return Napi::Boolean::New(env, RdfVariant::getValue<bool>(&value));
     }
     case LogicalTypeID::DATE: {
-        auto dateVal = Blob::getValue<date_t>(blobData);
+        auto dateVal = RdfVariant::getValue<date_t>(&value);
         // Javascript Date type contains both date and time information. This returns the Date at
         // 00:00:00 in UTC timezone.
         auto milliseconds = Date::getEpochNanoSeconds(dateVal) / Interval::NANOS_PER_MICRO /
@@ -63,12 +62,12 @@ Napi::Value ConvertRdfVariantToNapiObject(const Value& value, Napi::Env env) {
         return Napi::Date::New(env, milliseconds);
     }
     case LogicalTypeID::TIMESTAMP: {
-        auto timestampVal = Blob::getValue<timestamp_t>(blobData);
+        auto timestampVal = RdfVariant::getValue<timestamp_t>(&value);
         auto milliseconds = timestampVal.value / Interval::MICROS_PER_MSEC;
         return Napi::Date::New(env, milliseconds);
     }
     case LogicalTypeID::INTERVAL: {
-        auto intervalVal = Blob::getValue<interval_t>(blobData);
+        auto intervalVal = RdfVariant::getValue<interval_t>(&value);
         // TODO: By default, Node.js returns the difference in milliseconds between two dates, so we
         // follow the convention here, but it might not be the best choice in terms of usability.
         auto microseconds = intervalVal.micros;
