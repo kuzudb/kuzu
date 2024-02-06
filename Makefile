@@ -162,6 +162,18 @@ extension-test:
 	ctest --test-dir build/release/extension/httpfs/test --output-on-failure -j ${TEST_JOBS}
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
+extension-debug:
+	$(call run-cmake-debug, \
+		-DBUILD_EXTENSIONS=httpfs \
+		-DBUILD_KUZU=FALSE \
+	)
+
+extension-release:
+	$(call run-cmake-release, \
+		-DBUILD_EXTENSIONS=httpfs \
+		-DBUILD_KUZU=FALSE \
+	)
+
 # Clang-related tools and checks
 
 # Must build the java native header to avoid missing includes. Pipe character

@@ -163,6 +163,7 @@ option(BUILD_SHELL "Build Interactive Shell" TRUE)
 option(BUILD_SINGLE_FILE_HEADER "Build single file header. Requires Python >= 3.9." TRUE)
 option(BUILD_TESTS "Build C++ tests." FALSE)
 option(BUILD_EXTENSION_TESTS "Build C++ extension tests." FALSE)
+option(BUILD_KUZU "Build Kuzu." TRUE)
 
 option(BUILD_LCOV "Build coverage report." FALSE)
 if(${BUILD_LCOV})
@@ -187,6 +188,12 @@ function(add_kuzu_api_test TEST_NAME)
     gtest_discover_tests(${TEST_NAME})
 endfunction()
 
+# Windows doesn't support dynamic lookup, so we have to link extensions against kuzu.
+if (MSVC AND (NOT BUILD_EXTENSIONS EQUAL ""))
+    set(BUILD_KUZU TRUE)
+endif ()
+
+if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
 add_definitions(-DKUZU_RELEASE_VERSION="0.1.0")
@@ -218,6 +225,7 @@ elseif (${BUILD_BENCHMARK})
     add_subdirectory(test/test_helper)
 endif ()
 add_subdirectory(tools)
+endif ()
 add_subdirectory(extension)
 
 if (${BUILD_EXAMPLES})
