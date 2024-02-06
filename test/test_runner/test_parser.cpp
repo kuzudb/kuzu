@@ -85,12 +85,6 @@ void TestParser::parseHeader() {
             testGroup->group = "DISABLED_" + testGroup->group;
             break;
         }
-        case TokenType::SKIP_WINDOWS: {
-#ifdef _WIN32
-            testGroup->group = "DISABLED_" + testGroup->group;
-            break;
-#endif
-        }
         case TokenType::SKIP_MUSL: {
 #ifdef __MUSL__
             testGroup->group = "DISABLED_" + testGroup->group;
@@ -348,12 +342,6 @@ void TestParser::parseBody() {
         case TokenType::SKIP: {
             testCaseName = "DISABLED_" + testCaseName;
             break;
-        }
-        case TokenType::SKIP_WINDOWS: {
-#ifdef _WIN32
-            testCaseName = "DISABLED_" + testCaseName;
-            break;
-#endif
         }
         case TokenType::SKIP_MUSL: {
 #ifdef __MUSL__

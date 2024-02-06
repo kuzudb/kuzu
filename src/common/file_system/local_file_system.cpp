@@ -43,7 +43,9 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
     const std::string& path, int flags, main::ClientContext* context, FileLockType lock_type) {
     auto fullPath = path;
     if (path.starts_with('~')) {
-        fullPath = context->getEnvVariable("HOME") + fullPath.substr(1);
+        fullPath =
+            context->getCurrentSetting(main::HomeDirectorySetting::name).getValue<std::string>() +
+            fullPath.substr(1);
     }
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
@@ -152,7 +154,7 @@ void LocalFileSystem::createDir(const std::string& dir) const {
             throw Exception(stringFormat("Directory {} already exists.", dir));
             // LCOV_EXCL_STOP
         }
-        if (!std::filesystem::create_directory(dir)) {
+        if (!std::filesystem::create_directories(dir)) {
             // LCOV_EXCL_START
             throw Exception(stringFormat(
                 "Directory {} cannot be created. Check if it exists and remove it.", dir));

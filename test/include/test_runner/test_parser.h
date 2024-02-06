@@ -13,7 +13,6 @@ enum class TokenType {
     GROUP,
     SKIP,
     SKIP_MUSL,
-    SKIP_WINDOWS,
     SKIP_32BIT,
     // body
     BEGIN_READ_ONLY_TRANSACTION,
@@ -60,7 +59,6 @@ const std::unordered_map<std::string, TokenType> tokenMap = {
     {"-SKIP", TokenType::SKIP},
     {"-SKIP_MUSL", TokenType::SKIP_MUSL},
     {"-SKIP_LINE", TokenType::DEFINE},
-    {"-SKIP_WINDOWS", TokenType::SKIP_WINDOWS},
     {"-SKIP_32BIT", TokenType::SKIP_32BIT},
     {"-DEFINE", TokenType::DEFINE},
     {"-STATEMENT", TokenType::STATEMENT},
