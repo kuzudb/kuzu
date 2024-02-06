@@ -168,7 +168,7 @@ jobs:
         shell: cmd
         run: |
           mkdir -p extension-artifacts
-          Get-ChildItem -Path . -Recurse -Filter "*.kuzu_extension" | ForEach-Object {Copy-Item $_.FullName -Destination extension-artifacts} \;
+          for /r %i in (*.kuzu_extension) do xcopy "%i" extension-artifacts\ /Y  \;
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v3
