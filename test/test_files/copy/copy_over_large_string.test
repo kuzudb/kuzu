@@ -1,0 +1,49 @@
+-GROUP CopyOverLargeStrings
+-DATASET CSV empty
+
+--
+
+-CASE OverLargeStringProp
+-SKIP
+-STATEMENT CREATE NODE TABLE person(id SERIAL, prop STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/dataset/over-large-string/nodes.csv';
+---- ok
+-STATEMENT MATCH (p:person) RETURN SIZE(p.prop);
+---- 10
+262144
+262144
+262144
+262144
+262144
+262144
+262144
+262144
+262144
+262144
+-STATEMENT MATCH (p:person) RETURN p.prop ORDER BY p.prop;
+-CHECK_ORDER
+---- hash
+10 248f5d6bc5d8ce5bbb4914afd945d0ab
+
+-CASE OverLargeStringPK
+-STATEMENT CREATE NODE TABLE person(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/dataset/over-large-string/nodes.csv';
+---- ok
+-STATEMENT MATCH (p:person) RETURN SIZE(p.id);
+---- 10
+262144
+262144
+262144
+262144
+262144
+262144
+262144
+262144
+262144
+262144
+-STATEMENT MATCH (p:person) RETURN p.id ORDER BY p.id;
+-CHECK_ORDER
+---- hash
+10 248f5d6bc5d8ce5bbb4914afd945d0ab

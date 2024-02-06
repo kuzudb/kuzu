@@ -56,7 +56,12 @@ void DiskOverflowFile::setStringOverflowWithoutLock(
     if (len <= ku_string_t::SHORT_STR_LENGTH) {
         return;
     } else if (len > BufferPoolConstants::PAGE_256KB_SIZE) {
-        throw RuntimeException(ExceptionMessage::overLargeStringPKValueException(len));
+        if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
+            len = BufferPoolConstants::PAGE_256KB_SIZE;
+            diskDstString.len = len;
+        } else {
+            throw RuntimeException(ExceptionMessage::overLargeStringPKValueException(len));
+        }
     }
     int32_t remainingLength = len;
     while (remainingLength > 0) {
