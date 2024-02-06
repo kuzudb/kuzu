@@ -219,4 +219,8 @@ public class KuzuNative {
     protected static native String kuzu_value_get_struct_field_name(KuzuValue struct_val, long index);
 
     protected static native long kuzu_value_get_struct_index(KuzuValue struct_val, String field_name);
+
+    protected static native KuzuDataType kuzu_rdf_variant_get_data_type(KuzuValue rdf_variant);
+
+    protected static native <T> T kuzu_rdf_variant_get_value(KuzuValue rdf_variant);
 }

@@ -7,6 +7,7 @@
 #include "common/types/types.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
+#include "common/types/value/rdf_variant.h"
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
 #include "main/kuzu.h"
@@ -823,6 +824,14 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         jobject ret = env->NewObject(retClass, ctor, val);
         return ret;
     }
+    case LogicalTypeID::UINT64: {
+        jclass bigIntegerClass = env->FindClass("java/math/BigInteger");
+        jmethodID ctor = env->GetMethodID(bigIntegerClass, "<init>", "(Ljava/lang/String;)V");
+        auto value = v->toString();
+        jstring val = env->NewStringUTF(value.c_str());
+        jobject ret = env->NewObject(bigIntegerClass, ctor, val);
+        return ret;
+    }
     case LogicalTypeID::UINT32: {
         jclass retClass = env->FindClass("java/lang/Long");
         jmethodID ctor = env->GetMethodID(retClass, "<init>", "(J)V");
@@ -1130,5 +1139,136 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1ind
         return -1;
     } else {
         return static_cast<jlong>(index);
+    }
+}
+
+// protected static native KuzuDataType kuzu_rdf_variant_get_data_type(KuzuValue rdf_variant);
+JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rdf_1variant_1get_1data_1type(
+    JNIEnv* env, jclass, jobject thisValue) {
+    auto* value = getValue(env, thisValue);
+    auto logicalTypeId = RdfVariant::getLogicalTypeID(value);
+    auto* dt = new LogicalType(logicalTypeId);
+    return createJavaObject(env, dt, "com/kuzudb/KuzuDataType", "dt_ref");
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rdf_1variant_1get_1value(
+    JNIEnv* env, jclass, jobject thisValue) {
+    auto* value = getValue(env, thisValue);
+    auto logicalTypeId = RdfVariant::getLogicalTypeID(value);
+    switch (logicalTypeId) {
+    case LogicalTypeID::STRING: {
+        std::string str = RdfVariant::getValue<std::string>(value);
+        jstring ret = env->NewStringUTF(str.c_str());
+        return ret;
+    }
+    case LogicalTypeID::BLOB: {
+        auto blob = RdfVariant::getValue<blob_t>(value);
+        auto blobStr = blob.value.getAsString();
+        auto byteBuffer = blobStr.c_str();
+        auto ret = env->NewByteArray(blobStr.size());
+        env->SetByteArrayRegion(ret, 0, blobStr.size(), (jbyte*)byteBuffer);
+        return ret;
+    }
+    case LogicalTypeID::INT64: {
+        jclass retClass = env->FindClass("java/lang/Long");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(J)V");
+        jlong val = static_cast<jlong>(RdfVariant::getValue<int64_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::INT32: {
+        jclass retClass = env->FindClass("java/lang/Integer");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(I)V");
+        jint val = static_cast<jint>(RdfVariant::getValue<int32_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::INT16: {
+        jclass retClass = env->FindClass("java/lang/Short");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(S)V");
+        jshort val = static_cast<jshort>(RdfVariant::getValue<int16_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::INT8: {
+        jclass retClass = env->FindClass("java/lang/Byte");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(B)V");
+        jbyte val = static_cast<jbyte>(RdfVariant::getValue<int8_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT64: {
+        jclass bigIntegerClass = env->FindClass("java/math/BigInteger");
+        jmethodID ctor = env->GetMethodID(bigIntegerClass, "<init>", "(Ljava/lang/String;)V");
+        auto uintValue = RdfVariant::getValue<uint64_t>(value);
+        jstring val = env->NewStringUTF(std::to_string(uintValue).c_str());
+        jobject ret = env->NewObject(bigIntegerClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT32: {
+        jclass retClass = env->FindClass("java/lang/Long");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(J)V");
+        jlong val = static_cast<jlong>(RdfVariant::getValue<uint32_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT16: {
+        jclass retClass = env->FindClass("java/lang/Integer");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(I)V");
+        jint val = static_cast<jint>(RdfVariant::getValue<uint16_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT8: {
+        jclass retClass = env->FindClass("java/lang/Short");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(S)V");
+        jshort val = static_cast<jshort>(RdfVariant::getValue<uint8_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::DOUBLE: {
+        jclass retClass = env->FindClass("java/lang/Double");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(D)V");
+        jdouble val = static_cast<jdouble>(RdfVariant::getValue<double>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::FLOAT: {
+        jclass retClass = env->FindClass("java/lang/Float");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(F)V");
+        jfloat val = static_cast<jfloat>(RdfVariant::getValue<float>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::DATE: {
+        date_t date = RdfVariant::getValue<date_t>(value);
+        jclass ldClass = env->FindClass("java/time/LocalDate");
+        jmethodID ofEpochDay =
+            env->GetStaticMethodID(ldClass, "ofEpochDay", "(J)Ljava/time/LocalDate;");
+        jobject ret =
+            env->CallStaticObjectMethod(ldClass, ofEpochDay, static_cast<jlong>(date.days));
+        return ret;
+    }
+    case LogicalTypeID::TIMESTAMP: {
+        timestamp_t ts = RdfVariant::getValue<timestamp_t>(value);
+        int64_t seconds = ts.value / 1000000L;
+        int64_t nano = ts.value % 1000000L * 1000L;
+        jclass retClass = env->FindClass("java/time/Instant");
+        jmethodID ofEpochSecond =
+            env->GetStaticMethodID(retClass, "ofEpochSecond", "(JJ)Ljava/time/Instant;");
+        jobject ret = env->CallStaticObjectMethod(retClass, ofEpochSecond, seconds, nano);
+        return ret;
+    }
+    case LogicalTypeID::INTERVAL: {
+        jclass retClass = env->FindClass("java/time/Duration");
+        jmethodID ofMillis =
+            env->GetStaticMethodID(retClass, "ofMillis", "(J)Ljava/time/Duration;");
+        interval_t in = RdfVariant::getValue<interval_t>(value);
+        long millis = Interval::getMicro(in) / 1000;
+        jobject ret = env->CallStaticObjectMethod(retClass, ofMillis, millis);
+        return ret;
+    }
+    default:
+        return nullptr;
     }
 }

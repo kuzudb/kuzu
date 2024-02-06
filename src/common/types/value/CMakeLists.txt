@@ -3,6 +3,7 @@ add_library(kuzu_common_types_value
         nested.cpp
         node.cpp
         recursive_rel.cpp
+        rdf_variant.cpp
         rel.cpp
         value.cpp)
 
