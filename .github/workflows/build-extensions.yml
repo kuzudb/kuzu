@@ -165,9 +165,10 @@ jobs:
           make extension-release
 
       - name: Collect built artifacts
+        shell: cmd
         run: |
           mkdir -p extension-artifacts
-          for /r %i in (*.kuzu_extension) do xcopy "%i" extension-artifacts\ /Y  \;
+          Get-ChildItem -Path . -Recurse -Filter "*.kuzu_extension" | ForEach-Object {Copy-Item $_.FullName -Destination extension-artifacts} \;
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v3
