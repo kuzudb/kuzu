@@ -44,7 +44,7 @@ void RdfScanSharedState::initReader() {
         return;
     }
     auto path = readerConfig.filePaths[fileIdx];
-    createReader(path, numLiteralTriplesScanned);
+    createReader(fileIdx, path, numLiteralTriplesScanned);
     reader->init();
 }
 

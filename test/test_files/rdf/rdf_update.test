@@ -54,6 +54,16 @@ x|y|z
 -STATEMENT MATCH (a)-[e:R_rt]->(b) RETURN a.iri, e.iri, b.iri
 ---- 1
 a|b|c
+-STATEMENT CREATE (a:R_r {iri: "a"})-[:R_rt {iri: "_:b"}]->(b:R_r {iri: "c"});
+---- error
+Runtime exception: _:b is a blank node and cannot be a valid predicate.
+-STATEMENT CREATE (a:R_r {iri: "_:a"})-[:R_rt {iri: "bb"}]->(b:R_r {iri: "_:c"});
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri
+---- 3
+a|b|c
+x|y|z
+_:a|bb|_:c
 
 -CASE EmptyUpdate
 -STATEMENT CREATE RDFGraph T;

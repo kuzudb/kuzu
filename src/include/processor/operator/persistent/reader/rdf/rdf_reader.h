@@ -10,8 +10,8 @@ namespace processor {
 
 class RdfReader {
 public:
-    RdfReader(std::string filePath, common::FileType fileType, RdfStore* store_)
-        : RdfReader{std::move(filePath), fileType, store_, 0} {}
+    RdfReader(uint32_t fileIdx, std::string filePath, common::FileType fileType, RdfStore* store_)
+        : RdfReader{fileIdx, std::move(filePath), fileType, store_, 0} {}
 
     virtual ~RdfReader();
 
@@ -25,11 +25,11 @@ public:
     inline uint64_t getNumLiteralTriplesScanned() const { return numLiteralTriplesScanned; }
 
 protected:
-    RdfReader(std::string filePath, common::FileType fileType, RdfStore* store_,
+    RdfReader(uint32_t fileIdx, std::string filePath, common::FileType fileType, RdfStore* store_,
         const common::offset_t startOffset)
-        : store_{store_}, cursor{0}, startOffset{startOffset}, numLiteralTriplesScanned{0},
-          filePath{std::move(filePath)}, fileType{fileType}, reader{nullptr}, status{SERD_SUCCESS} {
-    }
+        : store_{store_}, cursor{0}, startOffset{startOffset},
+          numLiteralTriplesScanned{0}, fileIdx{fileIdx}, filePath{std::move(filePath)},
+          fileType{fileType}, reader{nullptr}, status{SERD_SUCCESS} {}
 
     void initInternal(SerdStatementSink statementHandle);
 
@@ -52,6 +52,7 @@ protected:
     uint64_t numLiteralTriplesScanned;
 
 private:
+    uint32_t fileIdx; // We use fileIdx to differentiate blank nodes in different files.
     std::string filePath;
     common::FileType fileType;
 
@@ -65,8 +66,9 @@ private:
 
 class RdfResourceReader final : public RdfReader {
 public:
-    RdfResourceReader(std::string filePath, common::FileType fileType, RdfStore* store_)
-        : RdfReader{filePath, fileType, store_} {}
+    RdfResourceReader(
+        uint32_t fileIdx, std::string filePath, common::FileType fileType, RdfStore* store_)
+        : RdfReader{fileIdx, filePath, fileType, store_} {}
 
     inline void init() override { initInternal(handle); }
 
@@ -80,8 +82,9 @@ private:
 
 class RdfLiteralReader final : public RdfReader {
 public:
-    RdfLiteralReader(std::string filePath, common::FileType fileType, RdfStore* store_)
-        : RdfReader{filePath, fileType, store_} {}
+    RdfLiteralReader(
+        uint32_t fileIdx, std::string filePath, common::FileType fileType, RdfStore* store_)
+        : RdfReader{fileIdx, filePath, fileType, store_} {}
 
     inline void init() override { initInternal(handle); }
 
@@ -95,8 +98,9 @@ private:
 
 class RdfResourceTripleReader final : public RdfReader {
 public:
-    RdfResourceTripleReader(std::string filePath, common::FileType fileType, RdfStore* store_)
-        : RdfReader{filePath, fileType, store_} {}
+    RdfResourceTripleReader(
+        uint32_t fileIdx, std::string filePath, common::FileType fileType, RdfStore* store_)
+        : RdfReader{fileIdx, filePath, fileType, store_} {}
 
     inline void init() override { initInternal(handle); }
 
@@ -110,9 +114,9 @@ private:
 
 class RdfLiteralTripleReader final : public RdfReader {
 public:
-    RdfLiteralTripleReader(std::string filePath, common::FileType fileType, RdfStore* store_,
-        const common::offset_t startOffset)
-        : RdfReader{filePath, fileType, store_, startOffset} {}
+    RdfLiteralTripleReader(uint32_t fileIdx, std::string filePath, common::FileType fileType,
+        RdfStore* store_, const common::offset_t startOffset)
+        : RdfReader{fileIdx, filePath, fileType, store_, startOffset} {}
 
     inline void init() override { initInternal(handle); }
 
@@ -126,8 +130,9 @@ private:
 
 class RdfTripleReader final : public RdfReader {
 public:
-    RdfTripleReader(std::string filePath, common::FileType fileType, RdfStore* store_)
-        : RdfReader{filePath, fileType, store_} {}
+    RdfTripleReader(
+        uint32_t fileIdx, std::string filePath, common::FileType fileType, RdfStore* store_)
+        : RdfReader{fileIdx, filePath, fileType, store_} {}
 
     inline void init() override { initInternal(handle); }
 

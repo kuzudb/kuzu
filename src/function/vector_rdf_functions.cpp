@@ -15,5 +15,13 @@ function_set RDFTypeFunction::getFunctionSet() {
     return result;
 }
 
+function_set ValidatePredicateFunction::getFunctionSet() {
+    function_set result;
+    result.push_back(std::make_unique<ScalarFunction>(VALIDATE_PREDICATE_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
+        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, ValidatePredicate>));
+    return result;
+}
+
 } // namespace function
 } // namespace kuzu

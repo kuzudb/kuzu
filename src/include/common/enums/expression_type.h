@@ -228,6 +228,7 @@ const char* const GEN_RANDOM_UUID_FUNC_NAME = "GEN_RANDOM_UUID";
 
 // RDF functions
 const char* const TYPE_FUNC_NAME = "TYPE";
+const char* const VALIDATE_PREDICATE_FUNC_NAME = "VALIDATE_PREDICATE";
 
 // TABLE functions
 const char* const TABLE_INFO_FUNC_NAME = "TABLE_INFO";
