@@ -759,7 +759,7 @@ FN_OID_GET_ATTR2(mbedtls_oid_get_pkcs12_pbe_alg, oid_pkcs12_pbe_alg_t, pkcs12_pb
     } while (0)
 
 /* Return the x.y.z.... style numeric string for the given OID */
-int mbedtls_oid_get_numeric_string(char* buf, size_t size, const mbedtls_asn1_buf* oid) {
+int mbedtls_oid_get_numeric_string(char*, size_t, const mbedtls_asn1_buf*) {
     return MBEDTLS_ERR_ERROR_GENERIC_ERROR; // patched because it used to require printf which would
                                             // fail on Windows
 }

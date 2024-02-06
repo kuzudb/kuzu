@@ -58,7 +58,10 @@ int mbedtls_ct_memcmp(const void* a, const void* b, size_t n) {
          * This avoids IAR compiler warning:
          * 'the order of volatile accesses is undefined ..' */
         unsigned char x = A[i], y = B[i];
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-volatile"
         diff |= x ^ y;
+#pragma GCC diagnostic pop
     }
 
     return ((int)diff);

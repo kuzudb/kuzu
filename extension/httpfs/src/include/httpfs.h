@@ -5,6 +5,10 @@
 #include "httplib.h"
 #include "main/client_context.h"
 
+#if defined(_WIN32)
+#define O_ACCMODE 0x0003
+#endif
+
 namespace kuzu {
 namespace httpfs {
 

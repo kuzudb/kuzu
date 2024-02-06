@@ -6,7 +6,7 @@ bazel-*
 .cache
 .ccls-cache
 .bazelrc
-test/test_files/test_list
+**/test/test_files/test_list
 
 test_temp/
 build/
