@@ -783,6 +783,68 @@ uint32_t linenoiseComputeRenderWidth(const char* buf, size_t len) {
     return renderWidth;
 }
 
+static void truncateText(char*& buf, size_t& len, size_t pos, size_t cols, size_t plen,
+    bool highlight, size_t& render_pos, char* highlightBuf) {
+    if (Utf8Proc::isValid(buf, len)) {
+        // UTF8 in prompt, handle rendering.
+        size_t remainingRenderWidth = cols - plen - 1;
+        size_t startPos = 0;
+        size_t charPos = 0;
+        size_t prevPos = 0;
+        size_t totalRenderWidth = 0;
+        size_t renderWidth = 0;
+        size_t posCounter = 0;
+        while (charPos < len) {
+            uint32_t charRenderWidth = Utf8Proc::renderWidth(buf, charPos);
+            prevPos = charPos;
+            charPos = utf8proc_next_grapheme(buf, len, charPos);
+            posCounter++;
+            totalRenderWidth += charPos - prevPos;
+            if (totalRenderWidth >= remainingRenderWidth) {
+                if (prevPos >= pos) {
+                    // We passed the cursor: break, we no longer need to render.
+                    charPos = prevPos;
+                    break;
+                } else {
+                    // We did not pass the cursor yet, meaning we still need to render.
+                    // Remove characters from the start until it fits again.
+                    while (totalRenderWidth >= remainingRenderWidth) {
+                        uint32_t startCharWidth = Utf8Proc::renderWidth(buf, startPos);
+                        uint32_t newStart = utf8proc_next_grapheme(buf, len, startPos);
+                        totalRenderWidth -= newStart - startPos;
+                        startPos = newStart;
+                        render_pos -= startCharWidth;
+                    }
+                }
+            }
+            if (posCounter <= pos) {
+                renderWidth += charRenderWidth;
+            }
+            if (prevPos < pos) {
+                render_pos += charRenderWidth;
+            }
+        }
+        if (highlight) {
+            highlightCallback(buf, highlightBuf, totalRenderWidth, renderWidth);
+            len = strlen(highlightBuf);
+        } else {
+            buf = buf + startPos;
+            len = charPos - startPos;
+        }
+    } else {
+        // Invalid UTF8: fallback.
+        while ((plen + pos) >= cols) {
+            buf++;
+            len--;
+            pos--;
+        }
+        while (plen + len > cols) {
+            len--;
+        }
+        render_pos = pos;
+    }
+}
+
 /* Single line low level line refresh.
  *
  * Rewrite the currently edited line accordingly to the buffer content,
@@ -796,59 +858,9 @@ static void refreshSingleLine(struct linenoiseState* l) {
     size_t pos = l->pos;
     size_t chars = l->totalUTF8Chars;
     struct abuf ab;
-    uint32_t renderWidth = 0;
-    uint32_t renderPos = 0;
+    size_t renderPos = 0;
 
-    if (Utf8Proc::isValid(l->buf, l->len)) {
-        // UTF8 in prompt, handle rendering.
-        size_t remainingRenderWidth = l->cols - plen - 1;
-        size_t startPos = 0;
-        size_t charPos = 0;
-        size_t prevPos = 0;
-        size_t totalRenderWidth = 0;
-        uint32_t posCounter = 0;
-        while (charPos < len) {
-            uint32_t charRenderWidth = Utf8Proc::renderWidth(l->buf, charPos);
-            prevPos = charPos;
-            charPos = utf8proc_next_grapheme(l->buf, len, charPos);
-            posCounter++;
-            totalRenderWidth += charRenderWidth;
-            if (totalRenderWidth >= remainingRenderWidth) {
-                if (prevPos >= pos) {
-                    // We passed the cursor: break, we no longer need to render.
-                    charPos = prevPos;
-                    break;
-                } else {
-                    // We did not pass the cursor yet, meaning we still need to render.
-                    // Remove characters from the start until it fits again.
-                    while (totalRenderWidth >= remainingRenderWidth) {
-                        uint32_t startCharWidth = Utf8Proc::renderWidth(l->buf, startPos);
-                        uint32_t newStart = utf8proc_next_grapheme(l->buf, len, startPos);
-                        totalRenderWidth -= startCharWidth;
-                        startPos = newStart;
-                        renderWidth -= startCharWidth;
-                    }
-                }
-            }
-            if (posCounter <= l->pos) {
-                renderWidth += charRenderWidth;
-                renderPos += charRenderWidth;
-            }
-        }
-        highlightCallback(l->buf, buf, totalRenderWidth, renderPos);
-        len = strlen(buf);
-    } else {
-        // Invalid UTF8: fallback.
-        while ((plen + pos) >= l->cols) {
-            l->buf++;
-            len--;
-            pos--;
-        }
-        while (plen + len > l->cols) {
-            len--;
-        }
-        renderWidth = pos;
-    }
+    truncateText(l->buf, len, pos, l->cols, plen, true, renderPos, buf);
     
     abInit(&ab);
     /* Cursor to left edge */
@@ -868,7 +880,7 @@ static void refreshSingleLine(struct linenoiseState* l) {
     snprintf(seq, 64, "\x1b[0K");
     abAppend(&ab, seq, strlen(seq));
     /* Move cursor to original position. */
-    snprintf(seq, 64, "\r\x1b[%dC", (int)(renderWidth + plen));
+    snprintf(seq, 64, "\r\x1b[%dC", (int)(renderPos + plen));
     abAppend(&ab, seq, strlen(seq));
 
     if (write(fd, ab.b, ab.len) == -1) {} /* Can't recover from write error. */
@@ -979,65 +991,6 @@ static void refreshLine(struct linenoiseState* l) {
         refreshSingleLine(l);
 }
 
-static void truncateSearchText(char*& buf, size_t& len, size_t pos, size_t cols, size_t plen,
-    bool highlight, size_t& render_pos, char* highlightBuf, uint32_t& renderWidth) {
-    uint32_t renderPos = render_pos;
-    if (Utf8Proc::isValid(buf, len)) {
-        // UTF8 in prompt, handle rendering.
-        size_t remainingRenderWidth = cols - plen - 1;
-        size_t startPos = 0;
-        size_t charPos = 0;
-        size_t prevPos = 0;
-        size_t totalRenderWidth = 0;
-        uint32_t posCounter = 0;
-        while (charPos < len) {
-            uint32_t charRenderWidth = Utf8Proc::renderWidth(buf, charPos);
-            prevPos = charPos;
-            charPos = utf8proc_next_grapheme(buf, len, charPos);
-            posCounter++;
-            totalRenderWidth += charRenderWidth;
-            if (totalRenderWidth >= remainingRenderWidth) {
-                if (prevPos >= pos) {
-                    // We passed the cursor: break, we no longer need to render.
-                    charPos = prevPos;
-                    break;
-                } else {
-                    // We did not pass the cursor yet, meaning we still need to render.
-                    // Remove characters from the start until it fits again.
-                    while (totalRenderWidth >= remainingRenderWidth) {
-                        uint32_t startCharWidth = Utf8Proc::renderWidth(buf, startPos);
-                        uint32_t newStart = utf8proc_next_grapheme(buf, len, startPos);
-                        totalRenderWidth -= startCharWidth;
-                        startPos = newStart;
-                        renderWidth -= startCharWidth;
-                    }
-                }
-            }
-            if (posCounter <= pos) {
-                renderWidth += charRenderWidth;
-                renderPos += charRenderWidth;
-            }
-        }
-        if (highlight) {
-            highlightCallback(buf, highlightBuf, totalRenderWidth, renderPos);
-            len = strlen(highlightBuf);
-        } else {
-            buf = buf + startPos;
-            len = charPos - startPos;
-        }
-    } else {
-        // Invalid UTF8: fallback.
-        while ((plen + pos) >= cols) {
-            buf++;
-            len--;
-            pos--;
-        }
-        while (plen + len > cols) {
-            len--;
-        }
-    }
-}
-
 static void highlightSearchMatch(char* buffer, char* resultBuf, const char* search_buffer) {
     const char* matchUnderlinePrefix = "\033[4m";
     const char* matchUnderlineResetPostfix = "\033[24m";
@@ -1076,11 +1029,29 @@ static void highlightSearchMatch(char* buffer, char* resultBuf, const char* sear
             } else if (buf[i] == '\033') {
                 ansiCode = true;
             } else {
-                matching = false;
-                searchPhrasePos = 0;
-                underlinedBuf += matchedWord;
-                underlinedBuf += buf[i];
-                matchedWord = "";
+                auto matchIndex = 0u;
+                // find the oldest place where the match restarts
+                for (auto j = i; j > i - matchedWord.length(); j--) {
+                    if (tolower(buf[j]) == tolower(searchPhrase[0])) {
+                        matchIndex = j;
+                    }
+                }
+                if (matchIndex > 0) {
+                    // restart matching at matchIndex
+                    for (auto j = i - matchedWord.length(); j < matchIndex; j++) {
+                        underlinedBuf += buf[j];
+                    }
+                    i = matchIndex;
+                    matchedWord = buf[i];
+                    searchPhrasePos = 1;
+                } else {
+                    // end matching
+                    matching = false;
+                    searchPhrasePos = 0;
+                    underlinedBuf += matchedWord;
+                    underlinedBuf += buf[i];
+                    matchedWord = "";
+                }
                 continue;
             }
             matchedWord += buf[i];
@@ -1109,7 +1080,6 @@ static void highlightSearchMatch(char* buffer, char* resultBuf, const char* sear
             underlinedBuf += matchedWord;
         }
     }
-
 #endif
     if (underlinedBuf.empty()) {
         strncpy(resultBuf, buf.c_str(), LINENOISE_MAX_LINE - 1);
@@ -1131,10 +1101,9 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
     char buf[LINENOISE_MAX_LINE];
     size_t len = l->len;
     size_t render_pos = 0;
-    uint32_t renderWidth = 0;
     l->maxrows = 1;
 
-    truncateSearchText(l->buf, len, l->pos, l->cols, plen, true, render_pos, highlightBuf, renderWidth);
+    truncateText(l->buf, len, l->pos, l->cols, plen, true, render_pos, highlightBuf);
     if (strlen(highlightBuf) > 0) {
         highlightSearchMatch(highlightBuf, buf, searchText);
     } else {
@@ -1209,7 +1178,7 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
     }
 
     /* Move cursor to original position. */
-    snprintf(seq, 64, "\r\x1b[%dC", (int)(renderWidth + plen));
+    snprintf(seq, 64, "\r\x1b[%dC", (int)(render_pos + plen));
     abAppend(&ab, seq, strlen(seq));
 
     l->oldpos = l->pos;
@@ -1244,9 +1213,8 @@ static void refreshSearch(struct linenoiseState* l) {
         size_t cols = l->cols - search_prompt.length() - 1;
 
         size_t render_pos = 0;
-        uint32_t renderWidth = 0;
         char emptyHighlightBuf[LINENOISE_MAX_LINE];
-        truncateSearchText(search_buf, search_len, search_len, cols, false, 0, render_pos, emptyHighlightBuf, renderWidth);
+        truncateText(search_buf, search_len, search_len, cols, false, 0, render_pos, emptyHighlightBuf);
         truncatedSearchText = std::string(search_buf, search_len);
         search_prompt += truncatedSearchText;
         search_prompt += "_";
@@ -1393,6 +1361,21 @@ static void searchNext(linenoiseState* l) {
     }
 }
 
+bool pastedInput(int ifd) {
+#ifdef _WIN32
+    fd_set readfds;
+    FD_SET(ifd, &readfds);
+    int isPasted = select(0, &readfds, NULL, NULL, NULL);
+    return (isPasted != 0 && isPasted != SOCKET_ERROR);
+#else
+    struct pollfd fd {
+        ifd, POLLIN, 0
+    };
+    int isPasted = poll(&fd, 1, 0);
+    return (isPasted != 0);
+#endif
+}
+
 static char linenoiseSearch(linenoiseState *l, char c) {
     char seq[64];
 
@@ -1485,7 +1468,13 @@ static char linenoiseSearch(linenoiseState *l, char c) {
 		break;
 	case CTRL_A: // accept search, move to start of line
 		return acceptSearch(l, CTRL_A);
-	case '\t':
+	case TAB:
+        if (pastedInput(c)) {
+            l->search_buf += ' ';
+            performSearch(l);
+            break;
+        }
+        return acceptSearch(l, CTRL_E);
 	case CTRL_E: // accept search - move to end of line
 		return acceptSearch(l, CTRL_E);
 	case CTRL_B: // accept search - move cursor left
@@ -1539,21 +1528,6 @@ static char linenoiseSearch(linenoiseState *l, char c) {
 	}
 	refreshSearch(l);
 	return 0;
-}
-
-bool pastedInput(int ifd) {
-#ifdef _WIN32
-    fd_set readfds;
-    FD_SET(ifd, &readfds);
-    int isPasted = select(0, &readfds, NULL, NULL, NULL);
-    return (isPasted != 0 && isPasted != SOCKET_ERROR);
-#else
-    struct pollfd fd {
-        ifd, POLLIN, 0
-    };
-    int isPasted = poll(&fd, 1, 0);
-    return (isPasted != 0);
-#endif
 }
 
 /* Insert the character 'c' at cursor current position.
