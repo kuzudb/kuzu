@@ -6,10 +6,11 @@
 #include <unistd.h>
 #endif
 
-#if defined(__linux__) && defined(__GLIBC__)
-// Do nothing if glibc is used
-#else
+#ifdef __linux__
+#include <features.h>
+#ifndef __GLIBC__
 #define __MUSL__
+#endif
 #endif
 
 #include <filesystem>
