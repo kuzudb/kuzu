@@ -183,8 +183,13 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
 }
 
 static bool skipPropertyInFile(const Property& property) {
-    return property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
-           TableSchema::isReservedPropertyName(property.getName());
+    if (*property.getDataType() == *LogicalType::SERIAL()) {
+        return true;
+    }
+    if (property.getName() == InternalKeyword::ID) {
+        return true;
+    }
+    return false;
 }
 
 static void bindExpectedColumns(TableSchema* tableSchema,

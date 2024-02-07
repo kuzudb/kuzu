@@ -17,7 +17,7 @@ std::string TableTypeUtils::toString(TableType tableType) {
         return "REL";
     }
     case TableType::RDF: {
-        return "RDF";
+        return "RDFGraph";
     }
     case TableType::REL_GROUP: {
         return "REL_GROUP";

@@ -16,7 +16,22 @@ X_lt|REL|
 X_l|NODE|
 X_rt|REL|
 X_r|NODE|
-X|RDF|
+X|RDFGraph|
+-STATEMENT CALL table_info("X_r") RETURN *;
+---- 1
+0|iri|STRING|True
+-STATEMENT CALL table_info("X_l") RETURN *;
+---- 3
+0|id|SERIAL|True
+1|val|RDF_VARIANT|False
+2|lang|STRING|False
+-STATEMENT CALL table_info("X_rt") RETURN *;
+---- 1
+-1|iri (Virtual)|STRING
+-STATEMENT CALL table_info("X_lt") RETURN *;
+---- 1
+-1|iri (Virtual)|STRING
+
 -STATEMENT RETURN dummy();
 ---- error
 Catalog exception: DUMMY function does not exist.

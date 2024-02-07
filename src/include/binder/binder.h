@@ -278,6 +278,7 @@ private:
 
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
+    static bool isReservedPropertyName(const std::string& name);
 
     std::unique_ptr<BinderScope> saveScope();
     void restoreScope(std::unique_ptr<BinderScope> prevVariableScope);

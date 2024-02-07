@@ -32,8 +32,6 @@ public:
     virtual bool isParent(common::table_id_t tableID) = 0;
 
     /* Property functions */
-    static bool isReservedPropertyName(const std::string& propertyName);
-
     inline uint32_t getNumProperties() const { return properties.size(); }
     inline const std::vector<Property>& getPropertiesRef() const { return properties; }
     bool containProperty(const std::string& propertyName) const;
