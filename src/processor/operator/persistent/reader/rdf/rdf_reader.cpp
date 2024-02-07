@@ -140,6 +140,10 @@ std::string RdfReader::getAsString(const SerdNode* node) {
         }
         return std::string(); // expand fail return empty string.
     }
+    case SERD_BLANK: {
+        auto label = std::string((const char*)node->buf, node->n_bytes);
+        return "_:" + std::to_string(fileIdx) + label;
+    }
     default:
         return std::string((const char*)node->buf, node->n_bytes);
     }

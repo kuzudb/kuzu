@@ -21,6 +21,7 @@ add_library(kuzu_function
         vector_list_functions.cpp
         vector_null_functions.cpp
         vector_path_functions.cpp
+        vector_rdf_functions.cpp
         vector_node_rel_functions.cpp
         vector_string_functions.cpp
         vector_timestamp_functions.cpp

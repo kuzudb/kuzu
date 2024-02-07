@@ -9,5 +9,9 @@ struct RDFTypeFunction {
     static function_set getFunctionSet();
 };
 
+struct ValidatePredicateFunction {
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

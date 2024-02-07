@@ -203,8 +203,10 @@ void Binder::bindInsertRel(
         auto resourceTableID = rdfTableSchema->getResourceTableID();
         auto pNode = createQueryNode(
             rel->getVariableName(), std::vector<common::table_id_t>{resourceTableID});
-        pNode->addPropertyDataExpr(
-            std::string(rdf::IRI), rel->getPropertyDataExpr(std::string(rdf::IRI)));
+        auto iriData = rel->getPropertyDataExpr(std::string(rdf::IRI));
+        iriData = expressionBinder.bindScalarFunctionExpression(
+            expression_vector{std::move(iriData)}, VALIDATE_PREDICATE_FUNC_NAME);
+        pNode->addPropertyDataExpr(std::string(rdf::IRI), std::move(iriData));
         bindInsertNode(pNode, infos);
         auto nodeInsertInfo = &infos[infos.size() - 1];
         KU_ASSERT(nodeInsertInfo->columnExprs.size() == 1);

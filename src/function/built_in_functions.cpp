@@ -57,7 +57,7 @@ void BuiltInFunctions::registerScalarFunctions() {
     registerPathFunctions();
     registerBlobFunctions();
     registerUUIDFunctions();
-    registerRDFFunctions();
+    registerRdfFunctions();
 }
 
 void BuiltInFunctions::registerAggregateFunctions() {
@@ -636,10 +636,6 @@ void BuiltInFunctions::registerUUIDFunctions() {
     functions.insert({GEN_RANDOM_UUID_FUNC_NAME, GenRandomUUIDFunction::getFunctionSet()});
 }
 
-void BuiltInFunctions::registerRDFFunctions() {
-    functions.insert({TYPE_FUNC_NAME, RDFTypeFunction::getFunctionSet()});
-}
-
 void BuiltInFunctions::registerStringFunctions() {
     functions.insert({ARRAY_EXTRACT_FUNC_NAME, ArrayExtractFunction::getFunctionSet()});
     functions.insert({CONCAT_FUNC_NAME, ConcatFunction::getFunctionSet()});
@@ -763,6 +759,11 @@ void BuiltInFunctions::registerPathFunctions() {
     functions.insert({PROPERTIES_FUNC_NAME, PropertiesFunction::getFunctionSet()});
     functions.insert({IS_TRAIL_FUNC_NAME, IsTrailFunction::getFunctionSet()});
     functions.insert({IS_ACYCLIC_FUNC_NAME, IsACyclicFunction::getFunctionSet()});
+}
+
+void BuiltInFunctions::registerRdfFunctions() {
+    functions.insert({TYPE_FUNC_NAME, RDFTypeFunction::getFunctionSet()});
+    functions.insert({VALIDATE_PREDICATE_FUNC_NAME, ValidatePredicateFunction::getFunctionSet()});
 }
 
 void BuiltInFunctions::registerCountStar() {
