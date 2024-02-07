@@ -26,7 +26,7 @@ http://example.org/ns#s|http://example.org/ns#p|http://example.org/ns#o
 ---- 2
 http://example.org/ns#s|http://example.org/ns#p|http://example.org/ns#o
 http://example.org/ns#s|http://example.org/ns#p|http://example.org/ns#o2
--STATEMENT MATCH (s) DETACH DELETE s;
+-STATEMENT MATCH (s)-[p]->(o) DELETE p;
 ---- ok
 -STATEMENT MATCH (s)-[p]->(o) RETURN s.iri, p.iri, o.iri;
 ---- 0

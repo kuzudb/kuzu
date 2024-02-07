@@ -28,6 +28,8 @@ static SerdSyntax getSerdSyntax(FileType fileType) {
         return SerdSyntax ::SERD_TURTLE;
     case FileType::NQUADS:
         return SerdSyntax ::SERD_NQUADS;
+    case FileType::NTRIPLES:
+        return SerdSyntax ::SERD_NTRIPLES;
     default:
         KU_UNREACHABLE;
     }
