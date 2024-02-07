@@ -12,8 +12,7 @@ public:
     explicit HashIndexHeader(common::PhysicalTypeID keyDataTypeID)
         : currentLevel{1}, levelHashMask{1}, higherLevelHashMask{3}, nextSplitSlotId{0},
           numEntries{0}, numBytesPerKey{storage::StorageUtils::getDataTypeSize(keyDataTypeID)},
-          numBytesPerEntry{(uint32_t)(
-              storage::StorageUtils::getDataTypeSize(keyDataTypeID) + sizeof(common::offset_t))},
+          numBytesPerEntry{(uint32_t)(numBytesPerKey + sizeof(common::offset_t))},
           keyDataTypeID{keyDataTypeID} {}
 
     // Used for element initialization in disk array only.

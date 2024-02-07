@@ -65,7 +65,7 @@ ku_string_t InMemFile::appendString(std::string_view rawString) {
     return result;
 }
 
-std::string InMemFile::readString(ku_string_t* strInInMemOvfFile) {
+std::string InMemFile::readString(ku_string_t* strInInMemOvfFile) const {
     auto length = strInInMemOvfFile->len;
     if (ku_string_t::isShortString(length)) {
         return strInInMemOvfFile->getAsShortString();

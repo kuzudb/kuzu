@@ -29,7 +29,7 @@ public:
         return appendString(std::string_view(rawString));
     }
 
-    std::string readString(common::ku_string_t* strInInMemOvfFile);
+    std::string readString(common::ku_string_t* strInInMemOvfFile) const;
 
     void flush();
 
