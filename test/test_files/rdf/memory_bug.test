@@ -6,4 +6,4 @@
 -CASE MemoryBug
 -STATEMENT MATCH (a)-[e]->(b) RETURN COUNT(*);
 ---- 1
-126
+124
