@@ -210,14 +210,16 @@ void Binder::bindInsertRel(
         bindInsertNode(pNode, infos);
         auto nodeInsertInfo = &infos[infos.size() - 1];
         KU_ASSERT(nodeInsertInfo->columnExprs.size() == 1);
-        nodeInsertInfo->iriReplaceExpr = rel->getPropertyExpression(std::string(rdf::IRI));
+        nodeInsertInfo->iriReplaceExpr =
+            expressionBinder.bindNodeOrRelPropertyExpression(*rel, std::string(rdf::IRI));
         // Insert triple rel.
         auto relInsertInfo = BoundInsertInfo(TableType::REL, rel);
         std::unordered_map<std::string, std::shared_ptr<Expression>> relPropertyRhsExpr;
         relPropertyRhsExpr.insert({std::string(rdf::PID), pNode->getInternalID()});
+        relInsertInfo.columnExprs.push_back(expressionBinder.bindNodeOrRelPropertyExpression(
+            *rel, std::string(InternalKeyword::ID)));
         relInsertInfo.columnExprs.push_back(
-            rel->getPropertyExpression(std::string(InternalKeyword::ID)));
-        relInsertInfo.columnExprs.push_back(rel->getPropertyExpression(std::string(rdf::PID)));
+            expressionBinder.bindNodeOrRelPropertyExpression(*rel, std::string(rdf::PID)));
         relInsertInfo.columnDataExprs =
             bindInsertColumnDataExprs(relPropertyRhsExpr, tableSchema->getPropertiesRef());
         infos.push_back(std::move(relInsertInfo));

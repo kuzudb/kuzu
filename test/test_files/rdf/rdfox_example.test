@@ -62,7 +62,7 @@ example_lt|REL|
 example_l|NODE|
 example_rt|REL|
 example_r|NODE|
-example|RDF|
+example|RDFGraph|
 
 -STATEMENT MATCH (s:example_r) RETURN s.iri ORDER BY offset(id(s));
 ---- 16
@@ -205,3 +205,6 @@ https://rdfox.com/getting-started/stewie|https://rdfox.com/getting-started/hasPa
 -STATEMENT RETURN 1;
 ---- 1
 1
+-STATEMENT MATCH (a)-[e]->(b) RETURN e.pid;
+---- error
+Binder exception: pid is reserved for system usage. External access is not allowed.

@@ -5,6 +5,7 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
+#include "common/keyword/rdf_keyword.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/store/string_column.h"
@@ -162,36 +163,49 @@ function_set TableInfoFunction::getFunctionSet() {
 }
 
 void TableInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
-    auto morsel = ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState)
-                      ->getMorsel();
+    auto sharedState =
+        ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState);
+    auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         outputChunk.getValueVector(0)->state->selVector->selectedSize = 0;
         return;
     }
-    auto tableSchema =
-        ku_dynamic_cast<function::TableFuncBindData*, function::TableInfoBindData*>(input.bindData)
-            ->tableSchema;
+    auto bindData =
+        ku_dynamic_cast<function::TableFuncBindData*, function::TableInfoBindData*>(input.bindData);
+    auto tableSchema = bindData->tableSchema;
     auto numPropertiesToOutput = morsel.endOffset - morsel.startOffset;
-    auto outVectorPos = 0;
+    auto vectorPos = 0;
     for (auto i = 0u; i < numPropertiesToOutput; i++) {
         auto property = &tableSchema->properties[morsel.startOffset + i];
-        if (tableSchema->getTableType() == TableType::REL &&
-            property->getName() == InternalKeyword::ID) {
-            continue;
+        if (tableSchema->getTableType() == TableType::REL) {
+            if (property->getName() == InternalKeyword::ID) {
+                // Skip internal id column.
+                continue;
+            }
+            if (property->getName() == rdf::PID) {
+                // Replace pid column with (virtual) iri column.
+                outputChunk.getValueVector(0)->setValue<int64_t>(vectorPos, -1);
+                outputChunk.getValueVector(1)->setValue(
+                    vectorPos, std::string(rdf::IRI) + " (Virtual)");
+                outputChunk.getValueVector(2)->setValue(
+                    vectorPos, LogicalType::STRING()->toString());
+                vectorPos++;
+                continue;
+            }
         }
-        outputChunk.getValueVector(0)->setValue(outVectorPos, (int64_t)property->getPropertyID());
-        outputChunk.getValueVector(1)->setValue(outVectorPos, property->getName());
-        outputChunk.getValueVector(2)->setValue(outVectorPos, property->getDataType()->toString());
+        outputChunk.getValueVector(0)->setValue(vectorPos, (int64_t)property->getPropertyID());
+        outputChunk.getValueVector(1)->setValue(vectorPos, property->getName());
+        outputChunk.getValueVector(2)->setValue(vectorPos, property->getDataType()->toString());
 
         if (tableSchema->tableType == TableType::NODE) {
-            auto primaryKeyID = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema)
-                                    ->getPrimaryKeyPropertyID();
+            auto nodeSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
+            auto primaryKeyID = nodeSchema->getPrimaryKeyPropertyID();
             outputChunk.getValueVector(3)->setValue(
-                outVectorPos, primaryKeyID == property->getPropertyID());
+                vectorPos, primaryKeyID == property->getPropertyID());
         }
-        outVectorPos++;
+        vectorPos++;
     }
-    outputChunk.state->selVector->selectedSize = outVectorPos;
+    outputChunk.state->selVector->selectedSize = vectorPos;
 }
 
 std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(ClientContext* context,

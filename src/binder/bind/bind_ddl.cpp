@@ -33,15 +33,6 @@ static void validateUniquePropertyName(const std::vector<PropertyInfo>& infos) {
     }
 }
 
-static void validateReservedPropertyName(const std::vector<PropertyInfo>& infos) {
-    for (auto& info : infos) {
-        if (TableSchema::isReservedPropertyName(info.name)) {
-            throw BinderException(
-                stringFormat("PropertyName: {} is an internal reserved propertyName.", info.name));
-        }
-    }
-}
-
 std::vector<PropertyInfo> Binder::bindPropertyInfo(
     const std::vector<std::pair<std::string, std::string>>& propertyNameDataTypes) {
     std::vector<PropertyInfo> propertyInfos;
@@ -51,7 +42,11 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
             propertyNameDataType.first, *bindDataType(propertyNameDataType.second));
     }
     validateUniquePropertyName(propertyInfos);
-    validateReservedPropertyName(propertyInfos);
+    for (auto& info : propertyInfos) {
+        if (isReservedPropertyName(info.name)) {
+            throw BinderException(stringFormat("{} is a reserved property name.", info.name));
+        }
+    }
     return propertyInfos;
 }
 

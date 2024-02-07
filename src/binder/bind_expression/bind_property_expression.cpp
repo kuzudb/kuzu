@@ -1,8 +1,8 @@
+#include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
-#include "catalog/table_schema.h"
 #include "common/cast.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
@@ -43,7 +43,7 @@ expression_vector ExpressionBinder::bindNodeOrRelPropertyStarExpression(const Ex
     auto& nodeOrRel = (NodeOrRelExpression&)child;
     for (auto& expression : nodeOrRel.getPropertyExprsRef()) {
         auto propertyExpression = (PropertyExpression*)expression.get();
-        if (TableSchema::isReservedPropertyName(propertyExpression->getPropertyName())) {
+        if (Binder::isReservedPropertyName(propertyExpression->getPropertyName())) {
             continue;
         }
         result.push_back(expression->copy());
@@ -73,7 +73,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     validateExpectedDataType(*child,
         std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT});
     if (isNodeOrRelPattern(*child)) {
-        if (TableSchema::isReservedPropertyName(propertyName)) {
+        if (Binder::isReservedPropertyName(propertyName)) {
             // Note we don't expose direct access to internal properties in case user tries to
             // modify them. However, we can expose indirect read-only access through function e.g.
             // ID().

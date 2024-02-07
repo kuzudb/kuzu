@@ -1,16 +1,16 @@
 #include "catalog/table_schema.h"
 
+#include <algorithm>
+
 #include "catalog/node_table_schema.h"
 #include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
-#include "common/constants.h"
 #include "common/exception/internal.h"
 #include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
-#include "common/string_utils.h"
 
 using namespace kuzu::common;
 
@@ -24,10 +24,6 @@ TableSchema::TableSchema(const TableSchema& other) {
     properties = copyVector(other.properties);
     comment = other.comment;
     nextPID = other.nextPID;
-}
-
-bool TableSchema::isReservedPropertyName(const std::string& propertyName) {
-    return StringUtils::getUpper(propertyName) == InternalKeyword::ID;
 }
 
 bool TableSchema::containProperty(const std::string& propertyName) const {

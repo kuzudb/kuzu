@@ -370,7 +370,7 @@ Binder exception: Duplicated column name: date, column name must be unique.
 -LOG CreateRelTableReservedColumnName
 -STATEMENT CREATE REL TABLE teaches (FROM person TO person, _id INT64)
 ---- error
-Binder exception: PropertyName: _id is an internal reserved propertyName.
+Binder exception: _id is a reserved property name.
 
 -LOG DropNotExistsTable
 -STATEMENT DROP TABLE person1;

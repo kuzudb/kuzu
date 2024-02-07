@@ -3,7 +3,9 @@
 #include "binder/bound_statement_rewriter.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
+#include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
+#include "common/string_utils.h"
 #include "function/table_functions.h"
 #include "main/client_context.h"
 
@@ -177,6 +179,17 @@ void Binder::validateTableExist(const std::string& tableName) {
 
 std::string Binder::getUniqueExpressionName(const std::string& name) {
     return "_" + std::to_string(lastExpressionId++) + "_" + name;
+}
+
+bool Binder::isReservedPropertyName(const std::string& name) {
+    auto normalizedName = StringUtils::getUpper(name);
+    if (normalizedName == InternalKeyword::ID) {
+        return true;
+    }
+    if (normalizedName == StringUtils::getUpper(std::string(rdf::PID))) {
+        return true;
+    }
+    return false;
 }
 
 std::unique_ptr<BinderScope> Binder::saveScope() {
