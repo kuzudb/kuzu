@@ -67,9 +67,9 @@
 ---- ok
 -STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2, ONE_ONE);
 ---- ok
--STATEMENT COPY N1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/sf-0.1/Comment.csv" (HEADER=true, DELIM='|');
+-STATEMENT COPY N1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv" (HEADER=true, DELIM='|');
 ---- ok
--STATEMENT COPY N2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/sf-0.1/Post.csv" (HEADER=true, DELIM='|');
+-STATEMENT COPY N2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Post.csv" (HEADER=true, DELIM='|');
 ---- ok
 -STATEMENT MATCH (n1:N1), (n2:N2) WHERE n1.ID=1099512015344 AND n2.ID=3 CREATE (n1)-[r:Rel1]->(n2)
 ---- ok

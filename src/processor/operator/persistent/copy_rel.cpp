@@ -13,7 +13,7 @@ namespace kuzu {
 namespace processor {
 
 CopyRelSharedState::CopyRelSharedState(table_id_t tableID, RelTable* table,
-    std::vector<std::unique_ptr<common::LogicalType>> columnTypes, RelsStoreStats* relsStatistics,
+    std::vector<std::unique_ptr<LogicalType>> columnTypes, RelsStoreStats* relsStatistics,
     MemoryManager* memoryManager)
     : tableID{tableID}, table{table}, columnTypes{std::move(columnTypes)},
       relsStatistics{relsStatistics}, numRows{0} {
@@ -83,44 +83,58 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
 void CopyRel::prepareCSRNodeGroup(
     DataChunkCollection* partition, vector_idx_t offsetVectorIdx, offset_t numNodes) {
     auto csrNodeGroup = ku_dynamic_cast<NodeGroup*, CSRNodeGroup*>(localState->nodeGroup.get());
-    auto csrOffsetChunk = csrNodeGroup->getCSROffsetChunk();
-    csrOffsetChunk->setNumValues(numNodes);
-    csrNodeGroup->getCSRLengthChunk()->setNumValues(numNodes);
-    populateCSROffsetsAndLengths(csrNodeGroup, numNodes, partition, offsetVectorIdx);
+    auto& csrHeader = csrNodeGroup->getCSRHeader();
+    csrHeader.setNumValues(numNodes);
+    std::vector<length_t> gaps;
+    gaps.resize(numNodes);
+    // Populate start csr offsets and lengths for each node.
+    populateStartCSROffsetsAndLengths(csrHeader, gaps, numNodes, partition, offsetVectorIdx);
     // Resize csr data column chunks.
-    offset_t numRels = 0;
-    for (auto dataChunk : partition->getChunks()) {
-        numRels += dataChunk->getValueVector(offsetVectorIdx).get()->state->selVector->selectedSize;
-    }
-    localState->nodeGroup->resizeChunks(numRels);
+    offset_t csrChunkCapacity =
+        csrHeader.getEndCSROffset(numNodes - 1) + csrHeader.getCSRLength(numNodes - 1);
+    localState->nodeGroup->resizeChunks(csrChunkCapacity);
     for (auto dataChunk : partition->getChunks()) {
         auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
-        setOffsetFromCSROffsets(offsetVector, (offset_t*)csrOffsetChunk->getData());
+        setOffsetFromCSROffsets(offsetVector, csrHeader.offset.get());
+    }
+    populateEndCSROffsets(csrHeader, gaps);
+}
+
+void CopyRel::populateEndCSROffsets(CSRHeaderChunks& csrHeader, std::vector<offset_t>& gaps) {
+    auto csrOffsets = (offset_t*)csrHeader.offset->getData();
+    for (auto i = 0u; i < csrHeader.offset->getNumValues(); i++) {
+        csrOffsets[i] += gaps[i];
     }
 }
 
-void CopyRel::populateCSROffsetsAndLengths(CSRNodeGroup* csrNodeGroup, offset_t numNodes,
-    common::DataChunkCollection* partition, common::vector_idx_t offsetVectorIdx) {
-    auto csrOffsetChunk = csrNodeGroup->getCSROffsetChunk();
-    csrOffsetChunk->setNumValues(numNodes);
-    auto csrLengthChunk = csrNodeGroup->getCSRLengthChunk();
-    csrLengthChunk->setNumValues(numNodes);
-    auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
-    auto csrLengths = (length_t*)csrLengthChunk->getData();
-    std::fill(csrOffsets, csrOffsets + csrOffsetChunk->getCapacity(), 0);
-    std::fill(csrLengths, csrLengths + csrLengthChunk->getCapacity(), 0);
-    // Calculate length for each node. Store the num of tuples of node i at csrOffsets[i].
+void CopyRel::populateStartCSROffsetsAndLengths(CSRHeaderChunks& csrHeader,
+    std::vector<length_t>& gaps, offset_t numNodes, DataChunkCollection* partition,
+    vector_idx_t offsetVectorIdx) {
+    KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
+              numNodes == csrHeader.offset->getNumValues());
+    auto csrOffsets = (offset_t*)csrHeader.offset->getData();
+    auto csrLengths = (length_t*)csrHeader.length->getData();
+    std::fill(csrLengths, csrLengths + numNodes, 0);
+    // Calculate length for each node. Store the num of tuples of node i at csrLengths[i].
     for (auto chunk : partition->getChunks()) {
         auto offsetVector = chunk->getValueVector(offsetVectorIdx);
         for (auto i = 0u; i < offsetVector->state->selVector->selectedSize; i++) {
             auto pos = offsetVector->state->selVector->selectedPositions[i];
             auto nodeOffset = offsetVector->getValue<offset_t>(pos);
+            KU_ASSERT(nodeOffset < numNodes);
             csrLengths[nodeOffset]++;
         }
     }
+    // Calculate gaps for each node.
+    for (auto i = 0u; i < numNodes; i++) {
+        auto lengthWithGap = static_cast<length_t>(
+            std::ceil((double)csrLengths[i] / (double)StorageConstants::PACKED_CSR_DENSITY));
+        gaps[i] = lengthWithGap - csrLengths[i];
+    }
+    csrOffsets[0] = 0;
     // Calculate starting offset of each node.
-    for (auto i = 1u; i < csrOffsetChunk->getCapacity(); i++) {
-        csrOffsets[i] = csrOffsets[i - 1] + csrLengths[i - 1];
+    for (auto i = 1u; i < numNodes; i++) {
+        csrOffsets[i] = csrOffsets[i - 1] + csrLengths[i - 1] + gaps[i - 1];
     }
 }
 
@@ -133,13 +147,14 @@ void CopyRel::setOffsetToWithinNodeGroup(ValueVector* vector, offset_t startOffs
     }
 }
 
-void CopyRel::setOffsetFromCSROffsets(ValueVector* offsetVector, offset_t* csrOffsets) {
+void CopyRel::setOffsetFromCSROffsets(ValueVector* offsetVector, ColumnChunk* offsetChunk) {
     KU_ASSERT(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
               offsetVector->state->selVector->isUnfiltered());
     for (auto i = 0u; i < offsetVector->state->selVector->selectedSize; i++) {
         auto nodeOffset = offsetVector->getValue<offset_t>(i);
-        offsetVector->setValue(i, csrOffsets[nodeOffset]);
-        csrOffsets[nodeOffset]++;
+        auto csrOffset = offsetChunk->getValue<offset_t>(nodeOffset);
+        offsetVector->setValue<offset_t>(i, csrOffset);
+        offsetChunk->setValue<offset_t>(csrOffset + 1, nodeOffset);
     }
 }
 

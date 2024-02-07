@@ -77,14 +77,8 @@ public:
     CSRNodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
         bool enableCompression);
 
-    inline ColumnChunk* getCSROffsetChunk() const {
-        KU_ASSERT(csrHeaderChunks.offset != nullptr);
-        return csrHeaderChunks.offset.get();
-    }
-    inline ColumnChunk* getCSRLengthChunk() const {
-        KU_ASSERT(csrHeaderChunks.length != nullptr);
-        return csrHeaderChunks.length.get();
-    }
+    CSRHeaderChunks& getCSRHeader() { return csrHeaderChunks; }
+    const CSRHeaderChunks& getCSRHeader() const { return csrHeaderChunks; }
 
     inline void writeToColumnChunk(common::vector_idx_t chunkIdx, common::vector_idx_t vectorIdx,
         common::DataChunk* dataChunk, common::ValueVector* offsetVector) override {
