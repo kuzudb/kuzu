@@ -81,6 +81,7 @@ pub enum LogicalType {
         types: Vec<(String, LogicalType)>,
     },
     UUID,
+    RDFVariant,
 }
 
 impl From<&ffi::Value> for LogicalType {
@@ -174,6 +175,7 @@ impl From<&ffi::LogicalType> for LogicalType {
                 }
             }
             LogicalTypeID::UUID => LogicalType::UUID,
+            LogicalTypeID::RDF_VARIANT => LogicalType::RDFVariant,
             // Should be unreachable, as cxx will check that the LogicalTypeID enum matches the one
             // on the C++ side.
             x => panic!("Unsupported type {:?}", x),
@@ -243,6 +245,7 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
                 key_type,
                 value_type,
             } => ffi::create_logical_type_map(key_type.as_ref().into(), value_type.as_ref().into()),
+            LogicalType::RDFVariant => ffi::create_logical_type_rdf_variant(),
         }
     }
 }
@@ -284,6 +287,7 @@ impl LogicalType {
             LogicalType::Map { .. } => LogicalTypeID::MAP,
             LogicalType::Union { .. } => LogicalTypeID::UNION,
             LogicalType::UUID => LogicalTypeID::UUID,
+            LogicalType::RDFVariant => LogicalTypeID::RDF_VARIANT,
         }
     }
 }

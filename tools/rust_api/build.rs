@@ -121,6 +121,9 @@ fn build_ffi(
     if bundled {
         build.define("KUZU_BUNDLED", None);
     }
+    if get_target() == "debug" {
+        build.define("ENABLE_RUNTIME_CHECKS", "1");
+    }
     if link_mode() == "static" {
         build.define("KUZU_STATIC_DEFINE", None);
     }

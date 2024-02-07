@@ -1,5 +1,6 @@
 use crate::ffi::ffi;
 use crate::logical_type::LogicalType;
+use crate::rdf_variant::RDFVariant;
 use std::cmp::Ordering;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
@@ -13,6 +14,7 @@ pub enum ConversionError {
     TimestampNs(i64),
     TimestampMs(i64),
     TimestampSec(i64),
+    String(std::string::FromUtf8Error),
 }
 
 impl std::fmt::Display for ConversionError {
@@ -31,6 +33,7 @@ impl std::fmt::Debug for ConversionError {
             TimestampNs(ns) => write!(f, "Could not convert Kuzu timestamp_ns offset of UNIX_EPOCH + {ns} nanoseconds to time::OffsetDateTime"),
             TimestampMs(ms) => write!(f, "Could not convert Kuzu timestamp_ms offset of UNIX_EPOCH + {ms} milliseconds to time::OffsetDateTime"),
             TimestampSec(sec) => write!(f, "Could not convert Kuzu timestamp_sec offset of UNIX_EPOCH + {sec} seconds to time::OffsetDateTime"),
+            String(error) => write!(f, "Could not read Kuzu RDF string as a utf-8 std::string::String: {error}"),
         }
     }
 }
@@ -265,6 +268,7 @@ pub enum Value {
         value: Box<Value>,
     },
     UUID(uuid::Uuid),
+    RDFVariant(RDFVariant),
 }
 
 fn display_list<T: std::fmt::Display>(f: &mut fmt::Formatter<'_>, list: &Vec<T>) -> fmt::Result {
@@ -339,6 +343,7 @@ impl std::fmt::Display for Value {
             }
             Value::Union { types: _, value } => write!(f, "{value}"),
             Value::UUID(x) => write!(f, "{x}"),
+            Value::RDFVariant(x) => write!(f, "{x}"),
         }
     }
 }
@@ -396,8 +401,22 @@ impl From<&Value> for LogicalType {
                 types: types.clone(),
             },
             Value::UUID(_) => LogicalType::UUID,
+            Value::RDFVariant(_) => LogicalType::RDFVariant,
         }
     }
+}
+
+fn get_date_from_unix_days(days: i32) -> Result<time::Date, ConversionError> {
+    time::Date::from_calendar_date(1970, time::Month::January, 1)
+        .unwrap()
+        .checked_add(time::Duration::days(days as i64))
+        .ok_or(ConversionError::Date(days))
+}
+
+fn get_timestamp_from_unix_micros(us: i64) -> Result<time::OffsetDateTime, ConversionError> {
+    time::OffsetDateTime::UNIX_EPOCH
+        .checked_add(time::Duration::microseconds(us))
+        .ok_or(ConversionError::Timestamp(us))
 }
 
 impl TryFrom<&ffi::Value> for Value {
@@ -444,21 +463,12 @@ impl TryFrom<&ffi::Value> for Value {
                 // Duration is constructed using nanoseconds, but kuzu stores microseconds
                 ffi::value_get_interval_micros(value) * 1000,
             ))),
-            LogicalTypeID::DATE => {
-                let days = ffi::value_get_date_days(value);
-                time::Date::from_calendar_date(1970, time::Month::January, 1)
-                    .unwrap()
-                    .checked_add(time::Duration::days(days as i64))
-                    .map(Value::Date)
-                    .ok_or(ConversionError::Date(days))
-            }
-            LogicalTypeID::TIMESTAMP => {
-                let us = ffi::value_get_timestamp_micros(value);
-                time::OffsetDateTime::UNIX_EPOCH
-                    .checked_add(time::Duration::microseconds(us))
-                    .map(Value::Timestamp)
-                    .ok_or(ConversionError::Timestamp(us))
-            }
+            LogicalTypeID::DATE => Ok(Value::Date(get_date_from_unix_days(
+                ffi::value_get_date_days(value),
+            )?)),
+            LogicalTypeID::TIMESTAMP => Ok(Value::Timestamp(get_timestamp_from_unix_micros(
+                ffi::value_get_timestamp_micros(value),
+            )?)),
             LogicalTypeID::TIMESTAMP_TZ => {
                 let us = ffi::value_get_timestamp_tz(value);
                 time::OffsetDateTime::UNIX_EPOCH
@@ -643,6 +653,78 @@ impl TryFrom<&ffi::Value> for Value {
                     value: Box::new(value),
                 })
             }
+            LogicalTypeID::RDF_VARIANT => {
+                let runtime_type: Value = ffi::value_get_child(value, 0).try_into()?;
+                let runtime_logical_type = LogicalType::from(&runtime_type);
+                let value_blob: Value = ffi::value_get_child(value, 1).try_into()?;
+                let value_logical_type = LogicalType::from(&value_blob);
+                let value = if let (Value::UInt8(type_id), Value::Blob(value)) =
+                    (runtime_type, value_blob)
+                {
+                    match (LogicalTypeID { repr: type_id }) {
+                        LogicalTypeID::BOOL => RDFVariant::Bool(value[0] != 0),
+                        LogicalTypeID::INT8 => RDFVariant::Int8(value[0] as i8),
+                        LogicalTypeID::UINT8 => RDFVariant::UInt8(value[0] as u8),
+                        LogicalTypeID::INT16 => {
+                            RDFVariant::Int16(i16::from_ne_bytes(value.try_into().unwrap()))
+                        }
+                        LogicalTypeID::UINT16 => {
+                            RDFVariant::UInt16(u16::from_ne_bytes(value.try_into().unwrap()))
+                        }
+                        LogicalTypeID::INT32 => {
+                            RDFVariant::Int32(i32::from_ne_bytes(value.try_into().unwrap()))
+                        }
+                        LogicalTypeID::UINT32 => {
+                            RDFVariant::UInt32(u32::from_ne_bytes(value.try_into().unwrap()))
+                        }
+                        LogicalTypeID::INT64 => {
+                            RDFVariant::Int64(i64::from_ne_bytes(value.try_into().unwrap()))
+                        }
+                        LogicalTypeID::UINT64 => {
+                            RDFVariant::UInt64(u64::from_ne_bytes(value.try_into().unwrap()))
+                        }
+                        LogicalTypeID::DOUBLE => {
+                            RDFVariant::Double(f64::from_ne_bytes(value.try_into().unwrap()))
+                        }
+                        LogicalTypeID::FLOAT => {
+                            RDFVariant::Float(f32::from_ne_bytes(value.try_into().unwrap()))
+                        }
+                        LogicalTypeID::DATE => {
+                            let days: i32 = i32::from_ne_bytes(value.try_into().unwrap());
+                            RDFVariant::Date(get_date_from_unix_days(days)?)
+                        }
+                        LogicalTypeID::TIMESTAMP => {
+                            let microseconds: i64 = i64::from_ne_bytes(value.try_into().unwrap());
+                            RDFVariant::Timestamp(get_timestamp_from_unix_micros(microseconds)?)
+                        }
+                        LogicalTypeID::INTERVAL => {
+                            let months = i32::from_ne_bytes(value[0..4].try_into().unwrap());
+                            let days = i32::from_ne_bytes(value[4..8].try_into().unwrap());
+                            let micros = i64::from_ne_bytes(value[8..].try_into().unwrap());
+
+                            RDFVariant::Interval(time::Duration::new(
+                                (months as i64 * 30 + days as i64) * 24 * 60 * 60
+                                    + micros / i64::pow(1000, 2), // seconds
+                                (micros as i32 % i32::pow(1000, 2)) * 1000, // nanoseconds
+                            ))
+                        }
+                        LogicalTypeID::STRING => RDFVariant::String(
+                            String::from_utf8(value).map_err(ConversionError::String)?,
+                        ),
+                        LogicalTypeID::BLOB => RDFVariant::Blob(ffi::get_blob_from_bytes(&value)),
+                        x => {
+                            panic!("Type {:?} is not a supported RDF type", &x)
+                        }
+                    }
+                } else {
+                    panic!(
+                        "RDF Values are expected to always be blobs \
+                        and their types to be int8, but instead they were {:?} and {:?}",
+                        value_logical_type, runtime_logical_type
+                    )
+                };
+                Ok(Value::RDFVariant(value))
+            }
             // TODO(bmwinger): Better error message for types which are unsupported
             x => panic!("Unsupported type {:?}", x),
         }
@@ -657,6 +739,27 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
     fn try_into(self) -> Result<cxx::UniquePtr<ffi::Value>, Self::Error> {
         fn get_high_low(value: i128) -> (i64, u64) {
             ((value >> 64) as i64, value as u64)
+        }
+
+        fn date_to_kuzu_date_t(value: time::Date) -> i32 {
+            // Convert to days since 1970-01-01
+            (value - time::Date::from_ordinal_date(1970, 1).unwrap()).whole_days() as i32
+        }
+
+        fn datetime_to_timestamp_t(value: time::OffsetDateTime) -> i64 {
+            // Convert to microseconds since 1970-01-01
+            (value.unix_timestamp_nanos() / 1000) as i64
+        }
+
+        fn get_interval_t(value: time::Duration) -> (i32, i32, i64) {
+            use time::Duration;
+            let mut interval = value;
+            let months = interval.whole_days() / 30;
+            interval -= Duration::days(months * 30);
+            let days = interval.whole_days();
+            interval -= Duration::days(days);
+            let micros = interval.whole_microseconds() as i64;
+            (months as i32, days as i32, micros)
         }
 
         match self {
@@ -687,10 +790,9 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
                 value.as_bytes(),
             )),
             Value::Blob(value) => Ok(ffi::create_value_string(ffi::LogicalTypeID::BLOB, &value)),
-            Value::Timestamp(value) => Ok(ffi::create_value_timestamp(
-                // Convert to microseconds since 1970-01-01
-                (value.unix_timestamp_nanos() / 1000) as i64,
-            )),
+            Value::Timestamp(value) => {
+                Ok(ffi::create_value_timestamp(datetime_to_timestamp_t(value)))
+            }
             Value::TimestampTz(value) => Ok(ffi::create_value_timestamp_tz(
                 // Convert to microseconds since 1970-01-01
                 (value.unix_timestamp_nanos() / 1000) as i64,
@@ -704,23 +806,10 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             Value::TimestampSec(value) => Ok(ffi::create_value_timestamp_sec(
                 (value.unix_timestamp_nanos() / 1000000000) as i64,
             )),
-            Value::Date(value) => Ok(ffi::create_value_date(
-                // Convert to days since 1970-01-01
-                (value - time::Date::from_ordinal_date(1970, 1).unwrap()).whole_days(),
-            )),
+            Value::Date(value) => Ok(ffi::create_value_date(date_to_kuzu_date_t(value))),
             Value::Interval(value) => {
-                use time::Duration;
-                let mut interval = value;
-                let months = interval.whole_days() / 30;
-                interval -= Duration::days(months * 30);
-                let days = interval.whole_days();
-                interval -= Duration::days(days);
-                let micros = interval.whole_microseconds() as i64;
-                Ok(ffi::create_value_interval(
-                    months as i32,
-                    days as i32,
-                    micros,
-                ))
+                let (months, days, micros) = get_interval_t(value);
+                Ok(ffi::create_value_interval(months, days, micros))
             }
             Value::VarList(typ, value) => {
                 let mut builder = ffi::create_list();
@@ -810,6 +899,48 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
                     builder,
                 ))
             }
+            Value::RDFVariant(child) => {
+                let typ = ffi::create_logical_type_rdf_variant();
+
+                let mut builder = ffi::create_list();
+                builder
+                    .pin_mut()
+                    .insert(ffi::create_value_u8(ffi::LogicalTypeID::from(&child).repr));
+                let blob = match child {
+                    RDFVariant::Bool(b) => {
+                        vec![b as u8]
+                    }
+                    RDFVariant::Int8(x) => vec![x as u8],
+                    RDFVariant::Int16(x) => x.to_ne_bytes().into(),
+                    RDFVariant::Int32(x) => x.to_ne_bytes().into(),
+                    RDFVariant::Int64(x) => x.to_ne_bytes().into(),
+                    RDFVariant::UInt8(x) => x.to_ne_bytes().into(),
+                    RDFVariant::UInt16(x) => x.to_ne_bytes().into(),
+                    RDFVariant::UInt32(x) => x.to_ne_bytes().into(),
+                    RDFVariant::UInt64(x) => x.to_ne_bytes().into(),
+                    RDFVariant::Double(x) => x.to_ne_bytes().into(),
+                    RDFVariant::Float(x) => x.to_ne_bytes().into(),
+                    RDFVariant::Date(x) => date_to_kuzu_date_t(x).to_ne_bytes().into(),
+                    RDFVariant::Timestamp(x) => datetime_to_timestamp_t(x).to_ne_bytes().into(),
+                    RDFVariant::Interval(x) => {
+                        let (months, days, micros) = get_interval_t(x);
+                        let mut result = vec![];
+                        result.extend(months.to_ne_bytes());
+                        result.extend(days.to_ne_bytes());
+                        result.extend(micros.to_ne_bytes());
+                        result
+                    }
+                    RDFVariant::String(x) => x.into_bytes(),
+                    // Not sure if this is possible as it is stored as a blob_t and doesn't own the
+                    // actual data (unless the blob is short)
+                    RDFVariant::Blob(_) => unimplemented!(),
+                };
+                builder
+                    .pin_mut()
+                    .insert(ffi::create_value_string(ffi::LogicalTypeID::BLOB, &blob));
+
+                Ok(ffi::get_list_value(typ, builder))
+            }
         }
     }
 }
@@ -896,7 +1027,8 @@ impl From<&str> for Value {
 mod tests {
     use crate::ffi::ffi;
     use crate::{
-        Connection, Database, InternalID, LogicalType, NodeVal, RelVal, SystemConfig, Value,
+        Connection, Database, InternalID, LogicalType, NodeVal, RDFVariant, RelVal, SystemConfig,
+        Value,
     };
     use anyhow::Result;
     use std::collections::HashSet;
@@ -1021,6 +1153,7 @@ mod tests {
         convert_recursive_rel_type: LogicalType::RecursiveRel,
         convert_map_type: LogicalType::Map { key_type: Box::new(LogicalType::Interval), value_type: Box::new(LogicalType::Rel) },
         convert_union_type: LogicalType::Union { types: vec![("Num".to_string(), LogicalType::Int8), ("duration".to_string(), LogicalType::Interval), ("string".to_string(), LogicalType::String)] },
+        convert_rdf_type: LogicalType::RDFVariant,
     }
 
     value_tests! {
@@ -1063,6 +1196,7 @@ mod tests {
             types: vec![("Num".to_string(), LogicalType::Int8), ("duration".to_string(), LogicalType::Interval)],
             value: Box::new(Value::Int8(-127))
         },
+        convert_rdf_int: Value::RDFVariant(RDFVariant::Int64(1)),
     }
 
     display_tests! {
@@ -1098,6 +1232,7 @@ mod tests {
         display_uuid: Value::UUID(uuid!("00000000-0000-0000-0000-ffff00000000")),
         display_uuid2: Value::UUID(uuid!("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")),
         display_uuid3: Value::UUID(uuid!("a1a2a3a4b1b2c1c2d1d2d3d4d5d6d7d8")),
+        display_rdf_int: Value::RDFVariant(RDFVariant::Int64(1)),
     }
 
     database_tests! {
@@ -1369,6 +1504,105 @@ mod tests {
             ]
         );
         temp_dir.close()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_rdf() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
+        let conn = Connection::new(&db)?;
+        conn.query("CREATE RDFGraph T;")?;
+        conn.query("CREATE (:T_l {val: true});")?;
+        conn.query("CREATE (:T_l {val: cast(-1, 'INT8')});")?;
+        conn.query("CREATE (:T_l {val: cast(-2, 'INT16')});")?;
+        conn.query("CREATE (:T_l {val: cast(-3, 'INT32')});")?;
+        conn.query("CREATE (:T_l {val: cast(-4, 'INT64')});")?;
+        conn.query("CREATE (:T_l {val: cast(5, 'UINT8')});")?;
+        conn.query("CREATE (:T_l {val: cast(6, 'UINT16')});")?;
+        conn.query("CREATE (:T_l {val: cast(7, 'UINT32')});")?;
+        conn.query("CREATE (:T_l {val: cast(8, 'UINT64')});")?;
+        conn.query("CREATE (:T_l {val: cast(10.1, 'DOUBLE')});")?;
+        conn.query("CREATE (:T_l {val: cast(11.2, 'FLOAT')});")?;
+        conn.query("CREATE (:T_l {val: date('2024-02-07')});")?;
+        conn.query("CREATE (:T_l {val: interval('5 days')});")?;
+        conn.query("CREATE (:T_l {val: timestamp('2024-02-07 12:32:00')});")?;
+        conn.query("CREATE (:T_l {val: \"Long string that doesn't fit in ku_string_t\"});")?;
+        conn.query("CREATE (:T_l {val: blob('foo')});")?;
+        // TODO: long strings appear to be broken
+        //conn.query("CREATE (:T_l {val: blob(\"Long string that doesn't fit in ku_string_t\")});")?;
+        let result = conn.query("MATCH (a:T_l) RETURN a.val;")?;
+        assert_eq!(
+            result.get_column_data_types(),
+            vec![LogicalType::RDFVariant]
+        );
+        let results: Vec<Value> = result.map(|mut x| x.pop().unwrap()).collect();
+        assert_eq!(
+            results,
+            vec![
+                Value::RDFVariant(RDFVariant::Bool(true)),
+                Value::RDFVariant(RDFVariant::Int8(-1)),
+                Value::RDFVariant(RDFVariant::Int16(-2)),
+                Value::RDFVariant(RDFVariant::Int32(-3)),
+                Value::RDFVariant(RDFVariant::Int64(-4)),
+                Value::RDFVariant(RDFVariant::UInt8(5)),
+                Value::RDFVariant(RDFVariant::UInt16(6)),
+                Value::RDFVariant(RDFVariant::UInt32(7)),
+                Value::RDFVariant(RDFVariant::UInt64(8)),
+                Value::RDFVariant(RDFVariant::Double(10.1)),
+                Value::RDFVariant(RDFVariant::Float(11.2)),
+                Value::RDFVariant(RDFVariant::Date(date!(2024 - 02 - 07))),
+                Value::RDFVariant(RDFVariant::Interval(time::Duration::days(5))),
+                Value::RDFVariant(RDFVariant::Timestamp(datetime!(2024-02-07 12:32:00 UTC))),
+                Value::RDFVariant(RDFVariant::String(
+                    "Long string that doesn't fit in ku_string_t".to_string()
+                )),
+                Value::RDFVariant(RDFVariant::Blob(b"foo".to_vec())),
+                /*Value::RDFVariant(RDFVariant::Blob(
+                    b"Long string that doesn't fit in ku_string_t".to_vec()
+                )),*/
+            ]
+        );
+        temp_dir.close()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_rdf_prepare() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
+        let conn = Connection::new(&db)?;
+        conn.query("CREATE RDFGraph T;")?;
+        let mut prepared = conn.prepare("CREATE (:T_l {val: $val});")?;
+        let values = vec![
+            Value::RDFVariant(RDFVariant::Bool(true)),
+            Value::RDFVariant(RDFVariant::Int8(-1)),
+            Value::RDFVariant(RDFVariant::Int16(-2)),
+            Value::RDFVariant(RDFVariant::Int32(-3)),
+            Value::RDFVariant(RDFVariant::Int64(-4)),
+            Value::RDFVariant(RDFVariant::UInt8(5)),
+            Value::RDFVariant(RDFVariant::UInt16(6)),
+            Value::RDFVariant(RDFVariant::UInt32(7)),
+            Value::RDFVariant(RDFVariant::UInt64(8)),
+            Value::RDFVariant(RDFVariant::Double(10.1)),
+            Value::RDFVariant(RDFVariant::Float(11.2)),
+            Value::RDFVariant(RDFVariant::Date(date!(2024 - 02 - 07))),
+            Value::RDFVariant(RDFVariant::Interval(time::Duration::days(5))),
+            Value::RDFVariant(RDFVariant::Timestamp(datetime!(2024-02-07 12:32:00 UTC))),
+            Value::RDFVariant(RDFVariant::String(
+                "Long string that doesn't fit in ku_string_t".to_string(),
+            )),
+        ];
+        for value in &values {
+            conn.execute(&mut prepared, vec![("val", value.clone())])?;
+        }
+        let result = conn.query("MATCH (a:T_l) RETURN a.val;")?;
+        assert_eq!(
+            result.get_column_data_types(),
+            vec![LogicalType::RDFVariant]
+        );
+        let results: Vec<Value> = result.map(|mut x| x.pop().unwrap()).collect();
+        assert_eq!(results, values);
         Ok(())
     }
 }

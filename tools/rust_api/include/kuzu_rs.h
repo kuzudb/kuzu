@@ -4,6 +4,7 @@
 
 #include "rust/cxx.h"
 #ifdef KUZU_BUNDLED
+#include "common/type_utils.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
 #include "common/types/value/recursive_rel.h"
@@ -61,6 +62,10 @@ inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_union(
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
     std::unique_ptr<kuzu::common::LogicalType> keyType,
     std::unique_ptr<kuzu::common::LogicalType> valueType);
+
+inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_rdf_variant() {
+    return kuzu::common::LogicalType::RDF_VARIANT();
+}
 
 const kuzu::common::LogicalType& logical_type_get_var_list_child_type(
     const kuzu::common::LogicalType& logicalType);
@@ -161,7 +166,9 @@ std::unique_ptr<kuzu::common::Value> create_value_timestamp_tz(const int64_t tim
 std::unique_ptr<kuzu::common::Value> create_value_timestamp_ns(const int64_t timestamp);
 std::unique_ptr<kuzu::common::Value> create_value_timestamp_ms(const int64_t timestamp);
 std::unique_ptr<kuzu::common::Value> create_value_timestamp_sec(const int64_t timestamp);
-std::unique_ptr<kuzu::common::Value> create_value_date(const int64_t date);
+inline std::unique_ptr<kuzu::common::Value> create_value_date(const int32_t date) {
+    return std::make_unique<kuzu::common::Value>(kuzu::common::date_t(date));
+}
 std::unique_ptr<kuzu::common::Value> create_value_interval(
     const int32_t months, const int32_t days, const int64_t micros);
 std::unique_ptr<kuzu::common::Value> create_value_null(
@@ -191,6 +198,17 @@ std::unique_ptr<ValueListBuilder> create_list();
 
 inline std::string_view string_view_from_str(rust::Str s) {
     return {s.data(), s.size()};
+}
+
+// Converts bytes containing blob_t into actual blob bytes
+inline rust::Vec<uint8_t> get_blob_from_bytes(const rust::Vec<uint8_t>& value) {
+    KU_ASSERT(value.size() == sizeof(kuzu::common::blob_t));
+    std::string_view blob = ((kuzu::common::blob_t*)value.data())->value.getAsStringView();
+    rust::Vec<uint8_t> result;
+    for (auto c : blob) {
+        result.push_back(c);
+    }
+    return result;
 }
 
 } // namespace kuzu_rs

@@ -262,9 +262,6 @@ std::unique_ptr<kuzu::common::Value> create_value_timestamp_ms(const int64_t tim
 std::unique_ptr<kuzu::common::Value> create_value_timestamp_sec(const int64_t timestamp) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::timestamp_sec_t(timestamp));
 }
-std::unique_ptr<kuzu::common::Value> create_value_date(const int64_t date) {
-    return std::make_unique<kuzu::common::Value>(kuzu::common::date_t(date));
-}
 std::unique_ptr<kuzu::common::Value> create_value_interval(
     const int32_t months, const int32_t days, const int64_t micros) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::interval_t(months, days, micros));
