@@ -177,11 +177,6 @@ std::unique_ptr<function::TableFuncSharedState> ParallelCSVScan::initSharedState
     auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
     auto csvConfig = CSVReaderConfig::construct(bindData->config.options);
     common::row_idx_t numRows = 0;
-    for (const auto& path : bindData->config.filePaths) {
-        auto reader = make_unique<SerialCSVReader>(
-            path, csvConfig.option.copy(), bindData->columnNames.size(), bindData->context);
-        numRows += reader->countRows();
-    }
     return std::make_unique<ParallelCSVScanSharedState>(bindData->config.copy(), numRows,
         bindData->columnNames.size(), bindData->context, csvConfig.copy());
 }
