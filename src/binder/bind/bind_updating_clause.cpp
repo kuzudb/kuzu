@@ -290,6 +290,20 @@ expression_pair Binder::bindSetItem(parser::ParsedExpression* lhs, parser::Parse
     return make_pair(std::move(boundLhs), std::move(boundRhs));
 }
 
+static void validateRdfResourceDeletion(Expression* pattern, main::ClientContext* context) {
+    auto node = ku_dynamic_cast<Expression*, NodeExpression*>(pattern);
+    for (auto& tableID : node->getTableIDs()) {
+        for (auto& schema : context->getCatalog()->getRdfGraphSchemas(context->getTx())) {
+            if (schema->isParent(tableID) && node->hasPropertyExpression(std::string(rdf::IRI))) {
+                throw BinderException(
+                    stringFormat("Cannot delete node {} because it references to resource "
+                                 "node table under RDFGraph {}.",
+                        node->toString(), schema->getName()));
+            }
+        }
+    }
+}
+
 std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
     const UpdatingClause& updatingClause) {
     auto& deleteClause = (DeleteClause&)updatingClause;
@@ -297,6 +311,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
     for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
         auto nodeOrRel = expressionBinder.bindExpression(*deleteClause.getExpression(i));
         if (ExpressionUtil::isNodePattern(*nodeOrRel)) {
+            validateRdfResourceDeletion(nodeOrRel.get(), clientContext);
             auto deleteNodeInfo = BoundDeleteInfo(
                 UpdateTableType::NODE, nodeOrRel, deleteClause.getDeleteClauseType());
             boundDeleteClause->addInfo(std::move(deleteNodeInfo));

@@ -22,6 +22,9 @@ FileType FileTypeUtils::getFileTypeFromExtension(std::string_view extension) {
     if (extension == ".nq") {
         return FileType::NQUADS;
     }
+    if (extension == ".nt") {
+        return FileType::NTRIPLES;
+    }
     throw CopyException(std::string("Unsupported file type ").append(extension));
 }
 
@@ -44,6 +47,9 @@ std::string FileTypeUtils::toString(FileType fileType) {
     }
     case FileType::NQUADS: {
         return "NQUADS";
+    }
+    case FileType::NTRIPLES: {
+        return "NTRIPLES";
     }
     default: {
         KU_UNREACHABLE;

@@ -264,11 +264,11 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
             auto rdfGraphName =
                 catalog.getTableSchema(clientContext->getTx(), *rdfGraphTableIDSet.begin())
                     ->getName();
-            throw BinderException(
-                stringFormat("Relationship pattern {} contains both property graph relationship "
-                             "label {} and RDFGraph label {}. Mixing two tables in the same "
-                             "relationship pattern is not supported.",
-                    parsedName, relTableName, rdfGraphName));
+            throw BinderException(stringFormat(
+                "Relationship pattern {} contains both PropertyGraph relationship "
+                "label {} and RDFGraph label {}. Mixing relationships tables from an RDFGraph and "
+                "PropertyGraph in one pattern is currently not supported.",
+                parsedName, relTableName, rdfGraphName));
         }
         common::table_id_vector_t resourceTableIDs;
         for (auto& tableID : rdfGraphTableIDSet) {
