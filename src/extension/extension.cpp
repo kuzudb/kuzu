@@ -14,7 +14,7 @@ std::string getOS() {
     }
 #endif
 #ifdef _WIN32
-    os = "windows";
+    os = "win";
 #elif defined(__APPLE__)
     os = "osx";
 #endif

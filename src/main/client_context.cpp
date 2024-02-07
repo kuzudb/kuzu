@@ -34,7 +34,11 @@ ClientContext::ClientContext(Database* database)
     transactionContext = std::make_unique<TransactionContext>(database);
     randomEngine = std::make_unique<common::RandomEngine>();
     fileSearchPath = "";
+#if defined(_WIN32)
+    homeDirectory = getEnvVariable("USERPROFILE");
+#else
     homeDirectory = getEnvVariable("HOME");
+#endif
 }
 
 void ClientContext::startTimingIfEnabled() {
@@ -81,15 +85,11 @@ VirtualFileSystem* ClientContext::getVFSUnsafe() const {
 }
 
 std::string ClientContext::getExtensionDir() const {
-    return common::stringFormat("{}/extension", database->databasePath);
+    return common::stringFormat("{}/.kuzu/extension", homeDirectory);
 }
 
 storage::MemoryManager* ClientContext::getMemoryManager() {
     return database->memoryManager.get();
-}
-
-catalog::Catalog* ClientContext::getCatalog() {
-    return database->catalog.get();
 }
 
 std::string ClientContext::getEnvVariable(const std::string& name) {
