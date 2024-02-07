@@ -2005,6 +2005,21 @@ static int linenoiseEdit(
         default:
             if (linenoiseEditInsert(&l, c))
                 return -1;
+            if (strlen(l.buf) > buflen - 2 && pastedInput(l.ifd)) {
+                history_len--;
+                free(history[history_len]);
+                if (mlmode)
+                    linenoiseEditMoveEnd(&l);
+                if (hintsCallback) {
+                    /* Force a refresh without hints to leave the previous
+                     * line as the user typed it after a newline. */
+                    linenoiseHintsCallback* hc = hintsCallback;
+                    hintsCallback = NULL;
+                    refreshLine(&l);
+                    hintsCallback = hc;
+                }
+                return (int)l.len;
+            }
             break;
         }
     }
