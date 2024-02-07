@@ -1311,3 +1311,11 @@ False
 -STATEMENT Return to_int64(to_int128(-4324324))
 ---- 1
 -4324324
+
+-LOG CastSameType
+-STATEMENT RETURN cast(false, "BOOL") as bar;
+---- 1
+False
+-STATEMENT RETURN CAST([3,5,2], "int64[]") as foo;
+---- 1
+[3,5,2]
