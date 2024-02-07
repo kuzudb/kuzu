@@ -1,4 +1,5 @@
 #include "binder/expression/function_expression.h"
+#include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
 #include "function/null/vector_null_functions.h"
 
@@ -12,7 +13,16 @@ std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     const ParsedExpression& parsedExpression) {
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+        if (parsedExpression.getChild(i)->getExpressionType() == common::ExpressionType::LITERAL) {
+            auto newExpression = std::move(bindExpression(*parsedExpression.getChild(i)));
+            LiteralExpression* lit = (LiteralExpression*)(newExpression.get());
+            if (lit->value->getDataType()->getLogicalTypeID() == LogicalTypeID::ANY) {
+                lit->value->setDataType(LogicalType(LogicalTypeID::INT8));
+            }
+            children.push_back(newExpression);
+        } else {
+            children.push_back(bindExpression(*parsedExpression.getChild(i)));
+        }
     }
     auto expressionType = parsedExpression.getExpressionType();
     auto functionName = expressionTypeToString(expressionType);
