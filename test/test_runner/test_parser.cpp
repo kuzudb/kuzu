@@ -195,6 +195,14 @@ TestStatement* TestParser::extractStatement(
         statement->reloadDBFlag = true;
         return statement;
     }
+    case TokenType::IMPORT_DATABASE: {
+        // TODO(Jiamin): special here, should remove after implementing import database
+        statement->importDBFlag = true;
+        auto filePath = getParam(1);
+        replaceVariables(filePath);
+        statement->importFilePath = filePath;
+        return statement;
+    }
     case TokenType::STATEMENT: {
         std::string query = paramsToString(1);
         extractConnName(query, statement);

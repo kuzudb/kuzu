@@ -254,6 +254,14 @@ void Catalog::addScalarMacroFunction(
     readWriteVersion->addScalarMacroFunction(std::move(name), std::move(macro));
 }
 
+std::vector<std::string> Catalog::getMacroNames(transaction::Transaction* tx) const {
+    std::vector<std::string> macroNames;
+    for (auto& macro : getVersion(tx)->macros) {
+        macroNames.push_back(macro.first);
+    }
+    return macroNames;
+}
+
 void Catalog::setTableComment(table_id_t tableID, const std::string& comment) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();

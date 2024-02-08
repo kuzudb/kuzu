@@ -7,7 +7,8 @@ add_library(kuzu_catalog
         rdf_graph_schema.cpp
         rel_table_group_schema.cpp
         rel_table_schema.cpp
-        table_schema.cpp)
+        table_schema.cpp
+        export_utils.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_catalog>

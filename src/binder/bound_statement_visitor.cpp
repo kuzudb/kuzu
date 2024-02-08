@@ -47,6 +47,9 @@ void BoundStatementVisitor::visit(const BoundStatement& statement) {
     case StatementType::EXTENSION: {
         visitExtension(statement);
     } break;
+    case StatementType::EXPORT_DATABASE: {
+        visitExportDatabase(statement);
+    } break;
     default:
         KU_UNREACHABLE;
     }

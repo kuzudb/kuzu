@@ -43,5 +43,18 @@ void DBTest::createDB(uint64_t checkpointWaitTimeout) {
     spdlog::set_level(spdlog::level::info);
 }
 
+void DBTest::createNewDB() {
+    database.reset();
+    conn.reset();
+    removeDir(databasePath);
+    createDBAndConn();
+}
+
+void DBTest::importDB(std::string filePath) {
+    TestHelper::executeImportDBScript(filePath + "/" + TestHelper::SCHEMA_FILE_NAME, *conn);
+    TestHelper::executeImportDBScript(filePath + "/" + TestHelper::COPY_FILE_NAME, *conn);
+    TestHelper::executeImportDBScript(filePath + "/macro.cypher", *conn);
+}
+
 } // namespace testing
 } // namespace kuzu

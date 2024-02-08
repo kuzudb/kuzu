@@ -40,6 +40,7 @@ public:
     void TearDown() override {
         std::filesystem::remove_all(databasePath);
         std::filesystem::remove_all(parquetTempDatasetPath);
+        BaseGraphTest::removeIEDBPath();
     }
 
     void TestBody() override { runTest(testStatements, checkpointWaitTimeout, connNames); }

@@ -45,6 +45,8 @@ public:
 
     static std::unique_ptr<RelTableSchema> deserialize(common::Deserializer& deserializer);
 
+    std::string toCypher(main::ClientContext* clientContext) const override;
+
     inline std::unique_ptr<TableSchema> copy() const override {
         return std::make_unique<RelTableSchema>(*this);
     }

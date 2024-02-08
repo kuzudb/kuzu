@@ -8,6 +8,9 @@ namespace common {
 class Serializer;
 class Deserializer;
 } // namespace common
+namespace main {
+class ClientContext;
+} // namespace main
 namespace catalog {
 
 class TableSchema {
@@ -30,6 +33,8 @@ public:
     inline void setComment(std::string newComment) { comment = std::move(newComment); }
 
     virtual bool isParent(common::table_id_t tableID) = 0;
+
+    virtual std::string toCypher(main::ClientContext* clientContext) const = 0;
 
     /* Property functions */
     inline uint32_t getNumProperties() const { return properties.size(); }
