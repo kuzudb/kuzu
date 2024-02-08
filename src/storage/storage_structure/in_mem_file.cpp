@@ -37,7 +37,12 @@ ku_string_t InMemFile::appendString(std::string_view rawString) {
         length <= ku_string_t::SHORT_STR_LENGTH ? length : ku_string_t::PREFIX_LENGTH);
     if (length > ku_string_t::SHORT_STR_LENGTH) {
         if (length > BufferPoolConstants::PAGE_256KB_SIZE) {
-            throw CopyException(ExceptionMessage::overLargeStringPKValueException(length));
+            if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
+                length = BufferPoolConstants::PAGE_256KB_SIZE;
+                result.len = length;
+            } else {
+                throw CopyException(ExceptionMessage::overLargeStringPKValueException(length));
+            }
         }
 
         int32_t remainingLength = length;
