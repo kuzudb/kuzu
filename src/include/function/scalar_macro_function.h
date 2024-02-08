@@ -33,6 +33,8 @@ struct ScalarMacroFunction {
 
     void serialize(common::Serializer& serializer) const;
 
+    std::string ToCypher(const std::string& name) const;
+
     static std::unique_ptr<ScalarMacroFunction> deserialize(common::Deserializer& deserializer);
 };
 

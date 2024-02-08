@@ -42,12 +42,26 @@ public:
         initGraph();
     }
     void createDB(uint64_t checkpointWaitTimeout);
+    void importDB(std::string filePath);
+    void createNewDB(uint64_t checkpointWaitTimeout);
 
     inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
         uint64_t checkpointWaitTimeout =
             common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS,
         std::set<std::string> connNames = std::set<std::string>()) {
         for (auto& statement : statements) {
+            // special for testing import and export test cases
+            if (statement->importDBFlag) {
+                auto filePath = statement->importFilePath;
+                filePath.erase(std::remove(filePath.begin(), filePath.end(), '\"'), filePath.end());
+                createNewDB(checkpointWaitTimeout);
+                importDB(filePath);
+                continue;
+            }
+            if (newConn) {
+                TestRunner::runTest(statement.get(), *newConn, databasePath);
+            }
+
             if (statement->reloadDBFlag) {
                 createDB(checkpointWaitTimeout);
                 createConns(connNames);

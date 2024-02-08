@@ -40,18 +40,16 @@ enum class TokenType {
     CREATE_CONNECTION,
     RELOADDB,
     BATCH_STATEMENTS,
-    SET
+    SET,
+
+    // special for testing exporting database
+    IMPORT_DATABASE
 };
 
-const std::unordered_map<std::string, TokenType> tokenMap = {
-    {"-GROUP", TokenType::GROUP},
-    {"-DATASET", TokenType::DATASET},
-    {"-CASE", TokenType::CASE},
-    {"-COMMIT", TokenType::COMMIT},
-    {"-CHECK_ORDER", TokenType::CHECK_ORDER},
-    {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
-    {"-LOG", TokenType::LOG},
-    {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
+const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},
+    {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE}, {"-COMMIT", TokenType::COMMIT},
+    {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
+    {"-LOG", TokenType::LOG}, {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
     {"-ENUMERATE", TokenType::ENUMERATE},
     {"-BEGIN_WRITE_TRANSACTION", TokenType::BEGIN_WRITE_TRANSACTION},
     {"-BEGIN_READ_ONLY_TRANSACTION", TokenType::BEGIN_READ_ONLY_TRANSACTION},
@@ -63,18 +61,12 @@ const std::unordered_map<std::string, TokenType> tokenMap = {
     {"-DEFINE", TokenType::DEFINE},
     {"-STATEMENT", TokenType::STATEMENT},
     {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
-    {"-ROLLBACK", TokenType::ROLLBACK},
-    {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},
+    {"-ROLLBACK", TokenType::ROLLBACK}, {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},
     {"-CHECKPOINT_WAIT_TIMEOUT", TokenType::CHECKPOINT_WAIT_TIMEOUT},
-    {"-BATCH_STATEMENTS", TokenType::BATCH_STATEMENTS},
-    {"-RELOADDB", TokenType::RELOADDB},
-    {"-CREATE_CONNECTION", TokenType::CREATE_CONNECTION},
-    {"]", TokenType::END_OF_STATEMENT_BLOCK},
-    {"----", TokenType::RESULT},
-    {"--", TokenType::SEPARATOR},
-    {"#", TokenType::EMPTY},
-    {"-SET", TokenType::SET},
-};
+    {"-BATCH_STATEMENTS", TokenType::BATCH_STATEMENTS}, {"-RELOADDB", TokenType::RELOADDB},
+    {"-CREATE_CONNECTION", TokenType::CREATE_CONNECTION}, {"]", TokenType::END_OF_STATEMENT_BLOCK},
+    {"----", TokenType::RESULT}, {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY},
+    {"-SET", TokenType::SET}, {"-IMPORT_DATABASE", TokenType::IMPORT_DATABASE}};
 
 class LogicToken {
 public:

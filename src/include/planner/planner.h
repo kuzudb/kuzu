@@ -63,6 +63,9 @@ private:
     std::unique_ptr<LogicalPlan> planCopyRdfFrom(
         const binder::BoundCopyFromInfo* info, binder::expression_vector outExprs);
 
+    // Plan export database
+    std::unique_ptr<LogicalPlan> planExportDatabase(const binder::BoundStatement& statement);
+
     // Plan query.
     std::vector<std::unique_ptr<LogicalPlan>> planQuery(
         const binder::BoundStatement& boundStatement);
@@ -263,6 +266,9 @@ private:
     JoinOrderEnumeratorContext enterContext(SubqueryType subqueryType,
         const binder::expression_vector& correlatedExpressions, uint64_t cardinality);
     void exitContext(JoinOrderEnumeratorContext prevContext);
+
+    std::shared_ptr<LogicalOperator> appendRelForExportDB(
+        catalog::TableSchema* schema, catalog::Catalog* catalog);
 
 private:
     catalog::Catalog* catalog;

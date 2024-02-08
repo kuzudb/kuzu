@@ -121,6 +121,9 @@ public:
     std::unique_ptr<main::Connection> conn;
     // for multiple conns
     std::unordered_map<std::string, std::unique_ptr<main::Connection>> connMap;
+    // for import and export
+    std::unique_ptr<main::Database> newDatabase;
+    std::unique_ptr<main::Connection> newConn;
 };
 
 } // namespace testing

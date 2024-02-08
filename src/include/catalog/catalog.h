@@ -81,6 +81,14 @@ public:
         return readOnlyVersion->macros.at(name).get();
     }
 
+    inline std::vector<std::string> getMacroNames(transaction::Transaction* tx) const {
+        std::vector<std::string> macroNames;
+        for (auto& macro : getVersion(tx)->macros) {
+            macroNames.push_back(macro.first);
+        }
+        return macroNames;
+    }
+
     // ----------------------------- Tx ----------------------------
     void prepareCommitOrRollback(transaction::TransactionAction action);
     void checkpointInMemory();

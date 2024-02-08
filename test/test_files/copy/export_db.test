@@ -1,0 +1,16 @@
+-GROUP TinySnbExportDB
+-DATASET CSV demo-db/csv
+
+--
+
+-CASE ExportDatabase
+
+-STATEMENT Export Database "demo-db"
+---- ok
+-IMPORT_DATABASE "demo-db"
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+---- ok
+-LOG ReturnAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+---- 1
+50

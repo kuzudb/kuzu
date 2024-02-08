@@ -70,6 +70,7 @@ enum class PhysicalOperatorType : uint8_t {
     ORDER_BY_SCAN,
     UNION_ALL_SCAN,
     UNWIND,
+    EXPORT_DATABASE,
 };
 
 class PhysicalOperatorUtils {

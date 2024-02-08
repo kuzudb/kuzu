@@ -1,7 +1,10 @@
 #include "catalog/node_table_schema.h"
 
+#include <sstream>
+
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/string_utils.h"
 
 using namespace kuzu::common;
 
@@ -32,6 +35,21 @@ std::unique_ptr<NodeTableSchema> NodeTableSchema::deserialize(Deserializer& dese
     schema->fwdRelTableIDSet = std::move(fwdRelTableIDSet);
     schema->bwdRelTableIDSet = std::move(bwdRelTableIDSet);
     return schema;
+}
+
+std::string NodeTableSchema::ToCypher() const {
+    std::stringstream ss;
+    ss << "CREATE NODE TABLE " << tableName << "(";
+    for (auto& prop : properties) {
+        auto propStr = prop.getDataType()->toString();
+        StringUtils::replaceAll(propStr, ":", " ");
+        if (propStr.find("MAP") != std::string::npos) {
+            StringUtils::replaceAll(propStr, "  ", ",");
+        }
+        ss << prop.getName() << " " << propStr << ",";
+    }
+    ss << " PRIMARY KEY(" << getPrimaryKey()->getName() << "));";
+    return ss.str();
 }
 
 } // namespace catalog

@@ -43,5 +43,20 @@ void DBTest::createDB(uint64_t checkpointWaitTimeout) {
     spdlog::set_level(spdlog::level::info);
 }
 
+void DBTest::createNewDB(uint64_t checkpointWaitTimeout) {
+    auto newDatabasePath =
+        TestHelper::appendKuzuRootPath(TestHelper::TMP_TEST_DIR + getTestGroupAndName() +
+                                       TestHelper::getMillisecondsSuffix() + "exportOnly");
+    newDatabase = std::make_unique<main::Database>(newDatabasePath, *systemConfig);
+    getTransactionManager(*newDatabase)
+        ->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(checkpointWaitTimeout /* 10ms */);
+    newConn = std::make_unique<main::Connection>(newDatabase.get());
+}
+
+void DBTest::importDB(std::string filePath) {
+    TestHelper::executeImportDBScript(filePath + "/" + TestHelper::SCHEMA_FILE_NAME, *newConn);
+    TestHelper::executeImportDBScript(filePath + "/" + TestHelper::COPY_FILE_NAME, *newConn);
+}
+
 } // namespace testing
 } // namespace kuzu

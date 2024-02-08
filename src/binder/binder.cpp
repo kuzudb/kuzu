@@ -55,6 +55,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::EXTENSION: {
         boundStatement = bindExtension(statement);
     } break;
+    case StatementType::EXPORT_DATABASE: {
+        boundStatement = bindExportDatabaseClause(statement);
+    } break;
     default: {
         KU_UNREACHABLE;
     }

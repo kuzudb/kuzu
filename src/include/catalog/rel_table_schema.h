@@ -49,6 +49,8 @@ public:
         return std::make_unique<RelTableSchema>(*this);
     }
 
+    std::string ToCypher(std::string srcTableName, std::string dstTableName) const;
+
 private:
     void serializeInternal(common::Serializer& serializer) final;
 
