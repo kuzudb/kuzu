@@ -41,6 +41,7 @@ pub(crate) mod ffi {
     // From types.h
     // Note: cxx will check if values change, but not if they are added.
     #[namespace = "kuzu::common"]
+    #[repr(u8)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum LogicalTypeID {
         ANY = 0,
@@ -82,6 +83,7 @@ pub(crate) mod ffi {
         STRUCT = 53,
         MAP = 54,
         UNION = 55,
+        RDF_VARIANT = 56,
 
         UUID = 58,
     }
@@ -241,6 +243,8 @@ pub(crate) mod ffi {
         fn logical_type_get_struct_field_types(
             value: &LogicalType,
         ) -> UniquePtr<CxxVector<LogicalType>>;
+
+        fn create_logical_type_rdf_variant() -> UniquePtr<LogicalType>;
     }
 
     #[namespace = "kuzu_rs"]
@@ -345,7 +349,7 @@ pub(crate) mod ffi {
         fn create_value_timestamp_ns(value: i64) -> UniquePtr<Value>;
         fn create_value_timestamp_ms(value: i64) -> UniquePtr<Value>;
         fn create_value_timestamp_sec(value: i64) -> UniquePtr<Value>;
-        fn create_value_date(value: i64) -> UniquePtr<Value>;
+        fn create_value_date(value: i32) -> UniquePtr<Value>;
         fn create_value_interval(months: i32, days: i32, micros: i64) -> UniquePtr<Value>;
         fn create_value_int128_t(high: i64, low: u64) -> UniquePtr<Value>;
         fn create_value_uuid_t(high: i64, low: u64) -> UniquePtr<Value>;
@@ -369,5 +373,7 @@ pub(crate) mod ffi {
 
         fn recursive_rel_get_nodes(value: &Value) -> &Value;
         fn recursive_rel_get_rels(value: &Value) -> &Value;
+
+        fn get_blob_from_bytes(value: &Vec<u8>) -> Vec<u8>;
     }
 }

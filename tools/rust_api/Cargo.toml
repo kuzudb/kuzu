@@ -27,8 +27,6 @@ links = "kuzu"
 
 [dependencies]
 cxx = "1.0"
-num-derive = "0.3"
-num-traits = "0.2"
 time = "0.3"
 arrow = {version="43", optional=true, default-features=false, features=["ffi"]}
 uuid = "1.6"

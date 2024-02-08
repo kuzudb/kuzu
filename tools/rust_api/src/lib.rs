@@ -44,6 +44,7 @@ mod error;
 mod ffi;
 mod logical_type;
 mod query_result;
+mod rdf_variant;
 mod value;
 
 pub use connection::{Connection, PreparedStatement};
@@ -51,6 +52,7 @@ pub use database::{Database, LoggingLevel, SystemConfig};
 pub use error::Error;
 pub use logical_type::LogicalType;
 pub use query_result::{CSVOptions, QueryResult};
+pub use rdf_variant::RDFVariant;
 pub use value::{InternalID, NodeVal, RelVal, Value};
 
 #[cfg(feature = "arrow")]
