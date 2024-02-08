@@ -145,6 +145,7 @@ struct CopyConstants {
 
 struct RdfConstants {
     static constexpr const char IN_MEMORY_OPTION[] = "IN_MEMORY";
+    static constexpr const char STRICT_OPTION[] = "STRICT";
 };
 
 struct LoggerConstants {

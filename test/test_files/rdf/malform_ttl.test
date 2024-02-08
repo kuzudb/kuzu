@@ -47,8 +47,22 @@ p/冯|p/西|p/洋
 -STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri;
 ---- 0
 
+
 -CASE InfiniteLoop
 -STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/infinite_loop.ttl" (in_memory=true);
 ---- ok
+
+-CASE StrictMode
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_syntax.ttl" (in_memory=true, strict=true);
+---- error
+Runtime exception: Invalid syntax while reading file at line 1 and col 16
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_prefix.ttl" (in_memory=false, strict=true);
+---- error
+Runtime exception: Cannot expand foo:enemyOf.
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/infinite_loop.ttl" (strict=true);
+---- error
+Runtime exception: Invalid syntax while reading file at line 10120 and col 149
