@@ -20,13 +20,13 @@ TEST_JOBS ?= 10
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
 
 ifeq ($(OS),Windows_NT)
-	GEN ?= ninja
+	GEN ?= Ninja
 	SHELL := cmd.exe
 	.SHELLFLAGS := /c
 endif
 
-ifeq ($(GEN),ninja)
-	CMAKE_FLAGS += -G "Ninja"
+ifdef GEN
+	CMAKE_FLAGS += -G "$(GEN)"
 endif
 
 ifdef ASAN
