@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/function_expression.h"
+#include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
@@ -62,6 +63,16 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CAST_FUNC_NAME) {
+        // If the expression to cast already has the same type as the target type, skip casting.
+        if (children.size() == 2) {
+            auto targetTypeStr = (ku_dynamic_cast<Expression&, LiteralExpression&>(*children[1]))
+                                     .getValue()
+                                     ->getValue<std::string>();
+            auto outputType = binder::Binder::bindDataType(targetTypeStr);
+            if (*outputType == children[0]->dataType) {
+                return children[0];
+            }
+        }
         bindData = function->bindFunc(children, function);
         childrenAfterCast.push_back(
             implicitCastIfNecessary(children[0], function->parameterTypeIDs[0]));
