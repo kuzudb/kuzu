@@ -236,31 +236,41 @@ void RdfLiteralTripleInMemScan::tableFunc(TableFunctionInput& input, DataChunk& 
 std::unique_ptr<TableFuncSharedState> RdfResourceScan::initSharedState(
     TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<RdfScanBindData*>(input.bindData);
-    return std::make_unique<RdfResourceScanSharedState>(bindData->config.copy());
+    auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
+    return std::make_unique<RdfResourceScanSharedState>(
+        bindData->config.copy(), std::move(rdfConfig));
 }
 
 std::unique_ptr<TableFuncSharedState> RdfLiteralScan::initSharedState(
     TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<RdfScanBindData*>(input.bindData);
-    return std::make_unique<RdfLiteralScanSharedState>(bindData->config.copy());
+    auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
+    return std::make_unique<RdfLiteralScanSharedState>(
+        bindData->config.copy(), std::move(rdfConfig));
 }
 
 std::unique_ptr<TableFuncSharedState> RdfResourceTripleScan::initSharedState(
     TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<RdfScanBindData*>(input.bindData);
-    return std::make_unique<RdfResourceTripleScanSharedState>(bindData->config.copy());
+    auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
+    return std::make_unique<RdfResourceTripleScanSharedState>(
+        bindData->config.copy(), std::move(rdfConfig));
 }
 
 std::unique_ptr<TableFuncSharedState> RdfLiteralTripleScan::initSharedState(
     TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<RdfScanBindData*>(input.bindData);
-    return std::make_unique<RdfLiteralTripleScanSharedState>(bindData->config.copy());
+    auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
+    return std::make_unique<RdfLiteralTripleScanSharedState>(
+        bindData->config.copy(), std::move(rdfConfig));
 }
 
 std::unique_ptr<TableFuncSharedState> RdfAllTripleScan::initSharedState(
     TableFunctionInitInput& input) {
     auto bindData = ku_dynamic_cast<TableFuncBindData*, RdfScanBindData*>(input.bindData);
-    return std::make_unique<RdfTripleScanSharedState>(bindData->config.copy(), bindData->store);
+    auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
+    return std::make_unique<RdfTripleScanSharedState>(
+        bindData->config.copy(), std::move(rdfConfig), bindData->store);
 }
 
 } // namespace processor

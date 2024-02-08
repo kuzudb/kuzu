@@ -46,10 +46,12 @@ void RdfReader::initInternal(SerdStatementSink statementSink) {
     env = serd_env_new(nullptr);
 }
 
-SerdStatus RdfReader::errorHandle(void*, const SerdError* error) {
-    // TODO: we should probably have a strict mode where exceptions are being thrown.
-    //        common::stringFormat("{} while reading rdf file at line {} and col {}",
-    //                (char*)serd_strerror(error->status), error->line, error->col));
+SerdStatus RdfReader::errorHandle(void* handle, const SerdError* error) {
+    auto reader = reinterpret_cast<RdfReader*>(handle);
+    if (reader->rdfConfig.strict) {
+        throw RuntimeException(common::stringFormat("{} while reading file at line {} and col {}",
+            (char*)serd_strerror(error->status), error->line, error->col));
+    }
     return error->status;
 }
 
@@ -139,6 +141,9 @@ std::string RdfReader::getAsString(const SerdNode* node) {
         if (st == SERD_SUCCESS) {
             return std::string((const char*)prefix.buf, prefix.len) +
                    std::string((const char*)suffix.buf, suffix.len);
+        } else if (rdfConfig.strict) {
+            throw RuntimeException(stringFormat(
+                "Cannot expand {}.", std::string((const char*)node->buf, node->n_bytes)));
         }
         return std::string(); // expand fail return empty string.
     }

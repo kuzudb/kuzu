@@ -22,6 +22,9 @@ RdfReaderConfig RdfReaderConfig::construct(
         if (name == RdfConstants::IN_MEMORY_OPTION) {
             validateBoolOption(*op.second.getDataType(), name);
             config.inMemory = op.second.getValue<bool>();
+        } else if (name == RdfConstants::STRICT_OPTION) {
+            validateBoolOption(*op.second.getDataType(), name);
+            config.strict = op.second.getValue<bool>();
         } else {
             throw BinderException(stringFormat("Unrecognized parsing option: {}.", name));
         }
