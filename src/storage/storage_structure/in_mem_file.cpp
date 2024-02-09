@@ -8,29 +8,35 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
+#include "common/types/types.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-InMemFile::InMemFile(std::string filePath, common::VirtualFileSystem* vfs)
-    : filePath{std::move(filePath)}, nextPosToAppend(0, 0) {
+InMemFile::InMemFile(
+    std::string filePath, common::VirtualFileSystem* vfs, std::atomic<page_idx_t>& pageCounter)
+    : filePath{std::move(filePath)}, nextPosToAppend(0, 0), pageCounter(pageCounter) {
     fileInfo = vfs->openFile(this->filePath, O_CREAT | O_WRONLY);
-    addANewPage();
 }
 
-uint32_t InMemFile::addANewPage(bool setToZero) {
-    auto newPageIdx = pages.size();
-    pages.push_back(std::make_unique<InMemPage>());
-    if (setToZero) {
-        memset(pages[newPageIdx]->data, 0, BufferPoolConstants::PAGE_4KB_SIZE);
+void InMemFile::addANewPage() {
+    page_idx_t newPageIdx = pageCounter.fetch_add(1);
+    // Write the index of the next page to the end of the current page, in case a string overflows
+    // from one page to another This is always done, as strings are unlikely to end exactly at the
+    // end of a page and it's probably not worth the additional complexity to save a few bytes on
+    // the occasions that a string does
+    if (pages.size() > 0) {
+        pages[nextPosToAppend.pageIdx]->write(
+            END_OF_PAGE, reinterpret_cast<uint8_t*>(&newPageIdx), sizeof(page_idx_t));
     }
-    return newPageIdx;
+    pages.emplace(newPageIdx, std::make_unique<InMemPage>());
+    nextPosToAppend.elemPosInPage = 0;
+    nextPosToAppend.pageIdx = newPageIdx;
 }
 
-ku_string_t InMemFile::appendString(std::string_view rawString) {
-    ku_string_t result;
+void InMemFile::appendString(std::string_view rawString, ku_string_t& result) {
     auto length = rawString.length();
     result.len = length;
     std::memcpy(result.prefix, rawString.data(),
@@ -44,30 +50,31 @@ ku_string_t InMemFile::appendString(std::string_view rawString) {
                 throw CopyException(ExceptionMessage::overLargeStringPKValueException(length));
             }
         }
+        if (pages.size() == 0) {
+            addANewPage();
+        }
 
         int32_t remainingLength = length;
         // There should always be some space to write. The constructor adds an empty page, and
         // we always add new pages if we run out of space at the end of the following loop
-        KU_ASSERT(nextPosToAppend.elemPosInPage < BufferPoolConstants::PAGE_4KB_SIZE);
+        KU_ASSERT(nextPosToAppend.elemPosInPage < END_OF_PAGE);
 
         TypeUtils::encodeOverflowPtr(
             result.overflowPtr, nextPosToAppend.pageIdx, nextPosToAppend.elemPosInPage);
         while (remainingLength > 0) {
             auto numBytesToWriteInPage = std::min(static_cast<uint64_t>(remainingLength),
-                BufferPoolConstants::PAGE_4KB_SIZE - nextPosToAppend.elemPosInPage);
+                END_OF_PAGE - nextPosToAppend.elemPosInPage);
             pages[nextPosToAppend.pageIdx]->write(nextPosToAppend.elemPosInPage,
                 reinterpret_cast<const uint8_t*>(rawString.data()) + (length - remainingLength),
                 numBytesToWriteInPage);
             remainingLength -= numBytesToWriteInPage;
             // Allocate a new page if necessary.
             nextPosToAppend.elemPosInPage += numBytesToWriteInPage;
-            if (nextPosToAppend.elemPosInPage >= common::BufferPoolConstants::PAGE_4KB_SIZE) {
-                nextPosToAppend.nextPage();
+            if (nextPosToAppend.elemPosInPage >= END_OF_PAGE) {
                 addANewPage();
             }
         }
     }
-    return result;
 }
 
 std::string InMemFile::readString(ku_string_t* strInInMemOvfFile) const {
@@ -82,30 +89,47 @@ std::string InMemFile::readString(ku_string_t* strInInMemOvfFile) const {
         result.reserve(length);
         auto remainingLength = length;
         while (remainingLength > 0) {
-            auto numBytesToReadInPage = std::min(static_cast<uint64_t>(remainingLength),
-                BufferPoolConstants::PAGE_4KB_SIZE - cursor.elemPosInPage);
-            result += std::string_view(
-                reinterpret_cast<const char*>(pages[cursor.pageIdx]->data) + cursor.elemPosInPage,
-                numBytesToReadInPage);
-            cursor.nextPage();
+            auto numBytesToReadInPage = std::min(
+                static_cast<uint64_t>(remainingLength), END_OF_PAGE - cursor.elemPosInPage);
+            result +=
+                std::string_view(reinterpret_cast<const char*>(pages.at(cursor.pageIdx)->data) +
+                                     cursor.elemPosInPage,
+                    numBytesToReadInPage);
+            cursor.elemPosInPage = 0;
+            cursor.pageIdx = getNextPageIndex(cursor.pageIdx);
             remainingLength -= numBytesToReadInPage;
         }
         return result;
     }
 }
 
+bool InMemFile::equals(std::string_view keyToLookup, const ku_string_t& keyInEntry) const {
+    PageCursor cursor;
+    TypeUtils::decodeOverflowPtr(keyInEntry.overflowPtr, cursor.pageIdx, cursor.elemPosInPage);
+    auto lengthRead = 0u;
+    while (lengthRead < keyInEntry.len) {
+        auto numBytesToCheckInPage = std::min(
+            static_cast<uint64_t>(keyInEntry.len) - lengthRead, END_OF_PAGE - cursor.elemPosInPage);
+        if (memcmp(keyToLookup.data() + lengthRead,
+                getPage(cursor.pageIdx)->data + cursor.elemPosInPage, numBytesToCheckInPage) != 0) {
+            return false;
+        }
+        cursor.elemPosInPage = 0;
+        cursor.pageIdx = getNextPageIndex(cursor.pageIdx);
+        lengthRead += numBytesToCheckInPage;
+    }
+    return true;
+}
+
 void InMemFile::flush() {
     if (filePath.empty()) {
         throw CopyException("InMemPages: Empty filename");
     }
-    auto lastPage = pages.size();
-    // If we didn't write to the last page, don't flush it.
-    if (nextPosToAppend.elemPosInPage == 0) {
-        lastPage = pages.size() - 1;
-    }
-    for (auto pageIdx = 0u; pageIdx < lastPage; pageIdx++) {
-        fileInfo->writeFile(pages[pageIdx]->data, BufferPoolConstants::PAGE_4KB_SIZE,
-            pageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+    for (auto& [pageIndex, page] : pages) {
+        // actual page index is stored inside of the InMemPage and does not correspond to the index
+        // in the vector
+        fileInfo->writeFile(page->data, BufferPoolConstants::PAGE_4KB_SIZE,
+            pageIndex * BufferPoolConstants::PAGE_4KB_SIZE);
     }
 }
 

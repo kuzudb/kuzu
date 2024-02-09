@@ -13,26 +13,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-template<typename S>
-struct OptionalOverflowFile {
-    InMemFile* ptr = nullptr;
-    explicit OptionalOverflowFile(common::Mutex<InMemFile>*) {}
-};
-
-template<>
-struct OptionalOverflowFile<ku_string_t> {
-    common::MutexGuard<InMemFile> guard;
-    InMemFile* ptr = nullptr;
-
-    explicit OptionalOverflowFile(common::Mutex<InMemFile>* inMemOverflowFile)
-        : guard{common::MutexGuard<InMemFile>(inMemOverflowFile->lock())}, ptr{guard.get()} {}
-};
-
 template<IndexHashable T, typename S>
 HashIndexBuilder<T, S>::HashIndexBuilder(const std::shared_ptr<FileHandle>& fileHandle,
-    const std::shared_ptr<Mutex<InMemFile>>& overflowFile, uint64_t indexPos,
-    PhysicalTypeID keyDataType)
-    : fileHandle(fileHandle), inMemOverflowFile(overflowFile) {
+    std::unique_ptr<InMemFile> overflowFile, uint64_t indexPos, PhysicalTypeID keyDataType)
+    : fileHandle(fileHandle), inMemOverflowFile(std::move(overflowFile)) {
     this->indexHeader = std::make_unique<HashIndexHeader>(keyDataType);
     headerArray = std::make_unique<InMemDiskArrayBuilder<HashIndexHeader>>(*fileHandle,
         NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, 0 /* numElements */);
@@ -108,8 +92,7 @@ void HashIndexBuilder<T, S>::splitSlot(HashIndexHeader& header) {
                 continue; // Skip invalid entries.
             }
             const auto* data = (iter.slot->entries[entryPos].data);
-            hash_t hash = this->hashStored(*reinterpret_cast<const S*>(data),
-                OptionalOverflowFile<S>(inMemOverflowFile.get()).ptr);
+            hash_t hash = this->hashStored(*reinterpret_cast<const S*>(data));
             auto newSlotId = hash & header.higherLevelHashMask;
             copy(data, newSlotId);
         }
@@ -129,7 +112,6 @@ bool HashIndexBuilder<T, S>::append(T key, offset_t value) {
     // particular concern and doing both after splitting allows the slotID to be reused
     auto slotID = HashIndexUtils::getPrimarySlotIdForKey(*this->indexHeader, key);
     SlotIterator iter(slotID, this);
-    OptionalOverflowFile<S> memFile(inMemOverflowFile.get());
     do {
         for (auto entryPos = 0u; entryPos < getSlotCapacity<S>(); entryPos++) {
             if (!iter.slot->header.isEntryValid(entryPos)) {
@@ -137,17 +119,17 @@ bool HashIndexBuilder<T, S>::append(T key, offset_t value) {
                 // The builder never keeps holes and doesn't support deletions, so this must be the
                 // end of the valid entries in this primary slot and the entry does not already
                 // exist
-                insert(key, iter.slot, entryPos, value, memFile.ptr);
+                insert(key, iter.slot, entryPos, value);
                 this->indexHeader->numEntries++;
                 return true;
-            } else if (equals(key, *(S*)iter.slot->entries[entryPos].data, memFile.ptr)) {
+            } else if (equals(key, *(S*)iter.slot->entries[entryPos].data)) {
                 // Value already exists
                 return false;
             }
         }
     } while (nextChainedSlot(iter));
     // Didn't find an available slot. Insert a new one
-    insertToNewOvfSlot(key, iter.slot, value, memFile.ptr);
+    insertToNewOvfSlot(key, iter.slot, value);
     this->indexHeader->numEntries++;
     return true;
 }
@@ -155,11 +137,10 @@ bool HashIndexBuilder<T, S>::append(T key, offset_t value) {
 template<IndexHashable T, typename S>
 bool HashIndexBuilder<T, S>::lookup(T key, offset_t& result) {
     SlotIterator iter(HashIndexUtils::getPrimarySlotIdForKey(*this->indexHeader, key), this);
-    OptionalOverflowFile<S> memFile(inMemOverflowFile.get());
     do {
         for (auto entryPos = 0u; entryPos < getSlotCapacity<S>(); entryPos++) {
             if (iter.slot->header.isEntryValid(entryPos) &&
-                equals(key, *(S*)iter.slot->entries[entryPos].data, memFile.ptr)) {
+                equals(key, *(S*)iter.slot->entries[entryPos].data)) {
                 // Value already exists
                 result = *(common::offset_t*)(iter.slot->entries[entryPos].data +
                                               this->indexHeader->numBytesPerKey);
@@ -203,47 +184,44 @@ void HashIndexBuilder<T, S>::flush() {
     pSlots->saveToDisk();
     oSlots->saveToDisk();
     if constexpr (std::is_same_v<S, ku_string_t>) {
-        auto guard = inMemOverflowFile->lock();
-        guard->flush();
+        inMemOverflowFile->flush();
     }
 }
 
 template<IndexHashable T, typename S>
 inline void HashIndexBuilder<T, S>::insertToNewOvfSlot(
-    T key, Slot<S>* previousSlot, common::offset_t offset, InMemFile* memFile) {
+    T key, Slot<S>* previousSlot, common::offset_t offset) {
     auto newSlotId = allocateAOSlot();
     previousSlot->header.nextOvfSlotId = newSlotId;
     auto newSlot = getSlot(SlotInfo{newSlotId, SlotType::OVF});
     auto entryPos = 0u; // Always insert to the first entry when there is a new slot.
-    insert(key, newSlot, entryPos, offset, memFile);
+    insert(key, newSlot, entryPos, offset);
 }
 
 template<>
-void HashIndexBuilder<std::string_view, ku_string_t>::insert(std::string_view key,
-    Slot<ku_string_t>* slot, uint8_t entryPos, offset_t offset, InMemFile* memFile) {
+void HashIndexBuilder<std::string_view, ku_string_t>::insert(
+    std::string_view key, Slot<ku_string_t>* slot, uint8_t entryPos, offset_t offset) {
     auto entry = slot->entries[entryPos].data;
-    auto kuString = memFile->appendString(key);
-    memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
+    inMemOverflowFile->appendString(key, *(ku_string_t*)entry);
     memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
     updateForNewEntry(slot, entryPos);
 }
 
 template<IndexHashable T, typename S>
-common::hash_t HashIndexBuilder<T, S>::hashStored(
-    const S& key, const InMemFile* /*memFile*/) const {
+common::hash_t HashIndexBuilder<T, S>::hashStored(const S& key) const {
     return HashIndexUtils::hash(key);
 }
 
 template<>
 common::hash_t HashIndexBuilder<std::string_view, ku_string_t>::hashStored(
-    const ku_string_t& key, const InMemFile* memFile) const {
+    const ku_string_t& key) const {
     auto kuString = key;
-    return HashIndexUtils::hash(memFile->readString(&kuString));
+    return HashIndexUtils::hash(inMemOverflowFile->readString(&kuString));
 }
 
 template<>
-bool HashIndexBuilder<std::string_view, ku_string_t>::equals(std::string_view keyToLookup,
-    const ku_string_t& keyInEntry, const InMemFile* inMemOverflowFile) const {
+bool HashIndexBuilder<std::string_view, ku_string_t>::equals(
+    std::string_view keyToLookup, const ku_string_t& keyInEntry) const {
     // Checks if prefix and len matches first.
     if (!HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
         return false;
@@ -256,23 +234,8 @@ bool HashIndexBuilder<std::string_view, ku_string_t>::equals(std::string_view ke
         // values are equal.
         return memcmp(keyToLookup.data(), keyInEntry.prefix, keyInEntry.len) == 0;
     } else {
-        // For long strings, read overflow values and check if they are true.
-        PageCursor cursor;
-        TypeUtils::decodeOverflowPtr(keyInEntry.overflowPtr, cursor.pageIdx, cursor.elemPosInPage);
-        auto lengthRead = 0u;
-        while (lengthRead < keyInEntry.len) {
-            auto numBytesToCheckInPage =
-                std::min(static_cast<uint64_t>(keyInEntry.len) - lengthRead,
-                    BufferPoolConstants::PAGE_4KB_SIZE - cursor.elemPosInPage);
-            if (memcmp(keyToLookup.data() + lengthRead,
-                    inMemOverflowFile->getPage(cursor.pageIdx)->data + cursor.elemPosInPage,
-                    numBytesToCheckInPage) != 0) {
-                return false;
-            }
-            cursor.nextPage();
-            lengthRead += numBytesToCheckInPage;
-        }
-        return true;
+        // For long strings, compare with overflow data
+        return inMemOverflowFile->equals(keyToLookup, keyInEntry);
     }
 }
 
@@ -291,28 +254,27 @@ template class HashIndexBuilder<std::string_view, ku_string_t>;
 
 PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
     const std::string& fName, PhysicalTypeID keyDataType, VirtualFileSystem* vfs)
-    : keyDataTypeID{keyDataType} {
+    : keyDataTypeID{keyDataType}, overflowPageCounter(0) {
     auto fileHandle =
         std::make_shared<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);
     fileHandle->addNewPages(NUM_HEADER_PAGES * NUM_HASH_INDEXES);
-    if (keyDataType == PhysicalTypeID::STRING) {
-        overflowFile = std::make_shared<Mutex<InMemFile>>(
-            InMemFile(StorageUtils::getOverflowFileName(fileHandle->getFileInfo()->path), vfs));
-    }
     hashIndexBuilders.reserve(NUM_HASH_INDEXES);
     TypeUtils::visit(
         keyDataTypeID,
         [&]<IndexHashable T>(T) {
             if constexpr (std::is_same_v<T, ku_string_t>) {
                 for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+                    auto overflowFile = std::make_unique<InMemFile>(
+                        StorageUtils::getOverflowFileName(fileHandle->getFileInfo()->path), vfs,
+                        overflowPageCounter);
                     hashIndexBuilders.push_back(
                         std::make_unique<HashIndexBuilder<std::string_view, ku_string_t>>(
-                            fileHandle, overflowFile, i, keyDataType));
+                            fileHandle, std::move(overflowFile), i, keyDataType));
                 }
             } else if constexpr (HashablePrimitive<T>) {
                 for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
                     hashIndexBuilders.push_back(std::make_unique<HashIndexBuilder<T>>(
-                        fileHandle, overflowFile, i, keyDataType));
+                        fileHandle, std::unique_ptr<InMemFile>(), i, keyDataType));
                 }
             } else {
                 KU_UNREACHABLE;

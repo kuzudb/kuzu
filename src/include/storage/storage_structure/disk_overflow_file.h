@@ -2,6 +2,8 @@
 
 #include <fcntl.h>
 
+#include "common/constants.h"
+#include "common/types/types.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/storage_structure/db_file_utils.h"
 #include "storage/storage_utils.h"
@@ -23,8 +25,8 @@ public:
             readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                        FileHandle::O_PERSISTENT_FILE_NO_CREATE,
             BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
-        nextBytePosToWriteTo =
-            fileHandle->getNumPages() * common::BufferPoolConstants::PAGE_4KB_SIZE;
+        nextPosToWriteTo.elemPosInPage = 0;
+        nextPosToWriteTo.pageIdx = fileHandle->getNumPages();
     }
 
     std::string readString(transaction::TransactionType trxType, const common::ku_string_t& str);
@@ -36,7 +38,10 @@ public:
 
     inline BMFileHandle* getFileHandle() { return fileHandle.get(); }
     inline void resetNextBytePosToWriteTo(uint64_t nextBytePosToWriteTo_) {
-        nextBytePosToWriteTo = nextBytePosToWriteTo_;
+        nextPosToWriteTo.elemPosInPage =
+            nextBytePosToWriteTo_ % common::BufferPoolConstants::PAGE_4KB_SIZE;
+        nextPosToWriteTo.pageIdx =
+            nextBytePosToWriteTo_ / common::BufferPoolConstants::PAGE_4KB_SIZE;
     }
     void resetLoggedNewOverflowFileNextBytePosRecord() {
         loggedNewOverflowFileNextBytePosRecord = false;
@@ -64,15 +69,17 @@ private:
     // page. The original page lock will be released when the WALPageIdxPosInPageAndFrame goes out
     // of scope
     WALPageIdxPosInPageAndFrame createWALVersionOfPageIfNecessaryForElement(
-        uint64_t elementOffset, uint64_t numElementsPerPage);
+        PageCursor originalPageCursor);
 
 private:
+    static const common::page_idx_t END_OF_PAGE =
+        common::BufferPoolConstants::PAGE_4KB_SIZE - sizeof(common::page_idx_t);
     DBFileID dbFileID;
     std::unique_ptr<BMFileHandle> fileHandle;
     BufferManager* bufferManager;
     WAL* wal;
     // This is the index of the last free byte to which we can write.
-    uint64_t nextBytePosToWriteTo;
+    PageCursor nextPosToWriteTo;
     // Mtx is obtained if multiple threads want to write to the overflows to coordinate them.
     // We cannot directly coordinate using the locks of the pages in the overflow fileHandle.
     // This is because multiple threads will be trying to edit the nextBytePosToWriteTo.

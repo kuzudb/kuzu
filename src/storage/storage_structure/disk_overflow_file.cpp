@@ -5,6 +5,8 @@
 #include "common/constants.h"
 #include "common/exception/message.h"
 #include "common/type_utils.h"
+#include "common/types/types.h"
+#include "storage/storage_utils.h"
 
 using lock_t = std::unique_lock<std::mutex>;
 
@@ -27,27 +29,38 @@ std::string DiskOverflowFile::readString(TransactionType trxType, const ku_strin
             auto [fileHandleToPin, pageIdxToPin] =
                 DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
                     *fileHandle, cursor.pageIdx, *wal, trxType);
-            auto numBytesToReadInPage = std::min(static_cast<uint64_t>(remainingLength),
-                BufferPoolConstants::PAGE_4KB_SIZE - cursor.elemPosInPage);
+            auto numBytesToReadInPage = std::min(
+                static_cast<uint32_t>(remainingLength), END_OF_PAGE - cursor.elemPosInPage);
+            page_idx_t nextPage;
             bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
                 retVal +=
                     std::string_view(reinterpret_cast<const char*>(frame) + cursor.elemPosInPage,
                         numBytesToReadInPage);
+                nextPage = *(page_idx_t*)(frame + END_OF_PAGE);
             });
             remainingLength -= numBytesToReadInPage;
             // After the first page we always start reading from the beginning of the page.
-            cursor.nextPage();
+            cursor.elemPosInPage = 0;
+            KU_ASSERT(nextPage < fileHandle->getNumPages());
+            cursor.pageIdx = nextPage;
         }
         return retVal;
     }
 }
 
 void DiskOverflowFile::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {
-    PageCursor byteCursor =
-        PageUtils::getPageCursorForPos(nextBytePosToWriteTo, BufferPoolConstants::PAGE_4KB_SIZE);
-    if ((byteCursor.elemPosInPage == 0) ||
-        ((byteCursor.elemPosInPage + numBytesToAppend - 1) > BufferPoolConstants::PAGE_4KB_SIZE)) {
-        DBFileUtils::insertNewPage(*fileHandle, dbFileID, *bufferManager, *wal);
+    if ((nextPosToWriteTo.elemPosInPage == 0) ||
+        ((nextPosToWriteTo.elemPosInPage + numBytesToAppend - 1) > END_OF_PAGE)) {
+        page_idx_t newPageIdx =
+            DBFileUtils::insertNewPage(*fileHandle, dbFileID, *bufferManager, *wal);
+        // Write new page index to end of previous page
+        if (nextPosToWriteTo.pageIdx > 0) {
+            auto walPageIdxAndFrame = DBFileUtils::createWALVersionIfNecessaryAndPinPage(
+                nextPosToWriteTo.pageIdx - 1, false, *fileHandle, dbFileID, *bufferManager, *wal);
+            memcpy(walPageIdxAndFrame.frame + END_OF_PAGE, &newPageIdx, sizeof(page_idx_t));
+            DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
+                walPageIdxAndFrame, *fileHandle, *bufferManager, *wal);
+        }
     }
 }
 
@@ -66,12 +79,11 @@ void DiskOverflowFile::setStringOverflowWithoutLock(
     int32_t remainingLength = len;
     while (remainingLength > 0) {
         auto bytesWritten = len - remainingLength;
-        auto numBytesToWriteInPage = std::min(static_cast<uint64_t>(remainingLength),
-            BufferPoolConstants::PAGE_4KB_SIZE -
-                (nextBytePosToWriteTo % BufferPoolConstants::PAGE_4KB_SIZE));
+        auto numBytesToWriteInPage = std::min(
+            static_cast<uint32_t>(remainingLength), END_OF_PAGE - nextPosToWriteTo.elemPosInPage);
         addNewPageIfNecessaryWithoutLock(remainingLength);
-        auto updatedPageInfoAndWALPageFrame = createWALVersionOfPageIfNecessaryForElement(
-            nextBytePosToWriteTo, BufferPoolConstants::PAGE_4KB_SIZE);
+        auto updatedPageInfoAndWALPageFrame =
+            createWALVersionOfPageIfNecessaryForElement(nextPosToWriteTo);
         memcpy(updatedPageInfoAndWALPageFrame.frame + updatedPageInfoAndWALPageFrame.posInPage,
             srcRawString + bytesWritten, numBytesToWriteInPage);
         DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
@@ -84,7 +96,10 @@ void DiskOverflowFile::setStringOverflowWithoutLock(
                 updatedPageInfoAndWALPageFrame.posInPage);
         }
         remainingLength -= numBytesToWriteInPage;
-        nextBytePosToWriteTo += numBytesToWriteInPage;
+        nextPosToWriteTo.elemPosInPage += numBytesToWriteInPage;
+        if (nextPosToWriteTo.elemPosInPage >= END_OF_PAGE) {
+            nextPosToWriteTo.nextPage();
+        }
     }
 }
 
@@ -103,13 +118,14 @@ ku_string_t DiskOverflowFile::writeString(std::string_view rawString) {
 void DiskOverflowFile::logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock() {
     if (!loggedNewOverflowFileNextBytePosRecord) {
         loggedNewOverflowFileNextBytePosRecord = true;
-        wal->logOverflowFileNextBytePosRecord(dbFileID, nextBytePosToWriteTo);
+        wal->logOverflowFileNextBytePosRecord(
+            dbFileID, nextPosToWriteTo.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE +
+                          nextPosToWriteTo.elemPosInPage);
     }
 }
 
 WALPageIdxPosInPageAndFrame DiskOverflowFile::createWALVersionOfPageIfNecessaryForElement(
-    uint64_t elementOffset, uint64_t numElementsPerPage) {
-    auto originalPageCursor = PageUtils::getPageCursorForPos(elementOffset, numElementsPerPage);
+    PageCursor originalPageCursor) {
     bool insertingNewPage = false;
     if (originalPageCursor.pageIdx >= fileHandle->getNumPages()) {
         KU_ASSERT(originalPageCursor.pageIdx == fileHandle->getNumPages());
