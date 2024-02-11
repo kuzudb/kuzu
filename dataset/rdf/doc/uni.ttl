@@ -1,0 +1,23 @@
+@prefix kz: <http://kuzu.io/rdf-ex#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+kz:Waterloo a kz:City ;
+        kz:name "Waterloo"@en ;
+        kz:population 150000 .
+
+kz:Adam a kz:student ;
+    kz:livesIn kz:Waterloo ;
+    kz:name "Adam" ;
+    kz:age  30 .
+
+kz:student rdfs:subClassOf kz:person .
+
+kz:Karissa a kz:student ;
+       kz:bornIn kz:Waterloo ;
+       kz:name "Karissa" .
+
+kz:Zhang a kz:faculty ;
+     kz:name "Zhang" .
+
+kz:faculty rdfs:subClassOf kz:person .
