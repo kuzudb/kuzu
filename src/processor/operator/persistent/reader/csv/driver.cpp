@@ -35,9 +35,13 @@ void ParsingDriver::addValue(
             stringFormat("Error in file {}, on line {}: expected {} values per row, but got more.",
                 reader->fileInfo->path, reader->getLineNumber(), reader->numColumns));
     }
-
-    function::CastString::copyStringToVector(
-        chunk.getValueVector(columnIdx).get(), rowNum, value, &reader->option);
+    try {
+        function::CastString::copyStringToVector(
+            chunk.getValueVector(columnIdx).get(), rowNum, value, &reader->option);
+    } catch (ConversionException& e) {
+        throw CopyException(stringFormat("Error in file {} on line {}: {}", reader->fileInfo->path,
+            reader->getLineNumber(), e.what()));
+    }
 }
 
 bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount) {
