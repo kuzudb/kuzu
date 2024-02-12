@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/mutex.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
 #include "storage/index/hash_index_utils.h"
@@ -49,7 +48,7 @@ template<common::IndexHashable T, typename S = T>
 class HashIndexBuilder final : public InMemHashIndex {
 public:
     HashIndexBuilder(const std::shared_ptr<FileHandle>& handle,
-        const std::shared_ptr<common::Mutex<InMemFile>>& overflowFile, uint64_t indexPos,
+        std::unique_ptr<InMemFile> overflowFile, uint64_t indexPos,
         common::PhysicalTypeID keyDataType);
 
 public:
@@ -74,8 +73,7 @@ private:
      */
     void splitSlot(HashIndexHeader& header);
 
-    inline bool equals(
-        T keyToLookup, const S& keyInEntry, const InMemFile* /*inMemOverflowFile*/) const {
+    inline bool equals(T keyToLookup, const S& keyInEntry) const {
         return keyToLookup == keyInEntry;
     }
 
@@ -84,17 +82,15 @@ private:
         slot->header.numEntries++;
     }
 
-    inline void insert(
-        T key, Slot<S>* slot, uint8_t entryPos, common::offset_t value, InMemFile* /*memFile*/) {
+    inline void insert(T key, Slot<S>* slot, uint8_t entryPos, common::offset_t value) {
         auto entry = slot->entries[entryPos].data;
         memcpy(entry, &key, sizeof(T));
         memcpy(entry + sizeof(T), &value, sizeof(common::offset_t));
         updateForNewEntry(slot, entryPos);
     }
     void copy(const uint8_t* oldEntry, slot_id_t newSlotId);
-    void insertToNewOvfSlot(
-        T key, Slot<S>* previousSlot, common::offset_t offset, InMemFile* memFile);
-    common::hash_t hashStored(const S& key, const InMemFile* inMemFile) const;
+    void insertToNewOvfSlot(T key, Slot<S>* previousSlot, common::offset_t offset);
+    common::hash_t hashStored(const S& key) const;
 
     struct SlotIterator {
         explicit SlotIterator(slot_id_t newSlotId, HashIndexBuilder<T, S>* builder)
@@ -115,7 +111,7 @@ private:
 
 private:
     std::shared_ptr<FileHandle> fileHandle;
-    std::shared_ptr<common::Mutex<InMemFile>> inMemOverflowFile;
+    std::unique_ptr<InMemFile> inMemOverflowFile;
     std::unique_ptr<InMemDiskArrayBuilder<HashIndexHeader>> headerArray;
     std::unique_ptr<InMemDiskArrayBuilder<Slot<S>>> pSlots;
     std::unique_ptr<InMemDiskArrayBuilder<Slot<S>>> oSlots;
@@ -123,8 +119,8 @@ private:
 };
 
 template<>
-bool HashIndexBuilder<std::string_view, common::ku_string_t>::equals(std::string_view keyToLookup,
-    const common::ku_string_t& keyInEntry, const InMemFile* inMemOverflowFile) const;
+bool HashIndexBuilder<std::string_view, common::ku_string_t>::equals(
+    std::string_view keyToLookup, const common::ku_string_t& keyInEntry) const;
 
 class PrimaryKeyIndexBuilder {
 public:
@@ -179,8 +175,7 @@ private:
 
 private:
     common::PhysicalTypeID keyDataTypeID;
-    // TODO(bmwinger): use a rwlock so that reads can be done concurrently
-    std::shared_ptr<common::Mutex<InMemFile>> overflowFile;
+    std::atomic<common::page_idx_t> overflowPageCounter;
     std::vector<std::unique_ptr<InMemHashIndex>> hashIndexBuilders;
 };
 
