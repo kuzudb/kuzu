@@ -19,6 +19,15 @@ using namespace kuzu::utf8proc;
 namespace kuzu {
 namespace main {
 
+#ifdef _WIN32
+#ifndef STDIN_FILENO
+#define STDIN_FILENO (_fileno(stdin))
+#endif
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO (_fileno(stdout))
+#endif
+#endif
+
 // prompt for user input
 const char* PROMPT = "kuzu> ";
 const char* ALTPROMPT = "..> ";
@@ -329,15 +338,21 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
     if (querySummary->isExplain()) {
         printf("%s", queryResult.getNext()->toString().c_str());
     } else {
-        const uint32_t maxWidth = 80;
+        uint64_t maxRows = 20;
+        const uint32_t minTruncatedWidth = 20;
         uint64_t numTuples = queryResult.getNumTuples();
         std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
         for (auto i = 0u; i < colsWidth.size(); i++) {
             colsWidth[i] = queryResult.getColumnNames()[i].length() + 2;
         }
-        uint32_t lineSeparatorLen = 1u + colsWidth.size();
         std::string lineSeparator;
+        uint64_t rowCount = 0;
         while (queryResult.hasNext()) {
+            if (numTuples > maxRows && rowCount > maxRows/2 && rowCount < numTuples - maxRows/2) {
+                auto tuple = queryResult.getNext();
+                rowCount++;
+                continue;
+            }
             auto tuple = queryResult.getNext();
             for (auto i = 0u; i < colsWidth.size(); i++) {
                 if (tuple->getValue(i)->isNull()) {
@@ -353,38 +368,210 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 }
                 // An extra 2 spaces are added for an extra space on either
                 // side of the std::string.
-                colsWidth[i] = std::max(colsWidth[i], std::min(fieldLen, maxWidth) + 2);
+                colsWidth[i] = std::max(colsWidth[i], fieldLen + 2);
+            }
+            rowCount++;
+        }
+
+        uint32_t sumGoal = minTruncatedWidth;
+        uint32_t maxWidth = minTruncatedWidth;
+        if (colsWidth.size() > 1) {
+            // make sure there is space for the first and last column
+            sumGoal =
+                std::max((uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
+                    colsWidth[0] + colsWidth.back() + 3);
+        }
+        uint32_t sum = 0;
+        std::vector<uint32_t> maxValueIndex;
+        uint32_t secondHighestValue = 0;
+        for (auto i = 0u; i < colsWidth.size(); i++) {
+            if (maxValueIndex.empty() || colsWidth[i] == colsWidth[maxValueIndex[0]]) {
+                maxValueIndex.push_back(i);
+            } else if (colsWidth[i] > colsWidth[maxValueIndex[0]]) {
+                secondHighestValue = colsWidth[maxValueIndex[0]];
+                maxValueIndex.clear();
+                maxValueIndex.push_back(i);
+                maxWidth = colsWidth[maxValueIndex[0]];
+            } else if (colsWidth[i] > secondHighestValue) {
+                secondHighestValue = colsWidth[i];
+            }
+            sum += colsWidth[i];
+        }
+
+        while (sum > sumGoal) {
+            uint32_t truncationValue = ((sum - sumGoal) / maxValueIndex.size()) +
+                                       ((sum - sumGoal) % maxValueIndex.size() != 0);
+            uint32_t newValue = 0;
+            if (truncationValue < colsWidth[maxValueIndex[0]]) {
+                newValue = colsWidth[maxValueIndex[0]] - truncationValue;
+            }
+            uint32_t oldValue = colsWidth[maxValueIndex[0]];
+            if (secondHighestValue < minTruncatedWidth + 2 && newValue < minTruncatedWidth + 2) {
+                newValue = minTruncatedWidth + 2;
+            } else {
+                uint32_t sumDifference =
+                    sum - ((oldValue - secondHighestValue) * maxValueIndex.size());
+                if (sumDifference > sumGoal) {
+                    newValue = secondHighestValue;
+                }
+            }
+            for (auto i = 0u; i < maxValueIndex.size(); i++) {
+                colsWidth[maxValueIndex[i]] = newValue;
+            }
+            maxWidth = newValue - 2;
+            sum -= (oldValue - newValue) * maxValueIndex.size();
+            if (newValue == minTruncatedWidth + 2) {
+                break;
+            }
+
+            maxValueIndex.clear();
+            secondHighestValue = 0;
+            for (auto i = 0u; i < colsWidth.size(); i++) {
+                if (maxValueIndex.empty() || colsWidth[i] == colsWidth[maxValueIndex[0]]) {
+                    maxValueIndex.push_back(i);
+                } else if (colsWidth[i] > colsWidth[maxValueIndex[0]]) {
+                    secondHighestValue = colsWidth[maxValueIndex[0]];
+                    maxValueIndex.clear();
+                    maxValueIndex.push_back(i);
+                } else if (colsWidth[i] > secondHighestValue) {
+                    secondHighestValue = colsWidth[i];
+                }
             }
         }
-        for (auto width : colsWidth) {
-            lineSeparatorLen += width;
+
+        int k = 0;
+        int j = colsWidth.size() - 1;
+        bool colTruncated = false;
+        uint64_t colsPrinted = 0;
+        uint32_t lineSeparatorLen = 1u;
+        for (auto i = 0u; i < colsWidth.size(); i++) {
+            if (k <= j) {
+                if (lineSeparatorLen + colsWidth[k] < sumGoal + colsWidth.size() - 5) {
+                    lineSeparatorLen += colsWidth[k] + 1;
+                    k++;
+                    colsPrinted++;
+                } else if (lineSeparatorLen + colsWidth[k] <  sumGoal + colsWidth.size() + 1 && (colTruncated || k == j)) {
+                    lineSeparatorLen += colsWidth[k] + 1;
+                    k++;
+                    colsPrinted++;
+                } else if (!colTruncated) {
+                    lineSeparatorLen += 6;
+                    colTruncated = true;
+                }
+            }
+            if (j >= k) {
+                if (lineSeparatorLen + colsWidth[j] <  sumGoal + colsWidth.size() - 5) {
+                    lineSeparatorLen += colsWidth[j] + 1;
+                    j--;
+                    colsPrinted++;
+                } else if (lineSeparatorLen + colsWidth[j] <  sumGoal + colsWidth.size() + 1 && (colTruncated || k == j)) {
+                    lineSeparatorLen += colsWidth[j] + 1;
+                    j--;
+                    colsPrinted++;
+                } else if (!colTruncated) {
+                    lineSeparatorLen += 6;
+                    colTruncated = true;
+                }
+            }
         }
+
         lineSeparator = std::string(lineSeparatorLen, '-');
         printf("%s\n", lineSeparator.c_str());
 
         if (queryResult.getNumColumns() != 0 && !queryResult.getColumnNames()[0].empty()) {
-            for (auto i = 0u; i < colsWidth.size(); i++) {
-                printf("| %s", queryResult.getColumnNames()[i].c_str());
-                printf("%s",
-                    std::string(colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ')
-                        .c_str());
+            std::string printString = "";
+            for (auto i = 0; i < k; i++) {
+                printString += "| ";
+                printString += queryResult.getColumnNames()[i];
+                printString += std::string(
+                    colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ');
             }
-            printf("|\n");
+            if (j >= k) {
+                printString += "| ... ";
+            }
+            for (auto i = j + 1; i < (int)colsWidth.size(); i++) {
+                printString += "| ";
+                printString += queryResult.getColumnNames()[i];
+                printString += std::string(
+                    colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ');
+            }
+            printf("%s|\n", printString.c_str());
             printf("%s\n", lineSeparator.c_str());
         }
 
         queryResult.resetIterator();
+        rowCount = 0;
+        bool rowTruncated = false;
         while (queryResult.hasNext()) {
+            if ((numTuples > maxRows) && (rowCount > (maxRows / 2)) &&
+                (rowCount < numTuples - (maxRows / 2))) {
+                auto tuple = queryResult.getNext();
+                if (!rowTruncated) {
+                    rowTruncated = true;
+                    uint32_t spacesToPrint = (lineSeparatorLen / 2) - 1;
+                    for (auto i = 0u; i < 3; i++) {
+                        std::string printString = "|";
+                        printString += std::string(spacesToPrint, ' ');
+                        printString += ".";
+                        if (lineSeparatorLen % 2 == 1) {
+                            printString += " ";
+                        }
+                        printString += std::string(spacesToPrint - 1, ' ');
+                        printf("%s|\n", printString.c_str());
+                    }
+                    printf("%s\n", lineSeparator.c_str());
+                }
+                rowCount++;
+                continue;
+            }
             auto tuple = queryResult.getNext();
-            printf("|%s|\n", tuple->toString(colsWidth, "|", maxWidth).c_str());
+            auto result =  tuple->toString(colsWidth, "|", maxWidth);
+            size_t startPos = 0;
+            std::vector<std::string> colResults;
+            for (auto i = 0u; i < colsWidth.size(); i++) {
+                uint32_t chrIter = startPos;
+                uint32_t fieldLen = 0;
+                while (fieldLen < colsWidth[i]) {
+                    fieldLen += Utf8Proc::renderWidth(result.c_str(), chrIter);
+                    chrIter = utf8proc_next_grapheme(result.c_str(), result.length(), chrIter);
+                }
+                colResults.push_back(result.substr(startPos, chrIter - startPos));
+                // new start position is after the | seperating results
+                startPos = chrIter + 1;
+            }
+            std::string printString = "|";
+            for (auto i = 0; i < k; i++) {
+                printString += colResults[i] + "|";
+            }
+            if (j >= k) {
+                printString += " ... |";
+            }
+            for (auto i = j + 1; i < (int) colResults.size(); i++) {
+                printString += colResults[i] + "|";
+            }
+            printf("%s\n", printString.c_str());
             printf("%s\n", lineSeparator.c_str());
+            rowCount++;
         }
 
         // print query result (numFlatTuples & tuples)
         if (numTuples == 1) {
             printf("(1 tuple)\n");
         } else {
-            printf("(%" PRIu64 " tuples)\n", numTuples);
+            printf("(%" PRIu64 " tuples", numTuples);
+            if (rowTruncated) {
+                printf(", %" PRIu64 " shown", maxRows);
+            }
+            printf(")\n");
+        }
+        if (colsWidth.size() == 1) {
+            printf("(1 column)\n");
+        } else {
+            printf("(%" PRIu64 " columns", colsWidth.size());
+            if (colTruncated) {
+                printf(", %" PRIu64 " shown", colsPrinted);
+            }
+            printf(")\n");
         }
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());
