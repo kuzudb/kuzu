@@ -1,0 +1,68 @@
+name: LDBC-SNB-Business-Intelligence-Benchmark
+
+env:
+  RUNTIME_CHECKS: 1
+  WERROR: 1
+
+on:
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: business-intelligence-benchmark
+    runs-on: kuzu-self-hosted-benchmarking
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Build Kuzu
+      run: |
+        pip3 install -r tools/python_api/requirements_dev.txt
+        make python NUM_THREADS=$(nproc)
+    
+    - name: Update Implementation
+      run: |
+        cd $SERIALIZED_DIR
+        if ! test -d ldbc_snb_bi; then
+          echo "BI Implementation not found. Cloning from remote."
+          git clone https://${{ secrets.DOC_PUSH_TOKEN }}@github.com/kuzudb/ldbc_snb_bi
+        fi
+        cd ldbc_snb_bi
+        git fetch
+        if [[ $(git rev-parse HEAD) != $(git rev-parse origin) ]]; then
+          echo "Local BI implementation is not up to date with remote. Updating implementation."
+          git pull
+        fi
+    
+    - name: Fetch Substitution Parameters
+      run: |
+        cd $SERIALIZED_DIR/ldbc_snb_bi/parameters
+        if ! test -d parameters-sf1; then
+          echo "Subsitution parameters not found. Fetching."
+          curl https://pub-383410a98aef4cb686f0c7601eddd25f.r2.dev/snb-bi/ldbc-snb-bi-parameters-sf1-to-sf30000.zip > ldbc-snb-bi-parameters-sf1-to-sf30000.zip
+          unzip -o ldbc-snb-bi-parameters-sf1-to-sf30000.zip
+          mv ldbc-snb-bi-parameters-sf1-to-sf30000/parameters-sf* .
+        fi
+        echo "Substitution parameters fetched."
+    
+    - name: Load Database
+      run: |
+        cd $SERIALIZED_DIR/ldbc_snb_bi/kuzu
+        export SF=1
+        export KUZU_CSV_DIR="$CSV_DIR/bi-dataset/bi-sf1-composite-projected-fk/graphs/csv/bi/composite-projected-fk/"
+        workflow-scripts/decompress-gz.sh
+        workflow-scripts/load-database.sh
+    
+    - name: Run Benchmark
+      run: |
+        cd $SERIALIZED_DIR/ldbc_snb_bi/kuzu
+        export SF=1
+        export KUZU_CSV_DIR="$CSV_DIR/bi-dataset/bi-sf1-composite-projected-fk/graphs/csv/bi/composite-projected-fk/"
+        workflow-scripts/benchmark.sh
+        cat output/output-sf1/* > /tmp/LDBC-SNB-Business-Intelligence-results.csv
+    
+    - name: Submit Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: LDBC-SNB-Business-Intelligence-results
+        path: /tmp/LDBC-SNB-Business-Intelligence-results.csv
