@@ -11,7 +11,6 @@
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
 #include "main/kuzu.h"
-#include "main/query_summary.h"
 #include <jni.h>
 
 using namespace kuzu::main;
@@ -219,30 +218,6 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1destroy(
     JNIEnv* env, jclass, jobject thisConn) {
     Connection* conn = getConnection(env, thisConn);
     delete conn;
-}
-
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1begin_1read_1only_1transaction(
-    JNIEnv* env, jclass, jobject thisConn) {
-    Connection* conn = getConnection(env, thisConn);
-    conn->beginReadOnlyTransaction();
-}
-
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1begin_1write_1transaction(
-    JNIEnv* env, jclass, jobject thisConn) {
-    Connection* conn = getConnection(env, thisConn);
-    conn->beginWriteTransaction();
-}
-
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1commit(
-    JNIEnv* env, jclass, jobject thisConn) {
-    Connection* conn = getConnection(env, thisConn);
-    conn->commit();
-}
-
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1rollback(
-    JNIEnv* env, jclass, jobject thisConn) {
-    Connection* conn = getConnection(env, thisConn);
-    conn->rollback();
 }
 
 JNIEXPORT void JNICALL

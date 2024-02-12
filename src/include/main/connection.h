@@ -34,22 +34,6 @@ public:
      */
     KUZU_API ~Connection();
     /**
-     * @brief Manually starts a new read-only transaction in the current connection.
-     */
-    KUZU_API void beginReadOnlyTransaction();
-    /**
-     * @brief Manually starts a new write transaction in the current connection.
-     */
-    KUZU_API void beginWriteTransaction();
-    /**
-     * @brief Manually commits the current transaction.
-     */
-    KUZU_API void commit();
-    /**
-     * @brief Manually rollbacks the current transaction.
-     */
-    KUZU_API void rollback();
-    /**
      * @brief Sets the maximum number of threads to use for execution in the current connection.
      * @param numThreads The number of threads to use for execution in the current connection.
      */
@@ -184,7 +168,6 @@ private:
     KUZU_API void addScalarFunction(std::string name, function::function_set definitions);
 
     KUZU_API bool startUDFAutoTrx(transaction::TransactionContext* trx);
-
     KUZU_API void commitUDFTrx(bool isAutoCommitTrx);
 
 private:

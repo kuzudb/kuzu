@@ -50,42 +50,6 @@ public class KuzuConnection {
     }
 
     /**
-    * Manually starts a new read-only transaction in the current connection.
-    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
-    */
-    public void beginReadOnlyTransaction() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        KuzuNative.kuzu_connection_begin_read_only_transaction(this);
-    }
-
-    /**
-    * Manually starts a new write transaction in the current connection.
-    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
-    */
-    public void beginWriteTransaction() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        KuzuNative.kuzu_connection_begin_write_transaction(this);
-    }
-
-    /**
-    * Manually commits the current transaction.
-    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
-    */
-    public void commit() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        KuzuNative.kuzu_connection_commit(this);
-    }
-
-    /**
-    * Manually rolls back the current transaction.
-    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
-    */
-    public void rollback() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        KuzuNative.kuzu_connection_rollback(this);
-    }
-
-    /**
     * Return the maximum number of threads used for execution in the current connection.
     * @return The maximum number of threads used for execution in the current connection.
     * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.

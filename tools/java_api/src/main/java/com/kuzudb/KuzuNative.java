@@ -72,14 +72,6 @@ public class KuzuNative {
 
     protected static native void kuzu_connection_destroy(KuzuConnection connection);
 
-    protected static native void kuzu_connection_begin_read_only_transaction(KuzuConnection connection);
-
-    protected static native void kuzu_connection_begin_write_transaction(KuzuConnection connection);
-
-    protected static native void kuzu_connection_commit(KuzuConnection connection);
-
-    protected static native void kuzu_connection_rollback(KuzuConnection connection);
-
     protected static native void kuzu_connection_set_max_num_thread_for_exec(
             KuzuConnection connection, long num_threads);
 

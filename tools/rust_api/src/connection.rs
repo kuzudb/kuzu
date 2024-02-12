@@ -62,67 +62,6 @@ pub struct PreparedStatement {
 /// # }
 /// ```
 ///
-/// ## Committing
-/// If the connection is in AUTO_COMMIT mode any query over the connection will be wrapped around
-/// a transaction and committed (even if the query is READ_ONLY).
-/// If the connection is in MANUAL transaction mode, which happens only if an application
-/// manually begins a transaction (see below), then an application has to manually commit or
-/// rollback the transaction by calling commit() or rollback().
-///
-/// AUTO_COMMIT is the default mode when a Connection is created. If an application calls
-/// begin[ReadOnly/Write]Transaction at any point, the mode switches to MANUAL. This creates
-/// an "active transaction" in the connection. When a connection is in MANUAL mode and the
-/// active transaction is rolled back or committed, then the active transaction is removed (so
-/// the connection no longer has an active transaction) and the mode automatically switches
-/// back to AUTO_COMMIT.
-/// Note: When a Connection object is deconstructed, if the connection has an active (manual)
-/// transaction, then the active transaction is rolled back.
-///
-/// ```
-/// use kuzu::{Database, SystemConfig, Connection};
-/// # use anyhow::Error;
-/// # fn main() -> Result<(), Error> {
-/// # let temp_dir = tempfile::tempdir()?;
-/// # let path = temp_dir.path();
-/// let db = Database::new(path, SystemConfig::default())?;
-/// let conn = Connection::new(&db)?;
-/// // AUTO_COMMIT mode
-/// conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
-/// conn.begin_write_transaction()?;
-/// // MANUAL mode (write)
-/// conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
-/// conn.query("CREATE (:Person {name: 'Bob', age: 30});")?;
-/// // Queries committed and mode goes back to AUTO_COMMIT
-/// conn.commit()?;
-/// let result = conn.query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")?;
-/// assert!(result.count() == 2);
-/// # temp_dir.close()?;
-/// # Ok(())
-/// # }
-/// ```
-///
-/// ```
-/// use kuzu::{Database, SystemConfig, Connection};
-/// # use anyhow::Error;
-/// # fn main() -> Result<(), Error> {
-/// # let temp_dir = tempfile::tempdir()?;
-/// # let path = temp_dir.path();
-/// let db = Database::new(path, SystemConfig::default())?;
-/// let conn = Connection::new(&db)?;
-/// // AUTO_COMMIT mode
-/// conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
-/// conn.begin_write_transaction()?;
-/// // MANUAL mode (write)
-/// conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
-/// conn.query("CREATE (:Person {name: 'Bob', age: 30});")?;
-/// // Queries rolled back and mode goes back to AUTO_COMMIT
-/// conn.rollback()?;
-/// let result = conn.query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")?;
-/// assert!(result.count() == 0);
-/// # temp_dir.close()?;
-/// # Ok(())
-/// # }
-/// ```
 pub struct Connection<'a> {
     // bmwinger: Access to the underlying value for synchronized functions can be done
     // with (*self.conn.get()).pin_mut()
@@ -225,30 +164,6 @@ impl<'a> Connection<'a> {
         } else {
             Ok(QueryResult { result })
         }
-    }
-
-    /// Manually starts a new read-only transaction in the current connection
-    pub fn begin_read_only_transaction(&self) -> Result<(), Error> {
-        let conn = unsafe { (*self.conn.get()).pin_mut() };
-        Ok(conn.beginReadOnlyTransaction()?)
-    }
-
-    /// Manually starts a new write transaction in the current connection
-    pub fn begin_write_transaction(&self) -> Result<(), Error> {
-        let conn = unsafe { (*self.conn.get()).pin_mut() };
-        Ok(conn.beginWriteTransaction()?)
-    }
-
-    /// Manually commits the current transaction
-    pub fn commit(&self) -> Result<(), Error> {
-        let conn = unsafe { (*self.conn.get()).pin_mut() };
-        Ok(conn.commit()?)
-    }
-
-    /// Manually rolls back the current transaction
-    pub fn rollback(&self) -> Result<(), Error> {
-        let conn = unsafe { (*self.conn.get()).pin_mut() };
-        Ok(conn.rollback()?)
     }
 
     /// Interrupts all queries currently executing within this connection

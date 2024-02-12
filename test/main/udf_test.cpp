@@ -326,15 +326,15 @@ TEST_F(ApiTest, vectorizedTernaryConditionalAdd) {
 }
 
 TEST_F(ApiTest, UDFTrxTest) {
-    conn->beginWriteTransaction();
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
     conn->createScalarFunction("add5", &add5);
     auto actualResult = TestHelper::convertResultToString(*conn->query("return add5(to_int32(5))"));
     auto expectedResult = std::vector<std::string>{"10"};
     sortAndCheckTestResults(actualResult, expectedResult);
-    conn->commit();
-    conn->beginWriteTransaction();
+    ASSERT_TRUE(conn->query("COMMIT;")->isSuccess());
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
     conn->createScalarFunction("times2", &times2);
-    conn->rollback();
+    ASSERT_TRUE(conn->query("ROLLBACK;")->isSuccess());
     ASSERT_EQ(conn->query("return times2(5)")->getErrorMessage(),
         "Catalog exception: TIMES2 function does not exist.");
 }

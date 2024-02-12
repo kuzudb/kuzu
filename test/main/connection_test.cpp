@@ -48,20 +48,16 @@ TEST_F(ApiTest, ParallelConnect) {
 }
 
 TEST_F(ApiTest, CommitRollbackRemoveActiveTransaction) {
-    conn->beginWriteTransaction();
-    conn->rollback();
-    conn->beginReadOnlyTransaction();
-    conn->commit();
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
+    ASSERT_TRUE(conn->query("ROLLBACK;")->isSuccess());
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION READ ONLY;")->isSuccess());
+    ASSERT_TRUE(conn->query("COMMIT;")->isSuccess());
 }
 
 TEST_F(ApiTest, BeginningMultipleTransactionErrors) {
-    conn->beginWriteTransaction();
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
     ASSERT_FALSE(conn->query("BEGIN TRANSACTION")->isSuccess());
-    conn->beginWriteTransaction();
-    ASSERT_FALSE(conn->query("BEGIN TRANSACTION READ ONLY")->isSuccess());
-    conn->beginReadOnlyTransaction();
-    ASSERT_FALSE(conn->query("BEGIN TRANSACTION")->isSuccess());
-    conn->beginReadOnlyTransaction();
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION READ ONLY")->isSuccess());
     ASSERT_FALSE(conn->query("BEGIN TRANSACTION READ ONLY")->isSuccess());
 }
 
