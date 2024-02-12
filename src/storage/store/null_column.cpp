@@ -34,7 +34,7 @@ struct NullColumnFunc {
 NullColumn::NullColumn(std::string name, page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
     BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction,
     RWPropertyStats propertyStatistics, bool enableCompression)
-    : Column{name, LogicalType::BOOL(), MetadataDAHInfo{metaDAHPageIdx}, dataFH, metadataFH,
+    : Column{name, *LogicalType::BOOL(), MetadataDAHInfo{metaDAHPageIdx}, dataFH, metadataFH,
           bufferManager, wal, transaction, propertyStatistics, enableCompression,
           false /*requireNullColumn*/} {
     readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
@@ -178,7 +178,7 @@ bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nod
         auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
         bool value = localVector->getVector()->isNull(offsetInVector);
         if (!metadata.compMeta.canUpdateInPlace(
-                reinterpret_cast<const uint8_t*>(&value), 0, dataType->getPhysicalType())) {
+                reinterpret_cast<const uint8_t*>(&value), 0, dataType.getPhysicalType())) {
             return false;
         }
     }
@@ -188,10 +188,10 @@ bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nod
 bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
     KU_ASSERT(chunk->getNullChunk() == nullptr &&
-              chunk->getDataType()->getPhysicalType() == PhysicalTypeID::BOOL);
+              chunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL);
     auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
     auto maxDstOffset = getMaxOffset(dstOffsets);
-    if ((metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType) *
+    if ((metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType) *
             metadata.numPages) < maxDstOffset) {
         // Note that for constant compression, `metadata.numPages` will be equal to 0. Thus, this
         // function will always return false.
@@ -204,7 +204,7 @@ bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nod
     for (auto i = 0u; i < dstOffsets.size(); i++) {
         bool value = nullChunk->isNull(srcOffset + i);
         if (!metadata.compMeta.canUpdateInPlace(
-                reinterpret_cast<const uint8_t*>(&value), 0, dataType->getPhysicalType())) {
+                reinterpret_cast<const uint8_t*>(&value), 0, dataType.getPhysicalType())) {
             return false;
         }
     }

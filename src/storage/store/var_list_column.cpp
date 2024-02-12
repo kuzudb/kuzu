@@ -11,17 +11,16 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-common::offset_t ListOffsetInfoInStorage::getListOffset(uint64_t nodePos) const {
+offset_t ListOffsetInfoInStorage::getListOffset(uint64_t nodePos) const {
     if (nodePos == 0) {
         return prevNodeListOffset;
     } else {
-        auto offsetVector = offsetVectors[(nodePos - 1) / common::DEFAULT_VECTOR_CAPACITY].get();
-        return offsetVector->getValue<common::offset_t>(
-            (nodePos - 1) % common::DEFAULT_VECTOR_CAPACITY);
+        auto offsetVector = offsetVectors[(nodePos - 1) / DEFAULT_VECTOR_CAPACITY].get();
+        return offsetVector->getValue<offset_t>((nodePos - 1) % DEFAULT_VECTOR_CAPACITY);
     }
 }
 
-VarListColumn::VarListColumn(std::string name, std::unique_ptr<LogicalType> dataType,
+VarListColumn::VarListColumn(std::string name, LogicalType dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, Transaction* transaction,
     RWPropertyStats propertyStatistics, bool enableCompression)
@@ -29,9 +28,8 @@ VarListColumn::VarListColumn(std::string name, std::unique_ptr<LogicalType> data
           transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
     dataColumn = ColumnFactory::createColumn(dataColName,
-        common::VarListType::getChildType(this->dataType.get())->copy(),
-        *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
-        propertyStatistics, enableCompression);
+        *VarListType::getChildType(&this->dataType)->copy(), *metaDAHeaderInfo.childrenInfos[0],
+        dataFH, metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
 }
 
 void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -108,7 +106,7 @@ void VarListColumn::lookupValue(Transaction* transaction, offset_t nodeOffset,
 }
 
 void VarListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
-    KU_ASSERT(columnChunk->getDataType()->getPhysicalType() == dataType->getPhysicalType());
+    KU_ASSERT(columnChunk->getDataType().getPhysicalType() == dataType.getPhysicalType());
     Column::append(columnChunk, nodeGroupIdx);
     auto dataColumnChunk =
         ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(columnChunk)->getDataColumnChunk();
@@ -166,7 +164,7 @@ offset_t VarListColumn::readOffset(
     Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
     auto pageCursor = PageUtils::getPageCursorForPos(offsetInNodeGroup,
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType));
+        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
     pageCursor.pageIdx += chunkMeta.pageIdx;
     offset_t value;
     readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {

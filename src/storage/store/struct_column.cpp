@@ -11,19 +11,19 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StructColumn::StructColumn(std::string name, std::unique_ptr<LogicalType> dataType,
+StructColumn::StructColumn(std::string name, LogicalType dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, Transaction* transaction,
     RWPropertyStats propertyStatistics, bool enableCompression)
     : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
-    auto fieldTypes = StructType::getFieldTypes(this->dataType.get());
+    auto fieldTypes = StructType::getFieldTypes(&this->dataType);
     KU_ASSERT(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
     childColumns.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         auto childColName = StorageUtils::getColumnName(
             name, StorageUtils::ColumnType::STRUCT_CHILD, std::to_string(i));
-        childColumns[i] = ColumnFactory::createColumn(childColName, fieldTypes[i]->copy(),
+        childColumns[i] = ColumnFactory::createColumn(childColName, *fieldTypes[i]->copy(),
             *metaDAHeaderInfo.childrenInfos[i], dataFH, metadataFH, bufferManager, wal, transaction,
             propertyStatistics, enableCompression);
     }
@@ -31,7 +31,7 @@ StructColumn::StructColumn(std::string name, std::unique_ptr<LogicalType> dataTy
 
 void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     ColumnChunk* columnChunk, offset_t startOffset, offset_t endOffset) {
-    KU_ASSERT(columnChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     nullColumn->scan(
         transaction, nodeGroupIdx, columnChunk->getNullChunk(), startOffset, endOffset);
     if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
@@ -93,7 +93,7 @@ void StructColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
 
 void StructColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, ColumnChunk* data,
     offset_t dataOffset, length_t numValues) {
-    KU_ASSERT(data->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(data->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     nullColumn->write(nodeGroupIdx, offsetInChunk, data->getNullChunk(), dataOffset, numValues);
     auto structData = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(data);
     for (auto i = 0u; i < childColumns.size(); i++) {
@@ -104,7 +104,7 @@ void StructColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, 
 
 void StructColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     Column::append(columnChunk, nodeGroupIdx);
-    KU_ASSERT(columnChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structColumnChunk = static_cast<StructColumnChunk*>(columnChunk);
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->append(structColumnChunk->getChild(i), nodeGroupIdx);
@@ -172,7 +172,7 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
 
 void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
-    KU_ASSERT(chunk->getDataType()->getPhysicalType() == dataType->getPhysicalType());
+    KU_ASSERT(chunk->getDataType().getPhysicalType() == dataType.getPhysicalType());
     auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
     auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {

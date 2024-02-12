@@ -34,8 +34,8 @@ public:
 
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory
-    ColumnChunk(std::unique_ptr<common::LogicalType> dataType, uint64_t capacity,
-        bool enableCompression = true, bool hasNullChunk = true);
+    ColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression = true,
+        bool hasNullChunk = true);
 
     virtual ~ColumnChunk() = default;
 
@@ -46,7 +46,8 @@ public:
     }
 
     inline NullColumnChunk* getNullChunk() { return nullChunk.get(); }
-    inline common::LogicalType* getDataType() const { return dataType.get(); }
+    inline common::LogicalType& getDataType() { return dataType; }
+    inline const common::LogicalType& getDataType() const { return dataType; }
 
     virtual void resetToEmpty();
 
@@ -114,7 +115,7 @@ private:
     uint64_t getBufferSize() const;
 
 protected:
-    std::unique_ptr<common::LogicalType> dataType;
+    common::LogicalType dataType;
     uint32_t numBytesPerValue;
     uint64_t bufferSize;
     uint64_t capacity;
@@ -145,7 +146,7 @@ inline bool ColumnChunk::getValue(common::offset_t pos) const {
 class BoolColumnChunk : public ColumnChunk {
 public:
     explicit BoolColumnChunk(uint64_t capacity, bool enableCompression, bool hasNullChunk = true)
-        : ColumnChunk(common::LogicalType::BOOL(), capacity,
+        : ColumnChunk(*common::LogicalType::BOOL(), capacity,
               // Booleans are always bitpacked, but this can also enable constant compression
               enableCompression, hasNullChunk) {}
 
@@ -205,9 +206,8 @@ protected:
 };
 
 struct ColumnChunkFactory {
-    static std::unique_ptr<ColumnChunk> createColumnChunk(
-        std::unique_ptr<common::LogicalType> dataType, bool enableCompression,
-        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+    static std::unique_ptr<ColumnChunk> createColumnChunk(common::LogicalType dataType,
+        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
 
     static std::unique_ptr<ColumnChunk> createNullColumnChunk(bool enableCompression) {
         return std::make_unique<NullColumnChunk>(

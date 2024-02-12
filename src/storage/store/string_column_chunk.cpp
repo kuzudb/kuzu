@@ -6,7 +6,7 @@ namespace kuzu {
 namespace storage {
 
 StringColumnChunk::StringColumnChunk(
-    std::unique_ptr<LogicalType> dataType, uint64_t capacity, bool enableCompression)
+    LogicalType dataType, uint64_t capacity, bool enableCompression)
     : ColumnChunk{std::move(dataType), capacity, enableCompression},
       dictionaryChunk{capacity, enableCompression}, needFinalize{false} {}
 
@@ -36,7 +36,7 @@ void StringColumnChunk::append(
     ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     auto otherChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(other);
     nullChunk->append(otherChunk->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
-    switch (dataType->getLogicalTypeID()) {
+    switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         appendStringColumnChunk(otherChunk, startPosInOtherChunk, numValuesToAppend);
@@ -89,7 +89,7 @@ void StringColumnChunk::write(
 
 void StringColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
-    KU_ASSERT(srcChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRING);
+    KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING);
     for (auto i = 0u; i < numValuesToCopy; i++) {
         auto srcPos = srcOffsetInChunk + i;
         auto dstPos = dstOffsetInChunk + i;
@@ -105,7 +105,7 @@ void StringColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
 
 void StringColumnChunk::copy(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
-    KU_ASSERT(srcChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRING);
+    KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING);
     KU_ASSERT(dstOffsetInChunk >= numValues);
     auto indices = reinterpret_cast<DictionaryChunk::string_index_t*>(buffer.get());
     while (numValues < dstOffsetInChunk) {

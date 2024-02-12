@@ -8,13 +8,13 @@ namespace storage {
 // TODO: need to handle this case, when the whole struct entry is null, should set all fields to
 // null too.
 StructColumnChunk::StructColumnChunk(
-    std::unique_ptr<LogicalType> dataType, uint64_t capacity, bool enableCompression)
+    LogicalType dataType, uint64_t capacity, bool enableCompression)
     : ColumnChunk{std::move(dataType), capacity} {
-    auto fieldTypes = StructType::getFieldTypes(this->dataType.get());
+    auto fieldTypes = StructType::getFieldTypes(&this->dataType);
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         childChunks[i] = ColumnChunkFactory::createColumnChunk(
-            fieldTypes[i]->copy(), enableCompression, capacity);
+            *fieldTypes[i]->copy(), enableCompression, capacity);
     }
 }
 
@@ -26,7 +26,7 @@ void StructColumnChunk::finalize() {
 
 void StructColumnChunk::append(
     ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
-    KU_ASSERT(other->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto otherStructChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(other);
     KU_ASSERT(childChunks.size() == otherStructChunk->childChunks.size());
     nullChunk->append(other->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
@@ -38,7 +38,7 @@ void StructColumnChunk::append(
 }
 
 void StructColumnChunk::append(ValueVector* vector) {
-    auto numFields = StructType::getNumFields(dataType.get());
+    auto numFields = StructType::getNumFields(&dataType);
     for (auto i = 0u; i < numFields; i++) {
         childChunks[i]->append(StructVector::getFieldVector(vector, i).get());
     }
@@ -93,7 +93,7 @@ void StructColumnChunk::write(
 
 void StructColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
-    KU_ASSERT(srcChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto srcStructChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(srcChunk);
     KU_ASSERT(childChunks.size() == srcStructChunk->childChunks.size());
     nullChunk->write(srcChunk->getNullChunk(), srcOffsetInChunk, dstOffsetInChunk, numValuesToCopy);

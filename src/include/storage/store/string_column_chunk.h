@@ -8,8 +8,7 @@ namespace storage {
 
 class StringColumnChunk : public ColumnChunk {
 public:
-    StringColumnChunk(
-        std::unique_ptr<common::LogicalType> dataType, uint64_t capacity, bool enableCompression);
+    StringColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression);
 
     void resetToEmpty() final;
     void append(common::ValueVector* vector) final;

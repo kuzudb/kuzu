@@ -53,7 +53,7 @@ NodeGroup::NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& co
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
         chunks.push_back(
-            ColumnChunkFactory::createColumnChunk(type->copy(), enableCompression, capacity));
+            ColumnChunkFactory::createColumnChunk(*type->copy(), enableCompression, capacity));
     }
 }
 
@@ -62,7 +62,7 @@ NodeGroup::NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool e
     chunks.reserve(columns.size());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         chunks.push_back(ColumnChunkFactory::createColumnChunk(
-            columns[columnID]->getDataType()->copy(), enableCompression));
+            *columns[columnID]->getDataType().copy(), enableCompression));
     }
 }
 
@@ -101,11 +101,11 @@ uint64_t NodeGroup::append(const std::vector<ValueVector*>& columnVectors,
     columnState->selVector->selectedSize = numValuesToAppendInChunk;
     for (auto i = 0u; i < chunks.size(); i++) {
         auto chunk = chunks[i].get();
-        if (chunk->getDataType()->getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
+        if (chunk->getDataType().getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
             serialSkip++;
             continue;
         }
-        KU_ASSERT(*chunk->getDataType() == columnVectors[i - serialSkip]->dataType);
+        KU_ASSERT(chunk->getDataType() == columnVectors[i - serialSkip]->dataType);
         chunk->append(columnVectors[i - serialSkip]);
     }
     columnState->selVector->selectedSize = originalSize;
@@ -150,9 +150,9 @@ void NodeGroup::finalize(uint64_t nodeGroupIdx_) {
 
 CSRHeaderChunks::CSRHeaderChunks(bool enableCompression, uint64_t capacity) {
     offset =
-        ColumnChunkFactory::createColumnChunk(LogicalType::UINT64(), enableCompression, capacity);
+        ColumnChunkFactory::createColumnChunk(*LogicalType::UINT64(), enableCompression, capacity);
     length =
-        ColumnChunkFactory::createColumnChunk(LogicalType::UINT64(), enableCompression, capacity);
+        ColumnChunkFactory::createColumnChunk(*LogicalType::UINT64(), enableCompression, capacity);
 }
 
 offset_t CSRHeaderChunks::getStartCSROffset(offset_t nodeOffset) const {
