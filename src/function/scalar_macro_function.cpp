@@ -58,7 +58,7 @@ std::unique_ptr<ScalarMacroFunction> ScalarMacroFunction::deserialize(Deserializ
         std::move(expression), std::move(positionalArgs), std::move(defaultArgs));
 }
 
-std::string ScalarMacroFunction::ToCypher(const std::string& name) const {
+std::string ScalarMacroFunction::toCypher(const std::string& name) const {
     std::stringstream ss;
     std::vector<std::string> paramStrings;
     for (auto& param : positionalArgs) {

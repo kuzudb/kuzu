@@ -43,7 +43,7 @@ public:
     }
     void createDB(uint64_t checkpointWaitTimeout);
     void importDB(std::string filePath);
-    void createNewDB(uint64_t checkpointWaitTimeout);
+    void createNewDB();
 
     inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
         uint64_t checkpointWaitTimeout =
@@ -54,12 +54,10 @@ public:
             if (statement->importDBFlag) {
                 auto filePath = statement->importFilePath;
                 filePath.erase(std::remove(filePath.begin(), filePath.end(), '\"'), filePath.end());
-                createNewDB(checkpointWaitTimeout);
+                createNewDB();
                 importDB(filePath);
+                BaseGraphTest::setIEDatabasePath(filePath);
                 continue;
-            }
-            if (newConn) {
-                TestRunner::runTest(statement.get(), *newConn, databasePath);
             }
 
             if (statement->reloadDBFlag) {

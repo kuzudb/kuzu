@@ -2,6 +2,7 @@
 #include <numeric>
 
 #include "common/exception/test.h"
+#include "test_helper/test_helper.h"
 #include "test_runner/test_group.h"
 
 namespace kuzu {
@@ -131,12 +132,15 @@ private:
         TestStatement* currentStatement, const std::string& testCaseName);
     TestStatement* addNewStatement(std::string& name);
 
+    const std::string exportDBPath = TestHelper::appendKuzuRootPath(
+        TestHelper::TMP_TEST_DIR + std::string("export_db") + TestHelper::getMillisecondsSuffix());
     // Any value here will be replaced inside the .test files
     // in queries/statements and expected error message.
     // Example: ${KUZU_ROOT_DIRECTORY} will be replaced by
     // KUZU_ROOT_DIRECTORY
     std::unordered_map<std::string, std::string> variableMap = {
-        {"KUZU_ROOT_DIRECTORY", KUZU_ROOT_DIRECTORY}, {"KUZU_VERSION", common::KUZU_VERSION}};
+        {"KUZU_ROOT_DIRECTORY", KUZU_ROOT_DIRECTORY}, {"KUZU_VERSION", common::KUZU_VERSION},
+        {"KUZU_EXPORT_DB_DIRECTORY", exportDBPath}};
 };
 
 } // namespace testing

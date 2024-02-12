@@ -37,7 +37,7 @@ std::unique_ptr<NodeTableSchema> NodeTableSchema::deserialize(Deserializer& dese
     return schema;
 }
 
-std::string NodeTableSchema::ToCypher() const {
+std::string NodeTableSchema::toCypher() const {
     std::stringstream ss;
     ss << "CREATE NODE TABLE " << tableName << "(";
     for (auto& prop : properties) {

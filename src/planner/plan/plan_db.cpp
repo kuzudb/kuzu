@@ -1,11 +1,9 @@
-#include "binder/binder.h"
 #include "binder/copy/bound_export_database.h"
 #include "binder/expression/expression.h"
 #include "binder/expression/property_expression.h"
 #include "catalog/catalog.h"
 #include "catalog/rel_table_schema.h"
 #include "catalog/table_schema.h"
-#include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "planner/operator/persistent/logical_export_db.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
@@ -86,42 +84,6 @@ std::shared_ptr<RelExpression> getRelExpression(table_id_t tableID,
         QueryRelType::NON_RECURSIVE);
 }
 
-std::vector<std::string> getTableCypher(catalog::Catalog* catalog) {
-    std::vector<std::string> tableCyphers;
-    for (auto& schema : catalog->getNodeTableSchemas(&DUMMY_READ_TRANSACTION)) {
-        auto nodeSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(schema);
-        tableCyphers.push_back(nodeSchema->ToCypher());
-    }
-    for (auto& schema : catalog->getRelTableSchemas(&DUMMY_READ_TRANSACTION)) {
-        auto relSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
-        auto srcTableName =
-            catalog->getTableName(&DUMMY_READ_TRANSACTION, relSchema->getSrcTableID());
-        auto dstTableName =
-            catalog->getTableName(&DUMMY_READ_TRANSACTION, relSchema->getDstTableID());
-        tableCyphers.push_back(relSchema->ToCypher(srcTableName, dstTableName));
-    }
-    return tableCyphers;
-}
-
-std::vector<std::string> getMacroCypher(catalog::Catalog* catalog) {
-    std::vector<std::string> macroCyphers;
-    for (auto macroName : catalog->getMacroNames(&DUMMY_READ_TRANSACTION)) {
-        macroCyphers.push_back(catalog->getScalarMacroFunction(macroName)->ToCypher(macroName));
-    }
-    return macroCyphers;
-}
-
-std::vector<std::string> getTableNames(catalog::Catalog* catalog) {
-    std::vector<std::string> tableNames;
-    for (auto& schema : catalog->getNodeTableSchemas(&DUMMY_READ_TRANSACTION)) {
-        tableNames.push_back(schema->getName());
-    }
-    for (auto& schema : catalog->getRelTableSchemas(&DUMMY_READ_TRANSACTION)) {
-        tableNames.push_back(schema->getName());
-    }
-    return tableNames;
-}
-
 void getColumnInfo(std::vector<common::LogicalType>& columnTypes,
     std::vector<std::string>& columnNames, TableSchema* schema) {
     auto& properties = schema->getPropertiesRef();
@@ -137,6 +99,17 @@ void getColumnInfo(std::vector<common::LogicalType>& columnTypes,
             property.getName(), StorageUtils::ColumnType::DEFAULT, "fwd" /*prefix*/);
         columnNames.push_back(colName);
     }
+}
+
+void getPrimaryColumnInfo(std::vector<common::LogicalType>& columnTypes,
+    std::vector<std::string>& columnNames, table_id_t tableId, Catalog* catalog) {
+    auto schema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableId);
+    auto primaryProperty = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(schema)->getPrimaryKey();
+    auto dataType = primaryProperty->getDataType();
+    auto colName = StorageUtils::getColumnName(
+        primaryProperty->getName(), StorageUtils::ColumnType::DEFAULT, "rel" /*prefix*/);
+    columnTypes.push_back(*dataType);
+    columnNames.push_back(colName);
 }
 
 void getProp(std::shared_ptr<binder::expression_vector> expProperties, TableSchema* schema) {
@@ -257,6 +230,9 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
         std::vector<std::string> columnNames;
         std::vector<common::LogicalType> columnTypes;
         auto expProperties = std::make_shared<binder::expression_vector>();
+        auto relSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
+        getPrimaryColumnInfo(columnTypes, columnNames, relSchema->getSrcTableID(), catalog);
+        getPrimaryColumnInfo(columnTypes, columnNames, relSchema->getDstTableID(), catalog);
         getColumnInfo(columnTypes, columnNames, schema);
         getProp(expProperties, schema);
         std::vector<common::LogicalType>& refColumnTypes = columnTypes;
@@ -267,11 +243,8 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
         copyTo->computeFactorizedSchema();
         logicalOperators.push_back(std::move(copyTo));
     }
-    auto tableCyphers = getTableCypher(catalog);
-    auto tableNames = getTableNames(catalog);
-    auto macroCyphers = getMacroCypher(catalog);
-    auto exportDatabase = make_shared<LogicalExportDatabase>(filePath, std::move(tableNames),
-        std::move(tableCyphers), std::move(macroCyphers), std::move(logicalOperators));
+    auto exportDatabase = make_shared<LogicalExportDatabase>(
+        filePath, boundExportDatabase.getCopyOption()->copy(), std::move(logicalOperators));
     plan->setLastOperator(std::move(exportDatabase));
     return plan;
 }

@@ -71,7 +71,7 @@ public:
     KUZU_API static bool caseInsensitiveEquals(const std::string& left, const std::string& right);
 
     // Join multiple strings into one string. Components are concatenated by the given separator
-    KUZU_API static inline std::string join(
+    static inline std::string join(
         const std::vector<std::string>& input, const std::string& separator) {
         return join(input, input.size(), separator, [](const std::string& s) { return s; });
     }

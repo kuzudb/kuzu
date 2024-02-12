@@ -1,11 +1,9 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_export_database.h"
-#include "common/enums/table_type.h"
-#include "common/exception/binder.h"
-#include "function/table_functions/bind_input.h"
 #include "main/client_context.h"
 #include "parser/db.h"
-#include "parser/parser.h"
+
+//#include "common/exception/binder.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

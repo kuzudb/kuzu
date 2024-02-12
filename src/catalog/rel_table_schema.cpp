@@ -63,7 +63,7 @@ std::unique_ptr<RelTableSchema> RelTableSchema::deserialize(Deserializer& deseri
     return schema;
 }
 
-std::string RelTableSchema::ToCypher(std::string srcTableName, std::string dstTableName) const {
+std::string RelTableSchema::toCypher(std::string srcTableName, std::string dstTableName) const {
     std::stringstream ss;
     // TODO(Jiamin): special here since we can not get table name
     ss << "CREATE REL TABLE " << tableName << "( FROM " << srcTableName << " TO " << dstTableName

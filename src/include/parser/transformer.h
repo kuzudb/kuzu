@@ -52,7 +52,6 @@ private:
         const std::vector<antlr4::tree::TerminalNode*>& stringLiteral);
     parsing_option_t transformParsingOptions(CypherParser::KU_ParsingOptionsContext& ctx);
 
-    // Import / Export Database
     std::unique_ptr<Statement> transformExportDatabase(CypherParser::KU_ExportDatabaseContext& ctx);
 
     // Transform query statement.

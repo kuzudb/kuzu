@@ -35,11 +35,21 @@ public:
             2 /*numThreadsForExec*/);
         setDatabasePath();
         removeDir(databasePath);
+
+        ieDBPath = "";
     }
 
     virtual std::string getInputDir() = 0;
 
     void TearDown() override { removeDir(databasePath); }
+
+    void removeIEDBPath() {
+        if (ieDBPath != "") {
+            auto lastSlashPos = ieDBPath.rfind('/');
+            auto deletePath = ieDBPath.substr(0, lastSlashPos);
+            removeDir(deletePath);
+        }
+    }
 
     void createDBAndConn();
 
@@ -50,6 +60,8 @@ public:
     void initGraph();
 
     void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType) const;
+
+    void setIEDatabasePath(std::string filePath) { ieDBPath = filePath; }
 
 protected:
     // Static functions to access Database's non-public properties/interfaces.
@@ -121,9 +133,8 @@ public:
     std::unique_ptr<main::Connection> conn;
     // for multiple conns
     std::unordered_map<std::string, std::unique_ptr<main::Connection>> connMap;
-    // for import and export
-    std::unique_ptr<main::Database> newDatabase;
-    std::unique_ptr<main::Connection> newConn;
+    // for export import db
+    std::string ieDBPath;
 };
 
 } // namespace testing

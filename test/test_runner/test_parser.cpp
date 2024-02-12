@@ -198,7 +198,9 @@ TestStatement* TestParser::extractStatement(
     case TokenType::IMPORT_DATABASE: {
         // TODO(Jiamin): special here, should remove after implementing import database
         statement->importDBFlag = true;
-        statement->importFilePath = getParam(1);
+        auto filePath = getParam(1);
+        replaceVariables(filePath);
+        statement->importFilePath = filePath;
         return statement;
     }
     case TokenType::STATEMENT: {

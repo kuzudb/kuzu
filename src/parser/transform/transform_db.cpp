@@ -10,6 +10,9 @@ std::unique_ptr<Statement> Transformer::transformExportDatabase(
     CypherParser::KU_ExportDatabaseContext& ctx) {
     std::string filePath = transformStringLiteral(*ctx.StringLiteral());
     auto exportDB = std::make_unique<ExportDB>(std::move(filePath));
+    if (ctx.kU_ParsingOptions()) {
+        exportDB->setParsingOption(transformParsingOptions(*ctx.kU_ParsingOptions()));
+    }
     return exportDB;
 }
 
