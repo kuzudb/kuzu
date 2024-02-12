@@ -1,5 +1,8 @@
 #include "embedded_shell.h"
 
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -567,7 +570,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         if (colsWidth.size() == 1) {
             printf("(1 column)\n");
         } else {
-            printf("(%" PRIu64 " columns", colsWidth.size());
+            printf("(%" PRIu64 " columns", (uint64_t) colsWidth.size());
             if (colTruncated) {
                 printf(", %" PRIu64 " shown", colsPrinted);
             }
