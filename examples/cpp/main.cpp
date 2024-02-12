@@ -4,17 +4,16 @@
 using namespace kuzu::main;
 
 int main() {
-    auto database = std::make_unique<Database>("" /* fill db path */);
+    auto database = std::make_unique<Database>("/Users/xiyangfeng/Desktop/ku_play/rdfdb" /* fill db path */);
     auto connection = std::make_unique<Connection>(database.get());
 
     // Create schema.
-    connection->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));");
+    connection->query("CREATE RDFGraph T;");
     // Create nodes.
-    connection->query("CREATE (:Person {name: 'Alice', age: 25});");
-    connection->query("CREATE (:Person {name: 'Bob', age: 30});");
+//    connection->query("CREATE (:T_l {val: \"Long string that doesn't fit in ku_string_t\"});");
 
     // Execute a simple query.
-    auto result = connection->query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;");
+    auto result = connection->query("MATCH (a:T_l) RETURN a.val;");
     // Print query result.
     std::cout << result->toString();
 }
