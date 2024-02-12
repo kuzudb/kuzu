@@ -132,6 +132,7 @@ jobs:
         run: |
           cargo update -p half@2.3.1 --precise '2.2.1'
           cargo update -p time --precise '0.3.23'
+          cargo update -p ahash --precise '0.8.7'
           cargo test --features arrow -- --test-threads=1
 
       - name: Rust example
