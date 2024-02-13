@@ -172,6 +172,13 @@ aaa
 13|||2024-01-01a|2024-01-01||
 14|||2024-01-01 11:25:30a||2024-01-01 11:25:30|
 15|||1 yeara|||1 year
+-STATEMENT CREATE (:T_l {val:"Long string that doesn't fit in ku_string_t"}),
+                  (:T_l {val:blob("Long string that doesn't fit in ku_string_t")})
+---- ok
+-STATEMENT MATCH (a:T_l) WHERE a.id > 15 RETURN a.id, a.val;
+---- 2
+16|Long string that doesn't fit in ku_string_t
+17|Long string that doesn\x27t fit in ku_string_t
 -STATEMENT MATCH (a)-[e]->(b) SET a.iri = "x";
 ---- error
 Binder exception: Cannot set properties of RDFGraph tables. Set a.iri requires modifying table T_r under rdf graph T.

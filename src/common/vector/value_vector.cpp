@@ -784,7 +784,10 @@ void RdfVariantVector::add(ValueVector* vector, sel_t pos, float val) {
 }
 template<>
 void RdfVariantVector::add(ValueVector* vector, sel_t pos, blob_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::BLOB, val);
+    auto typeVector = StructVector::getFieldVector(vector, 0).get();
+    auto valVector = StructVector::getFieldVector(vector, 1).get();
+    typeVector->setValue<uint8_t>(pos, static_cast<uint8_t>(LogicalTypeID::BLOB));
+    BlobVector::addBlob(valVector, pos, val.value.getData(), val.value.len);
 }
 template<>
 void RdfVariantVector::add(ValueVector* vector, sel_t pos, bool val) {

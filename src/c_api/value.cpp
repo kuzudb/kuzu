@@ -492,9 +492,8 @@ char* kuzu_rdf_variant_get_string(kuzu_value* rdf_variant) {
 }
 
 uint8_t* kuzu_rdf_variant_get_blob(kuzu_value* rdf_variant) {
-    auto blobData = RdfVariant::getValue<blob_t>(static_cast<Value*>(rdf_variant->_value));
-    auto blobStr = blobData.value.getAsString();
-    return (uint8_t*)convertToOwnedCString(blobStr);
+    auto blobData = RdfVariant::getValue<std::string>(static_cast<Value*>(rdf_variant->_value));
+    return (uint8_t*)convertToOwnedCString(blobData);
 }
 
 int64_t kuzu_rdf_variant_get_int64(kuzu_value* rdf_variant) {

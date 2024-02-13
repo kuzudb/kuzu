@@ -29,6 +29,11 @@ struct CastToString {
     }
 };
 
+template <>
+inline void CastToString::operation(common::blob_t& input, common::ku_string_t& result, common::ValueVector&, common::ValueVector& resultVector) {
+    common::StringVector::addString(&resultVector, result, common::Blob::toString(input));
+}
+
 struct CastDateToTimestamp {
     template<typename T>
     static inline void operation(common::date_t& input, T& result) {
