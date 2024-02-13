@@ -1,7 +1,6 @@
 #include "common/copier_config/csv_reader_config.h"
 
 #include "common/exception/binder.h"
-#include "common/string_utils.h"
 
 namespace kuzu {
 namespace common {
@@ -56,7 +55,6 @@ CSVReaderConfig CSVReaderConfig::construct(
     auto config = CSVReaderConfig();
     for (auto& op : options) {
         auto name = op.first;
-        StringUtils::toUpper(name);
         auto isValidStringParsingOption = validateStringParsingOptionName(name);
         auto isValidBoolParsingOption = validateBoolParsingOptionName(name);
         if (isValidBoolParsingOption) {

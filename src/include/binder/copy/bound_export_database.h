@@ -2,7 +2,6 @@
 #include "binder/binder.h"
 #include "binder/bound_statement.h"
 #include "binder/query/bound_regular_query.h"
-#include "common/copier_config/csv_reader_config.h"
 #include "common/copier_config/reader_config.h"
 
 namespace kuzu {
@@ -21,22 +20,27 @@ struct ExportedTableData {
 class BoundExportDatabase : public BoundStatement {
 public:
     BoundExportDatabase(std::string filePath, common::FileType fileType,
-        std::vector<ExportedTableData> exportData, common::CSVOption csvOption)
+        std::vector<ExportedTableData> exportData,
+        std::unordered_map<std::string, common::Value> csvOption)
         : BoundStatement{common::StatementType::EXPORT_DATABASE,
               BoundStatementResult::createEmptyResult()},
-          filePath{std::move(filePath)}, fileType{fileType},
-          exportData(std::move(exportData)), csvOption{std::move(csvOption)} {}
+          exportData(std::move(exportData)),
+          boundFileInfo(fileType, std::vector{std::move(filePath)}) {
+        boundFileInfo.options = std::move(csvOption);
+    }
 
-    inline std::string getFilePath() const { return filePath; }
-    inline common::FileType getFileType() const { return fileType; }
-    inline const common::CSVOption* getCopyOption() const { return &csvOption; }
+    inline std::string getFilePath() const { return boundFileInfo.filePaths[0]; }
+    inline common::FileType getFileType() const { return boundFileInfo.fileType; }
+    inline common::CSVOption getCopyOption() const {
+        auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo.options);
+        return csvConfig.option.copy();
+    }
+    inline const common::ReaderConfig* getBoundFileInfo() const { return &boundFileInfo; }
     inline const std::vector<ExportedTableData>* getExportData() const { return &exportData; }
 
 private:
-    std::string filePath;
-    common::FileType fileType;
     std::vector<ExportedTableData> exportData;
-    common::CSVOption csvOption;
+    common::ReaderConfig boundFileInfo;
 };
 
 } // namespace binder
