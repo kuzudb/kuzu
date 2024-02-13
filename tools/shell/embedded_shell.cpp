@@ -449,11 +449,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         uint32_t lineSeparatorLen = 1u;
         for (auto i = 0u; i < colsWidth.size(); i++) {
             if (k <= j) {
-                if (lineSeparatorLen + colsWidth[k] < sumGoal + colsWidth.size() - 5) {
-                    lineSeparatorLen += colsWidth[k] + 1;
-                    k++;
-                    colsPrinted++;
-                } else if (lineSeparatorLen + colsWidth[k] <  sumGoal + colsWidth.size() + 1 && (colTruncated || k == j)) {
+                if ((lineSeparatorLen + colsWidth[k] < sumGoal + colsWidth.size() - 5) ||
+                    (lineSeparatorLen + colsWidth[k] < sumGoal + colsWidth.size() + 1 &&
+                        (colTruncated || k == j))) {
                     lineSeparatorLen += colsWidth[k] + 1;
                     k++;
                     colsPrinted++;
@@ -463,11 +461,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 }
             }
             if (j >= k) {
-                if (lineSeparatorLen + colsWidth[j] <  sumGoal + colsWidth.size() - 5) {
-                    lineSeparatorLen += colsWidth[j] + 1;
-                    j--;
-                    colsPrinted++;
-                } else if (lineSeparatorLen + colsWidth[j] <  sumGoal + colsWidth.size() + 1 && (colTruncated || k == j)) {
+                if ((lineSeparatorLen + colsWidth[j] < sumGoal + colsWidth.size() - 5) ||
+                    (lineSeparatorLen + colsWidth[j] < sumGoal + colsWidth.size() + 1 &&
+                        (colTruncated || j == k))) {
                     lineSeparatorLen += colsWidth[j] + 1;
                     j--;
                     colsPrinted++;
