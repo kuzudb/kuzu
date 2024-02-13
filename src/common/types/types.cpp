@@ -313,7 +313,7 @@ std::string LogicalType::toString() const {
         auto structType =
             ku_dynamic_cast<ExtraTypeInfo*, VarListTypeInfo*>(extraTypeInfo.get())->getChildType();
         auto fieldTypes = StructType::getFieldTypes(structType);
-        return "MAP(" + fieldTypes[0]->toString() + ": " + fieldTypes[1]->toString() + ")";
+        return "MAP(" + fieldTypes[0]->toString() + ", " + fieldTypes[1]->toString() + ")";
     }
     case LogicalTypeID::VAR_LIST: {
         auto varListTypeInfo =

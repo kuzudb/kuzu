@@ -37,7 +37,7 @@ std::string getSchemaCypher(catalog::Catalog* catalog) {
     stringstream ss;
     for (auto& schema : catalog->getNodeTableSchemas(&DUMMY_READ_TRANSACTION)) {
         auto nodeSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(schema);
-        ss << nodeSchema->toCypher() << std::endl;
+        ss << nodeSchema->toCypher(schema->getName(), schema->getName()) << std::endl;
     }
     for (auto& schema : catalog->getRelTableSchemas(&DUMMY_READ_TRANSACTION)) {
         auto relSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);

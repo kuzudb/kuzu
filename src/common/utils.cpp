@@ -1,5 +1,8 @@
 #include "common/utils.h"
 
+#include <sstream>
+
+#include "common/string_utils.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
@@ -59,5 +62,18 @@ std::string LoggerUtils::getLoggerName(LoggerConstants::LoggerEnum loggerEnum) {
     }
     }
 }
+
+void CypherUtils::getCypher(
+    const std::vector<kuzu::catalog::Property>* properties, std::stringstream& ss) {
+    for (auto& prop : *properties) {
+        if (prop.getDataType()->getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
+            continue;
+        }
+        auto propStr = prop.getDataType()->toString();
+        StringUtils::replaceAll(propStr, ":", " ");
+        ss << prop.getName() << " " << propStr << ",";
+    }
+}
+
 } // namespace common
 } // namespace kuzu

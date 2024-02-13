@@ -751,6 +751,8 @@ kU_NonReservedKeywords
         | BEGIN
         | END
         | IN
+        | EXPORT
+        | DATABASE
         ;
 
 UnescapedSymbolicName

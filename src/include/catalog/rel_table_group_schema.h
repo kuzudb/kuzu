@@ -16,6 +16,11 @@ public:
 
     bool isParent(common::table_id_t tableID) override;
 
+    std::string toCypher(
+        std::string /*srcTableName*/, std::string /*dstTableName*/) const override {
+        return std::string();
+    };
+
     inline std::vector<common::table_id_t> getRelTableIDs() const { return relTableIDs; }
 
     static std::unique_ptr<RelTableGroupSchema> deserialize(common::Deserializer& deserializer);

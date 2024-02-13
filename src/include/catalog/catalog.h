@@ -45,6 +45,8 @@ public:
     std::vector<TableSchema*> getTableSchemas(transaction::Transaction* tx) const;
     std::vector<TableSchema*> getTableSchemas(
         transaction::Transaction* tx, const common::table_id_vector_t& tableIDs) const;
+    std::string getNodeTableCypher(transaction::Transaction* tx, common::table_id_t tableID) const;
+    std::string getRelTableCypher(transaction::Transaction* tx, common::table_id_t tableID) const;
 
     common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
     common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);

@@ -4,7 +4,7 @@
 
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
-#include "common/string_utils.h"
+#include "common/utils.h"
 
 using namespace kuzu::common;
 
@@ -37,17 +37,10 @@ std::unique_ptr<NodeTableSchema> NodeTableSchema::deserialize(Deserializer& dese
     return schema;
 }
 
-std::string NodeTableSchema::toCypher() const {
+std::string NodeTableSchema::toCypher(std::string tableName, std::string) const {
     std::stringstream ss;
     ss << "CREATE NODE TABLE " << tableName << "(";
-    for (auto& prop : properties) {
-        auto propStr = prop.getDataType()->toString();
-        StringUtils::replaceAll(propStr, ":", " ");
-        if (propStr.find("MAP") != std::string::npos) {
-            StringUtils::replaceAll(propStr, "  ", ",");
-        }
-        ss << prop.getName() << " " << propStr << ",";
-    }
+    CypherUtils::getCypher(&properties, ss);
     ss << " PRIMARY KEY(" << getPrimaryKey()->getName() << "));";
     return ss.str();
 }

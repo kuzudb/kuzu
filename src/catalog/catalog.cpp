@@ -2,6 +2,7 @@
 
 #include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
+#include "catalog/rel_table_schema.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 #include "transaction/transaction_action.h"
@@ -96,6 +97,21 @@ std::vector<TableSchema*> Catalog::getTableSchemas(
         result.push_back(getVersion(tx)->getTableSchema(tableID));
     }
     return result;
+}
+
+std::string Catalog::getNodeTableCypher(
+    transaction::Transaction* tx, common::table_id_t tableID) const {
+    auto schema = getVersion(tx)->getTableSchema(tableID);
+    return schema->toCypher(schema->getName(), "");
+}
+
+std::string Catalog::getRelTableCypher(
+    transaction::Transaction* tx, common::table_id_t tableID) const {
+    auto schema = getVersion(tx)->getTableSchema(tableID);
+    auto relSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
+    auto srcTableName = getTableName(tx, relSchema->getSrcTableID());
+    auto dstTableName = getTableName(tx, relSchema->getDstTableID());
+    return schema->toCypher(srcTableName, dstTableName);
 }
 
 void Catalog::prepareCommitOrRollback(TransactionAction action) {

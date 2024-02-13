@@ -36,6 +36,16 @@ class BoundWithClause;
 class BoundReturnClause;
 struct BoundFileScanInfo;
 
+struct ExportedTableData {
+    std::string tableName;
+    std::unique_ptr<BoundRegularQuery> regularQuery;
+    std::vector<std::string> columnNames;
+    std::vector<common::LogicalType> columnTypes;
+
+    inline const std::vector<common::LogicalType>& getColumnTypesRef() const { return columnTypes; }
+    inline const BoundRegularQuery* getRegularQuery() const { return regularQuery.get(); }
+};
+
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
 class BinderScope {
@@ -287,6 +297,10 @@ private:
 
     function::TableFunction* getScanFunction(
         common::FileType fileType, const common::ReaderConfig& config);
+
+    void extractExportData(
+        std::string selQuery, std::string tableName, std::vector<ExportedTableData>& exportData);
+    void getExportInfo(const catalog::Catalog& catalog, std::vector<ExportedTableData>& exportData);
 
 private:
     const catalog::Catalog& catalog;

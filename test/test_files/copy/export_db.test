@@ -3,25 +3,20 @@
 
 --
 
-#-CASE ExportDatabase
-#
-#-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db"
-#---- ok
-#-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}/demo-db"
-#-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
-#---- ok
-#-LOG ReturnAge
-#-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
-#---- 1
-#50
+-CASE ExportDatabaseDefault
+
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db"
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}/demo-db"
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+---- ok
+-LOG ReturnAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+---- 1
+50
 
 
 -CASE ExportDatabaseWithCSVOption
-
-
-#-STATEMENT COPY City FROM "demo-db2/City.csv" (escape = '\\', delim = "," , QUOTE='\"', header=true);
-#---- ok
-
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2" (header=true)
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2"
@@ -31,3 +26,6 @@
 -STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
 ---- 1
 50
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2" (header=true)
+---- error
+Binder exception: incorrect directory!

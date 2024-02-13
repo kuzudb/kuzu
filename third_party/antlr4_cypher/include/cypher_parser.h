@@ -2312,6 +2312,8 @@ public:
     antlr4::tree::TerminalNode *BEGIN();
     antlr4::tree::TerminalNode *END();
     antlr4::tree::TerminalNode *IN();
+    antlr4::tree::TerminalNode *EXPORT();
+    antlr4::tree::TerminalNode *DATABASE();
 
    
   };

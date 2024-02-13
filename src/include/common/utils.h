@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "catalog/property.h"
 #include "common/assert.h"
 #include "common/constants.h"
 
@@ -50,6 +51,12 @@ inline bool isLittleEndian() {
     int testNumber = 1;
     return *(uint8_t*)&testNumber == 1;
 }
+
+class CypherUtils {
+public:
+    static void getCypher(
+        const std::vector<kuzu::catalog::Property>* properties, std::stringstream& ss);
+};
 
 } // namespace common
 } // namespace kuzu

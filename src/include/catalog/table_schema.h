@@ -31,6 +31,8 @@ public:
 
     virtual bool isParent(common::table_id_t tableID) = 0;
 
+    virtual std::string toCypher(std::string srcTableName, std::string dstTableName) const = 0;
+
     /* Property functions */
     inline uint32_t getNumProperties() const { return properties.size(); }
     inline const std::vector<Property>& getPropertiesRef() const { return properties; }

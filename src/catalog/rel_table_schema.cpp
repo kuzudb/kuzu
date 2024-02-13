@@ -5,7 +5,7 @@
 #include "common/exception/binder.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
-#include "common/string_utils.h"
+#include "common/utils.h"
 
 using namespace kuzu::common;
 
@@ -65,20 +65,9 @@ std::unique_ptr<RelTableSchema> RelTableSchema::deserialize(Deserializer& deseri
 
 std::string RelTableSchema::toCypher(std::string srcTableName, std::string dstTableName) const {
     std::stringstream ss;
-    // TODO(Jiamin): special here since we can not get table name
     ss << "CREATE REL TABLE " << tableName << "( FROM " << srcTableName << " TO " << dstTableName
        << ", ";
-    for (auto& prop : properties) {
-        if (prop.getDataType()->getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
-            continue;
-        }
-        auto propStr = prop.getDataType()->toString();
-        StringUtils::replaceAll(propStr, ":", " ");
-        if (propStr.find("MAP") != std::string::npos) {
-            StringUtils::replaceAll(propStr, "  ", ",");
-        }
-        ss << prop.getName() << " " << propStr << ",";
-    }
+    CypherUtils::getCypher(&properties, ss);
     auto srcMultiStr = srcMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
     auto dstMultiStr = dstMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
     ss << srcMultiStr << "_" << dstMultiStr << ");";

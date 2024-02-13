@@ -17,6 +17,11 @@ public:
     }
     RdfGraphSchema(const RdfGraphSchema& other);
 
+    std::string toCypher(
+        std::string /*srcTableName*/, std::string /*dstTableName*/) const override {
+        return std::string();
+    };
+
     bool isParent(common::table_id_t tableID) override;
 
     inline common::table_id_t getResourceTableID() const { return resourceTableID; }

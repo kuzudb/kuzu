@@ -43,7 +43,7 @@ public:
 
     void TearDown() override { removeDir(databasePath); }
 
-    void removeIEDBPath() {
+    void removeIEDBPath() const {
         if (ieDBPath != "") {
             auto lastSlashPos = ieDBPath.rfind('/');
             auto deletePath = ieDBPath.substr(0, lastSlashPos);

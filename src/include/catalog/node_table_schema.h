@@ -25,7 +25,7 @@ public:
     inline const common::table_id_set_t& getFwdRelTableIDSet() const { return fwdRelTableIDSet; }
     inline const common::table_id_set_t& getBwdRelTableIDSet() const { return bwdRelTableIDSet; }
 
-    std::string toCypher() const;
+    std::string toCypher(std::string tableName, std::string /*dstTableName*/) const override;
 
     inline std::unique_ptr<TableSchema> copy() const override {
         return std::make_unique<NodeTableSchema>(*this);

@@ -70,32 +70,13 @@ public:
 
     KUZU_API static bool caseInsensitiveEquals(const std::string& left, const std::string& right);
 
-    // Join multiple strings into one string. Components are concatenated by the given separator
-    static inline std::string join(
-        const std::vector<std::string>& input, const std::string& separator) {
-        return join(input, input.size(), separator, [](const std::string& s) { return s; });
-    }
+    // join multiple strings into one string. Components are concatenated by the given separator
+    static std::string join(const std::vector<std::string>& input, const std::string& separator);
 
-    // Join multiple items of container with given size, transformed to string
+    // join multiple items of container with given size, transformed to string
     // using function, into one string using the given separator
     template<typename C, typename S, typename Func>
-    static std::string join(const C& input, S count, const std::string& separator, Func f) {
-        // The result
-        std::string result;
-
-        // If the input isn't empty, append the first element. We do this so we
-        // don't need to introduce an if into the loop.
-        if (count > 0) {
-            result += f(input[0]);
-        }
-
-        // Append the remaining input components, after the first
-        for (size_t i = 1; i < count; i++) {
-            result += separator + f(input[i]);
-        }
-
-        return result;
-    }
+    static std::string join(const C& input, S count, const std::string& separator, Func f);
 
     static constexpr uint8_t asciiToLowerCaseMap[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
         14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,

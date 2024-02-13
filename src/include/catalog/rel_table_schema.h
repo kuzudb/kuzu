@@ -45,11 +45,11 @@ public:
 
     static std::unique_ptr<RelTableSchema> deserialize(common::Deserializer& deserializer);
 
+    std::string toCypher(std::string srcTableName, std::string dstTableName) const override;
+
     inline std::unique_ptr<TableSchema> copy() const override {
         return std::make_unique<RelTableSchema>(*this);
     }
-
-    std::string toCypher(std::string srcTableName, std::string dstTableName) const;
 
 private:
     void serializeInternal(common::Serializer& serializer) final;

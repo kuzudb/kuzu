@@ -11,7 +11,8 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     planner::LogicalOperator* logicalOperator) {
-    auto exportDatabase = (LogicalExportDatabase*)logicalOperator;
+    auto exportDatabase =
+        ku_dynamic_cast<LogicalOperator*, LogicalExportDatabase*>(logicalOperator);
     auto filePath = exportDatabase->getFilePath();
     std::vector<std::unique_ptr<PhysicalOperator>> children;
     for (auto childCopyTo : exportDatabase->getChildren()) {
