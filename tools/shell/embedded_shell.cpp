@@ -43,8 +43,10 @@ struct ShellCommand {
     const char* THREAD = ":thread";
     const char* LOGGING_LEVEL = ":logging_level";
     const char* QUERY_TIMEOUT = ":timeout";
-    const std::array<const char*, 6> commandList = {
-        HELP, CLEAR, QUIT, THREAD, LOGGING_LEVEL, QUERY_TIMEOUT};
+    const char* MAXROWS = ":maxrows";
+    const char* MAXWIDTH = ":maxwidth";
+    const std::array<const char*, 8> commandList = {
+        HELP, CLEAR, QUIT, THREAD, LOGGING_LEVEL, QUERY_TIMEOUT, MAXROWS, MAXWIDTH};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -72,6 +74,8 @@ std::vector<std::string> relTableNames;
 
 bool continueLine = false;
 std::string currLine;
+
+const int defaultMaxRows = 20;
 
 static Connection* globalConnection;
 
@@ -229,6 +233,10 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         setLoggingLevel(lineStr.substr(strlen(shellCommand.LOGGING_LEVEL)));
     } else if (lineStr.rfind(shellCommand.QUERY_TIMEOUT) == 0) {
         setQueryTimeout(lineStr.substr(strlen(shellCommand.QUERY_TIMEOUT)));
+    } else if (lineStr.rfind(shellCommand.MAXROWS) == 0) {
+        setMaxRows(lineStr.substr(strlen(shellCommand.MAXROWS)));
+    } else if (lineStr.rfind(shellCommand.MAXWIDTH) == 0) {
+        setMaxWidth(lineStr.substr(strlen(shellCommand.MAXWIDTH)));
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
     }
@@ -244,6 +252,8 @@ EmbeddedShell::EmbeddedShell(
     database = std::make_unique<Database>(databasePath, systemConfig);
     conn = std::make_unique<Connection>(database.get());
     globalConnection = conn.get();
+    maxRowSize = defaultMaxRows;
+    maxPrintWidth = 0; // Will be determined when printing
     updateTableNames();
     KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
 }
@@ -323,6 +333,30 @@ void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
     } catch (Exception& e) { printf("%s", e.what()); }
 }
 
+void EmbeddedShell::setMaxRows(const std::string& maxRowsString) {
+    uint64_t parsedMaxRows = 0;
+    try {
+        parsedMaxRows = stoull(maxRowsString);
+    } catch (std::exception& e) {
+        printf("Cannot parse '%s' as number of rows. Expect integer.\n", maxRowsString.c_str());
+        return;
+    }
+    maxRowSize = parsedMaxRows == 0 ? defaultMaxRows : parsedMaxRows;
+    printf("maxRows set as %" PRIu64 "\n", maxRowSize);
+}
+
+void EmbeddedShell::setMaxWidth(const std::string& maxWidthString) {
+    uint32_t parsedMaxWidth = 0;
+    try {
+        parsedMaxWidth = stoul(maxWidthString);
+    } catch (std::exception& e) {
+        printf("Cannot parse '%s' as number of characters. Expect integer.\n", maxWidthString.c_str());
+        return;
+    }
+    maxPrintWidth = parsedMaxWidth;
+    printf("maxWidth set as %d\n", parsedMaxWidth);
+}
+
 void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR, TAB);
@@ -334,6 +368,10 @@ void EmbeddedShell::printHelp() {
         TAB, shellCommand.LOGGING_LEVEL, TAB);
     printf(
         "%s%s [query_timeout] %sset query timeout in ms\n", TAB, shellCommand.QUERY_TIMEOUT, TAB);
+    printf("%s%s [max_rows] %sset maximum number of rows for display (default: 20)\n", TAB,
+        shellCommand.MAXROWS, TAB);
+    printf("%s%s [max_width] %sset maximum width in characters for display\n", TAB,
+        shellCommand.MAXWIDTH, TAB);
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
@@ -341,7 +379,6 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
     if (querySummary->isExplain()) {
         printf("%s", queryResult.getNext()->toString().c_str());
     } else {
-        uint64_t maxRows = 20;
         const uint32_t minTruncatedWidth = 20;
         uint64_t numTuples = queryResult.getNumTuples();
         std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
@@ -351,7 +388,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         std::string lineSeparator;
         uint64_t rowCount = 0;
         while (queryResult.hasNext()) {
-            if (numTuples > maxRows && rowCount > maxRows/2 && rowCount < numTuples - maxRows/2) {
+            if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
+                rowCount < numTuples - maxRowSize / 2) {
                 auto tuple = queryResult.getNext();
                 rowCount++;
                 continue;
@@ -379,10 +417,17 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         uint32_t sumGoal = minTruncatedWidth;
         uint32_t maxWidth = minTruncatedWidth;
         if (colsWidth.size() > 1) {
-            // make sure there is space for the first and last column
-            sumGoal =
-                std::max((uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
+            uint32_t minDisplayWidth = colsWidth[0] + colsWidth.back() + 3;
+            if (maxPrintWidth > minDisplayWidth) {
+                sumGoal = maxPrintWidth - colsWidth.size() - 1;
+            } else {
+                // make sure there is space for the first and last column
+                sumGoal = std::max(
+                    (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
                     colsWidth[0] + colsWidth.back() + 3);
+            }
+        } else if (maxPrintWidth > minTruncatedWidth) {
+            sumGoal = maxPrintWidth;
         }
         uint32_t sum = 0;
         std::vector<uint32_t> maxValueIndex;
@@ -502,8 +547,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         rowCount = 0;
         bool rowTruncated = false;
         while (queryResult.hasNext()) {
-            if ((numTuples > maxRows) && (rowCount > (maxRows / 2)) &&
-                (rowCount < numTuples - (maxRows / 2))) {
+            if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
+                rowCount < numTuples - maxRowSize / 2) {
                 auto tuple = queryResult.getNext();
                 if (!rowTruncated) {
                     rowTruncated = true;
@@ -559,7 +604,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         } else {
             printf("(%" PRIu64 " tuples", numTuples);
             if (rowTruncated) {
-                printf(", %" PRIu64 " shown", maxRows);
+                printf(", %" PRIu64 " shown", maxRowSize);
             }
             printf(")\n");
         }
