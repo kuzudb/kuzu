@@ -252,7 +252,7 @@ EmbeddedShell::EmbeddedShell(
     database = std::make_unique<Database>(databasePath, systemConfig);
     conn = std::make_unique<Connection>(database.get());
     globalConnection = conn.get();
-    maxRows = defaultMaxRows;
+    maxRowSize = defaultMaxRows;
     maxPrintWidth = 0; // Will be determined when printing
     updateTableNames();
     KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
@@ -341,12 +341,8 @@ void EmbeddedShell::setMaxRows(const std::string& maxRowsString) {
         printf("Cannot parse '%s' as number of rows. Expect integer.\n", maxRowsString.c_str());
         return;
     }
-    if (maxRows == 0) {
-        maxRows = defaultMaxRows;
-    } else {
-        maxRows = parsedMaxRows;
-    }
-    printf("maxRows set as %" PRIu64 "\n", parsedMaxRows);
+    maxRowSize = parsedMaxRows == 0 ? defaultMaxRows : parsedMaxRows;
+    printf("maxRows set as %" PRIu64 "\n", maxRowSize);
 }
 
 void EmbeddedShell::setMaxWidth(const std::string& maxWidthString) {
@@ -392,8 +388,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         std::string lineSeparator;
         uint64_t rowCount = 0;
         while (queryResult.hasNext()) {
-            if (numTuples > maxRows && rowCount >= (maxRows / 2) + (maxRows % 2 != 0) &&
-                rowCount < numTuples - maxRows / 2) {
+            if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
+                rowCount < numTuples - maxRowSize / 2) {
                 auto tuple = queryResult.getNext();
                 rowCount++;
                 continue;
@@ -551,8 +547,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         rowCount = 0;
         bool rowTruncated = false;
         while (queryResult.hasNext()) {
-            if (numTuples > maxRows && rowCount >= (maxRows / 2) + (maxRows % 2 != 0) &&
-                rowCount < numTuples - maxRows / 2) {
+            if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
+                rowCount < numTuples - maxRowSize / 2) {
                 auto tuple = queryResult.getNext();
                 if (!rowTruncated) {
                     rowTruncated = true;
@@ -608,7 +604,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         } else {
             printf("(%" PRIu64 " tuples", numTuples);
             if (rowTruncated) {
-                printf(", %" PRIu64 " shown", maxRows);
+                printf(", %" PRIu64 " shown", maxRowSize);
             }
             printf(")\n");
         }
