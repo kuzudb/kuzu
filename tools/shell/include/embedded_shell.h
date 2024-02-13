@@ -47,6 +47,7 @@ private:
     const char* path_to_history;
     uint64_t maxRowSize;
     uint32_t maxPrintWidth;
+    std::string logging_level;
 };
 
 } // namespace main

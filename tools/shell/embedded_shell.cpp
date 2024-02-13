@@ -43,8 +43,8 @@ struct ShellCommand {
     const char* THREAD = ":thread";
     const char* LOGGING_LEVEL = ":logging_level";
     const char* QUERY_TIMEOUT = ":timeout";
-    const char* MAXROWS = ":maxrows";
-    const char* MAXWIDTH = ":maxwidth";
+    const char* MAXROWS = ":max_rows";
+    const char* MAXWIDTH = ":max_width";
     const std::array<const char*, 8> commandList = {
         HELP, CLEAR, QUIT, THREAD, LOGGING_LEVEL, QUERY_TIMEOUT, MAXROWS, MAXWIDTH};
 } shellCommand;
@@ -220,29 +220,6 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
     strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
 }
 
-int EmbeddedShell::processShellCommands(std::string lineStr) {
-    if (lineStr == shellCommand.HELP) {
-        printHelp();
-    } else if (lineStr == shellCommand.CLEAR) {
-        linenoiseClearScreen();
-    } else if (lineStr == shellCommand.QUIT) {
-        return -1;
-    } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
-        setNumThreads(lineStr.substr(strlen(shellCommand.THREAD)));
-    } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
-        setLoggingLevel(lineStr.substr(strlen(shellCommand.LOGGING_LEVEL)));
-    } else if (lineStr.rfind(shellCommand.QUERY_TIMEOUT) == 0) {
-        setQueryTimeout(lineStr.substr(strlen(shellCommand.QUERY_TIMEOUT)));
-    } else if (lineStr.rfind(shellCommand.MAXROWS) == 0) {
-        setMaxRows(lineStr.substr(strlen(shellCommand.MAXROWS)));
-    } else if (lineStr.rfind(shellCommand.MAXWIDTH) == 0) {
-        setMaxWidth(lineStr.substr(strlen(shellCommand.MAXWIDTH)));
-    } else {
-        printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
-    }
-    return 0;
-}
-
 EmbeddedShell::EmbeddedShell(
     const std::string& databasePath, const SystemConfig& systemConfig, const char* pathToHistory) {
     path_to_history = pathToHistory;
@@ -254,6 +231,7 @@ EmbeddedShell::EmbeddedShell(
     globalConnection = conn.get();
     maxRowSize = defaultMaxRows;
     maxPrintWidth = 0; // Will be determined when printing
+    logging_level = "err";
     updateTableNames();
     KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
 }
@@ -318,8 +296,37 @@ void EmbeddedShell::interruptHandler(int /*signal*/) {
     globalConnection->interrupt();
 }
 
+int EmbeddedShell::processShellCommands(std::string lineStr) {
+    if (lineStr == shellCommand.HELP) {
+        printHelp();
+    } else if (lineStr == shellCommand.CLEAR) {
+        linenoiseClearScreen();
+    } else if (lineStr == shellCommand.QUIT) {
+        return -1;
+    } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
+        setNumThreads(lineStr.substr(strlen(shellCommand.THREAD)));
+    } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
+        setLoggingLevel(lineStr.substr(strlen(shellCommand.LOGGING_LEVEL)));
+    } else if (lineStr.rfind(shellCommand.QUERY_TIMEOUT) == 0) {
+        setQueryTimeout(lineStr.substr(strlen(shellCommand.QUERY_TIMEOUT)));
+    } else if (lineStr.rfind(shellCommand.MAXROWS) == 0) {
+        setMaxRows(lineStr.substr(strlen(shellCommand.MAXROWS)));
+    } else if (lineStr.rfind(shellCommand.MAXWIDTH) == 0) {
+        setMaxWidth(lineStr.substr(strlen(shellCommand.MAXWIDTH)));
+    } else {
+        printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
+    }
+    return 0;
+}
+
 void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
     auto numThreads = 0;
+    if (numThreadsString.empty()) {
+        try {
+            printf("Current number of threads: %" PRIu64 ".\n", conn->getMaxNumThreadForExec());
+        } catch (Exception& e) { printf("%s", e.what()); }
+        return;
+    }
     try {
         numThreads = stoi(numThreadsString);
     } catch (std::exception& e) {
@@ -329,12 +336,16 @@ void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
     }
     try {
         conn->setMaxNumThreadForExec(numThreads);
-        printf("numThreads set as %d\n", numThreads);
+        printf("numThreads set as %d.\n", numThreads);
     } catch (Exception& e) { printf("%s", e.what()); }
 }
 
 void EmbeddedShell::setMaxRows(const std::string& maxRowsString) {
     uint64_t parsedMaxRows = 0;
+    if (maxRowsString.empty()) {
+        printf("Current max rows: %" PRIu64 ".\n", maxRowSize);
+        return;
+    }
     try {
         parsedMaxRows = stoull(maxRowsString);
     } catch (std::exception& e) {
@@ -342,11 +353,19 @@ void EmbeddedShell::setMaxRows(const std::string& maxRowsString) {
         return;
     }
     maxRowSize = parsedMaxRows == 0 ? defaultMaxRows : parsedMaxRows;
-    printf("maxRows set as %" PRIu64 "\n", maxRowSize);
+    printf("max rows set as %" PRIu64 ".\n", maxRowSize);
 }
 
 void EmbeddedShell::setMaxWidth(const std::string& maxWidthString) {
     uint32_t parsedMaxWidth = 0;
+    if (maxWidthString.empty()) {
+        if (maxPrintWidth == 0) {
+            printf("Current max width: Terminal Width.\n");
+        } else {
+            printf("Current max width: %d.\n", maxPrintWidth);
+        }
+        return;
+    }
     try {
         parsedMaxWidth = stoul(maxWidthString);
     } catch (std::exception& e) {
@@ -354,7 +373,42 @@ void EmbeddedShell::setMaxWidth(const std::string& maxWidthString) {
         return;
     }
     maxPrintWidth = parsedMaxWidth;
-    printf("maxWidth set as %d\n", parsedMaxWidth);
+    printf("max width set as %d.\n", parsedMaxWidth);
+}
+
+void EmbeddedShell::setLoggingLevel(const std::string& loggingLevel) {
+    auto level = StringUtils::ltrim(loggingLevel);
+    if (loggingLevel.empty()) {
+        printf("Current logging level: %s.\n", logging_level.c_str());
+        return;
+    }
+    try {
+        database->setLoggingLevel(level);
+        printf("logging level has been set to: %s.\n", level.c_str());
+        logging_level = level;
+    } catch (Exception& e) {
+        printf("%s\n", e.what());
+    }
+}
+
+void EmbeddedShell::setQueryTimeout(const std::string& timeoutInMS) {
+    uint64_t queryTimeOutVal = 0;
+    if (timeoutInMS.empty()) {
+        try {
+            printf("Current query timeout: %" PRIu64 " ms.\n", conn->getQueryTimeOut());
+        } catch (Exception& e) { printf("%s", e.what()); }
+        return;
+    }
+    try {
+        queryTimeOutVal = std::stoull(StringUtils::ltrim(timeoutInMS));
+    } catch (std::exception& e) {
+        printf("Cannot parse '%s' as query timeout. Expect integer.\n", timeoutInMS.c_str());
+        return;
+    }
+    try {
+        conn->setQueryTimeOut(queryTimeOutVal);
+        printf("query timeout value has been set to: %" PRIu64 " ms.\n", queryTimeOutVal);
+    } catch (Exception& e) { printf("%s\n", e.what()); }
 }
 
 void EmbeddedShell::printHelp() {
@@ -620,20 +674,6 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());
     }
-}
-
-void EmbeddedShell::setLoggingLevel(const std::string& loggingLevel) {
-    auto level = StringUtils::ltrim(loggingLevel);
-    try {
-        database->setLoggingLevel(level);
-        printf("logging level has been set to: %s.\n", level.c_str());
-    } catch (Exception& e) { printf("%s\n", e.what()); }
-}
-
-void EmbeddedShell::setQueryTimeout(const std::string& timeoutInMS) {
-    auto queryTimeOutVal = std::stoull(StringUtils::ltrim(timeoutInMS));
-    conn->setQueryTimeOut(queryTimeOutVal);
-    printf("query timeout value has been set to: %llu ms.\n", queryTimeOutVal);
 }
 
 } // namespace main
