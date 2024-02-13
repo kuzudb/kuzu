@@ -37,10 +37,16 @@ private:
 
     void setQueryTimeout(const std::string& timeoutInMS);
 
+    void setMaxRows(const std::string& maxRowsString);
+
+    void setMaxWidth(const std::string& maxWidthString);
+
 private:
     std::unique_ptr<Database> database;
     std::unique_ptr<Connection> conn;
     const char* path_to_history;
+    uint64_t maxRows;
+    uint32_t maxPrintWidth;
 };
 
 } // namespace main
