@@ -22,20 +22,11 @@ public:
 private:
     int processShellCommands(std::string lineStr);
 
-    void setNumThreads(const std::string& numThreadsString);
-
-    void printNodeSchema(const std::string& tableName);
-    void printRelSchema(const std::string& tableName);
-
     static void printHelp();
 
     void printExecutionResult(QueryResult& queryResult) const;
 
     void updateTableNames();
-
-    void setLoggingLevel(const std::string& loggingLevel);
-
-    void setQueryTimeout(const std::string& timeoutInMS);
 
     void setMaxRows(const std::string& maxRowsString);
 
