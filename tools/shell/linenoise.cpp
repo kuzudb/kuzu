@@ -528,7 +528,7 @@ static int getCursorPosition(int ifd, int ofd) {
 
 /* Try to get the number of columns in the current terminal, or assume 80
  * if it fails. */
-static int getColumns(int ifd, int ofd) {
+int getColumns(int ifd, int ofd) {
 #ifdef _WIN32
     CONSOLE_SCREEN_BUFFER_INFO b;
 
