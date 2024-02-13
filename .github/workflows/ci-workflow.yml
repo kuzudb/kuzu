@@ -123,21 +123,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Rust share build
-        # Share build cache when building rust API and the example project
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
       - name: Rust test
         working-directory: tools/rust_api
         run: |
-          cargo update -p half@2.3.1 --precise '2.2.1'
-          cargo update -p time --precise '0.3.23'
-          cargo update -p ahash --precise '0.8.7'
-          cargo test --features arrow -- --test-threads=1
+          cargo test --locked --features arrow -- --test-threads=1
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build --features arrow
+        run: cargo build --locked --features arrow
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
@@ -283,9 +276,7 @@ jobs:
           set KUZU_TESTING=1
           set CFLAGS=/MDd
           set CXXFLAGS=/MDd /std:c++20
-          cargo update -p half@2.3.1 --precise 2.2.1
-          cargo update -p time --precise '0.3.23'
-          cargo test -- --test-threads=1
+          cargo test --locked -- --test-threads=1
 
       - name: Java test
         shell: cmd
@@ -466,10 +457,6 @@ jobs:
           ulimit -n 10240
           make javatest
 
-      - name: Rust share build
-        # Share build cache when building rust API and the example project
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
       - name: Rust test
         run: |
           ulimit -n 10240
@@ -481,4 +468,4 @@ jobs:
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          cargo build --features arrow
+          cargo build --locked --features arrow

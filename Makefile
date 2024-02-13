@@ -145,7 +145,7 @@ pytest: python
 	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -v tools/python_api/test
 
 rusttest: rust
-	cd tools/rust_api && cargo test --all-features -- --test-threads=1
+	cd tools/rust_api && cargo test --locked --all-features -- --test-threads=1
 
 # Other misc build targets
 benchmark:
