@@ -20,18 +20,19 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
     auto exportData = boundExportDatabase.getExportData();
     auto logicalOperators = std::vector<std::shared_ptr<LogicalOperator>>();
     auto plan = std::make_unique<LogicalPlan>();
+    auto copyToSuffix = fileType == FileType::CSV ? ".csv" : ".parquet";
     for (auto& exportTableData : *exportData) {
         auto regularQuery = exportTableData.getRegularQuery();
         KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
         auto tablePlan = getBestPlan(*regularQuery);
         auto copyTo =
-            std::make_shared<LogicalCopyTo>(filePath + "/" + exportTableData.tableName + ".csv",
+            std::make_shared<LogicalCopyTo>(filePath + "/" + exportTableData.tableName + copyToSuffix,
                 fileType, exportTableData.columnNames, exportTableData.getColumnTypesRef(),
                 boundExportDatabase.getCopyOption()->copy(), tablePlan->getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }
-    auto exportDatabase = make_shared<LogicalExportDatabase>(
-        filePath, boundExportDatabase.getCopyOption()->copy(), std::move(logicalOperators));
+    auto exportDatabase = make_shared<LogicalExportDatabase>(filePath, fileType,
+        boundExportDatabase.getCopyOption()->copy(), std::move(logicalOperators));
     plan->setLastOperator(std::move(exportDatabase));
     return plan;
 }

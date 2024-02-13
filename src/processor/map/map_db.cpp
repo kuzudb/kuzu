@@ -14,13 +14,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     auto exportDatabase =
         ku_dynamic_cast<LogicalOperator*, LogicalExportDatabase*>(logicalOperator);
     auto filePath = exportDatabase->getFilePath();
+    auto fileType = exportDatabase->getFileType();
     std::vector<std::unique_ptr<PhysicalOperator>> children;
     for (auto childCopyTo : exportDatabase->getChildren()) {
         auto childPhysicalOperator = mapOperator(childCopyTo.get());
         children.push_back(std::move(childPhysicalOperator));
     }
     std::unique_ptr<ResultSetDescriptor> resultSetDescriptor;
-    return std::make_unique<ExportDB>(filePath, exportDatabase->getCopyOption()->copy(),
+    return std::make_unique<ExportDB>(filePath, fileType, exportDatabase->getCopyOption()->copy(),
         getOperatorID(), exportDatabase->getExpressionsForPrinting(), std::move(children));
 }
 

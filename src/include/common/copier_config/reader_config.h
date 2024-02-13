@@ -22,6 +22,7 @@ enum class FileType : uint8_t {
 struct FileTypeUtils {
     static FileType getFileTypeFromExtension(std::string_view extension);
     static std::string toString(FileType fileType);
+    static FileType fromString(std::string fileType);
 };
 
 struct ReaderConfig {

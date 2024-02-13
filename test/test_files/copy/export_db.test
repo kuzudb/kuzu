@@ -17,7 +17,9 @@
 
 
 -CASE ExportDatabaseWithCSVOption
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2" (header=true)
+
+
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2" (FORMAT CSV header=true)
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2"
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
@@ -26,6 +28,18 @@
 -STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
 ---- 1
 50
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2" (header=true)
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2" (FORMAT CSV header=true)
 ---- error
 Binder exception: incorrect directory!
+
+-CASE ExportDatabaseWithPARQUET
+
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db3" (FORMAT PARQUET)
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}/demo-db3"
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+---- ok
+-LOG ReturnAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+---- 1
+50

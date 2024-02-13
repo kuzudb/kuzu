@@ -42,7 +42,7 @@ kU_CopyTO
     : COPY SP '(' SP? oC_Query SP? ')' SP TO SP StringLiteral ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
 
 kU_ExportDatabase
-    : EXPORT SP DATABASE SP StringLiteral ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+    : EXPORT SP DATABASE SP StringLiteral ( SP? '(' FORMAT SP oC_SymbolicName (SP? kU_ParsingOptions SP?)? ')' )? ;
 
 kU_StandaloneCall
     : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
@@ -87,6 +87,8 @@ COLUMN : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'U' | 'u' ) ( 'M' | 'm' ) (
 EXPORT: ( 'E' | 'e') ( 'X' | 'x') ( 'P' | 'p') ( 'O' | 'o') ( 'R' | 'r') ( 'T' | 't');
 
 DATABASE: ( 'D' | 'd') ( 'A' | 'a') ( 'T' | 't') ( 'A' | 'a') ( 'B' | 'b') ( 'A' | 'a') ( 'S' | 's')( 'E' | 'e');
+
+FORMAT: ( 'F' | 'f') ( 'O' | 'o') ( 'R' | 'r') ( 'M' | 'm') ( 'A' | 'a') ( 'T' | 't');
 
 kU_DDL
     : kU_CreateNodeTable

@@ -64,7 +64,13 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     std::vector<ExportedTableData> exportData;
     getExportInfo(catalog, exportData);
     // TODO(Jiamin): add more supported file types
-    auto fileType = FileType::CSV;
+    auto fileType = exportDatabaseStatement.getFileType();
+    if (fileType != FileType::CSV && fileType != FileType::PARQUET) {
+        throw BinderException("Export database currently only supports csv and parquet files.");
+    }
+    if (fileType != FileType::CSV && exportDatabaseStatement.getParsingOptionsRef().size() != 0) {
+        throw BinderException{"Only export to csv can have options."};
+    }
     auto csvConfig = CSVReaderConfig::construct(
         bindParsingOptions(exportDatabaseStatement.getParsingOptionsRef()));
     // try to create the directory, if it doesn't exist yet

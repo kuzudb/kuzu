@@ -57,5 +57,15 @@ std::string FileTypeUtils::toString(FileType fileType) {
     }
 }
 
+FileType FileTypeUtils::fromString(std::string fileType) {
+    if (fileType == "CSV") {
+        return FileType::CSV;
+    } else if (fileType == "PARQUET") {
+        return FileType::PARQUET;
+    } else {
+        throw CopyException(std::string("Unsupported file type ").append(fileType));
+    }
+}
+
 } // namespace common
 } // namespace kuzu

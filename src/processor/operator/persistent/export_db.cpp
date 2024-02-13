@@ -26,10 +26,15 @@ static void writeStringStreamToFile(
         reinterpret_cast<const uint8_t*>(ss_string.c_str()), ss_string.size(), 0 /* offset */);
 }
 
-static void writeCopyStatement(
-    stringstream& ss, std::string tableName, std::string filePath, std::string copyOption) {
+static void writeCopyStatement(stringstream& ss, std::string tableName, std::string filePath,
+    std::string copyOption, common::FileType fileType) {
     ss << "COPY ";
-    ss << tableName << " FROM \"" << filePath << "/" << tableName << ".csv";
+    ss << tableName << " FROM \"" << filePath << "/" << tableName;
+    if (fileType == FileType::CSV) {
+        ss << ".csv";
+    } else {
+        ss << ".parquet";
+    }
     ss << "\"" << copyOption << std::endl;
 }
 
@@ -58,15 +63,16 @@ std::string getMacroCypher(catalog::Catalog* catalog) {
     return ss.str();
 }
 
-std::string getCopyCypher(catalog::Catalog* catalog, std::string filePath, std::string copyOption) {
+std::string getCopyCypher(catalog::Catalog* catalog, std::string filePath, std::string copyOption,
+    common::FileType fileType) {
     stringstream ss;
     for (auto& schema : catalog->getNodeTableSchemas(&DUMMY_READ_TRANSACTION)) {
         auto tableName = schema->getName();
-        writeCopyStatement(ss, tableName, filePath, copyOption);
+        writeCopyStatement(ss, tableName, filePath, copyOption, fileType);
     }
     for (auto& schema : catalog->getRelTableSchemas(&DUMMY_READ_TRANSACTION)) {
         auto tableName = schema->getName();
-        writeCopyStatement(ss, tableName, filePath, copyOption);
+        writeCopyStatement(ss, tableName, filePath, copyOption, fileType);
     }
     return ss.str();
 }
@@ -80,8 +86,9 @@ bool ExportDB::getNextTuplesInternal(ExecutionContext* context) {
         getMacroCypher(context->clientContext->getCatalog()), filePath + "/macro.cypher");
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
+    auto copyToOptionStr = fileType == FileType::CSV ? copyToOption.toCypher() : "";
     writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
-        getCopyCypher(context->clientContext->getCatalog(), filePath, copyToOption.toCypher()),
+        getCopyCypher(context->clientContext->getCatalog(), filePath, copyToOptionStr, fileType),
         filePath + "/copy.cypher");
     return false;
 }
