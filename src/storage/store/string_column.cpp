@@ -13,7 +13,7 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-StringColumn::StringColumn(std::string name, std::unique_ptr<LogicalType> dataType,
+StringColumn::StringColumn(std::string name, LogicalType dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
     RWPropertyStats stats, bool enableCompression)
@@ -143,7 +143,7 @@ void StringColumn::scanFiltered(transaction::Transaction* transaction,
 
 void StringColumn::lookupInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    KU_ASSERT(dataType->getPhysicalType() == PhysicalTypeID::STRING);
+    KU_ASSERT(dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
 
@@ -225,7 +225,7 @@ bool StringColumn::canIndexCommitInPlace(Transaction* transaction, node_group_id
         dictionary.getNumValuesInOffsets(transaction, nodeGroupIdx) + numStrings;
     // Check if the index column can store the largest new index in-place
     if (!metadata.compMeta.canUpdateInPlace(
-            (const uint8_t*)&totalStringsAfterUpdate, 0 /*pos*/, dataType->getPhysicalType())) {
+            (const uint8_t*)&totalStringsAfterUpdate, 0 /*pos*/, dataType.getPhysicalType())) {
         return false;
     }
     return true;

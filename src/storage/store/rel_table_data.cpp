@@ -85,7 +85,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         relsStoreStats->getAdjMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
     auto adjColName = StorageUtils::getColumnName(
         "", StorageUtils::ColumnType::ADJ, RelDataDirectionUtils::relDirectionToString(direction));
-    adjColumn = ColumnFactory::createColumn(adjColName, LogicalType::INTERNAL_ID(),
+    adjColumn = ColumnFactory::createColumn(adjColName, *LogicalType::INTERNAL_ID(),
         *adjMetadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
         RWPropertyStats::empty(), enableCompression);
     auto& properties = tableSchema->getPropertiesRef();
@@ -97,7 +97,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         auto colName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT,
                 RelDataDirectionUtils::relDirectionToString(direction));
-        columns.push_back(ColumnFactory::createColumn(colName, property.getDataType()->copy(),
+        columns.push_back(ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
             *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
             RWPropertyStats(relsStoreStats, tableID, property.getPropertyID()), enableCompression));
     }
@@ -252,7 +252,7 @@ void RelTableData::resizeColumns(node_group_idx_t numNodeGroups) {
     columnTypes.reserve(columns.size() + 1);
     columnTypes.push_back(LogicalType::INTERNAL_ID());
     for (auto& column : columns) {
-        columnTypes.push_back(column->getDataType()->copy());
+        columnTypes.push_back(column->getDataType().copy());
     }
     auto nodeGroup = std::make_unique<NodeGroup>(
         columnTypes, enableCompression, StorageConstants::NODE_GROUP_SIZE);

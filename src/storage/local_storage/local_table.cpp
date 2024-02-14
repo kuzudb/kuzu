@@ -79,7 +79,7 @@ LocalTableData* LocalTable::getOrCreateLocalTableData(
         std::vector<LogicalType*> dataTypes;
         dataTypes.reserve(columns.size());
         for (auto& column : columns) {
-            dataTypes.push_back(column->getDataType());
+            dataTypes.push_back(&column->getDataType());
         }
         switch (tableType) {
         case TableType::NODE: {
@@ -105,7 +105,7 @@ LocalTableData* LocalTable::getOrCreateLocalTableData(
         std::vector<LogicalType*> dataTypes;
         dataTypes.reserve(columns.size());
         for (auto& column : columns) {
-            dataTypes.push_back(column->getDataType());
+            dataTypes.push_back(&column->getDataType());
         }
         localTableDataCollection[dataIdx] =
             std::make_unique<LocalRelTableData>(std::move(dataTypes), mm, dataFormat);

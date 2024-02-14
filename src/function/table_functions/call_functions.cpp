@@ -382,10 +382,10 @@ std::vector<Column*> StorageInfoSharedState::collectColumns(Column* column) {
     if (column->getNullColumn()) {
         result.push_back(column->getNullColumn());
     }
-    switch (column->getDataType()->getPhysicalType()) {
+    switch (column->getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         auto structColumn = ku_dynamic_cast<Column*, StructColumn*>(column);
-        auto numChildren = StructType::getNumFields(structColumn->getDataType());
+        auto numChildren = StructType::getNumFields(&structColumn->getDataType());
         for (auto i = 0u; i < numChildren; i++) {
             auto childColumn = structColumn->getChild(i);
             auto subColumns = collectColumns(childColumn);
@@ -489,7 +489,7 @@ void StorageInfoFunction::appendColumnChunkStorageInfo(node_group_idx_t nodeGrou
     const std::string& tableType, const Column* column, DataChunk& outputChunk) {
     auto vectorPos = outputChunk.state->selVector->selectedSize;
     auto metadata = column->getMetadata(nodeGroupIdx, transaction::TransactionType::READ_ONLY);
-    auto columnType = column->getDataType()->toString();
+    auto columnType = column->getDataType().toString();
     outputChunk.getValueVector(0)->setValue<uint64_t>(vectorPos, nodeGroupIdx);
     outputChunk.getValueVector(1)->setValue(vectorPos, column->getName());
     outputChunk.getValueVector(2)->setValue(vectorPos, columnType);

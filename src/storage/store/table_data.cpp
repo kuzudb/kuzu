@@ -12,7 +12,7 @@ void TableData::addColumn(Transaction* transaction, const std::string& colNamePr
     TablesStatistics* tablesStats) {
     auto colName = StorageUtils::getColumnName(
         property.getName(), StorageUtils::ColumnType::DEFAULT, colNamePrefix);
-    auto column = ColumnFactory::createColumn(colName, property.getDataType()->copy(),
+    auto column = ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
         metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, transaction,
         RWPropertyStats(tablesStats, tableID, property.getPropertyID()), enableCompression);
     column->populateWithDefaultVal(

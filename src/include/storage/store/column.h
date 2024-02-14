@@ -40,10 +40,10 @@ public:
         uint64_t numValuesPerPage;
     };
 
-    Column(std::string name, std::unique_ptr<common::LogicalType> dataType,
-        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        RWPropertyStats propertyStatistics, bool enableCompression, bool requireNullColumn = true);
+    Column(std::string name, common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
+        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
+        bool enableCompression, bool requireNullColumn = true);
     virtual ~Column();
 
     // Expose for feature store
@@ -65,7 +65,8 @@ public:
 
     virtual void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx);
 
-    inline common::LogicalType* getDataType() const { return dataType.get(); }
+    inline common::LogicalType& getDataType() { return dataType; }
+    inline const common::LogicalType& getDataType() const { return dataType; }
     inline uint32_t getNumBytesPerValue() const { return numBytesPerFixedSizedValue; }
     inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
         return metadataDA->getNumElements(transaction->getType());
@@ -199,7 +200,7 @@ private:
 protected:
     std::string name;
     DBFileID dbFileID;
-    std::unique_ptr<common::LogicalType> dataType;
+    common::LogicalType dataType;
     // TODO(bmwinger): Remove. Only used by var_list_column_chunk for something which should be
     // rewritten
     uint32_t numBytesPerFixedSizedValue;
@@ -255,11 +256,10 @@ private:
 };
 
 struct ColumnFactory {
-    static std::unique_ptr<Column> createColumn(std::string name,
-        std::unique_ptr<common::LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-        bool enableCompression);
+    static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
+        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+        RWPropertyStats propertyStatistics, bool enableCompression);
 };
 
 } // namespace storage

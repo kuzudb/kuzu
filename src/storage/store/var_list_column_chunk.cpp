@@ -24,14 +24,13 @@ void VarListDataColumnChunk::resizeBuffer(uint64_t numValues) {
 }
 
 VarListColumnChunk::VarListColumnChunk(
-    std::unique_ptr<LogicalType> dataType, uint64_t capacity, bool enableCompression)
+    LogicalType dataType, uint64_t capacity, bool enableCompression)
     : ColumnChunk{std::move(dataType), capacity, enableCompression, true /* hasNullChunk */},
       needFinalize{false} {
-    varListDataColumnChunk =
-        std::make_unique<VarListDataColumnChunk>(ColumnChunkFactory::createColumnChunk(
-            VarListType::getChildType(this->dataType.get())->copy(), enableCompression,
-            0 /* capacity */));
-    KU_ASSERT(this->dataType->getPhysicalType() == PhysicalTypeID::VAR_LIST);
+    varListDataColumnChunk = std::make_unique<VarListDataColumnChunk>(
+        ColumnChunkFactory::createColumnChunk(*VarListType::getChildType(&this->dataType)->copy(),
+            enableCompression, 0 /* capacity */));
+    KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
 }
 
 void VarListColumnChunk::append(
@@ -55,10 +54,9 @@ void VarListColumnChunk::append(
 
 void VarListColumnChunk::resetToEmpty() {
     ColumnChunk::resetToEmpty();
-    varListDataColumnChunk =
-        std::make_unique<VarListDataColumnChunk>(ColumnChunkFactory::createColumnChunk(
-            VarListType::getChildType(this->dataType.get())->copy(), enableCompression,
-            0 /* capacity */));
+    varListDataColumnChunk = std::make_unique<VarListDataColumnChunk>(
+        ColumnChunkFactory::createColumnChunk(*VarListType::getChildType(&this->dataType)->copy(),
+            enableCompression, 0 /* capacity */));
 }
 
 void VarListColumnChunk::append(ValueVector* vector) {
@@ -107,7 +105,7 @@ void VarListColumnChunk::write(
     if (!indicesColumnChunk) {
         initializeIndices();
     }
-    KU_ASSERT(valueVector->dataType.getPhysicalType() == dataType->getPhysicalType() &&
+    KU_ASSERT(valueVector->dataType.getPhysicalType() == dataType.getPhysicalType() &&
               offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
               valueVector->state->selVector->selectedSize ==
                   offsetInChunkVector->state->selVector->selectedSize);
@@ -145,7 +143,7 @@ void VarListColumnChunk::write(
 
 void VarListColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
-    KU_ASSERT(srcChunk->getDataType()->getPhysicalType() == PhysicalTypeID::VAR_LIST);
+    KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::VAR_LIST);
     needFinalize = true;
     if (!indicesColumnChunk) {
         initializeIndices();
@@ -173,7 +171,7 @@ void VarListColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
 
 void VarListColumnChunk::copy(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
-    KU_ASSERT(srcChunk->getDataType()->getPhysicalType() == PhysicalTypeID::VAR_LIST);
+    KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::VAR_LIST);
     KU_ASSERT(dstOffsetInChunk >= numValues);
     while (numValues < dstOffsetInChunk) {
         appendNullList();
@@ -201,8 +199,8 @@ void VarListColumnChunk::finalize() {
     if (!needFinalize) {
         return;
     }
-    auto newColumnChunk =
-        ColumnChunkFactory::createColumnChunk(dataType->copy(), enableCompression, capacity);
+    auto newColumnChunk = ColumnChunkFactory::createColumnChunk(
+        std::move(*dataType.copy()), enableCompression, capacity);
     auto totalListLen = getListOffset(numValues) + 1;
     auto newVarListChunk = ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(newColumnChunk.get());
     newVarListChunk->getDataColumnChunk()->resize(totalListLen);

@@ -8,7 +8,6 @@
 #include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
-#include "common/types/types.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/store/string_column_chunk.h"
 
@@ -102,7 +101,7 @@ void IndexBuilder::insert(ColumnChunk* chunk, offset_t nodeOffset, offset_t numN
     checkNonNullConstraint(chunk->getNullChunk(), numNodes);
 
     TypeUtils::visit(
-        chunk->getDataType()->getPhysicalType(),
+        chunk->getDataType().getPhysicalType(),
         [&]<HashablePrimitive T>(T) {
             for (auto i = 0u; i < numNodes; i++) {
                 auto value = chunk->getValue<T>(i);
@@ -117,7 +116,7 @@ void IndexBuilder::insert(ColumnChunk* chunk, offset_t nodeOffset, offset_t numN
             }
         },
         [&](auto) {
-            throw CopyException(ExceptionMessage::invalidPKType(chunk->getDataType()->toString()));
+            throw CopyException(ExceptionMessage::invalidPKType(chunk->getDataType().toString()));
         });
 }
 

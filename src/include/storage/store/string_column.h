@@ -7,7 +7,7 @@ namespace storage {
 
 class StringColumn final : public Column {
 public:
-    StringColumn(std::string name, std::unique_ptr<common::LogicalType> dataType,
+    StringColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);

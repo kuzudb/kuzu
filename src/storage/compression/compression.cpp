@@ -182,7 +182,7 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
 }
 
 std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChunk& chunk) {
-    switch (chunk.getDataType()->getPhysicalType()) {
+    switch (chunk.getDataType().getPhysicalType()) {
     // Only values that can fit in the CompressionMetadata's data field can use constant compression
     case PhysicalTypeID::BOOL: {
         if (chunk.getCapacity() == 0) {

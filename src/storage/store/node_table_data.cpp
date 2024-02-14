@@ -24,7 +24,7 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, tab
                                    ->getMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, i);
         auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
-        columns.push_back(ColumnFactory::createColumn(columnName, property.getDataType()->copy(),
+        columns.push_back(ColumnFactory::createColumn(columnName, *property.getDataType()->copy(),
             *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
             RWPropertyStats(tablesStatistics, tableID, property.getPropertyID()),
             enableCompression));

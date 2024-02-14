@@ -67,14 +67,14 @@ CSRRelTableData::CSRRelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         relsStoreStats->getCSROffsetMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
     auto csrOffsetColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_OFFSET,
         RelDataDirectionUtils::relDirectionToString(direction));
-    csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, LogicalType::UINT64(),
+    csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, *LogicalType::UINT64(),
         *csrOffsetMetadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
         RWPropertyStats::empty(), enableCompression, false /* requireNUllColumn */);
     auto csrLengthMetadataDAHInfo =
         relsStoreStats->getCSRLengthMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
     auto csrLengthColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_LENGTH,
         RelDataDirectionUtils::relDirectionToString(direction));
-    csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, LogicalType::UINT64(),
+    csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, *LogicalType::UINT64(),
         *csrLengthMetadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
         RWPropertyStats::empty(), enableCompression, false /* requireNUllColumn */);
     packedCSRInfo = PackedCSRInfo();
@@ -360,7 +360,7 @@ void CSRRelTableData::distributeAndUpdateColumn(Transaction* transaction,
     // First, scan the whole region to a temp chunk.
     auto oldSize = persistentState.rightCSROffset - persistentState.leftCSROffset + 1;
     auto chunk = ColumnChunkFactory::createColumnChunk(
-        column->getDataType()->copy(), enableCompression, oldSize);
+        *column->getDataType().copy(), enableCompression, oldSize);
     column->scan(transaction, nodeGroupIdx, chunk.get(), persistentState.leftCSROffset,
         persistentState.rightCSROffset + 1);
     auto relNGInfo = ku_dynamic_cast<RelNGInfo*, CSRRelNGInfo*>(localState.localNG->getRelNGInfo());
@@ -371,7 +371,7 @@ void CSRRelTableData::distributeAndUpdateColumn(Transaction* transaction,
     // Second, create a new temp chunk for the region.
     auto newSize = localState.rightCSROffset - localState.leftCSROffset + 1;
     auto newChunk = ColumnChunkFactory::createColumnChunk(
-        column->getDataType()->copy(), enableCompression, newSize);
+        *column->getDataType().copy(), enableCompression, newSize);
     auto maxNumNodesToDistribute = std::min(
         rightNodeBoundary - leftNodeBoundary + 1, persistentState.header.offset->getNumValues());
     // Third, copy the rels to the new chunk.
@@ -439,7 +439,7 @@ void CSRRelTableData::updateRegion(Transaction* transaction, node_group_idx_t no
         // in-memory representation of INTERNAL_ID, we only store offset as INT64 on disk. Here
         // we directly read relID's offset part from disk into an INT64 column chunk.
         persistentState.relIDChunk = ColumnChunkFactory::createColumnChunk(
-            LogicalType::INT64(), enableCompression, localState.regionCapacity);
+            *LogicalType::INT64(), enableCompression, localState.regionCapacity);
         columns[REL_ID_COLUMN_ID]->scan(transaction, nodeGroupIdx, persistentState.relIDChunk.get(),
             persistentState.leftCSROffset, persistentState.rightCSROffset + 1);
     }
@@ -690,11 +690,11 @@ void CSRRelTableData::applyDeletionsToColumn(Transaction* transaction,
         return;
     }
     auto chunk = ColumnChunkFactory::createColumnChunk(
-        column->getDataType()->copy(), enableCompression, slides.size());
+        *column->getDataType().copy(), enableCompression, slides.size());
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(slides.size());
     auto tmpChunkForRead =
-        ColumnChunkFactory::createColumnChunk(column->getDataType()->copy(), enableCompression, 1);
+        ColumnChunkFactory::createColumnChunk(*column->getDataType().copy(), enableCompression, 1);
     for (auto i = 0u; i < slides.size(); i++) {
         column->scan(
             transaction, nodeGroupIdx, tmpChunkForRead.get(), slides[i].first, slides[i].first + 1);
@@ -731,11 +731,11 @@ void CSRRelTableData::applySliding(Transaction* transaction, node_group_idx_t no
         return;
     }
     auto chunk = ColumnChunkFactory::createColumnChunk(
-        column->getDataType()->copy(), enableCompression, slides.size());
+        *column->getDataType().copy(), enableCompression, slides.size());
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(slides.size());
     auto tmpChunkForRead =
-        ColumnChunkFactory::createColumnChunk(column->getDataType()->copy(), enableCompression, 1);
+        ColumnChunkFactory::createColumnChunk(*column->getDataType().copy(), enableCompression, 1);
     for (auto i = 0u; i < slides.size(); i++) {
         column->scan(
             transaction, nodeGroupIdx, tmpChunkForRead.get(), slides[i].first, slides[i].first + 1);

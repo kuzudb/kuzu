@@ -15,11 +15,11 @@ DictionaryColumn::DictionaryColumn(const std::string& name, const MetadataDAHInf
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, RWPropertyStats stats, bool enableCompression) {
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
-    dataColumn = std::make_unique<Column>(dataColName, LogicalType::UINT8(),
+    dataColumn = std::make_unique<Column>(dataColName, *LogicalType::UINT8(),
         *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
         stats, false /*enableCompression*/, false /*requireNullColumn*/);
     auto offsetColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
-    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(),
+    offsetColumn = std::make_unique<Column>(offsetColName, *LogicalType::UINT64(),
         *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataFH, bufferManager, wal, transaction,
         stats, enableCompression, false /*requireNullColumn*/);
 }
@@ -173,7 +173,7 @@ bool DictionaryColumn::canOffsetCommitInPlace(Transaction* transaction,
     auto dataColumnMetadata = dataColumn->getMetadata(nodeGroupIdx, transaction->getType());
     auto totalStringOffsetsAfterUpdate = dataColumnMetadata.numValues + totalStringLengthToAdd;
     auto offsetCapacity = offsetColumnMetadata.compMeta.numValues(
-                              BufferPoolConstants::PAGE_4KB_SIZE, *dataColumn->getDataType()) *
+                              BufferPoolConstants::PAGE_4KB_SIZE, dataColumn->getDataType()) *
                           offsetColumnMetadata.numPages;
     auto numStringsAfterUpdate = offsetColumnMetadata.numValues + numNewStrings;
     if (numStringsAfterUpdate > offsetCapacity) {
@@ -196,7 +196,7 @@ bool DictionaryColumn::canOffsetCommitInPlace(Transaction* transaction,
     }
     if (!offsetColumnMetadata.compMeta.canUpdateInPlace(
             (const uint8_t*)&totalStringOffsetsAfterUpdate, 0,
-            offsetColumn->getDataType()->getPhysicalType())) {
+            offsetColumn->getDataType().getPhysicalType())) {
         return false;
     }
     return true;
