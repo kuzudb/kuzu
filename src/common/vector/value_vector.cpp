@@ -611,10 +611,12 @@ void ListVector::appendDataVector(kuzu::common::ValueVector* dstVector,
     }
 }
 
-void ListVector::sliceDataVector(
-    ValueVector* vectorToSlice, uint64_t childIdx, uint64_t numValues) {
-    for (auto i = 0u; i < numValues - childIdx; i++) {
-        vectorToSlice->copyFromVectorData(i, vectorToSlice, i + childIdx);
+void ListVector::sliceDataVector(ValueVector* vectorToSlice, uint64_t offset, uint64_t numValues) {
+    if (offset == 0) {
+        return;
+    }
+    for (auto i = 0u; i < numValues - offset; i++) {
+        vectorToSlice->copyFromVectorData(i, vectorToSlice, i + offset);
     }
 }
 

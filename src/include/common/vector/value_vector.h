@@ -199,7 +199,7 @@ public:
         const ValueVector* srcVector, const uint8_t* srcData);
     static void appendDataVector(
         ValueVector* dstVector, ValueVector* srcDataVector, uint64_t numValuesToAppend);
-    static void sliceDataVector(ValueVector* vectorToSlice, uint64_t childIdx, uint64_t numValues);
+    static void sliceDataVector(ValueVector* vectorToSlice, uint64_t offset, uint64_t numValues);
 };
 
 class FixedListVector {
