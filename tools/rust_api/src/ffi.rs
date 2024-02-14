@@ -155,10 +155,6 @@ pub(crate) mod ffi {
 
         fn getMaxNumThreadForExec(self: Pin<&mut Connection>) -> u64;
         fn setMaxNumThreadForExec(self: Pin<&mut Connection>, num_threads: u64);
-        fn beginReadOnlyTransaction(self: Pin<&mut Connection>) -> Result<()>;
-        fn beginWriteTransaction(self: Pin<&mut Connection>) -> Result<()>;
-        fn commit(self: Pin<&mut Connection>) -> Result<()>;
-        fn rollback(self: Pin<&mut Connection>) -> Result<()>;
         fn interrupt(self: Pin<&mut Connection>) -> Result<()>;
         fn setQueryTimeOut(self: Pin<&mut Connection>, timeout_ms: u64);
     }

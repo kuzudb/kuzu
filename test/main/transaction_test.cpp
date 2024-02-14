@@ -8,35 +8,35 @@ TEST_F(PrivateApiTest, TransactionModes) {
     // Test initially connections are in AUTO_COMMIT mode.
     ASSERT_EQ(TransactionMode::AUTO, getTransactionMode(*conn));
     // Test beginning a transaction (first in read only mode) sets mode to MANUAL automatically.
-    conn->beginReadOnlyTransaction();
+    conn->query("BEGIN TRANSACTION READ ONLY;");
     ASSERT_EQ(TransactionMode::MANUAL, getTransactionMode(*conn));
     // Test commit automatically switches the mode to AUTO_COMMIT read transaction
-    conn->commit();
+    conn->query("COMMIT");
     ASSERT_EQ(TransactionMode::AUTO, getTransactionMode(*conn));
 
-    conn->beginReadOnlyTransaction();
+    conn->query("BEGIN TRANSACTION READ ONLY;");
     ASSERT_EQ(TransactionMode::MANUAL, getTransactionMode(*conn));
     // Test rollback automatically switches the mode to AUTO_COMMIT for read transaction
-    conn->rollback();
+    conn->query("ROLLBACK;");
     ASSERT_EQ(TransactionMode::AUTO, getTransactionMode(*conn));
 
     // Test beginning a transaction (now in write mode) sets mode to MANUAL automatically.
-    conn->beginWriteTransaction();
+    conn->query("BEGIN TRANSACTION;");
     ASSERT_EQ(TransactionMode::MANUAL, getTransactionMode(*conn));
     // Test commit automatically switches the mode to AUTO_COMMIT for write transaction
-    conn->commit();
+    conn->query("COMMIT;");
     ASSERT_EQ(TransactionMode::AUTO, getTransactionMode(*conn));
 
     // Test beginning a transaction (now in write mode) sets mode to MANUAL automatically.
-    conn->beginWriteTransaction();
+    conn->query("BEGIN TRANSACTION;");
     ASSERT_EQ(TransactionMode::MANUAL, getTransactionMode(*conn));
     // Test rollback automatically switches the mode to AUTO_COMMIT write transaction
-    conn->rollback();
+    conn->query("ROLLBACK;");
     ASSERT_EQ(TransactionMode::AUTO, getTransactionMode(*conn));
 }
 
 TEST_F(PrivateApiTest, MultipleCallsFromSameTransaction) {
-    conn->beginReadOnlyTransaction();
+    conn->query("BEGIN TRANSACTION READ ONLY;");
     auto activeTransactionID = getActiveTransactionID(*conn);
     conn->query("MATCH (a:person) RETURN COUNT(*)");
     ASSERT_EQ(activeTransactionID, getActiveTransactionID(*conn));
@@ -46,17 +46,17 @@ TEST_F(PrivateApiTest, MultipleCallsFromSameTransaction) {
         conn->prepare("MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)");
     conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), true));
     ASSERT_EQ(activeTransactionID, getActiveTransactionID(*conn));
-    conn->commit();
+    conn->query("COMMIT;");
     ASSERT_FALSE(hasActiveTransaction(*conn));
 }
 
 TEST_F(PrivateApiTest, CommitRollbackRemoveActiveTransaction) {
-    conn->beginWriteTransaction();
+    conn->query("BEGIN TRANSACTION;");
     ASSERT_TRUE(hasActiveTransaction(*conn));
-    conn->rollback();
+    conn->query("ROLLBACK;");
     ASSERT_FALSE(hasActiveTransaction(*conn));
-    conn->beginReadOnlyTransaction();
+    conn->query("BEGIN TRANSACTION READ ONLY;");
     ASSERT_TRUE(hasActiveTransaction(*conn));
-    conn->commit();
+    conn->query("COMMIT;");
     ASSERT_FALSE(hasActiveTransaction(*conn));
 }

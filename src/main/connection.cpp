@@ -34,22 +34,6 @@ Connection::Connection(Database* database) {
 
 Connection::~Connection() {}
 
-void Connection::beginReadOnlyTransaction() {
-    query("BEGIN TRANSACTION READ ONLY");
-}
-
-void Connection::beginWriteTransaction() {
-    query("BEGIN TRANSACTION");
-}
-
-void Connection::commit() {
-    query("COMMIT");
-}
-
-void Connection::rollback() {
-    query("ROLLBACK");
-}
-
 void Connection::setMaxNumThreadForExec(uint64_t numThreads) {
     clientContext->numThreadsForExecution = numThreads;
 }
@@ -288,7 +272,8 @@ void Connection::addScalarFunction(std::string name, function::function_set defi
 
 bool Connection::startUDFAutoTrx(transaction::TransactionContext* trx) {
     if (!trx->hasActiveTransaction()) {
-        beginWriteTransaction();
+        auto res = query("BEGIN TRANSACTION");
+        KU_ASSERT(res->isSuccess());
         return true;
     }
     return false;
@@ -296,7 +281,8 @@ bool Connection::startUDFAutoTrx(transaction::TransactionContext* trx) {
 
 void Connection::commitUDFTrx(bool isAutoCommitTrx) {
     if (isAutoCommitTrx) {
-        commit();
+        auto res = query("COMMIT");
+        KU_ASSERT(res->isSuccess());
     }
 }
 
