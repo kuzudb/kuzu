@@ -416,7 +416,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
 
         uint32_t sumGoal = minTruncatedWidth;
         uint32_t maxWidth = minTruncatedWidth;
-        if (colsWidth.size() > 1) {
+        if (colsWidth.size() == 1) {
+            sumGoal = colsWidth[0] + 2;
+        } else if (colsWidth.size() > 1) {
             uint32_t minDisplayWidth = colsWidth[0] + colsWidth.back() + 3;
             if (maxPrintWidth > minDisplayWidth) {
                 sumGoal = maxPrintWidth - colsWidth.size() - 1;
@@ -435,6 +437,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         for (auto i = 0u; i < colsWidth.size(); i++) {
             if (maxValueIndex.empty() || colsWidth[i] == colsWidth[maxValueIndex[0]]) {
                 maxValueIndex.push_back(i);
+                maxWidth = colsWidth[maxValueIndex[0]];
             } else if (colsWidth[i] > colsWidth[maxValueIndex[0]]) {
                 secondHighestValue = colsWidth[maxValueIndex[0]];
                 maxValueIndex.clear();
