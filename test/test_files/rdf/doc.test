@@ -1,0 +1,88 @@
+-GROUP Rdf
+-DATASET TTL EMPTY
+
+--
+
+-CASE BlogExample
+
+-STATEMENT CREATE RDFGraph UniKG;
+---- ok
+-STATEMENT COPY UniKG FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/doc/uni.ttl";
+---- ok
+-STATEMENT MATCH (s)-[p:UniKG_rt]->(o) RETURN s.iri, p.iri, o.iri;
+---- 8
+http://kuzu.io/rdf-ex#Adam|http://kuzu.io/rdf-ex#livesIn|http://kuzu.io/rdf-ex#Waterloo
+http://kuzu.io/rdf-ex#Adam|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#student
+http://kuzu.io/rdf-ex#Karissa|http://kuzu.io/rdf-ex#bornIn|http://kuzu.io/rdf-ex#Waterloo
+http://kuzu.io/rdf-ex#Karissa|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#student
+http://kuzu.io/rdf-ex#Waterloo|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#City
+http://kuzu.io/rdf-ex#Zhang|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#faculty
+http://kuzu.io/rdf-ex#faculty|http://www.w3.org/2000/01/rdf-schema#subClassOf|http://kuzu.io/rdf-ex#person
+http://kuzu.io/rdf-ex#student|http://www.w3.org/2000/01/rdf-schema#subClassOf|http://kuzu.io/rdf-ex#person
+-STATEMENT MATCH (s)-[p:UniKG]->(o)
+           RETURN s.iri, p.iri, o.iri, o.val;
+---- 14
+http://kuzu.io/rdf-ex#Adam|http://kuzu.io/rdf-ex#age||30
+http://kuzu.io/rdf-ex#Adam|http://kuzu.io/rdf-ex#livesIn|http://kuzu.io/rdf-ex#Waterloo|
+http://kuzu.io/rdf-ex#Adam|http://kuzu.io/rdf-ex#name||Adam
+http://kuzu.io/rdf-ex#Adam|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#student|
+http://kuzu.io/rdf-ex#Karissa|http://kuzu.io/rdf-ex#bornIn|http://kuzu.io/rdf-ex#Waterloo|
+http://kuzu.io/rdf-ex#Karissa|http://kuzu.io/rdf-ex#name||Karissa
+http://kuzu.io/rdf-ex#Karissa|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#student|
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#name||Waterloo
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#population||150000
+http://kuzu.io/rdf-ex#Waterloo|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#City|
+http://kuzu.io/rdf-ex#Zhang|http://kuzu.io/rdf-ex#name||Zhang
+http://kuzu.io/rdf-ex#Zhang|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#faculty|
+http://kuzu.io/rdf-ex#faculty|http://www.w3.org/2000/01/rdf-schema#subClassOf|http://kuzu.io/rdf-ex#person|
+http://kuzu.io/rdf-ex#student|http://www.w3.org/2000/01/rdf-schema#subClassOf|http://kuzu.io/rdf-ex#person|
+-STATEMENT WITH "http://kuzu.io/rdf-ex#" as kz,
+                "http://www.w3.org/1999/02/22-rdf-syntax-ns#" as rdf
+           MATCH (s {iri: kz + "Adam"})-[p:UniKG {iri: rdf + "type"}]->(o)
+           RETURN s.iri, p.iri, o.iri;
+---- 1
+http://kuzu.io/rdf-ex#Adam|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#student
+-STATEMENT WITH "http://kuzu.io/rdf-ex#" as kz
+           MATCH (s {iri: kz+"Waterloo"})-[p:UniKG]->(o)
+           RETURN s.iri, p.iri, o.iri, o.val, o.lang;
+---- 3
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#name||Waterloo|en
+http://kuzu.io/rdf-ex#Waterloo|http://kuzu.io/rdf-ex#population||150000|
+http://kuzu.io/rdf-ex#Waterloo|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#City||
+-STATEMENT MATCH (s)-[p:UniKG]->(o) RETURN count(*);
+---- 1
+14
+-STATEMENT CREATE NODE TABLE Student(name String, phone String, primary key(name));
+---- ok
+-STATEMENT CREATE (:Student {name: "Adam", phone: "123456789"}),
+       (:Student {name: "Karissa", phone: "987654321"});
+---- ok
+-STATEMENT CREATE REL TABLE SameStudent(FROM UniKG_r TO Student);
+---- ok
+-STATEMENT MATCH (a:UniKG_r {iri: "http://kuzu.io/rdf-ex#Adam"}), (b:Student {name: "Adam"})
+           CREATE (a)-[:SameStudent]->(b);
+---- ok
+-STATEMENT MATCH (a:UniKG_r {iri: "http://kuzu.io/rdf-ex#Karissa"}), (b:Student {name: "Karissa"})
+           CREATE (a)-[:SameStudent]->(b);
+---- ok
+-STATEMENT MATCH (a:Student {name:"Adam"})-[:SameStudent]-(s)-[p:UniKG]->(o)
+           RETURN a.phone, s.iri, p.iri, o.val, o.iri;
+---- 4
+123456789|http://kuzu.io/rdf-ex#Adam|http://kuzu.io/rdf-ex#age|30|
+123456789|http://kuzu.io/rdf-ex#Adam|http://kuzu.io/rdf-ex#livesIn||http://kuzu.io/rdf-ex#Waterloo
+123456789|http://kuzu.io/rdf-ex#Adam|http://kuzu.io/rdf-ex#name|Adam|
+123456789|http://kuzu.io/rdf-ex#Adam|http://www.w3.org/1999/02/22-rdf-syntax-ns#type||http://kuzu.io/rdf-ex#student
+-STATEMENT WITH "http://kuzu.io/rdf-ex#" as kz
+           CREATE (r:UniKG_r {iri: kz+"Nour"}) ;
+---- ok
+-STATEMENT WITH "http://kuzu.io/rdf-ex#" as kz, "http://www.w3.org/1999/02/22-rdf-syntax-ns#" as rdf
+           MATCH (s:UniKG_r {iri: kz+"Nour"})
+           CREATE (s)-[p1:UniKG_rt {iri: rdf + "type"}]->(o1:UniKG_r {iri: kz + "student"})
+           CREATE (s)-[p2:UniKG_lt {iri: kz + "lastName"}]->(o2:UniKG_l {val: "Salah"});
+---- ok
+-STATEMENT WITH "http://kuzu.io/rdf-ex#" as kz
+           MATCH (s:UniKG_r {iri: kz+"Nour"})-[p:UniKG]->(o)
+           RETURN s.iri, p.iri, o.iri, o.val;
+---- 2
+http://kuzu.io/rdf-ex#Nour|http://kuzu.io/rdf-ex#lastName||Salah
+http://kuzu.io/rdf-ex#Nour|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://kuzu.io/rdf-ex#student|
