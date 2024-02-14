@@ -32,15 +32,17 @@ jobs:
           file -b libkuzu.dylib
           otool -l libkuzu.dylib | grep minos
 
+      - name: Create tarball
+        run: |
+          tar -czvf libkuzu-osx-universal.tar.gz kuzu.h kuzu.hpp libkuzu.dylib
+          tar -czvf kuzu_cli-osx-universal.tar.gz kuzu
+
       - uses: actions/upload-artifact@v3
         with:
           name: libkuzu-osx-universal
-          path: |
-            kuzu.h
-            kuzu.hpp
-            libkuzu.dylib
+          path: libkuzu-osx-universal.tar.gz
 
       - uses: actions/upload-artifact@v3
         with:
           name: kuzu_cli-osx-universal
-          path: kuzu
+          path: kuzu_cli-osx-universal.tar.gz
