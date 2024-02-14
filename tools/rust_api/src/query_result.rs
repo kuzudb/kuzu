@@ -191,7 +191,7 @@ impl<'qr> Iterator for ArrowIterator<'qr> {
             )
             .expect("Failed to get next recordbatch");
             let struct_array: arrow::array::StructArray =
-                arrow::ffi::from_ffi(array.0, &self.schema)
+                unsafe { arrow::ffi::from_ffi(array.0, &self.schema) }
                     .expect("Failed to convert ArrowArray from C data")
                     .into();
             Some(struct_array.into())
