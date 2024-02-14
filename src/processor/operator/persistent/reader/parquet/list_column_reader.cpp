@@ -67,7 +67,6 @@ uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/
             childActualNumValues = childColumnReader->read(childReqNumValues, childFilter,
                 childDefinesPtr, childRepeatsPtr, vectorToRead.get());
         } else {
-            // we do: use the overflow values
             childActualNumValues = overflowChildCount;
             overflowChildCount = 0;
         }
@@ -100,11 +99,9 @@ uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/
                 resultPtr[resultOffset].offset = childIdx + currentChunkOffset;
                 resultPtr[resultOffset].size = 1;
             } else if (childDefinesPtr[childIdx] == maxDefine - 1) {
-                // empty list
                 resultPtr[resultOffset].offset = childIdx + currentChunkOffset;
                 resultPtr[resultOffset].size = 0;
             } else {
-                // value is NULL somewhere up the stack
                 resultOut->setNull(resultOffset, true);
                 resultPtr[resultOffset].offset = 0;
                 resultPtr[resultOffset].size = 0;
@@ -119,7 +116,6 @@ uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/
         if (childIdx < childActualNumValues && resultOffset == numValues) {
             common::ListVector::sliceDataVector(vectorToRead.get(), childIdx, childActualNumValues);
             overflowChildCount = childActualNumValues - childIdx;
-            // move values in the child repeats and defines *backward* by child_idx
             for (auto repdefIdx = 0u; repdefIdx < overflowChildCount; repdefIdx++) {
                 childDefinesPtr[repdefIdx] = childDefinesPtr[childIdx + repdefIdx];
                 childRepeatsPtr[repdefIdx] = childRepeatsPtr[childIdx + repdefIdx];
