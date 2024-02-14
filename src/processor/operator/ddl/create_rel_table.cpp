@@ -12,11 +12,12 @@ namespace kuzu {
 namespace processor {
 
 void CreateRelTable::executeDDLInternal(ExecutionContext* context) {
-    auto newRelTableID = catalog->addRelTableSchema(info);
-    auto newRelTableSchema = reinterpret_cast<RelTableSchema*>(
-        catalog->getTableSchema(context->clientContext->getTx(), newRelTableID));
+    auto newTableID = catalog->addRelTableSchema(info);
+    auto newRelTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
+        catalog->getTableSchema(context->clientContext->getTx(), newTableID));
     storageManager->getRelsStatistics()->addTableStatistic(newRelTableSchema);
-    storageManager->getWAL()->logCreateRelTableRecord(newRelTableID);
+    storageManager->createTable(newTableID, catalog, context->clientContext->getTx());
+    storageManager->getWAL()->logCreateRelTableRecord(newTableID);
 }
 
 std::string CreateRelTable::getOutputMsg() {

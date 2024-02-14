@@ -842,27 +842,27 @@ void Column::rollbackInMemory() {
     }
 }
 
-void Column::populateWithDefaultVal(const Property& property, Column* column,
-    InMemDiskArray<ColumnChunkMetadata>* metadataDA_, ValueVector* defaultValueVector,
-    uint64_t numNodeGroups) const {
-    auto columnChunk =
-        ColumnChunkFactory::createColumnChunk(*property.getDataType()->copy(), enableCompression);
+void Column::populateWithDefaultVal(Transaction* transaction,
+    InMemDiskArray<ColumnChunkMetadata>* metadataDA_, ValueVector* defaultValueVector) {
+    KU_ASSERT(metadataDA_ != nullptr);
+    auto numNodeGroups = metadataDA_->getNumElements(transaction->getType());
+    auto columnChunk = ColumnChunkFactory::createColumnChunk(*dataType.copy(), enableCompression);
     columnChunk->populateWithDefaultVal(defaultValueVector);
     for (auto i = 0u; i < numNodeGroups; i++) {
-        auto chunkMeta = metadataDA_->get(i, TransactionType::WRITE);
+        auto chunkMeta = metadataDA_->get(i, transaction->getType());
         auto capacity = columnChunk->getCapacity();
         while (capacity < chunkMeta.numValues) {
             capacity *= CHUNK_RESIZE_RATIO;
         }
         if (capacity > columnChunk->getCapacity()) {
-            auto newColumnChunk = ColumnChunkFactory::createColumnChunk(
-                *property.getDataType()->copy(), enableCompression);
+            auto newColumnChunk =
+                ColumnChunkFactory::createColumnChunk(*dataType.copy(), enableCompression);
             newColumnChunk->populateWithDefaultVal(defaultValueVector);
             newColumnChunk->setNumValues(chunkMeta.numValues);
-            column->append(newColumnChunk.get(), i);
+            append(newColumnChunk.get(), i);
         } else {
             columnChunk->setNumValues(chunkMeta.numValues);
-            column->append(columnChunk.get(), i);
+            append(columnChunk.get(), i);
         }
     }
 }

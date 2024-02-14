@@ -167,6 +167,7 @@ protected:
     PhysicalOperatorType operatorType;
 
     physical_op_vector_t children;
+    // TODO(Xiyang/Guodong): Remove this field, as it should be covered in ExecutionContext now.
     transaction::Transaction* transaction;
     ResultSet* resultSet;
 

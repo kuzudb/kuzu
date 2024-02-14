@@ -42,6 +42,17 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
                 relsStoreStats, RelDataDirection::BWD, enableCompression);
 }
 
+void RelTable::initAdjColumnIfNecessary(Transaction* transaction, table_id_t srcTableID,
+    table_id_t dstTableID, InMemDiskArray<ColumnChunkMetadata>* srcPKMetadataDA,
+    InMemDiskArray<ColumnChunkMetadata>* dstPKMetadataDA) {
+    if (fwdRelTableData->getDataFormat() == ColumnDataFormat::REGULAR) {
+        fwdRelTableData->initAdjColumn(transaction, srcTableID, srcPKMetadataDA);
+    }
+    if (bwdRelTableData->getDataFormat() == ColumnDataFormat::REGULAR) {
+        bwdRelTableData->initAdjColumn(transaction, dstTableID, dstPKMetadataDA);
+    }
+}
+
 void RelTable::read(Transaction* transaction, TableReadState& readState,
     ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
     auto& relReadState = ku_dynamic_cast<TableReadState&, RelDataReadState&>(readState);

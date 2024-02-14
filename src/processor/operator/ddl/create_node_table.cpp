@@ -12,10 +12,11 @@ namespace processor {
 
 void CreateNodeTable::executeDDLInternal(ExecutionContext* context) {
     auto newTableID = catalog->addNodeTableSchema(info);
-    auto newNodeTableSchema = reinterpret_cast<NodeTableSchema*>(
+    auto newNodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
         catalog->getTableSchema(context->clientContext->getTx(), newTableID));
     storageManager->getNodesStatisticsAndDeletedIDs()->addNodeStatisticsAndDeletedIDs(
         newNodeTableSchema);
+    storageManager->createTable(newTableID, catalog, context->clientContext->getTx());
     storageManager->getWAL()->logCreateNodeTableRecord(newTableID);
 }
 

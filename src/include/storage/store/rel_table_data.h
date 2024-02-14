@@ -48,6 +48,8 @@ public:
         common::RelDataDirection direction, bool enableCompression,
         common::ColumnDataFormat dataFormat = common::ColumnDataFormat::REGULAR);
 
+    void initAdjColumn(transaction::Transaction* transaction, common::table_id_t boundTableID,
+        InMemDiskArray<ColumnChunkMetadata>* metadataDA);
     virtual void initializeReadState(transaction::Transaction* transaction,
         std::vector<common::column_id_t> columnIDs, common::ValueVector* inNodeIDVector,
         RelDataReadState* readState);

@@ -48,6 +48,23 @@
 ---- 1
 0
 
+-CASE CreateOneToOneRelTableAfterCreateNodes
+-STATEMENT CREATE NODE TABLE N1(ID SERIAL, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE NODE TABLE N2(ID SERIAL, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE (:N1), (:N1), (:N2), (:N2)
+---- ok
+-STATEMENT CREATE REL TABLE N1_HAS_N2(FROM N1 TO N2, ONE_ONE);
+---- ok
+-STATEMENT MATCH (a:N1), (b:N2) WHERE a.ID = b.ID CREATE (a)-[:N1_HAS_N2]->(b);
+---- ok
+-STATEMENT MATCH ()-[e:N1_HAS_N2]->() RETURN e;
+---- 2
+(0:0)-{_LABEL: N1_HAS_N2, _ID: 2:0}->(1:0)
+(0:1)-{_LABEL: N1_HAS_N2, _ID: 2:1}->(1:1)
+
+
 -CASE CreateOneToOneInBatch
 -STATEMENT create node table animal(id int64, primary key(id));
 ---- ok

@@ -86,7 +86,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     auto adjColName = StorageUtils::getColumnName(
         "", StorageUtils::ColumnType::ADJ, RelDataDirectionUtils::relDirectionToString(direction));
     adjColumn = ColumnFactory::createColumn(adjColName, *LogicalType::INTERNAL_ID(),
-        *adjMetadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
+        *adjMetadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
         RWPropertyStats::empty(), enableCompression);
     auto& properties = tableSchema->getPropertiesRef();
     columns.reserve(properties.size());
@@ -98,13 +98,21 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT,
                 RelDataDirectionUtils::relDirectionToString(direction));
         columns.push_back(ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
-            *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
+            *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
             RWPropertyStats(relsStoreStats, tableID, property.getPropertyID()), enableCompression));
     }
     // Set common tableID for adjColumn and relIDColumn.
     dynamic_cast<InternalIDColumn*>(adjColumn.get())
         ->setCommonTableID(tableSchema->getNbrTableID(direction));
     dynamic_cast<InternalIDColumn*>(columns[REL_ID_COLUMN_ID].get())->setCommonTableID(tableID);
+}
+
+void RelTableData::initAdjColumn(Transaction* transaction, table_id_t boundTableID,
+    InMemDiskArray<ColumnChunkMetadata>* metadataDA) {
+    auto defaultVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID());
+    defaultVector->setAllNull();
+    defaultVector->setValue<internalID_t>(0, internalID_t{0, boundTableID});
+    adjColumn->populateWithDefaultVal(transaction, metadataDA, defaultVector.get());
 }
 
 void RelTableData::initializeReadState(Transaction* /*transaction*/,
@@ -204,8 +212,9 @@ void RelTableData::insert(transaction::Transaction* transaction, ValueVector* sr
     auto [nodeGroupIdx, offset] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(
         srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
             .offset);
-    if (checkPersistentStorage && !ku_dynamic_cast<Column*, NullColumn*>(adjColumn->getNullColumn())
-                                       ->isNull(transaction, nodeGroupIdx, offset)) {
+    auto adjNullColumn = ku_dynamic_cast<Column*, NullColumn*>(adjColumn->getNullColumn());
+    if (checkPersistentStorage && (nodeGroupIdx < adjNullColumn->getNumNodeGroups(transaction)) &&
+        !adjNullColumn->isNull(transaction, nodeGroupIdx, offset)) {
         throw RuntimeException{"Many-one, one-one relationship violated."};
     }
 }

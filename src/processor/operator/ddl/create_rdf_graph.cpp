@@ -1,6 +1,7 @@
 #include "processor/operator/ddl/create_rdf_graph.h"
 
 #include "catalog/rdf_graph_schema.h"
+#include "common/cast.h"
 #include "common/string_format.h"
 #include "storage/storage_manager.h"
 
@@ -12,24 +13,28 @@ namespace processor {
 void CreateRdfGraph::executeDDLInternal(ExecutionContext* context) {
     auto tx = context->clientContext->getTx();
     auto newRdfGraphID = catalog->addRdfGraphSchema(info);
-    auto rdfGraphSchema =
-        reinterpret_cast<RdfGraphSchema*>(catalog->getTableSchema(tx, newRdfGraphID));
+    auto rdfGraphSchema = common::ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(
+        catalog->getTableSchema(tx, newRdfGraphID));
     auto resourceTableID = rdfGraphSchema->getResourceTableID();
-    auto resourceTableSchema =
-        reinterpret_cast<NodeTableSchema*>(catalog->getTableSchema(tx, resourceTableID));
+    auto resourceTableSchema = common::ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
+        catalog->getTableSchema(tx, resourceTableID));
     nodesStatistics->addNodeStatisticsAndDeletedIDs(resourceTableSchema);
+    storageManager->createTable(resourceTableID, catalog, tx);
     auto literalTableID = rdfGraphSchema->getLiteralTableID();
-    auto literalTableSchema =
-        reinterpret_cast<NodeTableSchema*>(catalog->getTableSchema(tx, literalTableID));
+    auto literalTableSchema = common::ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
+        catalog->getTableSchema(tx, literalTableID));
     nodesStatistics->addNodeStatisticsAndDeletedIDs(literalTableSchema);
+    storageManager->createTable(literalTableID, catalog, tx);
     auto resourceTripleTableID = rdfGraphSchema->getResourceTripleTableID();
-    auto resourceTripleTableSchema =
-        reinterpret_cast<RelTableSchema*>(catalog->getTableSchema(tx, resourceTripleTableID));
+    auto resourceTripleTableSchema = common::ku_dynamic_cast<TableSchema*, RelTableSchema*>(
+        catalog->getTableSchema(tx, resourceTripleTableID));
     relsStatistics->addTableStatistic(resourceTripleTableSchema);
+    storageManager->createTable(resourceTripleTableID, catalog, tx);
     auto literalTripleTableID = rdfGraphSchema->getLiteralTripleTableID();
-    auto literalTripleTableSchema =
-        reinterpret_cast<RelTableSchema*>(catalog->getTableSchema(tx, literalTripleTableID));
+    auto literalTripleTableSchema = common::ku_dynamic_cast<TableSchema*, RelTableSchema*>(
+        catalog->getTableSchema(tx, literalTripleTableID));
     relsStatistics->addTableStatistic(literalTripleTableSchema);
+    storageManager->createTable(literalTripleTableID, catalog, tx);
     storageManager->getWAL()->logRdfGraphRecord(newRdfGraphID, resourceTableID, literalTableID,
         resourceTripleTableID, literalTripleTableID);
 }

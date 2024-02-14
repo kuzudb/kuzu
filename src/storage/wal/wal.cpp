@@ -66,12 +66,14 @@ void WAL::logCatalogRecord() {
 void WAL::logCreateNodeTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newCreateTableRecord(tableID, TableType::NODE);
+    addToUpdatedTables(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 
 void WAL::logCreateRelTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newCreateTableRecord(tableID, TableType::REL);
+    addToUpdatedTables(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 
