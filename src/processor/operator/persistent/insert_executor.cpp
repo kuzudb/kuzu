@@ -83,7 +83,7 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
         }
     }
     auto numNodeGroups = storage::StorageUtils::getNodeGroupIdx(maxNodeOffset) + 1;
-    for (auto relTable : bwdRelTables) {
+    for (auto relTable : fwdRelTables) {
         relTable->resizeColumns(tx, RelDataDirection::FWD, numNodeGroups);
     }
     for (auto relTable : bwdRelTables) {
