@@ -40,13 +40,9 @@ struct ShellCommand {
     const char* HELP = ":help";
     const char* CLEAR = ":clear";
     const char* QUIT = ":quit";
-    const char* THREAD = ":thread";
-    const char* LOGGING_LEVEL = ":logging_level";
-    const char* QUERY_TIMEOUT = ":timeout";
-    const char* MAXROWS = ":maxrows";
-    const char* MAXWIDTH = ":maxwidth";
-    const std::array<const char*, 8> commandList = {
-        HELP, CLEAR, QUIT, THREAD, LOGGING_LEVEL, QUERY_TIMEOUT, MAXROWS, MAXWIDTH};
+    const char* MAXROWS = ":max_rows";
+    const char* MAXWIDTH = ":max_width";
+    const std::array<const char*, 5> commandList = {HELP, CLEAR, QUIT, MAXROWS, MAXWIDTH};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -227,12 +223,6 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         linenoiseClearScreen();
     } else if (lineStr == shellCommand.QUIT) {
         return -1;
-    } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
-        setNumThreads(lineStr.substr(strlen(shellCommand.THREAD)));
-    } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
-        setLoggingLevel(lineStr.substr(strlen(shellCommand.LOGGING_LEVEL)));
-    } else if (lineStr.rfind(shellCommand.QUERY_TIMEOUT) == 0) {
-        setQueryTimeout(lineStr.substr(strlen(shellCommand.QUERY_TIMEOUT)));
     } else if (lineStr.rfind(shellCommand.MAXROWS) == 0) {
         setMaxRows(lineStr.substr(strlen(shellCommand.MAXROWS)));
     } else if (lineStr.rfind(shellCommand.MAXWIDTH) == 0) {
@@ -318,21 +308,6 @@ void EmbeddedShell::interruptHandler(int /*signal*/) {
     globalConnection->interrupt();
 }
 
-void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
-    auto numThreads = 0;
-    try {
-        numThreads = stoi(numThreadsString);
-    } catch (std::exception& e) {
-        printf(
-            "Cannot parse '%s' as number of threads. Expect integer.\n", numThreadsString.c_str());
-        return;
-    }
-    try {
-        conn->setMaxNumThreadForExec(numThreads);
-        printf("numThreads set as %d\n", numThreads);
-    } catch (Exception& e) { printf("%s", e.what()); }
-}
-
 void EmbeddedShell::setMaxRows(const std::string& maxRowsString) {
     uint64_t parsedMaxRows = 0;
     try {
@@ -361,17 +336,15 @@ void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR, TAB);
     printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT, TAB);
-    printf("%s%s [num_threads] %sset number of threads for query execution\n", TAB,
-        shellCommand.THREAD, TAB);
-    printf("%s%s [logging_level] %sset logging level of database, available options: debug, info, "
-           "err\n",
-        TAB, shellCommand.LOGGING_LEVEL, TAB);
-    printf(
-        "%s%s [query_timeout] %sset query timeout in ms\n", TAB, shellCommand.QUERY_TIMEOUT, TAB);
     printf("%s%s [max_rows] %sset maximum number of rows for display (default: 20)\n", TAB,
         shellCommand.MAXROWS, TAB);
     printf("%s%s [max_width] %sset maximum width in characters for display\n", TAB,
         shellCommand.MAXWIDTH, TAB);
+    printf("\n");
+    printf("%sNote: you can change and see several system configurations, such as num-threads, \n", TAB);
+    printf("%s%s  timeout, and logging_level using Cypher CALL statements.\n", TAB, TAB);
+    printf("%s%s  e.g. CALL THREADS=5; or CALL current_setting('threads') return *;\n", TAB, TAB);
+    printf("%s%s  See: https://kuzudb.com/docusaurus/cypher/configuration\n", TAB, TAB);
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
@@ -620,20 +593,6 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());
     }
-}
-
-void EmbeddedShell::setLoggingLevel(const std::string& loggingLevel) {
-    auto level = StringUtils::ltrim(loggingLevel);
-    try {
-        database->setLoggingLevel(level);
-        printf("logging level has been set to: %s.\n", level.c_str());
-    } catch (Exception& e) { printf("%s\n", e.what()); }
-}
-
-void EmbeddedShell::setQueryTimeout(const std::string& timeoutInMS) {
-    auto queryTimeOutVal = std::stoull(StringUtils::ltrim(timeoutInMS));
-    conn->setQueryTimeOut(queryTimeOutVal);
-    printf("query timeout value has been set to: %llu ms.\n", queryTimeOutVal);
 }
 
 } // namespace main
