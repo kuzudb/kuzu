@@ -39,9 +39,18 @@ The dataset used in this example can be found [here](https://github.com/kuzudb/k
 
 import sys
 import os
-sys.setdlopenflags(os.RTLD_GLOBAL | os.RTLD_NOW)
+
+# Set RTLD_GLOBAL and RTLD_NOW flags on Linux to fix the issue with loading
+# extensions
+original_dlopen_flags = sys.getdlopenflags()
+if sys.platform == "linux":
+    sys.setdlopenflags(os.RTLD_GLOBAL | os.RTLD_NOW)
 
 from .database import *
 from .connection import *
 from .query_result import *
 from .types import *
+
+# Restore the original dlopen flags
+if sys.platform == "linux":
+    sys.setdlopenflags(original_dlopen_flags)
