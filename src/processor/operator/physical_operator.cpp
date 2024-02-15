@@ -129,6 +129,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "IN_QUERY_CALL";
     case PhysicalOperatorType::PROFILE:
         return "PROFILE";
+    case PhysicalOperatorType::EXPORT_DATABASE:
+        return "EXPORT_DATABASE";
     default:
         KU_UNREACHABLE;
     }

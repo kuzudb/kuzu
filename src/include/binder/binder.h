@@ -35,6 +35,7 @@ struct BoundDeleteInfo;
 class BoundWithClause;
 class BoundReturnClause;
 struct BoundFileScanInfo;
+struct ExportedTableData;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
@@ -94,6 +95,8 @@ public:
 
     static std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
+    ExportedTableData extractExportData(std::string selQuery, std::string tableName);
+
 private:
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);
@@ -140,6 +143,8 @@ private:
         std::vector<common::LogicalType>& columnTypes);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
+
+    std::unique_ptr<BoundStatement> bindExportDatabaseClause(const parser::Statement& statement);
 
     /*** bind file scan ***/
     std::unordered_map<std::string, common::Value> bindParsingOptions(

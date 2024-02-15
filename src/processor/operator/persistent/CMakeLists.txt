@@ -16,7 +16,8 @@ add_library(kuzu_processor_operator_persistent
         insert_executor.cpp
         merge.cpp
         set.cpp
-        set_executor.cpp)
+        set_executor.cpp
+        export_db.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator_persistent>

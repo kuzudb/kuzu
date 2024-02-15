@@ -1,5 +1,8 @@
 #include "catalog/node_table_schema.h"
 
+#include <sstream>
+
+#include "catalog/export_utils.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 
@@ -32,6 +35,14 @@ std::unique_ptr<NodeTableSchema> NodeTableSchema::deserialize(Deserializer& dese
     schema->fwdRelTableIDSet = std::move(fwdRelTableIDSet);
     schema->bwdRelTableIDSet = std::move(bwdRelTableIDSet);
     return schema;
+}
+
+std::string NodeTableSchema::toCypher(main::ClientContext* /*clientContext*/) const {
+    std::stringstream ss;
+    ss << "CREATE NODE TABLE " << tableName << "(";
+    CatalogExportUtils::getCypher(&properties, ss);
+    ss << " PRIMARY KEY(" << getPrimaryKey()->getName() << "));";
+    return ss.str();
 }
 
 } // namespace catalog

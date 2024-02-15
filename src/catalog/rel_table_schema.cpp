@@ -1,10 +1,17 @@
 #include "catalog/rel_table_schema.h"
 
+#include <sstream>
+
+#include "catalog/catalog.h"
+#include "catalog/export_utils.h"
 #include "common/exception/binder.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace catalog {
@@ -58,6 +65,20 @@ std::unique_ptr<RelTableSchema> RelTableSchema::deserialize(Deserializer& deseri
     schema->srcTableID = srcTableID;
     schema->dstTableID = dstTableID;
     return schema;
+}
+
+std::string RelTableSchema::toCypher(ClientContext* clientContext) const {
+    std::stringstream ss;
+    auto catalog = clientContext->getCatalog();
+    auto srcTableName = catalog->getTableName(clientContext->getTx(), srcTableID);
+    auto dstTableName = catalog->getTableName(clientContext->getTx(), dstTableID);
+    ss << "CREATE REL TABLE " << tableName << "( FROM " << srcTableName << " TO " << dstTableName
+       << ", ";
+    CatalogExportUtils::getCypher(&properties, ss);
+    auto srcMultiStr = srcMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
+    auto dstMultiStr = dstMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
+    ss << srcMultiStr << "_" << dstMultiStr << ");";
+    return ss.str();
 }
 
 } // namespace catalog

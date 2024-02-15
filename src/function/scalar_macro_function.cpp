@@ -1,7 +1,10 @@
 #include "function/scalar_macro_function.h"
 
+#include <sstream>
+
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/string_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -55,5 +58,18 @@ std::unique_ptr<ScalarMacroFunction> ScalarMacroFunction::deserialize(Deserializ
         std::move(expression), std::move(positionalArgs), std::move(defaultArgs));
 }
 
+std::string ScalarMacroFunction::toCypher(const std::string& name) const {
+    std::stringstream ss;
+    std::vector<std::string> paramStrings;
+    for (auto& param : positionalArgs) {
+        paramStrings.push_back(param);
+    }
+    for (auto& defaultParam : defaultArgs) {
+        paramStrings.push_back(defaultParam.first + ":=" + defaultParam.second->toString());
+    }
+    ss << "CREATE MACRO " << name << "(" << StringUtils::join(paramStrings, ",") << ") AS "
+       << expression->toString();
+    return ss.str();
+}
 } // namespace function
 } // namespace kuzu

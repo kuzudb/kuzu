@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+
 #include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/types/value/value.h"
@@ -20,6 +22,18 @@ struct CSVOption {
           quoteChar{CopyConstants::DEFAULT_CSV_QUOTE_CHAR},
           hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER} {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
+
+    std::string toCypher() const {
+        std::stringstream ss;
+        ss << " (escape = '\\" << escapeChar << "' , delim = '" << delimiter << "' , quote = '\\"
+           << quoteChar << "', header=";
+        if (hasHeader) {
+            ss << "true);";
+        } else {
+            ss << "false);";
+        }
+        return ss.str();
+    }
 
 private:
     CSVOption(const CSVOption& other)

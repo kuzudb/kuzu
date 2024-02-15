@@ -99,6 +99,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "UNWIND";
     case LogicalOperatorType::EXTENSION:
         return "LOAD";
+    case LogicalOperatorType::EXPORT_DATABASE:
+        return "EXPORT_DATABASE";
     default:
         KU_UNREACHABLE;
     }
