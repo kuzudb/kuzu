@@ -28,9 +28,9 @@ struct ParsedCaseAlternative;
 
 class Transformer {
 public:
-    explicit Transformer(CypherParser::OC_CypherContext& root) : root{root} {}
+    explicit Transformer(CypherParser::Ku_StatementsContext& root) : root{root} {}
 
-    std::unique_ptr<Statement> transform();
+    std::vector<std::unique_ptr<Statement>> transform();
 
 private:
     std::unique_ptr<Statement> transformStatement(CypherParser::OC_StatementContext& ctx);
@@ -217,7 +217,7 @@ private:
     std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);
 
 private:
-    CypherParser::OC_CypherContext& root;
+    CypherParser::Ku_StatementsContext& root;
 };
 
 } // namespace parser

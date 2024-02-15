@@ -23,7 +23,8 @@ void PrivateGraphTest::validateQueryBestPlanJoinOrder(
     std::string query, std::string expectedJoinOrder) {
     auto catalog = getCatalog(*database);
     auto statement = parser::Parser::parseQuery(query);
-    auto parsedQuery = (parser::RegularQuery*)statement.get();
+    ASSERT_EQ(statement.size(), 1);
+    auto parsedQuery = (parser::RegularQuery*)statement[0].get();
     auto boundQuery =
         Binder(*catalog, database->memoryManager.get(), database->storageManager.get(),
             database->vfs.get(), conn->clientContext.get(), database->extensionOptions.get())

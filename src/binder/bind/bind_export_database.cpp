@@ -64,8 +64,9 @@ ExportedTableData Binder::extractExportData(std::string selQuery, std::string ta
     auto parsedStatement = Parser::parseQuery(selQuery);
     ExportedTableData exportedTableData;
     exportedTableData.tableName = tableName;
+    KU_ASSERT(parsedStatement.size() == 1);
     auto parsedQuery =
-        ku_dynamic_cast<const Statement*, const RegularQuery*>(parsedStatement.get());
+        ku_dynamic_cast<const Statement*, const RegularQuery*>(parsedStatement[0].get());
     auto query = bindQuery(*parsedQuery);
     auto columns = query->getStatementResult()->getColumns();
     for (auto& column : columns) {

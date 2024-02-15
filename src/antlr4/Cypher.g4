@@ -13,8 +13,11 @@ grammar Cypher;
     virtual void notifyNonBinaryComparison(antlr4::Token* startToken) {};
 }
 
+ku_Statements
+    : oC_Cypher ( SP? ';' SP? oC_Cypher )* SP? EOF ;
+
 oC_Cypher
-    : SP ? oC_AnyCypherOption? SP? ( oC_Statement ) ( SP? ';' )? SP? EOF ;
+    : oC_AnyCypherOption? SP? ( oC_Statement ) ( SP? ';' )?;
 
 oC_Statement
     : oC_Query

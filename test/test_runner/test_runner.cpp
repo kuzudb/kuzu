@@ -46,10 +46,26 @@ bool TestRunner::testStatement(
     replaceEnv(statement->query, "AWS_S3_ACCESS_KEY_ID");
     replaceEnv(statement->query, "AWS_S3_SECRET_ACCESS_KEY");
     replaceEnv(statement->query, "RUN_ID");
+    auto parsedStatements = std::vector<std::unique_ptr<parser::Statement>>();
+    try {
+        parsedStatements = conn.parseQuery(statement->query);
+    } catch (std::exception& exception) {
+        auto errorPreparedStatement = conn.preparedStatementWithError(exception.what());
+        return checkLogicalPlan(errorPreparedStatement, statement, conn, 0);
+    }
+    if (parsedStatements.empty()) {
+        auto errorPreparedStatement =
+            conn.preparedStatementWithError("Connection Exception: Query is empty.");
+        return checkLogicalPlan(errorPreparedStatement, statement, conn, 0);
+    }
+    if (parsedStatements.size() > 1) {
+        throw TestException("Current test framework does not support multiple query statements!");
+    }
+    auto parsedStatement = std::move(parsedStatements[0]);
     if (statement->encodedJoin.empty()) {
-        preparedStatement = conn.prepareNoLock(statement->query, statement->enumerate);
+        preparedStatement = conn.prepareNoLock(parsedStatement.get(), statement->enumerate);
     } else {
-        preparedStatement = conn.prepareNoLock(statement->query, true, statement->encodedJoin);
+        preparedStatement = conn.prepareNoLock(parsedStatement.get(), true, statement->encodedJoin);
     }
     // Check for wrong statements
     if (!statement->expectedError && !preparedStatement->isSuccess()) {

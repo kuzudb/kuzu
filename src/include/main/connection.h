@@ -5,6 +5,7 @@
 #include "client_context.h"
 #include "database.h"
 #include "function/udf_function.h"
+#include "parser/statement.h"
 #include "prepared_statement.h"
 #include "query_result.h"
 
@@ -142,11 +143,16 @@ public:
     inline ClientContext* getClientContext() { return clientContext.get(); };
 
 private:
-    std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin);
+    std::unique_ptr<QueryResult> query(
+        std::string_view query, std::string_view encodedJoin, bool enumerateAllPlans = true);
 
     std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 
-    std::unique_ptr<PreparedStatement> prepareNoLock(std::string_view query,
+    std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
+
+    std::vector<std::unique_ptr<parser::Statement>> parseQuery(std::string_view query);
+
+    std::unique_ptr<PreparedStatement> prepareNoLock(parser::Statement* parsedStatement,
         bool enumerateAllPlans = false, std::string_view joinOrder = std::string_view());
 
     template<typename T, typename... Args>

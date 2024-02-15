@@ -44,45 +44,79 @@ uint64_t Connection::getMaxNumThreadForExec() {
 }
 
 std::unique_ptr<PreparedStatement> Connection::prepare(std::string_view query) {
+    auto preparedStatement = std::unique_ptr<PreparedStatement>();
     std::unique_lock<std::mutex> lck{mtx};
-    return prepareNoLock(query);
+    auto parsedStatements = std::vector<std::unique_ptr<Statement>>();
+    try {
+        parsedStatements = parseQuery(query);
+    } catch (std::exception& exception) { return preparedStatementWithError(exception.what()); }
+    if (parsedStatements.size() > 1) {
+        return preparedStatementWithError(
+            "Connection Exception: We do not support prepare multiple statements.");
+    }
+    if (parsedStatements.empty()) {
+        return preparedStatementWithError("Connection Exception: Query is empty.");
+    }
+    return prepareNoLock(parsedStatements[0].get());
 }
 
-std::unique_ptr<QueryResult> Connection::query(std::string_view query) {
-    lock_t lck{mtx};
-    auto preparedStatement = prepareNoLock(query);
-    return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
+std::unique_ptr<QueryResult> Connection::query(std::string_view queryStatement) {
+    return query(queryStatement, std::string_view() /*encodedJoin*/, false /*enumerateAllPlans */);
 }
 
 std::unique_ptr<QueryResult> Connection::query(
-    std::string_view query, std::string_view encodedJoin) {
+    std::string_view query, std::string_view encodedJoin, bool enumerateAllPlans) {
     lock_t lck{mtx};
-    auto preparedStatement = prepareNoLock(query, true /* enumerate all plans */, encodedJoin);
-    return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
+    // parsing
+    auto parsedStatements = std::vector<std::unique_ptr<Statement>>();
+    try {
+        parsedStatements = parseQuery(query);
+    } catch (std::exception& exception) { return queryResultWithError(exception.what()); }
+    if (parsedStatements.empty()) {
+        return queryResultWithError("Connection Exception: Query is empty.");
+    }
+    std::unique_ptr<QueryResult> queryResult;
+    QueryResult* lastResult = nullptr;
+    for (auto& statement : parsedStatements) {
+        auto preparedStatement = prepareNoLock(
+            statement.get(), enumerateAllPlans /* enumerate all plans */, encodedJoin);
+        auto currentQueryResult = executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
+        if (!lastResult) {
+            // first result of the query
+            queryResult = std::move(currentQueryResult);
+            lastResult = queryResult.get();
+        } else {
+            lastResult->nextQueryResult = std::move(currentQueryResult);
+            lastResult = lastResult->nextQueryResult.get();
+        }
+    }
+    return queryResult;
 }
 
 std::unique_ptr<QueryResult> Connection::queryResultWithError(std::string_view errMsg) {
     auto queryResult = std::make_unique<QueryResult>();
     queryResult->success = false;
     queryResult->errMsg = errMsg;
+    queryResult->nextQueryResult = nullptr;
     return queryResult;
 }
 
-std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
-    std::string_view query, bool enumerateAllPlans, std::string_view encodedJoin) {
+std::unique_ptr<PreparedStatement> Connection::preparedStatementWithError(std::string_view errMsg) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
-    if (query.empty()) {
-        preparedStatement->success = false;
-        preparedStatement->errMsg = "Connection Exception: Query is empty.";
-        return preparedStatement;
-    }
+    preparedStatement->success = false;
+    preparedStatement->errMsg = errMsg;
+    return preparedStatement;
+}
+
+std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
+    Statement* parsedStatement, bool enumerateAllPlans, std::string_view encodedJoin) {
+    auto preparedStatement = std::make_unique<PreparedStatement>();
     auto compilingTimer = TimeMetric(true /* enable */);
     compilingTimer.start();
-    std::unique_ptr<Statement> statement;
     try {
-        statement = Parser::parseQuery(query);
-        preparedStatement->preparedSummary.statementType = statement->getStatementType();
-        preparedStatement->readOnly = parser::StatementReadWriteAnalyzer().isReadOnly(*statement);
+        preparedStatement->preparedSummary.statementType = parsedStatement->getStatementType();
+        preparedStatement->readOnly =
+            parser::StatementReadWriteAnalyzer().isReadOnly(*parsedStatement);
         if (database->systemConfig.readOnly && !preparedStatement->isReadOnly()) {
             throw ConnectionException("Cannot execute write operations in a read-only database!");
         }
@@ -97,7 +131,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     std::unique_ptr<LogicalPlan> logicalPlan;
     try {
         // parsing
-        if (statement->getStatementType() != StatementType::TRANSACTION) {
+        if (parsedStatement->getStatementType() != StatementType::TRANSACTION) {
             auto txContext = clientContext->transactionContext.get();
             if (txContext->isAutoTransaction()) {
                 txContext->beginAutoTransaction(preparedStatement->readOnly);
@@ -114,7 +148,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         auto binder = Binder(*database->catalog, database->memoryManager.get(),
             database->storageManager.get(), database->vfs.get(), clientContext.get(),
             database->extensionOptions.get());
-        auto boundStatement = binder.bind(*statement);
+        auto boundStatement = binder.bind(*parsedStatement);
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult =
             std::make_unique<BoundStatementResult>(boundStatement->getStatementResult()->copy());
@@ -153,6 +187,15 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     compilingTimer.stop();
     preparedStatement->preparedSummary.compilingTime = compilingTimer.getElapsedTimeMS();
     return preparedStatement;
+}
+
+std::vector<std::unique_ptr<Statement>> Connection::parseQuery(std::string_view query) {
+    std::vector<std::unique_ptr<Statement>> statements;
+    if (query.empty()) {
+        return statements;
+    }
+    statements = Parser::parseQuery(query);
+    return statements;
 }
 
 void Connection::interrupt() {
