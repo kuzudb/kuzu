@@ -42,8 +42,8 @@ import os
 
 # Set RTLD_GLOBAL and RTLD_NOW flags on Linux to fix the issue with loading
 # extensions
-original_dlopen_flags = sys.getdlopenflags()
 if sys.platform == "linux":
+    original_dlopen_flags = sys.getdlopenflags()
     sys.setdlopenflags(os.RTLD_GLOBAL | os.RTLD_NOW)
 
 from .database import *
