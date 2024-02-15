@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/case_insensitive_map.h"
 #include "common/file_system/file_system.h"
 #include "common/string_utils.h"
 #include "httplib.h"
@@ -12,22 +13,7 @@
 namespace kuzu {
 namespace httpfs {
 
-struct CaseInsensitiveStringHashFunction {
-    uint64_t operator()(const std::string& str) const {
-        return common::StringUtils::caseInsensitiveHash(str);
-    }
-};
-
-struct CaseInsensitiveStringEquality {
-    bool operator()(const std::string& left, const std::string& right) const {
-        return common::StringUtils::caseInsensitiveEquals(left, right);
-    }
-};
-
-template<typename T>
-using case_insensitive_map_t = std::unordered_map<std::string, T, CaseInsensitiveStringHashFunction,
-    CaseInsensitiveStringEquality>;
-using HeaderMap = case_insensitive_map_t<std::string>;
+using HeaderMap = common::case_insensitive_map_t<std::string>;
 
 struct HTTPResponse {
     HTTPResponse(httplib::Response& res, const std::string& url);

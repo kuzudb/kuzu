@@ -1,9 +1,9 @@
 #include "function/table_functions/call_functions.h"
 
 #include "catalog/catalog.h"
-#include "catalog/node_table_schema.h"
-#include "catalog/rel_table_group_schema.h"
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/keyword/rdf_keyword.h"
 #include "main/client_context.h"
@@ -131,11 +131,11 @@ void ShowTablesFunction::tableFunc(TableFunctionInput& input, DataChunk& outputC
             ->tables;
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
-        auto tableSchema = tables[morsel.startOffset + i];
-        outputChunk.getValueVector(0)->setValue(i, tableSchema->tableName);
-        std::string typeString = TableTypeUtils::toString(tableSchema->tableType);
+        auto tableEntry = tables[morsel.startOffset + i];
+        outputChunk.getValueVector(0)->setValue(i, tableEntry->getName());
+        std::string typeString = TableTypeUtils::toString(tableEntry->getTableType());
         outputChunk.getValueVector(1)->setValue(i, typeString);
-        outputChunk.getValueVector(2)->setValue(i, tableSchema->comment);
+        outputChunk.getValueVector(2)->setValue(i, tableEntry->getComment());
     }
     outputChunk.state->selVector->selectedSize = numTablesToOutput;
 }
@@ -150,7 +150,7 @@ std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(ClientContext* c
     returnTypes.emplace_back(*LogicalType::STRING());
     returnColumnNames.emplace_back("comment");
     returnTypes.emplace_back(*LogicalType::STRING());
-    return std::make_unique<ShowTablesBindData>(catalog->getTableSchemas(context->getTx()),
+    return std::make_unique<ShowTablesBindData>(catalog->getTableEntries(context->getTx()),
         std::move(returnTypes), std::move(returnColumnNames),
         catalog->getTableCount(context->getTx()));
 }
@@ -172,12 +172,12 @@ void TableInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputCh
     }
     auto bindData =
         ku_dynamic_cast<function::TableFuncBindData*, function::TableInfoBindData*>(input.bindData);
-    auto tableSchema = bindData->tableSchema;
+    auto tableEntry = bindData->tableEntry;
     auto numPropertiesToOutput = morsel.endOffset - morsel.startOffset;
     auto vectorPos = 0;
     for (auto i = 0u; i < numPropertiesToOutput; i++) {
-        auto property = &tableSchema->properties[morsel.startOffset + i];
-        if (tableSchema->getTableType() == TableType::REL) {
+        auto property = &tableEntry->getPropertiesRef()[morsel.startOffset + i];
+        if (tableEntry->getTableType() == TableType::REL) {
             if (property->getName() == InternalKeyword::ID) {
                 // Skip internal id column.
                 continue;
@@ -197,9 +197,10 @@ void TableInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputCh
         outputChunk.getValueVector(1)->setValue(vectorPos, property->getName());
         outputChunk.getValueVector(2)->setValue(vectorPos, property->getDataType()->toString());
 
-        if (tableSchema->tableType == TableType::NODE) {
-            auto nodeSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
-            auto primaryKeyID = nodeSchema->getPrimaryKeyPropertyID();
+        if (tableEntry->getTableType() == TableType::NODE) {
+            auto nodeTableEntry =
+                ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
+            auto primaryKeyID = nodeTableEntry->getPrimaryKeyPID();
             outputChunk.getValueVector(3)->setValue(
                 vectorPos, primaryKeyID == property->getPropertyID());
         }
@@ -214,19 +215,19 @@ std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(ClientContext* co
     std::vector<LogicalType> returnTypes;
     auto tableName = input->inputs[0].getValue<std::string>();
     auto tableID = catalog->getTableID(context->getTx(), tableName);
-    auto schema = catalog->getTableSchema(context->getTx(), tableID);
+    auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
     returnColumnNames.emplace_back("property id");
     returnTypes.push_back(*LogicalType::INT64());
     returnColumnNames.emplace_back("name");
     returnTypes.push_back(*LogicalType::STRING());
     returnColumnNames.emplace_back("type");
     returnTypes.push_back(*LogicalType::STRING());
-    if (schema->tableType == TableType::NODE) {
+    if (tableEntry->getTableType() == TableType::NODE) {
         returnColumnNames.emplace_back("primary key");
         returnTypes.push_back(*LogicalType::BOOL());
     }
-    return std::make_unique<TableInfoBindData>(
-        schema, std::move(returnTypes), std::move(returnColumnNames), schema->getNumProperties());
+    return std::make_unique<TableInfoBindData>(tableEntry, std::move(returnTypes),
+        std::move(returnColumnNames), tableEntry->getNumProperties());
 }
 
 function_set ShowConnectionFunction::getFunctionSet() {
@@ -238,10 +239,11 @@ function_set ShowConnectionFunction::getFunctionSet() {
 
 void ShowConnectionFunction::outputRelTableConnection(ValueVector* srcTableNameVector,
     ValueVector* dstTableNameVector, uint64_t outputPos, Catalog* catalog, table_id_t tableID) {
-    auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
-    KU_ASSERT(tableSchema->tableType == TableType::REL);
-    auto srcTableID = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema)->getSrcTableID();
-    auto dstTableID = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema)->getDstTableID();
+    auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
+    auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(tableEntry);
+    KU_ASSERT(tableEntry->getTableType() == TableType::REL);
+    auto srcTableID = relTableEntry->getSrcTableID();
+    auto dstTableID = relTableEntry->getDstTableID();
     srcTableNameVector->setValue(
         outputPos, catalog->getTableName(&DUMMY_READ_TRANSACTION, srcTableID));
     dstTableNameVector->setValue(
@@ -258,19 +260,19 @@ void ShowConnectionFunction::tableFunc(TableFunctionInput& input, DataChunk& out
     auto showConnectionBindData =
         ku_dynamic_cast<function::TableFuncBindData*, function::ShowConnectionBindData*>(
             input.bindData);
-    auto tableSchema = showConnectionBindData->tableSchema;
+    auto tableEntry = showConnectionBindData->tableEntry;
     auto numRelationsToOutput = morsel.endOffset - morsel.startOffset;
     auto catalog = showConnectionBindData->catalog;
     auto vectorPos = 0u;
-    switch (tableSchema->getTableType()) {
+    switch (tableEntry->getTableType()) {
     case TableType::REL: {
         outputRelTableConnection(outputChunk.getValueVector(0).get(),
-            outputChunk.getValueVector(1).get(), vectorPos, catalog, tableSchema->tableID);
+            outputChunk.getValueVector(1).get(), vectorPos, catalog, tableEntry->getTableID());
         vectorPos++;
     } break;
     case TableType::REL_GROUP: {
-        auto schema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(tableSchema);
-        auto relTableIDs = schema->getRelTableIDs();
+        auto relGroupEntry = ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
+        auto relTableIDs = relGroupEntry->getRelTableIDs();
         for (; vectorPos < numRelationsToOutput; vectorPos++) {
             outputRelTableConnection(outputChunk.getValueVector(0).get(),
                 outputChunk.getValueVector(1).get(), vectorPos, catalog,
@@ -293,8 +295,8 @@ std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(ClientContex
     }
     auto tableName = input->inputs[0].getValue<std::string>();
     auto tableID = catalog->getTableID(context->getTx(), tableName);
-    auto schema = catalog->getTableSchema(context->getTx(), tableID);
-    auto tableType = schema->getTableType();
+    auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
+    auto tableType = tableEntry->getTableType();
     if (tableType != TableType::REL && tableType != TableType::REL_GROUP) {
         throw BinderException{"Show connection can only be called on a rel table!"};
     }
@@ -302,11 +304,13 @@ std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(ClientContex
     returnTypes.emplace_back(*LogicalType::STRING());
     returnColumnNames.emplace_back("destination table name");
     returnTypes.emplace_back(*LogicalType::STRING());
-    return std::make_unique<ShowConnectionBindData>(catalog, schema, std::move(returnTypes),
+    return std::make_unique<ShowConnectionBindData>(catalog, tableEntry, std::move(returnTypes),
         std::move(returnColumnNames),
-        schema->tableType == TableType::REL ?
+        tableEntry->getTableType() == TableType::REL ?
             1 :
-            ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(schema)->getRelTableIDs().size());
+            ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(tableEntry)
+                ->getRelTableIDs()
+                .size());
 }
 
 std::unique_ptr<TableFuncBindData> StorageInfoFunction::bindFunc(ClientContext* context,
@@ -327,12 +331,12 @@ std::unique_ptr<TableFuncBindData> StorageInfoFunction::bindFunc(ClientContext* 
         throw BinderException{"Table " + tableName + " does not exist!"};
     }
     auto tableID = catalog->getTableID(context->getTx(), tableName);
-    auto schema = catalog->getTableSchema(context->getTx(), tableID);
-    auto table = schema->tableType == TableType::NODE ?
+    auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
+    auto table = tableEntry->getTableType() == TableType::NODE ?
                      reinterpret_cast<Table*>(storageManager->getNodeTable(tableID)) :
                      reinterpret_cast<Table*>(storageManager->getRelTable(tableID));
     return std::make_unique<StorageInfoBindData>(
-        schema, std::move(columnTypes), std::move(columnNames), table);
+        tableEntry, std::move(columnTypes), std::move(columnNames), table);
 }
 
 StorageInfoSharedState::StorageInfoSharedState(Table* table, offset_t maxOffset)
@@ -453,8 +457,8 @@ void StorageInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& output
         }
         auto storageInfoBindData =
             ku_dynamic_cast<TableFuncBindData*, StorageInfoBindData*>(input.bindData);
-        auto tableSchema = storageInfoBindData->schema;
-        std::string tableType = tableSchema->getTableType() == TableType::NODE ? "NODE" : "REL";
+        auto tableEntry = storageInfoBindData->tableEntry;
+        std::string tableType = tableEntry->getTableType() == TableType::NODE ? "NODE" : "REL";
         for (auto columnID = 0u; columnID < sharedState->columns.size(); columnID++) {
             appendStorageInfoForColumn(
                 tableType, outputChunk, localState, sharedState->columns[columnID]);

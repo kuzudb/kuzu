@@ -6,8 +6,8 @@
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
-#include "catalog/node_table_schema.h"
-#include "catalog/rdf_graph_schema.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/keyword/rdf_keyword.h"
@@ -125,15 +125,14 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(
 }
 
 static void validatePrimaryKeyExistence(
-    const TableSchema* tableSchema, const NodeExpression& node) {
-    auto nodeTableSchema = ku_dynamic_cast<const TableSchema*, const NodeTableSchema*>(tableSchema);
-    auto primaryKey = nodeTableSchema->getPrimaryKey();
+    const NodeTableCatalogEntry* nodeTableEntry, const NodeExpression& node) {
+    auto primaryKey = nodeTableEntry->getPrimaryKey();
     if (*primaryKey->getDataType() == *LogicalType::SERIAL()) {
         if (node.hasPropertyDataExpr(primaryKey->getName())) {
             throw BinderException(
                 common::stringFormat("The primary key of {} is serial, specifying primary key "
                                      "value is not allowed in the create statement.",
-                    tableSchema->tableName));
+                    nodeTableEntry->getName()));
         }
         return; // No input needed for SERIAL primary key.
     }
@@ -151,12 +150,14 @@ void Binder::bindInsertNode(
             "Create node " + node->toString() + " with multiple node labels is not supported.");
     }
     auto tableID = node->getSingleTableID();
-    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
+    auto tableSchema = catalog.getTableCatalogEntry(clientContext->getTx(), tableID);
     KU_ASSERT(tableSchema->getTableType() == TableType::NODE);
-    validatePrimaryKeyExistence(tableSchema, *node);
+    validatePrimaryKeyExistence(
+        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableSchema), *node);
     auto insertInfo = BoundInsertInfo(TableType::NODE, node);
-    for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
-        if (schema->isParent(tableID)) {
+    for (auto& entry : catalog.getRdfGraphEntries(clientContext->getTx())) {
+        auto rdfEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(entry);
+        if (rdfEntry->isParent(tableID)) {
             insertInfo.conflictAction = ConflictAction::ON_CONFLICT_DO_NOTHING;
         }
     }
@@ -184,23 +185,23 @@ void Binder::bindInsertRel(
     }
     rel->setTableIDs(std::vector<common::table_id_t>{rel->getTableIDs()[0]});
     auto relTableID = rel->getSingleTableID();
-    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), relTableID);
-    TableSchema* parentSchema = nullptr;
-    for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
-        if (schema->isParent(relTableID)) {
-            parentSchema = schema;
+    auto tableEntry = catalog.getTableCatalogEntry(clientContext->getTx(), relTableID);
+    TableCatalogEntry* parentTableEntry = nullptr;
+    for (auto& rdfGraphEntry : catalog.getRdfGraphEntries(clientContext->getTx())) {
+        if (rdfGraphEntry->isParent(relTableID)) {
+            parentTableEntry = rdfGraphEntry;
         }
     }
-    if (parentSchema != nullptr) {
-        KU_ASSERT(parentSchema->getTableType() == TableType::RDF);
-        auto rdfTableSchema =
-            ku_dynamic_cast<const TableSchema*, const RdfGraphSchema*>(parentSchema);
+    if (parentTableEntry != nullptr) {
+        KU_ASSERT(parentTableEntry->getTableType() == TableType::RDF);
+        auto rdfGraphEntry = ku_dynamic_cast<const TableCatalogEntry*, const RDFGraphCatalogEntry*>(
+            parentTableEntry);
         if (!rel->hasPropertyDataExpr(std::string(rdf::IRI))) {
             throw BinderException(stringFormat(
                 "Insert relationship {} expects {} property as input.", rel->toString(), rdf::IRI));
         }
         // Insert predicate resource node.
-        auto resourceTableID = rdfTableSchema->getResourceTableID();
+        auto resourceTableID = rdfGraphEntry->getResourceTableID();
         auto pNode = createQueryNode(
             rel->getVariableName(), std::vector<common::table_id_t>{resourceTableID});
         auto iriData = rel->getPropertyDataExpr(std::string(rdf::IRI));
@@ -221,13 +222,13 @@ void Binder::bindInsertRel(
         relInsertInfo.columnExprs.push_back(
             expressionBinder.bindNodeOrRelPropertyExpression(*rel, std::string(rdf::PID)));
         relInsertInfo.columnDataExprs =
-            bindInsertColumnDataExprs(relPropertyRhsExpr, tableSchema->getPropertiesRef());
+            bindInsertColumnDataExprs(relPropertyRhsExpr, tableEntry->getPropertiesRef());
         infos.push_back(std::move(relInsertInfo));
     } else {
         auto insertInfo = BoundInsertInfo(TableType::REL, rel);
         insertInfo.columnExprs = rel->getPropertyExprs();
         insertInfo.columnDataExprs = bindInsertColumnDataExprs(
-            rel->getPropertyDataExprRef(), tableSchema->getPropertiesRef());
+            rel->getPropertyDataExprRef(), tableEntry->getPropertiesRef());
         infos.push_back(std::move(insertInfo));
     }
 }
@@ -271,13 +272,13 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(
     auto patternExpr = ku_dynamic_cast<Expression*, NodeOrRelExpression*>(pattern.get());
     auto boundSetItem = bindSetItem(lhs, rhs);
     for (auto tableID : patternExpr->getTableIDs()) {
-        auto tableName = catalog.getTableSchema(clientContext->getTx(), tableID)->getName();
-        for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
-            if (schema->isParent(tableID)) {
+        auto tableName = catalog.getTableCatalogEntry(clientContext->getTx(), tableID)->getName();
+        for (auto& rdfGraphEntry : catalog.getRdfGraphEntries(clientContext->getTx())) {
+            if (rdfGraphEntry->isParent(tableID)) {
                 throw BinderException(
                     stringFormat("Cannot set properties of RDFGraph tables. Set {} requires "
                                  "modifying table {} under rdf graph {}.",
-                        boundSetItem.first->toString(), tableName, schema->getName()));
+                        boundSetItem.first->toString(), tableName, rdfGraphEntry->getName()));
             }
         }
     }
@@ -295,12 +296,13 @@ expression_pair Binder::bindSetItem(parser::ParsedExpression* lhs, parser::Parse
 static void validateRdfResourceDeletion(Expression* pattern, main::ClientContext* context) {
     auto node = ku_dynamic_cast<Expression*, NodeExpression*>(pattern);
     for (auto& tableID : node->getTableIDs()) {
-        for (auto& schema : context->getCatalog()->getRdfGraphSchemas(context->getTx())) {
-            if (schema->isParent(tableID) && node->hasPropertyExpression(std::string(rdf::IRI))) {
+        for (auto& rdfGraphEntry : context->getCatalog()->getRdfGraphEntries(context->getTx())) {
+            if (rdfGraphEntry->isParent(tableID) &&
+                node->hasPropertyExpression(std::string(rdf::IRI))) {
                 throw BinderException(
                     stringFormat("Cannot delete node {} because it references to resource "
                                  "node table under RDFGraph {}.",
-                        node->toString(), schema->getName()));
+                        node->toString(), rdfGraphEntry->getName()));
             }
         }
     }

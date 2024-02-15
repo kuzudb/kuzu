@@ -5,7 +5,7 @@ namespace processor {
 
 void AddNodeProperty::executeDDLInternal(ExecutionContext* context) {
     catalog->addNodeProperty(tableID, propertyName, std::move(dataType));
-    auto schema = catalog->getTableSchema(context->clientContext->getTx(), tableID);
+    auto schema = catalog->getTableCatalogEntry(context->clientContext->getTx(), tableID);
     auto addedPropID = schema->getPropertyID(propertyName);
     auto addedProp = schema->getProperty(addedPropID);
     storageManager.getNodeTable(tableID)->addColumn(

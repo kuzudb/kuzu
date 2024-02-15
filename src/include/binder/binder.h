@@ -130,15 +130,16 @@ private:
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
+        std::unique_ptr<common::ReaderConfig> config,
+        catalog::NodeTableCatalogEntry* nodeTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
+        std::unique_ptr<common::ReaderConfig> config, catalog::RelTableCatalogEntry* relTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRdfFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
-    void bindExpectedNodeColumns(catalog::TableSchema* tableSchema,
+        std::unique_ptr<common::ReaderConfig> config, catalog::RDFGraphCatalogEntry* rdfGraphEntry);
+    void bindExpectedNodeColumns(catalog::NodeTableCatalogEntry* nodeTableEntry,
         const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
         std::vector<common::LogicalType>& columnTypes);
-    void bindExpectedRelColumns(catalog::TableSchema* tableSchema,
+    void bindExpectedRelColumns(catalog::RelTableCatalogEntry* relTableEntry,
         const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
         std::vector<common::LogicalType>& columnTypes);
 

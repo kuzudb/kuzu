@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/sink.h"
@@ -13,7 +13,7 @@ namespace kuzu {
 namespace processor {
 
 struct CopyRelInfo {
-    catalog::RelTableSchema* schema;
+    catalog::RelTableCatalogEntry* relTableEntry;
     common::vector_idx_t partitioningIdx;
     common::RelDataDirection dataDirection;
     common::ColumnDataFormat dataFormat;
@@ -21,13 +21,14 @@ struct CopyRelInfo {
     storage::WAL* wal;
     bool compressionEnabled;
 
-    CopyRelInfo(catalog::RelTableSchema* schema, common::vector_idx_t partitioningIdx,
+    CopyRelInfo(catalog::RelTableCatalogEntry* relTableEntry, common::vector_idx_t partitioningIdx,
         common::RelDataDirection dataDirection, common::ColumnDataFormat dataFormat,
         storage::WAL* wal, bool compressionEnabled)
-        : schema{schema}, partitioningIdx{partitioningIdx}, dataDirection{dataDirection},
-          dataFormat{dataFormat}, wal{wal}, compressionEnabled{compressionEnabled} {}
+        : relTableEntry{relTableEntry}, partitioningIdx{partitioningIdx},
+          dataDirection{dataDirection}, dataFormat{dataFormat}, wal{wal}, compressionEnabled{
+                                                                              compressionEnabled} {}
     CopyRelInfo(const CopyRelInfo& other)
-        : schema{other.schema}, partitioningIdx{other.partitioningIdx},
+        : relTableEntry{other.relTableEntry}, partitioningIdx{other.partitioningIdx},
           dataDirection{other.dataDirection}, dataFormat{other.dataFormat}, wal{other.wal},
           compressionEnabled{other.compressionEnabled} {}
 

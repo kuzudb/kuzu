@@ -1,7 +1,9 @@
 #include "catalog/catalog.h"
 
-#include "catalog/rdf_graph_schema.h"
-#include "catalog/rel_table_group_schema.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 #include "transaction/transaction_action.h"
@@ -22,19 +24,15 @@ Catalog::Catalog(WAL* wal, VirtualFileSystem* vfs) : isUpdated{false}, wal{wal} 
 }
 
 uint64_t Catalog::getTableCount(Transaction* tx) const {
-    return getVersion(tx)->getTableCount();
+    return getVersion(tx)->getNumTables();
 }
 
 bool Catalog::containsNodeTable(Transaction* tx) const {
-    return getVersion(tx)->containsTable(TableType::NODE);
+    return getVersion(tx)->containsTable(CatalogEntryType::NODE_TABLE_ENTRY);
 }
 
 bool Catalog::containsRelTable(Transaction* tx) const {
-    return getVersion(tx)->containsTable(TableType::REL);
-}
-
-bool Catalog::containsRdfGraph(Transaction* tx) const {
-    return getVersion(tx)->containsTable(TableType::RDF);
+    return getVersion(tx)->containsTable(CatalogEntryType::REL_TABLE_ENTRY);
 }
 
 bool Catalog::containsTable(Transaction* tx, const std::string& tableName) const {
@@ -46,54 +44,58 @@ table_id_t Catalog::getTableID(Transaction* tx, const std::string& tableName) co
 }
 
 std::vector<common::table_id_t> Catalog::getNodeTableIDs(Transaction* tx) const {
-    return getVersion(tx)->getTableIDs(TableType::NODE);
+    return getVersion(tx)->getTableIDs(CatalogEntryType::NODE_TABLE_ENTRY);
 }
 
 std::vector<common::table_id_t> Catalog::getRelTableIDs(Transaction* tx) const {
-    return getVersion(tx)->getTableIDs(TableType::REL);
-}
-
-std::vector<common::table_id_t> Catalog::getRdfGraphIDs(Transaction* tx) const {
-    return getVersion(tx)->getTableIDs(TableType::RDF);
+    return getVersion(tx)->getTableIDs(CatalogEntryType::REL_TABLE_ENTRY);
 }
 
 std::string Catalog::getTableName(Transaction* tx, table_id_t tableID) const {
     return getVersion(tx)->getTableName(tableID);
 }
 
-TableSchema* Catalog::getTableSchema(Transaction* tx, table_id_t tableID) const {
-    return getVersion(tx)->getTableSchema(tableID);
+TableCatalogEntry* Catalog::getTableCatalogEntry(
+    transaction::Transaction* tx, common::table_id_t tableID) const {
+    return ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
+        getVersion(tx)->getTableCatalogEntry(tableID));
 }
 
-std::vector<TableSchema*> Catalog::getNodeTableSchemas(Transaction* tx) const {
-    return getVersion(tx)->getTableSchemas(TableType::NODE);
+std::vector<NodeTableCatalogEntry*> Catalog::getNodeTableEntries(Transaction* tx) const {
+    return getVersion(tx)->getTableCatalogEntries<NodeTableCatalogEntry*>(
+        CatalogEntryType::NODE_TABLE_ENTRY);
 }
 
-std::vector<TableSchema*> Catalog::getRelTableSchemas(Transaction* tx) const {
-    return getVersion(tx)->getTableSchemas(TableType::REL);
+std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntries(transaction::Transaction* tx) const {
+    return getVersion(tx)->getTableCatalogEntries<RelTableCatalogEntry*>(
+        CatalogEntryType::REL_TABLE_ENTRY);
 }
 
-std::vector<TableSchema*> Catalog::getRelTableGroupSchemas(Transaction* tx) const {
-    return getVersion(tx)->getTableSchemas(TableType::REL_GROUP);
+std::vector<RelGroupCatalogEntry*> Catalog::getRelTableGroupEntries(
+    transaction::Transaction* tx) const {
+    return getVersion(tx)->getTableCatalogEntries<RelGroupCatalogEntry*>(
+        CatalogEntryType::REL_GROUP_ENTRY);
 }
 
-std::vector<TableSchema*> Catalog::getRdfGraphSchemas(transaction::Transaction* tx) const {
-    return getVersion(tx)->getTableSchemas(TableType::RDF);
+std::vector<RDFGraphCatalogEntry*> Catalog::getRdfGraphEntries(transaction::Transaction* tx) const {
+    return getVersion(tx)->getTableCatalogEntries<RDFGraphCatalogEntry*>(
+        CatalogEntryType::RDF_GRAPH_ENTRY);
 }
 
-std::vector<TableSchema*> Catalog::getTableSchemas(Transaction* tx) const {
-    std::vector<TableSchema*> result;
-    for (auto& [_, schema] : getVersion(tx)->tableSchemas) {
-        result.push_back(schema.get());
+std::vector<TableCatalogEntry*> Catalog::getTableEntries(transaction::Transaction* tx) const {
+    std::vector<TableCatalogEntry*> result;
+    for (auto& [_, entry] : getVersion(tx)->tables->getEntries()) {
+        result.push_back(ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry.get()));
     }
     return result;
 }
 
-std::vector<TableSchema*> Catalog::getTableSchemas(
+std::vector<TableCatalogEntry*> Catalog::getTableSchemas(
     Transaction* tx, const table_id_vector_t& tableIDs) const {
-    std::vector<TableSchema*> result;
+    std::vector<TableCatalogEntry*> result;
     for (auto tableID : tableIDs) {
-        result.push_back(getVersion(tx)->getTableSchema(tableID));
+        result.push_back(ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
+            getVersion(tx)->getTableCatalogEntry(tableID)));
     }
     return result;
 }
@@ -121,53 +123,53 @@ ExpressionType Catalog::getFunctionType(Transaction* tx, const std::string& name
 table_id_t Catalog::addNodeTableSchema(const binder::BoundCreateTableInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    return readWriteVersion->addNodeTableSchema(info);
+    return readWriteVersion->createNodeTable(info);
 }
 
 table_id_t Catalog::addRelTableSchema(const binder::BoundCreateTableInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    return readWriteVersion->addRelTableSchema(info);
+    return readWriteVersion->createRelTable(info);
 }
 
 common::table_id_t Catalog::addRelTableGroupSchema(const binder::BoundCreateTableInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    auto tableID = readWriteVersion->addRelTableGroupSchema(info);
+    auto tableID = readWriteVersion->createRelGroup(info);
     return tableID;
 }
 
 table_id_t Catalog::addRdfGraphSchema(const binder::BoundCreateTableInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    return readWriteVersion->addRdfGraphSchema(info);
+    return readWriteVersion->createRDFGraph(info);
 }
 
 void Catalog::dropTableSchema(table_id_t tableID) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    auto tableSchema = readWriteVersion->getTableSchema(tableID);
-    switch (tableSchema->tableType) {
-    case TableType::REL_GROUP: {
-        auto relTableGroupSchema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(tableSchema);
-        auto relTableIDs = relTableGroupSchema->getRelTableIDs();
-        readWriteVersion->dropTableSchema(tableID);
+    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
+    switch (tableEntry->getType()) {
+    case CatalogEntryType::REL_GROUP_ENTRY: {
+        auto nodeTableEntry = ku_dynamic_cast<CatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
+        auto relTableIDs = nodeTableEntry->getRelTableIDs();
+        readWriteVersion->dropTable(tableID);
         for (auto relTableID : relTableIDs) {
             wal->logDropTableRecord(relTableID);
         }
     } break;
-    case TableType::RDF: {
-        auto rdfGraphSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(tableSchema);
+    case CatalogEntryType::RDF_GRAPH_ENTRY: {
+        auto rdfGraphSchema = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
         auto graphID = rdfGraphSchema->getTableID();
         auto rtTableID = rdfGraphSchema->getResourceTripleTableID();
         auto ltTableID = rdfGraphSchema->getLiteralTripleTableID();
         auto rTableID = rdfGraphSchema->getResourceTableID();
         auto lTableID = rdfGraphSchema->getLiteralTableID();
-        readWriteVersion->dropTableSchema(rtTableID);
-        readWriteVersion->dropTableSchema(ltTableID);
-        readWriteVersion->dropTableSchema(rTableID);
-        readWriteVersion->dropTableSchema(lTableID);
-        readWriteVersion->dropTableSchema(graphID);
+        readWriteVersion->dropTable(rtTableID);
+        readWriteVersion->dropTable(ltTableID);
+        readWriteVersion->dropTable(rTableID);
+        readWriteVersion->dropTable(lTableID);
+        readWriteVersion->dropTable(graphID);
         wal->logDropTableRecord(rtTableID);
         wal->logDropTableRecord(ltTableID);
         wal->logDropTableRecord(rTableID);
@@ -175,7 +177,7 @@ void Catalog::dropTableSchema(table_id_t tableID) {
         wal->logDropTableRecord(graphID);
     } break;
     default: {
-        readWriteVersion->dropTableSchema(tableID);
+        readWriteVersion->dropTable(tableID);
         wal->logDropTableRecord(tableID);
     }
     }
@@ -184,18 +186,18 @@ void Catalog::dropTableSchema(table_id_t tableID) {
 void Catalog::renameTable(table_id_t tableID, const std::string& newName) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    auto tableSchema = readWriteVersion->getTableSchema(tableID);
-    switch (tableSchema->tableType) {
-    case TableType::RDF: {
-        auto rdfGraphSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(tableSchema);
-        readWriteVersion->renameTable(
-            rdfGraphSchema->getResourceTableID(), RdfGraphSchema::getResourceTableName(newName));
-        readWriteVersion->renameTable(
-            rdfGraphSchema->getLiteralTableID(), RdfGraphSchema::getLiteralTableName(newName));
+    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
+    switch (tableEntry->getType()) {
+    case CatalogEntryType::RDF_GRAPH_ENTRY: {
+        auto rdfGraphSchema = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
+        readWriteVersion->renameTable(rdfGraphSchema->getResourceTableID(),
+            RDFGraphCatalogEntry::getResourceTableName(newName));
+        readWriteVersion->renameTable(rdfGraphSchema->getLiteralTableID(),
+            RDFGraphCatalogEntry::getLiteralTableName(newName));
         readWriteVersion->renameTable(rdfGraphSchema->getResourceTripleTableID(),
-            RdfGraphSchema::getResourceTripleTableName(newName));
+            RDFGraphCatalogEntry::getResourceTripleTableName(newName));
         readWriteVersion->renameTable(rdfGraphSchema->getLiteralTripleTableID(),
-            RdfGraphSchema::getLiteralTripleTableName(newName));
+            RDFGraphCatalogEntry::getLiteralTripleTableName(newName));
         readWriteVersion->renameTable(tableID, newName);
     } break;
     default: {
@@ -208,20 +210,25 @@ void Catalog::addNodeProperty(
     table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    readWriteVersion->getTableSchema(tableID)->addProperty(propertyName, std::move(dataType));
+    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
+    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)
+        ->addProperty(propertyName, std::move(dataType));
 }
 
 void Catalog::addRelProperty(
     table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    readWriteVersion->getTableSchema(tableID)->addProperty(propertyName, std::move(dataType));
+    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
+    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)
+        ->addProperty(propertyName, std::move(dataType));
 }
 
 void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    readWriteVersion->getTableSchema(tableID)->dropProperty(propertyID);
+    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
+    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)->dropProperty(propertyID);
     wal->logDropPropertyRecord(tableID, propertyID);
 }
 
@@ -229,7 +236,9 @@ void Catalog::renameProperty(
     table_id_t tableID, property_id_t propertyID, const std::string& newName) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    readWriteVersion->getTableSchema(tableID)->renameProperty(propertyID, newName);
+    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
+    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)
+        ->renameProperty(propertyID, newName);
 }
 
 void Catalog::addFunction(std::string name, function::function_set functionSet) {
@@ -265,7 +274,8 @@ std::vector<std::string> Catalog::getMacroNames(transaction::Transaction* tx) co
 void Catalog::setTableComment(table_id_t tableID, const std::string& comment) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    readWriteVersion->getTableSchema(tableID)->setComment(comment);
+    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
+    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)->setComment(comment);
 }
 
 CatalogContent* Catalog::getVersion(Transaction* tx) const {

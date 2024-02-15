@@ -58,9 +58,9 @@ void PackedCSRRegion::setSizeChange(const std::vector<int64_t>& sizeChangesPerSe
 }
 
 CSRRelTableData::CSRRelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    BufferManager* bufferManager, WAL* wal, catalog::RelTableSchema* tableSchema,
+    BufferManager* bufferManager, WAL* wal, catalog::RelTableCatalogEntry* relTableEntry,
     RelsStoreStats* relsStoreStats, RelDataDirection direction, bool enableCompression)
-    : RelTableData{dataFH, metadataFH, bufferManager, wal, tableSchema, relsStoreStats, direction,
+    : RelTableData{dataFH, metadataFH, bufferManager, wal, relTableEntry, relsStoreStats, direction,
           enableCompression, ColumnDataFormat::CSR} {
     // No NULL values is allowed for the csr offset column.
     auto csrOffsetMetadataDAHInfo =

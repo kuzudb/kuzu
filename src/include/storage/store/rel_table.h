@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/column_data_format.h"
 #include "storage/stats/rel_table_statistics.h"
 #include "storage/store/rel_table_data.h"
@@ -19,7 +19,7 @@ struct RelDetachDeleteState {
 class RelTable final : public Table {
 public:
     RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStats* relsStoreStats,
-        MemoryManager* memoryManager, catalog::RelTableSchema* schema, WAL* wal,
+        MemoryManager* memoryManager, catalog::RelTableCatalogEntry* relTableEntry, WAL* wal,
         bool enableCompression);
 
     void initAdjColumnIfNecessary(transaction::Transaction* transaction,

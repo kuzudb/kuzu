@@ -107,7 +107,7 @@ public:
     void dropTableCommitAndRecoveryTest(
         std::string tableName, TransactionTestType transactionTestType) {
         auto tableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, tableName);
-        auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID)->copy();
+        auto tableSchema = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)->copy();
         executeQueryWithoutCommit(stringFormat("DROP TABLE {}", tableName));
         ASSERT_TRUE(catalog->containsTable(&DUMMY_READ_TRANSACTION, tableName));
         if (transactionTestType == TransactionTestType::RECOVERY) {
@@ -122,7 +122,7 @@ public:
 
     void dropNodeTableProperty(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit("ALTER TABLE person DROP gender");
-        ASSERT_TRUE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
+        ASSERT_TRUE(catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, personTableID)
                         ->containProperty("gender"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
@@ -131,7 +131,7 @@ public:
         } else {
             conn->query("COMMIT");
         }
-        ASSERT_FALSE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
+        ASSERT_FALSE(catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, personTableID)
                          ->containProperty("gender"));
         auto result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
@@ -145,7 +145,7 @@ public:
 
     void dropRelTableProperty(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit("ALTER TABLE studyAt DROP places");
-        ASSERT_TRUE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, studyAtTableID)
+        ASSERT_TRUE(catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, studyAtTableID)
                         ->containProperty("places"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
@@ -154,7 +154,7 @@ public:
         } else {
             conn->query("COMMIT");
         }
-        ASSERT_FALSE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
+        ASSERT_FALSE(catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, personTableID)
                          ->containProperty("places"));
         auto result = conn->query(
             "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
@@ -247,22 +247,24 @@ public:
 
     void renameTable(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit("ALTER TABLE person RENAME TO student");
-        ASSERT_EQ(
-            catalog->getTableSchema(&DUMMY_WRITE_TRANSACTION, personTableID)->tableName, "student");
-        ASSERT_EQ(
-            catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)->tableName, "person");
+        ASSERT_EQ(catalog->getTableCatalogEntry(&DUMMY_WRITE_TRANSACTION, personTableID)->getName(),
+            "student");
+        ASSERT_EQ(catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, personTableID)->getName(),
+            "person");
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            ASSERT_EQ(catalog->getTableSchema(&DUMMY_WRITE_TRANSACTION, personTableID)->tableName,
+            ASSERT_EQ(
+                catalog->getTableCatalogEntry(&DUMMY_WRITE_TRANSACTION, personTableID)->getName(),
                 "student");
-            ASSERT_EQ(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)->tableName,
+            ASSERT_EQ(
+                catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, personTableID)->getName(),
                 "person");
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
-        ASSERT_EQ(
-            catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)->tableName, "student");
+        ASSERT_EQ(catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, personTableID)->getName(),
+            "student");
         auto result = conn->query("MATCH (s:student) return s.age order by s.age");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
             std::vector<std::string>({"20", "20", "25", "30", "35", "40", "45", "83"}));
@@ -270,21 +272,21 @@ public:
 
     void renameProperty(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit("ALTER TABLE person RENAME fName TO name");
-        ASSERT_TRUE(catalog->getTableSchema(&DUMMY_WRITE_TRANSACTION, personTableID)
+        ASSERT_TRUE(catalog->getTableCatalogEntry(&DUMMY_WRITE_TRANSACTION, personTableID)
                         ->containProperty("name"));
-        ASSERT_TRUE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
+        ASSERT_TRUE(catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, personTableID)
                         ->containProperty("fName"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            ASSERT_TRUE(catalog->getTableSchema(&DUMMY_WRITE_TRANSACTION, personTableID)
+            ASSERT_TRUE(catalog->getTableCatalogEntry(&DUMMY_WRITE_TRANSACTION, personTableID)
                             ->containProperty("name"));
-            ASSERT_TRUE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
+            ASSERT_TRUE(catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, personTableID)
                             ->containProperty("fName"));
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
-        ASSERT_TRUE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
+        ASSERT_TRUE(catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, personTableID)
                         ->containProperty("name"));
         auto result = conn->query("MATCH (p:person) return p.name order by p.name");
         ASSERT_EQ(TestHelper::convertResultToString(*result),

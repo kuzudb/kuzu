@@ -100,7 +100,7 @@ public:
     };
 
     CSRRelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager,
-        WAL* wal, catalog::RelTableSchema* tableSchema, RelsStoreStats* relsStoreStats,
+        WAL* wal, catalog::RelTableCatalogEntry* relTableEntry, RelsStoreStats* relsStoreStats,
         common::RelDataDirection direction, bool enableCompression);
 
     void initializeReadState(transaction::Transaction* transaction,

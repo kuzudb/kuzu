@@ -1,6 +1,6 @@
 #include "processor/operator/ddl/create_rdf_graph.h"
 
-#include "catalog/rdf_graph_schema.h"
+#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "common/cast.h"
 #include "common/string_format.h"
 #include "storage/storage_manager.h"
@@ -10,30 +10,34 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace processor {
 
+using namespace kuzu::common;
+
 void CreateRdfGraph::executeDDLInternal(ExecutionContext* context) {
     auto tx = context->clientContext->getTx();
     auto newRdfGraphID = catalog->addRdfGraphSchema(info);
-    auto rdfGraphSchema = common::ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(
-        catalog->getTableSchema(tx, newRdfGraphID));
-    auto resourceTableID = rdfGraphSchema->getResourceTableID();
-    auto resourceTableSchema = common::ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
-        catalog->getTableSchema(tx, resourceTableID));
-    nodesStatistics->addNodeStatisticsAndDeletedIDs(resourceTableSchema);
+    auto rdfGraphEntry = common::ku_dynamic_cast<TableCatalogEntry*, RDFGraphCatalogEntry*>(
+        catalog->getTableCatalogEntry(tx, newRdfGraphID));
+    auto resourceTableID = rdfGraphEntry->getResourceTableID();
+    auto resourceTableEntry = common::ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(
+        catalog->getTableCatalogEntry(tx, resourceTableID));
+    nodesStatistics->addNodeStatisticsAndDeletedIDs(resourceTableEntry);
     storageManager->createTable(resourceTableID, catalog, tx);
-    auto literalTableID = rdfGraphSchema->getLiteralTableID();
-    auto literalTableSchema = common::ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
-        catalog->getTableSchema(tx, literalTableID));
-    nodesStatistics->addNodeStatisticsAndDeletedIDs(literalTableSchema);
+    auto literalTableID = rdfGraphEntry->getLiteralTableID();
+    auto literalTableEntry = common::ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(
+        catalog->getTableCatalogEntry(tx, literalTableID));
+    nodesStatistics->addNodeStatisticsAndDeletedIDs(literalTableEntry);
     storageManager->createTable(literalTableID, catalog, tx);
-    auto resourceTripleTableID = rdfGraphSchema->getResourceTripleTableID();
-    auto resourceTripleTableSchema = common::ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-        catalog->getTableSchema(tx, resourceTripleTableID));
-    relsStatistics->addTableStatistic(resourceTripleTableSchema);
+    auto resourceTripleTableID = rdfGraphEntry->getResourceTripleTableID();
+    auto resourceTripleTableEntry =
+        common::ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+            catalog->getTableCatalogEntry(tx, resourceTripleTableID));
+    relsStatistics->addTableStatistic(resourceTripleTableEntry);
     storageManager->createTable(resourceTripleTableID, catalog, tx);
-    auto literalTripleTableID = rdfGraphSchema->getLiteralTripleTableID();
-    auto literalTripleTableSchema = common::ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-        catalog->getTableSchema(tx, literalTripleTableID));
-    relsStatistics->addTableStatistic(literalTripleTableSchema);
+    auto literalTripleTableID = rdfGraphEntry->getLiteralTripleTableID();
+    auto literalTripleTableEntry =
+        common::ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+            catalog->getTableCatalogEntry(tx, literalTripleTableID));
+    relsStatistics->addTableStatistic(literalTripleTableEntry);
     storageManager->createTable(literalTripleTableID, catalog, tx);
     storageManager->getWAL()->logRdfGraphRecord(newRdfGraphID, resourceTableID, literalTableID,
         resourceTripleTableID, literalTripleTableID);

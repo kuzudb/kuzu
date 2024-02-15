@@ -4,7 +4,7 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/join_type.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
@@ -33,27 +33,27 @@ static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& b
         return false;
     }
     auto relDirection = ExtendDirectionUtils::getRelDataDirection(direction);
-    auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-        catalog.getTableSchema(&DUMMY_READ_TRANSACTION, rel.getSingleTableID()));
-    return relTableSchema->isSingleMultiplicity(relDirection);
+    auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+        catalog.getTableCatalogEntry(&DUMMY_READ_TRANSACTION, rel.getSingleTableID()));
+    return relTableEntry->isSingleMultiplicity(relDirection);
 }
 
 static std::unordered_set<table_id_t> getBoundNodeTableIDSet(
     const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
     std::unordered_set<table_id_t> result;
     for (auto tableID : rel.getTableIDs()) {
-        auto tableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-            catalog.getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
+        auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+            catalog.getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
-            result.insert(tableSchema->getBoundTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry->getBoundTableID(RelDataDirection::FWD));
         } break;
         case ExtendDirection::BWD: {
-            result.insert(tableSchema->getBoundTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry->getBoundTableID(RelDataDirection::BWD));
         } break;
         case ExtendDirection::BOTH: {
-            result.insert(tableSchema->getBoundTableID(RelDataDirection::FWD));
-            result.insert(tableSchema->getBoundTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry->getBoundTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry->getBoundTableID(RelDataDirection::BWD));
         } break;
         default:
             KU_UNREACHABLE;
@@ -66,18 +66,18 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
     const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
     std::unordered_set<table_id_t> result;
     for (auto tableID : rel.getTableIDs()) {
-        auto tableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-            catalog.getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
+        auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+            catalog.getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
-            result.insert(tableSchema->getNbrTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry->getNbrTableID(RelDataDirection::FWD));
         } break;
         case ExtendDirection::BWD: {
-            result.insert(tableSchema->getNbrTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry->getNbrTableID(RelDataDirection::BWD));
         } break;
         case ExtendDirection::BOTH: {
-            result.insert(tableSchema->getNbrTableID(RelDataDirection::FWD));
-            result.insert(tableSchema->getNbrTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry->getNbrTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry->getNbrTableID(RelDataDirection::BWD));
         } break;
         default:
             KU_UNREACHABLE;

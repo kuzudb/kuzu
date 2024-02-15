@@ -1,0 +1,12 @@
+add_library(kuzu_catalog_entry
+        OBJECT
+        catalog_entry.cpp
+        table_catalog_entry.cpp
+        node_table_catalog_entry.cpp
+        rel_table_catalog_entry.cpp
+        rel_group_catalog_entry.cpp
+        rdf_graph_catalog_entry.cpp)
+
+set(ALL_OBJECT_FILES
+        ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_catalog_entry>
+        PARENT_SCOPE)

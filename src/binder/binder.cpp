@@ -169,8 +169,9 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuer
 }
 
 void Binder::validateTableType(table_id_t tableID, TableType expectedTableType) {
-    if (catalog.getTableSchema(clientContext->getTx(), tableID)->tableType != expectedTableType) {
-        throw BinderException("aa");
+    if (catalog.getTableCatalogEntry(clientContext->getTx(), tableID)->getTableType() !=
+        expectedTableType) {
+        throw BinderException("Table type mismatch.");
     }
 }
 

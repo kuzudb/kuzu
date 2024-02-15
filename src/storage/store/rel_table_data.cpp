@@ -75,10 +75,10 @@ std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset() {
 }
 
 RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    BufferManager* bufferManager, WAL* wal, RelTableSchema* tableSchema,
+    BufferManager* bufferManager, WAL* wal, RelTableCatalogEntry* tableEntry,
     RelsStoreStats* relsStoreStats, RelDataDirection direction, bool enableCompression,
     ColumnDataFormat dataFormat)
-    : TableData{dataFH, metadataFH, tableSchema->tableID, bufferManager, wal, enableCompression,
+    : TableData{dataFH, metadataFH, tableEntry->getTableID(), bufferManager, wal, enableCompression,
           dataFormat},
       direction{direction} {
     auto adjMetadataDAHInfo =
@@ -88,7 +88,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     adjColumn = ColumnFactory::createColumn(adjColName, *LogicalType::INTERNAL_ID(),
         *adjMetadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
         RWPropertyStats::empty(), enableCompression);
-    auto& properties = tableSchema->getPropertiesRef();
+    auto& properties = tableEntry->getPropertiesRef();
     columns.reserve(properties.size());
     for (auto i = 0u; i < properties.size(); i++) {
         auto& property = properties[i];
@@ -103,7 +103,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     }
     // Set common tableID for adjColumn and relIDColumn.
     dynamic_cast<InternalIDColumn*>(adjColumn.get())
-        ->setCommonTableID(tableSchema->getNbrTableID(direction));
+        ->setCommonTableID(tableEntry->getNbrTableID(direction));
     dynamic_cast<InternalIDColumn*>(columns[REL_ID_COLUMN_ID].get())->setCommonTableID(tableID);
 }
 

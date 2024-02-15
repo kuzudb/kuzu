@@ -33,7 +33,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
                     columns.push_back(UINT32_MAX);
                 } else {
                     columns.push_back(
-                        catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, tableID)
+                        catalog->getTableCatalogEntry(&transaction::DUMMY_READ_TRANSACTION, tableID)
                             ->getColumnID(property->getPropertyID(tableID)));
                 }
             }
@@ -45,7 +45,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
             scanProperty.getExpressionsForPrinting());
     } else {
         auto tableID = tableIDs[0];
-        auto tableSchema = catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, tableID);
+        auto tableSchema =
+            catalog->getTableCatalogEntry(&transaction::DUMMY_READ_TRANSACTION, tableID);
         std::vector<column_id_t> columnIDs;
         for (auto& expression : scanProperty.getProperties()) {
             auto property = static_pointer_cast<PropertyExpression>(expression);

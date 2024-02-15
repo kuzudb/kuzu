@@ -18,7 +18,7 @@ namespace storage {
 
 class NodeTableStatsAndDeletedIDs : public TableStatistics {
 public:
-    NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH, const catalog::TableSchema& schema,
+    NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH, const catalog::TableCatalogEntry& entry,
         BufferManager* bufferManager, WAL* wal);
     NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
         const std::vector<common::offset_t>& deletedNodeOffsets);

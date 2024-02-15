@@ -2,7 +2,7 @@
 
 #include "binder/bound_statement.h"
 #include "bound_file_scan_info.h"
-#include "catalog/table_schema.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "index_look_up_info.h"
 
 namespace kuzu {
@@ -14,21 +14,21 @@ struct ExtraBoundCopyFromInfo {
 };
 
 struct BoundCopyFromInfo {
-    catalog::TableSchema* tableSchema;
+    catalog::TableCatalogEntry* tableEntry;
     std::unique_ptr<BoundFileScanInfo> fileScanInfo;
     bool containsSerial;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
 
-    BoundCopyFromInfo(catalog::TableSchema* tableSchema,
+    BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundFileScanInfo> fileScanInfo, bool containsSerial,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
-        : tableSchema{tableSchema}, fileScanInfo{std::move(fileScanInfo)},
+        : tableEntry{tableEntry}, fileScanInfo{std::move(fileScanInfo)},
           containsSerial{containsSerial}, extraInfo{std::move(extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCopyFromInfo);
 
 private:
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
-        : tableSchema{other.tableSchema}, containsSerial{other.containsSerial} {
+        : tableEntry{other.tableEntry}, containsSerial{other.containsSerial} {
         if (other.fileScanInfo) {
             fileScanInfo = std::make_unique<BoundFileScanInfo>(other.fileScanInfo->copy());
         }
