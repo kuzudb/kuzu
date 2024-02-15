@@ -1,5 +1,7 @@
 #include "storage/index/hash_index_builder.h"
 
+#include <fcntl.h>
+
 #include <cstring>
 
 #include "common/type_utils.h"
@@ -263,10 +265,12 @@ PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
         keyDataTypeID,
         [&]<IndexHashable T>(T) {
             if constexpr (std::is_same_v<T, ku_string_t>) {
+                auto overflowFileInfo = std::shared_ptr(vfs->openFile(
+                    StorageUtils::getOverflowFileName(fileHandle->getFileInfo()->path),
+                    O_CREAT | O_WRONLY));
                 for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                    auto overflowFile = std::make_unique<InMemFile>(
-                        StorageUtils::getOverflowFileName(fileHandle->getFileInfo()->path), vfs,
-                        overflowPageCounter);
+                    auto overflowFile =
+                        std::make_unique<InMemFile>(overflowFileInfo, overflowPageCounter);
                     hashIndexBuilders.push_back(
                         std::make_unique<HashIndexBuilder<std::string_view, ku_string_t>>(
                             fileHandle, std::move(overflowFile), i, keyDataType));
