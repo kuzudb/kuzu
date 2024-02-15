@@ -169,49 +169,25 @@ void WALReplayer::replayCatalogRecord() {
 }
 
 void WALReplayer::replayCreateTableRecord(const WALRecord& walRecord) {
-    if (isCheckpoint) {
-        // Since we log the NODE_TABLE_RECORD prior to logging CATALOG_RECORD, the catalog
-        // file has not recovered yet. Thus, the catalog needs to read the catalog file for WAL
-        // record.
-        auto catalogForCheckpointing = getCatalogForRecovery(FileVersionType::WAL_VERSION);
-        if (walRecord.copyTableRecord.tableType == TableType::NODE) {
-            auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
-                catalogForCheckpointing->getTableSchema(
-                    &DUMMY_READ_TRANSACTION, walRecord.createTableRecord.tableID));
-            WALReplayerUtils::createEmptyHashIndexFiles(nodeTableSchema, wal->getDirectory(), vfs);
-        }
-        if (!isRecovering) {
-            // If we are not recovering, i.e., we are checkpointing during normal execution,
-            // then we need to create the NodeTable object for the newly created node table.
-            // Therefore, this effectively fixes the in-memory data structures (i.e., performs
-            // the in-memory checkpointing).
-            storageManager->createTable(walRecord.createTableRecord.tableID,
-                catalogForCheckpointing.get(), &DUMMY_READ_TRANSACTION);
-        }
-    } else {
-        // Since DDL statements are single statements that are auto committed, it is
-        // impossible for users to roll back a DDL statement.
+    if (!isCheckpoint) {
+        storageManager->dropTable(walRecord.createTableRecord.tableID);
     }
 }
 
 void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {
-    if (isCheckpoint) {
-        WALRecord resourceTableWALRecord = {.recordType = WALRecordType::CREATE_TABLE_RECORD,
-            .createTableRecord = walRecord.rdfGraphRecord.resourceTableRecord};
-        replayCreateTableRecord(resourceTableWALRecord);
-        WALRecord literalTableWALRecord = {.recordType = WALRecordType::CREATE_TABLE_RECORD,
-            .createTableRecord = walRecord.rdfGraphRecord.literalTableRecord};
-        replayCreateTableRecord(literalTableWALRecord);
+    WALRecord resourceTableWALRecord = {.recordType = WALRecordType::CREATE_TABLE_RECORD,
+        .createTableRecord = walRecord.rdfGraphRecord.resourceTableRecord};
+    replayCreateTableRecord(resourceTableWALRecord);
+    WALRecord literalTableWALRecord = {.recordType = WALRecordType::CREATE_TABLE_RECORD,
+        .createTableRecord = walRecord.rdfGraphRecord.literalTableRecord};
+    replayCreateTableRecord(literalTableWALRecord);
 
-        WALRecord resourceTripleTableWALRecord = {.recordType = WALRecordType::CREATE_TABLE_RECORD,
-            .createTableRecord = walRecord.rdfGraphRecord.resourceTripleTableRecord};
-        replayCreateTableRecord(resourceTripleTableWALRecord);
-        WALRecord literalTripleTableWALRecord = {.recordType = WALRecordType::CREATE_TABLE_RECORD,
-            .createTableRecord = walRecord.rdfGraphRecord.literalTripleTableRecord};
-        replayCreateTableRecord(literalTripleTableWALRecord);
-    } else {
-        // See comments for NODE_TABLE_RECORD.
-    }
+    WALRecord resourceTripleTableWALRecord = {.recordType = WALRecordType::CREATE_TABLE_RECORD,
+        .createTableRecord = walRecord.rdfGraphRecord.resourceTripleTableRecord};
+    replayCreateTableRecord(resourceTripleTableWALRecord);
+    WALRecord literalTripleTableWALRecord = {.recordType = WALRecordType::CREATE_TABLE_RECORD,
+        .createTableRecord = walRecord.rdfGraphRecord.literalTripleTableRecord};
+    replayCreateTableRecord(literalTripleTableWALRecord);
 }
 
 void WALReplayer::replayOverflowFileNextBytePosRecord(const WALRecord& walRecord) {

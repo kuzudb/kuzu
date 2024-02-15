@@ -22,6 +22,10 @@ public:
         MemoryManager* memoryManager, catalog::RelTableSchema* schema, WAL* wal,
         bool enableCompression);
 
+    void initAdjColumnIfNecessary(transaction::Transaction* transaction,
+        common::table_id_t srcTableID, common::table_id_t dstTableID,
+        InMemDiskArray<ColumnChunkMetadata>* srcPKMetadataDA,
+        InMemDiskArray<ColumnChunkMetadata>* dstPKMetadataDA);
     inline void initializeReadState(transaction::Transaction* transaction,
         common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs,
         common::ValueVector* inNodeIDVector, RelDataReadState* readState) {

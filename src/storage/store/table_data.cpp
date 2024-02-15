@@ -15,8 +15,7 @@ void TableData::addColumn(Transaction* transaction, const std::string& colNamePr
     auto column = ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
         metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, transaction,
         RWPropertyStats(tablesStats, tableID, property.getPropertyID()), enableCompression);
-    column->populateWithDefaultVal(
-        property, column.get(), metadataDA, defaultValueVector, getNumNodeGroups(transaction));
+    column->populateWithDefaultVal(transaction, metadataDA, defaultValueVector);
     columns.push_back(std::move(column));
 }
 

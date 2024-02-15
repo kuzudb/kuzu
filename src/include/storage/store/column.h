@@ -85,9 +85,8 @@ public:
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 
-    void populateWithDefaultVal(const catalog::Property& property, Column* column,
-        InMemDiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector,
-        uint64_t numNodeGroups) const;
+    void populateWithDefaultVal(transaction::Transaction* transaction,
+        InMemDiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector);
 
     inline ColumnChunkMetadata getMetadata(
         common::node_group_idx_t nodeGroupIdx, transaction::TransactionType transaction) const {

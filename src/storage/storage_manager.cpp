@@ -3,6 +3,7 @@
 #include "catalog/rdf_graph_schema.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/wal_replayer.h"
+#include "storage/wal_replayer_utils.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -46,7 +47,7 @@ static void setCommonTableIDToRdfRelTable(RelTable* relTable, std::vector<TableS
     }
 }
 
-void StorageManager::loadTables(bool readOnly, const catalog::Catalog& catalog) {
+void StorageManager::loadTables(bool readOnly, const Catalog& catalog) {
     for (auto& schema : catalog.getNodeTableSchemas(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(schema->tableID));
         auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(schema);
@@ -65,22 +66,39 @@ void StorageManager::loadTables(bool readOnly, const catalog::Catalog& catalog) 
     }
 }
 
-void StorageManager::createTable(
-    common::table_id_t tableID, Catalog* catalog, Transaction* transaction) {
+void StorageManager::createNodeTable(table_id_t tableID, TableSchema* tableSchema) {
+    auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
+    WALReplayerUtils::createEmptyHashIndexFiles(nodeTableSchema, wal->getDirectory(), vfs);
+    tables[tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(), nodeTableSchema,
+        nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal, false /* readOnly */,
+        enableCompression, vfs);
+}
+
+void StorageManager::createRelTable(
+    table_id_t tableID, TableSchema* tableSchema, Catalog* catalog, Transaction* transaction) {
+    auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema);
+    auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(), relsStatistics.get(),
+        &memoryManager, relTableSchema, wal, enableCompression);
+    auto srcTableID = relTableSchema->getSrcTableID();
+    auto dstTableID = relTableSchema->getDstTableID();
+    auto srcTable = ku_dynamic_cast<Table*, NodeTable*>(tables[srcTableID].get());
+    auto dstTable = ku_dynamic_cast<Table*, NodeTable*>(tables[dstTableID].get());
+    auto srcPKMetadataDA = srcTable->getColumn(srcTable->getPKColumnID())->getMetadataDA();
+    auto dstPKMetadataDA = dstTable->getColumn(dstTable->getPKColumnID())->getMetadataDA();
+    relTable->initAdjColumnIfNecessary(
+        transaction, srcTableID, dstTableID, srcPKMetadataDA, dstPKMetadataDA);
+    setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphSchemas(transaction));
+    tables[tableID] = std::move(relTable);
+}
+
+void StorageManager::createTable(table_id_t tableID, Catalog* catalog, Transaction* transaction) {
     auto tableSchema = catalog->getTableSchema(transaction, tableID);
     switch (tableSchema->tableType) {
     case TableType::NODE: {
-        auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
-        tables[tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
-            nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal,
-            false /* readOnly */, enableCompression, vfs);
+        createNodeTable(tableID, tableSchema);
     } break;
     case TableType::REL: {
-        auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema);
-        auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
-            relsStatistics.get(), &memoryManager, relTableSchema, wal, enableCompression);
-        setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphSchemas(transaction));
-        tables[tableID] = std::move(relTable);
+        createRelTable(tableID, tableSchema, catalog, transaction);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -101,6 +119,7 @@ void StorageManager::dropTable(table_id_t tableID) {
     switch (tableType) {
     case TableType::NODE: {
         nodesStatisticsAndDeletedIDs->removeTableStatistic(tableID);
+        WALReplayerUtils::removeHashIndexFile(vfs, tableID, wal->getDirectory());
     } break;
     case TableType::REL: {
         relsStatistics->removeTableStatistic(tableID);

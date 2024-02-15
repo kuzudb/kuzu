@@ -14,11 +14,12 @@ namespace processor {
 void CreateRelTableGroup::executeDDLInternal(ExecutionContext* context) {
     auto newRelTableGroupID = catalog->addRelTableGroupSchema(info);
     auto tx = context->clientContext->getTx();
-    auto newRelTableGroupSchema =
-        reinterpret_cast<RelTableGroupSchema*>(catalog->getTableSchema(tx, newRelTableGroupID));
+    auto newRelTableGroupSchema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(
+        catalog->getTableSchema(tx, newRelTableGroupID));
     for (auto& relTableID : newRelTableGroupSchema->getRelTableIDs()) {
         auto newRelTableSchema = catalog->getTableSchema(tx, relTableID);
         storageManager->getRelsStatistics()->addTableStatistic((RelTableSchema*)newRelTableSchema);
+        storageManager->createTable(relTableID, catalog, tx);
     }
     // TODO(Ziyi): remove this when we can log variable size record. See also wal_record.h
     for (auto relTableID : newRelTableGroupSchema->getRelTableIDs()) {
