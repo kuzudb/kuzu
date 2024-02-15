@@ -1,0 +1,82 @@
+name: LDBC-SNB-Interactive-V1-Benchmark
+
+env:
+  RUNTIME_CHECKS: 1
+  WERROR: 1
+
+on:
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: interactive-v1-benchmark
+    runs-on: kuzu-self-hosted-benchmarking
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Build Kuzu
+      run: |
+        pip3 install -r tools/python_api/requirements_dev.txt
+        make python NUM_THREADS=$(nproc)
+        make java NUM_THREADS=$(nproc)
+    
+    - name: Update Driver
+      run: |
+        cd $SERIALIZED_DIR
+        if ! test -d ldbc_snb_interactive_v1_driver; then
+          echo "Driver repo not found. Cloning from remote."
+          git clone https://github.com/ldbc/ldbc_snb_interactive_v1_driver
+          cd ldbc_snb_interactive_v1_driver
+          mvn clean install -DskipTests
+        else
+          cd ldbc_snb_interactive_v1_driver
+        fi
+        git fetch
+        if [[ $(git rev-parse HEAD) != $(git rev-parse origin) ]]; then
+          echo "Local driver is not up to date with remote. Updating driver."
+          git pull
+          mvn clean install -DskipTests
+        fi
+    
+    - name: Update Implementation
+      run: |
+        cd $SERIALIZED_DIR
+        if ! test -d ldbc_snb_interactive_v1_impl; then
+          echo "Implementation repo not found. Cloning from remote."
+          git clone https://${{ secrets.DOC_PUSH_TOKEN }}@github.com/kuzudb/ldbc_snb_interactive_v1_impl
+          cd ldbc_snb_interactive_v1_impl
+          cp ${{ github.workspace }}/tools/java_api/build/kuzu_java.jar kuzu/src/main/resources/
+          scripts/build.sh
+        else
+          cd ldbc_snb_interactive_v1_impl
+        fi
+        git fetch
+        if [[ $(git rev-parse HEAD) != $(git rev-parse origin) ]]; then
+          echo "Local implementation is not up to date with remote. Updating implementation."
+          git restore .
+          git pull
+          cp ${{ github.workspace }}/tools/java_api/build/kuzu_java.jar kuzu/src/main/resources/
+          scripts/build.sh
+        fi
+
+    - name: Load Database
+      run: |
+        cd $SERIALIZED_DIR/ldbc_snb_interactive_v1_impl/kuzu
+        export KUZU_CSV_DIR="$CSV_DIR/interactive-v1-dataset/social_network-sf1-CsvComposite-LongDateFormatter/"
+        workflow_scripts/load-in-one-step.sh
+
+    - name: Run Benchmark
+      run: |
+        export KUZU_CSV_DIR="$CSV_DIR/interactive-v1-dataset/social_network-sf1-CsvComposite-LongDateFormatter/"
+        cd $SERIALIZED_DIR/ldbc_snb_interactive_v1_impl/kuzu
+        echo "ldbc.snb.interactive.updates_dir=$CSV_DIR/interactive-v1-dataset/social_network-sf1-CsvComposite-LongDateFormatter/" >> driver/benchmark.properties
+        echo "ldbc.snb.interactive.parameters_dir=$CSV_DIR/interactive-v1-dataset/substitution_parameters-sf1/" >> driver/benchmark.properties
+        driver/benchmark.sh
+        cat results/LDBC-SNB-results.json > /tmp/interactive-v1-results.json
+
+    - name: Submit Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: LDBC-SNB-interactive-v1-results
+        path: /tmp/interactive-v1-results.json
