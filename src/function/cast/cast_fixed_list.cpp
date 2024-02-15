@@ -103,19 +103,9 @@ static void CastFixedListToString(
     if (param.isNull(pos)) {
         return;
     }
-    std::string result = "[";
-    auto numValuesPerList = FixedListType::getNumValuesInList(&param.dataType);
-    auto childType = FixedListType::getChildType(&param.dataType);
-    auto values = param.getData() + pos * param.getNumBytesPerValue();
-    for (auto i = 0u; i < numValuesPerList - 1; ++i) {
-        // Note: FixedList can only store numeric types and doesn't allow nulls.
-        result += TypeUtils::castValueToString(*childType, values, nullptr /* vector */);
-        result += ",";
-        values += PhysicalTypeUtils::getFixedTypeSize(childType->getPhysicalType());
-    }
-    result += TypeUtils::castValueToString(*childType, values, nullptr /* vector */);
-    result += "]";
-    resultVector.setValue(resultPos, result);
+    auto value = param.getData() + pos * param.getNumBytesPerValue();
+    auto result = TypeUtils::fixedListToString(value, param.dataType, &param);
+    StringVector::addString(&resultVector, resultPos, result);
 }
 
 template<>

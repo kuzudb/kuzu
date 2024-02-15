@@ -469,8 +469,15 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
         func =
             ScalarFunction::UnaryCastExecFunction<map_entry_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
-    case LogicalTypeID::NODE:
-    case LogicalTypeID::REL:
+    case LogicalTypeID::NODE: {
+        func = ScalarFunction::UnaryCastExecFunction<struct_entry_t, ku_string_t, CastNodeToString,
+            EXECUTOR>;
+    } break;
+    case LogicalTypeID::REL: {
+        func = ScalarFunction::UnaryCastExecFunction<struct_entry_t, ku_string_t, CastRelToString,
+            EXECUTOR>;
+    } break;
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT: {
         func = ScalarFunction::UnaryCastExecFunction<struct_entry_t, ku_string_t, CastToString,
             EXECUTOR>;
@@ -479,7 +486,6 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
         func = ScalarFunction::UnaryCastExecFunction<union_entry_t, ku_string_t, CastToString,
             EXECUTOR>;
     } break;
-        // ToDo(Kebing): RECURSIVE_REL to string
     default:
         KU_UNREACHABLE;
     }
