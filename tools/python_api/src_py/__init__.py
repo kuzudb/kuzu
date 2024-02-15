@@ -37,6 +37,10 @@ The dataset used in this example can be found [here](https://github.com/kuzudb/k
 
 """
 
+import sys
+import os
+sys.setdlopenflags(os.RTLD_GLOBAL | os.RTLD_NOW)
+
 from .database import *
 from .connection import *
 from .query_result import *
