@@ -185,8 +185,11 @@ public:
         KU_UNREACHABLE;
     }
 
-    void append(ColumnChunk* /*columnChunk*/, uint64_t nodeGroupIdx) override {
+    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override {
+        ColumnChunkMetadata metadata;
+        metadata.numValues = columnChunk->getNumValues();
         metadataDA->resize(nodeGroupIdx + 1);
+        metadataDA->update(nodeGroupIdx, metadata);
     }
 };
 

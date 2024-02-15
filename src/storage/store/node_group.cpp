@@ -102,6 +102,7 @@ uint64_t NodeGroup::append(const std::vector<ValueVector*>& columnVectors,
     for (auto i = 0u; i < chunks.size(); i++) {
         auto chunk = chunks[i].get();
         if (chunk->getDataType().getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
+            chunk->setNumValues(chunk->getNumValues() + numValuesToAppendInChunk);
             serialSkip++;
             continue;
         }
