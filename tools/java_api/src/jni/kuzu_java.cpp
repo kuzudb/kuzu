@@ -166,7 +166,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1native_1reload_1library(
     env->ReleaseStringUTFChars(lib_path, path);
     if (handle == nullptr) {
         jclass Exception = env->FindClass("java/lang/Exception");
-        auto error = dlerror();
+        auto error = dlerror(); // NOLINT(concurrency-mt-unsafe): load can only be executed in single thread.
         env->ThrowNew(Exception, error);
     }
 #endif
