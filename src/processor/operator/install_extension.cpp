@@ -25,7 +25,7 @@ std::string InstallExtension::tryDownloadExtension() {
     auto extensionRepoInfo = ExtensionUtils::getExtensionRepoInfo(name);
     httplib::Client cli(extensionRepoInfo.hostURL.c_str());
     httplib::Headers headers = {
-        {"User-Agent", common::stringFormat("kuzu/v{}", KUZU_RELEASE_VERSION)}};
+        {"User-Agent", common::stringFormat("kuzu/v{}", KUZU_EXTENSION_VERSION)}};
     auto res = cli.Get(extensionRepoInfo.hostPath.c_str(), headers);
     if (!res || res->status != 200) {
         if (res.error() == httplib::Error::Success) {
