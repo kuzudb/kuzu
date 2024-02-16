@@ -1,5 +1,11 @@
 #include <unordered_map>
 
+#ifdef _WIN32
+// Do nothing on Windows
+#else
+#include <dlfcn.h>
+#endif
+
 // This header is generated at build time. See CMakeLists.txt.
 #include "com_kuzudb_KuzuNative.h"
 #include "common/exception/conversion.h"
@@ -149,6 +155,22 @@ std::unordered_map<std::string, std::unique_ptr<Value>> javaMapToCPPMap(
 /**
  * All Database native functions
  */
+//     protected static native void kuzu_native_reload_library(String lib_path);
+JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1native_1reload_1library(
+    JNIEnv* env, jclass, jstring lib_path) {
+#ifdef _WIN32
+// Do nothing on Windows
+#else
+    const char* path = env->GetStringUTFChars(lib_path, JNI_FALSE);
+    void* handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
+    env->ReleaseStringUTFChars(lib_path, path);
+    if (handle == nullptr) {
+        jclass Exception = env->FindClass("java/lang/Exception");
+        auto error = dlerror(); // NOLINT(concurrency-mt-unsafe): load can only be executed in single thread.
+        env->ThrowNew(Exception, error);
+    }
+#endif
+}
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1init(JNIEnv* env, jclass,
     jstring database_path, jlong buffer_pool_size, jboolean enable_compression,
