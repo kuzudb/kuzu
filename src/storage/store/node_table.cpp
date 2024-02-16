@@ -187,6 +187,7 @@ void NodeTable::insertPK(ValueVector* nodeIDVector, ValueVector* primaryKeyVecto
                 [&](ku_string_t) {
                     pkStr = primaryKeyVector->getValue<ku_string_t>(pkPos).getAsString();
                 },
+                [](TypeUtils::unsupported_type_t) { KU_UNREACHABLE; },
                 [&]<typename T>(
                     T) { pkStr = TypeUtils::toString(primaryKeyVector->getValue<T>(pkPos)); });
             throw RuntimeException(ExceptionMessage::duplicatePKException(pkStr));

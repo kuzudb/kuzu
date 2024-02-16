@@ -1,5 +1,9 @@
 #include "storage/store/null_column.h"
 
+#include <algorithm>
+
+#include "storage/compression/compression.h"
+
 namespace kuzu {
 namespace storage {
 
@@ -11,7 +15,9 @@ struct NullColumnFunc {
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read off the end of the page.
         if (metadata.isConstant()) {
-            auto value = ConstantCompression::getValue<bool>(metadata);
+            bool value;
+            ConstantCompression::decompressValues(reinterpret_cast<uint8_t*>(&value), 0 /*offset*/,
+                1 /*numValues*/, PhysicalTypeID::BOOL, 1 /*numBytesPerValue*/, metadata);
             resultVector->setNullRange(posInVector, numValuesToRead, value);
         } else {
             resultVector->setNullFromBits(
@@ -119,43 +125,43 @@ bool NullColumn::isNull(
 }
 
 void NullColumn::setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, uint64_t value) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
     // Must be aligned to an 8-byte chunk for NullMask read to not overflow
-    writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, reinterpret_cast<const uint8_t*>(&value));
-    if (offsetInChunk >= chunkMeta.numValues) {
-        chunkMeta.numValues = offsetInChunk + 1;
-        metadataDA->update(nodeGroupIdx, chunkMeta);
-    }
+    writeValues(state, nodeGroupIdx, offsetInChunk, reinterpret_cast<const uint8_t*>(&value));
+    updateStatistics(state.metadata, nodeGroupIdx, offsetInChunk, StorageValue((bool)value),
+        StorageValue((bool)value));
 }
 
 void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
     ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-    writeValue(chunkMeta, nodeGroupIdx, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
+    writeValue(state, nodeGroupIdx, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
     if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
         propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
     }
-    if (offsetInChunk >= chunkMeta.numValues) {
-        chunkMeta.numValues = offsetInChunk + 1;
-        metadataDA->update(nodeGroupIdx, chunkMeta);
-    }
+    auto value = StorageValue(vectorToWriteFrom->isNull(posInVectorToWriteFrom));
+    updateStatistics(state.metadata, nodeGroupIdx, offsetInChunk, value, value);
 }
 
 void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
     kuzu::storage::ColumnChunk* data, offset_t dataOffset, length_t numValues) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-    writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, data->getData(), dataOffset, numValues);
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
+    writeValues(state, nodeGroupIdx, offsetInChunk, data->getData(), dataOffset, numValues);
     auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(data);
+    KU_ASSERT(numValues > 0);
+    bool min = nullChunk->isNull(dataOffset);
+    bool max = min;
     for (auto i = 0u; i < numValues; i++) {
         if (nullChunk->isNull(dataOffset + i)) {
+            max = true;
             propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
+        } else {
+            min = false;
         }
     }
-    if (offsetInChunk + numValues > chunkMeta.numValues) {
-        chunkMeta.numValues = offsetInChunk + numValues;
-        metadataDA->update(nodeGroupIdx, chunkMeta);
-    }
+    updateStatistics(state.metadata, nodeGroupIdx, offsetInChunk + numValues, StorageValue(min),
+        StorageValue(max));
 }
 
 bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/store/dictionary_chunk.h"
 #include "storage/store/dictionary_column.h"
 
 namespace kuzu {
@@ -21,9 +22,15 @@ public:
 
     void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx) override;
 
-    void writeValue(const ColumnChunkMetadata& chunkMeta, common::node_group_idx_t nodeGroupIdx,
+    void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
+        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
+
+    inline void writeValue(const ReadState& chunkMeta, common::node_group_idx_t nodeGroupIdx,
         common::offset_t offsetInChunk, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom) override;
+        uint32_t posInVectorToWriteFrom) override {
+        writeStringValue(
+            chunkMeta, nodeGroupIdx, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
+    }
 
     void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
         ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues) override;
@@ -46,6 +53,10 @@ protected:
 
     void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) override;
+
+    DictionaryChunk::string_index_t writeStringValue(const ReadState& chunkMeta,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
+        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
 
 private:
     bool canCommitInPlace(transaction::Transaction* transaction,

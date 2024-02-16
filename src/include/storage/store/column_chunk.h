@@ -12,7 +12,6 @@ namespace kuzu {
 namespace storage {
 
 class NullColumnChunk;
-class CompressionAlg;
 
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx;
@@ -20,7 +19,9 @@ struct ColumnChunkMetadata {
     uint64_t numValues;
     CompressionMetadata compMeta;
 
-    ColumnChunkMetadata() : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{UINT64_MAX} {}
+    ColumnChunkMetadata()
+        : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{UINT64_MAX},
+          compMeta(StorageValue(), StorageValue(), CompressionType::CONSTANT) {}
     ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages,
         uint64_t numNodesInChunk, const CompressionMetadata& compMeta)
         : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
@@ -125,7 +126,8 @@ protected:
     std::function<ColumnChunkMetadata(
         const uint8_t*, uint64_t, BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>
         flushBufferFunction;
-    std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, uint64_t, uint64_t)>
+    std::function<ColumnChunkMetadata(
+        const uint8_t*, uint64_t, uint64_t, uint64_t, StorageValue, StorageValue)>
         getMetadataFunction;
     bool enableCompression;
 };

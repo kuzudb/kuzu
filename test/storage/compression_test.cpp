@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "gtest/gtest.h"
 #include "storage/compression/compression.h"
 
@@ -11,7 +13,9 @@ void test_compression(CompressionAlg& alg, std::vector<T> src) {
     auto pageSize = 4096;
     std::vector<uint8_t> dest(pageSize);
 
-    auto metadata = alg.getCompressionMetadata((uint8_t*)src.data(), src.size());
+    const auto& [min, max] = std::minmax_element(src.begin(), src.end());
+    auto metadata =
+        CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
     // For simplicity, we'll ignore the possibility of it requiring multiple pages
     // That's tested separately
 
@@ -117,7 +121,9 @@ TEST(CompressionTests, CopyMultiPage) {
 
     auto alg = Uncompressed(LogicalType(LogicalTypeID::INT64));
     auto pageSize = 64;
-    auto metadata = alg.getCompressionMetadata((uint8_t*)src.data(), src.size());
+    const auto& [min, max] = std::minmax_element(src.begin(), src.end());
+    auto metadata =
+        CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
     auto numValuesRemaining = numValues;
     auto numValuesPerPage = metadata.numValues(pageSize, LogicalType(LogicalTypeID::INT64));
     const uint8_t* srcCursor = (uint8_t*)src.data();
@@ -136,7 +142,9 @@ template<typename T>
 void integerPackingMultiPage(const std::vector<T>& src) {
     auto alg = IntegerBitpacking<T>();
     auto pageSize = 4096;
-    auto metadata = alg.getCompressionMetadata((uint8_t*)src.data(), src.size());
+    const auto& [min, max] = std::minmax_element(src.begin(), src.end());
+    auto metadata =
+        CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
     auto numValuesPerPage = metadata.numValues(pageSize, LogicalType(LogicalTypeID::INT64));
     int64_t numValuesRemaining = src.size();
     const uint8_t* srcCursor = (uint8_t*)src.data();

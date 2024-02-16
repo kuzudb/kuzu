@@ -1,6 +1,9 @@
 #include "storage/store/column_chunk.h"
 
 #include "common/exception/copy.h"
+#include "common/type_utils.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "storage/compression/compression.h"
 #include "storage/storage_utils.h"
 #include "storage/store/string_column_chunk.h"
@@ -21,16 +24,16 @@ ColumnChunkMetadata fixedSizedFlushBuffer(const uint8_t* buffer, uint64_t buffer
         startPageIdx, metadata.numPages, metadata.numValues, metadata.compMeta);
 }
 
-ColumnChunkMetadata fixedSizedGetMetadata(
-    const uint8_t* /*buffer*/, uint64_t bufferSize, uint64_t /*capacity*/, uint64_t numValues) {
+ColumnChunkMetadata fixedSizedGetMetadata(const uint8_t* /*buffer*/, uint64_t bufferSize,
+    uint64_t /*capacity*/, uint64_t numValues, StorageValue min, StorageValue max) {
     return ColumnChunkMetadata(INVALID_PAGE_IDX, ColumnChunk::getNumPagesForBytes(bufferSize),
-        numValues, CompressionMetadata());
+        numValues, CompressionMetadata(min, max, CompressionType::UNCOMPRESSED));
 }
 
-ColumnChunkMetadata booleanGetMetadata(
-    const uint8_t* /*buffer*/, uint64_t bufferSize, uint64_t /*capacity*/, uint64_t numValues) {
+ColumnChunkMetadata booleanGetMetadata(const uint8_t* /*buffer*/, uint64_t bufferSize,
+    uint64_t /*capacity*/, uint64_t numValues, StorageValue min, StorageValue max) {
     return ColumnChunkMetadata(INVALID_PAGE_IDX, ColumnChunk::getNumPagesForBytes(bufferSize),
-        numValues, CompressionMetadata(CompressionType::BOOLEAN_BITPACKING));
+        numValues, CompressionMetadata(min, max, CompressionType::BOOLEAN_BITPACKING));
 }
 
 class CompressedFlushBuffer {
@@ -95,12 +98,24 @@ public:
 
     GetCompressionMetadata(const GetCompressionMetadata& other) = default;
 
-    ColumnChunkMetadata operator()(
-        const uint8_t* buffer, uint64_t /*bufferSize*/, uint64_t capacity, uint64_t numValues) {
-        auto metadata = alg->getCompressionMetadata(buffer, numValues);
-        auto numValuesPerPage = metadata.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+    ColumnChunkMetadata operator()(const uint8_t* /*buffer*/, uint64_t /*bufferSize*/,
+        uint64_t capacity, uint64_t numValues, StorageValue min, StorageValue max) {
+        auto compMeta = CompressionMetadata(min, max, alg->getCompressionType());
+        if (alg->getCompressionType() == CompressionType::INTEGER_BITPACKING) {
+            TypeUtils::visit(
+                dataType.getPhysicalType(),
+                [&]<IntegerBitpackingType T>(T) {
+                    // If integer bitpacking bitwidth is the maximum, bitpacking cannot be used
+                    // and has poor performance compared to uncompressed
+                    if (IntegerBitpacking<T>::getPackingInfo(compMeta).bitWidth == sizeof(T) * 8) {
+                        compMeta = CompressionMetadata(min, max, CompressionType::UNCOMPRESSED);
+                    }
+                },
+                [&](auto) {});
+        }
+        auto numValuesPerPage = compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
         auto numPages = capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
-        return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, metadata);
+        return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
     }
 };
 
@@ -365,14 +380,73 @@ bool ColumnChunk::numValuesSanityCheck() const {
 
 ColumnChunkMetadata ColumnChunk::getMetadataToFlush() const {
     KU_ASSERT(numValues <= capacity);
-    if (enableCompression) {
-        // Determine if we can make use of constant compression
-        auto constantMetadata = ConstantCompression::analyze(*this);
-        if (constantMetadata) {
-            return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues, *constantMetadata);
+    StorageValue minValue = {}, maxValue = {};
+    if (capacity > 0) {
+        TypeUtils::visit(
+            this->dataType.getPhysicalType(),
+            [&](bool) {
+                // TODO(bmwinger): This could be optimized. We could do bytewise comparison with
+                // memcmp, but we need to make sure to stop at the end of the values to avoid false
+                // positives
+                auto firstValue = getValue<bool>(0);
+                if (firstValue) {
+                    maxValue = 1;
+                } else {
+                    minValue = 0;
+                }
+                bool found = false;
+                for (auto i = 1u; i < numValues; i++) {
+                    // If any value is different from the first one, we can't use constant
+                    // compression
+                    if (firstValue != getValue<bool>(i)) {
+                        if (getValue<bool>(i)) {
+                            maxValue = 1;
+                        } else {
+                            minValue = 0;
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+                // If all values were the same
+                if (!found) {
+                    if (firstValue) {
+                        minValue = maxValue;
+                    } else {
+                        maxValue = minValue;
+                    }
+                }
+            },
+            [&]<typename T>(T) requires(std::integral<T> || std::floating_point<T>) {
+                const auto& [min, max] = std::minmax_element(reinterpret_cast<T*>(buffer.get()),
+                    reinterpret_cast<T*>(buffer.get()) + numValues);
+                minValue = *min;
+                maxValue = *max;
+            },
+            [&](list_entry_t) {
+                const auto& [min, max] =
+                    std::minmax_element(reinterpret_cast<uint64_t*>(buffer.get()),
+                        reinterpret_cast<uint64_t*>(buffer.get()) + numValues);
+                minValue = *min;
+                maxValue = *max;
+            },
+            [&](ku_string_t) {
+                const auto& [min, max] =
+                    std::minmax_element(reinterpret_cast<uint32_t*>(buffer.get()),
+                        reinterpret_cast<uint32_t*>(buffer.get()) + numValues);
+                minValue = *min;
+                maxValue = *max;
+            },
+            [&](auto) {
+                minValue = std::numeric_limits<uint64_t>::min();
+                maxValue = std::numeric_limits<uint64_t>::max();
+            });
+        if (enableCompression && minValue == maxValue) {
+            return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
+                CompressionMetadata(minValue, maxValue, CompressionType::CONSTANT));
         }
     }
-    return getMetadataFunction(buffer.get(), bufferSize, capacity, numValues);
+    return getMetadataFunction(buffer.get(), bufferSize, capacity, numValues, minValue, maxValue);
 }
 
 ColumnChunkMetadata ColumnChunk::flushBuffer(

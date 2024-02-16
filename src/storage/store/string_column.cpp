@@ -1,7 +1,11 @@
 #include "storage/store/string_column.h"
 
+#include <algorithm>
+
+#include "storage/compression/compression.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column_chunk.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -47,17 +51,18 @@ void StringColumn::append(ColumnChunk* columnChunk, node_group_idx_t nodeGroupId
     dictionary.append(nodeGroupIdx, stringColumnChunk->getDictionaryChunk());
 }
 
-void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_idx_t nodeGroupIdx,
+string_index_t StringColumn::writeStringValue(const ReadState& state, node_group_idx_t nodeGroupIdx,
     offset_t offsetInChunk, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto& kuStr = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
     auto index = dictionary.append(nodeGroupIdx, kuStr.getAsStringView());
     // Write index to main column
-    Column::writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, (uint8_t*)&index);
+    Column::writeValues(state, nodeGroupIdx, offsetInChunk, (uint8_t*)&index);
+    return index;
 }
 
 void StringColumn::write(node_group_idx_t nodeGroupIdx, offset_t dstOffset, ColumnChunk* data,
     offset_t srcOffset, length_t numValues) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     numValues = std::min(numValues, data->getNumValues() - srcOffset);
     auto strChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(data);
     std::vector<string_index_t> indices;
@@ -71,12 +76,24 @@ void StringColumn::write(node_group_idx_t nodeGroupIdx, offset_t dstOffset, Colu
         indices[i] = dictionary.append(nodeGroupIdx, strVal);
     }
     // Write index to main column
-    Column::writeValues(chunkMeta, nodeGroupIdx, dstOffset,
+    Column::writeValues(state, nodeGroupIdx, dstOffset,
         reinterpret_cast<const uint8_t*>(&indices[0]), 0 /*srcOffset*/, numValues);
-    if (dstOffset + numValues > chunkMeta.numValues) {
-        chunkMeta.numValues = dstOffset + numValues;
-        metadataDA->update(nodeGroupIdx, chunkMeta);
+    auto [min, max] = std::minmax_element(indices.begin(), indices.end());
+    StorageValue minWritten = StorageValue(*min);
+    StorageValue maxWritten = StorageValue(*max);
+    updateStatistics(state.metadata, nodeGroupIdx, dstOffset + numValues, minWritten, maxWritten);
+}
+
+void StringColumn::write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
+    common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    bool isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
+    std::optional<StorageValue> indexWritten;
+    if (!isNull) {
+        indexWritten = writeStringValue(
+            state, nodeGroupIdx, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
     }
+    updateStatistics(state.metadata, nodeGroupIdx, offsetInChunk, indexWritten, indexWritten);
 }
 
 void StringColumn::scanInternal(

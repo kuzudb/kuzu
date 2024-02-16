@@ -89,6 +89,10 @@ public:
         }
     }
 
+    // Used to indicate types not properly supported by TypeUtils::visit,
+    // but which may need to have a default behaviour (e.g. for return type deduction to work)
+    struct unsupported_type_t {};
+
     /*
      * TypeUtils::visit can be used to call generic code on all or some Logical and Physical type
      * variants with access to type information.
@@ -126,7 +130,7 @@ public:
      * See https://en.cppreference.com/w/cpp/utility/variant/visit
      */
     template<typename... Fs>
-    static inline void visit(LogicalTypeID dataType, Fs... funcs) {
+    static inline auto visit(LogicalTypeID dataType, Fs... funcs) {
         // Note: arguments are used only for type deduction and have no meaningful value.
         // They should be optimized out by the compiler
         auto func = overload(funcs...);
@@ -196,12 +200,12 @@ public:
         case LogicalTypeID::POINTER:
         case LogicalTypeID::RDF_VARIANT:
             // FIXED_LIST has no type
-            KU_UNREACHABLE;
+            return func(unsupported_type_t());
         }
     }
 
     template<typename... Fs>
-    static inline void visit(PhysicalTypeID dataType, Fs&&... funcs) {
+    static inline auto visit(PhysicalTypeID dataType, Fs&&... funcs) {
         // Note: arguments are used only for type deduction and have no meaningful value.
         // They should be optimized out by the compiler
         auto func = overload(funcs...);
@@ -245,7 +249,7 @@ public:
         case PhysicalTypeID::POINTER:
         case PhysicalTypeID::STRUCT:
             // Unsupported type
-            KU_UNREACHABLE;
+            return func(unsupported_type_t());
         }
     }
 };

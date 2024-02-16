@@ -1,15 +1,16 @@
 #pragma once
 
 #include "catalog/catalog.h"
+#include "common/types/types.h"
+#include "storage/compression/compression.h"
 #include "storage/stats/metadata_dah_info.h"
 #include "storage/stats/property_statistics.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/store/column_chunk.h"
+#include <span>
 
 namespace kuzu {
 namespace storage {
-
-struct CompressionMetadata;
 
 using read_values_to_vector_func_t =
     std::function<void(uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
@@ -106,7 +107,6 @@ public:
     virtual void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
         ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues);
 
-    // Append values to the end of the node group, resizing it if necessary
     common::offset_t appendValues(
         common::node_group_idx_t nodeGroupIdx, const uint8_t* data, common::offset_t numValues);
 
@@ -133,12 +133,12 @@ protected:
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
 
-    virtual void writeValue(const ColumnChunkMetadata& chunkMeta,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
-    virtual void writeValues(const ColumnChunkMetadata& chunkMeta,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk, const uint8_t* data,
-        common::offset_t dataOffset = 0, common::offset_t numValues = 1);
+    virtual void writeValue(const ReadState& chunkMeta, common::node_group_idx_t nodeGroupIdx,
+        common::offset_t offsetInChunk, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom);
+    virtual void writeValues(const ReadState& state, common::node_group_idx_t nodeGroupIdx,
+        common::offset_t offsetInChunk, const uint8_t* data, common::offset_t dataOffset = 0,
+        common::offset_t numValues = 1);
 
     // Produces a page cursor for the offset relative to the given node group
     PageCursor getPageCursorForOffsetInGroup(
@@ -158,6 +158,10 @@ protected:
         }
         return maxOffset;
     }
+
+    void updateStatistics(ColumnChunkMetadata& metadata, common::node_group_idx_t nodeGroupIdx,
+        common::offset_t maxIndex, std::optional<StorageValue> min,
+        std::optional<StorageValue> max);
 
 private:
     bool isInsertionsOutOfPagesCapacity(

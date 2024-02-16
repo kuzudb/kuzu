@@ -1,10 +1,11 @@
 #pragma once
 
-#include <array>
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <type_traits>
 
+#include "common/assert.h"
 #include "common/types/types.h"
 
 namespace kuzu {
@@ -16,6 +17,76 @@ namespace storage {
 class ColumnChunk;
 
 struct PageCursor;
+
+// Type storing values in the column chunk statistics
+// Only supports integers (up to 64bit), floats and bools
+union StorageValue {
+    int64_t signedInt;
+    uint64_t unsignedInt;
+    double floatVal;
+
+    StorageValue() = default;
+    template<typename T>
+    requires std::numeric_limits<T>::is_integer&&
+        std::numeric_limits<T>::is_signed explicit StorageValue(T value)
+        : signedInt(value) {}
+    template<typename T>
+        requires std::numeric_limits<T>::is_integer &&
+        (!std::numeric_limits<T>::is_signed) explicit StorageValue(T value) : unsignedInt(value) {}
+    template<typename T>
+    requires std::is_floating_point<T>::value explicit StorageValue(T value) : floatVal(value) {}
+
+    bool operator==(const StorageValue& other) const {
+        // All types are the same size, so we can compare any of them to check equality
+        return this->signedInt == other.signedInt;
+    }
+
+    template<typename T>
+    StorageValue& operator=(const T& val) {
+        return *this = StorageValue(val);
+    }
+
+    template<typename T>
+        requires std::numeric_limits<T>::is_integer ||
+        std::is_floating_point<T>::value T get() const {
+        if constexpr (std::numeric_limits<T>::is_integer) {
+            if constexpr (std::numeric_limits<T>::is_signed) {
+                return static_cast<T>(signedInt);
+            } else {
+                return static_cast<T>(unsignedInt);
+            }
+        } else if constexpr (std::is_floating_point<T>()) {
+            return floatVal;
+        }
+    }
+
+    bool gt(const StorageValue& other, common::PhysicalTypeID type) const {
+        switch (type) {
+        case common::PhysicalTypeID::BOOL:
+        case common::PhysicalTypeID::VAR_LIST:
+        case common::PhysicalTypeID::STRING:
+        case common::PhysicalTypeID::UINT64:
+        case common::PhysicalTypeID::UINT32:
+        case common::PhysicalTypeID::UINT16:
+        case common::PhysicalTypeID::UINT8:
+            return this->unsignedInt > other.unsignedInt;
+        case common::PhysicalTypeID::INT64:
+        case common::PhysicalTypeID::INT32:
+        case common::PhysicalTypeID::INT16:
+        case common::PhysicalTypeID::INT8:
+            return this->signedInt > other.signedInt;
+        case common::PhysicalTypeID::FLOAT:
+        case common::PhysicalTypeID::DOUBLE:
+            return this->floatVal > other.floatVal;
+        default:
+            KU_UNREACHABLE;
+        }
+    }
+
+    // If the type cannot be stored in the statistics, readFromVector will return nullopt
+    static std::optional<StorageValue> readFromVector(
+        const common::ValueVector& vector, common::offset_t posInVector);
+};
 
 // Returns the size of the data type in bytes
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType);
@@ -29,26 +100,30 @@ enum class CompressionType : uint8_t {
     CONSTANT = 3,
 };
 
+// Data statistics used for determining how to handle compressed data
 struct CompressionMetadata {
-    static constexpr uint8_t DATA_SIZE = 9;
+    // Minimum and maximum are upper and lower bounds for the data.
+    // Updates and deletions may cause them to no longer be the exact minimums and maximums,
+    // but no value will be larger than the maximum or smaller than the minimum
+    StorageValue min;
+    StorageValue max;
     CompressionType compression;
-    // Extra data to be used to store codec-specific information
-    std::array<uint8_t, DATA_SIZE> data;
-    explicit CompressionMetadata(CompressionType compression = CompressionType::UNCOMPRESSED,
-        std::array<uint8_t, DATA_SIZE> data = {})
-        : compression{compression}, data{data} {}
+
+    CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression)
+        : min(min), max(max), compression(compression) {}
+    inline bool isConstant() const { return compression == CompressionType::CONSTANT; }
+
+    std::string toString(const common::PhysicalTypeID physicalType) const;
 
     // Returns the number of values which will be stored in the given data size
     // This must be consistent with the compression implementation for the given size
     uint64_t numValues(uint64_t dataSize, const common::LogicalType& dataType) const;
+
     // Returns true if and only if the provided value within the vector can be updated
     // in this chunk in-place.
     bool canUpdateInPlace(
         const uint8_t* data, uint32_t pos, common::PhysicalTypeID physicalType) const;
     bool canAlwaysUpdateInPlace() const;
-    inline bool isConstant() const { return compression == CompressionType::CONSTANT; }
-
-    std::string toString() const;
 };
 
 class CompressionAlg {
@@ -60,12 +135,6 @@ public:
     virtual void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata) const = 0;
-
-    // Returns compression metadata, including any relevant parameters specific to this dataset
-    // which will need to be passed to compressNextPage. Since this may need to scan the entire
-    // buffer, which is slow, it should only be called once for each set of data to compress.
-    virtual CompressionMetadata getCompressionMetadata(
-        const uint8_t* srcBuffer, uint64_t numValues) const = 0;
 
     // Takes uncompressed data from the srcBuffer and compresses it into the dstBuffer
     //
@@ -92,6 +161,8 @@ public:
     virtual void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset,
         uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
         const CompressionMetadata& metadata) const = 0;
+
+    virtual CompressionType getCompressionType() const = 0;
 };
 
 class ConstantCompression final : public CompressionAlg {
@@ -100,10 +171,6 @@ public:
         : numBytesPerValue{static_cast<uint8_t>(getDataTypeSizeInChunk(logicalType))},
           dataType{logicalType.getPhysicalType()} {}
     static std::optional<CompressionMetadata> analyze(const ColumnChunk& chunk);
-    template<typename T>
-    static const T& getValue(const CompressionMetadata& metadata) {
-        return *reinterpret_cast<const T*>(metadata.data.data());
-    }
 
     // Shouldn't be used, there's a special case when compressing which ends early for constant
     // compression
@@ -112,6 +179,10 @@ public:
         return 0;
     };
 
+    static void decompressValues(uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
+        common::PhysicalTypeID physicalType, uint32_t numBytesPerValue,
+        const CompressionMetadata& metadata);
+
     void decompressFromPage(const uint8_t* /*srcBuffer*/, uint64_t /*srcOffset*/,
         uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
         const CompressionMetadata& metadata) const override;
@@ -119,15 +190,11 @@ public:
     void copyFromPage(const uint8_t* /*srcBuffer*/, uint64_t /*srcOffset*/, uint8_t* dstBuffer,
         uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const;
 
-    // Shouldn't be used. No type exclusively uses constant compression
-    CompressionMetadata getCompressionMetadata(
-        const uint8_t* /*srcBuffer*/, uint64_t /*numValues*/) const override {
-        KU_UNREACHABLE;
-    }
-
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
         common::offset_t, const CompressionMetadata&) const override{};
+
+    CompressionType getCompressionType() const override { return CompressionType::CONSTANT; }
 
 private:
     uint8_t numBytesPerValue;
@@ -155,11 +222,6 @@ public:
         return numBytesPerValue == 0 ? UINT64_MAX : dataSize / numBytesPerValue;
     }
 
-    inline CompressionMetadata getCompressionMetadata(
-        const uint8_t* /*srcBuffer*/, uint64_t /*numValues*/) const override {
-        return CompressionMetadata();
-    }
-
     inline uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
         uint8_t* dstBuffer, uint64_t dstBufferSize,
         const struct CompressionMetadata& /*metadata*/) const override {
@@ -181,35 +243,24 @@ public:
             srcBuffer + srcOffset * numBytesPerValue, numValues * numBytesPerValue);
     }
 
+    CompressionType getCompressionType() const override { return CompressionType::UNCOMPRESSED; }
+
 protected:
     const uint32_t numBytesPerValue;
 };
 
-// Serialized as nine bytes.
-// In the first byte:
-//  Six bits are needed for the bit width (fewer for smaller types, but the header byte is the same
-//  for simplicity)
-//  One bit (the eighth) is needed to indicate if there are negative values
-//  The seventh bit is unused
-// The eight remaining bytes are used for the offset
-struct BitpackHeader {
+template<typename T>
+struct BitpackInfo {
     uint8_t bitWidth;
     bool hasNegative;
-    // Offset to apply to all values
-    // Stored as unsigned, but for signed variants of IntegerBitpacking
-    // it gets cast to a signed type on use, letting it also store negative offsets
-    uint64_t offset;
-    static const uint8_t NEGATIVE_FLAG = 0b10000000;
-    static const uint8_t BITWIDTH_MASK = 0b01111111;
-
-    std::array<uint8_t, CompressionMetadata::DATA_SIZE> getData() const;
-
-    static BitpackHeader readHeader(
-        const std::array<uint8_t, CompressionMetadata::DATA_SIZE>& data);
+    T offset;
 };
 
-// Augmented with Frame of Reference encoding using an offset stored in the compression metadata
 template<typename T>
+concept IntegerBitpackingType = (std::integral<T> && !std::same_as<T, bool>);
+
+// Augmented with Frame of Reference encoding using an offset stored in the compression metadata
+template<IntegerBitpackingType T>
 class IntegerBitpacking : public CompressionAlg {
     using U = std::make_unsigned_t<T>;
     // This is an implementation detail of the fastpfor bitpacking algorithm
@@ -223,13 +274,13 @@ public:
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata) const final;
 
-    BitpackHeader getBitWidth(const uint8_t* srcBuffer, uint64_t numValues) const;
+    static BitpackInfo<T> getPackingInfo(const CompressionMetadata& metadata);
 
-    static inline uint64_t numValues(uint64_t dataSize, const BitpackHeader& header) {
-        if (header.bitWidth == 0) {
+    static inline uint64_t numValues(uint64_t dataSize, const BitpackInfo<T>& info) {
+        if (info.bitWidth == 0) {
             return UINT64_MAX;
         }
-        auto numValues = dataSize * 8 / header.bitWidth;
+        auto numValues = dataSize * 8 / info.bitWidth;
         // Round down to nearest multiple of CHUNK_SIZE to ensure that we don't write any extra
         // values Rounding up could overflow the buffer
         // TODO(bmwinger): Pack extra values into the space at the end. This will probably be
@@ -238,14 +289,9 @@ public:
         return numValues;
     }
 
-    CompressionMetadata getCompressionMetadata(
-        const uint8_t* srcBuffer, uint64_t numValues) const override {
-        auto header = getBitWidth(srcBuffer, numValues);
-        // Use uncompressed if the bitwidth is equal to the size of the type in bits
-        if (header.bitWidth >= sizeof(T) * 8) {
-            return CompressionMetadata();
-        }
-        return CompressionMetadata(CompressionType::INTEGER_BITPACKING, header.getData());
+    static inline uint64_t numValues(uint64_t dataSize, const CompressionMetadata& metadata) {
+        auto info = getPackingInfo(metadata);
+        return numValues(dataSize, info);
     }
 
     uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
@@ -256,12 +302,16 @@ public:
         uint64_t dstOffset, uint64_t numValues,
         const struct CompressionMetadata& metadata) const final;
 
-    static bool canUpdateInPlace(T value, const BitpackHeader& header);
+    static bool canUpdateInPlace(T value, const CompressionMetadata& metadata);
+
+    CompressionType getCompressionType() const override {
+        return CompressionType::INTEGER_BITPACKING;
+    }
 
 protected:
     // Read multiple values from within a chunk. Cannot span multiple chunks.
     void getValues(const uint8_t* chunkStart, uint8_t pos, uint8_t* dst, uint8_t numValuesToRead,
-        const BitpackHeader& header) const;
+        const BitpackInfo<T>& header) const;
 
     inline const uint8_t* getChunkStart(
         const uint8_t* buffer, uint64_t pos, uint8_t bitWidth) const {
@@ -281,10 +331,6 @@ public:
 
     static inline uint64_t numValues(uint64_t dataSize) { return dataSize * 8; }
 
-    inline CompressionMetadata getCompressionMetadata(
-        const uint8_t* /*srcBuffer*/, uint64_t /*numValues*/) const override {
-        return CompressionMetadata{CompressionType::BOOLEAN_BITPACKING};
-    }
     uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
         uint8_t* dstBuffer, uint64_t dstBufferSize,
         const struct CompressionMetadata& metadata) const final;
@@ -294,6 +340,10 @@ public:
 
     void copyFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
         uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const;
+
+    CompressionType getCompressionType() const override {
+        return CompressionType::BOOLEAN_BITPACKING;
+    }
 };
 
 class CompressedFunctor {

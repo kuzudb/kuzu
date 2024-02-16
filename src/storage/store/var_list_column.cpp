@@ -1,5 +1,6 @@
 #include "storage/store/var_list_column.h"
 
+#include "storage/compression/compression.h"
 #include "storage/store/column.h"
 #include "storage/store/null_column.h"
 #include "storage/store/var_list_column_chunk.h"
