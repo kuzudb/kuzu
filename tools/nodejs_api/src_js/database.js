@@ -1,6 +1,6 @@
 "use strict";
 
-const KuzuNative = require("./kuzujs.node");
+const KuzuNative = require("./kuzu_native.js");
 const LoggingLevel = require("./logging_level.js");
 
 class Database {
