@@ -107,7 +107,8 @@ private:
     void copyAndUpdateSlotHeader(
         Slot<S>& slot, entry_pos_t entryPos, K key, common::offset_t value) {
         if constexpr (isCopyEntry) {
-            memcpy(slot.entries[entryPos].data, &key, this->indexHeader->numBytesPerEntry);
+            memcpy(
+                slot.entries[entryPos].data, &key, this->indexHeaderForWriteTrx->numBytesPerEntry);
         } else {
             insert(key, slot.entries[entryPos].data, value);
         }
@@ -182,7 +183,8 @@ private:
     std::unique_ptr<BaseDiskArray<Slot<S>>> oSlots;
     std::shared_ptr<DiskOverflowFile> diskOverflowFile;
     std::unique_ptr<HashIndexLocalStorage<T, LocalStorageType>> localStorage;
-    std::unique_ptr<HashIndexHeader> indexHeader;
+    std::unique_ptr<HashIndexHeader> indexHeaderForReadTrx;
+    std::unique_ptr<HashIndexHeader> indexHeaderForWriteTrx;
 };
 
 template<>
