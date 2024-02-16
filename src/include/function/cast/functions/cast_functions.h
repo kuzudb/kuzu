@@ -1,7 +1,5 @@
 #pragma once
 
-#include "common/constants.h"
-#include "common/exception/message.h"
 #include "common/exception/overflow.h"
 #include "common/string_format.h"
 #include "common/type_utils.h"
@@ -15,17 +13,24 @@ struct CastToString {
     template<typename T>
     static inline void operation(T& input, common::ku_string_t& result,
         common::ValueVector& inputVector, common::ValueVector& resultVector) {
-        std::string resultStr = common::TypeUtils::toString(input, (void*)&inputVector);
-        if (resultStr.length() > common::ku_string_t::SHORT_STR_LENGTH) {
-            if (resultStr.length() > common::BufferPoolConstants::PAGE_256KB_SIZE) {
-                throw common::RuntimeException(
-                    common::ExceptionMessage::overLargeStringValueException(resultStr.length()));
-            }
-            result.overflowPtr = reinterpret_cast<uint64_t>(
-                common::StringVector::getInMemOverflowBuffer(&resultVector)
-                    ->allocateSpace(resultStr.length()));
-        }
-        result.set(resultStr);
+        auto str = common::TypeUtils::toString(input, (void*)&inputVector);
+        common::StringVector::addString(&resultVector, result, str);
+    }
+};
+
+struct CastNodeToString {
+    static inline void operation(common::struct_entry_t& input, common::ku_string_t& result,
+        common::ValueVector& inputVector, common::ValueVector& resultVector) {
+        auto str = common::TypeUtils::nodeToString(input, &inputVector);
+        common::StringVector::addString(&resultVector, result, str);
+    }
+};
+
+struct CastRelToString {
+    static inline void operation(common::struct_entry_t& input, common::ku_string_t& result,
+        common::ValueVector& inputVector, common::ValueVector& resultVector) {
+        auto str = common::TypeUtils::relToString(input, &inputVector);
+        common::StringVector::addString(&resultVector, result, str);
     }
 };
 
