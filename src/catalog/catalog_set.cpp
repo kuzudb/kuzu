@@ -10,7 +10,6 @@ bool CatalogSet::containsEntry(const std::string& name) const {
 }
 
 CatalogEntry* CatalogSet::getEntry(const std::string& name) {
-    KU_ASSERT(containsEntry(name));
     return entries.at(name).get();
 }
 
@@ -33,7 +32,18 @@ void CatalogSet::renameEntry(const std::string& oldName, const std::string& newN
 }
 
 void CatalogSet::serialize(common::Serializer serializer) const {
-    serializer.serializeValue<uint64_t>(entries.size());
+    uint64_t numEntries = 0;
+    for (auto& [name, entry] : entries) {
+        switch (entry->getType()) {
+        case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
+        case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
+        case CatalogEntryType::TABLE_FUNCTION_ENTRY:
+            continue;
+        default:
+            numEntries++;
+        }
+    }
+    serializer.serializeValue(numEntries);
     for (auto& [name, entry] : entries) {
         entry->serialize(serializer);
     }
@@ -45,7 +55,9 @@ std::unique_ptr<CatalogSet> CatalogSet::deserialize(common::Deserializer& deseri
     deserializer.deserializeValue(numEntries);
     for (uint64_t i = 0; i < numEntries; i++) {
         auto entry = CatalogEntry::deserialize(deserializer);
-        catalogSet->createEntry(std::move(entry));
+        if (entry != nullptr) {
+            catalogSet->createEntry(std::move(entry));
+        }
     }
     return catalogSet;
 }

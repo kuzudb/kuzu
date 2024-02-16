@@ -3,7 +3,6 @@
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_binder.h"
 #include "common/types/value/value.h"
-#include "main/client_context.h"
 #include "parser/expression/parsed_subquery_expression.h"
 
 using namespace kuzu::parser;
@@ -32,9 +31,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindSubqueryExpression(
         std::move(boundGraphPattern.queryGraphCollection), uniqueName, std::move(rawName));
     boundSubqueryExpr->setWhereExpression(boundGraphPattern.where);
     // Bind projection
-    auto function =
-        binder->catalog.getBuiltInFunctions(binder->clientContext->getTx())
-            ->matchAggregateFunction(COUNT_STAR_FUNC_NAME, std::vector<LogicalType>{}, false);
+    auto function = BuiltInFunctionsUtils::matchAggregateFunction(COUNT_STAR_FUNC_NAME,
+        std::vector<LogicalType>{}, false,
+        binder->catalog.getFunctions(binder->clientContext->getTx()));
     auto bindData =
         std::make_unique<FunctionBindData>(std::make_unique<LogicalType>(function->returnTypeID));
     auto countStarExpr = std::make_shared<AggregateFunctionExpression>(COUNT_STAR_FUNC_NAME,

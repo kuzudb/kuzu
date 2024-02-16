@@ -200,4 +200,4 @@ EntityNotFound: DeletedEntityAccess
 ---- ok
 -STATEMENT MATCH (a) RETURN foo(a);
 ---- error
-Catalog exception: FOO function does not exist.
+Catalog exception: function FOO does not exist.

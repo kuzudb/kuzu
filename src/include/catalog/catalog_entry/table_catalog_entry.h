@@ -5,7 +5,6 @@
 #include "catalog/property.h"
 #include "catalog_entry.h"
 #include "common/enums/table_type.h"
-#include "main/client_context.h"
 
 namespace kuzu {
 namespace catalog {
@@ -51,7 +50,6 @@ public:
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableCatalogEntry> deserialize(
         common::Deserializer& deserializer, CatalogEntryType type);
-    virtual std::string toCypher(main::ClientContext* /*clientContext*/) const { KU_UNREACHABLE; }
 
 private:
     common::table_id_t tableID;

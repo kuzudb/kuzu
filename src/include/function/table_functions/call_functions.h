@@ -1,9 +1,9 @@
 #pragma once
 
-#include "catalog/catalog_content.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/data_chunk/data_chunk_collection.h"
 #include "common/vector/value_vector.h"
+#include "function/scalar_function.h"
 #include "function/table_functions.h"
 #include "function/table_functions/bind_data.h"
 #include "function/table_functions/bind_input.h"

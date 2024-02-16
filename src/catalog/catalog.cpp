@@ -100,6 +100,10 @@ std::vector<TableCatalogEntry*> Catalog::getTableSchemas(
     return result;
 }
 
+CatalogSet* Catalog::getFunctions(Transaction* tx) const {
+    return getVersion(tx)->functions.get();
+}
+
 void Catalog::prepareCommitOrRollback(TransactionAction action) {
     if (hasUpdates()) {
         wal->logCatalogRecord();
@@ -265,8 +269,10 @@ void Catalog::addScalarMacroFunction(
 
 std::vector<std::string> Catalog::getMacroNames(transaction::Transaction* tx) const {
     std::vector<std::string> macroNames;
-    for (auto& macro : getVersion(tx)->macros) {
-        macroNames.push_back(macro.first);
+    for (auto& [_, function] : getVersion(tx)->functions->getEntries()) {
+        if (function->getType() == CatalogEntryType::SCALAR_MACRO_ENTRY) {
+            macroNames.push_back(function->getName());
+        }
     }
     return macroNames;
 }
