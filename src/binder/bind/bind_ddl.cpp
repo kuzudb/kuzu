@@ -2,9 +2,10 @@
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_table.h"
-#include "catalog/node_table_schema.h"
-#include "catalog/rdf_graph_schema.h"
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
@@ -178,67 +179,67 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     auto tableName = dropTable.getTableName();
     validateTableExist(tableName);
     auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
-    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
-    switch (tableSchema->tableType) {
+    auto tableEntry = catalog.getTableCatalogEntry(clientContext->getTx(), tableID);
+    switch (tableEntry->getTableType()) {
     case TableType::NODE: {
         // Check node table is not referenced by rel table.
-        for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
-            if (schema->isParent(tableID)) {
+        for (auto& relTableEntry : catalog.getRelTableEntries(clientContext->getTx())) {
+            if (relTableEntry->isParent(tableID)) {
                 throw BinderException(stringFormat("Cannot delete node table {} because it is "
                                                    "referenced by relationship table {}.",
-                    tableSchema->getName(), schema->getName()));
+                    tableEntry->getName(), relTableEntry->getName()));
             }
         }
         // Check node table is not referenced by rdf graph
-        for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
-            if (schema->isParent(tableID)) {
+        for (auto& rdfEntry : catalog.getRdfGraphEntries(clientContext->getTx())) {
+            if (rdfEntry->isParent(tableID)) {
                 throw BinderException(stringFormat(
                     "Cannot delete node table {} because it is referenced by rdfGraph {}.",
-                    tableName, schema->getName()));
+                    tableName, rdfEntry->getName()));
             }
         }
     } break;
     case TableType::REL: {
         // Check rel table is not referenced by rel group.
-        for (auto& schema : catalog.getRelTableGroupSchemas(clientContext->getTx())) {
-            if (schema->isParent(tableID)) {
+        for (auto& relTableGroupEntry : catalog.getRelTableGroupEntries(clientContext->getTx())) {
+            if (relTableGroupEntry->isParent(tableID)) {
                 throw BinderException(stringFormat("Cannot delete relationship table {} because it "
                                                    "is referenced by relationship group {}.",
-                    tableName, schema->getName()));
+                    tableName, relTableGroupEntry->getName()));
             }
         }
         // Check rel table is not referenced by rdf graph.
-        for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
-            if (schema->isParent(tableID)) {
+        for (auto& rdfGraphEntry : catalog.getRdfGraphEntries(clientContext->getTx())) {
+            if (rdfGraphEntry->isParent(tableID)) {
                 throw BinderException(stringFormat(
                     "Cannot delete relationship table {} because it is referenced by rdfGraph {}.",
-                    tableName, schema->getName()));
+                    tableName, rdfGraphEntry->getName()));
             }
         }
     } break;
     case TableType::RDF: {
-        auto rdfGraphSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(tableSchema);
+        auto rdfGraphEntry = ku_dynamic_cast<TableCatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
         // Check resource table is not referenced by rel table other than its triple table.
-        for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
-            if (schema->getTableID() == rdfGraphSchema->getResourceTripleTableID() ||
-                schema->getTableID() == rdfGraphSchema->getLiteralTripleTableID()) {
+        for (auto& relTableEntry : catalog.getRelTableEntries(clientContext->getTx())) {
+            if (relTableEntry->getTableID() == rdfGraphEntry->getResourceTripleTableID() ||
+                relTableEntry->getTableID() == rdfGraphEntry->getLiteralTripleTableID()) {
                 continue;
             }
-            if (schema->isParent(rdfGraphSchema->getResourceTableID())) {
+            if (relTableEntry->isParent(rdfGraphEntry->getResourceTableID())) {
                 throw BinderException(stringFormat("Cannot delete rdfGraph {} because its resource "
                                                    "table is referenced by relationship table {}.",
-                    tableSchema->getName(), schema->getName()));
+                    tableEntry->getName(), relTableEntry->getName()));
             }
         }
         // Check literal table is not referenced by rel table other than its triple table.
-        for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
-            if (schema->getTableID() == rdfGraphSchema->getLiteralTripleTableID()) {
+        for (auto& relTableEntry : catalog.getRelTableEntries(clientContext->getTx())) {
+            if (relTableEntry->getTableID() == rdfGraphEntry->getLiteralTripleTableID()) {
                 continue;
             }
-            if (schema->isParent(rdfGraphSchema->getLiteralTableID())) {
+            if (relTableEntry->isParent(rdfGraphEntry->getLiteralTableID())) {
                 throw BinderException(stringFormat("Cannot delete rdfGraph {} because its literal "
                                                    "table is referenced by relationship table {}.",
-                    tableSchema->getName(), schema->getName()));
+                    tableEntry->getName(), relTableEntry->getName()));
             }
         }
     } break;
@@ -251,7 +252,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
     auto tableID = catalog.getTableID(clientContext->getTx(), alter.getInfo()->tableName);
-    for (auto& schema : catalog.getRdfGraphSchemas(clientContext->getTx())) {
+    for (auto& schema : catalog.getRdfGraphEntries(clientContext->getTx())) {
         if (schema->isParent(tableID)) {
             throw BinderException(
                 stringFormat("Cannot alter table {} because it is referenced by rdfGraph {}.",
@@ -294,27 +295,29 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
-static void validatePropertyExist(TableSchema* tableSchema, const std::string& propertyName) {
-    if (!tableSchema->containProperty(propertyName)) {
+static void validatePropertyExist(TableCatalogEntry* tableEntry, const std::string& propertyName) {
+    if (!tableEntry->containProperty(propertyName)) {
         throw BinderException(
-            tableSchema->tableName + " table doesn't have property " + propertyName + ".");
+            tableEntry->getName() + " table doesn't have property " + propertyName + ".");
     }
 }
 
-static void validatePropertyNotExist(TableSchema* tableSchema, const std::string& propertyName) {
-    if (tableSchema->containProperty(propertyName)) {
+static void validatePropertyNotExist(
+    TableCatalogEntry* tableEntry, const std::string& propertyName) {
+    if (tableEntry->containProperty(propertyName)) {
         throw BinderException(
-            tableSchema->tableName + " table already has property " + propertyName + ".");
+            tableEntry->getName() + " table already has property " + propertyName + ".");
     }
 }
 
-static void validatePropertyDDLOnTable(TableSchema* tableSchema, const std::string& ddlOperation) {
-    switch (tableSchema->tableType) {
+static void validatePropertyDDLOnTable(
+    TableCatalogEntry* tableEntry, const std::string& ddlOperation) {
+    switch (tableEntry->getTableType()) {
     case TableType::REL_GROUP:
     case TableType::RDF: {
         throw BinderException(
             stringFormat("Cannot {} property on table {} with type {}.", ddlOperation,
-                tableSchema->tableName, TableTypeUtils::toString(tableSchema->tableType)));
+                tableEntry->getName(), TableTypeUtils::toString(tableEntry->getTableType())));
     }
     default:
         return;
@@ -330,7 +333,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto propertyName = extraInfo->propertyName;
     validateTableExist(tableName);
     auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
-    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
+    auto tableSchema = catalog.getTableCatalogEntry(clientContext->getTx(), tableID);
     validatePropertyDDLOnTable(tableSchema, "add");
     validatePropertyNotExist(tableSchema, propertyName);
     if (dataType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
@@ -354,13 +357,13 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     auto propertyName = extraInfo->propertyName;
     validateTableExist(tableName);
     auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
-    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
-    validatePropertyDDLOnTable(tableSchema, "drop");
-    validatePropertyExist(tableSchema, propertyName);
-    auto propertyID = tableSchema->getPropertyID(propertyName);
-    if (tableSchema->getTableType() == TableType::NODE &&
-        ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema)->getPrimaryKeyPropertyID() ==
-            propertyID) {
+    auto tableEntry = catalog.getTableCatalogEntry(clientContext->getTx(), tableID);
+    validatePropertyDDLOnTable(tableEntry, "drop");
+    validatePropertyExist(tableEntry, propertyName);
+    auto propertyID = tableEntry->getPropertyID(propertyName);
+    if (tableEntry->getTableType() == TableType::NODE &&
+        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry)
+                ->getPrimaryKeyPID() == propertyID) {
         throw BinderException("Cannot drop primary key of a node table.");
     }
     auto boundExtraInfo = std::make_unique<BoundExtraDropPropertyInfo>(propertyID);
@@ -379,7 +382,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     auto newName = extraInfo->newName;
     validateTableExist(tableName);
     auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
-    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
+    auto tableSchema = catalog.getTableCatalogEntry(clientContext->getTx(), tableID);
     validatePropertyDDLOnTable(tableSchema, "rename");
     validatePropertyExist(tableSchema, propertyName);
     auto propertyID = tableSchema->getPropertyID(propertyName);

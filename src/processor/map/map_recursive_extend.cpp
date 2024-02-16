@@ -49,8 +49,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
         pathPos = DataPos(outSchema->getExpressionPos(*rel));
     }
     std::unordered_map<common::table_id_t, std::string> tableIDToName;
-    for (auto& schema : catalog->getTableSchemas(&transaction::DUMMY_READ_TRANSACTION)) {
-        tableIDToName.insert({schema->getTableID(), schema->tableName});
+    for (auto& entry : catalog->getTableEntries(&transaction::DUMMY_READ_TRANSACTION)) {
+        tableIDToName.insert({entry->getTableID(), entry->getName()});
     }
     auto dataInfo = std::make_unique<RecursiveJoinDataInfo>(boundNodeIDPos, nbrNodeIDPos,
         nbrNode->getTableIDsSet(), lengthPos, std::move(recursivePlanResultSetDescriptor),

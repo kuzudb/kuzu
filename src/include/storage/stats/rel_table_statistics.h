@@ -11,7 +11,7 @@ namespace storage {
 class WAL;
 class RelTableStats : public TableStatistics {
 public:
-    RelTableStats(BMFileHandle* metadataFH, const catalog::TableSchema& tableSchema,
+    RelTableStats(BMFileHandle* metadataFH, const catalog::TableCatalogEntry& tableEntry,
         BufferManager* bufferManager, WAL* wal);
     RelTableStats(uint64_t numRels, common::table_id_t tableID, common::offset_t nextRelOffset)
         : TableStatistics{common::TableType::REL, numRels, tableID, {}}, nextRelOffset{

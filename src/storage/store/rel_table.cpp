@@ -12,9 +12,9 @@ namespace kuzu {
 namespace storage {
 
 static inline common::ColumnDataFormat getDataFormatFromSchema(
-    catalog::RelTableSchema* tableSchema, common::RelDataDirection direction) {
-    return tableSchema->isSingleMultiplicity(direction) ? common::ColumnDataFormat::REGULAR :
-                                                          common::ColumnDataFormat::CSR;
+    catalog::RelTableCatalogEntry* tableEntry, common::RelDataDirection direction) {
+    return tableEntry->isSingleMultiplicity(direction) ? common::ColumnDataFormat::REGULAR :
+                                                         common::ColumnDataFormat::CSR;
 }
 
 RelDetachDeleteState::RelDetachDeleteState() {
@@ -26,19 +26,20 @@ RelDetachDeleteState::RelDetachDeleteState() {
 }
 
 RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStats* relsStoreStats,
-    MemoryManager* memoryManager, RelTableSchema* tableSchema, WAL* wal, bool enableCompression)
-    : Table{tableSchema, relsStoreStats, memoryManager, wal} {
+    MemoryManager* memoryManager, RelTableCatalogEntry* relTableEntry, WAL* wal,
+    bool enableCompression)
+    : Table{relTableEntry, relsStoreStats, memoryManager, wal} {
     fwdRelTableData =
-        getDataFormatFromSchema(tableSchema, RelDataDirection::FWD) == ColumnDataFormat::REGULAR ?
-            std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal, tableSchema,
+        getDataFormatFromSchema(relTableEntry, RelDataDirection::FWD) == ColumnDataFormat::REGULAR ?
+            std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal, relTableEntry,
                 relsStoreStats, RelDataDirection::FWD, enableCompression) :
-            std::make_unique<CSRRelTableData>(dataFH, metadataFH, bufferManager, wal, tableSchema,
+            std::make_unique<CSRRelTableData>(dataFH, metadataFH, bufferManager, wal, relTableEntry,
                 relsStoreStats, RelDataDirection::FWD, enableCompression);
     bwdRelTableData =
-        getDataFormatFromSchema(tableSchema, RelDataDirection::BWD) == ColumnDataFormat::REGULAR ?
-            std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal, tableSchema,
+        getDataFormatFromSchema(relTableEntry, RelDataDirection::BWD) == ColumnDataFormat::REGULAR ?
+            std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal, relTableEntry,
                 relsStoreStats, RelDataDirection::BWD, enableCompression) :
-            std::make_unique<CSRRelTableData>(dataFH, metadataFH, bufferManager, wal, tableSchema,
+            std::make_unique<CSRRelTableData>(dataFH, metadataFH, bufferManager, wal, relTableEntry,
                 relsStoreStats, RelDataDirection::BWD, enableCompression);
 }
 

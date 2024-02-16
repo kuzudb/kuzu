@@ -1,6 +1,6 @@
 #include "storage/wal_replayer.h"
 
-#include "catalog/node_table_schema.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/storage.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
@@ -230,10 +230,10 @@ void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecor
             // fileHandles are obsolete and should be reconstructed (e.g. since the numPages
             // have likely changed they need to reconstruct their page locks).
             if (walRecord.copyTableRecord.tableType == TableType::NODE) {
-                auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(
-                    catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
+                auto nodeTableEntry = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(
+                    catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID));
                 storageManager->getNodeTable(tableID)->initializePKIndex(
-                    nodeTableSchema, false /* readOnly */, vfs);
+                    nodeTableEntry, false /* readOnly */, vfs);
             }
         } else {
             // RECOVERY.
@@ -252,8 +252,8 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
     if (isCheckpoint) {
         auto tableID = walRecord.dropTableRecord.tableID;
         if (!isRecovering) {
-            auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
-            switch (tableSchema->getTableType()) {
+            auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
+            switch (tableEntry->getTableType()) {
             case TableType::NODE: {
                 storageManager->dropTable(tableID);
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
@@ -276,8 +276,9 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                 return;
             }
             auto catalogForRecovery = getCatalogForRecovery(FileVersionType::ORIGINAL);
-            auto tableSchema = catalogForRecovery->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
-            switch (tableSchema->getTableType()) {
+            auto tableEntry =
+                catalogForRecovery->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
+            switch (tableEntry->getTableType()) {
             case TableType::NODE: {
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
                 WALReplayerUtils::removeHashIndexFile(vfs, tableID, wal->getDirectory());
@@ -301,16 +302,16 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
         auto tableID = walRecord.dropPropertyRecord.tableID;
         auto propertyID = walRecord.dropPropertyRecord.propertyID;
         if (!isRecovering) {
-            auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
-            switch (tableSchema->getTableType()) {
+            auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
+            switch (tableEntry->getTableType()) {
             case TableType::NODE: {
                 storageManager->getNodeTable(tableID)->dropColumn(
-                    tableSchema->getColumnID(propertyID));
+                    tableEntry->getColumnID(propertyID));
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
             case TableType::REL: {
                 storageManager->getRelTable(tableID)->dropColumn(
-                    tableSchema->getColumnID(propertyID));
+                    tableEntry->getColumnID(propertyID));
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
             default: {
@@ -333,13 +334,13 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
     auto tableID = walRecord.addPropertyRecord.tableID;
     auto propertyID = walRecord.addPropertyRecord.propertyID;
     if (!isCheckpoint) {
-        auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
-        switch (tableSchema->getTableType()) {
+        auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
+        switch (tableEntry->getTableType()) {
         case TableType::NODE: {
-            storageManager->getNodeTable(tableID)->dropColumn(tableSchema->getColumnID(propertyID));
+            storageManager->getNodeTable(tableID)->dropColumn(tableEntry->getColumnID(propertyID));
         } break;
         case TableType::REL: {
-            storageManager->getRelTable(tableID)->dropColumn(tableSchema->getColumnID(propertyID));
+            storageManager->getRelTable(tableID)->dropColumn(tableEntry->getColumnID(propertyID));
         } break;
         default: {
             KU_UNREACHABLE;
@@ -407,7 +408,7 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
 
 std::unique_ptr<Catalog> WALReplayer::getCatalogForRecovery(FileVersionType fileVersionType) {
     // When we are recovering our database, the catalog field of walReplayer has not been
-    // initialized and recovered yet. We need to create a new catalog to get node/rel tableSchemas
+    // initialized and recovered yet. We need to create a new catalog to get node/rel tableEntries
     // for recovering.
     auto catalogForRecovery = std::make_unique<Catalog>(vfs);
     catalogForRecovery->getReadOnlyVersion()->readFromFile(wal->getDirectory(), fileVersionType);

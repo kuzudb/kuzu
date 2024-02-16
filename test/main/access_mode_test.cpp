@@ -15,9 +15,10 @@ TEST_F(AccessModeTest, testAccessMode) {
     systemConfig->readOnly = false;
     auto db = std::make_unique<Database>(databasePath, *systemConfig);
     auto con = std::make_unique<Connection>(db.get());
-    assertQuery(*con->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name))"));
-    assertQuery(*con->query("CREATE (:Person {name: 'Alice', age: 25})"));
-    assertQuery(*con->query("MATCH (:Person) RETURN COUNT(*)"));
+    assertQuery(
+        *con->query("CREATE NODE TABLE Person1(name STRING, age INT64, PRIMARY KEY(name))"));
+    assertQuery(*con->query("CREATE (:Person1 {name: 'Alice', age: 25})"));
+    assertQuery(*con->query("MATCH (:Person1) RETURN COUNT(*)"));
     db.reset();
     systemConfig->readOnly = true;
     std::unique_ptr<Database> db2;

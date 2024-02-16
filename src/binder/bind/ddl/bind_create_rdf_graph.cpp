@@ -1,6 +1,6 @@
 #include "binder/binder.h"
-#include "catalog/rdf_graph_schema.h"
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/keyword/rdf_keyword.h"
 #include "parser/ddl/create_table_info.h"
 
@@ -14,7 +14,7 @@ namespace binder {
 BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info) {
     auto rdfGraphName = info->tableName;
     // Resource table.
-    auto resourceTableName = RdfGraphSchema::getResourceTableName(rdfGraphName);
+    auto resourceTableName = RDFGraphCatalogEntry::getResourceTableName(rdfGraphName);
     std::vector<PropertyInfo> resourceProperties;
     resourceProperties.emplace_back(std::string(rdf::IRI), *LogicalType::STRING());
     auto resourceExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(
@@ -22,7 +22,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto resourceCreateInfo =
         BoundCreateTableInfo(TableType::NODE, resourceTableName, std::move(resourceExtraInfo));
     // Literal table.
-    auto literalTableName = RdfGraphSchema::getLiteralTableName(rdfGraphName);
+    auto literalTableName = RDFGraphCatalogEntry::getLiteralTableName(rdfGraphName);
     std::vector<PropertyInfo> literalProperties;
     literalProperties.emplace_back(std::string(rdf::ID), *LogicalType::SERIAL());
     literalProperties.emplace_back(std::string(rdf::VAL), *LogicalType::RDF_VARIANT());
@@ -32,7 +32,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto literalCreateInfo =
         BoundCreateTableInfo(TableType::NODE, literalTableName, std::move(literalExtraInfo));
     // Resource triple table.
-    auto resourceTripleTableName = RdfGraphSchema::getResourceTripleTableName(rdfGraphName);
+    auto resourceTripleTableName = RDFGraphCatalogEntry::getResourceTripleTableName(rdfGraphName);
     std::vector<PropertyInfo> resourceTripleProperties;
     resourceTripleProperties.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID());
     resourceTripleProperties.emplace_back(std::string(rdf::PID), *LogicalType::INTERNAL_ID());
@@ -42,7 +42,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto boundResourceTripleCreateInfo = BoundCreateTableInfo(
         TableType::REL, resourceTripleTableName, std::move(boundResourceTripleExtraInfo));
     // Literal triple table.
-    auto literalTripleTableName = RdfGraphSchema::getLiteralTripleTableName(rdfGraphName);
+    auto literalTripleTableName = RDFGraphCatalogEntry::getLiteralTripleTableName(rdfGraphName);
     std::vector<PropertyInfo> literalTripleProperties;
     literalTripleProperties.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID());
     literalTripleProperties.emplace_back(std::string(rdf::PID), *LogicalType::INTERNAL_ID());

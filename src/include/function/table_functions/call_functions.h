@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/catalog_content.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/data_chunk/data_chunk_collection.h"
 #include "common/vector/value_vector.h"
 #include "function/table_functions.h"
@@ -92,9 +93,9 @@ struct DBVersionFunction : public CallFunction {
 };
 
 struct ShowTablesBindData : public CallTableFuncBindData {
-    std::vector<catalog::TableSchema*> tables;
+    std::vector<catalog::TableCatalogEntry*> tables;
 
-    ShowTablesBindData(std::vector<catalog::TableSchema*> tables,
+    ShowTablesBindData(std::vector<catalog::TableCatalogEntry*> tables,
         std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
         common::offset_t maxOffset)
         : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
@@ -116,17 +117,16 @@ struct ShowTablesFunction : public CallFunction {
 };
 
 struct TableInfoBindData : public CallTableFuncBindData {
-    catalog::TableSchema* tableSchema;
+    catalog::TableCatalogEntry* tableEntry;
 
-    TableInfoBindData(catalog::TableSchema* tableSchema,
+    TableInfoBindData(catalog::TableCatalogEntry* tableEntry,
         std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
         common::offset_t maxOffset)
         : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
-          tableSchema{tableSchema} {}
+          tableEntry{tableEntry} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<TableInfoBindData>(
-            tableSchema, columnTypes, columnNames, maxOffset);
+        return std::make_unique<TableInfoBindData>(tableEntry, columnTypes, columnNames, maxOffset);
     }
 };
 
@@ -143,16 +143,16 @@ struct TableInfoFunction : public CallFunction {
 struct ShowConnectionBindData : public TableInfoBindData {
     catalog::Catalog* catalog;
 
-    ShowConnectionBindData(catalog::Catalog* catalog, catalog::TableSchema* tableSchema,
+    ShowConnectionBindData(catalog::Catalog* catalog, catalog::TableCatalogEntry* tableEntry,
         std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
         common::offset_t maxOffset)
-        : TableInfoBindData{tableSchema, std::move(returnTypes), std::move(returnColumnNames),
+        : TableInfoBindData{tableEntry, std::move(returnTypes), std::move(returnColumnNames),
               maxOffset},
           catalog{catalog} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ShowConnectionBindData>(
-            catalog, tableSchema, columnTypes, columnNames, maxOffset);
+            catalog, tableEntry, columnTypes, columnNames, maxOffset);
     }
 };
 
@@ -190,17 +190,18 @@ struct StorageInfoLocalState final : public TableFuncLocalState {
 };
 
 struct StorageInfoBindData final : public CallTableFuncBindData {
-    StorageInfoBindData(catalog::TableSchema* schema, std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, storage::Table* table)
+    StorageInfoBindData(catalog::TableCatalogEntry* tableEntry,
+        std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
+        storage::Table* table)
         : CallTableFuncBindData{std::move(columnTypes), columnNames, 1 /*maxOffset*/},
-          schema{schema}, table{table} {}
+          tableEntry{tableEntry}, table{table} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<StorageInfoBindData>(
-            schema, this->columnTypes, this->columnNames, table);
+            tableEntry, this->columnTypes, this->columnNames, table);
     }
 
-    catalog::TableSchema* schema;
+    catalog::TableCatalogEntry* tableEntry;
     storage::Table* table;
 };
 

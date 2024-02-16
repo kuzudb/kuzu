@@ -5,9 +5,8 @@
 #include <sstream>
 
 #include "catalog/catalog.h"
-#include "catalog/node_table_schema.h"
-#include "catalog/rel_table_schema.h"
-#include "catalog/table_schema.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
 
 using namespace kuzu::common;
@@ -36,13 +35,11 @@ static void writeCopyStatement(
 std::string getSchemaCypher(main::ClientContext* clientContext, transaction::Transaction* tx) {
     stringstream ss;
     auto catalog = clientContext->getCatalog();
-    for (auto& schema : catalog->getNodeTableSchemas(tx)) {
-        auto nodeSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(schema);
-        ss << nodeSchema->toCypher(clientContext) << std::endl;
+    for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
+        ss << nodeTableEntry->toCypher(clientContext) << std::endl;
     }
-    for (auto& schema : catalog->getRelTableSchemas(tx)) {
-        auto relSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
-        ss << relSchema->toCypher(clientContext) << std::endl;
+    for (auto& relTableEntry : catalog->getRelTableEntries(tx)) {
+        ss << relTableEntry->toCypher(clientContext) << std::endl;
     }
     return ss.str();
 }
@@ -58,12 +55,12 @@ std::string getMacroCypher(catalog::Catalog* catalog, transaction::Transaction* 
 std::string getCopyCypher(catalog::Catalog* catalog, transaction::Transaction* tx,
     std::string filePath, std::string copyOption) {
     stringstream ss;
-    for (auto& schema : catalog->getNodeTableSchemas(tx)) {
-        auto tableName = schema->getName();
+    for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
+        auto tableName = nodeTableEntry->getName();
         writeCopyStatement(ss, tableName, filePath, copyOption);
     }
-    for (auto& schema : catalog->getRelTableSchemas(tx)) {
-        auto tableName = schema->getName();
+    for (auto& relTableEntry : catalog->getRelTableEntries(tx)) {
+        auto tableName = relTableEntry->getName();
         writeCopyStatement(ss, tableName, filePath, copyOption);
     }
     return ss.str();

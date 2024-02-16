@@ -1,9 +1,10 @@
 #pragma once
 
 #include "binder/ddl/bound_create_table_info.h"
+#include "catalog_set.h"
+#include "common/cast.h"
 #include "function/built_in_function.h"
 #include "function/scalar_macro_function.h"
-#include "table_schema.h"
 
 namespace kuzu {
 namespace common {
@@ -21,16 +22,15 @@ public:
 
     CatalogContent(const std::string& directory, common::VirtualFileSystem* vfs);
 
-    CatalogContent(
-        std::unordered_map<common::table_id_t, std::unique_ptr<TableSchema>> tableSchemas,
+    CatalogContent(std::unique_ptr<CatalogSet> tables,
         std::unordered_map<std::string, common::table_id_t> tableNameToIDMap,
         common::table_id_t nextTableID,
         std::unique_ptr<function::BuiltInFunctions> builtInFunctions,
         std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros,
         common::VirtualFileSystem* vfs)
-        : tableSchemas{std::move(tableSchemas)}, tableNameToIDMap{std::move(tableNameToIDMap)},
-          nextTableID{nextTableID},
-          builtInFunctions{std::move(builtInFunctions)}, macros{std::move(macros)}, vfs{vfs} {}
+        : tableNameToIDMap{std::move(tableNameToIDMap)}, nextTableID{nextTableID},
+          builtInFunctions{std::move(builtInFunctions)}, macros{std::move(macros)}, vfs{vfs},
+          tables{std::move(tables)} {}
 
     void saveToFile(const std::string& directory, common::FileVersionType dbFileType);
     void readFromFile(const std::string& directory, common::FileVersionType dbFileType);
@@ -43,38 +43,44 @@ private:
 
     void registerBuiltInFunctions();
 
-    inline bool containMacro(const std::string& macroName) const {
-        return macros.contains(macroName);
-    }
+    bool containMacro(const std::string& macroName) const { return macros.contains(macroName); }
     void addFunction(std::string name, function::function_set definitions);
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
 
-    // ----------------------------- Table Schemas ----------------------------
-    inline common::table_id_t assignNextTableID() { return nextTableID++; }
-    inline uint64_t getTableCount() const { return tableSchemas.size(); }
+    // ----------------------------- Table entries ----------------------------
+    common::table_id_t assignNextTableID() { return nextTableID++; }
+    uint64_t getNumTables() const { return tables->getEntries().size(); }
 
     bool containsTable(const std::string& tableName) const;
-    bool containsTable(common::TableType tableType) const;
+    bool containsTable(CatalogEntryType catalogType) const;
 
     std::string getTableName(common::table_id_t tableID) const;
 
-    TableSchema* getTableSchema(common::table_id_t tableID) const;
-    std::vector<TableSchema*> getTableSchemas(common::TableType tableType) const;
+    CatalogEntry* getTableCatalogEntry(common::table_id_t tableID) const;
+
+    template<typename T>
+    std::vector<T> getTableCatalogEntries(CatalogEntryType catalogType) const {
+        std::vector<T> result;
+        for (auto& [_, entry] : tables->getEntries()) {
+            if (entry->getType() == catalogType) {
+                result.push_back(common::ku_dynamic_cast<CatalogEntry*, T>(entry.get()));
+            }
+        }
+        return result;
+    }
 
     common::table_id_t getTableID(const std::string& tableName) const;
-    std::vector<common::table_id_t> getTableIDs(common::TableType tableType) const;
+    std::vector<common::table_id_t> getTableIDs(CatalogEntryType catalogType) const;
 
-    common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
-    common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
-    common::table_id_t addRelTableGroupSchema(const binder::BoundCreateTableInfo& info);
-    common::table_id_t addRdfGraphSchema(const binder::BoundCreateTableInfo& info);
-    void dropTableSchema(common::table_id_t tableID);
+    common::table_id_t createNodeTable(const binder::BoundCreateTableInfo& info);
+    common::table_id_t createRelTable(const binder::BoundCreateTableInfo& info);
+    common::table_id_t createRelGroup(const binder::BoundCreateTableInfo& info);
+    common::table_id_t createRDFGraph(const binder::BoundCreateTableInfo& info);
+    void dropTable(common::table_id_t tableID);
     void renameTable(common::table_id_t tableID, const std::string& newName);
 
 private:
-    // TODO(Guodong): I don't think it's necessary to keep separate maps for node and rel tables.
-    std::unordered_map<common::table_id_t, std::unique_ptr<TableSchema>> tableSchemas;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
     std::unordered_map<std::string, common::table_id_t> tableNameToIDMap;
@@ -82,6 +88,7 @@ private:
     std::unique_ptr<function::BuiltInFunctions> builtInFunctions;
     std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros;
     common::VirtualFileSystem* vfs;
+    std::unique_ptr<CatalogSet> tables;
 };
 
 } // namespace catalog

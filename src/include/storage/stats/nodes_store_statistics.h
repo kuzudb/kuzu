@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catalog/node_table_schema.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "storage/stats/node_table_statistics.h"
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/storage_utils.h"
@@ -78,7 +78,7 @@ public:
     void setDeletedNodeOffsetsForMorsel(transaction::Transaction* transaction,
         const std::shared_ptr<common::ValueVector>& nodeOffsetVector, common::table_id_t tableID);
 
-    void addNodeStatisticsAndDeletedIDs(catalog::NodeTableSchema* tableSchema);
+    void addNodeStatisticsAndDeletedIDs(catalog::NodeTableCatalogEntry* nodeTableEntry);
 
     void addMetadataDAHInfo(common::table_id_t tableID, const common::LogicalType& dataType);
     void removeMetadataDAHInfo(common::table_id_t tableID, common::column_id_t columnID);
@@ -87,9 +87,9 @@ public:
 
 protected:
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
-        catalog::TableSchema* tableSchema) override {
+        catalog::TableCatalogEntry* tableEntry) override {
         return std::make_unique<NodeTableStatsAndDeletedIDs>(
-            metadataFH, *tableSchema, bufferManager, wal);
+            metadataFH, *tableEntry, bufferManager, wal);
     }
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "storage/store/node_group.h"
 #include "storage/store/table_data.h"
 
@@ -44,7 +44,7 @@ struct CSRRelNGInfo;
 class RelTableData : public TableData {
 public:
     RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager,
-        WAL* wal, catalog::RelTableSchema* tableSchema, RelsStoreStats* relsStoreStats,
+        WAL* wal, catalog::RelTableCatalogEntry* tableEntry, RelsStoreStats* relsStoreStats,
         common::RelDataDirection direction, bool enableCompression,
         common::ColumnDataFormat dataFormat = common::ColumnDataFormat::REGULAR);
 

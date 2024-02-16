@@ -16,26 +16,26 @@ namespace kuzu {
 namespace binder {
 
 static std::string getPrimaryKeyName(table_id_t tableId, const Catalog& catalog, Transaction* tx) {
-    auto schema = catalog.getTableSchema(tx, tableId);
-    auto primaryProperty = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(schema)->getPrimaryKey();
+    auto tableEntry = catalog.getTableCatalogEntry(tx, tableId);
+    auto primaryProperty =
+        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry)->getPrimaryKey();
     return primaryProperty->getName();
 }
 
 static std::vector<ExportedTableData> getExportInfo(
     const Catalog& catalog, Transaction* tx, Binder* binder) {
     std::vector<ExportedTableData> exportData;
-    for (auto& schema : catalog.getNodeTableSchemas(tx)) {
-        auto tableName = schema->getName();
+    for (auto& nodeTableEntry : catalog.getNodeTableEntries(tx)) {
+        auto tableName = nodeTableEntry->getName();
         std::string selQuery = "match (a:" + tableName + ") return a.*";
         exportData.push_back(binder->extractExportData(selQuery, tableName));
     }
-    for (auto& schema : catalog.getRelTableSchemas(tx)) {
-        auto relSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
-        auto srcPrimaryKeyName = getPrimaryKeyName(relSchema->getSrcTableID(), catalog, tx);
-        auto dstPrimaryKeyName = getPrimaryKeyName(relSchema->getDstTableID(), catalog, tx);
-        auto srcName = catalog.getTableName(tx, relSchema->getSrcTableID());
-        auto dstName = catalog.getTableName(tx, relSchema->getDstTableID());
-        auto relName = schema->getName();
+    for (auto& relTableEntry : catalog.getRelTableEntries(tx)) {
+        auto srcPrimaryKeyName = getPrimaryKeyName(relTableEntry->getSrcTableID(), catalog, tx);
+        auto dstPrimaryKeyName = getPrimaryKeyName(relTableEntry->getDstTableID(), catalog, tx);
+        auto srcName = catalog.getTableName(tx, relTableEntry->getSrcTableID());
+        auto dstName = catalog.getTableName(tx, relTableEntry->getDstTableID());
+        auto relName = relTableEntry->getName();
         std::string selQuery = "match (a:" + srcName + ")-[r:" + relName + "]->(b:" + dstName +
                                ") return a." + srcPrimaryKeyName + ",b." + dstPrimaryKeyName +
                                ",r.*";

@@ -32,8 +32,8 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
             }
             auto propertyID = property->getPropertyID(tableID);
             auto table = storageManager.getNodeTable(tableID);
-            auto columnID =
-                catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID)->getColumnID(propertyID);
+            auto columnID = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
+                                ->getColumnID(propertyID);
             tableIDToSetInfo.insert({tableID, NodeSetInfo{table, columnID}});
         }
         return std::make_unique<MultiLabelNodeSetExecutor>(
@@ -44,8 +44,8 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
         auto columnID = INVALID_COLUMN_ID;
         if (property->hasPropertyID(tableID)) {
             auto propertyID = property->getPropertyID(tableID);
-            columnID =
-                catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID)->getColumnID(propertyID);
+            columnID = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
+                           ->getColumnID(propertyID);
         }
         return std::make_unique<SingleLabelNodeSetExecutor>(
             NodeSetInfo{table, columnID}, nodeIDPos, propertyPos, std::move(evaluator));
@@ -85,8 +85,8 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
             }
             auto table = storageManager.getRelTable(tableID);
             auto propertyID = property->getPropertyID(tableID);
-            auto columnID =
-                catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID)->getColumnID(propertyID);
+            auto columnID = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
+                                ->getColumnID(propertyID);
             tableIDToTableAndColumnID.insert({tableID, std::make_pair(table, columnID)});
         }
         return std::make_unique<MultiLabelRelSetExecutor>(std::move(tableIDToTableAndColumnID),
@@ -97,8 +97,8 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
         auto columnID = common::INVALID_COLUMN_ID;
         if (property->hasPropertyID(tableID)) {
             auto propertyID = property->getPropertyID(tableID);
-            columnID =
-                catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID)->getColumnID(propertyID);
+            columnID = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
+                           ->getColumnID(propertyID);
         }
         return std::make_unique<SingleLabelRelSetExecutor>(
             table, columnID, srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));

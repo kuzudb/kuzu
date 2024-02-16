@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catalog/table_schema.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/stats/metadata_dah_info.h"
 #include "storage/stats/table_statistics.h"
@@ -43,11 +43,11 @@ public:
 
     inline TablesStatisticsContent* getReadOnlyVersion() const { return readOnlyVersion.get(); }
 
-    inline void addTableStatistic(catalog::TableSchema* tableSchema) {
+    inline void addTableStatistic(catalog::TableCatalogEntry* tableEntry) {
         setToUpdated();
         initTableStatisticsForWriteTrx();
-        readWriteVersion->tableStatisticPerTable[tableSchema->tableID] =
-            constructTableStatistic(tableSchema);
+        readWriteVersion->tableStatisticPerTable[tableEntry->getTableID()] =
+            constructTableStatistic(tableEntry);
     }
     inline void removeTableStatistic(common::table_id_t tableID) {
         setToUpdated();
@@ -71,7 +71,7 @@ public:
 
 protected:
     virtual std::unique_ptr<TableStatistics> constructTableStatistic(
-        catalog::TableSchema* tableSchema) = 0;
+        catalog::TableCatalogEntry* tableEntry) = 0;
 
     virtual std::unique_ptr<TableStatistics> constructTableStatistic(
         TableStatistics* tableStatistics) = 0;
