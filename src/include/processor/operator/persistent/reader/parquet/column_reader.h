@@ -72,6 +72,7 @@ public:
                 result->setNull(i + resultOffset, true);
                 continue;
             }
+            result->setNull(i + resultOffset, false);
             if (filter[i + resultOffset]) {
                 VALUE_TYPE val = CONVERSION::plainRead(*plainData, *this);
                 result->setValue(i + resultOffset, val);
