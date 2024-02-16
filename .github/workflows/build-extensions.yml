@@ -190,7 +190,7 @@ jobs:
 
       - name: Detect release version
         run: |
-          echo "RELEASE_VERSION=v$(cat CMakeLists.txt | grep "DKUZU_RELEASE_VERSION" | cut -d '"' -f 2 )" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=v$(cat CMakeLists.txt | grep "DKUZU_EXTENSION_VERSION" | cut -d '"' -f 2 )" >> $GITHUB_ENV
 
       - name: Delete checked out repository
         run: cd .. && rm -rf kuzudb

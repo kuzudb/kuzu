@@ -47,7 +47,7 @@ bool ExtensionUtils::isFullPath(const std::string& extension) {
 
 ExtensionRepoInfo ExtensionUtils::getExtensionRepoInfo(const std::string& extension) {
     auto extensionURL =
-        common::stringFormat(EXTENSION_REPO, KUZU_RELEASE_VERSION, getPlatform(), extension);
+        common::stringFormat(EXTENSION_REPO, KUZU_EXTENSION_VERSION, getPlatform(), extension);
     common::StringUtils::replaceAll(extensionURL, "http://", "");
     auto hostNamePos = extensionURL.find('/');
     auto hostName = extensionURL.substr(0, hostNamePos);
