@@ -95,10 +95,12 @@ uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/
                 break;
             }
             if (childDefinesPtr[childIdx] >= maxDefine) {
+                resultOut->setNull(resultOffset, false);
                 // value has been defined down the stack, hence its NOT NULL
                 resultPtr[resultOffset].offset = childIdx + currentChunkOffset;
                 resultPtr[resultOffset].size = 1;
             } else if (childDefinesPtr[childIdx] == maxDefine - 1) {
+                resultOut->setNull(resultOffset, false);
                 resultPtr[resultOffset].offset = childIdx + currentChunkOffset;
                 resultPtr[resultOffset].size = 0;
             } else {
