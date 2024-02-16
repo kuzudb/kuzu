@@ -162,7 +162,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1native_1reload_1library(
 // Do nothing on Windows
 #else
     const char* path = env->GetStringUTFChars(lib_path, JNI_FALSE);
-    void* handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+    void* handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
     env->ReleaseStringUTFChars(lib_path, path);
     if (handle == nullptr) {
         jclass Exception = env->FindClass("java/lang/Exception");
