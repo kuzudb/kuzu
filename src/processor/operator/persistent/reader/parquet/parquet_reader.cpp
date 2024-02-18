@@ -5,6 +5,7 @@
 #include "common/exception/copy.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
+#include "function/table/bind_data.h"
 #include "processor/operator/persistent/reader/parquet/list_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/thrift_tools.h"
@@ -564,15 +565,7 @@ ParquetScanSharedState::ParquetScanSharedState(
         std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx], context));
 }
 
-function_set ParquetScanFunction::getFunctionSet() {
-    function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>(READ_PARQUET_FUNC_NAME, tableFunc, bindFunc,
-            initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
-    return functionSet;
-}
-
-bool parquetSharedStateNext(
+static bool parquetSharedStateNext(
     ParquetScanLocalState& localState, ParquetScanSharedState& sharedState) {
     std::lock_guard<std::mutex> mtx{sharedState.lock};
     while (true) {
@@ -598,24 +591,49 @@ bool parquetSharedStateNext(
     }
 }
 
-void ParquetScanFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+    auto& outputChunk = output.dataChunk;
     if (input.localState == nullptr) {
-        return;
+        return 0;
     }
     auto parquetScanLocalState = reinterpret_cast<ParquetScanLocalState*>(input.localState);
     auto parquetScanSharedState = reinterpret_cast<ParquetScanSharedState*>(input.sharedState);
     do {
         parquetScanLocalState->reader->scan(*parquetScanLocalState->state, outputChunk);
         if (outputChunk.state->selVector->selectedSize > 0) {
-            return;
+            return outputChunk.state->selVector->selectedSize;
         }
         if (!parquetSharedStateNext(*parquetScanLocalState, *parquetScanSharedState)) {
-            return;
+            return outputChunk.state->selVector->selectedSize;
         }
     } while (true);
 }
 
-std::unique_ptr<function::TableFuncBindData> ParquetScanFunction::bindFunc(
+static void bindColumns(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
+    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
+    auto reader = ParquetReader(bindInput->config.filePaths[fileIdx], bindInput->context);
+    auto state = std::make_unique<processor::ParquetReaderScanState>();
+    reader.initializeScan(*state, std::vector<uint64_t>{}, bindInput->context->getVFSUnsafe());
+    for (auto i = 0u; i < reader.getNumColumns(); ++i) {
+        columnNames.push_back(reader.getColumnName(i));
+        columnTypes.push_back(*reader.getColumnType(i));
+    }
+}
+
+static void bindColumns(const ScanTableFuncBindInput* bindInput,
+    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
+    KU_ASSERT(bindInput->config.getNumFiles() > 0);
+    bindColumns(bindInput, 0 /* fileIdx */, columnNames, columnTypes);
+    for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
+        std::vector<std::string> tmpColumnNames;
+        std::vector<LogicalType> tmpColumnTypes;
+        bindColumns(bindInput, i, tmpColumnNames, tmpColumnTypes);
+        ReaderBindUtils::validateNumColumns(columnTypes.size(), tmpColumnTypes.size());
+        ReaderBindUtils::validateColumnTypes(columnNames, columnTypes, tmpColumnTypes);
+    }
+}
+
+static std::unique_ptr<function::TableFuncBindData> bindFunc(
     main::ClientContext* /*context*/, function::TableFuncBindInput* input) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
@@ -633,7 +651,7 @@ std::unique_ptr<function::TableFuncBindData> ParquetScanFunction::bindFunc(
         std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
 }
 
-std::unique_ptr<function::TableFuncSharedState> ParquetScanFunction::initSharedState(
+static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     TableFunctionInitInput& input) {
     auto parquetScanBindData = reinterpret_cast<ScanBindData*>(input.bindData);
     row_idx_t numRows = 0;
@@ -645,7 +663,7 @@ std::unique_ptr<function::TableFuncSharedState> ParquetScanFunction::initSharedS
         parquetScanBindData->config.copy(), numRows, parquetScanBindData->context);
 }
 
-std::unique_ptr<function::TableFuncLocalState> ParquetScanFunction::initLocalState(
+static std::unique_ptr<function::TableFuncLocalState> initLocalState(
     TableFunctionInitInput& /*input*/, TableFuncSharedState* state,
     storage::MemoryManager* /*mm*/) {
     auto parquetScanSharedState = reinterpret_cast<ParquetScanSharedState*>(state);
@@ -656,28 +674,12 @@ std::unique_ptr<function::TableFuncLocalState> ParquetScanFunction::initLocalSta
     return localState;
 }
 
-void ParquetScanFunction::bindColumns(const ScanTableFuncBindInput* bindInput,
-    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
-    KU_ASSERT(bindInput->config.getNumFiles() > 0);
-    bindColumns(bindInput, 0 /* fileIdx */, columnNames, columnTypes);
-    for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
-        std::vector<std::string> tmpColumnNames;
-        std::vector<LogicalType> tmpColumnTypes;
-        bindColumns(bindInput, i, tmpColumnNames, tmpColumnTypes);
-        ReaderBindUtils::validateNumColumns(columnTypes.size(), tmpColumnTypes.size());
-        ReaderBindUtils::validateColumnTypes(columnNames, columnTypes, tmpColumnTypes);
-    }
-}
-
-void ParquetScanFunction::bindColumns(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
-    auto reader = ParquetReader(bindInput->config.filePaths[fileIdx], bindInput->context);
-    auto state = std::make_unique<processor::ParquetReaderScanState>();
-    reader.initializeScan(*state, std::vector<uint64_t>{}, bindInput->context->getVFSUnsafe());
-    for (auto i = 0u; i < reader.getNumColumns(); ++i) {
-        columnNames.push_back(reader.getColumnName(i));
-        columnTypes.push_back(*reader.getColumnType(i));
-    }
+function_set ParquetScanFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(
+        std::make_unique<TableFunction>(READ_PARQUET_FUNC_NAME, tableFunc, bindFunc,
+            initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    return functionSet;
 }
 
 } // namespace processor

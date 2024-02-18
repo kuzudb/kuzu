@@ -23,13 +23,13 @@ struct TableInfoBindData : public CallTableFuncBindData {
     }
 };
 
-static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk) {
+static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+    auto& dataChunk = output.dataChunk;
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState);
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
-        outputChunk.getValueVector(0)->state->selVector->selectedSize = 0;
-        return;
+        return 0;
     }
     auto bindData =
         ku_dynamic_cast<function::TableFuncBindData*, function::TableInfoBindData*>(input.bindData);
@@ -45,29 +45,28 @@ static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk)
             }
             if (property->getName() == rdf::PID) {
                 // Replace pid column with (virtual) iri column.
-                outputChunk.getValueVector(0)->setValue<int64_t>(vectorPos, -1);
-                outputChunk.getValueVector(1)->setValue(
+                dataChunk.getValueVector(0)->setValue<int64_t>(vectorPos, -1);
+                dataChunk.getValueVector(1)->setValue(
                     vectorPos, std::string(rdf::IRI) + " (Virtual)");
-                outputChunk.getValueVector(2)->setValue(
-                    vectorPos, LogicalType::STRING()->toString());
+                dataChunk.getValueVector(2)->setValue(vectorPos, LogicalType::STRING()->toString());
                 vectorPos++;
                 continue;
             }
         }
-        outputChunk.getValueVector(0)->setValue(vectorPos, (int64_t)property->getPropertyID());
-        outputChunk.getValueVector(1)->setValue(vectorPos, property->getName());
-        outputChunk.getValueVector(2)->setValue(vectorPos, property->getDataType()->toString());
+        dataChunk.getValueVector(0)->setValue(vectorPos, (int64_t)property->getPropertyID());
+        dataChunk.getValueVector(1)->setValue(vectorPos, property->getName());
+        dataChunk.getValueVector(2)->setValue(vectorPos, property->getDataType()->toString());
 
         if (tableEntry->getTableType() == TableType::NODE) {
             auto nodeTableEntry =
                 ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
             auto primaryKeyID = nodeTableEntry->getPrimaryKeyPID();
-            outputChunk.getValueVector(3)->setValue(
+            dataChunk.getValueVector(3)->setValue(
                 vectorPos, primaryKeyID == property->getPropertyID());
         }
         vectorPos++;
     }
-    outputChunk.state->selVector->selectedSize = vectorPos;
+    return vectorPos;
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(

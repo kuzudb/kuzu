@@ -6,18 +6,18 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-static void tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+    auto& dataChunk = output.dataChunk;
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState);
-    auto outputVector = outputChunk.getValueVector(0);
+    auto outputVector = dataChunk.getValueVector(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
-        outputChunk.state->selVector->selectedSize = 0;
-        return;
+        return 0;
     }
-    auto pos = outputChunk.state->selVector->selectedPositions[0];
+    auto pos = dataChunk.state->selVector->selectedPositions[0];
     outputVector->setValue(pos, std::string(KUZU_VERSION));
     outputVector->setNull(pos, false);
-    outputChunk.state->selVector->selectedSize = 1;
+    return 1;
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*, TableFuncBindInput*) {

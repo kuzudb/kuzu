@@ -26,7 +26,7 @@ struct PandasScanSharedState : public function::BaseScanSharedState {
 struct PandasScanFunction {
     static function::function_set getFunctionSet();
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+    static common::offset_t tableFunc(function::TableFuncInput& input, function::TableFuncOutput& output);
 
     static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
         function::TableFuncBindInput* input);

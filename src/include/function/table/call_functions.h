@@ -14,10 +14,10 @@ struct CallFuncMorsel {
     CallFuncMorsel(common::offset_t startOffset, common::offset_t endOffset)
         : startOffset{startOffset}, endOffset{endOffset} {}
 
-    inline bool hasMoreToOutput() const { return startOffset != UINT64_MAX; }
+    inline bool hasMoreToOutput() const { return startOffset != common::INVALID_OFFSET; }
 
     inline static CallFuncMorsel createInvalidMorsel() {
-        return CallFuncMorsel{UINT64_MAX, UINT64_MAX};
+        return CallFuncMorsel{common::INVALID_OFFSET, common::INVALID_OFFSET};
     }
 };
 

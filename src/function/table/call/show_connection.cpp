@@ -41,12 +41,14 @@ static void outputRelTableConnection(ValueVector* srcTableNameVector,
     dstTableNameVector->setValue(outputPos, catalog->getTableName(context->getTx(), dstTableID));
 }
 
-static void tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+    auto& dataChunk = output.dataChunk;
+    auto srcVector = dataChunk.getValueVector(0).get();
+    auto dstVector = dataChunk.getValueVector(1).get();
     auto morsel = ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState)
                       ->getMorsel();
     if (!morsel.hasMoreToOutput()) {
-        outputChunk.state->selVector->selectedSize = 0;
-        return;
+        return 0;
     }
     auto bindData =
         ku_dynamic_cast<function::TableFuncBindData*, function::ShowConnectionBindData*>(
@@ -56,24 +58,24 @@ static void tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
     auto vectorPos = 0u;
     switch (tableEntry->getTableType()) {
     case TableType::REL: {
-        outputRelTableConnection(outputChunk.getValueVector(0).get(),
-            outputChunk.getValueVector(1).get(), vectorPos, bindData->context,
-            tableEntry->getTableID());
+        outputRelTableConnection(
+            srcVector, dstVector, vectorPos, bindData->context, tableEntry->getTableID());
         vectorPos++;
     } break;
     case TableType::REL_GROUP: {
         auto relGroupEntry = ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
         auto relTableIDs = relGroupEntry->getRelTableIDs();
         for (; vectorPos < numRelationsToOutput; vectorPos++) {
-            outputRelTableConnection(outputChunk.getValueVector(0).get(),
-                outputChunk.getValueVector(1).get(), vectorPos, bindData->context,
+            outputRelTableConnection(srcVector, dstVector, vectorPos, bindData->context,
                 relTableIDs[morsel.startOffset + vectorPos]);
         }
     } break;
     default:
+        // LCOV_EXCL_START
         KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
-    outputChunk.state->selVector->selectedSize = vectorPos;
+    return vectorPos;
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(

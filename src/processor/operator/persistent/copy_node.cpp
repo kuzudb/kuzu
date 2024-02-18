@@ -25,8 +25,8 @@ void CopyNodeSharedState::init(ExecutionContext* context) {
         uint64_t numRows;
         if (readerSharedState != nullptr) {
             KU_ASSERT(distinctSharedState == nullptr);
-            auto scanSharedState =
-                reinterpret_cast<function::ScanSharedState*>(readerSharedState->sharedState.get());
+            auto scanSharedState = reinterpret_cast<function::BaseScanSharedState*>(
+                readerSharedState->funcState.get());
             numRows = scanSharedState->numRows;
         } else {
             numRows = distinctSharedState->getFactorizedTable()->getNumTuples();

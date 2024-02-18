@@ -161,45 +161,45 @@ static void appendStorageInfoForColumn(StorageInfoLocalState* localState, std::s
     }
 }
 
-static void tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+    auto& dataChunk = output.dataChunk;
     auto localState =
         ku_dynamic_cast<TableFuncLocalState*, StorageInfoLocalState*>(input.localState);
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, StorageInfoSharedState*>(input.sharedState);
-    KU_ASSERT(outputChunk.state->selVector->isUnfiltered());
+    KU_ASSERT(dataChunk.state->selVector->isUnfiltered());
     while (true) {
         if (localState->currChunkIdx < localState->dataChunkCollection->getNumChunks()) {
             // Copy from local state chunk.
             auto chunk = localState->dataChunkCollection->getChunk(localState->currChunkIdx);
             auto numValuesToOutput = chunk->state->selVector->selectedSize;
-            for (auto columnIdx = 0u; columnIdx < outputChunk.getNumValueVectors(); columnIdx++) {
+            for (auto columnIdx = 0u; columnIdx < dataChunk.getNumValueVectors(); columnIdx++) {
                 auto localVector = chunk->getValueVector(columnIdx);
-                auto outputVector = outputChunk.getValueVector(columnIdx);
+                auto outputVector = dataChunk.getValueVector(columnIdx);
                 for (auto i = 0u; i < numValuesToOutput; i++) {
                     outputVector->copyFromVectorData(i, localVector.get(), i);
                 }
             }
-            outputChunk.state->selVector->resetSelectorToUnselectedWithSize(numValuesToOutput);
+            dataChunk.state->selVector->resetSelectorToUnselectedWithSize(numValuesToOutput);
             localState->currChunkIdx++;
-            return;
+            return numValuesToOutput;
         }
         auto morsel =
             ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState)
                 ->getMorsel();
         if (!morsel.hasMoreToOutput()) {
-            outputChunk.state->selVector->selectedSize = 0;
-            return;
+            return 0;
         }
         auto bindData = ku_dynamic_cast<TableFuncBindData*, StorageInfoBindData*>(input.bindData);
         auto tableEntry = bindData->tableEntry;
         std::string tableType = tableEntry->getTableType() == TableType::NODE ? "NODE" : "REL";
         for (auto columnID = 0u; columnID < sharedState->columns.size(); columnID++) {
             appendStorageInfoForColumn(localState, tableType, sharedState->columns[columnID],
-                outputChunk, bindData->context);
+                dataChunk, bindData->context);
         }
-        localState->dataChunkCollection->append(outputChunk);
-        outputChunk.resetAuxiliaryBuffer();
-        outputChunk.state->selVector->selectedSize = 0;
+        localState->dataChunkCollection->append(dataChunk);
+        dataChunk.resetAuxiliaryBuffer();
+        dataChunk.state->selVector->selectedSize = 0;
     }
 }
 

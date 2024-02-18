@@ -3,7 +3,6 @@
 #include "base_csv_reader.h"
 #include "common/types/types.h"
 #include "function/scalar_function.h"
-#include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/scan_functions.h"
 #include "function/table_functions.h"
@@ -50,18 +49,6 @@ struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {
 
 struct ParallelCSVScan {
     static function::function_set getFunctionSet();
-
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
-
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(
-        main::ClientContext* /*context*/, function::TableFuncBindInput* input);
-
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
-
-    static std::unique_ptr<function::TableFuncLocalState> initLocalState(
-        function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* state,
-        storage::MemoryManager* /*mm*/);
 };
 
 } // namespace processor

@@ -84,24 +84,25 @@ void PandasScanFunction::pandasBackendScanSwitch(
     }
 }
 
-void PandasScanFunction::tableFunc(
-    function::TableFunctionInput& input, common::DataChunk& outputChunk) {
+common::offset_t PandasScanFunction::tableFunc(
+    function::TableFuncInput& input, function::TableFuncOutput& output) {
     auto pandasScanData = reinterpret_cast<PandasScanFunctionData*>(input.bindData);
     auto pandasLocalState = reinterpret_cast<PandasScanLocalState*>(input.localState);
 
     if (pandasLocalState->start >= pandasLocalState->end) {
         if (!sharedStateNext(input.bindData, pandasLocalState, input.sharedState)) {
-            return;
+            return 0;
         }
     }
     auto numValuesToOutput =
         std::min(DEFAULT_VECTOR_CAPACITY, pandasLocalState->end - pandasLocalState->start);
     for (auto i = 0u; i < pandasScanData->columnNames.size(); i++) {
         pandasBackendScanSwitch(pandasScanData->columnBindData[i].get(), numValuesToOutput,
-            pandasLocalState->start, outputChunk.getValueVector(i).get());
+            pandasLocalState->start, output.dataChunk.getValueVector(i).get());
     }
-    outputChunk.state->selVector->selectedSize = numValuesToOutput;
+    output.dataChunk.state->selVector->selectedSize = numValuesToOutput;
     pandasLocalState->start += numValuesToOutput;
+    return numValuesToOutput;
 }
 
 std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyColumnBindData() const {
