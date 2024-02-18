@@ -1,6 +1,7 @@
 #include "common/copier_config/reader_config.h"
 
 #include "common/assert.h"
+#include "common/exception/binder.h"
 #include "common/exception/copy.h"
 
 namespace kuzu {
@@ -54,6 +55,18 @@ std::string FileTypeUtils::toString(FileType fileType) {
     default: {
         KU_UNREACHABLE;
     }
+    }
+}
+
+FileType FileTypeUtils::fromString(std::string fileType) {
+    if (fileType == "CSV") {
+        return FileType::CSV;
+    } else if (fileType == "PARQUET") {
+        return FileType::PARQUET;
+    } else if (fileType == "NPY") {
+        return FileType::NPY;
+    } else {
+        throw BinderException(stringFormat("Unsupported file type: {}.", fileType));
     }
 }
 

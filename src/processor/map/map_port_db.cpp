@@ -13,15 +13,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto exportDatabase =
         ku_dynamic_cast<LogicalOperator*, LogicalExportDatabase*>(logicalOperator);
-    auto filePath = exportDatabase->getFilePath();
     std::vector<std::unique_ptr<PhysicalOperator>> children;
     for (auto childCopyTo : exportDatabase->getChildren()) {
         auto childPhysicalOperator = mapOperator(childCopyTo.get());
         children.push_back(std::move(childPhysicalOperator));
     }
     std::unique_ptr<ResultSetDescriptor> resultSetDescriptor;
-    return std::make_unique<ExportDB>(filePath, exportDatabase->getCopyOption()->copy(),
-        getOperatorID(), exportDatabase->getExpressionsForPrinting(), std::move(children));
+    return std::make_unique<ExportDB>(exportDatabase->getBoundFileInfo()->copy(), getOperatorID(),
+        exportDatabase->getExpressionsForPrinting(), std::move(children));
 }
 
 } // namespace processor

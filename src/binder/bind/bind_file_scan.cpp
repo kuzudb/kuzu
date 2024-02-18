@@ -4,6 +4,7 @@
 #include "common/exception/copy.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
+#include "common/string_utils.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::binder;
@@ -53,6 +54,7 @@ std::unordered_map<std::string, Value> Binder::bindParsingOptions(
     std::unordered_map<std::string, Value> options;
     for (auto& option : parsingOptions) {
         auto name = option.first;
+        common::StringUtils::toUpper(name);
         auto expr = expressionBinder.bindExpression(*option.second);
         KU_ASSERT(expr->expressionType == ExpressionType::LITERAL);
         auto literalExpr = ku_dynamic_cast<Expression*, LiteralExpression*>(expr.get());

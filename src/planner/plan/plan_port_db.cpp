@@ -1,8 +1,8 @@
 #include "binder/copy/bound_export_database.h"
+#include "common/string_utils.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "planner/operator/persistent/logical_export_db.h"
 #include "planner/planner.h"
-
 using namespace kuzu::binder;
 using namespace kuzu::storage;
 using namespace kuzu::catalog;
@@ -20,18 +20,21 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
     auto exportData = boundExportDatabase.getExportData();
     auto logicalOperators = std::vector<std::shared_ptr<LogicalOperator>>();
     auto plan = std::make_unique<LogicalPlan>();
+    auto fileTypeStr = FileTypeUtils::toString(fileType);
+    StringUtils::toLower(fileTypeStr);
+    auto copyToSuffix = "." + fileTypeStr;
     for (auto& exportTableData : *exportData) {
         auto regularQuery = exportTableData.getRegularQuery();
         KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
         auto tablePlan = getBestPlan(*regularQuery);
-        auto copyTo =
-            std::make_shared<LogicalCopyTo>(filePath + "/" + exportTableData.tableName + ".csv",
-                fileType, exportTableData.columnNames, exportTableData.getColumnTypesRef(),
-                boundExportDatabase.getCopyOption()->copy(), tablePlan->getLastOperator());
+        auto copyTo = std::make_shared<LogicalCopyTo>(
+            filePath + "/" + exportTableData.tableName + copyToSuffix, fileType,
+            exportTableData.columnNames, exportTableData.getColumnTypesRef(),
+            boundExportDatabase.getCopyOption(), tablePlan->getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }
     auto exportDatabase = make_shared<LogicalExportDatabase>(
-        filePath, boundExportDatabase.getCopyOption()->copy(), std::move(logicalOperators));
+        boundExportDatabase.getBoundFileInfo()->copy(), std::move(logicalOperators));
     plan->setLastOperator(std::move(exportDatabase));
     return plan;
 }
