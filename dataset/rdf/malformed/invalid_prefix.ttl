@@ -1,5 +1,4 @@
 @prefix ex: <http://example.org/> .
 
 <ex:green-goblin>
-    foo:enemyOf ex:spiderman ;
-    _:b1 ex:spiderman .
+    foo:enemyOf ex:spiderman .
