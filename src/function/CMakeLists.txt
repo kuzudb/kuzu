@@ -7,7 +7,7 @@ add_library(kuzu_function
         OBJECT
         aggregate_function.cpp
         base_lower_upper_operation.cpp
-        built_in_functions.cpp
+        built_in_function_utils.cpp
         cast_string_non_nested_functions.cpp
         cast_from_string_functions.cpp
         comparison_functions.cpp

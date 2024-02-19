@@ -158,8 +158,8 @@ bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType
         dstType.getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
         return false;
     }
-    if (BuiltInFunctions::getCastCost(srcType.getLogicalTypeID(), dstType.getLogicalTypeID()) !=
-        UNDEFINED_CAST_COST) {
+    if (BuiltInFunctionsUtils::getCastCost(
+            srcType.getLogicalTypeID(), dstType.getLogicalTypeID()) != UNDEFINED_CAST_COST) {
         return true;
     }
     // TODO(Jiamin): there are still other special cases

@@ -202,7 +202,7 @@ static void validateUDFError(std::function<void()> createFunc, std::string errMs
 TEST_F(ApiTest, UDFError) {
     conn->createScalarFunction("add5", &add5);
     validateUDFError([&]() { conn->createScalarFunction("add5", &add5); },
-        "Catalog exception: function ADD5 already exists.");
+        "Catalog exception: function add5 already exists.");
 }
 
 TEST_F(ApiTest, UDFTypeError) {
@@ -336,7 +336,7 @@ TEST_F(ApiTest, UDFTrxTest) {
     conn->createScalarFunction("times2", &times2);
     ASSERT_TRUE(conn->query("ROLLBACK;")->isSuccess());
     ASSERT_EQ(conn->query("return times2(5)")->getErrorMessage(),
-        "Catalog exception: TIMES2 function does not exist.");
+        "Catalog exception: function TIMES2 does not exist.");
 }
 
 } // namespace testing

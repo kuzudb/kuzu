@@ -3,7 +3,7 @@
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog_set.h"
 #include "common/cast.h"
-#include "function/built_in_function.h"
+#include "function/built_in_function_utils.h"
 #include "function/scalar_macro_function.h"
 
 namespace kuzu {
@@ -24,13 +24,10 @@ public:
 
     CatalogContent(std::unique_ptr<CatalogSet> tables,
         std::unordered_map<std::string, common::table_id_t> tableNameToIDMap,
-        common::table_id_t nextTableID,
-        std::unique_ptr<function::BuiltInFunctions> builtInFunctions,
-        std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros,
+        common::table_id_t nextTableID, std::unique_ptr<CatalogSet> functions,
         common::VirtualFileSystem* vfs)
-        : tableNameToIDMap{std::move(tableNameToIDMap)}, nextTableID{nextTableID},
-          builtInFunctions{std::move(builtInFunctions)}, macros{std::move(macros)}, vfs{vfs},
-          tables{std::move(tables)} {}
+        : tableNameToIDMap{std::move(tableNameToIDMap)}, nextTableID{nextTableID}, vfs{vfs},
+          tables{std::move(tables)}, functions{std::move(functions)} {}
 
     void saveToFile(const std::string& directory, common::FileVersionType dbFileType);
     void readFromFile(const std::string& directory, common::FileVersionType dbFileType);
@@ -43,10 +40,14 @@ private:
 
     void registerBuiltInFunctions();
 
-    bool containMacro(const std::string& macroName) const { return macros.contains(macroName); }
+    bool containMacro(const std::string& macroName) const {
+        return functions->containsEntry(macroName);
+    }
     void addFunction(std::string name, function::function_set definitions);
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
+
+    function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const;
 
     // ----------------------------- Table entries ----------------------------
     common::table_id_t assignNextTableID() { return nextTableID++; }
@@ -85,10 +86,9 @@ private:
     // is re-constructed when reading from the catalog file.
     std::unordered_map<std::string, common::table_id_t> tableNameToIDMap;
     common::table_id_t nextTableID;
-    std::unique_ptr<function::BuiltInFunctions> builtInFunctions;
-    std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros;
     common::VirtualFileSystem* vfs;
     std::unique_ptr<CatalogSet> tables;
+    std::unique_ptr<CatalogSet> functions;
 };
 
 } // namespace catalog

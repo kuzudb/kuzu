@@ -50,6 +50,7 @@ public:
     std::vector<TableCatalogEntry*> getTableEntries(transaction::Transaction* tx) const;
     std::vector<TableCatalogEntry*> getTableSchemas(
         transaction::Transaction* tx, const common::table_id_vector_t& tableIDs) const;
+    CatalogSet* getFunctions(transaction::Transaction* tx) const;
 
     common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
     common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
@@ -71,9 +72,6 @@ public:
     void setTableComment(common::table_id_t tableID, const std::string& comment);
 
     // ----------------------------- Functions ----------------------------
-    inline function::BuiltInFunctions* getBuiltInFunctions(transaction::Transaction* tx) const {
-        return getVersion(tx)->builtInFunctions.get();
-    }
     common::ExpressionType getFunctionType(
         transaction::Transaction* tx, const std::string& name) const;
     void addFunction(std::string name, function::function_set functionSet);
@@ -82,8 +80,8 @@ public:
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
     // TODO(Ziyi): pass transaction pointer here.
-    inline function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const {
-        return readOnlyVersion->macros.at(name).get();
+    function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const {
+        return readOnlyVersion->getScalarMacroFunction(name);
     }
 
     std::vector<std::string> getMacroNames(transaction::Transaction* tx) const;

@@ -4,6 +4,7 @@
 #include "catalog_entry_type.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace catalog {
@@ -30,6 +31,7 @@ public:
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<CatalogEntry> deserialize(common::Deserializer& deserializer);
     virtual std::unique_ptr<CatalogEntry> copy() const = 0;
+    virtual std::string toCypher(main::ClientContext* /*clientContext*/) const { KU_UNREACHABLE; }
 
 private:
     CatalogEntryType type;

@@ -14,6 +14,8 @@ struct ScalarMacroFunction {
     std::vector<std::string> positionalArgs;
     parser::default_macro_args defaultArgs;
 
+    ScalarMacroFunction() = default;
+
     ScalarMacroFunction(std::unique_ptr<parser::ParsedExpression> expression,
         std::vector<std::string> positionalArgs, parser::default_macro_args defaultArgs)
         : expression{std::move(expression)}, positionalArgs{std::move(positionalArgs)},
