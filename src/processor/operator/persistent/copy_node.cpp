@@ -4,7 +4,7 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
-#include "function/table_functions/scan_functions.h"
+#include "function/table/scan_functions.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::catalog;

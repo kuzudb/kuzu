@@ -4,7 +4,7 @@
 #include "common/constants.h"
 #include "common/copier_config/rdf_reader_config.h"
 #include "common/keyword/rdf_keyword.h"
-#include "function/table_functions/bind_input.h"
+#include "function/table/bind_input.h"
 #include "main/client_context.h"
 
 using namespace kuzu::binder;
@@ -38,8 +38,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto inMemory = RdfReaderConfig::construct(config->options).inMemory;
     func = BuiltInFunctionsUtils::matchFunction(READ_RDF_ALL_TRIPLE_FUNC_NAME, functions);
     auto scanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
-    auto bindData =
-        scanFunc->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
+    auto bindData = scanFunc->bindFunc(clientContext, bindInput.get());
     auto scanInfo = std::make_unique<BoundFileScanInfo>(
         scanFunc, bindData->copy(), expression_vector{}, offset);
     // Bind copy resource.

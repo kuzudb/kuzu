@@ -1,8 +1,8 @@
 #pragma once
 
 #include "function/scalar_function.h"
-#include "function/table_functions/bind_data.h"
-#include "function/table_functions/scan_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/scan_functions.h"
 #include "rdf_reader.h"
 
 namespace kuzu {
@@ -185,8 +185,8 @@ struct RdfAllTripleScan {
     static function::function_set getFunctionSet();
 
     static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext*,
-        function::TableFuncBindInput* input_, catalog::Catalog*, storage::StorageManager*);
+    static std::unique_ptr<function::TableFuncBindData> bindFunc(
+        main::ClientContext*, function::TableFuncBindInput* input_);
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         function::TableFunctionInitInput& input);
 };

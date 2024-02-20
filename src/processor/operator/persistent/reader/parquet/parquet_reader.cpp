@@ -616,8 +616,7 @@ void ParquetScanFunction::tableFunc(TableFunctionInput& input, DataChunk& output
 }
 
 std::unique_ptr<function::TableFuncBindData> ParquetScanFunction::bindFunc(
-    main::ClientContext* /*context*/, function::TableFuncBindInput* input,
-    catalog::Catalog* /*catalog*/, storage::StorageManager* /*storageManager*/) {
+    main::ClientContext* /*context*/, function::TableFuncBindInput* input) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;

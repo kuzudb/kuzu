@@ -7,9 +7,9 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "function/scalar_function.h"
-#include "function/table_functions/bind_data.h"
-#include "function/table_functions/bind_input.h"
-#include "function/table_functions/scan_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/bind_input.h"
+#include "function/table/scan_functions.h"
 
 namespace kuzu {
 namespace processor {
@@ -69,9 +69,8 @@ struct NpyScanFunction {
 
     static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
 
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        function::TableFuncBindInput* input, catalog::Catalog* catalog,
-        storage::StorageManager* storageManager);
+    static std::unique_ptr<function::TableFuncBindData> bindFunc(
+        main::ClientContext* /*context*/, function::TableFuncBindInput* input);
 
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         function::TableFunctionInitInput& input);

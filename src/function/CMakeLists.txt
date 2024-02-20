@@ -1,7 +1,7 @@
 add_subdirectory(aggregate)
 add_subdirectory(arithmetic)
 add_subdirectory(cast)
-add_subdirectory(table_functions)
+add_subdirectory(table)
 
 add_library(kuzu_function
         OBJECT

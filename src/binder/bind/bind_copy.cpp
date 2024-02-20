@@ -8,7 +8,7 @@
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
-#include "function/table_functions/bind_input.h"
+#include "function/table/bind_input.h"
 #include "main/client_context.h"
 #include "parser/copy.h"
 
@@ -116,8 +116,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         nodeTableEntry, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(config->copy(),
         std::move(expectedColumnNames), std::move(expectedColumnTypes), clientContext);
-    auto bindData =
-        func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
+    auto bindData = func->bindFunc(clientContext, bindInput.get());
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
@@ -144,8 +143,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         relTableEntry, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(std::move(*config),
         std::move(expectedColumnNames), std::move(expectedColumnTypes), clientContext);
-    auto bindData =
-        func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
+    auto bindData = func->bindFunc(clientContext, bindInput.get());
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));

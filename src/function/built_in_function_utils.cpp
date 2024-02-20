@@ -23,7 +23,7 @@
 #include "function/schema/vector_node_rel_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
-#include "function/table_functions/call_functions.h"
+#include "function/table/call_functions.h"
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
@@ -32,6 +32,7 @@
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 #include "processor/operator/persistent/reader/rdf/rdf_scan.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
