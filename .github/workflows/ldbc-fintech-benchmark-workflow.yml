@@ -1,0 +1,66 @@
+name: LDBC-Fintech-Benchmark
+
+env:
+  RUNTIME_CHECKS: 1
+  WERROR: 1
+
+on:
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: ldbc-fintech-benchmark
+    runs-on: kuzu-self-hosted-benchmarking
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Build Kuzu
+      run: |
+        pip3 install -r tools/python_api/requirements_dev.txt
+        make python NUM_THREADS=$(nproc)
+        make java NUM_THREADS=$(nproc)
+        
+    - name: Update Driver Implementation
+      run: |
+        cd $SERIALIZED_DIR
+        if ! test -d ldbc_finbench_transaction_impls ; then
+          echo "Implementation repo not found. Cloning from remote."
+          git clone https://${{ secrets.DOC_PUSH_TOKEN }}@github.com/kuzudb/ldbc_finbench_transaction_impls.git
+        fi
+        cd ldbc_finbench_transaction_impls
+        git fetch
+        if [[ $(git rev-parse HEAD) != $(git rev-parse origin) ]]; then
+          echo "Local implementation is not up to date with remote. Updating implementation."
+          git restore .
+          git pull
+        fi
+        cp ${{ github.workspace }}/tools/java_api/build/kuzu_java.jar kuzu/src/main/resources/
+        mvn clean package -DskipTests
+
+    - name: Load Data
+      run: |
+        cd $SERIALIZED_DIR/ldbc_finbench_transaction_impls/kuzu
+        if ! test -d src/main/resources/data ; then
+          echo "Dataset not found. Downloading dataset."
+          mkdir src/main/resources/data
+          cp -r $CSV_DIR/finbench-datasets/sf1 src/main/resources/data/
+        fi
+        cp -r ${{ github.workspace }}/tools/python_api/build/kuzu scripts/
+        python3 scripts/import_data.py sf1 
+
+    - name: Run Benchmark
+      run: |
+        cd $SERIALIZED_DIR/ldbc_finbench_transaction_impls/kuzu
+        java -cp target/kuzu-0.1.0-alpha.jar:target/classes/kuzu_java.jar org.ldbcouncil.finbench.driver.driver.Driver -P sf1_finbench_benchmark.properties
+        if ! test -d /tmp/benchmark_result ; then
+          echo "Benchmark results directory not found. Creating /tmp/benchmark_result."
+          mkdir /tmp/benchmark_result
+        fi
+        cat results/LDBC-FinBench-results.json > /tmp/benchmark_result/finbench-results.json
+
+    - name: Submit Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: LDBC-FinBench-results
+        path: /tmp/benchmark_result/finbench-results.json
