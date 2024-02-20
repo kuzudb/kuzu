@@ -32,10 +32,13 @@ std::string DiskOverflowFile::readString(TransactionType trxType, const ku_strin
             auto numBytesToReadInPage = std::min(
                 static_cast<uint32_t>(remainingLength), END_OF_PAGE - cursor.elemPosInPage);
             page_idx_t nextPage;
+            auto startPosInSrc = retVal.size();
             bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
-                retVal +=
+                // Replace rather than append, since optimistic read may call the function multiple
+                // times
+                retVal.replace(startPosInSrc, numBytesToReadInPage,
                     std::string_view(reinterpret_cast<const char*>(frame) + cursor.elemPosInPage,
-                        numBytesToReadInPage);
+                        numBytesToReadInPage));
                 nextPage = *(page_idx_t*)(frame + END_OF_PAGE);
             });
             remainingLength -= numBytesToReadInPage;
