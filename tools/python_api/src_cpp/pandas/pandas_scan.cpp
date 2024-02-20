@@ -1,6 +1,6 @@
 #include "pandas/pandas_scan.h"
 
-#include "function/table_functions/bind_input.h"
+#include "function/table/bind_input.h"
 #include "numpy/numpy_scan.h"
 #include "py_connection.h"
 #include "pybind11/pytypes.h"
@@ -20,8 +20,7 @@ function_set PandasScanFunction::getFunctionSet() {
 }
 
 std::unique_ptr<function::TableFuncBindData> PandasScanFunction::bindFunc(
-    main::ClientContext* /*context*/, TableFuncBindInput* input, Catalog* /*catalog*/,
-    storage::StorageManager* /*storageManager*/) {
+    main::ClientContext* /*context*/, TableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
     py::handle df(reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>()));
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;

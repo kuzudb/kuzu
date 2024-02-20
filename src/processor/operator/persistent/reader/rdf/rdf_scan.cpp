@@ -1,6 +1,6 @@
 #include "processor/operator/persistent/reader/rdf/rdf_scan.h"
 
-#include "function/table_functions/bind_input.h"
+#include "function/table/bind_input.h"
 #include "processor/operator/persistent/reader/rdf/rdf_utils.h"
 
 using namespace kuzu::common;
@@ -150,8 +150,8 @@ void RdfAllTripleScan::tableFunc(TableFunctionInput& input, DataChunk&) {
     sharedState->readAll();
 }
 
-std::unique_ptr<function::TableFuncBindData> RdfAllTripleScan::bindFunc(main::ClientContext*,
-    function::TableFuncBindInput* input_, catalog::Catalog*, storage::StorageManager*) {
+std::unique_ptr<function::TableFuncBindData> RdfAllTripleScan::bindFunc(
+    main::ClientContext*, function::TableFuncBindInput* input_) {
     auto input = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input_);
     return std::make_unique<RdfScanBindData>(std::vector<common::LogicalType>{},
         std::vector<std::string>{}, input->config.copy(), input->context,

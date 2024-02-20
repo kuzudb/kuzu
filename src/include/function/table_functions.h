@@ -49,9 +49,8 @@ struct TableFunctionInitInput {
     virtual ~TableFunctionInitInput() = default;
 };
 
-typedef std::unique_ptr<TableFuncBindData> (*table_func_bind_t)(main::ClientContext* /*context*/,
-    TableFuncBindInput* /*input*/, catalog::Catalog* /*catalog*/,
-    storage::StorageManager* /*storageManager*/);
+typedef std::unique_ptr<TableFuncBindData> (*table_func_bind_t)(
+    main::ClientContext* context, TableFuncBindInput* input);
 typedef void (*table_func_t)(TableFunctionInput& data, common::DataChunk& output);
 typedef std::unique_ptr<TableFuncSharedState> (*table_func_init_shared_t)(
     TableFunctionInitInput& input);

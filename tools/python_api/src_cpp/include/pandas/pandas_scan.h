@@ -2,8 +2,8 @@
 
 #include "function/scalar_function.h"
 #include "function/table_functions.h"
-#include "function/table_functions/bind_data.h"
-#include "function/table_functions/scan_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/scan_functions.h"
 #include "pandas_bind.h"
 #include "pybind_include.h"
 
@@ -29,7 +29,7 @@ struct PandasScanFunction {
     static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
 
     static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        function::TableFuncBindInput* input, catalog::Catalog* catalog, storage::StorageManager* /*storageManager*/);
+        function::TableFuncBindInput* input);
 
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         function::TableFunctionInitInput& input);

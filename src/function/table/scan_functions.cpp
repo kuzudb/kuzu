@@ -1,4 +1,4 @@
-#include "function/table_functions/scan_functions.h"
+#include "function/table/scan_functions.h"
 
 namespace kuzu {
 namespace function {
