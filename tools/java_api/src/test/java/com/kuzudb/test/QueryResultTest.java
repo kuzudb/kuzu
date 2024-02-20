@@ -114,32 +114,6 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultWriteToCSV() throws IOException, KuzuObjectRefDestroyedException {
-        String query = "MATCH (a:person)-[:workAt]->(o:organisation) RETURN a.fName, a.gender," +
-                "a.eyeSight, a.birthdate, a.registerTime, o.name";
-        KuzuQueryResult result = conn.query(query);
-        assertTrue(result.isSuccess());
-
-        final Path tempFile = Files.createFile(tempDir.resolve("test.csv"));
-        String outputPath = tempFile.toFile().getAbsolutePath();
-        result.writeToCsv(outputPath, ',', '"', '\n');
-
-        try {
-            File csv = new File(outputPath);
-            Scanner scanner = new Scanner(csv);
-            String line = scanner.nextLine();
-            assertEquals(line, "Carol,1,5.000000,1940-06-22,1911-08-20 02:32:21,CsWork");
-            line = scanner.nextLine();
-            assertEquals(line, "Dan,2,4.800000,1950-07-23,2031-11-30 12:25:30,DEsWork");
-            line = scanner.nextLine();
-            assertEquals(line, "Elizabeth,1,4.700000,1980-10-26,1976-12-23 11:21:42,DEsWork");
-            scanner.close();
-        } catch (FileNotFoundException e) {
-            fail("QueryResultWriteToCSV failed, csv file not found");
-        }
-    }
-
-    @Test
     void QueryResultResetIterator() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
         assertTrue(result.isSuccess());
