@@ -24,9 +24,6 @@ public:
 
     py::list getNext();
 
-    void writeToCSV(const py::str& filename, const py::str& delimiter,
-        const py::str& escapeCharacter, const py::str& newline);
-
     void close();
 
     static py::object convertValueToPyObject(const kuzu::common::Value& value);

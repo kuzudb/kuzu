@@ -98,9 +98,6 @@ rust::String query_result_get_error_message(const kuzu::main::QueryResult& resul
 double query_result_get_compiling_time(const kuzu::main::QueryResult& result);
 double query_result_get_execution_time(const kuzu::main::QueryResult& result);
 
-void query_result_write_to_csv(kuzu::main::QueryResult& query_result, const rust::String& filename,
-    int8_t delimiter, int8_t escape_character, int8_t newline);
-
 std::unique_ptr<std::vector<kuzu::common::LogicalType>> query_result_column_data_types(
     const kuzu::main::QueryResult& query_result);
 rust::Vec<rust::String> query_result_column_names(const kuzu::main::QueryResult& query_result);

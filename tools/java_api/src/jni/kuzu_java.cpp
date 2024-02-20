@@ -467,21 +467,6 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1query_1result_1to_1st
     return ret;
 }
 
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1query_1result_1write_1to_1csv(JNIEnv* env,
-    jclass, jobject thisQR, jstring file_path, jchar delimiter, jchar escape_char, jchar new_line) {
-    QueryResult* qr = getQueryResult(env, thisQR);
-    const char* cpp_file_path = env->GetStringUTFChars(file_path, JNI_FALSE);
-
-    // TODO: confirm this convertion is ok to do.
-    // jchar is 16-bit unicode character so converting to char will lose the higher oreder-bits
-    char cpp_delimiter = static_cast<char>(delimiter);
-    char cpp_escape_char = static_cast<char>(escape_char);
-    char cpp_new_line = static_cast<char>(new_line);
-
-    qr->writeToCSV(cpp_file_path, cpp_delimiter, cpp_escape_char, cpp_new_line);
-    env->ReleaseStringUTFChars(file_path, cpp_file_path);
-}
-
 JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1query_1result_1reset_1iterator(
     JNIEnv* env, jclass, jobject thisQR) {
     QueryResult* qr = getQueryResult(env, thisQR);

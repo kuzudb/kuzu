@@ -631,16 +631,6 @@ KUZU_C_API kuzu_flat_tuple* kuzu_query_result_get_next(kuzu_query_result* query_
  */
 KUZU_C_API char* kuzu_query_result_to_string(kuzu_query_result* query_result);
 /**
- * @brief Writes the query result to the given file path as CSV.
- * @param query_result The query result instance to write.
- * @param file_path The file path to write the query result.
- * @param delimiter The delimiter character to use when writing csv file.
- * @param escape_char The escape character to use when writing csv file.
- * @param new_line The new line character to use when writing csv file.
- */
-KUZU_C_API void kuzu_query_result_write_to_csv(kuzu_query_result* query_result,
-    const char* file_path, char delimiter, char escape_char, char new_line);
-/**
  * @brief Resets the iterator of the query result to the beginning of the query result.
  * @param query_result The query result instance to reset iterator.
  */

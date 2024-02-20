@@ -177,14 +177,6 @@ pub(crate) mod ffi {
         fn query_result_get_execution_time(result: &QueryResult) -> f64;
         fn getNumColumns(&self) -> usize;
         fn getNumTuples(&self) -> u64;
-        #[namespace = "kuzu_rs"]
-        fn query_result_write_to_csv(
-            query_result: Pin<&mut QueryResult>,
-            filename: &String,
-            delimiter: i8,
-            escape_character: i8,
-            newline: i8,
-        ) -> Result<()>;
 
         #[namespace = "kuzu_rs"]
         fn query_result_column_data_types(
