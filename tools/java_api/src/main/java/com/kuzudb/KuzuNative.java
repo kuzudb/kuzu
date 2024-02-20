@@ -134,9 +134,6 @@ public class KuzuNative {
 
     protected static native String kuzu_query_result_to_string(KuzuQueryResult query_result);
 
-    protected static native void kuzu_query_result_write_to_csv(KuzuQueryResult query_result,
-                                                                String file_path, char delimiter, char escape_char, char new_line);
-
     protected static native void kuzu_query_result_reset_iterator(KuzuQueryResult query_result);
 
     // FlatTuple
