@@ -3,7 +3,10 @@
 #include <memory>
 
 #include "common/assert.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include "storage/stats/property_statistics.h"
+#include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column.h"
@@ -494,51 +497,39 @@ void Column::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
 
 void Column::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_idx_t nodeGroupIdx,
     offset_t offsetInChunk, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    auto walPageInfo = createWALVersionOfPageForValue(nodeGroupIdx, offsetInChunk);
-    KU_ASSERT(isPageIdxValid(walPageInfo.originalPageIdx, chunkMeta));
-    try {
-        writeFromVectorFunc(walPageInfo.frame, walPageInfo.posInPage, vectorToWriteFrom,
-            posInVectorToWriteFrom, chunkMeta.compMeta);
-    } catch (Exception& e) {
-        DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
-            walPageInfo, *dataFH, *bufferManager, *wal);
-        throw;
-    }
-    DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(walPageInfo, *dataFH, *bufferManager, *wal);
+    updatePageWithCursor(
+        getPageCursorForOffset(TransactionType::WRITE, nodeGroupIdx, offsetInChunk),
+        [&](auto frame, auto posInPage) {
+            writeFromVectorFunc(
+                frame, posInPage, vectorToWriteFrom, posInVectorToWriteFrom, chunkMeta.compMeta);
+        });
 }
 
 void Column::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, ColumnChunk* data,
     offset_t dataOffset, length_t numValues) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-    writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, data->getData(), dataOffset, numValues);
-    if (offsetInChunk + numValues > chunkMeta.numValues) {
-        chunkMeta.numValues = offsetInChunk + numValues;
-        KU_ASSERT(sanityCheckForWrites(chunkMeta, dataType));
-        metadataDA->update(nodeGroupIdx, chunkMeta);
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
+    writeValues(state, offsetInChunk, data->getData(), dataOffset, numValues);
+    if (offsetInChunk + numValues > state.metadata.numValues) {
+        state.metadata.numValues = offsetInChunk + numValues;
+        KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
+        metadataDA->update(nodeGroupIdx, state.metadata);
     }
 }
 
-void Column::writeValues(const ColumnChunkMetadata& chunkMeta,
-    common::node_group_idx_t nodeGroupIdx, common::offset_t dstOffset, const uint8_t* data,
+void Column::writeValues(ReadState& state, common::offset_t dstOffset, const uint8_t* data,
     common::offset_t srcOffset, common::offset_t numValues) {
     auto numValuesWritten = 0u;
-    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
+    auto cursor = getPageCursorForOffsetInGroup(dstOffset, state);
     while (numValuesWritten < numValues) {
-        auto walPageInfo =
-            createWALVersionOfPageForValue(nodeGroupIdx, dstOffset + numValuesWritten);
         auto numValuesToWriteInPage =
-            std::min(numValues - numValuesWritten, state.numValuesPerPage - walPageInfo.posInPage);
-        try {
-            writeFunc(walPageInfo.frame, walPageInfo.posInPage, data, srcOffset + numValuesWritten,
-                numValuesToWriteInPage, chunkMeta.compMeta);
-        } catch (Exception& e) {
-            DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
-                walPageInfo, *dataFH, *bufferManager, *wal);
-            throw;
-        }
-        DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
-            walPageInfo, *dataFH, *bufferManager, *wal);
+            std::min(numValues - numValuesWritten, state.numValuesPerPage - cursor.elemPosInPage);
+        updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
+            writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
+                numValuesToWriteInPage, state.metadata.compMeta);
+        });
+
         numValuesWritten += numValuesToWriteInPage;
+        cursor.nextPage();
     }
 }
 
@@ -547,8 +538,7 @@ offset_t Column::appendValues(
     auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     auto startOffset = state.metadata.numValues;
     auto numPages = dataFH->getNumPages();
-    writeValues(
-        state.metadata, nodeGroupIdx, state.metadata.numValues, data, 0 /*dataOffset*/, numValues);
+    writeValues(state, state.metadata.numValues, data, 0 /*dataOffset*/, numValues);
     auto newNumPages = dataFH->getNumPages();
     state.metadata.numValues += numValues;
     state.metadata.numPages += (newNumPages - numPages);
@@ -562,21 +552,18 @@ PageCursor Column::getPageCursorForOffsetInGroup(offset_t offsetInChunk, const R
     return pageCursor;
 }
 
-WALPageIdxPosInPageAndFrame Column::createWALVersionOfPageForValue(
-    node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
-    auto originalPageCursor =
-        getPageCursorForOffset(TransactionType::WRITE, nodeGroupIdx, offsetInChunk);
+void Column::updatePageWithCursor(
+    PageCursor cursor, const std::function<void(uint8_t*, offset_t)>& writeOp) {
     bool insertingNewPage = false;
-    if (originalPageCursor.pageIdx == INVALID_PAGE_IDX) {
-        return {{INVALID_PAGE_IDX, INVALID_PAGE_IDX, nullptr}, originalPageCursor.elemPosInPage};
-    } else if (originalPageCursor.pageIdx >= dataFH->getNumPages()) {
-        KU_ASSERT(originalPageCursor.pageIdx == dataFH->getNumPages());
+    if (cursor.pageIdx == INVALID_PAGE_IDX) {
+        return writeOp(nullptr, cursor.elemPosInPage);
+    } else if (cursor.pageIdx >= dataFH->getNumPages()) {
+        KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
         DBFileUtils::insertNewPage(*dataFH, dbFileID, *bufferManager, *wal);
         insertingNewPage = true;
     }
-    auto walPageIdxAndFrame = DBFileUtils::createWALVersionIfNecessaryAndPinPage(
-        originalPageCursor.pageIdx, insertingNewPage, *dataFH, dbFileID, *bufferManager, *wal);
-    return {walPageIdxAndFrame, originalPageCursor.elemPosInPage};
+    DBFileUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *bufferManager,
+        *wal, [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
 }
 
 Column::ReadState Column::getReadState(

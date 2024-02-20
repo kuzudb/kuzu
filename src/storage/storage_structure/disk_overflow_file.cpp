@@ -6,6 +6,7 @@
 #include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
+#include "storage/storage_structure/db_file_utils.h"
 #include "storage/storage_utils.h"
 
 using lock_t = std::unique_lock<std::mutex>;
@@ -51,20 +52,20 @@ std::string DiskOverflowFile::readString(TransactionType trxType, const ku_strin
     }
 }
 
-void DiskOverflowFile::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {
+bool DiskOverflowFile::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {
     if ((nextPosToWriteTo.elemPosInPage == 0) ||
         ((nextPosToWriteTo.elemPosInPage + numBytesToAppend - 1) > END_OF_PAGE)) {
         page_idx_t newPageIdx =
             DBFileUtils::insertNewPage(*fileHandle, dbFileID, *bufferManager, *wal);
         // Write new page index to end of previous page
         if (nextPosToWriteTo.pageIdx > 0) {
-            auto walPageIdxAndFrame = DBFileUtils::createWALVersionIfNecessaryAndPinPage(
-                nextPosToWriteTo.pageIdx - 1, false, *fileHandle, dbFileID, *bufferManager, *wal);
-            memcpy(walPageIdxAndFrame.frame + END_OF_PAGE, &newPageIdx, sizeof(page_idx_t));
-            DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
-                walPageIdxAndFrame, *fileHandle, *bufferManager, *wal);
+            DBFileUtils::updatePage(*fileHandle, dbFileID, nextPosToWriteTo.pageIdx - 1,
+                false /* existing page */, *bufferManager, *wal,
+                [&](auto frame) { memcpy(frame + END_OF_PAGE, &newPageIdx, sizeof(page_idx_t)); });
         }
+        return true;
     }
+    return false;
 }
 
 void DiskOverflowFile::setStringOverflowWithoutLock(
@@ -80,24 +81,18 @@ void DiskOverflowFile::setStringOverflowWithoutLock(
         }
     }
     int32_t remainingLength = len;
+    TypeUtils::encodeOverflowPtr(
+        diskDstString.overflowPtr, nextPosToWriteTo.pageIdx, nextPosToWriteTo.elemPosInPage);
     while (remainingLength > 0) {
         auto bytesWritten = len - remainingLength;
         auto numBytesToWriteInPage = std::min(
             static_cast<uint32_t>(remainingLength), END_OF_PAGE - nextPosToWriteTo.elemPosInPage);
-        addNewPageIfNecessaryWithoutLock(remainingLength);
-        auto updatedPageInfoAndWALPageFrame =
-            createWALVersionOfPageIfNecessaryForElement(nextPosToWriteTo);
-        memcpy(updatedPageInfoAndWALPageFrame.frame + updatedPageInfoAndWALPageFrame.posInPage,
-            srcRawString + bytesWritten, numBytesToWriteInPage);
-        DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
-            updatedPageInfoAndWALPageFrame, *fileHandle, *bufferManager, *wal);
-        // The overflow pointer should point to the first position, so it must only run
-        // the first iteration of the loop
-        if (static_cast<uint64_t>(remainingLength) == len) {
-            TypeUtils::encodeOverflowPtr(diskDstString.overflowPtr,
-                updatedPageInfoAndWALPageFrame.originalPageIdx,
-                updatedPageInfoAndWALPageFrame.posInPage);
-        }
+        bool insertingNewPage = addNewPageIfNecessaryWithoutLock(remainingLength);
+        DBFileUtils::updatePage(*fileHandle, dbFileID, nextPosToWriteTo.pageIdx, insertingNewPage,
+            *bufferManager, *wal, [&](auto frame) {
+                memcpy(frame + nextPosToWriteTo.elemPosInPage, srcRawString + bytesWritten,
+                    numBytesToWriteInPage);
+            });
         remainingLength -= numBytesToWriteInPage;
         nextPosToWriteTo.elemPosInPage += numBytesToWriteInPage;
         if (nextPosToWriteTo.elemPosInPage >= END_OF_PAGE) {
@@ -125,19 +120,6 @@ void DiskOverflowFile::logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock
             dbFileID, nextPosToWriteTo.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE +
                           nextPosToWriteTo.elemPosInPage);
     }
-}
-
-WALPageIdxPosInPageAndFrame DiskOverflowFile::createWALVersionOfPageIfNecessaryForElement(
-    PageCursor originalPageCursor) {
-    bool insertingNewPage = false;
-    if (originalPageCursor.pageIdx >= fileHandle->getNumPages()) {
-        KU_ASSERT(originalPageCursor.pageIdx == fileHandle->getNumPages());
-        DBFileUtils::insertNewPage(*fileHandle, dbFileID, *bufferManager, *wal);
-        insertingNewPage = true;
-    }
-    auto walPageIdxAndFrame = DBFileUtils::createWALVersionIfNecessaryAndPinPage(
-        originalPageCursor.pageIdx, insertingNewPage, *fileHandle, dbFileID, *bufferManager, *wal);
-    return {walPageIdxAndFrame, originalPageCursor.elemPosInPage};
 }
 
 } // namespace storage

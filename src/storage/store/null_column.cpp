@@ -1,5 +1,8 @@
 #include "storage/store/null_column.h"
 
+#include "common/constants.h"
+#include "transaction/transaction.h"
+
 namespace kuzu {
 namespace storage {
 
@@ -122,7 +125,9 @@ void NullColumn::setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, 
     auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
     propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
     // Must be aligned to an 8-byte chunk for NullMask read to not overflow
-    writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, reinterpret_cast<const uint8_t*>(&value));
+    auto state = ReadState{
+        chunkMeta, chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
+    writeValues(state, offsetInChunk, reinterpret_cast<const uint8_t*>(&value));
     if (offsetInChunk >= chunkMeta.numValues) {
         chunkMeta.numValues = offsetInChunk + 1;
         metadataDA->update(nodeGroupIdx, chunkMeta);
@@ -144,17 +149,17 @@ void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
 
 void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
     kuzu::storage::ColumnChunk* data, offset_t dataOffset, length_t numValues) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-    writeValues(chunkMeta, nodeGroupIdx, offsetInChunk, data->getData(), dataOffset, numValues);
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
+    writeValues(state, offsetInChunk, data->getData(), dataOffset, numValues);
     auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(data);
     for (auto i = 0u; i < numValues; i++) {
         if (nullChunk->isNull(dataOffset + i)) {
             propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
         }
     }
-    if (offsetInChunk + numValues > chunkMeta.numValues) {
-        chunkMeta.numValues = offsetInChunk + numValues;
-        metadataDA->update(nodeGroupIdx, chunkMeta);
+    if (offsetInChunk + numValues > state.metadata.numValues) {
+        state.metadata.numValues = offsetInChunk + numValues;
+        metadataDA->update(nodeGroupIdx, state.metadata);
     }
 }
 
