@@ -1,7 +1,5 @@
 #include "main/query_result.h"
 
-#include <fstream>
-
 #include "binder/expression/expression.h"
 #include "common/arrow/arrow_converter.h"
 #include "common/types/value/node.h"
