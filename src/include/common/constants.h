@@ -117,7 +117,7 @@ struct StorageConstants {
 
 // Hash Index Configurations
 struct HashIndexConstants {
-    static constexpr uint8_t SLOT_CAPACITY_BYTES = 240;
+    static constexpr uint16_t SLOT_CAPACITY_BYTES = 256;
     static constexpr double MAX_LOAD_FACTOR = 0.8;
 };
 
