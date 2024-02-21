@@ -1,6 +1,5 @@
 #pragma once
 
-#include "catalog/catalog.h"
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/store/table_data.h"
 #include "storage/wal/wal.h"
@@ -14,8 +13,8 @@ class Table {
 public:
     Table(catalog::TableCatalogEntry* tableEntry, TablesStatistics* tablesStatistics,
         MemoryManager* memoryManager, WAL* wal)
-        : tableType{tableEntry->getTableType()},
-          tablesStatistics{tablesStatistics}, tableID{tableEntry->getTableID()},
+        : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
+          tableName{tableEntry->getName()}, tablesStatistics{tablesStatistics},
           memoryManager{memoryManager}, bufferManager{memoryManager->getBufferManager()}, wal{wal} {
     }
     virtual ~Table() = default;
@@ -38,8 +37,9 @@ public:
 
 protected:
     common::TableType tableType;
-    TablesStatistics* tablesStatistics;
     common::table_id_t tableID;
+    std::string tableName;
+    TablesStatistics* tablesStatistics;
     MemoryManager* memoryManager;
     BufferManager* bufferManager;
     WAL* wal;

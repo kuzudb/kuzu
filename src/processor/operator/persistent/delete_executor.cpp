@@ -30,12 +30,7 @@ static void deleteFromRelTable(ExecutionContext* context, DeleteNodeType deleteT
             context->clientContext->getTx(), direction, nodeIDVector, detachDeleteState);
     } break;
     case DeleteNodeType::DELETE: {
-        if (relTable->checkIfNodeHasRels(
-                context->clientContext->getTx(), direction, nodeIDVector)) {
-            throw RuntimeException(
-                stringFormat("Deleted nodes has connected edges in the {} direction.",
-                    RelDataDirectionUtils::relDirectionToString(direction)));
-        }
+        relTable->checkIfNodeHasRels(context->clientContext->getTx(), direction, nodeIDVector);
     } break;
     default: {
         KU_UNREACHABLE;

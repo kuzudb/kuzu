@@ -157,14 +157,6 @@ void CopyNodeSharedState::calculateNumTuples() {
 
 void CopyNode::finalize(ExecutionContext* context) {
     sharedState->finalize(context);
-    for (auto relTable : info->fwdRelTables) {
-        relTable->resizeColumns(context->clientContext->getTx(), RelDataDirection::FWD,
-            sharedState->getCurNodeGroupIdx());
-    }
-    for (auto relTable : info->bwdRelTables) {
-        relTable->resizeColumns(context->clientContext->getTx(), RelDataDirection::BWD,
-            sharedState->getCurNodeGroupIdx());
-    }
     auto outputMsg = stringFormat("{} number of tuples has been copied to table: {}.",
         sharedState->numTuples, info->tableName.c_str());
     FactorizedTableUtils::appendStringToTable(

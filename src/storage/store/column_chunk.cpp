@@ -310,9 +310,10 @@ void ColumnChunk::populateWithDefaultVal(ValueVector* defaultValueVector) {
         defaultValueVector->state->selVector->selectedPositions[i] = valPos;
     }
     auto numValuesAppended = 0u;
-    while (numValuesAppended < StorageConstants::NODE_GROUP_SIZE) {
-        auto numValuesToAppend = std::min(
-            DEFAULT_VECTOR_CAPACITY, StorageConstants::NODE_GROUP_SIZE - numValuesAppended);
+    auto numValuesToPopulate = capacity;
+    while (numValuesAppended < numValuesToPopulate) {
+        auto numValuesToAppend =
+            std::min(DEFAULT_VECTOR_CAPACITY, numValuesToPopulate - numValuesAppended);
         defaultValueVector->state->selVector->selectedSize = numValuesToAppend;
         append(defaultValueVector);
         numValuesAppended += numValuesToAppend;

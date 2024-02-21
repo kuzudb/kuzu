@@ -1,7 +1,6 @@
 #include "processor/operator/persistent/insert_executor.h"
 
 #include "storage/stats/rels_store_statistics.h"
-#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -61,7 +60,7 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
             return;
         }
     }
-    auto maxNodeOffset = table->insert(tx, nodeIDVector, columnDataVectors);
+    table->insert(tx, nodeIDVector, columnDataVectors);
     for (auto i = 0u; i < columnVectors.size(); ++i) {
         auto columnVector = columnVectors[i];
         auto dataVector = columnDataVectors[i];
@@ -81,13 +80,6 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
         } else {
             writeColumnVector(columnVector, dataVector);
         }
-    }
-    auto numNodeGroups = storage::StorageUtils::getNodeGroupIdx(maxNodeOffset) + 1;
-    for (auto relTable : fwdRelTables) {
-        relTable->resizeColumns(tx, RelDataDirection::FWD, numNodeGroups);
-    }
-    for (auto relTable : bwdRelTables) {
-        relTable->resizeColumns(tx, RelDataDirection::BWD, numNodeGroups);
     }
 }
 

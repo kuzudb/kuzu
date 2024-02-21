@@ -74,6 +74,12 @@ public:
         NULL_MASK = 8,
     };
 
+    // TODO: Constrain T1 and T2 to numerics.
+    template<typename T1, typename T2>
+    static uint64_t divideAndRoundUpTo(T1 v1, T2 v2) {
+        return std::ceil((double)v1 / (double)v2);
+    }
+
     static std::string getColumnName(
         const std::string& propertyName, ColumnType type, const std::string& prefix);
 

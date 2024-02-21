@@ -1,6 +1,5 @@
 -GROUP DDL
 -DATASET CSV tinysnb
-
 --
 
 -CASE DropAndCreateTables

@@ -1,36 +1,13 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 
 #include "catalog/catalog.h"
-#include "common/exception/binder.h"
 
 namespace kuzu {
 namespace catalog {
 
-using namespace kuzu::common;
-
-RelMultiplicity RelMultiplicityUtils::getFwd(const std::string& multiplicityStr) {
-    if ("ONE_ONE" == multiplicityStr || "ONE_MANY" == multiplicityStr) {
-        return RelMultiplicity::ONE;
-    } else if ("MANY_ONE" == multiplicityStr || "MANY_MANY" == multiplicityStr) {
-        return RelMultiplicity::MANY;
-    }
-    throw BinderException(
-        stringFormat("Cannot bind {} as relationship multiplicity.", multiplicityStr));
-}
-
-RelMultiplicity RelMultiplicityUtils::getBwd(const std::string& multiplicityStr) {
-    if ("ONE_ONE" == multiplicityStr || "MANY_ONE" == multiplicityStr) {
-        return RelMultiplicity::ONE;
-    } else if ("ONE_MANY" == multiplicityStr || "MANY_MANY" == multiplicityStr) {
-        return RelMultiplicity::MANY;
-    }
-    throw BinderException(
-        stringFormat("Cannot bind {} as relationship multiplicity.", multiplicityStr));
-}
-
 RelTableCatalogEntry::RelTableCatalogEntry(std::string name, common::table_id_t tableID,
-    RelMultiplicity srcMultiplicity, RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
-    common::table_id_t dstTableID)
+    common::RelMultiplicity srcMultiplicity, common::RelMultiplicity dstMultiplicity,
+    common::table_id_t srcTableID, common::table_id_t dstTableID)
     : TableCatalogEntry{CatalogEntryType::REL_TABLE_ENTRY, std::move(name), tableID},
       srcMultiplicity{srcMultiplicity}, dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID},
       dstTableID{dstTableID} {}
@@ -48,9 +25,10 @@ bool RelTableCatalogEntry::isParent(common::table_id_t tableID) {
 }
 
 bool RelTableCatalogEntry::isSingleMultiplicity(common::RelDataDirection direction) const {
-    return getMultiplicity(direction) == RelMultiplicity::ONE;
+    return getMultiplicity(direction) == common::RelMultiplicity::ONE;
 }
-RelMultiplicity RelTableCatalogEntry::getMultiplicity(common::RelDataDirection direction) const {
+common::RelMultiplicity RelTableCatalogEntry::getMultiplicity(
+    common::RelDataDirection direction) const {
     return direction == common::RelDataDirection::FWD ? dstMultiplicity : srcMultiplicity;
 }
 common::table_id_t RelTableCatalogEntry::getBoundTableID(
@@ -72,8 +50,8 @@ void RelTableCatalogEntry::serialize(common::Serializer& serializer) const {
 
 std::unique_ptr<RelTableCatalogEntry> RelTableCatalogEntry::deserialize(
     common::Deserializer& deserializer) {
-    RelMultiplicity srcMultiplicity;
-    RelMultiplicity dstMultiplicity;
+    common::RelMultiplicity srcMultiplicity;
+    common::RelMultiplicity dstMultiplicity;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
     deserializer.deserializeValue(srcMultiplicity);
@@ -100,8 +78,8 @@ std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) c
     ss << "CREATE REL TABLE " << getName() << "( FROM " << srcTableName << " TO " << dstTableName
        << ", ";
     Property::toCypher(getPropertiesRef(), ss);
-    auto srcMultiStr = srcMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
-    auto dstMultiStr = dstMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
+    auto srcMultiStr = srcMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
+    auto dstMultiStr = dstMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
     ss << srcMultiStr << "_" << dstMultiStr << ");";
     return ss.str();
 }

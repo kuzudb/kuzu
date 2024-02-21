@@ -35,7 +35,7 @@ public:
         TablesStatistics* tableStats);
 
     inline common::vector_idx_t getNumColumns() const { return columns.size(); }
-    inline Column* getColumn(common::column_id_t columnID) {
+    inline virtual Column* getColumn(common::column_id_t columnID) {
         KU_ASSERT(columnID < columns.size());
         return columns[columnID].get();
     }
@@ -49,21 +49,22 @@ public:
         transaction::Transaction* transaction) const = 0;
 
 protected:
-    TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::table_id_t tableID,
-        BufferManager* bufferManager, WAL* wal, bool enableCompression,
-        common::ColumnDataFormat dataFormat)
-        : dataFormat{dataFormat}, dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableID},
-          bufferManager{bufferManager}, wal{wal}, enableCompression{enableCompression} {}
+    TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
+        catalog::TableCatalogEntry* tableEntry, BufferManager* bufferManager, WAL* wal,
+        bool enableCompression)
+        : dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableEntry->getTableID()},
+          tableName{tableEntry->getName()}, bufferManager{bufferManager}, wal{wal},
+          enableCompression{enableCompression} {}
 
 protected:
-    common::ColumnDataFormat dataFormat;
-    std::vector<std::unique_ptr<Column>> columns;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;
     common::table_id_t tableID;
+    std::string tableName;
     BufferManager* bufferManager;
     WAL* wal;
     bool enableCompression;
+    std::vector<std::unique_ptr<Column>> columns;
 };
 
 } // namespace storage

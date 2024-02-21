@@ -54,8 +54,8 @@ public:
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override;
 
 private:
-    std::unique_ptr<ColumnChunk> getEmptyChunkForCommit(uint64_t /*capacity*/) override {
-        return ColumnChunkFactory::createNullColumnChunk(enableCompression);
+    std::unique_ptr<ColumnChunk> getEmptyChunkForCommit(uint64_t capacity) override {
+        return ColumnChunkFactory::createNullColumnChunk(enableCompression, capacity);
     }
 };
 

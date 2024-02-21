@@ -73,8 +73,8 @@ LocalNodeGroup::LocalNodeGroup(
 }
 
 LocalTableData* LocalTable::getOrCreateLocalTableData(
-    const std::vector<std::unique_ptr<Column>>& columns, MemoryManager* mm,
-    ColumnDataFormat dataFormat, vector_idx_t dataIdx) {
+    const std::vector<std::unique_ptr<Column>>& columns, MemoryManager* mm, vector_idx_t dataIdx,
+    RelMultiplicity multiplicity) {
     if (localTableDataCollection.empty()) {
         std::vector<LogicalType*> dataTypes;
         dataTypes.reserve(columns.size());
@@ -83,16 +83,15 @@ LocalTableData* LocalTable::getOrCreateLocalTableData(
         }
         switch (tableType) {
         case TableType::NODE: {
-            KU_ASSERT(dataFormat == ColumnDataFormat::REGULAR);
             localTableDataCollection.reserve(1);
             localTableDataCollection.push_back(
-                std::make_unique<LocalNodeTableData>(std::move(dataTypes), mm, dataFormat));
+                std::make_unique<LocalNodeTableData>(std::move(dataTypes), mm));
         } break;
         case TableType::REL: {
             KU_ASSERT(dataIdx < 2);
             localTableDataCollection.resize(2);
             localTableDataCollection[dataIdx] =
-                std::make_unique<LocalRelTableData>(std::move(dataTypes), mm, dataFormat);
+                std::make_unique<LocalRelTableData>(multiplicity, std::move(dataTypes), mm);
         } break;
         default: {
             KU_UNREACHABLE;
@@ -108,7 +107,7 @@ LocalTableData* LocalTable::getOrCreateLocalTableData(
             dataTypes.push_back(&column->getDataType());
         }
         localTableDataCollection[dataIdx] =
-            std::make_unique<LocalRelTableData>(std::move(dataTypes), mm, dataFormat);
+            std::make_unique<LocalRelTableData>(multiplicity, std::move(dataTypes), mm);
     }
     KU_ASSERT(localTableDataCollection[dataIdx] != nullptr);
     return localTableDataCollection[dataIdx].get();

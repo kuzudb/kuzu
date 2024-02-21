@@ -1,7 +1,6 @@
 #pragma once
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
-#include "common/column_data_format.h"
 #include "storage/stats/rel_table_statistics.h"
 #include "storage/store/rel_table_data.h"
 #include "storage/store/table.h"
@@ -16,16 +15,13 @@ struct RelDetachDeleteState {
     explicit RelDetachDeleteState();
 };
 
+class RelsStoreStats;
 class RelTable final : public Table {
 public:
     RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStats* relsStoreStats,
         MemoryManager* memoryManager, catalog::RelTableCatalogEntry* relTableEntry, WAL* wal,
         bool enableCompression);
 
-    void initAdjColumnIfNecessary(transaction::Transaction* transaction,
-        common::table_id_t srcTableID, common::table_id_t dstTableID,
-        InMemDiskArray<ColumnChunkMetadata>* srcPKMetadataDA,
-        InMemDiskArray<ColumnChunkMetadata>* dstPKMetadataDA);
     inline void initializeReadState(transaction::Transaction* transaction,
         common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs,
         common::ValueVector* inNodeIDVector, RelDataReadState* readState) {
@@ -49,12 +45,8 @@ public:
         common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
     void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
         common::ValueVector* srcNodeIDVector, RelDetachDeleteState* deleteState);
-    inline bool checkIfNodeHasRels(transaction::Transaction* transaction,
-        common::RelDataDirection direction, common::ValueVector* srcNodeIDVector) {
-        return direction == common::RelDataDirection::FWD ?
-                   fwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector) :
-                   bwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector);
-    }
+    void checkIfNodeHasRels(transaction::Transaction* transaction,
+        common::RelDataDirection direction, common::ValueVector* srcNodeIDVector);
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
         common::ValueVector* defaultValueVector) override;
@@ -83,15 +75,6 @@ public:
                                                             bwdRelTableData->getColumn(columnID);
     }
 
-    // This is to make sure for X_TO_ONE table, the adj column is aligned with its src node table in
-    // terms of num of node groups, and be correctly filled with initialized null values.
-    void resizeColumns(transaction::Transaction* transaction, common::RelDataDirection direction,
-        common::node_group_idx_t numNodeGroups);
-
-    inline common::ColumnDataFormat getTableDataFormat(common::RelDataDirection direction) {
-        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getDataFormat() :
-                                                            bwdRelTableData->getDataFormat();
-    }
     inline void append(NodeGroup* nodeGroup, common::RelDataDirection direction) {
         direction == common::RelDataDirection::FWD ? fwdRelTableData->append(nodeGroup) :
                                                      bwdRelTableData->append(nodeGroup);
@@ -111,14 +94,7 @@ private:
     void scan(transaction::Transaction* transaction, RelDataReadState& scanState,
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors);
-    void lookup(transaction::Transaction* transaction, RelDataReadState& scanState,
-        common::ValueVector* inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors);
 
-    common::row_idx_t detachDeleteForRegularRels(transaction::Transaction* transaction,
-        RelTableData* tableData, RelTableData* reverseTableData,
-        common::ValueVector* srcNodeIDVector, RelDataReadState* relDataReadState,
-        RelDetachDeleteState* deleteState);
     common::row_idx_t detachDeleteForCSRRels(transaction::Transaction* transaction,
         RelTableData* tableData, RelTableData* reverseTableData,
         common::ValueVector* srcNodeIDVector, RelDataReadState* relDataReadState,

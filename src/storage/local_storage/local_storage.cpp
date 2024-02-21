@@ -11,13 +11,13 @@ namespace storage {
 
 LocalStorage::LocalStorage(MemoryManager* mm) : mm{mm} {}
 
-LocalTableData* LocalStorage::getOrCreateLocalTableData(table_id_t tableID,
+LocalTableData* LocalStorage::getOrCreateLocalTableData(common::table_id_t tableID,
     const std::vector<std::unique_ptr<Column>>& columns, TableType tableType,
-    ColumnDataFormat dataFormat, vector_idx_t dataIdx) {
+    common::vector_idx_t dataIdx, RelMultiplicity multiplicity) {
     if (!tables.contains(tableID)) {
         tables[tableID] = std::make_unique<LocalTable>(tableType);
     }
-    return tables.at(tableID)->getOrCreateLocalTableData(columns, mm, dataFormat, dataIdx);
+    return tables.at(tableID)->getOrCreateLocalTableData(columns, mm, dataIdx, multiplicity);
 }
 
 LocalTable* LocalStorage::getLocalTable(table_id_t tableID) {

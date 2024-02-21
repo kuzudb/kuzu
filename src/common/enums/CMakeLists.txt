@@ -1,6 +1,7 @@
 add_library(kuzu_common_enums
         OBJECT
         rel_direction.cpp
+        rel_multiplicity.cpp
         table_type.cpp)
 
 set(ALL_OBJECT_FILES

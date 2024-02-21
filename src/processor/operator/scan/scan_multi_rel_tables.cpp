@@ -8,9 +8,9 @@ namespace kuzu {
 namespace processor {
 
 void RelTableCollectionScanner::init() {
-    for (auto& scanInfo : scanInfos) {
-        readStates.push_back(std::make_unique<RelDataReadState>(
-            scanInfo->table->getTableDataFormat(scanInfo->direction)));
+    readStates.resize(scanInfos.size());
+    for (auto i = 0u; i < scanInfos.size(); i++) {
+        readStates[i] = std::make_unique<RelDataReadState>();
     }
 }
 
@@ -18,7 +18,6 @@ bool RelTableCollectionScanner::scan(ValueVector* inVector,
     const std::vector<ValueVector*>& outputVectors, Transaction* transaction) {
     while (true) {
         if (readStates[currentTableIdx]->hasMoreToRead(transaction)) {
-            KU_ASSERT(readStates[currentTableIdx]->dataFormat == ColumnDataFormat::CSR);
             auto scanInfo = scanInfos[currentTableIdx].get();
             scanInfo->table->read(
                 transaction, *readStates[currentTableIdx], inVector, outputVectors);
@@ -34,16 +33,6 @@ bool RelTableCollectionScanner::scan(ValueVector* inVector,
             scanInfo->table->initializeReadState(transaction, scanInfo->direction,
                 scanInfo->columnIDs, inVector, readStates[currentTableIdx].get());
             nextTableIdx++;
-            if (readStates[currentTableIdx]->dataFormat == ColumnDataFormat::REGULAR) {
-                outputVectors[0]->state->selVector->resetSelectorToValuePosBufferWithSize(1);
-                outputVectors[0]->state->selVector->selectedPositions[0] =
-                    inVector->state->selVector->selectedPositions[0];
-                scanInfo->table->read(
-                    transaction, *readStates[currentTableIdx], inVector, outputVectors);
-                if (outputVectors[0]->state->selVector->selectedSize > 0) {
-                    return true;
-                }
-            }
         }
     }
 }

@@ -8,59 +8,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-bool RegularRelNGInfo::insert(offset_t srcOffsetInChunk, offset_t /*relOffset*/,
-    row_idx_t adjNodeRowIdx, const std::vector<row_idx_t>& propertyNodesRowIdx) {
-    KU_ASSERT(propertyNodesRowIdx.size() == insertInfoPerChunk.size());
-    bool wasDeleted = deleteInfo.contains(srcOffsetInChunk);
-    if (adjInsertInfo.contains(srcOffsetInChunk) && !wasDeleted) {
-        throw RuntimeException{"Many-one, one-one relationship violated."};
-    }
-    if (wasDeleted) {
-        deleteInfo.erase(srcOffsetInChunk);
-    }
-    adjInsertInfo[srcOffsetInChunk] = adjNodeRowIdx;
-    for (auto i = 0u; i < propertyNodesRowIdx.size(); ++i) {
-        KU_ASSERT(!updateInfoPerChunk[i].contains(srcOffsetInChunk));
-        insertInfoPerChunk[i][srcOffsetInChunk] = propertyNodesRowIdx[i];
-    }
-    return !wasDeleted;
-}
-
-void RegularRelNGInfo::update(
-    offset_t srcOffsetInChunk, offset_t /*relOffset*/, column_id_t columnID, row_idx_t rowIdx) {
-    if (deleteInfo.contains(srcOffsetInChunk)) {
-        // We choose to ignore the update operation if the node is deleted.
-        return;
-    }
-    KU_ASSERT(columnID != REL_ID_COLUMN_ID); // Rel ID is immutable.
-    KU_ASSERT(columnID < updateInfoPerChunk.size());
-    if (insertInfoPerChunk[columnID].contains(srcOffsetInChunk)) {
-        // Update newly inserted value.
-        insertInfoPerChunk[columnID][srcOffsetInChunk] = rowIdx;
-    } else {
-        updateInfoPerChunk[columnID][srcOffsetInChunk] = rowIdx;
-    }
-}
-
-bool RegularRelNGInfo::delete_(offset_t srcOffsetInChunk, offset_t /*relOffset*/) {
-    if (adjInsertInfo.contains(srcOffsetInChunk)) {
-        // Delete newly inserted tuple.
-        adjInsertInfo.erase(srcOffsetInChunk);
-    }
-    if (deleteInfo.contains(srcOffsetInChunk)) {
-        // The node is already deleted.
-        return false;
-    } else {
-        deleteInfo.insert(srcOffsetInChunk);
-    }
-    return true;
-}
-
-uint64_t RegularRelNGInfo::getNumInsertedTuples(offset_t srcOffsetInChunk) {
-    return adjInsertInfo.contains(srcOffsetInChunk) ? 1 : 0;
-}
-
-bool CSRRelNGInfo::insert(offset_t srcOffsetInChunk, offset_t relOffset, row_idx_t adjNodeRowIdx,
+bool RelNGInfo::insert(offset_t srcOffsetInChunk, offset_t relOffset, row_idx_t adjNodeRowIdx,
     const std::vector<row_idx_t>& propertyNodesRowIdx) {
     KU_ASSERT(propertyNodesRowIdx.size() == insertInfoPerChunk.size());
     if (deleteInfo.contains(srcOffsetInChunk) &&
@@ -68,6 +16,10 @@ bool CSRRelNGInfo::insert(offset_t srcOffsetInChunk, offset_t relOffset, row_idx
         deleteInfo.at(srcOffsetInChunk).erase(relOffset);
     }
     if (adjInsertInfo.contains(srcOffsetInChunk)) {
+        if (multiplicity == RelMultiplicity::ONE) {
+            throw RuntimeException("Inserting multiple edges to a single node in a "
+                                   "ONE_ONE/MANY_ONE relationship is not allowed.");
+        }
         adjInsertInfo.at(srcOffsetInChunk)[relOffset] = adjNodeRowIdx;
     } else {
         adjInsertInfo[srcOffsetInChunk] = {{relOffset, adjNodeRowIdx}};
@@ -82,7 +34,7 @@ bool CSRRelNGInfo::insert(offset_t srcOffsetInChunk, offset_t relOffset, row_idx
     return false;
 }
 
-void CSRRelNGInfo::update(
+void RelNGInfo::update(
     offset_t srcOffsetInChunk, offset_t relOffset, column_id_t columnID, row_idx_t rowIdx) {
     // REL_ID_COLUMN_ID is immutable.
     KU_ASSERT(columnID != REL_ID_COLUMN_ID && columnID < updateInfoPerChunk.size());
@@ -104,7 +56,7 @@ void CSRRelNGInfo::update(
     }
 }
 
-bool CSRRelNGInfo::delete_(offset_t srcOffsetInChunk, offset_t relOffset) {
+bool RelNGInfo::delete_(offset_t srcOffsetInChunk, offset_t relOffset) {
     if (adjInsertInfo.contains(srcOffsetInChunk) &&
         adjInsertInfo.at(srcOffsetInChunk).contains(relOffset)) {
         // Delete newly inserted tuple.
@@ -127,7 +79,7 @@ bool CSRRelNGInfo::delete_(offset_t srcOffsetInChunk, offset_t relOffset) {
     return true;
 }
 
-bool CSRRelNGInfo::hasUpdates() {
+bool RelNGInfo::hasUpdates() {
     for (auto& updateInfo : updateInfoPerChunk) {
         if (!updateInfo.empty()) {
             return true;
@@ -136,29 +88,19 @@ bool CSRRelNGInfo::hasUpdates() {
     return false;
 }
 
-const update_insert_info_t& CSRRelNGInfo::getEmptyInfo() {
+const update_insert_info_t& RelNGInfo::getEmptyInfo() {
     static update_insert_info_t emptyInfo;
     return emptyInfo;
 }
 
-uint64_t CSRRelNGInfo::getNumInsertedTuples(offset_t srcOffsetInChunk) {
+uint64_t RelNGInfo::getNumInsertedTuples(offset_t srcOffsetInChunk) {
     return adjInsertInfo.contains(srcOffsetInChunk) ? adjInsertInfo.at(srcOffsetInChunk).size() : 0;
 }
 
-LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, ColumnDataFormat dataFormat,
-    std::vector<LogicalType*> dataTypes, kuzu::storage::MemoryManager* mm)
+LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, std::vector<LogicalType*> dataTypes,
+    MemoryManager* mm, common::RelMultiplicity multiplicity)
     : LocalNodeGroup{nodeGroupStartOffset, std::move(dataTypes), mm} {
-    switch (dataFormat) {
-    case ColumnDataFormat::REGULAR: {
-        relNGInfo = std::make_unique<RegularRelNGInfo>(chunks.size());
-    } break;
-    case ColumnDataFormat::CSR: {
-        relNGInfo = std::make_unique<CSRRelNGInfo>(chunks.size());
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
+    relNGInfo = std::make_unique<RelNGInfo>(multiplicity, chunks.size());
     adjChunk = std::make_unique<LocalVectorCollection>(LogicalType::INTERNAL_ID(), mm);
 }
 
@@ -167,12 +109,10 @@ LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, ColumnDataFormat dataForma
 row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOffset,
     const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
     KU_ASSERT(columnIDs.size() + 1 == outputVectors.size());
-    auto csrRelNGInfo = ku_dynamic_cast<RelNGInfo*, CSRRelNGInfo*>(relNGInfo.get());
-    KU_ASSERT(csrRelNGInfo);
-    KU_ASSERT(csrRelNGInfo->adjInsertInfo.contains(srcOffsetInChunk));
+    KU_ASSERT(relNGInfo->adjInsertInfo.contains(srcOffsetInChunk));
     uint64_t posInVector = 0;
     auto iteratorIdx = 0u;
-    for (auto& [relID, rowIdx] : csrRelNGInfo->adjInsertInfo.at(srcOffsetInChunk)) {
+    for (auto& [relID, rowIdx] : relNGInfo->adjInsertInfo.at(srcOffsetInChunk)) {
         if (iteratorIdx++ < posToReadForOffset) {
             continue;
         }
@@ -184,7 +124,7 @@ row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOf
         auto columnID = columnIDs[i];
         posInVector = 0;
         iteratorIdx = 0u;
-        auto& insertInfo = csrRelNGInfo->insertInfoPerChunk[columnID];
+        auto& insertInfo = relNGInfo->insertInfoPerChunk[columnID];
         KU_ASSERT(insertInfo.contains(srcOffsetInChunk));
         for (auto& [relID, rowIdx] : insertInfo.at(srcOffsetInChunk)) {
             if (iteratorIdx++ < posToReadForOffset) {
@@ -201,62 +141,22 @@ row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOf
 
 void LocalRelNG::applyLocalChangesForCSRColumns(offset_t srcOffsetInChunk,
     const std::vector<column_id_t>& columnIDs, ValueVector* relIDVector,
-    const std::vector<ValueVector*>& outputVector) {
-    KU_ASSERT(columnIDs.size() + 1 == outputVector.size());
-    auto csrRelNGInfo = ku_dynamic_cast<RelNGInfo*, CSRRelNGInfo*>(relNGInfo.get());
-    KU_ASSERT(csrRelNGInfo);
+    const std::vector<ValueVector*>& outputVectors) {
+    KU_ASSERT(columnIDs.size() + 1 == outputVectors.size());
     // Apply updates first, as applying deletions might change selected state.
     for (auto i = 0u; i < columnIDs.size(); ++i) {
-        auto columnID = columnIDs[i];
-        applyCSRUpdates(srcOffsetInChunk, columnID, csrRelNGInfo->updateInfoPerChunk[columnID],
-            relIDVector, outputVector);
+        applyCSRUpdates(srcOffsetInChunk, columnIDs[i], relIDVector, outputVectors[i + 1]);
     }
     // Apply deletions and update selVector if necessary.
-    if (csrRelNGInfo->deleteInfo.contains(srcOffsetInChunk) &&
-        csrRelNGInfo->deleteInfo.at(srcOffsetInChunk).size() > 0) {
-        applyCSRDeletions(srcOffsetInChunk, csrRelNGInfo->deleteInfo, relIDVector);
-    }
-}
-
-void LocalRelNG::applyLocalChangesForRegularColumns(ValueVector* srcNodeIDVector,
-    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVector) {
-    KU_ASSERT(columnIDs.size() + 1 == outputVector.size());
-    auto regularRelNGInfo = ku_dynamic_cast<RelNGInfo*, RegularRelNGInfo*>(relNGInfo.get());
-    KU_ASSERT(regularRelNGInfo);
-    applyRegularChangesToVector(srcNodeIDVector, adjChunk.get(), {} /* updateInfo */,
-        regularRelNGInfo->adjInsertInfo, regularRelNGInfo->deleteInfo, outputVector[0]);
-    for (auto colIdx = 0u; colIdx < columnIDs.size(); colIdx++) {
-        auto columnID = columnIDs[colIdx];
-        // There is no need to apply deleteInfo on property columns, as adj column will be the one
-        // always read first and used to check nulls.
-        applyRegularChangesToVector(srcNodeIDVector, chunks[columnID].get(),
-            regularRelNGInfo->updateInfoPerChunk[columnID],
-            regularRelNGInfo->insertInfoPerChunk[columnID], {} /* deleteInfo */,
-            outputVector[colIdx + 1]);
-    }
-}
-
-void LocalRelNG::applyLocalChangesForRegularColumns(offset_t offsetInChunk,
-    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors,
-    sel_t posInVector) {
-    KU_ASSERT(columnIDs.size() + 1 == outputVectors.size());
-    auto regularRelNGInfo = ku_dynamic_cast<RelNGInfo*, RegularRelNGInfo*>(relNGInfo.get());
-    KU_ASSERT(regularRelNGInfo);
-    applyRegularChangesForOffset(offsetInChunk, adjChunk.get(), {} /* updateInfo */,
-        regularRelNGInfo->adjInsertInfo, regularRelNGInfo->deleteInfo, outputVectors[0],
-        posInVector);
-    for (auto colIdx = 0u; colIdx < columnIDs.size(); colIdx++) {
-        auto columnID = columnIDs[colIdx];
-        applyRegularChangesForOffset(offsetInChunk, chunks[columnID].get(),
-            regularRelNGInfo->updateInfoPerChunk[columnID],
-            regularRelNGInfo->insertInfoPerChunk[columnID], {} /* deleteInfo */,
-            outputVectors[colIdx + 1], posInVector);
+    if (relNGInfo->deleteInfo.contains(srcOffsetInChunk) &&
+        relNGInfo->deleteInfo.at(srcOffsetInChunk).size() > 0) {
+        applyCSRDeletions(srcOffsetInChunk, relNGInfo->deleteInfo, relIDVector);
     }
 }
 
 void LocalRelNG::applyCSRUpdates(offset_t srcOffsetInChunk, column_id_t columnID,
-    const update_insert_info_t& updateInfo, ValueVector* relIDVector,
-    const std::vector<ValueVector*>& outputVector) {
+    ValueVector* relIDVector, ValueVector* outputVector) {
+    auto updateInfo = relNGInfo->updateInfoPerChunk[columnID];
     if (!updateInfo.contains(srcOffsetInChunk) || updateInfo.at(srcOffsetInChunk).empty()) {
         return;
     }
@@ -267,7 +167,7 @@ void LocalRelNG::applyCSRUpdates(offset_t srcOffsetInChunk, column_id_t columnID
         if (updateInfoForOffset.contains(relOffset)) {
             auto rowIdx = updateInfoForOffset.at(relOffset);
             auto posInLocalVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-            outputVector[i + 1]->copyFromVectorData(
+            outputVector->copyFromVectorData(
                 pos, chunks[columnID]->getLocalVector(rowIdx)->getVector(), posInLocalVector);
         }
     }
@@ -292,38 +192,6 @@ void LocalRelNG::applyCSRDeletions(
         memcpy(relIDVector->state->selVector->selectedPositions, selVector->selectedPositions,
             selectPos * sizeof(sel_t));
         relIDVector->state->selVector->selectedSize = selectPos;
-    }
-}
-
-void LocalRelNG::applyRegularChangesToVector(common::ValueVector* srcNodeIDVector,
-    LocalVectorCollection* chunk, const offset_to_row_idx_t& updateInfo,
-    const offset_to_row_idx_t& insertInfo, const offset_set_t& deleteInfo,
-    common::ValueVector* outputVector) {
-    if (updateInfo.empty() && insertInfo.empty() && deleteInfo.empty()) {
-        return;
-    }
-    for (auto i = 0u; i < srcNodeIDVector->state->selVector->selectedSize; i++) {
-        auto selPos = srcNodeIDVector->state->selVector->selectedPositions[i];
-        auto offsetInChunk =
-            srcNodeIDVector->getValue<nodeID_t>(selPos).offset - nodeGroupStartOffset;
-        applyRegularChangesForOffset(
-            offsetInChunk, chunk, updateInfo, insertInfo, deleteInfo, outputVector, selPos);
-    }
-}
-
-void LocalRelNG::applyRegularChangesForOffset(common::offset_t offsetInChunk,
-    LocalVectorCollection* chunk, const offset_to_row_idx_t& updateInfo,
-    const offset_to_row_idx_t& insertInfo, const offset_set_t& deleteInfo,
-    common::ValueVector* outputVector, common::sel_t posInVector) {
-    row_idx_t rowIdx = updateInfo.contains(offsetInChunk) ? updateInfo.at(offsetInChunk) :
-                       insertInfo.contains(offsetInChunk) ? insertInfo.at(offsetInChunk) :
-                                                            INVALID_ROW_IDX;
-    if (rowIdx != INVALID_ROW_IDX) {
-        auto posInLocalVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        outputVector->copyFromVectorData(
-            posInVector, chunk->getLocalVector(rowIdx)->getVector(), posInLocalVector);
-    } else if (deleteInfo.contains(offsetInChunk)) {
-        outputVector->setNull(posInVector, true /* isNull */);
     }
 }
 
@@ -379,7 +247,6 @@ bool LocalRelTableData::insert(ValueVector* srcNodeIDVector, ValueVector* dstNod
     }
     auto localNodeGroup =
         ku_dynamic_cast<LocalNodeGroup*, LocalRelNG*>(getOrCreateLocalNodeGroup(srcNodeIDVector));
-    KU_ASSERT(localNodeGroup);
     return localNodeGroup->insert(srcNodeIDVector, dstNodeIDVector, propertyVectors);
 }
 
@@ -419,7 +286,7 @@ LocalNodeGroup* LocalRelTableData::getOrCreateLocalNodeGroup(ValueVector* nodeID
     if (!nodeGroups.contains(nodeGroupIdx)) {
         auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         nodeGroups[nodeGroupIdx] =
-            std::make_unique<LocalRelNG>(nodeGroupStartOffset, dataFormat, dataTypes, mm);
+            std::make_unique<LocalRelNG>(nodeGroupStartOffset, dataTypes, mm, multiplicity);
     }
     return nodeGroups.at(nodeGroupIdx).get();
 }

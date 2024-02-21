@@ -28,3 +28,13 @@
 -ENUMERATE
 ---- 1
 196
+
+-CASE OneOne
+-LOG OneHopStudyAtTest1
+-PARALLELISM 1
+-ENUMERATE
+-STATEMENT MATCH (a:person)-[e1:studyAt]->(b:organisation) RETURN e1.code;
+---- 3
+9223372036854775808
+6689
+23

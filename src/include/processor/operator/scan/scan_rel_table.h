@@ -29,10 +29,16 @@ public:
         const std::string& paramsString)
         : ScanRelTable{PhysicalOperatorType::SCAN_REL_TABLE, std::move(info), inVectorPos,
               std::move(outVectorsPos), std::move(child), id, paramsString} {
-        scanState = std::make_unique<storage::RelDataReadState>(
-            this->info->table->getTableDataFormat(this->info->direction));
+        scanState = std::make_unique<storage::RelDataReadState>();
     }
     ~ScanRelTable() override = default;
+
+    bool getNextTuplesInternal(ExecutionContext* context) override;
+
+    inline std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<ScanRelTable>(
+            info->copy(), inVectorPos, outVectorsPos, children[0]->clone(), id, paramsString);
+    }
 
 protected:
     ScanRelTable(PhysicalOperatorType operatorType, std::unique_ptr<ScanRelTableInfo> info,

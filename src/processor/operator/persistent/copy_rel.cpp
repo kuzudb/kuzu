@@ -33,7 +33,7 @@ void CopyRelSharedState::logCopyRelWALRecord(WAL* wal) {
 void CopyRel::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
     localState = std::make_unique<CopyRelLocalState>();
     localState->nodeGroup = NodeGroupFactory::createNodeGroup(
-        info->dataFormat, sharedState->columnTypes, info->compressionEnabled);
+        ColumnDataFormat::CSR, sharedState->columnTypes, info->compressionEnabled);
 }
 
 void CopyRel::initGlobalStateInternal(ExecutionContext* /*context*/) {
@@ -53,22 +53,18 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
         // Read the whole partition, and set to node group.
         auto partitioningBuffer = partitionerSharedState->getPartitionBuffer(
             info->partitioningIdx, localState->currentPartition);
-        auto startOffset = StorageUtils::getStartOffsetOfNodeGroup(localState->currentPartition);
+        auto startNodeOffset =
+            StorageUtils::getStartOffsetOfNodeGroup(localState->currentPartition);
         auto offsetVectorIdx = info->dataDirection == RelDataDirection::FWD ? 0 : 1;
         for (auto dataChunk : partitioningBuffer->getChunks()) {
             setOffsetToWithinNodeGroup(
-                dataChunk->getValueVector(offsetVectorIdx).get(), startOffset);
+                dataChunk->getValueVector(offsetVectorIdx).get(), startNodeOffset);
         }
         // Calculate num of source nodes in this node group.
         // This will be used to set the num of values of the node group.
         auto numNodes = std::min(StorageConstants::NODE_GROUP_SIZE,
-            partitionerSharedState->maxNodeOffsets[info->partitioningIdx] - startOffset + 1);
-        if (info->dataFormat == ColumnDataFormat::CSR) {
-            prepareCSRNodeGroup(partitioningBuffer, offsetVectorIdx, numNodes);
-        } else {
-            localState->nodeGroup->setAllNull();
-            localState->nodeGroup->getColumnChunk(0)->setNumValues(numNodes);
-        }
+            partitionerSharedState->maxNodeOffsets[info->partitioningIdx] - startNodeOffset + 1);
+        prepareCSRNodeGroup(partitioningBuffer, startNodeOffset, offsetVectorIdx, numNodes);
         for (auto dataChunk : partitioningBuffer->getChunks()) {
             localState->nodeGroup->write(dataChunk, offsetVectorIdx);
         }
@@ -80,15 +76,19 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
     }
 }
 
-void CopyRel::prepareCSRNodeGroup(
-    DataChunkCollection* partition, vector_idx_t offsetVectorIdx, offset_t numNodes) {
+void CopyRel::prepareCSRNodeGroup(DataChunkCollection* partition, common::offset_t startNodeOffset,
+    vector_idx_t offsetVectorIdx, offset_t numNodes) {
     auto csrNodeGroup = ku_dynamic_cast<NodeGroup*, CSRNodeGroup*>(localState->nodeGroup.get());
     auto& csrHeader = csrNodeGroup->getCSRHeader();
     csrHeader.setNumValues(numNodes);
-    std::vector<length_t> gaps;
-    gaps.resize(numNodes);
     // Populate start csr offsets and lengths for each node.
-    populateStartCSROffsetsAndLengths(csrHeader, gaps, numNodes, partition, offsetVectorIdx);
+    auto gaps = populateStartCSROffsetsAndLengths(csrHeader, numNodes, partition, offsetVectorIdx);
+    auto invalid = checkRelMultiplicityConstraint(csrHeader);
+    if (invalid.has_value()) {
+        throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
+            info->relTableEntry->getName(), std::to_string(invalid.value() + startNodeOffset),
+            RelDataDirectionUtils::relDirectionToString(info->dataDirection)));
+    }
     // Resize csr data column chunks.
     offset_t csrChunkCapacity =
         csrHeader.getEndCSROffset(numNodes - 1) + csrHeader.getCSRLength(numNodes - 1);
@@ -107,11 +107,21 @@ void CopyRel::populateEndCSROffsets(CSRHeaderChunks& csrHeader, std::vector<offs
     }
 }
 
-void CopyRel::populateStartCSROffsetsAndLengths(CSRHeaderChunks& csrHeader,
-    std::vector<length_t>& gaps, offset_t numNodes, DataChunkCollection* partition,
-    vector_idx_t offsetVectorIdx) {
+length_t CopyRel::getGapSize(length_t length) {
+    // We intentionally leave a gap for empty CSR lists to accommondate for future insertions.
+    // Also, for MANY_ONE and ONE_ONE relationships, we should always keep each CSR list as size 1.
+    return length == 0 ?
+               1 :
+               StorageUtils::divideAndRoundUpTo(length, StorageConstants::PACKED_CSR_DENSITY) -
+                   length;
+}
+
+std::vector<offset_t> CopyRel::populateStartCSROffsetsAndLengths(CSRHeaderChunks& csrHeader,
+    offset_t numNodes, DataChunkCollection* partition, vector_idx_t offsetVectorIdx) {
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
+    std::vector<offset_t> gaps;
+    gaps.resize(numNodes);
     auto csrOffsets = (offset_t*)csrHeader.offset->getData();
     auto csrLengths = (length_t*)csrHeader.length->getData();
     std::fill(csrLengths, csrLengths + numNodes, 0);
@@ -127,15 +137,14 @@ void CopyRel::populateStartCSROffsetsAndLengths(CSRHeaderChunks& csrHeader,
     }
     // Calculate gaps for each node.
     for (auto i = 0u; i < numNodes; i++) {
-        auto lengthWithGap = static_cast<length_t>(
-            std::ceil((double)csrLengths[i] / (double)StorageConstants::PACKED_CSR_DENSITY));
-        gaps[i] = lengthWithGap - csrLengths[i];
+        gaps[i] = getGapSize(csrLengths[i]);
     }
     csrOffsets[0] = 0;
     // Calculate starting offset of each node.
     for (auto i = 1u; i < numNodes; i++) {
         csrOffsets[i] = csrOffsets[i - 1] + csrLengths[i - 1] + gaps[i - 1];
     }
+    return gaps;
 }
 
 void CopyRel::setOffsetToWithinNodeGroup(ValueVector* vector, offset_t startOffset) {
@@ -156,6 +165,19 @@ void CopyRel::setOffsetFromCSROffsets(ValueVector* offsetVector, ColumnChunk* of
         offsetVector->setValue<offset_t>(i, csrOffset);
         offsetChunk->setValue<offset_t>(csrOffset + 1, nodeOffset);
     }
+}
+
+std::optional<common::offset_t> CopyRel::checkRelMultiplicityConstraint(
+    const storage::CSRHeaderChunks& csrHeader) {
+    if (!info->relTableEntry->isSingleMultiplicity(info->dataDirection)) {
+        return std::nullopt;
+    }
+    for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {
+        if (csrHeader.length->getValue<length_t>(i) > 1) {
+            return i;
+        }
+    }
+    return std::nullopt;
 }
 
 void CopyRel::finalize(ExecutionContext* context) {

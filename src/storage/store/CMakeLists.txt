@@ -2,7 +2,6 @@ add_library(kuzu_storage_store
         OBJECT
         column.cpp
         column_chunk.cpp
-        csr_rel_table_data.cpp
         dictionary_chunk.cpp
         dictionary_column.cpp
         node_group.cpp
