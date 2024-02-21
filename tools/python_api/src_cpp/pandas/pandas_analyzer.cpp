@@ -38,7 +38,7 @@ common::LogicalType PandasAnalyzer::getListType(py::object& ele, bool& canConver
     for (auto pyVal : ele) {
         auto object = py::reinterpret_borrow<py::object>(pyVal);
         auto itemType = getItemType(object, canConvert);
-        if (i != 0) {
+        if (i == 0) {
             listType = itemType;
         } else {
             if (!upgradeType(listType, itemType)) {
