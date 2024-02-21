@@ -238,18 +238,18 @@ public:
     StructTypeInfo(const std::vector<std::string>& fieldNames,
         const std::vector<std::unique_ptr<LogicalType>>& fieldTypes);
 
-    bool hasField(const std::string& fieldName) const;
-    struct_field_idx_t getStructFieldIdx(std::string fieldName) const;
-    const StructField* getStructField(struct_field_idx_t idx) const;
-    const StructField* getStructField(const std::string& fieldName) const;
-    LogicalType* getChildType(struct_field_idx_t idx) const;
-    std::vector<LogicalType*> getChildrenTypes() const;
-    std::vector<std::string> getChildrenNames() const;
-    std::vector<const StructField*> getStructFields() const;
-    bool operator==(const kuzu::common::StructTypeInfo& other) const;
+    KUZU_API bool hasField(const std::string& fieldName) const;
+    KUZU_API struct_field_idx_t getStructFieldIdx(std::string fieldName) const;
+    KUZU_API const StructField* getStructField(struct_field_idx_t idx) const;
+    KUZU_API const StructField* getStructField(const std::string& fieldName) const;
+    KUZU_API LogicalType* getChildType(struct_field_idx_t idx) const;
+    KUZU_API std::vector<LogicalType*> getChildrenTypes() const;
+    KUZU_API std::vector<std::string> getChildrenNames() const;
+    KUZU_API std::vector<const StructField*> getStructFields() const;
+    KUZU_API bool operator==(const kuzu::common::StructTypeInfo& other) const;
 
-    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
-    std::unique_ptr<ExtraTypeInfo> copy() const override;
+    KUZU_API static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
+    KUZU_API std::unique_ptr<ExtraTypeInfo> copy() const override;
 
 private:
     void serializeInternal(Serializer& serializer) const override;
