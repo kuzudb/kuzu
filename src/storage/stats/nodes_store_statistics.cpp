@@ -19,6 +19,14 @@ offset_t NodesStoreStatsAndDeletedIDs::getMaxNodeOffset(
     }
 }
 
+void NodesStoreStatsAndDeletedIDs::updateNumTuplesByValue(table_id_t tableID, int64_t value) {
+    initTableStatisticsForWriteTrx();
+    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+    setToUpdated();
+    auto tableStats = getNodeTableStats(transaction::TransactionType::WRITE, tableID);
+    tableStats->setNumTuples(tableStats->getNumTuples() + value);
+}
+
 void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     transaction::Transaction* transaction, const std::shared_ptr<ValueVector>& nodeOffsetVector,
     table_id_t tableID) {

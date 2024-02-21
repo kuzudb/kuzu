@@ -70,10 +70,22 @@ public:
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getColumn(columnID) :
                                                             bwdRelTableData->getColumn(columnID);
     }
+    inline const std::vector<std::unique_ptr<Column>>& getColumns(
+        common::RelDataDirection direction) const {
+        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getColumns() :
+                                                            bwdRelTableData->getColumns();
+    }
 
     inline void append(ChunkedNodeGroup* nodeGroup, common::RelDataDirection direction) {
         direction == common::RelDataDirection::FWD ? fwdRelTableData->append(nodeGroup) :
                                                      bwdRelTableData->append(nodeGroup);
+    }
+
+    inline bool isNewNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) {
+        return direction == common::RelDataDirection::FWD ?
+                   fwdRelTableData->isNewNodeGroup(transaction, nodeGroupIdx) :
+                   bwdRelTableData->isNewNodeGroup(transaction, nodeGroupIdx);
     }
 
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;

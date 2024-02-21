@@ -30,8 +30,8 @@ struct PartitioningBuffer {
 struct BatchInsertSharedState;
 struct PartitioningInfo;
 struct PartitionerSharedState {
+    std::vector<common::logical_type_vec_t> columnTypes;
     std::mutex mtx;
-    storage::MemoryManager* mm;
     storage::NodeTable* srcNodeTable;
     storage::NodeTable* dstNodeTable;
 
@@ -43,15 +43,16 @@ struct PartitionerSharedState {
     // In copy rdf, we need to access num nodes before it is available in statistics.
     std::vector<std::shared_ptr<BatchInsertSharedState>> nodeBatchInsertSharedStates;
 
-    explicit PartitionerSharedState(storage::MemoryManager* mm) : mm{mm} {}
+    explicit PartitionerSharedState(std::vector<common::logical_type_vec_t> columnTypes)
+        : columnTypes{std::move(columnTypes)} {}
 
     void initialize(std::vector<std::unique_ptr<PartitioningInfo>>& infos);
     common::partition_idx_t getNextPartition(common::vector_idx_t partitioningIdx);
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
 
-    inline storage::ChunkedNodeGroupCollection& getPartitionBuffer(
-        common::vector_idx_t partitioningIdx, common::partition_idx_t partitionIdx) {
+    inline const storage::ChunkedNodeGroupCollection& getPartitionBuffer(
+        common::vector_idx_t partitioningIdx, common::partition_idx_t partitionIdx) const {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
         return partitioningBuffers[partitioningIdx]->partitions[partitionIdx];

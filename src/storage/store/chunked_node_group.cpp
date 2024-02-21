@@ -80,11 +80,11 @@ void ChunkedNodeGroup::setAllNull() {
     }
 }
 
-void ChunkedNodeGroup::setNumValues(common::offset_t numValues) {
+void ChunkedNodeGroup::setNumRows(common::offset_t numRows_) {
     for (auto& chunk : chunks) {
-        chunk->setNumValues(numValues);
+        chunk->setNumValues(numRows_);
     }
-    numRows = numValues;
+    numRows = numRows_;
 }
 
 void ChunkedNodeGroup::resizeChunks(uint64_t newSize) {
@@ -128,21 +128,25 @@ offset_t ChunkedNodeGroup::append(ChunkedNodeGroup* other, offset_t offsetInOthe
 }
 
 void ChunkedNodeGroup::write(
-    std::vector<std::unique_ptr<ColumnChunk>>& data, vector_idx_t offsetVectorIdx) {
+    const std::vector<std::unique_ptr<ColumnChunk>>& data, column_id_t offsetColumnID) {
     KU_ASSERT(data.size() == chunks.size() + 1);
-    auto& offsetChunk = data[offsetVectorIdx];
-    vector_idx_t vectorIdx = 0, chunkIdx = 0;
+    auto& offsetChunk = data[offsetColumnID];
+    column_id_t columnID = 0, chunkIdx = 0;
     for (auto i = 0u; i < data.size(); i++) {
-        if (i == offsetVectorIdx) {
-            vectorIdx++;
+        if (i == offsetColumnID) {
+            columnID++;
             continue;
         }
-        KU_ASSERT(vectorIdx < data.size());
-        writeToColumnChunk(chunkIdx, vectorIdx, data, *offsetChunk);
+        KU_ASSERT(columnID < data.size());
+        writeToColumnChunk(chunkIdx, columnID, data, *offsetChunk);
         chunkIdx++;
-        vectorIdx++;
+        columnID++;
     }
     numRows += offsetChunk->getNumValues();
+}
+
+void ChunkedNodeGroup::write(const ChunkedNodeGroup& data, column_id_t offsetColumnID) {
+    write(data.chunks, offsetColumnID);
 }
 
 void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {

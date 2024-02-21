@@ -23,7 +23,7 @@ public:
 protected:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) final;
-    void append(common::ValueVector* vector, common::SelectionVector& selVector) final;
+    void append(common::ValueVector* vector, const common::SelectionVector& selVector) final;
 
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;

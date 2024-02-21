@@ -9,7 +9,7 @@ namespace kuzu {
 namespace processor {
 
 void BatchInsert::checkIfTableIsEmpty() {
-    if (sharedState->table->getNumTuples() != 0) {
+    if (sharedState->table->getNumTuples(&transaction::DUMMY_READ_TRANSACTION) != 0) {
         throw CopyException(ExceptionMessage::notAllowCopyOnNonEmptyTableException());
     }
 }

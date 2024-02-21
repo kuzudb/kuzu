@@ -16,18 +16,7 @@ RelsStoreStats::RelsStoreStats(
     readFromFile();
 }
 
-// We should only call this function after we call setNumRelsPerDirectionBoundTableID.
-void RelsStoreStats::setNumTuplesForTable(table_id_t relTableID, uint64_t numRels) {
-    std::unique_lock lck{mtx};
-    initTableStatisticsForWriteTrxNoLock();
-    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(relTableID));
-    setToUpdated();
-    auto relStatistics = (RelTableStats*)readWriteVersion->tableStatisticPerTable[relTableID].get();
-    increaseNextRelOffset(relTableID, numRels - relStatistics->getNumTuples());
-    relStatistics->setNumTuples(numRels);
-}
-
-void RelsStoreStats::updateNumRelsByValue(table_id_t relTableID, int64_t value) {
+void RelsStoreStats::updateNumTuplesByValue(table_id_t relTableID, int64_t value) {
     std::unique_lock lck{mtx};
     initTableStatisticsForWriteTrxNoLock();
     KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(relTableID));
@@ -36,16 +25,14 @@ void RelsStoreStats::updateNumRelsByValue(table_id_t relTableID, int64_t value) 
     auto numRelsBeforeUpdate = relStatistics->getNumTuples();
     (void)numRelsBeforeUpdate; // Avoid unused variable warning.
     KU_ASSERT(!(numRelsBeforeUpdate == 0 && value < 0));
-    auto numRelsAfterUpdate = relStatistics->getNumTuples() + value;
-    relStatistics->setNumTuples(numRelsAfterUpdate);
+    relStatistics->setNumTuples(numRelsBeforeUpdate + value);
     // Update the nextRelID only when we are inserting rels.
     if (value > 0) {
         increaseNextRelOffset(relTableID, value);
     }
 }
 
-offset_t RelsStoreStats::getNextRelOffset(
-    transaction::Transaction* transaction, table_id_t tableID) {
+offset_t RelsStoreStats::getNextRelOffset(Transaction* transaction, table_id_t tableID) {
     std::unique_lock lck{mtx};
     auto& tableStatisticContent = (transaction->isReadOnly() || readWriteVersion == nullptr) ?
                                       readOnlyVersion :
@@ -94,8 +81,8 @@ MetadataDAHInfo* RelsStoreStats::getCSRLengthMetadataDAHInfo(
     return tableStats->getCSRLengthMetadataDAHInfo(direction);
 }
 
-MetadataDAHInfo* RelsStoreStats::getColumnMetadataDAHInfo(transaction::Transaction* transaction,
-    common::table_id_t tableID, common::column_id_t columnID, common::RelDataDirection direction) {
+MetadataDAHInfo* RelsStoreStats::getColumnMetadataDAHInfo(Transaction* transaction,
+    table_id_t tableID, column_id_t columnID, RelDataDirection direction) {
     if (transaction->isWriteTransaction()) {
         initTableStatisticsForWriteTrx();
     }

@@ -31,18 +31,19 @@ void ChunkedNodeGroupCollection::append(
     }
 }
 
-void ChunkedNodeGroupCollection::append(std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
+void ChunkedNodeGroupCollection::merge(std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
     KU_ASSERT(chunkedGroup->getNumColumns() == types.size());
     for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
         KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType() == types[i]);
     }
+    numRows += chunkedGroup->getNumRows();
     chunkedGroups.push_back(std::move(chunkedGroup));
 }
 
-void ChunkedNodeGroupCollection::merge(ChunkedNodeGroupCollection& chunkedGroupCollection) {
-    chunkedGroups.reserve(chunkedGroups.size() + chunkedGroupCollection.getNumChunks());
-    for (auto& chunkedGroup : chunkedGroupCollection.chunkedGroups) {
-        append(std::move(chunkedGroup));
+void ChunkedNodeGroupCollection::merge(ChunkedNodeGroupCollection& other) {
+    chunkedGroups.reserve(chunkedGroups.size() + other.chunkedGroups.size());
+    for (auto& chunkedGroup : other.chunkedGroups) {
+        merge(std::move(chunkedGroup));
     }
 }
 

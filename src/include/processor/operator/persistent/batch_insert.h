@@ -1,5 +1,6 @@
 #pragma once
 
+#include "processor/data_pos.h"
 #include "processor/operator/sink.h"
 #include "storage/store/table.h"
 
@@ -48,7 +49,7 @@ struct BatchInsertSharedState {
         wal->logCopyTableRecord(table->getTableID());
         wal->flushAllPages();
     }
-    inline void setNumTuplesForTable() { table->setNumTuples(getNumRows()); }
+    inline void updateNumTuplesForTable() { table->updateNumTuplesByValue(getNumRows()); }
 };
 
 struct BatchInsertLocalState {

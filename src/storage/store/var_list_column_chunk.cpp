@@ -104,7 +104,7 @@ void VarListColumnChunk::resetToEmpty() {
             enableCompression, 0 /* capacity */));
 }
 
-void VarListColumnChunk::append(ValueVector* vector, SelectionVector& selVector) {
+void VarListColumnChunk::append(ValueVector* vector, const SelectionVector& selVector) {
     auto numToAppend = selVector.selectedSize;
     auto newCapacity = capacity;
     while (numValues + numToAppend >= newCapacity) {

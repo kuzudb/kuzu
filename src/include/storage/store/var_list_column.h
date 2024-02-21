@@ -101,8 +101,6 @@ private:
 private:
     std::unique_ptr<Column> sizeColumn;
     std::unique_ptr<Column> dataColumn;
-    // TODO(Guodong): This should be moved to table states.
-    std::unique_ptr<VarListDataColumnChunk> tmpDataColumnChunk;
 };
 
 } // namespace storage

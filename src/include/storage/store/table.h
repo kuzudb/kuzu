@@ -21,11 +21,11 @@ public:
 
     inline common::TableType getTableType() const { return tableType; }
     inline common::table_id_t getTableID() const { return tableID; }
-    inline common::row_idx_t getNumTuples() const {
-        return tablesStatistics->getNumTuplesForTable(tableID);
+    inline common::row_idx_t getNumTuples(transaction::Transaction* transaction) const {
+        return tablesStatistics->getNumTuplesForTable(transaction, tableID);
     }
-    inline void setNumTuples(uint64_t numTuples) {
-        tablesStatistics->setNumTuplesForTable(tableID, numTuples);
+    inline void updateNumTuplesByValue(uint64_t numTuples) {
+        tablesStatistics->updateNumTuplesByValue(tableID, numTuples);
     }
 
     virtual void read(transaction::Transaction* transaction, TableReadState& readState,

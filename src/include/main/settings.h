@@ -104,5 +104,17 @@ struct FileSearchPathSetting {
     }
 };
 
+struct EnableMultiCopySetting {
+    static constexpr const char* name = "enable_multi_copy";
+    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::BOOL);
+        context->getClientConfigUnsafe()->enableMultiCopy = parameter.getValue<bool>();
+    }
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->getClientConfig()->enableMultiCopy);
+    }
+};
+
 } // namespace main
 } // namespace kuzu

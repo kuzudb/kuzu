@@ -35,9 +35,7 @@ public:
         return (RelTableStats*)tableStatisticPerTable[tableID].get();
     }
 
-    void setNumTuplesForTable(common::table_id_t relTableID, uint64_t numRels) override;
-
-    void updateNumRelsByValue(common::table_id_t relTableID, int64_t value);
+    void updateNumTuplesByValue(common::table_id_t relTableID, int64_t value) override;
 
     common::offset_t getNextRelOffset(
         transaction::Transaction* transaction, common::table_id_t tableID);

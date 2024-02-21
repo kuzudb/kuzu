@@ -36,12 +36,7 @@ public:
             directory, common::FileVersionType::ORIGINAL, transaction::TransactionType::READ_ONLY);
     }
 
-    inline void setNumTuplesForTable(common::table_id_t tableID, uint64_t numTuples) override {
-        initTableStatisticsForWriteTrx();
-        KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
-        setToUpdated();
-        getNodeTableStats(transaction::TransactionType::WRITE, tableID)->setNumTuples(numTuples);
-    }
+    void updateNumTuplesByValue(common::table_id_t tableID, int64_t value) override;
 
     common::offset_t getMaxNodeOffset(
         transaction::Transaction* transaction, common::table_id_t tableID);

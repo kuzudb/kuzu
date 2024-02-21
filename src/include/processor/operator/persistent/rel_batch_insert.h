@@ -1,5 +1,6 @@
 #pragma once
 
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/batch_insert.h"
@@ -60,14 +61,21 @@ public:
     }
 
 private:
-    void prepareCSRNodeGroup(storage::ChunkedNodeGroupCollection& partition,
-        common::offset_t startNodeOffset, common::column_id_t offsetColumnID,
-        common::offset_t numNodes);
+    static void appendNewNodeGroup(const RelBatchInsertInfo& relInfo,
+        RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
+        const PartitionerSharedState& partitionerSharedState);
+    static void mergeNodeGroup(ExecutionContext* context, const RelBatchInsertInfo& relInfo,
+        RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
+        const PartitionerSharedState& partitionerSharedState);
+
+    static void prepareCSRNodeGroup(const storage::ChunkedNodeGroupCollection& partition,
+        common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
+        RelBatchInsertLocalState& localState, common::offset_t numNodes);
 
     static common::length_t getGapSize(common::length_t length);
     static std::vector<common::offset_t> populateStartCSROffsetsAndLengths(
         storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
-        storage::ChunkedNodeGroupCollection& partition, common::column_id_t offsetColumnID);
+        const storage::ChunkedNodeGroupCollection& partition, common::column_id_t offsetColumnID);
     static void populateEndCSROffsets(
         storage::ChunkedCSRHeader& csrHeader, std::vector<common::offset_t>& gaps);
     static void setOffsetToWithinNodeGroup(
@@ -75,9 +83,8 @@ private:
     static void setOffsetFromCSROffsets(
         storage::ColumnChunk& nodeOffsetChunk, storage::ColumnChunk& csrOffsetChunk);
 
-    // We only check rel multiplcity constraint (MANY_ONE, ONE_ONE) for now.
-    std::optional<common::offset_t> checkRelMultiplicityConstraint(
-        const storage::ChunkedCSRHeader& csrHeader);
+    static std::optional<common::offset_t> checkRelMultiplicityConstraint(
+        const storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo);
 
 private:
     std::shared_ptr<PartitionerSharedState> partitionerSharedState;

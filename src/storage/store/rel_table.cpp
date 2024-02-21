@@ -41,7 +41,7 @@ void RelTable::insert(Transaction* transaction, ValueVector* srcNodeIDVector,
     fwdRelTableData->insert(transaction, srcNodeIDVector, dstNodeIDVector, propertyVectors);
     bwdRelTableData->insert(transaction, dstNodeIDVector, srcNodeIDVector, propertyVectors);
     auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
-    relsStats->updateNumRelsByValue(tableID, 1);
+    relsStats->updateNumTuplesByValue(tableID, 1);
 }
 
 void RelTable::update(transaction::Transaction* transaction, column_id_t columnID,
@@ -58,7 +58,7 @@ void RelTable::delete_(Transaction* transaction, ValueVector* srcNodeIDVector,
     KU_ASSERT(fwdDeleted == bwdDeleted);
     if (fwdDeleted && bwdDeleted) {
         auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
-        relsStats->updateNumRelsByValue(tableID, -1);
+        relsStats->updateNumTuplesByValue(tableID, -1);
     }
 }
 
@@ -75,7 +75,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     row_idx_t numRelsDeleted = detachDeleteForCSRRels(transaction, tableData, reverseTableData,
         srcNodeIDVector, relDataReadState.get(), deleteState);
     auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
-    relsStats->updateNumRelsByValue(tableID, -numRelsDeleted);
+    relsStats->updateNumTuplesByValue(tableID, -numRelsDeleted);
 }
 
 void RelTable::checkIfNodeHasRels(

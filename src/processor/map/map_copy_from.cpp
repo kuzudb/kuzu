@@ -159,7 +159,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
         infos.push_back(std::make_unique<PartitioningInfo>(keyPos, columnPositions,
             std::move(columnTypes), PartitionerFunctions::partitionRelData));
     }
-    auto sharedState = std::make_shared<PartitionerSharedState>(clientContext->getMemoryManager());
+    std::vector<common::logical_type_vec_t> columnTypes;
+    for (auto& info : infos) {
+        columnTypes.push_back(info->columnTypes);
+    }
+    auto sharedState = std::make_shared<PartitionerSharedState>(std::move(columnTypes));
     return std::make_unique<Partitioner>(std::make_unique<ResultSetDescriptor>(outFSchema),
         std::move(infos), std::move(sharedState), std::move(prevOperator), getOperatorID(),
         logicalPartitioner->getExpressionsForPrinting());
@@ -187,14 +191,22 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     auto copyFromInfo = copyFrom->getInfo();
     auto relTableEntry =
         ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo->tableEntry);
-    auto prevOperator = mapOperator(copyFrom->getChild(0).get());
-    KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::PARTITIONER);
-    auto partitionerSharedState = dynamic_cast<Partitioner*>(prevOperator.get())->getSharedState();
+    auto partitioner = mapOperator(copyFrom->getChild(0).get());
+    KU_ASSERT(partitioner->getOperatorType() == PhysicalOperatorType::PARTITIONER);
+    auto partitionerSharedState = dynamic_cast<Partitioner*>(partitioner.get())->getSharedState();
     auto storageManager = clientContext->getStorageManager();
     partitionerSharedState->srcNodeTable =
         storageManager->getNodeTable(relTableEntry->getSrcTableID());
     partitionerSharedState->dstNodeTable =
         storageManager->getNodeTable(relTableEntry->getDstTableID());
+    // TODO(Guodong/Xiyang): This is a temp hack to set rel offset.
+    KU_ASSERT(partitioner->getChild(0)->getChild(0)->getOperatorType() ==
+              PhysicalOperatorType::IN_QUERY_CALL);
+    auto scanFile =
+        ku_dynamic_cast<PhysicalOperator*, InQueryCall*>(partitioner->getChild(0)->getChild(0));
+    auto relTable = storageManager->getRelTable(relTableEntry->getTableID());
+    scanFile->getSharedState()->nextRowIdx =
+        relTable->getNumTuples(&transaction::DUMMY_WRITE_TRANSACTION);
     // TODO(Xiyang): Move binding of column types to binder.
     std::vector<LogicalType> columnTypes;
     columnTypes.push_back(*LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
@@ -202,8 +214,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
         columnTypes.push_back(*property.getDataType()->copy());
     }
     auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(
-        storageManager->getRelTable(relTableEntry->getTableID()), getSingleStringColumnFTable(),
-        storageManager->getWAL());
+        relTable, getSingleStringColumnFTable(), storageManager->getWAL());
     auto copyRelFWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
         RelDataDirection::FWD, LogicalType::copy(columnTypes));
     auto copyRelBWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
@@ -211,7 +222,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     physical_op_vector_t result;
     result.push_back(std::move(copyRelBWD));
     result.push_back(std::move(copyRelFWD));
-    result.push_back(std::move(prevOperator));
+    result.push_back(std::move(partitioner));
     return result;
 }
 

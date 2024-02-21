@@ -161,8 +161,14 @@ public:
     inline Column* getCSROffsetColumn() const { return csrHeaderColumns.offset.get(); }
     inline Column* getCSRLengthColumn() const { return csrHeaderColumns.length.get(); }
 
+    bool isNewNodeGroup(
+        transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx) const;
+
     void prepareLocalTableToCommit(
         transaction::Transaction* transaction, LocalTableData* localTable) override;
+
+    void prepareCommitNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, LocalRelNG* localRelNG);
 
     void checkpointInMemory() override;
     void rollbackInMemory() override;
@@ -183,9 +189,6 @@ private:
     bool isWithinDensityBound(const ChunkedCSRHeader& headerChunks,
         const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region);
     double getHighDensity(uint64_t level) const;
-
-    void prepareCommitNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, LocalRelNG* localRelNG);
 
     void updateCSRHeader(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, PersistentState& persistentState,

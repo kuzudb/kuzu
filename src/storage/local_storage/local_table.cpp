@@ -33,6 +33,24 @@ bool LocalNodeGroup::hasUpdatesOrDeletions() const {
     return false;
 }
 
+void LocalChunkedGroupCollection::appendChunkedGroup(
+    ColumnChunk* srcOffsetChunk, std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
+    KU_ASSERT(chunkedGroup->getNumColumns() == dataTypes.size());
+    for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
+        KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType() == dataTypes[i]);
+    }
+    auto rowIdx = chunkedGroups.getNumChunkedGroups() * ChunkedNodeGroupCollection::CHUNK_CAPACITY;
+    auto& relOffsetChunk = chunkedGroup->getColumnChunk(REL_ID_COLUMN_ID);
+    for (auto i = 0u; i < srcOffsetChunk->getNumValues(); i++) {
+        auto relOffset = relOffsetChunk.getValue<offset_t>(i);
+        KU_ASSERT(!offsetToRowIdx.contains(relOffset));
+        offsetToRowIdx[relOffset] = rowIdx++;
+        auto srcOffset = srcOffsetChunk->getValue<offset_t>(i);
+        srcNodeOffsetToRelOffsets[srcOffset].push_back(relOffset);
+    }
+    chunkedGroups.merge(std::move(chunkedGroup));
+}
+
 void LocalChunkedGroupCollection::readValueAtRowIdx(row_idx_t rowIdx, column_id_t columnID,
     ValueVector* outputVector, sel_t posInOutputVector) const {
     auto [chunkIdx, offsetInChunk] = getChunkIdxAndOffsetInChunk(rowIdx);
@@ -73,18 +91,19 @@ void LocalChunkedGroupCollection::remove(offset_t srcNodeOffset, offset_t relOff
 
 row_idx_t LocalChunkedGroupCollection::append(std::vector<ValueVector*> vectors) {
     KU_ASSERT(vectors.size() == dataTypes.size());
-    if (chunkedGroups.getNumChunks() == 0 ||
-        chunkedGroups.getChunkedGroup(chunkedGroups.getNumChunks() - 1)->getNumRows() ==
+    if (chunkedGroups.getNumChunkedGroups() == 0 ||
+        chunkedGroups.getChunkedGroup(chunkedGroups.getNumChunkedGroups() - 1)->getNumRows() ==
             ChunkedNodeGroupCollection::CHUNK_CAPACITY) {
-        chunkedGroups.append(std::make_unique<ChunkedNodeGroup>(
+        chunkedGroups.merge(std::make_unique<ChunkedNodeGroup>(
             dataTypes, false /*enableCompression*/, ChunkedNodeGroupCollection::CHUNK_CAPACITY));
     }
-    auto lastChunkGroup = chunkedGroups.getChunkedGroupUnsafe(chunkedGroups.getNumChunks() - 1);
+    auto lastChunkGroup =
+        chunkedGroups.getChunkedGroupUnsafe(chunkedGroups.getNumChunkedGroups() - 1);
     for (auto i = 0u; i < vectors.size(); i++) {
         KU_ASSERT(vectors[i]->state->selVector->selectedSize == 1);
         lastChunkGroup->getColumnChunkUnsafe(i).append(vectors[i], *vectors[i]->state->selVector);
     }
-    lastChunkGroup->setNumValues(lastChunkGroup->getNumRows() + 1);
+    lastChunkGroup->setNumRows(lastChunkGroup->getNumRows() + 1);
     return numRows++;
 }
 
