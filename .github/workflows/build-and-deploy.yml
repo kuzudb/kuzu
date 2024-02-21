@@ -317,12 +317,12 @@ jobs:
 
       - name: Deploy crate to Crates.io
         run: cargo publish --allow-dirty
-        if: ${{ github.event_name == 'schedule' || github.event.inputs.isDeploy == 'true' }}
+        if: ${{ github.event.inputs.isDeploy == 'true' }}
         working-directory: tools/rust_api
 
       - name: Test publishing crate
         run: cargo publish --dry-run --allow-dirty
-        if: ${{ github.event_name != 'schedule' && github.event.inputs.isDeploy != 'true' }}
+        if: ${{ github.event.inputs.isDeploy != 'true' }}
         working-directory: tools/rust_api
 
       - name: Upload crate
