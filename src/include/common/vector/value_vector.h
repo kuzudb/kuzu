@@ -117,17 +117,17 @@ public:
             ->getOverflowBuffer();
     }
 
-    static void addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr);
-    static void addString(
+    KUZU_API static void addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr);
+    KUZU_API static void addString(
         ValueVector* vector, uint32_t vectorPos, const char* srcStr, uint64_t length);
-    static void addString(ValueVector* vector, uint32_t vectorPos, const std::string& srcStr);
+    KUZU_API static void addString(ValueVector* vector, uint32_t vectorPos, const std::string& srcStr);
     // Add empty string with space reserved for the provided size
     // Returned value can be modified to set the string contents
     static ku_string_t& reserveString(ValueVector* vector, uint32_t vectorPos, uint64_t length);
-    static void addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr);
-    static void addString(
+    KUZU_API static void addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr);
+    KUZU_API static void addString(
         ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length);
-    static void addString(
+    KUZU_API static void addString(
         kuzu::common::ValueVector* vector, ku_string_t& dstStr, const std::string& srcStr);
     static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
         InMemOverflowBuffer* rowOverflowBuffer);

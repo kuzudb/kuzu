@@ -1,27 +1,27 @@
 #include <iostream>
 
 #include "kuzu.hpp"
+
 using namespace kuzu::main;
 using namespace kuzu::common;
 
-static void play(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+static void pathUDF(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/ = nullptr) {
-    //
     auto nodesVec = parameters[0].get();
     auto nodesDataVec = ListVector::getDataVector(nodesVec);
     auto nameDataVecIdx = StructType::getFieldIdx(&nodesDataVec->dataType, "name");
-    auto nameDataVec = StructVector::getFieldVector(nodesDataVec, 2);
+    auto nameDataVec = StructVector::getFieldVector(nodesDataVec, nameDataVecIdx);
     for (auto i = 0u; i < nodesVec->state->selVector->selectedSize; ++i) {
         auto selectedPos = nodesVec->state->selVector->selectedPositions[i];
         auto entry = nodesVec->getValue<list_entry_t>(selectedPos);
         auto first = nameDataVec->getValue<ku_string_t>(entry.offset).getAsString();
         auto last = nameDataVec->getValue<ku_string_t>(entry.offset + entry.size - 1).getAsString();
-        auto a = 0;
+        StringVector::addString(&result, selectedPos, first + "," + last);
     }
 }
 
 int main() {
-    auto database = std::make_unique<Database>("/Users/xiyangfeng/Desktop/ku_play/testdb" /* fill db path */);
+    auto database = std::make_unique<Database>("" /* fill db path */);
     auto connection = std::make_unique<Connection>(database.get());
 
     connection->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));");
@@ -34,8 +34,14 @@ int main() {
     connection->query("MATCH (a:Person {name: 'Bob'}), (b:Person {name: 'Carol'}) CREATE (a)-[:Knows]->(b)");
 
     // Execute a simple query.
-    connection->createVectorizedFunction<ku_string_t, ku_list_t>("play", &play);
-    auto result = connection->query("MATCH p = (a:Person)-[:Knows*]->(b:Person) RETURN play(nodes(p))");
+    connection->createVectorizedFunction<ku_string_t, ku_list_t>("test", &pathUDF);
+    auto result = connection->query("MATCH p = (a:Person)-[:Knows*]->(b:Person) "
+                                    "RETURN properties(nodes(p), 'name') AS names, "
+                                    "test(nodes(p)) AS test");
     // Print query result.
     std::cout << result->toString();
+    // names|test
+    // [Bob,Carol]|Bob,Carol
+    // [Alice,Bob]|Alice,Bob
+    // [Alice,Bob,Carol]|Alice,Carol
 }
