@@ -1,5 +1,5 @@
 #pragma once
-
+#include "common/api.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -34,27 +34,27 @@ struct ku_string_t {
     void set(const std::string& value);
     void set(const char* value, uint64_t length);
     void set(const ku_string_t& value);
-    inline void setShortString(const char* value, uint64_t length) {
+    KUZU_API inline void setShortString(const char* value, uint64_t length) {
         this->len = length;
         memcpy(prefix, value, length);
     }
-    inline void setLongString(const char* value, uint64_t length) {
+    KUZU_API inline void setLongString(const char* value, uint64_t length) {
         this->len = length;
         memcpy(prefix, value, PREFIX_LENGTH);
         memcpy(reinterpret_cast<char*>(overflowPtr), value, length);
     }
-    inline void setShortString(const ku_string_t& value) {
+    KUZU_API inline void setShortString(const ku_string_t& value) {
         this->len = value.len;
         memcpy(prefix, value.prefix, value.len);
     }
-    inline void setLongString(const ku_string_t& value) {
+    KUZU_API inline void setLongString(const ku_string_t& value) {
         this->len = value.len;
         memcpy(prefix, value.prefix, PREFIX_LENGTH);
         memcpy(reinterpret_cast<char*>(overflowPtr), reinterpret_cast<char*>(value.overflowPtr),
             value.len);
     }
 
-    void setFromRawStr(const char* value, uint64_t length) {
+    KUZU_API void setFromRawStr(const char* value, uint64_t length) {
         this->len = length;
         if (isShortString(length)) {
             setShortString(value, length);
@@ -64,9 +64,9 @@ struct ku_string_t {
         }
     }
 
-    std::string getAsShortString() const;
-    std::string getAsString() const;
-    std::string_view getAsStringView() const;
+    KUZU_API std::string getAsShortString() const;
+    KUZU_API std::string getAsString() const;
+    KUZU_API std::string_view getAsStringView() const;
 
     bool operator==(const ku_string_t& rhs) const;
 
