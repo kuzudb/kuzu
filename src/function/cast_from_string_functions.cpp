@@ -161,16 +161,16 @@ void CastStringHelper::cast(const char* input, uint64_t len, blob_t& /*result*/,
 
 //---------------------- cast String to UUID ------------------------------ //
 template<>
-void CastString::operation(const ku_string_t& input, uuid_t& result, ValueVector* /*result_vector*/,
-    uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    result.value = uuid_t::fromString(input.getAsString());
+void CastString::operation(const ku_string_t& input, ku_uuid_t& result,
+    ValueVector* /*result_vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
+    result.value = UUID::fromString(input.getAsString());
 }
 
 // LCOV_EXCL_START
 template<>
-void CastStringHelper::cast(const char* input, uint64_t len, uuid_t& result,
+void CastStringHelper::cast(const char* input, uint64_t len, ku_uuid_t& result,
     ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    result.value = uuid_t::fromCString(input, len);
+    result.value = UUID::fromCString(input, len);
 }
 // LCOV_EXCL_STOP
 
@@ -886,7 +886,7 @@ void CastString::copyStringToVector(
         CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
     } break;
     case LogicalTypeID::UUID: {
-        uuid_t val;
+        ku_uuid_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val.value);
     } break;

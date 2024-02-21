@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 import datetime
 
@@ -28,7 +30,6 @@ def test_read(establish_connection):
     assert result.has_next()
     assert result.get_next() == [0]
     assert not result.has_next()
-
 
 def test_write(establish_connection):
     conn, _ = establish_connection
@@ -88,6 +89,11 @@ def test_write(establish_connection):
                 assert n['licenseValidInterval'] == expected_org['licenseValidInterval']
                 assert n['rating'] == expected_org['rating']
                 break
+
+    conn.execute('CREATE NODE TABLE uuid_table (id UUID, PRIMARY KEY(id));')
+    conn.execute('CREATE (:uuid_table {id: $1});', {'1': uuid.uuid5(uuid.NAMESPACE_DNS, 'kuzu')})
+    result = conn.execute('MATCH (n:uuid_table) RETURN n.id;')
+    assert result.get_next() == [uuid.uuid5(uuid.NAMESPACE_DNS, 'kuzu')]
 
 
 def test_error(establish_connection):

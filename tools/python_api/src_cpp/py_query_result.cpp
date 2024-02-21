@@ -192,7 +192,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::UUID: {
         kuzu::common::int128_t result = value.getValue<kuzu::common::int128_t>();
-        std::string uuidString = kuzu::common::uuid_t::toString(result);
+        std::string uuidString = kuzu::common::UUID::toString(result);
         py::object UUID = py::module_::import("uuid").attr("UUID");
         return UUID(uuidString);
     }

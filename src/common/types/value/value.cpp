@@ -181,7 +181,7 @@ Value::Value(int128_t val_) : isNull_{false} {
     val.int128Val = val_;
 }
 
-Value::Value(uuid_t val_) : isNull_{false} {
+Value::Value(ku_uuid_t val_) : isNull_{false} {
     dataType = LogicalType::UUID();
     val.int128Val = val_.value;
 }
@@ -323,8 +323,8 @@ void Value::copyValueFrom(const uint8_t* value) {
         strVal = ((blob_t*)value)->value.getAsString();
     } break;
     case LogicalTypeID::UUID: {
-        val.int128Val = ((uuid_t*)value)->value;
-        strVal = uuid_t::toString(val.int128Val);
+        val.int128Val = ((ku_uuid_t*)value)->value;
+        strVal = UUID::toString(*((ku_uuid_t*)value));
     } break;
     case LogicalTypeID::STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
@@ -472,7 +472,7 @@ std::string Value::toString() const {
     case LogicalTypeID::BLOB:
         return Blob::toString(reinterpret_cast<const uint8_t*>(strVal.c_str()), strVal.length());
     case LogicalTypeID::UUID:
-        return uuid_t::toString(val.int128Val);
+        return UUID::toString(val.int128Val);
     case LogicalTypeID::STRING:
         return strVal;
     case LogicalTypeID::RDF_VARIANT: {

@@ -16,8 +16,6 @@ namespace kuzu {
 namespace common {
 
 class ValueVector;
-struct blob_t;
-struct uuid_t;
 
 template<class... Funcs>
 struct overload : Funcs... {
@@ -178,7 +176,7 @@ public:
         case LogicalTypeID::BLOB:
             return func(blob_t());
         case LogicalTypeID::UUID:
-            return func(uuid_t());
+            return func(ku_uuid_t());
         case LogicalTypeID::VAR_LIST:
             return func(list_entry_t());
         case LogicalTypeID::MAP:
@@ -276,7 +274,7 @@ std::string TypeUtils::toString(const ku_string_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const blob_t& val, void* valueVector);
 template<>
-std::string TypeUtils::toString(const uuid_t& val, void* valueVector);
+std::string TypeUtils::toString(const ku_uuid_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const list_entry_t& val, void* valueVector);
 template<>
