@@ -191,6 +191,8 @@ struct UDF {
             return common::LogicalTypeID::DOUBLE;
         } else if (std::is_same<T, common::ku_string_t>()) {
             return common::LogicalTypeID::STRING;
+        } else if (std::is_same<T, common::ku_list_t>()) {
+            return common::LogicalTypeID::VAR_LIST;
         } else {
             KU_UNREACHABLE;
         }
