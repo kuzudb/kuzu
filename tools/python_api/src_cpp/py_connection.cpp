@@ -7,6 +7,7 @@
 #include "main/connection.h"
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
+#include "common/types/uuid.h"
 
 using namespace kuzu::common;
 
@@ -179,6 +180,7 @@ Value transformPythonValue(py::handle val) {
     auto datetime_datetime = datetime_mod.attr("datetime");
     auto time_delta = datetime_mod.attr("timedelta");
     auto datetime_date = datetime_mod.attr("date");
+    auto uuid = py::module::import("uuid").attr("UUID");
     if (py::isinstance<py::bool_>(val)) {
         return Value::createValue<bool>(val.cast<bool>());
     } else if (py::isinstance<py::int_>(val)) {
@@ -215,6 +217,12 @@ Value transformPythonValue(py::handle val) {
         Interval::addition(interval, seconds, "seconds");
         Interval::addition(interval, microseconds, "microseconds");
         return Value::createValue<interval_t>(interval);
+    } else if (py::isinstance(val, uuid)) {
+        auto strVal = py::str(val).cast<std::string>();
+        auto uuidVal = UUID::fromString(strVal);
+        ku_uuid_t uuidToAppend;
+        uuidToAppend.value = uuidVal;
+        return Value{uuidToAppend};
     } else {
         throw std::runtime_error(
             "Unknown parameter type " + py::str(val.get_type()).cast<std::string>());

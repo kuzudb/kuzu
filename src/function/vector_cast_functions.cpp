@@ -208,8 +208,8 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
             ScalarFunction::UnaryCastStringExecFunction<ku_string_t, blob_t, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::UUID: {
-        execFunc =
-            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uuid_t, CastString, EXECUTOR>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, ku_uuid_t, CastString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::STRING: {
         execFunc =
@@ -456,7 +456,8 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
         func = ScalarFunction::UnaryCastExecFunction<blob_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::UUID: {
-        func = ScalarFunction::UnaryCastExecFunction<uuid_t, ku_string_t, CastToString, EXECUTOR>;
+        func =
+            ScalarFunction::UnaryCastExecFunction<ku_uuid_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::VAR_LIST: {
         func = ScalarFunction::UnaryCastExecFunction<list_entry_t, ku_string_t, CastToString,

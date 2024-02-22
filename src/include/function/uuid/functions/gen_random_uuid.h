@@ -9,7 +9,7 @@ class ClientContext;
 }
 
 namespace common {
-struct uuid_t;
+struct ku_uuid_t;
 } // namespace common
 
 namespace function {
@@ -17,10 +17,10 @@ namespace function {
 struct GenRandomUUID {
     static inline void operation(common::ValueVector& result, void* dataPtr) {
         KU_ASSERT(result.state->isFlat());
-        auto resultValues = (common::uuid_t*)result.getData();
+        auto resultValues = (common::ku_uuid_t*)result.getData();
         auto idx = result.state->selVector->selectedPositions[0];
         KU_ASSERT(idx == 0);
-        resultValues[idx] = common::uuid_t::generateRandomUUID(
+        resultValues[idx] = common::UUID::generateRandomUUID(
             reinterpret_cast<main::ClientContext*>(dataPtr)->getRandomEngine());
     }
 };
