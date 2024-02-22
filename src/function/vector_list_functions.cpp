@@ -14,6 +14,7 @@
 #include "function/list/functions/list_prepend_function.h"
 #include "function/list/functions/list_product_function.h"
 #include "function/list/functions/list_range_function.h"
+#include "function/list/functions/list_reverse_function.h"
 #include "function/list/functions/list_reverse_sort_function.h"
 #include "function/list/functions/list_slice_function.h"
 #include "function/list/functions/list_sort_function.h"
@@ -893,6 +894,23 @@ std::unique_ptr<FunctionBindData> ListAnyValueFunction::bindFunc(
     }
     }
     return std::make_unique<FunctionBindData>(resultType->copy());
+}
+
+static std::unique_ptr<FunctionBindData> ListReverseBindFunc(
+    const binder::expression_vector& arguments, Function* function) {
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
+    auto resultType = arguments[0]->dataType;
+    scalarFunction->execFunc =
+        ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, ListReverse>;
+    return std::make_unique<FunctionBindData>(resultType.copy());
+}
+
+function_set ListReverseFunction::getFunctionSet() {
+    function_set result;
+    result.push_back(std::make_unique<ScalarFunction>(LIST_REVERSE_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::ANY, nullptr, nullptr,
+        ListReverseBindFunc, false /* isVarlength*/));
+    return result;
 }
 
 } // namespace function

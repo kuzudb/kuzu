@@ -315,5 +315,9 @@ struct ListAnyValueFunction {
         const binder::expression_vector& arguments, Function* function);
 };
 
+struct ListReverseFunction {
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

@@ -78,6 +78,7 @@ const char* const LIST_REVERSE_SORT_FUNC_NAME = "LIST_REVERSE_SORT";
 const char* const LIST_DISTINCT_FUNC_NAME = "LIST_DISTINCT";
 const char* const LIST_UNIQUE_FUNC_NAME = "LIST_UNIQUE";
 const char* const LIST_ANY_VALUE_FUNC_NAME = "LIST_ANY_VALUE";
+const char* const LIST_REVERSE_FUNC_NAME = "LIST_REVERSE";
 
 // struct
 const char* const STRUCT_PACK_FUNC_NAME = "STRUCT_PACK";
