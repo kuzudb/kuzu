@@ -87,7 +87,7 @@ void transformPythonValue(common::ValueVector* outputVector, uint64_t pos, py::h
         auto seconds = PyDateTime_DATE_GET_SECOND(ele.ptr());
         auto microseconds = PyDateTime_DATE_GET_MICROSECOND(ele.ptr());
         auto date = common::Date::fromDate(years, month, day);
-        auto time = common::Time::FromTime(hours, minutes, seconds, microseconds);
+        auto time = common::Time::fromTime(hours, minutes, seconds, microseconds);
         outputVector->setValue(pos, common::Timestamp::fromDateTime(date, time));
     } break;
     case PythonObjectType::Date: {

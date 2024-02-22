@@ -1,0 +1,181 @@
+-GROUP IntervalTests
+-DATASET CSV empty
+
+--
+
+-CASE DifferentTypesCheck
+-STATEMENT RETURN INTERVAL("3 millisecond");
+---- 1
+00:00:00.003
+
+-STATEMENT RETURN INTERVAL("3 microsecond");
+---- 1
+00:00:00.000003
+
+-STATEMENT RETURN INTERVAL("3 week");
+---- 1
+21 days
+
+-STATEMENT RETURN INTERVAL("3 quarter");
+---- 1
+9 months
+
+-STATEMENT RETURN INTERVAL("3 decade");
+---- 1
+30 years
+
+-STATEMENT RETURN INTERVAL("3 century");
+---- 1
+300 years
+
+-STATEMENT RETURN INTERVAL("3 millennium");
+---- 1
+3000 years
+
+
+-CASE FractionalCheck
+-STATEMENT RETURN INTERVAL("1.5 microsecond");
+---- 1
+00:00:00.000002
+
+-STATEMENT RETURN INTERVAL("1.5 millisecond");
+---- 1
+00:00:00.0015
+
+-STATEMENT RETURN INTERVAL("1.5 second");
+---- 1
+00:00:01.5
+
+-STATEMENT RETURN INTERVAL("1.5 minute");
+---- 1
+00:01:30
+
+-STATEMENT RETURN INTERVAL("1.5 hour");
+---- 1
+01:30:00
+
+-STATEMENT RETURN INTERVAL("1.5 day");
+---- 1
+1 day 12:00:00
+
+-STATEMENT RETURN INTERVAL("1.5 week");
+---- 1
+10 days 12:00:00
+
+-STATEMENT RETURN INTERVAL("1.5 month");
+---- 1
+1 month 15 days
+
+-STATEMENT RETURN INTERVAL("1.5 quarter");
+---- 1
+4 months 15 days
+
+-STATEMENT RETURN INTERVAL("1.5 year");
+---- 1
+1 year 6 months
+
+-STATEMENT RETURN INTERVAL("1.5 decade");
+---- 1
+15 years
+
+-STATEMENT RETURN INTERVAL("1.5 century");
+---- 1
+150 years
+
+-STATEMENT RETURN INTERVAL("1.5 millennium");
+---- 1
+1500 years
+
+
+-CASE BasicUsageCheck
+-STATEMENT RETURN INTERVAL("05:12:34.567890");
+---- 1
+05:12:34.56789
+
+-STATEMENT RETURN INTERVAL("35:10:00");
+---- 1
+35:10:00
+
+-STATEMENT RETURN INTERVAL("876:54:32.101234");
+---- 1
+876:54:32.101234
+
+-STATEMENT RETURN INTERVAL("999999999:54:32.101234");
+---- 1
+999999999:54:32.101234
+
+-STATEMENT RETURN INTERVAL("9999999999:54:32.101234");
+---- error
+Conversion exception: Error occurred during parsing time. Given: "9999999999:54:32.101234".
+
+-STATEMENT RETURN INTERVAL("");
+---- error
+Conversion exception: Error occurred during parsing interval. Given empty string.
+
+-STATEMENT RETURN INTERVAL(" ");
+---- error
+Conversion exception: Error occurred during parsing interval. Given: " ".
+
+-STATEMENT RETURN INTERVAL("years");
+---- error
+Conversion exception: Error occurred during parsing interval. Given: "years".
+
+-STATEMENT RETURN INTERVAL("100000000000000000year");
+---- error
+Overflow exception: Value 1200000000000000000 is not within INT32 range
+
+-STATEMENT RETURN INTERVAL("4294967296months");
+---- error
+Overflow exception: Value 4294967296 is not within INT32 range
+
+-STATEMENT RETURN INTERVAL("1294967296months");
+---- 1
+107913941 years 4 months
+
+-STATEMENT RETURN INTERVAL("100000000000000000days");
+---- error
+Overflow exception: Value 100000000000000000 is not within INT32 range
+
+-STATEMENT RETURN INTERVAL("100000000000000000000msecs");
+---- error
+Conversion exception: Cast failed. Could not convert "100000000000000000000" to INT64.
+
+-STATEMENT RETURN INTERVAL("100000000000000000hours");
+---- error
+Overflow exception: Interval value is out of range
+
+-STATEMENT RETURN INTERVAL("2562047788 hours");
+---- 1
+2562047788:00:00
+
+-STATEMENT RETURN INTERVAL("12");
+---- error
+Conversion exception: Error occurred during parsing interval. Field name is missing.
+
+-STATEMENT RETURN INTERVAL("12 13");
+---- error
+Conversion exception: Unrecognized interval specifier string: 13.
+
+-STATEMENT RETURN INTERVAL("2147483647 months 1 months");
+---- error
+Overflow exception: Interval value is out of range
+
+-STATEMENT RETURN INTERVAL("2147483647 days 0.1 months");
+---- error
+Overflow exception: Interval fraction is out of range
+
+-STATEMENT RETURN INTERVAL("1 month") <= INTERVAL("30 days");
+---- 1
+True
+
+-STATEMENT RETURN INTERVAL("1 year") <> INTERVAL("12 months");
+---- 1
+False
+
+-STATEMENT RETURN INTERVAL("1 year 12:00:00  ");
+---- 1
+1 year 12:00:00
+
+-STATEMENT RETURN INTERVAL("1 year 12:00:00 abcd");
+---- error
+Conversion exception: Error occurred during parsing time. Given: "12:00:00 abcd".

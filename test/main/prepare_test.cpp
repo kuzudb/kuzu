@@ -68,7 +68,7 @@ TEST_F(ApiTest, PrepareTimestamp) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.registerTime = $n RETURN COUNT(*)");
     auto date = Date::fromDate(2011, 8, 20);
-    auto time = Time::FromTime(11, 25, 30);
+    auto time = Time::fromTime(11, 25, 30);
     auto result = conn->execute(preparedStatement.get(),
         std::make_pair(std::string("n"), Timestamp::fromDateTime(date, time)));
     ASSERT_TRUE(result->hasNext());
