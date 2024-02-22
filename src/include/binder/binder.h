@@ -35,6 +35,7 @@ struct BoundDeleteInfo;
 class BoundWithClause;
 class BoundReturnClause;
 struct BoundFileScanInfo;
+struct ExportedTableData;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
@@ -94,6 +95,8 @@ public:
 
     static std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
+    ExportedTableData extractExportData(std::string selQuery, std::string tableName);
+
 private:
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);
@@ -127,19 +130,22 @@ private:
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
+        std::unique_ptr<common::ReaderConfig> config,
+        catalog::NodeTableCatalogEntry* nodeTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
+        std::unique_ptr<common::ReaderConfig> config, catalog::RelTableCatalogEntry* relTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRdfFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
-    void bindExpectedNodeColumns(catalog::TableSchema* tableSchema,
+        std::unique_ptr<common::ReaderConfig> config, catalog::RDFGraphCatalogEntry* rdfGraphEntry);
+    void bindExpectedNodeColumns(catalog::NodeTableCatalogEntry* nodeTableEntry,
         const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
         std::vector<common::LogicalType>& columnTypes);
-    void bindExpectedRelColumns(catalog::TableSchema* tableSchema,
+    void bindExpectedRelColumns(catalog::RelTableCatalogEntry* relTableEntry,
         const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
         std::vector<common::LogicalType>& columnTypes);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
+
+    std::unique_ptr<BoundStatement> bindExportDatabaseClause(const parser::Statement& statement);
 
     /*** bind file scan ***/
     std::unordered_map<std::string, common::Value> bindParsingOptions(

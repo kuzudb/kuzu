@@ -81,12 +81,6 @@ char* kuzu_query_result_to_string(kuzu_query_result* query_result) {
         static_cast<QueryResult*>(query_result->_query_result)->toString());
 }
 
-void kuzu_query_result_write_to_csv(kuzu_query_result* query_result, const char* file_path,
-    char delimiter, char escape_char, char new_line) {
-    static_cast<QueryResult*>(query_result->_query_result)
-        ->writeToCSV(file_path, delimiter, escape_char, new_line);
-}
-
 void kuzu_query_result_reset_iterator(kuzu_query_result* query_result) {
     static_cast<QueryResult*>(query_result->_query_result)->resetIterator();
 }

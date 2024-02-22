@@ -47,12 +47,12 @@ void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
 }
 
 void NodesStoreStatsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(
-    catalog::NodeTableSchema* tableSchema) {
+    catalog::NodeTableCatalogEntry* nodeTableEntry) {
     initTableStatisticsForWriteTrx();
     KU_ASSERT(readWriteVersion);
     setToUpdated();
-    readWriteVersion->tableStatisticPerTable[tableSchema->tableID] =
-        constructTableStatistic(tableSchema);
+    readWriteVersion->tableStatisticPerTable[nodeTableEntry->getTableID()] =
+        constructTableStatistic(nodeTableEntry);
 }
 
 void NodesStoreStatsAndDeletedIDs::addMetadataDAHInfo(

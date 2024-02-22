@@ -55,8 +55,8 @@ public:
 
 private:
     void loadTables(bool readOnly, const catalog::Catalog& catalog);
-    void createNodeTable(common::table_id_t tableID, catalog::TableSchema* tableSchema);
-    void createRelTable(common::table_id_t tableID, catalog::TableSchema* tableSchema,
+    void createNodeTable(common::table_id_t tableID, catalog::NodeTableCatalogEntry* tableSchema);
+    void createRelTable(common::table_id_t tableID, catalog::RelTableCatalogEntry* tableSchema,
         catalog::Catalog* catalog, transaction::Transaction* transaction);
 
 private:

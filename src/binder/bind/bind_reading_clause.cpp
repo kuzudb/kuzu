@@ -6,7 +6,7 @@
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
-#include "function/table_functions/bind_input.h"
+#include "function/table/bind_input.h"
 #include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
@@ -126,13 +126,12 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     for (auto& val : inputValues) {
         inputTypes.push_back(*val.getDataType());
     }
-    auto func = catalog.getBuiltInFunctions(clientContext->getTx())
-                    ->matchFunction(functionExpr->getFunctionName(), inputTypes);
+    auto func = BuiltInFunctionsUtils::matchFunction(
+        functionExpr->getFunctionName(), inputTypes, catalog.getFunctions(clientContext->getTx()));
     auto tableFunc = ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
     auto bindInput = std::make_unique<function::TableFuncBindInput>();
     bindInput->inputs = std::move(inputValues);
-    auto bindData =
-        tableFunc->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
+    auto bindData = tableFunc->bindFunc(clientContext, bindInput.get());
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
@@ -157,9 +156,9 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         auto objectExpr = expressionBinder.bindVariableExpression(objectName);
         auto literalExpr =
             ku_dynamic_cast<const Expression*, const LiteralExpression*>(objectExpr.get());
-        auto func = catalog.getBuiltInFunctions(clientContext->getTx())
-                        ->matchFunction(READ_PANDAS_FUNC_NAME,
-                            std::vector<LogicalType>{objectExpr->getDataType()});
+        auto func = BuiltInFunctionsUtils::matchFunction(READ_PANDAS_FUNC_NAME,
+            std::vector<LogicalType>{objectExpr->getDataType()},
+            catalog.getFunctions(clientContext->getTx()));
         scanFunction = ku_dynamic_cast<Function*, TableFunction*>(func);
         bindInput = std::make_unique<function::TableFuncBindInput>();
         bindInput->inputs.push_back(*literalExpr->getValue());
@@ -194,8 +193,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         bindInput_->context = clientContext;
         bindInput = std::move(bindInput_);
     }
-    auto bindData =
-        scanFunction->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
+    auto bindData = scanFunction->bindFunc(clientContext, bindInput.get());
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));

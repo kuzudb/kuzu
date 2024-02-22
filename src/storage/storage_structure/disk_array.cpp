@@ -63,7 +63,7 @@ uint64_t BaseDiskArrayInternal::getNumElementsNoLock(TransactionType trxType) {
         [](DiskArrayHeader* diskArrayHeader) -> uint64_t { return diskArrayHeader->numElements; });
 }
 
-void BaseDiskArrayInternal::checkOutOfBoundAccess(TransactionType trxType, uint64_t idx) {
+bool BaseDiskArrayInternal::checkOutOfBoundAccess(TransactionType trxType, uint64_t idx) {
     auto currentNumElements = getNumElementsNoLock(trxType);
     if (idx >= currentNumElements) {
         // LCOV_EXCL_START
@@ -72,11 +72,12 @@ void BaseDiskArrayInternal::checkOutOfBoundAccess(TransactionType trxType, uint6
             currentNumElements));
         // LCOV_EXCL_STOP
     }
+    return true;
 }
 
 void BaseDiskArrayInternal::get(uint64_t idx, TransactionType trxType, std::span<uint8_t> val) {
     std::shared_lock sLck{diskArraySharedMtx};
-    checkOutOfBoundAccess(trxType, idx);
+    KU_ASSERT(checkOutOfBoundAccess(trxType, idx));
     auto apCursor = getAPIdxAndOffsetInAP(idx);
     page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, trxType);
     auto& bmFileHandle = (BMFileHandle&)fileHandle;
@@ -97,7 +98,7 @@ void BaseDiskArrayInternal::get(uint64_t idx, TransactionType trxType, std::span
 void BaseDiskArrayInternal::update(uint64_t idx, std::span<uint8_t> val) {
     std::unique_lock xLck{diskArraySharedMtx};
     hasTransactionalUpdates = true;
-    checkOutOfBoundAccess(TransactionType::WRITE, idx);
+    KU_ASSERT(checkOutOfBoundAccess(TransactionType::WRITE, idx));
     auto apCursor = getAPIdxAndOffsetInAP(idx);
     // TODO: We are currently supporting only DiskArrays that can grow in size and not
     // those that can shrink in size. That is why we can use

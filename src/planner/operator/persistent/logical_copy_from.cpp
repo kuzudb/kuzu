@@ -6,7 +6,7 @@ namespace kuzu {
 namespace planner {
 
 void LogicalCopyFrom::computeFactorizedSchema() {
-    switch (info.tableSchema->tableType) {
+    switch (info.tableEntry->getTableType()) {
     case TableType::RDF: {
         createEmptySchema();
     } break;
@@ -20,7 +20,7 @@ void LogicalCopyFrom::computeFactorizedSchema() {
 }
 
 void LogicalCopyFrom::computeFlatSchema() {
-    switch (info.tableSchema->tableType) {
+    switch (info.tableEntry->getTableType()) {
     case TableType::RDF: {
         createEmptySchema();
     } break;

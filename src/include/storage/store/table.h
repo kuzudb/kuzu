@@ -12,10 +12,10 @@ class LocalTable;
 
 class Table {
 public:
-    Table(catalog::TableSchema* tableSchema, TablesStatistics* tablesStatistics,
+    Table(catalog::TableCatalogEntry* tableEntry, TablesStatistics* tablesStatistics,
         MemoryManager* memoryManager, WAL* wal)
-        : tableType{tableSchema->tableType},
-          tablesStatistics{tablesStatistics}, tableID{tableSchema->tableID},
+        : tableType{tableEntry->getTableType()},
+          tablesStatistics{tablesStatistics}, tableID{tableEntry->getTableID()},
           memoryManager{memoryManager}, bufferManager{memoryManager->getBufferManager()}, wal{wal} {
     }
     virtual ~Table() = default;

@@ -1,6 +1,6 @@
 "use strict";
 
-const KuzuNative = require("./kuzujs.node");
+const KuzuNative = require("./kuzu_native.js");
 const QueryResult = require("./query_result.js");
 const PreparedStatement = require("./prepared_statement.js");
 

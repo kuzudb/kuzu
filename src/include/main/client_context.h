@@ -87,9 +87,8 @@ public:
     std::string getExtensionDir() const;
 
     KUZU_API Database* getDatabase() const { return database; }
-
+    storage::StorageManager* getStorageManager();
     storage::MemoryManager* getMemoryManager();
-
     catalog::Catalog* getCatalog();
 
     KUZU_API std::string getEnvVariable(const std::string& name);

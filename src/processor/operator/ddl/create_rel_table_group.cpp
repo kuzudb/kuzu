@@ -1,7 +1,7 @@
 #include "processor/operator/ddl/create_rel_table_group.h"
 
-#include "catalog/rel_table_group_schema.h"
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/string_format.h"
 #include "storage/storage_manager.h"
 
@@ -14,15 +14,16 @@ namespace processor {
 void CreateRelTableGroup::executeDDLInternal(ExecutionContext* context) {
     auto newRelTableGroupID = catalog->addRelTableGroupSchema(info);
     auto tx = context->clientContext->getTx();
-    auto newRelTableGroupSchema = ku_dynamic_cast<TableSchema*, RelTableGroupSchema*>(
-        catalog->getTableSchema(tx, newRelTableGroupID));
-    for (auto& relTableID : newRelTableGroupSchema->getRelTableIDs()) {
-        auto newRelTableSchema = catalog->getTableSchema(tx, relTableID);
-        storageManager->getRelsStatistics()->addTableStatistic((RelTableSchema*)newRelTableSchema);
+    auto newRelGroupEntry = ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(
+        catalog->getTableCatalogEntry(tx, newRelTableGroupID));
+    for (auto& relTableID : newRelGroupEntry->getRelTableIDs()) {
+        auto newRelTableEntry = catalog->getTableCatalogEntry(tx, relTableID);
+        storageManager->getRelsStatistics()->addTableStatistic(
+            ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(newRelTableEntry));
         storageManager->createTable(relTableID, catalog, tx);
     }
     // TODO(Ziyi): remove this when we can log variable size record. See also wal_record.h
-    for (auto relTableID : newRelTableGroupSchema->getRelTableIDs()) {
+    for (auto relTableID : newRelGroupEntry->getRelTableIDs()) {
         storageManager->getWAL()->logCreateRelTableRecord(relTableID);
     }
 }

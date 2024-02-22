@@ -1,0 +1,13 @@
+-GROUP TinySnbReadTest
+-DATASET CSV EMPTY
+
+--
+
+-CASE NullTest
+-STATEMENT RETURN NULL IS NULL
+---- 1
+True
+
+-STATEMENT RETURN NULL IS NOT NULL
+---- 1
+False

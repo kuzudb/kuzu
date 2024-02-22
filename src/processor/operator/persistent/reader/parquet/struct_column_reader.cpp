@@ -58,9 +58,7 @@ uint64_t StructColumnReader::read(uint64_t numValuesToRead, parquet_filter_t& fi
         }
     }
     for (auto i = 0u; i < numValuesRead; i++) {
-        if (define_out[i] < maxDefine) {
-            result->setNull(i, true);
-        }
+        result->setNull(i, define_out[i] < maxDefine);
     }
 
     return numValuesRead;

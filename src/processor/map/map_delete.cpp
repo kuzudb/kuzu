@@ -20,12 +20,13 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(Catalog* catalo
         std::unordered_map<table_id_t, std::unordered_set<RelTable*>> tableIDToFwdRelTablesMap;
         std::unordered_map<table_id_t, std::unordered_set<RelTable*>> tableIDToBwdRelTablesMap;
         for (auto tableID : info->node->getTableIDs()) {
-            auto tableSchema =
-                catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, tableID);
-            auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
+            auto tableEntry =
+                catalog->getTableCatalogEntry(&transaction::DUMMY_READ_TRANSACTION, tableID);
+            auto nodeTableEntry =
+                ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
             auto table = storageManager.getNodeTable(tableID);
-            auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
-            auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
+            auto fwdRelTableIDs = nodeTableEntry->getFwdRelTableIDSet();
+            auto bwdRelTableIDs = nodeTableEntry->getBwdRelTableIDSet();
             std::unordered_set<RelTable*> fwdRelTables;
             std::unordered_set<RelTable*> bwdRelTables;
             for (auto relTableID : fwdRelTableIDs) {
@@ -43,11 +44,12 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(Catalog* catalo
             info->deleteType, nodeIDPos);
     } else {
         auto table = storageManager.getNodeTable(info->node->getSingleTableID());
-        auto tableSchema = catalog->getTableSchema(
+        auto tableEntry = catalog->getTableCatalogEntry(
             &transaction::DUMMY_READ_TRANSACTION, info->node->getSingleTableID());
-        auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
-        auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
-        auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
+        auto nodeTableEntry =
+            ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
+        auto fwdRelTableIDs = nodeTableEntry->getFwdRelTableIDSet();
+        auto bwdRelTableIDs = nodeTableEntry->getBwdRelTableIDSet();
         std::unordered_set<RelTable*> fwdRelTables;
         std::unordered_set<RelTable*> bwdRelTables;
         for (auto tableID : fwdRelTableIDs) {

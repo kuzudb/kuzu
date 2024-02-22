@@ -4,7 +4,7 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
-#include "function/table_functions/scan_functions.h"
+#include "function/table/scan_functions.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::catalog;
@@ -25,8 +25,8 @@ void CopyNodeSharedState::init(ExecutionContext* context) {
         uint64_t numRows;
         if (readerSharedState != nullptr) {
             KU_ASSERT(distinctSharedState == nullptr);
-            auto scanSharedState =
-                reinterpret_cast<function::ScanSharedState*>(readerSharedState->sharedState.get());
+            auto scanSharedState = reinterpret_cast<function::BaseScanSharedState*>(
+                readerSharedState->funcState.get());
             numRows = scanSharedState->numRows;
         } else {
             numRows = distinctSharedState->getFactorizedTable()->getNumTuples();

@@ -1,6 +1,7 @@
 #include "embedded_shell.h"
 
 #ifndef _WIN32
+#include <termios.h>
 #include <unistd.h>
 #endif
 #include <algorithm>
@@ -11,10 +12,11 @@
 #include <sstream>
 
 #include "catalog/catalog.h"
-#include "common/string_utils.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "transaction/transaction.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::utf8proc;
@@ -55,9 +57,10 @@ const std::array<const char*, 103> keywordList = {"CALL", "CREATE", "DELETE", "D
     "CONSTRAINT", "DROP", "EXISTS", "INDEX", "NODE", "KEY", "UNIQUE", "INDEX", "JOIN", "PERIODIC",
     "COMMIT", "SCAN", "USING", "FALSE", "NULL", "TRUE", "ADD", "DO", "FOR", "MANDATORY", "OF",
     "REQUIRE", "SCALAR", "EXPLAIN", "PROFILE", "HEADERS", "FROM", "FIELDTERMINATOR", "STAR",
-    "MINUS", "COUNT", "PRIMARY", "COPY", "RDFGRAPH", "ALTER", "RENAME", "COMMENT", "MACRO",
-    "GLOB", "COLUMN", "GROUP", "DEFAULT", "TO", "BEGIN", "TRANSACTION", "READ", "ONLY", "WRITE",
-    "COMMIT_SKIP_CHECKPOINT", "ROLLBACK", "ROLLBACK_SKIP_CHECKPOINT", "INSTALL", "EXTENSION", "SHORTEST"};
+    "MINUS", "COUNT", "PRIMARY", "COPY", "RDFGRAPH", "ALTER", "RENAME", "COMMENT", "MACRO", "GLOB",
+    "COLUMN", "GROUP", "DEFAULT", "TO", "BEGIN", "TRANSACTION", "READ", "ONLY", "WRITE",
+    "COMMIT_SKIP_CHECKPOINT", "ROLLBACK", "ROLLBACK_SKIP_CHECKPOINT", "INSTALL", "EXTENSION",
+    "SHORTEST"};
 
 const char* keywordColorPrefix = "\033[32m\033[1m";
 const char* keywordResetPostfix = "\033[39m\033[22m";
@@ -75,14 +78,21 @@ const int defaultMaxRows = 20;
 
 static Connection* globalConnection;
 
+#ifndef _WIN32
+    struct termios orig_termios;
+    bool noEcho = false;
+#endif
+
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
-    for (auto& tableSchema : database->catalog->getNodeTableSchemas(&transaction::DUMMY_READ_TRANSACTION)) {
-        nodeTableNames.push_back(tableSchema->tableName);
+    for (auto& nodeTableEntry :
+        database->catalog->getNodeTableEntries(&transaction::DUMMY_READ_TRANSACTION)) {
+        nodeTableNames.push_back(nodeTableEntry->getName());
     }
-    for (auto& tableSchema : database->catalog->getRelTableSchemas(&transaction::DUMMY_READ_TRANSACTION)) {
-        relTableNames.push_back(tableSchema->tableName);
+    for (auto& relTableEntry :
+        database->catalog->getRelTableEntries(&transaction::DUMMY_READ_TRANSACTION)) {
+        relTableNames.push_back(relTableEntry->getName());
     }
 }
 
@@ -254,6 +264,25 @@ void EmbeddedShell::run() {
     std::stringstream ss;
     const char ctrl_c = '\3';
     int numCtrlC = 0;
+
+#ifndef _WIN32
+    struct termios raw;
+    if (isatty(STDIN_FILENO)) {
+        if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
+            errno = ENOTTY;
+            return;
+        }
+        raw = orig_termios;
+        raw.c_lflag &= ~ECHO;
+
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &raw) < 0) {
+            errno = ENOTTY;
+            return;
+        }
+        noEcho = true;
+    }
+#endif
+
     while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT)) != nullptr) {
         auto lineStr = std::string(line);
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
@@ -302,10 +331,20 @@ void EmbeddedShell::run() {
         linenoiseHistorySave(path_to_history);
         free(line);
     }
+#ifndef _WIN32
+    /* Don't even check the return value as it's too late. */
+    if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1)
+        noEcho = false;
+#endif
 }
 
 void EmbeddedShell::interruptHandler(int /*signal*/) {
     globalConnection->interrupt();
+#ifndef _WIN32
+    /* Don't even check the return value as it's too late. */
+    if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1)
+        noEcho = false;
+#endif
 }
 
 void EmbeddedShell::setMaxRows(const std::string& maxRowsString) {
@@ -325,7 +364,8 @@ void EmbeddedShell::setMaxWidth(const std::string& maxWidthString) {
     try {
         parsedMaxWidth = stoul(maxWidthString);
     } catch (std::exception& e) {
-        printf("Cannot parse '%s' as number of characters. Expect integer.\n", maxWidthString.c_str());
+        printf(
+            "Cannot parse '%s' as number of characters. Expect integer.\n", maxWidthString.c_str());
         return;
     }
     maxPrintWidth = parsedMaxWidth;
@@ -341,7 +381,8 @@ void EmbeddedShell::printHelp() {
     printf("%s%s [max_width] %sset maximum width in characters for display\n", TAB,
         shellCommand.MAXWIDTH, TAB);
     printf("\n");
-    printf("%sNote: you can change and see several system configurations, such as num-threads, \n", TAB);
+    printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
+        TAB);
     printf("%s%s  timeout, and logging_level using Cypher CALL statements.\n", TAB, TAB);
     printf("%s%s  e.g. CALL THREADS=5; or CALL current_setting('threads') return *;\n", TAB, TAB);
     printf("%s%s  See: https://kuzudb.com/docusaurus/cypher/configuration\n", TAB, TAB);
@@ -503,8 +544,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             for (auto i = 0; i < k; i++) {
                 printString += "| ";
                 printString += queryResult.getColumnNames()[i];
-                printString += std::string(
-                    colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ');
+                printString +=
+                    std::string(colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ');
             }
             if (j >= k) {
                 printString += "| ... ";
@@ -512,8 +553,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             for (auto i = j + 1; i < (int)colsWidth.size(); i++) {
                 printString += "| ";
                 printString += queryResult.getColumnNames()[i];
-                printString += std::string(
-                    colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ');
+                printString +=
+                    std::string(colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ');
             }
             printf("%s|\n", printString.c_str());
             printf("%s\n", lineSeparator.c_str());
@@ -545,7 +586,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 continue;
             }
             auto tuple = queryResult.getNext();
-            auto result =  tuple->toString(colsWidth, "|", maxWidth);
+            auto result = tuple->toString(colsWidth, "|", maxWidth);
             size_t startPos = 0;
             std::vector<std::string> colResults;
             for (auto i = 0u; i < colsWidth.size(); i++) {
@@ -566,7 +607,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             if (j >= k) {
                 printString += " ... |";
             }
-            for (auto i = j + 1; i < (int) colResults.size(); i++) {
+            for (auto i = j + 1; i < (int)colResults.size(); i++) {
                 printString += colResults[i] + "|";
             }
             printf("%s\n", printString.c_str());
@@ -587,7 +628,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         if (colsWidth.size() == 1) {
             printf("(1 column)\n");
         } else {
-            printf("(%" PRIu64 " columns", (uint64_t) colsWidth.size());
+            printf("(%" PRIu64 " columns", (uint64_t)colsWidth.size());
             if (colTruncated) {
                 printf(", %" PRIu64 " shown", colsPrinted);
             }

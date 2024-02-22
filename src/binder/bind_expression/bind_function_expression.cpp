@@ -53,13 +53,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const expression_vector& children, const std::string& functionName) {
-    auto builtInFunctions = binder->catalog.getBuiltInFunctions(binder->clientContext->getTx());
     std::vector<LogicalType> childrenTypes;
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
     }
     auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
-        builtInFunctions->matchFunction(functionName, childrenTypes));
+        function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes,
+            binder->catalog.getFunctions(binder->clientContext->getTx())));
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CAST_FUNC_NAME) {
@@ -98,7 +98,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     const ParsedExpression& parsedExpression, const std::string& functionName, bool isDistinct) {
-    auto builtInFunctions = binder->catalog.getBuiltInFunctions(binder->clientContext->getTx());
     std::vector<LogicalType> childrenTypes;
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
@@ -111,8 +110,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
     }
-    auto function =
-        builtInFunctions->matchAggregateFunction(functionName, childrenTypes, isDistinct)->clone();
+    auto function = function::BuiltInFunctionsUtils::matchAggregateFunction(functionName,
+        childrenTypes, isDistinct, binder->catalog.getFunctions(binder->clientContext->getTx()))
+                        ->clone();
     if (function->paramRewriteFunc) {
         function->paramRewriteFunc(children);
     }

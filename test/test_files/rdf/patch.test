@@ -34,10 +34,10 @@ X|RDFGraph|
 
 -STATEMENT RETURN dummy();
 ---- error
-Catalog exception: DUMMY function does not exist.
+Catalog exception: function DUMMY does not exist.
 -STATEMENT CALL show_tables('x') RETURN *;
 ---- error
-Binder exception: Cannot match a built-in function for given function SHOW_TABLES(STRING). Expect empty inputs.
+Binder exception: Cannot match a built-in function for given function show_tables(STRING). Expect empty inputs.
 -STATEMENT MATCH (a:X_lt) RETURN *;
 ---- error
 Binder exception: Cannot bind X_lt as a node pattern label.

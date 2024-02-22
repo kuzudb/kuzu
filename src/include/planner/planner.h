@@ -63,6 +63,9 @@ private:
     std::unique_ptr<LogicalPlan> planCopyRdfFrom(
         const binder::BoundCopyFromInfo* info, binder::expression_vector outExprs);
 
+    // Plan export database
+    std::unique_ptr<LogicalPlan> planExportDatabase(const binder::BoundStatement& statement);
+
     // Plan query.
     std::vector<std::unique_ptr<LogicalPlan>> planQuery(
         const binder::BoundStatement& boundStatement);

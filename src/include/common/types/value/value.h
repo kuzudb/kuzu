@@ -90,7 +90,7 @@ public:
     /**
      * @param val_ the UUID value to set.
      */
-    KUZU_API explicit Value(uuid_t val_);
+    KUZU_API explicit Value(ku_uuid_t val_);
     /**
      * @param val_ the double value to set.
      */
@@ -218,6 +218,7 @@ public:
     static Value createValue(T /*value*/) {
         throw std::runtime_error("Unimplemented template for Value::createValue()");
     }
+
     /**
      * @return a copy of the current value.
      */

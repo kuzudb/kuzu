@@ -54,11 +54,20 @@ public class KuzuNative {
             }
             Files.copy(lib_res.openStream(), lib_file, StandardCopyOption.REPLACE_EXISTING);
             new File(lib_file.toString()).deleteOnExit();
-            System.load(lib_file.toAbsolutePath().toString());
+            String lib_path = lib_file.toAbsolutePath().toString();
+            System.load(lib_path);
+            if(os_name.equals("linux")) {
+                kuzu_native_reload_library(lib_path);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    // Hack: Reload the native library again in JNI bindings to work around the 
+    // extension loading issue on Linux as System.load() does not set 
+    // `RTLD_GLOBAL` flag and there is no way to set it in Java.
+    protected static native void kuzu_native_reload_library(String lib_path);
 
     // Database
     protected static native long kuzu_database_init(String database_path, long buffer_pool_size, boolean enable_compression, boolean read_only);
@@ -124,9 +133,6 @@ public class KuzuNative {
     protected static native KuzuFlatTuple kuzu_query_result_get_next(KuzuQueryResult query_result);
 
     protected static native String kuzu_query_result_to_string(KuzuQueryResult query_result);
-
-    protected static native void kuzu_query_result_write_to_csv(KuzuQueryResult query_result,
-                                                                String file_path, char delimiter, char escape_char, char new_line);
 
     protected static native void kuzu_query_result_reset_iterator(KuzuQueryResult query_result);
 

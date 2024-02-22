@@ -68,29 +68,6 @@ class QueryResult:
         self.check_for_query_result_close()
         return self._query_result.getNext()
 
-    def write_to_csv(self, filename, delimiter=',', escape_character='"', newline='\n'):
-        """
-        Write the query result to a CSV file.
-
-        Parameters
-        ----------
-        filename : str
-            Name of the CSV file to write to.
-
-        delimiter : str
-            Delimiter to use in the CSV file. Defaults to ','.
-
-        escape_character : str
-            Escape character to use in the CSV file. Defaults to '"'.
-
-        newline : str
-            Newline character to use in the CSV file. Defaults to '\\n'.
-        """
-
-        self.check_for_query_result_close()
-        self._query_result.writeToCSV(
-            filename, delimiter, escape_character, newline)
-
     def close(self):
         """
         Close the query result.

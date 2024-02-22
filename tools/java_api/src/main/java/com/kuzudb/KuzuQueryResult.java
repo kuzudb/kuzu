@@ -139,20 +139,6 @@ public class KuzuQueryResult {
     }
 
     /**
-     * Write the query result to CSV file.
-     * @param filePath: The path of the CSV file.
-     * @param delimiter: The delimiter of the CSV file.
-     * @param escapeChar: The escape character of the CSV file.
-     * @param newLine: The new line character of the CSV file.
-     * @throws KuzuObjectRefDestroyedException If the query result has been destroyed.
-     *
-     */
-    public void writeToCsv(String filePath, char delimiter, char escapeChar, char newLine) throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        KuzuNative.kuzu_query_result_write_to_csv(this, filePath, delimiter, escapeChar, newLine);
-    }
-
-    /**
      * Reset the query result iterator.
      * @throws KuzuObjectRefDestroyedException If the query result has been destroyed.
      */

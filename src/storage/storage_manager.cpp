@@ -1,6 +1,6 @@
 #include "storage/storage_manager.h"
 
-#include "catalog/rdf_graph_schema.h"
+#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/wal_replayer.h"
 #include "storage/wal_replayer_utils.h"
@@ -32,73 +32,72 @@ StorageManager::StorageManager(bool readOnly, const Catalog& catalog, MemoryMana
     loadTables(readOnly, catalog);
 }
 
-static void setCommonTableIDToRdfRelTable(RelTable* relTable, std::vector<TableSchema*> schemas) {
-    for (auto schema : schemas) {
-        if (schema->isParent(relTable->getTableID())) {
-            auto rdfSchema = ku_dynamic_cast<TableSchema*, RdfGraphSchema*>(schema);
+static void setCommonTableIDToRdfRelTable(
+    RelTable* relTable, std::vector<RDFGraphCatalogEntry*> rdfEntries) {
+    for (auto rdfEntry : rdfEntries) {
+        if (rdfEntry->isParent(relTable->getTableID())) {
             std::vector<Column*> columns;
             columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(1));
             columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(1));
             for (auto& column : columns) {
                 ku_dynamic_cast<storage::Column*, storage::InternalIDColumn*>(column)
-                    ->setCommonTableID(rdfSchema->getResourceTableID());
+                    ->setCommonTableID(rdfEntry->getResourceTableID());
             }
         }
     }
 }
 
 void StorageManager::loadTables(bool readOnly, const Catalog& catalog) {
-    for (auto& schema : catalog.getNodeTableSchemas(&DUMMY_READ_TRANSACTION)) {
-        KU_ASSERT(!tables.contains(schema->tableID));
-        auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(schema);
-        tables[schema->tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
-            nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal, readOnly,
-            enableCompression, vfs);
+    for (auto& nodeTableEntry : catalog.getNodeTableEntries(&DUMMY_READ_TRANSACTION)) {
+        KU_ASSERT(!tables.contains(nodeTableEntry->getTableID()));
+        tables[nodeTableEntry->getTableID()] = std::make_unique<NodeTable>(dataFH.get(),
+            metadataFH.get(), nodeTableEntry, nodesStatisticsAndDeletedIDs.get(), &memoryManager,
+            wal, readOnly, enableCompression, vfs);
     }
-    auto rdfGraphSchemas = catalog.getRdfGraphSchemas(&DUMMY_READ_TRANSACTION);
-    for (auto schema : catalog.getRelTableSchemas(&DUMMY_READ_TRANSACTION)) {
-        KU_ASSERT(!tables.contains(schema->tableID));
-        auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(schema);
+    auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_READ_TRANSACTION);
+    for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_READ_TRANSACTION)) {
+        KU_ASSERT(!tables.contains(relTableEntry->getTableID()));
         auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
-            relsStatistics.get(), &memoryManager, relTableSchema, wal, enableCompression);
+            relsStatistics.get(), &memoryManager, relTableEntry, wal, enableCompression);
         setCommonTableIDToRdfRelTable(relTable.get(), rdfGraphSchemas);
-        tables[schema->tableID] = std::move(relTable);
+        tables[relTableEntry->getTableID()] = std::move(relTable);
     }
 }
 
-void StorageManager::createNodeTable(table_id_t tableID, TableSchema* tableSchema) {
-    auto nodeTableSchema = ku_dynamic_cast<TableSchema*, NodeTableSchema*>(tableSchema);
-    WALReplayerUtils::createEmptyHashIndexFiles(nodeTableSchema, wal->getDirectory(), vfs);
-    tables[tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(), nodeTableSchema,
+void StorageManager::createNodeTable(table_id_t tableID, NodeTableCatalogEntry* nodeTableEntry) {
+    WALReplayerUtils::createEmptyHashIndexFiles(nodeTableEntry, wal->getDirectory(), vfs);
+    tables[tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(), nodeTableEntry,
         nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal, false /* readOnly */,
         enableCompression, vfs);
 }
 
-void StorageManager::createRelTable(
-    table_id_t tableID, TableSchema* tableSchema, Catalog* catalog, Transaction* transaction) {
-    auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(tableSchema);
+void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* relTableEntry,
+    Catalog* catalog, Transaction* transaction) {
     auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(), relsStatistics.get(),
-        &memoryManager, relTableSchema, wal, enableCompression);
-    auto srcTableID = relTableSchema->getSrcTableID();
-    auto dstTableID = relTableSchema->getDstTableID();
+        &memoryManager, relTableEntry, wal, enableCompression);
+    auto srcTableID = relTableEntry->getSrcTableID();
+    auto dstTableID = relTableEntry->getDstTableID();
     auto srcTable = ku_dynamic_cast<Table*, NodeTable*>(tables[srcTableID].get());
     auto dstTable = ku_dynamic_cast<Table*, NodeTable*>(tables[dstTableID].get());
     auto srcPKMetadataDA = srcTable->getColumn(srcTable->getPKColumnID())->getMetadataDA();
     auto dstPKMetadataDA = dstTable->getColumn(dstTable->getPKColumnID())->getMetadataDA();
     relTable->initAdjColumnIfNecessary(
         transaction, srcTableID, dstTableID, srcPKMetadataDA, dstPKMetadataDA);
-    setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphSchemas(transaction));
+    setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphEntries(transaction));
     tables[tableID] = std::move(relTable);
 }
 
 void StorageManager::createTable(table_id_t tableID, Catalog* catalog, Transaction* transaction) {
-    auto tableSchema = catalog->getTableSchema(transaction, tableID);
-    switch (tableSchema->tableType) {
+    auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
+    switch (tableEntry->getTableType()) {
     case TableType::NODE: {
-        createNodeTable(tableID, tableSchema);
+        createNodeTable(
+            tableID, ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry));
     } break;
     case TableType::REL: {
-        createRelTable(tableID, tableSchema, catalog, transaction);
+        createRelTable(tableID,
+            ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(tableEntry), catalog,
+            transaction);
     } break;
     default: {
         KU_UNREACHABLE;

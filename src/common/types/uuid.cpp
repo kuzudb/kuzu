@@ -5,12 +5,12 @@
 namespace kuzu {
 namespace common {
 
-void uuid_t::byteToHex(char byteVal, char* buf, uint64_t& pos) {
+void UUID::byteToHex(char byteVal, char* buf, uint64_t& pos) {
     buf[pos++] = HEX_DIGITS[(byteVal >> 4) & 0xf];
     buf[pos++] = HEX_DIGITS[byteVal & 0xf];
 }
 
-unsigned char uuid_t::hex2Char(char ch) {
+unsigned char UUID::hex2Char(char ch) {
     if (ch >= '0' && ch <= '9') {
         return ch - '0';
     }
@@ -21,9 +21,13 @@ unsigned char uuid_t::hex2Char(char ch) {
         return 10 + ch - 'A';
     }
     return 0;
-};
+}
 
-bool uuid_t::fromString(std::string str, int128_t& result) {
+bool UUID::isHex(char ch) {
+    return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
+}
+
+bool UUID::fromString(std::string str, int128_t& result) {
     if (str.empty()) {
         return false;
     }
@@ -59,7 +63,17 @@ bool uuid_t::fromString(std::string str, int128_t& result) {
     return count == 32;
 }
 
-void uuid_t::toString(int128_t input, char* buf) {
+int128_t UUID::fromString(std::string str) {
+    int128_t result;
+    fromString(str, result);
+    return result;
+}
+
+int128_t UUID::fromCString(const char* str, uint64_t len) {
+    return fromString(std::string(str, len));
+}
+
+void UUID::toString(int128_t input, char* buf) {
     // Flip back before convert to string
     int64_t high = input.high ^ (int64_t(1) << 63);
     uint64_t pos = 0;
@@ -85,7 +99,17 @@ void uuid_t::toString(int128_t input, char* buf) {
     byteToHex(input.low & 0xFF, buf, pos);
 }
 
-uuid_t uuid_t::generateRandomUUID(RandomEngine* engine) {
+std::string UUID::toString(int128_t input) {
+    char buff[UUID_STRING_LENGTH];
+    toString(input, buff);
+    return std::string(buff, UUID_STRING_LENGTH);
+}
+
+std::string UUID::toString(ku_uuid_t val) {
+    return toString(val.value);
+}
+
+ku_uuid_t UUID::generateRandomUUID(RandomEngine* engine) {
     uint8_t bytes[16];
     for (int i = 0; i < 16; i += 4) {
         *reinterpret_cast<uint32_t*>(bytes + i) = engine->nextRandomInteger();
@@ -116,7 +140,7 @@ uuid_t uuid_t::generateRandomUUID(RandomEngine* engine) {
     result.low |= ((uint64_t)bytes[13] << 16);
     result.low |= ((uint64_t)bytes[14] << 8);
     result.low |= bytes[15];
-    return uuid_t{result};
+    return ku_uuid_t{result};
 }
 
 } // namespace common

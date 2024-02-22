@@ -232,8 +232,7 @@ False|-4325|14|18446744073709551616.000000|  dfsa
 {}|{}
 -STATEMENT RETURN cast(cast(cast("{=, {NULL=NULL, NULL=1.1, {}=NULL, {}=1.12}={1.23={a=10}}, {{0=0, 1=, 0=NULL, =}=1.232}={1.321={}}, {{1=1,2=2}=1.232, {3=3}=1.432}={1.321={a=0}, 2={b=1}}, =}", "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(MAP(INT32, UINT8), DOUBLE), MAP(FLOAT, MAP(STRING, INT128)))"), cast(cast("{=, {NULL=NULL, NULL=1.1, {}=NULL, {}=1.12}={1.23={a=10}}, {{0=0, 1=, 0=NULL, =}=1.232}={1.321={}}, {{1=1,2=2}=1.232, {3=3}=1.432}={1.321={a=0}, 2={b=1}}, =}", "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(STRING, INT16), MAP(INT128, STRING))");
 ---- 1
-{=, {=, =1.100000, {}=, {}=1.120000}={1.230000={a=10}}, {{0=0, 1=, 0=, =}=1.232000}={1.321000={}}, {{1=1, 2=2}=1.232000, {3=3}=1.432000}={1.321000={a=0}, 2.000000={b=1}}, =}|{=, {=, =1, {}=, {}=1}={1={a=10}}, {{0=0, 1=0, 0=0, 0=0}=1}={1={}}, {{1=1, 2=2}=1, {3=3}=1}={1={a=0}, 2={b=1}}, =}
-
+{=, {=, =1.100000, {}=, {}=1.120000}={1.230000={a=10}}, {{0=0, 1=, 0=, =}=1.232000}={1.321000={}}, {{1=1, 2=2}=1.232000, {3=3}=1.432000}={1.321000={a=0}, 2.000000={b=1}}, =}|{=, {=, =1, {}=, {}=1}={1={a=10}}, {{0=0, 1=, 0=, =}=1}={1={}}, {{1=1, 2=2}=1, {3=3}=1}={1={a=0}, 2={b=1}}, =}
 -LOG CastStructToStruct
 -STATEMENT RETURN cast(cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING, c STRING)"), "STRUCT(a INT128, b INT128, c INT128)"), "STRUCT(a INT64, b INT64, c INT64)"), cast(cast(cast("{a: 15}", "STRUCT(a STRING, b STRING)"), "STRUCT(a INT32, b INT32)"), "STRUCT(a INT16, b INT16)"), cast(cast(cast("{b: 15}", "STRUCT(a STRING, b STRING)"), "STRUCT(a INT8, b INT8)"), "STRUCT(a UINT16, b UINT16)"), cast(cast(cast("{}", "STRUCT(a STRING, b STRING)"), "STRUCT(a UINT32, b UINT32)"), "STRUCT(a UINT64, b UINT64)"), cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a DOUBLE, b DOUBLE)"), cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a FLOAT, b FLOAT)");
 ---- 1
@@ -255,9 +254,8 @@ False|-4325|14|18446744073709551616.000000|  dfsa
 -STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", DELIM="|", ESCAPE="~", QUOTE="'") RETURN cast(struct, "STRUCT(a STRUCT(b STRUCT(c INT128[])))"), cast(struct, "STRUCT(a STRUCT(b STRUCT(c DOUBLE[])))"), cast(struct, "STRUCT(a STRUCT(b STRUCT(c STRING)))"), cast(struct, "STRUCT(a STRUCT(b STRING))"), cast(struct, "STRUCT(a STRING)");
 ---- 3
 {a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423.000000,-43423.000000,31231.000000,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}
-{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: []}}}|{a: {b: {c: []}}}
-{a: {b: }}|{a: {b: }}|{a: {b: }}|{a: {b: }}|{a: {b: {c: []}}}
-
+{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}
+{a: {b: }}|{a: {b: }}|{a: {b: }}|{a: {b: }}|{a: {b: }}
 -LOG CastNestedToNestedType
 -STATEMENT RETURN cast(cast("{[123, 1432, 1142]={a: -1, b: 1, c: {1=1}}}", "MAP(INT64[], STRUCT(a INT8, b UINT8, c MAP(INT8, INT8)))"), "MAP(DOUBLE[], STRUCT(a FLOAT, b FLOAT, c MAP(DOUBLE, UINT8)))");
 ---- 1

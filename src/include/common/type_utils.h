@@ -15,8 +15,7 @@
 namespace kuzu {
 namespace common {
 
-struct blob_t;
-struct uuid_t;
+class ValueVector;
 
 template<class... Funcs>
 struct overload : Funcs... {
@@ -25,7 +24,6 @@ struct overload : Funcs... {
 };
 
 class TypeUtils {
-
 public:
     template<typename T>
     static inline std::string toString(const T& val, void* /*valueVector*/ = nullptr) {
@@ -36,6 +34,13 @@ public:
                       std::is_same<T, double>::value || std::is_same<T, float>::value);
         return std::to_string(val);
     }
+    // Fixed list does not have a physical class. So we cannot reuse above toString template.
+    // dummyVector is used to avoid clang-tidy check and should be removed once we unify
+    // Fixed-LIST in memory layout with VAR-LIST.
+    static std::string fixedListToString(
+        const uint8_t* val, const common::LogicalType& type, ValueVector* dummyVector);
+    static std::string nodeToString(const struct_entry_t& val, ValueVector* vector);
+    static std::string relToString(const struct_entry_t& val, ValueVector* vector);
 
     static inline void encodeOverflowPtr(
         uint64_t& overflowPtr, page_idx_t pageIdx, uint16_t pageOffset) {
@@ -48,9 +53,6 @@ public:
         memcpy(&pageIdx, &overflowPtr, 4);
         memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 4, 2);
     }
-
-    static std::string castValueToString(
-        const LogicalType& dataType, const uint8_t* value, void* vector);
 
     template<typename T>
     static inline constexpr common::PhysicalTypeID getPhysicalTypeIDForType() {
@@ -174,7 +176,7 @@ public:
         case LogicalTypeID::BLOB:
             return func(blob_t());
         case LogicalTypeID::UUID:
-            return func(uuid_t());
+            return func(ku_uuid_t());
         case LogicalTypeID::VAR_LIST:
             return func(list_entry_t());
         case LogicalTypeID::MAP:
@@ -272,7 +274,7 @@ std::string TypeUtils::toString(const ku_string_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const blob_t& val, void* valueVector);
 template<>
-std::string TypeUtils::toString(const uuid_t& val, void* valueVector);
+std::string TypeUtils::toString(const ku_uuid_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const list_entry_t& val, void* valueVector);
 template<>

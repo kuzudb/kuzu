@@ -30,7 +30,10 @@ struct TestStatement {
     std::optional<std::string> connName;
     bool reloadDBFlag = false;
     bool expectHash = false;
+    bool importDBFlag = false;
     std::string expectedHashValue;
+    // for export and import db
+    std::string importFilePath;
 };
 
 // Test group is a collection of test cases in a single file.

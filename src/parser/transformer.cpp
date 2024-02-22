@@ -42,6 +42,8 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformTransaction(*ctx.kU_Transaction());
     } else if (ctx.kU_Extension()) {
         return transformExtension(*ctx.kU_Extension());
+    } else if (ctx.kU_ExportDatabase()) {
+        return transformExportDatabase(*ctx.kU_ExportDatabase());
     } else {
         KU_UNREACHABLE;
     }

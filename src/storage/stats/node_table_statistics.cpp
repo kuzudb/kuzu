@@ -12,11 +12,11 @@ namespace kuzu {
 namespace storage {
 
 NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH,
-    const catalog::TableSchema& schema, BufferManager* bufferManager, WAL* wal)
-    : TableStatistics{schema}, tableID{schema.tableID} {
+    const catalog::TableCatalogEntry& entry, BufferManager* bufferManager, WAL* wal)
+    : TableStatistics{entry}, tableID{entry.getTableID()} {
     metadataDAHInfos.clear();
-    metadataDAHInfos.reserve(schema.getNumProperties());
-    for (auto& property : schema.getPropertiesRef()) {
+    metadataDAHInfos.reserve(entry.getNumProperties());
+    for (auto& property : entry.getPropertiesRef()) {
         metadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
             *property.getDataType(), *metadataFH, bufferManager, wal));
     }

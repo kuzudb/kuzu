@@ -1,11 +1,8 @@
 #include "storage/storage_structure/in_mem_file.h"
 
-#include <fcntl.h>
-
 #include "common/constants.h"
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
-#include "common/file_system/virtual_file_system.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
@@ -15,11 +12,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-InMemFile::InMemFile(
-    std::string filePath, common::VirtualFileSystem* vfs, std::atomic<page_idx_t>& pageCounter)
-    : filePath{std::move(filePath)}, nextPosToAppend(0, 0), pageCounter(pageCounter) {
-    fileInfo = vfs->openFile(this->filePath, O_CREAT | O_WRONLY);
-}
+InMemFile::InMemFile(std::shared_ptr<FileInfo> fileInfo, std::atomic<page_idx_t>& pageCounter)
+    : fileInfo{fileInfo}, nextPosToAppend(0, 0), pageCounter(pageCounter) {}
 
 void InMemFile::addANewPage() {
     page_idx_t newPageIdx = pageCounter.fetch_add(1);
@@ -122,9 +116,6 @@ bool InMemFile::equals(std::string_view keyToLookup, const ku_string_t& keyInEnt
 }
 
 void InMemFile::flush() {
-    if (filePath.empty()) {
-        throw CopyException("InMemPages: Empty filename");
-    }
     for (auto& [pageIndex, page] : pages) {
         // actual page index is stored inside of the InMemPage and does not correspond to the index
         // in the vector

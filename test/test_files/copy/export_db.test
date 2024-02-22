@@ -1,0 +1,78 @@
+-GROUP TinySnbExportDB
+-DATASET CSV demo-db/csv
+
+--
+
+-CASE ExportDatabaseDefault
+
+-STATEMENT create macro addWithDefault(a,b:=3) as a + b;
+---- ok
+-STATEMENT ALTER TABLE User ADD random MAP(STRING, INT64) DEFAULT map(['key1','key2'],[400,250])
+---- ok
+-STATEMENT MATCH (p:User) WHERE p.name = 'Adam' return p.random
+---- 1
+{key1=400, key2=250}
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db"
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}/demo-db"
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+---- ok
+-LOG ReturnAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+---- 1
+50
+-STATEMENT return addWithDefault(2);
+---- 1
+5
+
+-CASE ExportDatabaseWithCSVOption
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2" (format="csv", header=true)
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2"
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+---- ok
+-LOG ReturnAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+---- 1
+50
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db2" (format='csv', header=true)
+---- error
+Binder exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}/demo-db2 already exists.
+
+-CASE ExportDatabaseWithPARQUET
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db3" (format='parquet')
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}/demo-db3"
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+---- ok
+-LOG ReturnAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+---- 1
+50
+
+-CASE ExportDatabaseError
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db4" (format='TURTLE')
+---- error
+Binder exception: Unsupported file type: TURTLE.
+
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db4" (format='npy')
+---- error
+Binder exception: Export database currently only supports csv and parquet files.
+
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db4" (format=false)
+---- error
+Binder exception: The type of format option must be a string.
+
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db4" (format='PARQUET', header=true)
+---- error
+Binder exception: Only export to csv can have options.
+
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}/demo-db4" (header=true)
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}/demo-db4"
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+---- ok
+-LOG ReturnAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+---- 1
+50

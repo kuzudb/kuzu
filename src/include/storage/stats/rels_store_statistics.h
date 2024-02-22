@@ -56,8 +56,8 @@ public:
 
 protected:
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
-        catalog::TableSchema* tableSchema) override {
-        return std::make_unique<RelTableStats>(metadataFH, *tableSchema, bufferManager, wal);
+        catalog::TableCatalogEntry* tableEntry) override {
+        return std::make_unique<RelTableStats>(metadataFH, *tableEntry, bufferManager, wal);
     }
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(

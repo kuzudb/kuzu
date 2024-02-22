@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "common/assert.h"
 #include "common/constants.h"
@@ -27,28 +28,24 @@ private:
 class BitmaskUtils {
 
 public:
-    static inline uint64_t all1sMaskForLeastSignificantBits(uint64_t numBits) {
+    static uint64_t all1sMaskForLeastSignificantBits(uint64_t numBits) {
         KU_ASSERT(numBits <= 64);
         return numBits == 64 ? UINT64_MAX : ((uint64_t)1 << numBits) - 1;
     }
 };
 
-inline uint64_t nextPowerOfTwo(uint64_t v) {
-    v--;
-    v |= v >> 1;
-    v |= v >> 2;
-    v |= v >> 4;
-    v |= v >> 8;
-    v |= v >> 16;
-    v |= v >> 32;
-    v++;
-    return v;
-}
+uint64_t nextPowerOfTwo(uint64_t v);
 
-inline bool isLittleEndian() {
-    // Little endian arch stores the least significant value in the lower bytes.
-    int testNumber = 1;
-    return *(uint8_t*)&testNumber == 1;
+bool isLittleEndian();
+
+template<typename T>
+std::vector<T> copyVector(const std::vector<T>& objects) {
+    std::vector<T> result;
+    result.reserve(objects.size());
+    for (auto& object : objects) {
+        result.push_back(object->copy());
+    }
+    return result;
 }
 
 } // namespace common

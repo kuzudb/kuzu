@@ -1,6 +1,6 @@
 #include "storage/store/node_table.h"
 
-#include "catalog/node_table_schema.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "common/types/ku_string.h"
@@ -16,23 +16,23 @@ namespace kuzu {
 namespace storage {
 
 NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    catalog::NodeTableSchema* nodeTableSchema,
+    catalog::NodeTableCatalogEntry* nodeTableEntry,
     NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, MemoryManager* memoryManager,
     WAL* wal, bool readOnly, bool enableCompression, VirtualFileSystem* vfs)
-    : Table{nodeTableSchema, nodesStatisticsAndDeletedIDs, memoryManager, wal},
-      pkColumnID{nodeTableSchema->getColumnID(nodeTableSchema->getPrimaryKeyPropertyID())} {
+    : Table{nodeTableEntry, nodesStatisticsAndDeletedIDs, memoryManager, wal},
+      pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyPID())} {
     tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, tableID, bufferManager, wal,
-        nodeTableSchema->getPropertiesRef(), nodesStatisticsAndDeletedIDs, enableCompression);
-    initializePKIndex(nodeTableSchema, readOnly, vfs);
+        nodeTableEntry->getPropertiesRef(), nodesStatisticsAndDeletedIDs, enableCompression);
+    initializePKIndex(nodeTableEntry, readOnly, vfs);
 }
 
 void NodeTable::initializePKIndex(
-    NodeTableSchema* nodeTableSchema, bool readOnly, VirtualFileSystem* vfs) {
-    if (nodeTableSchema->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
+    catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly, VirtualFileSystem* vfs) {
+    if (nodeTableEntry->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
         LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(vfs, wal->getDirectory(), tableID), readOnly,
-            nodeTableSchema->getPrimaryKey()->getDataType()->getPhysicalType(), *bufferManager, wal,
+            nodeTableEntry->getPrimaryKey()->getDataType()->getPhysicalType(), *bufferManager, wal,
             vfs);
     }
 }

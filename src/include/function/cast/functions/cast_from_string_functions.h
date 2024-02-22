@@ -162,7 +162,7 @@ void CastString::operation(const ku_string_t& input, blob_t& result, ValueVector
     uint64_t rowToAdd, const CSVOption* option);
 
 template<>
-void CastString::operation(const ku_string_t& input, uuid_t& result, ValueVector* result_vector,
+void CastString::operation(const ku_string_t& input, ku_uuid_t& result, ValueVector* result_vector,
     uint64_t rowToAdd, const CSVOption* option);
 
 template<>

@@ -55,6 +55,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::EXTENSION: {
         boundStatement = bindExtension(statement);
     } break;
+    case StatementType::EXPORT_DATABASE: {
+        boundStatement = bindExportDatabaseClause(statement);
+    } break;
     default: {
         KU_UNREACHABLE;
     }
@@ -166,8 +169,9 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuer
 }
 
 void Binder::validateTableType(table_id_t tableID, TableType expectedTableType) {
-    if (catalog.getTableSchema(clientContext->getTx(), tableID)->tableType != expectedTableType) {
-        throw BinderException("aa");
+    if (catalog.getTableCatalogEntry(clientContext->getTx(), tableID)->getTableType() !=
+        expectedTableType) {
+        throw BinderException("Table type mismatch.");
     }
 }
 
@@ -205,19 +209,21 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
     auto stringType = LogicalType(LogicalTypeID::STRING);
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(stringType);
-    auto functions = catalog.getBuiltInFunctions(clientContext->getTx());
+    auto functions = catalog.getFunctions(clientContext->getTx());
     switch (fileType) {
     case FileType::PARQUET: {
-        func = functions->matchFunction(READ_PARQUET_FUNC_NAME, inputTypes);
+        func = function::BuiltInFunctionsUtils::matchFunction(
+            READ_PARQUET_FUNC_NAME, inputTypes, functions);
     } break;
     case FileType::NPY: {
-        func = functions->matchFunction(READ_NPY_FUNC_NAME, inputTypes);
+        func = function::BuiltInFunctionsUtils::matchFunction(
+            READ_NPY_FUNC_NAME, inputTypes, functions);
     } break;
     case FileType::CSV: {
         auto csvConfig = CSVReaderConfig::construct(config.options);
-        func = functions->matchFunction(
+        func = function::BuiltInFunctionsUtils::matchFunction(
             csvConfig.parallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
-            inputTypes);
+            inputTypes, functions);
     } break;
     default:
         KU_UNREACHABLE;

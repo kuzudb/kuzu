@@ -126,5 +126,25 @@ bool StringUtils::caseInsensitiveEquals(const std::string& left, const std::stri
     return true;
 }
 
+std::string StringUtils::join(const std::vector<std::string>& input, const std::string& separator) {
+    return StringUtils::join(
+        input, input.size(), separator, [](const std::string& s) { return s; });
+}
+
+template<typename C, typename S, typename Func>
+std::string StringUtils::join(const C& input, S count, const std::string& separator, Func f) {
+    std::string result;
+    // if the input isn't empty, append the first element. We do this so we
+    // don't need to introduce an if into the loop.
+    if (count > 0) {
+        result += f(input[0]);
+    }
+    // append the remaining input components, after the first
+    for (size_t i = 1; i < count; i++) {
+        result += separator + f(input[i]);
+    }
+    return result;
+}
+
 } // namespace common
 } // namespace kuzu
