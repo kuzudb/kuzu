@@ -872,6 +872,8 @@ void BuiltInFunctionsUtils::registerListFunctions(CatalogSet* catalogSet) {
         LIST_UNIQUE_FUNC_NAME, ListUniqueFunction::getFunctionSet()));
     catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
         LIST_ANY_VALUE_FUNC_NAME, ListAnyValueFunction::getFunctionSet()));
+    catalogSet->createEntry(std::make_unique<catalog::ScalarFunctionCatalogEntry>(
+        LIST_REVERSE_FUNC_NAME, ListReverseFunction::getFunctionSet()));
 }
 
 void BuiltInFunctionsUtils::registerStructFunctions(CatalogSet* catalogSet) {
