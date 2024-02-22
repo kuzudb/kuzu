@@ -4,13 +4,11 @@
 #include "common/data_chunk/data_chunk.h"
 #include "common/types/types.h"
 #include "function/scalar_function.h"
-#include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/scan_functions.h"
 #include "parquet/parquet_types.h"
 #include "resizable_buffer.h"
 #include "thrift/protocol/TCompactProtocol.h"
-#include "thrift_tools.h"
 
 namespace kuzu {
 namespace processor {
@@ -108,23 +106,6 @@ struct ParquetScanLocalState final : public function::TableFuncLocalState {
 
 struct ParquetScanFunction {
     static function::function_set getFunctionSet();
-
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
-
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(
-        main::ClientContext* /*context*/, function::TableFuncBindInput* input);
-
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
-
-    static std::unique_ptr<function::TableFuncLocalState> initLocalState(
-        function::TableFunctionInitInput& input, function::TableFuncSharedState* state,
-        storage::MemoryManager* /*mm*/);
-
-    static void bindColumns(const function::ScanTableFuncBindInput* bindInput,
-        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes);
-    static void bindColumns(const function::ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes);
 };
 
 } // namespace processor

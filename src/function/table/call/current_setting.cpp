@@ -21,20 +21,20 @@ struct CurrentSettingBindData final : public CallTableFuncBindData {
     }
 };
 
-static void tableFunc(TableFunctionInput& data, DataChunk& outChunk) {
+static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output) {
+    auto& dataChunk = output.dataChunk;
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(data.sharedState);
-    auto outputVector = outChunk.getValueVector(0);
+    auto outputVector = dataChunk.getValueVector(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
-        outChunk.state->selVector->selectedSize = 0;
-        return;
+        return 0;
     }
     auto currentSettingBindData =
         ku_dynamic_cast<TableFuncBindData*, CurrentSettingBindData*>(data.bindData);
-    auto pos = outChunk.state->selVector->selectedPositions[0];
+    auto pos = dataChunk.state->selVector->selectedPositions[0];
     outputVector->setValue(pos, currentSettingBindData->result);
     outputVector->setNull(pos, false);
-    outChunk.state->selVector->selectedSize = 1;
+    return 1;
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(

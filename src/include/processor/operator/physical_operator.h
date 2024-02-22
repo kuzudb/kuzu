@@ -29,7 +29,6 @@ enum class PhysicalOperatorType : uint8_t {
     DROP_TABLE,
     EMPTY_RESULT,
     EXPORT_DATABASE,
-    FACTORIZED_TABLE_SCAN,
     FILTER,
     FLATTEN,
     HASH_JOIN_BUILD,

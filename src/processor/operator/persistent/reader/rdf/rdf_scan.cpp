@@ -57,9 +57,10 @@ std::pair<uint64_t, uint64_t> RdfInMemScanSharedState::getRange(
     return {startIdx, numTuplesToScan};
 }
 
-static void scanTableFunc(TableFunctionInput& input, common::DataChunk& outputChunk) {
+static common::offset_t scanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState = reinterpret_cast<RdfScanSharedState*>(input.sharedState);
-    sharedState->read(outputChunk);
+    sharedState->read(output.dataChunk);
+    return output.dataChunk.state->selVector->selectedSize;
 }
 
 static std::unique_ptr<TableFuncSharedState> inMemScanInitSharedState(
@@ -145,9 +146,10 @@ function_set RdfLiteralTripleInMemScan::getFunctionSet() {
     return functionSet;
 }
 
-void RdfAllTripleScan::tableFunc(TableFunctionInput& input, DataChunk&) {
+offset_t RdfAllTripleScan::tableFunc(TableFuncInput& input, TableFuncOutput&) {
     auto sharedState = reinterpret_cast<RdfScanSharedState*>(input.sharedState);
     sharedState->readAll();
+    return 0;
 }
 
 std::unique_ptr<function::TableFuncBindData> RdfAllTripleScan::bindFunc(
@@ -158,10 +160,10 @@ std::unique_ptr<function::TableFuncBindData> RdfAllTripleScan::bindFunc(
         std::make_shared<TripleStore>());
 }
 
-void RdfResourceInMemScan::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+offset_t RdfResourceInMemScan::tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
-    auto sVector = outputChunk.getValueVector(0).get();
+    auto sVector = output.dataChunk.getValueVector(0).get();
     auto vectorPos = 0u;
     // Scan resource triples
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
@@ -173,22 +175,21 @@ void RdfResourceInMemScan::tableFunc(TableFunctionInput& input, DataChunk& outpu
             StringVector::addString(sVector, vectorPos++, store.ltStore.subjects[lStartIdx + i]);
             StringVector::addString(sVector, vectorPos++, store.ltStore.predicates[lStartIdx + i]);
         }
-        outputChunk.state->selVector->selectedSize = vectorPos;
-        return;
+        return vectorPos;
     }
     for (auto i = 0u; i < rNumTuplesToScan; ++i) {
         StringVector::addString(sVector, vectorPos++, store.rtStore.subjects[rStartIdx + i]);
         StringVector::addString(sVector, vectorPos++, store.rtStore.predicates[rStartIdx + i]);
         StringVector::addString(sVector, vectorPos++, store.rtStore.objects[rStartIdx + i]);
     }
-    outputChunk.state->selVector->selectedSize = vectorPos;
+    return vectorPos;
 }
 
-void RdfLiteralInMemScan::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+offset_t RdfLiteralInMemScan::tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
-    auto oVector = outputChunk.getValueVector(0).get();
-    auto langVector = outputChunk.getValueVector(1).get();
+    auto oVector = output.dataChunk.getValueVector(0).get();
+    auto langVector = output.dataChunk.getValueVector(1).get();
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
     auto [startIdx, numTuplesToScan] = sharedState->getLiteralTripleRange();
     for (auto i = 0u; i < numTuplesToScan; ++i) {
@@ -198,39 +199,39 @@ void RdfLiteralInMemScan::tableFunc(TableFunctionInput& input, DataChunk& output
         RdfUtils::addRdfLiteral(oVector, i, object, objectType);
         StringVector::addString(langVector, i, lang);
     }
-    outputChunk.state->selVector->selectedSize = numTuplesToScan;
+    return numTuplesToScan;
 }
 
-void RdfResourceTripleInMemScan::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+offset_t RdfResourceTripleInMemScan::tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
     auto [startIdx, numTuplesToScan] = sharedState->getResourceTripleRange();
-    auto sVector = outputChunk.getValueVector(0).get();
-    auto pVector = outputChunk.getValueVector(1).get();
-    auto oVector = outputChunk.getValueVector(2).get();
+    auto sVector = output.dataChunk.getValueVector(0).get();
+    auto pVector = output.dataChunk.getValueVector(1).get();
+    auto oVector = output.dataChunk.getValueVector(2).get();
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         StringVector::addString(sVector, i, store.rtStore.subjects[startIdx + i]);
         StringVector::addString(pVector, i, store.rtStore.predicates[startIdx + i]);
         StringVector::addString(oVector, i, store.rtStore.objects[startIdx + i]);
     }
-    outputChunk.state->selVector->selectedSize = numTuplesToScan;
+    return numTuplesToScan;
 }
 
-void RdfLiteralTripleInMemScan::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+offset_t RdfLiteralTripleInMemScan::tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
     auto [startIdx, numTuplesToScan] = sharedState->getLiteralTripleRange();
-    auto sVector = outputChunk.getValueVector(0).get();
-    auto pVector = outputChunk.getValueVector(1).get();
-    auto oVector = outputChunk.getValueVector(2).get();
+    auto sVector = output.dataChunk.getValueVector(0).get();
+    auto pVector = output.dataChunk.getValueVector(1).get();
+    auto oVector = output.dataChunk.getValueVector(2).get();
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         StringVector::addString(sVector, i, store.ltStore.subjects[startIdx + i]);
         StringVector::addString(pVector, i, store.ltStore.predicates[startIdx + i]);
         oVector->setValue(i, startIdx + i);
     }
-    outputChunk.state->selVector->selectedSize = numTuplesToScan;
+    return numTuplesToScan;
 }
 
 std::unique_ptr<TableFuncSharedState> RdfResourceScan::initSharedState(

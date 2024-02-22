@@ -20,13 +20,13 @@ struct ShowTablesBindData : public CallTableFuncBindData {
     }
 };
 
-static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk) {
+static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+    auto& dataChunk = output.dataChunk;
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState);
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
-        outputChunk.getValueVector(0)->state->selVector->selectedSize = 0;
-        return;
+        return 0;
     }
     auto tables =
         ku_dynamic_cast<function::TableFuncBindData*, function::ShowTablesBindData*>(input.bindData)
@@ -34,12 +34,12 @@ static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk)
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto tableEntry = tables[morsel.startOffset + i];
-        outputChunk.getValueVector(0)->setValue(i, tableEntry->getName());
+        dataChunk.getValueVector(0)->setValue(i, tableEntry->getName());
         std::string typeString = TableTypeUtils::toString(tableEntry->getTableType());
-        outputChunk.getValueVector(1)->setValue(i, typeString);
-        outputChunk.getValueVector(2)->setValue(i, tableEntry->getComment());
+        dataChunk.getValueVector(1)->setValue(i, typeString);
+        dataChunk.getValueVector(2)->setValue(i, tableEntry->getComment());
     }
-    outputChunk.state->selVector->selectedSize = numTablesToOutput;
+    return numTablesToOutput;
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(
