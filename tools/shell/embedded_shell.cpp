@@ -1,6 +1,7 @@
 #include "embedded_shell.h"
 
 #ifndef _WIN32
+#include <termios.h>
 #include <unistd.h>
 #endif
 #include <algorithm>
@@ -76,6 +77,11 @@ std::string currLine;
 const int defaultMaxRows = 20;
 
 static Connection* globalConnection;
+
+#ifndef _WIN32
+    struct termios orig_termios;
+    bool noEcho = false;
+#endif
 
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
@@ -258,6 +264,25 @@ void EmbeddedShell::run() {
     std::stringstream ss;
     const char ctrl_c = '\3';
     int numCtrlC = 0;
+
+#ifndef _WIN32
+    struct termios raw;
+    if (isatty(STDIN_FILENO)) {
+        if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
+            errno = ENOTTY;
+            return;
+        }
+        raw = orig_termios;
+        raw.c_lflag &= ~ECHO;
+
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &raw) < 0) {
+            errno = ENOTTY;
+            return;
+        }
+        noEcho = true;
+    }
+#endif
+
     while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT)) != nullptr) {
         auto lineStr = std::string(line);
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
@@ -306,10 +331,20 @@ void EmbeddedShell::run() {
         linenoiseHistorySave(path_to_history);
         free(line);
     }
+#ifndef _WIN32
+    /* Don't even check the return value as it's too late. */
+    if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1)
+        noEcho = false;
+#endif
 }
 
 void EmbeddedShell::interruptHandler(int /*signal*/) {
     globalConnection->interrupt();
+#ifndef _WIN32
+    /* Don't even check the return value as it's too late. */
+    if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1)
+        noEcho = false;
+#endif
 }
 
 void EmbeddedShell::setMaxRows(const std::string& maxRowsString) {

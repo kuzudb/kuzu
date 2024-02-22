@@ -235,6 +235,8 @@ struct linenoiseState {
     size_t maxrows;        /* Maximum num of rows used so far (multiline mode) */
     int history_index;     /* The history index we are currently editing. */
     bool search;           /* Whether or not we are searching our history */
+    bool render;           /* Whether or not to re-render */
+    bool hasMoreData;      /* Whether or not there is more data available in the buffer (copy+paste)*/
     std::string search_buf;                  //! The search buffer
     std::vector<searchMatch> search_matches; //! The set of search matches in our history
     std::string prev_search_match;           //! The previous search match
@@ -850,6 +852,10 @@ static void truncateText(char*& buf, size_t& len, size_t pos, size_t cols, size_
  * Rewrite the currently edited line accordingly to the buffer content,
  * cursor position, and number of columns of the terminal. */
 static void refreshSingleLine(struct linenoiseState* l) {
+    if (!l->render) {
+        return;
+    }
+
     char seq[64];
     uint32_t plen = linenoiseComputeRenderWidth(l->prompt, strlen(l->prompt));
     int fd = l->ofd;
@@ -1368,11 +1374,15 @@ bool pastedInput(int ifd) {
     int isPasted = select(0, &readfds, NULL, NULL, NULL);
     return (isPasted != 0 && isPasted != SOCKET_ERROR);
 #else
-    struct pollfd fd {
-        ifd, POLLIN, 0
-    };
-    int isPasted = poll(&fd, 1, 0);
-    return (isPasted != 0);
+    fd_set rfds;
+	FD_ZERO(&rfds);
+	FD_SET(ifd, &rfds);
+
+	// no timeout: return immediately
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+	return select(1, &rfds, NULL, NULL, &tv);
 #endif
 }
 
@@ -1534,27 +1544,21 @@ static char linenoiseSearch(linenoiseState *l, char c) {
  *
  * On error writing to the terminal -1 is returned, otherwise 0. */
 int linenoiseEditInsert(struct linenoiseState* l, char c) {
+    if (l->hasMoreData) {
+        l->render = false;
+    }
     if (l->len < l->buflen) {
         if (l->len == l->pos) {
             l->buf[l->pos] = c;
             l->pos++;
             l->len++;
             l->buf[l->len] = '\0';
-            if ((!mlmode && l->plen + l->len < l->cols && !hintsCallback)) {
-                /* Avoid a full update of the line in the
-                 * trivial case. */
-                if (write(l->ofd, &c, 1) == -1)
-                    return -1;
-            } else {
-                refreshLine(l);
-            }
         } else {
             memmove(l->buf + l->pos + 1, l->buf + l->pos, l->len - l->pos);
             l->buf[l->pos] = c;
             l->len++;
             l->pos++;
             l->buf[l->len] = '\0';
-            refreshLine(l);
         }
     }
     refreshLine(l);
@@ -1736,6 +1740,8 @@ static int linenoiseEdit(
     l.maxrows = 0;
     l.history_index = 0;
     l.search = false;
+    l.render = true;
+    l.hasMoreData = false;
 
     /* Buffer starts empty. */
     l.buf[0] = '\0';
@@ -1762,7 +1768,11 @@ static int linenoiseEdit(
         if (nread <= 0)
             return l.len;
 
-        l.cols = getColumns(stdin_fd, stdout_fd);
+        l.hasMoreData = pastedInput(l.ifd);
+        l.render = true;
+        if (!l.hasMoreData) {
+            l.cols = getColumns(stdin_fd, stdout_fd);
+        }
 
         if (l.search) {
             char ret = linenoiseSearch(&l, c);
@@ -1778,7 +1788,7 @@ static int linenoiseEdit(
          * there was an error reading from fd. Otherwise it will return the
          * character that should be handled next. */
         if (c == TAB && completionCallback != NULL) {
-            if (pastedInput(l.ifd)) {
+            if (l.hasMoreData) {
                 for (int i = 0; i < 4; i++) {
                     if (linenoiseEditInsert(&l, ' '))
                         return -1;
@@ -1793,6 +1803,7 @@ static int linenoiseEdit(
             if (c == 0)
                 continue;
         }
+        
         switch (c) {
         case CTRL_G:
         case CTRL_C: /* ctrl-c */
@@ -1827,6 +1838,8 @@ static int linenoiseEdit(
                 hintsCallback = NULL;
                 refreshLine(&l);
                 hintsCallback = hc;
+            } else {
+                refreshLine(&l);
             }
             return (int)l.len;
         case BACKSPACE: /* backspace */
@@ -2005,7 +2018,7 @@ static int linenoiseEdit(
         default:
             if (linenoiseEditInsert(&l, c))
                 return -1;
-            if (strlen(l.buf) > buflen - 2 && pastedInput(l.ifd)) {
+            if (strlen(l.buf) > buflen - 2 && l.hasMoreData) {
                 history_len--;
                 free(history[history_len]);
                 if (mlmode)
@@ -2017,6 +2030,8 @@ static int linenoiseEdit(
                     hintsCallback = NULL;
                     refreshLine(&l);
                     hintsCallback = hc;
+                } else {
+                    refreshLine(&l);
                 }
                 return (int)l.len;
             }
@@ -2319,7 +2334,7 @@ int linenoiseHistoryLoad(const char* filename) {
     buf[LINENOISE_MAX_LINE] = '\0';
 
     if (fp == NULL)
-        return -1;
+        return -1; 
 
     std::string result;
     while (fgets(buf, LINENOISE_MAX_LINE, fp) != NULL) {
