@@ -198,7 +198,7 @@ Value transformPythonValue(py::handle val) {
         auto second = PyDateTime_DATE_GET_SECOND(ptr);
         auto micros = PyDateTime_DATE_GET_MICROSECOND(ptr);
         auto date = Date::fromDate(year, month, day);
-        auto time = Time::FromTime(hour, minute, second, micros);
+        auto time = Time::fromTime(hour, minute, second, micros);
         return Value::createValue<timestamp_t>(Timestamp::fromDateTime(date, time));
     } else if (py::isinstance(val, datetime_date)) {
         auto ptr = val.ptr();

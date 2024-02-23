@@ -579,7 +579,7 @@ std::string getDateTimeHeader(const timestamp_t& timestamp) {
     auto time = Timestamp::getTime(timestamp);
     formatStr += "T";
     int32_t hours, minutes, seconds, micros;
-    Time::Convert(time, hours, minutes, seconds, micros);
+    Time::convert(time, hours, minutes, seconds, micros);
     if (hours < 10) {
         formatStr += "0";
     }

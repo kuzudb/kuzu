@@ -8,7 +8,7 @@ using namespace kuzu::common;
 TEST(TimestampTests, FromDatetime) {
     // day is out of range
     try {
-        Timestamp::fromDateTime(Date::fromDate(1968, 12, 42), Time::FromTime(21, 32, 51));
+        Timestamp::fromDateTime(Date::fromDate(1968, 12, 42), Time::fromTime(21, 32, 51));
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Conversion exception: Date out of range: 1968-12-42.");
@@ -16,7 +16,7 @@ TEST(TimestampTests, FromDatetime) {
 
     // 2021 is not a leap year, February only has 28 days.
     try {
-        Timestamp::fromDateTime(Date::fromDate(2021, 2, 29), Time::FromTime(21, 32, 51));
+        Timestamp::fromDateTime(Date::fromDate(2021, 2, 29), Time::fromTime(21, 32, 51));
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Conversion exception: Date out of range: 2021-2-29.");
@@ -24,7 +24,7 @@ TEST(TimestampTests, FromDatetime) {
 
     // hour is out of range
     try {
-        Timestamp::fromDateTime(Date::fromDate(1968, 12, 22), Time::FromTime(25, 32, 51));
+        Timestamp::fromDateTime(Date::fromDate(1968, 12, 22), Time::fromTime(25, 32, 51));
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(
@@ -33,7 +33,7 @@ TEST(TimestampTests, FromDatetime) {
 
     // second is out of range
     try {
-        Timestamp::fromDateTime(Date::fromDate(2021, 2, 28), Time::FromTime(5, 52, 70));
+        Timestamp::fromDateTime(Date::fromDate(2021, 2, 28), Time::fromTime(5, 52, 70));
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Conversion exception: Time field value out of range: 5:52:70[.0].");
@@ -41,7 +41,7 @@ TEST(TimestampTests, FromDatetime) {
 
     // microsecond is out of rarnge
     try {
-        Timestamp::fromDateTime(Date::fromDate(2021, 2, 28), Time::FromTime(5, 52, 42, 1000002));
+        Timestamp::fromDateTime(Date::fromDate(2021, 2, 28), Time::fromTime(5, 52, 42, 1000002));
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(
@@ -49,9 +49,9 @@ TEST(TimestampTests, FromDatetime) {
     } catch (std::exception& e) { FAIL(); }
 
     EXPECT_EQ(
-        Timestamp::fromDateTime(Date::fromDate(2020, 10, 22), Time::FromTime(21, 32, 51)).value,
+        Timestamp::fromDateTime(Date::fromDate(2020, 10, 22), Time::fromTime(21, 32, 51)).value,
         1603402371000000);
-    EXPECT_EQ(Timestamp::fromDateTime(Date::fromDate(1978, 5, 22), Time::FromTime(00, 54, 32, 7891))
+    EXPECT_EQ(Timestamp::fromDateTime(Date::fromDate(1978, 5, 22), Time::fromTime(00, 54, 32, 7891))
                   .value,
         264646472007891);
 }

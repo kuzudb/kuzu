@@ -66,7 +66,7 @@ static py::object converTimestampToPyObject(timestamp_t& timestamp) {
     dtime_t time;
     Timestamp::convert(timestamp, date, time);
     Date::convert(date, year, month, day);
-    Time::Convert(time, hour, min, sec, micros);
+    Time::convert(time, hour, min, sec, micros);
     return py::cast<py::object>(
         PyDateTime_FromDateAndTime(year, month, day, hour, min, sec, micros));
 }
@@ -215,7 +215,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         dtime_t time;
         Timestamp::convert(timestampVal, date, time);
         Date::convert(date, year, month, day);
-        Time::Convert(time, hour, min, sec, micros);
+        Time::convert(time, hour, min, sec, micros);
 
         return py::cast<py::object>(PyDateTimeTZ_FromDateAndTime(
             year, month, day, hour, min, sec, micros, PyDateTime_TimeZone_UTC));

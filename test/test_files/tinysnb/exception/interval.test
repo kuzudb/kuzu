@@ -20,7 +20,7 @@ Conversion exception: Error occurred during parsing interval. Given: "20 years 3
 ---- error
 Conversion exception: Unrecognized interval specifier string: minutes20.
 
--LOG UnrecognizedSpecifierStringMillseconds)
+-LOG UnrecognizedSpecifierStringMillseconds
 -STATEMENT MATCH (a:person) return interval("10 years 2 days 48 hours 28 seconds 12 millseconds")
 ---- error
 Conversion exception: Unrecognized interval specifier string: millseconds.
