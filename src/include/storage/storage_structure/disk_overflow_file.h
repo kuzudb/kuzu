@@ -5,7 +5,6 @@
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/buffer_manager.h"
-#include "storage/storage_structure/db_file_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
@@ -57,19 +56,10 @@ private:
     }
 
 private:
-    void addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
+    bool addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
     void setStringOverflowWithoutLock(
         const char* inMemSrcStr, uint64_t len, common::ku_string_t& diskDstString);
     void logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
-
-    // If necessary creates a second version (backed by the WAL) of a page that contains the value
-    // that will be written to. The position of the value, which determines the original page to
-    // update, is computed from the given elementOffset and numElementsPerPage argument. Obtains
-    // *and does not release* the lock original page. Pins and updates the WAL version of the
-    // page. The original page lock will be released when the WALPageIdxPosInPageAndFrame goes out
-    // of scope
-    WALPageIdxPosInPageAndFrame createWALVersionOfPageIfNecessaryForElement(
-        PageCursor originalPageCursor);
 
 private:
     static const common::page_idx_t END_OF_PAGE =

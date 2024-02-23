@@ -1,6 +1,6 @@
 #include "processor/operator/ddl/create_rel_table.h"
 
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/string_format.h"
 #include "storage/storage_manager.h"
 
@@ -13,9 +13,9 @@ namespace processor {
 
 void CreateRelTable::executeDDLInternal(ExecutionContext* context) {
     auto newTableID = catalog->addRelTableSchema(info);
-    auto newRelTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-        catalog->getTableSchema(context->clientContext->getTx(), newTableID));
-    storageManager->getRelsStatistics()->addTableStatistic(newRelTableSchema);
+    auto newRelTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+        catalog->getTableCatalogEntry(context->clientContext->getTx(), newTableID));
+    storageManager->getRelsStatistics()->addTableStatistic(newRelTableEntry);
     storageManager->createTable(newTableID, catalog, context->clientContext->getTx());
     storageManager->getWAL()->logCreateRelTableRecord(newTableID);
 }

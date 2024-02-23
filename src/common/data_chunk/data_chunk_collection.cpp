@@ -35,15 +35,15 @@ void DataChunkCollection::append(std::unique_ptr<DataChunk> chunk) {
     }
     KU_ASSERT(chunk->getNumValueVectors() == types.size());
     for (auto vectorIdx = 0u; vectorIdx < chunk->getNumValueVectors(); vectorIdx++) {
-        KU_ASSERT(chunk->getValueVector(vectorIdx)->dataType == *types[vectorIdx]);
+        KU_ASSERT(chunk->getValueVector(vectorIdx)->dataType == types[vectorIdx]);
     }
     chunks.push_back(std::move(chunk));
 }
 
-void DataChunkCollection::initTypes(DataChunk chunk) {
+void DataChunkCollection::initTypes(DataChunk& chunk) {
     types.reserve(chunk.getNumValueVectors());
     for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {
-        types.push_back(std::make_unique<LogicalType>(chunk.getValueVector(vectorIdx)->dataType));
+        types.push_back(chunk.getValueVector(vectorIdx)->dataType);
     }
 }
 
@@ -60,13 +60,12 @@ DataChunk* DataChunkCollection::allocateChunk(DataChunk& chunk) {
     if (chunks.empty()) {
         types.reserve(chunk.getNumValueVectors());
         for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {
-            types.push_back(
-                std::make_unique<LogicalType>(chunk.getValueVector(vectorIdx)->dataType));
+            types.push_back(chunk.getValueVector(vectorIdx)->dataType);
         }
     }
     auto newChunk = std::make_unique<DataChunk>(types.size(), std::make_shared<DataChunkState>());
     for (auto i = 0u; i < types.size(); i++) {
-        newChunk->insert(i, std::make_shared<ValueVector>(*types[i], mm));
+        newChunk->insert(i, std::make_shared<ValueVector>(types[i], mm));
     }
     chunks.push_back(std::move(newChunk));
     return chunks.back().get();

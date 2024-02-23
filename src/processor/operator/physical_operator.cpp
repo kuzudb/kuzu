@@ -47,8 +47,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "DROP_TABLE";
     case PhysicalOperatorType::EMPTY_RESULT:
         return "EMPTY_RESULT";
-    case PhysicalOperatorType::FACTORIZED_TABLE_SCAN:
-        return "FACTORIZED_TABLE_SCAN";
     case PhysicalOperatorType::FILTER:
         return "FILTER";
     case PhysicalOperatorType::FLATTEN:
@@ -129,6 +127,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "IN_QUERY_CALL";
     case PhysicalOperatorType::PROFILE:
         return "PROFILE";
+    case PhysicalOperatorType::EXPORT_DATABASE:
+        return "EXPORT_DATABASE";
     default:
         KU_UNREACHABLE;
     }

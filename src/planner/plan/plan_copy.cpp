@@ -1,6 +1,6 @@
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
@@ -36,16 +36,17 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
     }
     std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
     // Partitioner for FWD direction rel data.
-    auto relSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(copyFromInfo.tableSchema);
+    auto relTableEntry =
+        ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo.tableEntry);
     infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->fromOffset, payloads,
-        relSchema->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
-                                                                 ColumnDataFormat::CSR,
-        relSchema));
+        relTableEntry->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
+                                                                     ColumnDataFormat::CSR,
+        relTableEntry));
     // Partitioner for BWD direction rel data.
     infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->toOffset, payloads,
-        relSchema->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
-                                                                 ColumnDataFormat::CSR,
-        relSchema));
+        relTableEntry->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
+                                                                     ColumnDataFormat::CSR,
+        relTableEntry));
     auto partitioner =
         std::make_shared<LogicalPartitioner>(std::move(infos), plan.getLastOperator());
     partitioner->computeFactorizedSchema();
@@ -64,7 +65,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
     auto& copyFrom = ku_dynamic_cast<const BoundStatement&, const BoundCopyFrom&>(statement);
     auto outExprs = statement.getStatementResult()->getColumns();
     auto copyFromInfo = copyFrom.getInfo();
-    auto tableType = copyFromInfo->tableSchema->tableType;
+    auto tableType = copyFromInfo->tableEntry->getTableType();
     switch (tableType) {
     case TableType::NODE: {
         return planCopyNodeFrom(copyFromInfo, outExprs);

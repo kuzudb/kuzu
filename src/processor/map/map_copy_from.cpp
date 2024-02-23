@@ -1,5 +1,5 @@
 #include "binder/expression/variable_expression.h"
-#include "catalog/node_table_schema.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
@@ -22,7 +22,7 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logicalOperator) {
     auto copyFrom = (LogicalCopyFrom*)logicalOperator;
-    switch (copyFrom->getInfo()->tableSchema->getTableType()) {
+    switch (copyFrom->getInfo()->tableEntry->getTableType()) {
     case TableType::NODE: {
         auto op = mapCopyNodeFrom(logicalOperator);
         auto copy = ku_dynamic_cast<PhysicalOperator*, CopyNode*>(op.get());
@@ -48,23 +48,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
     }
 }
 
-static void getNodeColumnsInCopyOrder(
-    TableSchema* tableSchema, std::vector<std::string>& columnNames, logical_types_t& columnTypes) {
-    for (auto& property : tableSchema->getPropertiesRef()) {
+static void getNodeColumnsInCopyOrder(TableCatalogEntry* tableEntry,
+    std::vector<std::string>& columnNames, logical_types_t& columnTypes) {
+    for (auto& property : tableEntry->getPropertiesRef()) {
         columnNames.push_back(property.getName());
         columnTypes.push_back(property.getDataType()->copy());
     }
 }
 
-static void getRelColumnNamesInCopyOrder(
-    TableSchema* tableSchema, std::vector<std::string>& columnNames, logical_types_t& columnTypes) {
+static void getRelColumnNamesInCopyOrder(TableCatalogEntry* tableEntry,
+    std::vector<std::string>& columnNames, logical_types_t& columnTypes) {
     columnNames.emplace_back(InternalKeyword::SRC_OFFSET);
     columnNames.emplace_back(InternalKeyword::DST_OFFSET);
     columnNames.emplace_back(InternalKeyword::ROW_OFFSET);
     columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
     columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
     columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
-    auto& properties = tableSchema->getPropertiesRef();
+    auto& properties = tableEntry->getPropertiesRef();
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         columnNames.push_back(properties[i].getName());
         columnTypes.push_back(properties[i].getDataType()->copy());
@@ -101,7 +101,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto copyFrom = ku_dynamic_cast<LogicalOperator*, LogicalCopyFrom*>(logicalOperator);
     auto copyFromInfo = copyFrom->getInfo();
     auto outFSchema = copyFrom->getSchema();
-    auto tableSchema = (catalog::NodeTableSchema*)copyFromInfo->tableSchema;
+    auto nodeTableEntry =
+        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(copyFromInfo->tableEntry);
     // Map reader.
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
     auto sharedState = std::make_shared<CopyNodeSharedState>();
@@ -114,16 +115,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         sharedState->distinctSharedState = hashScan->getSharedState().get();
     }
     // Map copy node.
-    auto nodeTable = storageManager.getNodeTable(tableSchema->tableID);
+    auto nodeTable = storageManager.getNodeTable(nodeTableEntry->getTableID());
     sharedState->wal = storageManager.getWAL();
     sharedState->table = nodeTable;
-    auto pk = tableSchema->getPrimaryKey();
-    sharedState->pkColumnIdx = tableSchema->getColumnID(pk->getPropertyID());
+    auto pk = nodeTableEntry->getPrimaryKey();
+    sharedState->pkColumnIdx = nodeTableEntry->getColumnID(pk->getPropertyID());
     sharedState->pkType = *pk->getDataType();
     sharedState->fTable = getSingleStringColumnFTable();
     std::vector<std::string> columnNames;
     logical_types_t columnTypes;
-    getNodeColumnsInCopyOrder(tableSchema, columnNames, columnTypes);
+    getNodeColumnsInCopyOrder(nodeTableEntry, columnNames, columnTypes);
     std::vector<std::string> columnNamesExcludingSerial;
     for (auto i = 0u; i < columnNames.size(); ++i) {
         if (columnTypes[i]->getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
@@ -135,17 +136,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     inputColumns.push_back(copyFromInfo->fileScanInfo->offset);
     std::unordered_set<storage::RelTable*> fwdRelTables;
     std::unordered_set<storage::RelTable*> bwdRelTables;
-    for (auto relTableID : tableSchema->getFwdRelTableIDSet()) {
+    for (auto relTableID : nodeTableEntry->getFwdRelTableIDSet()) {
         fwdRelTables.insert(storageManager.getRelTable(relTableID));
     }
-    for (auto relTableID : tableSchema->getBwdRelTableIDSet()) {
+    for (auto relTableID : nodeTableEntry->getBwdRelTableIDSet()) {
         bwdRelTables.insert(storageManager.getRelTable(relTableID));
     }
     auto columnPositions =
         getColumnDataPositions(columnNamesExcludingSerial, inputColumns, *outFSchema);
     sharedState->columnTypes = std::move(columnTypes);
     auto info = std::make_unique<CopyNodeInfo>(std::move(columnPositions), nodeTable, fwdRelTables,
-        bwdRelTables, tableSchema->tableName, copyFromInfo->containsSerial,
+        bwdRelTables, nodeTableEntry->getName(), copyFromInfo->containsSerial,
         storageManager.compressionEnabled());
     return std::make_unique<CopyNode>(sharedState, std::move(info),
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
@@ -164,7 +165,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
         auto keyPos = getDataPos(*info->key, *outFSchema);
         std::vector<std::string> columnNames;
         logical_types_t columnTypes;
-        getRelColumnNamesInCopyOrder(info->tableSchema, columnNames, columnTypes);
+        getRelColumnNamesInCopyOrder(info->tableEntry, columnNames, columnTypes);
         auto columnPositions = getColumnDataPositions(columnNames, info->payloads, *outFSchema);
         infos.push_back(std::make_unique<PartitioningInfo>(keyPos, columnPositions,
             std::move(columnTypes), PartitionerFunctions::partitionRelData));
@@ -181,11 +182,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     RelDataDirection direction) {
     auto copyFromInfo = copyFrom->getInfo();
     auto outFSchema = copyFrom->getSchema();
-    auto tableSchema = dynamic_cast<RelTableSchema*>(copyFromInfo->tableSchema);
+    auto relTableEntry =
+        ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo->tableEntry);
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
-    auto dataFormat = tableSchema->isSingleMultiplicity(direction) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR;
-    auto copyRelInfo = std::make_unique<CopyRelInfo>(tableSchema, partitioningIdx, direction,
+    auto dataFormat = relTableEntry->isSingleMultiplicity(direction) ? ColumnDataFormat::REGULAR :
+                                                                       ColumnDataFormat::CSR;
+    auto copyRelInfo = std::make_unique<CopyRelInfo>(relTableEntry, partitioningIdx, direction,
         dataFormat, storageManager.getWAL(), storageManager.compressionEnabled());
     return std::make_unique<CopyRel>(std::move(copyRelInfo), std::move(partitionerSharedState),
         std::move(sharedState), std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(),
@@ -195,22 +197,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
 physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator) {
     auto copyFrom = (LogicalCopyFrom*)logicalOperator;
     auto copyFromInfo = copyFrom->getInfo();
-    auto tableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(copyFromInfo->tableSchema);
+    auto relTableEntry =
+        ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo->tableEntry);
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
     KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::PARTITIONER);
     auto partitionerSharedState = dynamic_cast<Partitioner*>(prevOperator.get())->getSharedState();
     partitionerSharedState->srcNodeTable =
-        storageManager.getNodeTable(tableSchema->getSrcTableID());
+        storageManager.getNodeTable(relTableEntry->getSrcTableID());
     partitionerSharedState->dstNodeTable =
-        storageManager.getNodeTable(tableSchema->getDstTableID());
+        storageManager.getNodeTable(relTableEntry->getDstTableID());
     // TODO(Xiyang): Move binding of column types to binder.
     std::vector<std::unique_ptr<LogicalType>> columnTypes;
     columnTypes.push_back(LogicalType::INTERNAL_ID()); // ADJ COLUMN.
-    for (auto& property : tableSchema->properties) {
+    for (auto& property : relTableEntry->getPropertiesRef()) {
         columnTypes.push_back(property.getDataType()->copy());
     }
-    auto copyRelSharedState = std::make_shared<CopyRelSharedState>(tableSchema->tableID,
-        storageManager.getRelTable(tableSchema->tableID), std::move(columnTypes),
+    auto copyRelSharedState = std::make_shared<CopyRelSharedState>(relTableEntry->getTableID(),
+        storageManager.getRelTable(relTableEntry->getTableID()), std::move(columnTypes),
         storageManager.getRelsStatistics(), memoryManager);
     auto copyRelFWD =
         createCopyRel(partitionerSharedState, copyRelSharedState, copyFrom, RelDataDirection::FWD);

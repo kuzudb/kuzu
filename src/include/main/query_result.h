@@ -85,15 +85,7 @@ public:
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
 
     KUZU_API std::string toString();
-    /**
-     * @brief writes the query result to a csv file.
-     * @param fileName name of the csv file.
-     * @param delimiter delimiter of the csv file.
-     * @param escapeCharacter escape character of the csv file.
-     * @param newline newline character of the csv file.
-     */
-    KUZU_API void writeToCSV(std::string fileName, char delimiter = ',', char escapeCharacter = '"',
-        char newline = '\n');
+
     /**
      * @brief Resets the result tuple iterator.
      */

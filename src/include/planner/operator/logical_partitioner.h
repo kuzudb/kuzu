@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catalog/table_schema.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/column_data_format.h"
 #include "planner/operator/logical_operator.h"
 
@@ -11,16 +11,16 @@ struct LogicalPartitionerInfo {
     std::shared_ptr<binder::Expression> key;
     binder::expression_vector payloads;
     common::ColumnDataFormat dataFormat;
-    catalog::TableSchema* tableSchema;
+    catalog::TableCatalogEntry* tableEntry;
 
     LogicalPartitionerInfo(std::shared_ptr<binder::Expression> key,
         binder::expression_vector payloads, common::ColumnDataFormat dataFormat,
-        catalog::TableSchema* tableSchema)
+        catalog::TableCatalogEntry* tableEntry)
         : key{std::move(key)}, payloads{std::move(payloads)}, dataFormat{dataFormat},
-          tableSchema{tableSchema} {}
+          tableEntry{tableEntry} {}
     LogicalPartitionerInfo(const LogicalPartitionerInfo& other)
         : key{other.key}, payloads{other.payloads}, dataFormat{other.dataFormat},
-          tableSchema{other.tableSchema} {}
+          tableEntry{other.tableEntry} {}
 
     inline std::unique_ptr<LogicalPartitionerInfo> copy() {
         return std::make_unique<LogicalPartitionerInfo>(*this);

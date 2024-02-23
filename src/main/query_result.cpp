@@ -1,7 +1,5 @@
 #include "main/query_result.h"
 
-#include <fstream>
-
 #include "binder/expression/expression.h"
 #include "common/arrow/arrow_converter.h"
 #include "common/types/value/node.h"
@@ -183,65 +181,6 @@ std::string QueryResult::toString() {
         result = errMsg;
     }
     return result;
-}
-
-void QueryResult::writeToCSV(
-    std::string fileName, char delimiter, char escapeCharacter, char newline) {
-    std::ofstream file;
-    file.open(fileName);
-    std::shared_ptr<FlatTuple> nextTuple;
-    KU_ASSERT(delimiter != '\0');
-    KU_ASSERT(newline != '\0');
-    while (hasNext()) {
-        nextTuple = getNext();
-        for (auto idx = 0ul; idx < nextTuple->len(); idx++) {
-            std::string resultVal = nextTuple->getValue(idx)->toString();
-            bool isStringList = false;
-            if (nextTuple->getValue(idx)->getDataType()->toString() == "STRING[]") {
-                isStringList = true;
-            }
-            bool surroundQuotes = false;
-            std::string csvStr;
-            for (long unsigned int j = 0; j < resultVal.length(); j++) {
-                if (!surroundQuotes) {
-                    if (resultVal[j] == escapeCharacter || resultVal[j] == newline ||
-                        resultVal[j] == delimiter) {
-                        surroundQuotes = true;
-                    }
-                }
-                if (resultVal[j] == escapeCharacter) {
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                } else if (resultVal[j] == ',' && isStringList) {
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                    csvStr += ',';
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                } else if (resultVal[j] == '[' && isStringList) {
-                    csvStr += "[";
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                } else if (resultVal[j] == ']' && isStringList) {
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                    csvStr += "]";
-                } else {
-                    csvStr += resultVal[j];
-                }
-            }
-            if (surroundQuotes) {
-                csvStr = escapeCharacter + std::move(csvStr) + escapeCharacter;
-            }
-            file << csvStr;
-            if (idx < nextTuple->len() - 1) {
-                file << delimiter;
-            } else {
-                file << newline;
-            }
-        }
-    }
-    file.close();
 }
 
 void QueryResult::validateQuerySucceed() const {

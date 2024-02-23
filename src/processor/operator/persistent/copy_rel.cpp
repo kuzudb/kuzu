@@ -162,7 +162,7 @@ void CopyRel::finalize(ExecutionContext* context) {
     if (info->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1) {
         sharedState->updateRelsStatistics();
         auto outputMsg = stringFormat("{} number of tuples has been copied to table {}.",
-            sharedState->numRows.load(), info->schema->tableName);
+            sharedState->numRows.load(), info->relTableEntry->getName());
         FactorizedTableUtils::appendStringToTable(
             sharedState->fTable.get(), outputMsg, context->clientContext->getMemoryManager());
     }

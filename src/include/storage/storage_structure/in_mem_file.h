@@ -18,8 +18,8 @@ namespace storage {
 // InMemFile holds a collection of in-memory page in the memory.
 class InMemFile {
 public:
-    explicit InMemFile(std::string filePath, common::VirtualFileSystem* vfs,
-        std::atomic<common::page_idx_t>& pageCounter);
+    explicit InMemFile(
+        std::shared_ptr<common::FileInfo> fileInfo, std::atomic<common::page_idx_t>& pageCounter);
 
     void addANewPage();
 
@@ -45,8 +45,7 @@ public:
 private:
     static const uint64_t END_OF_PAGE =
         common::BufferPoolConstants::PAGE_4KB_SIZE - sizeof(common::page_idx_t);
-    std::string filePath;
-    std::unique_ptr<common::FileInfo> fileInfo;
+    std::shared_ptr<common::FileInfo> fileInfo;
     std::unordered_map<common::page_idx_t, std::unique_ptr<InMemPage>> pages;
     PageCursor nextPosToAppend;
     std::atomic<common::page_idx_t>& pageCounter;

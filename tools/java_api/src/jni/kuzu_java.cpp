@@ -1,5 +1,11 @@
 #include <unordered_map>
 
+#ifdef _WIN32
+// Do nothing on Windows
+#else
+#include <dlfcn.h>
+#endif
+
 // This header is generated at build time. See CMakeLists.txt.
 #include "com_kuzudb_KuzuNative.h"
 #include "common/exception/conversion.h"
@@ -149,6 +155,22 @@ std::unordered_map<std::string, std::unique_ptr<Value>> javaMapToCPPMap(
 /**
  * All Database native functions
  */
+//     protected static native void kuzu_native_reload_library(String lib_path);
+JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1native_1reload_1library(
+    JNIEnv* env, jclass, jstring lib_path) {
+#ifdef _WIN32
+// Do nothing on Windows
+#else
+    const char* path = env->GetStringUTFChars(lib_path, JNI_FALSE);
+    void* handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
+    env->ReleaseStringUTFChars(lib_path, path);
+    if (handle == nullptr) {
+        jclass Exception = env->FindClass("java/lang/Exception");
+        auto error = dlerror(); // NOLINT(concurrency-mt-unsafe): load can only be executed in single thread.
+        env->ThrowNew(Exception, error);
+    }
+#endif
+}
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1init(JNIEnv* env, jclass,
     jstring database_path, jlong buffer_pool_size, jboolean enable_compression,
@@ -443,21 +465,6 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1query_1result_1to_1st
     std::string result_string = qr->toString();
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
-}
-
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1query_1result_1write_1to_1csv(JNIEnv* env,
-    jclass, jobject thisQR, jstring file_path, jchar delimiter, jchar escape_char, jchar new_line) {
-    QueryResult* qr = getQueryResult(env, thisQR);
-    const char* cpp_file_path = env->GetStringUTFChars(file_path, JNI_FALSE);
-
-    // TODO: confirm this convertion is ok to do.
-    // jchar is 16-bit unicode character so converting to char will lose the higher oreder-bits
-    char cpp_delimiter = static_cast<char>(delimiter);
-    char cpp_escape_char = static_cast<char>(escape_char);
-    char cpp_new_line = static_cast<char>(new_line);
-
-    qr->writeToCSV(cpp_file_path, cpp_delimiter, cpp_escape_char, cpp_new_line);
-    env->ReleaseStringUTFChars(file_path, cpp_file_path);
 }
 
 JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1query_1result_1reset_1iterator(

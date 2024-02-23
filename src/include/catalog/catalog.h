@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog_content.h"
 
 namespace kuzu {
@@ -13,6 +14,11 @@ enum class TransactionAction : uint8_t;
 class Transaction;
 } // namespace transaction
 namespace catalog {
+
+class NodeTableCatalogEntry;
+class RelTableCatalogEntry;
+class RelGroupCatalogEntry;
+class RDFGraphCatalogEntry;
 
 class Catalog {
 public:
@@ -28,23 +34,23 @@ public:
 
     bool containsNodeTable(transaction::Transaction* tx) const;
     bool containsRelTable(transaction::Transaction* tx) const;
-    bool containsRdfGraph(transaction::Transaction* tx) const;
     bool containsTable(transaction::Transaction* tx, const std::string& tableName) const;
 
     common::table_id_t getTableID(transaction::Transaction* tx, const std::string& tableName) const;
     std::vector<common::table_id_t> getNodeTableIDs(transaction::Transaction* tx) const;
     std::vector<common::table_id_t> getRelTableIDs(transaction::Transaction* tx) const;
-    std::vector<common::table_id_t> getRdfGraphIDs(transaction::Transaction* tx) const;
 
     std::string getTableName(transaction::Transaction* tx, common::table_id_t tableID) const;
-    TableSchema* getTableSchema(transaction::Transaction* tx, common::table_id_t tableID) const;
-    std::vector<TableSchema*> getNodeTableSchemas(transaction::Transaction* tx) const;
-    std::vector<TableSchema*> getRelTableSchemas(transaction::Transaction* tx) const;
-    std::vector<TableSchema*> getRelTableGroupSchemas(transaction::Transaction* tx) const;
-    std::vector<TableSchema*> getRdfGraphSchemas(transaction::Transaction* tx) const;
-    std::vector<TableSchema*> getTableSchemas(transaction::Transaction* tx) const;
-    std::vector<TableSchema*> getTableSchemas(
+    TableCatalogEntry* getTableCatalogEntry(
+        transaction::Transaction* tx, common::table_id_t tableID) const;
+    std::vector<NodeTableCatalogEntry*> getNodeTableEntries(transaction::Transaction* tx) const;
+    std::vector<RelTableCatalogEntry*> getRelTableEntries(transaction::Transaction* tx) const;
+    std::vector<RelGroupCatalogEntry*> getRelTableGroupEntries(transaction::Transaction* tx) const;
+    std::vector<RDFGraphCatalogEntry*> getRdfGraphEntries(transaction::Transaction* tx) const;
+    std::vector<TableCatalogEntry*> getTableEntries(transaction::Transaction* tx) const;
+    std::vector<TableCatalogEntry*> getTableSchemas(
         transaction::Transaction* tx, const common::table_id_vector_t& tableIDs) const;
+    CatalogSet* getFunctions(transaction::Transaction* tx) const;
 
     common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
     common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
@@ -66,9 +72,6 @@ public:
     void setTableComment(common::table_id_t tableID, const std::string& comment);
 
     // ----------------------------- Functions ----------------------------
-    inline function::BuiltInFunctions* getBuiltInFunctions(transaction::Transaction* tx) const {
-        return getVersion(tx)->builtInFunctions.get();
-    }
     common::ExpressionType getFunctionType(
         transaction::Transaction* tx, const std::string& name) const;
     void addFunction(std::string name, function::function_set functionSet);
@@ -77,21 +80,23 @@ public:
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
     // TODO(Ziyi): pass transaction pointer here.
-    inline function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const {
-        return readOnlyVersion->macros.at(name).get();
+    function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const {
+        return readOnlyVersion->getScalarMacroFunction(name);
     }
+
+    std::vector<std::string> getMacroNames(transaction::Transaction* tx) const;
 
     // ----------------------------- Tx ----------------------------
     void prepareCommitOrRollback(transaction::TransactionAction action);
     void checkpointInMemory();
 
-    inline void initCatalogContentForWriteTrxIfNecessary() {
+    void initCatalogContentForWriteTrxIfNecessary() {
         if (!readWriteVersion) {
             readWriteVersion = readOnlyVersion->copy();
         }
     }
 
-    static inline void saveInitialCatalogToFile(
+    static void saveInitialCatalogToFile(
         const std::string& directory, common::VirtualFileSystem* vfs) {
         std::make_unique<Catalog>(vfs)->getReadOnlyVersion()->saveToFile(
             directory, common::FileVersionType::ORIGINAL);
@@ -100,10 +105,10 @@ public:
 private:
     CatalogContent* getVersion(transaction::Transaction* tx) const;
 
-    inline bool hasUpdates() const { return isUpdated; }
+    bool hasUpdates() const { return isUpdated; }
 
-    inline void setToUpdated() { isUpdated = true; }
-    inline void resetToNotUpdated() { isUpdated = false; }
+    void setToUpdated() { isUpdated = true; }
+    void resetToNotUpdated() { isUpdated = false; }
 
 protected:
     // The flat indicates if the readWriteVersion has been updated and is different from the

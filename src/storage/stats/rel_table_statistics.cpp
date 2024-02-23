@@ -1,6 +1,6 @@
 #include "storage/stats/rel_table_statistics.h"
 
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "storage/stats/table_statistics_collection.h"
@@ -12,17 +12,18 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-RelTableStats::RelTableStats(
-    BMFileHandle* metadataFH, const TableSchema& schema, BufferManager* bufferManager, WAL* wal)
-    : TableStatistics{schema}, nextRelOffset{0} {
-    const auto& relTableSchema = static_cast<const RelTableSchema&>(schema);
-    if (!relTableSchema.isSingleMultiplicity(RelDataDirection::FWD)) {
+RelTableStats::RelTableStats(BMFileHandle* metadataFH, const catalog::TableCatalogEntry& tableEntry,
+    BufferManager* bufferManager, WAL* wal)
+    : TableStatistics{tableEntry}, nextRelOffset{0} {
+    const auto& relTableEntry =
+        ku_dynamic_cast<const TableCatalogEntry&, const RelTableCatalogEntry&>(tableEntry);
+    if (!relTableEntry.isSingleMultiplicity(RelDataDirection::FWD)) {
         fwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
             LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
         fwdCSRLengthMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
             LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
     }
-    if (!relTableSchema.isSingleMultiplicity(RelDataDirection::BWD)) {
+    if (!relTableEntry.isSingleMultiplicity(RelDataDirection::BWD)) {
         bwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
             LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
         bwdCSRLengthMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
@@ -34,9 +35,9 @@ RelTableStats::RelTableStats(
         LogicalType{LogicalTypeID::INTERNAL_ID}, *metadataFH, bufferManager, wal);
     fwdPropertyMetadataDAHInfos.clear();
     bwdPropertyMetadataDAHInfos.clear();
-    fwdPropertyMetadataDAHInfos.reserve(schema.getNumProperties());
-    bwdPropertyMetadataDAHInfos.reserve(schema.getNumProperties());
-    for (auto& property : schema.getPropertiesRef()) {
+    fwdPropertyMetadataDAHInfos.reserve(tableEntry.getNumProperties());
+    bwdPropertyMetadataDAHInfos.reserve(tableEntry.getNumProperties());
+    for (auto& property : tableEntry.getPropertiesRef()) {
         fwdPropertyMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
             *property.getDataType(), *metadataFH, bufferManager, wal));
         bwdPropertyMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(

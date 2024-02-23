@@ -9,6 +9,7 @@
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_utils.h"
 #include "transaction/transaction.h"
 
@@ -105,9 +106,11 @@ HashIndex<T, S>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
         dbFileIDAndName.dbFileID, NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX,
         &bm, wal, Transaction::getDummyReadOnlyTrx().get());
     // Read indexHeader from the headerArray, which contains only one element.
-    this->indexHeader = std::make_unique<HashIndexHeader>(
+    this->indexHeaderForReadTrx = std::make_unique<HashIndexHeader>(
         headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
-    KU_ASSERT(this->indexHeader->keyDataTypeID == TypeUtils::getPhysicalTypeIDForType<S>());
+    this->indexHeaderForWriteTrx = std::make_unique<HashIndexHeader>(*indexHeaderForReadTrx);
+    KU_ASSERT(
+        this->indexHeaderForReadTrx->keyDataTypeID == TypeUtils::getPhysicalTypeIDForType<S>());
     pSlots = std::make_unique<BaseDiskArray<Slot<S>>>(*fileHandle, dbFileIDAndName.dbFileID,
         NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, &bm, wal,
         Transaction::getDummyReadOnlyTrx().get());
@@ -173,15 +176,16 @@ bool HashIndex<T, S>::insertInternal(T key, offset_t value) {
 
 template<typename T, typename S>
 bool HashIndex<T, S>::lookupInPersistentIndex(TransactionType trxType, T key, offset_t& result) {
-    auto header = trxType == TransactionType::READ_ONLY ?
-                      *this->indexHeader :
-                      headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
-    auto iter = getSlotIterator(HashIndexUtils::getPrimarySlotIdForKey(header, key), trxType);
+    auto& header = trxType == TransactionType::READ_ONLY ? *this->indexHeaderForReadTrx :
+                                                           *this->indexHeaderForWriteTrx;
+    auto hashValue = HashIndexUtils::hash(key);
+    auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
+    auto iter =
+        getSlotIterator(HashIndexUtils::getPrimarySlotIdForHash(header, hashValue), trxType);
     do {
-        auto entryPos = findMatchedEntryInSlot(trxType, iter.slot, key);
+        auto entryPos = findMatchedEntryInSlot(trxType, iter.slot, key, fingerprint);
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
-            result = *(common::offset_t*)(iter.slot.entries[entryPos].data +
-                                          this->indexHeader->numBytesPerKey);
+            result = *(common::offset_t*)(iter.slot.entries[entryPos].data + header.numBytesPerKey);
             return true;
         }
     } while (nextChainedSlot(trxType, iter));
@@ -190,38 +194,41 @@ bool HashIndex<T, S>::lookupInPersistentIndex(TransactionType trxType, T key, of
 
 template<typename T, typename S>
 void HashIndex<T, S>::insertIntoPersistentIndex(T key, offset_t value) {
-    auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
+    auto& header = *this->indexHeaderForWriteTrx;
     slot_id_t numRequiredEntries = HashIndexUtils::getNumRequiredEntries(header.numEntries, 1);
     while (numRequiredEntries >
            pSlots->getNumElements(TransactionType::WRITE) * getSlotCapacity<S>()) {
         this->splitSlot(header);
     }
+    auto hashValue = HashIndexUtils::hash(key);
+    auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
     auto iter = getSlotIterator(
-        HashIndexUtils::getPrimarySlotIdForKey(header, key), TransactionType::WRITE);
+        HashIndexUtils::getPrimarySlotIdForHash(header, hashValue), TransactionType::WRITE);
     // Find a slot with free entries
-    while (iter.slot.header.numEntries == getSlotCapacity<S>() &&
+    while (iter.slot.header.numEntries() == getSlotCapacity<S>() &&
            nextChainedSlot(TransactionType::WRITE, iter))
         ;
-    copyKVOrEntryToSlot<T, false /* insert kv */>(iter.slotInfo, iter.slot, key, value);
+    copyKVOrEntryToSlot<T, false /* insert kv */>(
+        iter.slotInfo, iter.slot, key, value, fingerprint);
     header.numEntries++;
-    headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, header);
 }
 
 template<typename T, typename S>
 void HashIndex<T, S>::deleteFromPersistentIndex(T key) {
     auto trxType = TransactionType::WRITE;
-    auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, trxType);
-    auto iter = getSlotIterator(HashIndexUtils::getPrimarySlotIdForKey(header, key), trxType);
+    auto header = *this->indexHeaderForWriteTrx;
+    auto hashValue = HashIndexUtils::hash(key);
+    auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
+    auto iter =
+        getSlotIterator(HashIndexUtils::getPrimarySlotIdForHash(header, hashValue), trxType);
     do {
-        auto entryPos = findMatchedEntryInSlot(trxType, iter.slot, key);
+        auto entryPos = findMatchedEntryInSlot(trxType, iter.slot, key, fingerprint);
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
             iter.slot.header.setEntryInvalid(entryPos);
-            iter.slot.header.numEntries--;
             updateSlot(iter.slotInfo, iter.slot);
             header.numEntries--;
         }
     } while (nextChainedSlot(trxType, iter));
-    headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, header);
 }
 
 template<>
@@ -235,12 +242,11 @@ inline common::hash_t HashIndex<std::string_view, ku_string_t>::hashStored(
 
 template<typename T, typename S>
 entry_pos_t HashIndex<T, S>::findMatchedEntryInSlot(
-    TransactionType trxType, const Slot<S>& slot, T key) const {
+    TransactionType trxType, const Slot<S>& slot, T key, uint8_t fingerprint) const {
     for (auto entryPos = 0u; entryPos < getSlotCapacity<S>(); entryPos++) {
-        if (!slot.header.isEntryValid(entryPos)) {
-            continue;
-        }
-        if (equals(trxType, key, *(S*)slot.entries[entryPos].data)) {
+        if (slot.header.isEntryValid(entryPos) &&
+            slot.header.fingerprints[entryPos] == fingerprint &&
+            equals(trxType, key, *(S*)slot.entries[entryPos].data)) {
             return entryPos;
         }
     }
@@ -255,6 +261,7 @@ void HashIndex<T, S>::prepareCommit() {
         localStorage->applyLocalChanges(
             [this](T key) -> void { this->deleteFromPersistentIndex(key); },
             [this](T key, offset_t value) -> void { this->insertIntoPersistentIndex(key, value); });
+        headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, *indexHeaderForWriteTrx);
     }
 }
 
@@ -271,8 +278,7 @@ void HashIndex<T, S>::checkpointInMemory() {
     if (!localStorage->hasUpdates()) {
         return;
     }
-    this->indexHeader = std::make_unique<HashIndexHeader>(
-        headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE));
+    *indexHeaderForReadTrx = *indexHeaderForWriteTrx;
     headerArray->checkpointInMemoryIfNecessary();
     pSlots->checkpointInMemoryIfNecessary();
     oSlots->checkpointInMemoryIfNecessary();
@@ -288,6 +294,7 @@ void HashIndex<T, S>::rollbackInMemory() {
     pSlots->rollbackInMemoryIfNecessary();
     oSlots->rollbackInMemoryIfNecessary();
     localStorage->clear();
+    *indexHeaderForWriteTrx = *indexHeaderForReadTrx;
 }
 
 template<>
@@ -321,8 +328,9 @@ void HashIndex<T, S>::rehashSlots(HashIndexHeader& header) {
             }
             auto key = (S*)slot.entries[entryPos].data;
             hash_t hash = this->hashStored(TransactionType::WRITE, *key);
+            auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
             auto newSlotId = hash & header.higherLevelHashMask;
-            copyEntryToSlot(newSlotId, *key);
+            copyEntryToSlot(newSlotId, *key, fingerprint);
         }
     }
 }
@@ -341,16 +349,16 @@ std::vector<std::pair<SlotInfo, Slot<S>>> HashIndex<T, S>::getChainedSlots(slot_
 }
 
 template<typename T, typename S>
-void HashIndex<T, S>::copyEntryToSlot(slot_id_t slotId, const S& entry) {
+void HashIndex<T, S>::copyEntryToSlot(slot_id_t slotId, const S& entry, uint8_t fingerprint) {
     auto iter = getSlotIterator(slotId, TransactionType::WRITE);
     do {
-        if (iter.slot.header.numEntries < getSlotCapacity<S>()) {
+        if (iter.slot.header.numEntries() < getSlotCapacity<S>()) {
             // Found a slot with empty space.
             break;
         }
     } while (nextChainedSlot(TransactionType::WRITE, iter));
     copyKVOrEntryToSlot<const S&, true /* copy entry */>(
-        iter.slotInfo, iter.slot, entry, UINT32_MAX);
+        iter.slotInfo, iter.slot, entry, UINT32_MAX, fingerprint);
     updateSlot(iter.slotInfo, iter.slot);
 }
 

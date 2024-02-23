@@ -19,12 +19,12 @@ namespace storage {
 class NodeTable final : public Table {
 public:
     NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
-        catalog::NodeTableSchema* nodeTableSchema,
+        catalog::NodeTableCatalogEntry* nodeTableEntry,
         NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, MemoryManager* memoryManager,
         WAL* wal, bool readOnly, bool enableCompression, common::VirtualFileSystem* vfs);
 
-    void initializePKIndex(
-        catalog::NodeTableSchema* nodeTableSchema, bool readOnly, common::VirtualFileSystem* vfs);
+    void initializePKIndex(catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
+        common::VirtualFileSystem* vfs);
 
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
         auto nodesStats = common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(

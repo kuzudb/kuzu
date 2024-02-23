@@ -9,7 +9,7 @@ namespace processor {
 
 void AddRelProperty::executeDDLInternal(ExecutionContext* context) {
     catalog->addRelProperty(tableID, propertyName, dataType->copy());
-    auto tableSchema = catalog->getTableSchema(context->clientContext->getTx(), tableID);
+    auto tableSchema = catalog->getTableCatalogEntry(context->clientContext->getTx(), tableID);
     auto addedPropertyID = tableSchema->getPropertyID(propertyName);
     auto addedProp = tableSchema->getProperty(addedPropertyID);
     storageManager.getRelTable(tableID)->addColumn(

@@ -75,8 +75,8 @@ private:
     void insertIntoPersistentIndex(T key, common::offset_t value);
     void deleteFromPersistentIndex(T key);
 
-    entry_pos_t findMatchedEntryInSlot(
-        transaction::TransactionType trxType, const Slot<S>& slot, T key) const;
+    entry_pos_t findMatchedEntryInSlot(transaction::TransactionType trxType, const Slot<S>& slot,
+        T key, uint8_t fingerprint) const;
 
     inline void updateSlot(const SlotInfo& slotInfo, const Slot<S>& slot) {
         slotInfo.slotType == SlotType::PRIMARY ? pSlots->update(slotInfo.slotId, slot) :
@@ -105,14 +105,14 @@ private:
     }
     template<typename K, bool isCopyEntry>
     void copyAndUpdateSlotHeader(
-        Slot<S>& slot, entry_pos_t entryPos, K key, common::offset_t value) {
+        Slot<S>& slot, entry_pos_t entryPos, K key, common::offset_t value, uint8_t fingerprint) {
         if constexpr (isCopyEntry) {
-            memcpy(slot.entries[entryPos].data, &key, this->indexHeader->numBytesPerEntry);
+            memcpy(
+                slot.entries[entryPos].data, &key, this->indexHeaderForWriteTrx->numBytesPerEntry);
         } else {
             insert(key, slot.entries[entryPos].data, value);
         }
-        slot.header.setEntryValid(entryPos);
-        slot.header.numEntries++;
+        slot.header.setEntryValid(entryPos, fingerprint);
     }
 
     inline void insert(T key, uint8_t* entry, common::offset_t offset) {
@@ -146,19 +146,20 @@ private:
     std::vector<std::pair<SlotInfo, Slot<S>>> getChainedSlots(slot_id_t pSlotId);
 
     template<typename K, bool isCopyEntry>
-    void copyKVOrEntryToSlot(
-        const SlotInfo& slotInfo, Slot<S>& slot, K key, common::offset_t value) {
-        if (slot.header.numEntries == getSlotCapacity<S>()) {
+    void copyKVOrEntryToSlot(const SlotInfo& slotInfo, Slot<S>& slot, K key, common::offset_t value,
+        uint8_t fingerprint) {
+        if (slot.header.numEntries() == getSlotCapacity<S>()) {
             // Allocate a new oSlot, insert the entry to the new oSlot, and update slot's
             // nextOvfSlotId.
             Slot<S> newSlot;
             auto entryPos = 0u; // Always insert to the first entry when there is a new slot.
-            copyAndUpdateSlotHeader<K, isCopyEntry>(newSlot, entryPos, key, value);
+            copyAndUpdateSlotHeader<K, isCopyEntry>(newSlot, entryPos, key, value, fingerprint);
             slot.header.nextOvfSlotId = appendOverflowSlot(std::move(newSlot));
         } else {
             for (auto entryPos = 0u; entryPos < getSlotCapacity<S>(); entryPos++) {
                 if (!slot.header.isEntryValid(entryPos)) {
-                    copyAndUpdateSlotHeader<K, isCopyEntry>(slot, entryPos, key, value);
+                    copyAndUpdateSlotHeader<K, isCopyEntry>(
+                        slot, entryPos, key, value, fingerprint);
                     break;
                 }
             }
@@ -166,7 +167,7 @@ private:
         updateSlot(slotInfo, slot);
     }
 
-    void copyEntryToSlot(slot_id_t slotId, const S& entry);
+    void copyEntryToSlot(slot_id_t slotId, const S& entry, uint8_t fingerprint);
 
 private:
     // Local Storage for strings stores an std::string, but still takes std::string_view as keys to
@@ -182,7 +183,8 @@ private:
     std::unique_ptr<BaseDiskArray<Slot<S>>> oSlots;
     std::shared_ptr<DiskOverflowFile> diskOverflowFile;
     std::unique_ptr<HashIndexLocalStorage<T, LocalStorageType>> localStorage;
-    std::unique_ptr<HashIndexHeader> indexHeader;
+    std::unique_ptr<HashIndexHeader> indexHeaderForReadTrx;
+    std::unique_ptr<HashIndexHeader> indexHeaderForWriteTrx;
 };
 
 template<>

@@ -115,14 +115,14 @@ void VarListColumnChunk::write(
         auto posInChunk = offsetInChunkVector->getValue<offset_t>(
             offsetInChunkVector->state->selVector->selectedPositions[i]);
         KU_ASSERT(posInChunk < capacity);
-        indicesColumnChunk->setValue(currentIndex++, posInChunk);
+        indicesColumnChunk->setValue<int64_t>(currentIndex++, posInChunk);
         indicesColumnChunk->getNullChunk()->setNull(posInChunk, false);
         if (indicesColumnChunk->getNumValues() <= posInChunk) {
             indicesColumnChunk->setNumValues(posInChunk + 1);
         }
     }
     KU_ASSERT(currentIndex == numValues &&
-              indicesColumnChunk->getNumValues() < indicesColumnChunk->getCapacity());
+              indicesColumnChunk->getNumValues() <= indicesColumnChunk->getCapacity());
 }
 
 void VarListColumnChunk::write(

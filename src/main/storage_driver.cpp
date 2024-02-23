@@ -17,8 +17,8 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     offset_t* offsets, size_t size, uint8_t* result, size_t numThreads) {
     // Resolve files to read from
     auto nodeTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, nodeName);
-    auto propertyID =
-        catalog->getTableSchema(&DUMMY_READ_TRANSACTION, nodeTableID)->getPropertyID(propertyName);
+    auto propertyID = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, nodeTableID)
+                          ->getPropertyID(propertyName);
     auto nodeTable = storageManager->getNodeTable(nodeTableID);
     auto column = nodeTable->getColumn(propertyID);
     auto current_buffer = result;

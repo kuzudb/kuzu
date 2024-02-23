@@ -19,6 +19,8 @@
 #include "common/exception/copy.h"
 #include "common/string_format.h"
 #include "common/utils.h"
+#include "function/table/bind_data.h"
+#include "function/table/bind_input.h"
 #include "pyparse.h"
 #include "storage/storage_utils.h"
 
@@ -238,24 +240,49 @@ NpyScanSharedState::NpyScanSharedState(common::ReaderConfig readerConfig, uint64
     npyMultiFileReader = std::make_unique<NpyMultiFileReader>(this->readerConfig.filePaths);
 }
 
-function_set NpyScanFunction::getFunctionSet() {
-    function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(READ_NPY_FUNC_NAME, tableFunc, bindFunc,
-        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
-    return functionSet;
-}
-
-void NpyScanFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState = reinterpret_cast<NpyScanSharedState*>(input.sharedState);
     auto [_, blockIdx] = sharedState->getNext();
-    sharedState->npyMultiFileReader->readBlock(blockIdx, outputChunk);
+    sharedState->npyMultiFileReader->readBlock(blockIdx, output.dataChunk);
+    return output.dataChunk.state->selVector->selectedSize;
 }
 
-std::unique_ptr<function::TableFuncBindData> NpyScanFunction::bindFunc(
-    main::ClientContext* /*context*/, function::TableFuncBindInput* input,
-    catalog::Catalog* /*catalog*/, storage::StorageManager* /*storageManager*/) {
-    auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
+static std::unique_ptr<LogicalType> bindFixedListType(
+    const std::vector<size_t>& shape, LogicalTypeID typeID) {
+    if (shape.size() == 1) {
+        return std::make_unique<LogicalType>(typeID);
+    }
+    auto childShape = std::vector<size_t>{shape.begin() + 1, shape.end()};
+    auto childType = bindFixedListType(childShape, typeID);
+    return LogicalType::FIXED_LIST(std::move(childType), (uint32_t)shape[0]);
+}
 
+static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
+    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
+    auto reader = NpyReader(readerConfig.filePaths[fileIdx]); // TODO: double check
+    auto columnName = std::string("column" + std::to_string(fileIdx));
+    auto columnType = bindFixedListType(reader.getShape(), reader.getType());
+    columnNames.push_back(columnName);
+    columnTypes.push_back(*columnType);
+}
+
+static void bindColumns(const common::ReaderConfig& readerConfig,
+    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
+    KU_ASSERT(readerConfig.getNumFiles() > 0);
+    bindColumns(readerConfig, 0, columnNames, columnTypes);
+    for (auto i = 1u; i < readerConfig.getNumFiles(); ++i) {
+        std::vector<std::string> tmpColumnNames;
+        std::vector<LogicalType> tmpColumnTypes;
+        bindColumns(readerConfig, i, tmpColumnNames, tmpColumnTypes);
+        ReaderBindUtils::validateNumColumns(1, tmpColumnTypes.size());
+        columnNames.push_back(tmpColumnNames[0]);
+        columnTypes.push_back(tmpColumnTypes[0]);
+    }
+}
+
+static std::unique_ptr<function::TableFuncBindData> bindFunc(
+    main::ClientContext* /*context*/, function::TableFuncBindInput* input) {
+    auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;
     bindColumns(scanInput->config, detectedColumnNames, detectedColumnTypes);
@@ -277,50 +304,24 @@ std::unique_ptr<function::TableFuncBindData> NpyScanFunction::bindFunc(
         std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
 }
 
-std::unique_ptr<function::TableFuncSharedState> NpyScanFunction::initSharedState(
+static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     function::TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
     auto reader = make_unique<NpyReader>(bindData->config.filePaths[0]);
     return std::make_unique<NpyScanSharedState>(bindData->config.copy(), reader->getNumRows());
 }
 
-std::unique_ptr<function::TableFuncLocalState> NpyScanFunction::initLocalState(
+static std::unique_ptr<function::TableFuncLocalState> initLocalState(
     function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/,
     storage::MemoryManager* /*mm*/) {
     return std::make_unique<function::TableFuncLocalState>();
 }
 
-void NpyScanFunction::bindColumns(const common::ReaderConfig& readerConfig,
-    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
-    KU_ASSERT(readerConfig.getNumFiles() > 0);
-    bindColumns(readerConfig, 0, columnNames, columnTypes);
-    for (auto i = 1u; i < readerConfig.getNumFiles(); ++i) {
-        std::vector<std::string> tmpColumnNames;
-        std::vector<LogicalType> tmpColumnTypes;
-        bindColumns(readerConfig, i, tmpColumnNames, tmpColumnTypes);
-        ReaderBindUtils::validateNumColumns(1, tmpColumnTypes.size());
-        columnNames.push_back(tmpColumnNames[0]);
-        columnTypes.push_back(tmpColumnTypes[0]);
-    }
-}
-
-static std::unique_ptr<LogicalType> bindFixedListType(
-    const std::vector<size_t>& shape, LogicalTypeID typeID) {
-    if (shape.size() == 1) {
-        return std::make_unique<LogicalType>(typeID);
-    }
-    auto childShape = std::vector<size_t>{shape.begin() + 1, shape.end()};
-    auto childType = bindFixedListType(childShape, typeID);
-    return LogicalType::FIXED_LIST(std::move(childType), (uint32_t)shape[0]);
-}
-
-void NpyScanFunction::bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
-    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
-    auto reader = NpyReader(readerConfig.filePaths[fileIdx]); // TODO: double check
-    auto columnName = std::string("column" + std::to_string(fileIdx));
-    auto columnType = bindFixedListType(reader.getShape(), reader.getType());
-    columnNames.push_back(columnName);
-    columnTypes.push_back(*columnType);
+function_set NpyScanFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(std::make_unique<TableFunction>(READ_NPY_FUNC_NAME, tableFunc, bindFunc,
+        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    return functionSet;
 }
 
 } // namespace processor

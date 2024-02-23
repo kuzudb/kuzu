@@ -23,9 +23,6 @@ void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
         .def("hasNext", &PyQueryResult::hasNext)
         .def("getNext", &PyQueryResult::getNext)
-        .def("writeToCSV", &PyQueryResult::writeToCSV, py::arg("filename"),
-            py::arg("delimiter") = ",", py::arg("escapeCharacter") = "\"",
-            py::arg("newline") = "\n")
         .def("close", &PyQueryResult::close)
         .def("getAsDF", &PyQueryResult::getAsDF)
         .def("getAsArrow", &PyQueryResult::getAsArrow)
@@ -54,18 +51,6 @@ py::list PyQueryResult::getNext() {
         result[i] = convertValueToPyObject(*tuple->getValue(i));
     }
     return result;
-}
-
-void PyQueryResult::writeToCSV(const py::str& filename, const py::str& delimiter,
-    const py::str& escapeCharacter, const py::str& newline) {
-    std::string delimiterStr = delimiter;
-    std::string escapeCharacterStr = escapeCharacter;
-    std::string newlineStr = newline;
-    KU_ASSERT(delimiterStr.size() == 1);
-    KU_ASSERT(escapeCharacterStr.size() == 1);
-    KU_ASSERT(newlineStr.size() == 1);
-    queryResult->writeToCSV(
-        std::string(filename), delimiterStr[0], escapeCharacterStr[0], newlineStr[0]);
 }
 
 void PyQueryResult::close() {
@@ -209,8 +194,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::UUID: {
         kuzu::common::int128_t result = value.getValue<kuzu::common::int128_t>();
-        std::string uuidString = kuzu::common::uuid_t::toString(result);
-        
+        std::string uuidString = kuzu::common::UUID::toString(result);
         auto UUID = importCache->uuid.UUID();
         return UUID(uuidString);
     }

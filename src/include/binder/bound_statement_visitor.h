@@ -22,6 +22,7 @@ protected:
     virtual void visitAlter(const BoundStatement&) {}
     virtual void visitCopyFrom(const BoundStatement&) {}
     virtual void visitCopyTo(const BoundStatement&) {}
+    virtual void visitExportDatabase(const BoundStatement&) {}
     virtual void visitStandaloneCall(const BoundStatement&) {}
     virtual void visitCommentOn(const BoundStatement&) {}
     virtual void visitExplain(const BoundStatement&);

@@ -1319,3 +1319,11 @@ False
 -STATEMENT RETURN CAST([3,5,2], "int64[]") as foo;
 ---- 1
 [3,5,2]
+
+-LOG PatternToString
+-STATEMENT OPTIONAL MATCH p = (a:person) WHERE a.ID = -1 RETURN cast(nodes(p), "string");
+---- 1
+[]
+-STATEMENT OPTIONAL MATCH p = (a:person)-[e:knows]->(:person) WHERE a.ID = -1 RETURN cast(rels(p), "string");
+---- 1
+[]

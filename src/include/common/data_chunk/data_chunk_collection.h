@@ -29,11 +29,11 @@ public:
 private:
     DataChunk* allocateChunk(DataChunk& chunk);
 
-    void initTypes(DataChunk chunk);
+    void initTypes(DataChunk& chunk);
 
 private:
     storage::MemoryManager* mm;
-    std::vector<std::unique_ptr<LogicalType>> types;
+    std::vector<LogicalType> types;
     std::vector<std::unique_ptr<DataChunk>> chunks;
 };
 

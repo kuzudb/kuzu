@@ -75,10 +75,10 @@ std::shared_ptr<Expression> ExpressionBinder::foldExpression(
 }
 
 static std::string unsupportedImplicitCastException(
-    const Expression& expression, const common::LogicalType& targetType) {
+    const Expression& expression, const std::string& targetTypeStr) {
     return stringFormat(
         "Expression {} has data type {} but expected {}. Implicit cast is not supported.",
-        expression.toString(), expression.dataType.toString(), targetType.toString());
+        expression.toString(), expression.dataType.toString(), targetTypeStr);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
@@ -90,8 +90,8 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         }
         // We don't support casting to nested data type. So instead we validate type match.
         if (expression->getDataType().getLogicalTypeID() != targetTypeID) {
-            throw BinderException(
-                unsupportedImplicitCastException(*expression, LogicalType{targetTypeID}));
+            throw BinderException(unsupportedImplicitCastException(
+                *expression, LogicalTypeUtils::toString(targetTypeID)));
         }
         return expression;
     }
@@ -123,7 +123,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
             std::move(bindData), std::move(children), scalarFunction->execFunc,
             nullptr /* selectFunc */, std::move(uniqueName));
     } else {
-        throw BinderException(unsupportedImplicitCastException(*expression, targetType));
+        throw BinderException(unsupportedImplicitCastException(*expression, targetType.toString()));
     }
 }
 

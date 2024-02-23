@@ -159,9 +159,9 @@ person|person
 -STATEMENT CALL show_connection('workAt') RETURN *
 ---- 1
 person|organisation
--STATEMENT CREATE REL TABLE GROUP Knows (FROM person To person, FROM person to organisation, year INT64);
+-STATEMENT CREATE REL TABLE GROUP Knows1 (FROM person To person, FROM person to organisation, year INT64);
 ---- ok
--STATEMENT CALL show_connection('Knows') RETURN *
+-STATEMENT CALL show_connection('Knows1') RETURN *
 ---- 2
 person|person
 person|organisation
@@ -172,7 +172,7 @@ Binder exception: Show connection can only be called on a rel table!
 -LOG WrongNumParameter
 -STATEMENT CALL table_info('person', 'knows') RETURN *
 ---- error
-Binder exception: Cannot match a built-in function for given function TABLE_INFO(STRING,STRING). Supported inputs are
+Binder exception: Cannot match a built-in function for given function table_info(STRING,STRING). Supported inputs are
 (STRING)
 
 -LOG WrongParameterType
@@ -183,7 +183,7 @@ Binder exception: Show connection can only bind to String!
 -LOG WrongParameterExprType
 -STATEMENT CALL show_connection(upper("person")) RETURN *
 ---- error
-Catalog exception: Cannot find a table with name PERSON.
+Binder exception: Show connection can only be called on a rel table!
 -STATEMENT MATCH (a:person) CALL show_connection(a.fName) RETURN *
 ---- error
 Binder exception: Cannot evaluate a.fName as a literal.

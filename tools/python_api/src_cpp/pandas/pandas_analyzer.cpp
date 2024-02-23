@@ -1,6 +1,6 @@
 #include "pandas/pandas_analyzer.h"
 
-#include "function/built_in_function.h"
+#include "function/built_in_function_utils.h"
 #include "cached_import/py_cached_import.h"
 #include "py_conversion.h"
 
@@ -23,7 +23,7 @@ static bool upgradeType(common::LogicalType& left, const common::LogicalType& ri
         return true;
     }
     auto leftToRightCost =
-        function::BuiltInFunctions::getCastCost(left.getLogicalTypeID(), right.getLogicalTypeID());
+        function::BuiltInFunctionsUtils::getCastCost(left.getLogicalTypeID(), right.getLogicalTypeID());
     if (leftToRightCost != common::UNDEFINED_CAST_COST) {
         left = right;
     } else {

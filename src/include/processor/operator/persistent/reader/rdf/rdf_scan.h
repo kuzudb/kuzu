@@ -1,8 +1,8 @@
 #pragma once
 
 #include "function/scalar_function.h"
-#include "function/table_functions/bind_data.h"
-#include "function/table_functions/scan_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/scan_functions.h"
 #include "rdf_reader.h"
 
 namespace kuzu {
@@ -184,9 +184,10 @@ struct RdfLiteralTripleScan {
 struct RdfAllTripleScan {
     static function::function_set getFunctionSet();
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext*,
-        function::TableFuncBindInput* input_, catalog::Catalog*, storage::StorageManager*);
+    static common::offset_t tableFunc(
+        function::TableFuncInput& input, function::TableFuncOutput& output);
+    static std::unique_ptr<function::TableFuncBindData> bindFunc(
+        main::ClientContext*, function::TableFuncBindInput* input_);
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         function::TableFunctionInitInput& input);
 };
@@ -194,25 +195,29 @@ struct RdfAllTripleScan {
 struct RdfResourceInMemScan {
     static function::function_set getFunctionSet();
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+    static common::offset_t tableFunc(
+        function::TableFuncInput& input, function::TableFuncOutput& output);
 };
 
 struct RdfLiteralInMemScan {
     static function::function_set getFunctionSet();
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+    static common::offset_t tableFunc(
+        function::TableFuncInput& input, function::TableFuncOutput& output);
 };
 
 struct RdfResourceTripleInMemScan {
     static function::function_set getFunctionSet();
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+    static common::offset_t tableFunc(
+        function::TableFuncInput& input, function::TableFuncOutput& output);
 };
 
 struct RdfLiteralTripleInMemScan {
     static function::function_set getFunctionSet();
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+    static common::offset_t tableFunc(
+        function::TableFuncInput& input, function::TableFuncOutput& output);
 };
 
 } // namespace processor

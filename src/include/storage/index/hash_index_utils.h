@@ -63,9 +63,13 @@ public:
         return hash;
     }
 
-    template<common::IndexHashable T>
-    inline static slot_id_t getPrimarySlotIdForKey(const HashIndexHeader& indexHeader, T key) {
-        auto hash = HashIndexUtils::hash(key);
+    inline static uint8_t getFingerprintForHash(common::hash_t hash) {
+        // Last 8 bits before the bits used to calculate the hash index position is the fingerprint
+        return (hash >> (64 - NUM_HASH_INDEXES_LOG2 - 8)) & 255;
+    }
+
+    inline static slot_id_t getPrimarySlotIdForHash(
+        const HashIndexHeader& indexHeader, common::hash_t hash) {
         auto slotId = hash & indexHeader.levelHashMask;
         if (slotId < indexHeader.nextSplitSlotId) {
             slotId = hash & indexHeader.higherLevelHashMask;

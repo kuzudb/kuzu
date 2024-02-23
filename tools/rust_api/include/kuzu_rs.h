@@ -98,9 +98,6 @@ rust::String query_result_get_error_message(const kuzu::main::QueryResult& resul
 double query_result_get_compiling_time(const kuzu::main::QueryResult& result);
 double query_result_get_execution_time(const kuzu::main::QueryResult& result);
 
-void query_result_write_to_csv(kuzu::main::QueryResult& query_result, const rust::String& filename,
-    int8_t delimiter, int8_t escape_character, int8_t newline);
-
 std::unique_ptr<std::vector<kuzu::common::LogicalType>> query_result_column_data_types(
     const kuzu::main::QueryResult& query_result);
 rust::Vec<rust::String> query_result_column_names(const kuzu::main::QueryResult& query_result);
@@ -178,7 +175,7 @@ std::unique_ptr<kuzu::common::Value> create_value_internal_id(uint64_t offset, u
 
 inline std::unique_ptr<kuzu::common::Value> create_value_uuid_t(int64_t high, uint64_t low) {
     return std::make_unique<kuzu::common::Value>(
-        kuzu::common::uuid_t{kuzu::common::int128_t(low, high)});
+        kuzu::common::ku_uuid_t{kuzu::common::int128_t(low, high)});
 }
 
 template<typename T>

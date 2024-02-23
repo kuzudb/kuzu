@@ -27,7 +27,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(
     auto schema = expressionsScan->getSchema();
     KU_ASSERT(logicalOpToPhysicalOpMap.contains(outerAccumulate));
     auto physicalOp = logicalOpToPhysicalOpMap.at(outerAccumulate);
-    KU_ASSERT(physicalOp->getOperatorType() == PhysicalOperatorType::FACTORIZED_TABLE_SCAN);
+    KU_ASSERT(physicalOp->getOperatorType() == PhysicalOperatorType::IN_QUERY_CALL);
     KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::RESULT_COLLECTOR);
     auto resultCollector = (ResultCollector*)physicalOp->getChild(0);
     auto table = resultCollector->getResultFactorizedTable();

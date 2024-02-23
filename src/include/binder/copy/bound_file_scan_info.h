@@ -1,8 +1,8 @@
 #pragma once
 
 #include "binder/expression/expression.h"
+#include "function/table/bind_data.h"
 #include "function/table_functions.h"
-#include "function/table_functions/bind_data.h"
 
 namespace kuzu {
 namespace binder {

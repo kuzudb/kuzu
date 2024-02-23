@@ -200,6 +200,7 @@ void ColumnChunk::resetToEmpty() {
     if (nullChunk) {
         nullChunk->resetToEmpty();
     }
+    memset(buffer.get(), 0, bufferSize);
     numValues = 0;
 }
 

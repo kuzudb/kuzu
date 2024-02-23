@@ -1,6 +1,6 @@
 #include "pandas/pandas_scan.h"
 
-#include "function/table_functions/bind_input.h"
+#include "function/table/bind_input.h"
 #include "cached_import/py_cached_import.h"
 #include "numpy/numpy_scan.h"
 #include "py_connection.h"
@@ -21,8 +21,7 @@ function_set PandasScanFunction::getFunctionSet() {
 }
 
 std::unique_ptr<function::TableFuncBindData> PandasScanFunction::bindFunc(
-    main::ClientContext* /*context*/, TableFuncBindInput* input, Catalog* /*catalog*/,
-    storage::StorageManager* /*storageManager*/) {
+    main::ClientContext* /*context*/, TableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
     py::handle df(reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>()));
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
@@ -86,24 +85,25 @@ void PandasScanFunction::pandasBackendScanSwitch(
     }
 }
 
-void PandasScanFunction::tableFunc(
-    function::TableFunctionInput& input, common::DataChunk& outputChunk) {
+common::offset_t PandasScanFunction::tableFunc(
+    function::TableFuncInput& input, function::TableFuncOutput& output) {
     auto pandasScanData = reinterpret_cast<PandasScanFunctionData*>(input.bindData);
     auto pandasLocalState = reinterpret_cast<PandasScanLocalState*>(input.localState);
 
     if (pandasLocalState->start >= pandasLocalState->end) {
         if (!sharedStateNext(input.bindData, pandasLocalState, input.sharedState)) {
-            return;
+            return 0;
         }
     }
     auto numValuesToOutput =
         std::min(DEFAULT_VECTOR_CAPACITY, pandasLocalState->end - pandasLocalState->start);
     for (auto i = 0u; i < pandasScanData->columnNames.size(); i++) {
         pandasBackendScanSwitch(pandasScanData->columnBindData[i].get(), numValuesToOutput,
-            pandasLocalState->start, outputChunk.getValueVector(i).get());
+            pandasLocalState->start, output.dataChunk.getValueVector(i).get());
     }
-    outputChunk.state->selVector->selectedSize = numValuesToOutput;
+    output.dataChunk.state->selVector->selectedSize = numValuesToOutput;
     pandasLocalState->start += numValuesToOutput;
+    return numValuesToOutput;
 }
 
 std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyColumnBindData() const {

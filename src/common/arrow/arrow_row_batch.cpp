@@ -255,7 +255,7 @@ template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::UUID>(
     ArrowVector* vector, const main::DataTypeInfo& /*typeInfo*/, Value* value, std::int64_t pos) {
     auto offsets = (std::uint32_t*)vector->data.data();
-    auto str = uuid_t::toString(value->val.int128Val);
+    auto str = UUID::toString(value->val.int128Val);
     auto strLength = str.length();
     offsets[pos + 1] = offsets[pos] + strLength;
     vector->overflow.resize(offsets[pos + 1]);

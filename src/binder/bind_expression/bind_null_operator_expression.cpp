@@ -12,7 +12,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     const ParsedExpression& parsedExpression) {
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+        auto boundChild = bindExpression(*parsedExpression.getChild(i));
+        if (boundChild->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
+            // e.g. NULL IS NULL. We assign a default type to the expression.
+            boundChild = implicitCastIfNecessary(std::move(boundChild), LogicalTypeID::BOOL);
+        }
+        children.push_back(std::move(boundChild));
     }
     auto expressionType = parsedExpression.getExpressionType();
     auto functionName = expressionTypeToString(expressionType);

@@ -166,7 +166,7 @@ protected:
     }
 
 private:
-    void checkOutOfBoundAccess(transaction::TransactionType trxType, uint64_t idx);
+    bool checkOutOfBoundAccess(transaction::TransactionType trxType, uint64_t idx);
     bool hasPIPUpdatesNoLock(uint64_t pipIdx);
 
     uint64_t readUInt64HeaderFieldNoLock(

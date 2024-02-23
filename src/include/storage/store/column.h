@@ -136,8 +136,7 @@ protected:
     virtual void writeValue(const ColumnChunkMetadata& chunkMeta,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
-    virtual void writeValues(const ColumnChunkMetadata& chunkMeta,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk, const uint8_t* data,
+    virtual void writeValues(ReadState& state, common::offset_t offsetInChunk, const uint8_t* data,
         common::offset_t dataOffset = 0, common::offset_t numValues = 1);
 
     // Produces a page cursor for the offset relative to the given node group
@@ -146,8 +145,8 @@ protected:
     // Produces a page cursor for the absolute node offset
     PageCursor getPageCursorForOffset(transaction::TransactionType transactionType,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
-    WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
+    void updatePageWithCursor(
+        PageCursor cursor, const std::function<void(uint8_t*, common::offset_t)>& writeOp);
 
     virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit(uint64_t capacity);
 

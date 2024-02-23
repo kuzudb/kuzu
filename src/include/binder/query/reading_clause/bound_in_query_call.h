@@ -2,8 +2,8 @@
 
 #include "binder/expression/expression.h"
 #include "binder/query/reading_clause/bound_reading_clause.h"
+#include "function/table/bind_data.h"
 #include "function/table_functions.h"
-#include "function/table_functions/bind_data.h"
 
 namespace kuzu {
 namespace binder {

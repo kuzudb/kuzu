@@ -2,6 +2,8 @@
 
 #include "common/type_utils.h"
 #include "common/types/types.h"
+#include "storage/index/hash_index_header.h"
+#include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/in_mem_file.h"
@@ -46,6 +48,11 @@ public:
 // S is the stored type, which is usually the same as T, with the exception of strings
 template<common::IndexHashable T, typename S = T>
 class HashIndexBuilder final : public InMemHashIndex {
+    static_assert(getSlotCapacity<T>() <= SlotHeader::FINGERPRINT_CAPACITY);
+    // Size of the validity mask
+    static_assert(getSlotCapacity<T>() <= sizeof(SlotHeader().validityMask) * 8);
+    static_assert(getSlotCapacity<T>() <= std::numeric_limits<entry_pos_t>::max() + 1);
+
 public:
     HashIndexBuilder(const std::shared_ptr<FileHandle>& handle,
         std::unique_ptr<InMemFile> overflowFile, uint64_t indexPos,
@@ -77,19 +84,17 @@ private:
         return keyToLookup == keyInEntry;
     }
 
-    inline void updateForNewEntry(Slot<S>* slot, uint8_t entryPos) {
-        slot->header.setEntryValid(entryPos);
-        slot->header.numEntries++;
-    }
-
-    inline void insert(T key, Slot<S>* slot, uint8_t entryPos, common::offset_t value) {
+    inline void insert(
+        T key, Slot<S>* slot, uint8_t entryPos, common::offset_t value, uint8_t fingerprint) {
         auto entry = slot->entries[entryPos].data;
         memcpy(entry, &key, sizeof(T));
         memcpy(entry + sizeof(T), &value, sizeof(common::offset_t));
-        updateForNewEntry(slot, entryPos);
+        slot->header.setEntryValid(entryPos, fingerprint);
+        KU_ASSERT(HashIndexUtils::getFingerprintForHash(HashIndexUtils::hash(key)) == fingerprint);
     }
-    void copy(const uint8_t* oldEntry, slot_id_t newSlotId);
-    void insertToNewOvfSlot(T key, Slot<S>* previousSlot, common::offset_t offset);
+    void copy(const uint8_t* oldEntry, slot_id_t newSlotId, uint8_t fingerprint);
+    void insertToNewOvfSlot(
+        T key, Slot<S>* previousSlot, common::offset_t offset, uint8_t fingerprint);
     common::hash_t hashStored(const S& key) const;
 
     struct SlotIterator {

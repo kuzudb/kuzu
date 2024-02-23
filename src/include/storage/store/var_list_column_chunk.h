@@ -65,7 +65,7 @@ private:
 
     inline void initializeIndices() {
         indicesColumnChunk = ColumnChunkFactory::createColumnChunk(
-            *common::LogicalType::INT64(), false /*enableCompression*/);
+            *common::LogicalType::INT64(), false /*enableCompression*/, capacity);
         indicesColumnChunk->getNullChunk()->resetToAllNull();
         for (auto i = 0u; i < numValues; i++) {
             indicesColumnChunk->setValue<common::offset_t>(i, i);
