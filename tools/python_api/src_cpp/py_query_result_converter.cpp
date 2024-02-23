@@ -207,12 +207,12 @@ py::object QueryResultConverter::toDF() {
     py::dict result;
     auto colNames = queryResult->getColumnNames();
 
-    auto masked_array = importCache->numpyma.masked_array();
-    auto from_dict = importCache->pandas.DataFrame.from_dict();
+    auto maskedArray = importCache->numpyma.masked_array();
+    auto fromDict = importCache->pandas.DataFrame.from_dict();
 
     for (auto i = 0u; i < colNames.size(); i++) {
         result[colNames[i].c_str()] =
-            masked_array(columns[i]->data, columns[i]->mask);
+            maskedArray(columns[i]->data, columns[i]->mask);
     }
-    return from_dict(result);
+    return fromDict(result);
 }

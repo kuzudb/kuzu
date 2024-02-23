@@ -11,7 +11,7 @@ public:
     // Note: Callers generally acquire the GIL prior to entering functions
     // that require the import cache.
 
-    explicit PythonCachedImport() = default;
+    PythonCachedImport() = default;
     ~PythonCachedImport();
 
     py::handle addToCache(py::object obj);

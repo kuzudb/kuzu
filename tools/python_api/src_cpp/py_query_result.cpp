@@ -370,12 +370,8 @@ kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize) {
     py::list batches = getArrowChunks(typesInfo, chunkSize);
     auto schema = ArrowConverter::toArrowSchema(typesInfo);
 
-    py::handle fromBatchesFunc, schemaImportFunc;
-    {
-        
-        fromBatchesFunc = importCache->pyarrow.lib.Table.from_batches();
-        schemaImportFunc = importCache->pyarrow.lib.Schema._import_from_c();
-    }
+    auto fromBatchesFunc = importCache->pyarrow.lib.Table.from_batches();
+    auto schemaImportFunc = importCache->pyarrow.lib.Schema._import_from_c();
     auto schemaObj = schemaImportFunc((std::uint64_t)schema.get());
     return py::cast<kuzu::pyarrow::Table>(fromBatchesFunc(batches, schemaObj));
 }
