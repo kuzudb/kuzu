@@ -30,7 +30,8 @@ oC_Statement
         | kU_CommentOn
         | kU_Transaction
         | kU_Extension
-        | kU_ExportDatabase;
+        | kU_ExportDatabase
+        | kU_ImportDatabase;
 
 kU_CopyFrom
     : COPY SP oC_SchemaName ( ( SP? '(' SP? kU_ColumnNames SP? ')' SP? ) | SP ) FROM SP (kU_FilePaths | oC_Variable) ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
@@ -46,6 +47,10 @@ kU_CopyTO
 
 kU_ExportDatabase
     : EXPORT SP DATABASE SP StringLiteral ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+
+kU_ImportDatabase
+    : IMPORT SP DATABASE SP StringLiteral;
+
 
 kU_StandaloneCall
     : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
@@ -88,6 +93,8 @@ FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ;
 COLUMN : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'U' | 'u' ) ( 'M' | 'm' ) ( 'N' | 'n' ) ;
 
 EXPORT: ( 'E' | 'e') ( 'X' | 'x') ( 'P' | 'p') ( 'O' | 'o') ( 'R' | 'r') ( 'T' | 't');
+
+IMPORT: ( 'I' | 'i') ( 'M' | 'm') ( 'P' | 'p') ( 'O' | 'o') ( 'R' | 'r') ( 'T' | 't');
 
 DATABASE: ( 'D' | 'd') ( 'A' | 'a') ( 'T' | 't') ( 'A' | 'a') ( 'B' | 'b') ( 'A' | 'a') ( 'S' | 's')( 'E' | 'e');
 
@@ -754,6 +761,7 @@ kU_NonReservedKeywords
         | BEGIN
         | END
         | IN
+        | IMPORT
         | EXPORT
         | DATABASE
         ;

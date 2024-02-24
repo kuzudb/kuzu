@@ -49,6 +49,7 @@ private:
     virtual void visitTransaction(const Statement& /*statement*/) {}
     virtual void visitExtension(const Statement& /*statement*/) {}
     virtual void visitExportDatabase(const Statement& /*statement*/) {}
+    virtual void visitImportDatabase(const Statement& /*statement*/) {}
     // LCOV_EXCL_STOP
 };
 

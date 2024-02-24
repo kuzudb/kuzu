@@ -113,6 +113,8 @@ public:
 
     std::unique_ptr<QueryResult> query(std::string_view queryStatement);
 
+    void runQuery(std::string query);
+
 private:
     inline void resetActiveQuery() { activeQuery.reset(); }
 

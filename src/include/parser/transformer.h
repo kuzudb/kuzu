@@ -53,6 +53,7 @@ private:
     parsing_option_t transformParsingOptions(CypherParser::KU_ParsingOptionsContext& ctx);
 
     std::unique_ptr<Statement> transformExportDatabase(CypherParser::KU_ExportDatabaseContext& ctx);
+    std::unique_ptr<Statement> transformImportDatabase(CypherParser::KU_ImportDatabaseContext& ctx);
 
     // Transform query statement.
     std::unique_ptr<Statement> transformQuery(CypherParser::OC_QueryContext& ctx);

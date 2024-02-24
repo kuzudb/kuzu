@@ -105,6 +105,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapTransaction(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExtension(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExportDatabase(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapImportDatabase(planner::LogicalOperator* logicalOperator);
 
     std::unique_ptr<PhysicalOperator> createCopyRel(
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,

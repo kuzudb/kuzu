@@ -35,8 +35,6 @@ public:
 
     static void executeScript(const std::string& path, main::Connection& conn);
 
-    static void executeImportDBScript(const std::string& cypherScript, main::Connection& conn);
-
     static std::string getTestListFile() {
         return appendKuzuRootPath(std::string(E2E_TEST_FILES_DIRECTORY) + "/test_list");
     }

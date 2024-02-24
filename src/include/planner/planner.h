@@ -65,6 +65,7 @@ private:
 
     // Plan export database
     std::unique_ptr<LogicalPlan> planExportDatabase(const binder::BoundStatement& statement);
+    std::unique_ptr<LogicalPlan> planImportDatabase(const binder::BoundStatement& statement);
 
     // Plan query.
     std::vector<std::unique_ptr<LogicalPlan>> planQuery(

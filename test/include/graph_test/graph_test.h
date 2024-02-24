@@ -42,7 +42,6 @@ public:
         initGraph();
     }
     void createDB(uint64_t checkpointWaitTimeout);
-    void importDB(std::string filePath);
     void createNewDB();
 
     inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
@@ -51,15 +50,19 @@ public:
         std::set<std::string> connNames = std::set<std::string>()) {
         for (auto& statement : statements) {
             // special for testing import and export test cases
+            if (statement->removeFileFlag) {
+                auto filePath = statement->removeFilePath;
+                filePath.erase(std::remove(filePath.begin(), filePath.end(), '\"'), filePath.end());
+                removeDir(filePath);
+                continue;
+            }
             if (statement->importDBFlag) {
                 auto filePath = statement->importFilePath;
                 filePath.erase(std::remove(filePath.begin(), filePath.end(), '\"'), filePath.end());
                 createNewDB();
-                importDB(filePath);
                 BaseGraphTest::setIEDatabasePath(filePath);
                 continue;
             }
-
             if (statement->reloadDBFlag) {
                 createDB(checkpointWaitTimeout);
                 createConns(connNames);

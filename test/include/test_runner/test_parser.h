@@ -44,7 +44,8 @@ enum class TokenType {
     SET,
 
     // special for testing exporting database
-    IMPORT_DATABASE
+    IMPORT_DATABASE,
+    REMOVE_FILE
 };
 
 const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},
@@ -64,7 +65,8 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenTyp
     {"-BATCH_STATEMENTS", TokenType::BATCH_STATEMENTS}, {"-RELOADDB", TokenType::RELOADDB},
     {"-CREATE_CONNECTION", TokenType::CREATE_CONNECTION}, {"]", TokenType::END_OF_STATEMENT_BLOCK},
     {"----", TokenType::RESULT}, {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY},
-    {"-SET", TokenType::SET}, {"-IMPORT_DATABASE", TokenType::IMPORT_DATABASE}};
+    {"-SET", TokenType::SET}, {"-IMPORT_DATABASE", TokenType::IMPORT_DATABASE},
+    {"-REMOVE_FILE", TokenType::REMOVE_FILE}};
 
 class LogicToken {
 public:
