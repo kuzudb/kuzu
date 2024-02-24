@@ -7,7 +7,7 @@
 	clangd tidy clangd-diagnostics \
 	install \
 	clean-extension clean-python-api clean-java clean \
-	extension-test
+	extension-test shell-test 
 
 .ONESHELL:
 .SHELLFLAGS = -ec
@@ -173,6 +173,12 @@ extension-release:
 		-DBUILD_EXTENSIONS=httpfs \
 		-DBUILD_KUZU=FALSE \
 	)
+
+shell-test:
+	$(call run-cmake-release, \
+		-DBUILD_SHELL=TRUE \
+	)
+	python3 -m pytest -v tools/shell/test
 
 # Clang-related tools and checks
 

@@ -1253,14 +1253,7 @@ static void refreshSearch(struct linenoiseState* l) {
 }
 
 static void cancelSearch(linenoiseState* l) {
-    char* tempBuf = l->buf;
-    l->len = 0;
-    l->pos = 0;
-    l->buf = (char*)"";
     refreshSearchMultiLine(l, (char*)"", (char*)"");
-    l->buf = tempBuf;
-    l->len = strlen(tempBuf);
-    l->pos = l->len;
 
     history_len--;
     free(history[history_len]);
@@ -1270,14 +1263,15 @@ static void cancelSearch(linenoiseState* l) {
     l->search_buf = std::string();
     l->search_matches.clear();
     l->search_index = 0;
-    refreshLine(l);
 }
 
 static char acceptSearch(linenoiseState* l, char nextCommand) {
+    bool no_matches = true;
     int history_index = l->prev_search_match_history_index;
     if (l->search_index < l->search_matches.size()) {
         // if there is a match - copy it into the buffer
         auto match = l->search_matches[l->search_index];
+        no_matches = false;
         history_index = match.history_index;
     }
 
@@ -1297,7 +1291,12 @@ static char acceptSearch(linenoiseState* l, char nextCommand) {
         }
         strncpy(l->buf, history[history_len - 1 - l->history_index], l->buflen);
         l->buf[l->buflen - 1] = '\0';
-        l->len = l->pos = strlen(l->buf);
+        l->len = strlen(l->buf);
+        if (no_matches) {
+            l->pos = l->len;
+        } else {
+            l->pos = l->search_matches[l->search_index].match_end;
+        }
     }
 
     cancelSearch(l);
@@ -1390,13 +1389,16 @@ static char linenoiseSearch(linenoiseState *l, char c) {
     char seq[64];
 
 	switch (c) {
+    case 10:
 	case ENTER: /* enter */
 		// accept search and run
 		return acceptSearch(l, ENTER);
+    case CTRL_N:
 	case CTRL_R:
 		// move to the next match index
 		searchNext(l);
 		break;
+    case CTRL_P:
     case CTRL_S:
         // move to the prev match index
         searchPrev(l);
@@ -1479,7 +1481,7 @@ static char linenoiseSearch(linenoiseState *l, char c) {
 	case CTRL_A: // accept search, move to start of line
 		return acceptSearch(l, CTRL_A);
 	case TAB:
-        if (pastedInput(c)) {
+        if (l->hasMoreData) {
             l->search_buf += ' ';
             performSearch(l);
             break;
@@ -1501,12 +1503,6 @@ static char linenoiseSearch(linenoiseState *l, char c) {
 		return acceptSearch(l, CTRL_D);
 	case CTRL_L:
 		linenoiseClearScreen();
-		break;
-	case CTRL_P:
-		searchPrev(l);
-		break;
-	case CTRL_N:
-		searchNext(l);
 		break;
 	case CTRL_C:
 	case CTRL_G:
@@ -1890,7 +1886,7 @@ static int linenoiseEdit(
             break;
         case CTRL_P: /* ctrl-p */
             linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_PREV);
-            break;
+            break;  
         case CTRL_N: /* ctrl-n */
             linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_NEXT);
             break;
