@@ -1,5 +1,6 @@
 #include "optimizer/factorization_rewriter.h"
 
+#include "binder/expression_visitor.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
@@ -74,11 +75,26 @@ void FactorizationRewriter::visitIntersect(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitProjection(planner::LogicalOperator* op) {
     auto projection = (LogicalProjection*)op;
-    for (auto& expression : projection->getExpressionsToProject()) {
-        auto dependentGroupsPos = op->getChild(0)->getSchema()->getDependentGroupsPos(expression);
-        auto groupsPosToFlatten = factorization::FlattenAllButOne::getGroupsPosToFlatten(
-            dependentGroupsPos, op->getChild(0)->getSchema());
+    bool hasRandomFunction = false;
+    for (auto& expr : projection->getExpressionsToProject()) {
+        if (ExpressionVisitor::isRandom(*expr)) {
+            hasRandomFunction = true;
+        }
+    }
+    if (hasRandomFunction) {
+        // Fall back to tuple-at-a-time evaluation.
+        auto groupsPos = op->getChild(0)->getSchema()->getGroupsPosInScope();
+        auto groupsPosToFlatten = factorization::FlattenAll::getGroupsPosToFlatten(
+            groupsPos, op->getChild(0)->getSchema());
         projection->setChild(0, appendFlattens(projection->getChild(0), groupsPosToFlatten));
+    } else {
+        for (auto& expression : projection->getExpressionsToProject()) {
+            auto dependentGroupsPos =
+                op->getChild(0)->getSchema()->getDependentGroupsPos(expression);
+            auto groupsPosToFlatten = factorization::FlattenAllButOne::getGroupsPosToFlatten(
+                dependentGroupsPos, op->getChild(0)->getSchema());
+            projection->setChild(0, appendFlattens(projection->getChild(0), groupsPosToFlatten));
+        }
     }
 }
 
