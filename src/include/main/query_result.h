@@ -32,6 +32,23 @@ public:
  */
 class QueryResult {
     friend class Connection;
+    class QueryResultIterator {
+    private:
+        QueryResult* currentResult;
+
+    public:
+        explicit QueryResultIterator(QueryResult* startResult) : currentResult(startResult) {}
+
+        void operator++() {
+            if (currentResult) {
+                currentResult = currentResult->nextQueryResult.get();
+            }
+        }
+
+        bool isEnd() { return currentResult == nullptr; }
+
+        QueryResult* getCurrentResult() { return currentResult; }
+    };
 
 public:
     /**
@@ -79,11 +96,16 @@ public:
      * @return whether there are more tuples to read.
      */
     KUZU_API bool hasNext() const;
+    std::unique_ptr<QueryResult> nextQueryResult;
+
+    std::string toSingleQueryString();
     /**
      * @return next flat tuple in the query result.
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
-
+    /**
+     * @return string of query result.
+     */
     KUZU_API std::string toString();
 
     /**

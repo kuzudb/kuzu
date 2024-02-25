@@ -10,15 +10,21 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace parser {
 
-std::unique_ptr<Statement> Transformer::transform() {
-    auto statement = transformStatement(*root.oC_Statement());
-    if (root.oC_AnyCypherOption()) {
-        auto cypherOption = root.oC_AnyCypherOption();
-        auto explainType =
-            cypherOption->oC_Explain() ? ExplainType::PHYSICAL_PLAN : ExplainType::PROFILE;
-        return std::make_unique<ExplainStatement>(std::move(statement), explainType);
+std::vector<std::unique_ptr<Statement>> Transformer::transform() {
+    std::vector<std::unique_ptr<Statement>> statements;
+    for (auto& oc_Statement : root.oC_Cypher()) {
+        auto statement = transformStatement(*oc_Statement->oC_Statement());
+        if (oc_Statement->oC_AnyCypherOption()) {
+            auto cypherOption = oc_Statement->oC_AnyCypherOption();
+            auto explainType =
+                cypherOption->oC_Explain() ? ExplainType::PHYSICAL_PLAN : ExplainType::PROFILE;
+            statements.push_back(
+                std::make_unique<ExplainStatement>(std::move(statement), explainType));
+            continue;
+        }
+        statements.push_back(std::move(statement));
     }
-    return statement;
+    return statements;
 }
 
 std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_StatementContext& ctx) {

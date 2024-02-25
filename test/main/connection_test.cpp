@@ -93,3 +93,40 @@ TEST_F(ApiTest, TimeOut) {
     ASSERT_FALSE(result->isSuccess());
     ASSERT_EQ(result->getErrorMessage(), "Interrupted.");
 }
+
+TEST_F(ApiTest, MultipleQueryExplain) {
+    auto result = conn->query("EXPLAIN MATCH (a:person)-[:knows]->(b:person), "
+                              "(b)-[:knows]->(a) RETURN a.fName, b.fName ORDER BY a.ID; MATCH "
+                              "(a:person) RETURN a.fName;");
+    ASSERT_TRUE(result->isSuccess());
+}
+
+TEST_F(ApiTest, MultipleQuery) {
+    auto result = conn->query("");
+    ASSERT_EQ(result->getErrorMessage(), "Connection Exception: Query is empty.");
+
+    result = conn->query("MATCH (a:A)\n"
+                         "            MATCH (a)-[:LIKES..]->(c)\n"
+                         "            RETURN c.name;");
+    ASSERT_FALSE(result->isSuccess());
+
+    result = conn->query(
+        "MATCH (a:person) RETURN a.fName; MATCH (a:person)-[:knows]->(b:person) RETURN count(*);");
+    ASSERT_TRUE(result->isSuccess());
+
+    result =
+        conn->query("CREATE NODE TABLE N(ID INT64, PRIMARY KEY(ID));CREATE REL TABLE E(FROM N TO "
+                    "N, MANY_MANY);MATCH (a:N)-[:E]->(b:N) WHERE a.ID = 0 return b.ID;");
+    ASSERT_TRUE(result->isSuccess());
+}
+
+TEST_F(ApiTest, Prepare) {
+    auto result = conn->prepare("");
+    ASSERT_EQ(result->getErrorMessage(), "Connection Exception: Query is empty.");
+
+    result =
+        conn->prepare("CREATE NODE TABLE N(ID INT64, PRIMARY KEY(ID));CREATE REL TABLE E(FROM N TO "
+                      "N, MANY_MANY);MATCH (a:N)-[:E]->(b:N) WHERE a.ID = 0 return b.ID;");
+    ASSERT_EQ(result->getErrorMessage(),
+        "Connection Exception: We do not support prepare multiple statements.");
+}

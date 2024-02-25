@@ -54,6 +54,7 @@ QueryResult::QueryResult() = default;
 QueryResult::QueryResult(const PreparedSummary& preparedSummary) {
     querySummary = std::make_unique<QuerySummary>();
     querySummary->setPreparedSummary(preparedSummary);
+    nextQueryResult = nullptr;
 }
 
 QueryResult::~QueryResult() = default;
@@ -162,6 +163,16 @@ std::shared_ptr<FlatTuple> QueryResult::getNext() {
 }
 
 std::string QueryResult::toString() {
+    std::string result;
+    QueryResultIterator it(this);
+    while (!it.isEnd()) {
+        result += it.getCurrentResult()->toSingleQueryString() + "\n";
+        ++it;
+    }
+    return result;
+}
+
+std::string QueryResult::toSingleQueryString() {
     std::string result;
     if (isSuccess()) {
         // print header
