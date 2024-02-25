@@ -1,10 +1,12 @@
 #include "binder/expression_visitor.h"
 
 #include "binder/expression/case_expression.h"
+#include "binder/expression/function_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression/subquery_expression.h"
+#include "common/cast.h"
 
 using namespace kuzu::common;
 
@@ -98,6 +100,22 @@ bool ExpressionVisitor::isConstant(const Expression& expression) {
         }
     }
     return true;
+}
+
+bool ExpressionVisitor::isRandom(const Expression& expression) {
+    if (expression.expressionType != ExpressionType::FUNCTION) {
+        return false;
+    }
+    auto& funcExpr = ku_dynamic_cast<const Expression&, const FunctionExpression&>(expression);
+    if (funcExpr.getFunctionName() == GEN_RANDOM_UUID_FUNC_NAME) {
+        return true;
+    }
+    for (auto& child : ExpressionChildrenCollector::collectChildren(expression)) {
+        if (isRandom(*child)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool ExpressionVisitor::satisfyAny(
