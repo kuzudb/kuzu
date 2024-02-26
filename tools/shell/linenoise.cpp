@@ -1266,12 +1266,12 @@ static void cancelSearch(linenoiseState* l) {
 }
 
 static char acceptSearch(linenoiseState* l, char nextCommand) {
-    bool no_matches = true;
+    bool hasMatches = false;
     int history_index = l->prev_search_match_history_index;
     if (l->search_index < l->search_matches.size()) {
         // if there is a match - copy it into the buffer
         auto match = l->search_matches[l->search_index];
-        no_matches = false;
+        hasMatches = true;
         history_index = match.history_index;
     }
 
@@ -1292,7 +1292,7 @@ static char acceptSearch(linenoiseState* l, char nextCommand) {
         strncpy(l->buf, history[history_len - 1 - l->history_index], l->buflen);
         l->buf[l->buflen - 1] = '\0';
         l->len = strlen(l->buf);
-        if (no_matches) {
+        if (!hasMatches) {
             l->pos = l->len;
         } else {
             l->pos = l->search_matches[l->search_index].match_end;

@@ -178,7 +178,7 @@ shell-test:
 	$(call run-cmake-release, \
 		-DBUILD_SHELL=TRUE \
 	)
-	python3 -m pytest -v tools/shell/test
+	cd tools/shell/test && python3 -m pytest -v 
 
 # Clang-related tools and checks
 

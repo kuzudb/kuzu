@@ -1,4 +1,5 @@
 import pytest
+import shutil
 from test_helper import *
 from conftest import ShellTest
 
@@ -154,6 +155,5 @@ def test_history_consecutive_repeats(temp_db, history_path):
     assert f.readline() == ''
     f.close()
     
-    if (os.path.exists(os.path.join(history_path, "history.txt"))):
-        os.remove(os.path.join(history_path, "history.txt"))
+    shutil.rmtree(os.path.join(history_path, "history.txt"), ignore_errors=True)
     

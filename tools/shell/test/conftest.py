@@ -154,8 +154,7 @@ class ShellTest:
 
 @pytest.fixture
 def temp_db(tmp_path):
-    if os.path.exists(tmp_path):
-        shutil.rmtree(tmp_path)
+    shutil.rmtree(tmp_path, ignore_errors=True)
     output_path = str(tmp_path)
     return output_path
 
@@ -168,8 +167,7 @@ def get_tmp_path(tmp_path):
 @pytest.fixture
 def history_path():
     path = os.path.join(KUZU_ROOT, 'tools', 'shell', 'test', 'files')
-    if (os.path.exists(os.path.join(path, "history.txt"))):
-        os.remove(os.path.join(path, "history.txt"))
+    shutil.rmtree(os.path.join(path, "history.txt"), ignore_errors=True)
     return path
 
 
