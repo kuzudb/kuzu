@@ -115,7 +115,7 @@ void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, ui
     auto blobVector = StructVector::getFieldVector(&inputVector, 1).get();
     auto typeID = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
     if (typeID == common::LogicalTypeID::BLOB) {
-        auto blob = Blob::getValue<blob_t>(blobVector->getValue<blob_t>(inputPos));
+        auto blob = blobVector->getValue<blob_t>(inputPos);
         BlobVector::addBlob(&resultVector, resultPos, blob.value.getData(), blob.value.len);
         resultVector.setNull(resultPos, false);
     } else {
@@ -252,8 +252,7 @@ void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, ui
         result = blobVector->getValue<blob_t>(inputPos).value;
     } break;
     case LogicalTypeID::BLOB: {
-        auto val = Blob::getValue<blob_t>(blob);
-        CastToString::operation(val, result, *blobVector, resultVector);
+        CastToString::operation(blob, result, *blobVector, resultVector);
     } break;
     default:
         throw RuntimeException(

@@ -721,7 +721,7 @@ std::string Value::rdfVariantToString() const {
         return children[1]->strVal;
     }
     case LogicalTypeID::BLOB: {
-        return TypeUtils::toString(Blob::getValue<blob_t>(blobData));
+        return Blob::toString((const uint8_t*)(blobData), children[1]->strVal.size());
     }
     case LogicalTypeID::INT64: {
         return TypeUtils::toString(Blob::getValue<int64_t>(blobData));
