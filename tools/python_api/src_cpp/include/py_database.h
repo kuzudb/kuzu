@@ -17,7 +17,7 @@ public:
     static void initialize(py::handle& m);
 
     explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
-        uint64_t maxNumThreads, bool compression, bool readOnly);
+        uint64_t maxNumThreads, bool compression, bool readOnly, uint64_t maxDBSize);
 
     ~PyDatabase();
 

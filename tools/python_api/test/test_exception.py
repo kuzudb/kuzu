@@ -33,6 +33,17 @@ def test_read_only_exception(establish_connection):
     with pytest.raises(RuntimeError, match="Cannot execute write operations in a read-only database!"):
         conn.execute("CREATE NODE TABLE test (id INT64, PRIMARY KEY(id));")
 
+def test_max_db_size_exception():
+    with pytest.raises(RuntimeError, match="Buffer manager exception: The given max db size should be at least 4194304 bytes."):
+        kuzu.Database("test.db", max_db_size=1024)
+
+    with pytest.raises(RuntimeError, match="Buffer manager exception: The given max db size should be a power of 2."):
+        kuzu.Database("test.db", max_db_size=4194305)
+
+def test_buffer_pool_size_exception():
+    with pytest.raises(RuntimeError, match="Buffer manager exception: The given buffer pool size should be at least 4KB."):
+        kuzu.Database("test.db", buffer_pool_size=1024)
+
 def test_query_exception(establish_connection):
     conn, db = establish_connection
     with pytest.raises(RuntimeError, match="Binder exception: Table nonexisting does not exist."):

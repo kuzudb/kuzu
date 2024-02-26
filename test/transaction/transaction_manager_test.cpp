@@ -16,7 +16,8 @@ protected:
         std::filesystem::create_directory(databasePath);
         createDBAndConn();
         bufferManager = getBufferManager(*database);
-        std::make_unique<BufferManager>(BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+        std::make_unique<BufferManager>(BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING,
+            BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE);
         wal = std::make_unique<WAL>(
             databasePath, false /* readOnly */, *bufferManager, getFileSystem(*database));
         transactionManager =

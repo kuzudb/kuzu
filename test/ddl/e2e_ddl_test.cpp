@@ -22,7 +22,8 @@ public:
         catalog = getCatalog(*database);
         profiler = std::make_unique<Profiler>();
         bufferManager = std::make_unique<BufferManager>(
-            BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+            BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING,
+            BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE);
         memoryManager =
             std::make_unique<MemoryManager>(bufferManager.get(), getFileSystem(*database));
         executionContext =

@@ -29,8 +29,8 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace main {
 
-SystemConfig::SystemConfig(
-    uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression, bool readOnly)
+SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression,
+    bool readOnly, uint64_t maxDBSize)
     : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly(readOnly) {
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
@@ -55,6 +55,10 @@ SystemConfig::SystemConfig(
     if (maxNumThreads == 0) {
         this->maxNumThreads = std::thread::hardware_concurrency();
     }
+    if (maxDBSize == -1u) {
+        maxDBSize = BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE;
+    }
+    this->maxDBSize = maxDBSize;
 }
 
 static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, FileLockType& lock) {
@@ -70,7 +74,8 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     initLoggers();
     logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::DATABASE);
     vfs = std::make_unique<VirtualFileSystem>();
-    bufferManager = std::make_unique<BufferManager>(this->systemConfig.bufferPoolSize);
+    bufferManager = std::make_unique<BufferManager>(
+        this->systemConfig.bufferPoolSize, this->systemConfig.maxDBSize);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     initDBDirAndCoreFilesIfNecessary();
