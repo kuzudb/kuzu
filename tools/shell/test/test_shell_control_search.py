@@ -1,6 +1,5 @@
 import pytest
 import pexpect
-import shutil
 from test_helper import *
 from conftest import ShellTest
 
@@ -60,7 +59,7 @@ def test_search_next(temp_db, key, history_path):
         test.send_control_statement(key)
     test.send_finished_statement(KEY_ACTION.ENTER.value)
     assert test.shell_process.expect_exact(["| databases rule |", pexpect.EOF]) == 0
-    shutil.rmtree(os.path.join(history_path, "history.txt"), ignore_errors=True)
+    deleteIfExists(os.path.join(history_path, 'history.txt'))
 
 
 @pytest.mark.parametrize(

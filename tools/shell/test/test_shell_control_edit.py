@@ -1,6 +1,5 @@
 import pytest
 import pexpect
-import shutil
 from test_helper import *
 from conftest import ShellTest
 
@@ -61,7 +60,7 @@ def test_enter(temp_db, key, history_path):
     f = open(os.path.join(history_path, "history.txt"))
     assert f.readline() == 'RETURN "databases rule" AS a;\n'
     f.close()
-    shutil.rmtree(os.path.join(history_path, "history.txt"), ignore_errors=True)
+    deleteIfExists(os.path.join(history_path, 'history.txt'))
     
 
 @pytest.mark.parametrize(
@@ -198,7 +197,7 @@ def test_search(temp_db, key, history_path):
     # enter should process last match
     test.send_finished_statement(KEY_ACTION.ENTER.value)
     assert test.shell_process.expect_exact(["| databases rule |", pexpect.EOF]) == 0
-    shutil.rmtree(os.path.join(history_path, "history.txt"), ignore_errors=True)
+    deleteIfExists(os.path.join(history_path, 'history.txt'))
     
     # test starting search with text inputted already
     test = ShellTest().add_argument(temp_db)

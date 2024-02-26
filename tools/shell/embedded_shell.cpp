@@ -222,8 +222,48 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
     }
     // Linenoise allocates a fixed size buffer for the current line's contents, and doesn't export
     // the length.
-    constexpr size_t LINENOISE_MAX_LINE = 4096;
+    constexpr uint64_t LINENOISE_MAX_LINE = 4096;
     strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
+}
+
+uint64_t damerauLevenshteinDistance(const std::string& s1, const std::string& s2) {
+    const uint64_t m = s1.size(), n = s2.size();
+    std::vector<std::vector<uint64_t>> dp(m + 1, std::vector<uint64_t>(n + 1, 0));
+    for (uint64_t i = 0; i <= m; i++) {
+        dp[i][0] = i;
+    }
+    for (uint64_t j = 0; j <= n; j++) {
+        dp[0][j] = j;
+    }
+    for (uint64_t i = 1; i <= m; i++) {
+        for (uint64_t j = 1; j <= n; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+				dp[i][j] = dp[i - 1][j - 1];
+                if (i > 1 && j > 1 && s1[i - 1] == s2[j - 2] && s1[i - 2] == s2[j - 1]) {
+					dp[i][j] = std::min(dp[i][j], dp[i - 2][j - 2]);
+				}
+            } else {
+                dp[i][j] = 1 + std::min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]});
+                if (i > 1 && j > 1 && s1[i - 1] == s2[j - 2] && s1[i - 2] == s2[j - 1]) {
+					dp[i][j] = std::min(dp[i][j], dp[i - 2][j - 2] + 1);
+				}
+            }
+        }
+    }
+    return dp[m][n];
+}
+
+std::string findClosestCommand(std::string lineStr) {
+    std::string closestCommand = "";
+    uint64_t editDistance = INT_MAX;
+    for (auto& command : shellCommand.commandList) {
+        auto distance = damerauLevenshteinDistance(command, lineStr);
+        if (distance < editDistance) {
+            editDistance = distance;
+            closestCommand = command;
+        }
+    }
+    return closestCommand;
 }
 
 int EmbeddedShell::processShellCommands(std::string lineStr) {
@@ -239,6 +279,7 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         setMaxWidth(lineStr.substr(strlen(shellCommand.MAXWIDTH)));
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
+        printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
     }
     return 0;
 }
@@ -316,7 +357,14 @@ void EmbeddedShell::run() {
                 if (queryResult->isSuccess()) {
                     printExecutionResult(*queryResult);
                 } else {
-                    printf("Error: %s\n", queryResult->getErrorMessage().c_str());
+                    std::string lineStrTrimmed = lineStr;
+                    lineStrTrimmed = lineStrTrimmed.erase(0, lineStr.find_first_not_of(" \t\n\r\f\v"));
+                    if (lineStrTrimmed.find_first_of(" \t\n\r\f\v") == std::string::npos && lineStrTrimmed.length() > 1) {
+                        printf("Error: \"%s\" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., \"%s\"?\n", lineStr.c_str(), findClosestCommand(lineStrTrimmed).c_str());
+                    }
+                    else {
+                        printf("Error: %s\n", queryResult->getErrorMessage().c_str());
+                    }
                 }
             }
         } else if (!lineStr.empty() && lineStr[0] != ':') {
@@ -587,7 +635,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             }
             auto tuple = queryResult.getNext();
             auto result = tuple->toString(colsWidth, "|", maxWidth);
-            size_t startPos = 0;
+            uint64_t startPos = 0;
             std::vector<std::string> colResults;
             for (auto i = 0u; i < colsWidth.size(); i++) {
                 uint32_t chrIter = startPos;
