@@ -5,6 +5,7 @@
 #include "function/string/functions/contains_function.h"
 #include "function/string/functions/ends_with_function.h"
 #include "function/string/functions/left_operation.h"
+#include "function/string/functions/levenshtein_function.h"
 #include "function/string/functions/lpad_function.h"
 #include "function/string/functions/regexp_extract_all_function.h"
 #include "function/string/functions/regexp_extract_function.h"
@@ -315,6 +316,16 @@ function_set RegexpExtractAllFunction::getFunctionSet() {
 std::unique_ptr<FunctionBindData> RegexpExtractAllFunction::bindFunc(
     const binder::expression_vector& /*arguments*/, Function* /*definition*/) {
     return std::make_unique<FunctionBindData>(LogicalType::VAR_LIST(LogicalType::STRING()));
+}
+
+function_set LevenshteinFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.emplace_back(make_unique<ScalarFunction>(LEVENSHTEIN_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
+        LogicalTypeID::INT64,
+        ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, int64_t, Levenshtein>, nullptr,
+        nullptr, false /* isVarLength */));
+    return functionSet;
 }
 
 } // namespace function

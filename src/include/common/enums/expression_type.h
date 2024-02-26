@@ -179,6 +179,7 @@ const char* const REGEXP_REPLACE_FUNC_NAME = "REGEXP_REPLACE";
 const char* const REGEXP_EXTRACT_FUNC_NAME = "REGEXP_EXTRACT";
 const char* const REGEXP_EXTRACT_ALL_FUNC_NAME = "REGEXP_EXTRACT_ALL";
 const char* const SIZE_FUNC_NAME = "SIZE";
+const char* const LEVENSHTEIN_FUNC_NAME = "LEVENSHTEIN";
 
 // Date functions.
 const char* const DATE_PART_FUNC_NAME = "DATE_PART";
