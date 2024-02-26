@@ -1,13 +1,8 @@
 #pragma once
 
-#include <mutex>
-
 #include "client_context.h"
 #include "database.h"
 #include "function/udf_function.h"
-#include "parser/statement.h"
-#include "prepared_statement.h"
-#include "query_result.h"
 
 namespace kuzu {
 namespace main {
@@ -159,10 +154,7 @@ private:
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> params,
         std::pair<std::string, T> arg, std::pair<std::string, Args>... args) {
-        auto name = arg.first;
-        auto val = std::make_unique<common::Value>((T)arg.second);
-        params.insert({name, std::move(val)});
-        return executeWithParams(preparedStatement, std::move(params), args...);
+        return clientContext->executeWithParams(preparedStatement, std::move(params), arg, args...);
     }
 
     void bindParametersNoLock(PreparedStatement* preparedStatement,
@@ -179,7 +171,6 @@ private:
 private:
     Database* database;
     std::unique_ptr<ClientContext> clientContext;
-    std::mutex mtx;
 };
 
 } // namespace main

@@ -4,10 +4,15 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 
 #include "common/timer.h"
 #include "common/types/value/value.h"
+#include "function/scalar_function.h"
 #include "main/kuzu_fwd.h"
+#include "parser/statement.h"
+#include "prepared_statement.h"
+#include "query_result.h"
 #include "transaction/transaction_context.h"
 
 namespace kuzu {
@@ -93,8 +98,57 @@ public:
 
     KUZU_API std::string getEnvVariable(const std::string& name);
 
+    std::unique_ptr<PreparedStatement> prepare(std::string_view query);
+
+    void setQueryTimeOut(uint64_t timeoutInMS);
+
+    uint64_t getQueryTimeOut();
+
+    void setMaxNumThreadForExec(uint64_t numThreads);
+
+    uint64_t getMaxNumThreadForExec();
+
+    KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
+
+    std::unique_ptr<QueryResult> query(std::string_view queryStatement);
+
 private:
     inline void resetActiveQuery() { activeQuery.reset(); }
+
+    std::unique_ptr<QueryResult> query(
+        std::string_view query, std::string_view encodedJoin, bool enumerateAllPlans = true);
+
+    std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
+
+    std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
+
+    std::vector<std::unique_ptr<parser::Statement>> parseQuery(std::string_view query);
+
+    std::unique_ptr<PreparedStatement> prepareNoLock(parser::Statement* parsedStatement,
+        bool enumerateAllPlans = false, std::string_view joinOrder = std::string_view());
+
+    template<typename T, typename... Args>
+    std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> params,
+        std::pair<std::string, T> arg, std::pair<std::string, Args>... args) {
+        auto name = arg.first;
+        auto val = std::make_unique<common::Value>((T)arg.second);
+        params.insert({name, std::move(val)});
+        return executeWithParams(preparedStatement, std::move(params), args...);
+    }
+
+    void bindParametersNoLock(PreparedStatement* preparedStatement,
+        const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
+
+    std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
+        PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
+
+    void addScalarFunction(std::string name, function::function_set definitions);
+
+    bool startUDFAutoTrx(transaction::TransactionContext* trx);
+
+    void commitUDFTrx(bool isAutoCommitTrx);
 
     uint64_t numThreadsForExecution;
     ActiveQuery activeQuery;
@@ -108,6 +162,7 @@ private:
     std::string homeDirectory;
     std::string fileSearchPath;
     Database* database;
+    std::mutex mtx;
 };
 
 } // namespace main

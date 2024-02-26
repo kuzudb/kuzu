@@ -18,6 +18,7 @@ namespace main {
  */
 class PreparedStatement {
     friend class Connection;
+    friend class ClientContext;
     friend class testing::TestHelper;
     friend class testing::TestRunner;
     friend class testing::TinySnbDDLTest;
