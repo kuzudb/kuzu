@@ -117,6 +117,11 @@ typedef struct {
     // If true, open the database in read-only mode. No write transaction is allowed on the Database
     // object. If false, open the database read-write.
     bool read_only;
+    //  The maximum size of the database in bytes. Note that this is introduced temporarily for now
+    //  to get around with the default 8TB mmap address space limit under some environment. This
+    //  will be removed once we implemente a better solution later. The value is default to 1 << 43
+    //  (8TB) under 64-bit environment and 1GB under 32-bit one (see `DEFAULT_VM_REGION_MAX_SIZE`).
+    uint64_t max_db_size;
 } kuzu_system_config;
 
 /**
