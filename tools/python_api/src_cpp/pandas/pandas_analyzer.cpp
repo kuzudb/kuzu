@@ -1,7 +1,6 @@
 #include "pandas/pandas_analyzer.h"
 
 #include "function/built_in_function_utils.h"
-#include "cached_import/py_cached_import.h"
 #include "py_conversion.h"
 
 namespace kuzu {
@@ -38,7 +37,7 @@ common::LogicalType PandasAnalyzer::getListType(py::object& ele, bool& canConver
     for (auto pyVal : ele) {
         auto object = py::reinterpret_borrow<py::object>(pyVal);
         auto itemType = getItemType(object, canConvert);
-        if (i == 0) {
+        if (i != 0) {
             listType = itemType;
         } else {
             if (!upgradeType(listType, itemType)) {
@@ -89,8 +88,8 @@ static py::object findFirstNonNull(const py::handle& row, uint64_t numRows) {
 
 common::LogicalType PandasAnalyzer::innerAnalyze(py::object column, bool& canConvert) {
     auto numRows = py::len(column);
-    auto pandasModule = importCache->pandas;
-    auto pandasSeries = pandasModule.core.series.Series();
+    auto pandasModule = py::module::import("pandas");
+    auto pandasSeries = pandasModule.attr("core").attr("series").attr("Series");
 
     if (py::isinstance(column, pandasSeries)) {
         column = column.attr("__array__")();
