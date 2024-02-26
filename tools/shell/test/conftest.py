@@ -167,7 +167,8 @@ def get_tmp_path(tmp_path):
 @pytest.fixture
 def history_path():
     path = os.path.join(KUZU_ROOT, 'tools', 'shell', 'test', 'files')
-    shutil.rmtree(os.path.join(path, "history.txt"), ignore_errors=True)
+    if os.path.exists(os.path.join(path, "history.txt")):
+        os.remove(os.path.join(path, "history.txt"))
     return path
 
 

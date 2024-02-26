@@ -1,5 +1,4 @@
 import pytest
-import shutil
 from test_helper import *
 from conftest import ShellTest
 import os
@@ -178,7 +177,8 @@ def test_history_path(temp_db, history_path):
     assert f.readline() == 'RETURN "kuzu is cool" AS b;\n'
     f.close()
     
-    shutil.rmtree(os.path.join(history_path, "history.txt"), ignore_errors=True)
+    if os.path.exists(os.path.join(history_path, "history.txt")):
+        os.remove(os.path.join(history_path, "history.txt"))
         
 
 @pytest.mark.parametrize(

@@ -226,6 +226,46 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
     strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
 }
 
+int damerauLevenshteinDistance(const std::string& s1, const std::string& s2) {
+    const size_t m = s1.size(), n = s2.size();
+    std::vector<std::vector<size_t>> dp(m + 1, std::vector<size_t>(n + 1, 0));
+    for (size_t i = 0; i <= m; i++) {
+        dp[i][0] = i;
+    }
+    for (size_t j = 0; j <= n; j++) {
+        dp[0][j] = j;
+    }
+    for (size_t i = 1; i <= m; i++) {
+        for (size_t j = 1; j <= n; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+				dp[i][j] = dp[i - 1][j - 1];
+                if (i > 1 && j > 1 && s1[i - 1] == s2[j - 2] && s1[i - 2] == s2[j - 1]) {
+					dp[i][j] = std::min(dp[i][j], dp[i - 2][j - 2]);
+				}
+            } else {
+                dp[i][j] = 1 + std::min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]});
+                if (i > 1 && j > 1 && s1[i - 1] == s2[j - 2] && s1[i - 2] == s2[j - 1]) {
+					dp[i][j] = std::min(dp[i][j], dp[i - 2][j - 2] + 1);
+				}
+            }
+        }
+    }
+    return dp[m][n];
+}
+
+std::string findClosestCommand(std::string lineStr) {
+    std::string closestCommand = "";
+    int editDistance = INT_MAX;
+    for (auto& command : shellCommand.commandList) {
+        int distance = damerauLevenshteinDistance(command, lineStr);
+        if (distance < editDistance) {
+            editDistance = distance;
+            closestCommand = command;
+        }
+    }
+    return closestCommand;
+}
+
 int EmbeddedShell::processShellCommands(std::string lineStr) {
     if (lineStr == shellCommand.HELP) {
         printHelp();
@@ -239,6 +279,7 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         setMaxWidth(lineStr.substr(strlen(shellCommand.MAXWIDTH)));
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
+        printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
     }
     return 0;
 }
@@ -316,7 +357,14 @@ void EmbeddedShell::run() {
                 if (queryResult->isSuccess()) {
                     printExecutionResult(*queryResult);
                 } else {
-                    printf("Error: %s\n", queryResult->getErrorMessage().c_str());
+                    std::string lineStrTrimmed = lineStr;
+                    lineStrTrimmed = lineStrTrimmed.erase(0, lineStr.find_first_not_of(" \t\n\r\f\v"));
+                    if (lineStrTrimmed.find_first_of(" \t\n\r\f\v") == std::string::npos && lineStrTrimmed.length() > 1) {
+                        printf("Error: \"%s\" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., \"%s\"?\n", lineStr.c_str(), findClosestCommand(lineStrTrimmed).c_str());
+                    }
+                    else {
+                        printf("Error: %s\n", queryResult->getErrorMessage().c_str());
+                    }
                 }
             }
         } else if (!lineStr.empty() && lineStr[0] != ':') {

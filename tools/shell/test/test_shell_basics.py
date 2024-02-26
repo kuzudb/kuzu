@@ -1,5 +1,4 @@
 import pytest
-import shutil
 from test_helper import *
 from conftest import ShellTest
 
@@ -87,7 +86,8 @@ def test_multi_queries_one_line(temp_db):
     )
     result = test.run()
     result.check_stdout("databases rule")
-    result.check_stdout(["Error: Parser exception: Invalid input <      >: expected rule oC_Cypher (line: 1, offset: 6)"])
+    result.check_stdout(["Error: Parser exception: mismatched input '<EOF>' expecting {CALL, COMMENT, COPY, EXPORT, DROP, ALTER, BEGIN, COMMIT, COMMIT_SKIP_CHECKPOINT, ROLLBACK, ROLLBACK_SKIP_CHECKPOINT, INSTALL, LOAD, OPTIONAL, MATCH, UNWIND, CREATE, MERGE, SET, DETACH, DELETE, WITH, RETURN} (line: 1, offset: 6)", 
+                         '"      "'])
     
     # two failing queries
     test = (
@@ -96,10 +96,11 @@ def test_multi_queries_one_line(temp_db):
         .statement('RETURN "databases rule" S a;      ;')
     )
     result = test.run()
-    result.check_stdout(["Error: Parser exception: Invalid input < S>: expected rule oC_Cypher (line: 1, offset: 24)", 
+    result.check_stdout(["Error: Parser exception: Invalid input < S>: expected rule ku_Statements (line: 1, offset: 24)", 
                          '"RETURN "databases rule" S a"',
                          "                         ^",
-                         "Error: Parser exception: Invalid input <      >: expected rule oC_Cypher (line: 1, offset: 6)"])
+                         "Error: Parser exception: mismatched input '<EOF>' expecting {CALL, COMMENT, COPY, EXPORT, DROP, ALTER, BEGIN, COMMIT, COMMIT_SKIP_CHECKPOINT, ROLLBACK, ROLLBACK_SKIP_CHECKPOINT, INSTALL, LOAD, OPTIONAL, MATCH, UNWIND, CREATE, MERGE, SET, DETACH, DELETE, WITH, RETURN} (line: 1, offset: 6)",
+                         '"      "'])
 
 
 def test_row_truncation(temp_db, csv_path):
@@ -155,5 +156,6 @@ def test_history_consecutive_repeats(temp_db, history_path):
     assert f.readline() == ''
     f.close()
     
-    shutil.rmtree(os.path.join(history_path, "history.txt"), ignore_errors=True)
+    if os.path.exists(os.path.join(history_path, "history.txt")):
+        os.remove(os.path.join(history_path, "history.txt"))
     
