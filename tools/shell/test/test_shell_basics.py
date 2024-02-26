@@ -156,6 +156,5 @@ def test_history_consecutive_repeats(temp_db, history_path):
     assert f.readline() == ''
     f.close()
     
-    if os.path.exists(os.path.join(history_path, "history.txt")):
-        os.remove(os.path.join(history_path, "history.txt"))
+    deleteIfExists(os.path.join(history_path, 'history.txt'))
     

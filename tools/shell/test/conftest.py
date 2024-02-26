@@ -4,7 +4,7 @@ import os
 import shutil
 import subprocess
 import pexpect
-from test_helper import KUZU_EXEC_PATH, KUZU_ROOT
+from test_helper import *
 from typing import List, Union
 
 
@@ -167,8 +167,7 @@ def get_tmp_path(tmp_path):
 @pytest.fixture
 def history_path():
     path = os.path.join(KUZU_ROOT, 'tools', 'shell', 'test', 'files')
-    if os.path.exists(os.path.join(path, "history.txt")):
-        os.remove(os.path.join(path, "history.txt"))
+    deleteIfExists(os.path.join(path, 'history.txt'))
     return path
 
 

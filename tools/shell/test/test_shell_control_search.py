@@ -59,8 +59,7 @@ def test_search_next(temp_db, key, history_path):
         test.send_control_statement(key)
     test.send_finished_statement(KEY_ACTION.ENTER.value)
     assert test.shell_process.expect_exact(["| databases rule |", pexpect.EOF]) == 0
-    if os.path.exists(os.path.join(history_path, "history.txt")):
-        os.remove(os.path.join(history_path, "history.txt"))
+    deleteIfExists(os.path.join(history_path, 'history.txt'))
 
 
 @pytest.mark.parametrize(

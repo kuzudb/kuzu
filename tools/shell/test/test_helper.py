@@ -43,3 +43,7 @@ class KEY_ACTION(Enum):
     ESC = '\27'          # Escape 
     BACKSPACE = chr(127) # Backspace 
     
+
+def deleteIfExists(file):
+    if os.path.exists(file):
+        os.remove(file)

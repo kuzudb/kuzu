@@ -177,8 +177,7 @@ def test_history_path(temp_db, history_path):
     assert f.readline() == 'RETURN "kuzu is cool" AS b;\n'
     f.close()
     
-    if os.path.exists(os.path.join(history_path, "history.txt")):
-        os.remove(os.path.join(history_path, "history.txt"))
+    deleteIfExists(os.path.join(history_path, 'history.txt'))
         
 
 @pytest.mark.parametrize(
