@@ -20,6 +20,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     bufferPoolSize = info[1].As<Napi::Number>().Int64Value();
     enableCompression = info[2].As<Napi::Boolean>().Value();
     readOnly = info[3].As<Napi::Boolean>().Value();
+    maxDBSize = info[4].As<Napi::Number>().Int64Value();
 }
 
 Napi::Value NodeDatabase::InitAsync(const Napi::CallbackInfo& info) {
@@ -35,13 +36,16 @@ Napi::Value NodeDatabase::InitAsync(const Napi::CallbackInfo& info) {
 
 void NodeDatabase::InitCppDatabase() {
     auto systemConfig = SystemConfig();
-    if (bufferPoolSize) {
+    if (bufferPoolSize > 0) {
         systemConfig.bufferPoolSize = bufferPoolSize;
     }
     if (!enableCompression) {
         systemConfig.enableCompression = enableCompression;
     }
     systemConfig.readOnly = readOnly;
+    if (maxDBSize > 0) {
+        systemConfig.maxDBSize = maxDBSize;
+    }
     this->database = std::make_shared<Database>(databasePath, systemConfig);
 }
 

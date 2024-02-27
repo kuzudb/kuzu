@@ -29,17 +29,17 @@ public class KuzuDatabase {
     * @param bufferPoolSize: Max size of the buffer pool in bytes.
     * @param enableCompression: Enable compression in storage.
     * @param readOnly: Open the database in READ_ONLY mode.
-    * @param maxDbSize: The maximum size of the database in bytes. Note that this is introduced
+    * @param maxDBSize: The maximum size of the database in bytes. Note that this is introduced
     * temporarily for now to get around with the default 8TB mmap address space limit some
     * environment.
     */
-    public KuzuDatabase(String databasePath, long bufferPoolSize, boolean enableCompression, boolean readOnly, long maxDbSize) {
+    public KuzuDatabase(String databasePath, long bufferPoolSize, boolean enableCompression, boolean readOnly, long maxDBSize) {
         this.db_path = databasePath;
         this.buffer_size = bufferPoolSize;
         this.enableCompression = enableCompression;
         this.readOnly = readOnly;
-        this.max_db_size = maxDbSize;
-        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, enableCompression, readOnly, maxDbSize);
+        this.max_db_size = maxDBSize;
+        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, enableCompression, readOnly, maxDBSize);
     }
 
     /**
