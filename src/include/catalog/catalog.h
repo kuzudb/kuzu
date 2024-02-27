@@ -4,7 +4,6 @@
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog_content.h"
-#include "function/table_functions.h"
 
 namespace kuzu {
 namespace storage {

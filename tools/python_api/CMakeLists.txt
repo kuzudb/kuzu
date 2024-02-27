@@ -17,6 +17,8 @@ pybind11_add_module(_kuzu
         src_cpp/py_query_result.cpp
         src_cpp/py_query_result_converter.cpp
         src_cpp/py_conversion.cpp
+        src_cpp/pyarrow/pyarrow_bind.cpp
+        src_cpp/pyarrow/pyarrow_scan.cpp
         src_cpp/pandas/pandas_bind.cpp
         src_cpp/pandas/pandas_scan.cpp
         src_cpp/pandas/pandas_analyzer.cpp

@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <mutex>
 
@@ -11,7 +10,6 @@
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/function.h"
-#include "function/scalar_function.h"
 #include "function/table/scan_replacement.h"
 #include "main/kuzu_fwd.h"
 #include "parser/statement.h"

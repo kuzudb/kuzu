@@ -1,5 +1,6 @@
 #include "pandas/pandas_scan.h"
 
+#include "pyarrow/pyarrow_scan.h"
 #include "function/table/bind_input.h"
 #include "cached_import/py_cached_import.h"
 #include "numpy/numpy_scan.h"
@@ -13,31 +14,7 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 
-static offset_t tableFunc(TableFuncInput&, TableFuncOutput&);
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext*,
-    TableFuncBindInput*);
-static std::unique_ptr<TableFuncSharedState> initSharedState(
-    TableFunctionInitInput&);
-static std::unique_ptr<TableFuncLocalState> initLocalState(
-    TableFunctionInitInput&, TableFuncSharedState*,
-    storage::MemoryManager*);
-static bool sharedStateNext(const TableFuncBindData*,
-    PandasScanLocalState*, TableFuncSharedState*);
-static void pandasBackendScanSwitch(PandasColumnBindData*, uint64_t,
-    uint64_t, ValueVector*);
-
-static TableFunction getFunction() {
-    return TableFunction(READ_PANDAS_FUNC_NAME, tableFunc, bindFunc, initSharedState,
-        initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
-}
-
-function_set PandasScanFunction::getFunctionSet() {
-    function_set functionSet;
-    functionSet.push_back(getFunction().copy());
-    return functionSet;
-}
-
-std::unique_ptr<TableFuncBindData> bindFunc(
+std::unique_ptr<function::TableFuncBindData> bindFunc(
     main::ClientContext* /*context*/, TableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
     py::handle df(reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>()));
@@ -71,16 +48,16 @@ bool sharedStateNext(const TableFuncBindData* /*bindData*/,
     return true;
 }
 
-std::unique_ptr<TableFuncLocalState> initLocalState(
-    TableFunctionInitInput& input, TableFuncSharedState* sharedState,
-    storage::MemoryManager*) {
+std::unique_ptr<function::TableFuncLocalState> initLocalState(
+    function::TableFunctionInitInput& input, function::TableFuncSharedState* sharedState,
+    storage::MemoryManager* /*mm*/) {
     auto localState = std::make_unique<PandasScanLocalState>(0 /* start */, 0 /* end */);
     sharedStateNext(input.bindData, localState.get(), sharedState);
     return localState;
 }
 
-std::unique_ptr<TableFuncSharedState> initSharedState(
-    TableFunctionInitInput& input) {
+std::unique_ptr<function::TableFuncSharedState> initSharedState(
+    function::TableFunctionInitInput& input) {
     // LCOV_EXCL_START
     if (PyGILState_Check()) {
         throw RuntimeException("PandasScan called but GIL was already held!");
@@ -132,6 +109,32 @@ std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyC
     return result;
 }
 
+static TableFunction getFunction() {
+    return TableFunction(READ_PANDAS_FUNC_NAME, tableFunc, bindFunc, initSharedState,
+        initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+}
+
+function_set PandasScanFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(getFunction().copy());
+    return functionSet;
+}
+
+static bool isPyArrowBacked(const py::handle &df) {
+	py::list dtypes = df.attr("dtypes");
+	if (dtypes.empty()) {
+		return false;
+	}
+
+	auto arrow_dtype = importCache->pandas.ArrowDtype();
+	for (auto &dtype : dtypes) {
+		if (py::isinstance(dtype, arrow_dtype)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 static std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objectName) {
     if (!dict.contains(objectName)) {
         return nullptr;
@@ -139,7 +142,11 @@ static std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str
     auto entry = dict[objectName];
     if (PyConnection::isPandasDataframe(entry)) {
         auto scanReplacementData = std::make_unique<ScanReplacementData>();
-        scanReplacementData->func = getFunction();
+        if (isPyArrowBacked(entry)) {
+            scanReplacementData->func = PyArrowTableScanFunction::getFunction();
+        } else {
+            scanReplacementData->func = getFunction();
+        }
         auto bindInput = TableFuncBindInput();
         bindInput.inputs.push_back(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
         scanReplacementData->bindInput = std::move(bindInput);

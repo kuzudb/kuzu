@@ -88,8 +88,8 @@ void NullMask::resize(uint64_t capacity) {
 }
 
 bool NullMask::copyFromNullBits(const uint64_t* srcNullEntries, uint64_t srcOffset,
-    uint64_t dstOffset, uint64_t numBitsToCopy) {
-    if (copyNullMask(srcNullEntries, srcOffset, this->data, dstOffset, numBitsToCopy)) {
+    uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
+    if (copyNullMask(srcNullEntries, srcOffset, this->data, dstOffset, numBitsToCopy, invert)) {
         this->mayContainNulls = true;
         return true;
     }

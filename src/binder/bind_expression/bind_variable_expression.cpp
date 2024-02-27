@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "binder/expression/literal_expression.h"
 #include "binder/expression/variable_expression.h"
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"

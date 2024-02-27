@@ -54,3 +54,21 @@ struct ArrowArray {
 #ifdef __cplusplus
 }
 #endif
+
+struct ArrowSchemaWrapper : public ArrowSchema {
+    ArrowSchemaWrapper() { release = nullptr; }
+    ~ArrowSchemaWrapper() {
+        if (release) {
+            release(this);
+        }
+    }
+};
+
+struct ArrowArrayWrapper : public ArrowArray {
+    ArrowArrayWrapper() { release = nullptr; }
+    ~ArrowArrayWrapper() {
+        if (release) {
+            release(this);
+        }
+    }
+};

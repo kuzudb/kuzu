@@ -66,9 +66,10 @@ class PandasCachedItem : public PythonCachedItem {
     };
 
 public:
-    PandasCachedItem() : PythonCachedItem("pandas"), core(this), DataFrame(this), NA("NA", this),
-        NaT("NaT", this) {}
+    PandasCachedItem() : PythonCachedItem("pandas"), ArrowDtype("ArrowDtype", this), core(this), DataFrame(this),
+        NA("NA", this), NaT("NaT", this) {}
 
+    PythonCachedItem ArrowDtype;
     CoreCachedItem core;
     DataFrameCachedItem DataFrame;
     PythonCachedItem NA;
@@ -96,9 +97,10 @@ class PyarrowCachedItem : public PythonCachedItem {
     class TableCachedItem : public PythonCachedItem {
     public:
         explicit TableCachedItem(PythonCachedItem* parent): PythonCachedItem("Table", parent),
-            from_batches("from_batches", this) {}
+            from_batches("from_batches", this), from_pandas("from_pandas", this) {}
 
         PythonCachedItem from_batches;
+        PythonCachedItem from_pandas;
     };
 
     class LibCachedItem : public PythonCachedItem {
