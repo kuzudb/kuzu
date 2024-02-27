@@ -15,15 +15,30 @@ public class DatabaseTest extends TestBase {
     static Path tempDir;
 
     @Test
-    void DBCreationAndDestroy() {
+    void DBCreationAndDestroyWithArgs() {
         try {
             String dbPath = tempDir.toFile().getAbsolutePath();
-            KuzuDatabase database = new KuzuDatabase(dbPath, 1024 * 1024 * 1024, true /* compression */, false /* readOnly */);
-            database.destroy();
-            database = new KuzuDatabase(dbPath);
+            KuzuDatabase database = new KuzuDatabase(
+                    dbPath,
+                    1 << 28 /* 256 MB */,
+                    true /* compression */,
+                    false /* readOnly */,
+                    1 << 30 /* 1 GB */
+            );
             database.destroy();
         } catch (Exception e) {
-            fail("DBCreationAndDestroy failed");
+            fail("DBCreationAndDestroyWithArgs failed");
+        }
+    }
+
+    @Test
+    void DBCreationAndDestroyWithPathOnly() {
+        try {
+            String dbPath = tempDir.toFile().getAbsolutePath();
+            KuzuDatabase database = new KuzuDatabase(dbPath);
+            database.destroy();
+        } catch (Exception e) {
+            fail("DBCreationAndDestroyWithPathOnly failed");
         }
     }
 
