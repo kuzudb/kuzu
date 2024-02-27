@@ -9,7 +9,6 @@
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
 #include "common/types/ku_string.h"
-#include "common/types/types.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -134,52 +133,31 @@ inline void Hash::operation(
 template<>
 inline void Hash::operation(
     const double& key, common::hash_t& result, common::ValueVector* /*keyVector*/) {
-    // 0 and -0 are not byte-equivalent, but should have the same hash
-    if (key == 0) {
-        result = murmurhash64(0);
-    } else {
-        result = murmurhash64(*reinterpret_cast<const uint64_t*>(&key));
-    }
+    result = std::hash<double>()(key);
 }
 
 template<>
 inline void Hash::operation(
     const float& key, common::hash_t& result, common::ValueVector* /*keyVector*/) {
-    // 0 and -0 are not byte-equivalent, but should have the same hash
-    if (key == 0) {
-        result = murmurhash64(0);
-    } else {
-        result = murmurhash64(*reinterpret_cast<const uint32_t*>(&key));
-    }
-}
-
-template<>
-inline void Hash::operation(
-    const std::string_view& key, common::hash_t& result, common::ValueVector* /*keyVector*/) {
-    common::hash_t hashValue = 0;
-    auto data64 = reinterpret_cast<const uint64_t*>(key.data());
-    for (size_t i = 0u; i < key.size() / 8; i++) {
-        auto blockHash = kuzu::function::murmurhash64(*(data64 + i));
-        hashValue = kuzu::function::combineHashScalar(hashValue, blockHash);
-    }
-    uint64_t last = 0;
-    for (size_t i = 0u; i < key.size() % 8; i++) {
-        last |= key[key.size() / 8 * 8 + i] << i * 8;
-    }
-    hashValue = kuzu::function::combineHashScalar(hashValue, kuzu::function::murmurhash64(last));
-    result = hashValue;
+    result = std::hash<float>()(key);
 }
 
 template<>
 inline void Hash::operation(
     const std::string& key, common::hash_t& result, common::ValueVector* /*keyVector*/) {
-    Hash::operation(std::string_view(key), result);
+    result = std::hash<std::string>()(key);
+}
+
+template<>
+inline void Hash::operation(
+    const std::string_view& key, common::hash_t& result, common::ValueVector* /*keyVector*/) {
+    result = std::hash<std::string_view>()(key);
 }
 
 template<>
 inline void Hash::operation(
     const common::ku_string_t& key, common::hash_t& result, common::ValueVector* /*keyVector*/) {
-    Hash::operation(key.getAsStringView(), result);
+    result = std::hash<std::string_view>()(key.getAsStringView());
 }
 
 template<>

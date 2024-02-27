@@ -138,32 +138,31 @@ public:
     // enough space already.
     template<common::HashablePrimitive T>
     bool append(T key, common::offset_t value) {
-        return appendWithIndexPos(key, value, HashIndexUtils::getHashIndexPosition(key));
+        return appendWithIndexPos(key, value, getHashIndexPosition(key));
     }
     bool append(std::string_view key, common::offset_t value) {
-        return appendWithIndexPos(key, value, HashIndexUtils::getHashIndexPosition(key));
+        return appendWithIndexPos(key, value, getHashIndexPosition(key));
     }
     template<common::HashablePrimitive T>
     bool appendWithIndexPos(T key, common::offset_t value, uint64_t indexPos) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
-        KU_ASSERT(HashIndexUtils::getHashIndexPosition(key) == indexPos);
+        KU_ASSERT(getHashIndexPosition(key) == indexPos);
         return getTypedHashIndex<T>(indexPos)->append(key, value);
     }
     bool appendWithIndexPos(std::string_view key, common::offset_t value, uint64_t indexPos) {
         KU_ASSERT(keyDataTypeID == common::PhysicalTypeID::STRING);
-        KU_ASSERT(HashIndexUtils::getHashIndexPosition(key) == indexPos);
+        KU_ASSERT(getHashIndexPosition(key) == indexPos);
         return getTypedHashIndex<std::string_view, common::ku_string_t>(indexPos)->append(
             key, value);
     }
     template<common::HashablePrimitive T>
     bool lookup(T key, common::offset_t& result) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
-        return getTypedHashIndex<T>(HashIndexUtils::getHashIndexPosition(key))->lookup(key, result);
+        return getTypedHashIndex<T>(getHashIndexPosition(key))->lookup(key, result);
     }
     bool lookup(std::string_view key, common::offset_t& result) {
         KU_ASSERT(keyDataTypeID == common::PhysicalTypeID::STRING);
-        return getTypedHashIndex<std::string_view, common::ku_string_t>(
-            HashIndexUtils::getHashIndexPosition(key))
+        return getTypedHashIndex<std::string_view, common::ku_string_t>(getHashIndexPosition(key))
             ->lookup(key, result);
     }
 

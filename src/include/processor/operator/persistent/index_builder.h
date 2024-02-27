@@ -66,10 +66,10 @@ public:
     explicit IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& globalQueues);
 
     void insert(std::string key, common::offset_t value) {
-        auto indexPos = storage::HashIndexUtils::getHashIndexPosition(std::string_view(key));
+        auto indexPos = storage::getHashIndexPosition(key.c_str());
         auto& stringBuffer = (*std::get<UniqueBuffers<std::string>>(buffers))[indexPos];
         if (stringBuffer.full()) {
-            // StaticVector's move constructor leaves the original vector valid and empty
+            // StaticVector's move constructor leavse the original vector valid and empty
             globalQueues->insert(indexPos, std::move(stringBuffer));
         }
         stringBuffer.push_back(std::make_pair(key, value)); // NOLINT(bugprone-use-after-move)
@@ -77,7 +77,7 @@ public:
 
     template<common::HashablePrimitive T>
     void insert(T key, common::offset_t value) {
-        auto indexPos = storage::HashIndexUtils::getHashIndexPosition(key);
+        auto indexPos = storage::getHashIndexPosition(key);
         auto& buffer = (*std::get<UniqueBuffers<T>>(buffers))[indexPos];
         if (buffer.full()) {
             globalQueues->insert(indexPos, std::move(buffer));

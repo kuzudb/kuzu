@@ -207,7 +207,7 @@ public:
     template<typename T, typename S = T>
     inline HashIndex<T, S>* getTypedHashIndex(T key) {
         return common::ku_dynamic_cast<OnDiskHashIndex*, HashIndex<T, S>*>(
-            hashIndices[HashIndexUtils::getHashIndexPosition(key)].get());
+            hashIndices[getHashIndexPosition(key)].get());
     }
 
     inline bool lookup(
