@@ -17,4 +17,5 @@ describe("kuzu", () => {
   importTest("Extension loading", "./test_extension.js");
   importTest("Query parameters", "./test_parameter.js");
   importTest("Concurrent query execution", "./test_concurrency.js");
+  importTest("Version", "./test_version.js");
 });

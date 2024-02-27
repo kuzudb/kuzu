@@ -12,4 +12,10 @@ module.exports = {
   LoggingLevel,
   PreparedStatement,
   QueryResult,
+  get VERSION() {
+    return Database.getVersion();
+  },
+  get STORAGE_VERSION() {
+    return Database.getStorageVersion();
+  },
 };

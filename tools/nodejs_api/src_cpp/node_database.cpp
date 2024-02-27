@@ -7,6 +7,8 @@ Napi::Object NodeDatabase::Init(Napi::Env env, Napi::Object exports) {
         {
             InstanceMethod("initAsync", &NodeDatabase::InitAsync),
             InstanceMethod("setLoggingLevel", &NodeDatabase::setLoggingLevel),
+            StaticMethod("getVersion", &NodeDatabase::GetVersion),
+            StaticMethod("getStorageVersion", &NodeDatabase::GetStorageVersion),
         });
 
     exports.Set("NodeDatabase", t);
@@ -51,4 +53,16 @@ void NodeDatabase::setLoggingLevel(const Napi::CallbackInfo& info) {
 
     auto loggingLevel = info[0].As<Napi::String>().Utf8Value();
     database->setLoggingLevel(std::move(loggingLevel));
+}
+
+Napi::Value NodeDatabase::GetVersion(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    return Napi::String::New(env, Version::getVersion());
+}
+
+Napi::Value NodeDatabase::GetStorageVersion(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    return Napi::Number::New(env, Version::getStorageVersion());
 }

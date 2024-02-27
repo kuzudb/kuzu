@@ -32,10 +32,26 @@ class Database {
       databasePath,
       bufferManagerSize,
       enableCompression,
-      readOnly,
+      readOnly
     );
     this._isInitialized = false;
     this._initPromise = null;
+  }
+
+  /**
+   * Get the version of the library.
+   * @returns {String} the version of the library.
+   */
+  static getVersion() {
+    return KuzuNative.NodeDatabase.getVersion();
+  }
+
+  /**
+   * Get the storage version of the library.
+   * @returns {Number} the storage version of the library.
+   */
+  static getStorageVersion() {
+    return KuzuNative.NodeDatabase.getStorageVersion();
   }
 
   /**
