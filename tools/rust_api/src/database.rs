@@ -36,7 +36,11 @@ pub struct SystemConfig {
     /// When true, new columns will be compressed if possible
     /// Defaults to true
     enable_compression: bool,
+    /// Whether or not the database can be written to from this instance
+    /// Defaults to not read-only
     read_only: bool,
+    /// The maximum size of the database. Defaults to 8TB
+    max_db_size: u64,
 }
 
 impl Default for SystemConfig {
@@ -46,6 +50,8 @@ impl Default for SystemConfig {
             max_num_threads: 0,
             enable_compression: true,
             read_only: false,
+            // This is a little weird, but it's a temporary interface
+            max_db_size: u32::MAX as u64,
         }
     }
 }
@@ -67,6 +73,10 @@ impl SystemConfig {
         self.read_only = read_only;
         self
     }
+    pub fn max_db_size(mut self, max_db_size: u64) -> Self {
+        self.max_db_size = max_db_size;
+        self
+    }
 }
 
 impl Database {
@@ -86,6 +96,7 @@ impl Database {
                 config.max_num_threads,
                 config.enable_compression,
                 config.read_only,
+                config.max_db_size,
             )?),
         })
     }
@@ -170,6 +181,23 @@ mod tests {
             result.to_string(),
             "Query execution failed: Cannot execute write operations in a read-only database!"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn test_database_max_size() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        {
+            // Max DB size of 4GB should be fine
+            Database::new(
+                temp_dir.path(),
+                SystemConfig::default().max_db_size(1 << 32),
+            )?;
+        }
+        {
+            Database::new(temp_dir.path(), SystemConfig::default().max_db_size(0))
+                .expect_err("0 is not a valid max DB size");
+        }
         Ok(())
     }
 }
