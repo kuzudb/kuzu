@@ -27,7 +27,8 @@ struct VarListDataColumnChunk {
 class VarListColumnChunk : public ColumnChunk {
 
 public:
-    VarListColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression);
+    VarListColumnChunk(
+        common::LogicalType dataType, uint64_t capacity, bool enableCompression, bool inMemory);
 
     inline ColumnChunk* getDataColumnChunk() const {
         return varListDataColumnChunk->dataColumnChunk.get();
@@ -36,11 +37,11 @@ public:
     void resetToEmpty() final;
 
     void append(common::ValueVector* vector) final;
+    void appendOne(common::ValueVector* vector, common::vector_idx_t pos) final;
     // Note: `write` assumes that no `append` will be called afterward.
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) final;
-    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector,
-        bool isCSR) final;
+    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool isCSR) final;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
     void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,

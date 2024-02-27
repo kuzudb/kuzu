@@ -125,21 +125,22 @@ offset_t NodeGroup::append(NodeGroup* other, offset_t offsetInOtherNodeGroup) {
     return numNodesToAppend;
 }
 
-void NodeGroup::write(DataChunk* dataChunk, vector_idx_t offsetVectorIdx) {
-    KU_ASSERT(dataChunk->getNumValueVectors() == chunks.size() + 1);
-    auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
+void NodeGroup::write(
+    std::vector<std::unique_ptr<ColumnChunk>>& data, vector_idx_t offsetVectorIdx) {
+    KU_ASSERT(data.size() == chunks.size() + 1);
+    auto& offsetChunk = data[offsetVectorIdx];
     vector_idx_t vectorIdx = 0, chunkIdx = 0;
-    for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
+    for (auto i = 0u; i < data.size(); i++) {
         if (i == offsetVectorIdx) {
             vectorIdx++;
             continue;
         }
-        KU_ASSERT(vectorIdx < dataChunk->getNumValueVectors());
-        writeToColumnChunk(chunkIdx, vectorIdx, dataChunk, offsetVector);
+        KU_ASSERT(vectorIdx < data.size());
+        writeToColumnChunk(chunkIdx, vectorIdx, data, *offsetChunk);
         chunkIdx++;
         vectorIdx++;
     }
-    numRows += offsetVector->state->selVector->selectedSize;
+    numRows += offsetChunk->getNumValues();
 }
 
 void NodeGroup::finalize(uint64_t nodeGroupIdx_) {
