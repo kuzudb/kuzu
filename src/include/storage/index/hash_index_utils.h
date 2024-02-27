@@ -1,7 +1,5 @@
 #pragma once
 
-#include <functional>
-
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "function/hash/hash_functions.h"
@@ -27,16 +25,6 @@ static constexpr common::page_idx_t P_SLOTS_HEADER_PAGE_IDX = 1;
 static constexpr common::page_idx_t O_SLOTS_HEADER_PAGE_IDX = 2;
 static constexpr common::page_idx_t NUM_HEADER_PAGES = 3;
 static constexpr uint64_t INDEX_HEADER_IDX_IN_ARRAY = 0;
-
-inline uint64_t getHashIndexPosition(common::HashablePrimitive auto key) {
-    common::hash_t hash;
-    function::Hash::operation(key, hash, nullptr /*keyVector*/);
-    return (hash >> (64 - NUM_HASH_INDEXES_LOG2)) & (NUM_HASH_INDEXES - 1);
-}
-inline uint64_t getHashIndexPosition(std::string_view key) {
-    return (std::hash<std::string_view>()(key) >> (64 - NUM_HASH_INDEXES_LOG2)) &
-           (NUM_HASH_INDEXES - 1);
-}
 
 enum class SlotType : uint8_t { PRIMARY = 0, OVF = 1 };
 
@@ -75,6 +63,10 @@ public:
             slotId = hash & indexHeader.higherLevelHashMask;
         }
         return slotId;
+    }
+
+    inline static uint64_t getHashIndexPosition(common::IndexHashable auto key) {
+        return (HashIndexUtils::hash(key) >> (64 - NUM_HASH_INDEXES_LOG2)) & (NUM_HASH_INDEXES - 1);
     }
 
     static inline uint64_t getNumRequiredEntries(
