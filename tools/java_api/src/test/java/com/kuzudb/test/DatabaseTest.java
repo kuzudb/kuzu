@@ -18,7 +18,7 @@ public class DatabaseTest extends TestBase {
     void DBCreationAndDestroy() {
         try {
             String dbPath = tempDir.toFile().getAbsolutePath();
-            KuzuDatabase database = new KuzuDatabase(dbPath, 1024 * 1024 * 1024, true /* compression */, false /* readOnly */);
+            KuzuDatabase database = new KuzuDatabase(dbPath, 1024 * 1024 * 1024, true /* compression */, false /* readOnly */, 1024 * 1024 * 1024 * 200 /* maxDbSize */);
             database.destroy();
             database = new KuzuDatabase(dbPath);
             database.destroy();
