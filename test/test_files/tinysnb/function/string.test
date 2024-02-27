@@ -610,3 +610,20 @@ hellolongstringtest
 -STATEMENT Return regexp_extract_all('hello', '()', 1);
 ---- 1
 [,,,,,]
+
+-LOG LevenshteinDistance
+-STATEMENT return levenshtein('kitten', 'sitting');
+---- 1
+3
+-STATEMENT return levenshtein('', 'abc');
+---- 1
+3
+-STATEMENT return levenshtein('abc', 'abc');
+---- 1
+0
+-STATEMENT return levenshtein('book', 'back');
+---- 1
+2
+-STATEMENT return levenshtein('horse', 'ros');
+---- 1
+3

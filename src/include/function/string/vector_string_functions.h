@@ -127,5 +127,9 @@ struct RegexpExtractAllFunction : public VectorStringFunction {
         const binder::expression_vector& arguments, Function* function);
 };
 
+struct LevenshteinFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu
