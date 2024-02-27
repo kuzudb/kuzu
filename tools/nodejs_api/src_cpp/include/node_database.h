@@ -26,6 +26,7 @@ private:
     size_t bufferPoolSize;
     bool enableCompression;
     bool readOnly;
+    uint64_t maxDBSize;
     std::shared_ptr<Database> database;
 };
 

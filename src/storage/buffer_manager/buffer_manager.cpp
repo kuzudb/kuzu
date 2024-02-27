@@ -65,16 +65,28 @@ void EvictionQueue::removeCandidatesForFile(kuzu::storage::BMFileHandle& fileHan
     }
 }
 
-BufferManager::BufferManager(uint64_t bufferPoolSize)
+BufferManager::BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize)
     : usedMemory{0}, bufferPoolSize{bufferPoolSize}, numEvictionQueueInsertions{0} {
+    verifySizeParams(bufferPoolSize, maxDBSize);
+    vmRegions.resize(2);
+    vmRegions[0] = std::make_unique<VMRegion>(PageSizeClass::PAGE_4KB, maxDBSize);
+    vmRegions[1] = std::make_unique<VMRegion>(PageSizeClass::PAGE_256KB, bufferPoolSize);
+    evictionQueue = std::make_unique<EvictionQueue>();
+}
+
+void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize) {
     if (bufferPoolSize < BufferPoolConstants::PAGE_4KB_SIZE) {
         throw BufferManagerException("The given buffer pool size should be at least 4KB.");
     }
-    vmRegions.resize(2);
-    vmRegions[0] = std::make_unique<VMRegion>(
-        PageSizeClass::PAGE_4KB, BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE);
-    vmRegions[1] = std::make_unique<VMRegion>(PageSizeClass::PAGE_256KB, bufferPoolSize);
-    evictionQueue = std::make_unique<EvictionQueue>();
+    if (maxDBSize < BufferPoolConstants::PAGE_4KB_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
+        throw BufferManagerException(
+            "The given max db size should be at least " +
+            std::to_string(BufferPoolConstants::PAGE_4KB_SIZE * StorageConstants::PAGE_GROUP_SIZE) +
+            " bytes.");
+    }
+    if ((maxDBSize & (maxDBSize - 1)) != 0) {
+        throw BufferManagerException("The given max db size should be a power of 2.");
+    }
 }
 
 // Important Note: Pin returns a raw pointer to the frame. This is potentially very dangerous and

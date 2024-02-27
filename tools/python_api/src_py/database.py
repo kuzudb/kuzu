@@ -8,7 +8,7 @@ class Database:
     """
 
     def __init__(self, database_path, buffer_pool_size=0, max_num_threads=0, compression=True, lazy_init=False,
-                 read_only=False):
+                 read_only=False, max_db_size= 1 << 43):
         """
         Parameters
         ----------
@@ -33,12 +33,20 @@ class Database:
             database path.
             Default to False.
 
+        max_db_size : int
+            The maximum size of the database in bytes. Note that this is introduced
+            temporarily for now to get around with the default 8TB mmap address
+             space limit some environment. This will be removed once we implemente
+             a better solution later. The value is default to 1 << 43 (8TB) under 64-bit
+             environment and 1GB under 32-bit one.
+
         """
         self.database_path = database_path
         self.buffer_pool_size = buffer_pool_size
         self.max_num_threads = max_num_threads
         self.compression = compression
         self.read_only = read_only
+        self.max_db_size = max_db_size
         self._database = None
         if not lazy_init:
             self.init_database()
@@ -60,20 +68,7 @@ class Database:
         if self._database is None:
             self._database = _kuzu.Database(self.database_path,
                                             self.buffer_pool_size, self.max_num_threads, self.compression,
-                                            self.read_only)
-
-    def resize_buffer_manager(self, new_size):
-        """
-        Resize the mamimum size of buffer pool.
-
-        Parameters
-        ----------
-        new_size : int
-            New maximum size of buffer pool (in bytes).
-
-        """
-
-        self._database.resize_buffer_manager(new_size)
+                                            self.read_only, self.max_db_size)
 
     def set_logging_level(self, level):
         """

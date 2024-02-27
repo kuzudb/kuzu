@@ -164,7 +164,7 @@ class BufferManager {
 public:
     enum class PageReadPolicy : uint8_t { READ_PAGE = 0, DONT_READ_PAGE = 1 };
 
-    explicit BufferManager(uint64_t bufferPoolSize);
+    BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize);
     ~BufferManager() = default;
 
     uint8_t* pin(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
@@ -194,6 +194,8 @@ public:
     inline void clearEvictionQueue() { evictionQueue = std::make_unique<EvictionQueue>(); }
 
 private:
+    static void verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize);
+
     bool claimAFrame(
         BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy);
     // Return number of bytes freed.

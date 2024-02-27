@@ -8,7 +8,7 @@ if(MSVC)
             udf_test.cpp)
 else()
     add_kuzu_api_test(main_test
-            access_mode_test.cpp
+            system_config_test.cpp
             arrow_test.cpp
             connection_test.cpp
             db_locking_test.cpp

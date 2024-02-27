@@ -34,20 +34,26 @@ struct KUZU_API SystemConfig {
      * @param bufferPoolSize Max size of the buffer pool in bytes.
      *        The larger the buffer pool, the more data from the database files is kept in memory,
      *        reducing the amount of File I/O
-     *  @param maxNumThreads The maximum number of threads to use during query execution
-     *  @param enableCompression Whether or not to compress data on-disk for supported types
-     *  @param readOnly If true, the database is opened read-only. No write transaction is
+     * @param maxNumThreads The maximum number of threads to use during query execution
+     * @param enableCompression Whether or not to compress data on-disk for supported types
+     * @param readOnly If true, the database is opened read-only. No write transaction is
      * allowed on the `Database` object. Multiple read-only `Database` objects can be created with
      * the same database path. If false, the database is opened read-write. Under this mode,
      * there must not be multiple `Database` objects created with the same database path.
+     * @param maxDBSize The maximum size of the database in bytes. Note that this is introduced
+     * temporarily for now to get around with the default 8TB mmap address space limit some
+     * environment. This will be removed once we implemente a better solution later. The value is
+     * default to 1 << 43 (8TB) under 64-bit environment and 1GB under 32-bit one (see
+     * `DEFAULT_VM_REGION_MAX_SIZE`).
      */
     explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
-        bool enableCompression = true, bool readOnly = false);
+        bool enableCompression = true, bool readOnly = false, uint64_t maxDBSize = -1u);
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
     bool enableCompression;
     bool readOnly;
+    uint64_t maxDBSize;
 };
 
 /**
