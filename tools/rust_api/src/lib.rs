@@ -57,3 +57,10 @@ pub use value::{InternalID, NodeVal, RelVal, Value};
 
 #[cfg(feature = "arrow")]
 pub use query_result::ArrowIterator;
+
+/// The version of the Kùzu crate as reported by Cargo's CARGO_PKG_VERSION environment variable
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Returns the storage version of the Kùzu library
+pub fn get_storage_version() -> u64 {
+    crate::ffi::ffi::get_storage_version()
+}

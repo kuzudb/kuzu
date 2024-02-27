@@ -364,4 +364,9 @@ pub(crate) mod ffi {
 
         fn get_blob_from_bytes(value: &Vec<u8>) -> Vec<u8>;
     }
+
+    #[namespace = "kuzu_rs"]
+    unsafe extern "C++" {
+        fn get_storage_version() -> u64;
+    }
 }
