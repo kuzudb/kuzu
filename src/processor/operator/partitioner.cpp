@@ -1,5 +1,7 @@
 #include "processor/operator/partitioner.h"
 
+#include "storage/store/node_table.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

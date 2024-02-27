@@ -179,7 +179,7 @@ length_t CSRHeaderChunks::getCSRLength(offset_t nodeOffset) const {
 CSRNodeGroup::CSRNodeGroup(
     const std::vector<std::unique_ptr<LogicalType>>& columnTypes, bool enableCompression)
     // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
-    // should be resized after csr offset calculation (e.g., during CopyRel).
+    // should be resized after csr offset calculation (e.g., during RelBatchInsert).
     : NodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
     csrHeaderChunks = CSRHeaderChunks(enableCompression);
 }

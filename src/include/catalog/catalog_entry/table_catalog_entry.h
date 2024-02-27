@@ -28,6 +28,7 @@ public:
     std::string getComment() const { return comment; }
     void setComment(std::string newComment) { comment = std::move(newComment); }
     virtual bool isParent(common::table_id_t tableID) = 0;
+    // TODO(Guodong/Ziyi): This function should be removed. Instead we should use CatalogEntryType.
     virtual common::TableType getTableType() const = 0;
 
     //===--------------------------------------------------------------------===//

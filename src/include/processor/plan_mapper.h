@@ -27,7 +27,7 @@ class NodeInsertExecutor;
 class RelInsertExecutor;
 class NodeSetExecutor;
 class RelSetExecutor;
-struct CopyRelSharedState;
+struct BatchInsertSharedState;
 struct PartitionerSharedState;
 
 class PlanMapper {
@@ -109,8 +109,9 @@ private:
 
     std::unique_ptr<PhysicalOperator> createCopyRel(
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
-        std::shared_ptr<CopyRelSharedState> sharedState, planner::LogicalCopyFrom* copyFrom,
-        common::RelDataDirection direction);
+        std::shared_ptr<BatchInsertSharedState> sharedState, planner::LogicalCopyFrom* copyFrom,
+        common::RelDataDirection direction,
+        std::vector<std::unique_ptr<common::LogicalType>> columnTypes);
 
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,
