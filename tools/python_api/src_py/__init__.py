@@ -50,6 +50,8 @@ from .database import *
 from .connection import *
 from .query_result import *
 from .types import *
+from ._version import __version__
+from ._version import __storage_version__
 
 # Restore the original dlopen flags
 if sys.platform == "linux":
