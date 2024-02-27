@@ -9,11 +9,9 @@
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
 #include "datetime.h" // python lib
-#include "cached_import/py_cached_import.h"
 #include "include/py_query_result_converter.h"
 
 using namespace kuzu::common;
-using kuzu::importCache;
 
 #define PyDateTimeTZ_FromDateAndTime(year, month, day, hour, min, sec, usec, timezone)             \
     PyDateTimeAPI->DateTime_FromDateAndTime(                                                       \
@@ -127,7 +125,8 @@ py::object convertRdfVariantToPyObject(const Value& value) {
     case LogicalTypeID::INTERVAL: {
         auto intervalVal = RdfVariant::getValue<interval_t>(&value);
         auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
-        return py::cast<py::object>(importCache->datetime.timedelta()(py::arg("days") = days,
+        return py::cast<py::object>(py::module::import("datetime")
+                                        .attr("timedelta")(py::arg("days") = days,
                                             py::arg("microseconds") = intervalVal.micros));
     }
     default: {
@@ -173,8 +172,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::INT128: {
         kuzu::common::int128_t result = value.getValue<kuzu::common::int128_t>();
         std::string int128_string = kuzu::common::Int128_t::ToString(result);
-        
-        auto Decimal = importCache->decimal.Decimal();
+        py::object Decimal = py::module_::import("decimal").attr("Decimal");
         py::object largeInt = Decimal(int128_string);
         return largeInt;
     }
@@ -195,7 +193,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::UUID: {
         kuzu::common::int128_t result = value.getValue<kuzu::common::int128_t>();
         std::string uuidString = kuzu::common::UUID::toString(result);
-        auto UUID = importCache->uuid.UUID();
+        py::object UUID = py::module_::import("uuid").attr("UUID");
         return UUID(uuidString);
     }
     case LogicalTypeID::DATE: {
@@ -238,8 +236,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::INTERVAL: {
         auto intervalVal = value.getValue<interval_t>();
         auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
-        
-        return py::cast<py::object>(importCache->datetime.timedelta()(py::arg("days") = days,
+        return py::cast<py::object>(py::module::import("datetime")
+                                        .attr("timedelta")(py::arg("days") = days,
                                             py::arg("microseconds") = intervalVal.micros));
     }
     case LogicalTypeID::VAR_LIST:
@@ -333,9 +331,9 @@ bool PyQueryResult::getNextArrowChunk(const std::vector<std::unique_ptr<DataType
     ArrowArray data;
     ArrowConverter::toArrowArray(*queryResult, &data, chunkSize);
 
-    
-    auto batchImportFunc = importCache->pyarrow.lib.RecordBatch._import_from_c();
-
+    // TODO(Ziyi): use import cache to improve performance.
+    auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
+    auto batchImportFunc = pyarrowLibModule.attr("RecordBatch").attr("_import_from_c");
     auto schema = ArrowConverter::toArrowSchema(typesInfo);
     batches.append(batchImportFunc((std::uint64_t)&data, (std::uint64_t)schema.get()));
     return true;
@@ -343,19 +341,22 @@ bool PyQueryResult::getNextArrowChunk(const std::vector<std::unique_ptr<DataType
 
 py::object PyQueryResult::getArrowChunks(
     const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, std::int64_t chunkSize) {
+    auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
     py::list batches;
     while (getNextArrowChunk(typesInfo, batches, chunkSize)) {}
     return batches;
 }
 
 kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize) {
+    py::gil_scoped_acquire acquire;
+
+    auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
+    auto fromBatchesFunc = pyarrowLibModule.attr("Table").attr("from_batches");
+    auto schemaImportFunc = pyarrowLibModule.attr("Schema").attr("_import_from_c");
 
     auto typesInfo = queryResult->getColumnTypesInfo();
     py::list batches = getArrowChunks(typesInfo, chunkSize);
     auto schema = ArrowConverter::toArrowSchema(typesInfo);
-
-    auto fromBatchesFunc = importCache->pyarrow.lib.Table.from_batches();
-    auto schemaImportFunc = importCache->pyarrow.lib.Schema._import_from_c();
     auto schemaObj = schemaImportFunc((std::uint64_t)schema.get());
     return py::cast<kuzu::pyarrow::Table>(fromBatchesFunc(batches, schemaObj));
 }
