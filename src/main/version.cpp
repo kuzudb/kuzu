@@ -1,4 +1,5 @@
 #include "main/version.h"
+
 #include "storage/storage_info.h"
 
 namespace kuzu {
