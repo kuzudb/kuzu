@@ -70,7 +70,7 @@ public class KuzuNative {
     protected static native void kuzu_native_reload_library(String lib_path);
 
     // Database
-    protected static native long kuzu_database_init(String database_path, long buffer_pool_size, boolean enable_compression, boolean read_only);
+    protected static native long kuzu_database_init(String database_path, long buffer_pool_size, boolean enable_compression, boolean read_only, long max_db_size);
 
     protected static native void kuzu_database_destroy(KuzuDatabase db);
 

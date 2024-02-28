@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "include/cached_import/py_cached_import.h"
 #include "main/version.h"
 #include "pandas/pandas_scan.h"
 
@@ -49,11 +48,6 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
     database = std::make_unique<Database>(databasePath, systemConfig);
     database->addBuiltInFunction(READ_PANDAS_FUNC_NAME, kuzu::PandasScanFunction::getFunctionSet());
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(database.get());
-    kuzu::importCache = std::make_shared<kuzu::PythonCachedImport>();
-}
-
-PyDatabase::~PyDatabase() {
-    kuzu::importCache.reset();
 }
 
 template<class T>

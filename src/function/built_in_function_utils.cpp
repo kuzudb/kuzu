@@ -752,6 +752,8 @@ void BuiltInFunctionsUtils::registerStringFunctions(CatalogSet* catalogSet) {
         REGEXP_EXTRACT_FUNC_NAME, RegexpExtractFunction::getFunctionSet()));
     catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
         REGEXP_EXTRACT_ALL_FUNC_NAME, RegexpExtractAllFunction::getFunctionSet()));
+    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
+        LEVENSHTEIN_FUNC_NAME, LevenshteinFunction::getFunctionSet()));
 }
 
 void BuiltInFunctionsUtils::registerCastFunctions(CatalogSet* catalogSet) {
