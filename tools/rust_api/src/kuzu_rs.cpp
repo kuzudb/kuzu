@@ -65,7 +65,7 @@ std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_
 }
 
 std::unique_ptr<Database> new_database(std::string_view databasePath, uint64_t bufferPoolSize,
-    uint64_t maxNumThreads, bool enableCompression, bool readOnly) {
+    uint64_t maxNumThreads, bool enableCompression, bool readOnly, uint64_t maxDBSize) {
     auto systemConfig = SystemConfig();
     if (bufferPoolSize > 0) {
         systemConfig.bufferPoolSize = bufferPoolSize;
@@ -75,6 +75,9 @@ std::unique_ptr<Database> new_database(std::string_view databasePath, uint64_t b
     }
     systemConfig.readOnly = readOnly;
     systemConfig.enableCompression = enableCompression;
+    if (maxDBSize != -1u) {
+        systemConfig.maxDBSize = maxDBSize;
+    }
     return std::make_unique<Database>(databasePath, systemConfig);
 }
 

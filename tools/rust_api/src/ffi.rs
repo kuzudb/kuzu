@@ -125,6 +125,7 @@ pub(crate) mod ffi {
             maxNumThreads: u64,
             enableCompression: bool,
             readOnly: bool,
+            maxDBSize: u64,
         ) -> Result<UniquePtr<Database>>;
 
         fn database_set_logging_level(database: Pin<&mut Database>, level: &CxxString);
