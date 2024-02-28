@@ -187,6 +187,14 @@ static void trimRightWhitespace(const char* input, const char*& end) {
     }
 }
 
+static void trimQuotes(const char*& keyStart, const char*& keyEnd) {
+    // Skip quotations on struct keys.
+    if (keyStart[0] == '\'' && (keyEnd - 1)[0] == '\'') {
+        keyStart++;
+        keyEnd--;
+    }
+}
+
 static bool skipToCloseQuotes(const char*& input, const char* end) {
     auto ch = *input;
     input++; // skip the first " '
@@ -615,6 +623,7 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
         }
         auto keyEnd = input;
         trimRightWhitespace(keyStart, keyEnd);
+        trimQuotes(keyStart, keyEnd);
         auto fieldIdx = StructType::getFieldIdx(&type, std::string{keyStart, keyEnd});
         if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
             throw ParserException{"Invalid struct field name: " + std::string{keyStart, keyEnd}};
