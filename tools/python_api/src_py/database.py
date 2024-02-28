@@ -50,6 +50,28 @@ class Database:
         self._database = None
         if not lazy_init:
             self.init_database()
+    
+    def get_version():
+        """
+        Get the version of the database.
+
+        Returns
+        -------
+        str
+            The version of the database.
+        """
+        return _kuzu.Database.get_version()
+    
+    def get_storage_version():
+        """
+        Get the storage version of the database.
+
+        Returns
+        -------
+        int
+            The storage version of the database.
+        """
+        return _kuzu.Database.get_storage_version()
 
     def __getstate__(self):
         state = {

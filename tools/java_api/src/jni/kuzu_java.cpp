@@ -166,7 +166,8 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1native_1reload_1library(
     env->ReleaseStringUTFChars(lib_path, path);
     if (handle == nullptr) {
         jclass Exception = env->FindClass("java/lang/Exception");
-        auto error = dlerror(); // NOLINT(concurrency-mt-unsafe): load can only be executed in single thread.
+        auto error =
+            dlerror(); // NOLINT(concurrency-mt-unsafe): load can only be executed in single thread.
         env->ThrowNew(Exception, error);
     }
 #endif
@@ -1254,4 +1255,12 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rdf_1variant_1get_1va
     default:
         return nullptr;
     }
+}
+
+JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1get_1version(JNIEnv* env, jclass) {
+    return env->NewStringUTF(Version::getVersion());
+}
+
+JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1get_1storage_1version(JNIEnv*, jclass) {
+    return static_cast<jlong>(Version::getStorageVersion());
 }

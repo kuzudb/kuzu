@@ -51,6 +51,15 @@ from .connection import *
 from .query_result import *
 from .types import *
 
+def __getattr__(name):
+    if name == "version":
+        return Database.get_version()
+    elif name == "storage_version":
+        return Database.get_storage_version()
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    
+
 # Restore the original dlopen flags
 if sys.platform == "linux":
     sys.setdlopenflags(original_dlopen_flags)

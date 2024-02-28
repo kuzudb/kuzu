@@ -221,4 +221,8 @@ public class KuzuNative {
     protected static native KuzuDataType kuzu_rdf_variant_get_data_type(KuzuValue rdf_variant);
 
     protected static native <T> T kuzu_rdf_variant_get_value(KuzuValue rdf_variant);
+
+    protected static native String kuzu_get_version();
+
+    protected static native long kuzu_get_storage_version();
 }

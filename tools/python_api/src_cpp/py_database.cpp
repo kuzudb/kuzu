@@ -1,7 +1,9 @@
 #include "include/py_database.h"
-#include "pandas/pandas_scan.h"
 
 #include <memory>
+
+#include "main/version.h"
+#include "pandas/pandas_scan.h"
 
 using namespace kuzu::common;
 
@@ -26,7 +28,17 @@ void PyDatabase::initialize(py::handle& m) {
         .def("scan_node_table_as_float", &PyDatabase::scanNodeTable<float>, py::arg("table_name"),
             py::arg("prop_name"), py::arg("indices"), py::arg("np_array"), py::arg("num_threads"))
         .def("scan_node_table_as_bool", &PyDatabase::scanNodeTable<bool>, py::arg("table_name"),
-            py::arg("prop_name"), py::arg("indices"), py::arg("np_array"), py::arg("num_threads"));
+            py::arg("prop_name"), py::arg("indices"), py::arg("np_array"), py::arg("num_threads"))
+        .def_static("get_version", &PyDatabase::getVersion)
+        .def_static("get_storage_version", &PyDatabase::getStorageVersion);
+}
+
+py::str PyDatabase::getVersion() {
+    return py::str(Version::getVersion());
+}
+
+uint64_t PyDatabase::getStorageVersion() {
+    return Version::getStorageVersion();
 }
 
 PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,

@@ -48,6 +48,22 @@ class Database {
   }
 
   /**
+   * Get the version of the library.
+   * @returns {String} the version of the library.
+   */
+  static getVersion() {
+    return KuzuNative.NodeDatabase.getVersion();
+  }
+
+  /**
+   * Get the storage version of the library.
+   * @returns {Number} the storage version of the library.
+   */
+  static getStorageVersion() {
+    return KuzuNative.NodeDatabase.getStorageVersion();
+  }
+
+  /**
    * Initialize the database. Calling this function is optional, as the
    * database is initialized automatically when the first query is executed.
    */

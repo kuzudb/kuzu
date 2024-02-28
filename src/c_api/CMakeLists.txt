@@ -8,7 +8,8 @@ add_library(kuzu_c_api
         prepared_statement.cpp
         query_result.cpp
         query_summary.cpp
-        value.cpp)
+        value.cpp
+        version.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_c_api>

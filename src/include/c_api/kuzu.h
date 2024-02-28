@@ -1269,4 +1269,15 @@ KUZU_C_API double kuzu_query_summary_get_compiling_time(kuzu_query_summary* quer
 KUZU_C_API double kuzu_query_summary_get_execution_time(kuzu_query_summary* query_summary);
 
 // TODO: Bind utility functions for kuzu_date_t, kuzu_timestamp_t, and kuzu_interval_t
+
+// Version
+/**
+ * @brief Returns the version of the Kùzu library.
+ */
+KUZU_C_API char* kuzu_get_version();
+
+/**
+ * @brief Returns the storage version of the Kùzu library.
+ */
+KUZU_C_API uint64_t kuzu_get_storage_version();
 #undef KUZU_C_API

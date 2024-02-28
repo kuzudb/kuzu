@@ -18,4 +18,5 @@
 #include "main/query_result.h"                // IWYU pragma: export
 #include "main/query_summary.h"               // IWYU pragma: export
 #include "main/storage_driver.h"              // IWYU pragma: export
+#include "main/version.h"                     // IWYU pragma: export
 #include "processor/result/flat_tuple.h"      // IWYU pragma: export

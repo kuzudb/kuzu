@@ -8,6 +8,7 @@ add_library(kuzu_main
         query_result.cpp
         query_summary.cpp
         storage_driver.cpp
+        version.cpp
         db_config.cpp)
 
 set(ALL_OBJECT_FILES
