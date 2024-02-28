@@ -11,6 +11,7 @@
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
 #include "main/kuzu.h"
+#include "storage/storage_info.h"
 #else
 #include <kuzu.hpp>
 #endif
@@ -206,6 +207,10 @@ inline rust::Vec<uint8_t> get_blob_from_bytes(const rust::Vec<uint8_t>& value) {
         result.push_back(c);
     }
     return result;
+}
+
+inline kuzu::storage::storage_version_t get_storage_version() {
+    return kuzu::storage::StorageVersionInfo::getStorageVersion();
 }
 
 } // namespace kuzu_rs
