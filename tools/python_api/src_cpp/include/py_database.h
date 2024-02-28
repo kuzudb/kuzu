@@ -2,6 +2,7 @@
 
 #include "main/kuzu.h"
 #include "main/storage_driver.h"
+#include "cached_import/py_cached_import.h"
 #include "pybind_include.h" // IWYU pragma: keep (used for py:: namespace)
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 using namespace kuzu::main;
