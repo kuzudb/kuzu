@@ -32,6 +32,7 @@ public:
  */
 class QueryResult {
     friend class Connection;
+    friend class ClientContext;
     class QueryResultIterator {
     private:
         QueryResult* currentResult;
