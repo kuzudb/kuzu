@@ -182,13 +182,13 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
         auto child = bindExpression(*parsedExpression.getChild(0));
         return bindRecursiveJoinLengthFunction(*child);
     } else if (functionName == START_NODE_FUNC_NAME) {
-		auto child = bindExpression(*parsedExpression.getChild(0));
-		validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
-		return bindStartNodeExpression(*child);
+        auto child = bindExpression(*parsedExpression.getChild(0));
+        validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
+        return bindStartNodeExpression(*child);
     } else if (functionName == END_NODE_FUNC_NAME) {
-		auto child = bindExpression(*parsedExpression.getChild(0));
-		validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
-		return bindEndNodeExpression(*child);
+        auto child = bindExpression(*parsedExpression.getChild(0));
+        validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
+        return bindEndNodeExpression(*child);
 	}
     return nullptr;
 }
@@ -221,14 +221,16 @@ std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
         STRUCT_EXTRACT_FUNC_NAME);
 }
 
-std::shared_ptr<Expression> ExpressionBinder::bindStartNodeExpression(const Expression& expression) {
+std::shared_ptr<Expression> ExpressionBinder::bindStartNodeExpression(
+    const Expression& expression) {
     auto& rel = (RelExpression&)expression;
     return rel.getSrcNode();
 }
 
-std::shared_ptr<Expression> ExpressionBinder::bindEndNodeExpression(const Expression& expression) {
-	auto& rel = (RelExpression&)expression;
-	return rel.getDstNode();
+std::shared_ptr<Expression> ExpressionBinder::bindEndNodeExpression(
+    const Expression& expression) {
+    auto& rel = (RelExpression&)expression;
+    return rel.getDstNode();
 }
 
 static std::vector<std::unique_ptr<Value>> populateLabelValues(std::vector<table_id_t> tableIDs,
