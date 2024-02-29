@@ -212,6 +212,8 @@ const char* const TO_MICROSECONDS_FUNC_NAME = "TO_MICROSECONDS";
 const char* const ID_FUNC_NAME = "ID";
 const char* const LABEL_FUNC_NAME = "LABEL";
 const char* const OFFSET_FUNC_NAME = "OFFSET";
+const char* const START_NODE_FUNC_NAME = "START_NODE";
+const char* const END_NODE_FUNC_NAME = "END_NODE";
 
 // Path functions
 const char* const NODES_FUNC_NAME = "NODES";

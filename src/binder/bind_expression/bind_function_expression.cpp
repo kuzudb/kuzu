@@ -164,6 +164,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
 // ID(a)              |        a._id
 // LABEL(a)           |        LIST_EXTRACT(offset(a), [table names from catalog])
 // LENGTH(e)          |        e._length
+// STARTNODE(a)       |        a._src
+// ENDNODE(a)         |        a._dst
 std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
     const parser::ParsedExpression& parsedExpression, const std::string& functionName) {
     if (functionName == ID_FUNC_NAME) {
@@ -179,7 +181,15 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
     } else if (functionName == LENGTH_FUNC_NAME) {
         auto child = bindExpression(*parsedExpression.getChild(0));
         return bindRecursiveJoinLengthFunction(*child);
-    }
+    } else if (functionName == START_NODE_FUNC_NAME) {
+		auto child = bindExpression(*parsedExpression.getChild(0));
+		validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
+		return bindStartNodeExpression(*child);
+    } else if (functionName == END_NODE_FUNC_NAME) {
+		auto child = bindExpression(*parsedExpression.getChild(0));
+		validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
+		return bindEndNodeExpression(*child);
+	}
     return nullptr;
 }
 
@@ -209,6 +219,16 @@ std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     return bindScalarFunctionExpression(
         expression_vector{expression, createLiteralExpression(std::move(stringValue))},
         STRUCT_EXTRACT_FUNC_NAME);
+}
+
+std::shared_ptr<Expression> ExpressionBinder::bindStartNodeExpression(const Expression& expression) {
+    auto& rel = (RelExpression&)expression;
+    return rel.getSrcNode();
+}
+
+std::shared_ptr<Expression> ExpressionBinder::bindEndNodeExpression(const Expression& expression) {
+	auto& rel = (RelExpression&)expression;
+	return rel.getDstNode();
 }
 
 static std::vector<std::unique_ptr<Value>> populateLabelValues(std::vector<table_id_t> tableIDs,
