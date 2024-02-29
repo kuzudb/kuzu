@@ -20,9 +20,7 @@ void NodeRelExpressionEvaluator::evaluate(ClientContext* clientContext) {
     auto internalIDVector = StructVector::getFieldVector(resultVector.get(), internalIDIdx);
     for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {
         auto pos = resultVector->state->selVector->selectedPositions[i];
-        if (internalIDVector->isNull(pos)) {
-            resultVector->setNull(pos, true);
-        }
+        resultVector->setNull(pos, internalIDVector->isNull(pos));
     }
 }
 
