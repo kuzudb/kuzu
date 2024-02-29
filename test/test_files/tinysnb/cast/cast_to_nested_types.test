@@ -18,9 +18,9 @@
 |{num: , str: }|[0,0,0]
 -STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
 ---- 3
-[escape , is escape success? ~]| ' [ ] do not need to escape sepeical | []|{a: {b: }}
-[this , is a word , normal not escape , ' [ ] | , ~ ' ]|try escape ~|{a: {b: {c: [3432423,-43423,31231,]}}}
-[~ ' not work also this '"" ]|nu|{a: {b: {c: }}}
+[escape,is escape success? ~]| ' [ ] do not need to escape sepeical | []|{a: {b: }}
+[this,is a word,normal not escape,' [ ] | , ~ ']|try escape ~|{a: {b: {c: [3432423,-43423,31231,]}}}
+[~ ' not work also this '""]|nu|{a: {b: {c: }}}
 -STATEMENT LOAD WITH HEADERS (map MAP(STRING, MAP(STRING, INT16))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map_correct.csv" RETURN *;
 ---- 3
 {c={a=3423}, b={g=3421}}
@@ -92,7 +92,7 @@ False|-4325||18446744073709551616.000000|  dfsa
 [[1,2,3]]
 -STATEMENT RETURN cast("[this, is, a, list, of,  string]", "STRING[]");
 ---- 1
-[this, is, a, list, of, string]
+[this,is,a,list,of,string]
 -STATEMENT RETURN cast("[x\', ,\',6]", "STRING[]");
 ---- 1
 [x', ,',6]

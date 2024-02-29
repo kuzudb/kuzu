@@ -854,7 +854,7 @@ public class ValueTest extends TestBase {
         String str = KuzuValueNodeUtil.toString(value);
         assertEquals(str, "{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, " +
                 "score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years " +
-                "5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto', 'montr,eal'], " +
+                "5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], " +
                 "stock: {price: [96,56], volume: 1000}}, info: 3.120000}");
         value.destroy();
         flatTuple.destroy();

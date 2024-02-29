@@ -278,6 +278,8 @@ struct SplitStringListOperation {
     ValueVector* resultVector;
 
     void handleValue(const char* start, const char* end, const CSVOption* option) {
+        skipWhitespace(start, end);
+        trimRightWhitespace(start, end);
         CastString::copyStringToVector(
             resultVector, offset, std::string_view{start, (uint32_t)(end - start)}, option);
         offset++;
@@ -295,7 +297,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
     if (input == end || *input != CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
         return false;
     }
-    input++;
+    skipWhitespace(++input, end);
 
     auto start_ptr = input;
     while (input < end) {
@@ -321,7 +323,8 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
                 lvl--;
                 break;
             }
-            start_ptr = ++input;
+            skipWhitespace(++input, end);
+            start_ptr = input;
             continue;
         }
         input++;

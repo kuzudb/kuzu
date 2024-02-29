@@ -640,21 +640,21 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 -LOG CastStructToString
 -STATEMENT MATCH (o:organisation) RETURN string(o.state)
 ---- 4
-{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}
+{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}
 {revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
-{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
+{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}
 
 -STATEMENT MATCH (o:organisation) RETURN cast(o.state, "string")
 ---- 4
-{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}
+{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}
 {revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
-{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
+{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}
 
 
 -LOG CastStructToStruct
 -STATEMENT MATCH (o:organisation) where o.ID < 6 RETURN cast(cast(o.state, "STRUCT(revenue DOUBLE, location STRING, stock STRUCT(price INT128[], volume UINT64))"), "STRUCT(revenue DOUBLE, location STRING, stock STRING)"), cast(o.state, "STRUCT(revenue FLOAT, location STRING, stock STRUCT(price DOUBLE[], volume UINT32))");
 ---- 2
-{revenue: 138.000000, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}|{revenue: 138.000000, location: ['toronto', 'montr,eal'], stock: {price: [96.000000,56.000000], volume: 1000}}
+{revenue: 138.000000, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}|{revenue: 138.000000, location: ['toronto','montr,eal'], stock: {price: [96.000000,56.000000], volume: 1000}}
 {revenue: 152.000000, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}|{revenue: 152.000000, location: ["vanco,uver north area"], stock: {price: [15.000000,78.000000,671.000000], volume: 432}}
 
 -LOG CastUnionToString
