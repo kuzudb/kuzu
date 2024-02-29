@@ -81,6 +81,8 @@ private:
     std::unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
     std::shared_ptr<Expression> bindInternalIDExpression(
         const std::shared_ptr<Expression>& expression);
+    std::shared_ptr<Expression> bindStartNodeExpression(const Expression& expression);
+    std::shared_ptr<Expression> bindEndNodeExpression(const Expression& expression);
     std::shared_ptr<Expression> bindLabelFunction(const Expression& expression);
     std::unique_ptr<Expression> createInternalLengthExpression(const Expression& expression);
     std::shared_ptr<Expression> bindRecursiveJoinLengthFunction(const Expression& expression);
