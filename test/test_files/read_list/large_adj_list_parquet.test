@@ -1,6 +1,5 @@
 -GROUP EndToEndReadLargeListsTest
 -DATASET PARQUET CSV_TO_PARQUET(read-list-tests/large-list)
--SKIP
 
 --
 

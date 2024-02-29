@@ -147,6 +147,18 @@ void LocalFileSystem::overwriteFile(const std::string& from, const std::string& 
     }
 }
 
+void LocalFileSystem::copyFile(const std::string& from, const std::string& to) const {
+    if (!fileOrPathExists(from))
+        return;
+    std::error_code errorCode;
+    if (!std::filesystem::copy_file(from, to, std::filesystem::copy_options::none, errorCode)) {
+        // LCOV_EXCL_START
+        throw Exception(stringFormat(
+            "Error copying file {} to {}.  ErrorMessage: {}", from, to, errorCode.message()));
+        // LCOV_EXCL_STOP
+    }
+}
+
 void LocalFileSystem::createDir(const std::string& dir) const {
     try {
         if (std::filesystem::exists(dir)) {
