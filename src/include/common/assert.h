@@ -7,10 +7,10 @@ namespace kuzu {
 namespace common {
 
 [[noreturn]] inline void kuAssertFailureInternal(
-    const char* condition_name, const char* file, int linenr) {
+    const char* condition_name, const char* file, int linenr, const char* log) {
     // LCOV_EXCL_START
     throw InternalException(stringFormat(
-        "Assertion failed in file \"{}\" on line {}: {}", file, linenr, condition_name));
+        "Assertion failed in file \"{}\" on line {}: {}. {}", file, linenr, condition_name, log));
     // LCOV_EXCL_STOP
 }
 
@@ -18,13 +18,19 @@ namespace common {
 #define KU_ASSERT(condition)                                                                       \
     static_cast<bool>(condition) ?                                                                 \
         void(0) :                                                                                  \
-        kuzu::common::kuAssertFailureInternal(#condition, __FILE__, __LINE__)
+        kuzu::common::kuAssertFailureInternal(#condition, __FILE__, __LINE__, "")
+
+#define KU_ASSERT_LOG(condition, log)                                                                       \
+    static_cast<bool>(condition) ?                                                                 \
+        void(0) :                                                                                  \
+        kuzu::common::kuAssertFailureInternal(#condition, __FILE__, __LINE__, log)
 #else
 #define KU_ASSERT(condition) void(0)
+#define KU_ASSERT_LOG(condition) void(0)
 #endif
 
 #define KU_UNREACHABLE                                                                             \
-    [[unlikely]] kuzu::common::kuAssertFailureInternal("KU_UNREACHABLE", __FILE__, __LINE__)
+    [[unlikely]] kuzu::common::kuAssertFailureInternal("KU_UNREACHABLE", __FILE__, __LINE__, "")
 
 } // namespace common
 } // namespace kuzu

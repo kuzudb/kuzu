@@ -70,6 +70,21 @@ struct CSRHeaderChunks {
         offset->setNumValues(numValues);
         length->setNumValues(numValues);
     }
+
+    std::string toString() {
+        std::string result = "\noffsets: [";
+        for (auto i = 0u; i < offset->getNumValues() - 1; i++) {
+            result += std::to_string(offset->getValue<common::offset_t>(i)) + ",";
+        }
+        result += std::to_string(offset->getValue<common::offset_t>(offset->getNumValues() - 1)) +
+                  "]\nlength: [";
+        for (auto i = 0u; i < length->getNumValues() - 1; i++) {
+            result += std::to_string(length->getValue<common::length_t>(i)) + ",";
+        }
+        result +=
+            std::to_string(length->getValue<common::length_t>(length->getNumValues() - 1)) + "]";
+        return result;
+    }
 };
 
 class CSRNodeGroup : public NodeGroup {
