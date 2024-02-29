@@ -195,7 +195,7 @@ static void trimQuotes(const char*& keyStart, const char*& keyEnd) {
     }
 }
 
-static bool skipToCloseQuotes(const char*& input, const char* end, const CSVOption* option) {
+static bool skipToCloseQuotes(const char*& input, const char* end) {
     auto ch = *input;
     input++; // skip the first " '
     // TODO: escape char
@@ -213,7 +213,7 @@ static bool skipToClose(
     input++;
     while (input != end) {
         if (*input == '\'' || *input == '"') {
-            if (!skipToCloseQuotes(input, end, option)) {
+            if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
         } else if (*input == '{') { // must have closing brackets {, ] if they are not quoted
@@ -307,7 +307,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
                 return false;
             }
         } else if (ch == '\'' || ch == '"') {
-            if (!skipToCloseQuotes(input, end, option)) {
+            if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
         } else if (ch == '{') {
@@ -470,7 +470,7 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
 
     while (input < end) {
         if (*input == '\'' || *input == '"') {
-            if (!skipToCloseQuotes(input, end, option)) {
+            if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
         } else if (*input == '{') {
@@ -571,7 +571,7 @@ static bool parseStructFieldValue(
     uint64_t lvl = 0;
     while (input < end) {
         if (*input == '\'' || *input == '"') {
-            if (!skipToCloseQuotes(input, end, option)) {
+            if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
         } else if (*input == '{') {
