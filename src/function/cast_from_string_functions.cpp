@@ -195,7 +195,7 @@ static void trimQuotes(const char*& keyStart, const char*& keyEnd) {
     }
 }
 
-static bool skipToCloseQuotes(const char*& input, const char* end) {
+static bool skipToCloseQuotes(const char*& input, const char* end, const CSVOption* option) {
     auto ch = *input;
     input++; // skip the first " '
     // TODO: escape char
@@ -212,8 +212,8 @@ static bool skipToClose(
     const char*& input, const char* end, uint64_t& lvl, char target, const CSVOption* option) {
     input++;
     while (input != end) {
-        if (*input == '\'') {
-            if (!skipToCloseQuotes(input, end)) {
+        if (*input == '\'' || *input == '"') {
+            if (!skipToCloseQuotes(input, end, option)) {
                 return false;
             }
         } else if (*input == '{') { // must have closing brackets {, ] if they are not quoted
@@ -278,6 +278,8 @@ struct SplitStringListOperation {
     ValueVector* resultVector;
 
     void handleValue(const char* start, const char* end, const CSVOption* option) {
+        skipWhitespace(start, end);
+        trimRightWhitespace(start, end);
         CastString::copyStringToVector(
             resultVector, offset, std::string_view{start, (uint32_t)(end - start)}, option);
         offset++;
@@ -295,7 +297,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
     if (input == end || *input != CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
         return false;
     }
-    input++;
+    skipWhitespace(++input, end);
 
     auto start_ptr = input;
     while (input < end) {
@@ -305,7 +307,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
                 return false;
             }
         } else if (ch == '\'' || ch == '"') {
-            if (!skipToCloseQuotes(input, end)) {
+            if (!skipToCloseQuotes(input, end, option)) {
                 return false;
             }
         } else if (ch == '{') {
@@ -321,7 +323,8 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
                 lvl--;
                 break;
             }
-            start_ptr = ++input;
+            skipWhitespace(++input, end);
+            start_ptr = input;
             continue;
         }
         input++;
@@ -466,8 +469,8 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
     uint64_t lvl = 0;
 
     while (input < end) {
-        if (*input == '"' || *input == '\'') {
-            if (!skipToCloseQuotes(input, end)) {
+        if (*input == '\'' || *input == '"') {
+            if (!skipToCloseQuotes(input, end, option)) {
                 return false;
             }
         } else if (*input == '{') {
@@ -567,8 +570,8 @@ static bool parseStructFieldValue(
     const char*& input, const char* end, const CSVOption* option, bool& closeBrack) {
     uint64_t lvl = 0;
     while (input < end) {
-        if (*input == '"' || *input == '\'') {
-            if (!skipToCloseQuotes(input, end)) {
+        if (*input == '\'' || *input == '"') {
+            if (!skipToCloseQuotes(input, end, option)) {
                 return false;
             }
         } else if (*input == '{') {
