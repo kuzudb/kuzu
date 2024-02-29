@@ -10,7 +10,6 @@
 
 -GROUP OrderByTests
 -DATASET PARQUET CSV_TO_PARQUET(order-by-tests)
--SKIP
 
 --
 
