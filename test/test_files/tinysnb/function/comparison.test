@@ -340,3 +340,23 @@ False
 -STATEMENT RETURN {a: 2, b: null} <> {a: 2, b: null}
 ---- 1
 False
+
+-LOG NodeEqual
+-STATEMENT MATCH (m1:movies) MATCH (m2:movies) WHERE m1.name = 'Roma' AND m2.name = 'Roma' RETURN m1 = m2;
+---- 1
+True
+
+-LOG NodeNotEqual
+-STATEMENT MATCH (m1:movies) MATCH (m2:movies) WHERE m1.name = 'Roma' AND m2.name = 'Sóló cón tu párejâ' RETURN m1 <> m2;
+---- 1
+True
+
+-LOG RelEqual
+-STATEMENT MATCH (:person)-[s1:studyAt]->(:organisation) MATCH (:person)-[s2:studyAt]->(:organisation) WHERE s1.length = 55 AND s2.length = 55 RETURN s1 = s2;
+---- 1
+True
+
+-LOG RelNotEqual
+-STATEMENT MATCH (:person)-[s1:studyAt]->(:organisation) MATCH (:person)-[s2:studyAt]->(:organisation) WHERE s1.length = 55 AND s2.length = 22 RETURN s1 <> s2;
+---- 1
+True

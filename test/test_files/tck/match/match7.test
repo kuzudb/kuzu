@@ -204,15 +204,15 @@
 ---- ok
 -STATEMENT CREATE REL TABLE GROUP REL(FROM A TO B, FROM B TO C, name STRING);
 ---- ok
--STATEMENT CREATE (a:A {num: 1})-[:REL {name: 'r1'}]->(b:B {num: 2})-[:REL {name: 'r2'}]->(c:C {num: 3})
+-STATEMENT CREATE (a:A {num: 1})-[:REL_A_B {name: 'r1'}]->(b:B {num: 2})-[:REL_B_C {name: 'r2'}]->(c:C {num: 3})
 ---- ok
 -STATEMENT MATCH (a)-[r {name: 'r1'}]-(b)
            OPTIONAL MATCH (b)-[r2]-(c)
            WHERE r <> r2
            RETURN a, b, c;
 ---- 2
-{...}|{...}|{...}
-{...}|{...}|{...}
+{_ID: 0:0, _LABEL: A, ID: 0, num: 1}|{_ID: 1:0, _LABEL: B, ID: 0, num: 2}|{_ID: 2:0, _LABEL: C, ID: 0, num: 3}
+{_ID: 1:0, _LABEL: B, ID: 0, num: 2}|{_ID: 0:0, _LABEL: A, ID: 0, num: 1}|
 
 # Variable length optional relationships
 -CASE Scenario12
