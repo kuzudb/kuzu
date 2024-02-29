@@ -189,7 +189,7 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
         auto child = bindExpression(*parsedExpression.getChild(0));
         validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
         return bindEndNodeExpression(*child);
-	}
+    }
     return nullptr;
 }
 
@@ -227,8 +227,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindStartNodeExpression(
     return rel.getSrcNode();
 }
 
-std::shared_ptr<Expression> ExpressionBinder::bindEndNodeExpression(
-    const Expression& expression) {
+std::shared_ptr<Expression> ExpressionBinder::bindEndNodeExpression(const Expression& expression) {
     auto& rel = (RelExpression&)expression;
     return rel.getDstNode();
 }
