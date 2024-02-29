@@ -387,7 +387,7 @@ describe("STRUCT", function () {
     assert.equal(typeof result[0]["o.state"], "object");
     assert.deepEqual(result[0]["o.state"], {
       revenue: 138,
-      location: ["'toronto'", " 'montr,eal'"],
+      location: ["'toronto'", "'montr,eal'"],
       stock: { price: [96, 56], volume: 1000 },
     });
   });
