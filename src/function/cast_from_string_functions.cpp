@@ -212,7 +212,7 @@ static bool skipToClose(
     const char*& input, const char* end, uint64_t& lvl, char target, const CSVOption* option) {
     input++;
     while (input != end) {
-        if (*input == '\'' || *input == '"') {
+        if (*input == '\'') {
             if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
@@ -469,7 +469,7 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
     uint64_t lvl = 0;
 
     while (input < end) {
-        if (*input == '\'' || *input == '"') {
+        if (*input == '"' || *input == '\'') {
             if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
@@ -570,7 +570,7 @@ static bool parseStructFieldValue(
     const char*& input, const char* end, const CSVOption* option, bool& closeBrack) {
     uint64_t lvl = 0;
     while (input < end) {
-        if (*input == '\'' || *input == '"') {
+        if (*input == '"' || *input == '\'') {
             if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
