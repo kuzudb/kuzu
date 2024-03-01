@@ -374,3 +374,26 @@ v3|v2
 ---- 2
 1|1
 2|1
+
+-CASE 2942
+
+-STATEMENT CREATE NODE TABLE V (id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE R (id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE childof (FROM V TO V);
+---- ok
+-STATEMENT CREATE REL TABLE relatedto (FROM R TO V);
+---- ok
+-STATEMENT CREATE (v1:V {id:"v1"}),(v11:V {id:"v11"}),(v12:V {id:"v12"}),(v111:V {id:"v111"}),
+(r1:R {id:"r1"}), (r12:R {id:"r12"}),
+(v111)-[:childof]->(v11),(v11)-[:childof]->(v1),(v12)-[:childof]->(v1),
+(r1)-[:relatedto]->(v1), (r12)-[:relatedto]->(v12);
+---- ok
+-STATEMENT MATCH (v:V)-[e:childof*]->(v1:V {id: "v1"})
+           OPTIONAL MATCH (r)-[:relatedto]->(v)
+           RETURN r, v.id;
+---- 3
+{_ID: 1:1, _LABEL: R, id: r12}|v12
+|v11
+|v111
