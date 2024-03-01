@@ -50,6 +50,9 @@ void StatementVisitor::visit(const Statement& statement) {
     case StatementType::EXPORT_DATABASE: {
         visitExportDatabase(statement);
     } break;
+    case StatementType::IMPORT_DATABASE: {
+        visitImportDatabase(statement);
+    } break;
     default:
         KU_UNREACHABLE;
     }

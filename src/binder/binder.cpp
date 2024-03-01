@@ -58,6 +58,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::EXPORT_DATABASE: {
         boundStatement = bindExportDatabaseClause(statement);
     } break;
+    case StatementType::IMPORT_DATABASE: {
+        boundStatement = bindImportDatabaseClause(statement);
+    } break;
     default: {
         KU_UNREACHABLE;
     }

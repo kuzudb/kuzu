@@ -124,6 +124,10 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         statement->expectedError = true;
         statement->errorMessage = extractTextBeforeNextStatement();
         replaceVariables(statement->errorMessage);
+    } else if (result == "error(regex)") {
+        statement->expectedErrorRegex = true;
+        statement->errorMessage = extractTextBeforeNextStatement();
+        replaceVariables(statement->errorMessage);
     } else if (result.substr(0, 4) == "hash") {
         statement->expectHash = true;
         checkMinimumParams(1);
@@ -196,11 +200,17 @@ TestStatement* TestParser::extractStatement(
         return statement;
     }
     case TokenType::IMPORT_DATABASE: {
-        // TODO(Jiamin): special here, should remove after implementing import database
         statement->importDBFlag = true;
         auto filePath = getParam(1);
         replaceVariables(filePath);
         statement->importFilePath = filePath;
+        return statement;
+    }
+    case TokenType::REMOVE_FILE: {
+        statement->removeFileFlag = true;
+        auto filePath = getParam(1);
+        replaceVariables(filePath);
+        statement->removeFilePath = filePath;
         return statement;
     }
     case TokenType::STATEMENT: {

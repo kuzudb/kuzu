@@ -208,5 +208,11 @@ struct CopyToCSVConstants {
     static constexpr const uint64_t DEFAULT_CSV_FLUSH_SIZE = 4096 * 8;
 };
 
+struct ImportDBConstants {
+    static constexpr char SCHEMA_NAME[] = "schema.cypher";
+    static constexpr char COPY_NAME[] = "copy.cypher";
+    static constexpr char MACRO_NAME[] = "macro.cypher";
+};
+
 } // namespace common
 } // namespace kuzu

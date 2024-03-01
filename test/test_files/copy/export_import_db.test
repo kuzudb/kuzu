@@ -3,7 +3,7 @@
 
 --
 
--CASE ExportDatabaseDefault
+-CASE ExportImportDatabaseDefault
 
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;
 ---- ok
@@ -15,6 +15,8 @@
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
+---- ok
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
 -LOG ReturnAge
@@ -25,10 +27,12 @@
 ---- 1
 5
 
--CASE ExportDatabaseWithCSVOption
+-CASE ExportImportDatabaseWithCSVOption
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2" (format="csv", header=true)
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2"
+---- ok
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
 -LOG ReturnAge
@@ -39,10 +43,12 @@
 ---- error
 Binder exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2 already exists.
 
--CASE ExportDatabaseWithPARQUET
+-CASE ExportImportDatabaseWithPARQUET
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db3" (format='parquet')
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db3"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db3"
+---- ok
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
 -LOG ReturnAge
@@ -50,7 +56,7 @@ Binder exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2 already e
 ---- 1
 50
 
--CASE ExportDatabaseError
+-CASE ExportImportDatabaseError
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4" (format='TURTLE')
 ---- error
 Binder exception: Unsupported file type: TURTLE.
@@ -69,10 +75,14 @@ Binder exception: Only export to csv can have options.
 
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4" (header=true)
 ---- ok
+
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db5"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db5"
+---- error
+Binder exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db5 does not exist.
+
+-REMOVE_FILE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4/schema.cypher"
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4"
--STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
----- ok
--LOG ReturnAge
--STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
----- 1
-50
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4"
+---- error(regex)
+Binder exception: File ${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4/schema.cypher does not exist.

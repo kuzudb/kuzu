@@ -60,6 +60,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     case StatementType::EXPORT_DATABASE: {
         plan = planExportDatabase(statement);
     } break;
+    case StatementType::IMPORT_DATABASE: {
+        plan = planImportDatabase(statement);
+    } break;
     default:
         KU_UNREACHABLE;
     }

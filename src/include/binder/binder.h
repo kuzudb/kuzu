@@ -146,6 +146,7 @@ private:
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
     std::unique_ptr<BoundStatement> bindExportDatabaseClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindImportDatabaseClause(const parser::Statement& statement);
 
     /*** bind file scan ***/
     std::unordered_map<std::string, common::Value> bindParsingOptions(

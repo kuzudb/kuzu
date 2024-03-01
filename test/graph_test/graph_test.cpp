@@ -51,11 +51,5 @@ void DBTest::createNewDB() {
     createDBAndConn();
 }
 
-void DBTest::importDB(std::string filePath) {
-    TestHelper::executeImportDBScript(filePath + "/" + TestHelper::SCHEMA_FILE_NAME, *conn);
-    TestHelper::executeImportDBScript(filePath + "/" + TestHelper::COPY_FILE_NAME, *conn);
-    TestHelper::executeImportDBScript(filePath + "/macro.cypher", *conn);
-}
-
 } // namespace testing
 } // namespace kuzu

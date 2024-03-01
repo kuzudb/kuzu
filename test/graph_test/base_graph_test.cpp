@@ -74,56 +74,6 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
     }
 }
 
-// TODO(Jimain): should remove after implementing import database
-void TestHelper::executeImportDBScript(const std::string& cypherScript, Connection& conn) {
-    std::cout << "cypherScript: " << cypherScript << std::endl;
-    if (!std::filesystem::exists(cypherScript)) {
-        std::cout << "cypherScript: " << cypherScript << " doesn't exist. Skipping..." << std::endl;
-        return;
-    }
-    std::ifstream file(cypherScript);
-    if (!file.is_open()) {
-        throw Exception(stringFormat("Error opening file: {}, errno: {}.", cypherScript, errno));
-    }
-    std::string line;
-    while (getline(file, line)) {
-        // If this is a COPY statement, we need to append the KUZU_ROOT_DIRECTORY to the csv
-        // file path. There maybe multiple csv files in the line, so we need to find all of them.
-        std::vector<std::string> csvFilePaths;
-        size_t index = 0;
-        while (true) {
-            size_t start = line.find('"', index);
-            if (start == std::string::npos) {
-                break;
-            }
-            size_t end = line.find('"', start + 1);
-            if (end == std::string::npos) {
-                // No matching double quote, must not be a file path.
-                break;
-            }
-            std::string substr = line.substr(start + 1, end - start - 1);
-            // convert to lower case
-            auto substrLower = substr;
-            std::transform(substrLower.begin(), substrLower.end(), substrLower.begin(), ::tolower);
-            if (substrLower.find(".csv") != std::string::npos ||
-                substrLower.find(".parquet") != std::string::npos ||
-                substrLower.find(".npy") != std::string::npos ||
-                substrLower.find(".ttl") != std::string::npos ||
-                substrLower.find(".nq") != std::string::npos) {
-                csvFilePaths.push_back(substr);
-            }
-            index = end + 1;
-        }
-        std::cout << "Starting to execute query: " << line << std::endl;
-        auto result = conn.query(line);
-        std::cout << "Executed query: " << line << std::endl;
-        if (!result->isSuccess()) {
-            throw Exception(stringFormat(
-                "Failed to execute statement: {}.\nError: {}", line, result->getErrorMessage()));
-        }
-    }
-}
-
 void BaseGraphTest::createDB() {
     if (database != nullptr) {
         database.reset();

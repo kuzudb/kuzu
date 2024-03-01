@@ -101,6 +101,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "LOAD";
     case LogicalOperatorType::EXPORT_DATABASE:
         return "EXPORT_DATABASE";
+    case LogicalOperatorType::IMPORT_DATABASE:
+        return "IMPORT_DATABASE";
     default:
         KU_UNREACHABLE;
     }

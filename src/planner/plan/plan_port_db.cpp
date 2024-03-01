@@ -1,7 +1,9 @@
 #include "binder/copy/bound_export_database.h"
+#include "binder/copy/bound_import_database.h"
 #include "common/string_utils.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "planner/operator/persistent/logical_export_db.h"
+#include "planner/operator/persistent/logical_import_db.h"
 #include "planner/planner.h"
 using namespace kuzu::binder;
 using namespace kuzu::storage;
@@ -36,6 +38,17 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
     auto exportDatabase = make_shared<LogicalExportDatabase>(
         boundExportDatabase.getBoundFileInfo()->copy(), std::move(logicalOperators));
     plan->setLastOperator(std::move(exportDatabase));
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planImportDatabase(const BoundStatement& statement) {
+    auto& boundImportDatabase =
+        ku_dynamic_cast<const BoundStatement&, const BoundImportDatabase&>(statement);
+    auto filePath = boundImportDatabase.getFilePath();
+    auto query = boundImportDatabase.getQuery();
+    auto plan = std::make_unique<LogicalPlan>();
+    auto importDatabase = make_shared<LogicalImportDatabase>(query);
+    plan->setLastOperator(std::move(importDatabase));
     return plan;
 }
 

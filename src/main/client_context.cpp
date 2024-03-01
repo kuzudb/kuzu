@@ -232,11 +232,10 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
     try {
         // parsing
         if (parsedStatement->getStatementType() != StatementType::TRANSACTION) {
-            auto txContext = this->transactionContext.get();
-            if (txContext->isAutoTransaction()) {
-                txContext->beginAutoTransaction(preparedStatement->readOnly);
+            if (transactionContext->isAutoTransaction()) {
+                transactionContext->beginAutoTransaction(preparedStatement->readOnly);
             } else {
-                txContext->validateManualTransaction(
+                transactionContext->validateManualTransaction(
                     preparedStatement->allowActiveTransaction(), preparedStatement->readOnly);
             }
             if (!this->getTx()->isReadOnly()) {
@@ -425,5 +424,33 @@ void ClientContext::commitUDFTrx(bool isAutoCommitTrx) {
     }
 }
 
+void ClientContext::runQuery(std::string query) {
+    // TODO(Jimain): this is special for "Import database". Should refactor after we support
+    // multiple query statements in one Tx.
+    // Currently, we split multiple query statements into single query and execute them one by one,
+    // each with an auto transaction. The correct way is to execute them in one transaction. But we
+    // do not support DDL and copy in one Tx.
+    if (transactionContext->hasActiveTransaction()) {
+        transactionContext->commit();
+    }
+    auto parsedStatements = std::vector<std::unique_ptr<Statement>>();
+    try {
+        parsedStatements = parseQuery(query);
+    } catch (std::exception& exception) { throw ConnectionException(exception.what()); }
+    if (parsedStatements.empty()) {
+        throw ConnectionException("Connection Exception: Query is empty.");
+    }
+    try {
+        for (auto& statement : parsedStatements) {
+            auto preparedStatement = prepareNoLock(statement.get());
+            auto currentQueryResult =
+                executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
+            if (!currentQueryResult->isSuccess()) {
+                throw ConnectionException(currentQueryResult->errMsg);
+            }
+        }
+    } catch (std::exception& exception) { throw ConnectionException(exception.what()); }
+    return;
+}
 } // namespace main
 } // namespace kuzu

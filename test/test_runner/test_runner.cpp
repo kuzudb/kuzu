@@ -68,7 +68,8 @@ bool TestRunner::testStatement(
         preparedStatement = conn.prepareNoLock(parsedStatement.get(), true, statement->encodedJoin);
     }
     // Check for wrong statements
-    if (!statement->expectedError && !preparedStatement->isSuccess()) {
+    if (!statement->expectedError && !statement->expectedErrorRegex &&
+        !preparedStatement->isSuccess()) {
         spdlog::error(preparedStatement->getErrorMessage());
         return false;
     }
@@ -97,6 +98,19 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
         std::string expectedError = StringUtils::rtrim(result->getErrorMessage());
         if (statement->errorMessage == expectedError) {
             return true;
+        }
+        spdlog::info("EXPECTED ERROR: {}", expectedError);
+    } else if (statement->expectedErrorRegex) {
+        std::string expectedError = StringUtils::rtrim(result->getErrorMessage());
+        std::regex pattern("^.*[\\\\/]+([^\\\\/]+)$");
+        std::smatch match1;
+        bool is_match1 = std::regex_match(expectedError, match1, pattern);
+        std::smatch match2;
+        bool is_match2 = std::regex_match(statement->errorMessage, match2, pattern);
+        if (is_match1 && is_match2) {
+            if (match1[1] == match2[1]) {
+                return true;
+            }
         }
         spdlog::info("EXPECTED ERROR: {}", expectedError);
     } else if (statement->expectedOk && result->isSuccess()) {

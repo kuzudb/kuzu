@@ -18,6 +18,7 @@ struct TestStatement {
     uint64_t numThreads = 4;
     std::string encodedJoin;
     bool expectedError = false;
+    bool expectedErrorRegex = false;
     std::string errorMessage;
     bool expectedOk = false;
     uint64_t expectedNumTuples = 0;
@@ -34,6 +35,8 @@ struct TestStatement {
     std::string expectedHashValue;
     // for export and import db
     std::string importFilePath;
+    bool removeFileFlag = false;
+    std::string removeFilePath;
 };
 
 // Test group is a collection of test cases in a single file.

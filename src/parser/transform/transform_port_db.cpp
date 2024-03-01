@@ -16,5 +16,11 @@ std::unique_ptr<Statement> Transformer::transformExportDatabase(
     return exportDB;
 }
 
+std::unique_ptr<Statement> Transformer::transformImportDatabase(
+    CypherParser::KU_ImportDatabaseContext& ctx) {
+    std::string filePath = transformStringLiteral(*ctx.StringLiteral());
+    return std::make_unique<ImportDB>(std::move(filePath));
+}
+
 } // namespace parser
 } // namespace kuzu
