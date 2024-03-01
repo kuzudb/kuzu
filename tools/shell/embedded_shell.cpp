@@ -441,6 +441,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
     if (querySummary->isExplain()) {
         printf("%s", queryResult.getNext()->toString().c_str());
     } else {
+        constexpr uint32_t SMALL_TABLE_SEPERATOR_LENGTH = 3;
         const uint32_t minTruncatedWidth = 20;
         uint64_t numTuples = queryResult.getNumTuples();
         std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
@@ -481,14 +482,15 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         if (colsWidth.size() == 1) {
             sumGoal = colsWidth[0] + 2;
         } else if (colsWidth.size() > 1) {
-            uint32_t minDisplayWidth = colsWidth[0] + colsWidth.back() + 3;
+            uint32_t minDisplayWidth = SMALL_TABLE_SEPERATOR_LENGTH;
+            minDisplayWidth += (colsWidth[0] < minTruncatedWidth) ? colsWidth[0] : minTruncatedWidth;
+            minDisplayWidth += (colsWidth.back() < minTruncatedWidth) ? colsWidth.back() : minTruncatedWidth;
             if (maxPrintWidth > minDisplayWidth) {
                 sumGoal = maxPrintWidth - colsWidth.size() - 1;
             } else {
                 // make sure there is space for the first and last column
                 sumGoal = std::max(
-                    (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
-                    colsWidth[0] + colsWidth.back() + 3);
+                    (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1), minDisplayWidth);
             }
         } else if (maxPrintWidth > minTruncatedWidth) {
             sumGoal = maxPrintWidth;
