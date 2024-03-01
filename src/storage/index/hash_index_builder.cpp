@@ -277,7 +277,7 @@ PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
             if constexpr (std::is_same_v<T, ku_string_t>) {
                 auto overflowFileInfo = std::shared_ptr(vfs->openFile(
                     StorageUtils::getOverflowFileName(fileHandle->getFileInfo()->path),
-                    O_CREAT | O_WRONLY));
+                    FileFlags::FILE_FLAGS_FILE_CREATE_NEW | FileFlags::FILE_FLAGS_WRITE));
                 for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
                     auto overflowFile =
                         std::make_unique<InMemFile>(overflowFileInfo, overflowPageCounter);

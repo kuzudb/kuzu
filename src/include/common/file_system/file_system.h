@@ -15,6 +15,17 @@ namespace common {
 
 enum class FileLockType : uint8_t { NO_LOCK = 0, READ_LOCK = 1, WRITE_LOCK = 2 };
 
+struct FileFlags {
+    static constexpr uint8_t FILE_FLAGS_READ = 1 << 0;
+    static constexpr uint8_t FILE_FLAGS_WRITE = 1 << 1;
+    // Create file if not exists, can only be used together with WRITE
+    static constexpr uint8_t FILE_FLAGS_FILE_CREATE = 1 << 3;
+    // Always create a new file. If a file exists, the file is truncated. Cannot be used together
+    // with CREATE.
+    static constexpr uint8_t FILE_FLAGS_FILE_CREATE_NEW = 1 << 4;
+    static constexpr uint8_t FILE_FLAGS_APPEND = 1 << 5;
+};
+
 class KUZU_API FileSystem {
     friend struct FileInfo;
 

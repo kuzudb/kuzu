@@ -177,8 +177,8 @@ void CopyToCSVLocalState::writeRows(CopyToCSVInfo* copyToCsvInfo) {
 }
 
 void CopyToCSVSharedState::init(CopyToInfo* info, main::ClientContext* context) {
-    fileInfo =
-        context->getVFSUnsafe()->openFile(info->fileName, O_WRONLY | O_CREAT | O_TRUNC, context);
+    fileInfo = context->getVFSUnsafe()->openFile(info->fileName,
+        FileFlags::FILE_FLAGS_FILE_CREATE_NEW | FileFlags::FILE_FLAGS_WRITE, context);
     writeHeader(info);
 }
 

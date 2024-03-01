@@ -20,7 +20,7 @@ BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption opti
     : option{std::move(option)}, numColumns(numColumns), buffer(nullptr), bufferSize(0),
       position(0), osFileOffset(0), rowEmpty(false) {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
-        O_RDONLY
+        FileFlags::FILE_FLAGS_READ
 #ifdef _WIN32
             | _O_BINARY
 #endif

@@ -81,7 +81,7 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
         throw RuntimeException("Unsupported dbFileID in StorageUtils::getFileInfoForReadWrite.");
     }
     }
-    return vfs->openFile(fName, O_RDWR);
+    return vfs->openFile(fName, FileFlags::FILE_FLAGS_READ | FileFlags::FILE_FLAGS_WRITE);
 }
 
 uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {

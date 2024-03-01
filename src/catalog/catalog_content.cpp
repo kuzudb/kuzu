@@ -1,7 +1,5 @@
 #include "catalog/catalog_content.h"
 
-#include <fcntl.h>
-
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
@@ -176,8 +174,8 @@ static void writeMagicBytes(Serializer& serializer) {
 
 void CatalogContent::saveToFile(const std::string& directory, FileVersionType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(vfs, directory, dbFileType);
-    Serializer serializer(
-        std::make_unique<BufferedFileWriter>(vfs->openFile(catalogPath, O_WRONLY | O_CREAT)));
+    Serializer serializer(std::make_unique<BufferedFileWriter>(vfs->openFile(
+        catalogPath, FileFlags::FILE_FLAGS_WRITE | FileFlags::FILE_FLAGS_FILE_CREATE)));
     writeMagicBytes(serializer);
     serializer.serializeValue(StorageVersionInfo::getStorageVersion());
     tables->serialize(serializer);
@@ -187,8 +185,8 @@ void CatalogContent::saveToFile(const std::string& directory, FileVersionType db
 
 void CatalogContent::readFromFile(const std::string& directory, FileVersionType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(vfs, directory, dbFileType);
-    Deserializer deserializer(
-        std::make_unique<BufferedFileReader>(vfs->openFile(catalogPath, O_RDONLY)));
+    Deserializer deserializer(std::make_unique<BufferedFileReader>(
+        vfs->openFile(catalogPath, FileFlags::FILE_FLAGS_READ)));
     validateMagicBytes(deserializer);
     storage_version_t savedStorageVersion;
     deserializer.deserializeValue(savedStorageVersion);

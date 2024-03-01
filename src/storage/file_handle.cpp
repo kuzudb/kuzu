@@ -24,9 +24,10 @@ FileHandle::FileHandle(const std::string& path, uint8_t flags, VirtualFileSystem
 void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFileSystem* vfs) {
     int openFlags;
     if (isReadOnlyFile()) {
-        openFlags = O_RDONLY;
+        openFlags = FileFlags::FILE_FLAGS_READ;
     } else {
-        openFlags = O_RDWR | ((createFileIfNotExists()) ? O_CREAT : 0x00000000);
+        openFlags = FileFlags::FILE_FLAGS_WRITE | FileFlags::FILE_FLAGS_READ |
+                    ((createFileIfNotExists()) ? FileFlags::FILE_FLAGS_FILE_CREATE : 0x00000000);
     }
     fileInfo = vfs->openFile(path, openFlags);
     auto fileLength = fileInfo->getFileSize();

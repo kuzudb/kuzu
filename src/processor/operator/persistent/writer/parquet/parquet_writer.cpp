@@ -18,8 +18,8 @@ ParquetWriter::ParquetWriter(std::string fileName,
     kuzu_parquet::format::CompressionCodec::type codec, main::ClientContext* context)
     : fileName{std::move(fileName)}, types{std::move(types)}, columnNames{std::move(columnNames)},
       codec{codec}, fileOffset{0}, mm{context->getMemoryManager()} {
-    fileInfo =
-        context->getVFSUnsafe()->openFile(this->fileName, O_WRONLY | O_CREAT | O_TRUNC, context);
+    fileInfo = context->getVFSUnsafe()->openFile(this->fileName,
+        FileFlags::FILE_FLAGS_WRITE | FileFlags::FILE_FLAGS_FILE_CREATE_NEW, context);
     // Parquet files start with the string "PAR1".
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ParquetConstants::PARQUET_MAGIC_WORDS),
         strlen(ParquetConstants::PARQUET_MAGIC_WORDS), fileOffset);

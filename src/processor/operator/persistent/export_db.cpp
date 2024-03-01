@@ -21,7 +21,8 @@ using std::stringstream;
 
 static void writeStringStreamToFile(
     VirtualFileSystem* vfs, std::string ss_string, const std::string& path) {
-    auto fileInfo = vfs->openFile(path, O_WRONLY | O_CREAT);
+    auto fileInfo =
+        vfs->openFile(path, FileFlags::FILE_FLAGS_FILE_CREATE_NEW | FileFlags::FILE_FLAGS_WRITE);
     fileInfo->writeFile(
         reinterpret_cast<const uint8_t*>(ss_string.c_str()), ss_string.size(), 0 /* offset */);
 }

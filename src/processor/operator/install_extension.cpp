@@ -51,7 +51,8 @@ void InstallExtension::saveExtensionToLocalFile(
     if (!vfs->fileOrPathExists(extensionDir)) {
         vfs->createDir(extensionDir);
     }
-    auto fileInfo = vfs->openFile(extensionPath, O_WRONLY | O_CREAT);
+    auto fileInfo = vfs->openFile(
+        extensionPath, FileFlags::FILE_FLAGS_FILE_CREATE_NEW | FileFlags::FILE_FLAGS_WRITE);
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(extensionData.c_str()),
         extensionData.size(), 0 /* offset */);
 }
