@@ -112,7 +112,7 @@ protected:
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk);
 
 private:
-    uint64_t getBufferSize() const;
+    uint64_t getBufferSize(uint64_t capacity_) const;
 
 protected:
     common::LogicalType dataType;

@@ -51,6 +51,7 @@ void StructColumnChunk::append(ValueVector* vector) {
 
 void StructColumnChunk::resize(uint64_t newCapacity) {
     ColumnChunk::resize(newCapacity);
+    capacity = newCapacity;
     for (auto& child : childChunks) {
         child->resize(newCapacity);
     }

@@ -157,7 +157,7 @@ ColumnChunk::ColumnChunk(
 void ColumnChunk::initializeBuffer(offset_t capacity_) {
     numBytesPerValue = getDataTypeSizeInChunk(dataType);
     capacity = capacity_;
-    bufferSize = getBufferSize();
+    bufferSize = getBufferSize(capacity);
     buffer = std::make_unique<uint8_t[]>(bufferSize);
     if (nullChunk) {
         nullChunk->initializeBuffer(capacity_);
@@ -200,7 +200,8 @@ void ColumnChunk::resetToEmpty() {
     if (nullChunk) {
         nullChunk->resetToEmpty();
     }
-    memset(buffer.get(), 0, bufferSize);
+    KU_ASSERT(bufferSize == getBufferSize(capacity));
+    memset(buffer.get(), 0x00, bufferSize);
     numValues = 0;
 }
 
@@ -288,8 +289,10 @@ void ColumnChunk::copy(ColumnChunk* srcChunk, offset_t srcOffsetInChunk, offset_
 }
 
 void ColumnChunk::resize(uint64_t newCapacity) {
-    capacity = newCapacity;
-    auto numBytesAfterResize = getBufferSize();
+    if (newCapacity > capacity) {
+        capacity = newCapacity;
+    }
+    auto numBytesAfterResize = getBufferSize(newCapacity);
     if (numBytesAfterResize > bufferSize) {
         auto resizedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
         memcpy(resizedBuffer.get(), buffer.get(), bufferSize);
@@ -374,31 +377,33 @@ ColumnChunkMetadata ColumnChunk::getMetadataToFlush() const {
             return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues, *constantMetadata);
         }
     }
+    KU_ASSERT(bufferSize == getBufferSize(capacity));
     return getMetadataFunction(buffer.get(), bufferSize, capacity, numValues);
 }
 
 ColumnChunkMetadata ColumnChunk::flushBuffer(
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     if (!metadata.compMeta.isConstant()) {
+        KU_ASSERT(bufferSize == getBufferSize(capacity));
         return flushBufferFunction(buffer.get(), bufferSize, dataFH, startPageIdx, metadata);
     }
     return metadata;
 }
 
-uint64_t ColumnChunk::getBufferSize() const {
+uint64_t ColumnChunk::getBufferSize(uint64_t capacity_) const {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL: {
         // 8 values per byte, and we need a buffer size which is a multiple of 8 bytes.
-        return ceil(capacity / 8.0 / 8.0) * 8;
+        return ceil(capacity_ / 8.0 / 8.0) * 8;
     }
     case LogicalTypeID::FIXED_LIST: {
         auto numElementsInAPage =
             PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
-        auto numPages = capacity / numElementsInAPage + (capacity % numElementsInAPage ? 1 : 0);
+        auto numPages = capacity_ / numElementsInAPage + (capacity_ % numElementsInAPage ? 1 : 0);
         return BufferPoolConstants::PAGE_4KB_SIZE * numPages;
     }
     default: {
-        return numBytesPerValue * capacity;
+        return numBytesPerValue * capacity_;
     }
     }
 }
@@ -468,6 +473,7 @@ void NullColumnChunk::setNull(offset_t pos, bool isNull) {
     // TODO(Guodong): Better let NullColumnChunk also support `append` a vector.
     if (pos >= numValues) {
         numValues = pos + 1;
+        KU_ASSERT(numValues <= capacity);
     }
 }
 
