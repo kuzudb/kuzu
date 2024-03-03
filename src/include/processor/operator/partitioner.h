@@ -1,10 +1,12 @@
 #pragma once
 
 #include "common/data_chunk/data_chunk_collection.h"
-#include "processor/operator/persistent/copy_node.h"
 #include "processor/operator/sink.h"
 
 namespace kuzu {
+namespace storage {
+class NodeTable;
+}
 namespace processor {
 
 using partitioner_func_t =
@@ -23,8 +25,9 @@ struct PartitioningBuffer {
     void merge(std::unique_ptr<PartitioningBuffer> localPartitioningStates);
 };
 
-// NOTE: Currently, Partitioner is tightly coupled with CopyRel. We should generalize it later when
-// necessary. Here, each partition is essentially a node group.
+// NOTE: Currently, Partitioner is tightly coupled with RelBatchInsert. We should generalize it
+// later when necessary. Here, each partition is essentially a node group.
+struct BatchInsertSharedState;
 struct PartitionerSharedState {
     std::mutex mtx;
     storage::MemoryManager* mm;
@@ -37,7 +40,7 @@ struct PartitionerSharedState {
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
     common::partition_idx_t nextPartitionIdx = 0;
     // In copy rdf, we need to access num nodes before it is available in statistics.
-    std::vector<std::shared_ptr<CopyNodeSharedState>> copyNodeSharedStates;
+    std::vector<std::shared_ptr<BatchInsertSharedState>> nodeBatchInsertSharedStates;
 
     explicit PartitionerSharedState(storage::MemoryManager* mm) : mm{mm} {}
 
@@ -102,7 +105,7 @@ public:
         std::vector<common::partition_idx_t> numPartitions, storage::MemoryManager* mm);
 
 private:
-    // TODO: For now, CopyRel will guarantee all data are inside one data chunk. Should be
+    // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.
     void copyDataToPartitions(
         common::partition_idx_t partitioningIdx, common::DataChunk* chunkToCopyFrom);

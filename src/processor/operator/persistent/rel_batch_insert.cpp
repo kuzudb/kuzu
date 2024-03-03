@@ -1,4 +1,4 @@
-#include "processor/operator/persistent/copy_rel.h"
+#include "processor/operator/persistent/rel_batch_insert.h"
 
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
@@ -12,72 +12,58 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-CopyRelSharedState::CopyRelSharedState(table_id_t tableID, RelTable* table,
-    std::vector<std::unique_ptr<LogicalType>> columnTypes, RelsStoreStats* relsStatistics,
-    MemoryManager* memoryManager)
-    : tableID{tableID}, table{table}, columnTypes{std::move(columnTypes)},
-      relsStatistics{relsStatistics}, numRows{0} {
-    auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
-    ftTableSchema->appendColumn(
-        std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
-            LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
-    fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
+void RelBatchInsert::initGlobalStateInternal(ExecutionContext* /*context*/) {
+    checkIfTableIsEmpty();
+    sharedState->logBatchInsertWALRecord();
 }
 
-// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-void CopyRelSharedState::logCopyRelWALRecord(WAL* wal) {
-    wal->logCopyTableRecord(tableID, TableType::REL);
-    wal->flushAllPages();
-}
-
-void CopyRel::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
-    localState = std::make_unique<CopyRelLocalState>();
+void RelBatchInsert::initLocalStateInternal(
+    ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
+    localState = std::make_unique<RelBatchInsertLocalState>();
+    auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
     localState->nodeGroup = NodeGroupFactory::createNodeGroup(
-        ColumnDataFormat::CSR, sharedState->columnTypes, info->compressionEnabled);
+        ColumnDataFormat::CSR, relInfo->columnTypes, relInfo->compressionEnabled);
 }
 
-void CopyRel::initGlobalStateInternal(ExecutionContext* /*context*/) {
-    if (!isCopyAllowed()) {
-        throw CopyException(ExceptionMessage::notAllowCopyOnNonEmptyTableException());
-    }
-    sharedState->logCopyRelWALRecord(info->wal);
-}
-
-void CopyRel::executeInternal(ExecutionContext* /*context*/) {
+void RelBatchInsert::executeInternal(ExecutionContext* /*context*/) {
+    auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
+    auto relTable = ku_dynamic_cast<Table*, RelTable*>(sharedState->table);
+    auto relLocalState =
+        ku_dynamic_cast<BatchInsertLocalState*, RelBatchInsertLocalState*>(localState.get());
     while (true) {
-        localState->currentPartition =
-            partitionerSharedState->getNextPartition(info->partitioningIdx);
-        if (localState->currentPartition == INVALID_PARTITION_IDX) {
+        relLocalState->nodeGroupIdx =
+            partitionerSharedState->getNextPartition(relInfo->partitioningIdx);
+        if (relLocalState->nodeGroupIdx == INVALID_PARTITION_IDX) {
             break;
         }
         // Read the whole partition, and set to node group.
         auto partitioningBuffer = partitionerSharedState->getPartitionBuffer(
-            info->partitioningIdx, localState->currentPartition);
-        auto startNodeOffset =
-            StorageUtils::getStartOffsetOfNodeGroup(localState->currentPartition);
-        auto offsetVectorIdx = info->dataDirection == RelDataDirection::FWD ? 0 : 1;
+            relInfo->partitioningIdx, relLocalState->nodeGroupIdx);
+        auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relLocalState->nodeGroupIdx);
         for (auto dataChunk : partitioningBuffer->getChunks()) {
             setOffsetToWithinNodeGroup(
-                dataChunk->getValueVector(offsetVectorIdx).get(), startNodeOffset);
+                dataChunk->getValueVector(relInfo->offsetVectorIdx).get(), startNodeOffset);
         }
         // Calculate num of source nodes in this node group.
         // This will be used to set the num of values of the node group.
         auto numNodes = std::min(StorageConstants::NODE_GROUP_SIZE,
-            partitionerSharedState->maxNodeOffsets[info->partitioningIdx] - startNodeOffset + 1);
-        prepareCSRNodeGroup(partitioningBuffer, startNodeOffset, offsetVectorIdx, numNodes);
+            partitionerSharedState->maxNodeOffsets[relInfo->partitioningIdx] - startNodeOffset + 1);
+        prepareCSRNodeGroup(
+            partitioningBuffer, startNodeOffset, relInfo->offsetVectorIdx, numNodes);
         for (auto dataChunk : partitioningBuffer->getChunks()) {
-            localState->nodeGroup->write(dataChunk, offsetVectorIdx);
+            localState->nodeGroup->write(dataChunk, relInfo->offsetVectorIdx);
         }
-        localState->nodeGroup->finalize(localState->currentPartition);
+        localState->nodeGroup->finalize(relLocalState->nodeGroupIdx);
         // Flush node group to table.
-        sharedState->table->append(localState->nodeGroup.get(), info->dataDirection);
+        relTable->append(localState->nodeGroup.get(), relInfo->direction);
         sharedState->incrementNumRows(localState->nodeGroup->getNumRows());
         localState->nodeGroup->resetToEmpty();
     }
 }
 
-void CopyRel::prepareCSRNodeGroup(DataChunkCollection* partition, common::offset_t startNodeOffset,
-    vector_idx_t offsetVectorIdx, offset_t numNodes) {
+void RelBatchInsert::prepareCSRNodeGroup(DataChunkCollection* partition,
+    common::offset_t startNodeOffset, vector_idx_t offsetVectorIdx, offset_t numNodes) {
+    auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
     auto csrNodeGroup = ku_dynamic_cast<NodeGroup*, CSRNodeGroup*>(localState->nodeGroup.get());
     auto& csrHeader = csrNodeGroup->getCSRHeader();
     csrHeader.setNumValues(numNodes);
@@ -86,8 +72,8 @@ void CopyRel::prepareCSRNodeGroup(DataChunkCollection* partition, common::offset
     auto invalid = checkRelMultiplicityConstraint(csrHeader);
     if (invalid.has_value()) {
         throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
-            info->relTableEntry->getName(), std::to_string(invalid.value() + startNodeOffset),
-            RelDataDirectionUtils::relDirectionToString(info->dataDirection)));
+            info->tableEntry->getName(), std::to_string(invalid.value() + startNodeOffset),
+            RelDataDirectionUtils::relDirectionToString(relInfo->direction)));
     }
     // Resize csr data column chunks.
     offset_t csrChunkCapacity =
@@ -100,14 +86,15 @@ void CopyRel::prepareCSRNodeGroup(DataChunkCollection* partition, common::offset
     populateEndCSROffsets(csrHeader, gaps);
 }
 
-void CopyRel::populateEndCSROffsets(CSRHeaderChunks& csrHeader, std::vector<offset_t>& gaps) {
+void RelBatchInsert::populateEndCSROffsets(
+    CSRHeaderChunks& csrHeader, std::vector<offset_t>& gaps) {
     auto csrOffsets = (offset_t*)csrHeader.offset->getData();
     for (auto i = 0u; i < csrHeader.offset->getNumValues(); i++) {
         csrOffsets[i] += gaps[i];
     }
 }
 
-length_t CopyRel::getGapSize(length_t length) {
+length_t RelBatchInsert::getGapSize(length_t length) {
     // We intentionally leave a gap for empty CSR lists to accommondate for future insertions.
     // Also, for MANY_ONE and ONE_ONE relationships, we should always keep each CSR list as size 1.
     return length == 0 ?
@@ -116,7 +103,7 @@ length_t CopyRel::getGapSize(length_t length) {
                    length;
 }
 
-std::vector<offset_t> CopyRel::populateStartCSROffsetsAndLengths(CSRHeaderChunks& csrHeader,
+std::vector<offset_t> RelBatchInsert::populateStartCSROffsetsAndLengths(CSRHeaderChunks& csrHeader,
     offset_t numNodes, DataChunkCollection* partition, vector_idx_t offsetVectorIdx) {
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
@@ -147,7 +134,7 @@ std::vector<offset_t> CopyRel::populateStartCSROffsetsAndLengths(CSRHeaderChunks
     return gaps;
 }
 
-void CopyRel::setOffsetToWithinNodeGroup(ValueVector* vector, offset_t startOffset) {
+void RelBatchInsert::setOffsetToWithinNodeGroup(ValueVector* vector, offset_t startOffset) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
               vector->state->selVector->isUnfiltered());
     auto offsets = (offset_t*)vector->getData();
@@ -156,7 +143,7 @@ void CopyRel::setOffsetToWithinNodeGroup(ValueVector* vector, offset_t startOffs
     }
 }
 
-void CopyRel::setOffsetFromCSROffsets(ValueVector* offsetVector, ColumnChunk* offsetChunk) {
+void RelBatchInsert::setOffsetFromCSROffsets(ValueVector* offsetVector, ColumnChunk* offsetChunk) {
     KU_ASSERT(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
               offsetVector->state->selVector->isUnfiltered());
     for (auto i = 0u; i < offsetVector->state->selVector->selectedSize; i++) {
@@ -167,9 +154,13 @@ void CopyRel::setOffsetFromCSROffsets(ValueVector* offsetVector, ColumnChunk* of
     }
 }
 
-std::optional<common::offset_t> CopyRel::checkRelMultiplicityConstraint(
+std::optional<common::offset_t> RelBatchInsert::checkRelMultiplicityConstraint(
     const storage::CSRHeaderChunks& csrHeader) {
-    if (!info->relTableEntry->isSingleMultiplicity(info->dataDirection)) {
+    auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
+    auto relTableEntry =
+        ku_dynamic_cast<catalog::TableCatalogEntry*, catalog::RelTableCatalogEntry*>(
+            info->tableEntry);
+    if (!relTableEntry->isSingleMultiplicity(relInfo->direction)) {
         return std::nullopt;
     }
     for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {
@@ -180,17 +171,20 @@ std::optional<common::offset_t> CopyRel::checkRelMultiplicityConstraint(
     return std::nullopt;
 }
 
-void CopyRel::finalize(ExecutionContext* context) {
-    if (info->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1) {
-        sharedState->updateRelsStatistics();
+void RelBatchInsert::finalize(ExecutionContext* context) {
+    auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
+    if (relInfo->direction == RelDataDirection::BWD) {
+        KU_ASSERT(
+            relInfo->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1);
+        sharedState->setNumTuplesForTable();
         auto outputMsg = stringFormat("{} number of tuples has been copied to table {}.",
-            sharedState->numRows.load(), info->relTableEntry->getName());
+            sharedState->getNumRows(), info->tableEntry->getName());
         FactorizedTableUtils::appendStringToTable(
             sharedState->fTable.get(), outputMsg, context->clientContext->getMemoryManager());
     }
     sharedState->numRows.store(0);
     partitionerSharedState->resetState();
-    partitionerSharedState->partitioningBuffers[info->partitioningIdx].reset();
+    partitionerSharedState->partitioningBuffers[relInfo->partitioningIdx].reset();
 }
 
 } // namespace processor

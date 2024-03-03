@@ -194,10 +194,10 @@ WALRecord WALRecord::newOverflowFileNextBytePosRecord(
     return retVal;
 }
 
-WALRecord WALRecord::newCopyTableRecord(table_id_t tableID, TableType tableType) {
+WALRecord WALRecord::newCopyTableRecord(table_id_t tableID) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::COPY_TABLE_RECORD;
-    retVal.copyTableRecord = CopyTableRecord(tableID, tableType);
+    retVal.copyTableRecord = CopyTableRecord(tableID);
     return retVal;
 }
 

@@ -92,9 +92,9 @@ void WAL::logOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextB
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCopyTableRecord(table_id_t tableID, TableType tableType) {
+void WAL::logCopyTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCopyTableRecord(tableID, tableType);
+    WALRecord walRecord = WALRecord::newCopyTableRecord(tableID);
     addToUpdatedTables(tableID);
     addNewWALRecordNoLock(walRecord);
 }

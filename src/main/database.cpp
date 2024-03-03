@@ -12,7 +12,6 @@
 #include "common/logging_level_utils.h"
 #include "common/utils.h"
 #include "extension/extension.h"
-#include "function/scalar_function.h"
 #include "main/db_config.h"
 #include "processor/processor.h"
 #include "spdlog/spdlog.h"

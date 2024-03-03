@@ -13,16 +13,14 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "AGGREGATE";
     case PhysicalOperatorType::AGGREGATE_SCAN:
         return "AGGREGATE_SCAN";
+    case PhysicalOperatorType::BATCH_INSERT:
+        return "BATCH_INSERT";
     case PhysicalOperatorType::STANDALONE_CALL:
         return "STANDALONE_CALL";
     case PhysicalOperatorType::COPY_TO:
         return "COPY_TO";
-    case PhysicalOperatorType::COPY_NODE:
-        return "COPY_NODE";
     case PhysicalOperatorType::COPY_RDF:
         return "COPY_RDF";
-    case PhysicalOperatorType::COPY_REL:
-        return "COPY_REL";
     case PhysicalOperatorType::CREATE_MACRO:
         return "CREATE_MACRO";
     case PhysicalOperatorType::READER:

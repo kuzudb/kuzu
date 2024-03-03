@@ -110,7 +110,7 @@ public:
 
     void logOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextByteToWriteTo);
 
-    void logCopyTableRecord(common::table_id_t tableID, common::TableType tableType);
+    void logCopyTableRecord(common::table_id_t tableID);
 
     void logDropTableRecord(common::table_id_t tableID);
 

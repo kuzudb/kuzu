@@ -3,9 +3,10 @@ add_subdirectory(writer/parquet)
 
 add_library(kuzu_processor_operator_persistent
         OBJECT
-        copy_node.cpp
+        batch_insert.cpp
+        node_batch_insert.cpp
         copy_rdf.cpp
-        copy_rel.cpp
+        rel_batch_insert.cpp
         copy_to.cpp
         copy_to_csv.cpp
         copy_to_parquet.cpp

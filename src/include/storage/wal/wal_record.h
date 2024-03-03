@@ -147,16 +147,12 @@ struct DiskOverflowFileNextBytePosRecord {
 
 struct CopyTableRecord {
     common::table_id_t tableID;
-    common::TableType tableType;
 
     CopyTableRecord() = default;
 
-    explicit CopyTableRecord(common::table_id_t tableID, common::TableType tableType)
-        : tableID{tableID}, tableType{tableType} {}
+    explicit CopyTableRecord(common::table_id_t tableID) : tableID{tableID} {}
 
-    inline bool operator==(const CopyTableRecord& rhs) const {
-        return tableID == rhs.tableID && tableType == rhs.tableType;
-    }
+    inline bool operator==(const CopyTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct TableStatisticsRecord {
@@ -240,7 +236,7 @@ struct WALRecord {
         common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID);
     static WALRecord newOverflowFileNextBytePosRecord(
         DBFileID dbFileID, uint64_t prevNextByteToWriteTo_);
-    static WALRecord newCopyTableRecord(common::table_id_t tableID, common::TableType tableType);
+    static WALRecord newCopyTableRecord(common::table_id_t tableID);
     static WALRecord newDropTableRecord(common::table_id_t tableID);
     static WALRecord newDropPropertyRecord(
         common::table_id_t tableID, common::property_id_t propertyID);

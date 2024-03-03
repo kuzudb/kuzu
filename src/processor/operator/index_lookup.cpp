@@ -5,6 +5,7 @@
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "processor/operator/persistent/node_batch_insert.h"
 #include "storage/index/hash_index.h"
 #include "transaction/transaction.h"
 
@@ -35,10 +36,10 @@ std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
         std::move(copiedInfos), children[0]->clone(), getOperatorID(), paramsString);
 }
 
-void IndexLookup::setCopyNodeSharedState(std::shared_ptr<CopyNodeSharedState> sharedState) {
+void IndexLookup::setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState) {
     for (auto& info : infos) {
-        KU_ASSERT(info->copyNodeSharedState == nullptr);
-        info->copyNodeSharedState = sharedState;
+        KU_ASSERT(info->batchInsertSharedState == nullptr);
+        info->batchInsertSharedState = sharedState;
     }
 }
 
@@ -65,7 +66,7 @@ void IndexLookup::checkNullKeys(ValueVector* keyVector) {
 void stringPKFillOffsetArraysFromVector(transaction::Transaction* transaction,
     const IndexLookupInfo& info, ValueVector* keyVector, offset_t* offsets) {
     auto numKeys = keyVector->state->selVector->selectedSize;
-    if (info.copyNodeSharedState == nullptr) {
+    if (info.batchInsertSharedState == nullptr) {
         for (auto i = 0u; i < numKeys; i++) {
             auto key =
                 keyVector->getValue<ku_string_t>(keyVector->state->selVector->selectedPositions[i]);
@@ -74,10 +75,13 @@ void stringPKFillOffsetArraysFromVector(transaction::Transaction* transaction,
             }
         }
     } else {
+        auto nodeBatchInsertSharedState =
+            ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(
+                info.batchInsertSharedState.get());
         for (auto i = 0u; i < numKeys; i++) {
             auto key =
                 keyVector->getValue<ku_string_t>(keyVector->state->selVector->selectedPositions[i]);
-            if (!info.copyNodeSharedState->pkIndex->lookup(key.getAsStringView(), offsets[i])) {
+            if (!nodeBatchInsertSharedState->pkIndex->lookup(key.getAsStringView(), offsets[i])) {
                 throw RuntimeException(ExceptionMessage::nonExistentPKException(key.getAsString()));
             }
         }
@@ -88,7 +92,7 @@ template<HashablePrimitive T>
 void primitivePKFillOffsetArraysFromVector(transaction::Transaction* transaction,
     const IndexLookupInfo& info, ValueVector* keyVector, offset_t* offsets) {
     auto numKeys = keyVector->state->selVector->selectedSize;
-    if (info.copyNodeSharedState == nullptr) {
+    if (info.batchInsertSharedState == nullptr) {
         for (auto i = 0u; i < numKeys; i++) {
             auto pos = keyVector->state->selVector->selectedPositions[i];
             auto key = keyVector->getValue<T>(pos);
@@ -98,10 +102,13 @@ void primitivePKFillOffsetArraysFromVector(transaction::Transaction* transaction
             }
         }
     } else {
+        auto nodeBatchInsertSharedState =
+            ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(
+                info.batchInsertSharedState.get());
         for (auto i = 0u; i < numKeys; i++) {
             auto pos = keyVector->state->selVector->selectedPositions[i];
             auto key = keyVector->getValue<T>(pos);
-            if (!info.copyNodeSharedState->pkIndex->lookup(key, offsets[i])) {
+            if (!nodeBatchInsertSharedState->pkIndex->lookup(key, offsets[i])) {
                 throw RuntimeException(
                     ExceptionMessage::nonExistentPKException(TypeUtils::toString(key)));
             }
