@@ -218,7 +218,7 @@ def test_df_get_node(establish_connection):
 def test_df_get_node_rel(establish_connection):
     conn, _ = establish_connection
     res = conn.execute(
-        "MATCH (p:person)-[r:workAt]->(o:organisation) RETURN p, r, o")
+        "MATCH (p:person)-[r:workAt]->(o:organisation) RETURN p, r, o ORDER BY p.fName")
 
     df = res.get_as_df()
     p_list = df['p'].tolist()

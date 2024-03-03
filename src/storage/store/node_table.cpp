@@ -21,8 +21,8 @@ NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     WAL* wal, bool readOnly, bool enableCompression, VirtualFileSystem* vfs)
     : Table{nodeTableEntry, nodesStatisticsAndDeletedIDs, memoryManager, wal},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyPID())} {
-    tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, tableID, bufferManager, wal,
-        nodeTableEntry->getPropertiesRef(), nodesStatisticsAndDeletedIDs, enableCompression);
+    tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, nodeTableEntry, bufferManager,
+        wal, nodeTableEntry->getPropertiesRef(), nodesStatisticsAndDeletedIDs, enableCompression);
     initializePKIndex(nodeTableEntry, readOnly, vfs);
 }
 

@@ -26,16 +26,25 @@ std::string ExceptionMessage::overLargeStringPKValueException(uint64_t length) {
                         "string's length was {}.",
         length);
 }
+
 std::string ExceptionMessage::overLargeStringValueException(uint64_t length) {
     return stringFormat(
         "The maximum length of strings is 262144 bytes. The input string's length was {}.", length);
 }
 
-std::string ExceptionMessage::violateUniquenessOfRelAdjColumn(const std::string& tableName,
-    const std::string& offset, const std::string& multiplicity, const std::string& direction) {
-    return stringFormat("RelTable {} is a {} table, but node(nodeOffset: {}) "
-                        "has more than one neighbour in the {} direction.",
-        tableName, offset, multiplicity, direction);
+std::string ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
+    const std::string& tableName, const std::string& offset, const std::string& direction) {
+    return stringFormat(
+        "Node(nodeOffset: {}) has connected edges in table {} in the {} direction, "
+        "which cannot be deleted. Please delete the edges first or try DETACH DELETE.",
+        offset, tableName, direction);
+}
+
+std::string ExceptionMessage::violateRelMultiplicityConstraint(
+    const std::string& tableName, const std::string& offset, const std::string& direction) {
+    return stringFormat("Node(nodeOffset: {}) has more than one neighbour in table {} in the {} "
+                        "direction, which violates the rel multiplicity constraint.",
+        offset, tableName, direction);
 }
 
 std::string ExceptionMessage::validateCopyNpyNotForRelTablesException(

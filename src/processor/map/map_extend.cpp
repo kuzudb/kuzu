@@ -1,8 +1,7 @@
 #include "binder/expression/property_expression.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "processor/operator/scan/scan_multi_rel_tables.h"
-#include "processor/operator/scan/scan_rel_csr_columns.h"
-#include "processor/operator/scan/scan_rel_regular_columns.h"
+#include "processor/operator/scan/scan_rel_table.h"
 #include "processor/plan_mapper.h"
 #include "transaction/transaction.h"
 
@@ -107,15 +106,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
         auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extendDirection);
         auto scanInfo = getRelTableScanInfo(
             relTableEntry, relDataDirection, storageManager, extend->getProperties());
-        if (relTableEntry->isSingleMultiplicity(relDataDirection)) {
-            return std::make_unique<ScanRelRegularColumns>(std::move(scanInfo), inNodeVectorPos,
-                outVectorsPos, std::move(prevOperator), getOperatorID(),
-                extend->getExpressionsForPrinting());
-        } else {
-            return std::make_unique<ScanRelCSRColumns>(std::move(scanInfo), inNodeVectorPos,
-                outVectorsPos, std::move(prevOperator), getOperatorID(),
-                extend->getExpressionsForPrinting());
-        }
+        return std::make_unique<ScanRelTable>(std::move(scanInfo), inNodeVectorPos, outVectorsPos,
+            std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
     } else { // map to generic extend
         std::unordered_map<table_id_t, std::unique_ptr<RelTableCollectionScanner>> scanners;
         for (auto boundNodeTableID : boundNode->getTableIDs()) {

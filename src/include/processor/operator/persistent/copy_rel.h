@@ -16,21 +16,18 @@ struct CopyRelInfo {
     catalog::RelTableCatalogEntry* relTableEntry;
     common::vector_idx_t partitioningIdx;
     common::RelDataDirection dataDirection;
-    common::ColumnDataFormat dataFormat;
 
     storage::WAL* wal;
     bool compressionEnabled;
 
     CopyRelInfo(catalog::RelTableCatalogEntry* relTableEntry, common::vector_idx_t partitioningIdx,
-        common::RelDataDirection dataDirection, common::ColumnDataFormat dataFormat,
-        storage::WAL* wal, bool compressionEnabled)
+        common::RelDataDirection dataDirection, storage::WAL* wal, bool compressionEnabled)
         : relTableEntry{relTableEntry}, partitioningIdx{partitioningIdx},
-          dataDirection{dataDirection}, dataFormat{dataFormat}, wal{wal}, compressionEnabled{
-                                                                              compressionEnabled} {}
+          dataDirection{dataDirection}, wal{wal}, compressionEnabled{compressionEnabled} {}
     CopyRelInfo(const CopyRelInfo& other)
         : relTableEntry{other.relTableEntry}, partitioningIdx{other.partitioningIdx},
-          dataDirection{other.dataDirection}, dataFormat{other.dataFormat}, wal{other.wal},
-          compressionEnabled{other.compressionEnabled} {}
+          dataDirection{other.dataDirection}, wal{other.wal}, compressionEnabled{
+                                                                  other.compressionEnabled} {}
 
     inline std::unique_ptr<CopyRelInfo> copy() { return std::make_unique<CopyRelInfo>(*this); }
 };
@@ -95,10 +92,12 @@ private:
     }
 
     void prepareCSRNodeGroup(common::DataChunkCollection* partition,
-        common::vector_idx_t offsetVectorIdx, common::offset_t numNodes);
+        common::offset_t startNodeOffset, common::vector_idx_t offsetVectorIdx,
+        common::offset_t numNodes);
 
-    static void populateStartCSROffsetsAndLengths(storage::CSRHeaderChunks& csrHeader,
-        std::vector<common::offset_t>& gaps, common::offset_t numNodes,
+    static common::length_t getGapSize(common::length_t length);
+    static std::vector<common::offset_t> populateStartCSROffsetsAndLengths(
+        storage::CSRHeaderChunks& csrHeader, common::offset_t numNodes,
         common::DataChunkCollection* partition, common::vector_idx_t offsetVectorIdx);
     static void populateEndCSROffsets(
         storage::CSRHeaderChunks& csrHeader, std::vector<common::offset_t>& gaps);
@@ -107,7 +106,11 @@ private:
     static void setOffsetFromCSROffsets(
         common::ValueVector* offsetVector, storage::ColumnChunk* offsetChunk);
 
-protected:
+    // We only check rel multiplcity constraint (MANY_ONE, ONE_ONE) for now.
+    std::optional<common::offset_t> checkRelMultiplicityConstraint(
+        const storage::CSRHeaderChunks& csrHeader);
+
+private:
     std::unique_ptr<CopyRelInfo> info;
     std::shared_ptr<PartitionerSharedState> partitionerSharedState;
     std::shared_ptr<CopyRelSharedState> sharedState;

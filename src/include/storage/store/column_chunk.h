@@ -20,7 +20,7 @@ struct ColumnChunkMetadata {
     uint64_t numValues;
     CompressionMetadata compMeta;
 
-    ColumnChunkMetadata() : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{UINT64_MAX} {}
+    ColumnChunkMetadata() : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{0} {}
     ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages,
         uint64_t numNodesInChunk, const CompressionMetadata& compMeta)
         : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
@@ -209,9 +209,9 @@ struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunk> createColumnChunk(common::LogicalType dataType,
         bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
 
-    static std::unique_ptr<ColumnChunk> createNullColumnChunk(bool enableCompression) {
-        return std::make_unique<NullColumnChunk>(
-            common::StorageConstants::NODE_GROUP_SIZE, enableCompression);
+    static std::unique_ptr<ColumnChunk> createNullColumnChunk(
+        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
+        return std::make_unique<NullColumnChunk>(capacity, enableCompression);
     }
 };
 

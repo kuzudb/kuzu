@@ -1,6 +1,5 @@
 #include "storage/stats/rel_table_statistics.h"
 
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "storage/stats/table_statistics_collection.h"
@@ -15,20 +14,14 @@ namespace storage {
 RelTableStats::RelTableStats(BMFileHandle* metadataFH, const catalog::TableCatalogEntry& tableEntry,
     BufferManager* bufferManager, WAL* wal)
     : TableStatistics{tableEntry}, nextRelOffset{0} {
-    const auto& relTableEntry =
-        ku_dynamic_cast<const TableCatalogEntry&, const RelTableCatalogEntry&>(tableEntry);
-    if (!relTableEntry.isSingleMultiplicity(RelDataDirection::FWD)) {
-        fwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-            LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
-        fwdCSRLengthMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-            LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
-    }
-    if (!relTableEntry.isSingleMultiplicity(RelDataDirection::BWD)) {
-        bwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-            LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
-        bwdCSRLengthMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-            LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
-    }
+    fwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
+        LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
+    fwdCSRLengthMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
+        LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
+    bwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
+        LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
+    bwdCSRLengthMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
+        LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
     fwdAdjMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
         LogicalType{LogicalTypeID::INTERNAL_ID}, *metadataFH, bufferManager, wal);
     bwdAdjMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(

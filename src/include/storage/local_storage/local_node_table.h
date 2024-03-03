@@ -44,9 +44,8 @@ private:
 
 class LocalNodeTableData final : public LocalTableData {
 public:
-    LocalNodeTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm,
-        common::ColumnDataFormat dataFormat)
-        : LocalTableData{std::move(dataTypes), mm, dataFormat} {}
+    LocalNodeTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm)
+        : LocalTableData{std::move(dataTypes), mm} {}
 
     void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);

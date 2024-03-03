@@ -2,11 +2,14 @@
 
 #include <map>
 
-#include "common/column_data_format.h"
+#include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
+namespace catalog {
+class TableCatalogEntry;
+} // namespace catalog
 namespace storage {
 class TableData;
 
@@ -93,9 +96,8 @@ class LocalTableData {
     friend class NodeTableData;
 
 public:
-    LocalTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm,
-        common::ColumnDataFormat dataFormat)
-        : dataTypes{std::move(dataTypes)}, mm{mm}, dataFormat{dataFormat} {}
+    LocalTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm)
+        : dataTypes{std::move(dataTypes)}, mm{mm} {}
     virtual ~LocalTableData() = default;
 
     inline void clear() { nodeGroups.clear(); }
@@ -106,7 +108,6 @@ protected:
 protected:
     std::vector<common::LogicalType*> dataTypes;
     MemoryManager* mm;
-    common::ColumnDataFormat dataFormat;
     std::unordered_map<common::node_group_idx_t, std::unique_ptr<LocalNodeGroup>> nodeGroups;
 };
 
@@ -116,8 +117,7 @@ public:
     explicit LocalTable(common::TableType tableType) : tableType{tableType} {};
 
     LocalTableData* getOrCreateLocalTableData(const std::vector<std::unique_ptr<Column>>& columns,
-        MemoryManager* mm, common::ColumnDataFormat dataFormat = common::ColumnDataFormat::REGULAR,
-        common::vector_idx_t dataIdx = 0);
+        MemoryManager* mm, common::vector_idx_t dataIdx, common::RelMultiplicity multiplicity);
     inline LocalTableData* getLocalTableData(common::vector_idx_t dataIdx) {
         KU_ASSERT(dataIdx < localTableDataCollection.size());
         return localTableDataCollection[dataIdx].get();

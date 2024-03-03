@@ -18,8 +18,10 @@ struct ExceptionMessage {
     }
     static std::string overLargeStringPKValueException(uint64_t length);
     static std::string overLargeStringValueException(uint64_t length);
-    static std::string violateUniquenessOfRelAdjColumn(const std::string& tableName,
-        const std::string& offset, const std::string& multiplicity, const std::string& direction);
+    static std::string violateDeleteNodeWithConnectedEdgesConstraint(
+        const std::string& tableName, const std::string& offset, const std::string& direction);
+    static std::string violateRelMultiplicityConstraint(
+        const std::string& tableName, const std::string& offset, const std::string& direction);
 
     static inline std::string validateCopyNPYByColumnException() {
         return "Please use COPY FROM BY COLUMN statement for copying npy files.";

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/copy_constructors.h"
+#include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
 #include "common/types/types.h"
 
@@ -58,14 +59,14 @@ struct BoundExtraCreateNodeTableInfo : public BoundExtraCreateTableInfo {
 };
 
 struct BoundExtraCreateRelTableInfo : public BoundExtraCreateTableInfo {
-    catalog::RelMultiplicity srcMultiplicity;
-    catalog::RelMultiplicity dstMultiplicity;
+    common::RelMultiplicity srcMultiplicity;
+    common::RelMultiplicity dstMultiplicity;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
     std::vector<PropertyInfo> propertyInfos;
 
-    BoundExtraCreateRelTableInfo(catalog::RelMultiplicity srcMultiplicity,
-        catalog::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
+    BoundExtraCreateRelTableInfo(common::RelMultiplicity srcMultiplicity,
+        common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
         common::table_id_t dstTableID, std::vector<PropertyInfo> propertyInfos)
         : srcMultiplicity{srcMultiplicity}, dstMultiplicity{dstMultiplicity},
           srcTableID{srcTableID}, dstTableID{dstTableID}, propertyInfos{std::move(propertyInfos)} {}

@@ -75,14 +75,6 @@ void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* re
     Catalog* catalog, Transaction* transaction) {
     auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(), relsStatistics.get(),
         &memoryManager, relTableEntry, wal, enableCompression);
-    auto srcTableID = relTableEntry->getSrcTableID();
-    auto dstTableID = relTableEntry->getDstTableID();
-    auto srcTable = ku_dynamic_cast<Table*, NodeTable*>(tables[srcTableID].get());
-    auto dstTable = ku_dynamic_cast<Table*, NodeTable*>(tables[dstTableID].get());
-    auto srcPKMetadataDA = srcTable->getColumn(srcTable->getPKColumnID())->getMetadataDA();
-    auto dstPKMetadataDA = dstTable->getColumn(dstTable->getPKColumnID())->getMetadataDA();
-    relTable->initAdjColumnIfNecessary(
-        transaction, srcTableID, dstTableID, srcPKMetadataDA, dstPKMetadataDA);
     setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphEntries(transaction));
     tables[tableID] = std::move(relTable);
 }
