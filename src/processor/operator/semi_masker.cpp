@@ -16,11 +16,11 @@ void BaseSemiMasker::initGlobalStateInternal(ExecutionContext* /*context*/) {
     }
 }
 
-void BaseSemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
+void BaseSemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     keyVector = resultSet->getValueVector(info->keyPos).get();
     for (auto& [table, masks] : info->masksPerTable) {
         for (auto& maskWithIdx : masks) {
-            maskWithIdx.first->init(transaction);
+            maskWithIdx.first->init(context->clientContext->getTx());
         }
     }
 }

@@ -11,7 +11,7 @@ namespace kuzu {
 namespace processor {
 
 void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
-    populateTargetDstNodes();
+    populateTargetDstNodes(context);
     vectors = std::make_unique<RecursiveJoinVectors>();
     vectors->srcNodeIDVector = resultSet->getValueVector(dataInfo->srcNodePos).get();
     vectors->dstNodeIDVector = resultSet->getValueVector(dataInfo->dstNodePos).get();
@@ -221,12 +221,12 @@ void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     recursiveRoot->initLocalState(localResultSet.get(), context);
 }
 
-void RecursiveJoin::populateTargetDstNodes() {
+void RecursiveJoin::populateTargetDstNodes(ExecutionContext* context) {
     frontier::node_id_set_t targetNodeIDs;
     uint64_t numTargetNodes = 0;
     for (auto& semiMask : sharedState->semiMasks) {
         auto nodeTable = semiMask->getNodeTable();
-        auto numNodes = nodeTable->getMaxNodeOffset(transaction) + 1;
+        auto numNodes = nodeTable->getMaxNodeOffset(context->clientContext->getTx()) + 1;
         if (semiMask->isEnabled()) {
             for (auto offset = 0u; offset < numNodes; ++offset) {
                 if (semiMask->isNodeMasked(offset)) {

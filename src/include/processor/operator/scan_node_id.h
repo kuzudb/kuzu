@@ -77,8 +77,8 @@ private:
         sharedState->initialize(context->clientContext->getTx());
     }
 
-    void setSelVector(
-        NodeTableScanState* tableState, common::offset_t startOffset, common::offset_t endOffset);
+    void setSelVector(ExecutionContext* context, NodeTableScanState* tableState,
+        common::offset_t startOffset, common::offset_t endOffset);
 
 private:
     DataPos outDataPos;
