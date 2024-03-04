@@ -57,7 +57,7 @@ void ScanNodeID::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* 
     outValueVector->setSequential();
 }
 
-bool ScanNodeID::getNextTuplesInternal(ExecutionContext* /*context*/) {
+bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
     do {
         auto [state, startOffset, endOffset] = sharedState->getNextRangeToRead();
         if (state == nullptr) {
@@ -70,14 +70,14 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* /*context*/) {
             nodeIDValues[i].tableID = state->getTable()->getTableID();
         }
         outValueVector->state->initOriginalAndSelectedSize(size);
-        setSelVector(state, startOffset, endOffset);
+        setSelVector(context, state, startOffset, endOffset);
     } while (outValueVector->state->selVector->selectedSize == 0);
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
     return true;
 }
 
-void ScanNodeID::setSelVector(
-    NodeTableScanState* tableState, offset_t startOffset, offset_t endOffset) {
+void ScanNodeID::setSelVector(ExecutionContext* context, NodeTableScanState* tableState,
+    offset_t startOffset, offset_t endOffset) {
     if (tableState->isSemiMaskEnabled()) {
         outValueVector->state->selVector->resetSelectorToValuePosBuffer();
         // Fill selected positions based on node mask for nodes between the given startOffset and
@@ -94,7 +94,8 @@ void ScanNodeID::setSelVector(
         outValueVector->state->selVector->resetSelectorToUnselected();
     }
     // Apply changes to the selVector from nodes metadata.
-    tableState->getTable()->setSelVectorForDeletedOffsets(transaction, outValueVector);
+    tableState->getTable()->setSelVectorForDeletedOffsets(
+        context->clientContext->getTx(), outValueVector);
 }
 
 } // namespace processor

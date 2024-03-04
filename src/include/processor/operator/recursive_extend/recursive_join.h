@@ -103,7 +103,7 @@ public:
 private:
     void initLocalRecursivePlan(ExecutionContext* context);
 
-    void populateTargetDstNodes();
+    void populateTargetDstNodes(ExecutionContext* context);
 
     bool scanOutput();
 

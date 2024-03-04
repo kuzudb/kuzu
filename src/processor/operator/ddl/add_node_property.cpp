@@ -9,7 +9,7 @@ void AddNodeProperty::executeDDLInternal(ExecutionContext* context) {
     auto addedPropID = schema->getPropertyID(propertyName);
     auto addedProp = schema->getProperty(addedPropID);
     storageManager.getNodeTable(tableID)->addColumn(
-        transaction, *addedProp, getDefaultValVector(context));
+        context->clientContext->getTx(), *addedProp, getDefaultValVector(context));
     storageManager.getWAL()->logAddPropertyRecord(tableID, addedProp->getPropertyID());
 }
 

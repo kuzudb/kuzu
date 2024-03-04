@@ -95,8 +95,7 @@ class PhysicalOperator {
 public:
     // Leaf operator
     PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id, std::string paramsString)
-        : id{id}, operatorType{operatorType}, transaction{nullptr}, paramsString{
-                                                                        std::move(paramsString)} {}
+        : id{id}, operatorType{operatorType}, paramsString{std::move(paramsString)} {}
     // Unary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, const std::string& paramsString);
@@ -167,8 +166,6 @@ protected:
     PhysicalOperatorType operatorType;
 
     physical_op_vector_t children;
-    // TODO(Xiyang/Guodong): Remove this field, as it should be covered in ExecutionContext now.
-    transaction::Transaction* transaction;
     ResultSet* resultSet;
 
     std::string paramsString;

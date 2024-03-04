@@ -56,7 +56,8 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
 
 bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
-        if (currentScanner != nullptr && currentScanner->scan(inVector, outVectors, transaction)) {
+        if (currentScanner != nullptr &&
+            currentScanner->scan(inVector, outVectors, context->clientContext->getTx())) {
             metrics->numOutputTuple.increase(outVectors[0]->state->selVector->selectedSize);
             return true;
         }

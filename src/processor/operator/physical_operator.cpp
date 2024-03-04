@@ -175,7 +175,6 @@ void PhysicalOperator::initLocalState(ResultSet* resultSet_, ExecutionContext* c
     if (!isSource()) {
         children[0]->initLocalState(resultSet_, context);
     }
-    transaction = context->clientContext->getTx();
     resultSet = resultSet_;
     registerProfilingMetrics(context->profiler);
     initLocalStateInternal(resultSet_, context);
