@@ -1,5 +1,7 @@
+#include "binder/bound_attach_database.h"
 #include "binder/bound_comment_on.h"
 #include "binder/bound_create_macro.h"
+#include "binder/bound_detach_database.h"
 #include "binder/bound_explain.h"
 #include "binder/bound_extension_statement.h"
 #include "binder/bound_standalone_call.h"
@@ -11,8 +13,10 @@
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_drop_table.h"
+#include "planner/operator/logical_attach_database.h"
 #include "planner/operator/logical_comment_on.h"
 #include "planner/operator/logical_create_macro.h"
+#include "planner/operator/logical_detach_database.h"
 #include "planner/operator/logical_explain.h"
 #include "planner/operator/logical_extension.h"
 #include "planner/operator/logical_standalone_call.h"
@@ -94,6 +98,23 @@ void Planner::appendExtension(const BoundStatement& statement, LogicalPlan& plan
     auto op = std::make_shared<LogicalExtension>(
         extensionStatement.getAction(), extensionStatement.getPath());
     plan.setLastOperator(std::move(op));
+}
+
+void Planner::appendAttachDatabase(const BoundStatement& statement, LogicalPlan& plan) {
+    auto& boundAttachDatabase =
+        common::ku_dynamic_cast<const binder::BoundStatement&, const binder::BoundAttachDatabase&>(
+            statement);
+    auto attachDatabase =
+        std::make_shared<LogicalAttachDatabase>(boundAttachDatabase.getAttachInfo());
+    plan.setLastOperator(std::move(attachDatabase));
+}
+
+void Planner::appendDetachDatabase(const BoundStatement& statement, LogicalPlan& plan) {
+    auto& boundDetachDatabase =
+        common::ku_dynamic_cast<const binder::BoundStatement&, const binder::BoundDetachDatabase&>(
+            statement);
+    auto detachDatabase = std::make_shared<LogicalDetachDatabase>(boundDetachDatabase.getDBName());
+    plan.setLastOperator(std::move(detachDatabase));
 }
 
 } // namespace planner

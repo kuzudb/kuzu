@@ -15,6 +15,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "AGGREGATE";
     case PhysicalOperatorType::AGGREGATE_SCAN:
         return "AGGREGATE_SCAN";
+    case PhysicalOperatorType::ATTACH_DATABASE:
+        return "ATTACH_DATABASE";
     case PhysicalOperatorType::BATCH_INSERT:
         return "BATCH_INSERT";
     case PhysicalOperatorType::STANDALONE_CALL:
@@ -25,6 +27,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "COPY_RDF";
     case PhysicalOperatorType::CREATE_MACRO:
         return "CREATE_MACRO";
+    case PhysicalOperatorType::DETACH_DATABASE:
+        return "DETACH_DATABASE";
     case PhysicalOperatorType::READER:
         return "READER";
     case PhysicalOperatorType::INSERT:

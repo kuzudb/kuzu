@@ -50,6 +50,8 @@ private:
     void appendCreateMacro(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendTransaction(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendExtension(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendAttachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendDetachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
 
     // Plan copy.
     std::unique_ptr<LogicalPlan> planCopyTo(const binder::BoundStatement& statement);
@@ -63,7 +65,7 @@ private:
     std::unique_ptr<LogicalPlan> planCopyRdfFrom(
         const binder::BoundCopyFromInfo* info, binder::expression_vector outExprs);
 
-    // Plan export database
+    // Plan export/import database
     std::unique_ptr<LogicalPlan> planExportDatabase(const binder::BoundStatement& statement);
     std::unique_ptr<LogicalPlan> planImportDatabase(const binder::BoundStatement& statement);
 

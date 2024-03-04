@@ -48,6 +48,8 @@ protected:
 
     virtual void visitProjectionBody(const BoundProjectionBody& /* projectionBody*/) {}
     virtual void visitProjectionBodyPredicate(const std::shared_ptr<Expression>& /* predicate*/) {}
+    virtual void visitAttachDatabase(const BoundStatement&) {}
+    virtual void visitDetachDatabase(const BoundStatement&) {}
 };
 
 } // namespace binder

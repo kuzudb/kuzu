@@ -219,6 +219,10 @@ private:
     // Transform comment on.
     std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);
 
+    // Transform attach/detach database.
+    std::unique_ptr<Statement> transformAttachDatabase(CypherParser::KU_AttachDatabaseContext& ctx);
+    std::unique_ptr<Statement> transformDetachDatabase(CypherParser::KU_DetachDatabaseContext& ctx);
+
 private:
     CypherParser::Ku_StatementsContext& root;
 };

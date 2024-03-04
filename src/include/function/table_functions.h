@@ -64,14 +64,14 @@ struct TableFunctionInitInput {
     virtual ~TableFunctionInitInput() = default;
 };
 
-typedef std::unique_ptr<TableFuncBindData> (*table_func_bind_t)(
-    main::ClientContext* context, TableFuncBindInput* input);
-typedef common::offset_t (*table_func_t)(TableFuncInput& input, TableFuncOutput& output);
-typedef std::unique_ptr<TableFuncSharedState> (*table_func_init_shared_t)(
-    TableFunctionInitInput& input);
-typedef std::unique_ptr<TableFuncLocalState> (*table_func_init_local_t)(
-    TableFunctionInitInput& input, TableFuncSharedState* state, storage::MemoryManager* mm);
-typedef bool (*table_func_can_parallel_t)();
+using table_func_bind_t = std::function<std::unique_ptr<TableFuncBindData>(
+    main::ClientContext*, function::TableFuncBindInput*)>;
+using table_func_t = std::function<common::offset_t(TableFuncInput&, TableFuncOutput&)>;
+using table_func_init_shared_t =
+    std::function<std::unique_ptr<TableFuncSharedState>(TableFunctionInitInput&)>;
+using table_func_init_local_t = std::function<std::unique_ptr<TableFuncLocalState>(
+    TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*)>;
+using table_func_can_parallel_t = std::function<bool()>;
 
 struct TableFunction : public Function {
     table_func_t tableFunc;

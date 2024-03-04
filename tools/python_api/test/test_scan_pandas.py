@@ -240,7 +240,7 @@ def test_replace_failure(tmp_path: Path) -> None:
 def test_int64_overflow(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    overflow_pd = pd.DataFrame({"id": [4, 2**125]})
+    overflowpd = pd.DataFrame({"id": [4, 2**125]})
     with pytest.raises(
         RuntimeError,
         match=re.escape(
@@ -248,7 +248,7 @@ def test_int64_overflow(tmp_path: Path) -> None:
             "Python value '42535295865117307932921825928971026432' to INT64"
         ),
     ):
-        conn.execute("LOAD FROM overflow_pd RETURN *;")
+        conn.execute("LOAD FROM overflowpd RETURN *;")
 
 
 def test_scan_pandas_with_filter(tmp_path: Path) -> None:

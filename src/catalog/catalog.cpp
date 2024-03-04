@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 #include "transaction/transaction_action.h"
@@ -264,7 +265,9 @@ void Catalog::addScalarMacroFunction(
     std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    readWriteVersion->addScalarMacroFunction(std::move(name), std::move(macro));
+    auto scalarMacroCatalogEntry =
+        std::make_unique<ScalarMacroCatalogEntry>(std::move(name), std::move(macro));
+    readWriteVersion->functions->createEntry(std::move(scalarMacroCatalogEntry));
 }
 
 std::vector<std::string> Catalog::getMacroNames(transaction::Transaction* tx) const {

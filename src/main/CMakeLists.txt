@@ -3,6 +3,7 @@ add_library(kuzu_main
         client_context.cpp
         connection.cpp
         database.cpp
+        database_manager.cpp
         plan_printer.cpp
         prepared_statement.cpp
         query_result.cpp
