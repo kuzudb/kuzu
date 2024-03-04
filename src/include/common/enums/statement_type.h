@@ -20,6 +20,8 @@ enum class StatementType : uint8_t {
     EXTENSION = 31,
     EXPORT_DATABASE = 32,
     IMPORT_DATABASE = 33,
+    ATTACH_DATABASE = 34,
+    DETACH_DATABASE = 35,
 };
 
 struct StatementTypeUtils {

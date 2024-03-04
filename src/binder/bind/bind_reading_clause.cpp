@@ -6,8 +6,11 @@
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "common/string_utils.h"
 #include "function/table/bind_input.h"
-#include "main/client_context.h"
+#include "main/attached_database.h"
+#include "main/database.h"
+#include "main/database_manager.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/load_from.h"
@@ -157,15 +160,29 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     case ScanSourceType::OBJECT: {
         auto objectSource = ku_dynamic_cast<BaseScanSource*, ObjectScanSource*>(source);
         auto objectName = objectSource->objectName;
-        auto objectExpr = expressionBinder.bindVariableExpression(objectName);
-        auto literalExpr =
-            ku_dynamic_cast<const Expression*, const LiteralExpression*>(objectExpr.get());
-        auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
-        auto func = BuiltInFunctionsUtils::matchFunction(
-            READ_PANDAS_FUNC_NAME, std::vector<LogicalType>{objectExpr->getDataType()}, functions);
-        scanFunction = ku_dynamic_cast<Function*, TableFunction*>(func);
-        bindInput = std::make_unique<function::TableFuncBindInput>();
-        bindInput->inputs.push_back(*literalExpr->getValue());
+        if (objectName.find("_") == std::string::npos) {
+            auto objectExpr = expressionBinder.bindVariableExpression(objectName);
+            auto literalExpr =
+                ku_dynamic_cast<const Expression*, const LiteralExpression*>(objectExpr.get());
+            auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
+            auto func = BuiltInFunctionsUtils::matchFunction(READ_PANDAS_FUNC_NAME,
+                std::vector<LogicalType>{objectExpr->getDataType()}, functions);
+            scanFunction = ku_dynamic_cast<Function*, TableFunction*>(func);
+            bindInput = std::make_unique<function::TableFuncBindInput>();
+            bindInput->inputs.push_back(*literalExpr->getValue());
+        } else {
+            auto dbName = common::StringUtils::split(objectName, "_")[0];
+            auto attachedDB =
+                clientContext->getDatabase()->getDatabaseManagerUnsafe()->getAttachedDatabase(
+                    dbName);
+            if (attachedDB == nullptr) {
+                throw BinderException{
+                    common::stringFormat("No database named {} has been attached.", dbName)};
+            }
+            scanFunction = attachedDB->getScanFunction();
+            bindInput = std::make_unique<function::TableFuncBindInput>();
+            bindInput->inputs.push_back(Value(common::StringUtils::split(objectName, "_")[1]));
+        }
     } break;
     case ScanSourceType::FILE: {
         auto fileSource = ku_dynamic_cast<BaseScanSource*, FileScanSource*>(source);

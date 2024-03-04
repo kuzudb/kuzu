@@ -1,5 +1,7 @@
 #include "main/database.h"
 
+#include "main/database_manager.h"
+
 #if defined(_WIN32)
 #include <windows.h>
 #else
@@ -15,6 +17,7 @@
 #include "main/db_config.h"
 #include "processor/processor.h"
 #include "spdlog/spdlog.h"
+#include "storage/storage_extension.h"
 #include "storage/storage_manager.h"
 #include "storage/wal_replayer.h"
 #include "transaction/transaction_action.h"
@@ -87,6 +90,7 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     transactionManager =
         std::make_unique<transaction::TransactionManager>(*wal, memoryManager.get());
     extensionOptions = std::make_unique<extension::ExtensionOptions>();
+    databaseManager = std::make_unique<DatabaseManager>();
 }
 
 Database::~Database() {
@@ -106,6 +110,11 @@ void Database::registerFileSystem(std::unique_ptr<common::FileSystem> fs) {
     vfs->registerFileSystem(std::move(fs));
 }
 
+void Database::registerStorageExtension(
+    std::string name, std::unique_ptr<storage::StorageExtension> storageExtension) {
+    storageExtensions.emplace(std::move(name), std::move(storageExtension));
+}
+
 void Database::addExtensionOption(
     std::string name, common::LogicalTypeID type, common::Value defaultValue) {
     if (extensionOptions->getExtensionOption(name) != nullptr) {
@@ -116,6 +125,15 @@ void Database::addExtensionOption(
 
 ExtensionOption* Database::getExtensionOption(std::string name) {
     return extensionOptions->getExtensionOption(std::move(name));
+}
+
+common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
+Database::getStorageExtensions() {
+    return storageExtensions;
+}
+
+DatabaseManager* Database::getDatabaseManagerUnsafe() const {
+    return databaseManager.get();
 }
 
 void Database::openLockFile() {

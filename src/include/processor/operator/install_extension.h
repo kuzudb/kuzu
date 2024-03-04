@@ -11,12 +11,12 @@ public:
         : PhysicalOperator{PhysicalOperatorType::INSTALL_EXTENSION, id, paramsString},
           name{std::move(name)}, hasExecuted{false} {}
 
-    inline bool isSource() const override { return true; }
-    inline bool canParallel() const override { return false; }
+    bool isSource() const override { return true; }
+    bool canParallel() const override { return false; }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<InstallExtension>(name, id, paramsString);
     }
 

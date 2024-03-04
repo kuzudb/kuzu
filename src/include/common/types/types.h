@@ -297,7 +297,7 @@ public:
 
     static std::unique_ptr<LogicalType> deserialize(Deserializer& deserializer);
 
-    std::unique_ptr<LogicalType> copy() const;
+    KUZU_API std::unique_ptr<LogicalType> copy() const;
 
     static std::vector<std::unique_ptr<LogicalType>> copy(
         const std::vector<std::unique_ptr<LogicalType>>& types);
