@@ -98,6 +98,19 @@ class QueryResult:
 
         return self._query_result.getAsDF()
 
+    def get_as_pl(self):
+        """
+        Get the query result as a Polars DataFrame.
+
+        Returns
+        -------
+        polars.DataFrame
+            Query result as a Polars DataFrame.
+        """
+
+        import polars as pl
+        return pl.from_arrow(data=self.get_as_arrow(10_000))
+
     def get_as_arrow(self, chunk_size):
         """
         Get the query result as a PyArrow Table.
