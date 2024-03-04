@@ -11,7 +11,8 @@
 namespace kuzu {
 namespace parser {
 struct CreateTableInfo;
-}
+struct BaseScanSource;
+} // namespace parser
 
 namespace extension {
 struct ExtensionOptions;
@@ -28,6 +29,7 @@ struct TableFunction;
 
 namespace binder {
 
+struct BoundBaseScanSource;
 struct BoundInsertInfo;
 struct BoundSetPropertyInfo;
 struct BoundDeleteInfo;
@@ -125,26 +127,22 @@ private:
 
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config,
-        catalog::NodeTableCatalogEntry* nodeTableEntry);
-    std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config, catalog::RelTableCatalogEntry* relTableEntry);
-    std::unique_ptr<BoundStatement> bindCopyRdfFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config, catalog::RDFGraphCatalogEntry* rdfGraphEntry);
-    void bindExpectedNodeColumns(catalog::NodeTableCatalogEntry* nodeTableEntry,
-        const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-        std::vector<common::LogicalType>& columnTypes);
-    void bindExpectedRelColumns(catalog::RelTableCatalogEntry* relTableEntry,
-        const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-        std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundStatement> bindCopyNodeFrom(
+        const parser::Statement& statement, catalog::NodeTableCatalogEntry* nodeTableEntry);
+    std::unique_ptr<BoundStatement> bindCopyRelFrom(
+        const parser::Statement& statement, catalog::RelTableCatalogEntry* relTableEntry);
+    std::unique_ptr<BoundStatement> bindCopyRdfFrom(
+        const parser::Statement& statement, catalog::RDFGraphCatalogEntry* rdfGraphEntry);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
     std::unique_ptr<BoundStatement> bindExportDatabaseClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindImportDatabaseClause(const parser::Statement& statement);
 
-    /*** bind file scan ***/
+    /*** bind scan source ***/
+    std::unique_ptr<BoundBaseScanSource> bindScanSource(parser::BaseScanSource* scanSource,
+        const parser::parsing_option_t& options, const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
     std::unordered_map<std::string, common::Value> bindParsingOptions(
         const parser::parsing_option_t& parsingOptions);
     common::FileType bindFileType(const std::vector<std::string>& filePaths);

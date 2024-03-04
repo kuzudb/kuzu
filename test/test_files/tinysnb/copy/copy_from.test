@@ -1,0 +1,88 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE CopyFromSubquery
+
+-STATEMENT CREATE NODE TABLE A(name STRING, PRIMARY KEY (name));
+---- ok
+-STATEMENT COPY A FROM  (MATCH (a:person) RETURN a.ID, a.fName);
+---- error
+Binder exception: Query returns 2 columns but 1 columns were expected.
+-STATEMENT COPY A FROM  (MATCH (a:person) RETURN a.ID);
+---- error
+Binder exception: a.ID has data type INT64 but STRING was expected.
+-STATEMENT COPY A FROM x;
+---- error
+Binder exception: Scan from external object x is not supported.
+-STATEMENT COPY A FROM  (MATCH (a:person) RETURN a.fName);
+---- ok
+-STATEMENT MATCH (a:A) RETURN a.*;
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+-STATEMENT CREATE REL TABLE R(FROM A TO A);
+---- ok
+-STATEMENT COPY R FROM (MATCH (a:person)-[r:knows]->(b:person) RETURN a.fName, b.fName);
+---- ok
+-STATEMENT MATCH (a:A)-[r:R]->(b:A) RETURN a.name, b.name;
+---- 14
+Alice|Bob
+Alice|Carol
+Alice|Dan
+Bob|Alice
+Bob|Carol
+Bob|Dan
+Carol|Alice
+Carol|Bob
+Carol|Dan
+Dan|Alice
+Dan|Bob
+Dan|Carol
+Elizabeth|Farooq
+Elizabeth|Greg
+-STATEMENT create node table person2 (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT copy person2 from (MATCH (a:person) RETURN a.*);
+---- ok
+-STATEMENT MATCH (a:person2) RETURN a.*;
+---- 8
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|[77,64,100,54]|1.323000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18
+2|Bob|2|True|False|30|5.100000|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+3|Carol|1|False|True|45|5.000000|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13
+5|Dan|2|False|True|20|4.800000|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00.000024|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14
+7|Elizabeth|1|False|True|20|4.700000|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15
+8|Farooq|2|True|False|25|4.500000|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|[80,78,34,83]|1.510000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16
+9|Greg|2|False|False|40|4.900000|1980-10-26|1976-12-23 04:41:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|[43,83,67,43]|1.600000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17
+-STATEMENT create rel table knows2 (FROM person2 TO person2, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MANY);
+---- ok
+-STATEMENT copy knows2 from (MATCH (a:person)-[r:knows]->(b:person) RETURN a.ID, b.ID, r.*);
+---- ok
+-STATEMENT MATCH (a:person2)-[r:knows2]->(b:person2) RETURN a.fName, b.fName, r.*;
+---- 14
+Alice|Bob|2021-06-30|1986-10-21 21:08:31.521|10 years 5 months 13:00:00.000024|[rnme,m8sihsdnf2990nfiwf]|{locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}|1|{a=b}
+Alice|Carol|2021-06-30|1946-08-25 19:07:22|20 years 30 days 48:00:00|[njnojppo9u0jkmf,fjiojioh9h9h89hph]|{locations: , transfer: }|2020-10-10|{c=d, e=f, 1=2}
+Alice|Dan|2021-06-30|2012-12-11 20:07:22|10 days|[ioji232,jifhe8w99u43434]|{locations: ['shanghai'], transfer: {day: 1990-09-10, amount: [10]}}|nice weather|
+Bob|Alice|2021-06-30|1946-08-25 19:07:22|10 years 5 months 13:00:00.000024|[2huh9y89fsfw23,23nsihufhw723]|{locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}|4|
+Bob|Carol|1950-05-14|1946-08-25 19:07:22|00:23:00|[fwehu9h9832wewew,23u9h989sdfsss]|{locations: ['paris'], transfer: {day: 2011-05-01, amount: [2000,5340]}}|cool stuff found|
+Bob|Dan|1950-05-14|2012-12-11 20:07:22|20 years 30 days 48:00:00|[fwh9y81232uisuiehuf,ewnuihxy8dyf232]|{locations: ['vancouver'], transfer: {day: 2020-01-01, amount: [120,50]}}|matthew perry|
+Carol|Alice|2021-06-30|2002-07-31 11:42:53.12342|40 days 30:00:00|[fnioh8323aeweae34d,osd89e2ejshuih12]|{locations: ['london','toronto'], transfer: {day: 2012-11-21, amount: [223,5230]}}|10|
+Carol|Bob|1950-05-14|2007-02-12 12:11:42.123|00:28:00.03|[fwh983-sdjisdfji,ioh89y32r2huir]|{locations: ['paris','beijing'], transfer: {day: 2011-03-11, amount: [2323,50]}}|1|
+Carol|Dan|2000-01-01|1998-10-02 13:09:22.423|00:00:00.3|[psh989823oaaioe,nuiuah1nosndfisf]|{locations: [], transfer: {day: 1980-11-21, amount: [20,5]}}|2|
+Dan|Alice|2021-06-30|1936-11-02 11:02:01|00:00:00.00048|[fwewe]|{locations: ['shanghai','nanjing'], transfer: {day: 1998-11-12, amount: [22,53240]}}|15|
+Dan|Bob|1950-05-14|1982-11-11 13:12:05.123|00:23:00|[fewh9182912e3,h9y8y89soidfsf,nuhudf78w78efw,hioshe0f9023sdsd]|{locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}|happy new year|
+Dan|Carol|2000-01-01|1999-04-21 15:12:11.42|48:00:00.052|[23h9sdslnfowhu2932,shuhf98922323sf]|{locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}|4|
+Elizabeth|Farooq|1905-12-12|2025-01-01 11:22:33.52|00:47:58|[ahu2333333333333,12weeeeeeeeeeeeeeeeee]|{locations: ['toronto','thisisalongcityname'], transfer: {day: 1930-11-22, amount: [18,323]}}|8|
+Elizabeth|Greg|1905-12-12|2020-03-01 12:11:41.6552|00:47:58|[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]|{locations: ['waterloo'], transfer: {day: 2000-01-01, amount: [1000,5000]}}|10|
+
+-STATEMENT LOAD FROM (MATCH (a) RETURN a.ID) RETURN *;
+---- error
+Binder exception: LOAD FROM subquery is not supported.

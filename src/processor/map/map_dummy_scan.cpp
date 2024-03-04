@@ -25,8 +25,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDummyScan(LogicalOperator* /*lo
     vectorsToAppend.push_back(expressionEvaluator->resultVector.get());
     auto table = std::make_shared<FactorizedTable>(memoryManager, std::move(tableSchema));
     table->append(vectorsToAppend);
-    return createFactorizedTableScan(binder::expression_vector{}, std::vector<ft_col_idx_t>{},
-        inSchema.get(), table, 1 /* maxMorselSize */, nullptr /* child */);
+    return createEmptyFTableScan(table, 1 /* maxMorselSize */);
 }
 
 } // namespace processor

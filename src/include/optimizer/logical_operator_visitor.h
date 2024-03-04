@@ -170,6 +170,12 @@ protected:
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
+
+    virtual void visitCopyFrom(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitCopyFromReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
 };
 
 } // namespace optimizer

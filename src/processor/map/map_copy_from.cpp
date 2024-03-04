@@ -1,4 +1,3 @@
-#include "binder/expression/variable_expression.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
@@ -27,15 +26,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
         auto op = mapCopyNodeFrom(logicalOperator);
         auto copy = ku_dynamic_cast<PhysicalOperator*, NodeBatchInsert*>(op.get());
         auto table = copy->getSharedState()->fTable;
-        return createFactorizedTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(),
-            table, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(op));
+        return createFTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), table,
+            DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(op));
     }
     case TableType::REL: {
         auto ops = mapCopyRelFrom(logicalOperator);
         auto relBatchInsert = ku_dynamic_cast<PhysicalOperator*, RelBatchInsert*>(ops[0].get());
         auto fTable = relBatchInsert->getSharedState()->fTable;
-        auto scan = createFactorizedTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(),
-            fTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(ops[0]));
+        auto scan = createFTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
+            DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(ops[0]));
         for (auto i = 1u; i < ops.size(); ++i) {
             scan->addChild(std::move(ops[i]));
         }
@@ -74,9 +73,7 @@ static void getRelColumnNamesInCopyOrder(TableCatalogEntry* tableEntry,
 static std::shared_ptr<Expression> matchColumnExpression(
     const expression_vector& columnExpressions, const std::string& columnName) {
     for (auto& expression : columnExpressions) {
-        KU_ASSERT(expression->expressionType == ExpressionType::VARIABLE);
-        auto var = ku_dynamic_cast<Expression*, VariableExpression*>(expression.get());
-        if (columnName == var->getVariableName()) {
+        if (columnName == expression->toString()) {
             return expression;
         }
     }
@@ -130,13 +127,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         }
         columnNamesExcludingSerial.push_back(columnNames[i]);
     }
-    auto inputColumns = copyFromInfo->fileScanInfo->columns;
-    inputColumns.push_back(copyFromInfo->fileScanInfo->offset);
+    auto inputColumns = copyFromInfo->source->getColumns();
+    inputColumns.push_back(copyFromInfo->offset);
     auto columnPositions =
         getColumnDataPositions(columnNamesExcludingSerial, inputColumns, *outFSchema);
+    auto containsSerial = nodeTableEntry->containPropertyType(*LogicalType::SERIAL());
     auto info =
         std::make_unique<NodeBatchInsertInfo>(nodeTableEntry, storageManager.compressionEnabled(),
-            std::move(columnPositions), copyFromInfo->containsSerial, std::move(columnTypes));
+            std::move(columnPositions), containsSerial, std::move(columnTypes));
     return std::make_unique<NodeBatchInsert>(std::move(info), sharedState,
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
         getOperatorID(), copyFrom->getExpressionsForPrinting());
@@ -268,7 +266,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* lo
     if (scanChild != nullptr) {
         copyRdf->addChild(std::move(scanChild));
     }
-    return createFactorizedTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
+    return createFTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
         DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(copyRdf));
 }
 

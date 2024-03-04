@@ -689,12 +689,15 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
 }
 
 std::string LogicalTypeUtils::toString(const std::vector<LogicalType>& dataTypes) {
-    std::vector<LogicalTypeID> dataTypeIDs;
-    dataTypeIDs.reserve(dataTypes.size());
-    for (auto& dataType : dataTypes) {
-        dataTypeIDs.push_back(dataType.typeID);
+    if (dataTypes.empty()) {
+        return {""};
     }
-    return toString(dataTypeIDs);
+    std::string result = "(" + dataTypes[0].toString();
+    for (auto i = 1u; i < dataTypes.size(); ++i) {
+        result += "," + dataTypes[i].toString();
+    }
+    result += ")";
+    return result;
 }
 
 std::string LogicalTypeUtils::toString(const std::vector<LogicalTypeID>& dataTypeIDs) {
