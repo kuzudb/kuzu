@@ -1,5 +1,7 @@
 #include "storage/store/dictionary_chunk.h"
 
+#include <cstdint>
+
 #include <bit>
 
 using namespace kuzu::common;
@@ -17,7 +19,8 @@ namespace storage {
 static const uint64_t OFFSET_CHUNK_INITIAL_CAPACITY = StorageConstants::NODE_GROUP_SIZE * 0.75;
 
 DictionaryChunk::DictionaryChunk(uint64_t capacity, bool enableCompression)
-    : enableCompression{enableCompression} {
+    : enableCompression{enableCompression},
+      indexTable(0, StringOps(this) /*hash*/, StringOps(this) /*equals*/) {
     // Bitpacking might save 1 bit per value with regular ascii compared to UTF-8
     stringDataChunk = ColumnChunkFactory::createColumnChunk(
         *LogicalType::UINT8(), false /*enableCompression*/, capacity);
@@ -45,7 +48,7 @@ DictionaryChunk::string_index_t DictionaryChunk::appendString(std::string_view v
     auto found = indexTable.find(val);
     // If the string already exists in the dictionary, skip it and refer to the existing string
     if (enableCompression && found != indexTable.end()) {
-        return found->second;
+        return found->index;
     }
     auto leftSpace = stringDataChunk->getCapacity() - stringDataChunk->getNumValues();
     if (leftSpace < val.size()) {
@@ -61,7 +64,7 @@ DictionaryChunk::string_index_t DictionaryChunk::appendString(std::string_view v
     offsetChunk->setValue<string_offset_t>(startOffset, index);
     offsetChunk->setNumValues(index + 1);
     if (enableCompression) {
-        indexTable.insert({std::string{val}, index});
+        indexTable.insert({static_cast<string_index_t>(index)});
     }
     return index;
 }
