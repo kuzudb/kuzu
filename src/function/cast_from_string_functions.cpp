@@ -935,6 +935,7 @@ void CastString::copyStringToVector(
         map_entry_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
     } break;
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::VAR_LIST: {
         list_entry_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);

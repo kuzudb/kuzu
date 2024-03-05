@@ -78,6 +78,8 @@ std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(
         return std::make_unique<StringAuxiliaryBuffer>(memoryManager);
     case PhysicalTypeID::STRUCT:
         return std::make_unique<StructAuxiliaryBuffer>(type, memoryManager);
+    case PhysicalTypeID::ARRAY:
+        return std::make_unique<ListAuxiliaryBuffer>(*LogicalType::BLOB(), memoryManager);
     case PhysicalTypeID::VAR_LIST:
         return std::make_unique<ListAuxiliaryBuffer>(
             *VarListType::getChildType(&type), memoryManager);

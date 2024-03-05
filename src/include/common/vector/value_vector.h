@@ -29,7 +29,7 @@ public:
     explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);
     explicit ValueVector(LogicalTypeID dataTypeID, storage::MemoryManager* memoryManager = nullptr)
         : ValueVector(LogicalType(dataTypeID), memoryManager) {
-        KU_ASSERT(dataTypeID != LogicalTypeID::VAR_LIST);
+        KU_ASSERT(dataTypeID != LogicalTypeID::VAR_LIST && dataTypeID != LogicalTypeID::ARRAY);
     }
 
     KUZU_API ~ValueVector() = default;
@@ -146,43 +146,50 @@ class ListVector {
 public:
     static inline void setDataVector(
         const ValueVector* vector, std::shared_ptr<ValueVector> dataVector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST ||
+                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
         auto listBuffer =
             ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
         listBuffer->setDataVector(std::move(dataVector));
     }
     static inline ValueVector* getDataVector(const ValueVector* vector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST ||
+                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
         return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
     static inline std::shared_ptr<ValueVector> getSharedDataVector(const ValueVector* vector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST ||
+                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
         return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getSharedDataVector();
     }
     static inline uint64_t getDataVectorSize(const ValueVector* vector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST ||
+                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
         return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getSize();
     }
 
     static inline uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST ||
+                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
         auto dataVector = getDataVector(vector);
         return dataVector->getData() + dataVector->getNumBytesPerValue() * listEntry.offset;
     }
     static inline uint8_t* getListValuesWithOffset(
         const ValueVector* vector, const list_entry_t& listEntry, offset_t elementOffsetInList) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST ||
+                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
         return getListValues(vector, listEntry) +
                elementOffsetInList * getDataVector(vector)->getNumBytesPerValue();
     }
     static inline list_entry_t addList(ValueVector* vector, uint64_t listSize) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST ||
+                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
         return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->addList(listSize);

@@ -3,6 +3,7 @@
 #include "common/exception/copy.h"
 #include "storage/compression/compression.h"
 #include "storage/storage_utils.h"
+#include "storage/store/array_column_chunk.h"
 #include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column_chunk.h"
 #include "storage/store/var_list_column_chunk.h"
@@ -623,6 +624,9 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case PhysicalTypeID::STRING: {
         return std::make_unique<StringColumnChunk>(
             std::move(dataType), capacity, enableCompression);
+    }
+    case PhysicalTypeID::ARRAY: {
+        return std::make_unique<ArrayColumnChunk>(std::move(dataType), capacity, enableCompression);
     }
     case PhysicalTypeID::VAR_LIST: {
         return std::make_unique<VarListColumnChunk>(

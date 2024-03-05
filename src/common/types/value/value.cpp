@@ -106,6 +106,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         }
         return Value(dataType.copy(), std::move(children));
     }
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
         return Value(dataType.copy(), std::vector<std::unique_ptr<Value>>{});
@@ -333,6 +334,9 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::VAR_LIST: {
         copyFromVarList(*(ku_list_t*)value, *VarListType::getChildType(dataType.get()));
     } break;
+    case LogicalTypeID::ARRAY: {
+        copyFromVarList(*(ku_list_t*)value, *LogicalType::BLOB());
+    } break;
     case LogicalTypeID::FIXED_LIST: {
         copyFromFixedList(value);
     } break;
@@ -407,6 +411,7 @@ void Value::copyValueFrom(const Value& other) {
     case PhysicalTypeID::STRING: {
         strVal = other.strVal;
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {
@@ -481,6 +486,7 @@ std::string Value::toString() const {
     case LogicalTypeID::MAP: {
         return mapToString();
     }
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST: {
         return listToString();
@@ -634,6 +640,7 @@ void Value::serialize(Serializer& serializer) const {
     case PhysicalTypeID::STRING: {
         serializer.serializeValue(strVal);
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {
@@ -699,6 +706,7 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     case PhysicalTypeID::STRING: {
         deserializer.deserializeValue(val->strVal);
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {

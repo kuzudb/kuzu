@@ -53,6 +53,7 @@ static std::string entryToString(
         return TypeUtils::toString(*reinterpret_cast<const internalID_t*>(value));
     case LogicalTypeID::FIXED_LIST:
         return TypeUtils::fixedListToString(value, dataType, valueVector);
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::VAR_LIST:
         return TypeUtils::toString(*reinterpret_cast<const list_entry_t*>(value), valueVector);
     case LogicalTypeID::MAP:

@@ -459,6 +459,7 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
         func =
             ScalarFunction::UnaryCastExecFunction<ku_uuid_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::VAR_LIST: {
         func = ScalarFunction::UnaryCastExecFunction<list_entry_t, ku_string_t, CastToString,
             EXECUTOR>;
@@ -774,6 +775,7 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
         return bindCastToTimestampFunction<EXECUTOR, timestamp_t>(
             functionName, sourceTypeID, targetTypeID);
     }
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::MAP:

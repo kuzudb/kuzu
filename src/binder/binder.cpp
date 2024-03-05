@@ -102,15 +102,9 @@ std::shared_ptr<Expression> Binder::createVariable(
 
 std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
     auto boundType = LogicalTypeUtils::dataTypeFromString(dataType);
+    // TODO(Jimain&Manh): should bind to array in parser; remove fixed list
     if (boundType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
-        auto validNumericTypes = LogicalTypeUtils::getNumericalLogicalTypeIDs();
-        auto childType = FixedListType::getChildType(&boundType);
         auto numElementsInList = FixedListType::getNumValuesInList(&boundType);
-        if (find(validNumericTypes.begin(), validNumericTypes.end(),
-                childType->getLogicalTypeID()) == validNumericTypes.end()) {
-            throw BinderException("The child type of a fixed list must be a numeric type. Given: " +
-                                  childType->toString() + ".");
-        }
         if (numElementsInList == 0) {
             // Note: the parser already guarantees that the number of elements is a non-negative
             // number. However, we still need to check whether the number of elements is 0.
@@ -124,6 +118,7 @@ std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
             throw BinderException(stringFormat("Cannot store a fixed list of size {} in a page.",
                 storage::StorageUtils::getDataTypeSize(boundType)));
         }
+        return std::make_unique<LogicalType>(*LogicalType::ARRAY(numElementsInList));
     }
     return std::make_unique<LogicalType>(boundType);
 }

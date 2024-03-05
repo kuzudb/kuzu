@@ -7,6 +7,7 @@
 #include "common/types/types.h"
 #include "storage/stats/property_statistics.h"
 #include "storage/storage_utils.h"
+#include "storage/store/array_column.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column.h"
@@ -899,6 +900,10 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::MAP:
+    case LogicalTypeID::ARRAY: {
+        return std::make_unique<ArrayColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
+            metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
+    }
     case LogicalTypeID::VAR_LIST: {
         return std::make_unique<VarListColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);

@@ -129,7 +129,10 @@ enum class KUZU_API LogicalTypeID : uint8_t {
     RDF_VARIANT = 56,
     POINTER = 57,
 
-    UUID = 58
+    UUID = 58,
+
+    // TODO(Jimain&mahn): should replace FIXED_LIST
+    ARRAY = 59
 };
 
 enum class PhysicalTypeID : uint8_t {
@@ -156,6 +159,9 @@ enum class PhysicalTypeID : uint8_t {
     VAR_LIST = 22,
     STRUCT = 23,
     POINTER = 24,
+
+    // TODO(Jimain&mahn): should replace FIXED_LIST
+    ARRAY = 25,
 };
 
 class LogicalType;
@@ -198,6 +204,23 @@ public:
         : VarListTypeInfo{std::move(childType)}, fixedNumElementsInList{fixedNumElementsInList} {}
     inline uint64_t getNumValuesInList() const { return fixedNumElementsInList; }
     bool operator==(const FixedListTypeInfo& other) const;
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
+    std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+private:
+    void serializeInternal(Serializer& serializer) const override;
+
+private:
+    uint64_t fixedNumElementsInList;
+};
+
+class ArrayTypeInfo : public VarListTypeInfo {
+public:
+    ArrayTypeInfo() = default;
+    explicit ArrayTypeInfo(std::unique_ptr<LogicalType> childType, uint64_t fixedNumElementsInList)
+        : VarListTypeInfo{std::move(childType)}, fixedNumElementsInList{fixedNumElementsInList} {}
+    inline uint64_t getNumValuesInList() const { return fixedNumElementsInList; }
+    bool operator==(const ArrayTypeInfo& other) const;
     static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
@@ -398,6 +421,8 @@ public:
     static inline std::unique_ptr<LogicalType> VAR_LIST(T&& childType) {
         return LogicalType::VAR_LIST(std::make_unique<LogicalType>(std::forward<T>(childType)));
     }
+
+    static KUZU_API std::unique_ptr<LogicalType> ARRAY(uint64_t fixedNumElementsInList);
 
     static KUZU_API std::unique_ptr<LogicalType> MAP(
         std::unique_ptr<LogicalType> keyType, std::unique_ptr<LogicalType> valueType);
