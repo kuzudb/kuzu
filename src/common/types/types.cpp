@@ -888,9 +888,6 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& t
 
 std::unique_ptr<LogicalType> LogicalTypeUtils::parseUnionType(const std::string& trimmedStr) {
     auto unionFields = parseStructTypeInfo(trimmedStr);
-    auto unionTagField = StructField(
-        UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
-    unionFields.insert(unionFields.begin(), std::move(unionTagField));
     return LogicalType::UNION(std::move(unionFields));
 }
 
@@ -922,6 +919,9 @@ std::unique_ptr<LogicalType> LogicalType::RDF_VARIANT() {
 }
 
 std::unique_ptr<LogicalType> LogicalType::UNION(std::vector<StructField>&& fields) {
+    // TODO(Ziy): Use UINT8 to represent tag value.
+    fields.insert(fields.begin(), StructField(UnionType::TAG_FIELD_NAME,
+                                      std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE)));
     return std::unique_ptr<LogicalType>(
         new LogicalType(LogicalTypeID::UNION, std::make_unique<StructTypeInfo>(std::move(fields))));
 }

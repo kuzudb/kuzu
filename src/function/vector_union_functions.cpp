@@ -21,9 +21,6 @@ std::unique_ptr<FunctionBindData> UnionValueFunction::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
     KU_ASSERT(arguments.size() == 1);
     std::vector<StructField> fields;
-    // TODO(Ziy): Use UINT8 to represent tag value.
-    fields.emplace_back(
-        UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
     if (arguments[0]->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
         binder::ExpressionBinder::resolveAnyDataType(
             *arguments[0], LogicalType(LogicalTypeID::STRING));

@@ -12,7 +12,7 @@ uint32_t NestedVal::getChildrenSize(const Value* val) {
 
 Value* NestedVal::getChildVal(const Value* val, uint32_t idx) {
     if (idx > val->childrenSize) {
-        throw RuntimeException("NestedVal::getChildPointer index out of bound.");
+        throw RuntimeException("NestedVal::getChildVal index out of bound.");
     }
     return val->children[idx].get();
 }
