@@ -85,7 +85,7 @@ template<typename T>
 concept IndexHashable = ((std::integral<T> && !std::is_same_v<T, bool>) || std::floating_point<T> ||
                          std::is_same_v<T, common::int128_t> ||
                          std::is_same_v<T, common::ku_string_t> ||
-                         std::is_same_v<T, std::string_view>);
+                         std::is_same_v<T, std::string_view> || std::same_as<T, std::string>);
 
 enum class KUZU_API LogicalTypeID : uint8_t {
     ANY = 0,

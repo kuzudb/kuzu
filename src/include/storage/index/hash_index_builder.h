@@ -1,6 +1,9 @@
 #pragma once
 
+#include "common/static_vector.h"
 #include "common/type_utils.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
@@ -17,6 +20,10 @@ public:
     virtual void flush() = 0;
     virtual void bulkReserve(uint32_t numEntries) = 0;
 };
+
+constexpr size_t BUFFER_SIZE = 1024;
+template<typename T>
+using IndexBuffer = common::StaticVector<std::pair<T, common::offset_t>, BUFFER_SIZE>;
 
 /**
  * Basic index file consists of three disk arrays: indexHeader, primary slots (pSlots), and overflow
@@ -44,9 +51,10 @@ public:
  *
  *  */
 
-// T is the key type used to access values
-// S is the stored type, which is usually the same as T, with the exception of strings
-template<common::IndexHashable T, typename S = T>
+// T is the key type stored in the slots.
+// For strings this is different than the type used when inserting/searching
+// (see BufferKeyType and Key)
+template<common::IndexHashable T>
 class HashIndexBuilder final : public InMemHashIndex {
     static_assert(getSlotCapacity<T>() <= SlotHeader::FINGERPRINT_CAPACITY);
     // Size of the validity mask
@@ -62,13 +70,21 @@ public:
     // Reserves space for at least the specified number of elements.
     void bulkReserve(uint32_t numEntries) override;
 
-    bool append(T key, common::offset_t value);
-    bool lookup(T key, common::offset_t& result);
+    using BufferKeyType =
+        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
+    // Appends the buffer to the index. Returns the number of values successfully inserted.
+    // I.e. if a key fails to insert, its index will be the return value
+    size_t append(const IndexBuffer<BufferKeyType>& buffer);
+    using Key =
+        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string_view, T>::type;
+    bool lookup(Key key, common::offset_t& result);
 
     void flush() override;
 
 private:
-    Slot<S>* getSlot(const SlotInfo& slotInfo);
+    // Assumes that space has already been allocated for the entry
+    bool appendInternal(Key key, common::offset_t value, common::hash_t hash);
+    Slot<T>* getSlot(const SlotInfo& slotInfo);
 
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();
@@ -80,12 +96,12 @@ private:
      */
     void splitSlot(HashIndexHeader& header);
 
-    inline bool equals(T keyToLookup, const S& keyInEntry) const {
+    inline bool equals(Key keyToLookup, const T& keyInEntry) const {
         return keyToLookup == keyInEntry;
     }
 
     inline void insert(
-        T key, Slot<S>* slot, uint8_t entryPos, common::offset_t value, uint8_t fingerprint) {
+        Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value, uint8_t fingerprint) {
         auto entry = slot->entries[entryPos].data;
         memcpy(entry, &key, sizeof(T));
         memcpy(entry + sizeof(T), &value, sizeof(common::offset_t));
@@ -94,14 +110,14 @@ private:
     }
     void copy(const uint8_t* oldEntry, slot_id_t newSlotId, uint8_t fingerprint);
     void insertToNewOvfSlot(
-        T key, Slot<S>* previousSlot, common::offset_t offset, uint8_t fingerprint);
-    common::hash_t hashStored(const S& key) const;
+        Key key, Slot<T>* previousSlot, common::offset_t offset, uint8_t fingerprint);
+    common::hash_t hashStored(const T& key) const;
 
     struct SlotIterator {
-        explicit SlotIterator(slot_id_t newSlotId, HashIndexBuilder<T, S>* builder)
+        explicit SlotIterator(slot_id_t newSlotId, HashIndexBuilder<T>* builder)
             : slotInfo{newSlotId, SlotType::PRIMARY}, slot(builder->getSlot(slotInfo)) {}
         SlotInfo slotInfo;
-        Slot<S>* slot;
+        Slot<T>* slot;
     };
 
     inline bool nextChainedSlot(SlotIterator& iter) {
@@ -118,13 +134,13 @@ private:
     std::shared_ptr<FileHandle> fileHandle;
     OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<InMemDiskArrayBuilder<HashIndexHeader>> headerArray;
-    std::unique_ptr<InMemDiskArrayBuilder<Slot<S>>> pSlots;
-    std::unique_ptr<InMemDiskArrayBuilder<Slot<S>>> oSlots;
+    std::unique_ptr<InMemDiskArrayBuilder<Slot<T>>> pSlots;
+    std::unique_ptr<InMemDiskArrayBuilder<Slot<T>>> oSlots;
     std::unique_ptr<HashIndexHeader> indexHeader;
 };
 
 template<>
-bool HashIndexBuilder<std::string_view, common::ku_string_t>::equals(
+bool HashIndexBuilder<common::ku_string_t>::equals(
     std::string_view keyToLookup, const common::ku_string_t& keyInEntry) const;
 
 class PrimaryKeyIndexBuilder {
@@ -134,26 +150,15 @@ public:
 
     void bulkReserve(uint32_t numEntries);
 
-    // Note: append assumes that bulkRserve has been called before it and the index has reserved
-    // enough space already.
-    template<common::HashablePrimitive T>
-    bool append(T key, common::offset_t value) {
-        return appendWithIndexPos(key, value, HashIndexUtils::getHashIndexPosition(key));
-    }
-    bool append(std::string_view key, common::offset_t value) {
-        return appendWithIndexPos(key, value, HashIndexUtils::getHashIndexPosition(key));
-    }
-    template<common::HashablePrimitive T>
-    bool appendWithIndexPos(T key, common::offset_t value, uint64_t indexPos) {
+    // Appends the buffer to the index. Returns the number of values successfully inserted.
+    // I.e. if a key fails to insert, its index will be the return value
+    template<common::IndexHashable T>
+    size_t appendWithIndexPos(const IndexBuffer<T>& buffer, uint64_t indexPos) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
-        KU_ASSERT(HashIndexUtils::getHashIndexPosition(key) == indexPos);
-        return getTypedHashIndex<T>(indexPos)->append(key, value);
-    }
-    bool appendWithIndexPos(std::string_view key, common::offset_t value, uint64_t indexPos) {
-        KU_ASSERT(keyDataTypeID == common::PhysicalTypeID::STRING);
-        KU_ASSERT(HashIndexUtils::getHashIndexPosition(key) == indexPos);
-        return getTypedHashIndex<std::string_view, common::ku_string_t>(indexPos)->append(
-            key, value);
+        KU_ASSERT(std::all_of(buffer.begin(), buffer.end(), [&](auto& elem) {
+            return HashIndexUtils::getHashIndexPosition(elem.first) == indexPos;
+        }));
+        return getTypedHashIndex<T>(indexPos)->append(buffer);
     }
     template<common::HashablePrimitive T>
     bool lookup(T key, common::offset_t& result) {
@@ -162,8 +167,7 @@ public:
     }
     bool lookup(std::string_view key, common::offset_t& result) {
         KU_ASSERT(keyDataTypeID == common::PhysicalTypeID::STRING);
-        return getTypedHashIndex<std::string_view, common::ku_string_t>(
-            HashIndexUtils::getHashIndexPosition(key))
+        return getTypedHashIndex<common::ku_string_t>(HashIndexUtils::getHashIndexPosition(key))
             ->lookup(key, result);
     }
 
@@ -173,10 +177,19 @@ public:
     common::PhysicalTypeID keyTypeID() const { return keyDataTypeID; }
 
 private:
-    template<typename T, typename S = T>
-    inline HashIndexBuilder<T, S>* getTypedHashIndex(uint64_t indexPos) {
-        return common::ku_dynamic_cast<InMemHashIndex*, HashIndexBuilder<T, S>*>(
-            hashIndexBuilders[indexPos].get());
+    template<common::IndexHashable T>
+    using HashIndexType =
+        typename std::conditional<std::same_as<T, std::string_view> || std::same_as<T, std::string>,
+            common::ku_string_t, T>::type;
+    template<typename T>
+    inline HashIndexBuilder<HashIndexType<T>>* getTypedHashIndex(uint64_t indexPos) {
+        if constexpr (std::same_as<HashIndexType<T>, common::ku_string_t>) {
+            return common::ku_dynamic_cast<InMemHashIndex*, HashIndexBuilder<common::ku_string_t>*>(
+                hashIndexBuilders[indexPos].get());
+        } else {
+            return common::ku_dynamic_cast<InMemHashIndex*, HashIndexBuilder<T>*>(
+                hashIndexBuilders[indexPos].get());
+        }
     }
 
 private:

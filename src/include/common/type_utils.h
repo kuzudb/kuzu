@@ -80,7 +80,7 @@ public:
             return common::PhysicalTypeID::INT128;
         } else if constexpr (std::is_same_v<T, interval_t>) {
             return common::PhysicalTypeID::INTERVAL;
-        } else if constexpr (std::is_same_v<T, ku_string_t>) {
+        } else if constexpr (std::same_as<T, ku_string_t> || std::same_as<T, std::string>) {
             return common::PhysicalTypeID::STRING;
         } else {
             KU_UNREACHABLE;

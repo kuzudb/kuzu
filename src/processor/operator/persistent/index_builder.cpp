@@ -34,34 +34,26 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index) {
     if (!mutexes[index].try_lock()) {
         return;
     }
-    std::unique_lock lck{mutexes[index], std::adopt_lock};
 
-    std::visit(overload{[&](Queue<std::string>&& queues) {
-                            using T = std::decay_t<decltype(queues.type)>;
-                            Buffer<T> elem;
-                            while (queues.array[index].pop(elem)) {
-                                for (auto [key, value] : elem) {
-                                    if (!pkIndex->appendWithIndexPos(key, value, index)) {
-                                        throw CopyException(
-                                            ExceptionMessage::duplicatePKException(std::move(key)));
-                                    }
-                                }
-                            }
-                            return;
-                        },
-                   [&](auto&& queues) {
-                       using T = std::decay_t<decltype(queues.type)>;
-                       Buffer<T> elem;
-                       while (queues.array[index].pop(elem)) {
-                           for (auto [key, value] : elem) {
-                               if (!pkIndex->appendWithIndexPos(key, value, index)) {
-                                   throw CopyException(ExceptionMessage::duplicatePKException(
-                                       TypeUtils::toString(key)));
-                               }
-                           }
-                       }
-                       return;
-                   }},
+    std::visit(
+        [&](auto&& queues) {
+            using T = std::decay_t<decltype(queues.type)>;
+            std::unique_lock lck{mutexes[index], std::adopt_lock};
+            IndexBuffer<T> buffer;
+            while (queues.array[index].pop(buffer)) {
+                auto numValuesInserted = pkIndex->appendWithIndexPos(buffer, index);
+                if (numValuesInserted < buffer.size()) {
+                    if constexpr (std::same_as<T, std::string>) {
+                        throw CopyException(ExceptionMessage::duplicatePKException(
+                            std::move(buffer[numValuesInserted].first)));
+                    } else {
+                        throw CopyException(ExceptionMessage::duplicatePKException(
+                            TypeUtils::toString(buffer[numValuesInserted].first)));
+                    }
+                }
+            }
+            return;
+        },
         std::move(queues));
 }
 
