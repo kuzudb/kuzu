@@ -65,7 +65,7 @@ void VarListColumnChunk::append(ValueVector* vector) {
     while (numValues + numToAppend >= newCapacity) {
         newCapacity *= 1.5;
     }
-    if (capacity != newCapacity) {
+    if (capacity < newCapacity) {
         resize(newCapacity);
     }
     auto nextListOffsetInChunk = getListOffset(numValues);
