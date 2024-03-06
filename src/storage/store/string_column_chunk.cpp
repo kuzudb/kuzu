@@ -1,5 +1,7 @@
 #include "storage/store/string_column_chunk.h"
 
+#include "storage/store/dictionary_chunk.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -8,11 +10,12 @@ namespace storage {
 StringColumnChunk::StringColumnChunk(
     LogicalType dataType, uint64_t capacity, bool enableCompression)
     : ColumnChunk{std::move(dataType), capacity, enableCompression},
-      dictionaryChunk{capacity, enableCompression}, needFinalize{false} {}
+      dictionaryChunk{std::make_unique<DictionaryChunk>(capacity, enableCompression)}, needFinalize{
+                                                                                           false} {}
 
 void StringColumnChunk::resetToEmpty() {
     ColumnChunk::resetToEmpty();
-    dictionaryChunk.resetToEmpty();
+    dictionaryChunk->resetToEmpty();
 }
 
 void StringColumnChunk::append(ValueVector* vector) {
@@ -135,7 +138,7 @@ void StringColumnChunk::appendStringColumnChunk(
 
 void StringColumnChunk::setValueFromString(const char* value, uint64_t length, uint64_t pos) {
     KU_ASSERT(pos < numValues);
-    auto index = dictionaryChunk.appendString(std::string_view(value, length));
+    auto index = dictionaryChunk->appendString(std::string_view(value, length));
     ColumnChunk::setValue<DictionaryChunk::string_index_t>(index, pos);
 }
 
@@ -147,14 +150,14 @@ void StringColumnChunk::finalize() {
     // We already de-duplicate as we go, but when out of place updates occur new values will be
     // appended to the end and the original values may be able to be pruned before flushing them to
     // disk
-    DictionaryChunk newDictionaryChunk{numValues, enableCompression};
+    auto newDictionaryChunk = std::make_unique<DictionaryChunk>(numValues, enableCompression);
     // Each index is replaced by a new one for the de-duplicated data in the new dictionary.
     for (auto i = 0u; i < numValues; i++) {
         if (nullChunk->isNull(i)) {
             continue;
         }
         auto stringData = getValue<std::string_view>(i);
-        auto index = newDictionaryChunk.appendString(stringData);
+        auto index = newDictionaryChunk->appendString(stringData);
         setValue<DictionaryChunk::string_index_t>(index, i);
     }
     dictionaryChunk = std::move(newDictionaryChunk);
@@ -165,7 +168,7 @@ template<>
 std::string_view StringColumnChunk::getValue<std::string_view>(offset_t pos) const {
     KU_ASSERT(pos < numValues);
     auto index = ColumnChunk::getValue<DictionaryChunk::string_index_t>(pos);
-    return dictionaryChunk.getString(index);
+    return dictionaryChunk->getString(index);
 }
 
 template<>

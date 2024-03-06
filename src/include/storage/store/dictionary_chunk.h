@@ -11,6 +11,9 @@ public:
     using string_index_t = uint32_t;
 
     DictionaryChunk(uint64_t capacity, bool enableCompression);
+    // A pointer to the dictionary chunk is stored in the StringOps for the indexTable
+    // and can't be modified easily. Moving would invalidate that pointer
+    DictionaryChunk(DictionaryChunk&& other) = delete;
 
     void resetToEmpty();
 
