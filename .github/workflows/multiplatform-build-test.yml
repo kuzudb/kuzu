@@ -99,6 +99,11 @@ jobs:
       
       - name: Rename status.txt
         run: mv status.txt ubuntu-20.04.csv
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-20.04
+          path: ubuntu-20.04.csv
 
   # macos-build-test:
   #   strategy:
