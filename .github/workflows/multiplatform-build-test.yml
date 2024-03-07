@@ -24,7 +24,7 @@ jobs:
           sudo apt-get install -y build-essential manpages-dev software-properties-common
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
-          sudo apt-get install -y gcc-11 g++-11 python3.9
+          sudo apt-get install -y gcc-11 g++-11 python3.10
 
       - name: Ensure Python dependencies
         run: |
