@@ -49,55 +49,55 @@ jobs:
           status=$?
           echo "Test,$status" >> status.txt
 
-      # - name: C and C++ examples
-      #   continue-on-error: true
-      #   run: |
-      #     make example NUM_THREADS=$(nproc)
-      #     status=$?
-      #     echo "C and C++ examples,$status" >> status.txt
+      - name: C and C++ examples
+        continue-on-error: true
+        run: |
+          make example NUM_THREADS=$(nproc)
+          status=$?
+          echo "C and C++ examples,$status" >> status.txt
 
-      # - name: Python test
-      #   continue-on-error: true
-      #   run: |
-      #     make pytest NUM_THREADS=$(nproc)
-      #     status=$?
-      #     echo "Python test,$status" >> status.txt
+      - name: Python test
+        continue-on-error: true
+        run: |
+          make pytest NUM_THREADS=$(nproc)
+          status=$?
+          echo "Python test,$status" >> status.txt
 
-      # - name: Node.js test
-      #   continue-on-error: true
-      #   run: |
-      #     make nodejstest NUM_THREADS=$(nproc)
-      #     status=$?
-      #     echo "Node.js test,$status" >> status.txt
+      - name: Node.js test
+        continue-on-error: true
+        run: |
+          make nodejstest NUM_THREADS=$(nproc)
+          status=$?
+          echo "Node.js test,$status" >> status.txt
 
-      # - name: Java test
-      #   continue-on-error: true
-      #   run: |
-      #     make javatest NUM_THREADS=$(nproc)
-      #     status=$?
-      #     echo "Java test,$status" >> status.txt
+      - name: Java test
+        continue-on-error: true
+        run: |
+          make javatest NUM_THREADS=$(nproc)
+          status=$?
+          echo "Java test,$status" >> status.txt
 
-      # - name: Rust share build
-      #   run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
+      - name: Rust share build
+        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
 
-      # - name: Rust set env
-      #   run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
+      - name: Rust set env
+        run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
 
-      # - name: Rust test
-      #   continue-on-error: true
-      #   working-directory: tools/rust_api
-      #   run: |
-      #     cargo test --release --features arrow -- --test-threads=1
-      #     status=$?
-      #     echo "Rust test,$status" >> status.txt
+      - name: Rust test
+        continue-on-error: true
+        working-directory: tools/rust_api
+        run: |
+          cargo test --release --features arrow -- --test-threads=1
+          status=$?
+          echo "Rust test,$status" >> status.txt
 
-      # - name: Rust example
-      #   continue-on-error: true
-      #   working-directory: examples/rust
-      #   run: |
-      #     cargo build --release --features arrow
-      #     status=$?
-      #     echo "Rust example,$status" >> status.txt
+      - name: Rust example
+        continue-on-error: true
+        working-directory: examples/rust
+        run: |
+          cargo build --release --features arrow
+          status=$?
+          echo "Rust example,$status" >> status.txt
 
       - name: Rename status.txt
         run: mv status.txt ubuntu-20.04.csv
@@ -123,6 +123,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
+      
+      - run: |
+          echo ${{ matrix.runner }}
 
       - name: Ensure Python dependencies
         run: |
@@ -140,36 +143,31 @@ jobs:
         continue-on-error: true
         run: |
           make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          $status=$?
-          echo "Test,$status" >> status.txt
+          echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
         continue-on-error: true
         run: |
           make example NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          $status=$?
-          echo "C and C++ examples,$status" >> status.txt
+          echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
         continue-on-error: true
         run: |
           make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          $status=$?
-          echo "Python test,$status" >> status.txt
+          echo "Python test,$?" >> status.txt
 
       - name: Node.js test
         continue-on-error: true
         run: |
           make nodejstest NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          $status=$?
-          echo "Node.js test,$status" >> status.txt
+          echo "Node.js test,$?" >> status.txt
 
       - name: Java test
         continue-on-error: true
         run: |
           make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          $status=$?
-          echo "Java test,$status" >> status.txt
+          echo "Java test,$?" >> status.txt
 
       - name: Rust share build
         run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
@@ -182,11 +180,14 @@ jobs:
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
+          echo "Rust test,$?" >> status.txt
 
       - name: Rust example
         continue-on-error: true
         working-directory: examples/rust
-        run: cargo build --release --features arrow
+        run: |
+          cargo build --release --features arrow
+          echo "Rust example,$?" >> status.txt
 
       - name: Rename status.txt
         run: mv status.txt ${{ matrix.runner }}.csv
@@ -195,7 +196,7 @@ jobs:
         with:
           name: ${{ matrix.runner }}
           path: ${{ matrix.runner }}.csv
-          
+
   # windows-build-test:
   #   strategy:
   #     matrix:
