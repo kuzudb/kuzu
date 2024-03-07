@@ -34,7 +34,6 @@ jobs:
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
-          pip install --user backports.zoneinfo
 
       - name: Ensure Node.js dependencies
         working-directory: tools/nodejs_api
