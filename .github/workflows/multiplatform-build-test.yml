@@ -24,7 +24,11 @@ jobs:
           sudo apt-get install -y build-essential manpages-dev software-properties-common
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
-          sudo apt-get install -y gcc-11 g++-11 python3.10
+          sudo apt-get install -y gcc-11 g++-11
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Ensure Python dependencies
         run: |
@@ -59,7 +63,6 @@ jobs:
       #     make pytest NUM_THREADS=$(nproc)
       #     status=$?
       #     echo "Python test,$status" >> status.txt
-
 
       # - name: Node.js test
       #   continue-on-error: true
@@ -96,10 +99,10 @@ jobs:
       #     cargo build --release --features arrow
       #     status=$?
       #     echo "Rust example,$status" >> status.txt
-      
+
       - name: Rename status.txt
         run: mv status.txt ubuntu-20.04.csv
-      
+
       - uses: actions/upload-artifact@v4
         with:
           name: ubuntu-20.04
