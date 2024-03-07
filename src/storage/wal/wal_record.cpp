@@ -60,9 +60,6 @@ bool WALRecord::operator==(const WALRecord& rhs) const {
     case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
         return rdfGraphRecord == rhs.rdfGraphRecord;
     }
-    case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
-        return diskOverflowFileNextBytePosRecord == rhs.diskOverflowFileNextBytePosRecord;
-    }
     case WALRecordType::COPY_TABLE_RECORD: {
         return copyTableRecord == rhs.copyTableRecord;
     }
@@ -103,9 +100,6 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     }
     case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
         return "CREATE_RDF_GRAPH_RECORD";
-    }
-    case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
-        return "OVERFLOW_FILE_NEXT_BYTE_POS_RECORD";
     }
     case WALRecordType::COPY_TABLE_RECORD: {
         return "COPY_TABLE_RECORD";
@@ -182,15 +176,6 @@ WALRecord WALRecord::newRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourc
             CreateTableRecord(literalTableID, TableType::NODE),
             CreateTableRecord(resourceTripleTableID, TableType::REL),
             CreateTableRecord(literalTripleTableID, TableType::REL));
-    return retVal;
-}
-
-WALRecord WALRecord::newOverflowFileNextBytePosRecord(
-    DBFileID dbFileID_, uint64_t prevNextByteToWriteTo_) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD;
-    retVal.diskOverflowFileNextBytePosRecord =
-        DiskOverflowFileNextBytePosRecord(dbFileID_, prevNextByteToWriteTo_);
     return retVal;
 }
 

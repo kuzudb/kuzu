@@ -33,7 +33,6 @@ private:
     void replayCatalogRecord();
     void replayCreateTableRecord(const WALRecord& walRecord);
     void replayRdfGraphRecord(const WALRecord& walRecord);
-    void replayOverflowFileNextBytePosRecord(const WALRecord& walRecord);
     void replayCopyTableRecord(const WALRecord& walRecord);
     void replayDropTableRecord(const WALRecord& walRecord);
     void replayDropPropertyRecord(const WALRecord& walRecord);

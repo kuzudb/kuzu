@@ -6,7 +6,7 @@
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/disk_array.h"
-#include "storage/storage_structure/in_mem_file.h"
+#include "storage/storage_structure/overflow_file.h"
 
 namespace kuzu {
 namespace storage {
@@ -55,7 +55,7 @@ class HashIndexBuilder final : public InMemHashIndex {
 
 public:
     HashIndexBuilder(const std::shared_ptr<FileHandle>& handle,
-        std::unique_ptr<InMemFile> overflowFile, uint64_t indexPos,
+        OverflowFileHandle* overflowFileHandle, uint64_t indexPos,
         common::PhysicalTypeID keyDataType);
 
 public:
@@ -116,7 +116,7 @@ private:
 
 private:
     std::shared_ptr<FileHandle> fileHandle;
-    std::unique_ptr<InMemFile> inMemOverflowFile;
+    OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<InMemDiskArrayBuilder<HashIndexHeader>> headerArray;
     std::unique_ptr<InMemDiskArrayBuilder<Slot<S>>> pSlots;
     std::unique_ptr<InMemDiskArrayBuilder<Slot<S>>> oSlots;
@@ -181,7 +181,7 @@ private:
 
 private:
     common::PhysicalTypeID keyDataTypeID;
-    std::atomic<common::page_idx_t> overflowPageCounter;
+    std::unique_ptr<OverflowFile> overflowFile;
     std::vector<std::unique_ptr<InMemHashIndex>> hashIndexBuilders;
 };
 

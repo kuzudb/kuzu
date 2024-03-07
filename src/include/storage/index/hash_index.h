@@ -7,7 +7,7 @@
 #include "hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/disk_array.h"
-#include "storage/storage_structure/disk_overflow_file.h"
+#include "storage/storage_structure/overflow_file.h"
 #include "transaction/transaction.h"
 
 namespace kuzu {
@@ -51,9 +51,8 @@ class HashIndex final : public OnDiskHashIndex {
 
 public:
     HashIndex(const DBFileIDAndName& dbFileIDAndName,
-        const std::shared_ptr<BMFileHandle>& fileHandle,
-        const std::shared_ptr<DiskOverflowFile>& overflowFile, uint64_t indexPos,
-        BufferManager& bufferManager, WAL* wal);
+        const std::shared_ptr<BMFileHandle>& fileHandle, OverflowFileHandle* overflowFileHandle,
+        uint64_t indexPos, BufferManager& bufferManager, WAL* wal);
 
     ~HashIndex() override;
 
@@ -181,7 +180,7 @@ private:
     std::unique_ptr<BaseDiskArray<HashIndexHeader>> headerArray;
     std::unique_ptr<BaseDiskArray<Slot<S>>> pSlots;
     std::unique_ptr<BaseDiskArray<Slot<S>>> oSlots;
-    std::shared_ptr<DiskOverflowFile> diskOverflowFile;
+    OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<HashIndexLocalStorage<T, LocalStorageType>> localStorage;
     std::unique_ptr<HashIndexHeader> indexHeaderForReadTrx;
     std::unique_ptr<HashIndexHeader> indexHeaderForWriteTrx;
@@ -262,12 +261,12 @@ public:
     void prepareCommit();
     void prepareRollback();
     BMFileHandle* getFileHandle() { return fileHandle.get(); }
-    DiskOverflowFile* getDiskOverflowFile() { return overflowFile.get(); }
+    OverflowFile* getOverflowFile() { return overflowFile.get(); }
 
 private:
     common::PhysicalTypeID keyDataTypeID;
     std::shared_ptr<BMFileHandle> fileHandle;
-    std::shared_ptr<DiskOverflowFile> overflowFile;
+    std::unique_ptr<OverflowFile> overflowFile;
     std::vector<std::unique_ptr<OnDiskHashIndex>> hashIndices;
 };
 
