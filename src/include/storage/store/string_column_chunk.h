@@ -31,11 +31,11 @@ public:
 
     uint64_t getStringLength(common::offset_t pos) const {
         auto index = ColumnChunk::getValue<DictionaryChunk::string_index_t>(pos);
-        return dictionaryChunk.getStringLength(index);
+        return dictionaryChunk->getStringLength(index);
     }
 
-    inline DictionaryChunk& getDictionaryChunk() { return dictionaryChunk; }
-    inline const DictionaryChunk& getDictionaryChunk() const { return dictionaryChunk; }
+    inline DictionaryChunk& getDictionaryChunk() { return *dictionaryChunk; }
+    inline const DictionaryChunk& getDictionaryChunk() const { return *dictionaryChunk; }
 
     void finalize() final;
 
@@ -46,7 +46,7 @@ private:
     void setValueFromString(const char* value, uint64_t length, uint64_t pos);
 
 private:
-    DictionaryChunk dictionaryChunk;
+    std::unique_ptr<DictionaryChunk> dictionaryChunk;
     // If we never update a value, we don't need to prune unused strings in finalize
     bool needFinalize;
 };
