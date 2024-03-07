@@ -46,20 +46,20 @@ Kùzu is available under a permissible license. So try it out and help us make i
 | C/C++  | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
 | CLI    | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
 
-To learn more about installation, see our [Installation](https://kuzudb.com/docusaurus/installation/) page.
+To learn more about installation, see our [Installation](https://docs.kuzudb.com/installation) page.
 
 ## Getting Started
 
-Refer to our [Getting Started](https://kuzudb.com/docusaurus/getting-started/) page for your first example.
+Refer to our [Getting Started](https://docs.kuzudb.com/getting-started/) page for your first example.
 
 More information can be found at
-- [Data Import](https://kuzudb.com/docusaurus/data-import/)
-- [Cypher Reference](https://kuzudb.com/docusaurus/cypher/)
-- [Client APIs](https://kuzudb.com/docusaurus/client-apis/)
+- [Data Import](https://docs.kuzudb.com/data-import/)
+- [Cypher Reference](https://docs.kuzudb.com/cypher/)
+- [Client APIs](https://docs.kuzudb.com/client-apis/)
 
 ## Build from Source
 
-Instructions can be found at [Build Kùzu from Source](https://kuzudb.com/docusaurus/development/building-kuzu).
+Instructions can be found at [Build Kùzu from Source](https://docs.kuzudb.com/development/building-kuzu).
 
 ## Contributing
 We welcome contributions to Kùzu. If you are interested in contributing to Kùzu, please read our [Contributing Guide](CONTRIBUTING.md).
