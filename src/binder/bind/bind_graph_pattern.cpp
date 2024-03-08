@@ -454,20 +454,20 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     function::CastString::operation(
         ku_string_t{recursiveInfo->lowerBound.c_str(), recursiveInfo->lowerBound.length()},
         lowerBound);
-    auto upperBound = clientContext->varLengthExtendMaxDepth;
+    auto maxDepth = clientContext->getClientConfig()->varLengthMaxDepth;
+    auto upperBound = maxDepth;
     if (!recursiveInfo->upperBound.empty()) {
         function::CastString::operation(
             ku_string_t{recursiveInfo->upperBound.c_str(), recursiveInfo->upperBound.length()},
             upperBound);
     }
     if (lowerBound > upperBound) {
-        throw BinderException(
-            "Lower bound of rel " + relPattern.getVariableName() + " is greater than upperBound.");
+        throw BinderException(stringFormat(
+            "Lower bound of rel {} is greater than upperBound.", relPattern.getVariableName()));
     }
-    if (upperBound > clientContext->varLengthExtendMaxDepth) {
-        throw BinderException(
-            "Upper bound of rel " + relPattern.getVariableName() +
-            " exceeds maximum: " + std::to_string(clientContext->varLengthExtendMaxDepth) + ".");
+    if (upperBound > maxDepth) {
+        throw BinderException(stringFormat("Upper bound of rel {} exceeds maximum: {}.",
+            relPattern.getVariableName(), std::to_string(maxDepth)));
     }
     if ((relPattern.getRelType() == QueryRelType::ALL_SHORTEST ||
             relPattern.getRelType() == QueryRelType::SHORTEST) &&

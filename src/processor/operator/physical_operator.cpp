@@ -1,5 +1,7 @@
 #include "processor/operator/physical_operator.h"
 
+#include "common/exception/interrupt.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -178,6 +180,16 @@ void PhysicalOperator::initLocalState(ResultSet* resultSet_, ExecutionContext* c
     resultSet = resultSet_;
     registerProfilingMetrics(context->profiler);
     initLocalStateInternal(resultSet_, context);
+}
+
+bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
+    if (context->clientContext->interrupted()) {
+        throw InterruptException{};
+    }
+    metrics->executionTime.start();
+    auto result = getNextTuplesInternal(context);
+    metrics->executionTime.stop();
+    return result;
 }
 
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {

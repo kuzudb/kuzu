@@ -40,7 +40,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(
             taskLck.unlock();
             break;
         }
-        if (context->clientContext->isTimeOutEnabled()) {
+        if (context->clientContext->hasTimeout()) {
             timeout = context->clientContext->getTimeoutRemainingInMS();
             if (timeout == 0) {
                 context->clientContext->interrupt();
