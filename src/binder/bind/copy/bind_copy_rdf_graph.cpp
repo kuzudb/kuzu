@@ -18,7 +18,8 @@ namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&,
     std::unique_ptr<ReaderConfig> config, RDFGraphCatalogEntry* rdfGraphEntry) {
-    auto functions = catalog.getFunctions(clientContext->getTx());
+    auto catalog = clientContext->getCatalog();
+    auto functions = catalog->getFunctions(clientContext->getTx());
     auto offset = expressionBinder.createVariableExpression(
         *LogicalType::INT64(), InternalKeyword::ROW_OFFSET);
     auto r = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::IRI);
@@ -50,7 +51,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto rScanInfo = std::make_unique<BoundFileScanInfo>(
         rScanFunc, bindData->copy(), std::move(rColumns), offset);
     auto rTableID = rdfGraphEntry->getResourceTableID();
-    auto rSchema = catalog.getTableCatalogEntry(clientContext->getTx(), rTableID);
+    auto rSchema = catalog->getTableCatalogEntry(clientContext->getTx(), rTableID);
     auto rCopyInfo = BoundCopyFromInfo(rSchema, std::move(rScanInfo), false, nullptr);
     // Bind copy literal.
     func = inMemory ?
@@ -61,7 +62,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto lScanInfo = std::make_unique<BoundFileScanInfo>(
         lScanFunc, bindData->copy(), std::move(lColumns), offset);
     auto lTableID = rdfGraphEntry->getLiteralTableID();
-    auto lSchema = catalog.getTableCatalogEntry(clientContext->getTx(), lTableID);
+    auto lSchema = catalog->getTableCatalogEntry(clientContext->getTx(), lTableID);
     auto lCopyInfo = BoundCopyFromInfo(lSchema, std::move(lScanInfo), true, nullptr);
     // Bind copy resource triples
     func = inMemory ?
@@ -73,7 +74,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto rrrScanInfo =
         std::make_unique<BoundFileScanInfo>(rrrScanFunc, bindData->copy(), rrrColumns, offset);
     auto rrrTableID = rdfGraphEntry->getResourceTripleTableID();
-    auto rrrSchema = catalog.getTableCatalogEntry(clientContext->getTx(), rrrTableID);
+    auto rrrSchema = catalog->getTableCatalogEntry(clientContext->getTx(), rrrTableID);
     auto rrrExtraInfo = std::make_unique<ExtraBoundCopyRelInfo>();
     auto sLookUp = IndexLookupInfo(rTableID, sOffset, s, s->getDataType());
     auto pLookUp = IndexLookupInfo(rTableID, pOffset, p, p->getDataType());
@@ -95,7 +96,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto rrlScanInfo =
         std::make_unique<BoundFileScanInfo>(rrlScanFunc, bindData->copy(), rrlColumns, offset);
     auto rrlTableID = rdfGraphEntry->getLiteralTripleTableID();
-    auto rrlSchema = catalog.getTableCatalogEntry(clientContext->getTx(), rrlTableID);
+    auto rrlSchema = catalog->getTableCatalogEntry(clientContext->getTx(), rrlTableID);
     auto rrlExtraInfo = std::make_unique<ExtraBoundCopyRelInfo>();
     rrlExtraInfo->infos.push_back(sLookUp.copy());
     rrlExtraInfo->infos.push_back(pLookUp.copy());

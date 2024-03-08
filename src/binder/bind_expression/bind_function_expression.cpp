@@ -27,7 +27,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
         return result;
     }
     auto functionType =
-        binder->catalog.getFunctionType(binder->clientContext->getTx(), functionName);
+        context->getCatalog()->getFunctionType(binder->clientContext->getTx(), functionName);
     switch (functionType) {
     case ExpressionType::FUNCTION:
         return bindScalarFunctionExpression(parsedExpression, functionName);
@@ -57,9 +57,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
     }
+    auto functions = context->getCatalog()->getFunctions(context->getTx());
     auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
-        function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes,
-            binder->catalog.getFunctions(binder->clientContext->getTx())));
+        function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, functions));
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CAST_FUNC_NAME) {
@@ -110,8 +110,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
     }
-    auto function = function::BuiltInFunctionsUtils::matchAggregateFunction(functionName,
-        childrenTypes, isDistinct, binder->catalog.getFunctions(binder->clientContext->getTx()))
+    auto functions = context->getCatalog()->getFunctions(context->getTx());
+    auto function = function::BuiltInFunctionsUtils::matchAggregateFunction(
+        functionName, childrenTypes, isDistinct, functions)
                         ->clone();
     if (function->paramRewriteFunc) {
         function->paramRewriteFunc(children);
@@ -134,7 +135,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
     const ParsedExpression& parsedExpression, const std::string& macroName) {
-    auto scalarMacroFunction = binder->catalog.getScalarMacroFunction(macroName);
+    auto scalarMacroFunction = context->getCatalog()->getScalarMacroFunction(macroName);
     auto macroExpr = scalarMacroFunction->expression->copy();
     auto parameterVals = scalarMacroFunction->getDefaultParameterVals();
     auto& parsedFuncExpr =
@@ -250,35 +251,34 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(std::vector<table
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression& expression) {
+    auto catalog = context->getCatalog();
     auto listType = LogicalType::VAR_LIST(LogicalType::STRING());
     expression_vector children;
     switch (expression.getDataType().getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
         auto& node = (NodeExpression&)expression;
         if (!node.isMultiLabeled()) {
-            auto labelName = binder->catalog.getTableName(
-                binder->clientContext->getTx(), node.getSingleTableID());
+            auto labelName = catalog->getTableName(context->getTx(), node.getSingleTableID());
             return createLiteralExpression(
                 std::make_unique<Value>(LogicalType::STRING(), labelName));
         }
-        auto nodeTableIDs = binder->catalog.getNodeTableIDs(binder->clientContext->getTx());
+        auto nodeTableIDs = catalog->getNodeTableIDs(context->getTx());
         children.push_back(node.getInternalID());
-        auto labelsValue = std::make_unique<Value>(std::move(listType),
-            populateLabelValues(nodeTableIDs, binder->catalog, binder->clientContext->getTx()));
+        auto labelsValue = std::make_unique<Value>(
+            std::move(listType), populateLabelValues(nodeTableIDs, *catalog, context->getTx()));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
     case LogicalTypeID::REL: {
         auto& rel = (RelExpression&)expression;
         if (!rel.isMultiLabeled()) {
-            auto labelName = binder->catalog.getTableName(
-                binder->clientContext->getTx(), rel.getSingleTableID());
+            auto labelName = catalog->getTableName(context->getTx(), rel.getSingleTableID());
             return createLiteralExpression(
                 std::make_unique<Value>(LogicalType::STRING(), labelName));
         }
-        auto relTableIDs = binder->catalog.getRelTableIDs(binder->clientContext->getTx());
+        auto relTableIDs = catalog->getRelTableIDs(context->getTx());
         children.push_back(rel.getInternalIDProperty());
-        auto labelsValue = std::make_unique<Value>(std::move(listType),
-            populateLabelValues(relTableIDs, binder->catalog, binder->clientContext->getTx()));
+        auto labelsValue = std::make_unique<Value>(
+            std::move(listType), populateLabelValues(relTableIDs, *catalog, context->getTx()));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
     default:

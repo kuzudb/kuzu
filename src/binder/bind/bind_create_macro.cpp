@@ -16,7 +16,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateMacro(const Statement& stateme
     auto& createMacro = ku_dynamic_cast<const Statement&, const CreateMacro&>(statement);
     auto macroName = createMacro.getMacroName();
     StringUtils::toUpper(macroName);
-    if (catalog.containsMacro(clientContext->getTx(), macroName)) {
+    if (clientContext->getCatalog()->containsMacro(clientContext->getTx(), macroName)) {
         throw BinderException{stringFormat("Macro {} already exists.", macroName)};
     }
     parser::default_macro_args defaultArgs;

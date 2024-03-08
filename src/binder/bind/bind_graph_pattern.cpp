@@ -245,9 +245,10 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     // expression to mock as if predicate IRI exists in rel table.
     common::table_id_set_t rdfGraphTableIDSet;
     common::table_id_set_t nonRdfRelTableIDSet;
+    auto catalog = clientContext->getCatalog();
     for (auto& tableID : relTableIDs) {
         bool isRdfRelTable = false;
-        for (auto& rdfGraphEntry : catalog.getRdfGraphEntries(clientContext->getTx())) {
+        for (auto& rdfGraphEntry : catalog->getRdfGraphEntries(clientContext->getTx())) {
             if (rdfGraphEntry->isParent(tableID)) {
                 KU_ASSERT(rdfGraphEntry->getTableType() == TableType::RDF);
                 rdfGraphTableIDSet.insert(rdfGraphEntry->getTableID());
@@ -261,10 +262,10 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     if (!rdfGraphTableIDSet.empty()) {
         if (!nonRdfRelTableIDSet.empty()) {
             auto relTableName =
-                catalog.getTableCatalogEntry(clientContext->getTx(), *nonRdfRelTableIDSet.begin())
+                catalog->getTableCatalogEntry(clientContext->getTx(), *nonRdfRelTableIDSet.begin())
                     ->getName();
             auto rdfGraphName =
-                catalog.getTableCatalogEntry(clientContext->getTx(), *rdfGraphTableIDSet.begin())
+                catalog->getTableCatalogEntry(clientContext->getTx(), *rdfGraphTableIDSet.begin())
                     ->getName();
             throw BinderException(stringFormat(
                 "Relationship pattern {} contains both PropertyGraph relationship "
@@ -274,7 +275,7 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
         }
         common::table_id_vector_t resourceTableIDs;
         for (auto& tableID : rdfGraphTableIDSet) {
-            auto entry = catalog.getTableCatalogEntry(clientContext->getTx(), tableID);
+            auto entry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
             auto rdfGraphEntry =
                 ku_dynamic_cast<const TableCatalogEntry*, const RDFGraphCatalogEntry*>(entry);
             resourceTableIDs.push_back(rdfGraphEntry->getResourceTableID());
@@ -286,7 +287,7 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
         std::vector<TableCatalogEntry*> resourceTableSchemas;
         for (auto tableID : resourceTableIDs) {
             resourceTableSchemas.push_back(
-                catalog.getTableCatalogEntry(clientContext->getTx(), tableID));
+                catalog->getTableCatalogEntry(clientContext->getTx(), tableID));
         }
         // Mock existence of pIRI property.
         auto pIRI = createPropertyExpression(std::string(rdf::IRI), queryRel->getUniqueName(),
@@ -329,7 +330,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     std::unordered_set<table_id_t> nodeTableIDs;
     for (auto relTableID : relTableIDs) {
         auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
-            catalog.getTableCatalogEntry(clientContext->getTx(), relTableID));
+            clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), relTableID));
         nodeTableIDs.insert(relTableEntry->getSrcTableID());
         nodeTableIDs.insert(relTableEntry->getDstTableID());
     }
@@ -478,10 +479,11 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
 }
 
 void Binder::bindQueryRelProperties(RelExpression& rel) {
+    auto catalog = clientContext->getCatalog();
     std::vector<TableCatalogEntry*> tableCatalogEntries;
     for (auto tableID : rel.getTableIDs()) {
-        tableCatalogEntries.push_back(
-            catalog.getTableCatalogEntry(clientContext->getTx(), tableID));
+        auto entry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
+        tableCatalogEntries.push_back(entry);
     }
     auto propertyNames = getPropertyNames(tableCatalogEntries);
     for (auto& propertyName : propertyNames) {
@@ -557,7 +559,8 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(
 }
 
 void Binder::bindQueryNodeProperties(NodeExpression& node) {
-    auto tableSchemas = catalog.getTableSchemas(clientContext->getTx(), node.getTableIDs());
+    auto tableSchemas =
+        clientContext->getCatalog()->getTableSchemas(clientContext->getTx(), node.getTableIDs());
     auto propertyNames = getPropertyNames(tableSchemas);
     for (auto& propertyName : propertyNames) {
         auto property = createPropertyExpression(
@@ -569,20 +572,21 @@ void Binder::bindQueryNodeProperties(NodeExpression& node) {
 std::vector<table_id_t> Binder::bindTableIDs(
     const std::vector<std::string>& tableNames, bool nodePattern) {
     auto tx = clientContext->getTx();
+    auto catalog = clientContext->getCatalog();
     std::unordered_set<common::table_id_t> tableIDSet;
     if (tableNames.empty()) { // Rewrite empty table names as all tables.
         if (nodePattern) {    // Fill all node table schemas to node pattern.
-            if (!catalog.containsNodeTable(tx)) {
+            if (!catalog->containsNodeTable(tx)) {
                 throw BinderException("No node table exists in database.");
             }
-            for (auto tableID : catalog.getNodeTableIDs(tx)) {
+            for (auto tableID : catalog->getNodeTableIDs(tx)) {
                 tableIDSet.insert(tableID);
             }
         } else { // Fill all rel table schemas to rel pattern.
-            if (!catalog.containsRelTable(tx)) {
+            if (!catalog->containsRelTable(tx)) {
                 throw BinderException("No rel table exists in database.");
             }
-            for (auto tableID : catalog.getRelTableIDs(tx)) {
+            for (auto tableID : catalog->getRelTableIDs(tx)) {
                 tableIDSet.insert(tableID);
             }
         }
@@ -612,7 +616,8 @@ std::vector<table_id_t> Binder::getNodeTableIDs(const std::vector<table_id_t>& t
 }
 
 std::vector<common::table_id_t> Binder::getNodeTableIDs(table_id_t tableID) {
-    auto tableSchema = catalog.getTableCatalogEntry(clientContext->getTx(), tableID);
+    auto tableSchema =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), tableID);
     switch (tableSchema->getTableType()) {
     case TableType::NODE: {
         return {tableID};
@@ -639,7 +644,7 @@ std::vector<table_id_t> Binder::getRelTableIDs(const std::vector<table_id_t>& ta
 }
 
 std::vector<common::table_id_t> Binder::getRelTableIDs(table_id_t tableID) {
-    auto entry = catalog.getTableCatalogEntry(clientContext->getTx(), tableID);
+    auto entry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), tableID);
     switch (entry->getTableType()) {
     case TableType::RDF: {
         auto rdfEntry = ku_dynamic_cast<TableCatalogEntry*, RDFGraphCatalogEntry*>(entry);

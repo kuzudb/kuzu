@@ -18,7 +18,7 @@ namespace binder {
  */
 FileType Binder::bindFileType(const std::string& filePath) {
     std::filesystem::path fileName(filePath);
-    auto extension = vfs->getFileExtension(fileName);
+    auto extension = clientContext->getVFSUnsafe()->getFileExtension(fileName);
     auto fileType = FileTypeUtils::getFileTypeFromExtension(extension);
     return fileType;
 }
@@ -38,7 +38,7 @@ FileType Binder::bindFileType(const std::vector<std::string>& filePaths) {
 std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {
     std::vector<std::string> boundFilePaths;
     for (auto& filePath : filePaths) {
-        auto globbedFilePaths = vfs->glob(clientContext, filePath);
+        auto globbedFilePaths = clientContext->getVFSUnsafe()->glob(clientContext, filePath);
         if (globbedFilePaths.empty()) {
             throw BinderException{
                 stringFormat("No file found that matches the pattern: {}.", filePath)};

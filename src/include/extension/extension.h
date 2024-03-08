@@ -42,8 +42,6 @@ struct ExtensionOptions {
         std::string name, common::LogicalTypeID type, common::Value defaultValue);
 
     main::ExtensionOption* getExtensionOption(std::string name);
-
-    std::unordered_map<std::string, main::ExtensionOption>& getExtensionOptions();
 };
 
 } // namespace extension

@@ -21,15 +21,14 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     ExpressionType expressionType, const expression_vector& children) {
-    auto builtInFunctions = binder->catalog.getFunctions(binder->clientContext->getTx());
+    auto functions = context->getCatalog()->getFunctions(binder->clientContext->getTx());
     auto functionName = expressionTypeToString(expressionType);
     std::vector<LogicalType> childrenTypes;
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
     }
     auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
-        function::BuiltInFunctionsUtils::matchFunction(
-            functionName, childrenTypes, builtInFunctions));
+        function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, functions));
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         childrenAfterCast.push_back(

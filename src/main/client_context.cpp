@@ -120,6 +120,10 @@ void ClientContext::setExtensionOption(std::string name, common::Value value) {
     extensionOptionValues.insert_or_assign(name, std::move(value));
 }
 
+extension::ExtensionOptions* ClientContext::getExtensionOptions() const {
+    return database->extensionOptions.get();
+}
+
 std::string ClientContext::getExtensionDir() const {
     return common::stringFormat("{}/.kuzu/extension", config.homeDirectory);
 }
@@ -263,9 +267,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
             }
         }
         // binding
-        auto binder = Binder(*database->catalog, database->memoryManager.get(),
-            database->storageManager.get(), database->vfs.get(), this,
-            database->extensionOptions.get());
+        auto binder = Binder(this);
         auto boundStatement = binder.bind(*parsedStatement);
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult =
