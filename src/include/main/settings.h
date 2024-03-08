@@ -11,10 +11,10 @@ struct ThreadsSetting {
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::INT64;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::INT64);
-        context->numThreadsForExecution = parameter.getValue<int64_t>();
+        context->getClientConfigUnsafe()->numThreads = parameter.getValue<int64_t>();
     }
     static common::Value getSetting(ClientContext* context) {
-        return common::Value(context->numThreadsForExecution);
+        return common::Value(context->getClientConfig()->numThreads);
     }
 };
 
@@ -23,11 +23,10 @@ struct TimeoutSetting {
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::INT64;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::INT64);
-        context->timeoutInMS = parameter.getValue<int64_t>();
-        context->startTimingIfEnabled();
+        context->getClientConfigUnsafe()->timeoutInMS = parameter.getValue<int64_t>();
     }
     static common::Value getSetting(ClientContext* context) {
-        return common::Value(context->timeoutInMS);
+        return common::Value(context->getClientConfig()->timeoutInMS);
     }
 };
 
@@ -36,10 +35,10 @@ struct VarLengthExtendMaxDepthSetting {
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::INT64;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::INT64);
-        context->varLengthExtendMaxDepth = parameter.getValue<int64_t>();
+        context->getClientConfigUnsafe()->varLengthMaxDepth = parameter.getValue<int64_t>();
     }
     static common::Value getSetting(ClientContext* context) {
-        return common::Value(context->varLengthExtendMaxDepth);
+        return common::Value(context->getClientConfig()->varLengthMaxDepth);
     }
 };
 
@@ -48,10 +47,10 @@ struct EnableSemiMaskSetting {
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::BOOL);
-        context->enableSemiMask = parameter.getValue<bool>();
+        context->getClientConfigUnsafe()->enableSemiMask = parameter.getValue<bool>();
     }
     static common::Value getSetting(ClientContext* context) {
-        return common::Value(context->enableSemiMask);
+        return common::Value(context->getClientConfig()->enableSemiMask);
     }
 };
 
@@ -60,10 +59,10 @@ struct HomeDirectorySetting {
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::STRING;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::STRING);
-        context->homeDirectory = parameter.getValue<std::string>();
+        context->getClientConfigUnsafe()->homeDirectory = parameter.getValue<std::string>();
     }
     static common::Value getSetting(ClientContext* context) {
-        return common::Value::createValue(context->homeDirectory);
+        return common::Value::createValue(context->getClientConfig()->homeDirectory);
     }
 };
 
@@ -72,10 +71,10 @@ struct FileSearchPathSetting {
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::STRING;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::STRING);
-        context->fileSearchPath = parameter.getValue<std::string>();
+        context->getClientConfigUnsafe()->fileSearchPath = parameter.getValue<std::string>();
     }
     static common::Value getSetting(ClientContext* context) {
-        return common::Value::createValue(context->fileSearchPath);
+        return common::Value::createValue(context->getClientConfig()->fileSearchPath);
     }
 };
 
