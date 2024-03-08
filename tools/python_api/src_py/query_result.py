@@ -23,6 +23,12 @@ class QueryResult:
         self._query_result = query_result
         self.is_closed = False
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
     def __del__(self):
         self.close()
 
@@ -73,17 +79,21 @@ class QueryResult:
         Close the query result.
         """
 
-        if self.is_closed:
-            return
-        self._query_result.close()
-        # Allows the connection to be garbage collected if the query result
-        # is closed manually by the user.
-        self.connection = None
-        self.is_closed = True
+        if not self.is_closed:
+            # Allows the connection to be garbage collected if the query result
+            # is closed manually by the user.
+            self._query_result.close()
+            self.connection = None
+            self.is_closed = True
 
     def get_as_df(self):
         """
         Get the query result as a Pandas DataFrame.
+
+        See Also
+        --------
+        get_as_pl : Get the query result as a Polars DataFrame.
+        get_as_arrow : Get the query result as a PyArrow Table.
 
         Returns
         -------
@@ -102,6 +112,11 @@ class QueryResult:
         """
         Get the query result as a Polars DataFrame.
 
+        See Also
+        --------
+        get_as_df : Get the query result as a Pandas DataFrame.
+        get_as_arrow : Get the query result as a PyArrow Table.
+
         Returns
         -------
         polars.DataFrame
@@ -109,7 +124,14 @@ class QueryResult:
         """
 
         import polars as pl
-        return pl.from_arrow(data=self.get_as_arrow(10_000))
+
+        target_n_elems = (
+            10_000_000  # adaptive chunk_size; target 10m elements per chunk
+        )
+        target_chunk_size = max(target_n_elems // len(self.get_column_names()), 10)
+        return pl.from_arrow(
+            data=self.get_as_arrow(chunk_size=target_chunk_size),
+        )
 
     def get_as_arrow(self, chunk_size):
         """
@@ -119,6 +141,11 @@ class QueryResult:
         ----------
         chunk_size : int
             Number of rows to include in each chunk.
+
+        See Also
+        --------
+        get_as_pl : Get the query result as a Polars DataFrame.
+        get_as_df : Get the query result as a Pandas DataFrame.
 
         Returns
         -------
@@ -158,6 +185,26 @@ class QueryResult:
 
         self.check_for_query_result_close()
         return self._query_result.getColumnNames()
+
+    def get_schema(self):
+        """
+        Get the column schema of the query result.
+
+        Returns
+        -------
+        dict
+            Schema of the query result.
+
+        """
+
+        self.check_for_query_result_close()
+        return {
+            name: dtype
+            for name, dtype in zip(
+                self._query_result.getColumnNames(),
+                self._query_result.getColumnDataTypes(),
+            )
+        }
 
     def reset_iterator(self):
         """
@@ -203,7 +250,9 @@ class QueryResult:
         table_primary_key_dict = {}
 
         def encode_node_id(node, table_primary_key_dict):
-            return node['_label'] + "_" + str(node[table_primary_key_dict[node['_label']]])
+            return (
+                node["_label"] + "_" + str(node[table_primary_key_dict[node["_label"]]])
+            )
 
         # De-duplicate nodes and rels
         while self.has_next():
@@ -218,36 +267,42 @@ class QueryResult:
                 elif column_type == Type.REL.value:
                     _src = row[i]["_src"]
                     _dst = row[i]["_dst"]
-                    rels[(_src["table"], _src["offset"], _dst["table"],
-                          _dst["offset"])] = row[i]
+                    rels[
+                        (_src["table"], _src["offset"], _dst["table"], _dst["offset"])
+                    ] = row[i]
 
                 elif column_type == Type.RECURSIVE_REL.value:
-                    for node in row[i]['_nodes']:
+                    for node in row[i]["_nodes"]:
                         _id = node["_id"]
                         nodes[(_id["table"], _id["offset"])] = node
                         table_to_label_dict[_id["table"]] = node["_label"]
-                    for rel in row[i]['_rels']:
+                    for rel in row[i]["_rels"]:
                         for key in rel:
                             if rel[key] is None:
                                 del rel[key]
                         _src = rel["_src"]
                         _dst = rel["_dst"]
-                        rels[(_src["table"], _src["offset"], _dst["table"],
-                              _dst["offset"])] = rel
+                        rels[
+                            (
+                                _src["table"],
+                                _src["offset"],
+                                _dst["table"],
+                                _dst["offset"],
+                            )
+                        ] = rel
 
         # Add nodes
         for node in nodes.values():
             _id = node["_id"]
-            node_id = node['_label'] + "_" + str(_id["offset"])
-            if node['_label'] not in table_primary_key_dict:
-                props = self.connection._get_node_property_names(
-                    node['_label'])
+            node_id = node["_label"] + "_" + str(_id["offset"])
+            if node["_label"] not in table_primary_key_dict:
+                props = self.connection._get_node_property_names(node["_label"])
                 for prop_name in props:
-                    if props[prop_name]['is_primary_key']:
-                        table_primary_key_dict[node['_label']] = prop_name
+                    if props[prop_name]["is_primary_key"]:
+                        table_primary_key_dict[node["_label"]] = prop_name
                         break
             node_id = encode_node_id(node, table_primary_key_dict)
-            node[node['_label']] = True
+            node[node["_label"]] = True
             nx_graph.add_node(node_id, **node)
 
         # Add rels
@@ -270,7 +325,11 @@ class QueryResult:
         for i in range(len(column_names)):
             column_name = column_names[i]
             column_type = column_types[i]
-            if column_type in [Type.NODE.value, Type.REL.value, Type.RECURSIVE_REL.value]:
+            if column_type in [
+                Type.NODE.value,
+                Type.REL.value,
+                Type.RECURSIVE_REL.value,
+            ]:
                 properties_to_extract[i] = (column_type, column_name)
         return properties_to_extract
 
@@ -280,7 +339,7 @@ class QueryResult:
         torch_geometric.data.Data or torch_geometric.data.HeteroData.
 
         For node conversion, numerical and boolean properties are directly converted into tensor and
-        stored in Data/HeteroData. For properties cannot be converted into tensor automatically 
+        stored in Data/HeteroData. For properties cannot be converted into tensor automatically
         (please refer to the notes below for more detail), they are returned as unconverted_properties.
 
         For rel conversion, rel is converted into edge_index tensor director. Edge properties are returned
@@ -290,9 +349,9 @@ class QueryResult:
         - If the type of a node property is not one of INT64, DOUBLE, or BOOL, it cannot be converted
           automatically.
         - If a node property contains a null value, it cannot be converted automatically.
-        - If a node property contains a nested list of variable length (e.g. [[1,2],[3]]), it cannot be 
+        - If a node property contains a nested list of variable length (e.g. [[1,2],[3]]), it cannot be
           converted automatically.
-        - If a node property is a list or nested list, but the shape is inconsistent (e.g. the list length 
+        - If a node property is a list or nested list, but the shape is inconsistent (e.g. the list length
           is 6 for one node but 5 for another node), it cannot be converted automatically.
 
         Additional conversion rules:
@@ -363,7 +422,7 @@ class QueryResult:
         -------
         int
             Number of tuples.
-            
+
         """
         self.check_for_query_result_close()
         return self._query_result.getNumTuples()
