@@ -16,7 +16,7 @@ namespace storage {
 // chunk to be greater than the node group size since they remove unused entries.
 // So the chunk is initialized with a size equal to 3/4 the node group size, making sure there
 // is always extra space for updates.
-static const uint64_t OFFSET_CHUNK_INITIAL_CAPACITY = StorageConstants::NODE_GROUP_SIZE * 0.75;
+static const double OFFSET_CHUNK_CAPACITY_FACTOR = 0.75;
 
 DictionaryChunk::DictionaryChunk(uint64_t capacity, bool enableCompression)
     : enableCompression{enableCompression},
@@ -25,7 +25,7 @@ DictionaryChunk::DictionaryChunk(uint64_t capacity, bool enableCompression)
     stringDataChunk = ColumnChunkFactory::createColumnChunk(
         *LogicalType::UINT8(), false /*enableCompression*/, capacity);
     offsetChunk = ColumnChunkFactory::createColumnChunk(
-        *LogicalType::UINT64(), enableCompression, OFFSET_CHUNK_INITIAL_CAPACITY);
+        *LogicalType::UINT64(), enableCompression, capacity * OFFSET_CHUNK_CAPACITY_FACTOR);
 }
 
 void DictionaryChunk::resetToEmpty() {
@@ -59,7 +59,9 @@ DictionaryChunk::string_index_t DictionaryChunk::appendString(std::string_view v
     stringDataChunk->setNumValues(startOffset + val.size());
     auto index = offsetChunk->getNumValues();
     if (index >= offsetChunk->getCapacity()) {
-        offsetChunk->resize(std::bit_ceil(offsetChunk->getCapacity() * CHUNK_RESIZE_RATIO));
+        offsetChunk->resize(offsetChunk->getCapacity() == 0 ?
+                                2 :
+                                (offsetChunk->getCapacity() * CHUNK_RESIZE_RATIO));
     }
     offsetChunk->setValue<string_offset_t>(startOffset, index);
     offsetChunk->setNumValues(index + 1);
