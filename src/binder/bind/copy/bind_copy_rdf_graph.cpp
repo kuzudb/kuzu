@@ -36,15 +36,17 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     Function* func;
     // Bind file scan;
     auto inMemory = RdfReaderConfig::construct(config->options).inMemory;
-    func = BuiltInFunctionsUtils::matchFunction(READ_RDF_ALL_TRIPLE_FUNC_NAME, functions);
+    func = BuiltInFunctionsUtils::matchFunction(
+        READ_RDF_ALL_TRIPLE_FUNC_NAME, functions, CatalogEntryType::TABLE_FUNCTION_ENTRY);
     auto scanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto bindData = scanFunc->bindFunc(clientContext, bindInput.get());
     auto scanInfo = std::make_unique<BoundFileScanInfo>(
         scanFunc, bindData->copy(), expression_vector{}, offset);
     // Bind copy resource.
-    func = inMemory ?
-               BuiltInFunctionsUtils::matchFunction(IN_MEM_READ_RDF_RESOURCE_FUNC_NAME, functions) :
-               BuiltInFunctionsUtils::matchFunction(READ_RDF_RESOURCE_FUNC_NAME, functions);
+    func = inMemory ? BuiltInFunctionsUtils::matchFunction(IN_MEM_READ_RDF_RESOURCE_FUNC_NAME,
+                          functions, CatalogEntryType::TABLE_FUNCTION_ENTRY) :
+                      BuiltInFunctionsUtils::matchFunction(READ_RDF_RESOURCE_FUNC_NAME, functions,
+                          CatalogEntryType::TABLE_FUNCTION_ENTRY);
     auto rScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto rColumns = expression_vector{r};
     auto rScanInfo = std::make_unique<BoundFileScanInfo>(
@@ -53,9 +55,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto rSchema = catalog.getTableCatalogEntry(clientContext->getTx(), rTableID);
     auto rCopyInfo = BoundCopyFromInfo(rSchema, std::move(rScanInfo), false, nullptr);
     // Bind copy literal.
-    func = inMemory ?
-               BuiltInFunctionsUtils::matchFunction(IN_MEM_READ_RDF_LITERAL_FUNC_NAME, functions) :
-               BuiltInFunctionsUtils::matchFunction(READ_RDF_LITERAL_FUNC_NAME, functions);
+    func = inMemory ? BuiltInFunctionsUtils::matchFunction(IN_MEM_READ_RDF_LITERAL_FUNC_NAME,
+                          functions, CatalogEntryType::TABLE_FUNCTION_ENTRY) :
+                      BuiltInFunctionsUtils::matchFunction(READ_RDF_LITERAL_FUNC_NAME, functions,
+                          CatalogEntryType::TABLE_FUNCTION_ENTRY);
     auto lScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto lColumns = expression_vector{l, lang};
     auto lScanInfo = std::make_unique<BoundFileScanInfo>(
@@ -65,9 +68,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto lCopyInfo = BoundCopyFromInfo(lSchema, std::move(lScanInfo), true, nullptr);
     // Bind copy resource triples
     func = inMemory ?
-               BuiltInFunctionsUtils::matchFunction(
-                   IN_MEM_READ_RDF_RESOURCE_TRIPLE_FUNC_NAME, functions) :
-               BuiltInFunctionsUtils::matchFunction(READ_RDF_RESOURCE_TRIPLE_FUNC_NAME, functions);
+               BuiltInFunctionsUtils::matchFunction(IN_MEM_READ_RDF_RESOURCE_TRIPLE_FUNC_NAME,
+                   functions, CatalogEntryType::TABLE_FUNCTION_ENTRY) :
+               BuiltInFunctionsUtils::matchFunction(READ_RDF_RESOURCE_TRIPLE_FUNC_NAME, functions,
+                   CatalogEntryType::TABLE_FUNCTION_ENTRY);
     auto rrrScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto rrrColumns = expression_vector{s, p, o};
     auto rrrScanInfo =
@@ -86,10 +90,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto rrrCopyInfo =
         BoundCopyFromInfo(rrrSchema, std::move(rrrScanInfo), false, std::move(rrrExtraInfo));
     // Bind copy literal triples
-    func = inMemory ?
-               BuiltInFunctionsUtils::matchFunction(
-                   IN_MEM_READ_RDF_LITERAL_TRIPLE_FUNC_NAME, functions) :
-               BuiltInFunctionsUtils::matchFunction(READ_RDF_LITERAL_TRIPLE_FUNC_NAME, functions);
+    func = inMemory ? BuiltInFunctionsUtils::matchFunction(IN_MEM_READ_RDF_LITERAL_TRIPLE_FUNC_NAME,
+                          functions, CatalogEntryType::TABLE_FUNCTION_ENTRY) :
+                      BuiltInFunctionsUtils::matchFunction(READ_RDF_LITERAL_TRIPLE_FUNC_NAME,
+                          functions, CatalogEntryType::TABLE_FUNCTION_ENTRY);
     auto rrlScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto rrlColumns = expression_vector{s, p, oOffset};
     auto rrlScanInfo =

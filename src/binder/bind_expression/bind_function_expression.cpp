@@ -59,7 +59,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     }
     auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
         function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes,
-            binder->catalog.getFunctions(binder->clientContext->getTx())));
+            binder->catalog.getFunctions(binder->clientContext->getTx()),
+            catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY));
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CAST_FUNC_NAME) {

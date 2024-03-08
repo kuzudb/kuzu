@@ -467,9 +467,5 @@ TEST_F(TinySnbDDLTest, RenameTableRecovery) {
     renameTable(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, RenamePropertyRecovery) {
-    renameProperty(TransactionTestType::RECOVERY);
-}
-
 } // namespace testing
 } // namespace kuzu

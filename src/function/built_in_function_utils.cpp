@@ -76,17 +76,24 @@ void BuiltInFunctionsUtils::registerAggregateFunctions(CatalogSet* catalogSet) {
     registerCollect(catalogSet);
 }
 
-Function* BuiltInFunctionsUtils::matchFunction(const std::string& name, CatalogSet* catalogSet) {
-    return matchFunction(name, std::vector<common::LogicalType>{}, catalogSet);
+Function* BuiltInFunctionsUtils::matchFunction(
+    const std::string& name, CatalogSet* catalogSet, CatalogEntryType type) {
+    return matchFunction(name, std::vector<common::LogicalType>{}, catalogSet, type);
 }
 
 Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
-    const std::vector<common::LogicalType>& inputTypes, CatalogSet* catalogSet) {
+    const std::vector<common::LogicalType>& inputTypes, CatalogSet* catalogSet,
+    CatalogEntryType type) {
     if (!catalogSet->containsEntry(name)) {
         throw CatalogException(stringFormat("{} function does not exist.", name));
     }
-    auto& functionSet =
-        reinterpret_cast<FunctionCatalogEntry*>(catalogSet->getEntry(name))->getFunctionSet();
+    auto functionEntry =
+        ku_dynamic_cast<CatalogEntry*, FunctionCatalogEntry*>(catalogSet->getEntry(name));
+    if (functionEntry->getType() != type) {
+        throw CatalogException(
+            stringFormat("{} is not a {}.", name, CatalogEntryTypeUtils::toString(type)));
+    }
+    auto& functionSet = functionEntry->getFunctionSet();
     bool isOverload = functionSet.size() > 1;
     std::vector<Function*> candidateFunctions;
     uint32_t minCost = UINT32_MAX;

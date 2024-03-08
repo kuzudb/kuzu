@@ -15,3 +15,13 @@ Catalog exception: function DUMMY does not exist.
 -STATEMENT CREATE REL TABLE knows_post ( FROM person TO person, MANY_LOT)
 ---- error
 Binder exception: Cannot bind MANY_LOT as relationship multiplicity.
+
+-CASE CallWithScalarFunction
+-STATEMENT CALL list_unique([1,2,3]) RETURN *;
+---- error
+Catalog exception: list_unique is not a TABLE_FUNCTION.
+
+-CASE ReturnWithTableFunction
+-STATEMENT MATCH (p:person) RETURN TABLE_INFO(p.name)
+---- error
+Catalog exception: TABLE_INFO is a table function.
