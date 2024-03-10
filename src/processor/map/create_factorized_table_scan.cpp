@@ -24,8 +24,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFactorizedTableScan(
     }
     auto bindData =
         std::make_unique<FTableScanBindData>(table, std::move(colIndices), maxMorselSize);
-    auto function = function::BuiltInFunctionsUtils::matchFunction(
-        READ_FTABLE_FUNC_NAME, catalog->getFunctions(clientContext->getTx()));
+    auto function = function::BuiltInFunctionsUtils::matchFunction(READ_FTABLE_FUNC_NAME,
+        catalog->getFunctions(clientContext->getTx()),
+        catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY);
     auto info = InQueryCallInfo();
     info.function = ku_dynamic_cast<Function*, TableFunction*>(function);
     info.bindData = std::move(bindData);

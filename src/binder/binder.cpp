@@ -216,17 +216,17 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
     switch (fileType) {
     case FileType::PARQUET: {
         func = function::BuiltInFunctionsUtils::matchFunction(
-            READ_PARQUET_FUNC_NAME, inputTypes, functions);
+            READ_PARQUET_FUNC_NAME, inputTypes, functions, CatalogEntryType::TABLE_FUNCTION_ENTRY);
     } break;
     case FileType::NPY: {
         func = function::BuiltInFunctionsUtils::matchFunction(
-            READ_NPY_FUNC_NAME, inputTypes, functions);
+            READ_NPY_FUNC_NAME, inputTypes, functions, CatalogEntryType::TABLE_FUNCTION_ENTRY);
     } break;
     case FileType::CSV: {
         auto csvConfig = CSVReaderConfig::construct(config.options);
         func = function::BuiltInFunctionsUtils::matchFunction(
             csvConfig.parallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
-            inputTypes, functions);
+            inputTypes, functions, CatalogEntryType::TABLE_FUNCTION_ENTRY);
     } break;
     default:
         KU_UNREACHABLE;

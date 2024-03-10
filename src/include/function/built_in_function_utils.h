@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aggregate_function.h"
+#include "catalog/catalog_entry/catalog_entry_type.h"
 #include "scalar_function.h"
 
 namespace kuzu {
@@ -14,11 +15,13 @@ class BuiltInFunctionsUtils {
 public:
     static void createFunctions(catalog::CatalogSet* catalogSet);
 
-    static Function* matchFunction(const std::string& name, catalog::CatalogSet* catalogSet);
+    static Function* matchFunction(
+        const std::string& name, catalog::CatalogSet* catalogSet, catalog::CatalogEntryType type);
     // TODO(Ziyi): We should have a unified interface for matching table, aggregate and scalar
     // functions.
     static Function* matchFunction(const std::string& name,
-        const std::vector<common::LogicalType>& inputTypes, catalog::CatalogSet* catalogSet);
+        const std::vector<common::LogicalType>& inputTypes, catalog::CatalogSet* catalogSet,
+        catalog::CatalogEntryType type);
 
     static AggregateFunction* matchAggregateFunction(const std::string& name,
         const std::vector<common::LogicalType>& inputTypes, bool isDistinct,

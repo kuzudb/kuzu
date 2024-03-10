@@ -1,7 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/function_expression.h"
 #include "binder/expression_binder.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -28,8 +27,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         childrenTypes.push_back(child->dataType);
     }
     auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
-        function::BuiltInFunctionsUtils::matchFunction(
-            functionName, childrenTypes, builtInFunctions));
+        function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes,
+            builtInFunctions, catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY));
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         childrenAfterCast.push_back(

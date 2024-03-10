@@ -214,6 +214,8 @@ ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
         return ExpressionType::FUNCTION;
     case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
         return ExpressionType::AGGREGATE_FUNCTION;
+    case CatalogEntryType::TABLE_FUNCTION_ENTRY:
+        throw common::CatalogException{stringFormat("{} is a table function.", name)};
     default:
         KU_UNREACHABLE;
     }
