@@ -304,10 +304,10 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOff
 void RelTableData::append(NodeGroup* nodeGroup) {
     auto csrNodeGroup = ku_dynamic_cast<NodeGroup*, CSRNodeGroup*>(nodeGroup);
     csrHeaderColumns.append(csrNodeGroup->getCSRHeader(), nodeGroup->getNodeGroupIdx());
-    adjColumn->append(nodeGroup->getColumnChunk(0), nodeGroup->getNodeGroupIdx());
+    adjColumn->append(nodeGroup->getColumnChunkUnsafe(0), nodeGroup->getNodeGroupIdx());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         columns[columnID]->append(
-            nodeGroup->getColumnChunk(columnID + 1), nodeGroup->getNodeGroupIdx());
+            nodeGroup->getColumnChunkUnsafe(columnID + 1), nodeGroup->getNodeGroupIdx());
     }
 }
 
