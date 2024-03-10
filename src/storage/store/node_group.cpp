@@ -106,8 +106,10 @@ uint64_t NodeGroup::append(const std::vector<ValueVector*>& columnVectors,
             serialSkip++;
             continue;
         }
-        KU_ASSERT(chunk->getDataType() == columnVectors[i - serialSkip]->dataType);
-        chunk->append(columnVectors[i - serialSkip]);
+        KU_ASSERT((i - serialSkip) < columnVectors.size());
+        auto columnVector = columnVectors[i - serialSkip];
+        KU_ASSERT(chunk->getDataType() == columnVector->dataType);
+        chunk->append(columnVector, *columnVector->state->selVector);
     }
     columnState->selVector->selectedSize = originalSize;
     numRows += numValuesToAppendInChunk;

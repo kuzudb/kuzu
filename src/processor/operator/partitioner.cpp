@@ -1,8 +1,7 @@
 #include "processor/operator/partitioner.h"
 
-#include <cstdint>
-
 #include "common/constants.h"
+#include "common/data_chunk/sel_vector.h"
 #include "processor/execution_context.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/node_table.h"
@@ -154,6 +153,8 @@ void Partitioner::executeInternal(ExecutionContext* context) {
 
 void Partitioner::copyDataToPartitions(
     partition_idx_t partitioningIdx, DataChunk* chunkToCopyFrom) {
+    SelectionVector selVector(1);
+    selVector.resetSelectorToValuePosBufferWithSize(1);
     for (auto i = 0u; i < chunkToCopyFrom->state->selVector->selectedSize; i++) {
         auto posToCopyFrom = chunkToCopyFrom->state->selVector->selectedPositions[i];
         auto partitionIdx = partitionIdxes->getValue<partition_idx_t>(posToCopyFrom);
@@ -165,16 +166,16 @@ void Partitioner::copyDataToPartitions(
                                             partition.chunks.back()[0]->getCapacity()) {
             partition.chunks.emplace_back();
             partition.chunks.back().reserve(chunkToCopyFrom->getNumValueVectors());
-            for (auto i = 0u; i < chunkToCopyFrom->getNumValueVectors(); i++) {
+            for (auto j = 0u; j < chunkToCopyFrom->getNumValueVectors(); j++) {
                 partition.chunks.back().emplace_back(ColumnChunkFactory::createColumnChunk(
-                    chunkToCopyFrom->getValueVector(i)->dataType, false /*enableCompression*/,
+                    chunkToCopyFrom->getValueVector(j)->dataType, false /*enableCompression*/,
                     Partitioner::CHUNK_SIZE));
             }
         }
         KU_ASSERT(partition.chunks.back().size() == chunkToCopyFrom->getNumValueVectors());
-        for (auto i = 0u; i < chunkToCopyFrom->getNumValueVectors(); i++) {
-            partition.chunks.back()[i]->appendOne(
-                chunkToCopyFrom->getValueVector(i).get(), posToCopyFrom);
+        selVector.selectedPositions[0] = posToCopyFrom;
+        for (auto j = 0u; j < chunkToCopyFrom->getNumValueVectors(); j++) {
+            partition.chunks.back()[j]->append(chunkToCopyFrom->getValueVector(j).get(), selVector);
         }
     }
 }

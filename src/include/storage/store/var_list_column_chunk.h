@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/data_chunk/sel_vector.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
@@ -17,8 +18,8 @@ struct VarListDataColumnChunk {
 
     void resizeBuffer(uint64_t numValues);
 
-    inline void append(common::ValueVector* dataVector) const {
-        dataColumnChunk->append(dataVector);
+    inline void append(common::ValueVector* dataVector, common::SelectionVector& selVector) const {
+        dataColumnChunk->append(dataVector, selVector);
     }
 
     inline uint64_t getNumValues() const { return dataColumnChunk->getNumValues(); }
@@ -36,8 +37,7 @@ public:
 
     void resetToEmpty() final;
 
-    void append(common::ValueVector* vector) final;
-    void appendOne(common::ValueVector* vector, common::vector_idx_t pos) final;
+    void append(common::ValueVector* vector, common::SelectionVector& selVector) final;
     // Note: `write` assumes that no `append` will be called afterward.
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) final;
