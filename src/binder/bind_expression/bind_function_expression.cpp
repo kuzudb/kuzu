@@ -1,7 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/function_expression.h"
-#include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
@@ -13,6 +12,7 @@
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace binder {
@@ -58,24 +58,21 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         childrenTypes.push_back(child->dataType);
     }
     auto functions = context->getCatalog()->getFunctions(context->getTx());
-    auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
+    auto function = ku_dynamic_cast<Function*, function::ScalarFunction*>(
         function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, functions));
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CAST_FUNC_NAME) {
-        // If the expression to cast already has the same type as the target type, skip casting.
-        if (children.size() == 2) {
-            auto targetTypeStr = (ku_dynamic_cast<Expression&, LiteralExpression&>(*children[1]))
-                                     .getValue()
-                                     ->getValue<std::string>();
-            auto outputType = binder::Binder::bindDataType(targetTypeStr);
-            if (*outputType == children[0]->dataType) {
-                return children[0];
-            }
-        }
         bindData = function->bindFunc(children, function);
-        childrenAfterCast.push_back(
-            implicitCastIfNecessary(children[0], function->parameterTypeIDs[0]));
+        if (bindData == nullptr) {
+            return children[0];
+        }
+        auto childAfterCast = children[0];
+        // See castBindFunc for explanation.
+        if (children[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
+            childAfterCast = implicitCastIfNecessary(children[0], LogicalTypeID::STRING);
+        }
+        childrenAfterCast.push_back(std::move(childAfterCast));
     } else {
         for (auto i = 0u; i < children.size(); ++i) {
             auto targetType = function->isVarLength ? function->parameterTypeIDs[0] :

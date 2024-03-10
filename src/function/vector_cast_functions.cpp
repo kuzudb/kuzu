@@ -10,6 +10,7 @@
 #include "function/cast/functions/cast_rdf_variant.h"
 
 using namespace kuzu::common;
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace function {
@@ -1003,35 +1004,38 @@ function_set CastToUInt8Function::getFunctionSet() {
     return result;
 }
 
-std::unique_ptr<FunctionBindData> CastAnyFunction::bindFunc(
+static std::unique_ptr<FunctionBindData> castBindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    // check the size of the arguments
-    if (arguments.size() != 2) {
-        throw BinderException(stringFormat(
-            "Invalid number of arguments for given function CAST. Expected: 2, Actual: {}.",
-            arguments.size()));
+    KU_ASSERT(arguments.size() == 2);
+    // Bind target type.
+    if (arguments[1]->expressionType != ExpressionType::LITERAL) {
+        throw BinderException(
+            stringFormat("Second parameter of CAST function must be an literal."));
     }
-
+    auto literalExpr = ku_dynamic_cast<Expression*, LiteralExpression*>(arguments[1].get());
+    auto targetTypeStr = literalExpr->getValue()->getValue<std::string>();
+    auto targetType = binder::Binder::bindDataType(targetTypeStr);
+    if (*targetType == arguments[0]->getDataType()) { // No need to cast.
+        return nullptr;
+    }
+    // Assign default type if input is ANY type, e.g. NULL
     auto inputTypeID = arguments[0]->dataType.getLogicalTypeID();
     if (inputTypeID == LogicalTypeID::ANY) {
         inputTypeID = LogicalTypeID::STRING;
     }
-    auto str = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
-    auto outputType = binder::Binder::bindDataType(str);
     auto func = ku_dynamic_cast<Function*, ScalarFunction*>(function);
-    func->name = "CAST_TO_" + str;
-    func->parameterTypeIDs[0] = inputTypeID;
+    func->name = "CAST_TO_" + targetTypeStr;
     func->execFunc =
-        CastFunction::bindCastFunction(func->name, inputTypeID, outputType->getLogicalTypeID())
+        CastFunction::bindCastFunction(func->name, inputTypeID, targetType->getLogicalTypeID())
             ->execFunc;
-    return std::make_unique<function::CastFunctionBindData>(std::move(outputType));
+    return std::make_unique<function::CastFunctionBindData>(std::move(targetType));
 }
 
 function_set CastAnyFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(CAST_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::ANY, nullptr, nullptr,
-        bindFunc, false));
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::STRING}, LogicalTypeID::ANY,
+        nullptr, nullptr, castBindFunc, false));
     return result;
 }
 
