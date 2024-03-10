@@ -8,6 +8,7 @@
 #include "common/string_utils.h"
 #include "function/table_functions.h"
 #include "main/client_context.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -65,7 +66,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
         KU_UNREACHABLE;
     }
     }
-    BoundStatementRewriter::rewrite(*boundStatement, catalog);
+    BoundStatementRewriter::rewrite(*boundStatement, *clientContext->getCatalog());
     return boundStatement;
 }
 
@@ -76,10 +77,11 @@ std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& 
 }
 
 common::table_id_t Binder::bindTableID(const std::string& tableName) const {
-    if (!catalog.containsTable(clientContext->getTx(), tableName)) {
+    auto catalog = clientContext->getCatalog();
+    if (!catalog->containsTable(clientContext->getTx(), tableName)) {
         throw BinderException(common::stringFormat("Table {} does not exist.", tableName));
     }
-    return catalog.getTableID(clientContext->getTx(), tableName);
+    return catalog->getTableID(clientContext->getTx(), tableName);
 }
 
 std::shared_ptr<Expression> Binder::createVariable(
@@ -172,14 +174,15 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuer
 }
 
 void Binder::validateTableType(table_id_t tableID, TableType expectedTableType) {
-    if (catalog.getTableCatalogEntry(clientContext->getTx(), tableID)->getTableType() !=
-        expectedTableType) {
+    auto tableEntry =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), tableID);
+    if (tableEntry->getTableType() != expectedTableType) {
         throw BinderException("Table type mismatch.");
     }
 }
 
 void Binder::validateTableExist(const std::string& tableName) {
-    if (!catalog.containsTable(clientContext->getTx(), tableName)) {
+    if (!clientContext->getCatalog()->containsTable(clientContext->getTx(), tableName)) {
         throw BinderException("Table " + tableName + " does not exist.");
     }
 }
@@ -212,7 +215,7 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
     auto stringType = LogicalType(LogicalTypeID::STRING);
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(stringType);
-    auto functions = catalog.getFunctions(clientContext->getTx());
+    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     switch (fileType) {
     case FileType::PARQUET: {
         func = function::BuiltInFunctionsUtils::matchFunction(

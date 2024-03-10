@@ -96,7 +96,7 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(
     const QueryGraphCollection& queryGraphCollection, const expression_set& nodeRelScope_) {
     auto nodeRelScope = nodeRelScope_;
     std::vector<BoundInsertInfo> result;
-    auto analyzer = QueryGraphLabelAnalyzer(catalog);
+    auto analyzer = QueryGraphLabelAnalyzer(*clientContext->getCatalog());
     for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
         auto queryGraph = queryGraphCollection.getQueryGraph(i);
         // Ensure query graph does not violate declared schema.
@@ -149,13 +149,14 @@ void Binder::bindInsertNode(
         throw BinderException(
             "Create node " + node->toString() + " with multiple node labels is not supported.");
     }
+    auto catalog = clientContext->getCatalog();
     auto tableID = node->getSingleTableID();
-    auto tableSchema = catalog.getTableCatalogEntry(clientContext->getTx(), tableID);
+    auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
     KU_ASSERT(tableSchema->getTableType() == TableType::NODE);
     validatePrimaryKeyExistence(
         ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableSchema), *node);
     auto insertInfo = BoundInsertInfo(TableType::NODE, node);
-    for (auto& entry : catalog.getRdfGraphEntries(clientContext->getTx())) {
+    for (auto& entry : catalog->getRdfGraphEntries(clientContext->getTx())) {
         auto rdfEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(entry);
         if (rdfEntry->isParent(tableID)) {
             insertInfo.conflictAction = ConflictAction::ON_CONFLICT_DO_NOTHING;
@@ -185,9 +186,10 @@ void Binder::bindInsertRel(
     }
     rel->setTableIDs(std::vector<common::table_id_t>{rel->getTableIDs()[0]});
     auto relTableID = rel->getSingleTableID();
-    auto tableEntry = catalog.getTableCatalogEntry(clientContext->getTx(), relTableID);
+    auto catalog = clientContext->getCatalog();
+    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), relTableID);
     TableCatalogEntry* parentTableEntry = nullptr;
-    for (auto& rdfGraphEntry : catalog.getRdfGraphEntries(clientContext->getTx())) {
+    for (auto& rdfGraphEntry : catalog->getRdfGraphEntries(clientContext->getTx())) {
         if (rdfGraphEntry->isParent(relTableID)) {
             parentTableEntry = rdfGraphEntry;
         }
@@ -271,9 +273,10 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(
     }
     auto patternExpr = ku_dynamic_cast<Expression*, NodeOrRelExpression*>(pattern.get());
     auto boundSetItem = bindSetItem(lhs, rhs);
+    auto catalog = clientContext->getCatalog();
     for (auto tableID : patternExpr->getTableIDs()) {
-        auto tableName = catalog.getTableCatalogEntry(clientContext->getTx(), tableID)->getName();
-        for (auto& rdfGraphEntry : catalog.getRdfGraphEntries(clientContext->getTx())) {
+        auto tableName = catalog->getTableCatalogEntry(clientContext->getTx(), tableID)->getName();
+        for (auto& rdfGraphEntry : catalog->getRdfGraphEntries(clientContext->getTx())) {
             if (rdfGraphEntry->isParent(tableID)) {
                 throw BinderException(
                     stringFormat("Cannot set properties of RDFGraph tables. Set {} requires "

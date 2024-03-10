@@ -126,8 +126,9 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     for (auto& val : inputValues) {
         inputTypes.push_back(*val.getDataType());
     }
+    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     auto func = BuiltInFunctionsUtils::matchFunction(
-        functionExpr->getFunctionName(), inputTypes, catalog.getFunctions(clientContext->getTx()));
+        functionExpr->getFunctionName(), inputTypes, functions);
     auto tableFunc = ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
     auto bindInput = std::make_unique<function::TableFuncBindInput>();
     bindInput->inputs = std::move(inputValues);
@@ -156,9 +157,9 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         auto objectExpr = expressionBinder.bindVariableExpression(objectName);
         auto literalExpr =
             ku_dynamic_cast<const Expression*, const LiteralExpression*>(objectExpr.get());
-        auto func = BuiltInFunctionsUtils::matchFunction(READ_PANDAS_FUNC_NAME,
-            std::vector<LogicalType>{objectExpr->getDataType()},
-            catalog.getFunctions(clientContext->getTx()));
+        auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
+        auto func = BuiltInFunctionsUtils::matchFunction(
+            READ_PANDAS_FUNC_NAME, std::vector<LogicalType>{objectExpr->getDataType()}, functions);
         scanFunction = ku_dynamic_cast<Function*, TableFunction*>(func);
         bindInput = std::make_unique<function::TableFuncBindInput>();
         bindInput->inputs.push_back(*literalExpr->getValue());

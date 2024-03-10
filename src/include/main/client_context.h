@@ -27,6 +27,10 @@ namespace common {
 class RandomEngine;
 }
 
+namespace extension {
+struct ExtensionOptions;
+}
+
 namespace main {
 class Database;
 
@@ -80,6 +84,7 @@ public:
 
     // Extension
     KUZU_API void setExtensionOption(std::string name, common::Value value);
+    extension::ExtensionOptions* getExtensionOptions() const;
     std::string getExtensionDir() const;
 
     // Environment.

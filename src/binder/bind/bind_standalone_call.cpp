@@ -15,7 +15,8 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCall(const parser::Stateme
         ku_dynamic_cast<const parser::Statement&, const parser::StandaloneCall&>(statement);
     main::Option* option = main::DBConfig::getOptionByName(callStatement.getOptionName());
     if (option == nullptr) {
-        option = extensionOptions->getExtensionOption(callStatement.getOptionName());
+        option =
+            clientContext->getExtensionOptions()->getExtensionOption(callStatement.getOptionName());
     }
     if (option == nullptr) {
         throw BinderException{"Invalid option name: " + callStatement.getOptionName() + "."};

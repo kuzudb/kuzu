@@ -1,6 +1,9 @@
 #include "binder/copy/bound_export_database.h"
 #include "binder/query/bound_regular_query.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "main/client_context.h"
 #include "parser/parser.h"
@@ -81,7 +84,7 @@ ExportedTableData Binder::extractExportData(std::string selQuery, std::string ta
 std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement& statement) {
     auto& exportDatabaseStatement = ku_dynamic_cast<const Statement&, const ExportDB&>(statement);
     auto boundFilePath = exportDatabaseStatement.getFilePath();
-    auto exportData = getExportInfo(catalog, clientContext->getTx(), this);
+    auto exportData = getExportInfo(*clientContext->getCatalog(), clientContext->getTx(), this);
     auto parsedOptions = bindParsingOptions(exportDatabaseStatement.getParsingOptionsRef());
     auto fileType = getFileType(parsedOptions);
     if (fileType != FileType::CSV && fileType != FileType::PARQUET) {
@@ -90,9 +93,9 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     if (fileType != FileType::CSV && parsedOptions.size() != 0) {
         throw BinderException{"Only export to csv can have options."};
     }
-    // try to create the directory, if it doesn't exist yet
-    if (!vfs->fileOrPathExists(boundFilePath)) {
-        vfs->createDir(boundFilePath);
+    auto fs = clientContext->getVFSUnsafe();
+    if (!fs->fileOrPathExists(boundFilePath)) {
+        fs->createDir(boundFilePath);
     } else {
         throw BinderException(stringFormat("Directory {} already exists.", boundFilePath));
     }

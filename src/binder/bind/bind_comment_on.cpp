@@ -12,7 +12,7 @@ std::unique_ptr<BoundStatement> Binder::bindCommentOn(const parser::Statement& s
     auto tableName = commentOn.getTable();
     auto comment = commentOn.getComment();
     validateTableExist(tableName);
-    auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
+    auto tableID = clientContext->getCatalog()->getTableID(clientContext->getTx(), tableName);
     return std::make_unique<BoundCommentOn>(tableID, tableName, comment);
 }
 
