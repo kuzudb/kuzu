@@ -437,6 +437,10 @@ jobs:
           dnf update -y
           dnf install -y epel-release
           dnf update -y
+      
+      - name: Cleanup
+        run: |
+          rm -rf /root/.docker
 
       - name: Enable SHA-1 on Rocky Linux 9
         if: matrix.image == 'rockylinux:9'
