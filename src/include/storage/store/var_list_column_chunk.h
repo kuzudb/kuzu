@@ -35,7 +35,14 @@ public:
         return varListDataColumnChunk->dataColumnChunk.get();
     }
 
+    inline ColumnChunk* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
+
     void resetToEmpty() final;
+
+    inline void setNumValues(uint64_t numValues_) final {
+        ColumnChunk::setNumValues(numValues_);
+        sizeColumnChunk->setNumValues(numValues_);
+    }
 
     void append(common::ValueVector* vector, common::SelectionVector& selVector) final;
     // Note: `write` assumes that no `append` will be called afterward.
@@ -51,11 +58,31 @@ public:
         varListDataColumnChunk->resizeBuffer(numValues);
     }
 
+    inline void resize(uint64_t newCapacity) final {
+        ColumnChunk::resize(newCapacity);
+        sizeColumnChunk->resize(newCapacity);
+    }
+
     void finalize() final;
 
-    inline common::offset_t getListOffset(common::offset_t offset) const {
-        return offset == 0 ? 0 : getValue<uint64_t>(offset - 1);
+    inline common::offset_t getListStartOffset(common::offset_t offset) const {
+        if (numValues == 0)
+            return 0;
+        return offset == numValues ? getListEndOffset(offset - 1) :
+                                     getListEndOffset(offset) - getListLen(offset);
     }
+
+    inline common::offset_t getListEndOffset(common::offset_t offset) const {
+        KU_ASSERT(offset < numValues);
+        return getValue<uint64_t>(offset);
+    }
+
+    inline uint64_t getListLen(common::offset_t offset) const {
+        KU_ASSERT(offset < sizeColumnChunk->getNumValues());
+        return sizeColumnChunk->getValue<uint64_t>(offset);
+    }
+
+    void resetOffset();
 
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
@@ -74,14 +101,12 @@ private:
         }
         indicesColumnChunk->setNumValues(numValues);
     }
-    inline uint64_t getListLen(common::offset_t offset) const {
-        return getListOffset(offset + 1) - getListOffset(offset);
-    }
 
     void resetFromOtherChunk(VarListColumnChunk* other);
     void appendNullList();
 
 protected:
+    std::unique_ptr<ColumnChunk> sizeColumnChunk;
     std::unique_ptr<VarListDataColumnChunk> varListDataColumnChunk;
     // The following is needed to write var list to random positions in the column chunk.
     // We first append var list to the end of the column chunk. Then use indicesColumnChunk to track

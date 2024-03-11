@@ -25,19 +25,19 @@ namespace kuzu {
 namespace storage {
 
 struct ListOffsetInfoInStorage {
-    common::offset_t prevNodeListOffset;
+    common::offset_t numTotal;
     std::vector<std::unique_ptr<common::ValueVector>> offsetVectors;
+    std::vector<std::unique_ptr<common::ValueVector>> sizeVectors;
 
-    ListOffsetInfoInStorage(common::offset_t prevNodeListOffset,
-        std::vector<std::unique_ptr<common::ValueVector>> offsetVectors)
-        : prevNodeListOffset{prevNodeListOffset}, offsetVectors{std::move(offsetVectors)} {}
+    ListOffsetInfoInStorage(common::offset_t numTotal,
+        std::vector<std::unique_ptr<common::ValueVector>> offsetVectors,
+        std::vector<std::unique_ptr<common::ValueVector>> sizeVectors)
+        : numTotal{numTotal}, offsetVectors{std::move(offsetVectors)}, sizeVectors{std::move(
+                                                                           sizeVectors)} {}
 
-    common::offset_t getListOffset(uint64_t nodePos) const;
-
-    inline uint64_t getListLength(uint64_t nodePos) const {
-        KU_ASSERT(getListOffset(nodePos + 1) >= getListOffset(nodePos));
-        return getListOffset(nodePos + 1) - getListOffset(nodePos);
-    }
+    uint64_t getListLength(uint64_t nodePos) const;
+    common::offset_t getListEndOffset(uint64_t nodePos) const;
+    common::offset_t getListStartOffset(uint64_t nodePos) const;
 };
 
 class VarListColumn : public Column {
@@ -69,13 +69,6 @@ protected:
     void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
 
 private:
-    inline common::offset_t readListOffsetInStorage(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup) {
-        return offsetInNodeGroup == 0 ?
-                   0 :
-                   readOffset(transaction, nodeGroupIdx, offsetInNodeGroup - 1);
-    }
-
     void scanUnfiltered(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::ValueVector* resultVector,
         const ListOffsetInfoInStorage& listOffsetInfoInStorage);
@@ -102,12 +95,17 @@ private:
 
     common::offset_t readOffset(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup);
+
+    uint64_t readSize(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        common::offset_t offsetInNodeGroup);
+
     ListOffsetInfoInStorage getListOffsetInfoInStorage(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInNodeGroup,
         common::offset_t endOffsetInNodeGroup,
         const std::shared_ptr<common::DataChunkState>& state);
 
 private:
+    std::unique_ptr<Column> sizeColumn;
     std::unique_ptr<Column> dataColumn;
 };
 

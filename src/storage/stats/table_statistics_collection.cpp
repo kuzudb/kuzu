@@ -98,6 +98,8 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
     } break;
     case PhysicalTypeID::VAR_LIST: {
         metadataDAHInfo->childrenInfos.push_back(
+            createMetadataDAHInfo(*LogicalType::INT64(), metadataFH, bm, wal));
+        metadataDAHInfo->childrenInfos.push_back(
             createMetadataDAHInfo(*VarListType::getChildType(&dataType), metadataFH, bm, wal));
     } break;
     case PhysicalTypeID::STRING: {
