@@ -2,6 +2,7 @@
 
 #include "main/kuzu.h"
 #include "main/storage_driver.h"
+#include "cached_import/py_cached_import.h"
 #include "pybind_include.h" // IWYU pragma: keep (used for py:: namespace)
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 using namespace kuzu::main;
@@ -23,7 +24,7 @@ public:
     explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
         uint64_t maxNumThreads, bool compression, bool readOnly, uint64_t maxDBSize);
 
-    ~PyDatabase() = default;
+    ~PyDatabase();
 
     template<class T>
     void scanNodeTable(const std::string& tableName, const std::string& propName,
