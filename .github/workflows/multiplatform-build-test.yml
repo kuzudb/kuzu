@@ -605,6 +605,9 @@ jobs:
 
   collect-results:
     runs-on: ubuntu-latest
+    env:
+      DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
     needs:
       [
         ubuntu-2004-build-test,
@@ -628,8 +631,9 @@ jobs:
       - name: Create summary
         run: |
           $GITHUB_URL=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-          pip3 install pandas tabulate
+          pip3 install pandas tabulate discord.py
           python3 scripts/multiplatform-test-helper/collect-results.py results
+          python3 scripts/multiplatform-test-helper/notify-discord.py results.json
 
       - name: Upload summary
         uses: actions/upload-artifact@v4
