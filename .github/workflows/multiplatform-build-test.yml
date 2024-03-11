@@ -40,42 +40,39 @@ jobs:
         run: npm install --include=dev
 
       - name: Build
-        run: make release NUM_THREADS=$(nproc)
+        run: |
+          make release NUM_THREADS=$(nproc)
+          echo "Build,$?" > status.txt
 
       - name: Test
         continue-on-error: true
         run: |
           make test NUM_THREADS=$(nproc)
-          status=$?
-          echo "Test,$status" >> status.txt
+          echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
         continue-on-error: true
         run: |
           make example NUM_THREADS=$(nproc)
-          status=$?
-          echo "C and C++ examples,$status" >> status.txt
+          echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
         continue-on-error: true
         run: |
           make pytest NUM_THREADS=$(nproc)
-          status=$?
-          echo "Python test,$status" >> status.txt
+          echo "Python test,$?" >> status.txt
 
       - name: Node.js test
         continue-on-error: true
         run: |
           make nodejstest NUM_THREADS=$(nproc)
-          status=$?
-          echo "Node.js test,$status" >> status.txt
+          echo "Node.js test,$?" >> status.txt
 
       - name: Java test
         continue-on-error: true
         run: |
           make javatest NUM_THREADS=$(nproc)
-          status=$?
-          echo "Java test,$status" >> status.txt
+          echo "Java test,$?" >> status.txt
 
       - name: Rust share build
         run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
@@ -88,16 +85,14 @@ jobs:
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
-          status=$?
-          echo "Rust test,$status" >> status.txt
+          echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
         continue-on-error: true
         working-directory: examples/rust
         run: |
           cargo build --release --features arrow
-          status=$?
-          echo "Rust example,$status" >> status.txt
+          echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
         run: mv status.txt ubuntu-20.04.csv
@@ -137,7 +132,9 @@ jobs:
         run: npm install --include=dev
 
       - name: Build
-        run: make release NUM_THREADS=$(sysctl -n hw.physicalcpu)
+        run: |
+          make release NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          echo "Build,$?" > status.txt
 
       - name: Test
         continue-on-error: true
@@ -180,14 +177,14 @@ jobs:
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
-          echo "Rust test,$?" >> status.txt
+          echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
         continue-on-error: true
         working-directory: examples/rust
         run: |
           cargo build --release --features arrow
-          echo "Rust example,$?" >> status.txt
+          echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
         run: mv status.txt ${{ matrix.runner }}.csv
@@ -281,79 +278,109 @@ jobs:
   #         set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
   #         cargo build --release --features arrow
 
-  # debian-ubuntu-build-test:
-  #   strategy:
-  #     matrix:
-  #       image: ["ubuntu:23.04", "ubuntu:23.10", "debian:12", "debian:sid"]
-  #     fail-fast: false
-  #   name: ${{ matrix.image }}
-  #   runs-on: ubuntu-latest
-  #   container:
-  #     image: ${{ matrix.image }}
-  #   env:
-  #     CC: gcc
-  #     CXX: g++
-  #     JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-  #   steps:
-  #     - name: Install packages
-  #       run: |
-  #         apt-get update
-  #         apt-get install -y ca-certificates curl gnupg
-  #         mkdir -p /etc/apt/keyrings
-  #         curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-  #         echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
-  #         apt-get update
-  #         apt-get install -y git build-essential cmake gcc g++ python3 python3-dev python3-pip openjdk-17-jdk nodejs
+  debian-ubuntu-build-test:
+    strategy:
+      matrix:
+        image: ["ubuntu:23.04", "ubuntu:23.10", "debian:12", "debian:sid"]
+      fail-fast: false
+    name: ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    env:
+      CC: gcc
+      CXX: g++
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+    steps:
+      - name: Install packages
+        run: |
+          apt-get update
+          apt-get install -y ca-certificates curl gnupg
+          mkdir -p /etc/apt/keyrings
+          curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+          apt-get update
+          apt-get install -y git build-essential cmake gcc g++ python3 python3-dev python3-pip openjdk-17-jdk nodejs
 
-  #     - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-  #     - name: Ensure Python dependencies
-  #       run: |
-  #         pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu ${{ matrix.image != 'debian:11' && '--break-system-packages' || '' }}
-  #         pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html ${{ matrix.image != 'debian:11' && '--break-system-packages' || '' }}
+      - name: Ensure Python dependencies
+        run: |
+          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu ${{ matrix.image != 'debian:11' && '--break-system-packages' || '' }}
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html ${{ matrix.image != 'debian:11' && '--break-system-packages' || '' }}
 
-  #     - name: Ensure Node.js dependencies
-  #       working-directory: tools/nodejs_api
-  #       run: npm install --include=dev
+      - name: Ensure Node.js dependencies
+        working-directory: tools/nodejs_api
+        run: npm install --include=dev
 
-  #     - name: Install Rust
-  #       run: |
-  #         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
-  #         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-  #         $HOME/.cargo/bin/rustup toolchain install 1.67
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          $HOME/.cargo/bin/rustup toolchain install 1.67
 
-  #     - name: Build
-  #       run: make release NUM_THREADS=$(nproc)
+      - name: Build
+        run: |
+          make release NUM_THREADS=$(nproc)
+          echo "Build,$?" > status.txt
 
-  #     - name: Test
-  #       run: make test NUM_THREADS=$(nproc)
+      - name: Test
+        continue-on-error: true
+        run: |
+          make test NUM_THREADS=$(nproc)
+          echo "Test,$?" >> status.txt
 
-  #     - name: C and C++ examples
-  #       run: make example NUM_THREADS=$(nproc)
+      - name: C and C++ examples
+        continue-on-error: true
+        run: |
+          make example NUM_THREADS=$(nproc)
+          echo "C and C++ examples,$?" >> status.txt
 
-  #     - name: Python test
-  #       run: make pytest NUM_THREADS=$(nproc)
+      - name: Python test
+        continue-on-error: true
+        run: |
+          make pytest NUM_THREADS=$(nproc)
+          echo "Python test,$?" >> status.txt
 
-  #     - name: Node.js test
-  #       run: make nodejstest NUM_THREADS=$(nproc)
+      - name: Node.js test
+        continue-on-error: true
+        run: |
+          make nodejstest NUM_THREADS=$(nproc)
+          echo "Node.js test,$?" >> status.txt
 
-  #     - name: Java test
-  #       run: make javatest NUM_THREADS=$(nproc)
+      - name: Java test
+        continue-on-error: true
+        run: |
+          make javatest NUM_THREADS=$(nproc)
+          echo "Java test,$?" >> status.txt
 
-  #     - name: Rust share build
-  #       run: echo '[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
+      - name: Rust share build
+        run: echo '[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
 
-  #     - name: Rust set env
-  #       run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
+      - name: Rust set env
+        run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
 
-  #     - name: Rust test
-  #       working-directory: tools/rust_api
-  #       run: |
-  #         cargo test --release --features arrow -- --test-threads=1
+      - name: Rust test
+        continue-on-error: true
+        working-directory: tools/rust_api
+        run: |
+          cargo test --release --features arrow -- --test-threads=1
+          echo "Rust test,$?" >> ../../status.txt
 
-  #     - name: Rust example
-  #       working-directory: examples/rust
-  #       run: cargo build --release --features arrow
+      - name: Rust example
+        continue-on-error: true
+        working-directory: examples/rust
+        run: |
+          cargo build --release --features arrow
+          echo "Rust example,$?" >> ../../status.txt
+        
+      - name: Rename status.txt
+        run: mv status.txt ${{ matrix.image }}.csv
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.image }}
+          path: ${{ matrix.image }}.csv
 
   # rhel-fedora-build-test:
   #   strategy:
