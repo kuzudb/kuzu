@@ -7,6 +7,7 @@ on:
 
 jobs:
   ubuntu-2004-build-test:
+    continue-on-error: true
     name: ubuntu-20.04
     runs-on: ubuntu-20.04
     defaults:
@@ -45,31 +46,26 @@ jobs:
           echo "Build,$?" > status.txt
 
       - name: Test
-        continue-on-error: true
         run: |
           make test NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
-        continue-on-error: true
         run: |
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
-        continue-on-error: true
         run: |
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
       - name: Node.js test
-        continue-on-error: true
         run: |
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
-        continue-on-error: true
         run: |
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
@@ -81,14 +77,12 @@ jobs:
         run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
 
       - name: Rust test
-        continue-on-error: true
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
-        continue-on-error: true
         working-directory: examples/rust
         run: |
           cargo build --release --features arrow
@@ -103,6 +97,7 @@ jobs:
           path: ubuntu-20.04.csv
 
   macos-build-test:
+    continue-on-error: true
     strategy:
       matrix:
         runner: [macos-13, macos-14]
@@ -137,31 +132,26 @@ jobs:
           echo "Build,$?" > status.txt
 
       - name: Test
-        continue-on-error: true
         run: |
           make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
-        continue-on-error: true
         run: |
           make example NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
-        continue-on-error: true
         run: |
           make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Python test,$?" >> status.txt
 
       - name: Node.js test
-        continue-on-error: true
         run: |
           make nodejstest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
-        continue-on-error: true
         run: |
           make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Java test,$?" >> status.txt
@@ -173,14 +163,12 @@ jobs:
         run: echo "CARGO_BUILD_JOBS=$(sysctl -n hw.physicalcpu)" >> $GITHUB_ENV
 
       - name: Rust test
-        continue-on-error: true
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
-        continue-on-error: true
         working-directory: examples/rust
         run: |
           cargo build --release --features arrow
@@ -195,6 +183,7 @@ jobs:
           path: ${{ matrix.runner }}.csv
 
   windows-build-test:
+    continue-on-error: true
     strategy:
       matrix:
         runner: [windows-2019, windows-2022]
@@ -243,35 +232,30 @@ jobs:
 
       - name: Test
         shell: cmd
-        continue-on-error: true
         run: |
           make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Test,%ERRORLEVEL% >> status.txt
 
       - name: C and C++ examples
         shell: cmd
-        continue-on-error: true
         run: |
           make example NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo C and C++ examples,%ERRORLEVEL% >> status.txt
 
       - name: Python test
         shell: cmd
-        continue-on-error: true
         run: |
           make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Python test,%ERRORLEVEL% >> status.txt
 
       - name: Node.js test
         shell: cmd
-        continue-on-error: true
         run: |
           make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Node.js test,%ERRORLEVEL% >> status.txt
 
       - name: Java test
         shell: cmd
-        continue-on-error: true
         run: |
           make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Java test,%ERRORLEVEL% >> status.txt
@@ -282,7 +266,6 @@ jobs:
 
       - name: Rust test
         shell: cmd
-        continue-on-error: true
         run: |
           make clean
           set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
@@ -293,7 +276,6 @@ jobs:
 
       - name: Rust example
         shell: cmd
-        continue-on-error: true
         run: |
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
           cargo build --release --features arrow
@@ -310,6 +292,7 @@ jobs:
           path: ${{ matrix.runner }}.csv
 
   debian-ubuntu-build-test:
+    continue-on-error: true
     strategy:
       matrix:
         image: ["ubuntu:23.04", "ubuntu:23.10", "debian:12", "debian:sid"]
@@ -356,31 +339,26 @@ jobs:
           echo "Build,$?" > status.txt
 
       - name: Test
-        continue-on-error: true
         run: |
           make test NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
-        continue-on-error: true
         run: |
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
-        continue-on-error: true
         run: |
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
       - name: Node.js test
-        continue-on-error: true
         run: |
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
-        continue-on-error: true
         run: |
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
@@ -392,14 +370,12 @@ jobs:
         run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
 
       - name: Rust test
-        continue-on-error: true
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
-        continue-on-error: true
         working-directory: examples/rust
         run: |
           cargo build --release --features arrow
@@ -417,6 +393,7 @@ jobs:
           path: ${{env.PLATFORM}}.csv
 
   rhel-fedora-build-test:
+    continue-on-error: true
     strategy:
       matrix:
         image: ["rockylinux:8", "rockylinux:9", "fedora:38", "fedora:39"]
@@ -537,6 +514,7 @@ jobs:
           path: ${{env.PLATFORM}}.csv
 
   archlinux-build-test:
+    continue-on-error: true
     name: archlinux
     runs-on: ubuntu-latest
     container:
@@ -574,31 +552,26 @@ jobs:
           echo "Build,$?" > status.txt
 
       - name: Test
-        continue-on-error: true
         run: |
           make test NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
-        continue-on-error: true
         run: |
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
-        continue-on-error: true
         run: |
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
       - name: Node.js test
-        continue-on-error: true
         run: |
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
-        continue-on-error: true
         run: |
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
@@ -610,14 +583,12 @@ jobs:
         run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
 
       - name: Rust test
-        continue-on-error: true
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
-        continue-on-error: true
         working-directory: examples/rust
         run: |
           cargo build --release --features arrow
