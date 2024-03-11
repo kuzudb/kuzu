@@ -407,7 +407,7 @@ jobs:
 
       - name: Rename status.txt
         run: |
-          PLATFORM=$(echo ${{ matrix.image }} | tr -d ':')
+          PLATFORM=$(echo ${{ matrix.image }} | tr ':' '-')
           echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
           mv status.txt $PLATFORM.csv
 
@@ -527,7 +527,7 @@ jobs:
 
       - name: Rename status.txt
         run: |
-          PLATFORM=$(echo ${{ matrix.image }} | tr -d ':')
+          PLATFORM=$(echo ${{ matrix.image }} | tr ':' '-')
           echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
           mv status.txt $PLATFORM.csv
 
@@ -625,7 +625,7 @@ jobs:
 
       - name: Rename status.txt
         run: |
-          PLATFORM=$(echo ${{ matrix.image }} | tr -d ':')
+          PLATFORM=$(echo ${{ matrix.image }} | tr ':' '-')
           echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
           mv status.txt $PLATFORM.csv
 
