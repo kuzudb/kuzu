@@ -145,7 +145,7 @@ public class KuzuNative {
 
     // DataType
     protected static native long kuzu_data_type_create(
-            KuzuDataTypeID id, KuzuDataType child_type, long fixed_num_elements_in_list);
+            KuzuDataTypeID id, KuzuDataType child_type, long num_elements_in_array);
 
     protected static native KuzuDataType kuzu_data_type_clone(KuzuDataType data_type);
 
@@ -157,7 +157,7 @@ public class KuzuNative {
 
     protected static native KuzuDataType kuzu_data_type_get_child_type(KuzuDataType data_type);
 
-    protected static native long kuzu_data_type_get_fixed_num_elements_in_list(KuzuDataType data_type);
+    protected static native long kuzu_data_type_get_num_elements_in_array(KuzuDataType data_type);
 
     // Value
     protected static native KuzuValue kuzu_value_create_null();

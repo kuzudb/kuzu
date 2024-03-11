@@ -45,8 +45,6 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "FLOAT";
     case PhysicalTypeID::INTERVAL:
         return "INTERVAL";
-    case PhysicalTypeID::FIXED_LIST:
-        return "FIXED_LIST";
     case PhysicalTypeID::INTERNAL_ID:
         return "INTERNAL_ID";
     case PhysicalTypeID::STRING:
@@ -114,24 +112,24 @@ void VarListTypeInfo::serializeInternal(Serializer& serializer) const {
     childType->serialize(serializer);
 }
 
-bool FixedListTypeInfo::operator==(const FixedListTypeInfo& other) const {
-    return *childType == *other.childType && fixedNumElementsInList == other.fixedNumElementsInList;
+bool ArrayTypeInfo::operator==(const ArrayTypeInfo& other) const {
+    return *childType == *other.childType && numElements == other.numElements;
 }
 
-std::unique_ptr<ExtraTypeInfo> FixedListTypeInfo::deserialize(Deserializer& deserializer) {
+std::unique_ptr<ExtraTypeInfo> ArrayTypeInfo::deserialize(Deserializer& deserializer) {
     auto childType = LogicalType::deserialize(deserializer);
-    uint64_t fixedNumElementsInList;
-    deserializer.deserializeValue(fixedNumElementsInList);
-    return std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList);
+    uint64_t numElements;
+    deserializer.deserializeValue(numElements);
+    return std::make_unique<ArrayTypeInfo>(std::move(childType), numElements);
 }
 
-std::unique_ptr<ExtraTypeInfo> FixedListTypeInfo::copy() const {
-    return std::make_unique<FixedListTypeInfo>(childType->copy(), fixedNumElementsInList);
+std::unique_ptr<ExtraTypeInfo> ArrayTypeInfo::copy() const {
+    return std::make_unique<ArrayTypeInfo>(childType->copy(), numElements);
 }
 
-void FixedListTypeInfo::serializeInternal(Serializer& serializer) const {
+void ArrayTypeInfo::serializeInternal(Serializer& serializer) const {
     VarListTypeInfo::serializeInternal(serializer);
-    serializer.serializeValue(fixedNumElementsInList);
+    serializer.serializeValue(numElements);
 }
 
 bool StructField::operator==(const StructField& other) const {
@@ -259,7 +257,6 @@ LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{n
     physicalType = getPhysicalType(typeID);
     // Complex types should not use this constructor as they need extra type information
     KU_ASSERT(physicalType != PhysicalTypeID::VAR_LIST);
-    KU_ASSERT(physicalType != PhysicalTypeID::FIXED_LIST);
     // Node/Rel types are exempted due to some complex code in bind_graph_pattern.cpp
     KU_ASSERT(physicalType != PhysicalTypeID::STRUCT || typeID == LogicalTypeID::NODE ||
               typeID == LogicalTypeID::REL || typeID == LogicalTypeID::RECURSIVE_REL);
@@ -290,11 +287,13 @@ bool LogicalType::operator==(const LogicalType& other) const {
     }
     switch (other.getPhysicalType()) {
     case PhysicalTypeID::VAR_LIST:
-        return *ku_dynamic_cast<ExtraTypeInfo*, VarListTypeInfo*>(extraTypeInfo.get()) ==
-               *ku_dynamic_cast<ExtraTypeInfo*, VarListTypeInfo*>(other.extraTypeInfo.get());
-    case PhysicalTypeID::FIXED_LIST:
-        return *ku_dynamic_cast<ExtraTypeInfo*, FixedListTypeInfo*>(extraTypeInfo.get()) ==
-               *ku_dynamic_cast<ExtraTypeInfo*, FixedListTypeInfo*>(other.extraTypeInfo.get());
+        if (typeID == LogicalTypeID::ARRAY) {
+            return *ku_dynamic_cast<ExtraTypeInfo*, ArrayTypeInfo*>(extraTypeInfo.get()) ==
+                   *ku_dynamic_cast<ExtraTypeInfo*, ArrayTypeInfo*>(other.extraTypeInfo.get());
+        } else {
+            return *ku_dynamic_cast<ExtraTypeInfo*, VarListTypeInfo*>(extraTypeInfo.get()) ==
+                   *ku_dynamic_cast<ExtraTypeInfo*, VarListTypeInfo*>(other.extraTypeInfo.get());
+        }
     case PhysicalTypeID::STRUCT:
         return *ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(extraTypeInfo.get()) ==
                *ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(other.extraTypeInfo.get());
@@ -320,11 +319,10 @@ std::string LogicalType::toString() const {
             ku_dynamic_cast<ExtraTypeInfo*, VarListTypeInfo*>(extraTypeInfo.get());
         return varListTypeInfo->getChildType()->toString() + "[]";
     }
-    case LogicalTypeID::FIXED_LIST: {
-        auto fixedListTypeInfo =
-            ku_dynamic_cast<ExtraTypeInfo*, FixedListTypeInfo*>(extraTypeInfo.get());
-        return fixedListTypeInfo->getChildType()->toString() + "[" +
-               std::to_string(fixedListTypeInfo->getNumValuesInList()) + "]";
+    case LogicalTypeID::ARRAY: {
+        auto arrayTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, ArrayTypeInfo*>(extraTypeInfo.get());
+        return arrayTypeInfo->getChildType()->toString() + "[" +
+               std::to_string(arrayTypeInfo->getNumElements()) + "]";
     }
     case LogicalTypeID::UNION: {
         auto unionTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(extraTypeInfo.get());
@@ -392,7 +390,6 @@ void LogicalType::serialize(Serializer& serializer) const {
     serializer.serializeValue(physicalType);
     switch (physicalType) {
     case PhysicalTypeID::VAR_LIST:
-    case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT:
         extraTypeInfo->serialize(serializer);
     default:
@@ -408,10 +405,11 @@ std::unique_ptr<LogicalType> LogicalType::deserialize(Deserializer& deserializer
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
     switch (physicalType) {
     case PhysicalTypeID::VAR_LIST: {
-        extraTypeInfo = VarListTypeInfo::deserialize(deserializer);
-    } break;
-    case PhysicalTypeID::FIXED_LIST: {
-        extraTypeInfo = FixedListTypeInfo::deserialize(deserializer);
+        if (typeID == LogicalTypeID::ARRAY) {
+            extraTypeInfo = ArrayTypeInfo::deserialize(deserializer);
+        } else {
+            extraTypeInfo = VarListTypeInfo::deserialize(deserializer);
+        }
     } break;
     case PhysicalTypeID::STRUCT: {
         extraTypeInfo = StructTypeInfo::deserialize(deserializer);
@@ -512,9 +510,6 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
     case LogicalTypeID::INTERVAL: {
         return PhysicalTypeID::INTERVAL;
     } break;
-    case LogicalTypeID::FIXED_LIST: {
-        return PhysicalTypeID::FIXED_LIST;
-    } break;
     case LogicalTypeID::INTERNAL_ID: {
         return PhysicalTypeID::INTERNAL_ID;
     } break;
@@ -522,6 +517,7 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
     case LogicalTypeID::STRING: {
         return PhysicalTypeID::STRING;
     } break;
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
         return PhysicalTypeID::VAR_LIST;
@@ -549,7 +545,7 @@ LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeStri
     if (upperDataTypeString.ends_with("[]")) {
         dataType = *parseVarListType(trimmedStr);
     } else if (upperDataTypeString.ends_with("]")) {
-        dataType = *parseFixedListType(trimmedStr);
+        dataType = *parseArrayType(trimmedStr);
     } else if (upperDataTypeString.starts_with("STRUCT")) {
         dataType = *parseStructType(trimmedStr);
     } else if (upperDataTypeString.starts_with("MAP")) {
@@ -677,8 +673,8 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
         return "STRING";
     case LogicalTypeID::VAR_LIST:
         return "VAR_LIST";
-    case LogicalTypeID::FIXED_LIST:
-        return "FIXED_LIST";
+    case LogicalTypeID::ARRAY:
+        return "ARRAY";
     case LogicalTypeID::STRUCT:
         return "STRUCT";
     case LogicalTypeID::RDF_VARIANT:
@@ -726,10 +722,6 @@ uint32_t LogicalTypeUtils::getRowLayoutSize(const LogicalType& type) {
     case PhysicalTypeID::STRING: {
         return sizeof(ku_string_t);
     }
-    case PhysicalTypeID::FIXED_LIST: {
-        return getRowLayoutSize(*FixedListType::getChildType(&type)) *
-               FixedListType::getNumValuesInList(&type);
-    }
     case PhysicalTypeID::VAR_LIST: {
         return sizeof(ku_list_t);
     }
@@ -775,7 +767,7 @@ bool LogicalTypeUtils::isNested(kuzu::common::LogicalTypeID logicalTypeID) {
     switch (logicalTypeID) {
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::UNION:
     case LogicalTypeID::MAP:
     case LogicalTypeID::NODE:
@@ -818,7 +810,7 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypes() {
         LogicalTypeID::UUID, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
         LogicalTypeID::TIMESTAMP_NS, LogicalTypeID::TIMESTAMP_MS, LogicalTypeID::TIMESTAMP_SEC,
         LogicalTypeID::TIMESTAMP_TZ, LogicalTypeID::INTERVAL, LogicalTypeID::VAR_LIST,
-        LogicalTypeID::FIXED_LIST, LogicalTypeID::MAP, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL,
+        LogicalTypeID::ARRAY, LogicalTypeID::MAP, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL,
         LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT, LogicalTypeID::UNION,
         LogicalTypeID::RDF_VARIANT};
 }
@@ -858,15 +850,15 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseVarListType(const std::strin
     return LogicalType::VAR_LIST(dataTypeFromString(trimmedStr.substr(0, trimmedStr.size() - 2)));
 }
 
-std::unique_ptr<LogicalType> LogicalTypeUtils::parseFixedListType(const std::string& trimmedStr) {
-    auto leftBracketPos = trimmedStr.find('[');
-    auto rightBracketPos = trimmedStr.find(']');
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseArrayType(const std::string& trimmedStr) {
+    auto leftBracketPos = trimmedStr.find_last_of('[');
+    auto rightBracketPos = trimmedStr.find_last_of(']');
     auto childType =
         std::make_unique<LogicalType>(dataTypeFromString(trimmedStr.substr(0, leftBracketPos)));
-    auto fixedNumElementsInList = std::strtoll(
+    auto numElements = std::strtoll(
         trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
         nullptr, 0 /* base */);
-    return LogicalType::FIXED_LIST(std::move(childType), fixedNumElementsInList);
+    return LogicalType::ARRAY(std::move(childType), numElements);
 }
 
 std::vector<StructField> LogicalTypeUtils::parseStructTypeInfo(const std::string& structTypeStr) {
@@ -961,10 +953,10 @@ std::unique_ptr<LogicalType> LogicalType::MAP(
         LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(mapStructType))));
 }
 
-std::unique_ptr<LogicalType> LogicalType::FIXED_LIST(
-    std::unique_ptr<LogicalType> childType, uint64_t fixedNumElementsInList) {
-    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::FIXED_LIST,
-        std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList)));
+std::unique_ptr<LogicalType> LogicalType::ARRAY(
+    std::unique_ptr<LogicalType> childType, uint64_t numElements) {
+    return std::unique_ptr<LogicalType>(new LogicalType(
+        LogicalTypeID::ARRAY, std::make_unique<ArrayTypeInfo>(std::move(childType), numElements)));
 }
 
 } // namespace common

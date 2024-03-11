@@ -51,8 +51,7 @@ static std::string entryToString(
         return TypeUtils::toString(*reinterpret_cast<const ku_string_t*>(value));
     case LogicalTypeID::INTERNAL_ID:
         return TypeUtils::toString(*reinterpret_cast<const internalID_t*>(value));
-    case LogicalTypeID::FIXED_LIST:
-        return TypeUtils::fixedListToString(value, dataType, valueVector);
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::VAR_LIST:
         return TypeUtils::toString(*reinterpret_cast<const list_entry_t*>(value), valueVector);
     case LogicalTypeID::MAP:
@@ -79,22 +78,6 @@ static std::string entryToString(sel_t pos, ValueVector* vector) {
     }
     return entryToString(
         vector->dataType, vector->getData() + vector->getNumBytesPerValue() * pos, vector);
-}
-
-std::string TypeUtils::fixedListToString(
-    const uint8_t* val, const LogicalType& type, ValueVector* dummyVector) {
-    std::string result = "[";
-    auto numValuesPerList = FixedListType::getNumValuesInList(&type);
-    auto childType = FixedListType::getChildType(&type);
-    for (auto i = 0u; i < numValuesPerList - 1; ++i) {
-        // Note: FixedList can only store numeric types and doesn't allow nulls.
-        result += entryToString(*childType, val, dummyVector);
-        result += ",";
-        val += PhysicalTypeUtils::getFixedTypeSize(childType->getPhysicalType());
-    }
-    result += entryToString(*childType, val, dummyVector);
-    result += "]";
-    return result;
 }
 
 template<>

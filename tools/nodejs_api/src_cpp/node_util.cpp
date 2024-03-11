@@ -185,7 +185,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return Napi::Number::New(env, milliseconds);
     }
     case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::ARRAY: {
         auto size = NestedVal::getChildrenSize(&value);
         auto napiArray = Napi::Array::New(env, size);
         for (auto i = 0u; i < size; ++i) {

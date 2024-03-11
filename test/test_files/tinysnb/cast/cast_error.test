@@ -641,30 +641,18 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/
 -STATEMENT LOAD WITH HEADERS (a MAP(UINT16, UINT16[])) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing4.csv" RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing4.csv on line 1: Conversion exception: Cast failed. {432=[432,432} is not in MAP(UINT16: UINT16[]) range.
--STATEMENT LOAD WITH HEADERS (a INT64[4]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/incorrect_num.csv" RETURN *;
+-STATEMENT LOAD WITH HEADERS (a INT64[4]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/incorrect_num.csv" RETURN *;
 ---- error
-Copy exception: Each fixed list should have fixed number of elements. Expected: 4, Actual: 2.
--STATEMENT LOAD WITH HEADERS (a STRING[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/unsupported_type.csv" RETURN *;
+Copy exception: Each array should have fixed number of elements. Expected: 4, Actual: 2.
+-STATEMENT LOAD WITH HEADERS (a INT16[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion.csv" RETURN *;
 ---- error
-Binder exception: The child type of a fixed list must be a numeric type. Given: STRING.
--STATEMENT LOAD WITH HEADERS (a INT16[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/error_conversion.csv" RETURN *;
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion.csv on line 1: Conversion exception: Cast failed. Could not convert "4324234543543534534524" to INT16.
+-STATEMENT LOAD WITH HEADERS (a INT64[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion2.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/error_conversion.csv on line 1: Conversion exception: Cast failed. Could not convert "4324234543543534534524" to INT16.
--STATEMENT LOAD WITH HEADERS (a INT64[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/error_conversion2.csv" RETURN *;
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion2.csv on line 1: Conversion exception: Cast failed. [4324, 432] fewrew is not in INT64[2] range.
+-STATEMENT LOAD WITH HEADERS (array INT64[0]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/zero_ele.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/error_conversion2.csv on line 1: Conversion exception: Cast failed. [4324, 432] fewrew is not in INT64[2] range.
--STATEMENT LOAD WITH HEADERS (fixedList INT64[0]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/zero_ele.csv" RETURN *;
----- error
-Binder exception: The number of elements in a fixed list must be greater than 0. Given: 0.
--STATEMENT LOAD WITH HEADERS (fixedList UINT8[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/unsupported_type2.csv" RETURN *;
----- error
-Unsupported data type: Function::castStringToFixedList
--STATEMENT LOAD WITH HEADERS (fixedList INT64[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null.csv" RETURN *;
----- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null.csv on line 1: Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
--STATEMENT LOAD WITH HEADERS (fixedList INT64[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null2.csv" RETURN *;
----- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null2.csv on line 1: Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+Binder exception: The number of elements in an array must be greater than 0. Given: 0.
 -STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8.csv" RETURN *;
 ---- error
 Copy exception: Invalid UTF8-encoded string.
@@ -679,13 +667,13 @@ Conversion exception: Cast failed. Could not convert "-32769" to INT16.
 Conversion exception: Cast failed. [42, 42] fdaf is not in INT64[2] range.
 -STATEMENT RETURN cast("[42|42]", "DOUBLE[2]");
 ---- error
-Copy exception: Each fixed list should have fixed number of elements. Expected: 2, Actual: 1.
+Copy exception: Each array should have fixed number of elements. Expected: 2, Actual: 1.
 -STATEMENT RETURN cast("[42,42", "FLOAT[2]");
 ---- error
-Copy exception: Each fixed list should have fixed number of elements. Expected: 2, Actual: 1.
+Copy exception: Each array should have fixed number of elements. Expected: 2, Actual: 1.
 -STATEMENT RETURN cast("(42,42)", "INT32[2]");
 ---- error
-Copy exception: Each fixed list should have fixed number of elements. Expected: 2, Actual: 0.
+Copy exception: Each array should have fixed number of elements. Expected: 2, Actual: 0.
 
 -LOG InvalidCastTypeError
 -STATEMENT RETURN cast("dfsa", "INTERNAL_ID");
@@ -749,67 +737,49 @@ Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRIN
 ---- error
 Conversion exception: Unsupported casting function from STRUCT to MAP.
 
--LOG InvalidFixedListToList
+-LOG InvalidArrayToList
 -STATEMENT RETURN cast(cast("[1, -1]", "INT64[2]"), "UINT8[]");
 ---- error
 Overflow exception: Value -1 is not within UINT8 range
 -STATEMENT RETURN cast(cast("[[1, 2], [3, 4]]", "INT64[2][]"), "INT8[]");
 ---- error
-Conversion exception: Unsupported casting function from FIXED_LIST to INT8.
+Conversion exception: Unsupported casting function from ARRAY to INT8.
 
--LOG InvalidListToFixedList
+-LOG InvalidListToArray
 -STATEMENT RETURN cast([1000000000000000000], "INT16[1]");
 ---- error
 Overflow exception: Value 1000000000000000000 is not within INT16 range
 -STATEMENT RETURN cast([43121], "INT8[1]")
 ---- error
-Runtime exception: Unsupported FIXED_LIST type: Function::getFixedListChildCastFunc
+Overflow exception: Value 43121 is not within INT8 range
 -STATEMENT RETURN cast([[1000000000000000000]], "INT64[1]");
 ---- error
-Conversion exception: Unsupported casting function from VAR_LIST to numerical type.
--STATEMENT RETURN cast([NULL], "DOUBLE[1]");
----- error
-Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
--STATEMENT RETURN cast([NULL, 2], "DOUBLE[2]");
----- error
-Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+Conversion exception: Unsupported casting function from VAR_LIST to INT64.
 -STATEMENT RETURN cast([1, 2], "DOUBLE[100]");
 ---- error
-Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 100, Actual: 2.
+Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to ARRAY. Expected: 100, Actual: 2.
 -STATEMENT RETURN cast([[1, 2], [1, 4], [2, 4, 5], [1, 2]], "INT64[2][]");
 ---- error
-Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 2, Actual: 3.
--STATEMENT RETURN cast([[1, 2], [1, 4], [1, NULL], [1, 2]], "INT64[2][]");
----- error
-Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
--STATEMENT RETURN cast({a: 12, b: {a: [[NULL]]}, c: 2132}, "STRUCT(a INT64, b STRUCT(a INT64[1][]), c INT64)");
----- error
-Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to ARRAY. Expected: 2, Actual: 3.
 -STATEMENT RETURN cast(cast("{3={}, 3= {a: 12}, 3={a:32, b:[1, 2, 3]}}", "MAP(STRING, STRUCT(a INT64, b INT64[]))"), "MAP(STRING, STRUCT(a INT64, b INT64[1]))");
 ---- error
-Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 1, Actual: 3.
+Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to ARRAY. Expected: 1, Actual: 3.
 
--LOG InvalidFixedListToList
+-LOG InvalidArrayToArray
 -STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "FLOAT[3]");
 ---- error
 Conversion exception: Unsupported casting function from INT16[2] to FLOAT[3].
 -STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "FLOAT[1]");
 ---- error
 Conversion exception: Unsupported casting function from INT16[2] to FLOAT[1].
--STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "UINT8[2]");
----- error
-Runtime exception: Unsupported FIXED_LIST type: Function::getFixedListChildCastFunc
 
 -LOG InvalidNestedCast
 -STATEMENT RETURN cast({a: {b: {c: [[1, 3, 4]], d: "str"}}, e: [1, 9, NULL]}, "STRUCT(a STRUCT(b STRUCT(c INT64[2][], d STRING)), e INT128[3])");
 ---- error
-Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 2, Actual: 3.
--STATEMENT RETURN cast({a: {b: {c: [[1, 3, 4]], d: "str"}}, e: [1, 9, NULL]}, "STRUCT(a STRUCT(b STRUCT(c INT64[3][], d STRING)), e INT128[3])");
----- error
-Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to ARRAY. Expected: 2, Actual: 3.
 -STATEMENT RETURN cast(cast("{a: {b: {c: [[1, 3, 4]], d: {18=[3, 2]}}}, e: [1, 9, 3]}", "STRUCT(a STRUCT(b STRUCT(c INT64[3][], d MAP(INT32,INT32[]))), e FLOAT[3])"), "STRUCT(a STRUCT(b STRUCT(c INT64[3][], d MAP(INT32,INT32[5]))), e INT32[3])");
 ---- error
-Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 5, Actual: 2.
+Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to ARRAY. Expected: 5, Actual: 2.
 
 -LOG InvalidNameCast
 -STATEMENT RETURN cast("nop", "STRUCT()");

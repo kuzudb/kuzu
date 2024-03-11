@@ -2,10 +2,14 @@
 
 #include <thread>
 
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "storage/storage_manager.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace main {
@@ -56,7 +60,23 @@ uint64_t StorageDriver::getNumRels(const std::string& relName) {
 
 void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column, offset_t* offsets,
     size_t size, uint8_t* result) {
-    column->batchLookup(transaction, offsets, size, result);
+    auto dataType = column->getDataType();
+    if (dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST) {
+        auto resultVector = ValueVector(dataType);
+        for (auto i = 0u; i < size; ++i) {
+            auto nodeOffset = offsets[i];
+            auto [nodeGroupIdx, offsetInChunk] =
+                StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
+            column->scan(
+                transaction, nodeGroupIdx, offsetInChunk, offsetInChunk + 1, &resultVector, i);
+        }
+        auto dataVector = ListVector::getDataVector(&resultVector);
+        auto dataVectorSize = ListVector::getDataVectorSize(&resultVector);
+        auto dataChildTypeSize = LogicalTypeUtils::getRowLayoutSize(dataVector->dataType);
+        memcpy(result, dataVector->getData(), dataVectorSize * dataChildTypeSize);
+    } else {
+        column->batchLookup(transaction, offsets, size, result);
+    }
 }
 
 } // namespace main

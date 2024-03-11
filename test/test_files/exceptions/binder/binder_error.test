@@ -494,20 +494,10 @@ Catalog exception: Table: person1 does not exist.
 ---- error
 Binder exception: person table already has property gender.
 
--LOG InvalidFixedListChildType
--STATEMENT create node table test1(ID INT64, marks STRING[5], PRIMARY KEY(ID))
----- error
-Binder exception: The child type of a fixed list must be a numeric type. Given: STRING.
-
--LOG InvalidFixedListNumElements
+-LOG InvalidArrayNumElements
 -STATEMENT create node table test1(ID INT64, marks INT64[0], PRIMARY KEY(ID))
 ---- error
-Binder exception: The number of elements in a fixed list must be greater than 0. Given: 0.
-
--LOG InvalidFixedListSize
--STATEMENT create node table test1(ID INT64, marks INT64[512], PRIMARY KEY(ID))
----- error
-Binder exception: Cannot store a fixed list of size 4096 in a page.
+Binder exception: The number of elements in an array must be greater than 0. Given: 0.
 
 -LOG NonPKSerialType
 -STATEMENT CREATE NODE TABLE test(ID INT64, seq SERIAL, PRIMARY KEY(ID))

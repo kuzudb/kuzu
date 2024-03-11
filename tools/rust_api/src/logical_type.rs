@@ -58,8 +58,8 @@ pub enum LogicalType {
     VarList {
         child_type: Box<LogicalType>,
     },
-    /// Correponds to [Value::FixedList](crate::value::Value::FixedList)
-    FixedList {
+    /// Correponds to [Value::Array](crate::value::Value::Array)
+    Array {
         child_type: Box<LogicalType>,
         num_elements: u64,
     },
@@ -123,11 +123,9 @@ impl From<&ffi::LogicalType> for LogicalType {
                     ffi::logical_type_get_var_list_child_type(logical_type).into(),
                 ),
             },
-            LogicalTypeID::FIXED_LIST => LogicalType::FixedList {
-                child_type: Box::new(
-                    ffi::logical_type_get_fixed_list_child_type(logical_type).into(),
-                ),
-                num_elements: ffi::logical_type_get_fixed_list_num_elements(logical_type),
+            LogicalTypeID::ARRAY => LogicalType::Array {
+                child_type: Box::new(ffi::logical_type_get_array_child_type(logical_type).into()),
+                num_elements: ffi::logical_type_get_array_num_elements(logical_type),
             },
             LogicalTypeID::STRUCT => {
                 let names = ffi::logical_type_get_struct_field_names(logical_type);
@@ -217,10 +215,10 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
             LogicalType::VarList { child_type } => {
                 ffi::create_logical_type_var_list(child_type.as_ref().into())
             }
-            LogicalType::FixedList {
+            LogicalType::Array {
                 child_type,
                 num_elements,
-            } => ffi::create_logical_type_fixed_list(child_type.as_ref().into(), *num_elements),
+            } => ffi::create_logical_type_array(child_type.as_ref().into(), *num_elements),
             LogicalType::Struct { fields } => {
                 let mut builder = ffi::create_type_list();
                 let mut names = vec![];
@@ -279,7 +277,7 @@ impl LogicalType {
             LogicalType::TimestampSec => LogicalTypeID::TIMESTAMP_SEC,
             LogicalType::InternalID => LogicalTypeID::INTERNAL_ID,
             LogicalType::VarList { .. } => LogicalTypeID::VAR_LIST,
-            LogicalType::FixedList { .. } => LogicalTypeID::FIXED_LIST,
+            LogicalType::Array { .. } => LogicalTypeID::ARRAY,
             LogicalType::Struct { .. } => LogicalTypeID::STRUCT,
             LogicalType::Node => LogicalTypeID::NODE,
             LogicalType::Rel => LogicalTypeID::REL,

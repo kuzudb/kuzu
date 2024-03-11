@@ -183,7 +183,7 @@ void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
     if (numNodesInFile != numRows) {
         throw CopyException("Number of rows in npy files is not equal to each other.");
     }
-    // TODO(Guodong): Set npy reader data type to FIXED_LIST, so we can simplify checks here.
+    // TODO(Guodong): Set npy reader data type to ARRAY, so we can simplify checks here.
     if (type_.getLogicalTypeID() == this->type) {
         if (getNumElementsPerRow() != 1) {
             throw CopyException(stringFormat("Cannot copy a vector property in npy file {} to a "
@@ -191,13 +191,13 @@ void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
                 filePath));
         }
         return;
-    } else if (type_.getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
-        if (this->type != FixedListType::getChildType(&type_)->getLogicalTypeID()) {
+    } else if (type_.getLogicalTypeID() == LogicalTypeID::ARRAY) {
+        if (this->type != ArrayType::getChildType(&type_)->getLogicalTypeID()) {
             throw CopyException(stringFormat("The type of npy file {} does not "
                                              "match the expected type.",
                 filePath));
         }
-        if (getNumElementsPerRow() != FixedListType::getNumValuesInList(&type_)) {
+        if (getNumElementsPerRow() != ArrayType::getNumElements(&type_)) {
             throw CopyException(
                 stringFormat("The shape of {} does not match {}.", filePath, type_.toString()));
         }
@@ -217,9 +217,22 @@ void NpyReader::readBlock(block_idx_t blockIdx, common::ValueVector* vectorToRea
     } else {
         auto rowPointer = getPointerToRow(rowNumber);
         auto numRowsToRead = std::min(DEFAULT_VECTOR_CAPACITY, getNumRows() - rowNumber);
-        memcpy(vectorToRead->getData(), rowPointer,
-            numRowsToRead * vectorToRead->getNumBytesPerValue());
-        vectorToRead->state->selVector->selectedSize = numRowsToRead;
+        auto rowType = vectorToRead->dataType;
+        if (rowType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
+            auto numValuesPerRow = ArrayType::getNumElements(&rowType);
+            for (auto i = 0u; i < numRowsToRead; i++) {
+                auto listEntry = ListVector::addList(vectorToRead, numValuesPerRow);
+                vectorToRead->setValue(i, listEntry);
+            }
+            auto dataVector = ListVector::getDataVector(vectorToRead);
+            memcpy(dataVector->getData(), rowPointer,
+                numRowsToRead * numValuesPerRow * dataVector->getNumBytesPerValue());
+            vectorToRead->state->selVector->selectedSize = numRowsToRead;
+        } else {
+            memcpy(vectorToRead->getData(), rowPointer,
+                numRowsToRead * vectorToRead->getNumBytesPerValue());
+            vectorToRead->state->selVector->selectedSize = numRowsToRead;
+        }
     }
 }
 
@@ -247,21 +260,21 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return output.dataChunk.state->selVector->selectedSize;
 }
 
-static std::unique_ptr<LogicalType> bindFixedListType(
-    const std::vector<size_t>& shape, LogicalTypeID typeID) {
-    if (shape.size() == 1) {
-        return std::make_unique<LogicalType>(typeID);
+static std::unique_ptr<LogicalType> bindColumnType(const NpyReader& reader) {
+    if (reader.getShape().size() == 1) {
+        return std::make_unique<LogicalType>(reader.getType());
     }
-    auto childShape = std::vector<size_t>{shape.begin() + 1, shape.end()};
-    auto childType = bindFixedListType(childShape, typeID);
-    return LogicalType::FIXED_LIST(std::move(childType), (uint32_t)shape[0]);
+    // For columns whose type is a multi-dimension array of size n*m,
+    // we flatten the row data into an 1-d array with size 1*k where k = n*m
+    return LogicalType::ARRAY(
+        std::make_unique<LogicalType>(reader.getType()), reader.getNumElementsPerRow());
 }
 
 static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
     std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
     auto reader = NpyReader(readerConfig.filePaths[fileIdx]); // TODO: double check
     auto columnName = std::string("column" + std::to_string(fileIdx));
-    auto columnType = bindFixedListType(reader.getShape(), reader.getType());
+    auto columnType = bindColumnType(reader);
     columnNames.push_back(columnName);
     columnTypes.push_back(*columnType);
 }

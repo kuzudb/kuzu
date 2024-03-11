@@ -139,9 +139,9 @@ void ArrowConverter::setArrowFormat(
         child.children[0]->name = "l";
         setArrowFormat(rootHolder, **child.children, *typeInfo.childrenTypesInfo[0]);
     } break;
-    case LogicalTypeID::FIXED_LIST: {
-        auto numValuesPerList = "+w:" + std::to_string(typeInfo.numValuesPerList);
-        child.format = copyName(rootHolder, numValuesPerList);
+    case LogicalTypeID::ARRAY: {
+        auto numValuesPerArray = "+w:" + std::to_string(typeInfo.fixedNumValues);
+        child.format = copyName(rootHolder, numValuesPerArray);
         child.n_children = 1;
         rootHolder.nestedChildren.emplace_back();
         rootHolder.nestedChildren.back().resize(1);

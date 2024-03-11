@@ -106,14 +106,14 @@ Dan
 ---- 1
 Bob
 
--LOG LimitFixedListNodeProp
+-LOG LimitArrayNodeProp
 -STATEMENT MATCH (a:person) RETURN a.grades LIMIT 3
 ---- 3
 [96,54,86,92]
 [98,42,93,88]
 [91,75,21,95]
 
--LOG LimitFixedListRelProp
+-LOG LimitArrayRelProp
 -STATEMENT MATCH (a:person)-[e:workAt]->(o:organisation) RETURN e.grading LIMIT 2
 ---- 2
 [2.100000,4.400000]

@@ -530,7 +530,7 @@ struct JavaAPIHelper {
 } // namespace kuzu::common
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1create(
-    JNIEnv* env, jclass, jobject id, jobject child_type, jlong fixed_num_elements_in_list) {
+    JNIEnv* env, jclass, jobject id, jobject child_type, jlong num_elements_in_array) {
     jclass javaIDClass = env->GetObjectClass(id);
     jfieldID fieldID = env->GetFieldID(javaIDClass, "value", "I");
     jint fieldValue = env->GetIntField(id, fieldID);
@@ -542,9 +542,9 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1create(
         data_type = new LogicalType(logicalTypeID);
     } else {
         auto child_type_pty = std::make_unique<LogicalType>(*getDataType(env, child_type));
-        auto extraTypeInfo = fixed_num_elements_in_list > 0 ?
-                                 std::make_unique<FixedListTypeInfo>(
-                                     std::move(child_type_pty), fixed_num_elements_in_list) :
+        auto extraTypeInfo = num_elements_in_array > 0 ?
+                                 std::make_unique<ArrayTypeInfo>(
+                                     std::move(child_type_pty), num_elements_in_array) :
                                  std::make_unique<VarListTypeInfo>(std::move(child_type_pty));
         data_type = JavaAPIHelper::createLogicalType(logicalTypeID, std::move(extraTypeInfo));
     }
@@ -591,8 +591,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1chil
     JNIEnv* env, jclass, jobject thisDT) {
     auto* parent_type = getDataType(env, thisDT);
     LogicalType* child_type;
-    if (parent_type->getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
-        child_type = FixedListType::getChildType(parent_type);
+    if (parent_type->getLogicalTypeID() == LogicalTypeID::ARRAY) {
+        child_type = ArrayType::getChildType(parent_type);
     } else if (parent_type->getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
         child_type = VarListType::getChildType(parent_type);
     } else {
@@ -604,13 +604,13 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1chil
 }
 
 JNIEXPORT jlong JNICALL
-Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1fixed_1num_1elements_1in_1list(
+Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1num_1elements_1in_1array(
     JNIEnv* env, jclass, jobject thisDT) {
     auto* dt = getDataType(env, thisDT);
-    if (dt->getLogicalTypeID() != LogicalTypeID::FIXED_LIST) {
+    if (dt->getLogicalTypeID() != LogicalTypeID::ARRAY) {
         return 0;
     }
-    return static_cast<jlong>(FixedListType::getNumValuesInList(dt));
+    return static_cast<jlong>(ArrayType::getNumElements(dt));
 }
 
 /**

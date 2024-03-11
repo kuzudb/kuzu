@@ -89,7 +89,6 @@ uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {
     case PhysicalTypeID::VAR_LIST: {
         return sizeof(ku_list_t);
     }
-    case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {
         // Not calculable using this interface!
         KU_UNREACHABLE;
@@ -104,10 +103,6 @@ uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
     switch (type.getPhysicalType()) {
     case PhysicalTypeID::STRING: {
         return sizeof(ku_string_t);
-    }
-    case PhysicalTypeID::FIXED_LIST: {
-        return getDataTypeSize(*FixedListType::getChildType(&type)) *
-               FixedListType::getNumValuesInList(&type);
     }
     case PhysicalTypeID::VAR_LIST: {
         return sizeof(ku_list_t);

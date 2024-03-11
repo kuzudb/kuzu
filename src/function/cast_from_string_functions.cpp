@@ -1,7 +1,6 @@
 #include "function/cast/functions/cast_from_string_functions.h"
 
 #include "common/exception/copy.h"
-#include "common/exception/not_implemented.h"
 #include "common/exception/parser.h"
 #include "common/string_format.h"
 #include "common/types/blob.h"
@@ -19,9 +18,6 @@ struct CastStringHelper {
         uint64_t /*rowToAdd*/ = 0, const CSVOption* /*option*/ = nullptr) {
         simpleIntegerCast<int64_t>(input, len, result, LogicalTypeID::INT64);
     }
-
-    static void castToFixedList(const char* input, uint64_t len, ValueVector* vector,
-        uint64_t rowToAdd, const CSVOption* option);
 };
 
 template<>
@@ -256,7 +252,7 @@ static bool isNull(std::string_view& str) {
     return false;
 }
 
-// ---------------------- cast String to Varlist ------------------------------ //
+// ---------------------- cast String to Varlist Helper ------------------------------ //
 struct CountPartOperation {
     uint64_t count = 0;
 
@@ -342,12 +338,28 @@ static inline void startListCast(
     }
 }
 
+// ---------------------- cast String to Array Helper ------------------------------ //
+static void validateNumElementsInArray(uint64_t numElementsRead, const LogicalType& type) {
+    auto numElementsInArray = ArrayType::getNumElements(&type);
+    if (numElementsRead != numElementsInArray) {
+        throw CopyException(stringFormat(
+            "Each array should have fixed number of elements. Expected: {}, Actual: {}.",
+            numElementsInArray, numElementsRead));
+    }
+}
+
+// ---------------------- cast String to List/Array ------------------------------ //
 template<>
 void CastStringHelper::cast(const char* input, uint64_t len, list_entry_t& /*result*/,
     ValueVector* vector, uint64_t rowToAdd, const CSVOption* option) {
+    auto logicalTypeID = vector->dataType.getLogicalTypeID();
+
     // calculate the number of elements in array
     CountPartOperation state;
     splitCStringList(input, len, state, option);
+    if (logicalTypeID == LogicalTypeID::ARRAY) {
+        validateNumElementsInArray(state.count, vector->dataType);
+    }
 
     auto list_entry = ListVector::addList(vector, state.count);
     vector->setValue<list_entry_t>(rowToAdd, list_entry);
@@ -362,81 +374,6 @@ void CastString::operation(const ku_string_t& input, list_entry_t& result,
     ValueVector* resultVector, uint64_t rowToAdd, const CSVOption* option) {
     CastStringHelper::cast(reinterpret_cast<const char*>(input.getData()), input.len, result,
         resultVector, rowToAdd, option);
-}
-
-// ---------------------- cast String to FixedList ------------------------------ //
-template<typename T>
-struct SplitStringFixedListOperation {
-    SplitStringFixedListOperation(uint64_t& offset, ValueVector* resultVector)
-        : offset(offset), resultVector(resultVector) {}
-
-    uint64_t& offset;
-    ValueVector* resultVector;
-
-    void handleValue(const char* start, const char* end, const CSVOption* /*option*/) {
-        T value;
-        auto str = std::string_view{start, (uint32_t)(end - start)};
-        if (str.empty() || isNull(str)) {
-            throw ConversionException("Cast failed. NULL is not allowed for FIXED_LIST.");
-        }
-        CastStringHelper::cast(start, str.length(), value);
-        resultVector->setValue(offset, value);
-        offset++;
-    }
-};
-
-static void validateNumElementsInList(uint64_t numElementsRead, const LogicalType& type) {
-    auto numElementsInList = FixedListType::getNumValuesInList(&type);
-    if (numElementsRead != numElementsInList) {
-        throw CopyException(stringFormat(
-            "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
-            numElementsInList, numElementsRead));
-    }
-}
-
-void CastStringHelper::castToFixedList(const char* input, uint64_t len, ValueVector* vector,
-    uint64_t rowToAdd, const CSVOption* option) {
-    KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
-    auto childDataType = FixedListType::getChildType(&vector->dataType);
-
-    // calculate the number of elements in array
-    CountPartOperation state;
-    splitCStringList(input, len, state, option);
-    validateNumElementsInList(state.count, vector->dataType);
-
-    auto startOffset = state.count * rowToAdd;
-    switch (childDataType->getLogicalTypeID()) {
-    // TODO(Kebing): currently only allow these type
-    case LogicalTypeID::INT64: {
-        SplitStringFixedListOperation<int64_t> split{startOffset, vector};
-        startListCast(input, len, split, option, vector);
-    } break;
-    case LogicalTypeID::INT32: {
-        SplitStringFixedListOperation<int32_t> split{startOffset, vector};
-        startListCast(input, len, split, option, vector);
-    } break;
-    case LogicalTypeID::INT16: {
-        SplitStringFixedListOperation<int16_t> split{startOffset, vector};
-        startListCast(input, len, split, option, vector);
-    } break;
-    case LogicalTypeID::FLOAT: {
-        SplitStringFixedListOperation<float> split{startOffset, vector};
-        startListCast(input, len, split, option, vector);
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        SplitStringFixedListOperation<double> split{startOffset, vector};
-        startListCast(input, len, split, option, vector);
-    } break;
-    default: {
-        throw NotImplementedException("Unsupported data type: Function::castStringToFixedList");
-    }
-    }
-}
-
-void CastString::castToFixedList(const ku_string_t& input, ValueVector* resultVector,
-    uint64_t rowToAdd, const CSVOption* option) {
-    CastStringHelper::castToFixedList(
-        reinterpret_cast<const char*>(input.getData()), input.len, resultVector, rowToAdd, option);
 }
 
 // ---------------------- cast String to Map ------------------------------ //
@@ -945,13 +882,10 @@ void CastString::copyStringToVector(
         map_entry_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, vectorPos, option);
     } break;
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::VAR_LIST: {
         list_entry_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, vectorPos, option);
-    } break;
-    case LogicalTypeID::FIXED_LIST: {
-        CastStringHelper::castToFixedList(
-            strVal.data(), strVal.length(), vector, vectorPos, option);
     } break;
     case LogicalTypeID::STRUCT: {
         struct_entry_t val;

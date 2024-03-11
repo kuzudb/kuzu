@@ -397,12 +397,6 @@ uint64_t ColumnChunk::getBufferSize(uint64_t capacity_) const {
         // 8 values per byte, and we need a buffer size which is a multiple of 8 bytes.
         return ceil(capacity_ / 8.0 / 8.0) * 8;
     }
-    case LogicalTypeID::FIXED_LIST: {
-        auto numElementsInAPage =
-            PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
-        auto numPages = capacity_ / numElementsInAPage + (capacity_ % numElementsInAPage ? 1 : 0);
-        return BufferPoolConstants::PAGE_4KB_SIZE * numPages;
-    }
     default: {
         return numBytesPerValue * capacity_;
     }
@@ -496,65 +490,6 @@ void NullColumnChunk::append(
     numValues += numValuesToAppend;
 }
 
-class FixedListColumnChunk : public ColumnChunk {
-public:
-    FixedListColumnChunk(LogicalType dataType, uint64_t capacity, bool enableCompression)
-        : ColumnChunk(std::move(dataType), capacity, enableCompression, true /* hasNullChunk */) {}
-
-    void append(
-        ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) final {
-        auto otherChunk = (FixedListColumnChunk*)other;
-        if (nullChunk) {
-            nullChunk->append(otherChunk->nullChunk.get(), startPosInOtherChunk, numValuesToAppend);
-        }
-        // TODO(Guodong): This can be optimized to not copy one by one.
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            memcpy(buffer.get() + getOffsetInBuffer(numValues + i),
-                otherChunk->buffer.get() + getOffsetInBuffer(startPosInOtherChunk + i),
-                numBytesPerValue);
-        }
-        numValues += numValuesToAppend;
-    }
-
-    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool /*isCSR*/) final {
-        KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::FIXED_LIST &&
-                  dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INT64);
-        KU_ASSERT(chunk->getNumValues() == dstOffsets->getNumValues());
-        for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {
-            auto dstOffset = dstOffsets->getValue<offset_t>(i);
-            KU_ASSERT(dstOffset < capacity);
-            nullChunk->setNull(dstOffset, chunk->getNullChunk()->isNull(i));
-            if (!chunk->getNullChunk()->isNull(i)) {
-                memcpy(buffer.get() + getOffsetInBuffer(dstOffset),
-                    chunk->getData() + i * numBytesPerValue, numBytesPerValue);
-            }
-            numValues = dstOffset >= numValues ? dstOffset + 1 : numValues;
-        }
-    }
-
-    void write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) final {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::FIXED_LIST);
-        KU_ASSERT(offsetInChunk < capacity);
-        nullChunk->write(vector, offsetInVector, offsetInChunk);
-        if (!vector->isNull(offsetInVector)) {
-            memcpy(buffer.get() + getOffsetInBuffer(offsetInChunk),
-                vector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
-        }
-        numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
-    }
-
-    void copyVectorToBuffer(
-        ValueVector* vector, offset_t startPosInChunk, SelectionVector& selVector) final {
-        auto vectorDataToWriteFrom = vector->getData();
-        for (auto i = 0u; i < selVector.selectedSize; i++) {
-            auto pos = selVector.selectedPositions[i];
-            nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
-            memcpy(buffer.get() + getOffsetInBuffer(startPosInChunk + i),
-                vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
-        }
-    }
-};
-
 class InternalIDColumnChunk final : public ColumnChunk {
 public:
     // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,
@@ -620,10 +555,6 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
         // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
     case PhysicalTypeID::INTERNAL_ID: {
         return std::make_unique<InternalIDColumnChunk>(capacity);
-    }
-    case PhysicalTypeID::FIXED_LIST: {
-        return std::make_unique<FixedListColumnChunk>(
-            std::move(dataType), capacity, enableCompression);
     }
     case PhysicalTypeID::STRING: {
         return std::make_unique<StringColumnChunk>(
