@@ -10,16 +10,20 @@ class Column;
 
 class NodeGroup {
 public:
-    NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression, uint64_t capacity);
+    NodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
+        uint64_t capacity);
     NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression);
     virtual ~NodeGroup() = default;
 
     inline uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }
     inline common::row_idx_t getNumRows() const { return numRows; }
-    inline ColumnChunk* getColumnChunk(common::column_id_t columnID) {
+    inline ColumnChunk* getColumnChunkUnsafe(common::column_id_t columnID) {
         KU_ASSERT(columnID < chunks.size());
         return chunks[columnID].get();
+    }
+    inline const ColumnChunk& getColumnChunk(common::column_id_t columnID) {
+        KU_ASSERT(columnID < chunks.size());
+        return *chunks[columnID];
     }
     inline bool isFull() const { return numRows == common::StorageConstants::NODE_GROUP_SIZE; }
 
@@ -72,8 +76,7 @@ struct CSRHeaderChunks {
 
 class CSRNodeGroup : public NodeGroup {
 public:
-    CSRNodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression);
+    CSRNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression);
 
     CSRHeaderChunks& getCSRHeader() { return csrHeaderChunks; }
     const CSRHeaderChunks& getCSRHeader() const { return csrHeaderChunks; }
@@ -89,8 +92,8 @@ private:
 
 struct NodeGroupFactory {
     static inline std::unique_ptr<NodeGroup> createNodeGroup(common::ColumnDataFormat dataFormat,
-        const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
+        const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
+        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
         return dataFormat == common::ColumnDataFormat::REGULAR ?
                    std::make_unique<NodeGroup>(columnTypes, enableCompression, capacity) :
                    std::make_unique<CSRNodeGroup>(columnTypes, enableCompression);

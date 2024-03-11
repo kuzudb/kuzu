@@ -106,14 +106,13 @@ void Partitioner::initLocalStateInternal(ResultSet* /*resultSet*/, ExecutionCont
 }
 
 static void constructDataChunk(DataChunk* dataChunk, const std::vector<DataPos>& columnPositions,
-    const logical_types_t& columnTypes, const ResultSet& resultSet) {
+    std::vector<common::LogicalType> columnTypes, const ResultSet& resultSet) {
     for (auto i = 0u; i < columnPositions.size(); i++) {
         auto pos = columnPositions[i];
         if (pos.isValid()) {
             dataChunk->insert(i, resultSet.getValueVector(pos));
         } else {
-            auto columnType = columnTypes[i].get();
-            auto nullVector = std::make_shared<ValueVector>(*columnType);
+            auto nullVector = std::make_shared<ValueVector>(columnTypes[i]);
             nullVector->setAllNull();
             dataChunk->insert(i, nullVector);
         }

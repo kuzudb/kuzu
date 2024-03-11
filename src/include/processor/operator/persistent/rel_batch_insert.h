@@ -13,12 +13,11 @@ struct RelBatchInsertInfo final : public BatchInsertInfo {
     common::RelDataDirection direction;
     uint64_t partitioningIdx;
     common::vector_idx_t offsetVectorIdx;
-    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
+    std::vector<common::LogicalType> columnTypes;
 
     RelBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         common::RelDataDirection direction, uint64_t partitioningIdx,
-        common::vector_idx_t offsetVectorIdx,
-        std::vector<std::unique_ptr<common::LogicalType>> columnTypes)
+        common::vector_idx_t offsetVectorIdx, std::vector<common::LogicalType> columnTypes)
         : BatchInsertInfo{tableEntry, compressionEnabled}, direction{direction},
           partitioningIdx{partitioningIdx}, offsetVectorIdx{offsetVectorIdx}, columnTypes{std::move(
                                                                                   columnTypes)} {}

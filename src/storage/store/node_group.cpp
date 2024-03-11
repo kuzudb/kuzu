@@ -28,7 +28,6 @@ bool CSRHeaderChunks::sanityCheck() const {
     return true;
 }
 
-// TODO(Guodong): Should be refactored to use copy of ColumnChunk.
 void CSRHeaderChunks::copyFrom(const CSRHeaderChunks& other) const {
     auto numValues = other.offset->getNumValues();
     memcpy(offset->getData(), other.offset->getData(), numValues * sizeof(offset_t));
@@ -47,13 +46,13 @@ void CSRHeaderChunks::fillDefaultValues(offset_t newNumValues) const {
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
 }
 
-NodeGroup::NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-    bool enableCompression, uint64_t capacity)
+NodeGroup::NodeGroup(
+    const std::vector<common::LogicalType>& columnTypes, bool enableCompression, uint64_t capacity)
     : nodeGroupIdx{UINT64_MAX}, numRows{0} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
         chunks.push_back(
-            ColumnChunkFactory::createColumnChunk(*type->copy(), enableCompression, capacity));
+            ColumnChunkFactory::createColumnChunk(*type.copy(), enableCompression, capacity));
     }
 }
 
@@ -177,8 +176,7 @@ length_t CSRHeaderChunks::getCSRLength(offset_t nodeOffset) const {
     return nodeOffset >= length->getNumValues() ? 0 : length->getValue<length_t>(nodeOffset);
 }
 
-CSRNodeGroup::CSRNodeGroup(
-    const std::vector<std::unique_ptr<LogicalType>>& columnTypes, bool enableCompression)
+CSRNodeGroup::CSRNodeGroup(const std::vector<LogicalType>& columnTypes, bool enableCompression)
     // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
     // should be resized after csr offset calculation (e.g., during RelBatchInsert).
     : NodeGroup{columnTypes, enableCompression, 0 /* capacity */} {

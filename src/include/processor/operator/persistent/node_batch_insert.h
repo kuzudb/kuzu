@@ -13,11 +13,11 @@ namespace processor {
 struct NodeBatchInsertInfo final : public BatchInsertInfo {
     std::vector<DataPos> columnPositions;
     bool containSerial = false;
-    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
+    std::vector<common::LogicalType> columnTypes;
 
     NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         std::vector<DataPos> columnPositions, bool containSerial,
-        std::vector<std::unique_ptr<common::LogicalType>> columnTypes)
+        std::vector<common::LogicalType> columnTypes)
         : BatchInsertInfo{tableEntry, compressionEnabled}, columnPositions{columnPositions},
           containSerial{containSerial}, columnTypes{std::move(columnTypes)} {}
 

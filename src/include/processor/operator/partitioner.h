@@ -76,11 +76,11 @@ struct PartitionerLocalState {
 struct PartitioningInfo {
     DataPos keyDataPos;
     std::vector<DataPos> columnDataPositions;
-    common::logical_types_t columnTypes;
+    std::vector<common::LogicalType> columnTypes;
     partitioner_func_t partitionerFunc;
 
     PartitioningInfo(DataPos keyDataPos, std::vector<DataPos> columnDataPositions,
-        common::logical_types_t columnTypes, partitioner_func_t partitionerFunc)
+        std::vector<common::LogicalType> columnTypes, partitioner_func_t partitionerFunc)
         : keyDataPos{keyDataPos}, columnDataPositions{std::move(columnDataPositions)},
           columnTypes{std::move(columnTypes)}, partitionerFunc{std::move(partitionerFunc)} {}
     inline std::unique_ptr<PartitioningInfo> copy() {
