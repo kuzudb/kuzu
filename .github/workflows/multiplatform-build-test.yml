@@ -194,89 +194,120 @@ jobs:
           name: ${{ matrix.runner }}
           path: ${{ matrix.runner }}.csv
 
-  # windows-build-test:
-  #   strategy:
-  #     matrix:
-  #       runner: [windows-2019, windows-2022]
-  #     fail-fast: false
-  #   name: ${{ matrix.runner }}
-  #   runs-on: ${{ matrix.runner }}
-  #   steps:
-  #     - name: Disable Windows Defender
-  #       shell: powershell
-  #       run: |
-  #         Set-MpPreference -DisableRealtimeMonitoring $true
-  #         Set-MpPreference -DisableBehaviorMonitoring $true
-  #         Set-MpPreference -DisableBlockAtFirstSeen $true
-  #         Set-MpPreference -DisableIOAVProtection $true
-  #         Set-MpPreference -DisablePrivacyMode $true
-  #         Set-MpPreference -SignatureDisableUpdateOnStartupWithoutEngine $true
-  #         Set-MpPreference -DisableArchiveScanning $true
-  #         Set-MpPreference -DisableIntrusionPreventionSystem $true
-  #         Set-MpPreference -DisableScriptScanning $true
-  #         Set-MpPreference -SubmitSamplesConsent NeverSend
+  windows-build-test:
+    strategy:
+      matrix:
+        runner: [windows-2019, windows-2022]
+      fail-fast: false
+    name: ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Disable Windows Defender
+        shell: powershell
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true
+          Set-MpPreference -DisableBehaviorMonitoring $true
+          Set-MpPreference -DisableBlockAtFirstSeen $true
+          Set-MpPreference -DisableIOAVProtection $true
+          Set-MpPreference -DisablePrivacyMode $true
+          Set-MpPreference -SignatureDisableUpdateOnStartupWithoutEngine $true
+          Set-MpPreference -DisableArchiveScanning $true
+          Set-MpPreference -DisableIntrusionPreventionSystem $true
+          Set-MpPreference -DisableScriptScanning $true
+          Set-MpPreference -SubmitSamplesConsent NeverSend
 
-  #     - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-  #     - uses: ilammy/msvc-dev-cmd@v1
+      - uses: ilammy/msvc-dev-cmd@v1
 
-  #     - uses: actions/setup-python@v4
-  #       with:
-  #         python-version: "3.10"
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
 
-  #     - name: Ensure Python dependencies
-  #       shell: cmd
-  #       run: |
-  #         pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-  #         pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+      - name: Ensure Python dependencies
+        shell: cmd
+        run: |
+          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
-  #     - name: Ensure Node.js dependencies
-  #       shell: cmd
-  #       working-directory: .\tools\nodejs_api
-  #       run: npm install --include=dev
+      - name: Ensure Node.js dependencies
+        shell: cmd
+        working-directory: .\tools\nodejs_api
+        run: npm install --include=dev
 
-  #     - name: Build
-  #       shell: cmd
-  #       run: make release NUM_THREADS=%NUMBER_OF_PROCESSORS%
+      - name: Build
+        shell: cmd
+        run: |
+          make release NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Build,%ERRORLEVEL% > status.txt
 
-  #     - name: Test
-  #       shell: cmd
-  #       run: make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
+      - name: Test
+        shell: cmd
+        continue-on-error: true
+        run: |
+          make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Test,%ERRORLEVEL% >> status.txt
 
-  #     - name: C and C++ examples
-  #       shell: cmd
-  #       run: make example NUM_THREADS=%NUMBER_OF_PROCESSORS%
+      - name: C and C++ examples
+        shell: cmd
+        continue-on-error: true
+        run: |
+          make example NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo C and C++ examples,%ERRORLEVEL% >> status.txt
 
-  #     - name: Python test
-  #       shell: cmd
-  #       run: make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+      - name: Python test
+        shell: cmd
+        continue-on-error: true
+        run: |
+          make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Python test,%ERRORLEVEL% >> status.txt
 
-  #     - name: Node.js test
-  #       shell: cmd
-  #       run: make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+      - name: Node.js test
+        shell: cmd
+        continue-on-error: true
+        run: |
+          make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Node.js test,%ERRORLEVEL% >> status.txt
 
-  #     - name: Java test
-  #       shell: cmd
-  #       run: make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+      - name: Java test
+        shell: cmd
+        continue-on-error: true
+        run: |
+          make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Java test,%ERRORLEVEL% >> status.txt
 
-  #     - name: Rust share build
-  #       shell: cmd
-  #       run: (echo [workspace]& echo members = ["tools/rust_api","examples/rust"]) > Cargo.toml
+      - name: Rust share build
+        shell: cmd
+        run: (echo [workspace]& echo members = ["tools/rust_api","examples/rust"]) > Cargo.toml
 
-  #     - name: Rust test
-  #       shell: cmd
-  #       run: |
-  #         make clean
-  #         set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
-  #         set CXXFLAGS=/std:c++20
-  #         set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
-  #         cargo test --release --features arrow -- --test-threads=1
+      - name: Rust test
+        shell: cmd
+        continue-on-error: true
+        run: |
+          make clean
+          set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
+          set CXXFLAGS=/std:c++20
+          set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
+          cargo test --release --features arrow -- --test-threads=1
+          echo Rust test,%ERRORLEVEL% >> status.txt
 
-  #     - name: Rust example
-  #       shell: cmd
-  #       run: |
-  #         set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
-  #         cargo build --release --features arrow
+      - name: Rust example
+        shell: cmd
+        continue-on-error: true
+        run: |
+          set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
+          cargo build --release --features arrow
+          echo Rust example,%ERRORLEVEL% >> status.txt
+
+      - name: Rename status.txt
+        shell: cmd
+        run: |
+          rename status.txt ${{ matrix.runner }}.csv
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runner }}
+          path: ${{ matrix.runner }}.csv
 
   debian-ubuntu-build-test:
     strategy:
