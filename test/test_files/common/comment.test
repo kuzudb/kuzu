@@ -1,0 +1,23 @@
+-GROUP CommentTests
+-DATASET CSV empty
+
+--
+
+-CASE CommentTest
+
+-STATEMENT RETURN 1; // This is a comment
+---- 1
+1
+-STATEMENT RETURN 1 // This is a comment ;
+---- 1
+1
+-STATEMENT RETURN 1; /* This is a commnet */
+---- 1
+1
+-STATEMENT RETURN 1 /* This is a commnet */ ;
+---- 1
+1
+-STATEMENT /* This is a commnet */
+           RETURN 1;
+---- 1
+1

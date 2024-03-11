@@ -58,9 +58,9 @@ kU_StandaloneCall
 CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 kU_CommentOn
-    : COMMENT SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
+    : COMMENT_ SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
 
-COMMENT : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
+COMMENT_ : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
 
 kU_CreateMacro
     : CREATE SP MACRO SP oC_FunctionName SP? '(' SP? kU_PositionalArgs? SP? kU_DefaultArg? ( SP? ',' SP? kU_DefaultArg )* SP? ')' SP AS SP oC_Expression ;
@@ -754,7 +754,7 @@ oC_SymbolicName
 
 // example of BEGIN and END: TCKWith2.Scenario1
 kU_NonReservedKeywords
-    : COMMENT
+    : COMMENT_
         | COUNT
         | NODE
         | REL
@@ -819,7 +819,9 @@ WHITESPACE
         ;
 
 Comment
-    : ( '/*' ( Comment_1 | ( '*' Comment_2 ) )* '*/' ) ;
+    : ( '/*' ( Comment_1 | ( '*' Comment_2 ) )* '*/' )
+        | ( '//' ( Comment_3 )* CR? ( LF | EOF ) )
+        ;
 
 oC_LeftArrowHead
     : '<'

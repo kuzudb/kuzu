@@ -109,7 +109,7 @@ void cypherParserInitialize() {
     std::vector<std::string>{
       "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
       "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
-      "", "", "", "", "", "", "", "", "", "", "", "", "CALL", "COMMENT", 
+      "", "", "", "", "", "", "", "", "", "", "", "", "CALL", "COMMENT_", 
       "MACRO", "GLOB", "COPY", "FROM", "COLUMN", "EXPORT", "IMPORT", "DATABASE", 
       "NODE", "TABLE", "GROUP", "RDFGRAPH", "DROP", "ALTER", "DEFAULT", 
       "RENAME", "ADD", "PRIMARY", "KEY", "REL", "TO", "EXPLAIN", "PROFILE", 
@@ -1593,7 +1593,7 @@ CypherParser::KU_CopyFromContext* CypherParser::kU_CopyFrom() {
         break;
       }
 
-      case CypherParser::COMMENT:
+      case CypherParser::COMMENT_:
       case CypherParser::EXPORT:
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
@@ -2294,8 +2294,8 @@ CypherParser::KU_CommentOnContext::KU_CommentOnContext(ParserRuleContext *parent
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* CypherParser::KU_CommentOnContext::COMMENT() {
-  return getToken(CypherParser::COMMENT, 0);
+tree::TerminalNode* CypherParser::KU_CommentOnContext::COMMENT_() {
+  return getToken(CypherParser::COMMENT_, 0);
 }
 
 std::vector<tree::TerminalNode *> CypherParser::KU_CommentOnContext::SP() {
@@ -2346,7 +2346,7 @@ CypherParser::KU_CommentOnContext* CypherParser::kU_CommentOn() {
   try {
     enterOuterAlt(_localctx, 1);
     setState(490);
-    match(CypherParser::COMMENT);
+    match(CypherParser::COMMENT_);
     setState(491);
     match(CypherParser::SP);
     setState(492);
@@ -5358,7 +5358,7 @@ CypherParser::KU_LoadExtensionContext* CypherParser::kU_LoadExtension() {
         break;
       }
 
-      case CypherParser::COMMENT:
+      case CypherParser::COMMENT_:
       case CypherParser::EXPORT:
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
@@ -6517,7 +6517,7 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
         break;
       }
 
-      case CypherParser::COMMENT:
+      case CypherParser::COMMENT_:
       case CypherParser::EXPORT:
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
@@ -7723,7 +7723,7 @@ CypherParser::OC_ProjectionItemsContext* CypherParser::oC_ProjectionItems() {
       case CypherParser::T__5:
       case CypherParser::T__7:
       case CypherParser::T__25:
-      case CypherParser::COMMENT:
+      case CypherParser::COMMENT_:
       case CypherParser::EXPORT:
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
@@ -8354,7 +8354,7 @@ CypherParser::OC_PatternPartContext* CypherParser::oC_PatternPart() {
     setState(1394);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
-      case CypherParser::COMMENT:
+      case CypherParser::COMMENT_:
       case CypherParser::EXPORT:
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
@@ -12850,7 +12850,7 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
     setState(2065);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
-      case CypherParser::COMMENT:
+      case CypherParser::COMMENT_:
       case CypherParser::EXPORT:
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
@@ -13699,7 +13699,7 @@ CypherParser::OC_PropertyLookupContext* CypherParser::oC_PropertyLookup() {
     setState(2214);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
-      case CypherParser::COMMENT:
+      case CypherParser::COMMENT_:
       case CypherParser::EXPORT:
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
@@ -14168,7 +14168,7 @@ CypherParser::OC_ParameterContext* CypherParser::oC_Parameter() {
     setState(2278);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
-      case CypherParser::COMMENT:
+      case CypherParser::COMMENT_:
       case CypherParser::EXPORT:
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
@@ -14500,7 +14500,7 @@ CypherParser::OC_SymbolicNameContext* CypherParser::oC_SymbolicName() {
         break;
       }
 
-      case CypherParser::COMMENT:
+      case CypherParser::COMMENT_:
       case CypherParser::EXPORT:
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
@@ -14536,8 +14536,8 @@ CypherParser::KU_NonReservedKeywordsContext::KU_NonReservedKeywordsContext(Parse
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::COMMENT() {
-  return getToken(CypherParser::COMMENT, 0);
+tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::COMMENT_() {
+  return getToken(CypherParser::COMMENT_, 0);
 }
 
 tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::COUNT() {
