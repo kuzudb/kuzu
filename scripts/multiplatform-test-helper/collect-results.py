@@ -6,6 +6,12 @@ import pandas as pd
 
 
 def main():
+    if len(sys.argv) != 2:
+        print("Usage: collect-results.py <results_dir>")
+        sys.exit(1)
+    if not os.path.isdir(sys.argv[1]):
+        print(f"Error: {sys.argv[1]} is not a directory")
+        sys.exit(1)
     results_dir = sys.argv[1]
     results_df_hash = {}
     results_exit_codes_hash = {}
@@ -52,3 +58,7 @@ def main():
     markdown = summary_df.to_markdown()
     with open("results.md", "w") as f:
         f.write(markdown)
+
+
+if __name__ == "__main__":
+    main()
