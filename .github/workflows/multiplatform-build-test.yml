@@ -419,7 +419,7 @@ jobs:
   rhel-fedora-build-test:
     strategy:
       matrix:
-        image: ["rockylinux:8", "rockylinux:9", "fedora:38"]
+        image: ["rockylinux:8", "rockylinux:9", "fedora:38", "fedora:39"]
       fail-fast: false
     name: ${{ matrix.image }}
     runs-on: ubuntu-latest
@@ -535,109 +535,6 @@ jobs:
         with:
           name: ${{env.PLATFORM}}
           path: ${{env.PLATFORM}}.csv
-
-  centos-7-build-test:
-    name: centos-7
-    runs-on: ubuntu-latest
-    container:
-      image: quay.io/pypa/manylinux2014_x86_64
-    env:
-      CC: gcc
-      CXX: g++
-      PYBIND11_PYTHON_VERSION: 3.10
-      PYTHON_EXECUTABLE: /usr/local/bin/python3.10
-      JAVA_HOME: /usr/lib/jvm/java-11-openjdk
-    steps:
-      - name: Install packages
-        run: |
-          yum update -y
-          yum install -y npm java-11-openjdk-devel devtoolset-11
-
-      - name: Enable gcc-toolset-11
-        run: |
-          source /opt/rh/devtoolset-11/enable
-          echo $PATH >> $GITHUB_PATH
-
-      - uses: actions/checkout@v3
-
-      - name: Ensure Python dependencies
-        run: |
-          ln -s /usr/local/bin/python3.10 /usr/bin/python3
-          python3 -m pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          python3 -m pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        working-directory: tools/nodejs_api
-        run: npm install --include=dev
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.76
-
-      - name: Build
-        run: |
-          make release NUM_THREADS=$(nproc)
-          echo "Build,$?" > status.txt
-
-      - name: Test
-        continue-on-error: true
-        run: |
-          make test NUM_THREADS=$(nproc)
-          echo "Test,$?" >> status.txt
-
-      - name: C and C++ examples
-        continue-on-error: true
-        run: |
-          make example NUM_THREADS=$(nproc)
-          echo "C and C++ examples,$?" >> status.txt
-
-      - name: Python test
-        continue-on-error: true
-        run: |
-          make pytest NUM_THREADS=$(nproc)
-          echo "Python test,$?" >> status.txt
-
-      - name: Node.js test
-        continue-on-error: true
-        run: |
-          make nodejstest NUM_THREADS=$(nproc)
-          echo "Node.js test,$?" >> status.txt
-
-      - name: Java test
-        continue-on-error: true
-        run: |
-          make javatest NUM_THREADS=$(nproc)
-          echo "Java test,$?" >> status.txt
-
-      - name: Rust share build
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
-      - name: Rust set env
-        run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
-
-      - name: Rust test
-        continue-on-error: true
-        working-directory: tools/rust_api
-        run: |
-          cargo test --release --features arrow -- --test-threads=1
-          echo "Rust test,$?" >> ../status.txt
-
-      - name: Rust example
-        continue-on-error: true
-        working-directory: examples/rust
-        run: |
-          cargo build --release --features arrow
-          echo "Rust example,$?" >> ../status.txt
-
-      - name: Rename status.txt
-        run: mv status.txt centos-7.csv
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: centos-7
-          path: centos-7.csv
 
   archlinux-build-test:
     name: archlinux
