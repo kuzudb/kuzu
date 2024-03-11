@@ -633,3 +633,15 @@ jobs:
         with:
           name: ${{env.PLATFORM}}
           path: ${{env.PLATFORM}}.csv
+
+  collect-results:
+    runs-on: ubuntu-latest
+    needs: [ubuntu-2004-build-test, macos-build-test, windows-build-test, debian-ubuntu-build-test, rhel-fedora-build-test, archlinux-build-test]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with: 
+          path: results
+      
+      - name: List artifacts
+        run: ls -R results
