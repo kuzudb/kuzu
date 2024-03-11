@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "common/constants.h"
+#include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/bm_file_handle.h"
@@ -54,8 +55,7 @@ public:
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
-    virtual void append(common::ValueVector* vector);
-    virtual void appendOne(common::ValueVector* vector, common::vector_idx_t pos);
+    virtual void append(common::ValueVector* vector, common::SelectionVector& selVector);
     virtual void append(
         ColumnChunk* other, common::offset_t startPosInOtherChunk, uint32_t numValuesToAppend);
 
@@ -109,7 +109,8 @@ protected:
 
     common::offset_t getOffsetInBuffer(common::offset_t pos) const;
 
-    virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk);
+    virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
+        common::SelectionVector& selVector);
 
 private:
     uint64_t getBufferSize(uint64_t capacity_) const;
@@ -150,8 +151,7 @@ public:
               // Booleans are always bitpacked, but this can also enable constant compression
               enableCompression, hasNullChunk) {}
 
-    void append(common::ValueVector* vector) final;
-    void appendOne(common::ValueVector* vector, common::vector_idx_t pos) final;
+    void append(common::ValueVector* vector, common::SelectionVector& sel) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
     void write(common::ValueVector* vector, common::offset_t offsetInVector,

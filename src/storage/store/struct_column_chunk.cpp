@@ -1,5 +1,6 @@
 #include "storage/store/struct_column_chunk.h"
 
+#include "common/data_chunk/sel_vector.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "storage/store/column_chunk.h"
@@ -41,27 +42,15 @@ void StructColumnChunk::append(
     numValues += numValuesToAppend;
 }
 
-void StructColumnChunk::append(ValueVector* vector) {
+void StructColumnChunk::append(ValueVector* vector, SelectionVector& selVector) {
     auto numFields = StructType::getNumFields(&dataType);
     for (auto i = 0u; i < numFields; i++) {
-        childChunks[i]->append(StructVector::getFieldVector(vector, i).get());
+        childChunks[i]->append(StructVector::getFieldVector(vector, i).get(), selVector);
     }
-    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        nullChunk->setNull(
-            numValues + i, vector->isNull(vector->state->selVector->selectedPositions[i]));
+    for (auto i = 0u; i < selVector.selectedSize; i++) {
+        nullChunk->setNull(numValues + i, vector->isNull(selVector.selectedPositions[i]));
     }
-    numValues += vector->state->selVector->selectedSize;
-}
-
-void StructColumnChunk::appendOne(ValueVector* vector, vector_idx_t pos) {
-    auto numFields = StructType::getNumFields(&dataType);
-    for (auto i = 0u; i < numFields; i++) {
-        childChunks[i]->appendOne(StructVector::getFieldVector(vector, i).get(), pos);
-    }
-    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        nullChunk->setNull(numValues + i, vector->isNull(pos));
-    }
-    numValues += 1;
+    numValues += selVector.selectedSize;
 }
 
 void StructColumnChunk::resize(uint64_t newCapacity) {
