@@ -823,144 +823,143 @@ void CastString::operation(const ku_string_t& input, union_entry_t& result,
 }
 
 void CastString::copyStringToVector(
-    ValueVector* vector, uint64_t rowToAdd, std::string_view strVal, const CSVOption* option) {
+    ValueVector* vector, uint64_t vectorPos, std::string_view strVal, const CSVOption* option) {
     auto& type = vector->dataType;
-
     if (strVal.empty() || isNull(strVal)) {
-        vector->setNull(rowToAdd, true /* isNull */);
+        vector->setNull(vectorPos, true /* isNull */);
         return;
-    } else {
-        vector->setNull(rowToAdd, false /* isNull */);
     }
+    vector->setNull(vectorPos, false /* isNull */);
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INT128: {
         int128_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::INT64: {
         int64_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::INT32: {
         int32_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::INT16: {
         int16_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::INT8: {
         int8_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::UINT64: {
         uint64_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::UINT32: {
         uint32_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::UINT16: {
         uint16_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::UINT8: {
         uint8_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::FLOAT: {
         float val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::DOUBLE: {
         double val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::BOOL: {
         bool val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::BLOB: {
         blob_t val;
-        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, vectorPos, option);
     } break;
     case LogicalTypeID::UUID: {
         ku_uuid_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val.value);
+        vector->setValue(vectorPos, val.value);
     } break;
     case LogicalTypeID::STRING: {
         if (!utf8proc::Utf8Proc::isValid(strVal.data(), strVal.length())) {
             throw CopyException{"Invalid UTF8-encoded string."};
         }
-        StringVector::addString(vector, rowToAdd, strVal.data(), strVal.length());
+        StringVector::addString(vector, vectorPos, strVal.data(), strVal.length());
     } break;
     case LogicalTypeID::DATE: {
         date_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::TIMESTAMP_NS: {
         timestamp_ns_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::TIMESTAMP_MS: {
         timestamp_ms_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::TIMESTAMP_SEC: {
         timestamp_sec_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::TIMESTAMP_TZ: {
         timestamp_tz_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::TIMESTAMP: {
         timestamp_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::INTERVAL: {
         interval_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
-        vector->setValue(rowToAdd, val);
+        vector->setValue(vectorPos, val);
     } break;
     case LogicalTypeID::MAP: {
         map_entry_t val;
-        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, vectorPos, option);
     } break;
     case LogicalTypeID::VAR_LIST: {
         list_entry_t val;
-        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, vectorPos, option);
     } break;
     case LogicalTypeID::FIXED_LIST: {
-        CastStringHelper::castToFixedList(strVal.data(), strVal.length(), vector, rowToAdd, option);
+        CastStringHelper::castToFixedList(
+            strVal.data(), strVal.length(), vector, vectorPos, option);
     } break;
     case LogicalTypeID::STRUCT: {
         struct_entry_t val;
-        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, vectorPos, option);
     } break;
     case LogicalTypeID::UNION: {
         union_entry_t val;
-        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, vectorPos, option);
     } break;
     default: {
         KU_UNREACHABLE;

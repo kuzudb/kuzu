@@ -49,25 +49,25 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
 }
 
 static void getNodeColumnsInCopyOrder(TableCatalogEntry* tableEntry,
-    std::vector<std::string>& columnNames, logical_types_t& columnTypes) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     for (auto& property : tableEntry->getPropertiesRef()) {
         columnNames.push_back(property.getName());
-        columnTypes.push_back(property.getDataType()->copy());
+        columnTypes.push_back(*property.getDataType()->copy());
     }
 }
 
 static void getRelColumnNamesInCopyOrder(TableCatalogEntry* tableEntry,
-    std::vector<std::string>& columnNames, logical_types_t& columnTypes) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     columnNames.emplace_back(InternalKeyword::SRC_OFFSET);
     columnNames.emplace_back(InternalKeyword::DST_OFFSET);
     columnNames.emplace_back(InternalKeyword::ROW_OFFSET);
-    columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
-    columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
-    columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
+    columnTypes.emplace_back(LogicalType(LogicalTypeID::INT64));
+    columnTypes.emplace_back(LogicalType(LogicalTypeID::INT64));
+    columnTypes.emplace_back(LogicalType(LogicalTypeID::INT64));
     auto& properties = tableEntry->getPropertiesRef();
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         columnNames.push_back(properties[i].getName());
-        columnTypes.push_back(properties[i].getDataType()->copy());
+        columnTypes.push_back(*properties[i].getDataType()->copy());
     }
 }
 
@@ -121,11 +121,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     sharedState->pkColumnIdx = nodeTableEntry->getColumnID(pk->getPropertyID());
     sharedState->pkType = *pk->getDataType();
     std::vector<std::string> columnNames;
-    logical_types_t columnTypes;
+    std::vector<LogicalType> columnTypes;
     getNodeColumnsInCopyOrder(nodeTableEntry, columnNames, columnTypes);
     std::vector<std::string> columnNamesExcludingSerial;
     for (auto i = 0u; i < columnNames.size(); ++i) {
-        if (columnTypes[i]->getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
+        if (columnTypes[i].getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
             continue;
         }
         columnNamesExcludingSerial.push_back(columnNames[i]);
@@ -153,7 +153,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
         auto info = logicalPartitioner->getInfo(i);
         auto keyPos = getDataPos(*info->key, *outFSchema);
         std::vector<std::string> columnNames;
-        logical_types_t columnTypes;
+        std::vector<LogicalType> columnTypes;
         getRelColumnNamesInCopyOrder(info->tableEntry, columnNames, columnTypes);
         auto columnPositions = getColumnDataPositions(columnNames, info->payloads, *outFSchema);
         infos.push_back(std::make_unique<PartitioningInfo>(keyPos, columnPositions,
@@ -168,7 +168,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
 std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     std::shared_ptr<PartitionerSharedState> partitionerSharedState,
     std::shared_ptr<BatchInsertSharedState> sharedState, LogicalCopyFrom* copyFrom,
-    RelDataDirection direction, std::vector<std::unique_ptr<common::LogicalType>> columnTypes) {
+    RelDataDirection direction, std::vector<common::LogicalType> columnTypes) {
     auto copyFromInfo = copyFrom->getInfo();
     auto outFSchema = copyFrom->getSchema();
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
@@ -195,10 +195,10 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     partitionerSharedState->dstNodeTable =
         storageManager.getNodeTable(relTableEntry->getDstTableID());
     // TODO(Xiyang): Move binding of column types to binder.
-    std::vector<std::unique_ptr<LogicalType>> columnTypes;
-    columnTypes.push_back(LogicalType::INTERNAL_ID()); // ADJ COLUMN.
+    std::vector<LogicalType> columnTypes;
+    columnTypes.push_back(*LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
     for (auto& property : relTableEntry->getPropertiesRef()) {
-        columnTypes.push_back(property.getDataType()->copy());
+        columnTypes.push_back(*property.getDataType()->copy());
     }
     auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(
         storageManager.getRelTable(relTableEntry->getTableID()), getSingleStringColumnFTable(),

@@ -98,8 +98,6 @@ struct CastToUInt8Function {
 };
 
 struct CastAnyFunction {
-    static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, Function* function);
     static function_set getFunctionSet();
 };
 

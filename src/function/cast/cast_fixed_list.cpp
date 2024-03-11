@@ -155,7 +155,7 @@ void CastFixedList::stringtoFixedListCastExecFunction<UnaryFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
     const auto& param = params[0];
-    auto option = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig.option;
+    auto option = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->option;
     if (param->state->isFlat()) {
         auto inputPos = param->state->selVector->selectedPositions[0];
         auto resultPos = result.state->selVector->selectedPositions[0];
@@ -197,7 +197,7 @@ void CastFixedList::stringtoFixedListCastExecFunction<CastChildFunctionExecutor>
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
     auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
-    auto option = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig.option;
+    auto option = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->option;
     auto inputVector = params[0].get();
     for (auto i = 0u; i < numOfEntries; i++) {
         result.setNull(i, inputVector->isNull(i));

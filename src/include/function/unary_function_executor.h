@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/vector/value_vector.h"
-#include "function/function.h"
+#include "function/cast/cast_function_bind_data.h"
 
 namespace kuzu {
 namespace function {
@@ -41,7 +41,7 @@ struct UnaryCastStringFunctionWrapper {
         auto resultVector_ = (common::ValueVector*)resultVector;
         FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
             resultVector_->getValue<RESULT_TYPE>(resultPos), resultVector_, inputPos,
-            &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig.option);
+            &reinterpret_cast<CastFunctionBindData*>(dataPtr)->option);
     }
 };
 

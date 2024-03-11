@@ -14,7 +14,7 @@ namespace function {
 
 struct CastString {
     static void copyStringToVector(
-        ValueVector* vector, uint64_t rowToAdd, std::string_view strVal, const CSVOption* option);
+        ValueVector* vector, uint64_t vectorPos, std::string_view strVal, const CSVOption* option);
 
     template<typename T>
     static inline bool tryCast(const ku_string_t& input, T& result) {

@@ -101,7 +101,7 @@ LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, std::vector<LogicalType*> 
     MemoryManager* mm, common::RelMultiplicity multiplicity)
     : LocalNodeGroup{nodeGroupStartOffset, std::move(dataTypes), mm} {
     relNGInfo = std::make_unique<RelNGInfo>(multiplicity, chunks.size());
-    adjChunk = std::make_unique<LocalVectorCollection>(LogicalType::INTERNAL_ID(), mm);
+    adjChunk = std::make_unique<LocalVectorCollection>(*LogicalType::INTERNAL_ID(), mm);
 }
 
 // TODO(Guodong): We should change the map between relID and rowIdx to a vector of pairs, which is

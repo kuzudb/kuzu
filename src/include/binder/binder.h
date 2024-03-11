@@ -7,7 +7,6 @@
 #include "expression_binder.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
-#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace parser {
@@ -80,12 +79,9 @@ class Binder {
     friend class ExpressionBinder;
 
 public:
-    explicit Binder(const catalog::Catalog& catalog, storage::MemoryManager* memoryManager,
-        storage::StorageManager* storageManager, common::VirtualFileSystem* vfs,
-        main::ClientContext* clientContext, extension::ExtensionOptions* extensionOptions)
-        : catalog{catalog}, memoryManager{memoryManager}, storageManager{storageManager}, vfs{vfs},
-          lastExpressionId{0}, scope{std::make_unique<BinderScope>()}, expressionBinder{this},
-          clientContext{clientContext}, extensionOptions{extensionOptions} {}
+    explicit Binder(main::ClientContext* clientContext)
+        : lastExpressionId{0}, scope{std::make_unique<BinderScope>()},
+          expressionBinder{this, clientContext}, clientContext{clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -294,15 +290,10 @@ private:
         common::FileType fileType, const common::ReaderConfig& config);
 
 private:
-    const catalog::Catalog& catalog;
-    storage::MemoryManager* memoryManager;
-    storage::StorageManager* storageManager;
-    common::VirtualFileSystem* vfs;
     uint32_t lastExpressionId;
     std::unique_ptr<BinderScope> scope;
     ExpressionBinder expressionBinder;
     main::ClientContext* clientContext;
-    extension::ExtensionOptions* extensionOptions;
 };
 
 } // namespace binder

@@ -4,6 +4,10 @@
 #include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace common {
 class Value;
 }
@@ -17,7 +21,8 @@ class ExpressionBinder {
     friend class Binder;
 
 public:
-    explicit ExpressionBinder(Binder* queryBinder) : binder{queryBinder} {}
+    ExpressionBinder(Binder* queryBinder, main::ClientContext* context)
+        : binder{queryBinder}, context{context} {}
 
     std::shared_ptr<Expression> bindExpression(const parser::ParsedExpression& parsedExpression);
 
@@ -124,6 +129,7 @@ private:
 
 private:
     Binder* binder;
+    main::ClientContext* context;
     std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
 };
 

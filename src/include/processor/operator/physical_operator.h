@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/interrupt.h"
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
 
@@ -130,15 +129,7 @@ public:
     // Local state is initialized for each thread.
     void initLocalState(ResultSet* resultSet, ExecutionContext* context);
 
-    inline bool getNextTuple(ExecutionContext* context) {
-        if (context->clientContext->isInterrupted()) {
-            throw common::InterruptException{};
-        }
-        metrics->executionTime.start();
-        auto result = getNextTuplesInternal(context);
-        metrics->executionTime.stop();
-        return result;
-    }
+    bool getNextTuple(ExecutionContext* context);
 
     std::unordered_map<std::string, std::string> getProfilerKeyValAttributes(
         common::Profiler& profiler) const;

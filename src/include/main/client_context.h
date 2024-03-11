@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 
+#include "client_config.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/scalar_function.h"
@@ -24,6 +25,10 @@ class ExpressionBinder;
 
 namespace common {
 class RandomEngine;
+}
+
+namespace extension {
+struct ExtensionOptions;
 }
 
 namespace main {
@@ -47,77 +52,60 @@ class ClientContext {
     friend class Connection;
     friend class binder::Binder;
     friend class binder::ExpressionBinder;
-    friend class testing::TinySnbDDLTest;
-    friend class testing::TinySnbCopyCSVTransactionTest;
-    friend struct ThreadsSetting;
-    friend struct TimeoutSetting;
-    friend struct VarLengthExtendMaxDepthSetting;
-    friend struct EnableSemiMaskSetting;
-    friend struct HomeDirectorySetting;
-    friend struct FileSearchPathSetting;
 
 public:
     explicit ClientContext(Database* database);
 
-    inline void interrupt() { activeQuery.interrupted = true; }
-
-    bool isInterrupted() const { return activeQuery.interrupted; }
-
-    inline bool isTimeOutEnabled() const { return timeoutInMS != 0; }
-
-    inline uint64_t getTimeoutRemainingInMS() {
-        KU_ASSERT(isTimeOutEnabled());
-        auto elapsed = activeQuery.timer.getElapsedTimeInMS();
-        return elapsed >= timeoutInMS ? 0 : timeoutInMS - elapsed;
-    }
-
-    inline bool isEnableSemiMask() const { return enableSemiMask; }
-
-    void startTimingIfEnabled();
-
+    // Client config
+    const ClientConfig* getClientConfig() const { return &config; }
+    ClientConfig* getClientConfigUnsafe() { return &config; }
     KUZU_API common::Value getCurrentSetting(const std::string& optionName);
+    // Timer and timeout
+    void interrupt() { activeQuery.interrupted = true; }
+    bool interrupted() const { return activeQuery.interrupted; }
+    bool hasTimeout() const { return config.timeoutInMS != 0; }
+    void setQueryTimeOut(uint64_t timeoutInMS);
+    uint64_t getQueryTimeOut() const;
+    void startTimer();
+    uint64_t getTimeoutRemainingInMS() const;
+    void resetActiveQuery() { activeQuery.reset(); }
 
+    // Parallelism
+    void setMaxNumThreadForExec(uint64_t numThreads);
+    uint64_t getMaxNumThreadForExec() const;
+
+    // Transaction.
     transaction::Transaction* getTx() const;
     KUZU_API transaction::TransactionContext* getTransactionContext() const;
 
+    // Replace function.
     inline bool hasReplaceFunc() { return replaceFunc != nullptr; }
     inline void setReplaceFunc(replace_func_t func) { replaceFunc = func; }
 
+    // Extension
     KUZU_API void setExtensionOption(std::string name, common::Value value);
-
-    common::RandomEngine* getRandomEngine() { return randomEngine.get(); }
-
-    common::VirtualFileSystem* getVFSUnsafe() const;
-
+    extension::ExtensionOptions* getExtensionOptions() const;
     std::string getExtensionDir() const;
 
+    // Environment.
+    KUZU_API std::string getEnvVariable(const std::string& name);
+
+    // Database component getters.
     KUZU_API Database* getDatabase() const { return database; }
     storage::StorageManager* getStorageManager();
     storage::MemoryManager* getMemoryManager();
     catalog::Catalog* getCatalog();
+    common::VirtualFileSystem* getVFSUnsafe() const;
+    common::RandomEngine* getRandomEngine();
 
-    KUZU_API std::string getEnvVariable(const std::string& name);
-
+    // Query.
     std::unique_ptr<PreparedStatement> prepare(std::string_view query);
-
-    void setQueryTimeOut(uint64_t timeoutInMS);
-
-    uint64_t getQueryTimeOut();
-
-    void setMaxNumThreadForExec(uint64_t numThreads);
-
-    uint64_t getMaxNumThreadForExec();
-
     KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
-
     std::unique_ptr<QueryResult> query(std::string_view queryStatement);
-
     void runQuery(std::string query);
 
 private:
-    inline void resetActiveQuery() { activeQuery.reset(); }
-
     std::unique_ptr<QueryResult> query(
         std::string_view query, std::string_view encodedJoin, bool enumerateAllPlans = true);
 
@@ -152,17 +140,19 @@ private:
 
     void commitUDFTrx(bool isAutoCommitTrx);
 
-    uint64_t numThreadsForExecution;
+    // Client side configurable settings.
+    ClientConfig config;
+    // Current query.
     ActiveQuery activeQuery;
-    uint64_t timeoutInMS;
-    uint32_t varLengthExtendMaxDepth;
+    // Transaction context.
     std::unique_ptr<transaction::TransactionContext> transactionContext;
-    bool enableSemiMask;
+    // Replace external object as pointer Value;
     replace_func_t replaceFunc;
+    // Extension configurable settings.
     std::unordered_map<std::string, common::Value> extensionOptionValues;
+    // Random generator for UUID.
     std::unique_ptr<common::RandomEngine> randomEngine;
-    std::string homeDirectory;
-    std::string fileSearchPath;
+    // Attached database.
     Database* database;
     std::mutex mtx;
 };

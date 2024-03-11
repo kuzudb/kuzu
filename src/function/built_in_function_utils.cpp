@@ -92,9 +92,6 @@ Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
     uint32_t minCost = UINT32_MAX;
     for (auto& function : functionSet) {
         auto func = reinterpret_cast<Function*>(function.get());
-        if (name == CAST_FUNC_NAME) {
-            return func;
-        }
         auto cost = getFunctionCost(inputTypes, func, isOverload);
         if (cost == UINT32_MAX) {
             continue;

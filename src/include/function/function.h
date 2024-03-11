@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "common/copier_config/csv_reader_config.h"
 
 namespace kuzu {
 namespace function {
@@ -13,14 +12,6 @@ struct FunctionBindData {
         : resultType{std::move(dataType)} {}
 
     virtual ~FunctionBindData() = default;
-};
-
-struct CastFunctionBindData : public FunctionBindData {
-    common::CSVReaderConfig csvConfig;
-    uint64_t numOfEntries;
-
-    explicit CastFunctionBindData(std::unique_ptr<common::LogicalType> dataType)
-        : FunctionBindData{std::move(dataType)} {}
 };
 
 struct Function;

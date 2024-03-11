@@ -39,18 +39,18 @@ row_idx_t LocalVectorCollection::append(ValueVector* vector) {
 
 void LocalVectorCollection::prepareAppend() {
     if (vectors.empty()) {
-        vectors.emplace_back(std::make_unique<LocalVector>(*dataType, mm));
+        vectors.emplace_back(std::make_unique<LocalVector>(dataType, mm));
     }
     auto lastVector = vectors.back().get();
     if (lastVector->isFull()) {
-        vectors.emplace_back(std::make_unique<LocalVector>(*dataType, mm));
+        vectors.emplace_back(std::make_unique<LocalVector>(dataType, mm));
     }
 }
 
 std::unique_ptr<LocalVectorCollection> LocalVectorCollection::getStructChildVectorCollection(
     common::struct_field_idx_t idx) {
     auto childCollection = std::make_unique<LocalVectorCollection>(
-        StructType::getField(dataType.get(), idx)->getType()->copy(), mm);
+        *StructType::getField(&dataType, idx)->getType()->copy(), mm);
 
     for (auto i = 0u; i < numRows; i++) {
         auto fieldVector =
@@ -68,7 +68,7 @@ LocalNodeGroup::LocalNodeGroup(
     for (auto i = 0u; i < dataTypes.size(); ++i) {
         // To avoid unnecessary memory consumption, we chunk local changes of each column in the
         // node group into chunks of size DEFAULT_VECTOR_CAPACITY.
-        chunks[i] = std::make_unique<LocalVectorCollection>(dataTypes[i]->copy(), mm);
+        chunks[i] = std::make_unique<LocalVectorCollection>(*dataTypes[i]->copy(), mm);
     }
 }
 

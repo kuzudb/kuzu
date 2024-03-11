@@ -55,6 +55,7 @@ public:
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
     virtual void append(common::ValueVector* vector);
+    virtual void appendOne(common::ValueVector* vector, common::vector_idx_t pos);
     virtual void append(
         ColumnChunk* other, common::offset_t startPosInOtherChunk, uint32_t numValuesToAppend);
 
@@ -73,8 +74,7 @@ public:
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
     virtual void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk);
-    virtual void write(
-        common::ValueVector* vector, common::ValueVector* offsetsInChunk, bool isCSR);
+    virtual void write(ColumnChunk* chunk, ColumnChunk* offsetsInChunk, bool isCSR);
     virtual void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
     virtual void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
@@ -151,12 +151,12 @@ public:
               enableCompression, hasNullChunk) {}
 
     void append(common::ValueVector* vector) final;
+    void appendOne(common::ValueVector* vector, common::vector_idx_t pos) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector,
-        bool isCSR) final;
+    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool isCSR) final;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 };
@@ -206,8 +206,11 @@ protected:
 };
 
 struct ColumnChunkFactory {
+    // inMemory starts string column chunk dictionaries at zero instead of reserving space for
+    // values to grow
     static std::unique_ptr<ColumnChunk> createColumnChunk(common::LogicalType dataType,
-        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
+        bool inMemory = false);
 
     static std::unique_ptr<ColumnChunk> createNullColumnChunk(
         bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
