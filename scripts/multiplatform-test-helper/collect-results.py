@@ -3,6 +3,7 @@
 import os
 import sys
 import pandas as pd
+import json
 
 
 def main():
@@ -58,6 +59,9 @@ def main():
     markdown = summary_df.to_markdown()
     with open("results.md", "w") as f:
         f.write(markdown)
+
+    with open("results.json", "w") as f:
+        json.dump(results_summary, f, indent=4)
 
 
 if __name__ == "__main__":
