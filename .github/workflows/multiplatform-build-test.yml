@@ -437,10 +437,6 @@ jobs:
           dnf update -y
           dnf install -y epel-release
           dnf update -y
-      
-      - name: Cleanup
-        run: |
-          rm -rf /root/.docker
 
       - name: Enable SHA-1 on Rocky Linux 9
         if: matrix.image == 'rockylinux:9'
@@ -467,8 +463,8 @@ jobs:
         run: |
           python3 -m venv /opt/venv
           source /opt/venv/bin/activate
-          pip3 install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip3 install torch~=2.2.1 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
 
       - name: Ensure Node.js dependencies
         working-directory: tools/nodejs_api
