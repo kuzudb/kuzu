@@ -14,13 +14,13 @@ def test_exception(establish_connection):
 
 
 def test_db_path_exception():
-    path = '/:* /? " < > |'
+    path = ""
     if sys.platform == "win32":
         error_message = 'Failed to create directory'
     else:
         error_message = 'filesystem error'
     with pytest.raises(RuntimeError, match=error_message):
-        kuzu.Database(str(path))
+        kuzu.Database(path)
 
 def test_read_only_exception(establish_connection):
     # TODO: Enable this test on Windows when the read-only mode is implemented.
