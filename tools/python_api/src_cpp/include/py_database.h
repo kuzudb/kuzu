@@ -24,7 +24,7 @@ public:
     explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
         uint64_t maxNumThreads, bool compression, bool readOnly, uint64_t maxDBSize);
 
-    ~PyDatabase() = default;
+    ~PyDatabase();
 
     template<class T>
     void scanNodeTable(const std::string& tableName, const std::string& propName,
