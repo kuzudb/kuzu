@@ -348,7 +348,7 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.67
+          $HOME/.cargo/bin/rustup toolchain install 1.76
 
       - name: Build
         run: |
@@ -474,7 +474,7 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.67
+          $HOME/.cargo/bin/rustup toolchain install 1.76
 
       - name: Build
         run: |
@@ -574,7 +574,7 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.67
+          $HOME/.cargo/bin/rustup toolchain install 1.76
 
       - name: Build
         run: |
@@ -669,7 +669,7 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.67
+          $HOME/.cargo/bin/rustup toolchain install 1.76
 
       - name: Build
         run: |
