@@ -628,5 +628,11 @@ jobs:
       - name: Create summary
         run: |
           $GITHUB_URL=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-          pip3 install pandas
+          pip3 install pandas tabulate
           python3 scripts/multiplatform-test-helper/collect-results.py results
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: results
+          path: results.md
