@@ -23,16 +23,9 @@ struct ExceptionMessage {
     static std::string violateRelMultiplicityConstraint(
         const std::string& tableName, const std::string& offset, const std::string& direction);
 
-    static inline std::string validateCopyNPYByColumnException() {
-        return "Please use COPY FROM BY COLUMN statement for copying npy files.";
-    }
-    static inline std::string validateCopyCSVParquetByColumnException() {
-        return "Please use COPY FROM statement for copying csv and parquet files.";
-    }
     static inline std::string validateCopyToCSVParquetExtensionsException() {
         return "COPY TO currently only supports csv and parquet files.";
     }
-    static std::string validateCopyNpyNotForRelTablesException(const std::string& tableName);
 };
 
 } // namespace common

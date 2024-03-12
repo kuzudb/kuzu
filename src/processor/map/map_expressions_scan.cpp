@@ -31,8 +31,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(
     KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::RESULT_COLLECTOR);
     auto resultCollector = (ResultCollector*)physicalOp->getChild(0);
     auto table = resultCollector->getResultFactorizedTable();
-    return createFactorizedTableScan(expressionsToScan, colIndicesToScan, schema, table,
-        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, nullptr);
+    return createFTableScan(expressionsToScan, colIndicesToScan, schema, table,
+        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
 }
 
 } // namespace processor

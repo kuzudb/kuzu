@@ -22,7 +22,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logic
     info.function = scanFileInfo->copyFunc;
     info.bindData = scanFileInfo->bindData->copy();
     info.outPosV = outPosV;
-    info.rowOffsetPos = getDataPos(*scanFileInfo->offset, *outSchema);
+    if (scanFile->hasOffset()) {
+        info.rowOffsetPos = getDataPos(*scanFile->getOffset(), *outSchema);
+    } else {
+        info.rowOffsetPos = DataPos::getInvalidPos();
+    }
     info.outputType =
         outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
     auto sharedState = std::make_shared<InQueryCallSharedState>();

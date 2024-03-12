@@ -8,10 +8,11 @@ namespace planner {
 
 class LogicalAccumulate : public LogicalOperator {
 public:
-    LogicalAccumulate(common::AccumulateType accumulateType,
-        binder::expression_vector expressionsToFlatten, std::shared_ptr<LogicalOperator> child)
+    LogicalAccumulate(common::AccumulateType accumulateType, binder::expression_vector flatExprs,
+        std::shared_ptr<binder::Expression> offset, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::ACCUMULATE, std::move(child)},
-          accumulateType{accumulateType}, expressionsToFlatten{std::move(expressionsToFlatten)} {}
+          accumulateType{accumulateType}, flatExprs{std::move(flatExprs)}, offset{
+                                                                               std::move(offset)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
@@ -24,15 +25,19 @@ public:
     inline binder::expression_vector getExpressionsToAccumulate() const {
         return children[0]->getSchema()->getExpressionsInScope();
     }
+    inline std::shared_ptr<binder::Expression> getOffset() const { return offset; }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
         return make_unique<LogicalAccumulate>(
-            accumulateType, expressionsToFlatten, children[0]->copy());
+            accumulateType, flatExprs, offset, children[0]->copy());
     }
 
 private:
     common::AccumulateType accumulateType;
-    binder::expression_vector expressionsToFlatten;
+    binder::expression_vector flatExprs;
+    // Accumulate may be used as a source operator for COPY pipeline. In such case, row offset needs
+    // to be provided in order to generate internal ID.
+    std::shared_ptr<binder::Expression> offset;
 };
 
 } // namespace planner

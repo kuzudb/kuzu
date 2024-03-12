@@ -30,7 +30,7 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
     for (auto& column : extraInfo->propertyColumns) {
         payloads.push_back(column);
     }
-    payloads.push_back(copyFromInfo.fileScanInfo->offset);
+    payloads.push_back(copyFromInfo.offset);
     for (auto& lookupInfo : extraInfo->infos) {
         payloads.push_back(lookupInfo.offset);
     }
@@ -84,8 +84,22 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
 std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(
     const BoundCopyFromInfo* info, binder::expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
-    auto scanInfo = info->fileScanInfo.get();
-    appendScanFile(scanInfo, *plan);
+    switch (info->source->type) {
+    case ScanSourceType::FILE: {
+        auto fileSource =
+            ku_dynamic_cast<BoundBaseScanSource*, BoundFileScanSource*>(info->source.get());
+        appendScanFile(&fileSource->fileScanInfo, *plan);
+    } break;
+    case ScanSourceType::QUERY: {
+        auto querySource =
+            ku_dynamic_cast<BoundBaseScanSource*, BoundQueryScanSource*>(info->source.get());
+        plan = getBestPlan(planQuery(*querySource->statement));
+        appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
+            info->offset, *plan);
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
     appendCopyFrom(*info, results, *plan);
     return plan;
 }
@@ -93,9 +107,11 @@ std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(
 std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(
     const BoundCopyFromInfo* info, binder::expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
-    auto scanInfo = info->fileScanInfo.get();
-    appendScanFile(scanInfo, *plan);
-    appendDistinct(scanInfo->columns, *plan);
+    KU_ASSERT(info->source->type == ScanSourceType::FILE);
+    auto fileSource =
+        ku_dynamic_cast<BoundBaseScanSource*, BoundFileScanSource*>(info->source.get());
+    appendScanFile(&fileSource->fileScanInfo, *plan);
+    appendDistinct(fileSource->fileScanInfo.columns, *plan);
     appendCopyFrom(*info, results, *plan);
     return plan;
 }
@@ -103,7 +119,22 @@ std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(
 std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(
     const BoundCopyFromInfo* info, binder::expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
-    appendScanFile(info->fileScanInfo.get(), *plan);
+    switch (info->source->type) {
+    case ScanSourceType::FILE: {
+        auto fileSource =
+            ku_dynamic_cast<BoundBaseScanSource*, BoundFileScanSource*>(info->source.get());
+        appendScanFile(&fileSource->fileScanInfo, info->offset, *plan);
+    } break;
+    case ScanSourceType::QUERY: {
+        auto querySource =
+            ku_dynamic_cast<BoundBaseScanSource*, BoundQueryScanSource*>(info->source.get());
+        plan = getBestPlan(planQuery(*querySource->statement));
+        appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
+            info->offset, *plan);
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
     auto extraInfo =
         ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRelInfo*>(info->extraInfo.get());
     appendIndexScan(copyVector(extraInfo->infos), *plan);
@@ -122,9 +153,11 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRdfFrom(
     auto rrlPlan = planCopyRelFrom(&extraRdfInfo->rrlInfo, results);
     auto children = logical_op_vector_t{rrlPlan->getLastOperator(), rrrPlan->getLastOperator(),
         lPlan->getLastOperator(), rPlan->getLastOperator()};
-    if (info->fileScanInfo != nullptr) {
+    if (info->source->type == ScanSourceType::FILE) {
         auto readerPlan = LogicalPlan();
-        appendScanFile(info->fileScanInfo.get(), readerPlan);
+        auto fileSource =
+            ku_dynamic_cast<BoundBaseScanSource*, BoundFileScanSource*>(info->source.get());
+        appendScanFile(&fileSource->fileScanInfo, readerPlan);
         children.push_back(readerPlan.getLastOperator());
     }
     auto resultPlan = std::make_unique<LogicalPlan>();

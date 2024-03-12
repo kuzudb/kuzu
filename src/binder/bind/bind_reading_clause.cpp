@@ -152,8 +152,11 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     auto& loadFrom = ku_dynamic_cast<const ReadingClause&, const LoadFrom&>(readingClause);
     function::TableFunction* scanFunction;
     std::unique_ptr<TableFuncBindInput> bindInput;
-    if (loadFrom.hasObjectName()) {
-        auto objectName = loadFrom.getObjectname();
+    auto source = loadFrom.getSource();
+    switch (source->type) {
+    case ScanSourceType::OBJECT: {
+        auto objectSource = ku_dynamic_cast<BaseScanSource*, ObjectScanSource*>(source);
+        auto objectName = objectSource->objectName;
         auto objectExpr = expressionBinder.bindVariableExpression(objectName);
         auto literalExpr =
             ku_dynamic_cast<const Expression*, const LiteralExpression*>(objectExpr.get());
@@ -163,8 +166,10 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         scanFunction = ku_dynamic_cast<Function*, TableFunction*>(func);
         bindInput = std::make_unique<function::TableFuncBindInput>();
         bindInput->inputs.push_back(*literalExpr->getValue());
-    } else {
-        auto filePaths = bindFilePaths(loadFrom.getFilePaths());
+    } break;
+    case ScanSourceType::FILE: {
+        auto fileSource = ku_dynamic_cast<BaseScanSource*, FileScanSource*>(source);
+        auto filePaths = bindFilePaths(fileSource->filePaths);
         auto fileType = bindFileType(filePaths);
         auto readerConfig = std::make_unique<ReaderConfig>(fileType, std::move(filePaths));
         readerConfig->options = bindParsingOptions(loadFrom.getParsingOptionsRef());
@@ -182,7 +187,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         }
         // Bind columns from input.
         std::vector<std::string> expectedColumnNames;
-        std::vector<common::LogicalType> expectedColumnTypes;
+        std::vector<LogicalType> expectedColumnTypes;
         for (auto& [name, type] : loadFrom.getColumnNameDataTypesRef()) {
             expectedColumnNames.push_back(name);
             expectedColumnTypes.push_back(*bindDataType(type));
@@ -193,16 +198,16 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         bindInput_->expectedColumnTypes = std::move(expectedColumnTypes);
         bindInput_->context = clientContext;
         bindInput = std::move(bindInput_);
+    } break;
+    default:
+        throw BinderException(stringFormat("LOAD FROM subquery is not supported."));
     }
     auto bindData = scanFunction->bindFunc(clientContext, bindInput.get());
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
     }
-    auto offset = expressionBinder.createVariableExpression(
-        LogicalType(LogicalTypeID::INT64), std::string(InternalKeyword::ROW_OFFSET));
-    auto info =
-        BoundFileScanInfo(scanFunction, std::move(bindData), std::move(columns), std::move(offset));
+    auto info = BoundFileScanInfo(scanFunction, std::move(bindData), std::move(columns));
     auto boundLoadFrom = std::make_unique<BoundLoadFrom>(std::move(info));
     if (loadFrom.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*loadFrom.getWherePredicate());

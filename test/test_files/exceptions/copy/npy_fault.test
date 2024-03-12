@@ -10,4 +10,7 @@
 ---- ok
 -STATEMENT copy knows from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy") by column;
 ---- error
-Binder exception: Copy from npy files to rel table knows is not supported yet.
+Binder exception: Copy by column is not supported for relationship table.
+-STATEMENT copy person from ("${KUZU_ROOT_DIRECTORY}/dataset/read-list-tests/large-list/vPerson.csv") by column;
+---- error
+Binder exception: Copy by column with CSV file type is not supported.
