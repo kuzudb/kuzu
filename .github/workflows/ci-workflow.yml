@@ -53,12 +53,7 @@ jobs:
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
-
-      - name: Extension test
-        run: |
-          cd scripts/ && python3 http-server.py &
-          make extension-test && make clean
-
+        
       - name: Build
         run: make all
 
@@ -85,6 +80,11 @@ jobs:
           file: cover.info
           functionalities: "search"
 
+      - name: Extension test
+        run: |
+          cd scripts/ && python3 http-server.py &
+          make extension-test && make clean
+  
   gcc-build-test-x86:
     name: gcc build & test 32-bit
     needs: [clang-formatting-check, sanity-checks]
@@ -187,11 +187,6 @@ jobs:
         run: npm install --include=dev
         working-directory: tools/nodejs_api
 
-      - name: Extension test
-        run: |
-          cd scripts/ && python3 http-server.py &
-          make extension-test && make clean
-
       - name: Build
         run: make all
 
@@ -207,6 +202,11 @@ jobs:
       - name: Java test
         run: make javatest
 
+      - name: Extension test
+        run: |
+          cd scripts/ && python3 http-server.py &
+          make extension-test && make clean
+          
   msvc-build-test:
     name: msvc build & test
     needs: [clang-formatting-check, sanity-checks]
@@ -236,13 +236,6 @@ jobs:
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
-
-      - name: Extension test
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          cd scripts/ && start /b python http-server.py && cd ..
-          make extension-test && make clean
 
       - name: Build
         shell: cmd
@@ -283,6 +276,13 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make javatest
+    
+      - name: Extension test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          cd scripts/ && start /b python http-server.py && cd ..
+          make extension-test && make clean
 
   tidy-and-diagnostics:
     name: clang tidy & clangd diagnostics check
@@ -424,11 +424,6 @@ jobs:
         run: npm install --include=dev
         working-directory: tools/nodejs_api
 
-      - name: Extension test
-        run: |
-          cd scripts/ && python3 http-server.py &
-          make extension-test && make clean
-
       - name: Build
         run: make all
 
@@ -469,3 +464,8 @@ jobs:
           ulimit -n 10240
           source /Users/runner/.cargo/env
           cargo build --locked --features arrow
+
+      - name: Extension test
+        run: |
+          cd scripts/ && python3 http-server.py &
+          make extension-test && make clean
