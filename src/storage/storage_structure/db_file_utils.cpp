@@ -10,21 +10,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-struct WALPageIdxAndFrame {
-    WALPageIdxAndFrame(common::page_idx_t originalPageIdx, common::page_idx_t pageIdxInWAL,
-        uint8_t* frame)
-        : originalPageIdx{originalPageIdx}, pageIdxInWAL{pageIdxInWAL}, frame{frame} {}
-
-    WALPageIdxAndFrame(WALPageIdxAndFrame& other)
-        : originalPageIdx{other.originalPageIdx}, pageIdxInWAL{other.pageIdxInWAL},
-          frame{other.frame} {}
-
-    common::page_idx_t originalPageIdx;
-    common::page_idx_t pageIdxInWAL;
-    uint8_t* frame;
-};
-
-WALPageIdxAndFrame createWALVersionIfNecessaryAndPinPage(page_idx_t originalPageIdx,
+WALPageIdxAndFrame DBFileUtils::createWALVersionIfNecessaryAndPinPage(page_idx_t originalPageIdx,
     bool insertingNewPage, BMFileHandle& fileHandle, DBFileID dbFileID,
     BufferManager& bufferManager, WAL& wal) {
     fileHandle.addWALPageIdxGroupIfNecessary(originalPageIdx);

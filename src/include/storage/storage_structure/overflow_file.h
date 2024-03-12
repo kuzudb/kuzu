@@ -7,7 +7,6 @@
 #include <string_view>
 #include <vector>
 
-#include "common/cast.h"
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
@@ -92,13 +91,7 @@ public:
         bool readOnly, common::VirtualFileSystem* vfs);
 
     // For creating an overflow file from scratch
-    OverflowFile(const std::string& fName, common::VirtualFileSystem* vfs)
-        : numPagesOnDisk{0}, fileHandle{std::make_unique<FileHandle>(fName,
-                                 FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs)},
-          bufferManager{nullptr}, wal{nullptr}, pageCounter{0}, headerChanged{true} {
-        // Reserve a page for the header
-        getNewPageIdx();
-    }
+    static void createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs);
 
     // Handles contain a reference to the overflow file
     OverflowFile(OverflowFile&& other) = delete;
@@ -114,9 +107,7 @@ public:
         return handles.back().get();
     }
 
-    inline BMFileHandle* getBMFileHandle() const {
-        return common::ku_dynamic_cast<FileHandle*, BMFileHandle*>(fileHandle.get());
-    }
+    inline BMFileHandle* getBMFileHandle() const { return fileHandle.get(); }
 
 private:
     void readFromDisk(transaction::TransactionType trxType, common::page_idx_t pageIdx,
@@ -139,7 +130,7 @@ private:
     StringOverflowFileHeader header;
     common::page_idx_t numPagesOnDisk;
     DBFileID dbFileID;
-    std::unique_ptr<FileHandle> fileHandle;
+    std::unique_ptr<BMFileHandle> fileHandle;
     BufferManager* bufferManager;
     WAL* wal;
     std::atomic<common::page_idx_t> pageCounter;

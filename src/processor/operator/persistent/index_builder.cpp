@@ -17,8 +17,7 @@ namespace processor {
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
-IndexBuilderGlobalQueues::IndexBuilderGlobalQueues(PrimaryKeyIndexBuilder* pkIndex)
-    : pkIndex(pkIndex) {
+IndexBuilderGlobalQueues::IndexBuilderGlobalQueues(PrimaryKeyIndex* pkIndex) : pkIndex(pkIndex) {
     TypeUtils::visit(
         pkTypeID(), [&](ku_string_t) { queues.emplace<Queue<std::string>>(); },
         [&]<HashablePrimitive T>(T) { queues.emplace<Queue<T>>(); }, [](auto) { KU_UNREACHABLE; });
@@ -58,7 +57,7 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index) {
 }
 
 void IndexBuilderGlobalQueues::flushToDisk() const {
-    pkIndex->flush();
+    pkIndex->prepareCommit();
 }
 
 IndexBuilderLocalBuffers::IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& globalQueues)

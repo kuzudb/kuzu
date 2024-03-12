@@ -62,9 +62,8 @@ public:
         return (HashIndexUtils::hash(key) >> (64 - NUM_HASH_INDEXES_LOG2)) & (NUM_HASH_INDEXES - 1);
     }
 
-    static inline uint64_t getNumRequiredEntries(uint64_t numExistingEntries,
-        uint64_t numNewEntries) {
-        return ceil((double)(numExistingEntries + numNewEntries) * common::DEFAULT_HT_LOAD_FACTOR);
+    static inline uint64_t getNumRequiredEntries(uint64_t numEntries) {
+        return ceil((double)(numEntries)*common::DEFAULT_HT_LOAD_FACTOR);
     }
 };
 } // namespace storage

@@ -1,4 +1,4 @@
-#include "storage/index/hash_index_builder.h"
+#include "storage/index/in_mem_hash_index.h"
 
 #include <fcntl.h>
 
@@ -7,8 +7,11 @@
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "storage/file_handle.h"
+#include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
+#include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/overflow_file.h"
 
 using namespace kuzu::common;
@@ -17,53 +20,58 @@ namespace kuzu {
 namespace storage {
 
 template<typename T>
-HashIndexBuilder<T>::HashIndexBuilder(const std::shared_ptr<FileHandle>& fileHandle,
-    OverflowFileHandle* overflowFileHandle, uint64_t indexPos, PhysicalTypeID keyDataType)
-    : fileHandle(fileHandle), overflowFileHandle(overflowFileHandle) {
-    this->indexHeader = std::make_unique<HashIndexHeader>(keyDataType);
-    headerArray = std::make_unique<InMemDiskArrayBuilder<HashIndexHeader>>(*fileHandle,
-        NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, 0 /* numElements */);
-    pSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(*fileHandle,
-        NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, 0 /* numElements */);
-    // Reserve a slot for oSlots, which is always skipped, as we treat slot idx 0 as NULL.
-    oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(*fileHandle,
-        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, 1 /* numElements */);
-    allocatePSlots(1u << this->indexHeader->currentLevel);
+InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
+    // TODO(bmwinger): Remove temp file and make the builder a completely separate class from the
+    // disk array Or remove it entirely (though it might have some benefit as a custom version of
+    // std::deque with a reasonable chunk size).
+    : overflowFileHandle(overflowFileHandle),
+      dummy{"dummyfile", FileHandle::O_IN_MEM_TEMP_FILE, nullptr},
+      pSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true)},
+      oSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 1, true)},
+      indexHeader{TypeUtils::getPhysicalTypeIDForType<T>()} {
+    allocatePSlots(1u << this->indexHeader.currentLevel);
 }
 
 template<typename T>
-void HashIndexBuilder<T>::bulkReserve(uint32_t numEntries_) {
-    slot_id_t numRequiredEntries =
-        HashIndexUtils::getNumRequiredEntries(this->indexHeader->numEntries, numEntries_);
-    // Build from scratch.
-    auto numRequiredSlots = (numRequiredEntries + getSlotCapacity<T>() - 1) / getSlotCapacity<T>();
-    auto numSlotsOfCurrentLevel = 1u << this->indexHeader->currentLevel;
-    while ((numSlotsOfCurrentLevel << 1) <= numRequiredSlots) {
-        this->indexHeader->incrementLevel();
+void InMemHashIndex<T>::allocateSlots(uint32_t newNumSlots) {
+    auto numSlotsOfCurrentLevel = 1u << this->indexHeader.currentLevel;
+    while ((numSlotsOfCurrentLevel << 1) <= newNumSlots) {
+        this->indexHeader.incrementLevel();
         numSlotsOfCurrentLevel <<= 1;
     }
-    if (numRequiredSlots >= numSlotsOfCurrentLevel) {
-        this->indexHeader->nextSplitSlotId = numRequiredSlots - numSlotsOfCurrentLevel;
+    if (newNumSlots >= numSlotsOfCurrentLevel) {
+        this->indexHeader.nextSplitSlotId = newNumSlots - numSlotsOfCurrentLevel;
     }
-    // The next slot to split should always be within the slots covered by the current level
-    // The level should be increased if it goes beyond that point
-    KU_ASSERT(this->indexHeader->nextSplitSlotId <= this->indexHeader->levelHashMask);
-    auto existingSlots = pSlots->getNumElements();
-    if (numRequiredSlots > existingSlots) {
-        allocatePSlots(numRequiredSlots - existingSlots);
+    auto existingSlots = pSlots->size();
+    if (newNumSlots > existingSlots) {
+        allocatePSlots(newNumSlots - existingSlots);
     }
 }
 
 template<typename T>
-void HashIndexBuilder<T>::copy(const uint8_t* oldEntry, slot_id_t newSlotId, uint8_t fingerprint) {
+void InMemHashIndex<T>::reserve(uint32_t numEntries_) {
+    slot_id_t numRequiredEntries = HashIndexUtils::getNumRequiredEntries(numEntries_);
+    auto numRequiredSlots = (numRequiredEntries + getSlotCapacity<T>() - 1) / getSlotCapacity<T>();
+    if (indexHeader.numEntries == 0) {
+        allocateSlots(numRequiredSlots);
+    } else {
+        while (pSlots->size() < numRequiredSlots) {
+            splitSlot(indexHeader);
+        }
+    }
+}
+
+template<typename T>
+void InMemHashIndex<T>::copy(const SlotEntry<T>& oldEntry, slot_id_t newSlotId,
+    uint8_t fingerprint) {
     SlotIterator iter(newSlotId, this);
     do {
         for (auto newEntryPos = 0u; newEntryPos < getSlotCapacity<T>(); newEntryPos++) {
             if (!iter.slot->header.isEntryValid(newEntryPos)) {
                 // The original slot was marked as unused, but
                 // copying to the original slot is unnecessary and will cause undefined behaviour
-                if (oldEntry != iter.slot->entries[newEntryPos].data()) {
-                    iter.slot->entries[newEntryPos].copyFrom(oldEntry);
+                if (&oldEntry != &iter.slot->entries[newEntryPos]) {
+                    iter.slot->entries[newEntryPos] = oldEntry;
                 }
                 iter.slot->header.setEntryValid(newEntryPos, fingerprint);
                 return;
@@ -75,12 +83,12 @@ void HashIndexBuilder<T>::copy(const uint8_t* oldEntry, slot_id_t newSlotId, uin
     iter.slot->header.nextOvfSlotId = newOvfSlotId;
     auto newOvfSlot = getSlot(SlotInfo{newOvfSlotId, SlotType::OVF});
     auto newEntryPos = 0u; // Always insert to the first entry when there is a new slot.
-    newOvfSlot->entries[newEntryPos].copyFrom(oldEntry);
+    newOvfSlot->entries[newEntryPos] = oldEntry;
     newOvfSlot->header.setEntryValid(newEntryPos, fingerprint);
 }
 
 template<typename T>
-void HashIndexBuilder<T>::splitSlot(HashIndexHeader& header) {
+void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
     // Add new slot
     allocatePSlots(1);
 
@@ -100,7 +108,7 @@ void HashIndexBuilder<T>::splitSlot(HashIndexHeader& header) {
             hash_t hash = this->hashStored(entry.key);
             auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
             auto newSlotId = hash & header.higherLevelHashMask;
-            copy(entry.data(), newSlotId, fingerprint);
+            copy(entry, newSlotId, fingerprint);
         }
     } while (nextChainedSlot(iter));
 
@@ -108,11 +116,11 @@ void HashIndexBuilder<T>::splitSlot(HashIndexHeader& header) {
 }
 
 template<typename T>
-size_t HashIndexBuilder<T>::append(const IndexBuffer<BufferKeyType>& buffer) {
+size_t InMemHashIndex<T>::append(const IndexBuffer<BufferKeyType>& buffer) {
     slot_id_t numRequiredEntries =
-        HashIndexUtils::getNumRequiredEntries(this->indexHeader->numEntries, buffer.size());
-    while (numRequiredEntries > pSlots->getNumElements() * getSlotCapacity<T>()) {
-        this->splitSlot(*this->indexHeader);
+        HashIndexUtils::getNumRequiredEntries(this->indexHeader.numEntries + buffer.size());
+    while (numRequiredEntries > pSlots->size() * getSlotCapacity<T>()) {
+        this->splitSlot(this->indexHeader);
     }
     // Do both searches after splitting. Returning early if the key already exists isn't a
     // particular concern and doing both after splitting allows the slotID to be reused
@@ -130,9 +138,9 @@ size_t HashIndexBuilder<T>::append(const IndexBuffer<BufferKeyType>& buffer) {
 }
 
 template<typename T>
-bool HashIndexBuilder<T>::appendInternal(Key key, common::offset_t value, common::hash_t hash) {
+bool InMemHashIndex<T>::appendInternal(Key key, common::offset_t value, common::hash_t hash) {
     auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
-    auto slotID = HashIndexUtils::getPrimarySlotIdForHash(*this->indexHeader, hash);
+    auto slotID = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hash);
     SlotIterator iter(slotID, this);
     do {
         for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
@@ -142,7 +150,7 @@ bool HashIndexBuilder<T>::appendInternal(Key key, common::offset_t value, common
                 // end of the valid entries in this primary slot and the entry does not already
                 // exist
                 insert(key, iter.slot, entryPos, value, fingerprint);
-                this->indexHeader->numEntries++;
+                this->indexHeader.numEntries++;
                 return true;
             } else if (iter.slot->header.fingerprints[entryPos] == fingerprint &&
                        equals(key, iter.slot->entries[entryPos].key)) {
@@ -153,15 +161,20 @@ bool HashIndexBuilder<T>::appendInternal(Key key, common::offset_t value, common
     } while (nextChainedSlot(iter));
     // Didn't find an available slot. Insert a new one
     insertToNewOvfSlot(key, iter.slot, value, fingerprint);
-    this->indexHeader->numEntries++;
+    this->indexHeader.numEntries++;
     return true;
 }
 
 template<typename T>
-bool HashIndexBuilder<T>::lookup(Key key, offset_t& result) {
+bool InMemHashIndex<T>::lookup(Key key, offset_t& result) {
+    // This needs to be fast if the builder is empty since this function is always tried
+    // when looking up in the persistent hash index
+    if (this->indexHeader.numEntries == 0) {
+        return false;
+    }
     auto hashValue = HashIndexUtils::hash(key);
     auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
-    auto slotId = HashIndexUtils::getPrimarySlotIdForHash(*this->indexHeader, hashValue);
+    auto slotId = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hashValue);
     SlotIterator iter(slotId, this);
     do {
         for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
@@ -178,23 +191,23 @@ bool HashIndexBuilder<T>::lookup(Key key, offset_t& result) {
 }
 
 template<typename T>
-uint32_t HashIndexBuilder<T>::allocatePSlots(uint32_t numSlotsToAllocate) {
+uint32_t InMemHashIndex<T>::allocatePSlots(uint32_t numSlotsToAllocate) {
     auto oldNumSlots = pSlots->getNumElements();
     auto newNumSlots = oldNumSlots + numSlotsToAllocate;
-    pSlots->resize(newNumSlots, true /* setToZero */);
+    pSlots->resize(newNumSlots, true /*setToZero*/);
     return oldNumSlots;
 }
 
 template<typename T>
-uint32_t HashIndexBuilder<T>::allocateAOSlot() {
+uint32_t InMemHashIndex<T>::allocateAOSlot() {
     auto oldNumSlots = oSlots->getNumElements();
     auto newNumSlots = oldNumSlots + 1;
-    oSlots->resize(newNumSlots, true /* setToZero */);
+    oSlots->resize(newNumSlots, true /*setToZero*/);
     return oldNumSlots;
 }
 
 template<typename T>
-Slot<T>* HashIndexBuilder<T>::getSlot(const SlotInfo& slotInfo) {
+Slot<T>* InMemHashIndex<T>::getSlot(const SlotInfo& slotInfo) {
     if (slotInfo.slotType == SlotType::PRIMARY) {
         return &pSlots->operator[](slotInfo.slotId);
     } else {
@@ -203,16 +216,7 @@ Slot<T>* HashIndexBuilder<T>::getSlot(const SlotInfo& slotInfo) {
 }
 
 template<typename T>
-void HashIndexBuilder<T>::flush() {
-    headerArray->resize(1, true /* setToZero */);
-    headerArray->operator[](0) = *this->indexHeader;
-    headerArray->saveToDisk();
-    pSlots->saveToDisk();
-    oSlots->saveToDisk();
-}
-
-template<typename T>
-inline void HashIndexBuilder<T>::insertToNewOvfSlot(Key key, Slot<T>* previousSlot,
+inline void InMemHashIndex<T>::insertToNewOvfSlot(Key key, Slot<T>* previousSlot,
     common::offset_t offset, uint8_t fingerprint) {
     auto newSlotId = allocateAOSlot();
     previousSlot->header.nextOvfSlotId = newSlotId;
@@ -222,7 +226,7 @@ inline void HashIndexBuilder<T>::insertToNewOvfSlot(Key key, Slot<T>* previousSl
 }
 
 template<>
-void HashIndexBuilder<ku_string_t>::insert(std::string_view key, Slot<ku_string_t>* slot,
+void InMemHashIndex<ku_string_t>::insert(std::string_view key, Slot<ku_string_t>* slot,
     uint8_t entryPos, offset_t offset, uint8_t fingerprint) {
     auto& entry = slot->entries[entryPos];
     entry.key = overflowFileHandle->writeString(key);
@@ -231,19 +235,19 @@ void HashIndexBuilder<ku_string_t>::insert(std::string_view key, Slot<ku_string_
 }
 
 template<typename T>
-common::hash_t HashIndexBuilder<T>::hashStored(const T& key) const {
+common::hash_t InMemHashIndex<T>::hashStored(const T& key) const {
     return HashIndexUtils::hash(key);
 }
 
 template<>
-common::hash_t HashIndexBuilder<ku_string_t>::hashStored(const ku_string_t& key) const {
+common::hash_t InMemHashIndex<ku_string_t>::hashStored(const ku_string_t& key) const {
     auto kuString = key;
     return HashIndexUtils::hash(
         overflowFileHandle->readString(transaction::TransactionType::WRITE, kuString));
 }
 
 template<>
-bool HashIndexBuilder<ku_string_t>::equals(std::string_view keyToLookup,
+bool InMemHashIndex<ku_string_t>::equals(std::string_view keyToLookup,
     const ku_string_t& keyInEntry) const {
     // Checks if prefix and len matches first.
     if (!HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
@@ -263,63 +267,36 @@ bool HashIndexBuilder<ku_string_t>::equals(std::string_view keyToLookup,
     }
 }
 
-template class HashIndexBuilder<int64_t>;
-template class HashIndexBuilder<int32_t>;
-template class HashIndexBuilder<int16_t>;
-template class HashIndexBuilder<int8_t>;
-template class HashIndexBuilder<uint64_t>;
-template class HashIndexBuilder<uint32_t>;
-template class HashIndexBuilder<uint16_t>;
-template class HashIndexBuilder<uint8_t>;
-template class HashIndexBuilder<double>;
-template class HashIndexBuilder<float>;
-template class HashIndexBuilder<int128_t>;
-template class HashIndexBuilder<ku_string_t>;
+template<typename T>
+void InMemHashIndex<T>::createEmptyIndexFiles(uint64_t indexPos, FileHandle& fileHandle) {
+    InMemDiskArrayBuilder<HashIndexHeader> headerArray(fileHandle,
+        NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, 0 /*numElements*/);
+    HashIndexHeader indexHeader(TypeUtils::getPhysicalTypeIDForType<T>());
+    headerArray.resize(1, true /*setToZero=*/);
+    headerArray[0] = indexHeader;
+    InMemDiskArrayBuilder<Slot<T>> pSlots(fileHandle,
+        NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, 0 /*numElements */);
+    // Reserve a slot for oSlots, which is always skipped, as we treat slot idx 0 as NULL.
+    InMemDiskArrayBuilder<Slot<T>> oSlots(fileHandle,
+        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, 1 /*numElements */);
 
-PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(const std::string& fName, PhysicalTypeID keyDataType,
-    VirtualFileSystem* vfs)
-    : keyDataTypeID{keyDataType} {
-    auto fileHandle =
-        std::make_shared<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);
-    fileHandle->addNewPages(NUM_HEADER_PAGES * NUM_HASH_INDEXES);
-    hashIndexBuilders.reserve(NUM_HASH_INDEXES);
-    TypeUtils::visit(
-        keyDataTypeID,
-        [&]<IndexHashable T>(T) {
-            if constexpr (std::is_same_v<T, ku_string_t>) {
-                overflowFile = std::make_unique<OverflowFile>(
-                    StorageUtils::getOverflowFileName(fileHandle->getFileInfo()->path), vfs);
-                for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                    hashIndexBuilders.push_back(std::make_unique<HashIndexBuilder<ku_string_t>>(
-                        fileHandle, overflowFile->addHandle(), i, keyDataType));
-                }
-            } else if constexpr (HashablePrimitive<T>) {
-                for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                    hashIndexBuilders.push_back(
-                        std::make_unique<HashIndexBuilder<T>>(fileHandle, nullptr, i, keyDataType));
-                }
-            } else {
-                KU_UNREACHABLE;
-            }
-        },
-        [](auto) { KU_UNREACHABLE; });
+    headerArray.saveToDisk();
+    pSlots.saveToDisk();
+    oSlots.saveToDisk();
 }
 
-void PrimaryKeyIndexBuilder::bulkReserve(uint32_t numEntries) {
-    uint32_t eachSize = numEntries / NUM_HASH_INDEXES + 1;
-    for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-        hashIndexBuilders[i]->bulkReserve(eachSize);
-    }
-}
-
-void PrimaryKeyIndexBuilder::flush() {
-    if (overflowFile) {
-        overflowFile->prepareCommit();
-    }
-    for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-        hashIndexBuilders[i]->flush();
-    }
-}
+template class InMemHashIndex<int64_t>;
+template class InMemHashIndex<int32_t>;
+template class InMemHashIndex<int16_t>;
+template class InMemHashIndex<int8_t>;
+template class InMemHashIndex<uint64_t>;
+template class InMemHashIndex<uint32_t>;
+template class InMemHashIndex<uint16_t>;
+template class InMemHashIndex<uint8_t>;
+template class InMemHashIndex<double>;
+template class InMemHashIndex<float>;
+template class InMemHashIndex<int128_t>;
+template class InMemHashIndex<ku_string_t>;
 
 } // namespace storage
 } // namespace kuzu
