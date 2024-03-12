@@ -7,8 +7,8 @@ from pandas import Timedelta, Timestamp
 from type_aliases import ConnDB
 
 
-def test_to_networkx_node(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_to_networkx_node(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     query = "MATCH (p:person) return p"
 
     res = conn.execute(query)
@@ -101,8 +101,8 @@ def test_to_networkx_node(establish_connection: ConnDB) -> None:
             assert node[key] == ground_truth[key][i]
 
 
-def test_networkx_undirected(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_networkx_undirected(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     res = conn.execute("MATCH (p1:person)-[r:knows]->(p2:person) WHERE p1.ID <= 3 RETURN p1, r, p2")
 
     nx_graph = res.get_as_networkx(directed=False)
@@ -213,8 +213,8 @@ def test_networkx_undirected(establish_connection: ConnDB) -> None:
             assert nx_graph.has_edge(nodes[i][0], nodes[j][0])
 
 
-def test_networkx_directed(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_networkx_directed(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     res = conn.execute("MATCH (p:person)-[r:workAt]->(o:organisation) RETURN p, r, o")
 
     nx_graph = res.get_as_networkx(directed=True)

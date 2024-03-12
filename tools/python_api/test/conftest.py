@@ -3,6 +3,7 @@ from __future__ import annotations
 import shutil
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from test_helper import KUZU_ROOT
@@ -13,6 +14,9 @@ try:
 except ModuleNotFoundError:
     sys.path.append(str(python_build_dir))
     import kuzu
+
+if TYPE_CHECKING:
+    from type_aliases import ConnDB
 
 
 def init_npy(conn: kuzu.Connection) -> None:
@@ -125,16 +129,15 @@ def init_rdf(conn: kuzu.Connection) -> None:
     for script in scripts:
         with script.open(mode="r") as f:
             for line in f.readlines():
-                line = line.strip()
-                if line:
+                if line := line.strip():
                     conn.execute(line)
 
 
-@pytest.fixture()
-def init_db(tmp_path: Path) -> Path:
-    if Path(tmp_path).exists():
-        shutil.rmtree(tmp_path)
-    db = kuzu.Database(tmp_path)
+def init_db(path: Path) -> Path:
+    if Path(path).exists():
+        shutil.rmtree(path)
+
+    db = kuzu.Database(path)
     conn = kuzu.Connection(db)
     init_tinysnb(conn)
     init_npy(conn)
@@ -142,14 +145,43 @@ def init_db(tmp_path: Path) -> Path:
     init_long_str(conn)
     init_movie_serial(conn)
     init_rdf(conn)
-    return tmp_path
+    return path
+
+
+_READONLY_CONN_DB_: ConnDB | None = None
+_WRITABLE_CONN_DB_: ConnDB | None = None
+_POOL_SIZE_: int = 256 * 1024 * 1024
+
+
+def _create_conn_db(path: Path, *, read_only: bool) -> ConnDB:
+    """Return a new connection and database."""
+    db = kuzu.Database(init_db(path), buffer_pool_size=_POOL_SIZE_, read_only=read_only)
+    conn = kuzu.Connection(db, num_threads=4)
+    return conn, db
 
 
 @pytest.fixture()
-def establish_connection(init_db: Path) -> tuple[kuzu.Connection, kuzu.Database]:
-    db = kuzu.Database(init_db, buffer_pool_size=256 * 1024 * 1024)
-    conn = kuzu.Connection(db, num_threads=4)
-    return conn, db
+def conn_db_readonly(tmp_path: Path) -> ConnDB:
+    """Return a cached read-only connection and database."""
+    global _READONLY_CONN_DB_
+    if _READONLY_CONN_DB_ is None:
+        _READONLY_CONN_DB_ = _create_conn_db(tmp_path, read_only=True)
+    return _READONLY_CONN_DB_
+
+
+@pytest.fixture()
+def conn_db_writable_cached(tmp_path: Path) -> ConnDB:
+    """Return a cached writable connection and database."""
+    global _WRITABLE_CONN_DB_
+    if _WRITABLE_CONN_DB_ is None:
+        _WRITABLE_CONN_DB_ = _create_conn_db(tmp_path, read_only=False)
+    return _WRITABLE_CONN_DB_
+
+
+@pytest.fixture()
+def conn_db_writable_new(tmp_path: Path) -> ConnDB:
+    """Return a new writable connection and database."""
+    return _create_conn_db(tmp_path, read_only=False)
 
 
 @pytest.fixture()

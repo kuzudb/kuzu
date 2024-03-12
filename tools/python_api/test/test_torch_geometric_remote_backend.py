@@ -18,8 +18,8 @@ TINY_SNB_KNOWS_GROUND_TRUTH = {
 TINY_SNB_PERSON_IDS_GROUND_TRUTH = [0, 2, 3, 5, 7, 8, 9, 10]
 
 
-def test_remote_backend_graph_store(establish_connection: ConnDB) -> None:
-    _, db = establish_connection
+def test_remote_backend_graph_store(conn_db_readonly: ConnDB) -> None:
+    _, db = conn_db_readonly
     fs, gs = db.get_torch_geometric_remote_backend()
     edge_idx = gs.get_edge_index(("person", "knows", "person"), layout="coo", is_sorted=False)
     assert edge_idx.shape == torch.Size([2, 14])
@@ -32,8 +32,8 @@ def test_remote_backend_graph_store(establish_connection: ConnDB) -> None:
         assert dst_id in TINY_SNB_KNOWS_GROUND_TRUTH[src_id]
 
 
-def test_remote_backend_feature_store_idx(establish_connection: ConnDB) -> None:
-    _, db = establish_connection
+def test_remote_backend_feature_store_idx(conn_db_readonly: ConnDB) -> None:
+    _, db = conn_db_readonly
     fs, _ = db.get_torch_geometric_remote_backend()
     id_set = set(TINY_SNB_PERSON_IDS_GROUND_TRUTH)
     index_to_id = {}
@@ -63,8 +63,8 @@ def test_remote_backend_feature_store_idx(establish_connection: ConnDB) -> None:
         assert ids[i].item() == index_to_id[i]
 
 
-def test_remote_backend_feature_store_types_1d(establish_connection: ConnDB) -> None:
-    _, db = establish_connection
+def test_remote_backend_feature_store_types_1d(conn_db_readonly: ConnDB) -> None:
+    _, db = conn_db_readonly
     fs, _ = db.get_torch_geometric_remote_backend()
     for i in range(3):
         assert fs["npyoned", "i64", i].item() - i == 1
@@ -74,8 +74,8 @@ def test_remote_backend_feature_store_types_1d(establish_connection: ConnDB) -> 
         assert fs["npyoned", "f32", i].item() - i - 1 < 1e-6
 
 
-def test_remote_backend_feature_store_types_2d(establish_connection: ConnDB) -> None:
-    _, db = establish_connection
+def test_remote_backend_feature_store_types_2d(conn_db_readonly: ConnDB) -> None:
+    _, db = conn_db_readonly
     fs, _ = db.get_torch_geometric_remote_backend()
     for i in range(3):
         i64 = fs["npytwod", "i64", i]
@@ -101,8 +101,8 @@ def test_remote_backend_feature_store_types_2d(establish_connection: ConnDB) -> 
             assert f32[0, j].item() - (base_number + j) - 1 < 1e-6
 
 
-def test_remote_backend_20k(establish_connection: ConnDB) -> None:
-    _, db = establish_connection
+def test_remote_backend_20k(conn_db_writable_cached: ConnDB) -> None:
+    _, db = conn_db_writable_cached
     conn = kuzu.Connection(db, num_threads=1)
     conn.execute("CREATE NODE TABLE npy20k (id INT64,f32 FLOAT[10],PRIMARY KEY(id));")
     conn.execute(

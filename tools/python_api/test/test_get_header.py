@@ -3,8 +3,8 @@ from __future__ import annotations
 from type_aliases import ConnDB
 
 
-def test_get_column_names(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_get_column_names(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     with conn.execute("MATCH (a:person)-[e:knows]->(b:person) RETURN a.fName, e.date, b.ID;") as result:
         column_names = result.get_column_names()
         assert column_names[0] == "a.fName"
@@ -12,8 +12,8 @@ def test_get_column_names(establish_connection: ConnDB) -> None:
         assert column_names[2] == "b.ID"
 
 
-def test_get_column_data_types(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_get_column_data_types(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     with conn.execute(
         "MATCH (p:person) RETURN p.ID, p.fName, p.isStudent, p.eyeSight, p.birthdate, p.registerTime, "
         "p.lastJobDuration, p.workedHours, p.courseScoresPerTerm;"
@@ -30,8 +30,8 @@ def test_get_column_data_types(establish_connection: ConnDB) -> None:
         assert column_data_types[8] == "INT64[][]"
 
 
-def test_get_schema(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_get_schema(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     with conn.execute(
         "MATCH (p:person) RETURN p.ID, p.fName, p.isStudent, p.eyeSight, p.birthdate, p.registerTime, "
         "p.lastJobDuration, p.workedHours, p.courseScoresPerTerm;"
