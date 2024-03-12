@@ -1,18 +1,24 @@
-from encodings import utf_8
-import pytest
+from __future__ import annotations
+
 import os
 import shutil
 import subprocess
+
 import pexpect
-from test_helper import *
-from typing import List, Union
+import pytest
+from test_helper import KUZU_EXEC_PATH, KUZU_ROOT, deleteIfExists
 
 
-def pytest_addoption(parser):
-    parser.addoption("--start-offset", action="store", type=int, help="Skip the first 'n' tests")
+def pytest_addoption(parser) -> None:
+    parser.addoption(
+        "--start-offset",
+        action="store",
+        type=int,
+        help="Skip the first 'n' tests",
+    )
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(config, items) -> None:
     start_offset = config.getoption("--start-offset")
     if not start_offset:
         # --skiplist not given in cli, therefore move on
@@ -25,32 +31,32 @@ def pytest_collection_modifyitems(config, items):
 
 
 class TestResult:
-    def __init__(self, stdout, stderr, status_code):
-        self.stdout: Union[str, bytes] = stdout
-        self.stderr: Union[str, bytes] = stderr
+    def __init__(self, stdout, stderr, status_code) -> None:
+        self.stdout: str | bytes = stdout
+        self.stderr: str | bytes = stderr
         self.status_code: int = status_code
 
-    def check_stdout(self, expected: Union[str, List[str], bytes]):
+    def check_stdout(self, expected: str | list[str] | bytes) -> None:
         if isinstance(expected, list):
-            expected = '\n'.join(expected)
+            expected = "\n".join(expected)
         assert self.status_code == 0
         assert expected in self.stdout
-    
-    def check_not_stdout(self, expected: Union[str, List[str], bytes]):
+
+    def check_not_stdout(self, expected: str | list[str] | bytes) -> None:
         if isinstance(expected, list):
-            expected = '\n'.join(expected)
+            expected = "\n".join(expected)
         assert self.status_code == 0
         assert expected not in self.stdout
 
-    def check_stderr(self, expected: str):
+    def check_stderr(self, expected: str) -> None:
         assert expected in self.stderr
 
 
 class ShellTest:
-    def __init__(self):
+    def __init__(self) -> None:
         self.shell = KUZU_EXEC_PATH
         self.arguments = [self.shell]
-        self.statements: List[str] = []
+        self.statements: list[str] = []
         self.input = None
         self.output = None
         self.environment = {}
@@ -78,7 +84,7 @@ class ShellTest:
 
     # Test Running methods
 
-    def get_command(self, cmd: str) -> List[str]:
+    def get_command(self, cmd: str) -> list[str]:
         command = self.arguments
         if self.input:
             command += [cmd]
@@ -86,29 +92,30 @@ class ShellTest:
 
     def get_input_data(self, cmd: str):
         if self.input:
-            input_data = open(self.input, 'rb').read()
+            with open(self.input, "rb") as f:
+                input_data = f.read()
         else:
-            input_data = bytearray(cmd, 'utf8')
+            input_data = bytearray(cmd, "utf8")
         return input_data
 
     def get_output_pipe(self):
         output_pipe = subprocess.PIPE
         if self.output:
-            output_pipe = open(self.output, 'w+')
+            output_pipe = open(self.output, "w+")
         return output_pipe
 
     def get_statements(self):
         statements = []
         for statement in self.statements:
             statements.append(statement)
-        return '\n'.join(statements)
+        return "\n".join(statements)
 
     def get_output_data(self, res):
         if self.output:
-            stdout = open(self.output, 'r').read()
+            stdout = open(self.output).read()
         else:
-            stdout = res.stdout.decode('utf8').strip()
-        stderr = res.stderr.decode('utf8').strip()
+            stdout = res.stdout.decode("utf8").strip()
+        stderr = res.stderr.decode("utf8").strip()
         return stdout, stderr
 
     def run(self):
@@ -121,56 +128,62 @@ class ShellTest:
         for key, val in self.environment.items():
             my_env[key] = val
 
-        res = subprocess.run(command, input=input_data, stdout=output_pipe, stderr=subprocess.PIPE, env=my_env)
+        res = subprocess.run(
+            command,
+            input=input_data,
+            stdout=output_pipe,
+            stderr=subprocess.PIPE,
+            env=my_env,
+            check=False,
+        )
 
         stdout, stderr = self.get_output_data(res)
         return TestResult(stdout, stderr, res.returncode)
-    
-    def start(self):        
+
+    def start(self) -> None:
         command = " ".join(self.arguments)
 
         my_env = os.environ.copy()
         for key, val in self.environment.items():
             my_env[key] = val
-            
-        self.shell_process = pexpect.spawn(command, encoding = "utf_8", env = my_env)
 
-    def send_finished_statement(self, stmt: str):
+        self.shell_process = pexpect.spawn(command, encoding="utf_8", env=my_env)
+
+    def send_finished_statement(self, stmt: str) -> None:
         if self.shell_process:
             assert self.shell_process.expect_exact(["kuzu", pexpect.EOF]) == 0
             self.shell_process.send(stmt)
             assert self.shell_process.expect_exact(["kuzu", pexpect.EOF]) == 0
 
-    def send_statement(self, stmt: str):
+    def send_statement(self, stmt: str) -> None:
         if self.shell_process:
             assert self.shell_process.expect_exact(["kuzu", pexpect.EOF]) == 0
             self.shell_process.send(stmt)
 
-    def send_control_statement(self, stmt: str):
+    def send_control_statement(self, stmt: str) -> None:
         if self.shell_process:
             assert self.shell_process.expect_exact(["kuzu", pexpect.EOF]) == 0
             self.shell_process.sendcontrol(stmt)
 
 
-@pytest.fixture
+@pytest.fixture()
 def temp_db(tmp_path):
     shutil.rmtree(tmp_path, ignore_errors=True)
-    output_path = str(tmp_path)
-    return output_path
+    return str(tmp_path)
 
 
-@pytest.fixture
+@pytest.fixture()
 def get_tmp_path(tmp_path):
     return str(tmp_path)
 
 
-@pytest.fixture
+@pytest.fixture()
 def history_path():
-    path = os.path.join(KUZU_ROOT, 'tools', 'shell', 'test', 'files')
-    deleteIfExists(os.path.join(path, 'history.txt'))
+    path = os.path.join(KUZU_ROOT, "tools", "shell", "test", "files")
+    deleteIfExists(os.path.join(path, "history.txt"))
     return path
 
 
-@pytest.fixture
+@pytest.fixture()
 def csv_path():
-    return os.path.join(KUZU_ROOT, 'tools', 'shell', 'test', 'files', 'vPerson.csv')
+    return os.path.join(KUZU_ROOT, "tools", "shell", "test", "files", "vPerson.csv")
