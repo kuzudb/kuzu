@@ -33,7 +33,16 @@ def test_to_df(establish_connection: ConnDB) -> None:
         assert str(pd["p.fName"].dtype) == "object"
         assert pd["p.gender"].tolist() == [1, 2, 1, 2, 1, 2, 2, 2]
         assert str(pd["p.gender"].dtype) == "int64"
-        assert pd["p.isStudent"].tolist() == [True, True, False, False, False, True, False, False]
+        assert pd["p.isStudent"].tolist() == [
+            True,
+            True,
+            False,
+            False,
+            False,
+            True,
+            False,
+            False,
+        ]
         assert str(pd["p.isStudent"].dtype) == "bool"
         assert pd["p.eyeSight"].tolist() == [5.0, 5.1, 5.0, 4.8, 4.7, 4.5, 4.9, 4.9]
         assert str(pd["p.eyeSight"].dtype) == "float64"
@@ -143,7 +152,11 @@ def test_to_df(establish_connection: ConnDB) -> None:
         assert str(pd["r.ulength"].dtype) == "uint16"
         assert pd["r.ulevel"].tolist() == [250, 12, 220]
         assert str(pd["r.ulevel"].dtype) == "uint8"
-        assert pd["r.hugedata"].tolist() == [1.8446744073709552e27, -15.0, -1.8446744073709552e21]
+        assert pd["r.hugedata"].tolist() == [
+            1.8446744073709552e27,
+            -15.0,
+            -1.8446744073709552e21,
+        ]
         assert str(pd["r.hugedata"].dtype) == "float64"
 
     def _test_timestamps_to_df(conn: kuzu.Connection) -> None:
@@ -214,9 +227,17 @@ def test_to_df(establish_connection: ConnDB) -> None:
             },
         ]
         assert str(pd["m.description"].dtype) == "object"
-        assert pd["m.content"].tolist() == [b"\xaa\xabinteresting\x0b", b"pure ascii characters", b"\xab\xcd"]
+        assert pd["m.content"].tolist() == [
+            b"\xaa\xabinteresting\x0b",
+            b"pure ascii characters",
+            b"\xab\xcd",
+        ]
         assert str(pd["m.content"].dtype) == "object"
-        assert pd["m.audience"].tolist() == [{"audience1": 52, "audience53": 42}, {}, {"audience1": 33}]
+        assert pd["m.audience"].tolist() == [
+            {"audience1": 52, "audience53": 42},
+            {},
+            {"audience1": 33},
+        ]
         assert str(pd["m.audience"].dtype) == "object"
         assert pd["m.grade"].tolist() == [True, 254.0, 8.989]
         assert str(pd["m.grade"].dtype) == "object"
@@ -294,7 +315,16 @@ def test_df_get_node(establish_connection: ConnDB) -> None:
             Timedelta("3750 days 13:00:00.000024"),
             Timedelta("1082 days 13:02:00"),
         ],
-        "workedHours": [[10, 5], [12, 8], [4, 5], [1, 9], [2], [3, 4, 5, 6, 7], [1], [10, 11, 12, 3, 4, 5, 6, 7]],
+        "workedHours": [
+            [10, 5],
+            [12, 8],
+            [4, 5],
+            [1, 9],
+            [2],
+            [3, 4, 5, 6, 7],
+            [1],
+            [10, 11, 12, 3, 4, 5, 6, 7],
+        ],
         "usedNames": [
             ["Aida"],
             ["Bobby"],
@@ -315,7 +345,16 @@ def test_df_get_node(establish_connection: ConnDB) -> None:
             [[10]],
             [[7], [10], [6, 7]],
         ],
-        "_label": ["person", "person", "person", "person", "person", "person", "person", "person"],
+        "_label": [
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+        ],
     }
     for i in range(len(p_list)):
         p = p_list[i]
@@ -340,7 +379,11 @@ def test_df_get_node_rel(establish_connection: ConnDB) -> None:
         "gender": [1, 2, 1],
         "isStudent": [False, False, False],
         "eyeSight": [5.0, 4.8, 4.7],
-        "birthdate": [datetime.date(1940, 6, 22), datetime.date(1950, 7, 23), datetime.date(1980, 10, 26)],
+        "birthdate": [
+            datetime.date(1940, 6, 22),
+            datetime.date(1950, 7, 23),
+            datetime.date(1980, 10, 26),
+        ],
         "registerTime": [
             Timestamp("1911-08-20 02:32:21"),
             Timestamp("2031-11-30 12:25:30"),
@@ -367,7 +410,11 @@ def test_df_get_node_rel(establish_connection: ConnDB) -> None:
         "orgCode": [934, 824, 824],
         "mark": [4.1, 4.1, 4.1],
         "score": [-100, 7, 7],
-        "history": ["2 years 4 days 10 hours", "2 years 4 hours 22 us 34 minutes", "2 years 4 hours 22 us 34 minutes"],
+        "history": [
+            "2 years 4 days 10 hours",
+            "2 years 4 hours 22 us 34 minutes",
+            "2 years 4 hours 22 us 34 minutes",
+        ],
         "licenseValidInterval": [
             Timedelta(days=9414),
             Timedelta(days=3, seconds=36000, microseconds=100000),
@@ -430,7 +477,10 @@ def test_df_get_recursive_join(establish_connection: ConnDB) -> None:
                 "notes": 1,
                 "summary": {
                     "locations": ["'toronto'", "'waterloo'"],
-                    "transfer": {"amount": [100, 200], "day": datetime.date(2021, 1, 2)},
+                    "transfer": {
+                        "amount": [100, 200],
+                        "day": datetime.date(2021, 1, 2),
+                    },
                 },
                 "someMap": {"a": "b"},
                 "validInterval": datetime.timedelta(days=3750, seconds=46800, microseconds=24),
@@ -445,7 +495,10 @@ def test_df_get_recursive_join(establish_connection: ConnDB) -> None:
                 "notes": 1,
                 "summary": {
                     "locations": ["'toronto'", "'waterloo'"],
-                    "transfer": {"amount": [100, 200], "day": datetime.date(2021, 1, 2)},
+                    "transfer": {
+                        "amount": [100, 200],
+                        "day": datetime.date(2021, 1, 2),
+                    },
                 },
                 "someMap": {"a": "b"},
                 "validInterval": datetime.timedelta(days=3750, seconds=46800, microseconds=24),
@@ -474,4 +527,14 @@ def test_get_rdf_variant(establish_connection: ConnDB) -> None:
         datetime.datetime(2024, 1, 1, 11, 25, 30),
         datetime.timedelta(days=2),
         b"\xb2",
+    ]
+
+
+def test_get_df_unicode(establish_connection: ConnDB) -> None:
+    conn, _ = establish_connection
+    res = conn.execute("MATCH (m:movies) RETURN m.name").get_as_df()
+    assert res["m.name"].tolist() == [
+        "Sóló cón tu párejâ",
+        "The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie",
+        "Roma",
     ]

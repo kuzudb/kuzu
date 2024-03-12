@@ -1,7 +1,7 @@
 #include "include/py_query_result_converter.h"
 
-#include "common/types/value/value.h"
 #include "cached_import/py_cached_import.h"
+#include "common/types/value/value.h"
 #include "include/py_query_result.h"
 
 using namespace kuzu::common;
@@ -79,10 +79,8 @@ void NPArrayWrapper::appendElement(Value* value) {
         } break;
         case LogicalTypeID::STRING: {
             auto val = value->getValue<std::string>();
-            auto result = PyUnicode_New(val.length(), 127);
-            auto target_data = PyUnicode_DATA(result);
-            memcpy(target_data, val.c_str(), val.length());
-            ((PyObject**)dataBuffer)[numElements] = result;
+            py::str result(val);
+            ((py::str*)dataBuffer)[numElements] = result;
         } break;
         case LogicalTypeID::BLOB: {
             ((py::bytes*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
@@ -211,8 +209,7 @@ py::object QueryResultConverter::toDF() {
     auto fromDict = importCache->pandas.DataFrame.from_dict();
 
     for (auto i = 0u; i < colNames.size(); i++) {
-        result[colNames[i].c_str()] =
-            maskedArray(columns[i]->data, columns[i]->mask);
+        result[colNames[i].c_str()] = maskedArray(columns[i]->data, columns[i]->mask);
     }
     return fromDict(result);
 }
