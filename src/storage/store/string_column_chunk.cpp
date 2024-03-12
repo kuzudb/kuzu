@@ -1,5 +1,6 @@
 #include "storage/store/string_column_chunk.h"
 
+#include "common/data_chunk/sel_vector.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/dictionary_chunk.h"
 
@@ -20,24 +21,20 @@ void StringColumnChunk::resetToEmpty() {
     dictionaryChunk->resetToEmpty();
 }
 
-void StringColumnChunk::append(ValueVector* vector) {
-    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+void StringColumnChunk::append(ValueVector* vector, SelectionVector& selVector) {
+    for (auto i = 0u; i < selVector.selectedSize; i++) {
         // index is stored in main chunk, data is stored in the data chunk
-        auto pos = vector->state->selVector->selectedPositions[i];
-        appendOne(vector, pos);
+        auto pos = selVector.selectedPositions[i];
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+        // index is stored in main chunk, data is stored in the data chunk
+        nullChunk->setNull(numValues, vector->isNull(pos));
+        auto dstPos = numValues++;
+        if (vector->isNull(pos)) {
+            continue;
+        }
+        auto kuString = vector->getValue<ku_string_t>(pos);
+        setValueFromString(kuString.getAsStringView(), dstPos);
     }
-}
-
-void StringColumnChunk::appendOne(common::ValueVector* vector, common::vector_idx_t pos) {
-    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    // index is stored in main chunk, data is stored in the data chunk
-    nullChunk->setNull(numValues, vector->isNull(pos));
-    auto dstPos = numValues++;
-    if (vector->isNull(pos)) {
-        return;
-    }
-    auto kuString = vector->getValue<ku_string_t>(pos);
-    setValueFromString(kuString.getAsStringView(), dstPos);
 }
 
 void StringColumnChunk::append(

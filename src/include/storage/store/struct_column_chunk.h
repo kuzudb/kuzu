@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/data_chunk/sel_vector.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "storage/store/column_chunk.h"
@@ -22,8 +23,7 @@ public:
 protected:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) final;
-    void append(common::ValueVector* vector) final;
-    void appendOne(common::ValueVector* vector, common::vector_idx_t pos) final;
+    void append(common::ValueVector* vector, common::SelectionVector& selVector) final;
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) final;

@@ -1,6 +1,7 @@
 #include "storage/store/var_list_column_chunk.h"
 
 #include "common/cast.h"
+#include "common/data_chunk/sel_vector.h"
 #include "common/types/value/value.h"
 #include "storage/store/column_chunk.h"
 
@@ -60,8 +61,8 @@ void VarListColumnChunk::resetToEmpty() {
             enableCompression, 0 /* capacity */));
 }
 
-void VarListColumnChunk::append(ValueVector* vector) {
-    auto numToAppend = vector->state->selVector->selectedSize;
+void VarListColumnChunk::append(ValueVector* vector, SelectionVector& selVector) {
+    auto numToAppend = selVector.selectedSize;
     auto newCapacity = capacity;
     while (numValues + numToAppend >= newCapacity) {
         newCapacity *= 1.5;
@@ -71,8 +72,8 @@ void VarListColumnChunk::append(ValueVector* vector) {
     }
     auto nextListOffsetInChunk = getListOffset(numValues);
     auto offsetBufferToWrite = (offset_t*)(buffer.get());
-    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        auto pos = vector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < selVector.selectedSize; i++) {
+        auto pos = selVector.selectedPositions[i];
         uint64_t listLen = vector->isNull(pos) ? 0 : vector->getValue<list_entry_t>(pos).size;
         nullChunk->setNull(numValues + i, vector->isNull(pos));
         nextListOffsetInChunk += listLen;
@@ -82,37 +83,11 @@ void VarListColumnChunk::append(ValueVector* vector) {
     auto dataVector = ListVector::getDataVector(vector);
     dataVector->setState(std::make_unique<DataChunkState>());
     dataVector->state->selVector->resetSelectorToValuePosBuffer();
-    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        auto pos = vector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < selVector.selectedSize; i++) {
+        auto pos = selVector.selectedPositions[i];
         if (vector->isNull(pos)) {
             continue;
         }
-        copyListValues(vector->getValue<list_entry_t>(pos), dataVector);
-    }
-    numValues += numToAppend;
-}
-
-void VarListColumnChunk::appendOne(common::ValueVector* vector, common::vector_idx_t pos) {
-    auto numToAppend = 1;
-    auto newCapacity = capacity;
-    while (numValues + numToAppend >= newCapacity) {
-        newCapacity *= 1.5;
-    }
-    if (capacity != newCapacity) {
-        resize(newCapacity);
-    }
-    auto nextListOffsetInChunk = getListOffset(numValues);
-    auto offsetBufferToWrite = (offset_t*)(buffer.get());
-    uint64_t listLen = vector->isNull(pos) ? 0 : vector->getValue<list_entry_t>(pos).size;
-    nullChunk->setNull(numValues, vector->isNull(pos));
-    nextListOffsetInChunk += listLen;
-    offsetBufferToWrite[numValues] = nextListOffsetInChunk;
-
-    varListDataColumnChunk->resizeBuffer(nextListOffsetInChunk);
-    auto dataVector = ListVector::getDataVector(vector);
-    dataVector->setState(std::make_unique<DataChunkState>());
-    dataVector->state->selVector->resetSelectorToValuePosBuffer();
-    if (!vector->isNull(pos)) {
         copyListValues(vector->getValue<list_entry_t>(pos), dataVector);
     }
     numValues += numToAppend;
@@ -156,7 +131,7 @@ void VarListColumnChunk::write(
         initializeIndices();
     }
     auto currentIndex = numValues;
-    append(vector);
+    append(vector, *vector->state->selVector);
     KU_ASSERT(offsetInChunk < capacity);
     indicesColumnChunk->setValue(currentIndex, offsetInChunk);
     indicesColumnChunk->getNullChunk()->setNull(offsetInChunk, vector->isNull(offsetInVector));
@@ -214,7 +189,7 @@ void VarListColumnChunk::copyListValues(const list_entry_t& entry, ValueVector* 
             dataVector->state->selVector->selectedPositions[j] =
                 entry.offset + numListValuesCopied + j;
         }
-        varListDataColumnChunk->append(dataVector);
+        varListDataColumnChunk->append(dataVector, *dataVector->state->selVector);
         numListValuesCopied += numListValuesToCopyInBatch;
     }
 }

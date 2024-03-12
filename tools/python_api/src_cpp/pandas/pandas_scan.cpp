@@ -1,6 +1,7 @@
 #include "pandas/pandas_scan.h"
 
 #include "function/table/bind_input.h"
+#include "cached_import/py_cached_import.h"
 #include "numpy/numpy_scan.h"
 #include "py_connection.h"
 #include "pybind11/pytypes.h"
@@ -127,10 +128,9 @@ std::unique_ptr<Value> tryReplacePD(py::dict& dict, py::str& tableName) {
 }
 
 std::unique_ptr<common::Value> replacePD(common::Value* value) {
-    py::gil_scoped_acquire acquire;
     auto pyTableName = py::str(value->getValue<std::string>());
     // Here we do an exhaustive search on the frame lineage.
-    auto currentFrame = py::module::import("inspect").attr("currentframe")();
+    auto currentFrame = importCache->inspect.currentframe()();
     while (hasattr(currentFrame, "f_locals")) {
         auto localDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_locals"));
         if (localDict) {

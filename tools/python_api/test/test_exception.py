@@ -18,13 +18,13 @@ def test_exception(establish_connection: ConnDB) -> None:
 
 
 def test_db_path_exception() -> None:
-    path = '/:* /? " < > |'
+    path = ""
     if sys.platform == "win32":
         error_message = "Failed to create directory"
     else:
         error_message = "filesystem error"
     with pytest.raises(RuntimeError, match=error_message):
-        kuzu.Database(str(path))
+        kuzu.Database(path)
 
 
 def test_read_only_exception(establish_connection: ConnDB) -> None:

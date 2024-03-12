@@ -4,12 +4,14 @@
 
 #include "common/string_format.h"
 #include "datetime.h" // from Python
+#include "cached_import/py_cached_import.h"
 #include "main/connection.h"
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
 #include "common/types/uuid.h"
 
 using namespace kuzu::common;
+using namespace kuzu;
 
 void PyConnection::initialize(py::handle& m) {
     py::class_<PyConnection>(m, "Connection")
@@ -151,9 +153,7 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
 }
 
 bool PyConnection::isPandasDataframe(const py::object& object) {
-    // TODO(Ziyi): introduce PythonCachedImport to avoid unnecessary import.
-    py::module pandas = py::module::import("pandas");
-    return py::isinstance(object, pandas.attr("DataFrame"));
+    return py::isinstance(object, importCache->pandas.DataFrame());
 }
 
 static Value transformPythonValue(py::handle val);
@@ -176,11 +176,10 @@ std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameter
 }
 
 Value transformPythonValue(py::handle val) {
-    auto datetime_mod = py::module::import("datetime");
-    auto datetime_datetime = datetime_mod.attr("datetime");
-    auto time_delta = datetime_mod.attr("timedelta");
-    auto datetime_date = datetime_mod.attr("date");
-    auto uuid = py::module::import("uuid").attr("UUID");
+    auto datetime_datetime = importCache->datetime.datetime();
+    auto time_delta = importCache->datetime.timedelta();
+    auto datetime_date = importCache->datetime.date();
+    auto uuid = importCache->uuid.UUID();
     if (py::isinstance<py::bool_>(val)) {
         return Value::createValue<bool>(val.cast<bool>());
     } else if (py::isinstance<py::int_>(val)) {

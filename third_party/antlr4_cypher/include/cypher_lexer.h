@@ -19,7 +19,7 @@ public:
     T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
     T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, T__37 = 38, 
     T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
-    T__44 = 45, CALL = 46, COMMENT = 47, MACRO = 48, GLOB = 49, COPY = 50, 
+    T__44 = 45, CALL = 46, COMMENT_ = 47, MACRO = 48, GLOB = 49, COPY = 50, 
     FROM = 51, COLUMN = 52, EXPORT = 53, IMPORT = 54, DATABASE = 55, NODE = 56, 
     TABLE = 57, GROUP = 58, RDFGRAPH = 59, DROP = 60, ALTER = 61, DEFAULT = 62, 
     RENAME = 63, ADD = 64, PRIMARY = 65, KEY = 66, REL = 67, TO = 68, EXPLAIN = 69, 
