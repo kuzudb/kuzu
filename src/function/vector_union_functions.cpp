@@ -1,6 +1,5 @@
 #include "function/union/vector_union_functions.h"
 
-#include "binder/expression_binder.h"
 #include "function/struct/vector_struct_functions.h"
 #include "function/union/functions/union_tag.h"
 
@@ -25,8 +24,7 @@ std::unique_ptr<FunctionBindData> UnionValueFunction::bindFunc(
     fields.emplace_back(
         UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
     if (arguments[0]->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
-        binder::ExpressionBinder::resolveAnyDataType(
-            *arguments[0], LogicalType(LogicalTypeID::STRING));
+        arguments[0]->cast(*LogicalType::STRING());
     }
     fields.emplace_back(arguments[0]->getAlias(), arguments[0]->getDataType().copy());
     auto resultType = LogicalType::UNION(std::move(fields));

@@ -220,7 +220,6 @@ private:
     uint64_t bindSkipLimitExpression(const parser::ParsedExpression& expression);
 
     void addExpressionsToScope(const expression_vector& projectionExpressions);
-    void resolveAnyDataTypeWithDefaultType(const expression_vector& expressions);
 
     /*** bind graph pattern ***/
     BoundGraphPattern bindGraphPattern(const std::vector<parser::PatternElement>& graphPattern);

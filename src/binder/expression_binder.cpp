@@ -2,8 +2,6 @@
 
 #include "binder/binder.h"
 #include "binder/expression/function_expression.h"
-#include "binder/expression/literal_expression.h"
-#include "binder/expression/parameter_expression.h"
 #include "binder/expression_visitor.h"
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
@@ -104,7 +102,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         return expression;
     }
     if (expression->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
-        resolveAnyDataType(*expression, targetType);
+        expression->cast(targetType);
         return expression;
     }
     return implicitCast(expression, targetType);
@@ -124,15 +122,6 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
             nullptr /* selectFunc */, std::move(uniqueName));
     } else {
         throw BinderException(unsupportedImplicitCastException(*expression, targetType.toString()));
-    }
-}
-
-void ExpressionBinder::resolveAnyDataType(Expression& expression, const LogicalType& targetType) {
-    if (expression.expressionType == ExpressionType::PARAMETER) { // expression is parameter
-        ((ParameterExpression&)expression).setDataType(targetType);
-    } else { // expression is null literal
-        KU_ASSERT(expression.expressionType == ExpressionType::LITERAL);
-        ((LiteralExpression&)expression).setDataType(targetType);
     }
 }
 
