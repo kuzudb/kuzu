@@ -91,6 +91,9 @@ void StringColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool 
 void StringColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING);
+    if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
+        numValues = dstOffsetInChunk + numValuesToCopy;
+    }
     for (auto i = 0u; i < numValuesToCopy; i++) {
         auto srcPos = srcOffsetInChunk + i;
         auto dstPos = dstOffsetInChunk + i;
@@ -163,6 +166,7 @@ void StringColumnChunk::finalize() {
 template<>
 std::string_view StringColumnChunk::getValue<std::string_view>(offset_t pos) const {
     KU_ASSERT(pos < numValues);
+    KU_ASSERT(!nullChunk->isNull(pos));
     auto index = ColumnChunk::getValue<DictionaryChunk::string_index_t>(pos);
     return dictionaryChunk->getString(index);
 }

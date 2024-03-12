@@ -776,21 +776,15 @@ void Column::commitColumnChunkOutOfPlace(Transaction* transaction, node_group_id
         append(chunk, nodeGroupIdx);
     } else {
         auto chunkMeta = getMetadata(nodeGroupIdx, transaction->getType());
-        auto maxDstOffset = getMaxOffset(dstOffsets);
-        if (maxDstOffset < chunkMeta.numValues) {
-            // TODO(Guodong): Should consider caching the scanned column chunk to avoid redundant
-            // scans in the same transaction.
-            auto columnChunk = getEmptyChunkForCommit(chunkMeta.numValues + dstOffsets.size());
-            scan(transaction, nodeGroupIdx, columnChunk.get());
-            for (auto i = 0u; i < dstOffsets.size(); i++) {
-                columnChunk->write(chunk, srcOffset + i, dstOffsets[i], 1 /* numValues */);
-            }
-            columnChunk->finalize();
-            append(columnChunk.get(), nodeGroupIdx);
-        } else {
-            chunk->finalize();
-            append(chunk, nodeGroupIdx);
+        // TODO(Guodong): Should consider caching the scanned column chunk to avoid redundant
+        // scans in the same transaction.
+        auto columnChunk = getEmptyChunkForCommit(chunkMeta.numValues + dstOffsets.size());
+        scan(transaction, nodeGroupIdx, columnChunk.get());
+        for (auto i = 0u; i < dstOffsets.size(); i++) {
+            columnChunk->write(chunk, srcOffset + i, dstOffsets[i], 1 /* numValues */);
         }
+        columnChunk->finalize();
+        append(columnChunk.get(), nodeGroupIdx);
     }
 }
 

@@ -204,6 +204,9 @@ bool StringColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t n
     auto strChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(chunk);
     auto length = std::min((uint64_t)dstOffsets.size(), strChunk->getNumValues());
     for (auto i = 0u; i < length; i++) {
+        if (strChunk->getNullChunk()->isNull(i)) {
+            continue;
+        }
         strLenToAdd += strChunk->getStringLength(i + srcOffset);
     }
     auto numStrings = dstOffsets.size();
