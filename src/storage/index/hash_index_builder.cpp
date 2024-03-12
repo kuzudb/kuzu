@@ -9,7 +9,7 @@
 #include "common/types/types.h"
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
-#include "storage/storage_structure/in_mem_file.h"
+#include "storage/storage_structure/overflow_file.h"
 
 using namespace kuzu::common;
 
@@ -18,8 +18,8 @@ namespace storage {
 
 template<IndexHashable T, typename S>
 HashIndexBuilder<T, S>::HashIndexBuilder(const std::shared_ptr<FileHandle>& fileHandle,
-    std::unique_ptr<InMemFile> overflowFile, uint64_t indexPos, PhysicalTypeID keyDataType)
-    : fileHandle(fileHandle), inMemOverflowFile(std::move(overflowFile)) {
+    OverflowFileHandle* overflowFileHandle, uint64_t indexPos, PhysicalTypeID keyDataType)
+    : fileHandle(fileHandle), overflowFileHandle(overflowFileHandle) {
     this->indexHeader = std::make_unique<HashIndexHeader>(keyDataType);
     headerArray = std::make_unique<InMemDiskArrayBuilder<HashIndexHeader>>(*fileHandle,
         NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, 0 /* numElements */);
@@ -195,9 +195,6 @@ void HashIndexBuilder<T, S>::flush() {
     headerArray->saveToDisk();
     pSlots->saveToDisk();
     oSlots->saveToDisk();
-    if constexpr (std::is_same_v<S, ku_string_t>) {
-        inMemOverflowFile->flush();
-    }
 }
 
 template<IndexHashable T, typename S>
@@ -214,7 +211,7 @@ template<>
 void HashIndexBuilder<std::string_view, ku_string_t>::insert(std::string_view key,
     Slot<ku_string_t>* slot, uint8_t entryPos, offset_t offset, uint8_t fingerprint) {
     auto entry = slot->entries[entryPos].data;
-    inMemOverflowFile->appendString(key, *(ku_string_t*)entry);
+    *(ku_string_t*)entry = overflowFileHandle->writeString(key);
     memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
     slot->header.setEntryValid(entryPos, fingerprint);
 }
@@ -228,7 +225,8 @@ template<>
 common::hash_t HashIndexBuilder<std::string_view, ku_string_t>::hashStored(
     const ku_string_t& key) const {
     auto kuString = key;
-    return HashIndexUtils::hash(inMemOverflowFile->readString(&kuString));
+    return HashIndexUtils::hash(
+        overflowFileHandle->readString(transaction::TransactionType::WRITE, kuString));
 }
 
 template<>
@@ -247,7 +245,8 @@ bool HashIndexBuilder<std::string_view, ku_string_t>::equals(
         return memcmp(keyToLookup.data(), keyInEntry.prefix, keyInEntry.len) == 0;
     } else {
         // For long strings, compare with overflow data
-        return inMemOverflowFile->equals(keyToLookup, keyInEntry);
+        return overflowFileHandle->equals(
+            transaction::TransactionType::WRITE, keyToLookup, keyInEntry);
     }
 }
 
@@ -266,7 +265,7 @@ template class HashIndexBuilder<std::string_view, ku_string_t>;
 
 PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
     const std::string& fName, PhysicalTypeID keyDataType, VirtualFileSystem* vfs)
-    : keyDataTypeID{keyDataType}, overflowPageCounter(0) {
+    : keyDataTypeID{keyDataType} {
     auto fileHandle =
         std::make_shared<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);
     fileHandle->addNewPages(NUM_HEADER_PAGES * NUM_HASH_INDEXES);
@@ -275,20 +274,17 @@ PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
         keyDataTypeID,
         [&]<IndexHashable T>(T) {
             if constexpr (std::is_same_v<T, ku_string_t>) {
-                auto overflowFileInfo = std::shared_ptr(vfs->openFile(
-                    StorageUtils::getOverflowFileName(fileHandle->getFileInfo()->path),
-                    O_CREAT | O_WRONLY));
+                overflowFile = std::make_unique<OverflowFile>(
+                    StorageUtils::getOverflowFileName(fileHandle->getFileInfo()->path), vfs);
                 for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                    auto overflowFile =
-                        std::make_unique<InMemFile>(overflowFileInfo, overflowPageCounter);
                     hashIndexBuilders.push_back(
                         std::make_unique<HashIndexBuilder<std::string_view, ku_string_t>>(
-                            fileHandle, std::move(overflowFile), i, keyDataType));
+                            fileHandle, overflowFile->addHandle(), i, keyDataType));
                 }
             } else if constexpr (HashablePrimitive<T>) {
                 for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                    hashIndexBuilders.push_back(std::make_unique<HashIndexBuilder<T>>(
-                        fileHandle, std::unique_ptr<InMemFile>(), i, keyDataType));
+                    hashIndexBuilders.push_back(
+                        std::make_unique<HashIndexBuilder<T>>(fileHandle, nullptr, i, keyDataType));
                 }
             } else {
                 KU_UNREACHABLE;
@@ -305,6 +301,9 @@ void PrimaryKeyIndexBuilder::bulkReserve(uint32_t numEntries) {
 }
 
 void PrimaryKeyIndexBuilder::flush() {
+    if (overflowFile) {
+        overflowFile->prepareCommit();
+    }
     for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
         hashIndexBuilders[i]->flush();
     }

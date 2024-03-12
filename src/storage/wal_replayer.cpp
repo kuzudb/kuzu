@@ -75,9 +75,6 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
         replayRdfGraphRecord(walRecord);
     } break;
-    case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
-        replayOverflowFileNextBytePosRecord(walRecord);
-    } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         replayCopyTableRecord(walRecord);
     } break;
@@ -188,35 +185,6 @@ void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {
     WALRecord literalTripleTableWALRecord = {.recordType = WALRecordType::CREATE_TABLE_RECORD,
         .createTableRecord = walRecord.rdfGraphRecord.literalTripleTableRecord};
     replayCreateTableRecord(literalTripleTableWALRecord);
-}
-
-void WALReplayer::replayOverflowFileNextBytePosRecord(const WALRecord& walRecord) {
-    // If we are recovering we do not replay OVERFLOW_FILE_NEXT_BYTE_POS_RECORD because
-    // this record is intended for rolling back a transaction to ensure that we can
-    // recover the overflow space allocated for the write transaction by calling
-    // DiskOverflowFile::resetNextBytePosToWriteTo(...). However during recovery, storageManager
-    // is null, so we cannot construct this value.
-    if (isRecovering) {
-        return;
-    }
-    KU_ASSERT(walRecord.diskOverflowFileNextBytePosRecord.dbFileID.isOverflow);
-    auto dbFileID = walRecord.diskOverflowFileNextBytePosRecord.dbFileID;
-    DiskOverflowFile* diskOverflowFile;
-    switch (dbFileID.dbFileType) {
-    case DBFileType::NODE_INDEX: {
-        auto index = storageManager->getPKIndex(dbFileID.nodeIndexID.tableID);
-        diskOverflowFile = index->getDiskOverflowFile();
-    } break;
-    default:
-        throw RuntimeException("Unsupported dbFileID " + dbFileTypeToString(dbFileID.dbFileType) +
-                               " for OVERFLOW_FILE_NEXT_BYTE_POS_RECORD.");
-    }
-    // Reset NextBytePosToWriteTo if we are rolling back.
-    if (!isCheckpoint) {
-        diskOverflowFile->resetNextBytePosToWriteTo(
-            walRecord.diskOverflowFileNextBytePosRecord.prevNextBytePosToWriteTo);
-    }
-    diskOverflowFile->resetLoggedNewOverflowFileNextBytePosRecord();
 }
 
 void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecord) {
@@ -398,7 +366,7 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
     }
     case DBFileType::NODE_INDEX: {
         auto index = storageManager->getPKIndex(dbFileID.nodeIndexID.tableID);
-        return dbFileID.isOverflow ? index->getDiskOverflowFile()->getFileHandle() :
+        return dbFileID.isOverflow ? index->getOverflowFile()->getBMFileHandle() :
                                      index->getFileHandle();
     }
     default: {

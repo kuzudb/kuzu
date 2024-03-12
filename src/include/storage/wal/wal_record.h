@@ -51,9 +51,6 @@ enum class WALRecordType : uint8_t {
     CREATE_TABLE_RECORD = 6,
     CREATE_REL_TABLE_GROUP_RECORD = 7,
     CREATE_RDF_GRAPH_RECORD = 8,
-    // Records the nextBytePosToWriteTo field's last value before the write trx started. This is
-    // used when rolling back to restore this value.
-    OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 17,
     COPY_TABLE_RECORD = 19,
     DROP_TABLE_RECORD = 20,
     DROP_PROPERTY_RECORD = 21,
@@ -131,20 +128,6 @@ struct RdfGraphRecord {
     }
 };
 
-struct DiskOverflowFileNextBytePosRecord {
-    DBFileID dbFileID;
-    uint64_t prevNextBytePosToWriteTo;
-
-    DiskOverflowFileNextBytePosRecord() = default;
-
-    DiskOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextByteToWriteTo)
-        : dbFileID{dbFileID}, prevNextBytePosToWriteTo{prevNextByteToWriteTo} {}
-
-    inline bool operator==(const DiskOverflowFileNextBytePosRecord& rhs) const {
-        return dbFileID == rhs.dbFileID && prevNextBytePosToWriteTo == rhs.prevNextBytePosToWriteTo;
-    }
-};
-
 struct CopyTableRecord {
     common::table_id_t tableID;
 
@@ -213,7 +196,6 @@ struct WALRecord {
         CommitRecord commitRecord;
         CreateTableRecord createTableRecord;
         RdfGraphRecord rdfGraphRecord;
-        DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
         CopyTableRecord copyTableRecord;
         TableStatisticsRecord tableStatisticsRecord;
         DropTableRecord dropTableRecord;
@@ -234,8 +216,6 @@ struct WALRecord {
     static WALRecord newRdfGraphRecord(common::table_id_t rdfGraphID,
         common::table_id_t resourceTableID, common::table_id_t literalTableID,
         common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID);
-    static WALRecord newOverflowFileNextBytePosRecord(
-        DBFileID dbFileID, uint64_t prevNextByteToWriteTo_);
     static WALRecord newCopyTableRecord(common::table_id_t tableID);
     static WALRecord newDropTableRecord(common::table_id_t tableID);
     static WALRecord newDropPropertyRecord(

@@ -83,9 +83,6 @@ public:
         }
     }
 
-public:
-    std::shared_mutex localStorageSharedMutex;
-
 private:
     // When the storage type is string, allow the key type to be string_view with a custom hash
     // function
@@ -97,11 +94,10 @@ private:
 
 template<typename T, typename S>
 HashIndex<T, S>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
-    const std::shared_ptr<BMFileHandle>& fileHandle,
-    const std::shared_ptr<DiskOverflowFile>& overflowFile, uint64_t indexPos,
-    BufferManager& bufferManager, WAL* wal)
+    const std::shared_ptr<BMFileHandle>& fileHandle, OverflowFileHandle* overflowFileHandle,
+    uint64_t indexPos, BufferManager& bufferManager, WAL* wal)
     : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal}, fileHandle(fileHandle),
-      diskOverflowFile(overflowFile) {
+      overflowFileHandle(overflowFileHandle) {
     headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
         dbFileIDAndName.dbFileID, NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX,
         &bm, wal, Transaction::getDummyReadOnlyTrx().get());
@@ -235,7 +231,7 @@ template<>
 inline common::hash_t HashIndex<std::string_view, ku_string_t>::hashStored(
     transaction::TransactionType /*trxType*/, const ku_string_t& key) const {
     common::hash_t hash;
-    auto str = diskOverflowFile->readString(TransactionType::WRITE, key);
+    auto str = overflowFileHandle->readString(TransactionType::WRITE, key);
     function::Hash::operation(str, hash);
     return hash;
 }
@@ -255,7 +251,6 @@ entry_pos_t HashIndex<T, S>::findMatchedEntryInSlot(
 
 template<typename T, typename S>
 void HashIndex<T, S>::prepareCommit() {
-    std::unique_lock xlock{localStorage->localStorageSharedMutex};
     if (localStorage->hasUpdates()) {
         wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
         localStorage->applyLocalChanges(
@@ -267,7 +262,6 @@ void HashIndex<T, S>::prepareCommit() {
 
 template<typename T, typename S>
 void HashIndex<T, S>::prepareRollback() {
-    std::unique_lock xlock{localStorage->localStorageSharedMutex};
     if (localStorage->hasUpdates()) {
         wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
     }
@@ -283,6 +277,9 @@ void HashIndex<T, S>::checkpointInMemory() {
     pSlots->checkpointInMemoryIfNecessary();
     oSlots->checkpointInMemoryIfNecessary();
     localStorage->clear();
+    if constexpr (std::same_as<std::string_view, T>) {
+        overflowFileHandle->checkpointInMemory();
+    }
 }
 
 template<typename T, typename S>
@@ -301,7 +298,7 @@ template<>
 inline bool HashIndex<std::string_view, ku_string_t>::equals(transaction::TransactionType trxType,
     std::string_view keyToLookup, const ku_string_t& keyInEntry) const {
     if (HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
-        auto entryKeyString = diskOverflowFile->readString(trxType, keyInEntry);
+        auto entryKeyString = overflowFileHandle->readString(trxType, keyInEntry);
         return memcmp(keyToLookup.data(), entryKeyString.c_str(), entryKeyString.length()) == 0;
     }
     return false;
@@ -310,7 +307,7 @@ inline bool HashIndex<std::string_view, ku_string_t>::equals(transaction::Transa
 template<>
 inline void HashIndex<std::string_view, ku_string_t>::insert(
     std::string_view key, uint8_t* entry, common::offset_t offset) {
-    auto kuString = diskOverflowFile->writeString(key);
+    auto kuString = overflowFileHandle->writeString(key);
     memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
     memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
 }
@@ -389,7 +386,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
 
     if (keyDataTypeID == PhysicalTypeID::STRING) {
         overflowFile =
-            std::make_shared<DiskOverflowFile>(dbFileIDAndName, &bufferManager, wal, readOnly, vfs);
+            std::make_unique<OverflowFile>(dbFileIDAndName, &bufferManager, wal, readOnly, vfs);
     }
 
     hashIndices.reserve(NUM_HASH_INDEXES);
@@ -397,12 +394,12 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
         if constexpr (std::is_same_v<T, ku_string_t>) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
                 hashIndices.push_back(std::make_unique<HashIndex<std::string_view, ku_string_t>>(
-                    dbFileIDAndName, fileHandle, overflowFile, i, bufferManager, wal));
+                    dbFileIDAndName, fileHandle, overflowFile->addHandle(), i, bufferManager, wal));
             }
         } else if constexpr (HashablePrimitive<T>) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
                 hashIndices.push_back(std::make_unique<HashIndex<T>>(
-                    dbFileIDAndName, fileHandle, overflowFile, i, bufferManager, wal));
+                    dbFileIDAndName, fileHandle, nullptr, i, bufferManager, wal));
             }
         } else {
             KU_UNREACHABLE;
@@ -456,17 +453,26 @@ void PrimaryKeyIndex::checkpointInMemory() {
     for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
         hashIndices[i]->checkpointInMemory();
     }
+    if (overflowFile) {
+        overflowFile->checkpointInMemory();
+    }
 }
 
 void PrimaryKeyIndex::rollbackInMemory() {
     for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
         hashIndices[i]->rollbackInMemory();
     }
+    if (overflowFile) {
+        overflowFile->rollbackInMemory();
+    }
 }
 
 void PrimaryKeyIndex::prepareCommit() {
     for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
         hashIndices[i]->prepareCommit();
+    }
+    if (overflowFile) {
+        overflowFile->prepareCommit();
     }
 }
 
