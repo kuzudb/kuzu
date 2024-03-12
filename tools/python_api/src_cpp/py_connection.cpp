@@ -165,7 +165,7 @@ std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameter
         if (!py::isinstance<py::str>(key)) {
             // TODO(Chang): remove ROLLBACK once we can guarantee database is deleted after conn
             conn->query("ROLLBACK");
-            throw std::runtime_error("Parameter name must be of type string but get " +
+            throw std::runtime_error("Parameter name must be of type string but got " +
                                      py::str(key.get_type()).cast<std::string>());
         }
         auto name = key.cast<std::string>();

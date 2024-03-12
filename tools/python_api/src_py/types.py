@@ -3,6 +3,7 @@ from enum import Enum
 
 class Type(Enum):
     """The type of a value in the database."""
+
     ANY = "ANY"
     NODE = "NODE"
     REL = "REL"

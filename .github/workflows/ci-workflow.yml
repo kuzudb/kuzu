@@ -24,7 +24,7 @@ concurrency:
 jobs:
   gcc-build-test:
     name: gcc build & test
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-formatting-check, sanity-checks, python-lint-check]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -95,10 +95,10 @@ jobs:
 
       - name: Start Docker container
         run: |
-         docker run -d --name kuzu-x86 \
-                    -v $PWD:/kuzu -w /kuzu \
-                    -e NUM_THREADS=2 -e GEN=ninja -e CC=gcc -e CXX=g++ \
-                    i386/debian:latest tail -f /dev/null
+          docker run -d --name kuzu-x86 \
+                     -v $PWD:/kuzu -w /kuzu \
+                     -e NUM_THREADS=2 -e GEN=ninja -e CC=gcc -e CXX=g++ \
+                     i386/debian:latest tail -f /dev/null
 
       - name: Install dependencies
         run: |
@@ -161,7 +161,7 @@ jobs:
 
   clang-build-test:
     name: clang build and test
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-formatting-check, sanity-checks, python-lint-check]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -209,7 +209,7 @@ jobs:
 
   msvc-build-test:
     name: msvc build & test
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-formatting-check, sanity-checks, python-lint-check]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
@@ -343,6 +343,23 @@ jobs:
       - name: Check extension format
         run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r extension/
 
+  python-lint-check:
+    name: python lint check
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.11"
+
+      - name: Run Python lint
+        working-directory: tools/python_api
+        run: |
+          make requirements
+          ./.venv/bin/ruff check src_py test --verbose
+
   rustfmt-check:
     name: rustfmt check
     runs-on: ubuntu-22.04
@@ -399,7 +416,7 @@ jobs:
 
   macos-build-test:
     name: apple clang build & test
-    needs: [clang-formatting-check, sanity-checks, rustfmt-check]
+    needs: [clang-formatting-check, sanity-checks, rustfmt-check, python-lint-check]
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32

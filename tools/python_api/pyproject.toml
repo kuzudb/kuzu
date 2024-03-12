@@ -1,0 +1,97 @@
+[project]
+name = "kuzu"
+description = "Highly scalable, extremely fast, easy-to-use embeddable graph database"
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = ["graph", "database"]
+version = "0.0.1"
+
+[project.urls]
+Homepage = "https://kuzudb.com/"
+Documentation = "https://docs.kuzudb.com/"
+Repository = "https://github.com/kuzudb/kuzu"
+Changelog = "https://github.com/kuzudb/kuzu/releases"
+
+[tool.mypy]
+files = ["src_py", "test"]
+strict = true
+enable_error_code = [
+  "redundant-expr",
+  "truthy-bool",
+  "ignore-without-code",
+]
+disable_error_code = [
+  "import-not-found",
+  "no-any-return",
+]
+
+[[tool.mypy.overrides]]
+module = [
+  "_kuzu.*",
+  "networkx.*",
+  "pandas.*",
+  "pyarrow.*",
+  "pytz.*",
+  "torch_geometric.*",
+]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 119
+preview = true
+fix = true
+
+[tool.ruff.lint]
+select = [
+  "E", # pycodestyle
+  "W", # pycodestyle
+  "F", # Pyflakes
+  "B", # flake8-bugbear
+  "C4", # flake8-comprehensions
+  "D", # flake8-docstrings
+  "D213", # Augment NumPy docstring convention: Multi-line docstring summary should start at the second line
+  "D417", # Augment NumPy docstring convention: Missing argument descriptions
+  "I", # isort
+  "SIM", # flake8-simplify
+  "TCH", # flake8-type-checking
+  "TID", # flake8-tidy-imports
+  "UP", # pyupgrade
+  "PT", # flake8-pytest-style
+  "RUF", # Ruff-specific rules
+  "PTH", # flake8-use-pathlib
+  "FA", # flake8-future-annotations
+  "PIE", # flake8-pie
+  "TD", # flake8-todos
+  "TRY", # tryceratops
+  "EM", # flake8-errmsg
+  "FBT001", # flake8-boolean-trap
+]
+ignore = [
+  "D401", # First line should be in imperative mood
+  "D105", # Missing docstring in magic method
+  "D100", # Missing docstring in public module
+  "D104", # Missing docstring in public package
+  "D205", # 1 blank line required between summary line and description
+  "TD002", # Missing author in TODO
+  "TD003", # Missing issue link on the line following TODO
+]
+
+[tool.ruff.lint.per-file-ignores]
+"test/**/*.py" = ["D100", "D102", "D103", "E501", "F841", "TCH002"]
+"src_py/torch_geo*.py" = ["E501", "FBT001"]
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 119
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
