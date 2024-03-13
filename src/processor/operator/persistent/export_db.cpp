@@ -72,20 +72,24 @@ std::string getCopyCypher(
 }
 
 bool ExportDB::getNextTuplesInternal(ExecutionContext* context) {
+    context->clientContext->progressBar->addJobsToPipeline(3);
     // write the schema.cypher file
     writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
         getSchemaCypher(context->clientContext, context->clientContext->getTx()),
         boundFileInfo.filePaths[0] + "/schema.cypher");
+    context->clientContext->progressBar->finishJobsInPipeline(1);
     // write macro.cypher file
     writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
         getMacroCypher(context->clientContext->getCatalog(), context->clientContext->getTx()),
         boundFileInfo.filePaths[0] + "/macro.cypher");
+    context->clientContext->progressBar->finishJobsInPipeline(1);
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
     writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
         getCopyCypher(
             context->clientContext->getCatalog(), context->clientContext->getTx(), &boundFileInfo),
         boundFileInfo.filePaths[0] + "/copy.cypher");
+    context->clientContext->progressBar->finishJobsInPipeline(1);
     return false;
 }
 } // namespace processor

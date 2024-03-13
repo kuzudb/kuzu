@@ -37,7 +37,7 @@ std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNe
     std::unique_lock lck{mtx};
     if (currentStateIdx == tableStates.size()) {
         return std::make_tuple(nullptr, INVALID_OFFSET, INVALID_OFFSET);
-    }
+    }    
     auto [startOffset, endOffset] = tableStates[currentStateIdx]->getNextRangeToRead();
     while (startOffset >= endOffset) {
         currentStateIdx++;
@@ -63,6 +63,7 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
         if (state == nullptr) {
             return false;
         }
+        context->clientContext->progressBar->addJobsToPipeline(state->getTable()->getNumTuples());
         auto nodeIDValues = (nodeID_t*)(outValueVector->getData());
         auto size = endOffset - startOffset;
         for (auto i = 0u; i < size; ++i) {
@@ -73,6 +74,8 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
         setSelVector(context, state, startOffset, endOffset);
     } while (outValueVector->state->selVector->selectedSize == 0);
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
+    context->clientContext->progressBar->finishJobsInPipeline(
+        outValueVector->state->selVector->selectedSize);
     return true;
 }
 

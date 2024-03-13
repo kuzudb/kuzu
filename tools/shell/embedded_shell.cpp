@@ -18,6 +18,13 @@
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 
+#include "common/task_system/progress_bar.h"
+
+// TODO: REMOVE
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 using namespace kuzu::common;
 using namespace kuzu::utf8proc;
 
@@ -42,9 +49,10 @@ struct ShellCommand {
     const char* HELP = ":help";
     const char* CLEAR = ":clear";
     const char* QUIT = ":quit";
-    const char* MAXROWS = ":max_rows";
-    const char* MAXWIDTH = ":max_width";
-    const std::array<const char*, 5> commandList = {HELP, CLEAR, QUIT, MAXROWS, MAXWIDTH};
+    const char* MAX_ROWS = ":max_rows";
+    const char* MAX_WIDTH = ":max_width";
+    const char* PROGRESS_BAR = ":progress_bar";
+    const std::array<const char*, 6> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, PROGRESS_BAR};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -273,10 +281,12 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         linenoiseClearScreen();
     } else if (lineStr == shellCommand.QUIT) {
         return -1;
-    } else if (lineStr.rfind(shellCommand.MAXROWS) == 0) {
-        setMaxRows(lineStr.substr(strlen(shellCommand.MAXROWS)));
-    } else if (lineStr.rfind(shellCommand.MAXWIDTH) == 0) {
-        setMaxWidth(lineStr.substr(strlen(shellCommand.MAXWIDTH)));
+    } else if (lineStr.rfind(shellCommand.MAX_ROWS) == 0) {
+        setMaxRows(lineStr.substr(strlen(shellCommand.MAX_ROWS)));
+    } else if (lineStr.rfind(shellCommand.MAX_WIDTH) == 0) {
+        setMaxWidth(lineStr.substr(strlen(shellCommand.MAX_WIDTH)));
+    } else if (lineStr.rfind(shellCommand.PROGRESS_BAR) == 0) {
+        toggleProgressBar(lineStr.substr(strlen(shellCommand.PROGRESS_BAR)));
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
         printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
@@ -420,20 +430,35 @@ void EmbeddedShell::setMaxWidth(const std::string& maxWidthString) {
     printf("maxWidth set as %d\n", parsedMaxWidth);
 }
 
+void EmbeddedShell::toggleProgressBar(const std::string& state) {
+    std::string stateTrimmed = state;
+    stateTrimmed = stateTrimmed.erase(0, state.find_first_not_of(" \t\n\r\f\v"));
+    if (stateTrimmed == "on") {
+        conn->setProgressBarPrinting(true);
+        printf("Turned progress bar on.\n");
+    } else if (stateTrimmed == "off") {
+        conn->setProgressBarPrinting(false);
+        printf("Turned progress bar off\n");
+    } else {
+        printf("Cannot parse '%s' as progress bar state. Expect on|off.\n", stateTrimmed.c_str());
+	}
+}
+
 void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR, TAB);
     printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT, TAB);
     printf("%s%s [max_rows] %sset maximum number of rows for display (default: 20)\n", TAB,
-        shellCommand.MAXROWS, TAB);
+        shellCommand.MAX_ROWS, TAB);
     printf("%s%s [max_width] %sset maximum width in characters for display\n", TAB,
-        shellCommand.MAXWIDTH, TAB);
+        shellCommand.MAX_WIDTH, TAB);
+    printf("%s%s [on|off] %stoggle progress bar for queries\n", TAB, shellCommand.PROGRESS_BAR, TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
         TAB);
     printf("%s%s  timeout, and logging_level using Cypher CALL statements.\n", TAB, TAB);
     printf("%s%s  e.g. CALL THREADS=5; or CALL current_setting('threads') return *;\n", TAB, TAB);
-    printf("%s%s  See: https://kuzudb.com/docusaurus/cypher/configuration\n", TAB, TAB);
+    printf("%s%s  See: https://docs.kuzudb.com/cypher/configuration\n", TAB, TAB);
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {

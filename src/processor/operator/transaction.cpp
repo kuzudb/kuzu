@@ -12,6 +12,7 @@ bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     hasExecuted = true;
+    context->clientContext->progressBar->addJobsToPipeline(1);
     auto transactionContext = context->clientContext->getTransactionContext();
     switch (transactionAction) {
     case transaction::TransactionAction::BEGIN_READ: {
@@ -35,6 +36,7 @@ bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
     default:
         KU_UNREACHABLE;
     }
+    context->clientContext->progressBar->finishJobsInPipeline(1);
     return true;
 }
 

@@ -47,6 +47,7 @@ ClientContext::ClientContext(Database* database)
       timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS},
       varLengthExtendMaxDepth{DEFAULT_VAR_LENGTH_EXTEND_MAX_DEPTH},
       enableSemiMask{DEFAULT_ENABLE_SEMI_MASK}, database{database} {
+    progressBar = std::make_unique<common::ProgressBar>();
     transactionContext = std::make_unique<TransactionContext>(database);
     randomEngine = std::make_unique<common::RandomEngine>();
     fileSearchPath = "";
@@ -140,6 +141,10 @@ void ClientContext::setMaxNumThreadForExec(uint64_t numThreads) {
 uint64_t ClientContext::getMaxNumThreadForExec() {
     std::unique_lock<std::mutex> lck{mtx};
     return numThreadsForExecution;
+}
+
+void ClientContext::setProgressBarPrinting(bool enable) {
+	progressBar->toggleProgressBarPrinting(enable);
 }
 
 std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query) {

@@ -13,12 +13,13 @@ void SimpleAggregateScan::initLocalStateInternal(ResultSet* resultSet, Execution
     outDataChunk = resultSet->dataChunks[outDataChunkPos].get();
 }
 
-bool SimpleAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
+bool SimpleAggregateScan::getNextTuplesInternal(ExecutionContext* context) {
     auto [startOffset, endOffset] = sharedState->getNextRangeToRead();
     if (startOffset >= endOffset) {
         return false;
     }
     // Output of simple aggregate is guaranteed to be a single value for each aggregate.
+    context->clientContext->progressBar->addJobsToPipeline(aggregateVectors.size());
     KU_ASSERT(startOffset == 0 && endOffset == 1);
     for (auto i = 0u; i < aggregateVectors.size(); i++) {
         writeAggregateResultToVector(
@@ -27,6 +28,8 @@ bool SimpleAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     KU_ASSERT(!aggregatesPos.empty());
     outDataChunk->state->initOriginalAndSelectedSize(1);
     metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
+    context->clientContext->progressBar->finishJobsInPipeline(
+        outDataChunk->state->selVector->selectedSize);
     return true;
 }
 

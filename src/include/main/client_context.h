@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 
+#include "common/task_system/progress_bar.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/scalar_function.h"
@@ -114,6 +115,10 @@ public:
     std::unique_ptr<QueryResult> query(std::string_view queryStatement);
 
     void runQuery(std::string query);
+
+    void setProgressBarPrinting(bool progressBarPrinting);
+
+    std::unique_ptr<common::ProgressBar> progressBar;
 
 private:
     inline void resetActiveQuery() { activeQuery.reset(); }
