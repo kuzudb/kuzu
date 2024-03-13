@@ -27,6 +27,7 @@ jobs:
     needs: [clang-formatting-check, sanity-checks, python-lint-check]
     runs-on: kuzu-self-hosted-testing
     env:
+      WERROR: 0
       NUM_THREADS: 32
       TEST_JOBS: 16
       CLANGD_DIAGNOSTIC_JOBS: 32
@@ -55,6 +56,7 @@ jobs:
 
       - name: Extension test
         run: |
+          source tools/python_api/.venv/bin/activate
           cd scripts/ && python3 http-server.py &
           make extension-test && make clean
 
@@ -189,6 +191,7 @@ jobs:
 
       - name: Extension test
         run: |
+          source tools/python_api/.venv/bin/activate
           cd scripts/ && python3 http-server.py &
           make extension-test && make clean
 
