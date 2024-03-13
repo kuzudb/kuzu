@@ -17,6 +17,7 @@ endif
 .PHONY: requirements
 requirements: .venv  ## Install/update Python dev packages
 	@unset CONDA_PREFIX \
+	&& $(VENV_BIN)/python -m ensurepip --default-pip \
 	&& $(VENV_BIN)/python -m pip install -U uv \
 	&& $(VENV_BIN)/uv pip install --upgrade -r requirements_dev.txt \
 
