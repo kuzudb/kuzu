@@ -46,9 +46,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+        run: make requirements
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -66,7 +64,9 @@ jobs:
         run: make lcov
 
       - name: Python test
-        run: make pytest
+        run: |
+          source tools/python_api/.venv/bin/activate
+          make pytest
 
       - name: Node.js test
         run: make nodejstest
@@ -179,13 +179,12 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+        working-directory: tools/python_api
+        run: make requirements
 
       - name: Ensure Node.js dependencies
-        run: npm install --include=dev
         working-directory: tools/nodejs_api
+        run: npm install --include=dev
 
       - name: Extension test
         run: |
@@ -199,7 +198,9 @@ jobs:
         run: make test
 
       - name: Python test
-        run: make pytest
+        run: |
+          source tools/python_api/.venv/bin/activate
+          make pytest
 
       - name: Node.js test
         run: make nodejstest
@@ -416,7 +417,8 @@ jobs:
 
   macos-build-test:
     name: apple clang build & test
-    needs: [clang-formatting-check, sanity-checks, rustfmt-check, python-lint-check]
+    needs:
+      [clang-formatting-check, sanity-checks, rustfmt-check, python-lint-check]
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32
