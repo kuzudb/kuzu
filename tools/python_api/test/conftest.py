@@ -149,7 +149,6 @@ def init_db(path: Path) -> Path:
 
 
 _READONLY_CONN_DB_: ConnDB | None = None
-_WRITABLE_CONN_DB_: ConnDB | None = None
 _POOL_SIZE_: int = 256 * 1024 * 1024
 
 
@@ -165,21 +164,16 @@ def conn_db_readonly(tmp_path: Path) -> ConnDB:
     """Return a cached read-only connection and database."""
     global _READONLY_CONN_DB_
     if _READONLY_CONN_DB_ is None:
-        _READONLY_CONN_DB_ = _create_conn_db(tmp_path, read_only=True)
+        # On Windows, the read-only mode is not implemented yet.
+        # Therefore, we create a writable database on Windows.
+        # However, the caller should ensure that the database is not modified.
+        # TODO: Remove this workaround when the read-only mode is implemented on Windows.
+        _READONLY_CONN_DB_ = _create_conn_db(tmp_path, read_only=sys.platform != "win32")
     return _READONLY_CONN_DB_
 
 
 @pytest.fixture()
-def conn_db_writable_cached(tmp_path: Path) -> ConnDB:
-    """Return a cached writable connection and database."""
-    global _WRITABLE_CONN_DB_
-    if _WRITABLE_CONN_DB_ is None:
-        _WRITABLE_CONN_DB_ = _create_conn_db(tmp_path, read_only=False)
-    return _WRITABLE_CONN_DB_
-
-
-@pytest.fixture()
-def conn_db_writable_new(tmp_path: Path) -> ConnDB:
+def conn_db_readwrite(tmp_path: Path) -> ConnDB:
     """Return a new writable connection and database."""
     return _create_conn_db(tmp_path, read_only=False)
 

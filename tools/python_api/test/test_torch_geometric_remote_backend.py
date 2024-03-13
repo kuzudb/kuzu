@@ -101,8 +101,8 @@ def test_remote_backend_feature_store_types_2d(conn_db_readonly: ConnDB) -> None
             assert f32[0, j].item() - (base_number + j) - 1 < 1e-6
 
 
-def test_remote_backend_20k(conn_db_writable_cached: ConnDB) -> None:
-    _, db = conn_db_writable_cached
+def test_remote_backend_20k(conn_db_readwrite: ConnDB) -> None:
+    _, db = conn_db_readwrite
     conn = kuzu.Connection(db, num_threads=1)
     conn.execute("CREATE NODE TABLE npy20k (id INT64,f32 FLOAT[10],PRIMARY KEY(id));")
     conn.execute(

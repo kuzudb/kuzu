@@ -319,8 +319,8 @@ def test_recursive_rel(conn_db_readonly: ConnDB) -> None:
     result.close()
 
 
-def test_rdf_variant(conn_db_writable_cached: ConnDB) -> None:
-    conn, db = conn_db_writable_cached
+def test_rdf_variant(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
 
     with conn.execute("MATCH (a:T_l) RETURN a.val ORDER BY a.id") as result:
         assert result.has_next()

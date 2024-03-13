@@ -33,8 +33,8 @@ def test_read(conn_db_readonly: ConnDB) -> None:
     assert not result.has_next()
 
 
-def test_write(conn_db_writable_cached: ConnDB) -> None:
-    conn, _ = conn_db_writable_cached
+def test_write(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
     orgs = [
         {
             "ID": 1001,
