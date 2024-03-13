@@ -34,23 +34,27 @@ oC_Statement
         | kU_ImportDatabase;
 
 kU_CopyFrom
-    : COPY SP oC_SchemaName ( ( SP? '(' SP? kU_ColumnNames SP? ')' SP? ) | SP ) FROM SP (kU_FilePaths | oC_Variable) ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+    : COPY SP oC_SchemaName ( ( SP? kU_ColumnNames SP? ) | SP ) FROM SP kU_ScanSource ( SP? kU_ParsingOptions )? ;
 
 kU_ColumnNames
-     : oC_SchemaName ( SP? ',' SP? oC_SchemaName )* ;
+     : '(' SP? oC_SchemaName ( SP? ',' SP? oC_SchemaName )* SP? ')';
+
+kU_ScanSource
+    : kU_FilePaths
+        | '(' SP? oC_Query SP? ')'
+        | oC_Variable ;
 
 kU_CopyFromByColumn
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
 
 kU_CopyTO
-    : COPY SP '(' SP? oC_Query SP? ')' SP TO SP StringLiteral ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+    : COPY SP '(' SP? oC_Query SP? ')' SP TO SP StringLiteral ( SP? kU_ParsingOptions )? ;
 
 kU_ExportDatabase
-    : EXPORT SP DATABASE SP StringLiteral ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+    : EXPORT SP DATABASE SP StringLiteral ( SP? kU_ParsingOptions )? ;
 
 kU_ImportDatabase
     : IMPORT SP DATABASE SP StringLiteral;
-
 
 kU_StandaloneCall
     : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
@@ -81,7 +85,7 @@ kU_FilePaths
 GLOB : ( 'G' | 'g' ) ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'B' | 'b' ) ;
 
 kU_ParsingOptions
-    : kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )* ;
+    : '(' SP? kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )*  SP? ')' ;
 
 kU_ParsingOption
     : oC_SymbolicName SP? '=' SP? oC_Literal;
@@ -291,7 +295,7 @@ oC_ReadingClause
         ;
 
 kU_LoadFrom
-    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_PropertyDefinitions SP? ')' )? SP FROM SP (kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? | oC_Variable) (SP? oC_Where)? ;
+    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_PropertyDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? kU_ParsingOptions)? (SP? oC_Where)? ;
 
 LOAD : ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'A' | 'a' ) ( 'D' | 'd' )  ;
 

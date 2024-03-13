@@ -47,10 +47,5 @@ std::string ExceptionMessage::violateRelMultiplicityConstraint(
         offset, tableName, direction);
 }
 
-std::string ExceptionMessage::validateCopyNpyNotForRelTablesException(
-    const std::string& tableName) {
-    return stringFormat("Copy from npy files to rel table {} is not supported yet.", tableName);
-}
-
 } // namespace common
 } // namespace kuzu

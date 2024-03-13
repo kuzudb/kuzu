@@ -1,8 +1,7 @@
 add_library(kuzu_storage_structure
         OBJECT
         disk_array.cpp
-        disk_overflow_file.cpp
-        in_mem_file.cpp
+        overflow_file.cpp
         in_mem_page.cpp
         db_file_utils.cpp)
 

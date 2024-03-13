@@ -1,6 +1,7 @@
 #include "optimizer/projection_push_down_optimizer.h"
 
 #include "binder/expression_visitor.h"
+#include "common/cast.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_accumulate.h"
@@ -10,6 +11,7 @@
 #include "planner/operator/logical_order_by.h"
 #include "planner/operator/logical_projection.h"
 #include "planner/operator/logical_unwind.h"
+#include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_delete.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "planner/operator/persistent/logical_merge.h"
@@ -249,6 +251,14 @@ void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* 
         collectExpressionsInUse(rel->getInternalIDProperty());
         collectExpressionsInUse(info->setItem.second);
     }
+}
+
+void ProjectionPushDownOptimizer::visitCopyFrom(planner::LogicalOperator* op) {
+    auto copyFrom = ku_dynamic_cast<LogicalOperator*, LogicalCopyFrom*>(op);
+    for (auto& expr : copyFrom->getInfo()->source->getColumns()) {
+        collectExpressionsInUse(expr);
+    }
+    collectExpressionsInUse(copyFrom->getInfo()->offset);
 }
 
 // See comments above this class for how to collect expressions in use.

@@ -557,7 +557,7 @@ struct PhysicalTypeUtils {
 class LogicalTypeUtils {
 public:
     KUZU_API static std::string toString(LogicalTypeID dataTypeID);
-    static std::string toString(const std::vector<LogicalType>& dataTypes);
+    KUZU_API static std::string toString(const std::vector<LogicalType>& dataTypes);
     KUZU_API static std::string toString(const std::vector<LogicalTypeID>& dataTypeIDs);
     KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);

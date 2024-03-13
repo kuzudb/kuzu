@@ -26,8 +26,6 @@ public:
 
     std::shared_ptr<Expression> bindExpression(const parser::ParsedExpression& parsedExpression);
 
-    static void resolveAnyDataType(Expression& expression, const common::LogicalType& targetType);
-
     /****** validation *****/
     static void validateExpectedDataType(
         const Expression& expression, common::LogicalTypeID target) {
@@ -35,6 +33,7 @@ public:
     }
     static void validateExpectedDataType(
         const Expression& expression, const std::vector<common::LogicalTypeID>& targets);
+    static void validateDataType(const Expression& expr, const common::LogicalType& expectedType);
 
 private:
     // TODO(Xiyang): move to an expression rewriter
