@@ -316,19 +316,17 @@ def test_pandas_scan_demo(tmp_path: Path) -> None:
     assert np.all(result["p.height"].to_list() == height_in_cm)
     assert np.all(result["p.is_student"].to_list() == is_student)
 
+
 def test_scan_pandas_copy_subquery(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    data = {
-        'id': np.array([22, 3, 100], dtype=np.int64),
-        'name': ['A', 'B', 'C']
-    }
+    data = {"id": np.array([22, 3, 100], dtype=np.int64), "name": ["A", "B", "C"]}
     df = pd.DataFrame(data)
     conn.execute("CREATE NODE TABLE person(ID INT64, NAME STRING, PRIMARY KEY(ID))")
     conn.execute("COPY person FROM (LOAD FROM df RETURN *)")
     result = conn.execute("MATCH (p:person) RETURN p.*").get_as_df()
-    assert result['p.ID'].to_list() == [22, 3, 100]
-    assert result['p.NAME'].to_list() == ['A', 'B', 'C']
+    assert result["p.ID"].to_list() == [22, 3, 100]
+    assert result["p.NAME"].to_list() == ["A", "B", "C"]
 
 
 def test_scan_all_null(tmp_path: Path) -> None:

@@ -7,8 +7,8 @@ import torch
 from type_aliases import ConnDB
 
 
-def test_to_torch_geometric_nodes_only(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_to_torch_geometric_nodes_only(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     query = "MATCH (p:person) return p"
 
     res = conn.execute(query)
@@ -115,8 +115,8 @@ def test_to_torch_geometric_nodes_only(establish_connection: ConnDB) -> None:
         )
 
 
-def test_to_torch_geometric_homogeneous_graph(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_to_torch_geometric_homogeneous_graph(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     query = "MATCH (p:person)-[r:knows]->(q:person) RETURN p, r, q"
 
     res = conn.execute(query)
@@ -273,8 +273,8 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection: ConnDB) -> N
         )
 
 
-def test_to_torch_geometric_heterogeneous_graph(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_to_torch_geometric_heterogeneous_graph(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     query = "MATCH (p:person)-[r1:knows]->(q:person)-[r2:workAt]->(o:organisation) RETURN p, q, o, r1, r2"
 
     res = conn.execute(query)
@@ -536,9 +536,9 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection: ConnDB) ->
 
 
 def test_to_torch_geometric_multi_dimensional_lists(
-    establish_connection: ConnDB,
+    conn_db_readonly: ConnDB,
 ) -> None:
-    conn, _ = establish_connection
+    conn, _ = conn_db_readonly
     query = "MATCH (t:tensor) RETURN t"
 
     res = conn.execute(query)
@@ -588,9 +588,9 @@ def test_to_torch_geometric_multi_dimensional_lists(
 
 
 def test_to_torch_geometric_no_properties_converted(
-    establish_connection: ConnDB,
+    conn_db_readonly: ConnDB,
 ) -> None:
-    conn, _ = establish_connection
+    conn, _ = conn_db_readonly
     query = "MATCH (p:personLongString)-[r:knowsLongString]->(q:personLongString) RETURN p, r, q"
 
     res = conn.execute(query)

@@ -12,8 +12,8 @@ from pandas import Timedelta, Timestamp
 from type_aliases import ConnDB
 
 
-def test_to_df(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_to_df(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
 
     def _test_person_to_df(conn: kuzu.Connection) -> None:
         query = "MATCH (p:person) return p.* ORDER BY p.ID"
@@ -249,8 +249,8 @@ def test_to_df(establish_connection: ConnDB) -> None:
     _test_timestamps_to_df(conn)
 
 
-def test_df_multiple_times(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_df_multiple_times(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     query = "MATCH (p:person) return p.ID ORDER BY p.ID"
     res = conn.execute(query)
     df = res.get_as_df()
@@ -261,8 +261,8 @@ def test_df_multiple_times(establish_connection: ConnDB) -> None:
     assert df_3["p.ID"].tolist() == [0, 2, 3, 5, 7, 8, 9, 10]
 
 
-def test_df_get_node(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_df_get_node(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     query = "MATCH (p:person) return p"
 
     res = conn.execute(query)
@@ -362,8 +362,8 @@ def test_df_get_node(establish_connection: ConnDB) -> None:
             assert p[key] == ground_truth[key][i]
 
 
-def test_df_get_node_rel(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_df_get_node_rel(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     res = conn.execute("MATCH (p:person)-[r:workAt]->(o:organisation) RETURN p, r, o ORDER BY p.fName")
 
     df = res.get_as_df()
@@ -437,8 +437,8 @@ def test_df_get_node_rel(establish_connection: ConnDB) -> None:
         assert df["r"][i]["_dst"] == df["o"][i]["_id"]
 
 
-def test_df_get_recursive_join(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     res = conn.execute(
         "MATCH (p:person)-[r:knows*1..2 (e, n | WHERE e.comments = ['rnme','m8sihsdnf2990nfiwf'])]-(m:person) WHERE "
         "p.ID = 0 and m.ID = 0 RETURN r"
@@ -507,8 +507,8 @@ def test_df_get_recursive_join(establish_connection: ConnDB) -> None:
     }
 
 
-def test_get_rdf_variant(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_get_rdf_variant(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     res = conn.execute("MATCH (a:T_l) RETURN a.val ORDER BY a.id").get_as_df()
     assert res["a.val"].tolist() == [
         12,
@@ -530,8 +530,8 @@ def test_get_rdf_variant(establish_connection: ConnDB) -> None:
     ]
 
 
-def test_get_df_unicode(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_get_df_unicode(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     res = conn.execute("MATCH (m:movies) RETURN m.name").get_as_df()
     assert res["m.name"].tolist() == [
         "Sóló cón tu párejâ",

@@ -6,8 +6,8 @@ import uuid
 from type_aliases import ConnDB
 
 
-def test_read(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_read(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
     prepared_statement = conn.prepare("MATCH (a:person) WHERE a.isStudent = $1 AND a.isWorker = $k RETURN COUNT(*)")
     assert prepared_statement.is_success()
     assert prepared_statement.get_error_message() == ""
@@ -33,8 +33,8 @@ def test_read(establish_connection: ConnDB) -> None:
     assert not result.has_next()
 
 
-def test_write(establish_connection: ConnDB) -> None:
-    conn, _ = establish_connection
+def test_write(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
     orgs = [
         {
             "ID": 1001,
@@ -99,11 +99,11 @@ def test_write(establish_connection: ConnDB) -> None:
     assert result.get_next() == [uuid.uuid5(uuid.NAMESPACE_DNS, "kuzu")]
 
 
-def test_error(establish_connection: ConnDB) -> None:
-    prepared_statement = establish_connection[0].prepare("MATCH (d:dog) WHERE d.isServiceDog = $1 RETURN COUNT(*)")
+def test_error(conn_db_readonly: ConnDB) -> None:
+    prepared_statement = conn_db_readonly[0].prepare("MATCH (d:dog) WHERE d.isServiceDog = $1 RETURN COUNT(*)")
     assert not prepared_statement.is_success()
     assert prepared_statement.get_error_message() == "Binder exception: Table dog does not exist."
 
-    prepared_statement = establish_connection[0].prepare("SELECT * FROM person")
+    prepared_statement = conn_db_readonly[0].prepare("SELECT * FROM person")
     assert not prepared_statement.is_success()
     assert prepared_statement.get_error_message().startswith("Parser exception: extraneous input 'SELECT'")

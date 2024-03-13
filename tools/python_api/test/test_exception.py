@@ -7,8 +7,8 @@ import pytest
 from type_aliases import ConnDB
 
 
-def test_exception(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_exception(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
 
     with pytest.raises(RuntimeError, match="Parameter asd not found."):
         conn.execute("MATCH (a:person) WHERE a.registerTime = $1 RETURN COUNT(*);", {"asd": 1})
@@ -27,11 +27,11 @@ def test_db_path_exception() -> None:
         kuzu.Database(path)
 
 
-def test_read_only_exception(establish_connection: ConnDB) -> None:
+def test_read_only_exception(conn_db_readonly: ConnDB) -> None:
     # TODO: Enable this test on Windows when the read-only mode is implemented.
     if sys.platform == "win32":
         pytest.skip("Read-only mode has not been implemented on Windows yet")
-    _, db = establish_connection
+    _, db = conn_db_readonly
     path = db.database_path
     read_only_db = kuzu.Database(path, read_only=True)
     conn = kuzu.Connection(read_only_db)
@@ -56,7 +56,7 @@ def test_buffer_pool_size_exception() -> None:
         kuzu.Database("test.db", buffer_pool_size=1024)
 
 
-def test_query_exception(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_query_exception(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     with pytest.raises(RuntimeError, match="Binder exception: Table nonexisting does not exist."):
         conn.execute("MATCH (a:nonexisting) RETURN a;")

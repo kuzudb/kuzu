@@ -103,8 +103,8 @@ def assert_col_names(data: Any, expected_col_names: list[str]) -> None:
     assert col_names == expected_col_names, f"Unexpected column names: {col_names!r}"
 
 
-def test_to_arrow(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_to_arrow(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
 
     def _test_person_table(_conn: kuzu.Connection, return_type: str, chunk_size: int | None = None) -> None:
         query = "MATCH (a:person) RETURN a.* ORDER BY a.ID"
@@ -464,8 +464,8 @@ def test_to_arrow(establish_connection: ConnDB) -> None:
     _test_with_nulls(conn, "pl")
 
 
-def test_to_arrow_complex(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
 
     def _test_node(_conn: kuzu.Connection) -> None:
         query = "MATCH (p:person) RETURN p ORDER BY p.ID"
@@ -550,8 +550,8 @@ def test_to_arrow_complex(establish_connection: ConnDB) -> None:
     # _test_node_rel(conn)
     # _test_marries_table(conn)
 
-    def test_to_arrow1(establish_connection: ConnDB) -> None:
-        conn, db = establish_connection
+    def test_to_arrow1(conn_db_readonly: ConnDB) -> None:
+        conn, db = conn_db_readonly
         query = "MATCH (a:person)-[e:knows]->(:person) RETURN e.summary"
         arrow_tbl = conn.execute(query).get_as_arrow(8)
         assert arrow_tbl == []

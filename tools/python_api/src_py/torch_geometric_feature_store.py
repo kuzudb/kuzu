@@ -98,28 +98,29 @@ class KuzuFeatureStore(FeatureStore):  # type: ignore[misc]
 
         self.__get_connection()
 
-        match_clause = "MATCH (item:%s)" % table_name
-        return_clause = "RETURN item.%s" % attr_name
+        match_clause = f"MATCH (item:{table_name})"
+        return_clause = f"RETURN item.{attr_name}"
 
         if indices is None:
             where_clause = ""
         elif isinstance(indices, int):
-            where_clause = "WHERE offset(id(item)) = %d" % indices
+            where_clause = f"WHERE offset(id(item)) = {indices}"
         elif isinstance(indices, slice):
             if indices.step is None or indices.step == 1:
-                where_clause = "WHERE offset(id(item)) >= %d AND offset(id(item)) < %d" % (indices.start, indices.stop)
+                where_clause = f"WHERE offset(id(item)) >= {indices.start} AND offset(id(item)) < {indices.stop}"
             else:
                 where_clause = (
-                    "WHERE offset(id(item)) >= %d AND offset(id(item)) < %d AND (offset(id(item)) - %d) %% %d = 0"
-                    % (indices.start, indices.stop, indices.start, indices.step)
+                    f"WHERE offset(id(item)) >= {indices.start} AND offset(id(item)) < {indices.stop} "
+                    f"AND (offset(id(item)) - {indices.start}) % {indices.step} = 0"
                 )
         elif isinstance(indices, (Tensor, list, np.ndarray, tuple)):
             where_clause = "WHERE"
             for i in indices:
-                where_clause += " offset(id(item)) = %d OR" % int(i)
+                where_clause += f" offset(id(item)) = {int(i)} OR"
             where_clause = where_clause[:-3]
         else:
-            raise ValueError("Invalid attr.index type: %s" % type(indices))
+            msg = f"Invalid attr.index type: {type(indices)!s}"
+            raise ValueError(msg)
 
         query = f"{match_clause} {where_clause} {return_clause}"
         res = self.connection.execute(query)
@@ -140,7 +141,7 @@ class KuzuFeatureStore(FeatureStore):  # type: ignore[misc]
 
     def _get_tensor_size(self, attr: TensorAttr) -> tuple[Any, ...]:
         self.__get_connection()
-        length_query = "MATCH (item:%s) RETURN count(item)" % attr.group_name
+        length_query = f"MATCH (item:{attr.group_name}) RETURN count(item)"
         res = self.connection.execute(length_query)
         length = res.get_next()[0]
         attr_info = self.__get_node_property(attr.group_name, attr.attr_name)

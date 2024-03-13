@@ -155,7 +155,7 @@ class Connection:
             row = tables_result.get_next()
             if row[1] == "REL":
                 name = row[0]
-                connections_result = self.execute("CALL show_connection('%s') RETURN *;" % name)
+                connections_result = self.execute(f"CALL show_connection({name!r}) RETURN *;")
                 src_dst_row = connections_result.get_next()
                 src_node = src_dst_row[0]
                 dst_node = src_dst_row[1]

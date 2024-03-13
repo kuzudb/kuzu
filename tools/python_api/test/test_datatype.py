@@ -7,8 +7,8 @@ import pytz
 from type_aliases import ConnDB
 
 
-def test_bool(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_bool(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a.isStudent;")
     assert result.has_next()
     assert result.get_next() == [True]
@@ -16,8 +16,8 @@ def test_bool(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_int(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_int(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a.age;")
     assert result.has_next()
     assert result.get_next() == [35]
@@ -25,8 +25,8 @@ def test_int(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_int8(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_int8(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.level;")
     assert result.has_next()
     assert result.get_next() == [5]
@@ -34,8 +34,8 @@ def test_int8(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_uint8(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_uint8(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.ulevel;")
     assert result.has_next()
     assert result.get_next() == [250]
@@ -43,8 +43,8 @@ def test_uint8(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_uint16(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_uint16(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.ulength;")
     assert result.has_next()
     assert result.get_next() == [33768]
@@ -52,8 +52,8 @@ def test_uint16(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_uint32(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_uint32(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.temprature;")
     assert result.has_next()
     assert result.get_next() == [32800]
@@ -61,8 +61,8 @@ def test_uint32(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_uint64(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_uint64(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.code;")
     assert result.has_next()
     assert result.get_next() == [9223372036854775808]
@@ -70,8 +70,8 @@ def test_uint64(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_int128(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_int128(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.hugedata;")
     assert result.has_next()
     assert result.get_next() == [1844674407370955161811111111]
@@ -79,8 +79,8 @@ def test_int128(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_serial(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_serial(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;")
     assert result.has_next()
     assert result.get_next() == [2]
@@ -88,8 +88,8 @@ def test_serial(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_double(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_double(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a.eyeSight;")
     assert result.has_next()
     assert result.get_next() == [5.0]
@@ -97,8 +97,8 @@ def test_double(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_string(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_string(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a.fName;")
     assert result.has_next()
     assert result.get_next() == ["Alice"]
@@ -106,8 +106,8 @@ def test_string(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_blob(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_blob(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("RETURN BLOB('\\\\xAA\\\\xBB\\\\xCD\\\\x1A')")
     assert result.has_next()
     result_blob = result.get_next()[0]
@@ -120,8 +120,8 @@ def test_blob(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_uuid(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_uuid(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("RETURN UUID('A0EEBC99-9c0b-4ef8-bb6d-6bb9bd380a12')")
     assert result.has_next()
     assert result.get_next() == [UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12")]
@@ -129,8 +129,8 @@ def test_uuid(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_date(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_date(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a.birthdate;")
     assert result.has_next()
     assert result.get_next() == [datetime.date(1900, 1, 1)]
@@ -138,8 +138,8 @@ def test_date(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_timestamp(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_timestamp(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a.registerTime;")
     assert result.has_next()
     assert result.get_next() == [datetime.datetime(2011, 8, 20, 11, 25, 30)]
@@ -147,8 +147,8 @@ def test_timestamp(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_timestamp_tz(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_timestamp_tz(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:movies) WHERE a.length = 126 RETURN a.description.release_tz;")
     assert result.has_next()
     assert result.get_next() == [datetime.datetime(2011, 8, 20, 11, 25, 30, 123456, pytz.UTC)]
@@ -156,8 +156,8 @@ def test_timestamp_tz(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_timestamp_ns(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_timestamp_ns(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:movies) WHERE a.length = 126 RETURN a.description.release_ns;")
     assert result.has_next()
     assert result.get_next() == [datetime.datetime(2011, 8, 20, 11, 25, 30, 123456)]
@@ -165,8 +165,8 @@ def test_timestamp_ns(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_timestamp_ms(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_timestamp_ms(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:movies) WHERE a.length = 126 RETURN a.description.release_ms;")
     assert result.has_next()
     assert result.get_next() == [datetime.datetime(2011, 8, 20, 11, 25, 30, 123000)]
@@ -174,8 +174,8 @@ def test_timestamp_ms(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_timestamp_s(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_timestamp_s(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:movies) WHERE a.length = 126 RETURN a.description.release_sec;")
     assert result.has_next()
     assert result.get_next() == [datetime.datetime(2011, 8, 20, 11, 25, 30)]
@@ -183,8 +183,8 @@ def test_timestamp_s(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_interval(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_interval(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a.lastJobDuration;")
     assert result.has_next()
     assert result.get_next() == [datetime.timedelta(days=1082, seconds=46920)]
@@ -192,8 +192,8 @@ def test_interval(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_list(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_list(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a.courseScoresPerTerm;")
     assert result.has_next()
     assert result.get_next() == [[[10, 8], [6, 7, 8]]]
@@ -201,8 +201,8 @@ def test_list(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_map(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_map(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience;")
     assert result.has_next()
     assert result.get_next() == [{"audience1": 33}]
@@ -210,8 +210,8 @@ def test_map(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_union(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_union(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (m:movies) WHERE m.length = 2544 RETURN m.grade;")
     assert result.has_next()
     assert result.get_next() == [8.989]
@@ -219,8 +219,8 @@ def test_union(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_node(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_node(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a")
     assert result.has_next()
     n = result.get_next()
@@ -241,8 +241,8 @@ def test_node(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_rel(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_rel(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (p:person)-[r:workAt]->(o:organisation) WHERE p.ID = 5 RETURN p, r, o")
     assert result.has_next()
     n = result.get_next()
@@ -262,8 +262,8 @@ def test_rel(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_struct(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_struct(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute('MATCH (m:movies) WHERE m.name="Roma" RETURN m.description')
     assert result.has_next()
     n = result.get_next()
@@ -288,8 +288,8 @@ def test_struct(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_recursive_rel(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
+def test_recursive_rel(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     result = conn.execute("MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;")
     assert result.has_next()
     n = result.get_next()
@@ -319,46 +319,50 @@ def test_recursive_rel(establish_connection: ConnDB) -> None:
     result.close()
 
 
-def test_rdf_variant(establish_connection: ConnDB) -> None:
-    conn, db = establish_connection
-    result = conn.execute("MATCH (a:T_l) RETURN a.val ORDER BY a.id")
-    assert result.has_next()
-    assert result.get_next() == [12]
-    assert result.has_next()
-    assert result.get_next() == [43]
-    assert result.has_next()
-    assert result.get_next() == [33]
-    assert result.has_next()
-    assert result.get_next() == [2]
-    assert result.has_next()
-    assert result.get_next() == [90]
-    assert result.has_next()
-    assert result.get_next() == [77]
-    assert result.has_next()
-    assert result.get_next() == [12]
-    assert result.has_next()
-    assert result.get_next() == [1]
-    assert result.has_next()
-    float_result = result.get_next()[0]
-    assert abs(float_result - 4.4) < 0.00001
-    assert result.has_next()
-    float_result = result.get_next()[0]
-    assert abs(float_result - 1.2) < 0.00001
-    assert result.has_next()
-    assert result.get_next() == [True]
-    assert result.has_next()
-    assert result.get_next() == ["hhh"]
-    assert result.has_next()
-    assert result.get_next() == [datetime.date(2024, 1, 1)]
-    assert result.has_next()
-    assert result.get_next() == [datetime.datetime(2024, 1, 1, 11, 25, 30)]
-    assert result.has_next()
-    assert result.get_next() == [datetime.timedelta(days=2)]
-    assert result.has_next()
-    result_blob = result.get_next()[0]
-    assert len(result_blob) == 1
-    assert result_blob[0] == 0xB2
-    assert not result.has_next()
-    result.close()
-    result = conn.execute("DROP RDFGraph T;")
-    result.close()
+def test_rdf_variant(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+
+    with conn.execute("MATCH (a:T_l) RETURN a.val ORDER BY a.id") as result:
+        assert result.has_next()
+        assert result.get_next() == [12]
+        assert result.has_next()
+        assert result.get_next() == [43]
+        assert result.has_next()
+        assert result.get_next() == [33]
+        assert result.has_next()
+        assert result.get_next() == [2]
+        assert result.has_next()
+        assert result.get_next() == [90]
+        assert result.has_next()
+        assert result.get_next() == [77]
+        assert result.has_next()
+        assert result.get_next() == [12]
+        assert result.has_next()
+        assert result.get_next() == [1]
+        assert result.has_next()
+
+        float_result = result.get_next()[0]
+        assert abs(float_result - 4.4) < 0.00001
+        assert result.has_next()
+
+        float_result = result.get_next()[0]
+        assert abs(float_result - 1.2) < 0.00001
+        assert result.has_next()
+        assert result.get_next() == [True]
+        assert result.has_next()
+        assert result.get_next() == ["hhh"]
+        assert result.has_next()
+        assert result.get_next() == [datetime.date(2024, 1, 1)]
+        assert result.has_next()
+        assert result.get_next() == [datetime.datetime(2024, 1, 1, 11, 25, 30)]
+        assert result.has_next()
+        assert result.get_next() == [datetime.timedelta(days=2)]
+        assert result.has_next()
+
+        result_blob = result.get_next()[0]
+        assert len(result_blob) == 1
+        assert result_blob[0] == 0xB2
+        assert not result.has_next()
+
+    with conn.execute("DROP RDFGraph T;") as result:
+        result.close()

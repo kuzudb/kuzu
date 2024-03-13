@@ -47,8 +47,8 @@ class QueryResult:
     def __exit__(
         self,
         exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
     ) -> None:
         self.close()
 
