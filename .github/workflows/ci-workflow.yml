@@ -17,9 +17,9 @@ on:
 # See github's docs[1] and a relevant stack overflow answer[2]
 #   [1]: https://docs.github.com/en/actions/using-jobs/using-concurrency
 #   [2]: https://stackoverflow.com/questions/66335225/how-to-cancel-previous-runs-in-the-pr-when-you-push-new-commitsupdate-the-curre
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-#   cancel-in-progress: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   gcc-build-test:
@@ -27,7 +27,6 @@ jobs:
     needs: [clang-formatting-check, sanity-checks, python-lint-check]
     runs-on: kuzu-self-hosted-testing
     env:
-      WERROR: 0
       NUM_THREADS: 32
       TEST_JOBS: 16
       CLANGD_DIAGNOSTIC_JOBS: 32
