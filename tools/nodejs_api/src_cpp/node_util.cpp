@@ -310,11 +310,11 @@ Value Util::TransformNapiValue(
     case LogicalTypeID::BOOL: {
         return Value(napiValue.ToBoolean().Value());
     }
-    case LogicalTypeID::INT16: {
+    case LogicalTypeID::INT64: {
         if (!napiValue.IsNumber()) {
             throw Exception("Expected a number for parameter " + key + ".");
         }
-        int16_t val = napiValue.ToNumber().Int32Value();
+        int64_t val = napiValue.ToNumber().Int64Value();
         return Value(val);
     }
     case LogicalTypeID::INT32: {
@@ -324,18 +324,64 @@ Value Util::TransformNapiValue(
         int32_t val = napiValue.ToNumber().Int32Value();
         return Value(val);
     }
-    case LogicalTypeID::INT64: {
+    case LogicalTypeID::INT16: {
         if (!napiValue.IsNumber()) {
             throw Exception("Expected a number for parameter " + key + ".");
         }
-        int64_t val = napiValue.ToNumber().Int64Value();
+        int16_t val = napiValue.ToNumber().Int32Value();
         return Value(val);
     }
-    case LogicalTypeID::FLOAT: {
+    case LogicalTypeID::INT8: {
         if (!napiValue.IsNumber()) {
             throw Exception("Expected a number for parameter " + key + ".");
         }
-        float val = napiValue.ToNumber().FloatValue();
+        int8_t val = napiValue.ToNumber().Int32Value();
+        return Value(val);
+    }
+    case LogicalTypeID::UINT64: {
+        if (!napiValue.IsNumber()) {
+            throw Exception("Expected a number for parameter " + key + ".");
+        }
+        auto valStr = napiValue.ToNumber().ToString();
+        return Value(std::stoull(valStr));
+    }
+    case LogicalTypeID::UINT32: {
+        if (!napiValue.IsNumber()) {
+            throw Exception("Expected a number for parameter " + key + ".");
+        }
+        uint32_t val = napiValue.ToNumber().Uint32Value();
+        return Value(val);
+    }
+    case LogicalTypeID::UINT16: {
+        if (!napiValue.IsNumber()) {
+            throw Exception("Expected a number for parameter " + key + ".");
+        }
+        uint16_t val = napiValue.ToNumber().Uint32Value();
+        return Value(val);
+    }
+    case LogicalTypeID::UINT8: {
+        if (!napiValue.IsNumber()) {
+            throw Exception("Expected a number for parameter " + key + ".");
+        }
+        uint8_t val = napiValue.ToNumber().Uint32Value();
+        return Value(val);
+    }
+    case LogicalTypeID::INT128: {
+        if (!napiValue.IsBigInt()) {
+            throw Exception("Expected a BigInt for parameter " + key + ".");
+        }
+        auto bigInt = napiValue.As<Napi::BigInt>();
+        size_t wordsCount = bigInt.WordCount();
+        std::unique_ptr<uint64_t[]> words(new uint64_t[wordsCount]);
+        int signBit;
+        bigInt.ToWords(&signBit, &wordsCount, words.get());
+        kuzu::common::int128_t val;
+        val.low = words[0];
+        val.high = words[1];
+        // Ignore words[2] and beyond as we only support 128-bit integers but BigInt can be larger.
+        if (signBit) {
+            kuzu::common::Int128_t::negateInPlace(val);
+        }
         return Value(val);
     }
     case LogicalTypeID::DOUBLE: {
@@ -345,9 +391,12 @@ Value Util::TransformNapiValue(
         double val = napiValue.ToNumber().DoubleValue();
         return Value(val);
     }
-    case LogicalTypeID::STRING: {
-        std::string val = napiValue.ToString().Utf8Value();
-        return Value(LogicalType::STRING(), val);
+    case LogicalTypeID::FLOAT: {
+        if (!napiValue.IsNumber()) {
+            throw Exception("Expected a number for parameter " + key + ".");
+        }
+        float val = napiValue.ToNumber().FloatValue();
+        return Value(val);
     }
     case LogicalTypeID::DATE: {
         if (!napiValue.IsDate()) {
@@ -415,6 +464,15 @@ Value Util::TransformNapiValue(
             intervalVal, normalizedMonths, normalizedDays, normalizedMicros);
         auto normalizedInterval = interval_t(normalizedMonths, normalizedDays, normalizedMicros);
         return Value(normalizedInterval);
+    }
+    case LogicalTypeID::STRING: {
+        std::string val = napiValue.ToString().Utf8Value();
+        return Value(LogicalType::STRING(), val);
+    }
+    case LogicalTypeID::UUID: {
+        std::string stringVal = napiValue.ToString().Utf8Value();
+        auto val = UUID::fromString(stringVal);
+        return Value(val);
     }
     default:
         throw Exception(
