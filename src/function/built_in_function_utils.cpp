@@ -15,6 +15,7 @@
 #include "function/cast/vector_cast_functions.h"
 #include "function/comparison/vector_comparison_functions.h"
 #include "function/date/vector_date_functions.h"
+#include "function/function_collection.h"
 #include "function/interval/vector_interval_functions.h"
 #include "function/list/vector_list_functions.h"
 #include "function/map/vector_map_functions.h"
@@ -64,6 +65,8 @@ void BuiltInFunctionsUtils::registerScalarFunctions(CatalogSet* catalogSet) {
     registerBlobFunctions(catalogSet);
     registerUUIDFunctions(catalogSet);
     registerRdfFunctions(catalogSet);
+
+    registerFunctions(catalogSet);
 }
 
 void BuiltInFunctionsUtils::registerAggregateFunctions(CatalogSet* catalogSet) {
@@ -559,8 +562,7 @@ void BuiltInFunctionsUtils::registerArithmeticFunctions(CatalogSet* catalogSet) 
         MODULO_FUNC_NAME, ModuloFunction::getFunctionSet()));
     catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
         POWER_FUNC_NAME, PowerFunction::getFunctionSet()));
-    catalogSet->createEntry(
-        std::make_unique<ScalarFunctionCatalogEntry>(ABS_FUNC_NAME, AbsFunction::getFunctionSet()));
+
     catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
         ACOS_FUNC_NAME, AcosFunction::getFunctionSet()));
     catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
@@ -1098,6 +1100,17 @@ void BuiltInFunctionsUtils::validateNonEmptyCandidateFunctions(
             supportedInputsString += function->signatureToString() + "\n";
         }
         throw BinderException(getFunctionMatchFailureMsg(name, inputTypes, supportedInputsString));
+    }
+}
+
+void BuiltInFunctionsUtils::registerFunctions(catalog::CatalogSet* catalogSet) {
+    auto functions = FunctionCollection::getFunctions();
+    auto i = 0u;
+    while (functions[i].name != nullptr) {
+        auto functionSet = functions[i].getFunctionSetFunc();
+        catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
+            functions[i].name, std::move(functionSet)));
+        i++;
     }
 }
 

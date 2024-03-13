@@ -15,6 +15,7 @@ struct FunctionBindData {
 };
 
 struct Function;
+using function_set = std::vector<std::unique_ptr<Function>>;
 using scalar_bind_func = std::function<std::unique_ptr<FunctionBindData>(
     const binder::expression_vector&, Function* definition)>;
 

@@ -12,6 +12,7 @@ add_library(kuzu_function
         cast_from_string_functions.cpp
         comparison_functions.cpp
         find_function.cpp
+        function_collection.cpp
         scalar_macro_function.cpp
         vector_arithmetic_functions.cpp
         vector_boolean_functions.cpp

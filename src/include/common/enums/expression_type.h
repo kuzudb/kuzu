@@ -114,7 +114,6 @@ const char* const MODULO_FUNC_NAME = "%";
 const char* const POWER_FUNC_NAME = "^";
 
 // arithmetics functions
-const char* const ABS_FUNC_NAME = "ABS";
 const char* const ACOS_FUNC_NAME = "ACOS";
 const char* const ASIN_FUNC_NAME = "ASIN";
 const char* const ATAN_FUNC_NAME = "ATAN";

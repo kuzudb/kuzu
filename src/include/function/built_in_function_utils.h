@@ -120,6 +120,8 @@ private:
     static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctions,
         const std::string& name, const std::vector<common::LogicalType>& inputTypes,
         function::function_set& set);
+
+    static void registerFunctions(catalog::CatalogSet* catalogSet);
 };
 
 } // namespace function

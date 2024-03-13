@@ -19,7 +19,6 @@ using scalar_exec_func = std::function<void(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::ValueVector&, void*)>;
 using scalar_select_func = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
-using function_set = std::vector<std::unique_ptr<Function>>;
 
 struct ScalarFunction final : public BaseScalarFunction {
 

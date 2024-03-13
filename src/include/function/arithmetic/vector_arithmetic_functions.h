@@ -6,130 +6,6 @@
 namespace kuzu {
 namespace function {
 
-struct ArithmeticFunction {
-    template<typename FUNC>
-    static std::unique_ptr<ScalarFunction> getUnaryFunction(
-        std::string name, common::LogicalTypeID operandTypeID) {
-        function::scalar_exec_func execFunc;
-        getUnaryExecFunc<FUNC>(operandTypeID, execFunc);
-        return std::make_unique<ScalarFunction>(std::move(name),
-            std::vector<common::LogicalTypeID>{operandTypeID}, operandTypeID, execFunc);
-    }
-
-    template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
-    static std::unique_ptr<ScalarFunction> getUnaryFunction(
-        std::string name, common::LogicalTypeID operandTypeID, common::LogicalTypeID resultTypeID) {
-        return std::make_unique<ScalarFunction>(std::move(name),
-            std::vector<common::LogicalTypeID>{operandTypeID}, resultTypeID,
-            ScalarFunction::UnaryExecFunction<OPERAND_TYPE, RETURN_TYPE, FUNC>);
-    }
-
-    template<typename FUNC>
-    static inline std::unique_ptr<ScalarFunction> getBinaryFunction(
-        std::string name, common::LogicalTypeID operandTypeID) {
-        function::scalar_exec_func execFunc;
-        getBinaryExecFunc<FUNC>(operandTypeID, execFunc);
-        return std::make_unique<ScalarFunction>(std::move(name),
-            std::vector<common::LogicalTypeID>{operandTypeID, operandTypeID}, operandTypeID,
-            execFunc);
-    }
-
-    template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
-    static inline std::unique_ptr<ScalarFunction> getBinaryFunction(
-        std::string name, common::LogicalTypeID operandTypeID, common::LogicalTypeID resultTypeID) {
-        return std::make_unique<ScalarFunction>(std::move(name),
-            std::vector<common::LogicalTypeID>{operandTypeID, operandTypeID}, resultTypeID,
-            ScalarFunction::BinaryExecFunction<OPERAND_TYPE, OPERAND_TYPE, RETURN_TYPE, FUNC>);
-    }
-
-private:
-    template<typename FUNC>
-    static void getUnaryExecFunc(common::LogicalTypeID operandTypeID, scalar_exec_func& func) {
-        switch (operandTypeID) {
-        case common::LogicalTypeID::SERIAL:
-        case common::LogicalTypeID::INT64: {
-            func = ScalarFunction::UnaryExecFunction<int64_t, int64_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::INT32: {
-            func = ScalarFunction::UnaryExecFunction<int32_t, int32_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::INT16: {
-            func = ScalarFunction::UnaryExecFunction<int16_t, int16_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::INT8: {
-            func = ScalarFunction::UnaryExecFunction<int8_t, int8_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::UINT64: {
-            func = ScalarFunction::UnaryExecFunction<uint64_t, uint64_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::UINT32: {
-            func = ScalarFunction::UnaryExecFunction<uint32_t, uint32_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::UINT16: {
-            func = ScalarFunction::UnaryExecFunction<uint16_t, uint16_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::UINT8: {
-            func = ScalarFunction::UnaryExecFunction<uint8_t, uint8_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::INT128: {
-            func = ScalarFunction::UnaryExecFunction<kuzu::common::int128_t, kuzu::common::int128_t,
-                FUNC>;
-        } break;
-        case common::LogicalTypeID::DOUBLE: {
-            func = ScalarFunction::UnaryExecFunction<double, double, FUNC>;
-        } break;
-        case common::LogicalTypeID::FLOAT: {
-            func = ScalarFunction::UnaryExecFunction<float, float, FUNC>;
-        } break;
-        default:
-            KU_UNREACHABLE;
-        }
-    }
-
-    template<typename FUNC>
-    static void getBinaryExecFunc(common::LogicalTypeID operandTypeID, scalar_exec_func& func) {
-        switch (operandTypeID) {
-        case common::LogicalTypeID::SERIAL:
-        case common::LogicalTypeID::INT64: {
-            func = ScalarFunction::BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::INT32: {
-            func = ScalarFunction::BinaryExecFunction<int32_t, int32_t, int32_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::INT16: {
-            func = ScalarFunction::BinaryExecFunction<int16_t, int16_t, int16_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::INT8: {
-            func = ScalarFunction::BinaryExecFunction<int8_t, int8_t, int8_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::UINT64: {
-            func = ScalarFunction::BinaryExecFunction<uint64_t, uint64_t, uint64_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::UINT32: {
-            func = ScalarFunction::BinaryExecFunction<uint32_t, uint32_t, uint32_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::UINT16: {
-            func = ScalarFunction::BinaryExecFunction<uint16_t, uint16_t, uint16_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::UINT8: {
-            func = ScalarFunction::BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::INT128: {
-            func = ScalarFunction::BinaryExecFunction<kuzu::common::int128_t,
-                kuzu::common::int128_t, kuzu::common::int128_t, FUNC>;
-        } break;
-        case common::LogicalTypeID::DOUBLE: {
-            func = ScalarFunction::BinaryExecFunction<double, double, double, FUNC>;
-        } break;
-        case common::LogicalTypeID::FLOAT: {
-            func = ScalarFunction::BinaryExecFunction<float, float, float, FUNC>;
-        } break;
-        default:
-            KU_UNREACHABLE;
-        }
-    }
-};
-
 struct AddFunction {
     static function_set getFunctionSet();
 };
@@ -155,6 +31,8 @@ struct PowerFunction {
 };
 
 struct AbsFunction {
+    static constexpr const char* name = "abs";
+
     static function_set getFunctionSet();
 };
 
