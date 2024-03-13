@@ -397,3 +397,12 @@ v3|v2
 {_ID: 1:1, _LABEL: R, id: r12}|v12
 |v11
 |v111
+
+-CASE 3042
+-STATEMENT CREATE NODE TABLE MyTask (id STRING, inputs MAP(STRING, STRING)[], PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (:MyTask {id: 'myid', inputs: [MAP(['input1'], ['value1'])]});
+---- ok
+-STATEMENT MATCH (n:MyTask) RETURN n.*;
+---- 1
+myid|[{input1=value1}]
