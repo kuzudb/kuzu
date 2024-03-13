@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 # Only allow one run in this group to run at a time, and cancel any runs in progress in this group.
 # We use the workflow name and then add the pull request number, or (if it's a push to master), we use the name of the branch.

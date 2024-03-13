@@ -1,18 +1,18 @@
 #include "py_conversion.h"
 
 #include "common/type_utils.h"
+#include "cached_import/py_cached_import.h"
 
 namespace kuzu {
 
 using namespace kuzu::common;
+using kuzu::importCache;
 
 PythonObjectType getPythonObjectType(py::handle& ele) {
-    py::object pandas = py::module::import("pandas");
-    auto pandasNa = pandas.attr("NA");
-    auto pandasNat = pandas.attr("NaT");
-    py::object datetime = py::module::import("datetime");
-    auto pyDateTime = datetime.attr("datetime");
-    auto pyDate = datetime.attr("date");
+    auto pandasNa = importCache->pandas.NA();
+    auto pyDateTime = importCache->datetime.datetime();
+    auto pandasNat = importCache->pandas.NaT();
+    auto pyDate = importCache->datetime.date();
     if (ele.is_none() || ele.is(pandasNa) || ele.is(pandasNat)) {
         return PythonObjectType::None;
     } else if (py::isinstance<py::bool_>(ele)) {

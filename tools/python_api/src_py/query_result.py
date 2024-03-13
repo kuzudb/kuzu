@@ -1,13 +1,32 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from .torch_geometric_result_converter import TorchGeometricResultConverter
 from .types import Type
 
+if TYPE_CHECKING:
+    import sys
+    from types import TracebackType
+
+    import networkx as nx
+    import pandas as pd
+    import polars as pl
+    import pyarrow as pa
+    import torch_geometric.data as geo
+
+    from . import _kuzu
+
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self
+
 
 class QueryResult:
-    """
-    QueryResult stores the result of a query execution.
-    """
+    """QueryResult stores the result of a query execution."""
 
-    def __init__(self, connection, query_result):
+    def __init__(self, connection: _kuzu.Connection, query_result: _kuzu.QueryResult):  # type: ignore[name-defined]
         """
         Parameters
         ----------
@@ -18,15 +37,25 @@ class QueryResult:
             The underlying C++ query result object from pybind11.
 
         """
-
         self.connection = connection
         self._query_result = query_result
         self.is_closed = False
 
-    def __del__(self):
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
-    def check_for_query_result_close(self):
+    def __del__(self) -> None:
+        self.close()
+
+    def check_for_query_result_close(self) -> None:
         """
         Check if the query result is closed and raise an exception if it is.
 
@@ -36,11 +65,11 @@ class QueryResult:
             If the query result is closed.
 
         """
-
         if self.is_closed:
-            raise Exception("Query result is closed")
+            msg = "Query result is closed"
+            raise RuntimeError(msg)
 
-    def has_next(self):
+    def has_next(self) -> bool:
         """
         Check if there are more rows in the query result.
 
@@ -50,11 +79,10 @@ class QueryResult:
             True if there are more rows in the query result, False otherwise.
 
         """
-
         self.check_for_query_result_close()
         return self._query_result.hasNext()
 
-    def get_next(self):
+    def get_next(self) -> list[Any]:
         """
         Get the next row in the query result.
 
@@ -64,26 +92,26 @@ class QueryResult:
             Next row in the query result.
 
         """
-
         self.check_for_query_result_close()
         return self._query_result.getNext()
 
-    def close(self):
-        """
-        Close the query result.
-        """
+    def close(self) -> None:
+        """Close the query result."""
+        if not self.is_closed:
+            # Allows the connection to be garbage collected if the query result
+            # is closed manually by the user.
+            self._query_result.close()
+            self.connection = None
+            self.is_closed = True
 
-        if self.is_closed:
-            return
-        self._query_result.close()
-        # Allows the connection to be garbage collected if the query result
-        # is closed manually by the user.
-        self.connection = None
-        self.is_closed = True
-
-    def get_as_df(self):
+    def get_as_df(self) -> pd.DataFrame:
         """
         Get the query result as a Pandas DataFrame.
+
+        See Also
+        --------
+        get_as_pl : Get the query result as a Polars DataFrame.
+        get_as_arrow : Get the query result as a PyArrow Table.
 
         Returns
         -------
@@ -91,14 +119,33 @@ class QueryResult:
             Query result as a Pandas DataFrame.
 
         """
-
         self.check_for_query_result_close()
-        import numpy
-        import pandas
 
         return self._query_result.getAsDF()
 
-    def get_as_arrow(self, chunk_size):
+    def get_as_pl(self) -> pl.DataFrame:
+        """
+        Get the query result as a Polars DataFrame.
+
+        See Also
+        --------
+        get_as_df : Get the query result as a Pandas DataFrame.
+        get_as_arrow : Get the query result as a PyArrow Table.
+
+        Returns
+        -------
+        polars.DataFrame
+            Query result as a Polars DataFrame.
+        """
+        import polars as pl
+
+        target_n_elems = 10_000_000  # adaptive chunk_size; target 10m elements per chunk
+        target_chunk_size = max(target_n_elems // len(self.get_column_names()), 10)
+        return pl.from_arrow(  # type: ignore[return-value]
+            data=self.get_as_arrow(chunk_size=target_chunk_size),
+        )
+
+    def get_as_arrow(self, chunk_size: int) -> pa.Table:
         """
         Get the query result as a PyArrow Table.
 
@@ -107,18 +154,21 @@ class QueryResult:
         chunk_size : int
             Number of rows to include in each chunk.
 
+        See Also
+        --------
+        get_as_pl : Get the query result as a Polars DataFrame.
+        get_as_df : Get the query result as a Pandas DataFrame.
+
         Returns
         -------
         pyarrow.Table
             Query result as a PyArrow Table.
         """
-
         self.check_for_query_result_close()
-        import pyarrow
 
         return self._query_result.getAsArrow(chunk_size)
 
-    def get_column_data_types(self):
+    def get_column_data_types(self) -> list[str]:
         """
         Get the data types of the columns in the query result.
 
@@ -128,11 +178,10 @@ class QueryResult:
             Data types of the columns in the query result.
 
         """
-
         self.check_for_query_result_close()
         return self._query_result.getColumnDataTypes()
 
-    def get_column_names(self):
+    def get_column_names(self) -> list[str]:
         """
         Get the names of the columns in the query result.
 
@@ -142,19 +191,33 @@ class QueryResult:
             Names of the columns in the query result.
 
         """
-
         self.check_for_query_result_close()
         return self._query_result.getColumnNames()
 
-    def reset_iterator(self):
+    def get_schema(self) -> dict[str, str]:
         """
-        Reset the iterator of the query result.
-        """
+        Get the column schema of the query result.
 
+        Returns
+        -------
+        dict
+            Schema of the query result.
+
+        """
+        self.check_for_query_result_close()
+        return dict(
+            zip(
+                self._query_result.getColumnNames(),
+                self._query_result.getColumnDataTypes(),
+            )
+        )
+
+    def reset_iterator(self) -> None:
+        """Reset the iterator of the query result."""
         self.check_for_query_result_close()
         self._query_result.resetIterator()
 
-    def get_as_networkx(self, directed=True):
+    def get_as_networkx(self, directed: bool = True) -> nx.Graph | nx.DiGraph:  # noqa: FBT001
         """
         Convert the nodes and rels in query result into a NetworkX directed or undirected graph
         with the following rules:
@@ -172,14 +235,10 @@ class QueryResult:
             Query result as a NetworkX graph.
 
         """
-
         self.check_for_query_result_close()
         import networkx as nx
 
-        if directed:
-            nx_graph = nx.DiGraph()
-        else:
-            nx_graph = nx.Graph()
+        nx_graph = nx.DiGraph() if directed else nx.Graph()
         properties_to_extract = self._get_properties_to_extract()
 
         self.reset_iterator()
@@ -189,8 +248,9 @@ class QueryResult:
         table_to_label_dict = {}
         table_primary_key_dict = {}
 
-        def encode_node_id(node, table_primary_key_dict):
-            return node['_label'] + "_" + str(node[table_primary_key_dict[node['_label']]])
+        def encode_node_id(node: dict[str, Any], table_primary_key_dict: dict[str, Any]) -> str:
+            node_label = node["_label"]
+            return f"{node_label}_{node[table_primary_key_dict[node_label]]!s}"
 
         # De-duplicate nodes and rels
         while self.has_next():
@@ -205,36 +265,33 @@ class QueryResult:
                 elif column_type == Type.REL.value:
                     _src = row[i]["_src"]
                     _dst = row[i]["_dst"]
-                    rels[(_src["table"], _src["offset"], _dst["table"],
-                          _dst["offset"])] = row[i]
+                    rels[(_src["table"], _src["offset"], _dst["table"], _dst["offset"])] = row[i]
 
                 elif column_type == Type.RECURSIVE_REL.value:
-                    for node in row[i]['_nodes']:
+                    for node in row[i]["_nodes"]:
                         _id = node["_id"]
                         nodes[(_id["table"], _id["offset"])] = node
                         table_to_label_dict[_id["table"]] = node["_label"]
-                    for rel in row[i]['_rels']:
+                    for rel in row[i]["_rels"]:
                         for key in rel:
                             if rel[key] is None:
                                 del rel[key]
                         _src = rel["_src"]
                         _dst = rel["_dst"]
-                        rels[(_src["table"], _src["offset"], _dst["table"],
-                              _dst["offset"])] = rel
+                        rels[(_src["table"], _src["offset"], _dst["table"], _dst["offset"])] = rel
 
         # Add nodes
         for node in nodes.values():
             _id = node["_id"]
-            node_id = node['_label'] + "_" + str(_id["offset"])
-            if node['_label'] not in table_primary_key_dict:
-                props = self.connection._get_node_property_names(
-                    node['_label'])
+            node_id = node["_label"] + "_" + str(_id["offset"])
+            if node["_label"] not in table_primary_key_dict:
+                props = self.connection._get_node_property_names(node["_label"])
                 for prop_name in props:
-                    if props[prop_name]['is_primary_key']:
-                        table_primary_key_dict[node['_label']] = prop_name
+                    if props[prop_name]["is_primary_key"]:
+                        table_primary_key_dict[node["_label"]] = prop_name
                         break
             node_id = encode_node_id(node, table_primary_key_dict)
-            node[node['_label']] = True
+            node[node["_label"]] = True
             nx_graph.add_node(node_id, **node)
 
         # Add rels
@@ -248,7 +305,7 @@ class QueryResult:
             nx_graph.add_edge(src_id, dst_id, **rel)
         return nx_graph
 
-    def _get_properties_to_extract(self):
+    def _get_properties_to_extract(self) -> dict[int, tuple[str, str]]:
         column_names = self.get_column_names()
         column_types = self.get_column_data_types()
         properties_to_extract = {}
@@ -257,17 +314,21 @@ class QueryResult:
         for i in range(len(column_names)):
             column_name = column_names[i]
             column_type = column_types[i]
-            if column_type in [Type.NODE.value, Type.REL.value, Type.RECURSIVE_REL.value]:
+            if column_type in [
+                Type.NODE.value,
+                Type.REL.value,
+                Type.RECURSIVE_REL.value,
+            ]:
                 properties_to_extract[i] = (column_type, column_name)
         return properties_to_extract
 
-    def get_as_torch_geometric(self):
+    def get_as_torch_geometric(self) -> tuple[geo.Data | geo.HeteroData, dict, dict, dict]:  # type: ignore[type-arg]
         """
         Converts the nodes and rels in query result into a PyTorch Geometric graph representation
         torch_geometric.data.Data or torch_geometric.data.HeteroData.
 
         For node conversion, numerical and boolean properties are directly converted into tensor and
-        stored in Data/HeteroData. For properties cannot be converted into tensor automatically 
+        stored in Data/HeteroData. For properties cannot be converted into tensor automatically
         (please refer to the notes below for more detail), they are returned as unconverted_properties.
 
         For rel conversion, rel is converted into edge_index tensor director. Edge properties are returned
@@ -277,9 +338,9 @@ class QueryResult:
         - If the type of a node property is not one of INT64, DOUBLE, or BOOL, it cannot be converted
           automatically.
         - If a node property contains a null value, it cannot be converted automatically.
-        - If a node property contains a nested list of variable length (e.g. [[1,2],[3]]), it cannot be 
+        - If a node property contains a nested list of variable length (e.g. [[1,2],[3]]), it cannot be
           converted automatically.
-        - If a node property is a list or nested list, but the shape is inconsistent (e.g. the list length 
+        - If a node property is a list or nested list, but the shape is inconsistent (e.g. the list length
           is 6 for one node but 5 for another node), it cannot be converted automatically.
 
         Additional conversion rules:
@@ -304,19 +365,15 @@ class QueryResult:
             A dictionary contains edge properties. The order of values for each property is aligned with
             edge_index in Data/HeteroData.
         """
-
         self.check_for_query_result_close()
         # Despite we are not using torch_geometric in this file, we need to
         # import it here to throw an error early if the user does not have
         # torch_geometric or torch installed.
 
-        import torch
-        import torch_geometric
-
         converter = TorchGeometricResultConverter(self)
         return converter.get_as_torch_geometric()
 
-    def get_execution_time(self):
+    def get_execution_time(self) -> int:
         """
         Get the time in ms which was required for executing the query.
 
@@ -329,7 +386,7 @@ class QueryResult:
         self.check_for_query_result_close()
         return self._query_result.getExecutionTime()
 
-    def get_compiling_time(self):
+    def get_compiling_time(self) -> int:
         """
         Get the time in ms which was required for compiling the query.
 
@@ -342,7 +399,7 @@ class QueryResult:
         self.check_for_query_result_close()
         return self._query_result.getCompilingTime()
 
-    def get_num_tuples(self):
+    def get_num_tuples(self) -> int:
         """
         Get the number of tuples which the query returned.
 
@@ -350,7 +407,7 @@ class QueryResult:
         -------
         int
             Number of tuples.
-            
+
         """
         self.check_for_query_result_close()
         return self._query_result.getNumTuples()

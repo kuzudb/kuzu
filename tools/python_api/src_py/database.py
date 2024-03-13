@@ -1,23 +1,47 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
 from . import _kuzu
 from .types import Type
 
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+    from torch_geometric.data.feature_store import IndexType
+
+    from .torch_geometric_feature_store import KuzuFeatureStore
+    from .torch_geometric_graph_store import KuzuGraphStore
+
 
 class Database:
-    """
-    Kùzu database instance.
-    """
+    """Kùzu database instance."""
 
-    def __init__(self, database_path, buffer_pool_size=0, max_num_threads=0, compression=True, lazy_init=False,
-                 read_only=False, max_db_size= 1 << 43):
+    def __init__(
+        self,
+        database_path: str | Path,
+        *,
+        buffer_pool_size: int = 0,
+        max_num_threads: int = 0,
+        compression: bool = True,
+        lazy_init: bool = False,
+        read_only: bool = False,
+        max_db_size: int = (1 << 43),
+    ):
         """
         Parameters
         ----------
-        database_path : str
+        database_path : str, Path
             The path to database files
 
         buffer_pool_size : int
-            The maximum size of buffer pool in bytes (Optional). Default to 80%
-            of system memory.
+            The maximum size of buffer pool in bytes. Defaults to ~80% of system memory.
+
+        max_num_threads : int
+            The maximum number of threads to use for executing queries.
+
+        compression : bool
+            Enable database compression.
 
         lazy_init : bool
             If True, the database will not be initialized until the first query.
@@ -41,17 +65,22 @@ class Database:
              environment and 1GB under 32-bit one.
 
         """
+        if isinstance(database_path, Path):
+            database_path = str(database_path)
+
         self.database_path = database_path
         self.buffer_pool_size = buffer_pool_size
         self.max_num_threads = max_num_threads
         self.compression = compression
         self.read_only = read_only
         self.max_db_size = max_db_size
-        self._database = None
+
+        self._database: Any = None  # (type: _kuzu.Database from pybind11)
         if not lazy_init:
             self.init_database()
-    
-    def get_version():
+
+    @staticmethod
+    def get_version() -> str:
         """
         Get the version of the database.
 
@@ -60,9 +89,10 @@ class Database:
         str
             The version of the database.
         """
-        return _kuzu.Database.get_version()
-    
-    def get_storage_version():
+        return _kuzu.Database.get_version()  # type: ignore[union-attr]
+
+    @staticmethod
+    def get_storage_version() -> int:
         """
         Get the storage version of the database.
 
@@ -71,28 +101,31 @@ class Database:
         int
             The storage version of the database.
         """
-        return _kuzu.Database.get_storage_version()
+        return _kuzu.Database.get_storage_version()  # type: ignore[union-attr]
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, Any]:
         state = {
             "database_path": self.database_path,
             "buffer_pool_size": self.buffer_pool_size,
             "compression": self.compression,
             "read_only": self.read_only,
-            "_database": None
+            "_database": None,
         }
         return state
 
-    def init_database(self):
-        """
-        Initialize the database.
-        """
+    def init_database(self) -> None:
+        """Initialize the database."""
         if self._database is None:
-            self._database = _kuzu.Database(self.database_path,
-                                            self.buffer_pool_size, self.max_num_threads, self.compression,
-                                            self.read_only, self.max_db_size)
+            self._database = _kuzu.Database(  # type: ignore[union-attr]
+                self.database_path,
+                self.buffer_pool_size,
+                self.max_num_threads,
+                self.compression,
+                self.read_only,
+                self.max_db_size,
+            )
 
-    def set_logging_level(self, level):
+    def set_logging_level(self, level: str) -> None:
         """
         Set the logging level.
 
@@ -100,24 +133,25 @@ class Database:
         ----------
         level : str
             Logging level. One of "debug", "info", "err".
-            
-        """
 
+        """
         self._database.set_logging_level(level)
 
-    def get_torch_geometric_remote_backend(self, num_threads=None):
+    def get_torch_geometric_remote_backend(
+        self, num_threads: int | None = None
+    ) -> tuple[KuzuFeatureStore, KuzuGraphStore]:
         """
-        Use the database as the remote backend for torch_geometric. 
+        Use the database as the remote backend for torch_geometric.
 
-        For the interface of the remote backend, please refer to 
+        For the interface of the remote backend, please refer to
         https://pytorch-geometric.readthedocs.io/en/latest/advanced/remote.html.
         The current implementation is read-only and does not support edge
         features. The IDs of the nodes are based on the internal IDs (i.e., node
         offsets). For the remote node IDs to be consistent with the positions in
         the output tensors, please ensure that no deletion has been performed
-        on the node tables. 
+        on the node tables.
 
-        The remote backend can also be plugged into the data loader of 
+        The remote backend can also be plugged into the data loader of
         torch_geometric, which is useful for mini-batch training. For example:
 
         ```python
@@ -130,7 +164,7 @@ class Database:
                 filter_per_worker=False,
             )
         ```
-        
+
         Please note that the database instance is not fork-safe, so if more than
         one worker is used, `filter_per_worker` must be set to False.
 
@@ -149,38 +183,49 @@ class Database:
         """
         from .torch_geometric_feature_store import KuzuFeatureStore
         from .torch_geometric_graph_store import KuzuGraphStore
-        return KuzuFeatureStore(self, num_threads), KuzuGraphStore(self, num_threads)
 
-    def _scan_node_table(self, table_name, prop_name, prop_type, dim, indices, num_threads):
+        return (
+            KuzuFeatureStore(self, num_threads),
+            KuzuGraphStore(self, num_threads),
+        )
+
+    def _scan_node_table(
+        self,
+        table_name: str,
+        prop_name: str,
+        prop_type: str,
+        dim: int,
+        indices: IndexType,
+        num_threads: int,
+    ) -> NDArray[Any]:
         import numpy as np
+
         """
         Scan a node table from storage directly, bypassing query engine.
         Used internally by torch_geometric remote backend only.
         """
         self.init_database()
         indices_cast = np.array(indices, dtype=np.uint64)
-
         result = None
+
         if prop_type == Type.INT64.value:
             result = np.empty(len(indices) * dim, dtype=np.int64)
-            self._database.scan_node_table_as_int64(
-                table_name, prop_name, indices_cast, result, num_threads)
-        if prop_type == Type.INT32.value:
+            self._database.scan_node_table_as_int64(table_name, prop_name, indices_cast, result, num_threads)
+        elif prop_type == Type.INT32.value:
             result = np.empty(len(indices) * dim, dtype=np.int32)
-            self._database.scan_node_table_as_int32(
-                table_name, prop_name, indices_cast, result, num_threads)
-        if prop_type == Type.INT16.value:
+            self._database.scan_node_table_as_int32(table_name, prop_name, indices_cast, result, num_threads)
+        elif prop_type == Type.INT16.value:
             result = np.empty(len(indices) * dim, dtype=np.int16)
-            self._database.scan_node_table_as_int16(
-                table_name, prop_name, indices_cast, result, num_threads)
-        if prop_type == Type.DOUBLE.value:
+            self._database.scan_node_table_as_int16(table_name, prop_name, indices_cast, result, num_threads)
+        elif prop_type == Type.DOUBLE.value:
             result = np.empty(len(indices) * dim, dtype=np.float64)
-            self._database.scan_node_table_as_double(
-                table_name, prop_name, indices_cast, result, num_threads)
-        if prop_type == Type.FLOAT.value:
+            self._database.scan_node_table_as_double(table_name, prop_name, indices_cast, result, num_threads)
+        elif prop_type == Type.FLOAT.value:
             result = np.empty(len(indices) * dim, dtype=np.float32)
-            self._database.scan_node_table_as_float(
-                table_name, prop_name, indices_cast, result, num_threads)
+            self._database.scan_node_table_as_float(table_name, prop_name, indices_cast, result, num_threads)
+
         if result is not None:
             return result
-        raise ValueError("Unsupported property type: {}".format(prop_type))
+
+        msg = f"Unsupported property type: {prop_type}"
+        raise ValueError(msg)
