@@ -44,8 +44,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     }
     auto csvConfig =
         CSVReaderConfig::construct(bindParsingOptions(copyToStatement.getParsingOptionsRef()));
-    return std::make_unique<BoundCopyTo>(boundFilePath, fileType, std::move(columnNames),
-        std::move(columnTypes), std::move(query), csvConfig.option.copy());
+    return std::make_unique<BoundCopyTo>(
+        boundFilePath, fileType, std::move(query), csvConfig.option.copy());
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {

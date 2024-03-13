@@ -1,6 +1,5 @@
 #include "function/list/vector_list_functions.h"
 
-#include "binder/expression_binder.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "function/list/functions/list_any_value_function.h"
@@ -76,7 +75,7 @@ std::unique_ptr<FunctionBindData> ListCreationFunction::bindFunc(
         auto& parameterType = argument->getDataTypeReference();
         if (parameterType != childType) {
             if (parameterType.getLogicalTypeID() == LogicalTypeID::ANY) {
-                binder::ExpressionBinder::resolveAnyDataType(*argument, childType);
+                argument->cast(childType);
             } else {
                 throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
                     LIST_CREATION_FUNC_NAME, arguments[0]->getDataType(), argument->getDataType()));

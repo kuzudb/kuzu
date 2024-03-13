@@ -12,6 +12,13 @@ namespace common {
 
 ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager)
     : dataType{std::move(dataType)} {
+    if (this->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
+        // LCOV_EXCL_START
+        // Alternatively we can assign
+        throw RuntimeException("Trying to a create a vector with ANY type. This should not happen. "
+                               "Data type is expected to be resolved during binding.");
+        // LCOV_EXCL_STOP
+    }
     numBytesPerValue = getDataTypeSize(this->dataType);
     initializeValueBuffer();
     nullMask = std::make_unique<NullMask>();

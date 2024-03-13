@@ -24,8 +24,7 @@ std::unique_ptr<FunctionBindData> StructPackFunctions::bindFunc(
     std::vector<StructField> fields;
     for (auto& argument : arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
-            binder::ExpressionBinder::resolveAnyDataType(
-                *argument, LogicalType{LogicalTypeID::STRING});
+            argument->cast(*LogicalType::STRING());
         }
         fields.emplace_back(argument->getAlias(), argument->getDataType().copy());
     }
