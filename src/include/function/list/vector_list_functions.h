@@ -10,8 +10,9 @@ namespace function {
 
 struct ListFunction {
     template<typename OPERATION, typename RESULT_TYPE>
-    static scalar_exec_func getBinaryListExecFuncSwitchRight(const common::LogicalType& rightType) {
-        scalar_exec_func execFunc;
+    static scalar_func_exec_t getBinaryListExecFuncSwitchRight(
+        const common::LogicalType& rightType) {
+        scalar_func_exec_t execFunc;
         switch (rightType.getPhysicalType()) {
         case common::PhysicalTypeID::BOOL: {
             execFunc = ScalarFunction::BinaryExecListStructFunction<common::list_entry_t, uint8_t,
@@ -89,8 +90,8 @@ struct ListFunction {
     }
 
     template<typename OPERATION, typename RESULT_TYPE>
-    static scalar_exec_func getBinaryListExecFuncSwitchAll(const common::LogicalType& type) {
-        scalar_exec_func execFunc;
+    static scalar_func_exec_t getBinaryListExecFuncSwitchAll(const common::LogicalType& type) {
+        scalar_func_exec_t execFunc;
         switch (type.getPhysicalType()) {
         case common::PhysicalTypeID::INT64: {
             execFunc = ScalarFunction::BinaryExecListStructFunction<int64_t, int64_t, RESULT_TYPE,
@@ -116,8 +117,8 @@ struct ListFunction {
     }
 
     template<typename OPERATION, typename RESULT_TYPE>
-    static scalar_exec_func getTernaryListExecFuncSwitchAll(const common::LogicalType& type) {
-        scalar_exec_func execFunc;
+    static scalar_func_exec_t getTernaryListExecFuncSwitchAll(const common::LogicalType& type) {
+        scalar_func_exec_t execFunc;
         switch (type.getPhysicalType()) {
         case common::PhysicalTypeID::INT64: {
             execFunc = ScalarFunction::TernaryExecListStructFunction<int64_t, int64_t, int64_t,
@@ -278,7 +279,8 @@ struct ListSortFunction {
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, Function* function);
     template<typename T>
-    static void getExecFunction(const binder::expression_vector& arguments, scalar_exec_func& func);
+    static void getExecFunction(
+        const binder::expression_vector& arguments, scalar_func_exec_t& func);
 };
 
 struct ListReverseSortFunction {
@@ -286,7 +288,8 @@ struct ListReverseSortFunction {
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, Function* function);
     template<typename T>
-    static void getExecFunction(const binder::expression_vector& arguments, scalar_exec_func& func);
+    static void getExecFunction(
+        const binder::expression_vector& arguments, scalar_func_exec_t& func);
 };
 
 struct ListSumFunction {

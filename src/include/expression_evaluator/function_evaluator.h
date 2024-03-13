@@ -32,8 +32,8 @@ protected:
 
 private:
     std::shared_ptr<binder::Expression> expression;
-    function::scalar_exec_func execFunc;
-    function::scalar_select_func selectFunc;
+    function::scalar_func_exec_t execFunc;
+    function::scalar_func_select_t selectFunc;
     std::vector<std::shared_ptr<common::ValueVector>> parameters;
 };
 

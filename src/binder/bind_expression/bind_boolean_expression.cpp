@@ -24,9 +24,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
         childrenAfterCast.push_back(implicitCastIfNecessary(child, LogicalTypeID::BOOL));
     }
     auto functionName = expressionTypeToString(expressionType);
-    function::scalar_exec_func execFunc;
+    function::scalar_func_exec_t execFunc;
     function::VectorBooleanFunction::bindExecFunction(expressionType, childrenAfterCast, execFunc);
-    function::scalar_select_func selectFunc;
+    function::scalar_func_select_t selectFunc;
     function::VectorBooleanFunction::bindSelectFunction(
         expressionType, childrenAfterCast, selectFunc);
     auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::BOOL());

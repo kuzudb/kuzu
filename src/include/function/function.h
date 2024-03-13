@@ -18,7 +18,13 @@ struct Function;
 using scalar_bind_func = std::function<std::unique_ptr<FunctionBindData>(
     const binder::expression_vector&, Function* definition)>;
 
-enum class FunctionType : uint8_t { UNKNOWN = 0, SCALAR = 1, AGGREGATE = 2, TABLE = 3 };
+enum class FunctionType : uint8_t {
+    UNKNOWN = 0,
+    SCALAR = 1,
+    REWRITE = 2,
+    AGGREGATE = 3,
+    TABLE = 4
+};
 
 struct Function {
     Function() : type{FunctionType::UNKNOWN} {};
@@ -28,7 +34,9 @@ struct Function {
 
     virtual ~Function() = default;
 
-    virtual std::string signatureToString() const = 0;
+    virtual std::string signatureToString() const {
+        return common::LogicalTypeUtils::toString(parameterTypeIDs);
+    }
 
     virtual std::unique_ptr<Function> copy() const = 0;
 
@@ -45,14 +53,13 @@ struct BaseScalarFunction : public Function {
         : Function{type, std::move(name), std::move(parameterTypeIDs)},
           returnTypeID{returnTypeID}, bindFunc{std::move(bindFunc)} {}
 
-    inline std::string signatureToString() const override {
-        std::string result = common::LogicalTypeUtils::toString(parameterTypeIDs);
+    std::string signatureToString() const override {
+        auto result = Function::signatureToString();
         result += " -> " + common::LogicalTypeUtils::toString(returnTypeID);
         return result;
     }
 
     common::LogicalTypeID returnTypeID;
-    // This function is used to bind parameter/return types for functions with nested dataType.
     scalar_bind_func bindFunc;
 };
 

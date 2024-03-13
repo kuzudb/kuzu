@@ -35,7 +35,6 @@ public:
         const Expression& expression, const std::vector<common::LogicalTypeID>& targets);
     static void validateDataType(const Expression& expr, const common::LogicalType& expectedType);
 
-private:
     // TODO(Xiyang): move to an expression rewriter
     std::shared_ptr<Expression> foldExpression(const std::shared_ptr<Expression>& expression);
 
@@ -74,6 +73,8 @@ private:
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
     std::shared_ptr<Expression> bindScalarFunctionExpression(
         const expression_vector& children, const std::string& functionName);
+    std::shared_ptr<Expression> bindRewriteFunctionExpression(
+        const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindAggregateFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName,
         bool isDistinct);
@@ -83,8 +84,6 @@ private:
     std::shared_ptr<Expression> rewriteFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
     std::unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
-    std::shared_ptr<Expression> bindInternalIDExpression(
-        const std::shared_ptr<Expression>& expression);
     std::shared_ptr<Expression> bindStartNodeExpression(const Expression& expression);
     std::shared_ptr<Expression> bindEndNodeExpression(const Expression& expression);
     std::shared_ptr<Expression> bindLabelFunction(const Expression& expression);

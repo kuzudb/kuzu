@@ -10,7 +10,7 @@ struct ArithmeticFunction {
     template<typename FUNC>
     static std::unique_ptr<ScalarFunction> getUnaryFunction(
         std::string name, common::LogicalTypeID operandTypeID) {
-        function::scalar_exec_func execFunc;
+        function::scalar_func_exec_t execFunc;
         getUnaryExecFunc<FUNC>(operandTypeID, execFunc);
         return std::make_unique<ScalarFunction>(std::move(name),
             std::vector<common::LogicalTypeID>{operandTypeID}, operandTypeID, execFunc);
@@ -27,7 +27,7 @@ struct ArithmeticFunction {
     template<typename FUNC>
     static inline std::unique_ptr<ScalarFunction> getBinaryFunction(
         std::string name, common::LogicalTypeID operandTypeID) {
-        function::scalar_exec_func execFunc;
+        function::scalar_func_exec_t execFunc;
         getBinaryExecFunc<FUNC>(operandTypeID, execFunc);
         return std::make_unique<ScalarFunction>(std::move(name),
             std::vector<common::LogicalTypeID>{operandTypeID, operandTypeID}, operandTypeID,
@@ -44,7 +44,7 @@ struct ArithmeticFunction {
 
 private:
     template<typename FUNC>
-    static void getUnaryExecFunc(common::LogicalTypeID operandTypeID, scalar_exec_func& func) {
+    static void getUnaryExecFunc(common::LogicalTypeID operandTypeID, scalar_func_exec_t& func) {
         switch (operandTypeID) {
         case common::LogicalTypeID::SERIAL:
         case common::LogicalTypeID::INT64: {
@@ -87,7 +87,7 @@ private:
     }
 
     template<typename FUNC>
-    static void getBinaryExecFunc(common::LogicalTypeID operandTypeID, scalar_exec_func& func) {
+    static void getBinaryExecFunc(common::LogicalTypeID operandTypeID, scalar_func_exec_t& func) {
         switch (operandTypeID) {
         case common::LogicalTypeID::SERIAL:
         case common::LogicalTypeID::INT64: {

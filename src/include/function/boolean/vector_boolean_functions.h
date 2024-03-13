@@ -9,10 +9,10 @@ namespace function {
 class VectorBooleanFunction {
 public:
     static void bindExecFunction(common::ExpressionType expressionType,
-        const binder::expression_vector& children, scalar_exec_func& func);
+        const binder::expression_vector& children, scalar_func_exec_t& func);
 
     static void bindSelectFunction(common::ExpressionType expressionType,
-        const binder::expression_vector& children, scalar_select_func& func);
+        const binder::expression_vector& children, scalar_func_select_t& func);
 
 private:
     template<typename FUNC>
@@ -48,16 +48,16 @@ private:
     }
 
     static void bindBinaryExecFunction(common::ExpressionType expressionType,
-        const binder::expression_vector& children, scalar_exec_func& func);
+        const binder::expression_vector& children, scalar_func_exec_t& func);
 
     static void bindBinarySelectFunction(common::ExpressionType expressionType,
-        const binder::expression_vector& children, scalar_select_func& func);
+        const binder::expression_vector& children, scalar_func_select_t& func);
 
     static void bindUnaryExecFunction(common::ExpressionType expressionType,
-        const binder::expression_vector& children, scalar_exec_func& func);
+        const binder::expression_vector& children, scalar_func_exec_t& func);
 
     static void bindUnarySelectFunction(common::ExpressionType expressionType,
-        const binder::expression_vector& children, scalar_select_func& func);
+        const binder::expression_vector& children, scalar_func_select_t& func);
 };
 
 } // namespace function
