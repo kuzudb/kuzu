@@ -343,7 +343,8 @@ Value Util::TransformNapiValue(
             throw Exception("Expected a number for parameter " + key + ".");
         }
         auto valStr = napiValue.ToNumber().ToString();
-        return Value(std::stoull(valStr));
+        uint64_t val = std::stoull(valStr);
+        return Value(val);
     }
     case LogicalTypeID::UINT32: {
         if (!napiValue.IsNumber()) {
