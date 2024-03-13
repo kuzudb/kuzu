@@ -16,9 +16,6 @@
 namespace kuzu {
 namespace processor {
 
-constexpr size_t BUFFER_SIZE = 1024;
-template<typename T>
-using Buffer = common::StaticVector<std::pair<T, common::offset_t>, BUFFER_SIZE>;
 const size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
 
 class IndexBuilderGlobalQueues {
@@ -28,7 +25,7 @@ public:
     void flushToDisk() const;
 
     template<typename T>
-    void insert(size_t index, Buffer<T> elem) {
+    void insert(size_t index, storage::IndexBuffer<T> elem) {
         auto& typedQueues = std::get<Queue<T>>(queues).array;
         typedQueues[index].push(std::move(elem));
         if (typedQueues[index].approxSize() < SHOULD_FLUSH_QUEUE_SIZE) {
@@ -49,7 +46,7 @@ private:
 
     template<typename T>
     struct Queue {
-        std::array<common::MPSCQueue<Buffer<T>>, storage::NUM_HASH_INDEXES> array;
+        std::array<common::MPSCQueue<storage::IndexBuffer<T>>, storage::NUM_HASH_INDEXES> array;
         // Type information to help std::visit. Value is not used
         T type;
     };
@@ -92,7 +89,7 @@ private:
 
     // These arrays are much too large to be inline.
     template<typename T>
-    using Buffers = std::array<Buffer<T>, storage::NUM_HASH_INDEXES>;
+    using Buffers = std::array<storage::IndexBuffer<T>, storage::NUM_HASH_INDEXES>;
     template<typename T>
     using UniqueBuffers = std::unique_ptr<Buffers<T>>;
     std::variant<UniqueBuffers<std::string>, UniqueBuffers<int64_t>, UniqueBuffers<int32_t>,
