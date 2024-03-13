@@ -116,13 +116,14 @@ class Connection {
           typeof value === "boolean" ||
           typeof value === "number" ||
           typeof value === "string" ||
-          (typeof value === "object" && value.constructor.name === "Date")
+          (typeof value === "object" && value.constructor.name === "Date") ||
+          typeof value === "bigint"
         ) {
           paramArray.push([key, value]);
         } else {
           return reject(
             new Error(
-              "The value of each parameter must be a boolean, number, string, or Date object."
+              "The value of each parameter must be a boolean, number, string, Date or BigInt."
             )
           );
         }
