@@ -35,7 +35,9 @@ void DictionaryChunk::resetToEmpty() {
 }
 
 uint64_t DictionaryChunk::getStringLength(string_index_t index) const {
-    if (index + 1 < offsetChunk->getNumValues()) {
+    if (stringDataChunk->getNumValues() == 0) {
+        return 0;
+    } else if (index + 1 < offsetChunk->getNumValues()) {
         KU_ASSERT(offsetChunk->getValue<string_offset_t>(index + 1) >=
                   offsetChunk->getValue<string_offset_t>(index));
         return offsetChunk->getValue<string_offset_t>(index + 1) -

@@ -507,6 +507,7 @@ void RelTableData::distributeAndUpdateColumn(Transaction* transaction,
     auto newSize = localState.rightCSROffset - localState.leftCSROffset + 1;
     auto newChunk = ColumnChunkFactory::createColumnChunk(
         *column->getDataType().copy(), enableCompression, newSize);
+    newChunk->getNullChunk()->resetToAllNull();
     auto maxNumNodesToDistribute = std::min(
         rightNodeBoundary - leftNodeBoundary + 1, persistentState.header.offset->getNumValues());
     // Third, copy the rels to the new chunk.
