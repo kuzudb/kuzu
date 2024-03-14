@@ -198,7 +198,7 @@ Binder exception: Cannot evaluate a.fName as a literal.
 37
 -STATEMENT CALL storage_info('knows') RETURN COUNT(*)
 ---- 1
-82
+84
 -STATEMENT CALL storage_info('workAt') RETURN COUNT(*)
 ---- 1
-22
+24

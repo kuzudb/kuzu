@@ -39,7 +39,7 @@ public:
     bool containProperty(const std::string& propertyName) const;
     common::property_id_t getPropertyID(const std::string& propertyName) const;
     const Property* getProperty(common::property_id_t propertyID) const;
-    common::column_id_t getColumnID(common::property_id_t propertyID) const;
+    virtual common::column_id_t getColumnID(common::property_id_t propertyID) const;
     bool containPropertyType(const common::LogicalType& logicalType) const;
     void addProperty(std::string propertyName, std::unique_ptr<common::LogicalType> dataType);
     void dropProperty(common::property_id_t propertyID);
@@ -52,7 +52,7 @@ public:
     static std::unique_ptr<TableCatalogEntry> deserialize(
         common::Deserializer& deserializer, CatalogEntryType type);
 
-private:
+protected:
     common::table_id_t tableID;
     std::string comment;
     common::property_id_t nextPID;

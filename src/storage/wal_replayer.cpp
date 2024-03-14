@@ -94,7 +94,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     }
 }
 
-void WALReplayer::replayPageUpdateOrInsertRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayPageUpdateOrInsertRecord(const WALRecord& walRecord) {
     // 1. As the first step we copy over the page on disk, regardless of if we are recovering
     // (and checkpointing) or checkpointing while during regular execution.
     auto dbFileID = walRecord.pageInsertOrUpdateRecord.dbFileID;
@@ -119,7 +119,7 @@ void WALReplayer::replayPageUpdateOrInsertRecord(const kuzu::storage::WALRecord&
     }
 }
 
-void WALReplayer::replayTableStatisticsRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         if (walRecord.tableStatisticsRecord.isNodeTable) {
             auto walFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
@@ -187,7 +187,7 @@ void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {
     replayCreateTableRecord(literalTripleTableWALRecord);
 }
 
-void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayCopyTableRecord(const WALRecord& walRecord) {
     auto tableID = walRecord.copyTableRecord.tableID;
     if (isCheckpoint) {
         if (!isRecovering) {
@@ -217,7 +217,7 @@ void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecor
     }
 }
 
-void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayDropTableRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         auto tableID = walRecord.dropTableRecord.tableID;
         if (!isRecovering) {
@@ -266,7 +266,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
     }
 }
 
-void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayDropPropertyRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         auto tableID = walRecord.dropPropertyRecord.tableID;
         auto propertyID = walRecord.dropPropertyRecord.propertyID;
@@ -299,7 +299,7 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
     }
 }
 
-void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayAddPropertyRecord(const WALRecord& walRecord) {
     auto tableID = walRecord.addPropertyRecord.tableID;
     auto propertyID = walRecord.addPropertyRecord.propertyID;
     if (!isCheckpoint) {

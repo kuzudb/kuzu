@@ -112,10 +112,13 @@ public:
         std::vector<common::partition_idx_t> numPartitions);
 
 private:
+    common::DataChunk constructDataChunk(const std::vector<DataPos>& columnPositions,
+        const std::vector<common::LogicalType>& columnTypes, const ResultSet& resultSet,
+        const std::shared_ptr<common::DataChunkState>& state);
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.
     void copyDataToPartitions(
-        common::partition_idx_t partitioningIdx, common::DataChunk* chunkToCopyFrom);
+        common::partition_idx_t partitioningIdx, common::DataChunk chunkToCopyFrom);
 
 private:
     // Same size as a value vector. Each thread will allocate a chunk for each node group,

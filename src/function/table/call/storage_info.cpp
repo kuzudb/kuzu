@@ -48,8 +48,6 @@ private:
             columns.push_back(relTable->getCSRLengthColumn(RelDataDirection::FWD));
             columns.push_back(relTable->getCSROffsetColumn(RelDataDirection::BWD));
             columns.push_back(relTable->getCSRLengthColumn(RelDataDirection::BWD));
-            columns.push_back(relTable->getAdjColumn(RelDataDirection::FWD));
-            columns.push_back(relTable->getAdjColumn(RelDataDirection::BWD));
             for (auto columnID = 0u; columnID < relTable->getNumColumns(); columnID++) {
                 auto column = relTable->getColumn(columnID, RelDataDirection::FWD);
                 auto collectedColumns = collectColumns(column);
@@ -167,10 +165,10 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     while (true) {
         if (localState->currChunkIdx < localState->dataChunkCollection->getNumChunks()) {
             // Copy from local state chunk.
-            auto chunk = localState->dataChunkCollection->getChunk(localState->currChunkIdx);
-            auto numValuesToOutput = chunk->state->selVector->selectedSize;
+            auto& chunk = localState->dataChunkCollection->getChunkUnsafe(localState->currChunkIdx);
+            auto numValuesToOutput = chunk.state->selVector->selectedSize;
             for (auto columnIdx = 0u; columnIdx < dataChunk.getNumValueVectors(); columnIdx++) {
-                auto localVector = chunk->getValueVector(columnIdx);
+                auto localVector = chunk.getValueVector(columnIdx);
                 auto outputVector = dataChunk.getValueVector(columnIdx);
                 for (auto i = 0u; i < numValuesToOutput; i++) {
                     outputVector->copyFromVectorData(i, localVector.get(), i);

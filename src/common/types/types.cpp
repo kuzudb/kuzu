@@ -451,6 +451,15 @@ std::vector<LogicalType> LogicalType::copy(const std::vector<LogicalType>& types
     return typesCopy;
 }
 
+std::vector<LogicalType> LogicalType::copy(const std::vector<LogicalType*>& types) {
+    std::vector<LogicalType> typesCopy;
+    typesCopy.reserve(types.size());
+    for (auto& type : types) {
+        typesCopy.push_back(*type->copy());
+    }
+    return typesCopy;
+}
+
 PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
     switch (typeID) {
     case LogicalTypeID::ANY: {

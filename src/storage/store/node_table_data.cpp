@@ -45,9 +45,9 @@ void NodeTableData::scan(Transaction* transaction, TableReadState& readState,
     if (transaction->isWriteTransaction()) {
         auto localTableData = transaction->getLocalStorage()->getLocalTableData(tableID);
         if (localTableData) {
-            auto localRelTableData =
+            auto localNodeTableData =
                 ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableData);
-            localRelTableData->scan(nodeIDVector, readState.columnIDs, outputVectors);
+            localNodeTableData->scan(nodeIDVector, readState.columnIDs, outputVectors);
         }
     }
 }
@@ -56,22 +56,22 @@ void NodeTableData::insert(Transaction* transaction, ValueVector* nodeIDVector,
     const std::vector<ValueVector*>& propertyVectors) {
     // We assume that offsets are given in the ascending order, thus lastOffset is the max one.
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
-    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
-        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns));
-    localTableData->insert(nodeIDVector, propertyVectors);
+    auto localTableData =
+        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
+    localTableData->insert({nodeIDVector}, propertyVectors);
 }
 
 void NodeTableData::update(Transaction* transaction, column_id_t columnID,
     ValueVector* nodeIDVector, ValueVector* propertyVector) {
     KU_ASSERT(columnID < columns.size());
-    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
-        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns));
-    localTableData->update(nodeIDVector, columnID, propertyVector);
+    auto localTableData =
+        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
+    localTableData->update({nodeIDVector}, columnID, propertyVector);
 }
 
 void NodeTableData::delete_(Transaction* transaction, ValueVector* nodeIDVector) {
-    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
-        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns));
+    auto localTableData =
+        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
     localTableData->delete_(nodeIDVector);
 }
 
@@ -97,7 +97,7 @@ void NodeTableData::lookup(Transaction* transaction, TableReadState& readState,
     }
 }
 
-void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
+void NodeTableData::append(NodeGroup* nodeGroup) {
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         auto columnChunk = nodeGroup->getColumnChunkUnsafe(columnID);
         KU_ASSERT(columnID < columns.size());
@@ -107,17 +107,18 @@ void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
 
 void NodeTableData::prepareLocalTableToCommit(
     Transaction* transaction, LocalTableData* localTable) {
-    for (auto& [nodeGroupIdx, nodeGroup] : localTable->nodeGroups) {
+    for (auto& [nodeGroupIdx, localNodeGroup] : localTable->nodeGroups) {
         for (auto columnID = 0u; columnID < columns.size(); columnID++) {
             auto column = columns[columnID].get();
-            auto columnChunk = nodeGroup->getLocalColumnChunk(columnID);
-            if (columnChunk->getNumRows() == 0) {
+            auto localInsertChunk = localNodeGroup->getInsesrtChunks().getLocalChunk(columnID);
+            auto localUpdateChunk = localNodeGroup->getUpdateChunks(columnID).getLocalChunk(0);
+            if (localInsertChunk.isEmpty() && localUpdateChunk.isEmpty()) {
                 continue;
             }
-            auto localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(nodeGroup.get());
-            column->prepareCommitForChunk(transaction, nodeGroupIdx, columnChunk,
-                localNodeGroup->getInsertInfoRef(columnID),
-                localNodeGroup->getUpdateInfoRef(columnID), {} /* deleteInfo */);
+            auto localNodeNG = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(localNodeGroup.get());
+            column->prepareCommitForChunk(transaction, nodeGroupIdx, localInsertChunk,
+                localNodeNG->getInsertInfoRef(), localUpdateChunk,
+                localNodeNG->getUpdateInfoRef(columnID), {} /* deleteInfo */);
         }
     }
 }

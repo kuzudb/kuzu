@@ -34,6 +34,7 @@ void RelsStoreStats::updateNumRelsByValue(table_id_t relTableID, int64_t value) 
     setToUpdated();
     auto relStatistics = (RelTableStats*)readWriteVersion->tableStatisticPerTable[relTableID].get();
     auto numRelsBeforeUpdate = relStatistics->getNumTuples();
+    (void)numRelsBeforeUpdate; // Avoid unused variable warning.
     KU_ASSERT(!(numRelsBeforeUpdate == 0 && value < 0));
     auto numRelsAfterUpdate = relStatistics->getNumTuples() + value;
     relStatistics->setNumTuples(numRelsAfterUpdate);
@@ -93,22 +94,13 @@ MetadataDAHInfo* RelsStoreStats::getCSRLengthMetadataDAHInfo(
     return tableStats->getCSRLengthMetadataDAHInfo(direction);
 }
 
-MetadataDAHInfo* RelsStoreStats::getAdjMetadataDAHInfo(
-    Transaction* transaction, table_id_t tableID, RelDataDirection direction) {
-    if (transaction->isWriteTransaction()) {
-        initTableStatisticsForWriteTrx();
-    }
-    auto tableStats = getRelStatistics(tableID, transaction);
-    return tableStats->getAdjMetadataDAHInfo(direction);
-}
-
-MetadataDAHInfo* RelsStoreStats::getPropertyMetadataDAHInfo(transaction::Transaction* transaction,
-    table_id_t tableID, column_id_t columnID, RelDataDirection direction) {
+MetadataDAHInfo* RelsStoreStats::getColumnMetadataDAHInfo(transaction::Transaction* transaction,
+    common::table_id_t tableID, common::column_id_t columnID, common::RelDataDirection direction) {
     if (transaction->isWriteTransaction()) {
         initTableStatisticsForWriteTrx();
     }
     auto relTableStats = getRelStatistics(tableID, transaction);
-    return relTableStats->getPropertyMetadataDAHInfo(columnID, direction);
+    return relTableStats->getColumnMetadataDAHInfo(columnID, direction);
 }
 
 } // namespace storage

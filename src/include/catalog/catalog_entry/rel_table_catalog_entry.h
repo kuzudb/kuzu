@@ -23,6 +23,7 @@ public:
     //===--------------------------------------------------------------------===//
     bool isParent(common::table_id_t tableID) override;
     common::TableType getTableType() const override { return common::TableType::REL; }
+    common::column_id_t getColumnID(common::property_id_t propertyID) const override;
     common::table_id_t getSrcTableID() const { return srcTableID; }
     common::table_id_t getDstTableID() const { return dstTableID; }
     bool isSingleMultiplicity(common::RelDataDirection direction) const;

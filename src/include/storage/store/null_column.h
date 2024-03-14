@@ -44,16 +44,20 @@ public:
         ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues) override;
 
     bool canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
+        const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
+        const LocalVectorCollection& localUpdateChunk,
         const offset_to_row_idx_t& updateInfo) override;
     bool canCommitInPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunk* chunk, common::offset_t srcOffset) override;
-    void commitLocalChunkInPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
-        LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
-        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override;
+    void commitLocalChunkInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+        const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
+        const LocalVectorCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo) override;
 
 private:
+    bool checkUpdateInPlace(const ColumnChunkMetadata& metadata,
+        const LocalVectorCollection& localChunk, const offset_to_row_idx_t& writeInfo);
     std::unique_ptr<ColumnChunk> getEmptyChunkForCommit(uint64_t capacity) override {
         return ColumnChunkFactory::createNullColumnChunk(enableCompression, capacity);
     }

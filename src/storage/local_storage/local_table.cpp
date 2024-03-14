@@ -9,67 +9,129 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void LocalVector::read(
-    sel_t offsetInLocalVector, ValueVector* resultVector, sel_t offsetInResultVector) {
-    resultVector->copyFromVectorData(offsetInResultVector, vector.get(), offsetInLocalVector);
-}
-
-void LocalVector::append(ValueVector* valueVector) {
-    KU_ASSERT(valueVector->state->selVector->selectedSize == 1);
-    auto pos = valueVector->state->selVector->selectedPositions[0];
-    vector->copyFromVectorData(numValues, valueVector, pos);
-    numValues++;
-}
-
-void LocalVectorCollection::read(
-    row_idx_t rowIdx, ValueVector* outputVector, sel_t posInOutputVector) {
-    auto vectorIdx = rowIdx >> DEFAULT_VECTOR_CAPACITY_LOG_2;
-    auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-    KU_ASSERT(vectorIdx < vectors.size());
-    vectors[vectorIdx]->read(offsetInVector, outputVector, posInOutputVector);
-}
-
-row_idx_t LocalVectorCollection::append(ValueVector* vector) {
-    prepareAppend();
-    auto lastVector = vectors.back().get();
-    KU_ASSERT(!lastVector->isFull());
-    lastVector->append(vector);
-    return numRows++;
-}
-
-void LocalVectorCollection::prepareAppend() {
-    if (vectors.empty()) {
-        vectors.emplace_back(std::make_unique<LocalVector>(dataType, mm));
-    }
-    auto lastVector = vectors.back().get();
-    if (lastVector->isFull()) {
-        vectors.emplace_back(std::make_unique<LocalVector>(dataType, mm));
-    }
-}
-
-std::unique_ptr<LocalVectorCollection> LocalVectorCollection::getStructChildVectorCollection(
-    common::struct_field_idx_t idx) {
-    auto childCollection = std::make_unique<LocalVectorCollection>(
-        *StructType::getField(&dataType, idx)->getType()->copy(), mm);
-
-    for (auto i = 0u; i < numRows; i++) {
-        auto fieldVector =
-            common::StructVector::getFieldVector(getLocalVector(i)->getVector(), idx);
-        fieldVector->state->selVector->selectedPositions[0] = i & (DEFAULT_VECTOR_CAPACITY - 1);
-        childCollection->append(fieldVector.get());
+LocalVectorCollection LocalVectorCollection::getStructChildVectorCollection(
+    struct_field_idx_t idx) const {
+    LocalVectorCollection childCollection;
+    for (auto vector : vectors) {
+        auto fieldVector = StructVector::getFieldVector(vector, idx).get();
+        childCollection.vectors.push_back(fieldVector);
     }
     return childCollection;
 }
 
 LocalNodeGroup::LocalNodeGroup(
     offset_t nodeGroupStartOffset, std::vector<LogicalType*> dataTypes, MemoryManager* mm)
-    : nodeGroupStartOffset{nodeGroupStartOffset} {
-    chunks.resize(dataTypes.size());
-    for (auto i = 0u; i < dataTypes.size(); ++i) {
-        // To avoid unnecessary memory consumption, we chunk local changes of each column in the
-        // node group into chunks of size DEFAULT_VECTOR_CAPACITY.
-        chunks[i] = std::make_unique<LocalVectorCollection>(*dataTypes[i]->copy(), mm);
+    : nodeGroupStartOffset{nodeGroupStartOffset}, insertChunks{mm, LogicalType::copy(dataTypes)} {
+    for (auto i = 0u; i < dataTypes.size(); i++) {
+        std::vector<LogicalType> chunkCollectionTypes;
+        chunkCollectionTypes.push_back(*dataTypes[i]->copy());
+        LocalDataChunkCollection localDataChunkCollection(mm, std::move(chunkCollectionTypes));
+        updateChunks.push_back(std::move(localDataChunkCollection));
     }
+}
+
+bool LocalNodeGroup::hasUpdatesOrDeletions() const {
+    if (!deleteInfo.isEmpty()) {
+        return true;
+    }
+    for (auto& updateChunk : updateChunks) {
+        if (!updateChunk.isEmpty()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void LocalDataChunkCollection::readValueAtRowIdx(
+    row_idx_t rowIdx, column_id_t columnID, ValueVector* outputVector, sel_t posInOutputVector) {
+    outputVector->copyFromVectorData(posInOutputVector,
+        dataChunkCollection.getChunkUnsafe(rowIdx >> DEFAULT_VECTOR_CAPACITY_LOG_2)
+            .getValueVector(columnID)
+            .get(),
+        rowIdx % DEFAULT_VECTOR_CAPACITY);
+}
+
+bool LocalDataChunkCollection::read(
+    offset_t offset, column_id_t columnID, ValueVector* outputVector, sel_t posInOutputVector) {
+    if (!offsetToRowIdx.contains(offset)) {
+        return false;
+    }
+    auto rowIdx = offsetToRowIdx.at(offset);
+    readValueAtRowIdx(rowIdx, columnID, outputVector, posInOutputVector);
+    return true;
+}
+
+void LocalDataChunkCollection::update(
+    offset_t offset, column_id_t columnID, ValueVector* propertyVector) {
+    KU_ASSERT(offsetToRowIdx.contains(offset));
+    auto rowIdx = offsetToRowIdx.at(offset);
+    dataChunkCollection.getChunkUnsafe(rowIdx >> DEFAULT_VECTOR_CAPACITY_LOG_2)
+        .getValueVector(columnID)
+        ->copyFromVectorData(rowIdx % DEFAULT_VECTOR_CAPACITY, propertyVector,
+            propertyVector->state->selVector->selectedPositions[0]);
+}
+
+void LocalDataChunkCollection::remove(offset_t srcNodeOffset, offset_t relOffset) {
+    KU_ASSERT(srcNodeOffsetToRelOffsets.contains(srcNodeOffset));
+    remove(relOffset);
+    offsetToRowIdx.erase(relOffset);
+    auto& vec = srcNodeOffsetToRelOffsets.at(srcNodeOffset);
+    vec.erase(std::remove(vec.begin(), vec.end(), relOffset), vec.end());
+    if (vec.empty()) {
+        srcNodeOffsetToRelOffsets.erase(srcNodeOffset);
+    }
+}
+
+row_idx_t LocalDataChunkCollection::appendToDataChunkCollection(std::vector<ValueVector*> vectors) {
+    KU_ASSERT(vectors.size() == dataTypes.size());
+    if (dataChunkCollection.getNumChunks() == 0 ||
+        dataChunkCollection.getChunkUnsafe(dataChunkCollection.getNumChunks() - 1)
+                .state->selVector->selectedSize == DEFAULT_VECTOR_CAPACITY) {
+        dataChunkCollection.merge(createNewDataChunk());
+    }
+    auto& lastDataChunk =
+        dataChunkCollection.getChunkUnsafe(dataChunkCollection.getNumChunks() - 1);
+    for (auto i = 0u; i < vectors.size(); i++) {
+        auto localVector = lastDataChunk.getValueVector(i);
+        KU_ASSERT(vectors[i]->state->selVector->selectedSize == 1);
+        auto pos = vectors[i]->state->selVector->selectedPositions[0];
+        localVector->copyFromVectorData(
+            lastDataChunk.state->selVector->selectedSize, vectors[i], pos);
+    }
+    lastDataChunk.state->selVector->selectedSize++;
+    KU_ASSERT((dataChunkCollection.getNumChunks() - 1) * DEFAULT_VECTOR_CAPACITY +
+                  lastDataChunk.state->selVector->selectedSize ==
+              numRows + 1);
+    return numRows++;
+}
+
+common::DataChunk LocalDataChunkCollection::createNewDataChunk() {
+    DataChunk newDataChunk(dataTypes.size());
+    for (auto i = 0u; i < dataTypes.size(); i++) {
+        auto valueVector = std::make_unique<ValueVector>(dataTypes[i], mm);
+        newDataChunk.insert(i, std::move(valueVector));
+    }
+    newDataChunk.state->selVector->resetSelectorToValuePosBuffer();
+    return newDataChunk;
+}
+
+bool LocalTableData::insert(
+    std::vector<ValueVector*> nodeIDVectors, std::vector<ValueVector*> propertyVectors) {
+    KU_ASSERT(nodeIDVectors.size() >= 1);
+    auto localNodeGroup = getOrCreateLocalNodeGroup(nodeIDVectors[0]);
+    return localNodeGroup->insert(nodeIDVectors, propertyVectors);
+}
+
+bool LocalTableData::update(
+    std::vector<ValueVector*> nodeIDVectors, column_id_t columnID, ValueVector* propertyVector) {
+    KU_ASSERT(nodeIDVectors.size() >= 1);
+    auto localNodeGroup = getOrCreateLocalNodeGroup(nodeIDVectors[0]);
+    return localNodeGroup->update(nodeIDVectors, columnID, propertyVector);
+}
+
+bool LocalTableData::delete_(ValueVector* nodeIDVector, ValueVector* extraVector) {
+    auto localNodeGroup = getOrCreateLocalNodeGroup(nodeIDVector);
+    return localNodeGroup->delete_(nodeIDVector, extraVector);
 }
 
 LocalTableData* LocalTable::getOrCreateLocalTableData(

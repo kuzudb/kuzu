@@ -37,9 +37,6 @@ std::string StorageUtils::getColumnName(
     case StorageUtils::ColumnType::CSR_LENGTH: {
         return stringFormat("{}_csr_length", prefix);
     }
-    case StorageUtils::ColumnType::ADJ: {
-        return stringFormat("{}_adj", prefix);
-    }
     case StorageUtils::ColumnType::STRUCT_CHILD: {
         return stringFormat("{}_{}_child", propertyName, prefix);
     }
