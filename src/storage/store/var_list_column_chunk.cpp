@@ -20,7 +20,7 @@ void VarListDataColumnChunk::resizeBuffer(uint64_t numValues) {
     }
     capacity = capacity == 0 ? 1 : capacity;
     while (capacity < numValues) {
-        capacity *= CHUNK_RESIZE_RATIO;
+        capacity = std::ceil(capacity * CHUNK_RESIZE_RATIO);
     }
     dataColumnChunk->resize(capacity);
 }
@@ -65,7 +65,7 @@ void VarListColumnChunk::append(ValueVector* vector, SelectionVector& selVector)
     auto numToAppend = selVector.selectedSize;
     auto newCapacity = capacity;
     while (numValues + numToAppend >= newCapacity) {
-        newCapacity *= 1.5;
+        newCapacity = std::ceil(newCapacity * 1.5);
     }
     if (capacity < newCapacity) {
         resize(newCapacity);
