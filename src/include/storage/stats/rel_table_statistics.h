@@ -30,12 +30,12 @@ public:
 
     inline void addMetadataDAHInfoForColumn(
         std::unique_ptr<MetadataDAHInfo> metadataDAHInfo, common::RelDataDirection direction) {
-        auto& metadataDAHInfos = getDirectedPropertyMetadataDAHInfosRef(direction);
+        auto& metadataDAHInfos = getDirectedMetadataDAHInfosRef(direction);
         metadataDAHInfos.push_back(std::move(metadataDAHInfo));
     }
     inline void removeMetadataDAHInfoForColumn(
         common::column_id_t columnID, common::RelDataDirection direction) {
-        auto& metadataDAHInfos = getDirectedPropertyMetadataDAHInfosRef(direction);
+        auto& metadataDAHInfos = getDirectedMetadataDAHInfosRef(direction);
         KU_ASSERT(columnID < metadataDAHInfos.size());
         metadataDAHInfos.erase(metadataDAHInfos.begin() + columnID);
     }
@@ -47,13 +47,9 @@ public:
         return direction == common::RelDataDirection::FWD ? fwdCSRLengthMetadataDAHInfo.get() :
                                                             bwdCSRLengthMetadataDAHInfo.get();
     }
-    inline MetadataDAHInfo* getAdjMetadataDAHInfo(common::RelDataDirection direction) {
-        return direction == common::RelDataDirection::FWD ? fwdAdjMetadataDAHInfo.get() :
-                                                            bwdAdjMetadataDAHInfo.get();
-    }
-    inline MetadataDAHInfo* getPropertyMetadataDAHInfo(
+    inline MetadataDAHInfo* getColumnMetadataDAHInfo(
         common::column_id_t columnID, common::RelDataDirection direction) {
-        auto& metadataDAHInfos = getDirectedPropertyMetadataDAHInfosRef(direction);
+        auto& metadataDAHInfos = getDirectedMetadataDAHInfosRef(direction);
         KU_ASSERT(columnID < metadataDAHInfos.size());
         return metadataDAHInfos[columnID].get();
     }
@@ -67,10 +63,10 @@ public:
     }
 
 private:
-    inline std::vector<std::unique_ptr<MetadataDAHInfo>>& getDirectedPropertyMetadataDAHInfosRef(
+    inline std::vector<std::unique_ptr<MetadataDAHInfo>>& getDirectedMetadataDAHInfosRef(
         common::RelDataDirection direction) {
-        return direction == common::RelDataDirection::FWD ? fwdPropertyMetadataDAHInfos :
-                                                            bwdPropertyMetadataDAHInfos;
+        return direction == common::RelDataDirection::FWD ? fwdMetadataDAHInfos :
+                                                            bwdMetadataDAHInfos;
     }
 
 private:
@@ -80,10 +76,8 @@ private:
     std::unique_ptr<MetadataDAHInfo> bwdCSROffsetMetadataDAHInfo;
     std::unique_ptr<MetadataDAHInfo> fwdCSRLengthMetadataDAHInfo;
     std::unique_ptr<MetadataDAHInfo> bwdCSRLengthMetadataDAHInfo;
-    std::unique_ptr<MetadataDAHInfo> fwdAdjMetadataDAHInfo;
-    std::unique_ptr<MetadataDAHInfo> bwdAdjMetadataDAHInfo;
-    std::vector<std::unique_ptr<MetadataDAHInfo>> fwdPropertyMetadataDAHInfos;
-    std::vector<std::unique_ptr<MetadataDAHInfo>> bwdPropertyMetadataDAHInfos;
+    std::vector<std::unique_ptr<MetadataDAHInfo>> fwdMetadataDAHInfos;
+    std::vector<std::unique_ptr<MetadataDAHInfo>> bwdMetadataDAHInfos;
 };
 
 } // namespace storage

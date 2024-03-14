@@ -27,7 +27,7 @@ std::unique_ptr<PropertyStatistics> PropertyStatistics::deserialize(
 bool RWPropertyStats::mayHaveNull(const transaction::Transaction& transaction) {
     // Columns internal to the storage, i.e., not mapping to a property in table schema, are not
     // tracked in statistics. For example, offset of var list column, csr offset column, etc.
-    // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have a column, i.e., adjColumn,
+    // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have a column, i.e., nbrIDColumn,
     // not exposed as property in table schema, but still have nullColumn. Should be fixed once we
     // properly align properties and chunks.
     if (propertyID == common::INVALID_PROPERTY_ID) {
@@ -40,7 +40,7 @@ bool RWPropertyStats::mayHaveNull(const transaction::Transaction& transaction) {
 }
 
 void RWPropertyStats::setHasNull(const transaction::Transaction& transaction) {
-    // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have a column, i.e., adjColumn,
+    // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have a column, i.e., nbrIDColumn,
     // not exposed as property in table schema, but still have nullColumn. Should be fixed once we
     // properly align properties and chunks.
     if (propertyID != common::INVALID_PROPERTY_ID) {

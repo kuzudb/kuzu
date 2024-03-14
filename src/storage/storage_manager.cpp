@@ -37,8 +37,10 @@ static void setCommonTableIDToRdfRelTable(
     for (auto rdfEntry : rdfEntries) {
         if (rdfEntry->isParent(relTable->getTableID())) {
             std::vector<Column*> columns;
-            columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(1));
-            columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(1));
+            // TODO(Guodong): This is a hack. We should not use constant 2 and should move the
+            // setting logic inside RelTableData.
+            columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(2));
+            columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(2));
             for (auto& column : columns) {
                 ku_dynamic_cast<storage::Column*, storage::InternalIDColumn*>(column)
                     ->setCommonTableID(rdfEntry->getResourceTableID());

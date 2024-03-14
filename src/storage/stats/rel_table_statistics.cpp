@@ -22,18 +22,17 @@ RelTableStats::RelTableStats(BMFileHandle* metadataFH, const catalog::TableCatal
         LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
     bwdCSRLengthMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
         LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
-    fwdAdjMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-        LogicalType{LogicalTypeID::INTERNAL_ID}, *metadataFH, bufferManager, wal);
-    bwdAdjMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-        LogicalType{LogicalTypeID::INTERNAL_ID}, *metadataFH, bufferManager, wal);
-    fwdPropertyMetadataDAHInfos.clear();
-    bwdPropertyMetadataDAHInfos.clear();
-    fwdPropertyMetadataDAHInfos.reserve(tableEntry.getNumProperties());
-    bwdPropertyMetadataDAHInfos.reserve(tableEntry.getNumProperties());
+    KU_ASSERT(fwdMetadataDAHInfos.empty() && bwdMetadataDAHInfos.empty());
+    fwdMetadataDAHInfos.reserve(tableEntry.getNumProperties() + 1);
+    bwdMetadataDAHInfos.reserve(tableEntry.getNumProperties() + 1);
+    fwdMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
+        LogicalType{LogicalTypeID::INTERNAL_ID}, *metadataFH, bufferManager, wal));
+    bwdMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
+        LogicalType{LogicalTypeID::INTERNAL_ID}, *metadataFH, bufferManager, wal));
     for (auto& property : tableEntry.getPropertiesRef()) {
-        fwdPropertyMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
+        fwdMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
             *property.getDataType(), *metadataFH, bufferManager, wal));
-        bwdPropertyMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
+        bwdMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
             *property.getDataType(), *metadataFH, bufferManager, wal));
     }
 }
@@ -48,17 +47,15 @@ RelTableStats::RelTableStats(const RelTableStats& other) : TableStatistics{other
         bwdCSROffsetMetadataDAHInfo = other.bwdCSROffsetMetadataDAHInfo->copy();
         bwdCSRLengthMetadataDAHInfo = other.bwdCSRLengthMetadataDAHInfo->copy();
     }
-    fwdAdjMetadataDAHInfo = other.fwdAdjMetadataDAHInfo->copy();
-    bwdAdjMetadataDAHInfo = other.bwdAdjMetadataDAHInfo->copy();
-    fwdPropertyMetadataDAHInfos.clear();
-    fwdPropertyMetadataDAHInfos.reserve(other.fwdPropertyMetadataDAHInfos.size());
-    for (auto& metadataDAHInfo : other.fwdPropertyMetadataDAHInfos) {
-        fwdPropertyMetadataDAHInfos.push_back(metadataDAHInfo->copy());
+    fwdMetadataDAHInfos.clear();
+    fwdMetadataDAHInfos.reserve(other.fwdMetadataDAHInfos.size());
+    for (auto& metadataDAHInfo : other.fwdMetadataDAHInfos) {
+        fwdMetadataDAHInfos.push_back(metadataDAHInfo->copy());
     }
-    bwdPropertyMetadataDAHInfos.clear();
-    bwdPropertyMetadataDAHInfos.reserve(other.bwdPropertyMetadataDAHInfos.size());
-    for (auto& metadataDAHInfo : other.bwdPropertyMetadataDAHInfos) {
-        bwdPropertyMetadataDAHInfos.push_back(metadataDAHInfo->copy());
+    bwdMetadataDAHInfos.clear();
+    bwdMetadataDAHInfos.reserve(other.bwdMetadataDAHInfos.size());
+    for (auto& metadataDAHInfo : other.bwdMetadataDAHInfos) {
+        bwdMetadataDAHInfos.push_back(metadataDAHInfo->copy());
     }
 }
 
@@ -68,10 +65,8 @@ void RelTableStats::serializeInternal(Serializer& serializer) {
     serializer.serializeOptionalValue(bwdCSROffsetMetadataDAHInfo);
     serializer.serializeOptionalValue(fwdCSRLengthMetadataDAHInfo);
     serializer.serializeOptionalValue(bwdCSRLengthMetadataDAHInfo);
-    fwdAdjMetadataDAHInfo->serialize(serializer);
-    bwdAdjMetadataDAHInfo->serialize(serializer);
-    serializer.serializeVectorOfPtrs(fwdPropertyMetadataDAHInfos);
-    serializer.serializeVectorOfPtrs(bwdPropertyMetadataDAHInfos);
+    serializer.serializeVectorOfPtrs(fwdMetadataDAHInfos);
+    serializer.serializeVectorOfPtrs(bwdMetadataDAHInfos);
 }
 
 std::unique_ptr<RelTableStats> RelTableStats::deserialize(
@@ -84,8 +79,6 @@ std::unique_ptr<RelTableStats> RelTableStats::deserialize(
     deserializer.deserializeOptionalValue(bwdCSROffsetMetadataDAHInfo);
     deserializer.deserializeOptionalValue(fwdCSRLengthMetadataDAHInfo);
     deserializer.deserializeOptionalValue(bwdCSRLengthMetadataDAHInfo);
-    auto fwdNbrIDMetadataDAHInfo = MetadataDAHInfo::deserialize(deserializer);
-    auto bwdNbrIDMetadataDAHInfo = MetadataDAHInfo::deserialize(deserializer);
     std::vector<std::unique_ptr<MetadataDAHInfo>> fwdPropertyMetadataDAHInfos;
     std::vector<std::unique_ptr<MetadataDAHInfo>> bwdPropertyMetadataDAHInfos;
     deserializer.deserializeVectorOfPtrs(fwdPropertyMetadataDAHInfos);
@@ -95,10 +88,8 @@ std::unique_ptr<RelTableStats> RelTableStats::deserialize(
     result->bwdCSROffsetMetadataDAHInfo = std::move(bwdCSROffsetMetadataDAHInfo);
     result->fwdCSRLengthMetadataDAHInfo = std::move(fwdCSRLengthMetadataDAHInfo);
     result->bwdCSRLengthMetadataDAHInfo = std::move(bwdCSRLengthMetadataDAHInfo);
-    result->fwdAdjMetadataDAHInfo = std::move(fwdNbrIDMetadataDAHInfo);
-    result->bwdAdjMetadataDAHInfo = std::move(bwdNbrIDMetadataDAHInfo);
-    result->fwdPropertyMetadataDAHInfos = std::move(fwdPropertyMetadataDAHInfos);
-    result->bwdPropertyMetadataDAHInfos = std::move(bwdPropertyMetadataDAHInfos);
+    result->fwdMetadataDAHInfos = std::move(fwdPropertyMetadataDAHInfos);
+    result->bwdMetadataDAHInfos = std::move(bwdPropertyMetadataDAHInfos);
     return result;
 }
 

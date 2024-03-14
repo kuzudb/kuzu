@@ -302,6 +302,7 @@ public:
     static std::vector<std::unique_ptr<LogicalType>> copy(
         const std::vector<std::unique_ptr<LogicalType>>& types);
     static std::vector<LogicalType> copy(const std::vector<LogicalType>& types);
+    static std::vector<LogicalType> copy(const std::vector<LogicalType*>& types);
 
     static std::unique_ptr<LogicalType> ANY() {
         return std::make_unique<LogicalType>(LogicalTypeID::ANY);

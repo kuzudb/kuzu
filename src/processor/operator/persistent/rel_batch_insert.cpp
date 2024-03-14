@@ -36,9 +36,9 @@ void RelBatchInsert::executeInternal(ExecutionContext* /*context*/) {
         relLocalState->nodeGroupIdx =
             partitionerSharedState->getNextPartition(relInfo->partitioningIdx);
         if (relLocalState->nodeGroupIdx == INVALID_PARTITION_IDX) {
+            // No more partitions left in the partitioning buffer.
             break;
         }
-        // Read the whole partition, and set to node group.
         auto& partitioningBuffer = partitionerSharedState->getPartitionBuffer(
             relInfo->partitioningIdx, relLocalState->nodeGroupIdx);
         auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relLocalState->nodeGroupIdx);

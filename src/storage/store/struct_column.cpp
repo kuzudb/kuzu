@@ -126,12 +126,12 @@ void StructColumn::rollbackInMemory() {
 }
 
 bool StructColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
-    const offset_to_row_idx_t& updateInfo) {
+    const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
+    const LocalVectorCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo) {
     // STRUCT column doesn't have actual data stored in buffer. Only need to check the null column.
     // Children columns are committed separately.
     return nullColumn->canCommitInPlace(
-        transaction, nodeGroupIdx, localChunk, insertInfo, updateInfo);
+        transaction, nodeGroupIdx, localInsertChunk, insertInfo, localUpdateChunk, updateInfo);
 }
 
 bool StructColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -141,31 +141,33 @@ bool StructColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t n
 }
 
 void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    LocalVectorCollection* localColumnChunk, const offset_to_row_idx_t& insertInfo,
-    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
+    const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
+    const LocalVectorCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
+    const offset_set_t& deleteInfo) {
     auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
     auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {
         // If this is a new node group, updateInfo should be empty. We should perform out-of-place
         // commit with a new column chunk.
-        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup,
-            insertInfo, updateInfo, deleteInfo);
+        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunk,
+            insertInfo, localUpdateChunk, updateInfo, deleteInfo);
     } else {
         // STRUCT column doesn't have actual data stored in buffer. Only need to update the null
         // column.
-        if (canCommitInPlace(transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo)) {
-            nullColumn->commitLocalChunkInPlace(
-                transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo, deleteInfo);
+        if (canCommitInPlace(transaction, nodeGroupIdx, localInsertChunk, insertInfo,
+                localUpdateChunk, updateInfo)) {
+            nullColumn->commitLocalChunkInPlace(transaction, nodeGroupIdx, localInsertChunk,
+                insertInfo, localUpdateChunk, updateInfo, deleteInfo);
         } else {
-            nullColumn->commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk,
-                isNewNodeGroup, insertInfo, updateInfo, deleteInfo);
+            nullColumn->commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
+                localInsertChunk, insertInfo, localUpdateChunk, updateInfo, deleteInfo);
         }
         // Update each child column separately
         for (auto i = 0u; i < childColumns.size(); i++) {
             const auto& childColumn = childColumns[i];
-            auto childLocalColumnChunk = localColumnChunk->getStructChildVectorCollection(i);
             childColumn->prepareCommitForChunk(transaction, nodeGroupIdx,
-                childLocalColumnChunk.get(), insertInfo, updateInfo, deleteInfo);
+                localInsertChunk.getStructChildVectorCollection(i), insertInfo,
+                localUpdateChunk.getStructChildVectorCollection(i), updateInfo, deleteInfo);
         }
     }
 }

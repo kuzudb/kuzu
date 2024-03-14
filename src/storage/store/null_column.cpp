@@ -164,24 +164,27 @@ void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
 }
 
 bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
-    const offset_to_row_idx_t& updateInfo) {
+    const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
+    const LocalVectorCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo) {
     auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
     if (metadata.compMeta.canAlwaysUpdateInPlace()) {
         return true;
     }
+    return checkUpdateInPlace(metadata, localInsertChunk, insertInfo) &&
+           checkUpdateInPlace(metadata, localUpdateChunk, updateInfo);
+}
+
+bool NullColumn::checkUpdateInPlace(const ColumnChunkMetadata& metadata,
+    const LocalVectorCollection& localChunk, const offset_to_row_idx_t& writeInfo) {
     std::vector<row_idx_t> rowIdxesToRead;
-    for (auto& [_, rowIdx] : updateInfo) {
-        rowIdxesToRead.push_back(rowIdx);
-    }
-    for (auto& [_, rowIdx] : insertInfo) {
+    for (auto& [_, rowIdx] : writeInfo) {
         rowIdxesToRead.push_back(rowIdx);
     }
     std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
     for (auto rowIdx : rowIdxesToRead) {
-        auto localVector = localChunk->getLocalVector(rowIdx);
+        auto localVector = localChunk.getLocalVector(rowIdx);
         auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        bool value = localVector->getVector()->isNull(offsetInVector);
+        bool value = localVector->isNull(offsetInVector);
         if (!metadata.compMeta.canUpdateInPlace(
                 reinterpret_cast<const uint8_t*>(&value), 0, dataType.getPhysicalType())) {
             return false;
@@ -217,18 +220,18 @@ bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nod
 }
 
 void NullColumn::commitLocalChunkInPlace(Transaction* /*transaction*/,
-    node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
-    const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
-    const offset_set_t& deleteInfo) {
+    node_group_idx_t nodeGroupIdx, const LocalVectorCollection& localInsertChunk,
+    const offset_to_row_idx_t& insertInfo, const LocalVectorCollection& localUpdateChunk,
+    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
     for (auto& [offsetInChunk, rowIdx] : updateInfo) {
-        auto localVector = localChunk->getLocalVector(rowIdx);
+        auto localVector = localUpdateChunk.getLocalVector(rowIdx);
         auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        write(nodeGroupIdx, offsetInChunk, localVector->getVector(), offsetInVector);
+        write(nodeGroupIdx, offsetInChunk, localVector, offsetInVector);
     }
     for (auto& [offsetInChunk, rowIdx] : insertInfo) {
-        auto localVector = localChunk->getLocalVector(rowIdx);
+        auto localVector = localInsertChunk.getLocalVector(rowIdx);
         auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        write(nodeGroupIdx, offsetInChunk, localVector->getVector(), offsetInVector);
+        write(nodeGroupIdx, offsetInChunk, localVector, offsetInVector);
     }
     // Set nulls based on deleteInfo. Note that this code path actually only gets executed when
     // the column is a regular format one. This is not a good design, should be unified with csr

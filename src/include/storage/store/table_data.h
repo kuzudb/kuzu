@@ -35,8 +35,8 @@ public:
         TablesStatistics* tableStats);
 
     inline common::vector_idx_t getNumColumns() const { return columns.size(); }
-    inline virtual Column* getColumn(common::column_id_t columnID) {
-        KU_ASSERT(columnID < columns.size());
+    inline Column* getColumn(common::column_id_t columnID) {
+        KU_ASSERT(columnID < columns.size() && columnID != common::INVALID_COLUMN_ID);
         return columns[columnID].get();
     }
 

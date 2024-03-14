@@ -69,9 +69,8 @@ public:
         DATA = 3,   // This is used for data columns in VAR_LIST and STRING columns.
         CSR_OFFSET = 4,
         CSR_LENGTH = 5,
-        ADJ = 6,
-        STRUCT_CHILD = 7,
-        NULL_MASK = 8,
+        STRUCT_CHILD = 6,
+        NULL_MASK = 7,
     };
 
     // TODO: Constrain T1 and T2 to numerics.

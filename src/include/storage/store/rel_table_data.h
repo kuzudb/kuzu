@@ -123,12 +123,9 @@ public:
         common::offset_t rightCSROffset = common::INVALID_OFFSET;
         bool needSliding = false;
 
-        explicit LocalState(LocalRelNG* localNG) : localNG{localNG} { initChangesPerSegment(); }
+        explicit LocalState(LocalRelNG* localNG);
 
         inline void setRegion(PackedCSRRegion& region_) { region = region_; }
-
-    private:
-        void initChangesPerSegment();
     };
 
     RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager,
@@ -152,7 +149,7 @@ public:
         common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector,
         common::ValueVector* propertyVector);
     bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
-        common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
+        common::ValueVector* relIDVector);
 
     void checkRelMultiplicityConstraint(
         transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector) const;
@@ -160,10 +157,9 @@ public:
         transaction::Transaction* transaction, common::offset_t nodeOffset) const;
     void append(NodeGroup* nodeGroup) override;
 
-    inline Column* getAdjColumn() const { return adjColumn.get(); }
+    inline Column* getNbrIDColumn() const { return columns[NBR_ID_COLUMN_ID].get(); }
     inline Column* getCSROffsetColumn() const { return csrHeaderColumns.offset.get(); }
     inline Column* getCSRLengthColumn() const { return csrHeaderColumns.length.get(); }
-    Column* getColumn(common::column_id_t columnID) override;
 
     void prepareLocalTableToCommit(
         transaction::Transaction* transaction, LocalTableData* localTable) override;
@@ -173,10 +169,13 @@ public:
 
     inline common::node_group_idx_t getNumNodeGroups(
         transaction::Transaction* transaction) const override {
-        return adjColumn->getNumNodeGroups(transaction);
+        return columns[NBR_ID_COLUMN_ID]->getNumNodeGroups(transaction);
     }
 
 private:
+    static common::offset_t getMaxNumNodesInRegion(
+        const CSRHeaderChunks& header, const PackedCSRRegion& region, const LocalRelNG* localNG);
+
     std::vector<PackedCSRRegion> findRegions(
         const CSRHeaderChunks& headerChunks, LocalState& localState);
     common::length_t getNewRegionSize(const CSRHeaderChunks& header,
@@ -211,14 +210,12 @@ private:
     void slideRightForInsertions(common::offset_t nodeOffset, common::offset_t rightBoundary,
         LocalState& localState, uint64_t numValuesToInsert);
 
-    void applyUpdatesToChunk(const PersistentState& persistentState, const PackedCSRRegion& region,
-        LocalVectorCollection* localChunk, const update_insert_info_t& updateInfo,
-        ColumnChunk* chunk);
+    void applyUpdatesToChunk(const PersistentState& persistentState, LocalState& localState,
+        const LocalVectorCollection& localChunk, ColumnChunk* chunk, common::column_id_t columnID);
     void applyInsertionsToChunk(const PersistentState& persistentState,
-        const LocalState& localState, LocalVectorCollection* localChunk,
-        const update_insert_info_t& insertInfo, ColumnChunk* chunk);
-    void applyDeletionsToChunk(const PersistentState& persistentState, const LocalState& localState,
-        const delete_info_t& deleteInfo, ColumnChunk* chunk);
+        const LocalState& localState, const LocalVectorCollection& localChunk, ColumnChunk* chunk);
+    void applyDeletionsToChunk(
+        const PersistentState& persistentState, const LocalState& localState, ColumnChunk* chunk);
 
     void applyUpdatesToColumn(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::column_id_t columnID,
@@ -233,24 +230,21 @@ private:
         LocalState& localState, const PersistentState& persistentState, Column* column);
 
     std::vector<std::pair<common::offset_t, common::offset_t>> getSlidesForDeletions(
-        const PersistentState& persistentState, const LocalState& localState,
-        const delete_info_t& deleteInfo);
+        const PersistentState& persistentState, const LocalState& localState);
 
     LocalRelNG* getLocalNodeGroup(
         transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx);
 
-    // TODO: Constrain T1 and T2 to numerics.
     template<typename T1, typename T2>
     static double divideNoRoundUp(T1 v1, T2 v2) {
+        static_assert(std::is_arithmetic<T1>::value && std::is_arithmetic<T2>::value);
         return (double)v1 / (double)v2;
     }
     template<typename T1, typename T2>
     static uint64_t multiplyAndRoundUpTo(T1 v1, T2 v2) {
+        static_assert(std::is_arithmetic<T1>::value && std::is_arithmetic<T2>::value);
         return std::ceil((double)v1 * (double)v2);
     }
-
-    LocalVectorCollection* getLocalChunk(
-        const LocalState& localState, common::column_id_t columnID);
 
     inline void fillSequence(std::span<common::offset_t> offsets, common::offset_t startOffset) {
         for (auto i = 0u; i < offsets.size(); i++) {
@@ -268,7 +262,6 @@ private:
 private:
     PackedCSRInfo packedCSRInfo;
     CSRHeaderColumns csrHeaderColumns;
-    std::unique_ptr<Column> adjColumn;
     common::RelDataDirection direction;
     common::RelMultiplicity multiplicity;
 };
