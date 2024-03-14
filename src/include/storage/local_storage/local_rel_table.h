@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/copy_constructors.h"
 #include "common/enums/rel_multiplicity.h"
 #include "common/vector/value_vector.h"
 #include "storage/local_storage/local_table.h"
@@ -14,8 +15,9 @@ class LocalRelNG final : public LocalNodeGroup {
     friend class RelTableData;
 
 public:
-    LocalRelNG(common::offset_t nodeGroupStartOffset, std::vector<common::LogicalType*> dataTypes,
-        MemoryManager* mm, common::RelMultiplicity multiplicity);
+    LocalRelNG(common::offset_t nodeGroupStartOffset, std::vector<common::LogicalType> dataTypes,
+        common::RelMultiplicity multiplicity);
+    DELETE_COPY_DEFAULT_MOVE(LocalRelNG);
 
     common::row_idx_t scanCSR(common::offset_t srcOffset, common::offset_t posToReadForOffset,
         const std::vector<common::column_id_t>& columnIDs,
@@ -53,9 +55,9 @@ class LocalRelTableData final : public LocalTableData {
     friend class RelTableData;
 
 public:
-    LocalRelTableData(common::RelMultiplicity multiplicity,
-        std::vector<common::LogicalType*> dataTypes, MemoryManager* mm)
-        : LocalTableData{std::move(dataTypes), mm}, multiplicity{multiplicity} {}
+    LocalRelTableData(
+        common::RelMultiplicity multiplicity, std::vector<common::LogicalType> dataTypes)
+        : LocalTableData{std::move(dataTypes)}, multiplicity{multiplicity} {}
 
 private:
     LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) override;

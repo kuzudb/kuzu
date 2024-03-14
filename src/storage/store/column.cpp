@@ -122,8 +122,8 @@ public:
         }
     }
 
-    bool canCommitInPlace(Transaction*, node_group_idx_t, const LocalVectorCollection&,
-        const offset_to_row_idx_t&, const LocalVectorCollection&,
+    bool canCommitInPlace(Transaction*, node_group_idx_t, const ChunkCollection&,
+        const offset_to_row_idx_t&, const ChunkCollection&,
         const offset_to_row_idx_t& updateInfo) override {
         (void)updateInfo; // Avoid unused parameter warnings during release build.
         KU_ASSERT(updateInfo.empty());
@@ -140,9 +140,8 @@ public:
     }
 
     void commitLocalChunkInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        const LocalVectorCollection& /*localChunk*/, const offset_to_row_idx_t& insertInfo,
-        const LocalVectorCollection&, const offset_to_row_idx_t& updateInfo,
-        const offset_set_t& deleteInfo) override {
+        const ChunkCollection&, const offset_to_row_idx_t& insertInfo, const ChunkCollection&,
+        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override {
         // Avoid unused parameter warnings during release build.
         (void)updateInfo;
         (void)deleteInfo;
@@ -161,8 +160,8 @@ public:
     }
 
     void commitLocalChunkOutOfPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
-        bool isNewNodeGroup, const LocalVectorCollection&, const offset_to_row_idx_t& insertInfo,
-        const LocalVectorCollection&, const offset_to_row_idx_t& updateInfo,
+        bool isNewNodeGroup, const ChunkCollection&, const offset_to_row_idx_t& insertInfo,
+        const ChunkCollection&, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo) override {
         // Avoid unused parameter warnings during release build.
         (void)isNewNodeGroup;
@@ -582,43 +581,46 @@ Column::ReadState Column::getReadState(
 }
 
 void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-    const LocalVectorCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
+    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
     const offset_set_t& deleteInfo) {
     auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
     auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {
         // If this is a new node group, updateInfo should be empty. We should perform out-of-place
         // commit with a new column chunk.
-        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunk,
-            insertInfo, localUpdateChunk, updateInfo, deleteInfo);
+        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunks,
+            insertInfo, localUpdateChunks, updateInfo, deleteInfo);
     } else {
         bool didInPlaceCommit = false;
         // If this is not a new node group, we should first check if we can perform in-place commit.
-        if (canCommitInPlace(transaction, nodeGroupIdx, localInsertChunk, insertInfo,
-                localUpdateChunk, updateInfo)) {
-            commitLocalChunkInPlace(transaction, nodeGroupIdx, localInsertChunk, insertInfo,
-                localUpdateChunk, updateInfo, deleteInfo);
+        if (canCommitInPlace(transaction, nodeGroupIdx, localInsertChunks, insertInfo,
+                localUpdateChunks, updateInfo)) {
+            commitLocalChunkInPlace(transaction, nodeGroupIdx, localInsertChunks, insertInfo,
+                localUpdateChunks, updateInfo, deleteInfo);
             didInPlaceCommit = true;
         } else {
-            commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunk,
-                insertInfo, localUpdateChunk, updateInfo, deleteInfo);
+            commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunks,
+                insertInfo, localUpdateChunks, updateInfo, deleteInfo);
         }
         // TODO(Guodong/Ben): The logic here on NullColumn is confusing as out-of-place commits and
         // in-place commits handle it differently. See if we can unify them.
         if (nullColumn) {
             // Uses functions written for the null chunk which only access the localColumnChunk's
             // null information
-            if (nullColumn->canCommitInPlace(transaction, nodeGroupIdx, localInsertChunk,
-                    insertInfo, localUpdateChunk, updateInfo)) {
-                nullColumn->commitLocalChunkInPlace(transaction, nodeGroupIdx, localInsertChunk,
-                    insertInfo, localUpdateChunk, updateInfo, deleteInfo);
+            if (nullColumn->canCommitInPlace(transaction, nodeGroupIdx,
+                    getNullChunkCollection(localInsertChunks), insertInfo,
+                    getNullChunkCollection(localUpdateChunks), updateInfo)) {
+                nullColumn->commitLocalChunkInPlace(transaction, nodeGroupIdx,
+                    getNullChunkCollection(localInsertChunks), insertInfo,
+                    getNullChunkCollection(localUpdateChunks), updateInfo, deleteInfo);
             } else if (didInPlaceCommit) {
                 // Out-of-place commits also commit the null chunk out of place,
                 // so we only need to do a separate out of place commit for the null chunk if the
                 // main chunk did an in-place commit.
                 nullColumn->commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
-                    localInsertChunk, insertInfo, localUpdateChunk, updateInfo, deleteInfo);
+                    getNullChunkCollection(localInsertChunks), insertInfo,
+                    getNullChunkCollection(localUpdateChunks), updateInfo, deleteInfo);
             }
         }
     }
@@ -678,20 +680,20 @@ bool Column::isMaxOffsetOutOfPagesCapacity(
 }
 
 bool Column::checkUpdateInPlace(const ColumnChunkMetadata& metadata,
-    const LocalVectorCollection& localChunk, const offset_to_row_idx_t& writeInfo) {
+    const ChunkCollection& localChunks, const offset_to_row_idx_t& writeInfo) {
     std::vector<row_idx_t> rowIdxesToRead;
     for (auto& [_, rowIdx] : writeInfo) {
         rowIdxesToRead.push_back(rowIdx);
     }
     std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
     for (auto rowIdx : rowIdxesToRead) {
-        auto localVector = localChunk.getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        if (localVector->isNull(offsetInVector)) {
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        if (localChunks[chunkIdx]->getNullChunk()->isNull(offsetInLocalChunk)) {
             continue;
         }
         if (!metadata.compMeta.canUpdateInPlace(
-                localVector->getData(), offsetInVector, dataType.getPhysicalType())) {
+                localChunks[chunkIdx]->getData(), offsetInLocalChunk, dataType.getPhysicalType())) {
             return false;
         }
     }
@@ -699,8 +701,8 @@ bool Column::checkUpdateInPlace(const ColumnChunkMetadata& metadata,
 }
 
 bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-    const LocalVectorCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo) {
+    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo) {
     auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
     if (isInsertionsOutOfPagesCapacity(metadata, insertInfo)) {
         return false;
@@ -708,8 +710,8 @@ bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGro
     if (metadata.compMeta.canAlwaysUpdateInPlace()) {
         return true;
     }
-    return checkUpdateInPlace(metadata, localInsertChunk, insertInfo) &&
-           checkUpdateInPlace(metadata, localUpdateChunk, updateInfo);
+    return checkUpdateInPlace(metadata, localInsertChunks, insertInfo) &&
+           checkUpdateInPlace(metadata, localUpdateChunks, updateInfo);
 }
 
 bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -733,11 +735,11 @@ bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGro
 }
 
 void Column::commitLocalChunkInPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
-    const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-    const LocalVectorCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
+    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
     const offset_set_t& /*deleteInfo*/) {
-    applyLocalChunkToColumn(nodeGroupIdx, localUpdateChunk, updateInfo);
-    applyLocalChunkToColumn(nodeGroupIdx, localInsertChunk, insertInfo);
+    applyLocalChunkToColumn(nodeGroupIdx, localUpdateChunks, updateInfo);
+    applyLocalChunkToColumn(nodeGroupIdx, localInsertChunks, insertInfo);
 }
 
 std::unique_ptr<ColumnChunk> Column::getEmptyChunkForCommit(uint64_t capacity) {
@@ -745,21 +747,21 @@ std::unique_ptr<ColumnChunk> Column::getEmptyChunkForCommit(uint64_t capacity) {
 }
 
 void Column::commitLocalChunkOutOfPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    bool isNewNodeGroup, const LocalVectorCollection& localInsertChunk,
-    const offset_to_row_idx_t& insertInfo, const LocalVectorCollection& localUpdateChunk,
+    bool isNewNodeGroup, const ChunkCollection& localInsertChunks,
+    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
     const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
     auto columnChunk = getEmptyChunkForCommit(common::StorageConstants::NODE_GROUP_SIZE);
     if (isNewNodeGroup) {
         KU_ASSERT(updateInfo.empty() && deleteInfo.empty());
         // Apply inserts from the local chunk.
-        applyLocalChunkToColumnChunk(localInsertChunk, columnChunk.get(), insertInfo);
+        applyLocalChunkToColumnChunk(localInsertChunks, columnChunk.get(), insertInfo);
     } else {
         // First, scan the whole column chunk from persistent storage.
         scan(transaction, nodeGroupIdx, columnChunk.get());
         // Then, apply updates from the local chunk.
-        applyLocalChunkToColumnChunk(localUpdateChunk, columnChunk.get(), updateInfo);
+        applyLocalChunkToColumnChunk(localUpdateChunks, columnChunk.get(), updateInfo);
         // Lastly, apply inserts from the local chunk.
-        applyLocalChunkToColumnChunk(localInsertChunk, columnChunk.get(), insertInfo);
+        applyLocalChunkToColumnChunk(localInsertChunks, columnChunk.get(), insertInfo);
         if (columnChunk->getNullChunk()) {
             // Set nulls based on deleteInfo.
             for (auto offsetInChunk : deleteInfo) {
@@ -798,23 +800,24 @@ void Column::commitColumnChunkOutOfPlace(Transaction* transaction, node_group_id
     }
 }
 
-void Column::applyLocalChunkToColumnChunk(const LocalVectorCollection& localChunk,
+void Column::applyLocalChunkToColumnChunk(const ChunkCollection& localChunks,
     ColumnChunk* columnChunk, const offset_to_row_idx_t& updateInfo) {
-    for (auto& [offsetInChunk, rowIdx] : updateInfo) {
-        auto localVector = localChunk.getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        localVector->state->selVector->selectedPositions[0] = offsetInVector;
-        columnChunk->write(localVector, offsetInVector, offsetInChunk);
+    for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        columnChunk->write(
+            localChunks[chunkIdx], offsetInLocalChunk, offsetInDstChunk, 1 /* numValues */);
     }
 }
 
 void Column::applyLocalChunkToColumn(node_group_idx_t nodeGroupIdx,
-    const LocalVectorCollection& localChunk, const offset_to_row_idx_t& updateInfo) {
-    for (auto& [offsetInChunk, rowIdx] : updateInfo) {
-        auto localVector = localChunk.getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        if (!localVector->isNull(offsetInVector)) {
-            write(nodeGroupIdx, offsetInChunk, localVector, offsetInVector);
+    const ChunkCollection& localChunks, const offset_to_row_idx_t& updateInfo) {
+    for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        if (!localChunks[chunkIdx]->getNullChunk()->isNull(offsetInLocalChunk)) {
+            write(nodeGroupIdx, offsetInDstChunk, localChunks[chunkIdx], offsetInLocalChunk,
+                1 /*numValues*/);
         }
     }
 }
@@ -862,6 +865,14 @@ PageCursor Column::getPageCursorForOffset(
     TransactionType transactionType, node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
     auto state = getReadState(transactionType, nodeGroupIdx);
     return getPageCursorForOffsetInGroup(offsetInChunk, state);
+}
+
+ChunkCollection Column::getNullChunkCollection(const ChunkCollection& chunkCollection) {
+    ChunkCollection nullChunkCollection;
+    for (const auto& chunk : chunkCollection) {
+        nullChunkCollection.push_back(chunk->getNullChunk());
+    }
+    return nullChunkCollection;
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalType dataType,

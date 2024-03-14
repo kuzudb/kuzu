@@ -44,7 +44,7 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
     uint64_t currentNodeGroupIdx;
     // The sharedNodeGroup is to accumulate left data within local node groups in NodeBatchInsert
     // ops.
-    std::unique_ptr<storage::NodeGroup> sharedNodeGroup;
+    std::unique_ptr<storage::ChunkedNodeGroup> sharedNodeGroup;
 
     NodeBatchInsertSharedState(
         storage::Table* table, std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal)
@@ -60,7 +60,7 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
 
     inline uint64_t getCurNodeGroupIdx() const { return currentNodeGroupIdx; }
 
-    void appendIncompleteNodeGroup(std::unique_ptr<storage::NodeGroup> localNodeGroup,
+    void appendIncompleteNodeGroup(std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
         std::optional<IndexBuilder>& indexBuilder);
 
     inline common::offset_t getNextNodeGroupIdxWithoutLock() { return currentNodeGroupIdx++; }
@@ -107,7 +107,7 @@ public:
 
     static void writeAndResetNodeGroup(common::node_group_idx_t nodeGroupIdx,
         std::optional<IndexBuilder>& indexBuilder, common::column_id_t pkColumnID,
-        storage::NodeTable* table, storage::NodeGroup* nodeGroup);
+        storage::NodeTable* table, storage::ChunkedNodeGroup* nodeGroup);
 
 private:
     void copyToNodeGroup();

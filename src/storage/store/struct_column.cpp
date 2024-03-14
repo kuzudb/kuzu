@@ -126,12 +126,13 @@ void StructColumn::rollbackInMemory() {
 }
 
 bool StructColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-    const LocalVectorCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo) {
+    const ChunkCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo) {
     // STRUCT column doesn't have actual data stored in buffer. Only need to check the null column.
     // Children columns are committed separately.
-    return nullColumn->canCommitInPlace(
-        transaction, nodeGroupIdx, localInsertChunk, insertInfo, localUpdateChunk, updateInfo);
+    return nullColumn->canCommitInPlace(transaction, nodeGroupIdx,
+        getNullChunkCollection(localInsertChunk), insertInfo,
+        getNullChunkCollection(localUpdateChunk), updateInfo);
 }
 
 bool StructColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -141,8 +142,8 @@ bool StructColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t n
 }
 
 void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-    const LocalVectorCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
+    const ChunkCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
     const offset_set_t& deleteInfo) {
     auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
     auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
@@ -156,18 +157,20 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
         // column.
         if (canCommitInPlace(transaction, nodeGroupIdx, localInsertChunk, insertInfo,
                 localUpdateChunk, updateInfo)) {
-            nullColumn->commitLocalChunkInPlace(transaction, nodeGroupIdx, localInsertChunk,
-                insertInfo, localUpdateChunk, updateInfo, deleteInfo);
+            nullColumn->commitLocalChunkInPlace(transaction, nodeGroupIdx,
+                getNullChunkCollection(localInsertChunk), insertInfo,
+                getNullChunkCollection(localUpdateChunk), updateInfo, deleteInfo);
         } else {
             nullColumn->commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
-                localInsertChunk, insertInfo, localUpdateChunk, updateInfo, deleteInfo);
+                getNullChunkCollection(localInsertChunk), insertInfo,
+                getNullChunkCollection(localUpdateChunk), updateInfo, deleteInfo);
         }
         // Update each child column separately
         for (auto i = 0u; i < childColumns.size(); i++) {
             const auto& childColumn = childColumns[i];
             childColumn->prepareCommitForChunk(transaction, nodeGroupIdx,
-                localInsertChunk.getStructChildVectorCollection(i), insertInfo,
-                localUpdateChunk.getStructChildVectorCollection(i), updateInfo, deleteInfo);
+                getStructChildChunkCollection(localInsertChunk, i), insertInfo,
+                getStructChildChunkCollection(localUpdateChunk, i), updateInfo, deleteInfo);
         }
     }
 }
@@ -200,6 +203,16 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
                 transaction, nodeGroupIdx, dstOffsets, childChunk, srcOffset);
         }
     }
+}
+
+ChunkCollection StructColumn::getStructChildChunkCollection(
+    const ChunkCollection& chunkCollection, vector_idx_t childIdx) {
+    ChunkCollection childChunkCollection;
+    for (const auto& chunk : chunkCollection) {
+        auto structChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(chunk);
+        childChunkCollection.push_back(structChunk->getChild(childIdx));
+    }
+    return childChunkCollection;
 }
 
 } // namespace storage

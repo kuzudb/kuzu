@@ -7,7 +7,6 @@
 namespace kuzu {
 namespace storage {
 class LocalStorage;
-class MemoryManager;
 } // namespace storage
 namespace transaction {
 class TransactionManager;
@@ -19,9 +18,9 @@ class Transaction {
     friend class TransactionManager;
 
 public:
-    Transaction(TransactionType transactionType, uint64_t transactionID, storage::MemoryManager* mm)
+    Transaction(TransactionType transactionType, uint64_t transactionID)
         : type{transactionType}, ID{transactionID} {
-        localStorage = std::make_unique<storage::LocalStorage>(mm);
+        localStorage = std::make_unique<storage::LocalStorage>();
     }
 
     constexpr explicit Transaction(TransactionType transactionType) noexcept

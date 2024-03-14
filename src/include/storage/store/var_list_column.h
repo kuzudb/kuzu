@@ -83,7 +83,7 @@ private:
         common::ValueVector* offsetVector, const ListOffsetInfoInStorage& listOffsetInfoInStorage);
 
     inline bool canCommitInPlace(transaction::Transaction*, common::node_group_idx_t,
-        const LocalVectorCollection&, const offset_to_row_idx_t&, const LocalVectorCollection&,
+        const ChunkCollection&, const offset_to_row_idx_t&, const ChunkCollection&,
         const offset_to_row_idx_t&) override {
         // Always perform out-of-place commit for VAR_LIST columns.
         return false;

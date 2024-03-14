@@ -9,7 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-bool CSRHeaderChunks::sanityCheck() const {
+bool ChunkedCSRHeader::sanityCheck() const {
     if (offset->getNumValues() != length->getNumValues()) {
         return false;
     }
@@ -28,7 +28,7 @@ bool CSRHeaderChunks::sanityCheck() const {
     return true;
 }
 
-void CSRHeaderChunks::copyFrom(const CSRHeaderChunks& other) const {
+void ChunkedCSRHeader::copyFrom(const ChunkedCSRHeader& other) const {
     auto numValues = other.offset->getNumValues();
     memcpy(offset->getData(), other.offset->getData(), numValues * sizeof(offset_t));
     memcpy(length->getData(), other.length->getData(), numValues * sizeof(length_t));
@@ -36,7 +36,7 @@ void CSRHeaderChunks::copyFrom(const CSRHeaderChunks& other) const {
     offset->setNumValues(numValues);
 }
 
-void CSRHeaderChunks::fillDefaultValues(offset_t newNumValues) const {
+void ChunkedCSRHeader::fillDefaultValues(offset_t newNumValues) const {
     auto lastCSROffset = getEndCSROffset(length->getNumValues() - 1);
     for (auto i = length->getNumValues(); i < newNumValues; i++) {
         offset->setValue<offset_t>(lastCSROffset, i);
@@ -46,7 +46,7 @@ void CSRHeaderChunks::fillDefaultValues(offset_t newNumValues) const {
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
 }
 
-NodeGroup::NodeGroup(
+ChunkedNodeGroup::ChunkedNodeGroup(
     const std::vector<common::LogicalType>& columnTypes, bool enableCompression, uint64_t capacity)
     : nodeGroupIdx{UINT64_MAX}, numRows{0} {
     chunks.reserve(columnTypes.size());
@@ -56,7 +56,8 @@ NodeGroup::NodeGroup(
     }
 }
 
-NodeGroup::NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression)
+ChunkedNodeGroup::ChunkedNodeGroup(
+    const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression)
     : nodeGroupIdx{UINT64_MAX}, numRows{0} {
     chunks.reserve(columns.size());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
@@ -65,7 +66,7 @@ NodeGroup::NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool e
     }
 }
 
-void NodeGroup::resetToEmpty() {
+void ChunkedNodeGroup::resetToEmpty() {
     numRows = 0;
     nodeGroupIdx = UINT64_MAX;
     for (auto& chunk : chunks) {
@@ -73,25 +74,26 @@ void NodeGroup::resetToEmpty() {
     }
 }
 
-void NodeGroup::setAllNull() {
+void ChunkedNodeGroup::setAllNull() {
     for (auto& chunk : chunks) {
         chunk->getNullChunk()->resetToAllNull();
     }
 }
 
-void NodeGroup::setNumValues(common::offset_t numValues) {
+void ChunkedNodeGroup::setNumValues(common::offset_t numValues) {
     for (auto& chunk : chunks) {
         chunk->setNumValues(numValues);
     }
+    numRows = numValues;
 }
 
-void NodeGroup::resizeChunks(uint64_t newSize) {
+void ChunkedNodeGroup::resizeChunks(uint64_t newSize) {
     for (auto& chunk : chunks) {
         chunk->resize(newSize);
     }
 }
 
-uint64_t NodeGroup::append(const std::vector<ValueVector*>& columnVectors,
+uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors,
     DataChunkState* columnState, uint64_t numValuesToAppend) {
     auto numValuesToAppendInChunk =
         std::min(numValuesToAppend, StorageConstants::NODE_GROUP_SIZE - numRows);
@@ -115,7 +117,7 @@ uint64_t NodeGroup::append(const std::vector<ValueVector*>& columnVectors,
     return numValuesToAppendInChunk;
 }
 
-offset_t NodeGroup::append(NodeGroup* other, offset_t offsetInOtherNodeGroup) {
+offset_t ChunkedNodeGroup::append(ChunkedNodeGroup* other, offset_t offsetInOtherNodeGroup) {
     KU_ASSERT(other->chunks.size() == chunks.size());
     auto numNodesToAppend = std::min(
         other->numRows - offsetInOtherNodeGroup, StorageConstants::NODE_GROUP_SIZE - numRows);
@@ -126,7 +128,7 @@ offset_t NodeGroup::append(NodeGroup* other, offset_t offsetInOtherNodeGroup) {
     return numNodesToAppend;
 }
 
-void NodeGroup::write(
+void ChunkedNodeGroup::write(
     std::vector<std::unique_ptr<ColumnChunk>>& data, vector_idx_t offsetVectorIdx) {
     KU_ASSERT(data.size() == chunks.size() + 1);
     auto& offsetChunk = data[offsetVectorIdx];
@@ -144,21 +146,32 @@ void NodeGroup::write(
     numRows += offsetChunk->getNumValues();
 }
 
-void NodeGroup::finalize(uint64_t nodeGroupIdx_) {
+void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {
     nodeGroupIdx = nodeGroupIdx_;
     for (auto i = 0u; i < chunks.size(); i++) {
         chunks[i]->finalize();
     }
 }
 
-CSRHeaderChunks::CSRHeaderChunks(bool enableCompression, uint64_t capacity) {
+void ChunkedNodeGroupCollection::append(std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
+    if (chunkedGroups.size() > 1) {
+        KU_ASSERT(chunkedGroup->getNumColumns() == chunkedGroups[0]->getNumColumns());
+        for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
+            KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType() ==
+                      chunkedGroups[0]->getColumnChunk(i).getDataType());
+        }
+    }
+    chunkedGroups.push_back(std::move(chunkedGroup));
+}
+
+ChunkedCSRHeader::ChunkedCSRHeader(bool enableCompression, uint64_t capacity) {
     offset =
         ColumnChunkFactory::createColumnChunk(*LogicalType::UINT64(), enableCompression, capacity);
     length =
         ColumnChunkFactory::createColumnChunk(*LogicalType::UINT64(), enableCompression, capacity);
 }
 
-offset_t CSRHeaderChunks::getStartCSROffset(offset_t nodeOffset) const {
+offset_t ChunkedCSRHeader::getStartCSROffset(offset_t nodeOffset) const {
     if (nodeOffset == 0 || offset->getNumValues() == 0) {
         return 0;
     }
@@ -166,7 +179,7 @@ offset_t CSRHeaderChunks::getStartCSROffset(offset_t nodeOffset) const {
         nodeOffset >= offset->getNumValues() ? (offset->getNumValues() - 1) : (nodeOffset - 1));
 }
 
-offset_t CSRHeaderChunks::getEndCSROffset(offset_t nodeOffset) const {
+offset_t ChunkedCSRHeader::getEndCSROffset(offset_t nodeOffset) const {
     if (offset->getNumValues() == 0) {
         return 0;
     }
@@ -174,15 +187,16 @@ offset_t CSRHeaderChunks::getEndCSROffset(offset_t nodeOffset) const {
         nodeOffset >= offset->getNumValues() ? (offset->getNumValues() - 1) : nodeOffset);
 }
 
-length_t CSRHeaderChunks::getCSRLength(offset_t nodeOffset) const {
+length_t ChunkedCSRHeader::getCSRLength(offset_t nodeOffset) const {
     return nodeOffset >= length->getNumValues() ? 0 : length->getValue<length_t>(nodeOffset);
 }
 
-CSRNodeGroup::CSRNodeGroup(const std::vector<LogicalType>& columnTypes, bool enableCompression)
+ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(
+    const std::vector<LogicalType>& columnTypes, bool enableCompression)
     // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
     // should be resized after csr offset calculation (e.g., during RelBatchInsert).
-    : NodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
-    csrHeaderChunks = CSRHeaderChunks(enableCompression);
+    : ChunkedNodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
+    csrHeader = ChunkedCSRHeader(enableCompression);
 }
 
 } // namespace storage

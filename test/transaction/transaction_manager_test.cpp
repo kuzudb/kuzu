@@ -20,8 +20,7 @@ protected:
             BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE);
         wal = std::make_unique<WAL>(
             databasePath, false /* readOnly */, *bufferManager, getFileSystem(*database));
-        transactionManager =
-            std::make_unique<TransactionManager>(*wal, getMemoryManager(*database));
+        transactionManager = std::make_unique<TransactionManager>(*wal);
     }
 
     void TearDown() override { EmptyDBTest::TearDown(); }

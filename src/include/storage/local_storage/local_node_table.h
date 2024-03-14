@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "common/copy_constructors.h"
 #include "local_table.h"
 
 namespace kuzu {
@@ -9,9 +10,10 @@ namespace storage {
 
 class LocalNodeNG final : public LocalNodeGroup {
 public:
-    LocalNodeNG(common::offset_t nodeGroupStartOffset,
-        const std::vector<common::LogicalType*>& dataTypes, MemoryManager* mm)
-        : LocalNodeGroup{nodeGroupStartOffset, dataTypes, mm} {}
+    LocalNodeNG(
+        common::offset_t nodeGroupStartOffset, const std::vector<common::LogicalType>& dataTypes)
+        : LocalNodeGroup{nodeGroupStartOffset, dataTypes} {}
+    DELETE_COPY_DEFAULT_MOVE(LocalNodeNG);
 
     void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
@@ -35,8 +37,8 @@ public:
 
 class LocalNodeTableData final : public LocalTableData {
 public:
-    LocalNodeTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm)
-        : LocalTableData{std::move(dataTypes), mm} {}
+    explicit LocalNodeTableData(std::vector<common::LogicalType> dataTypes)
+        : LocalTableData{std::move(dataTypes)} {}
 
     void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);

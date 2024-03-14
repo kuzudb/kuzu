@@ -128,8 +128,7 @@ LocalNodeGroup* LocalNodeTableData::getOrCreateLocalNodeGroup(common::ValueVecto
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {
         auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        nodeGroups[nodeGroupIdx] =
-            std::make_unique<LocalNodeNG>(nodeGroupStartOffset, dataTypes, mm);
+        nodeGroups[nodeGroupIdx] = std::make_unique<LocalNodeNG>(nodeGroupStartOffset, dataTypes);
     }
     return nodeGroups.at(nodeGroupIdx).get();
 }

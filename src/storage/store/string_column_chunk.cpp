@@ -52,6 +52,17 @@ void StringColumnChunk::append(
     }
 }
 
+void StringColumnChunk::lookup(
+    offset_t offsetInChunk, ValueVector& output, sel_t posInOutputVector) const {
+    KU_ASSERT(offsetInChunk < numValues);
+    output.setNull(posInOutputVector, nullChunk->isNull(offsetInChunk));
+    if (nullChunk->isNull(offsetInChunk)) {
+        return;
+    }
+    auto str = getValue<std::string_view>(offsetInChunk);
+    output.setValue<std::string_view>(posInOutputVector, str);
+}
+
 void StringColumnChunk::write(
     ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
@@ -68,7 +79,8 @@ void StringColumnChunk::write(
     }
 }
 
-void StringColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool /*isCSR*/) {
+void StringColumnChunk::write(
+    ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity /*multiplicity*/) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING &&
               dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INT64 &&
               chunk->getNumValues() == dstOffsets->getNumValues());
@@ -136,7 +148,6 @@ void StringColumnChunk::appendStringColumnChunk(
 }
 
 void StringColumnChunk::setValueFromString(std::string_view value, uint64_t pos) {
-    KU_ASSERT(pos < numValues);
     auto index = dictionaryChunk->appendString(value);
     ColumnChunk::setValue<DictionaryChunk::string_index_t>(index, pos);
 }

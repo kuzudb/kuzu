@@ -53,6 +53,17 @@ void StructColumnChunk::append(ValueVector* vector, SelectionVector& selVector) 
     numValues += selVector.selectedSize;
 }
 
+void StructColumnChunk::lookup(
+    offset_t offsetInChunk, ValueVector& output, sel_t posInOutputVector) const {
+    KU_ASSERT(offsetInChunk < numValues);
+    auto numFields = StructType::getNumFields(&dataType);
+    output.setNull(posInOutputVector, nullChunk->isNull(offsetInChunk));
+    for (auto i = 0u; i < numFields; i++) {
+        childChunks[i]->lookup(
+            offsetInChunk, *StructVector::getFieldVector(&output, i).get(), posInOutputVector);
+    }
+}
+
 void StructColumnChunk::resize(uint64_t newCapacity) {
     ColumnChunk::resize(newCapacity);
     capacity = newCapacity;
@@ -81,7 +92,8 @@ void StructColumnChunk::write(
     }
 }
 
-void StructColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool isCSR) {
+void StructColumnChunk::write(
+    ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity multiplicity) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {
         auto offsetInChunk = dstOffsets->getValue<offset_t>(i);
@@ -90,7 +102,7 @@ void StructColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool 
     }
     auto structChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(chunk);
     for (auto i = 0u; i < childChunks.size(); i++) {
-        childChunks[i]->write(structChunk->getChild(i), dstOffsets, isCSR);
+        childChunks[i]->write(structChunk->getChild(i), dstOffsets, multiplicity);
     }
 }
 

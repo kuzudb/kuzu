@@ -87,8 +87,7 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     catalog = std::make_unique<catalog::Catalog>(wal.get(), vfs.get());
     storageManager = std::make_unique<storage::StorageManager>(systemConfig.readOnly, *catalog,
         *memoryManager, wal.get(), systemConfig.enableCompression, vfs.get());
-    transactionManager =
-        std::make_unique<transaction::TransactionManager>(*wal, memoryManager.get());
+    transactionManager = std::make_unique<transaction::TransactionManager>(*wal);
     extensionOptions = std::make_unique<extension::ExtensionOptions>();
     databaseManager = std::make_unique<DatabaseManager>();
 }

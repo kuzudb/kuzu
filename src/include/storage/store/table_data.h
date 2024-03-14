@@ -24,7 +24,7 @@ public:
         common::ValueVector* nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) = 0;
 
-    virtual void append(NodeGroup* nodeGroup) = 0;
+    virtual void append(ChunkedNodeGroup* nodeGroup) = 0;
 
     inline void dropColumn(common::column_id_t columnID) {
         columns.erase(columns.begin() + columnID);
