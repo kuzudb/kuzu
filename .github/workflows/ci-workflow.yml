@@ -241,7 +241,7 @@ jobs:
       - name: Extension test
         shell: cmd
         run: |
-          set CMAKE_PREFIX_PATH=C:\Program Files\DuckDB\bin
+          set CMAKE_PREFIX_PATH=C:\Program Files\DuckDB\
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           cd scripts/ && start /b python http-server.py && cd ..
           make extension-test && make clean
