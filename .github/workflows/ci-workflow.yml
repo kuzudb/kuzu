@@ -241,6 +241,7 @@ jobs:
       - name: Extension test
         shell: cmd
         run: |
+          set PATH=%PATH%;C:\Program Files\DuckDB\bin
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           cd scripts/ && start /b python http-server.py && cd ..
           make extension-test && make clean
