@@ -43,6 +43,13 @@ protected:
 
     bool numValuesSanityCheck() const override;
 
+    void setNumValues(uint64_t numValues) override {
+        ColumnChunk::setNumValues(numValues);
+        for (auto& childChunk : childChunks) {
+            childChunk->setNumValues(numValues);
+        }
+    }
+
 private:
     std::vector<std::unique_ptr<ColumnChunk>> childChunks;
 };

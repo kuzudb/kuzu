@@ -104,9 +104,11 @@ public:
 
     inline uint64_t getCapacity() const { return capacity; }
     inline uint64_t getNumValues() const { return numValues; }
-    void setNumValues(uint64_t numValues_);
+    virtual void setNumValues(uint64_t numValues_);
     virtual bool numValuesSanityCheck() const;
     bool isCompressionEnabled() const { return enableCompression; }
+
+    virtual bool sanityCheck();
 
 protected:
     // Initializes the data buffer. Is (and should be) only called in constructor.
