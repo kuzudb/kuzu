@@ -1,4 +1,6 @@
+SET(CMAKE_FIND_DEBUG_MODE  TRUE)
 find_package(DuckDB REQUIRED)
+SET(CMAKE_FIND_DEBUG_MODE  FALSE)
 
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
