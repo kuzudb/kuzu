@@ -17,7 +17,7 @@ struct ExportedTableData {
     inline const BoundRegularQuery* getRegularQuery() const { return regularQuery.get(); }
 };
 
-class BoundExportDatabase : public BoundStatement {
+class BoundExportDatabase final : public BoundStatement {
 public:
     BoundExportDatabase(std::string filePath, common::FileType fileType,
         std::vector<ExportedTableData> exportData,

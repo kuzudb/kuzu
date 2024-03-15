@@ -227,12 +227,6 @@ void CatalogContent::addFunction(std::string name, function::function_set defini
         std::make_unique<ScalarFunctionCatalogEntry>(std::move(name), std::move(definitions)));
 }
 
-void CatalogContent::addScalarMacroFunction(
-    std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
-    functions->createEntry(
-        std::make_unique<ScalarMacroCatalogEntry>(std::move(name), std::move(macro)));
-}
-
 function::ScalarMacroFunction* CatalogContent::getScalarMacroFunction(
     const std::string& name) const {
     return ku_dynamic_cast<CatalogEntry*, ScalarMacroCatalogEntry*>(functions->getEntry(name))
