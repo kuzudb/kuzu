@@ -3,6 +3,7 @@
 #include "function/table/bind_input.h"
 #include "function/table/call_functions.h"
 #include "storage/storage_manager.h"
+#include "storage/store/node_table.h"
 #include "storage/store/string_column.h"
 #include "storage/store/struct_column.h"
 #include "storage/store/var_list_column.h"
@@ -218,9 +219,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(
     auto tableID = catalog->getTableID(context->getTx(), tableName);
     auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
     auto storageManager = context->getStorageManager();
-    auto table = tableEntry->getTableType() == TableType::NODE ?
-                     reinterpret_cast<Table*>(storageManager->getNodeTable(tableID)) :
-                     reinterpret_cast<Table*>(storageManager->getRelTable(tableID));
+    auto table = storageManager->getTable(tableID);
     return std::make_unique<StorageInfoBindData>(
         std::move(columnTypes), std::move(columnNames), tableEntry, table, context);
 }

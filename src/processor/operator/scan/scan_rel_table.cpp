@@ -6,14 +6,14 @@ namespace processor {
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
         if (scanState->hasMoreToRead(context->clientContext->getTx())) {
-            info->table->read(context->clientContext->getTx(), *scanState, inVector, outVectors);
+            info->table->read(context->clientContext->getTx(), *scanState);
             return true;
         }
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
         info->table->initializeReadState(context->clientContext->getTx(), info->direction,
-            info->columnIDs, inVector, scanState.get());
+            info->columnIDs, *inVector, *scanState);
     }
 }
 

@@ -50,17 +50,31 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
         evaluator->evaluate(context->clientContext);
     }
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
+    if (checkConfict(tx)) {
+        return;
+    }
+    // TODO: Move pkVector pos to info.
+    auto nodeInsertState = std::make_unique<storage::NodeTableInsertState>(
+        *nodeIDVector, *columnDataVectors[table->getPKColumnID()], columnDataVectors);
+    table->insert(tx, *nodeInsertState);
+    writeResult();
+}
+
+bool NodeInsertExecutor::checkConfict(Transaction* transaction) {
     if (conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
-        auto off = table->validateUniquenessConstraint(tx, columnDataVectors);
+        auto off = table->validateUniquenessConstraint(transaction, columnDataVectors);
         if (off != INVALID_OFFSET) {
             // Conflict. Skip insertion.
             auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
             nodeIDVector->setNull(nodeIDPos, false);
             nodeIDVector->setValue<nodeID_t>(nodeIDPos, {off, table->getTableID()});
-            return;
+            return true;
         }
     }
-    table->insert(tx, nodeIDVector, columnDataVectors);
+    return false;
+}
+
+void NodeInsertExecutor::writeResult() {
     for (auto i = 0u; i < columnVectors.size(); ++i) {
         auto columnVector = columnVectors[i];
         auto dataVector = columnDataVectors[i];
@@ -129,7 +143,13 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* c
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
         columnDataEvaluators[i]->evaluate(context->clientContext);
     }
-    table->insert(tx, srcNodeIDVector, dstNodeIDVector, columnDataVectors);
+    auto insertState = std::make_unique<storage::RelTableInsertState>(
+        *srcNodeIDVector, *dstNodeIDVector, columnDataVectors);
+    table->insert(tx, *insertState);
+    writeResult();
+}
+
+void RelInsertExecutor::writeResult() {
     for (auto i = 0u; i < columnVectors.size(); ++i) {
         auto columnVector = columnVectors[i];
         auto dataVector = columnDataVectors[i];

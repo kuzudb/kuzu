@@ -4,6 +4,7 @@
 #include "common/exception/storage.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
+#include "storage/store/node_table.h"
 #include "storage/wal_replayer_utils.h"
 #include "transaction/transaction.h"
 
@@ -201,8 +202,9 @@ void WALReplayer::replayCopyTableRecord(const WALRecord& walRecord) {
             if (catalogEntry->getType() == CatalogEntryType::NODE_TABLE_ENTRY) {
                 auto nodeTableEntry =
                     ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(catalogEntry);
-                storageManager->getNodeTable(tableID)->initializePKIndex(
-                    nodeTableEntry, false /* readOnly */, vfs);
+                auto nodeTable =
+                    ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(tableID));
+                nodeTable->initializePKIndex(nodeTableEntry, false /* readOnly */, vfs);
             }
         } else {
             // RECOVERY.
@@ -272,21 +274,8 @@ void WALReplayer::replayDropPropertyRecord(const WALRecord& walRecord) {
         auto propertyID = walRecord.dropPropertyRecord.propertyID;
         if (!isRecovering) {
             auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
-            switch (tableEntry->getTableType()) {
-            case TableType::NODE: {
-                storageManager->getNodeTable(tableID)->dropColumn(
-                    tableEntry->getColumnID(propertyID));
-                // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
-            } break;
-            case TableType::REL: {
-                storageManager->getRelTable(tableID)->dropColumn(
-                    tableEntry->getColumnID(propertyID));
-                // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
-            } break;
-            default: {
-                KU_UNREACHABLE;
-            }
-            }
+            storageManager->getTable(tableID)->dropColumn(tableEntry->getColumnID(propertyID));
+            // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
         } else {
             if (!wal->isLastLoggedRecordCommit()) {
                 // Nothing to undo.
@@ -304,17 +293,7 @@ void WALReplayer::replayAddPropertyRecord(const WALRecord& walRecord) {
     auto propertyID = walRecord.addPropertyRecord.propertyID;
     if (!isCheckpoint) {
         auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
-        switch (tableEntry->getTableType()) {
-        case TableType::NODE: {
-            storageManager->getNodeTable(tableID)->dropColumn(tableEntry->getColumnID(propertyID));
-        } break;
-        case TableType::REL: {
-            storageManager->getRelTable(tableID)->dropColumn(tableEntry->getColumnID(propertyID));
-        } break;
-        default: {
-            KU_UNREACHABLE;
-        }
-        }
+        storageManager->getTable(tableID)->dropColumn(tableEntry->getColumnID(propertyID));
     }
 }
 

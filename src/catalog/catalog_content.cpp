@@ -17,8 +17,8 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
-#include "storage/storage_info.h"
 #include "storage/storage_utils.h"
+#include "storage/storage_version_info.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

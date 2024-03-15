@@ -13,7 +13,7 @@ void AddNodeProperty::executeDDLInternal(ExecutionContext* context) {
     auto schema = catalog->getTableCatalogEntry(context->clientContext->getTx(), tableID);
     auto addedPropID = schema->getPropertyID(propertyName);
     auto addedProp = schema->getProperty(addedPropID);
-    storageManager->getNodeTable(tableID)->addColumn(
+    storageManager->getTable(tableID)->addColumn(
         context->clientContext->getTx(), *addedProp, getDefaultValVector(context));
     storageManager->getWAL()->logAddPropertyRecord(tableID, addedProp->getPropertyID());
 }

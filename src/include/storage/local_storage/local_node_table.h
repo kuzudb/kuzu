@@ -50,5 +50,23 @@ private:
     LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) override;
 };
 
+class LocalNodeTable final : public LocalTable {
+public:
+    explicit LocalNodeTable(Table& table);
+
+    bool insert(TableInsertState& insertState) override;
+    bool update(TableUpdateState& updateState) override;
+    bool delete_(TableDeleteState& deleteState) override;
+
+    void scan(TableReadState& state) override;
+    void lookup(TableReadState& state) override;
+
+    LocalNodeTableData* getTableData() {
+        KU_ASSERT(localTableDataCollection.size() == 1);
+        return common::ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
+            localTableDataCollection[0].get());
+    }
+};
+
 } // namespace storage
 } // namespace kuzu

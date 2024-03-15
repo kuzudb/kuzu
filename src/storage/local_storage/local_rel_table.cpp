@@ -1,15 +1,15 @@
 #include "storage/local_storage/local_rel_table.h"
 
 #include "storage/storage_utils.h"
+#include "storage/store/rel_table.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-LocalRelNG::LocalRelNG(
-    offset_t nodeGroupStartOffset, std::vector<LogicalType> dataTypes, RelMultiplicity multiplicity)
-    : LocalNodeGroup{nodeGroupStartOffset, std::move(dataTypes)}, multiplicity{multiplicity} {}
+LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, std::vector<LogicalType> dataTypes)
+    : LocalNodeGroup{nodeGroupStartOffset, std::move(dataTypes)} {}
 
 row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOffset,
     const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
@@ -200,10 +200,73 @@ LocalNodeGroup* LocalRelTableData::getOrCreateLocalNodeGroup(ValueVector* nodeID
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {
         auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        nodeGroups[nodeGroupIdx] =
-            std::make_unique<LocalRelNG>(nodeGroupStartOffset, dataTypes, multiplicity);
+        nodeGroups[nodeGroupIdx] = std::make_unique<LocalRelNG>(nodeGroupStartOffset, dataTypes);
     }
     return nodeGroups.at(nodeGroupIdx).get();
+}
+
+LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
+    auto& relTable = ku_dynamic_cast<Table&, RelTable&>(table);
+    std::vector<LogicalType> types;
+    types.reserve(relTable.getNumColumns());
+    for (auto i = 0u; i < relTable.getNumColumns(); i++) {
+        types.push_back(relTable.getColumn(i, RelDataDirection::FWD)->getDataType());
+    }
+    // FWD and BWD local rel table data.
+    localTableDataCollection.push_back(std::make_unique<LocalRelTableData>(types));
+    localTableDataCollection.push_back(std::make_unique<LocalRelTableData>(types));
+}
+
+bool LocalRelTable::insert(TableInsertState& state) {
+    auto& insertState = ku_dynamic_cast<TableInsertState&, RelTableInsertState&>(state);
+    auto fwdIDVectors =
+        std::vector<ValueVector*>{const_cast<ValueVector*>(&insertState.srcNodeIDVector),
+            const_cast<ValueVector*>(&insertState.dstNodeIDVector)};
+    auto bwdIDVectors =
+        std::vector<ValueVector*>{const_cast<ValueVector*>(&insertState.dstNodeIDVector),
+            const_cast<ValueVector*>(&insertState.srcNodeIDVector)};
+    auto fwdInserted =
+        getTableData(RelDataDirection::FWD)->insert(fwdIDVectors, insertState.propertyVectors);
+    auto bwdInserted =
+        getTableData(RelDataDirection::BWD)->insert(bwdIDVectors, insertState.propertyVectors);
+    KU_ASSERT(fwdInserted == bwdInserted);
+    return fwdInserted && bwdInserted;
+}
+
+bool LocalRelTable::update(TableUpdateState& updateState) {
+    auto& state = ku_dynamic_cast<TableUpdateState&, RelTableUpdateState&>(updateState);
+    auto fwdIDVectors = std::vector<ValueVector*>{const_cast<ValueVector*>(&state.srcNodeIDVector),
+        const_cast<ValueVector*>(&state.relIDVector)};
+    auto bwdIDVectors = std::vector<ValueVector*>{const_cast<ValueVector*>(&state.dstNodeIDVector),
+        const_cast<ValueVector*>(&state.relIDVector)};
+    auto fwdUpdated =
+        getTableData(RelDataDirection::FWD)
+            ->update(fwdIDVectors, state.columnID, const_cast<ValueVector*>(&state.propertyVector));
+    auto bwdUpdated =
+        getTableData(RelDataDirection::BWD)
+            ->update(bwdIDVectors, state.columnID, const_cast<ValueVector*>(&state.propertyVector));
+    KU_ASSERT(fwdUpdated == bwdUpdated);
+    return fwdUpdated && bwdUpdated;
+}
+
+bool LocalRelTable::delete_(TableDeleteState& deleteState) {
+    auto& state = ku_dynamic_cast<TableDeleteState&, RelTableDeleteState&>(deleteState);
+    auto fwdDeleted = getTableData(RelDataDirection::FWD)
+                          ->delete_(const_cast<ValueVector*>(&state.srcNodeIDVector),
+                              const_cast<ValueVector*>(&state.relIDVector));
+    auto bwdDeleted = getTableData(RelDataDirection::BWD)
+                          ->delete_(const_cast<ValueVector*>(&state.dstNodeIDVector),
+                              const_cast<ValueVector*>(&state.relIDVector));
+    KU_ASSERT(fwdDeleted == bwdDeleted);
+    return fwdDeleted && bwdDeleted;
+}
+
+void LocalRelTable::scan(TableReadState&) {
+    KU_UNREACHABLE;
+}
+
+void LocalRelTable::lookup(TableReadState&) {
+    KU_UNREACHABLE;
 }
 
 } // namespace storage

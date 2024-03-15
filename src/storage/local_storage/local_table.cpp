@@ -1,9 +1,5 @@
 #include "storage/local_storage/local_table.h"
 
-#include "storage/local_storage/local_node_table.h"
-#include "storage/local_storage/local_rel_table.h"
-#include "storage/store/column.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -124,47 +120,6 @@ bool LocalTableData::update(
 bool LocalTableData::delete_(ValueVector* nodeIDVector, ValueVector* extraVector) {
     auto localNodeGroup = getOrCreateLocalNodeGroup(nodeIDVector);
     return localNodeGroup->delete_(nodeIDVector, extraVector);
-}
-
-LocalTableData* LocalTable::getOrCreateLocalTableData(
-    const std::vector<std::unique_ptr<Column>>& columns, vector_idx_t dataIdx,
-    RelMultiplicity multiplicity) {
-    if (localTableDataCollection.empty()) {
-        std::vector<LogicalType> dataTypes;
-        dataTypes.reserve(columns.size());
-        for (auto& column : columns) {
-            dataTypes.push_back(column->getDataType());
-        }
-        switch (tableType) {
-        case TableType::NODE: {
-            localTableDataCollection.reserve(1);
-            localTableDataCollection.push_back(
-                std::make_unique<LocalNodeTableData>(std::move(dataTypes)));
-        } break;
-        case TableType::REL: {
-            KU_ASSERT(dataIdx < 2);
-            localTableDataCollection.resize(2);
-            localTableDataCollection[dataIdx] =
-                std::make_unique<LocalRelTableData>(multiplicity, std::move(dataTypes));
-        } break;
-        default: {
-            KU_UNREACHABLE;
-        }
-        }
-    }
-    KU_ASSERT(dataIdx < localTableDataCollection.size());
-    if (!localTableDataCollection[dataIdx]) {
-        KU_ASSERT(tableType == TableType::REL);
-        std::vector<LogicalType> dataTypes;
-        dataTypes.reserve(columns.size());
-        for (auto& column : columns) {
-            dataTypes.push_back(column->getDataType());
-        }
-        localTableDataCollection[dataIdx] =
-            std::make_unique<LocalRelTableData>(multiplicity, std::move(dataTypes));
-    }
-    KU_ASSERT(localTableDataCollection[dataIdx] != nullptr);
-    return localTableDataCollection[dataIdx].get();
 }
 
 } // namespace storage

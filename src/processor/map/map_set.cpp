@@ -4,12 +4,15 @@
 #include "processor/operator/persistent/set.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
+#include "storage/store/table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::planner;
 using namespace kuzu::evaluator;
 using namespace kuzu::transaction;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
@@ -33,8 +36,8 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
                 continue;
             }
             auto propertyID = property->getPropertyID(tableID);
-            auto table = storageManager->getNodeTable(tableID);
-            auto columnID = catalog->getTableCatalogEntry(clientContext->getTx(), tableID)
+            auto table = ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(tableID));
+            auto columnID = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
                                 ->getColumnID(propertyID);
             tableIDToSetInfo.insert({tableID, NodeSetInfo{table, columnID}});
         }
@@ -42,7 +45,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
             std::move(tableIDToSetInfo), nodeIDPos, propertyPos, std::move(evaluator));
     } else {
         auto tableID = node->getSingleTableID();
-        auto table = storageManager->getNodeTable(tableID);
+        auto table = ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(tableID));
         auto columnID = INVALID_COLUMN_ID;
         if (property->hasPropertyID(tableID)) {
             auto propertyID = property->getPropertyID(tableID);
@@ -81,13 +84,12 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
     }
     auto evaluator = ExpressionMapper::getEvaluator(info->setItem.second, &inSchema);
     if (rel->isMultiLabeled()) {
-        std::unordered_map<table_id_t, std::pair<storage::RelTable*, column_id_t>>
-            tableIDToTableAndColumnID;
+        std::unordered_map<table_id_t, std::pair<RelTable*, column_id_t>> tableIDToTableAndColumnID;
         for (auto tableID : rel->getTableIDs()) {
             if (!property->hasPropertyID(tableID)) {
                 continue;
             }
-            auto table = storageManager->getRelTable(tableID);
+            auto table = ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(tableID));
             auto propertyID = property->getPropertyID(tableID);
             auto columnID = catalog->getTableCatalogEntry(clientContext->getTx(), tableID)
                                 ->getColumnID(propertyID);
@@ -97,7 +99,7 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
             srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));
     } else {
         auto tableID = rel->getSingleTableID();
-        auto table = storageManager->getRelTable(tableID);
+        auto table = ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(tableID));
         auto columnID = common::INVALID_COLUMN_ID;
         if (property->hasPropertyID(tableID)) {
             auto propertyID = property->getPropertyID(tableID);

@@ -25,16 +25,18 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
             auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
             auto nodeTableEntry =
                 ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
-            auto table = storageManager->getNodeTable(tableID);
+            auto table = ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(tableID));
             auto fwdRelTableIDs = nodeTableEntry->getFwdRelTableIDSet();
             auto bwdRelTableIDs = nodeTableEntry->getBwdRelTableIDSet();
             std::unordered_set<RelTable*> fwdRelTables;
             std::unordered_set<RelTable*> bwdRelTables;
             for (auto relTableID : fwdRelTableIDs) {
-                fwdRelTables.insert(storageManager->getRelTable(relTableID));
+                fwdRelTables.insert(
+                    ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(relTableID)));
             }
             for (auto relTableID : bwdRelTableIDs) {
-                bwdRelTables.insert(storageManager->getRelTable(relTableID));
+                bwdRelTables.insert(
+                    ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(relTableID)));
             }
             tableIDToTableMap.insert({tableID, table});
             tableIDToFwdRelTablesMap[tableID] = fwdRelTables;
@@ -44,9 +46,10 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
             std::move(tableIDToFwdRelTablesMap), std::move(tableIDToBwdRelTablesMap),
             info->deleteType, nodeIDPos);
     } else {
-        auto table = storageManager->getNodeTable(info->node->getSingleTableID());
-        auto tableEntry =
-            catalog->getTableCatalogEntry(clientContext->getTx(), info->node->getSingleTableID());
+        auto table = ku_dynamic_cast<Table*, NodeTable*>(
+            storageManager->getTable(info->node->getSingleTableID()));
+        auto tableEntry = catalog->getTableCatalogEntry(
+            &transaction::DUMMY_READ_TRANSACTION, info->node->getSingleTableID());
         auto nodeTableEntry =
             ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
         auto fwdRelTableIDs = nodeTableEntry->getFwdRelTableIDSet();
@@ -54,10 +57,12 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
         std::unordered_set<RelTable*> fwdRelTables;
         std::unordered_set<RelTable*> bwdRelTables;
         for (auto tableID : fwdRelTableIDs) {
-            fwdRelTables.insert(storageManager->getRelTable(tableID));
+            fwdRelTables.insert(
+                ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(tableID)));
         }
         for (auto tableID : bwdRelTableIDs) {
-            bwdRelTables.insert(storageManager->getRelTable(tableID));
+            bwdRelTables.insert(
+                ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(tableID)));
         }
         return std::make_unique<SingleLabelNodeDeleteExecutor>(
             table, std::move(fwdRelTables), std::move(bwdRelTables), info->deleteType, nodeIDPos);
@@ -85,13 +90,14 @@ static std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(
     if (rel.isMultiLabeled()) {
         std::unordered_map<table_id_t, storage::RelTable*> tableIDToTableMap;
         for (auto tableID : rel.getTableIDs()) {
-            auto table = storageManager.getRelTable(tableID);
+            auto table = ku_dynamic_cast<Table*, RelTable*>(storageManager.getTable(tableID));
             tableIDToTableMap.insert({tableID, table});
         }
         return std::make_unique<MultiLabelRelDeleteExecutor>(
             std::move(tableIDToTableMap), srcNodePos, dstNodePos, relIDPos);
     } else {
-        auto table = storageManager.getRelTable(rel.getSingleTableID());
+        auto table =
+            ku_dynamic_cast<Table*, RelTable*>(storageManager.getTable(rel.getSingleTableID()));
         return std::make_unique<SingleLabelRelDeleteExecutor>(
             table, srcNodePos, dstNodePos, relIDPos);
     }

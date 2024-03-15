@@ -104,7 +104,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(copyFromInfo->tableEntry);
     // Map reader.
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
-    auto nodeTable = storageManager->getNodeTable(nodeTableEntry->getTableID());
+    auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
     auto sharedState = std::make_shared<NodeBatchInsertSharedState>(
         nodeTable, getSingleStringColumnFTable(), storageManager->getWAL());
     if (prevOperator->getOperatorType() == PhysicalOperatorType::IN_QUERY_CALL) {
@@ -195,16 +195,16 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     KU_ASSERT(partitioner->getOperatorType() == PhysicalOperatorType::PARTITIONER);
     auto partitionerSharedState = dynamic_cast<Partitioner*>(partitioner.get())->getSharedState();
     auto storageManager = clientContext->getStorageManager();
-    partitionerSharedState->srcNodeTable =
-        storageManager->getNodeTable(relTableEntry->getSrcTableID());
-    partitionerSharedState->dstNodeTable =
-        storageManager->getNodeTable(relTableEntry->getDstTableID());
+    partitionerSharedState->srcNodeTable = ku_dynamic_cast<Table*, NodeTable*>(
+        storageManager->getTable(relTableEntry->getSrcTableID()));
+    partitionerSharedState->dstNodeTable = ku_dynamic_cast<Table*, NodeTable*>(
+        storageManager->getTable(relTableEntry->getDstTableID()));
     // TODO(Guodong/Xiyang): This is a temp hack to set rel offset.
     KU_ASSERT(partitioner->getChild(0)->getChild(0)->getOperatorType() ==
               PhysicalOperatorType::IN_QUERY_CALL);
     auto scanFile =
         ku_dynamic_cast<PhysicalOperator*, InQueryCall*>(partitioner->getChild(0)->getChild(0));
-    auto relTable = storageManager->getRelTable(relTableEntry->getTableID());
+    auto relTable = storageManager->getTable(relTableEntry->getTableID());
     scanFile->getSharedState()->nextRowIdx =
         relTable->getNumTuples(&transaction::DUMMY_WRITE_TRANSACTION);
     // TODO(Xiyang): Move binding of column types to binder.

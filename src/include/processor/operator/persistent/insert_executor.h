@@ -9,7 +9,6 @@
 namespace kuzu {
 namespace processor {
 
-// TODO(Guodong): the following class should be moved to storage.
 class NodeInsertExecutor {
 public:
     NodeInsertExecutor(storage::NodeTable* table,
@@ -31,6 +30,9 @@ public:
 
 private:
     NodeInsertExecutor(const NodeInsertExecutor& other);
+
+    bool checkConfict(transaction::Transaction* transaction);
+    void writeResult();
 
 private:
     // Node table to insert.
@@ -69,6 +71,8 @@ public:
 
 private:
     RelInsertExecutor(const RelInsertExecutor& other);
+
+    void writeResult();
 
 private:
     storage::RelsStoreStats* relsStatistics;

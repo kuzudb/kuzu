@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "storage/stats/nodes_store_statistics.h"
+#include "storage/store/node_table.h"
 #include "storage/wal_replayer.h"
 #include "storage/wal_replayer_utils.h"
 
@@ -125,11 +126,7 @@ void StorageManager::dropTable(table_id_t tableID) {
 }
 
 void StorageManager::prepareCommit(transaction::Transaction* transaction) {
-    auto localStorage = transaction->getLocalStorage();
-    for (auto tableID : localStorage->getTableIDsWithUpdates()) {
-        KU_ASSERT(tables.contains(tableID));
-        tables.at(tableID)->prepareCommit(transaction, localStorage->getLocalTable(tableID));
-    }
+    transaction->getLocalStorage()->prepareCommit();
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
         wal->logTableStatisticsRecord(true /* isNodeTable */);
         nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(wal->getDirectory());
@@ -147,11 +144,7 @@ void StorageManager::prepareRollback(transaction::Transaction* transaction) {
     if (relsStatistics->hasUpdates()) {
         wal->logTableStatisticsRecord(false /* isNodeTable */);
     }
-    auto localStorage = transaction->getLocalStorage();
-    for (auto tableID : localStorage->getTableIDsWithUpdates()) {
-        KU_ASSERT(tables.contains(tableID));
-        tables.at(tableID)->prepareRollback(localStorage->getLocalTableData(tableID));
-    }
+    transaction->getLocalStorage()->prepareRollback();
 }
 
 void StorageManager::checkpointInMemory() {

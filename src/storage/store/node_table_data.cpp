@@ -31,68 +31,31 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     }
 }
 
-void NodeTableData::scan(Transaction* transaction, TableReadState& readState,
-    ValueVector* nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
-    KU_ASSERT(readState.columnIDs.size() == outputVectors.size() && !nodeIDVector->state->isFlat());
+void NodeTableData::scan(Transaction* transaction, TableDataReadState& readState,
+    const ValueVector& nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+    KU_ASSERT(readState.columnIDs.size() == outputVectors.size() && !nodeIDVector.state->isFlat());
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
         if (readState.columnIDs[i] == INVALID_COLUMN_ID) {
             outputVectors[i]->setAllNull();
         } else {
             KU_ASSERT(readState.columnIDs[i] < columns.size());
-            columns[readState.columnIDs[i]]->scan(transaction, nodeIDVector, outputVectors[i]);
-        }
-    }
-    if (transaction->isWriteTransaction()) {
-        auto localTableData = transaction->getLocalStorage()->getLocalTableData(tableID);
-        if (localTableData) {
-            auto localNodeTableData =
-                ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableData);
-            localNodeTableData->scan(nodeIDVector, readState.columnIDs, outputVectors);
+            columns[readState.columnIDs[i]]->scan(
+                transaction, const_cast<ValueVector*>(&nodeIDVector), outputVectors[i]);
         }
     }
 }
 
-void NodeTableData::insert(Transaction* transaction, ValueVector* nodeIDVector,
-    const std::vector<ValueVector*>& propertyVectors) {
-    // We assume that offsets are given in the ascending order, thus lastOffset is the max one.
-    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
-    auto localTableData =
-        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
-    localTableData->insert({nodeIDVector}, propertyVectors);
-}
-
-void NodeTableData::update(Transaction* transaction, column_id_t columnID,
-    ValueVector* nodeIDVector, ValueVector* propertyVector) {
-    KU_ASSERT(columnID < columns.size());
-    auto localTableData =
-        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
-    localTableData->update({nodeIDVector}, columnID, propertyVector);
-}
-
-void NodeTableData::delete_(Transaction* transaction, ValueVector* nodeIDVector) {
-    auto localTableData =
-        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
-    localTableData->delete_(nodeIDVector);
-}
-
-void NodeTableData::lookup(Transaction* transaction, TableReadState& readState,
-    ValueVector* nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
-    auto pos = nodeIDVector->state->selVector->selectedPositions[0];
+void NodeTableData::lookup(Transaction* transaction, TableDataReadState& readState,
+    const ValueVector& nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+    auto pos = nodeIDVector.state->selVector->selectedPositions[0];
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
         auto columnID = readState.columnIDs[i];
         if (columnID == INVALID_COLUMN_ID) {
             outputVectors[i]->setNull(pos, true);
         } else {
             KU_ASSERT(readState.columnIDs[i] < columns.size());
-            columns[readState.columnIDs[i]]->lookup(transaction, nodeIDVector, outputVectors[i]);
-        }
-    }
-    if (transaction->isWriteTransaction()) {
-        auto localTableData = transaction->getLocalStorage()->getLocalTableData(tableID);
-        if (localTableData) {
-            auto localRelTableData =
-                ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableData);
-            localRelTableData->lookup(nodeIDVector, readState.columnIDs, outputVectors);
+            columns[readState.columnIDs[i]]->lookup(
+                transaction, const_cast<ValueVector*>(&nodeIDVector), outputVectors[i]);
         }
     }
 }

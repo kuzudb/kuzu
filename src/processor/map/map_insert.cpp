@@ -33,7 +33,7 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     auto storageManager = clientContext->getStorageManager();
     auto node = ku_dynamic_cast<Expression*, NodeExpression*>(info->pattern.get());
     auto nodeTableID = node->getSingleTableID();
-    auto table = storageManager->getNodeTable(nodeTableID);
+    auto table = ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(nodeTableID));
     std::unordered_set<RelTable*> fwdRelTablesToInit;
     std::unordered_set<RelTable*> bwdRelTablesToInit;
     auto tableCatalogEntry =
@@ -43,10 +43,12 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
     auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
     for (auto relTableID : fwdRelTableIDs) {
-        fwdRelTablesToInit.insert(storageManager->getRelTable(relTableID));
+        fwdRelTablesToInit.insert(
+            ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(relTableID)));
     }
     for (auto relTableID : bwdRelTableIDs) {
-        bwdRelTablesToInit.insert(storageManager->getRelTable(relTableID));
+        bwdRelTablesToInit.insert(
+            ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(relTableID)));
     }
     auto nodeIDPos = DataPos(outSchema.getExpressionPos(*node->getInternalID()));
     auto returnVectorsPos = populateReturnVectorsPos(*info, outSchema);
@@ -66,7 +68,7 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
     auto storageManager = clientContext->getStorageManager();
     auto rel = ku_dynamic_cast<Expression*, RelExpression*>(info->pattern.get());
     auto relTableID = rel->getSingleTableID();
-    auto table = storageManager->getRelTable(relTableID);
+    auto table = ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(relTableID));
     auto srcNode = rel->getSrcNode();
     auto dstNode = rel->getDstNode();
     auto srcNodePos = DataPos(inSchema.getExpressionPos(*srcNode->getInternalID()));

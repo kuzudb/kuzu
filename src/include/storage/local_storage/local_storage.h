@@ -6,6 +6,9 @@
 #include "storage/local_storage/local_table.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+} // namespace main
 namespace storage {
 
 // Data structures in LocalStorage are not thread-safe.
@@ -14,20 +17,19 @@ namespace storage {
 // thread-safe.
 class LocalStorage {
 public:
-    explicit LocalStorage() {}
+    enum class NotExistAction { CREATE, RETURN_NULL };
+
+    explicit LocalStorage(main::ClientContext& clientContext) : clientContext{clientContext} {}
     DELETE_COPY_AND_MOVE(LocalStorage);
 
-    // This function will create the local table data if not exists.
-    LocalTableData* getOrCreateLocalTableData(common::table_id_t tableID,
-        const std::vector<std::unique_ptr<Column>>& columns,
-        common::TableType tableType = common::TableType::NODE, common::vector_idx_t dataIdx = 0,
-        common::RelMultiplicity multiplicity = common::RelMultiplicity::MANY);
-    LocalTable* getLocalTable(common::table_id_t tableID);
-    // This function will return nullptr if the local table does not exist.
-    LocalTableData* getLocalTableData(common::table_id_t tableID, common::vector_idx_t dataIdx = 0);
-    std::unordered_set<common::table_id_t> getTableIDsWithUpdates();
+    LocalTable* getLocalTable(
+        common::table_id_t tableID, NotExistAction action = NotExistAction::RETURN_NULL);
+
+    void prepareCommit();
+    void prepareRollback();
 
 private:
+    main::ClientContext& clientContext;
     std::unordered_map<common::table_id_t, std::unique_ptr<LocalTable>> tables;
 };
 
