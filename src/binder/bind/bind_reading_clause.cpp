@@ -143,7 +143,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto offset = expressionBinder.createVariableExpression(
         *LogicalType::INT64(), std::string(InternalKeyword::ROW_OFFSET));
     auto boundInQueryCall = std::make_unique<BoundInQueryCall>(
-        tableFunc, std::move(bindData), std::move(columns), offset);
+        *tableFunc, std::move(bindData), std::move(columns), offset);
     if (call.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*call.getWherePredicate());
         boundInQueryCall->setPredicate(std::move(wherePredicate));
@@ -153,7 +153,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
 
 std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& readingClause) {
     auto& loadFrom = ku_dynamic_cast<const ReadingClause&, const LoadFrom&>(readingClause);
-    function::TableFunction* scanFunction;
+    function::TableFunction scanFunction;
     std::unique_ptr<TableFuncBindInput> bindInput;
     auto source = loadFrom.getSource();
     switch (source->type) {
@@ -167,7 +167,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
             auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
             auto func = BuiltInFunctionsUtils::matchFunction(READ_PANDAS_FUNC_NAME,
                 std::vector<LogicalType>{objectExpr->getDataType()}, functions);
-            scanFunction = ku_dynamic_cast<Function*, TableFunction*>(func);
+            scanFunction = *ku_dynamic_cast<Function*, TableFunction*>(func);
             bindInput = std::make_unique<function::TableFuncBindInput>();
             bindInput->inputs.push_back(*literalExpr->getValue());
         } else {
@@ -219,7 +219,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     default:
         throw BinderException(stringFormat("LOAD FROM subquery is not supported."));
     }
-    auto bindData = scanFunction->bindFunc(clientContext, bindInput.get());
+    auto bindData = scanFunction.bindFunc(clientContext, bindInput.get());
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
