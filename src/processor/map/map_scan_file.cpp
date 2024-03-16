@@ -19,7 +19,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logic
         outPosV.emplace_back(getDataPos(*expr, *outSchema));
     }
     auto info = InQueryCallInfo();
-    info.function = scanFileInfo->copyFunc;
+    info.function = scanFileInfo->func;
     info.bindData = scanFileInfo->bindData->copy();
     info.outPosV = outPosV;
     if (scanFile->hasOffset()) {

@@ -32,7 +32,7 @@ enum class TableScanOutputType : uint8_t {
 };
 
 struct InQueryCallInfo {
-    function::TableFunction* function;
+    function::TableFunction function;
     std::unique_ptr<function::TableFuncBindData> bindData;
     std::vector<DataPos> outPosV;
     DataPos rowOffsetPos;
@@ -66,7 +66,7 @@ public:
 
     bool isSource() const override { return true; }
 
-    bool canParallel() const override { return info.function->canParallelFunc(); }
+    bool canParallel() const override { return info.function.canParallelFunc(); }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

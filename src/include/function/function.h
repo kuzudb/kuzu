@@ -18,9 +18,10 @@ struct Function;
 using scalar_bind_func = std::function<std::unique_ptr<FunctionBindData>(
     const binder::expression_vector&, Function* definition)>;
 
-enum class FunctionType : uint8_t { SCALAR, AGGREGATE, TABLE };
+enum class FunctionType : uint8_t { UNKNOWN = 0, SCALAR = 1, AGGREGATE = 2, TABLE = 3 };
 
 struct Function {
+    Function() : type{FunctionType::UNKNOWN} {};
     Function(
         FunctionType type, std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs)
         : type{type}, name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)} {}

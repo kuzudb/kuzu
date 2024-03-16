@@ -27,7 +27,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     auto function = function::BuiltInFunctionsUtils::matchFunction(
         READ_FTABLE_FUNC_NAME, catalog->getFunctions(clientContext->getTx()));
     auto info = InQueryCallInfo();
-    info.function = ku_dynamic_cast<Function*, TableFunction*>(function);
+    info.function = *ku_dynamic_cast<Function*, TableFunction*>(function);
     info.bindData = std::move(bindData);
     info.outPosV = std::move(outPosV);
     if (offset != nullptr) {

@@ -80,6 +80,9 @@ struct TableFunction : public Function {
     table_func_init_local_t initLocalStateFunc;
     table_func_can_parallel_t canParallelFunc = [] { return true; };
 
+    TableFunction()
+        : Function{}, tableFunc{nullptr}, bindFunc{nullptr}, initSharedStateFunc{nullptr},
+          initLocalStateFunc{nullptr} {};
     TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
         table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
         std::vector<common::LogicalTypeID> inputTypes)

@@ -216,7 +216,7 @@ void Binder::restoreScope(std::unique_ptr<BinderScope> prevVariableScope) {
     scope = std::move(prevVariableScope);
 }
 
-function::TableFunction* Binder::getScanFunction(FileType fileType, const ReaderConfig& config) {
+function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderConfig& config) {
     function::Function* func;
     auto stringType = LogicalType(LogicalTypeID::STRING);
     std::vector<LogicalType> inputTypes;
@@ -240,7 +240,7 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
     default:
         KU_UNREACHABLE;
     }
-    return ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
+    return *ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
 }
 
 } // namespace binder

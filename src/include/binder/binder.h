@@ -287,7 +287,7 @@ private:
     std::unique_ptr<BinderScope> saveScope();
     void restoreScope(std::unique_ptr<BinderScope> prevVariableScope);
 
-    function::TableFunction* getScanFunction(
+    function::TableFunction getScanFunction(
         common::FileType fileType, const common::ReaderConfig& config);
 
 private:

@@ -8,18 +8,18 @@ namespace kuzu {
 namespace binder {
 
 struct BoundFileScanInfo {
-    function::TableFunction* copyFunc;
+    function::TableFunction func;
     std::unique_ptr<function::TableFuncBindData> bindData;
     binder::expression_vector columns;
 
-    BoundFileScanInfo(function::TableFunction* copyFunc,
+    BoundFileScanInfo(function::TableFunction func,
         std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns)
-        : copyFunc{copyFunc}, bindData{std::move(bindData)}, columns{std::move(columns)} {}
+        : func{func}, bindData{std::move(bindData)}, columns{std::move(columns)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundFileScanInfo);
 
 private:
     BoundFileScanInfo(const BoundFileScanInfo& other)
-        : copyFunc{other.copyFunc}, bindData{other.bindData->copy()}, columns{other.columns} {}
+        : func{other.func}, bindData{other.bindData->copy()}, columns{other.columns} {}
 };
 
 } // namespace binder

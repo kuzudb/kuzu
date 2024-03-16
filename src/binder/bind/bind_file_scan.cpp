@@ -81,7 +81,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* sour
         auto func = getScanFunction(config->fileType, *config);
         auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy(),
             std::move(expectedColumnNames), std::move(expectedColumnTypes), clientContext);
-        auto bindData = func->bindFunc(clientContext, bindInput.get());
+        auto bindData = func.bindFunc(clientContext, bindInput.get());
         // Bind input columns
         expression_vector inputColumns;
         for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
