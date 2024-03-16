@@ -120,6 +120,10 @@ common::ProgressBar* ClientContext::getProgressBar() const {
     return progressBar.get();
 }
 
+void ClientContext::addScanReplace(function::ScanReplacement scanReplacement) {
+    scanReplacements.push_back(std::move(scanReplacement));
+}
+
 void ClientContext::setExtensionOption(std::string name, common::Value value) {
     StringUtils::toLower(name);
     extensionOptionValues.insert_or_assign(name, std::move(value));

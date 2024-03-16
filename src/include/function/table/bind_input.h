@@ -16,8 +16,11 @@ struct TableFuncBindInput {
     std::vector<common::Value> inputs;
 
     TableFuncBindInput() = default;
-    DELETE_COPY_DEFAULT_MOVE(TableFuncBindInput);
+    EXPLICIT_COPY_DEFAULT_MOVE(TableFuncBindInput);
     virtual ~TableFuncBindInput() = default;
+
+private:
+    TableFuncBindInput(const TableFuncBindInput& other) : inputs{other.inputs} {}
 };
 
 struct ScanTableFuncBindInput final : public TableFuncBindInput {
@@ -27,6 +30,7 @@ struct ScanTableFuncBindInput final : public TableFuncBindInput {
     main::ClientContext* context;
 
     explicit ScanTableFuncBindInput(common::ReaderConfig config) : config{std::move(config)} {};
+    EXPLICIT_COPY_DEFAULT_MOVE(ScanTableFuncBindInput);
     ScanTableFuncBindInput(common::ReaderConfig config,
         std::vector<std::string> expectedColumnNames,
         std::vector<common::LogicalType> expectedColumnTypes, main::ClientContext* context)
@@ -35,6 +39,9 @@ struct ScanTableFuncBindInput final : public TableFuncBindInput {
           expectedColumnTypes{std::move(expectedColumnTypes)}, context{context} {
         inputs.push_back(common::Value::createValue(this->config.filePaths[0]));
     }
+
+private:
+    ScanTableFuncBindInput(const ScanTableFuncBindInput& other) : {}
 };
 
 } // namespace function

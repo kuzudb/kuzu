@@ -24,14 +24,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindVariableExpression(const std::
     if (binder->scope->contains(varName)) {
         return binder->scope->getExpression(varName);
     }
-    if (binder->clientContext->hasReplaceFunc()) {
-        auto val = Value(varName);
-        auto replacedVal = binder->clientContext->replaceFunc(&val);
-        if (replacedVal != nullptr) {
-            return std::make_shared<LiteralExpression>(
-                replacedVal->copy(), binder->getUniqueExpressionName(replacedVal->toString()));
-        }
-    }
     throw BinderException(stringFormat("Variable {} is not in scope.", varName));
 }
 

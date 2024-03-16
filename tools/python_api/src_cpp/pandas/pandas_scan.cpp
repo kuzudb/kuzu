@@ -5,6 +5,7 @@
 #include "numpy/numpy_scan.h"
 #include "py_connection.h"
 #include "pybind11/pytypes.h"
+#include "binder/expression/function_expression.h"
 
 using namespace kuzu::function;
 using namespace kuzu::common;
@@ -12,15 +13,31 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 
-function_set PandasScanFunction::getFunctionSet() {
+static offset_t tableFunc(TableFuncInput&, TableFuncOutput&);
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext*,
+    TableFuncBindInput*);
+static std::unique_ptr<TableFuncSharedState> initSharedState(
+    TableFunctionInitInput&);
+static std::unique_ptr<TableFuncLocalState> initLocalState(
+    TableFunctionInitInput&, TableFuncSharedState*,
+    storage::MemoryManager*);
+static bool sharedStateNext(const TableFuncBindData*,
+    PandasScanLocalState*, TableFuncSharedState*);
+static void pandasBackendScanSwitch(PandasColumnBindData*, uint64_t,
+    uint64_t, ValueVector*);
+
+static TableFunction getFunction() {
+    return TableFunction(READ_PANDAS_FUNC_NAME, tableFunc, bindFunc, initSharedState,
+        initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+}
+
+function_set getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>(READ_PANDAS_FUNC_NAME, tableFunc, bindFunc, initSharedState,
-            initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::POINTER}));
+    functionSet.push_back(getFunction().copy());
     return functionSet;
 }
 
-std::unique_ptr<function::TableFuncBindData> PandasScanFunction::bindFunc(
+std::unique_ptr<TableFuncBindData> bindFunc(
     main::ClientContext* /*context*/, TableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
     py::handle df(reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>()));
@@ -39,8 +56,8 @@ std::unique_ptr<function::TableFuncBindData> PandasScanFunction::bindFunc(
         std::move(returnTypes), std::move(names), df, numRows, std::move(columnBindData));
 }
 
-bool PandasScanFunction::sharedStateNext(const TableFuncBindData* /*bindData*/,
-    PandasScanLocalState* localState, function::TableFuncSharedState* sharedState) {
+bool sharedStateNext(const TableFuncBindData* /*bindData*/,
+    PandasScanLocalState* localState, TableFuncSharedState* sharedState) {
     auto pandasSharedState = reinterpret_cast<PandasScanSharedState*>(sharedState);
     std::lock_guard<std::mutex> lck{pandasSharedState->lock};
     if (pandasSharedState->position >= pandasSharedState->numRows) {
@@ -54,26 +71,26 @@ bool PandasScanFunction::sharedStateNext(const TableFuncBindData* /*bindData*/,
     return true;
 }
 
-std::unique_ptr<function::TableFuncLocalState> PandasScanFunction::initLocalState(
-    function::TableFunctionInitInput& input, function::TableFuncSharedState* sharedState,
-    storage::MemoryManager* /*mm*/) {
+std::unique_ptr<TableFuncLocalState> initLocalState(
+    TableFunctionInitInput& input, TableFuncSharedState* sharedState,
+    storage::MemoryManager*) {
     auto localState = std::make_unique<PandasScanLocalState>(0 /* start */, 0 /* end */);
     sharedStateNext(input.bindData, localState.get(), sharedState);
     return localState;
 }
 
-std::unique_ptr<function::TableFuncSharedState> PandasScanFunction::initSharedState(
-    function::TableFunctionInitInput& input) {
+std::unique_ptr<TableFuncSharedState> initSharedState(
+    TableFunctionInitInput& input) {
     // LCOV_EXCL_START
     if (PyGILState_Check()) {
-        throw common::RuntimeException("PandasScan called but GIL was already held!");
+        throw RuntimeException("PandasScan called but GIL was already held!");
     }
     // LCOV_EXCL_STOP
     auto scanBindData = reinterpret_cast<PandasScanFunctionData*>(input.bindData);
     return std::make_unique<PandasScanSharedState>(scanBindData->numRows);
 }
 
-void PandasScanFunction::pandasBackendScanSwitch(
+void pandasBackendScanSwitch(
     PandasColumnBindData* bindData, uint64_t count, uint64_t offset, ValueVector* outputVector) {
     auto backend = bindData->pandasCol->getBackEnd();
     switch (backend) {
@@ -85,8 +102,8 @@ void PandasScanFunction::pandasBackendScanSwitch(
     }
 }
 
-common::offset_t PandasScanFunction::tableFunc(
-    function::TableFuncInput& input, function::TableFuncOutput& output) {
+offset_t tableFunc(
+    TableFuncInput& input, TableFuncOutput& output) {
     auto pandasScanData = reinterpret_cast<PandasScanFunctionData*>(input.bindData);
     auto pandasLocalState = reinterpret_cast<PandasScanLocalState*>(input.localState);
 
@@ -115,33 +132,51 @@ std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyC
     return result;
 }
 
-std::unique_ptr<Value> tryReplacePD(py::dict& dict, py::str& tableName) {
-    if (!dict.contains(tableName)) {
+//std::unique_ptr<Value> tryReplacePD(py::dict& dict, py::str& tableName) {
+//    if (!dict.contains(tableName)) {
+//        return nullptr;
+//    }
+//    auto entry = dict[tableName];
+//    if (PyConnection::isPandasDataframe(entry)) {
+//        return Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())).copy();
+//    } else {
+//        throw RuntimeException{"Only pandas dataframe is supported."};
+//    }
+//}
+
+
+static std::unique_ptr<ScanReplacementData> play(py::dict& dict, py::str& objectName) {
+    if (!dict.contains(objectName)) {
         return nullptr;
     }
-    auto entry = dict[tableName];
+    auto entry = dict[objectName];
     if (PyConnection::isPandasDataframe(entry)) {
-        return Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())).copy();
+        auto scanReplacementData = std::make_unique<ScanReplacementData>();
+        scanReplacementData->func = getFunction();
+        auto bindInput = TableFuncBindInput();
+        bindInput.inputs.push_back(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
+        scanReplacementData->bindInput = std::move(bindInput);
+        return scanReplacementData;
     } else {
         throw RuntimeException{"Only pandas dataframe is supported."};
     }
 }
 
-std::unique_ptr<common::Value> replacePD(common::Value* value) {
-    auto pyTableName = py::str(value->getValue<std::string>());
+std::unique_ptr<ScanReplacementData> replacePD(const std::string& objectName) {
+    auto pyTableName = py::str(objectName);
     // Here we do an exhaustive search on the frame lineage.
     auto currentFrame = importCache->inspect.currentframe()();
     while (hasattr(currentFrame, "f_locals")) {
         auto localDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_locals"));
         if (localDict) {
-            auto result = tryReplacePD(localDict, pyTableName);
+            auto result = play(localDict, pyTableName);
             if (result) {
                 return result;
             }
         }
         auto globalDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_globals"));
         if (globalDict) {
-            auto result = tryReplacePD(globalDict, pyTableName);
+            auto result = play(globalDict, pyTableName);
             if (result) {
                 return result;
             }
