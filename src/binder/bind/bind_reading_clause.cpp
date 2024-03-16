@@ -161,6 +161,15 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         auto objectSource = ku_dynamic_cast<BaseScanSource*, ObjectScanSource*>(source);
         auto objectName = objectSource->objectName;
         if (objectName.find("_") == std::string::npos) {
+            // Bind table
+            for (auto& scanReplacement : clientContext->getScanReplacements()) {
+                auto replaceData = scanReplacement.replaceFunc(objectName);
+                if (replaceData == nullptr) {
+                    continue ; // Fail to replace.
+                }
+                bindInput = replaceData->bindInput;
+            }
+
             auto objectExpr = expressionBinder.bindVariableExpression(objectName);
             auto literalExpr =
                 ku_dynamic_cast<const Expression*, const LiteralExpression*>(objectExpr.get());

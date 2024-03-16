@@ -15,6 +15,7 @@
 #include "prepared_statement.h"
 #include "query_result.h"
 #include "transaction/transaction_context.h"
+#include "function/table/scan_replacement.h"
 
 namespace kuzu {
 
@@ -41,8 +42,6 @@ struct ActiveQuery {
 
     void reset();
 };
-
-using replace_func_t = std::function<std::unique_ptr<common::Value>(common::Value*)>;
 
 /**
  * @brief Contain client side configuration. We make profiler associated per query, so profiler is
@@ -79,9 +78,10 @@ public:
     KUZU_API transaction::TransactionContext* getTransactionContext() const;
 
     // Replace function.
-    inline bool hasReplaceFunc() { return replaceFunc != nullptr; }
-    inline void setReplaceFunc(replace_func_t func) { replaceFunc = func; }
-
+    void addScanReplace(function::ScanReplacement scanReplacement);
+    const std::vector<function::ScanReplacement>& getScanReplacements() const {
+        return scanReplacements;
+    }
     // Extension
     KUZU_API void setExtensionOption(std::string name, common::Value value);
     extension::ExtensionOptions* getExtensionOptions() const;
@@ -147,7 +147,7 @@ private:
     // Transaction context.
     std::unique_ptr<transaction::TransactionContext> transactionContext;
     // Replace external object as pointer Value;
-    replace_func_t replaceFunc;
+    std::vector<function::ScanReplacement> scanReplacements;
     // Extension configurable settings.
     std::unordered_map<std::string, common::Value> extensionOptionValues;
     // Random generator for UUID.
