@@ -2,7 +2,6 @@
 
 #include "common/exception/binder.h"
 #include "common/types/types.h"
-#include "duckdb_type_converter.h"
 #include "function/table/bind_input.h"
 
 using namespace kuzu::function;
@@ -38,8 +37,8 @@ struct DuckDBScanFunction {
     static common::offset_t tableFunc(
         function::TableFuncInput& input, function::TableFuncOutput& output);
 
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(
-        std::string dbPath, main::ClientContext* /*context*/, function::TableFuncBindInput* input);
+    static std::unique_ptr<function::TableFuncBindData> bindFunc(DuckDBScanBindData bindData,
+        main::ClientContext* /*context*/, function::TableFuncBindInput* input);
 
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         function::TableFunctionInitInput& input);
@@ -211,40 +210,18 @@ common::offset_t DuckDBScanFunction::tableFunc(
     return output.dataChunk.state->selVector->selectedSize;
 }
 
-std::unique_ptr<function::TableFuncBindData> DuckDBScanFunction::bindFunc(std::string dbPath,
-    main::ClientContext* /*clientContext*/, function::TableFuncBindInput* input) {
-    auto tableName = input->inputs[0].getValue<std::string>();
-    duckdb::DBConfig dbConfig{true /* read_only */};
-    duckdb::DuckDB db(dbPath, &dbConfig);
-    duckdb::Connection conn(db);
-    auto result = conn.Query(
-        common::stringFormat("select data_type,column_name from information_schema.columns where "
-                             "table_name = '{}' and table_schema='main';",
-            tableName));
-    if (result->RowCount() == 0) {
-        throw common::BinderException(
-            common::stringFormat("No table named: {} in database.", tableName));
-    }
-    std::vector<common::LogicalType> columnTypes;
-    std::vector<std::string> columnNames;
-    columnTypes.reserve(result->RowCount());
-    columnNames.reserve(result->RowCount());
-    for (auto i = 0u; i < result->RowCount(); i++) {
-        columnTypes.push_back(
-            DuckDBTypeConverter::convertDuckDBType(result->GetValue(0, i).GetValue<std::string>()));
-        columnNames.push_back(result->GetValue(1, i).GetValue<std::string>());
-    }
-    auto query = common::stringFormat("SELECT * FROM {}", tableName);
-    return std::make_unique<DuckDBScanBindData>(
-        query, dbPath, std::move(columnTypes), std::move(columnNames));
+std::unique_ptr<function::TableFuncBindData> DuckDBScanFunction::bindFunc(
+    DuckDBScanBindData bindData, main::ClientContext* /*clientContext*/,
+    function::TableFuncBindInput* /*input*/) {
+    return bindData.copy();
 }
 
-TableFunction getScanFunction(std::string dbPath) {
+TableFunction getScanFunction(DuckDBScanBindData bindData) {
     return TableFunction(DuckDBScanFunction::DUCKDB_SCAN_FUNC_NAME, DuckDBScanFunction::tableFunc,
-        std::bind(
-            DuckDBScanFunction::bindFunc, dbPath, std::placeholders::_1, std::placeholders::_2),
+        std::bind(DuckDBScanFunction::bindFunc, std::move(bindData), std::placeholders::_1,
+            std::placeholders::_2),
         DuckDBScanFunction::initSharedState, DuckDBScanFunction::initLocalState,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+        std::vector<LogicalTypeID>{});
 }
 
 } // namespace duckdb_scanner

@@ -20,9 +20,6 @@ public:
         common::property_id_t propertyID, common::table_id_t tableID)
         : name{std::move(name)}, dataType{std::move(dataType)},
           propertyID{propertyID}, tableID{tableID} {}
-    Property(const Property& other)
-        : name{other.name}, dataType{other.dataType->copy()},
-          propertyID{other.propertyID}, tableID{other.tableID} {}
     EXPLICIT_COPY_DEFAULT_MOVE(Property);
 
     std::string getName() const { return name; }
@@ -40,6 +37,11 @@ public:
 
     static void toCypher(
         const std::vector<kuzu::catalog::Property>& properties, std::stringstream& ss);
+
+private:
+    Property(const Property& other)
+        : name{other.name}, dataType{other.dataType->copy()},
+          propertyID{other.propertyID}, tableID{other.tableID} {}
 
 private:
     std::string name;

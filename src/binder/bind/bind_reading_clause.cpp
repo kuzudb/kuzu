@@ -179,9 +179,12 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
                 throw BinderException{
                     common::stringFormat("No database named {} has been attached.", dbName)};
             }
-            scanFunction = attachedDB->getScanFunction();
+            auto tableName = common::StringUtils::split(objectName, "_")[1];
+            auto tableID = attachedDB->getCatalogContent()->getTableID(tableName);
+            auto tableCatalogEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
+                attachedDB->getCatalogContent()->getTableCatalogEntry(tableID));
+            scanFunction = tableCatalogEntry->getScanFunction();
             bindInput = std::make_unique<function::TableFuncBindInput>();
-            bindInput->inputs.push_back(Value(common::StringUtils::split(objectName, "_")[1]));
         }
     } break;
     case ScanSourceType::FILE: {

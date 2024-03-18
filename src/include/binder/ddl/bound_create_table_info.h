@@ -11,18 +11,18 @@ enum class RelMultiplicity : uint8_t;
 }
 namespace binder {
 
-struct BoundExtraCreateTableInfo {
-    virtual ~BoundExtraCreateTableInfo() = default;
-    virtual inline std::unique_ptr<BoundExtraCreateTableInfo> copy() const = 0;
+struct BoundExtraCreateCatalogEntryInfo {
+    virtual ~BoundExtraCreateCatalogEntryInfo() = default;
+    virtual inline std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const = 0;
 };
 
 struct BoundCreateTableInfo {
     common::TableType type;
     std::string tableName;
-    std::unique_ptr<BoundExtraCreateTableInfo> extraInfo;
+    std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
 
     BoundCreateTableInfo(common::TableType type, std::string tableName,
-        std::unique_ptr<BoundExtraCreateTableInfo> extraInfo)
+        std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo)
         : type{type}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCreateTableInfo);
 
@@ -43,44 +43,57 @@ private:
     PropertyInfo(const PropertyInfo& other) : name{other.name}, type{other.type} {}
 };
 
-struct BoundExtraCreateNodeTableInfo : public BoundExtraCreateTableInfo {
-    common::property_id_t primaryKeyIdx;
+struct BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {
     std::vector<PropertyInfo> propertyInfos;
+
+    explicit BoundExtraCreateTableInfo(std::vector<PropertyInfo> propertyInfos)
+        : propertyInfos{std::move(propertyInfos)} {}
+
+    BoundExtraCreateTableInfo(const BoundExtraCreateTableInfo& other)
+        : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)} {}
+
+    std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
+        return std::make_unique<BoundExtraCreateTableInfo>(*this);
+    }
+};
+
+struct BoundExtraCreateNodeTableInfo final : public BoundExtraCreateTableInfo {
+    common::property_id_t primaryKeyIdx;
 
     BoundExtraCreateNodeTableInfo(
         common::property_id_t primaryKeyIdx, std::vector<PropertyInfo> propertyInfos)
-        : primaryKeyIdx{primaryKeyIdx}, propertyInfos{std::move(propertyInfos)} {}
+        : BoundExtraCreateTableInfo{std::move(propertyInfos)}, primaryKeyIdx{primaryKeyIdx} {}
     BoundExtraCreateNodeTableInfo(const BoundExtraCreateNodeTableInfo& other)
-        : primaryKeyIdx{other.primaryKeyIdx}, propertyInfos{copyVector(other.propertyInfos)} {}
+        : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)}, primaryKeyIdx{
+                                                                          other.primaryKeyIdx} {}
 
-    inline std::unique_ptr<BoundExtraCreateTableInfo> copy() const final {
+    std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateNodeTableInfo>(*this);
     }
 };
 
-struct BoundExtraCreateRelTableInfo : public BoundExtraCreateTableInfo {
+struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
-    std::vector<PropertyInfo> propertyInfos;
 
     BoundExtraCreateRelTableInfo(common::RelMultiplicity srcMultiplicity,
         common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
         common::table_id_t dstTableID, std::vector<PropertyInfo> propertyInfos)
-        : srcMultiplicity{srcMultiplicity}, dstMultiplicity{dstMultiplicity},
-          srcTableID{srcTableID}, dstTableID{dstTableID}, propertyInfos{std::move(propertyInfos)} {}
+        : BoundExtraCreateTableInfo{std::move(propertyInfos)}, srcMultiplicity{srcMultiplicity},
+          dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
     BoundExtraCreateRelTableInfo(const BoundExtraCreateRelTableInfo& other)
-        : srcMultiplicity{other.srcMultiplicity}, dstMultiplicity{other.dstMultiplicity},
-          srcTableID{other.srcTableID}, dstTableID{other.dstTableID}, propertyInfos{copyVector(
-                                                                          other.propertyInfos)} {}
+        : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)},
+          srcMultiplicity{other.srcMultiplicity}, dstMultiplicity{other.dstMultiplicity},
+          srcTableID{other.srcTableID}, dstTableID{other.dstTableID} {}
 
-    inline std::unique_ptr<BoundExtraCreateTableInfo> copy() const final {
+    std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateRelTableInfo>(*this);
     }
 };
 
-struct BoundExtraCreateRelTableGroupInfo : public BoundExtraCreateTableInfo {
+struct BoundExtraCreateRelTableGroupInfo final : public BoundExtraCreateCatalogEntryInfo {
     std::vector<BoundCreateTableInfo> infos;
 
     explicit BoundExtraCreateRelTableGroupInfo(std::vector<BoundCreateTableInfo> infos)
@@ -88,12 +101,12 @@ struct BoundExtraCreateRelTableGroupInfo : public BoundExtraCreateTableInfo {
     BoundExtraCreateRelTableGroupInfo(const BoundExtraCreateRelTableGroupInfo& other)
         : infos{copyVector(other.infos)} {}
 
-    inline std::unique_ptr<BoundExtraCreateTableInfo> copy() const final {
+    inline std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateRelTableGroupInfo>(*this);
     }
 };
 
-struct BoundExtraCreateRdfGraphInfo : public BoundExtraCreateTableInfo {
+struct BoundExtraCreateRdfGraphInfo final : public BoundExtraCreateCatalogEntryInfo {
     BoundCreateTableInfo resourceInfo;
     BoundCreateTableInfo literalInfo;
     BoundCreateTableInfo resourceTripleInfo;
@@ -110,7 +123,7 @@ struct BoundExtraCreateRdfGraphInfo : public BoundExtraCreateTableInfo {
           resourceTripleInfo{other.resourceTripleInfo.copy()},
           literalTripleInfo{other.literalTripleInfo.copy()} {}
 
-    inline std::unique_ptr<BoundExtraCreateTableInfo> copy() const final {
+    inline std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateRdfGraphInfo>(*this);
     }
 };
