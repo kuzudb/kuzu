@@ -180,6 +180,17 @@ void PhysicalOperator::initLocalState(ResultSet* resultSet_, ExecutionContext* c
     initLocalStateInternal(resultSet_, context);
 }
 
+bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
+    if (context->clientContext->isInterrupted()) {
+        throw InterruptException{};
+    }
+    metrics->executionTime.start();
+    auto result = getNextTuplesInternal(context);
+    context->clientContext->getProgressBar()->updateProgress(getProgress(context));
+    metrics->executionTime.stop();
+    return result;
+}
+
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {
     auto executionTime = profiler->registerTimeMetric(getTimeMetricKey());
     auto numOutputTuple = profiler->registerNumericMetric(getNumTupleMetricKey());

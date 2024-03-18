@@ -29,9 +29,9 @@ void ScanNodeIDSharedState::initialize(transaction::Transaction* transaction) {
     for (auto& tableState : tableStates) {
         KU_ASSERT(tableState->getSemiMask()->getNumMasks() == numMask);
         tableState->initializeMaxOffset(transaction);
+        numNodes += tableState->getTable()->getNumTuples();
     }
     (void)numMask; // For clang-tidy: used for assert.
-    numNodes = tableStates[0]->getTable()->getNumTuples();
     numNodesScanned = 0;
 }
 

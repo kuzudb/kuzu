@@ -118,7 +118,7 @@ public:
 
     void setProgressBarPrinting(bool progressBarPrinting);
 
-    std::unique_ptr<common::ProgressBar> progressBar;
+    common::ProgressBar* getProgressBar() const { return progressBar.get(); }
 
 private:
     inline void resetActiveQuery() { activeQuery.reset(); }
@@ -169,6 +169,8 @@ private:
     std::string homeDirectory;
     std::string fileSearchPath;
     Database* database;
+    // Progress bar for queries
+    std::unique_ptr<common::ProgressBar> progressBar;
     std::mutex mtx;
 };
 
