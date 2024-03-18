@@ -174,6 +174,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::IMPORT_DATABASE: {
         physicalOperator = mapImportDatabase(logicalOperator);
     } break;
+    case LogicalOperatorType::ATTACH_DATABASE: {
+        physicalOperator = mapAttachDatabase(logicalOperator);
+    } break;
+    case LogicalOperatorType::DETACH_DATABASE: {
+        physicalOperator = mapDetachDatabase(logicalOperator);
+    } break;
     default:
         KU_UNREACHABLE;
     }

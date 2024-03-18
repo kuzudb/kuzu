@@ -15,5 +15,9 @@ struct OffsetFunction {
     }
 };
 
+struct IDFunction {
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

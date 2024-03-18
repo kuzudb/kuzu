@@ -5,7 +5,6 @@
 
 -CASE TinySnbCopyToParquet
 
--CASE CopyPersonToParquet
 -STATEMENT COPY (MATCH (p:person) return p.ID, p.fName, p.gender, p.isStudent, p.isWorker, p.age, p.eyeSight, p.birthdate, p.registerTime, p.lastJobDuration, p.workedHours, p.usedNames, p.courseScoresPerTerm, p.height) to '${DATABASE_PATH}/tinysnb.parquet';
 ---- ok
 -STATEMENT LOAD FROM '${DATABASE_PATH}/tinysnb.parquet' RETURN *;

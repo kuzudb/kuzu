@@ -16,12 +16,12 @@ TEST(CApiDataTypeTest, Create) {
     ASSERT_EQ(dataTypeCpp2->getLogicalTypeID(), LogicalTypeID::VAR_LIST);
     // ASSERT_EQ(dataTypeCpp2->getChildType()->getLogicalTypeID(), LogicalTypeID::INT64);
 
-    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_FIXED_LIST, dataType, 100);
+    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_ARRAY, dataType, 100);
     ASSERT_NE(dataType3, nullptr);
     auto dataTypeCpp3 = (LogicalType*)dataType3->_data_type;
-    ASSERT_EQ(dataTypeCpp3->getLogicalTypeID(), LogicalTypeID::FIXED_LIST);
+    ASSERT_EQ(dataTypeCpp3->getLogicalTypeID(), LogicalTypeID::ARRAY);
     // ASSERT_EQ(dataTypeCpp3->getChildType()->getLogicalTypeID(), LogicalTypeID::INT64);
-    ASSERT_EQ(FixedListType::getNumValuesInList(dataTypeCpp3), 100);
+    ASSERT_EQ(ArrayType::getNumElements(dataTypeCpp3), 100);
 
     // Since child type is copied, we should be able to destroy the original type without an error.
     kuzu_data_type_destroy(dataType);
@@ -46,7 +46,7 @@ TEST(CApiDataTypeTest, Clone) {
     auto dataTypeCloneCpp2 = (LogicalType*)dataTypeClone2->_data_type;
     ASSERT_TRUE(*dataTypeCpp2 == *dataTypeCloneCpp2);
 
-    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_FIXED_LIST, dataType, 100);
+    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_ARRAY, dataType, 100);
     ASSERT_NE(dataType3, nullptr);
     auto dataTypeClone3 = kuzu_data_type_clone(dataType3);
     ASSERT_NE(dataTypeClone3, nullptr);
@@ -75,7 +75,7 @@ TEST(CApiDataTypeTest, Eqauls) {
     ASSERT_NE(dataTypeClone2, nullptr);
     ASSERT_TRUE(kuzu_data_type_equals(dataType2, dataTypeClone2));
 
-    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_FIXED_LIST, dataType, 100);
+    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_ARRAY, dataType, 100);
     ASSERT_NE(dataType3, nullptr);
     auto dataTypeClone3 = kuzu_data_type_clone(dataType3);
     ASSERT_NE(dataTypeClone3, nullptr);
@@ -102,9 +102,9 @@ TEST(CApiDataTypeTest, GetID) {
     ASSERT_NE(dataType2, nullptr);
     ASSERT_EQ(kuzu_data_type_get_id(dataType2), kuzu_data_type_id::KUZU_VAR_LIST);
 
-    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_FIXED_LIST, dataType, 100);
+    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_ARRAY, dataType, 100);
     ASSERT_NE(dataType3, nullptr);
-    ASSERT_EQ(kuzu_data_type_get_id(dataType3), kuzu_data_type_id::KUZU_FIXED_LIST);
+    ASSERT_EQ(kuzu_data_type_get_id(dataType3), kuzu_data_type_id::KUZU_ARRAY);
 
     kuzu_data_type_destroy(dataType);
     kuzu_data_type_destroy(dataType2);
@@ -126,7 +126,7 @@ TEST(CApiDataTypeTest, GetID) {
 //    kuzu_data_type_destroy(childType2);
 //    kuzu_data_type_destroy(dataType2);
 //
-//    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_FIXED_LIST, dataType, 100);
+//    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_ARRAY, dataType, 100);
 //    ASSERT_NE(dataType3, nullptr);
 //    auto childType3 = kuzu_data_type_get_child_type(dataType3);
 //    kuzu_data_type_destroy(dataType3);
@@ -141,15 +141,15 @@ TEST(CApiDataTypeTest, GetID) {
 TEST(CApiDataTypeTest, GetFixedNumElementsInList) {
     auto dataType = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     ASSERT_NE(dataType, nullptr);
-    ASSERT_EQ(kuzu_data_type_get_fixed_num_elements_in_list(dataType), 0);
+    ASSERT_EQ(kuzu_data_type_get_num_elements_in_array(dataType), 0);
 
     auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_VAR_LIST, dataType, 0);
     ASSERT_NE(dataType2, nullptr);
-    ASSERT_EQ(kuzu_data_type_get_fixed_num_elements_in_list(dataType2), 0);
+    ASSERT_EQ(kuzu_data_type_get_num_elements_in_array(dataType2), 0);
 
-    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_FIXED_LIST, dataType, 100);
+    auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_ARRAY, dataType, 100);
     ASSERT_NE(dataType3, nullptr);
-    ASSERT_EQ(kuzu_data_type_get_fixed_num_elements_in_list(dataType3), 100);
+    ASSERT_EQ(kuzu_data_type_get_num_elements_in_array(dataType3), 100);
 
     kuzu_data_type_destroy(dataType);
     kuzu_data_type_destroy(dataType2);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/data_chunk/sel_vector.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
@@ -17,8 +18,8 @@ struct VarListDataColumnChunk {
 
     void resizeBuffer(uint64_t numValues);
 
-    inline void append(common::ValueVector* dataVector) const {
-        dataColumnChunk->append(dataVector);
+    inline void append(common::ValueVector* dataVector, common::SelectionVector& selVector) const {
+        dataColumnChunk->append(dataVector, selVector);
     }
 
     inline uint64_t getNumValues() const { return dataColumnChunk->getNumValues(); }
@@ -27,7 +28,8 @@ struct VarListDataColumnChunk {
 class VarListColumnChunk : public ColumnChunk {
 
 public:
-    VarListColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression);
+    VarListColumnChunk(
+        common::LogicalType dataType, uint64_t capacity, bool enableCompression, bool inMemory);
 
     inline ColumnChunk* getDataColumnChunk() const {
         return varListDataColumnChunk->dataColumnChunk.get();
@@ -35,12 +37,11 @@ public:
 
     void resetToEmpty() final;
 
-    void append(common::ValueVector* vector) final;
+    void append(common::ValueVector* vector, common::SelectionVector& selVector) final;
     // Note: `write` assumes that no `append` will be called afterward.
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) final;
-    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector,
-        bool isCSR) final;
+    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool isCSR) final;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
     void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,

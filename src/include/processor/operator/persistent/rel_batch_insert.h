@@ -3,6 +3,7 @@
 #include "common/enums/rel_direction.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/batch_insert.h"
+#include "storage/store/column_chunk.h"
 #include "storage/store/node_group.h"
 
 namespace kuzu {
@@ -12,12 +13,11 @@ struct RelBatchInsertInfo final : public BatchInsertInfo {
     common::RelDataDirection direction;
     uint64_t partitioningIdx;
     common::vector_idx_t offsetVectorIdx;
-    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
+    std::vector<common::LogicalType> columnTypes;
 
     RelBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         common::RelDataDirection direction, uint64_t partitioningIdx,
-        common::vector_idx_t offsetVectorIdx,
-        std::vector<std::unique_ptr<common::LogicalType>> columnTypes)
+        common::vector_idx_t offsetVectorIdx, std::vector<common::LogicalType> columnTypes)
         : BatchInsertInfo{tableEntry, compressionEnabled}, direction{direction},
           partitioningIdx{partitioningIdx}, offsetVectorIdx{offsetVectorIdx}, columnTypes{std::move(
                                                                                   columnTypes)} {}
@@ -60,20 +60,20 @@ public:
     }
 
 private:
-    void prepareCSRNodeGroup(common::DataChunkCollection* partition,
+    void prepareCSRNodeGroup(PartitioningBuffer::Partition& partition,
         common::offset_t startNodeOffset, common::vector_idx_t offsetVectorIdx,
         common::offset_t numNodes);
 
     static common::length_t getGapSize(common::length_t length);
     static std::vector<common::offset_t> populateStartCSROffsetsAndLengths(
         storage::CSRHeaderChunks& csrHeader, common::offset_t numNodes,
-        common::DataChunkCollection* partition, common::vector_idx_t offsetVectorIdx);
+        PartitioningBuffer::Partition& partition, common::vector_idx_t offsetVectorIdx);
     static void populateEndCSROffsets(
         storage::CSRHeaderChunks& csrHeader, std::vector<common::offset_t>& gaps);
     static void setOffsetToWithinNodeGroup(
-        common::ValueVector* vector, common::offset_t startOffset);
+        storage::ColumnChunk& chunk, common::offset_t startOffset);
     static void setOffsetFromCSROffsets(
-        common::ValueVector* offsetVector, storage::ColumnChunk* offsetChunk);
+        storage::ColumnChunk* nodeOffsetChunk, storage::ColumnChunk* csrOffsetChunk);
 
     // We only check rel multiplcity constraint (MANY_ONE, ONE_ONE) for now.
     std::optional<common::offset_t> checkRelMultiplicityConstraint(

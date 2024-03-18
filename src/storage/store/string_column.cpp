@@ -170,28 +170,27 @@ void StringColumn::lookupInternal(
 }
 
 bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
-    const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo) {
-    std::vector<row_idx_t> rowIdxesToRead;
-    for (auto& [offset, rowIdx] : updateInfo) {
-        rowIdxesToRead.push_back(rowIdx);
+    node_group_idx_t nodeGroupIdx, const LocalVectorCollection& localInsertChunk,
+    const offset_to_row_idx_t& insertInfo, const LocalVectorCollection& localUpdateChunk,
+    const offset_to_row_idx_t& updateInfo) {
+    auto strLenToAdd = 0u;
+    for (auto& [_, rowIdx] : updateInfo) {
+        auto localVector = localUpdateChunk.getLocalVector(rowIdx);
+        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+        auto kuStr = localVector->getValue<ku_string_t>(offsetInVector);
+        strLenToAdd += kuStr.len;
     }
     offset_t maxOffset = 0u;
     for (auto& [offset, rowIdx] : insertInfo) {
-        rowIdxesToRead.push_back(rowIdx);
         if (offset > maxOffset) {
             maxOffset = offset;
         }
-    }
-    std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
-    auto strLenToAdd = 0u;
-    for (auto rowIdx : rowIdxesToRead) {
-        auto localVector = localChunk->getLocalVector(rowIdx);
+        auto localVector = localInsertChunk.getLocalVector(rowIdx);
         auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        auto kuStr = localVector->getVector()->getValue<ku_string_t>(offsetInVector);
+        auto kuStr = localVector->getValue<ku_string_t>(offsetInVector);
         strLenToAdd += kuStr.len;
     }
-    auto numStrings = rowIdxesToRead.size();
+    auto numStrings = insertInfo.size() + updateInfo.size();
     if (!dictionary.canCommitInPlace(transaction, nodeGroupIdx, numStrings, strLenToAdd)) {
         return false;
     }
@@ -204,6 +203,9 @@ bool StringColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t n
     auto strChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(chunk);
     auto length = std::min((uint64_t)dstOffsets.size(), strChunk->getNumValues());
     for (auto i = 0u; i < length; i++) {
+        if (strChunk->getNullChunk()->isNull(i)) {
+            continue;
+        }
         strLenToAdd += strChunk->getStringLength(i + srcOffset);
     }
     auto numStrings = dstOffsets.size();

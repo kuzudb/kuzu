@@ -38,6 +38,7 @@ private:
     void visitDeleteNode(planner::LogicalOperator* op) override;
     void visitDeleteRel(planner::LogicalOperator* op) override;
     void visitMerge(planner::LogicalOperator* op) override;
+    void visitCopyFrom(planner::LogicalOperator* op) override;
 
     void collectExpressionsInUse(std::shared_ptr<binder::Expression> expression);
 

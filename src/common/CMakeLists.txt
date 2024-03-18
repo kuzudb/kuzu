@@ -11,6 +11,7 @@ add_subdirectory(file_system)
 
 add_library(kuzu_common
         OBJECT
+        case_insensitive_map.cpp
         constants.cpp
         expression_type.cpp
         in_mem_overflow_buffer.cpp

@@ -41,6 +41,13 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
+static void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candidateFunctions,
+    const std::string& name, const std::vector<common::LogicalType>& inputTypes, bool isDistinct,
+    function::function_set& set);
+static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctions,
+    const std::string& name, const std::vector<common::LogicalType>& inputTypes,
+    function::function_set& set);
+
 void BuiltInFunctionsUtils::createFunctions(CatalogSet* catalogSet) {
     registerScalarFunctions(catalogSet);
     registerAggregateFunctions(catalogSet);
@@ -92,9 +99,6 @@ Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
     uint32_t minCost = UINT32_MAX;
     for (auto& function : functionSet) {
         auto func = reinterpret_cast<Function*>(function.get());
-        if (name == CAST_FUNC_NAME) {
-            return func;
-        }
         auto cost = getFunctionCost(inputTypes, func, isOverload);
         if (cost == UINT32_MAX) {
             continue;
@@ -206,7 +210,7 @@ uint32_t BuiltInFunctionsUtils::getTargetTypeCost(LogicalTypeID typeID) {
         return 149;
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::MAP:
-    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::UNION:
         return 160;
@@ -402,7 +406,7 @@ uint32_t BuiltInFunctionsUtils::castFromRDFVariant(LogicalTypeID inputTypeID) {
     switch (inputTypeID) {
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::UNION:
     case LogicalTypeID::MAP:
     case LogicalTypeID::NODE:
@@ -456,10 +460,8 @@ uint32_t BuiltInFunctionsUtils::getFunctionCost(
             return matchParameters(inputTypes, function->parameterTypeIDs, isOverload);
         }
     }
-    case FunctionType::TABLE:
-        return matchParameters(inputTypes, function->parameterTypeIDs, isOverload);
     default:
-        KU_UNREACHABLE;
+        return matchParameters(inputTypes, function->parameterTypeIDs, isOverload);
     }
 }
 
@@ -912,6 +914,9 @@ void BuiltInFunctionsUtils::registerUnionFunctions(CatalogSet* catalogSet) {
 void BuiltInFunctionsUtils::registerNodeRelFunctions(CatalogSet* catalogSet) {
     catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
         OFFSET_FUNC_NAME, OffsetFunction::getFunctionSet()));
+    catalogSet->createEntry(
+        std::make_unique<FunctionCatalogEntry>(catalog::CatalogEntryType::REWRITE_FUNCTION_ENTRY,
+            ID_FUNC_NAME, IDFunction::getFunctionSet()));
 }
 
 void BuiltInFunctionsUtils::registerPathFunctions(CatalogSet* catalogSet) {
@@ -1072,9 +1077,9 @@ static std::string getFunctionMatchFailureMsg(const std::string name,
     return result;
 }
 
-void BuiltInFunctionsUtils::validateNonEmptyCandidateFunctions(
-    std::vector<AggregateFunction*>& candidateFunctions, const std::string& name,
-    const std::vector<LogicalType>& inputTypes, bool isDistinct, function::function_set& set) {
+void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candidateFunctions,
+    const std::string& name, const std::vector<LogicalType>& inputTypes, bool isDistinct,
+    function::function_set& set) {
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
         for (auto& function : set) {
@@ -1089,9 +1094,9 @@ void BuiltInFunctionsUtils::validateNonEmptyCandidateFunctions(
     }
 }
 
-void BuiltInFunctionsUtils::validateNonEmptyCandidateFunctions(
-    std::vector<Function*>& candidateFunctions, const std::string& name,
-    const std::vector<LogicalType>& inputTypes, function::function_set& set) {
+void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctions,
+    const std::string& name, const std::vector<LogicalType>& inputTypes,
+    function::function_set& set) {
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
         for (auto& function : set) {

@@ -2,8 +2,6 @@
 
 #include "binder/binder.h"
 #include "binder/expression/function_expression.h"
-#include "binder/expression/literal_expression.h"
-#include "binder/expression/parameter_expression.h"
 #include "binder/expression_visitor.h"
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
@@ -60,7 +58,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
 std::shared_ptr<Expression> ExpressionBinder::foldExpression(
     const std::shared_ptr<Expression>& expression) {
     auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(
-        expression, binder->memoryManager);
+        expression, context->getMemoryManager());
     auto result = createLiteralExpression(std::move(value));
     // Fold result should preserve the alias original expression. E.g.
     // RETURN 2, 1 + 1 AS x
@@ -104,7 +102,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         return expression;
     }
     if (expression->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
-        resolveAnyDataType(*expression, targetType);
+        expression->cast(targetType);
         return expression;
     }
     return implicitCast(expression, targetType);
@@ -127,15 +125,6 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     }
 }
 
-void ExpressionBinder::resolveAnyDataType(Expression& expression, const LogicalType& targetType) {
-    if (expression.expressionType == ExpressionType::PARAMETER) { // expression is parameter
-        ((ParameterExpression&)expression).setDataType(targetType);
-    } else { // expression is null literal
-        KU_ASSERT(expression.expressionType == ExpressionType::LITERAL);
-        ((LiteralExpression&)expression).setDataType(targetType);
-    }
-}
-
 void ExpressionBinder::validateExpectedDataType(
     const Expression& expression, const std::vector<LogicalTypeID>& targets) {
     auto dataType = expression.dataType;
@@ -144,6 +133,13 @@ void ExpressionBinder::validateExpectedDataType(
         throw BinderException(stringFormat("{} has data type {} but {} was expected.",
             expression.toString(), LogicalTypeUtils::toString(dataType.getLogicalTypeID()),
             LogicalTypeUtils::toString(targets)));
+    }
+}
+
+void ExpressionBinder::validateDataType(const Expression& expr, const LogicalType& expectedType) {
+    if (expr.getDataType() != expectedType) {
+        throw BinderException(stringFormat("{} has data type {} but {} was expected.",
+            expr.toString(), expr.getDataType().toString(), expectedType.toString()));
     }
 }
 

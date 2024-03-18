@@ -75,9 +75,6 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
         replayRdfGraphRecord(walRecord);
     } break;
-    case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
-        replayOverflowFileNextBytePosRecord(walRecord);
-    } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         replayCopyTableRecord(walRecord);
     } break;
@@ -97,7 +94,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     }
 }
 
-void WALReplayer::replayPageUpdateOrInsertRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayPageUpdateOrInsertRecord(const WALRecord& walRecord) {
     // 1. As the first step we copy over the page on disk, regardless of if we are recovering
     // (and checkpointing) or checkpointing while during regular execution.
     auto dbFileID = walRecord.pageInsertOrUpdateRecord.dbFileID;
@@ -122,7 +119,7 @@ void WALReplayer::replayPageUpdateOrInsertRecord(const kuzu::storage::WALRecord&
     }
 }
 
-void WALReplayer::replayTableStatisticsRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         if (walRecord.tableStatisticsRecord.isNodeTable) {
             auto walFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
@@ -190,36 +187,7 @@ void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {
     replayCreateTableRecord(literalTripleTableWALRecord);
 }
 
-void WALReplayer::replayOverflowFileNextBytePosRecord(const WALRecord& walRecord) {
-    // If we are recovering we do not replay OVERFLOW_FILE_NEXT_BYTE_POS_RECORD because
-    // this record is intended for rolling back a transaction to ensure that we can
-    // recover the overflow space allocated for the write transaction by calling
-    // DiskOverflowFile::resetNextBytePosToWriteTo(...). However during recovery, storageManager
-    // is null, so we cannot construct this value.
-    if (isRecovering) {
-        return;
-    }
-    KU_ASSERT(walRecord.diskOverflowFileNextBytePosRecord.dbFileID.isOverflow);
-    auto dbFileID = walRecord.diskOverflowFileNextBytePosRecord.dbFileID;
-    DiskOverflowFile* diskOverflowFile;
-    switch (dbFileID.dbFileType) {
-    case DBFileType::NODE_INDEX: {
-        auto index = storageManager->getPKIndex(dbFileID.nodeIndexID.tableID);
-        diskOverflowFile = index->getDiskOverflowFile();
-    } break;
-    default:
-        throw RuntimeException("Unsupported dbFileID " + dbFileTypeToString(dbFileID.dbFileType) +
-                               " for OVERFLOW_FILE_NEXT_BYTE_POS_RECORD.");
-    }
-    // Reset NextBytePosToWriteTo if we are rolling back.
-    if (!isCheckpoint) {
-        diskOverflowFile->resetNextBytePosToWriteTo(
-            walRecord.diskOverflowFileNextBytePosRecord.prevNextBytePosToWriteTo);
-    }
-    diskOverflowFile->resetLoggedNewOverflowFileNextBytePosRecord();
-}
-
-void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayCopyTableRecord(const WALRecord& walRecord) {
     auto tableID = walRecord.copyTableRecord.tableID;
     if (isCheckpoint) {
         if (!isRecovering) {
@@ -249,7 +217,7 @@ void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecor
     }
 }
 
-void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayDropTableRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         auto tableID = walRecord.dropTableRecord.tableID;
         if (!isRecovering) {
@@ -298,7 +266,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
     }
 }
 
-void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayDropPropertyRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         auto tableID = walRecord.dropPropertyRecord.tableID;
         auto propertyID = walRecord.dropPropertyRecord.propertyID;
@@ -331,7 +299,7 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
     }
 }
 
-void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayAddPropertyRecord(const WALRecord& walRecord) {
     auto tableID = walRecord.addPropertyRecord.tableID;
     auto propertyID = walRecord.addPropertyRecord.propertyID;
     if (!isCheckpoint) {
@@ -398,7 +366,7 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
     }
     case DBFileType::NODE_INDEX: {
         auto index = storageManager->getPKIndex(dbFileID.nodeIndexID.tableID);
-        return dbFileID.isOverflow ? index->getDiskOverflowFile()->getFileHandle() :
+        return dbFileID.isOverflow ? index->getOverflowFile()->getBMFileHandle() :
                                      index->getFileHandle();
     }
     default: {

@@ -67,9 +67,5 @@ main::ExtensionOption* ExtensionOptions::getExtensionOption(std::string name) {
     return extensionOptions.contains(name) ? &extensionOptions.at(name) : nullptr;
 }
 
-std::unordered_map<std::string, main::ExtensionOption>& ExtensionOptions::getExtensionOptions() {
-    return extensionOptions;
-}
-
 } // namespace extension
 } // namespace kuzu

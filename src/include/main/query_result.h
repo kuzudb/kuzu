@@ -15,13 +15,13 @@ namespace main {
 struct DataTypeInfo {
 public:
     DataTypeInfo(common::LogicalTypeID typeID, std::string name)
-        : typeID{typeID}, name{std::move(name)}, numValuesPerList{0} {}
+        : typeID{typeID}, name{std::move(name)}, fixedNumValues{0} {}
 
     common::LogicalTypeID typeID;
     std::string name;
     std::vector<std::unique_ptr<DataTypeInfo>> childrenTypesInfo;
-    // Used by fixedList only.
-    uint64_t numValuesPerList;
+    // Used by array only.
+    uint64_t fixedNumValues;
 
     static std::unique_ptr<DataTypeInfo> getInfoForDataType(
         const common::LogicalType& type, const std::string& name);

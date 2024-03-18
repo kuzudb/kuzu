@@ -11,7 +11,7 @@ namespace common {
 
 class StringUtils {
 public:
-    static std::vector<std::string> splitComma(const std::string& input);
+    KUZU_API static std::vector<std::string> splitComma(const std::string& input);
 
     KUZU_API static std::vector<std::string> split(
         const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts = true);

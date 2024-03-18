@@ -9,118 +9,206 @@ jobs:
   ubuntu-2004-build-test:
     name: ubuntu-20.04
     runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash
     env:
       CC: gcc-11
       CXX: g++-11
     steps:
       - uses: actions/checkout@v3
+        continue-on-error: true
 
       - name: Install packages
+        continue-on-error: true
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential manpages-dev software-properties-common
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
-          sudo apt-get install -y gcc-11 g++-11 python3.9
+          sudo apt-get install -y gcc-11 g++-11
+
+      - uses: actions/setup-python@v5
+        continue-on-error: true
+        with:
+          python-version: "3.11"
 
       - name: Ensure Python dependencies
+        continue-on-error: true
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
-          pip install --user backports.zoneinfo
 
       - name: Ensure Node.js dependencies
+        continue-on-error: true
         working-directory: tools/nodejs_api
         run: npm install --include=dev
 
       - name: Build
-        run: make release NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make release NUM_THREADS=$(nproc)
+          echo "Build,$?" > status.txt
 
       - name: Test
-        run: make test NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make test NUM_THREADS=$(nproc)
+          echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
-        run: make example NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make example NUM_THREADS=$(nproc)
+          echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
-        run: make pytest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make pytest NUM_THREADS=$(nproc)
+          echo "Python test,$?" >> status.txt
 
       - name: Node.js test
-        run: make nodejstest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make nodejstest NUM_THREADS=$(nproc)
+          echo "Node.js test,$?" >> status.txt
 
       - name: Java test
-        run: make javatest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make javatest NUM_THREADS=$(nproc)
+          echo "Java test,$?" >> status.txt
 
       - name: Rust share build
+        continue-on-error: true
         run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
 
       - name: Rust set env
+        continue-on-error: true
         run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
 
       - name: Rust test
+        continue-on-error: true
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
+          echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
+        continue-on-error: true
         working-directory: examples/rust
-        run: cargo build --release --features arrow
+        run: |
+          cargo build --release --features arrow
+          echo "Rust example,$?" >> ../../status.txt
+
+      - name: Rename status.txt
+        continue-on-error: true
+        run: mv status.txt ubuntu-20.04.csv
+
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: ubuntu-20.04
+          path: ubuntu-20.04.csv
 
   macos-build-test:
     strategy:
       matrix:
-        runner: [macos-12, macos-13]
+        runner: [macos-13, macos-14]
       fail-fast: false
     name: ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v3
+        continue-on-error: true
 
       - uses: actions/setup-python@v4
+        continue-on-error: true
         with:
           python-version: "3.10"
 
       - name: Ensure Python dependencies
+        continue-on-error: true
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
       - name: Ensure Node.js dependencies
+        continue-on-error: true
         working-directory: tools/nodejs_api
         run: npm install --include=dev
 
       - name: Build
-        run: make release NUM_THREADS=$(sysctl -n hw.physicalcpu)
+        continue-on-error: true
+        run: |
+          make release NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          echo "Build,$?" > status.txt
 
       - name: Test
-        run: make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
+        continue-on-error: true
+        run: |
+          make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
-        run: make example NUM_THREADS=$(sysctl -n hw.physicalcpu)
+        continue-on-error: true
+        run: |
+          make example NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
-        run: make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
+        continue-on-error: true
+        run: |
+          make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          echo "Python test,$?" >> status.txt
 
       - name: Node.js test
-        run: make nodejstest NUM_THREADS=$(sysctl -n hw.physicalcpu)
+        continue-on-error: true
+        run: |
+          make nodejstest NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          echo "Node.js test,$?" >> status.txt
 
       - name: Java test
-        run: make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
+        continue-on-error: true
+        run: |
+          make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          echo "Java test,$?" >> status.txt
 
       - name: Rust share build
+        continue-on-error: true
         run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
 
       - name: Rust set env
+        continue-on-error: true
         run: echo "CARGO_BUILD_JOBS=$(sysctl -n hw.physicalcpu)" >> $GITHUB_ENV
 
       - name: Rust test
+        continue-on-error: true
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
+          echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
+        continue-on-error: true
         working-directory: examples/rust
-        run: cargo build --release --features arrow
+        run: |
+          cargo build --release --features arrow
+          echo "Rust example,$?" >> ../../status.txt
+
+      - name: Rename status.txt
+        continue-on-error: true
+        run: mv status.txt ${{ matrix.runner }}.csv
+
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: ${{ matrix.runner }}
+          path: ${{ matrix.runner }}.csv
 
   windows-build-test:
     strategy:
@@ -131,6 +219,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Disable Windows Defender
+        continue-on-error: true
         shell: powershell
         run: |
           Set-MpPreference -DisableRealtimeMonitoring $true
@@ -145,53 +234,78 @@ jobs:
           Set-MpPreference -SubmitSamplesConsent NeverSend
 
       - uses: actions/checkout@v3
+        continue-on-error: true
 
       - uses: ilammy/msvc-dev-cmd@v1
+        continue-on-error: true
 
       - uses: actions/setup-python@v4
+        continue-on-error: true
         with:
           python-version: "3.10"
 
       - name: Ensure Python dependencies
+        continue-on-error: true
         shell: cmd
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
       - name: Ensure Node.js dependencies
+        continue-on-error: true
         shell: cmd
         working-directory: .\tools\nodejs_api
         run: npm install --include=dev
 
       - name: Build
+        continue-on-error: true
         shell: cmd
-        run: make release NUM_THREADS=%NUMBER_OF_PROCESSORS%
+        run: |
+          make release NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Build,%ERRORLEVEL% > status.txt
 
       - name: Test
+        continue-on-error: true
         shell: cmd
-        run: make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
+        run: |
+          make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Test,%ERRORLEVEL% >> status.txt
 
       - name: C and C++ examples
+        continue-on-error: true
         shell: cmd
-        run: make example NUM_THREADS=%NUMBER_OF_PROCESSORS%
+        run: |
+          make example NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo C and C++ examples,%ERRORLEVEL% >> status.txt
 
       - name: Python test
+        continue-on-error: true
         shell: cmd
-        run: make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+        run: |
+          make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Python test,%ERRORLEVEL% >> status.txt
 
       - name: Node.js test
+        continue-on-error: true
         shell: cmd
-        run: make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+        run: |
+          make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Node.js test,%ERRORLEVEL% >> status.txt
 
       - name: Java test
+        continue-on-error: true
         shell: cmd
-        run: make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+        run: |
+          make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Java test,%ERRORLEVEL% >> status.txt
 
       - name: Rust share build
+        continue-on-error: true
         shell: cmd
         run: (echo [workspace]& echo members = ["tools/rust_api","examples/rust"]) > Cargo.toml
 
       - name: Rust test
+        continue-on-error: true
         shell: cmd
         run: |
           make clean
@@ -199,12 +313,27 @@ jobs:
           set CXXFLAGS=/std:c++20
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
           cargo test --release --features arrow -- --test-threads=1
+          echo Rust test,%ERRORLEVEL% >> status.txt
 
       - name: Rust example
+        continue-on-error: true
         shell: cmd
         run: |
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
           cargo build --release --features arrow
+          echo Rust example,%ERRORLEVEL% >> status.txt
+
+      - name: Rename status.txt
+        continue-on-error: true
+        shell: cmd
+        run: |
+          rename status.txt ${{ matrix.runner }}.csv
+
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: ${{ matrix.runner }}
+          path: ${{ matrix.runner }}.csv
 
   debian-ubuntu-build-test:
     strategy:
@@ -221,6 +350,7 @@ jobs:
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     steps:
       - name: Install packages
+        continue-on-error: true
         run: |
           apt-get update
           apt-get install -y ca-certificates curl gnupg
@@ -231,59 +361,101 @@ jobs:
           apt-get install -y git build-essential cmake gcc g++ python3 python3-dev python3-pip openjdk-17-jdk nodejs
 
       - uses: actions/checkout@v3
+        continue-on-error: true
 
       - name: Ensure Python dependencies
+        continue-on-error: true
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu ${{ matrix.image != 'debian:11' && '--break-system-packages' || '' }}
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html ${{ matrix.image != 'debian:11' && '--break-system-packages' || '' }}
 
       - name: Ensure Node.js dependencies
         working-directory: tools/nodejs_api
+        continue-on-error: true
         run: npm install --include=dev
 
       - name: Install Rust
+        continue-on-error: true
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.67
+          $HOME/.cargo/bin/rustup toolchain install 1.76
 
       - name: Build
-        run: make release NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make release NUM_THREADS=$(nproc)
+          echo "Build,$?" > status.txt
 
       - name: Test
-        run: make test NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make test NUM_THREADS=$(nproc)
+          echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
-        run: make example NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make example NUM_THREADS=$(nproc)
+          echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
-        run: make pytest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make pytest NUM_THREADS=$(nproc)
+          echo "Python test,$?" >> status.txt
 
       - name: Node.js test
-        run: make nodejstest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make nodejstest NUM_THREADS=$(nproc)
+          echo "Node.js test,$?" >> status.txt
 
       - name: Java test
-        run: make javatest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make javatest NUM_THREADS=$(nproc)
+          echo "Java test,$?" >> status.txt
 
       - name: Rust share build
+        continue-on-error: true
         run: echo '[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
 
       - name: Rust set env
+        continue-on-error: true
         run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
 
       - name: Rust test
+        continue-on-error: true
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
+          echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
+        continue-on-error: true
         working-directory: examples/rust
-        run: cargo build --release --features arrow
+        run: |
+          cargo build --release --features arrow
+          echo "Rust example,$?" >> ../../status.txt
 
-  rhel-fedora-build-test:
+      - name: Rename status.txt
+        continue-on-error: true
+        run: |
+          PLATFORM=$(echo ${{ matrix.image }} | tr ':' '-')
+          echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
+          mv status.txt $PLATFORM.csv
+
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: ${{env.PLATFORM}}
+          path: ${{env.PLATFORM}}.csv
+
+  rhel-fedora-build-test: 
     strategy:
       matrix:
-        image: ["rockylinux:8", "rockylinux:9", "fedora:38"]
+        image: ["rockylinux:8", "rockylinux:9", "fedora:38", "fedora:39"]
       fail-fast: false
     name: ${{ matrix.image }}
     runs-on: ubuntu-latest
@@ -296,6 +468,7 @@ jobs:
       HOME: /root
     steps:
       - name: Enable EPEL
+        continue-on-error: true
         if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
         run: |
           dnf update -y
@@ -303,150 +476,121 @@ jobs:
           dnf update -y
 
       - name: Enable SHA-1 on Rocky Linux 9
+        continue-on-error: true
         if: matrix.image == 'rockylinux:9'
         run: update-crypto-policies --set LEGACY
 
       - name: Install packages
+        continue-on-error: true
         run: |
           curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-          dnf install -y git cmake ${{ matrix.image == 'rockylinux:8' && 'gcc-toolset-12 python39 python39-devel' || 'gcc gcc-c++ python3-devel' }} java-17-openjdk-devel nodejs
+          dnf install -y git cmake ${{ matrix.image == 'rockylinux:8' && 'gcc-toolset-12 python3.11 python3.11-devel' || 'gcc gcc-c++ python3-devel' }} java-17-openjdk-devel nodejs
 
-      - name: Enable gcc-toolset-12 and python39 on Rocky Linux 8
+      - name: Enable gcc-toolset-12 and python3.11 on Rocky Linux 8
+        continue-on-error: true
         if: matrix.image == 'rockylinux:8'
         run: |
-          alternatives --set python /usr/bin/python3.9
-          alternatives --set python3 /usr/bin/python3.9
-          echo "PYTHON_EXECUTABLE=/usr/bin/python3.9" >> $GITHUB_ENV
-          echo "PYBIND11_PYTHON_VERSION=3.9" >> $GITHUB_ENV
+          alternatives --set python /usr/bin/python3.11
+          alternatives --set python3 /usr/bin/python3.11
+          echo "PYTHON_EXECUTABLE=/usr/bin/python3.11" >> $GITHUB_ENV
+          echo "PYBIND11_PYTHON_VERSION=3.11" >> $GITHUB_ENV
           source /opt/rh/gcc-toolset-12/enable
           echo $PATH >> $GITHUB_PATH
 
       - uses: actions/checkout@v3
+        continue-on-error: true
 
       - name: Ensure Python dependencies
+        continue-on-error: true
         run: |
           python3 -m venv /opt/venv
           source /opt/venv/bin/activate
-          pip3 install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip3 install torch~=2.2.1 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
 
       - name: Ensure Node.js dependencies
+        continue-on-error: true
         working-directory: tools/nodejs_api
         run: npm install --include=dev
 
       - name: Install Rust
+        continue-on-error: true
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.67
+          $HOME/.cargo/bin/rustup toolchain install 1.76
 
       - name: Build
-        run: make release NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make release NUM_THREADS=$(nproc)
+          echo "Build,$?" > status.txt
 
       - name: Test
-        run: make test NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make test NUM_THREADS=$(nproc)
+          echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
-        run: make example NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make example NUM_THREADS=$(nproc)
+          echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
+        continue-on-error: true
         run: |
           source /opt/venv/bin/activate
           make pytest NUM_THREADS=$(nproc)
+          echo "Python test,$?" >> status.txt
 
       - name: Node.js test
-        run: make nodejstest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make nodejstest NUM_THREADS=$(nproc)
+          echo "Node.js test,$?" >> status.txt
 
       - name: Java test
-        run: make javatest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make javatest NUM_THREADS=$(nproc)
+          echo "Java test,$?" >> status.txt
 
       - name: Rust share build
+        continue-on-error: true
         run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
 
       - name: Rust set env
+        continue-on-error: true
         run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
 
       - name: Rust test
+        continue-on-error: true
         working-directory: tools/rust_api
         run: |
           cargo test --release --features arrow -- --test-threads=1
+          echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
+        continue-on-error: true
         working-directory: examples/rust
-        run: cargo build --release --features arrow
-
-  centos-7-build-test:
-    name: centos-7
-    runs-on: ubuntu-latest
-    container:
-      image: quay.io/pypa/manylinux2014_x86_64
-    env:
-      CC: gcc
-      CXX: g++
-      PYBIND11_PYTHON_VERSION: 3.10
-      PYTHON_EXECUTABLE: /usr/local/bin/python3.10
-      JAVA_HOME: /usr/lib/jvm/java-11-openjdk
-    steps:
-      - name: Install packages
         run: |
-          yum update -y
-          yum install -y npm java-11-openjdk-devel devtoolset-11
+          cargo build --release --features arrow
+          echo "Rust example,$?" >> ../../status.txt
 
-      - name: Enable gcc-toolset-11
+      - name: Rename status.txt
+        continue-on-error: true
         run: |
-          source /opt/rh/devtoolset-11/enable
-          echo $PATH >> $GITHUB_PATH
+          PLATFORM=$(echo ${{ matrix.image }} | tr ':' '-')
+          echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
+          mv status.txt $PLATFORM.csv
 
-      - uses: actions/checkout@v3
-
-      - name: Ensure Python dependencies
-        run: |
-          ln -s /usr/local/bin/python3.10 /usr/bin/python3
-          python3 -m pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          python3 -m pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        working-directory: tools/nodejs_api
-        run: npm install --include=dev
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.67
-
-      - name: Build
-        run: make release NUM_THREADS=$(nproc)
-
-      - name: Test
-        run: make test NUM_THREADS=$(nproc)
-
-      - name: C and C++ examples
-        run: make example NUM_THREADS=$(nproc)
-
-      - name: Python test
-        run: make pytest NUM_THREADS=$(nproc)
-
-      - name: Node.js test
-        run: make nodejstest NUM_THREADS=$(nproc)
-
-      - name: Java test
-        run: make javatest NUM_THREADS=$(nproc)
-
-      - name: Rust share build
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
-      - name: Rust set env
-        run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
-
-      - name: Rust test
-        working-directory: tools/rust_api
-        run: |
-          cargo test --release --features arrow -- --test-threads=1
-
-      - name: Rust example
-        working-directory: examples/rust
-        run: cargo build --release --features arrow
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: ${{env.PLATFORM}}
+          path: ${{env.PLATFORM}}.csv
 
   archlinux-build-test:
     name: archlinux
@@ -459,56 +603,135 @@ jobs:
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk
     steps:
       - name: Install packages
+        continue-on-error: true
         run: |
           pacman -Syu --noconfirm
           pacman -S --needed --noconfirm git base-devel cmake gcc python python-pip npm jdk17-openjdk
 
       - uses: actions/checkout@v3
+        continue-on-error: true
 
       - name: Ensure Python dependencies
+        continue-on-error: true
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu --break-system-packages
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html --break-system-packages
 
       - name: Ensure Node.js dependencies
+        continue-on-error: true
         working-directory: tools/nodejs_api
         run: npm install --include=dev
 
       - name: Install Rust
+        continue-on-error: true
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.67
+          $HOME/.cargo/bin/rustup toolchain install 1.76
 
       - name: Build
-        run: make release NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make release NUM_THREADS=$(nproc)
+          echo "Build,$?" > status.txt
 
       - name: Test
-        run: make test NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make test NUM_THREADS=$(nproc)
+          echo "Test,$?" >> status.txt
 
       - name: C and C++ examples
-        run: make example NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make example NUM_THREADS=$(nproc)
+          echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
-        run: make pytest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make pytest NUM_THREADS=$(nproc)
+          echo "Python test,$?" >> status.txt
 
       - name: Node.js test
-        run: make nodejstest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make nodejstest NUM_THREADS=$(nproc)
+          echo "Node.js test,$?" >> status.txt
 
       - name: Java test
-        run: make javatest NUM_THREADS=$(nproc)
+        continue-on-error: true
+        run: |
+          make javatest NUM_THREADS=$(nproc)
+          echo "Java test,$?" >> status.txt
 
       - name: Rust share build
+        continue-on-error: true
         run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
 
       - name: Rust set env
+        continue-on-error: true
         run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
 
       - name: Rust test
         working-directory: tools/rust_api
+        continue-on-error: true
         run: |
           cargo test --release --features arrow -- --test-threads=1
+          echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build --release --features arrow
+        continue-on-error: true
+        run: |
+          cargo build --release --features arrow
+          echo "Rust example,$?" >> ../../status.txt
+
+      - name: Rename status.txt
+        continue-on-error: true
+        run: |
+          mv status.txt archlinux.csv
+
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: archlinux
+          path: archlinux.csv
+
+  collect-results:
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      GITHUB_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    needs:
+      [
+        ubuntu-2004-build-test,
+        macos-build-test,
+        windows-build-test,
+        debian-ubuntu-build-test,
+        rhel-fedora-build-test,
+        archlinux-build-test,
+      ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: results
+
+      - name: List artifacts
+        run: ls -R results
+
+      - name: Create summary
+        run: |
+          pip3 install pandas tabulate discord.py
+          python3 scripts/multiplatform-test-helper/collect-results.py results
+          python3 scripts/multiplatform-test-helper/notify-discord.py results.json
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: results
+          path: results.md

@@ -53,10 +53,8 @@ void RelTable::update(transaction::Transaction* transaction, column_id_t columnI
 
 void RelTable::delete_(Transaction* transaction, ValueVector* srcNodeIDVector,
     ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
-    auto fwdDeleted =
-        fwdRelTableData->delete_(transaction, srcNodeIDVector, dstNodeIDVector, relIDVector);
-    auto bwdDeleted =
-        bwdRelTableData->delete_(transaction, dstNodeIDVector, srcNodeIDVector, relIDVector);
+    auto fwdDeleted = fwdRelTableData->delete_(transaction, srcNodeIDVector, relIDVector);
+    auto bwdDeleted = bwdRelTableData->delete_(transaction, dstNodeIDVector, relIDVector);
     KU_ASSERT(fwdDeleted == bwdDeleted);
     if (fwdDeleted && bwdDeleted) {
         auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
@@ -72,7 +70,8 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     auto reverseTableData =
         direction == RelDataDirection::FWD ? bwdRelTableData.get() : fwdRelTableData.get();
     auto relDataReadState = std::make_unique<RelDataReadState>();
-    initializeReadState(transaction, direction, {0}, srcNodeIDVector, relDataReadState.get());
+    initializeReadState(
+        transaction, direction, {REL_ID_COLUMN_ID}, srcNodeIDVector, relDataReadState.get());
     row_idx_t numRelsDeleted = detachDeleteForCSRRels(transaction, tableData, reverseTableData,
         srcNodeIDVector, relDataReadState.get(), deleteState);
     auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
@@ -106,11 +105,10 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
         tempState->selVector->resetSelectorToValuePosBufferWithSize(1);
         for (auto i = 0u; i < numRelsScanned; i++) {
             tempState->selVector->selectedPositions[0] = i;
-            auto deleted = tableData->delete_(transaction, srcNodeIDVector,
-                deleteState->dstNodeIDVector.get(), deleteState->relIDVector.get());
-            auto reverseDeleted =
-                reverseTableData->delete_(transaction, deleteState->dstNodeIDVector.get(),
-                    srcNodeIDVector, deleteState->relIDVector.get());
+            auto deleted =
+                tableData->delete_(transaction, srcNodeIDVector, deleteState->relIDVector.get());
+            auto reverseDeleted = reverseTableData->delete_(
+                transaction, deleteState->dstNodeIDVector.get(), deleteState->relIDVector.get());
             KU_ASSERT(deleted == reverseDeleted);
             numRelsDeleted += (deleted && reverseDeleted);
         }
@@ -133,14 +131,14 @@ void RelTable::addColumn(
     relsStats->addMetadataDAHInfo(tableID, *property.getDataType());
     fwdRelTableData->addColumn(transaction,
         RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD),
-        fwdRelTableData->getAdjColumn()->getMetadataDA(),
-        *relsStats->getPropertyMetadataDAHInfo(
+        fwdRelTableData->getNbrIDColumn()->getMetadataDA(),
+        *relsStats->getColumnMetadataDAHInfo(
             transaction, tableID, fwdRelTableData->getNumColumns(), RelDataDirection::FWD),
         property, defaultValueVector, relsStats);
     bwdRelTableData->addColumn(transaction,
         RelDataDirectionUtils::relDirectionToString(RelDataDirection::BWD),
-        bwdRelTableData->getAdjColumn()->getMetadataDA(),
-        *relsStats->getPropertyMetadataDAHInfo(
+        bwdRelTableData->getNbrIDColumn()->getMetadataDA(),
+        *relsStats->getColumnMetadataDAHInfo(
             transaction, tableID, bwdRelTableData->getNumColumns(), RelDataDirection::BWD),
         property, defaultValueVector, relsStats);
     // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add

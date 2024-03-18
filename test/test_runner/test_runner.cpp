@@ -116,6 +116,11 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     } else if (statement->expectedOk && result->isSuccess()) {
         return true;
     } else {
+        if (!preparedStatement->success) {
+            spdlog::info(
+                "Query compilation failed with error: {}", preparedStatement->getErrorMessage());
+            return false;
+        }
         auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
         if (checkPlanResult(result, statement, planStr, planIdx)) {
             return true;

@@ -1,5 +1,7 @@
 #include "storage/store/dictionary_chunk.h"
 
+#include <cstdint>
+
 #include <bit>
 
 using namespace kuzu::common;
@@ -14,15 +16,16 @@ namespace storage {
 // chunk to be greater than the node group size since they remove unused entries.
 // So the chunk is initialized with a size equal to 3/4 the node group size, making sure there
 // is always extra space for updates.
-static const uint64_t OFFSET_CHUNK_INITIAL_CAPACITY = StorageConstants::NODE_GROUP_SIZE * 0.75;
+static const double OFFSET_CHUNK_CAPACITY_FACTOR = 0.75;
 
 DictionaryChunk::DictionaryChunk(uint64_t capacity, bool enableCompression)
-    : enableCompression{enableCompression} {
+    : enableCompression{enableCompression},
+      indexTable(0, StringOps(this) /*hash*/, StringOps(this) /*equals*/) {
     // Bitpacking might save 1 bit per value with regular ascii compared to UTF-8
     stringDataChunk = ColumnChunkFactory::createColumnChunk(
         *LogicalType::UINT8(), false /*enableCompression*/, capacity);
     offsetChunk = ColumnChunkFactory::createColumnChunk(
-        *LogicalType::UINT64(), enableCompression, OFFSET_CHUNK_INITIAL_CAPACITY);
+        *LogicalType::UINT64(), enableCompression, capacity * OFFSET_CHUNK_CAPACITY_FACTOR);
 }
 
 void DictionaryChunk::resetToEmpty() {
@@ -32,7 +35,9 @@ void DictionaryChunk::resetToEmpty() {
 }
 
 uint64_t DictionaryChunk::getStringLength(string_index_t index) const {
-    if (index + 1 < offsetChunk->getNumValues()) {
+    if (stringDataChunk->getNumValues() == 0) {
+        return 0;
+    } else if (index + 1 < offsetChunk->getNumValues()) {
         KU_ASSERT(offsetChunk->getValue<string_offset_t>(index + 1) >=
                   offsetChunk->getValue<string_offset_t>(index));
         return offsetChunk->getValue<string_offset_t>(index + 1) -
@@ -45,7 +50,7 @@ DictionaryChunk::string_index_t DictionaryChunk::appendString(std::string_view v
     auto found = indexTable.find(val);
     // If the string already exists in the dictionary, skip it and refer to the existing string
     if (enableCompression && found != indexTable.end()) {
-        return found->second;
+        return found->index;
     }
     auto leftSpace = stringDataChunk->getCapacity() - stringDataChunk->getNumValues();
     if (leftSpace < val.size()) {
@@ -56,12 +61,14 @@ DictionaryChunk::string_index_t DictionaryChunk::appendString(std::string_view v
     stringDataChunk->setNumValues(startOffset + val.size());
     auto index = offsetChunk->getNumValues();
     if (index >= offsetChunk->getCapacity()) {
-        offsetChunk->resize(std::bit_ceil(offsetChunk->getCapacity() * CHUNK_RESIZE_RATIO));
+        offsetChunk->resize(offsetChunk->getCapacity() == 0 ?
+                                2 :
+                                (offsetChunk->getCapacity() * CHUNK_RESIZE_RATIO));
     }
     offsetChunk->setValue<string_offset_t>(startOffset, index);
     offsetChunk->setNumValues(index + 1);
     if (enableCompression) {
-        indexTable.insert({std::string{val}, index});
+        indexTable.insert({static_cast<string_index_t>(index)});
     }
     return index;
 }

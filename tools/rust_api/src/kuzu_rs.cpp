@@ -1,6 +1,6 @@
 #include "kuzu_rs.h"
 
-using kuzu::common::FixedListTypeInfo;
+using kuzu::common::ArrayTypeInfo;
 using kuzu::common::Interval;
 using kuzu::common::LogicalType;
 using kuzu::common::LogicalTypeID;
@@ -26,9 +26,9 @@ std::unique_ptr<LogicalType> create_logical_type_var_list(std::unique_ptr<Logica
     return LogicalType::VAR_LIST(std::move(childType));
 }
 
-std::unique_ptr<LogicalType> create_logical_type_fixed_list(
+std::unique_ptr<LogicalType> create_logical_type_array(
     std::unique_ptr<LogicalType> childType, uint64_t numElements) {
-    return LogicalType::FIXED_LIST(std::move(childType), numElements);
+    return LogicalType::ARRAY(std::move(childType), numElements);
 }
 
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
@@ -39,11 +39,11 @@ std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
 const LogicalType& logical_type_get_var_list_child_type(const LogicalType& logicalType) {
     return *kuzu::common::VarListType::getChildType(&logicalType);
 }
-const LogicalType& logical_type_get_fixed_list_child_type(const LogicalType& logicalType) {
-    return *kuzu::common::FixedListType::getChildType(&logicalType);
+const LogicalType& logical_type_get_array_child_type(const LogicalType& logicalType) {
+    return *kuzu::common::ArrayType::getChildType(&logicalType);
 }
-uint64_t logical_type_get_fixed_list_num_elements(const LogicalType& logicalType) {
-    return kuzu::common::FixedListType::getNumValuesInList(&logicalType);
+uint64_t logical_type_get_array_num_elements(const LogicalType& logicalType) {
+    return kuzu::common::ArrayType::getNumElements(&logicalType);
 }
 
 rust::Vec<rust::String> logical_type_get_struct_field_names(

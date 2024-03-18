@@ -61,11 +61,17 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::IMPORT_DATABASE: {
         boundStatement = bindImportDatabaseClause(statement);
     } break;
+    case StatementType::ATTACH_DATABASE: {
+        boundStatement = bindAttachDatabase(statement);
+    } break;
+    case StatementType::DETACH_DATABASE: {
+        boundStatement = bindDetachDatabase(statement);
+    } break;
     default: {
         KU_UNREACHABLE;
     }
     }
-    BoundStatementRewriter::rewrite(*boundStatement, catalog);
+    BoundStatementRewriter::rewrite(*boundStatement, *clientContext->getCatalog());
     return boundStatement;
 }
 
@@ -76,10 +82,11 @@ std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& 
 }
 
 common::table_id_t Binder::bindTableID(const std::string& tableName) const {
-    if (!catalog.containsTable(clientContext->getTx(), tableName)) {
+    auto catalog = clientContext->getCatalog();
+    if (!catalog->containsTable(clientContext->getTx(), tableName)) {
         throw BinderException(common::stringFormat("Table {} does not exist.", tableName));
     }
-    return catalog.getTableID(clientContext->getTx(), tableName);
+    return catalog->getTableID(clientContext->getTx(), tableName);
 }
 
 std::shared_ptr<Expression> Binder::createVariable(
@@ -105,27 +112,14 @@ std::shared_ptr<Expression> Binder::createVariable(
 
 std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
     auto boundType = LogicalTypeUtils::dataTypeFromString(dataType);
-    if (boundType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
-        auto validNumericTypes = LogicalTypeUtils::getNumericalLogicalTypeIDs();
-        auto childType = FixedListType::getChildType(&boundType);
-        auto numElementsInList = FixedListType::getNumValuesInList(&boundType);
-        if (find(validNumericTypes.begin(), validNumericTypes.end(),
-                childType->getLogicalTypeID()) == validNumericTypes.end()) {
-            throw BinderException("The child type of a fixed list must be a numeric type. Given: " +
-                                  childType->toString() + ".");
-        }
-        if (numElementsInList == 0) {
+    if (boundType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
+        auto numElementsInArray = ArrayType::getNumElements(&boundType);
+        if (numElementsInArray == 0) {
             // Note: the parser already guarantees that the number of elements is a non-negative
             // number. However, we still need to check whether the number of elements is 0.
             throw BinderException(
-                "The number of elements in a fixed list must be greater than 0. Given: " +
-                std::to_string(numElementsInList) + ".");
-        }
-        auto numElementsPerPage = storage::PageUtils::getNumElementsInAPage(
-            storage::StorageUtils::getDataTypeSize(boundType), true /* hasNull */);
-        if (numElementsPerPage == 0) {
-            throw BinderException(stringFormat("Cannot store a fixed list of size {} in a page.",
-                storage::StorageUtils::getDataTypeSize(boundType)));
+                "The number of elements in an array must be greater than 0. Given: " +
+                std::to_string(numElementsInArray) + ".");
         }
     }
     return std::make_unique<LogicalType>(boundType);
@@ -172,14 +166,15 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuer
 }
 
 void Binder::validateTableType(table_id_t tableID, TableType expectedTableType) {
-    if (catalog.getTableCatalogEntry(clientContext->getTx(), tableID)->getTableType() !=
-        expectedTableType) {
+    auto tableEntry =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), tableID);
+    if (tableEntry->getTableType() != expectedTableType) {
         throw BinderException("Table type mismatch.");
     }
 }
 
 void Binder::validateTableExist(const std::string& tableName) {
-    if (!catalog.containsTable(clientContext->getTx(), tableName)) {
+    if (!clientContext->getCatalog()->containsTable(clientContext->getTx(), tableName)) {
         throw BinderException("Table " + tableName + " does not exist.");
     }
 }
@@ -207,12 +202,12 @@ void Binder::restoreScope(std::unique_ptr<BinderScope> prevVariableScope) {
     scope = std::move(prevVariableScope);
 }
 
-function::TableFunction* Binder::getScanFunction(FileType fileType, const ReaderConfig& config) {
+function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderConfig& config) {
     function::Function* func;
     auto stringType = LogicalType(LogicalTypeID::STRING);
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(stringType);
-    auto functions = catalog.getFunctions(clientContext->getTx());
+    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     switch (fileType) {
     case FileType::PARQUET: {
         func = function::BuiltInFunctionsUtils::matchFunction(
@@ -231,7 +226,7 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
     default:
         KU_UNREACHABLE;
     }
-    return ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
+    return *ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
 }
 
 } // namespace binder

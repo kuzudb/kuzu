@@ -31,26 +31,44 @@ oC_Statement
         | kU_Transaction
         | kU_Extension
         | kU_ExportDatabase
-        | kU_ImportDatabase;
+        | kU_ImportDatabase
+        | kU_AttachDatabase
+        | kU_DetachDatabase;
 
 kU_CopyFrom
-    : COPY SP oC_SchemaName ( ( SP? '(' SP? kU_ColumnNames SP? ')' SP? ) | SP ) FROM SP (kU_FilePaths | oC_Variable) ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+    : COPY SP oC_SchemaName ( ( SP? kU_ColumnNames SP? ) | SP ) FROM SP kU_ScanSource ( SP? kU_ParsingOptions )? ;
 
 kU_ColumnNames
-     : oC_SchemaName ( SP? ',' SP? oC_SchemaName )* ;
+     : '(' SP? oC_SchemaName ( SP? ',' SP? oC_SchemaName )* SP? ')';
+
+kU_ScanSource
+    : kU_FilePaths
+        | '(' SP? oC_Query SP? ')'
+        | oC_Variable ;
 
 kU_CopyFromByColumn
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
 
 kU_CopyTO
-    : COPY SP '(' SP? oC_Query SP? ')' SP TO SP StringLiteral ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+    : COPY SP '(' SP? oC_Query SP? ')' SP TO SP StringLiteral ( SP? kU_ParsingOptions )? ;
 
 kU_ExportDatabase
-    : EXPORT SP DATABASE SP StringLiteral ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+    : EXPORT SP DATABASE SP StringLiteral ( SP? kU_ParsingOptions )? ;
 
 kU_ImportDatabase
     : IMPORT SP DATABASE SP StringLiteral;
 
+kU_AttachDatabase
+    : ATTACH SP StringLiteral (SP AS SP oC_SchemaName SP)?  (SP? '(' SP? DBTYPE SP StringLiteral SP? ')')?;
+
+ATTACH:
+    ( 'A' | 'a') ( 'T' | 't') ( 'T' | 't') ( 'A' | 'a') ( 'C' | 'c') ( 'H' | 'h');
+
+DBTYPE:
+    ( 'D' | 'd') ( 'B' | 'b') ( 'T' | 't') ( 'Y' | 'y') ( 'P' | 'p') ( 'E' | 'e');
+
+kU_DetachDatabase
+    : DETACH SP oC_SchemaName;
 
 kU_StandaloneCall
     : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
@@ -58,9 +76,9 @@ kU_StandaloneCall
 CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 kU_CommentOn
-    : COMMENT SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
+    : COMMENT_ SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
 
-COMMENT : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
+COMMENT_ : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
 
 kU_CreateMacro
     : CREATE SP MACRO SP oC_FunctionName SP? '(' SP? kU_PositionalArgs? SP? kU_DefaultArg? ( SP? ',' SP? kU_DefaultArg )* SP? ')' SP AS SP oC_Expression ;
@@ -81,7 +99,7 @@ kU_FilePaths
 GLOB : ( 'G' | 'g' ) ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'B' | 'b' ) ;
 
 kU_ParsingOptions
-    : kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )* ;
+    : '(' SP? kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )*  SP? ')' ;
 
 kU_ParsingOption
     : oC_SymbolicName SP? '=' SP? oC_Literal;
@@ -291,7 +309,7 @@ oC_ReadingClause
         ;
 
 kU_LoadFrom
-    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_PropertyDefinitions SP? ')' )? SP FROM SP (kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? | oC_Variable) (SP? oC_Where)? ;
+    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_PropertyDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? kU_ParsingOptions)? (SP? oC_Where)? ;
 
 LOAD : ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'A' | 'a' ) ( 'D' | 'd' )  ;
 
@@ -754,7 +772,7 @@ oC_SymbolicName
 
 // example of BEGIN and END: TCKWith2.Scenario1
 kU_NonReservedKeywords
-    : COMMENT
+    : COMMENT_
         | COUNT
         | NODE
         | REL
@@ -819,7 +837,9 @@ WHITESPACE
         ;
 
 Comment
-    : ( '/*' ( Comment_1 | ( '*' Comment_2 ) )* '*/' ) ;
+    : ( '/*' ( Comment_1 | ( '*' Comment_2 ) )* '*/' )
+        | ( '//' ( Comment_3 )* CR? ( LF | EOF ) )
+        ;
 
 oC_LeftArrowHead
     : '<'

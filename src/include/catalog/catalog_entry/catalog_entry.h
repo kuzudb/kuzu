@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace catalog {
 
-class CatalogEntry {
+class KUZU_API CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//
     // constructor & destructor

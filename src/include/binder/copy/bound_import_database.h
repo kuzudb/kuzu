@@ -4,7 +4,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundImportDatabase : public BoundStatement {
+class BoundImportDatabase final : public BoundStatement {
 public:
     BoundImportDatabase(std::string filePath, std::string query)
         : BoundStatement{common::StatementType::IMPORT_DATABASE,

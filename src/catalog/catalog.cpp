@@ -4,6 +4,8 @@
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
+#include "common/exception/catalog.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 #include "transaction/transaction_action.h"
@@ -100,10 +102,6 @@ std::vector<TableCatalogEntry*> Catalog::getTableSchemas(
     return result;
 }
 
-CatalogSet* Catalog::getFunctions(Transaction* tx) const {
-    return getVersion(tx)->functions.get();
-}
-
 void Catalog::prepareCommitOrRollback(TransactionAction action) {
     if (hasUpdates()) {
         wal->logCatalogRecord();
@@ -118,10 +116,6 @@ void Catalog::checkpointInMemory() {
         readOnlyVersion = std::move(readWriteVersion);
         resetToNotUpdated();
     }
-}
-
-ExpressionType Catalog::getFunctionType(Transaction* tx, const std::string& name) const {
-    return getVersion(tx)->getFunctionType(name);
 }
 
 table_id_t Catalog::addNodeTableSchema(const binder::BoundCreateTableInfo& info) {
@@ -256,6 +250,18 @@ void Catalog::addBuiltInFunction(std::string name, function::function_set functi
     readOnlyVersion->addFunction(std::move(name), std::move(functionSet));
 }
 
+CatalogSet* Catalog::getFunctions(Transaction* tx) const {
+    return getVersion(tx)->functions.get();
+}
+
+CatalogEntry* Catalog::getFunctionEntry(transaction::Transaction* tx, const std::string& name) {
+    auto catalogSet = getVersion(tx)->functions.get();
+    if (!catalogSet->containsEntry(name)) {
+        throw CatalogException(stringFormat("function {} does not exist.", name));
+    }
+    return catalogSet->getEntry(name);
+}
+
 bool Catalog::containsMacro(Transaction* tx, const std::string& macroName) const {
     return getVersion(tx)->containMacro(macroName);
 }
@@ -264,7 +270,9 @@ void Catalog::addScalarMacroFunction(
     std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    readWriteVersion->addScalarMacroFunction(std::move(name), std::move(macro));
+    auto scalarMacroCatalogEntry =
+        std::make_unique<ScalarMacroCatalogEntry>(std::move(name), std::move(macro));
+    readWriteVersion->functions->createEntry(std::move(scalarMacroCatalogEntry));
 }
 
 std::vector<std::string> Catalog::getMacroNames(transaction::Transaction* tx) const {

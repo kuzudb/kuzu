@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/interrupt.h"
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
 
@@ -11,9 +10,11 @@ enum class PhysicalOperatorType : uint8_t {
     ADD_PROPERTY,
     AGGREGATE,
     AGGREGATE_SCAN,
+    ATTACH_DATABASE,
     BATCH_INSERT,
     COMMENT_ON,
     CREATE_MACRO,
+    DETACH_DATABASE,
     STANDALONE_CALL,
     IN_QUERY_CALL,
     COPY_RDF,

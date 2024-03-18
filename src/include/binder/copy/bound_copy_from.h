@@ -1,7 +1,6 @@
 #pragma once
 
-#include "binder/bound_statement.h"
-#include "bound_file_scan_info.h"
+#include "binder/bound_scan_source.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "index_look_up_info.h"
 
@@ -14,24 +13,24 @@ struct ExtraBoundCopyFromInfo {
 };
 
 struct BoundCopyFromInfo {
+    // Table entry to copy into.
     catalog::TableCatalogEntry* tableEntry;
-    std::unique_ptr<BoundFileScanInfo> fileScanInfo;
-    bool containsSerial;
+    // Data source
+    std::unique_ptr<BoundBaseScanSource> source;
+    // Row offset of input data to generate internal ID.
+    std::shared_ptr<Expression> offset;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
 
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
-        std::unique_ptr<BoundFileScanInfo> fileScanInfo, bool containsSerial,
+        std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
-        : tableEntry{tableEntry}, fileScanInfo{std::move(fileScanInfo)},
-          containsSerial{containsSerial}, extraInfo{std::move(extraInfo)} {}
+        : tableEntry{tableEntry}, source{std::move(source)}, offset{offset}, extraInfo{std::move(
+                                                                                 extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCopyFromInfo);
 
 private:
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
-        : tableEntry{other.tableEntry}, containsSerial{other.containsSerial} {
-        if (other.fileScanInfo) {
-            fileScanInfo = std::make_unique<BoundFileScanInfo>(other.fileScanInfo->copy());
-        }
+        : tableEntry{other.tableEntry}, source{other.source->copy()}, offset{other.offset} {
         if (other.extraInfo) {
             extraInfo = other.extraInfo->copy();
         }

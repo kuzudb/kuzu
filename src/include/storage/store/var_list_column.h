@@ -82,10 +82,9 @@ private:
     void scanFiltered(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::ValueVector* offsetVector, const ListOffsetInfoInStorage& listOffsetInfoInStorage);
 
-    inline bool canCommitInPlace(transaction::Transaction* /*transaction*/,
-        common::node_group_idx_t /*nodeGroupIdx*/, LocalVectorCollection* /*localChunk*/,
-        const offset_to_row_idx_t& /*insertInfo*/,
-        const offset_to_row_idx_t& /*updateInfo*/) override {
+    inline bool canCommitInPlace(transaction::Transaction*, common::node_group_idx_t,
+        const LocalVectorCollection&, const offset_to_row_idx_t&, const LocalVectorCollection&,
+        const offset_to_row_idx_t&) override {
         // Always perform out-of-place commit for VAR_LIST columns.
         return false;
     }

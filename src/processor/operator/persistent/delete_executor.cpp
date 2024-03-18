@@ -82,6 +82,12 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
             detachDeleteState.get());
     }
     for (auto& relTable : bwdRelTables) {
+        // TODO(Guodong): For detach delete, there can possibly be a case where the same relTable is
+        // in both fwd and bwd rel tables set. the rels can be deleted twice. This is a temporary
+        // hack.
+        if (deleteType == DeleteNodeType::DETACH_DELETE && fwdRelTables.contains(relTable)) {
+            continue;
+        }
         deleteFromRelTable(context, deleteType, RelDataDirection::BWD, relTable, nodeIDVector,
             detachDeleteState.get());
     }

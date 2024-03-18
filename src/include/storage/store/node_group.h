@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/column_data_format.h"
-#include "common/data_chunk/data_chunk.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
@@ -11,16 +10,20 @@ class Column;
 
 class NodeGroup {
 public:
-    NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression, uint64_t capacity);
+    NodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
+        uint64_t capacity);
     NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression);
     virtual ~NodeGroup() = default;
 
     inline uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }
     inline common::row_idx_t getNumRows() const { return numRows; }
-    inline ColumnChunk* getColumnChunk(common::column_id_t columnID) {
+    inline ColumnChunk* getColumnChunkUnsafe(common::column_id_t columnID) {
         KU_ASSERT(columnID < chunks.size());
         return chunks[columnID].get();
+    }
+    inline const ColumnChunk& getColumnChunk(common::column_id_t columnID) {
+        KU_ASSERT(columnID < chunks.size());
+        return *chunks[columnID];
     }
     inline bool isFull() const { return numRows == common::StorageConstants::NODE_GROUP_SIZE; }
 
@@ -32,15 +35,14 @@ public:
     uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
         common::DataChunkState* columnState, uint64_t numValuesToAppend);
     common::offset_t append(NodeGroup* other, common::offset_t offsetInOtherNodeGroup);
-    void write(common::DataChunk* dataChunk, common::vector_idx_t offsetVector);
+    void write(std::vector<std::unique_ptr<ColumnChunk>>& data, common::vector_idx_t offsetVector);
 
     void finalize(uint64_t nodeGroupIdx_);
 
     virtual inline void writeToColumnChunk(common::vector_idx_t chunkIdx,
-        common::vector_idx_t vectorIdx, common::DataChunk* dataChunk,
-        common::ValueVector* offsetVector) {
-        chunks[chunkIdx]->write(
-            dataChunk->getValueVector(vectorIdx).get(), offsetVector, false /* isCSR */);
+        common::vector_idx_t vectorIdx, std::vector<std::unique_ptr<ColumnChunk>>& data,
+        ColumnChunk& offsetChunk) {
+        chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, false /*isCSR*/);
     }
 
 protected:
@@ -74,16 +76,14 @@ struct CSRHeaderChunks {
 
 class CSRNodeGroup : public NodeGroup {
 public:
-    CSRNodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression);
+    CSRNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression);
 
     CSRHeaderChunks& getCSRHeader() { return csrHeaderChunks; }
     const CSRHeaderChunks& getCSRHeader() const { return csrHeaderChunks; }
 
     inline void writeToColumnChunk(common::vector_idx_t chunkIdx, common::vector_idx_t vectorIdx,
-        common::DataChunk* dataChunk, common::ValueVector* offsetVector) override {
-        chunks[chunkIdx]->write(
-            dataChunk->getValueVector(vectorIdx).get(), offsetVector, true /* isCSR */);
+        std::vector<std::unique_ptr<ColumnChunk>>& data, ColumnChunk& offsetChunk) override {
+        chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, true /* isCSR */);
     }
 
 private:
@@ -92,8 +92,8 @@ private:
 
 struct NodeGroupFactory {
     static inline std::unique_ptr<NodeGroup> createNodeGroup(common::ColumnDataFormat dataFormat,
-        const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
+        const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
+        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
         return dataFormat == common::ColumnDataFormat::REGULAR ?
                    std::make_unique<NodeGroup>(columnTypes, enableCompression, capacity) :
                    std::make_unique<CSRNodeGroup>(columnTypes, enableCompression);

@@ -7,6 +7,10 @@ void FileSystem::overwriteFile(const std::string& /*from*/, const std::string& /
     KU_UNREACHABLE;
 }
 
+void FileSystem::copyFile(const std::string& /*from*/, const std::string& /*to*/) const {
+    KU_UNREACHABLE;
+}
+
 void FileSystem::createDir(const std::string& /*dir*/) const {
     KU_UNREACHABLE;
 }

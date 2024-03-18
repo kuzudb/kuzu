@@ -87,8 +87,8 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         if (pos.isValid()) {
             nodeLocalState->columnVectors.push_back(resultSet->getValueVector(pos).get());
         } else {
-            auto columnType = nodeInfo->columnTypes[i].get();
-            auto nullVector = std::make_shared<ValueVector>(*columnType);
+            auto& columnType = nodeInfo->columnTypes[i];
+            auto nullVector = std::make_shared<ValueVector>(columnType);
             nullVector->setState(state);
             nullVector->setAllNull();
             nodeLocalState->nullColumnVectors.push_back(nullVector);
@@ -134,7 +134,7 @@ void NodeBatchInsert::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
     if (indexBuilder) {
         auto nodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         indexBuilder->insert(
-            nodeGroup->getColumnChunk(pkColumnID), nodeOffset, nodeGroup->getNumRows());
+            nodeGroup->getColumnChunkUnsafe(pkColumnID), nodeOffset, nodeGroup->getNumRows());
     }
     table->append(nodeGroup);
     nodeGroup->resetToEmpty();

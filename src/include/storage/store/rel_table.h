@@ -54,10 +54,6 @@ public:
         fwdRelTableData->dropColumn(columnID);
         bwdRelTableData->dropColumn(columnID);
     }
-    inline Column* getAdjColumn(common::RelDataDirection direction) {
-        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getAdjColumn() :
-                                                            bwdRelTableData->getAdjColumn();
-    }
     inline Column* getCSROffsetColumn(common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSROffsetColumn() :
                                                             bwdRelTableData->getCSROffsetColumn();

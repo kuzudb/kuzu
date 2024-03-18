@@ -30,6 +30,7 @@ struct StructExtractBindData : public FunctionBindData {
 
 struct StructExtractFunctions {
     static function_set getFunctionSet();
+    static std::unique_ptr<ScalarFunction> getFunction(common::LogicalTypeID logicalTypeID);
 
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, Function* function);

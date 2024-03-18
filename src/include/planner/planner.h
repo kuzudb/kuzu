@@ -50,6 +50,8 @@ private:
     void appendCreateMacro(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendTransaction(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendExtension(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendAttachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendDetachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
 
     // Plan copy.
     std::unique_ptr<LogicalPlan> planCopyTo(const binder::BoundStatement& statement);
@@ -63,7 +65,7 @@ private:
     std::unique_ptr<LogicalPlan> planCopyRdfFrom(
         const binder::BoundCopyFromInfo* info, binder::expression_vector outExprs);
 
-    // Plan export database
+    // Plan export/import database
     std::unique_ptr<LogicalPlan> planExportDatabase(const binder::BoundStatement& statement);
     std::unique_ptr<LogicalPlan> planImportDatabase(const binder::BoundStatement& statement);
 
@@ -234,11 +236,16 @@ private:
     void appendCrossProduct(
         common::AccumulateType accumulateType, LogicalPlan& probePlan, LogicalPlan& buildPlan);
 
-    inline void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan) {
-        appendAccumulate(accumulateType, binder::expression_vector{}, plan);
-    }
+    // Append accumulate
+    void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan);
+    // Append accumulate with a set of expressions being flattened first.
     void appendAccumulate(common::AccumulateType accumulateType,
-        const binder::expression_vector& expressionsToFlatten, LogicalPlan& plan);
+        const binder::expression_vector& flatExprs, LogicalPlan& plan);
+    // Append accumulate with a set of expressions being flattened first.
+    // Additionally, scan table with row offset.
+    void appendAccumulate(common::AccumulateType accumulateType,
+        const binder::expression_vector& flatExprs, std::shared_ptr<binder::Expression> offset,
+        LogicalPlan& plan);
 
     void appendDummyScan(LogicalPlan& plan);
 
@@ -252,7 +259,11 @@ private:
     void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
     void appendFilter(const std::shared_ptr<binder::Expression>& predicate, LogicalPlan& plan);
 
-    void appendScanFile(const binder::BoundFileScanInfo* fileScanInfo, LogicalPlan& plan);
+    // Append scan file.
+    void appendScanFile(const binder::BoundFileScanInfo* info, LogicalPlan& plan);
+    // Append scan file. Additionally, scan row offset.
+    void appendScanFile(const binder::BoundFileScanInfo* info,
+        std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
 
     void appendDistinct(const binder::expression_vector& expressionsToDistinct, LogicalPlan& plan);
 

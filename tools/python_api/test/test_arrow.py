@@ -1,11 +1,16 @@
-import polars as pl
-import pyarrow as pa
-import ground_truth
+from __future__ import annotations
+
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from pandas import Timestamp
-import pytz
+from typing import Any
 
+import ground_truth
+import kuzu
+import polars as pl
+import pyarrow as pa
+import pytz
+from pandas import Timestamp
+from type_aliases import ConnDB
 
 # enable polars' decimal support
 pl.Config.activate_decimals(True)
@@ -37,42 +42,38 @@ _expected_dtypes = {
     "a.length": {"arrow": pa.int32(), "pl": pl.Int32},
     "m.name": {"arrow": pa.string(), "pl": pl.String},
     "a.description": {
-        "arrow": pa.struct(
-            [
-                ("rating", pa.float64()),
-                ("stars", pa.int8()),
-                ("views", pa.int64()),
-                ("release", pa.timestamp("us")),
-                ("release_ns", pa.timestamp("ns")),
-                ("release_ms", pa.timestamp("ms")),
-                ("release_sec", pa.timestamp("s")),
-                ("release_tz", pa.timestamp("us", tz="UTC")),
-                ("film", pa.date32()),
-                ("u8", pa.uint8()),
-                ("u16", pa.uint16()),
-                ("u32", pa.uint32()),
-                ("u64", pa.uint64()),
-                ("hugedata", pa.decimal128(38, 0)),
-            ]
-        ),
-        "pl": pl.Struct(
-            {
-                "rating": pl.Float64,
-                "stars": pl.Int8,
-                "views": pl.Int64,
-                "release": pl.Datetime(time_unit="us"),
-                "release_ns": pl.Datetime(time_unit="ns"),
-                "release_ms": pl.Datetime(time_unit="ms"),
-                "release_sec": pl.Datetime(time_unit="ms"),
-                "release_tz": pl.Datetime(time_unit="us", time_zone="UTC"),
-                "film": pl.Date,
-                "u8": pl.UInt8,
-                "u16": pl.UInt16,
-                "u32": pl.UInt32,
-                "u64": pl.UInt64,
-                "hugedata": pl.Decimal(precision=38, scale=0),
-            }
-        ),
+        "arrow": pa.struct([
+            ("rating", pa.float64()),
+            ("stars", pa.int8()),
+            ("views", pa.int64()),
+            ("release", pa.timestamp("us")),
+            ("release_ns", pa.timestamp("ns")),
+            ("release_ms", pa.timestamp("ms")),
+            ("release_sec", pa.timestamp("s")),
+            ("release_tz", pa.timestamp("us", tz="UTC")),
+            ("film", pa.date32()),
+            ("u8", pa.uint8()),
+            ("u16", pa.uint16()),
+            ("u32", pa.uint32()),
+            ("u64", pa.uint64()),
+            ("hugedata", pa.decimal128(38, 0)),
+        ]),
+        "pl": pl.Struct({
+            "rating": pl.Float64,
+            "stars": pl.Int8,
+            "views": pl.Int64,
+            "release": pl.Datetime(time_unit="us"),
+            "release_ns": pl.Datetime(time_unit="ns"),
+            "release_ms": pl.Datetime(time_unit="ms"),
+            "release_sec": pl.Datetime(time_unit="ms"),
+            "release_tz": pl.Datetime(time_unit="us", time_zone="UTC"),
+            "film": pl.Date,
+            "u8": pl.UInt8,
+            "u16": pl.UInt16,
+            "u32": pl.UInt32,
+            "u64": pl.UInt64,
+            "hugedata": pl.Decimal(precision=38, scale=0),
+        }),
     },
     # ------------------------------------------------
     # miscellaneous
@@ -82,12 +83,12 @@ _expected_dtypes = {
 }
 
 
-def get_result(query_result, result_type, chunk_size):
+def get_result(query_result: kuzu.QueryResult, result_type: str, chunk_size: int | None) -> Any:
     sz = [] if chunk_size is None else [chunk_size]
     return getattr(query_result, f"get_as_{result_type}")(*sz)
 
 
-def assert_column_equals(data, col_name, return_type, expected_values):
+def assert_column_equals(data: Any, col_name: str, return_type: str, expected_values: list[Any]) -> None:
     col = data[col_name]
     col_dtype = col.dtype if hasattr(col, "dtype") else col.type
     values = col.to_pylist() if return_type == "arrow" else col.to_list()
@@ -97,15 +98,15 @@ def assert_column_equals(data, col_name, return_type, expected_values):
     assert col_dtype == _expected_dtypes[col_name][return_type], f"Unexpected dtype for {col_name} ({return_type!r})"
 
 
-def assert_col_names(data, expected_col_names):
+def assert_col_names(data: Any, expected_col_names: list[str]) -> None:
     col_names = [(c._name if hasattr(c, "_name") else c.name) for c in data]
     assert col_names == expected_col_names, f"Unexpected column names: {col_names!r}"
 
 
-def test_to_arrow(establish_connection):
-    conn, db = establish_connection
+def test_to_arrow(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
 
-    def _test_person_table(_conn, return_type, chunk_size=None):
+    def _test_person_table(_conn: kuzu.Connection, return_type: str, chunk_size: int | None = None) -> None:
         query = "MATCH (a:person) RETURN a.* ORDER BY a.ID"
         data = get_result(_conn.execute(query), return_type, chunk_size)
         assert len(data.columns) == 16
@@ -121,7 +122,16 @@ def test_to_arrow(establish_connection):
             data=data,
             col_name="a.fName",
             return_type=return_type,
-            expected_values=["Alice", "Bob", "Carol", "Dan", "Elizabeth", "Farooq", "Greg", "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff"],
+            expected_values=[
+                "Alice",
+                "Bob",
+                "Carol",
+                "Dan",
+                "Elizabeth",
+                "Farooq",
+                "Greg",
+                "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff",
+            ],
         )
 
         assert_column_equals(
@@ -218,14 +228,32 @@ def test_to_arrow(establish_connection):
             data=data,
             col_name="a.usedNames",
             return_type=return_type,
-            expected_values=[["Aida"], ["Bobby"], ["Carmen", "Fred"], ["Wolfeschlegelstein", "Daniel"], ["Ein"], ["Fesdwe"], ["Grad"], ["Ad", "De", "Hi", "Kye", "Orlan"]],
+            expected_values=[
+                ["Aida"],
+                ["Bobby"],
+                ["Carmen", "Fred"],
+                ["Wolfeschlegelstein", "Daniel"],
+                ["Ein"],
+                ["Fesdwe"],
+                ["Grad"],
+                ["Ad", "De", "Hi", "Kye", "Orlan"],
+            ],
         )
 
         assert_column_equals(
             data=data,
             col_name="a.courseScoresPerTerm",
             return_type=return_type,
-            expected_values=[[[10, 8], [6, 7, 8]], [[8, 9], [9, 10]], [[8, 10]], [[7, 4], [8, 8], [9]], [[6], [7], [8]], [[8]], [[10]], [[7], [10], [6, 7]]],
+            expected_values=[
+                [[10, 8], [6, 7, 8]],
+                [[8, 9], [9, 10]],
+                [[8, 10]],
+                [[7, 4], [8, 8], [9]],
+                [[6], [7], [8]],
+                [[8]],
+                [[10]],
+                [[7], [10], [6, 7]],
+            ],
         )
 
         assert_column_equals(
@@ -260,7 +288,7 @@ def test_to_arrow(establish_connection):
             ],
         )
 
-    def _test_movies_table(_conn, return_type, chunk_size=None):
+    def _test_movies_table(_conn: kuzu.Connection, return_type: str, chunk_size: int | None = None) -> None:
         query = "MATCH (a:movies) RETURN a.length, a.description ORDER BY a.length"
         data = get_result(_conn.execute(query), return_type, chunk_size)
 
@@ -282,7 +310,9 @@ def test_to_arrow(establish_connection):
                     "stars": 2,
                     "views": 152,
                     "release": datetime(2011, 8, 20, 11, 25, 30),
-                    "release_ns": datetime(2011, 8, 20, 11, 25, 30, 123456) if return_type == "pl" else Timestamp("2011-08-20 11:25:30.123456"),
+                    "release_ns": datetime(2011, 8, 20, 11, 25, 30, 123456)
+                    if return_type == "pl"
+                    else Timestamp("2011-08-20 11:25:30.123456"),
                     "release_ms": datetime(2011, 8, 20, 11, 25, 30, 123000),
                     "release_sec": datetime(2011, 8, 20, 11, 25, 30),
                     "release_tz": datetime(2011, 8, 20, 11, 25, 30, 123456, pytz.UTC),
@@ -298,7 +328,9 @@ def test_to_arrow(establish_connection):
                     "stars": 100,
                     "views": 10003,
                     "release": datetime(2011, 2, 11, 16, 44, 22),
-                    "release_ns": datetime(2011, 2, 11, 16, 44, 22, 123456) if return_type == "pl" else Timestamp("2011-02-11 16:44:22.123456"),
+                    "release_ns": datetime(2011, 2, 11, 16, 44, 22, 123456)
+                    if return_type == "pl"
+                    else Timestamp("2011-02-11 16:44:22.123456"),
                     "release_ms": datetime(2011, 2, 11, 16, 44, 22, 123000),
                     "release_sec": datetime(2011, 2, 11, 16, 44, 22),
                     "release_tz": datetime(2011, 2, 11, 16, 44, 22, 123456, pytz.UTC),
@@ -314,7 +346,9 @@ def test_to_arrow(establish_connection):
                     "stars": 10,
                     "views": 982,
                     "release": datetime(2018, 11, 13, 13, 33, 11),
-                    "release_ns": datetime(2018, 11, 13, 13, 33, 11, 123456) if return_type == "pl" else Timestamp("2018-11-13 13:33:11.123456"),
+                    "release_ns": datetime(2018, 11, 13, 13, 33, 11, 123456)
+                    if return_type == "pl"
+                    else Timestamp("2018-11-13 13:33:11.123456"),
                     "release_ms": datetime(2018, 11, 13, 13, 33, 11, 123000),
                     "release_sec": datetime(2018, 11, 13, 13, 33, 11),
                     "release_tz": datetime(2018, 11, 13, 13, 33, 11, 123456, pytz.UTC),
@@ -328,7 +362,7 @@ def test_to_arrow(establish_connection):
             ],
         )
 
-    def _test_utf8_string(_conn, return_type, chunk_size=None):
+    def _test_utf8_string(_conn: kuzu.Connection, return_type: str, chunk_size: int | None = None) -> None:
         query = "MATCH (m:movies) RETURN m.name"
         data = get_result(_conn.execute(query), return_type, chunk_size)
 
@@ -340,7 +374,7 @@ def test_to_arrow(establish_connection):
             expected_values=["Sóló cón tu párejâ", "The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie", "Roma"],
         )
 
-    def _test_in_small_chunk_size(_conn, return_type, chunk_size=None):
+    def _test_in_small_chunk_size(_conn: kuzu.Connection, return_type: str, chunk_size: int | None = None) -> None:
         query = "MATCH (a:person) RETURN a.age, a.fName ORDER BY a.ID"
         data = get_result(_conn.execute(query), return_type, chunk_size)
 
@@ -356,10 +390,19 @@ def test_to_arrow(establish_connection):
             data=data,
             col_name="a.fName",
             return_type=return_type,
-            expected_values=["Alice", "Bob", "Carol", "Dan", "Elizabeth", "Farooq", "Greg", "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff"],
+            expected_values=[
+                "Alice",
+                "Bob",
+                "Carol",
+                "Dan",
+                "Elizabeth",
+                "Farooq",
+                "Greg",
+                "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff",
+            ],
         )
 
-    def _test_with_nulls(_conn, return_type, chunk_size=None):
+    def _test_with_nulls(_conn: kuzu.Connection, return_type: str, chunk_size: int | None = None) -> None:
         query = "MATCH (a:person:organisation) RETURN label(a) AS `a.lbl`, a.fName, a.orgCode ORDER BY a.ID"
         data = get_result(_conn.execute(query), return_type, chunk_size)
 
@@ -368,14 +411,38 @@ def test_to_arrow(establish_connection):
             data=data,
             col_name="a.lbl",
             return_type=return_type,
-            expected_values=["person", "organisation", "person", "person", "organisation", "person", "organisation", "person", "person", "person", "person"],
+            expected_values=[
+                "person",
+                "organisation",
+                "person",
+                "person",
+                "organisation",
+                "person",
+                "organisation",
+                "person",
+                "person",
+                "person",
+                "person",
+            ],
         )
 
         assert_column_equals(
             data=data,
             col_name="a.fName",
             return_type=return_type,
-            expected_values=["Alice", None, "Bob", "Carol", None, "Dan", None, "Elizabeth", "Farooq", "Greg", "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff"],
+            expected_values=[
+                "Alice",
+                None,
+                "Bob",
+                "Carol",
+                None,
+                "Dan",
+                None,
+                "Elizabeth",
+                "Farooq",
+                "Greg",
+                "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff",
+            ],
         )
 
         assert_column_equals(
@@ -397,10 +464,10 @@ def test_to_arrow(establish_connection):
     _test_with_nulls(conn, "pl")
 
 
-def test_to_arrow_complex(establish_connection):
-    conn, db = establish_connection
+def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
 
-    def _test_node(_conn):
+    def _test_node(_conn: kuzu.Connection) -> None:
         query = "MATCH (p:person) RETURN p ORDER BY p.ID"
         query_result = _conn.execute(query)
         arrow_tbl = query_result.get_as_arrow(12)
@@ -417,7 +484,7 @@ def test_to_arrow_complex(establish_connection):
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[10],
         ]
 
-    def _test_node_rel(_conn):
+    def _test_node_rel(_conn: kuzu.Connection) -> None:
         query = "MATCH (a:person)-[e:workAt]->(b:organisation) RETURN a, e, b;"
         query_result = _conn.execute(query)
         arrow_tbl = query_result.get_as_arrow(12)
@@ -459,7 +526,7 @@ def test_to_arrow_complex(establish_connection):
             ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[6],
         ]
 
-    def _test_marries_table(_conn):
+    def _test_marries_table(_conn: kuzu.Connection) -> None:
         query = "MATCH (:person)-[e:marries]->(:person) RETURN e.*"
         arrow_tbl = _conn.execute(query).get_as_arrow(8)
         assert arrow_tbl.num_columns == 3
@@ -469,12 +536,12 @@ def test_to_arrow_complex(establish_connection):
         assert len(used_addr_col) == 3
         assert used_addr_col.to_pylist() == [["toronto"], None, []]
 
-        addr_col = arrow_tbl.column(1)
+        arrow_tbl.column(1)
         assert used_addr_col.type == pa.list_(pa.int16(), 2)
         assert len(used_addr_col) == 3
         assert used_addr_col.to_pylist() == [[4, 5], [2, 5], [3, 9]]
 
-        note_col = arrow_tbl.column(2)
+        arrow_tbl.column(2)
         assert used_addr_col.type == pa.string()
         assert len(used_addr_col) == 3
         assert used_addr_col.to_pylist() == [None, "long long long string", "short str"]
@@ -483,8 +550,8 @@ def test_to_arrow_complex(establish_connection):
     # _test_node_rel(conn)
     # _test_marries_table(conn)
 
-    def test_to_arrow1(establish_connection):
-        conn, db = establish_connection
+    def test_to_arrow1(conn_db_readonly: ConnDB) -> None:
+        conn, db = conn_db_readonly
         query = "MATCH (a:person)-[e:knows]->(:person) RETURN e.summary"
         arrow_tbl = conn.execute(query).get_as_arrow(8)
         assert arrow_tbl == []

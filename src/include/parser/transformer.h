@@ -25,6 +25,7 @@ class NodePattern;
 class PatternElementChain;
 class RelPattern;
 struct ParsedCaseAlternative;
+struct BaseScanSource;
 
 class Transformer {
 public:
@@ -50,6 +51,7 @@ private:
     std::vector<std::string> transformColumnNames(CypherParser::KU_ColumnNamesContext& ctx);
     std::vector<std::string> transformFilePaths(
         const std::vector<antlr4::tree::TerminalNode*>& stringLiteral);
+    std::unique_ptr<BaseScanSource> transformScanSource(CypherParser::KU_ScanSourceContext& ctx);
     parsing_option_t transformParsingOptions(CypherParser::KU_ParsingOptionsContext& ctx);
 
     std::unique_ptr<Statement> transformExportDatabase(CypherParser::KU_ExportDatabaseContext& ctx);
@@ -216,6 +218,10 @@ private:
 
     // Transform comment on.
     std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);
+
+    // Transform attach/detach database.
+    std::unique_ptr<Statement> transformAttachDatabase(CypherParser::KU_AttachDatabaseContext& ctx);
+    std::unique_ptr<Statement> transformDetachDatabase(CypherParser::KU_DetachDatabaseContext& ctx);
 
 private:
     CypherParser::Ku_StatementsContext& root;

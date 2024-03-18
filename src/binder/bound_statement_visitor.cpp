@@ -1,6 +1,8 @@
 #include "binder/bound_statement_visitor.h"
 
 #include "binder/bound_explain.h"
+#include "binder/copy/bound_copy_from.h"
+#include "binder/copy/bound_copy_to.h"
 #include "binder/query/bound_regular_query.h"
 #include "common/cast.h"
 
@@ -53,6 +55,12 @@ void BoundStatementVisitor::visit(const BoundStatement& statement) {
     case StatementType::IMPORT_DATABASE: {
         visitImportDatabase(statement);
     } break;
+    case StatementType::ATTACH_DATABASE: {
+        visitAttachDatabase(statement);
+    } break;
+    case StatementType::DETACH_DATABASE: {
+        visitDetachDatabase(statement);
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -66,6 +74,20 @@ void BoundStatementVisitor::visitUnsafe(BoundStatement& statement) {
     default:
         break;
     }
+}
+
+void BoundStatementVisitor::visitCopyFrom(const BoundStatement& statement) {
+    auto& copyFrom = ku_dynamic_cast<const BoundStatement&, const BoundCopyFrom&>(statement);
+    if (copyFrom.getInfo()->source->type == ScanSourceType::QUERY) {
+        auto querySource = ku_dynamic_cast<BoundBaseScanSource*, BoundQueryScanSource*>(
+            copyFrom.getInfo()->source.get());
+        visit(*querySource->statement);
+    }
+}
+
+void BoundStatementVisitor::visitCopyTo(const BoundStatement& statement) {
+    auto& copyTo = ku_dynamic_cast<const BoundStatement&, const BoundCopyTo&>(statement);
+    visitRegularQuery(*copyTo.getRegularQuery());
 }
 
 void BoundStatementVisitor::visitRegularQuery(const BoundStatement& statement) {

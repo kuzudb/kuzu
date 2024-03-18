@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/string_utils.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
@@ -12,6 +11,9 @@ public:
     using string_index_t = uint32_t;
 
     DictionaryChunk(uint64_t capacity, bool enableCompression);
+    // A pointer to the dictionary chunk is stored in the StringOps for the indexTable
+    // and can't be modified easily. Moving would invalidate that pointer
+    DictionaryChunk(DictionaryChunk&& other) = delete;
 
     void resetToEmpty();
 
@@ -32,9 +34,38 @@ private:
     // of characters stored.
     std::unique_ptr<ColumnChunk> stringDataChunk;
     std::unique_ptr<ColumnChunk> offsetChunk;
-    std::unordered_map<std::string, string_index_t, common::StringUtils::string_hash,
-        std::equal_to<>>
-        indexTable;
+
+    struct DictionaryEntry {
+        string_index_t index;
+
+        std::string_view get(const DictionaryChunk& dict) const { return dict.getString(index); }
+    };
+
+    struct StringOps {
+        explicit StringOps(const DictionaryChunk* dict) : dict(dict) {}
+        const DictionaryChunk* dict;
+        using hash_type = std::hash<std::string_view>;
+        using is_transparent = void;
+
+        std::size_t operator()(const DictionaryEntry& entry) const {
+            return std::hash<std::string_view>()(entry.get(*dict));
+        }
+        std::size_t operator()(const char* str) const { return hash_type{}(str); }
+        std::size_t operator()(std::string_view str) const { return hash_type{}(str); }
+        std::size_t operator()(std::string const& str) const { return hash_type{}(str); }
+
+        bool operator()(const DictionaryEntry& lhs, const DictionaryEntry& rhs) const {
+            return lhs.get(*dict) == rhs.get(*dict);
+        }
+        bool operator()(const DictionaryEntry& lhs, std::string_view rhs) const {
+            return lhs.get(*dict) == rhs;
+        }
+        bool operator()(std::string_view lhs, const DictionaryEntry& rhs) const {
+            return lhs == rhs.get(*dict);
+        }
+    };
+
+    std::unordered_set<DictionaryEntry, StringOps /*hash*/, StringOps /*equals*/> indexTable;
 };
 } // namespace storage
 } // namespace kuzu

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.3.1.1 LANGUAGES CXX C)
+project(Kuzu VERSION 0.3.2.2 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -196,7 +196,7 @@ endif ()
 if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.1.0")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.2.0")
 
 include_directories(src/include)
 include_directories(third_party/antlr4_cypher/include)
@@ -226,7 +226,9 @@ elseif (${BUILD_BENCHMARK})
 endif ()
 add_subdirectory(tools)
 endif ()
-add_subdirectory(extension)
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/CMakeLists.txt")
+    add_subdirectory(extension)
+endif ()
 
 if (${BUILD_EXAMPLES})
     add_subdirectory(examples/c)

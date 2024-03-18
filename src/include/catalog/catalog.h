@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog_content.h"
+#include "function/table_functions.h"
 
 namespace kuzu {
 namespace storage {
@@ -50,7 +51,6 @@ public:
     std::vector<TableCatalogEntry*> getTableEntries(transaction::Transaction* tx) const;
     std::vector<TableCatalogEntry*> getTableSchemas(
         transaction::Transaction* tx, const common::table_id_vector_t& tableIDs) const;
-    CatalogSet* getFunctions(transaction::Transaction* tx) const;
 
     common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
     common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
@@ -72,10 +72,11 @@ public:
     void setTableComment(common::table_id_t tableID, const std::string& comment);
 
     // ----------------------------- Functions ----------------------------
-    common::ExpressionType getFunctionType(
-        transaction::Transaction* tx, const std::string& name) const;
     void addFunction(std::string name, function::function_set functionSet);
     void addBuiltInFunction(std::string name, function::function_set functionSet);
+    CatalogSet* getFunctions(transaction::Transaction* tx) const;
+    CatalogEntry* getFunctionEntry(transaction::Transaction* tx, const std::string& name);
+
     bool containsMacro(transaction::Transaction* tx, const std::string& macroName) const;
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);

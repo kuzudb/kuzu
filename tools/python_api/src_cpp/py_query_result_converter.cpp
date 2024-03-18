@@ -1,9 +1,11 @@
 #include "include/py_query_result_converter.h"
 
+#include "cached_import/py_cached_import.h"
 #include "common/types/value/value.h"
 #include "include/py_query_result.h"
 
 using namespace kuzu::common;
+using namespace kuzu;
 
 NPArrayWrapper::NPArrayWrapper(const LogicalType& type, uint64_t numFlatTuple)
     : type{type}, numElements{0} {
@@ -77,10 +79,8 @@ void NPArrayWrapper::appendElement(Value* value) {
         } break;
         case LogicalTypeID::STRING: {
             auto val = value->getValue<std::string>();
-            auto result = PyUnicode_New(val.length(), 127);
-            auto target_data = PyUnicode_DATA(result);
-            memcpy(target_data, val.c_str(), val.length());
-            ((PyObject**)dataBuffer)[numElements] = result;
+            py::str result(val);
+            ((py::str*)dataBuffer)[numElements] = result;
         } break;
         case LogicalTypeID::BLOB: {
             ((py::bytes*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
@@ -93,7 +93,7 @@ void NPArrayWrapper::appendElement(Value* value) {
         case LogicalTypeID::REL: {
             ((py::object*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
         } break;
-        case LogicalTypeID::FIXED_LIST:
+        case LogicalTypeID::ARRAY:
         case LogicalTypeID::VAR_LIST: {
             ((py::list*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
         } break;
@@ -174,7 +174,7 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::STRING:
     case LogicalTypeID::MAP:
     case LogicalTypeID::RECURSIVE_REL:
@@ -205,9 +205,11 @@ py::object QueryResultConverter::toDF() {
     py::dict result;
     auto colNames = queryResult->getColumnNames();
 
+    auto maskedArray = importCache->numpyma.masked_array();
+    auto fromDict = importCache->pandas.DataFrame.from_dict();
+
     for (auto i = 0u; i < colNames.size(); i++) {
-        result[colNames[i].c_str()] =
-            py::module::import("numpy.ma").attr("masked_array")(columns[i]->data, columns[i]->mask);
+        result[colNames[i].c_str()] = maskedArray(columns[i]->data, columns[i]->mask);
     }
-    return py::module::import("pandas").attr("DataFrame").attr("from_dict")(result);
+    return fromDict(result);
 }

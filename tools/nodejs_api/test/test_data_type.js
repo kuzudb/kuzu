@@ -359,8 +359,8 @@ describe("VAR_LIST", function () {
   });
 });
 
-describe("FIXED_LIST", function () {
-  it("should convert FIXED_LIST type", async function () {
+describe("ARRAY", function () {
+  it("should convert ARRAY type", async function () {
     const queryResult = await conn.query(
       "MATCH (a:person) -[m:meets]-> (b:person) WHERE a.ID = 0 AND b.ID = 2 RETURN m.location"
     );

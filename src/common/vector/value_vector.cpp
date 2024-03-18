@@ -12,6 +12,13 @@ namespace common {
 
 ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager)
     : dataType{std::move(dataType)} {
+    if (this->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
+        // LCOV_EXCL_START
+        // Alternatively we can assign
+        throw RuntimeException("Trying to a create a vector with ANY type. This should not happen. "
+                               "Data type is expected to be resolved during binding.");
+        // LCOV_EXCL_STOP
+    }
     numBytesPerValue = getDataTypeSize(this->dataType);
     initializeValueBuffer();
     nullMask = std::make_unique<NullMask>();
@@ -191,36 +198,6 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
             }
         }
     } break;
-    case PhysicalTypeID::FIXED_LIST: {
-        auto numValues = NestedVal::getChildrenSize(&value);
-        auto childType = FixedListType::getChildType(value.getDataType());
-        auto numBytesPerChildValue = getDataTypeSize(*childType);
-        auto bufferToWrite = valueBuffer.get() + pos * numBytesPerValue;
-        for (auto i = 0u; i < numValues; i++) {
-            auto val = NestedVal::getChildVal(&value, i);
-            switch (childType->getPhysicalType()) {
-            case PhysicalTypeID::INT64: {
-                memcpy(bufferToWrite, &val->getValueReference<int64_t>(), numBytesPerChildValue);
-            } break;
-            case PhysicalTypeID::INT32: {
-                memcpy(bufferToWrite, &val->getValueReference<int32_t>(), numBytesPerChildValue);
-            } break;
-            case PhysicalTypeID::INT16: {
-                memcpy(bufferToWrite, &val->getValueReference<int16_t>(), numBytesPerChildValue);
-            } break;
-            case PhysicalTypeID::DOUBLE: {
-                memcpy(bufferToWrite, &val->getValueReference<double>(), numBytesPerChildValue);
-            } break;
-            case PhysicalTypeID::FLOAT: {
-                memcpy(bufferToWrite, &val->getValueReference<float>(), numBytesPerChildValue);
-            } break;
-            default: {
-                KU_UNREACHABLE;
-            }
-            }
-            bufferToWrite += numBytesPerChildValue;
-        }
-    } break;
     case PhysicalTypeID::STRUCT: {
         auto structFields = StructVector::getFieldVectors(this);
         for (auto i = 0u; i < structFields.size(); ++i) {
@@ -233,7 +210,7 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
     }
 }
 
-std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
+std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) const {
     if (isNull(pos)) {
         return Value::createNullValue(dataType).copy();
     }
@@ -292,33 +269,6 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
         value->childrenSize = children.size();
         value->children = std::move(children);
     } break;
-    case PhysicalTypeID::FIXED_LIST: {
-        auto childDataType = FixedListType::getChildType(&dataType);
-        auto numElements = FixedListType::getNumValuesInList(&dataType);
-        std::vector<std::unique_ptr<Value>> children;
-        children.reserve(numElements);
-        switch (childDataType->getPhysicalType()) {
-        case PhysicalTypeID::INT64: {
-            FixedListVector::getAsValue<int64_t>(this, children, pos, numElements);
-        } break;
-        case PhysicalTypeID::INT32: {
-            FixedListVector::getAsValue<int32_t>(this, children, pos, numElements);
-        } break;
-        case PhysicalTypeID::INT16: {
-            FixedListVector::getAsValue<int16_t>(this, children, pos, numElements);
-        } break;
-        case PhysicalTypeID::DOUBLE: {
-            FixedListVector::getAsValue<double>(this, children, pos, numElements);
-        } break;
-        case PhysicalTypeID::FLOAT: {
-            FixedListVector::getAsValue<float>(this, children, pos, numElements);
-        } break;
-        default:
-            KU_UNREACHABLE;
-        }
-        value->childrenSize = numElements;
-        value->children = std::move(children);
-    } break;
     case PhysicalTypeID::STRUCT: {
         auto& fieldVectors = StructVector::getFieldVectors(this);
         std::vector<std::unique_ptr<Value>> children;
@@ -367,10 +317,6 @@ uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
     switch (type.getPhysicalType()) {
     case PhysicalTypeID::STRING: {
         return sizeof(ku_string_t);
-    }
-    case PhysicalTypeID::FIXED_LIST: {
-        return getDataTypeSize(*FixedListType::getChildType(&type)) *
-               FixedListType::getNumValuesInList(&type);
     }
     case PhysicalTypeID::STRUCT: {
         return sizeof(struct_entry_t);
@@ -617,57 +563,6 @@ void ListVector::sliceDataVector(ValueVector* vectorToSlice, uint64_t offset, ui
     }
     for (auto i = 0u; i < numValues - offset; i++) {
         vectorToSlice->copyFromVectorData(i, vectorToSlice, i + offset);
-    }
-}
-
-template<>
-void FixedListVector::getAsValue<int64_t>(ValueVector* vector,
-    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
-    for (auto i = 0u; i < numElements; ++i) {
-        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::INT64}).copy());
-        children[i]->val.int64Val =
-            reinterpret_cast<int64_t*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
-    }
-}
-
-template<>
-void FixedListVector::getAsValue<int32_t>(ValueVector* vector,
-    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
-    for (auto i = 0u; i < numElements; ++i) {
-        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::INT32}).copy());
-        children[i]->val.int32Val =
-            reinterpret_cast<int32_t*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
-    }
-}
-
-template<>
-void FixedListVector::getAsValue<int16_t>(ValueVector* vector,
-    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
-    for (auto i = 0u; i < numElements; ++i) {
-        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::INT16}).copy());
-        children[i]->val.int16Val =
-            reinterpret_cast<int16_t*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
-    }
-}
-
-template<>
-void FixedListVector::getAsValue<float>(ValueVector* vector,
-    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
-    for (auto i = 0u; i < numElements; ++i) {
-        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::FLOAT}).copy());
-        children[i]->val.floatVal =
-            reinterpret_cast<float*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
-    }
-}
-
-template<>
-void FixedListVector::getAsValue<double>(ValueVector* vector,
-    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
-    // default: int64
-    for (auto i = 0u; i < numElements; ++i) {
-        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::DOUBLE}).copy());
-        children[i]->val.doubleVal =
-            reinterpret_cast<double*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
     }
 }
 

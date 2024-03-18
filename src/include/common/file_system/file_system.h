@@ -29,6 +29,8 @@ public:
 
     virtual void overwriteFile(const std::string& from, const std::string& to) const;
 
+    virtual void copyFile(const std::string& from, const std::string& to) const;
+
     virtual void createDir(const std::string& dir) const;
 
     virtual void removeFileIfExists(const std::string& path) const;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/vector/value_vector.h"
-#include "function/function.h"
+#include "function/cast/cast_function_bind_data.h"
 
 namespace kuzu {
 namespace function {
@@ -41,7 +41,7 @@ struct UnaryCastStringFunctionWrapper {
         auto resultVector_ = (common::ValueVector*)resultVector;
         FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
             resultVector_->getValue<RESULT_TYPE>(resultPos), resultVector_, inputPos,
-            &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig.option);
+            &reinterpret_cast<CastFunctionBindData*>(dataPtr)->option);
     }
 };
 
@@ -87,25 +87,6 @@ struct UnaryUDFFunctionWrapper {
         auto& resultVector_ = *(common::ValueVector*)resultVector;
         FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
             resultVector_.getValue<RESULT_TYPE>(resultPos), dataPtr);
-    }
-};
-
-struct CastFixedListToListFunctionExecutor {
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
-    static void executeSwitch(
-        common::ValueVector& operand, common::ValueVector& result, void* dataPtr) {
-        auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
-        auto numValuesPerList = common::FixedListType::getNumValuesInList(&operand.dataType);
-
-        for (auto i = 0u; i < numOfEntries; i++) {
-            if (!operand.isNull(i)) {
-                for (auto j = 0u; j < numValuesPerList; j++) {
-                    OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                        (void*)(&operand), i * numValuesPerList + j, (void*)(&result),
-                        i * numValuesPerList + j, nullptr);
-                }
-            }
-        }
     }
 };
 

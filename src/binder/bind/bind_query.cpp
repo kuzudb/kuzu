@@ -36,7 +36,7 @@ void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
     }
     if ((0 < unionAllExpressionCounter) &&
         (unionAllExpressionCounter < regularQuery.getNumSingleQueries() - 1)) {
-        throw BinderException("Union and union all can't be used together.");
+        throw BinderException("Union and union all can not be used together.");
     }
 }
 

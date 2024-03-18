@@ -96,12 +96,12 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value(LogicalType::STRING(), std::string(""));
     case LogicalTypeID::FLOAT:
         return Value((float)0);
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::ARRAY: {
         std::vector<std::unique_ptr<Value>> children;
-        auto childType = FixedListType::getChildType(&dataType);
-        auto listSize = FixedListType::getNumValuesInList(&dataType);
-        children.reserve(listSize);
-        for (auto i = 0u; i < listSize; ++i) {
+        auto childType = ArrayType::getChildType(&dataType);
+        auto arraySize = ArrayType::getNumElements(&dataType);
+        children.reserve(arraySize);
+        for (auto i = 0u; i < arraySize; ++i) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*childType)));
         }
         return Value(dataType.copy(), std::move(children));
@@ -333,8 +333,8 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::VAR_LIST: {
         copyFromVarList(*(ku_list_t*)value, *VarListType::getChildType(dataType.get()));
     } break;
-    case LogicalTypeID::FIXED_LIST: {
-        copyFromFixedList(value);
+    case LogicalTypeID::ARRAY: {
+        copyFromVarList(*(ku_list_t*)value, *ArrayType::getChildType(dataType.get()));
     } break;
     case LogicalTypeID::UNION: {
         copyFromUnion(value);
@@ -408,7 +408,6 @@ void Value::copyValueFrom(const Value& other) {
         strVal = other.strVal;
     } break;
     case PhysicalTypeID::VAR_LIST:
-    case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {
         for (auto& child : other.children) {
             children.push_back(child->copy());
@@ -482,7 +481,7 @@ std::string Value::toString() const {
         return mapToString();
     }
     case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::ARRAY: {
         return listToString();
     }
     case LogicalTypeID::UNION: {
@@ -511,15 +510,6 @@ Value::Value() : isNull_{true} {
 
 Value::Value(const LogicalType& dataType_) : isNull_{true} {
     dataType = dataType_.copy();
-}
-
-void Value::copyFromFixedList(const uint8_t* fixedList) {
-    auto numBytesPerElement =
-        storage::StorageUtils::getDataTypeSize(*FixedListType::getChildType(dataType.get()));
-    for (auto i = 0u; i < childrenSize; ++i) {
-        auto childValue = children[i].get();
-        childValue->copyValueFrom(fixedList + i * numBytesPerElement);
-    }
 }
 
 void Value::copyFromVarList(ku_list_t& list, const LogicalType& childType) {
@@ -635,7 +625,6 @@ void Value::serialize(Serializer& serializer) const {
         serializer.serializeValue(strVal);
     } break;
     case PhysicalTypeID::VAR_LIST:
-    case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {
         for (auto i = 0u; i < childrenSize; ++i) {
             children[i]->serialize(serializer);
@@ -700,7 +689,6 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
         deserializer.deserializeValue(val->strVal);
     } break;
     case PhysicalTypeID::VAR_LIST:
-    case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {
         deserializer.deserializeVectorOfPtrs(val->children);
     } break;

@@ -1,4 +1,3 @@
-#include "binder/expression/variable_expression.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
@@ -27,15 +26,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
         auto op = mapCopyNodeFrom(logicalOperator);
         auto copy = ku_dynamic_cast<PhysicalOperator*, NodeBatchInsert*>(op.get());
         auto table = copy->getSharedState()->fTable;
-        return createFactorizedTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(),
-            table, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(op));
+        return createFTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), table,
+            DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(op));
     }
     case TableType::REL: {
         auto ops = mapCopyRelFrom(logicalOperator);
         auto relBatchInsert = ku_dynamic_cast<PhysicalOperator*, RelBatchInsert*>(ops[0].get());
         auto fTable = relBatchInsert->getSharedState()->fTable;
-        auto scan = createFactorizedTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(),
-            fTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(ops[0]));
+        auto scan = createFTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
+            DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(ops[0]));
         for (auto i = 1u; i < ops.size(); ++i) {
             scan->addChild(std::move(ops[i]));
         }
@@ -49,34 +48,32 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
 }
 
 static void getNodeColumnsInCopyOrder(TableCatalogEntry* tableEntry,
-    std::vector<std::string>& columnNames, logical_types_t& columnTypes) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     for (auto& property : tableEntry->getPropertiesRef()) {
         columnNames.push_back(property.getName());
-        columnTypes.push_back(property.getDataType()->copy());
+        columnTypes.push_back(*property.getDataType()->copy());
     }
 }
 
 static void getRelColumnNamesInCopyOrder(TableCatalogEntry* tableEntry,
-    std::vector<std::string>& columnNames, logical_types_t& columnTypes) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     columnNames.emplace_back(InternalKeyword::SRC_OFFSET);
     columnNames.emplace_back(InternalKeyword::DST_OFFSET);
     columnNames.emplace_back(InternalKeyword::ROW_OFFSET);
-    columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
-    columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
-    columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
+    columnTypes.emplace_back(LogicalType(LogicalTypeID::INT64));
+    columnTypes.emplace_back(LogicalType(LogicalTypeID::INT64));
+    columnTypes.emplace_back(LogicalType(LogicalTypeID::INT64));
     auto& properties = tableEntry->getPropertiesRef();
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         columnNames.push_back(properties[i].getName());
-        columnTypes.push_back(properties[i].getDataType()->copy());
+        columnTypes.push_back(*properties[i].getDataType()->copy());
     }
 }
 
 static std::shared_ptr<Expression> matchColumnExpression(
     const expression_vector& columnExpressions, const std::string& columnName) {
     for (auto& expression : columnExpressions) {
-        KU_ASSERT(expression->expressionType == ExpressionType::VARIABLE);
-        auto var = ku_dynamic_cast<Expression*, VariableExpression*>(expression.get());
-        if (columnName == var->getVariableName()) {
+        if (columnName == expression->toString()) {
             return expression;
         }
     }
@@ -121,22 +118,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     sharedState->pkColumnIdx = nodeTableEntry->getColumnID(pk->getPropertyID());
     sharedState->pkType = *pk->getDataType();
     std::vector<std::string> columnNames;
-    logical_types_t columnTypes;
+    std::vector<LogicalType> columnTypes;
     getNodeColumnsInCopyOrder(nodeTableEntry, columnNames, columnTypes);
     std::vector<std::string> columnNamesExcludingSerial;
     for (auto i = 0u; i < columnNames.size(); ++i) {
-        if (columnTypes[i]->getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
+        if (columnTypes[i].getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
             continue;
         }
         columnNamesExcludingSerial.push_back(columnNames[i]);
     }
-    auto inputColumns = copyFromInfo->fileScanInfo->columns;
-    inputColumns.push_back(copyFromInfo->fileScanInfo->offset);
+    auto inputColumns = copyFromInfo->source->getColumns();
+    inputColumns.push_back(copyFromInfo->offset);
     auto columnPositions =
         getColumnDataPositions(columnNamesExcludingSerial, inputColumns, *outFSchema);
+    auto containsSerial = nodeTableEntry->containPropertyType(*LogicalType::SERIAL());
     auto info =
         std::make_unique<NodeBatchInsertInfo>(nodeTableEntry, storageManager.compressionEnabled(),
-            std::move(columnPositions), copyFromInfo->containsSerial, std::move(columnTypes));
+            std::move(columnPositions), containsSerial, std::move(columnTypes));
     return std::make_unique<NodeBatchInsert>(std::move(info), sharedState,
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
         getOperatorID(), copyFrom->getExpressionsForPrinting());
@@ -153,7 +151,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
         auto info = logicalPartitioner->getInfo(i);
         auto keyPos = getDataPos(*info->key, *outFSchema);
         std::vector<std::string> columnNames;
-        logical_types_t columnTypes;
+        std::vector<LogicalType> columnTypes;
         getRelColumnNamesInCopyOrder(info->tableEntry, columnNames, columnTypes);
         auto columnPositions = getColumnDataPositions(columnNames, info->payloads, *outFSchema);
         infos.push_back(std::make_unique<PartitioningInfo>(keyPos, columnPositions,
@@ -168,7 +166,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
 std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     std::shared_ptr<PartitionerSharedState> partitionerSharedState,
     std::shared_ptr<BatchInsertSharedState> sharedState, LogicalCopyFrom* copyFrom,
-    RelDataDirection direction, std::vector<std::unique_ptr<common::LogicalType>> columnTypes) {
+    RelDataDirection direction, std::vector<common::LogicalType> columnTypes) {
     auto copyFromInfo = copyFrom->getInfo();
     auto outFSchema = copyFrom->getSchema();
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
@@ -195,10 +193,10 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     partitionerSharedState->dstNodeTable =
         storageManager.getNodeTable(relTableEntry->getDstTableID());
     // TODO(Xiyang): Move binding of column types to binder.
-    std::vector<std::unique_ptr<LogicalType>> columnTypes;
-    columnTypes.push_back(LogicalType::INTERNAL_ID()); // ADJ COLUMN.
+    std::vector<LogicalType> columnTypes;
+    columnTypes.push_back(*LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
     for (auto& property : relTableEntry->getPropertiesRef()) {
-        columnTypes.push_back(property.getDataType()->copy());
+        columnTypes.push_back(*property.getDataType()->copy());
     }
     auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(
         storageManager.getRelTable(relTableEntry->getTableID()), getSingleStringColumnFTable(),
@@ -268,7 +266,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* lo
     if (scanChild != nullptr) {
         copyRdf->addChild(std::move(scanChild));
     }
-    return createFactorizedTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
+    return createFTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
         DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(copyRdf));
 }
 

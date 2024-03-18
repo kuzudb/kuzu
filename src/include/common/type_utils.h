@@ -34,11 +34,6 @@ public:
                       std::is_same<T, double>::value || std::is_same<T, float>::value);
         return std::to_string(val);
     }
-    // Fixed list does not have a physical class. So we cannot reuse above toString template.
-    // dummyVector is used to avoid clang-tidy check and should be removed once we unify
-    // Fixed-LIST in memory layout with VAR-LIST.
-    static std::string fixedListToString(
-        const uint8_t* val, const common::LogicalType& type, ValueVector* dummyVector);
     static std::string nodeToString(const struct_entry_t& val, ValueVector* vector);
     static std::string relToString(const struct_entry_t& val, ValueVector* vector);
 
@@ -80,7 +75,7 @@ public:
             return common::PhysicalTypeID::INT128;
         } else if constexpr (std::is_same_v<T, interval_t>) {
             return common::PhysicalTypeID::INTERVAL;
-        } else if constexpr (std::is_same_v<T, ku_string_t>) {
+        } else if constexpr (std::same_as<T, ku_string_t> || std::same_as<T, std::string>) {
             return common::PhysicalTypeID::STRING;
         } else {
             KU_UNREACHABLE;
@@ -177,6 +172,7 @@ public:
             return func(blob_t());
         case LogicalTypeID::UUID:
             return func(ku_uuid_t());
+        case LogicalTypeID::ARRAY:
         case LogicalTypeID::VAR_LIST:
             return func(list_entry_t());
         case LogicalTypeID::MAP:
@@ -189,11 +185,9 @@ public:
         case LogicalTypeID::UNION:
             return func(union_entry_t());
         /* NOLINTEND(bugprone-branch-clone)*/
-        case LogicalTypeID::FIXED_LIST:
         case LogicalTypeID::ANY:
         case LogicalTypeID::POINTER:
         case LogicalTypeID::RDF_VARIANT:
-            // FIXED_LIST has no type
             KU_UNREACHABLE;
         }
     }
@@ -239,7 +233,6 @@ public:
             return func(list_entry_t());
         /* NOLINTEND(bugprone-branch-clone)*/
         case PhysicalTypeID::ANY:
-        case PhysicalTypeID::FIXED_LIST:
         case PhysicalTypeID::POINTER:
         case PhysicalTypeID::STRUCT:
             // Unsupported type

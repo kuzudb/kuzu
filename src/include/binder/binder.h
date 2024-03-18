@@ -7,12 +7,12 @@
 #include "expression_binder.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
-#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace parser {
 struct CreateTableInfo;
-}
+struct BaseScanSource;
+} // namespace parser
 
 namespace extension {
 struct ExtensionOptions;
@@ -29,6 +29,7 @@ struct TableFunction;
 
 namespace binder {
 
+struct BoundBaseScanSource;
 struct BoundInsertInfo;
 struct BoundSetPropertyInfo;
 struct BoundDeleteInfo;
@@ -80,12 +81,9 @@ class Binder {
     friend class ExpressionBinder;
 
 public:
-    explicit Binder(const catalog::Catalog& catalog, storage::MemoryManager* memoryManager,
-        storage::StorageManager* storageManager, common::VirtualFileSystem* vfs,
-        main::ClientContext* clientContext, extension::ExtensionOptions* extensionOptions)
-        : catalog{catalog}, memoryManager{memoryManager}, storageManager{storageManager}, vfs{vfs},
-          lastExpressionId{0}, scope{std::make_unique<BinderScope>()}, expressionBinder{this},
-          clientContext{clientContext}, extensionOptions{extensionOptions} {}
+    explicit Binder(main::ClientContext* clientContext)
+        : lastExpressionId{0}, scope{std::make_unique<BinderScope>()},
+          expressionBinder{this, clientContext}, clientContext{clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -129,26 +127,26 @@ private:
 
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config,
-        catalog::NodeTableCatalogEntry* nodeTableEntry);
-    std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config, catalog::RelTableCatalogEntry* relTableEntry);
-    std::unique_ptr<BoundStatement> bindCopyRdfFrom(const parser::Statement& statement,
-        std::unique_ptr<common::ReaderConfig> config, catalog::RDFGraphCatalogEntry* rdfGraphEntry);
-    void bindExpectedNodeColumns(catalog::NodeTableCatalogEntry* nodeTableEntry,
-        const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-        std::vector<common::LogicalType>& columnTypes);
-    void bindExpectedRelColumns(catalog::RelTableCatalogEntry* relTableEntry,
-        const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-        std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundStatement> bindCopyNodeFrom(
+        const parser::Statement& statement, catalog::NodeTableCatalogEntry* nodeTableEntry);
+    std::unique_ptr<BoundStatement> bindCopyRelFrom(
+        const parser::Statement& statement, catalog::RelTableCatalogEntry* relTableEntry);
+    std::unique_ptr<BoundStatement> bindCopyRdfFrom(
+        const parser::Statement& statement, catalog::RDFGraphCatalogEntry* rdfGraphEntry);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
     std::unique_ptr<BoundStatement> bindExportDatabaseClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindImportDatabaseClause(const parser::Statement& statement);
 
-    /*** bind file scan ***/
+    std::unique_ptr<BoundStatement> bindAttachDatabase(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindDetachDatabase(const parser::Statement& statement);
+
+    /*** bind scan source ***/
+    std::unique_ptr<BoundBaseScanSource> bindScanSource(parser::BaseScanSource* scanSource,
+        const parser::parsing_option_t& options, const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
+
     std::unordered_map<std::string, common::Value> bindParsingOptions(
         const parser::parsing_option_t& parsingOptions);
     common::FileType bindFileType(const std::vector<std::string>& filePaths);
@@ -226,7 +224,6 @@ private:
     uint64_t bindSkipLimitExpression(const parser::ParsedExpression& expression);
 
     void addExpressionsToScope(const expression_vector& projectionExpressions);
-    void resolveAnyDataTypeWithDefaultType(const expression_vector& expressions);
 
     /*** bind graph pattern ***/
     BoundGraphPattern bindGraphPattern(const std::vector<parser::PatternElement>& graphPattern);
@@ -290,19 +287,14 @@ private:
     std::unique_ptr<BinderScope> saveScope();
     void restoreScope(std::unique_ptr<BinderScope> prevVariableScope);
 
-    function::TableFunction* getScanFunction(
+    function::TableFunction getScanFunction(
         common::FileType fileType, const common::ReaderConfig& config);
 
 private:
-    const catalog::Catalog& catalog;
-    storage::MemoryManager* memoryManager;
-    storage::StorageManager* storageManager;
-    common::VirtualFileSystem* vfs;
     uint32_t lastExpressionId;
     std::unique_ptr<BinderScope> scope;
     ExpressionBinder expressionBinder;
     main::ClientContext* clientContext;
-    extension::ExtensionOptions* extensionOptions;
 };
 
 } // namespace binder

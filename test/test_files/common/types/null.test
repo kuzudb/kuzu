@@ -1,0 +1,16 @@
+-GROUP IntervalTests
+-DATASET CSV empty
+
+--
+
+-CASE NullTest
+
+-STATEMENT CREATE NODE TABLE V1 (id UUID, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE V2 (id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT WITH NULL as bid MATCH (b:V1 {id: bid}) RETURN b;
+---- 0
+
+-STATEMENT WITH NULL as bid MATCH (b:V2 {id: bid}) RETURN b;
+---- 0

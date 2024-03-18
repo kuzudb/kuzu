@@ -42,26 +42,50 @@ void ActiveQuery::reset() {
     timer = Timer();
 }
 
-ClientContext::ClientContext(Database* database)
-    : numThreadsForExecution{database->systemConfig.maxNumThreads},
-      timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS},
-      varLengthExtendMaxDepth{DEFAULT_VAR_LENGTH_EXTEND_MAX_DEPTH},
-      enableSemiMask{DEFAULT_ENABLE_SEMI_MASK}, database{database} {
+ClientContext::ClientContext(Database* database) : database{database} {
     progressBar = std::make_unique<common::ProgressBar>();
     transactionContext = std::make_unique<TransactionContext>(database);
     randomEngine = std::make_unique<common::RandomEngine>();
-    fileSearchPath = "";
 #if defined(_WIN32)
-    homeDirectory = getEnvVariable("USERPROFILE");
+    config.homeDirectory = getEnvVariable("USERPROFILE");
 #else
-    homeDirectory = getEnvVariable("HOME");
+    config.homeDirectory = getEnvVariable("HOME");
 #endif
+    config.fileSearchPath = "";
+    config.enableSemiMask = ClientConfigDefault::ENABLE_SEMI_MASK;
+    config.numThreads = database->systemConfig.maxNumThreads;
+    config.timeoutInMS = ClientConfigDefault::TIMEOUT_IN_MS;
+    config.varLengthMaxDepth = ClientConfigDefault::VAR_LENGTH_MAX_DEPTH;
 }
 
-void ClientContext::startTimingIfEnabled() {
-    if (isTimeOutEnabled()) {
+uint64_t ClientContext::getTimeoutRemainingInMS() const {
+    KU_ASSERT(hasTimeout());
+    auto elapsed = activeQuery.timer.getElapsedTimeInMS();
+    return elapsed >= config.timeoutInMS ? 0 : config.timeoutInMS - elapsed;
+}
+
+void ClientContext::startTimer() {
+    if (hasTimeout()) {
         activeQuery.timer.start();
     }
+}
+
+void ClientContext::setQueryTimeOut(uint64_t timeoutInMS) {
+    lock_t lck{mtx};
+    config.timeoutInMS = timeoutInMS;
+}
+
+uint64_t ClientContext::getQueryTimeOut() const {
+    return config.timeoutInMS;
+}
+
+void ClientContext::setMaxNumThreadForExec(uint64_t numThreads) {
+    lock_t lck{mtx};
+    config.numThreads = numThreads;
+}
+
+uint64_t ClientContext::getMaxNumThreadForExec() const {
+    return config.numThreads;
 }
 
 Value ClientContext::getCurrentSetting(const std::string& optionName) {
@@ -97,12 +121,12 @@ void ClientContext::setExtensionOption(std::string name, common::Value value) {
     extensionOptionValues.insert_or_assign(name, std::move(value));
 }
 
-VirtualFileSystem* ClientContext::getVFSUnsafe() const {
-    return database->vfs.get();
+extension::ExtensionOptions* ClientContext::getExtensionOptions() const {
+    return database->extensionOptions.get();
 }
 
 std::string ClientContext::getExtensionDir() const {
-    return common::stringFormat("{}/.kuzu/extension", homeDirectory);
+    return common::stringFormat("{}/.kuzu/extension", config.homeDirectory);
 }
 
 storage::StorageManager* ClientContext::getStorageManager() {
@@ -115,6 +139,14 @@ storage::MemoryManager* ClientContext::getMemoryManager() {
 
 catalog::Catalog* ClientContext::getCatalog() {
     return database->catalog.get();
+}
+
+VirtualFileSystem* ClientContext::getVFSUnsafe() const {
+    return database->vfs.get();
+}
+
+common::RandomEngine* ClientContext::getRandomEngine() {
+    return randomEngine.get();
 }
 
 std::string ClientContext::getEnvVariable(const std::string& name) {
@@ -132,19 +164,6 @@ std::string ClientContext::getEnvVariable(const std::string& name) {
     }
     return env;
 #endif
-}
-
-void ClientContext::setMaxNumThreadForExec(uint64_t numThreads) {
-    numThreadsForExecution = numThreads;
-}
-
-uint64_t ClientContext::getMaxNumThreadForExec() {
-    std::unique_lock<std::mutex> lck{mtx};
-    return numThreadsForExecution;
-}
-
-void ClientContext::setProgressBarPrinting(bool enable) {
-	progressBar->toggleProgressBarPrinting(enable);
 }
 
 std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query) {
@@ -249,9 +268,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
             }
         }
         // binding
-        auto binder = Binder(*database->catalog, database->memoryManager.get(),
-            database->storageManager.get(), database->vfs.get(), this,
-            database->extensionOptions.get());
+        auto binder = Binder(this);
         auto boundStatement = binder.bind(*parsedStatement);
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult =
@@ -300,16 +317,6 @@ std::vector<std::unique_ptr<Statement>> ClientContext::parseQuery(std::string_vi
     }
     statements = Parser::parseQuery(query);
     return statements;
-}
-
-void ClientContext::setQueryTimeOut(uint64_t timeoutInMS) {
-    lock_t lck{mtx};
-    this->timeoutInMS = timeoutInMS;
-}
-
-uint64_t ClientContext::getQueryTimeOut() {
-    lock_t lck{mtx};
-    return this->timeoutInMS;
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
@@ -363,7 +370,7 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
         }
     }
     this->resetActiveQuery();
-    this->startTimingIfEnabled();
+    this->startTimer();
     auto mapper = PlanMapper(
         *database->storageManager, database->memoryManager.get(), database->catalog.get(), this);
     std::unique_ptr<PhysicalPlan> physicalPlan;

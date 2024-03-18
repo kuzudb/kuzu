@@ -1,23 +1,20 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 
-#include "common/string_utils.h"
+#include "common/api.h"
 
 namespace kuzu {
 namespace common {
 
 struct CaseInsensitiveStringHashFunction {
-    uint64_t operator()(const std::string& str) const {
-        return common::StringUtils::caseInsensitiveHash(str);
-    }
+    KUZU_API uint64_t operator()(const std::string& str) const;
 };
 
 struct CaseInsensitiveStringEquality {
-    bool operator()(const std::string& left, const std::string& right) const {
-        return common::StringUtils::caseInsensitiveEquals(left, right);
-    }
+    KUZU_API bool operator()(const std::string& lhs, const std::string& rhs) const;
 };
 
 template<typename T>

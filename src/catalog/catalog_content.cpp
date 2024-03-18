@@ -40,8 +40,9 @@ CatalogContent::CatalogContent(const std::string& directory, VirtualFileSystem* 
 
 table_id_t CatalogContent::createNodeTable(const binder::BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
-    auto extraInfo = ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateNodeTableInfo*>(
-        info.extraInfo.get());
+    auto extraInfo =
+        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateNodeTableInfo*>(
+            info.extraInfo.get());
     auto nodeTableEntry =
         std::make_unique<NodeTableCatalogEntry>(info.tableName, tableID, extraInfo->primaryKeyIdx);
     for (auto& propertyInfo : extraInfo->propertyInfos) {
@@ -54,8 +55,9 @@ table_id_t CatalogContent::createNodeTable(const binder::BoundCreateTableInfo& i
 
 table_id_t CatalogContent::createRelTable(const binder::BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
-    auto extraInfo = ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRelTableInfo*>(
-        info.extraInfo.get());
+    auto extraInfo =
+        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
+            info.extraInfo.get());
     auto srcTableEntry = ku_dynamic_cast<CatalogEntry*, NodeTableCatalogEntry*>(
         getTableCatalogEntry(extraInfo->srcTableID));
     auto dstTableEntry = ku_dynamic_cast<CatalogEntry*, NodeTableCatalogEntry*>(
@@ -91,17 +93,18 @@ table_id_t CatalogContent::createRelGroup(const binder::BoundCreateTableInfo& in
 
 table_id_t CatalogContent::createRDFGraph(const binder::BoundCreateTableInfo& info) {
     table_id_t rdfGraphID = assignNextTableID();
-    auto extraInfo = ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRdfGraphInfo*>(
-        info.extraInfo.get());
+    auto extraInfo =
+        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRdfGraphInfo*>(
+            info.extraInfo.get());
     auto& resourceInfo = extraInfo->resourceInfo;
     auto& literalInfo = extraInfo->literalInfo;
     auto& resourceTripleInfo = extraInfo->resourceTripleInfo;
     auto& literalTripleInfo = extraInfo->literalTripleInfo;
     auto resourceTripleExtraInfo =
-        ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRelTableInfo*>(
+        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
             resourceTripleInfo.extraInfo.get());
     auto literalTripleExtraInfo =
-        ku_dynamic_cast<BoundExtraCreateTableInfo*, BoundExtraCreateRelTableInfo*>(
+        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
             literalTripleInfo.extraInfo.get());
     // Resource table
     auto resourceTableID = createNodeTable(resourceInfo);
@@ -202,35 +205,12 @@ void CatalogContent::readFromFile(const std::string& directory, FileVersionType 
     functions = CatalogSet::deserialize(deserializer);
 }
 
-ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
-    if (!functions->containsEntry(name)) {
-        throw CatalogException{common::stringFormat("function {} does not exist.", name)};
-    }
-    auto functionEntry = functions->getEntry(name);
-    switch (functionEntry->getType()) {
-    case CatalogEntryType::SCALAR_MACRO_ENTRY:
-        return ExpressionType::MACRO;
-    case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
-        return ExpressionType::FUNCTION;
-    case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
-        return ExpressionType::AGGREGATE_FUNCTION;
-    default:
-        KU_UNREACHABLE;
-    }
-}
-
 void CatalogContent::addFunction(std::string name, function::function_set definitions) {
     if (functions->containsEntry(name)) {
         throw CatalogException{common::stringFormat("function {} already exists.", name)};
     }
     functions->createEntry(
         std::make_unique<ScalarFunctionCatalogEntry>(std::move(name), std::move(definitions)));
-}
-
-void CatalogContent::addScalarMacroFunction(
-    std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
-    functions->createEntry(
-        std::make_unique<ScalarMacroCatalogEntry>(std::move(name), std::move(macro)));
 }
 
 function::ScalarMacroFunction* CatalogContent::getScalarMacroFunction(

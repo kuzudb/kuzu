@@ -20,8 +20,8 @@ protected:
     virtual void visitCreateTable(const BoundStatement&) {}
     virtual void visitDropTable(const BoundStatement&) {}
     virtual void visitAlter(const BoundStatement&) {}
-    virtual void visitCopyFrom(const BoundStatement&) {}
-    virtual void visitCopyTo(const BoundStatement&) {}
+    virtual void visitCopyFrom(const BoundStatement&);
+    virtual void visitCopyTo(const BoundStatement&);
     virtual void visitExportDatabase(const BoundStatement&) {}
     virtual void visitImportDatabase(const BoundStatement&) {}
     virtual void visitStandaloneCall(const BoundStatement&) {}
@@ -48,6 +48,8 @@ protected:
 
     virtual void visitProjectionBody(const BoundProjectionBody& /* projectionBody*/) {}
     virtual void visitProjectionBodyPredicate(const std::shared_ptr<Expression>& /* predicate*/) {}
+    virtual void visitAttachDatabase(const BoundStatement&) {}
+    virtual void visitDetachDatabase(const BoundStatement&) {}
 };
 
 } // namespace binder
