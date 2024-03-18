@@ -39,7 +39,7 @@ std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNe
     std::unique_lock lck{mtx};
     if (currentStateIdx == tableStates.size()) {
         return std::make_tuple(nullptr, INVALID_OFFSET, INVALID_OFFSET);
-    }    
+    }
     auto [startOffset, endOffset] = tableStates[currentStateIdx]->getNextRangeToRead();
     while (startOffset >= endOffset) {
         currentStateIdx++;

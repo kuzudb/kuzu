@@ -40,7 +40,9 @@ public:
      */
     KUZU_API uint64_t getMaxNumThreadForExec();
 
-    void setProgressBarPrinting(bool enable) { clientContext->progressBar->toggleProgressBarPrinting(enable); }
+    void setProgressBarPrinting(bool enable) { 
+        clientContext->progressBar->toggleProgressBarPrinting(enable); 
+    }
 
     /**
      * @brief Executes the given query and returns the result.

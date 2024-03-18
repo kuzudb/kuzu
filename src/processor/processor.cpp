@@ -34,7 +34,7 @@ void QueryProcessor::decomposePlanIntoTask(
     PhysicalOperator* op, Task* task, ExecutionContext* context) {
     if (op->isSource()) {
         context->clientContext->getProgressBar()->addPipeline();
-	}   
+    }   
     if (op->isSink()) {
         auto childTask =
             std::make_unique<ProcessorTask>(ku_dynamic_cast<PhysicalOperator*, Sink*>(op), context);
