@@ -226,7 +226,7 @@ elseif (${BUILD_BENCHMARK})
 endif ()
 add_subdirectory(tools)
 endif ()
-if (${BUILD_EXTENSIONS})
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/CMakeLists.txt")
     add_subdirectory(extension)
 endif ()
 
