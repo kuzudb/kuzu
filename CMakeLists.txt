@@ -228,7 +228,7 @@ add_subdirectory(tools)
 endif ()
 if(${BUILD_EXTENSIONS})
     add_subdirectory(extension)
-endif()
+endif ()
 
 if (${BUILD_EXAMPLES})
     add_subdirectory(examples/c)
