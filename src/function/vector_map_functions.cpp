@@ -5,6 +5,7 @@
 #include "function/map/functions/map_extract_function.h"
 #include "function/map/functions/map_keys_function.h"
 #include "function/map/functions/map_values_function.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 

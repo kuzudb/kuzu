@@ -7,6 +7,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/copier_config/csv_reader_config.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 

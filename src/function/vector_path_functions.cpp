@@ -4,6 +4,7 @@
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "function/path/path_function_executor.h"
+#include "function/scalar_function.h"
 #include "function/struct/vector_struct_functions.h"
 
 using namespace kuzu::common;

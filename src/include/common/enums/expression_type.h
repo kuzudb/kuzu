@@ -105,50 +105,6 @@ const char* const GREATER_THAN_EQUALS_FUNC_NAME = "GREATER_THAN_EQUALS";
 const char* const LESS_THAN_FUNC_NAME = "LESS_THAN";
 const char* const LESS_THAN_EQUALS_FUNC_NAME = "LESS_THAN_EQUALS";
 
-// arithmetics operators
-const char* const ADD_FUNC_NAME = "+";
-const char* const SUBTRACT_FUNC_NAME = "-";
-const char* const MULTIPLY_FUNC_NAME = "*";
-const char* const DIVIDE_FUNC_NAME = "/";
-const char* const MODULO_FUNC_NAME = "%";
-const char* const POWER_FUNC_NAME = "^";
-
-// arithmetics functions
-const char* const ABS_FUNC_NAME = "ABS";
-const char* const ACOS_FUNC_NAME = "ACOS";
-const char* const ASIN_FUNC_NAME = "ASIN";
-const char* const ATAN_FUNC_NAME = "ATAN";
-const char* const ATAN2_FUNC_NAME = "ATAN2";
-const char* const BITWISE_XOR_FUNC_NAME = "BITWISE_XOR";
-const char* const BITWISE_AND_FUNC_NAME = "BITWISE_AND";
-const char* const BITWISE_OR_FUNC_NAME = "BITWISE_OR";
-const char* const BITSHIFT_LEFT_FUNC_NAME = "BITSHIFT_LEFT";
-const char* const BITSHIFT_RIGHT_FUNC_NAME = "BITSHIFT_RIGHT";
-const char* const CBRT_FUNC_NAME = "CBRT";
-const char* const CEIL_FUNC_NAME = "CEIL";
-const char* const CEILING_FUNC_NAME = "CEILING";
-const char* const COS_FUNC_NAME = "COS";
-const char* const COT_FUNC_NAME = "COT";
-const char* const DEGREES_FUNC_NAME = "DEGREES";
-const char* const EVEN_FUNC_NAME = "EVEN";
-const char* const FACTORIAL_FUNC_NAME = "FACTORIAL";
-const char* const FLOOR_FUNC_NAME = "FLOOR";
-const char* const GAMMA_FUNC_NAME = "GAMMA";
-const char* const LGAMMA_FUNC_NAME = "LGAMMA";
-const char* const LN_FUNC_NAME = "LN";
-const char* const LOG_FUNC_NAME = "LOG";
-const char* const LOG2_FUNC_NAME = "LOG2";
-const char* const LOG10_FUNC_NAME = "LOG10";
-const char* const NEGATE_FUNC_NAME = "NEGATE";
-const char* const PI_FUNC_NAME = "PI";
-const char* const POW_FUNC_NAME = "POW";
-const char* const RADIANS_FUNC_NAME = "RADIANS";
-const char* const ROUND_FUNC_NAME = "ROUND";
-const char* const SIN_FUNC_NAME = "SIN";
-const char* const SIGN_FUNC_NAME = "SIGN";
-const char* const SQRT_FUNC_NAME = "SQRT";
-const char* const TAN_FUNC_NAME = "TAN";
-
 // string
 const char* const ARRAY_EXTRACT_FUNC_NAME = "ARRAY_EXTRACT";
 const char* const CONCAT_FUNC_NAME = "CONCAT";

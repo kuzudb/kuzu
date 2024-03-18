@@ -1,6 +1,7 @@
 #include "function/date/vector_date_functions.h"
 
 #include "function/date/date_functions.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 

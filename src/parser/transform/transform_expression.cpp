@@ -1,3 +1,4 @@
+#include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
@@ -9,6 +10,7 @@
 #include "parser/transformer.h"
 
 using namespace kuzu::common;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace parser {
@@ -122,7 +124,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformBitwiseOrOperatorExpress
         } else {
             auto rawName = expression->getRawName() + " | " + next->getRawName();
             expression = std::make_unique<ParsedFunctionExpression>(
-                BITWISE_OR_FUNC_NAME, std::move(expression), std::move(next), rawName);
+                BitwiseOrFunction::name, std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -138,7 +140,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformBitwiseAndOperatorExpres
         } else {
             auto rawName = expression->getRawName() + " & " + next->getRawName();
             expression = std::make_unique<ParsedFunctionExpression>(
-                BITWISE_AND_FUNC_NAME, std::move(expression), std::move(next), rawName);
+                BitwiseAndFunction::name, std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -157,11 +159,11 @@ std::unique_ptr<ParsedExpression> Transformer::transformBitShiftOperatorExpressi
                 expression->getRawName() + " " + bitShiftOperator + " " + next->getRawName();
             if (bitShiftOperator == "<<") {
                 expression = std::make_unique<ParsedFunctionExpression>(
-                    BITSHIFT_LEFT_FUNC_NAME, std::move(expression), std::move(next), rawName);
+                    BitShiftLeftFunction::name, std::move(expression), std::move(next), rawName);
             } else {
                 KU_ASSERT(bitShiftOperator == ">>");
                 expression = std::make_unique<ParsedFunctionExpression>(
-                    BITSHIFT_RIGHT_FUNC_NAME, std::move(expression), std::move(next), rawName);
+                    BitShiftRightFunction::name, std::move(expression), std::move(next), rawName);
             }
         }
     }
@@ -215,7 +217,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
         } else {
             auto rawName = expression->getRawName() + " ^ " + next->getRawName();
             expression = std::make_unique<ParsedFunctionExpression>(
-                POWER_FUNC_NAME, std::move(expression), std::move(next), rawName);
+                PowerFunction::name, std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -228,13 +230,13 @@ std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactor
     if (ctx.FACTORIAL()) { // Factorial has a higher
         auto raw = result->toString() + "!";
         result = std::make_unique<ParsedFunctionExpression>(
-            FACTORIAL_FUNC_NAME, std::move(result), std::move(raw));
+            FactorialFunction::name, std::move(result), std::move(raw));
     }
     if (!ctx.MINUS().empty()) {
         for ([[maybe_unused]] auto& _ : ctx.MINUS()) {
             auto raw = "-" + result->toString();
             result = std::make_unique<ParsedFunctionExpression>(
-                NEGATE_FUNC_NAME, std::move(result), std::move(raw));
+                NegateFunction::name, std::move(result), std::move(raw));
         }
     }
     return result;

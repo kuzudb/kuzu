@@ -1,5 +1,7 @@
 #include "function/schema/vector_node_rel_functions.h"
 
+#include "function/scalar_function.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

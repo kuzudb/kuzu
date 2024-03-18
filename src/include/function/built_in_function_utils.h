@@ -1,7 +1,7 @@
 #pragma once
 
 #include "aggregate_function.h"
-#include "scalar_function.h"
+#include "function.h"
 
 namespace kuzu {
 namespace catalog {
@@ -83,7 +83,6 @@ private:
     // Scalar functions.
     static void registerScalarFunctions(catalog::CatalogSet* catalogSet);
     static void registerComparisonFunctions(catalog::CatalogSet* catalogSet);
-    static void registerArithmeticFunctions(catalog::CatalogSet* catalogSet);
     static void registerDateFunctions(catalog::CatalogSet* catalogSet);
     static void registerTimestampFunctions(catalog::CatalogSet* catalogSet);
     static void registerIntervalFunctions(catalog::CatalogSet* catalogSet);
@@ -111,6 +110,8 @@ private:
 
     // Table functions.
     static void registerTableFunctions(catalog::CatalogSet* catalogSet);
+
+    static void registerFunctions(catalog::CatalogSet* catalogSet);
 };
 
 } // namespace function

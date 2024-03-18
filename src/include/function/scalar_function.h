@@ -21,7 +21,6 @@ using scalar_func_exec_t = std::function<void(
 // Execute boolean function and write result to selection vector. Fast path for filter.
 using scalar_func_select_t = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
-using function_set = std::vector<std::unique_ptr<Function>>;
 
 struct ScalarFunction final : public BaseScalarFunction {
 

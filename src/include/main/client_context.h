@@ -10,7 +10,7 @@
 #include "common/task_system/progress_bar.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
-#include "function/scalar_function.h"
+#include "function/function.h"
 #include "main/kuzu_fwd.h"
 #include "parser/statement.h"
 #include "prepared_statement.h"
