@@ -4,6 +4,7 @@
 
 #include "catalog/property.h"
 #include "catalog_entry.h"
+#include "common/copy_constructors.h"
 #include "common/enums/table_type.h"
 
 namespace kuzu {
@@ -19,7 +20,7 @@ public:
         : CatalogEntry{catalogType, std::move(name)}, tableID{tableID}, nextPID{0} {}
     TableCatalogEntry(const TableCatalogEntry& other)
         : CatalogEntry{other}, tableID{other.tableID}, comment{other.comment},
-          nextPID{other.nextPID}, properties{other.properties} {}
+          nextPID{other.nextPID}, properties{copyVector(other.properties)} {}
 
     //===--------------------------------------------------------------------===//
     // getter & setter
