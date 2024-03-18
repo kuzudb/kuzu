@@ -23,6 +23,7 @@ void Task::deRegisterThreadAndFinalizeTask() {
         } catch (std::exception& e) { setExceptionNoLock(std::current_exception()); }
     }
     if (isCompletedNoLock()) {
+        updateProgress();
         lck.unlock();
         cv.notify_all();
     }

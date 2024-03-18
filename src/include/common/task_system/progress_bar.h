@@ -14,8 +14,7 @@ class ProgressBar {
 
 public:
     ProgressBar()
-        : numPipelines{0}, numPipelinesFinished{0}, currentPipelineJobs{0},
-          currentPipelineJobsFinished{0}, trackProgress{false} {};
+        : numPipelines{0}, numPipelinesFinished{0}, trackProgress{false} {};
 
     void addPipeline();
 
@@ -29,22 +28,20 @@ public:
 
     void toggleProgressBarPrinting(bool enable);
 
+    void updateProgress(double curPipelineProgress);
+
 private:
     inline void setGreenFont() const { std::cerr << "\033[1;32m"; }
 
     inline void setDefaultFont() const { std::cerr << "\033[0m"; }
 
-    void printProgressBar() const;
-
-    void finishTask() const;
+    void printProgressBar(double curPipelineProgress) const;
 
     void resetProgressBar();
 
 private:
-    int numPipelines;
-    int numPipelinesFinished;
-    int currentPipelineJobs;
-    int currentPipelineJobsFinished;
+    uint32_t numPipelines;
+    uint32_t numPipelinesFinished;
     std::mutex progressBarLock;
     bool trackProgress;
 };

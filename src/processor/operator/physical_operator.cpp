@@ -214,5 +214,9 @@ std::vector<std::string> PhysicalOperator::getProfilerAttributes(Profiler& profi
     return result;
 }
 
+double PhysicalOperator::getProgress(ExecutionContext* /*context*/) const {
+    return -1;
+}
+
 } // namespace processor
 } // namespace kuzu

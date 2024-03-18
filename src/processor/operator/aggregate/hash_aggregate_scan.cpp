@@ -15,13 +15,11 @@ void HashAggregateScan::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     iota(groupByKeyVectorsColIdxes.begin(), groupByKeyVectorsColIdxes.end(), 0);
 }
 
-bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* context) {
+bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     auto [startOffset, endOffset] = sharedState->getNextRangeToRead();
     if (startOffset >= endOffset) {
         return false;
     }
-    context->clientContext->progressBar->addJobsToPipeline(
-        sharedState->getFactorizedTable()->getNumTuples());
     auto numRowsToScan = endOffset - startOffset;
     sharedState->getFactorizedTable()->scan(
         groupByKeyVectors, startOffset, numRowsToScan, groupByKeyVectorsColIdxes);
@@ -36,7 +34,6 @@ bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* context) {
         }
     }
     metrics->numOutputTuple.increase(numRowsToScan);
-    context->clientContext->progressBar->finishJobsInPipeline(numRowsToScan);
     return true;
 }
 

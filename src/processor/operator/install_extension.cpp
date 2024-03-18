@@ -16,9 +16,7 @@ using namespace kuzu::extension;
 bool InstallExtension::getNextTuplesInternal(ExecutionContext* context) {
     if (!hasExecuted) {
         hasExecuted = true;
-        context->clientContext->progressBar->addJobsToPipeline(2);
         installExtension(context->clientContext);
-        context->clientContext->progressBar->finishJobsInPipeline(1);
     }
     return false;
 }
@@ -60,7 +58,6 @@ void InstallExtension::saveExtensionToLocalFile(
 
 void InstallExtension::installExtension(main::ClientContext* context) {
     auto extensionData = tryDownloadExtension();
-    context->progressBar->finishJobsInPipeline(1);
     saveExtensionToLocalFile(extensionData, context);
 }
 

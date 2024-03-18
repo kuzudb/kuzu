@@ -25,6 +25,8 @@ public:
 
     std::pair<common::offset_t, common::offset_t> getNextRangeToRead();
 
+    common::offset_t getCurrentNodeOffset() const { return currentNodeOffset; }
+
 private:
     storage::NodeTable* table;
     common::offset_t maxNodeOffset;
@@ -42,6 +44,7 @@ public:
     }
     inline uint32_t getNumTableStates() const { return tableStates.size(); }
     inline NodeTableScanState* getTableState(uint32_t idx) const { return tableStates[idx].get(); }
+    inline NodeTableScanState* getCurrentTableState();
 
     void initialize(transaction::Transaction* transaction);
 
@@ -71,6 +74,8 @@ public:
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<ScanNodeID>(outDataPos, sharedState, id, paramsString);
     }
+
+    double getProgress(ExecutionContext* context) const override;
 
 private:
     inline void initGlobalStateInternal(ExecutionContext* context) override {

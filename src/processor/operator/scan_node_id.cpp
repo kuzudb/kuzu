@@ -52,6 +52,14 @@ std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNe
     return std::make_tuple(tableStates[currentStateIdx].get(), startOffset, endOffset);
 }
 
+NodeTableScanState* ScanNodeIDSharedState::getCurrentTableState() {
+	std::unique_lock lck{mtx};
+	if (currentStateIdx == tableStates.size()) {
+		return nullptr;
+	}
+	return tableStates[currentStateIdx].get();
+}
+
 void ScanNodeID::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     outValueVector = resultSet->getValueVector(outDataPos);
     outValueVector->setSequential();
@@ -63,7 +71,6 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
         if (state == nullptr) {
             return false;
         }
-        context->clientContext->progressBar->addJobsToPipeline(state->getTable()->getNumTuples());
         auto nodeIDValues = (nodeID_t*)(outValueVector->getData());
         auto size = endOffset - startOffset;
         for (auto i = 0u; i < size; ++i) {
@@ -74,8 +81,6 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
         setSelVector(context, state, startOffset, endOffset);
     } while (outValueVector->state->selVector->selectedSize == 0);
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
-    context->clientContext->progressBar->finishJobsInPipeline(
-        outValueVector->state->selVector->selectedSize);
     return true;
 }
 
@@ -99,6 +104,15 @@ void ScanNodeID::setSelVector(ExecutionContext* context, NodeTableScanState* tab
     // Apply changes to the selVector from nodes metadata.
     tableState->getTable()->setSelVectorForDeletedOffsets(
         context->clientContext->getTx(), outValueVector);
+}
+
+double ScanNodeID::getProgress(ExecutionContext* context) const {
+    if (!sharedState->getCurrentTableState()) {
+        return 0.0;
+    }
+    uint64_t numTuples = sharedState->getCurrentTableState()->getTable()->getNumTuples();
+    uint64_t numReadTuples = sharedState->getCurrentTableState()->getCurrentNodeOffset();
+    return numTuples == 0 ? 0.0 : (double)numReadTuples / numTuples;
 }
 
 } // namespace processor

@@ -8,7 +8,7 @@ void ProgressBar::startProgress() {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
-    printProgressBar();
+    printProgressBar(0.0);
 }
 
 void ProgressBar::addPipeline() {
@@ -23,53 +23,34 @@ void ProgressBar::finishPipeline() {
     if (!trackProgress) {
         return;
     }
-    std::lock_guard<std::mutex> lock(progressBarLock);
+    std::unique_lock<std::mutex> lock(progressBarLock);
     numPipelinesFinished++;
-    currentPipelineJobsFinished = 0;
-    currentPipelineJobs = 0;
-    finishTask();
+    lock.unlock();
+    updateProgress(0.0);
     if (numPipelines == numPipelinesFinished) {
+        lock.lock();
         resetProgressBar();
     }
 }
 
-void ProgressBar::addJobsToPipeline(int jobs) {
+void ProgressBar::updateProgress(double curPipelineProgress) {
     if (!trackProgress) {
         return;
     }
-	std::lock_guard<std::mutex> lock(progressBarLock);
-    if (currentPipelineJobs == 0) {
-		currentPipelineJobs = jobs;
-	}
-}
-
-void ProgressBar::finishJobsInPipeline(int jobs) {
-    if (!trackProgress) {
-        return;
-    }
-	std::lock_guard<std::mutex> lock(progressBarLock);
-	currentPipelineJobsFinished += jobs;
-    finishTask();
-}
-
-void ProgressBar::finishTask() const {
+    std::lock_guard<std::mutex> lock(progressBarLock);
     std::cout << "\033[2A\033[2K\033[1B\033[2K\033[1A";
-    printProgressBar();
+    printProgressBar(curPipelineProgress);
 }
 
-void ProgressBar::printProgressBar() const {
+void ProgressBar::printProgressBar(double curPipelineProgress) const {
     float pipelineProgress = 0.0;
     if (numPipelines > 0) {
         pipelineProgress = (float)numPipelinesFinished / (float)numPipelines;
     }
-    float currentPipelineProgress = 0.0;
-    if (currentPipelineJobs > 0) {
-        currentPipelineProgress = (float)currentPipelineJobsFinished / (float)currentPipelineJobs;
-    }
     setGreenFont();
     std::cout << "Pipelines Finished: " << int(pipelineProgress * 100.0) << "%"
          << "\n";
-    std::cout << "Current Pipeline Progress: " << int(currentPipelineProgress * 100.0) << "%" 
+    std::cout << "Current Pipeline Progress: " << int(curPipelineProgress * 100.0) << "%" 
          << "\n";
     std::cout.flush();
     setDefaultFont();

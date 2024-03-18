@@ -9,7 +9,6 @@ bool StandaloneCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* co
     if (standaloneCallInfo->hasExecuted) {
         return false;
     }
-    context->clientContext->progressBar->addJobsToPipeline(1);
     standaloneCallInfo->hasExecuted = true;
     switch (standaloneCallInfo->option->optionType) {
     case main::OptionType::CONFIGURATION: {
@@ -25,7 +24,6 @@ bool StandaloneCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* co
         break;
     }
     metrics->numOutputTuple.increase(1);
-    context->clientContext->progressBar->finishJobsInPipeline(1);
     return true;
 }
 

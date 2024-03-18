@@ -38,15 +38,13 @@ void UnionAllScan::initLocalStateInternal(
     }
 }
 
-bool UnionAllScan::getNextTuplesInternal(ExecutionContext* context) {
+bool UnionAllScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     auto morsel = sharedState->getMorsel();
     if (morsel->numTuples == 0) {
         return false;
     }
-    context->clientContext->progressBar->addJobsToPipeline(morsel->table->getNumTuples());
     morsel->table->scan(vectors, morsel->startTupleIdx, morsel->numTuples, info->columnIndices);
     metrics->numOutputTuple.increase(morsel->numTuples);
-    context->clientContext->progressBar->finishJobsInPipeline(morsel->numTuples);
     return true;
 }
 

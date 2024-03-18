@@ -11,12 +11,10 @@ bool DDL::getNextTuplesInternal(ExecutionContext* context) {
     if (hasExecuted) {
         return false;
     }
-    context->clientContext->progressBar->addJobsToPipeline(1);
     hasExecuted = true;
     executeDDLInternal(context);
     outputVector->setValue<std::string>(0, getOutputMsg());
     metrics->numOutputTuple.increase(1);
-    context->clientContext->progressBar->finishJobsInPipeline(1);
     return true;
 }
 

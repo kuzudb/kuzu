@@ -58,7 +58,6 @@ bool LoadExtension::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     hasExecuted = true;
-    context->clientContext->progressBar->addJobsToPipeline(1);
     if (!extension::ExtensionUtils::isFullPath(path)) {
         path = ExtensionUtils::getExtensionPath(context->clientContext->getExtensionDir(), path);
     }
@@ -74,7 +73,6 @@ bool LoadExtension::getNextTuplesInternal(ExecutionContext* context) {
                 dlErrMessage()));
     }
     (*load)(context->clientContext);
-    context->clientContext->progressBar->finishJobsInPipeline(1);
     return true;
 }
 

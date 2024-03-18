@@ -16,7 +16,6 @@ bool Profile::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     localState.hasExecuted = true;
-    context->clientContext->progressBar->addJobsToPipeline(1);
     ku_string_t profileStr;
     auto planPrinter = std::make_unique<main::PlanPrinter>(info.physicalPlan, context->profiler);
     auto planInString = planPrinter->printPlanToOstream().str();
@@ -25,7 +24,6 @@ bool Profile::getNextTuplesInternal(ExecutionContext* context) {
     selVector->selectedSize = 1;
     outputVector->setValue<ku_string_t>(selVector->selectedPositions[0], profileStr);
     metrics->numOutputTuple.increase(1);
-    context->clientContext->progressBar->finishJobsInPipeline(1);
     return true;
 }
 
