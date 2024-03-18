@@ -51,8 +51,7 @@ struct ShellCommand {
     const char* QUIT = ":quit";
     const char* MAX_ROWS = ":max_rows";
     const char* MAX_WIDTH = ":max_width";
-    const char* PROGRESS_BAR = ":progress_bar";
-    const std::array<const char*, 6> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, PROGRESS_BAR};
+    const std::array<const char*, 6> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -285,8 +284,6 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         setMaxRows(lineStr.substr(strlen(shellCommand.MAX_ROWS)));
     } else if (lineStr.rfind(shellCommand.MAX_WIDTH) == 0) {
         setMaxWidth(lineStr.substr(strlen(shellCommand.MAX_WIDTH)));
-    } else if (lineStr.rfind(shellCommand.PROGRESS_BAR) == 0) {
-        toggleProgressBar(lineStr.substr(strlen(shellCommand.PROGRESS_BAR)));
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
         printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
@@ -430,20 +427,6 @@ void EmbeddedShell::setMaxWidth(const std::string& maxWidthString) {
     printf("maxWidth set as %d\n", parsedMaxWidth);
 }
 
-void EmbeddedShell::toggleProgressBar(const std::string& state) {
-    std::string stateTrimmed = state;
-    stateTrimmed = stateTrimmed.erase(0, state.find_first_not_of(" \t\n\r\f\v"));
-    if (stateTrimmed == "on") {
-        conn->setProgressBarPrinting(true);
-        printf("Turned progress bar on.\n");
-    } else if (stateTrimmed == "off") {
-        conn->setProgressBarPrinting(false);
-        printf("Turned progress bar off\n");
-    } else {
-        printf("Cannot parse '%s' as progress bar state. Expect on|off.\n", stateTrimmed.c_str());
-	}
-}
-
 void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR, TAB);
@@ -452,11 +435,10 @@ void EmbeddedShell::printHelp() {
         shellCommand.MAX_ROWS, TAB);
     printf("%s%s [max_width] %sset maximum width in characters for display\n", TAB,
         shellCommand.MAX_WIDTH, TAB);
-    printf("%s%s [on|off] %stoggle progress bar for queries\n", TAB, shellCommand.PROGRESS_BAR, TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
         TAB);
-    printf("%s%s  timeout, and logging_level using Cypher CALL statements.\n", TAB, TAB);
+    printf("%s%s  timeout, and progress_bar using Cypher CALL statements.\n", TAB, TAB);
     printf("%s%s  e.g. CALL THREADS=5; or CALL current_setting('threads') return *;\n", TAB, TAB);
     printf("%s%s  See: https://docs.kuzudb.com/cypher/configuration\n", TAB, TAB);
 }

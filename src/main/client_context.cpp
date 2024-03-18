@@ -56,6 +56,7 @@ ClientContext::ClientContext(Database* database) : database{database} {
     config.numThreads = database->systemConfig.maxNumThreads;
     config.timeoutInMS = ClientConfigDefault::TIMEOUT_IN_MS;
     config.varLengthMaxDepth = ClientConfigDefault::VAR_LENGTH_MAX_DEPTH;
+    config.progressBar = ClientConfigDefault::PROGRESS_BAR;
 }
 
 uint64_t ClientContext::getTimeoutRemainingInMS() const {
@@ -114,6 +115,16 @@ transaction::Transaction* ClientContext::getTx() const {
 
 TransactionContext* ClientContext::getTransactionContext() const {
     return transactionContext.get();
+}
+
+void ClientContext::setProgressBarPrinting(bool progressBarPrinting) {
+    lock_t lck{mtx};
+    config.progressBar = progressBarPrinting;
+    progressBar->toggleProgressBarPrinting(progressBarPrinting);
+}
+
+common::ProgressBar* ClientContext::getProgressBar() const {
+    return progressBar.get();
 }
 
 void ClientContext::setExtensionOption(std::string name, common::Value value) {

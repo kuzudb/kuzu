@@ -178,6 +178,7 @@ struct ClientConfigDefault {
     static constexpr uint64_t TIMEOUT_IN_MS = 0;
     static constexpr uint32_t VAR_LENGTH_MAX_DEPTH = 30;
     static constexpr bool ENABLE_SEMI_MASK = true;
+    static constexpr bool PROGRESS_BAR = true;
 };
 
 struct OrderByConstants {

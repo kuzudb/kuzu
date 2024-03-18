@@ -18,6 +18,8 @@ struct ClientConfig {
     uint64_t timeoutInMS;
     // variable length maximum depth
     uint32_t varLengthMaxDepth;
+    // If using progress bar
+    bool progressBar;
 };
 
 } // namespace main
