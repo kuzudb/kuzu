@@ -7,7 +7,8 @@ namespace kuzu {
 namespace common {
 
 /**
- * @brief Progress bar for tracking the progress of a pipeline. Prints the progress of each query pipeline and the overall progress.
+ * @brief Progress bar for tracking the progress of a pipeline. Prints the progress of each query 
+ * pipeline and the overall progress.
  */
 class ProgressBar {
 

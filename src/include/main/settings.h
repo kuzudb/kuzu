@@ -31,15 +31,15 @@ struct TimeoutSetting {
 };
 
 struct ProgressBarSetting {
-	static constexpr const char* name = "progress_bar";
-	static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
+    static constexpr const char* name = "progress_bar";
+    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
     static void setContext(ClientContext* context, const common::Value& parameter) {
-		KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::BOOL);
-		context->getClientConfigUnsafe()->progressBar = parameter.getValue<bool>();
-	}
+        KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::BOOL);
+        context->getClientConfigUnsafe()->progressBar = parameter.getValue<bool>();
+    }
     static common::Value getSetting(ClientContext* context) {
-		return common::Value(context->getClientConfig()->progressBar);
-	}
+        return common::Value(context->getClientConfig()->progressBar);
+    }
 };
 
 struct VarLengthExtendMaxDepthSetting {
