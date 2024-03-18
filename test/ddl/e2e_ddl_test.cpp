@@ -333,7 +333,7 @@ TEST_F(TinySnbDDLTest, AddInt64PropertyToPersonTableWithoutDefaultValueRecovery)
         "INT64" /* propertyType */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddFixedListPropertyToPersonTableWithoutDefaultValueRecovery) {
+TEST_F(TinySnbDDLTest, AddArrayPropertyToPersonTableWithoutDefaultValueRecovery) {
     addPropertyToPersonTableWithoutDefaultValue(
         "DOUBLE[5]" /* propertyType */, TransactionTestType::RECOVERY);
 }

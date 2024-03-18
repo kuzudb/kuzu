@@ -28,10 +28,10 @@ std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
         auto childType = VarListType::getChildType(&type);
         parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
     } break;
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::ARRAY: {
         auto parentTypeInfo = columnTypeInfo.get();
-        parentTypeInfo->numValuesPerList = FixedListType::getNumValuesInList(&type);
-        auto childType = FixedListType::getChildType(&type);
+        parentTypeInfo->fixedNumValues = ArrayType::getNumElements(&type);
+        auto childType = ArrayType::getChildType(&type);
         parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
     } break;
     case LogicalTypeID::STRUCT: {

@@ -243,7 +243,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
                                             py::arg("microseconds") = intervalVal.micros));
     }
     case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::ARRAY: {
         py::list list;
         for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
             list.append(convertValueToPyObject(*NestedVal::getChildVal(&value, i)));

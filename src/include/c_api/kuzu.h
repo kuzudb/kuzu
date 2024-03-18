@@ -292,18 +292,18 @@ typedef enum {
     KUZU_TIMESTAMP_NS = 38,
     KUZU_TIMESTAMP_TZ = 39,
     KUZU_INTERVAL = 40,
-    KUZU_FIXED_LIST = 41,
     KUZU_INTERNAL_ID = 42,
     // variable size types
     KUZU_STRING = 50,
     KUZU_BLOB = 51,
     KUZU_VAR_LIST = 52,
-    KUZU_STRUCT = 53,
-    KUZU_MAP = 54,
-    KUZU_UNION = 55,
-    KUZU_RDF_VARIANT = 56,
-    KUZU_POINTER = 57,
-    KUZU_UUID = 58
+    KUZU_ARRAY = 53,
+    KUZU_STRUCT = 54,
+    KUZU_MAP = 55,
+    KUZU_UNION = 56,
+    KUZU_RDF_VARIANT = 57,
+    KUZU_POINTER = 58,
+    KUZU_UUID = 59
 } kuzu_data_type_id;
 
 // Database
@@ -683,15 +683,14 @@ KUZU_C_API char* kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple);
 // DataType
 // TODO(Chang): Refactor the datatype constructor to follow the cpp way of creating dataTypes.
 /**
- * @brief Creates a data type instance with the given id, childType and fixed_num_elements_in_list.
+ * @brief Creates a data type instance with the given id, childType and num_elements_in_array.
  * Caller is responsible for destroying the returned data type instance.
  * @param id The enum type id of the datatype to create.
  * @param child_type The child type of the datatype to create(only used for nested dataTypes).
- * @param fixed_num_elements_in_list The fixed number of elements in the list(only used for
- * FIXED_LIST).
+ * @param num_elements_in_array The number of elements in the array(only used for ARRAY).
  */
 KUZU_C_API kuzu_logical_type* kuzu_data_type_create(
-    kuzu_data_type_id id, kuzu_logical_type* child_type, uint64_t fixed_num_elements_in_list);
+    kuzu_data_type_id id, kuzu_logical_type* child_type, uint64_t num_elements_in_array);
 /**
  * @brief Creates a new data type instance by cloning the given data type instance.
  * @param data_type The data type instance to clone.
@@ -714,10 +713,10 @@ KUZU_C_API bool kuzu_data_type_equals(kuzu_logical_type* data_type1, kuzu_logica
  */
 KUZU_C_API kuzu_data_type_id kuzu_data_type_get_id(kuzu_logical_type* data_type);
 /**
- * @brief Returns the number of elements per list for fixedSizeList.
+ * @brief Returns the number of elements for array.
  * @param data_type The data type instance to return.
  */
-KUZU_C_API uint64_t kuzu_data_type_get_fixed_num_elements_in_list(kuzu_logical_type* data_type);
+KUZU_C_API uint64_t kuzu_data_type_get_num_elements_in_array(kuzu_logical_type* data_type);
 
 // Value
 /**
@@ -892,8 +891,8 @@ KUZU_C_API void kuzu_value_copy(kuzu_value* value, kuzu_value* other);
 KUZU_C_API void kuzu_value_destroy(kuzu_value* value);
 /**
  * @brief Returns the number of elements per list of the given value. The value must be of type
- * FIXED_LIST.
- * @param value The FIXED_LIST value to get list size.
+ * ARRAY.
+ * @param value The ARRAY value to get list size.
  */
 KUZU_C_API uint64_t kuzu_value_get_list_size(kuzu_value* value);
 /**

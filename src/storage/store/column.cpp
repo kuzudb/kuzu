@@ -888,8 +888,7 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
     case LogicalTypeID::TIMESTAMP_NS:
     case LogicalTypeID::TIMESTAMP_SEC:
     case LogicalTypeID::TIMESTAMP_TZ:
-    case LogicalTypeID::INTERVAL:
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::INTERVAL: {
         return std::make_unique<Column>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
@@ -902,6 +901,7 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
         return std::make_unique<StringColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
         return std::make_unique<VarListColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,

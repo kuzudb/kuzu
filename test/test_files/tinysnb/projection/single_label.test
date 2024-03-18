@@ -395,7 +395,7 @@ Dan|Carol
 #(0:2)-{_LABEL: marries, _ID: 7:1, address: [2,5], note: long long long string}->(0:3)
 #(0:4)-{_LABEL: marries, _ID: 7:2, usedAddress: [], address: [3,9], note: short str}->(0:5)
 
--LOG ReturnFixedListNodeProp
+-LOG ReturnArrayNodeProp
 -STATEMENT MATCH (a:person) RETURN a.grades
 ---- 8
 [96,54,86,92]
@@ -407,7 +407,7 @@ Dan|Carol
 [43,83,67,43]
 [77,64,100,54]
 
--LOG ReturnFixedListRelProp
+-LOG ReturnArrayRelProp
 -STATEMENT MATCH (a:person)-[e:workAt]->(o:organisation) RETURN e.grading
 ---- 3
 [2.100000,4.400000]
@@ -433,7 +433,7 @@ Dan|Carol
 7.600000
 9.200000
 
--LOG ReturnFixedListFloatRelProp
+-LOG ReturnArrayFloatRelProp
 -STATEMENT MATCH (a:person)-[e:meets]->(b:person) RETURN e.location
 ---- 7
 [7.820000,3.540000]
@@ -458,7 +458,7 @@ Dan|Carol
 55
 22
 
--LOG ReturnFixedListInt16RelProp
+-LOG ReturnArrayInt16RelProp
 -STATEMENT MATCH (a:person)-[e:marries]->(b:person) RETURN e.address
 ---- 3
 [4,5]

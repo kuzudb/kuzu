@@ -236,7 +236,6 @@ private:
     Value();
     explicit Value(const LogicalType& dataType);
 
-    void copyFromFixedList(const uint8_t* fixedList);
     void copyFromVarList(ku_list_t& list, const LogicalType& childType);
     void copyFromStruct(const uint8_t* kuStruct);
     void copyFromUnion(const uint8_t* kuUnion);

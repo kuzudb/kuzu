@@ -23,11 +23,11 @@ public class DataTypeTest extends TestBase {
         assertEquals(dataTypeClone2.getID(), KuzuDataTypeID.VAR_LIST);
         assertEquals(dataTypeClone2.getChildType().getID(), KuzuDataTypeID.INT64);
 
-        KuzuDataType dataType3 = new KuzuDataType(KuzuDataTypeID.FIXED_LIST, dataType, 100);
+        KuzuDataType dataType3 = new KuzuDataType(KuzuDataTypeID.ARRAY, dataType, 100);
         assertNotNull(dataType3);
         KuzuDataType dataTypeClone3 = dataType3.clone();
         assertNotNull(dataTypeClone3);
-        assertEquals(dataTypeClone3.getID(), KuzuDataTypeID.FIXED_LIST);
+        assertEquals(dataTypeClone3.getID(), KuzuDataTypeID.ARRAY);
         assertEquals(dataTypeClone3.getChildType().getID(), KuzuDataTypeID.INT64);
         assertEquals(dataTypeClone3.getFixedNumElementsInList(), 100);
 
@@ -55,7 +55,7 @@ public class DataTypeTest extends TestBase {
         assertNotNull(dataTypeClone2);
         assertTrue(dataType2.equals(dataTypeClone2));
 
-        KuzuDataType dataType3 = new KuzuDataType(KuzuDataTypeID.FIXED_LIST, dataType, 100);
+        KuzuDataType dataType3 = new KuzuDataType(KuzuDataTypeID.ARRAY, dataType, 100);
         assertNotNull(dataType3);
         KuzuDataType dataTypeClone3 = dataType3.clone();
         assertNotNull(dataTypeClone3);
@@ -84,9 +84,9 @@ public class DataTypeTest extends TestBase {
         assertNotNull(dataType2);
         assertEquals(dataType2.getID(), KuzuDataTypeID.VAR_LIST);
 
-        KuzuDataType dataType3 = new KuzuDataType(KuzuDataTypeID.FIXED_LIST, dataType, 100);
+        KuzuDataType dataType3 = new KuzuDataType(KuzuDataTypeID.ARRAY, dataType, 100);
         assertNotNull(dataType3);
-        assertEquals(dataType3.getID(), KuzuDataTypeID.FIXED_LIST);
+        assertEquals(dataType3.getID(), KuzuDataTypeID.ARRAY);
 
         dataType.destroy();
         dataType2.destroy();
@@ -102,7 +102,7 @@ public class DataTypeTest extends TestBase {
         assertNotNull(dataType2);
         assertEquals(dataType2.getChildType().getID(), KuzuDataTypeID.INT64);
 
-        KuzuDataType dataType3 = new KuzuDataType(KuzuDataTypeID.FIXED_LIST, dataType, 100);
+        KuzuDataType dataType3 = new KuzuDataType(KuzuDataTypeID.ARRAY, dataType, 100);
         assertNotNull(dataType3);
         assertEquals(dataType3.getChildType().getID(), KuzuDataTypeID.INT64);
 
@@ -121,7 +121,7 @@ public class DataTypeTest extends TestBase {
         assertNotNull(dataType2);
         assertEquals(dataType.getFixedNumElementsInList(), 0);
 
-        KuzuDataType dataType3 = new KuzuDataType(KuzuDataTypeID.FIXED_LIST, dataType, 100);
+        KuzuDataType dataType3 = new KuzuDataType(KuzuDataTypeID.ARRAY, dataType, 100);
         assertNotNull(dataType3);
         assertEquals(dataType3.getFixedNumElementsInList(), 100);
 

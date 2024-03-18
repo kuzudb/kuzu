@@ -72,7 +72,6 @@ pub(crate) mod ffi {
         TIMESTAMP_NS = 38,
         TIMESTAMP_TZ = 39,
         INTERVAL = 40,
-        FIXED_LIST = 41,
 
         INTERNAL_ID = 42,
 
@@ -80,12 +79,13 @@ pub(crate) mod ffi {
         STRING = 50,
         BLOB = 51,
         VAR_LIST = 52,
-        STRUCT = 53,
-        MAP = 54,
-        UNION = 55,
-        RDF_VARIANT = 56,
+        ARRAY = 53,
+        STRUCT = 54,
+        MAP = 55,
+        UNION = 56,
+        RDF_VARIANT = 57,
 
-        UUID = 58,
+        UUID = 59,
     }
 
     #[namespace = "kuzu::common"]
@@ -208,7 +208,7 @@ pub(crate) mod ffi {
         fn create_logical_type_var_list(
             child_type: UniquePtr<LogicalType>,
         ) -> UniquePtr<LogicalType>;
-        fn create_logical_type_fixed_list(
+        fn create_logical_type_array(
             child_type: UniquePtr<LogicalType>,
             num_elements: u64,
         ) -> UniquePtr<LogicalType>;
@@ -226,8 +226,8 @@ pub(crate) mod ffi {
         ) -> UniquePtr<LogicalType>;
 
         fn logical_type_get_var_list_child_type(value: &LogicalType) -> &LogicalType;
-        fn logical_type_get_fixed_list_child_type(value: &LogicalType) -> &LogicalType;
-        fn logical_type_get_fixed_list_num_elements(value: &LogicalType) -> u64;
+        fn logical_type_get_array_child_type(value: &LogicalType) -> &LogicalType;
+        fn logical_type_get_array_num_elements(value: &LogicalType) -> u64;
         fn logical_type_get_struct_field_names(value: &LogicalType) -> Vec<String>;
         fn logical_type_get_struct_field_types(
             value: &LogicalType,

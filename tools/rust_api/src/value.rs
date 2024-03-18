@@ -247,7 +247,7 @@ pub enum Value {
     VarList(LogicalType, Vec<Value>),
     /// These must contain elements which are all the same type.
     /// <https://kuzudb.com/docusaurus/cypher/data-types/list.html>
-    FixedList(LogicalType, Vec<Value>),
+    Array(LogicalType, Vec<Value>),
     /// <https://kuzudb.com/docusaurus/cypher/data-types/struct.html>
     Struct(Vec<(String, Value)>),
     Node(NodeVal),
@@ -300,7 +300,7 @@ impl std::fmt::Display for Value {
             Value::String(x) => write!(f, "{x}"),
             Value::Blob(x) => write!(f, "{x:x?}"),
             Value::Null(_) => write!(f, ""),
-            Value::VarList(_, x) | Value::FixedList(_, x) => display_list(f, x),
+            Value::VarList(_, x) | Value::Array(_, x) => display_list(f, x),
             // Note: These don't match kuzu's toString, but we probably don't want them to
             Value::Interval(x) => write!(f, "{x}"),
             Value::Timestamp(x) => write!(f, "{x}"),
@@ -376,7 +376,7 @@ impl From<&Value> for LogicalType {
             Value::VarList(x, _) => LogicalType::VarList {
                 child_type: Box::new(x.clone()),
             },
-            Value::FixedList(x, value) => LogicalType::FixedList {
+            Value::Array(x, value) => LogicalType::Array {
                 child_type: Box::new(x.clone()),
                 num_elements: value.len() as u64,
             },
@@ -509,14 +509,14 @@ impl TryFrom<&ffi::Value> for Value {
                     unreachable!()
                 }
             }
-            LogicalTypeID::FIXED_LIST => {
+            LogicalTypeID::ARRAY => {
                 let mut result = vec![];
                 for index in 0..ffi::value_get_children_size(value) {
                     let value: Value = ffi::value_get_child(value, index).try_into()?;
                     result.push(value);
                 }
-                if let LogicalType::FixedList { child_type, .. } = value.into() {
-                    Ok(Value::FixedList(*child_type, result))
+                if let LogicalType::Array { child_type, .. } = value.into() {
+                    Ok(Value::Array(*child_type, result))
                 } else {
                     unreachable!()
                 }
@@ -848,14 +848,14 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
                     builder,
                 ))
             }
-            Value::FixedList(typ, value) => {
+            Value::Array(typ, value) => {
                 let mut builder = ffi::create_list();
                 let len = value.len();
                 for elem in value {
                     builder.pin_mut().insert(elem.try_into()?);
                 }
                 Ok(ffi::get_list_value(
-                    (&LogicalType::FixedList {
+                    (&LogicalType::Array {
                         child_type: Box::new(typ),
                         num_elements: len as u64,
                     })
@@ -1123,7 +1123,7 @@ mod tests {
 
     type_tests! {
         convert_var_list_type: LogicalType::VarList { child_type: Box::new(LogicalType::String) },
-        convert_fixed_list_type: LogicalType::FixedList { child_type: Box::new(LogicalType::Int64), num_elements: 3 },
+        convert_array_type: LogicalType::Array { child_type: Box::new(LogicalType::Int64), num_elements: 3 },
         convert_int8_type: LogicalType::Int8,
         convert_int16_type: LogicalType::Int16,
         convert_int32_type: LogicalType::Int32,
@@ -1159,7 +1159,7 @@ mod tests {
     value_tests! {
         convert_var_list: Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
         convert_var_list_empty: Value::VarList(LogicalType::String, vec![]),
-        convert_fixed_list: Value::FixedList(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
+        convert_array: Value::Array(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
         convert_int8: Value::Int8(0),
         convert_int16: Value::Int16(1),
         convert_int32: Value::Int32(2),
@@ -1187,7 +1187,7 @@ mod tests {
         convert_blob: Value::Blob("Hello World".into()),
         convert_bool: Value::Bool(false),
         convert_null: Value::Null(LogicalType::VarList {
-            child_type: Box::new(LogicalType::FixedList { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
+            child_type: Box::new(LogicalType::Array { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
         }),
         convert_struct: Value::Struct(vec![("NAME".to_string(), "Alice".into()), ("AGE".to_string(), 25.into())]),
         convert_internal_id: Value::InternalID(InternalID { table_id: 0, offset: 0 }),
@@ -1202,7 +1202,7 @@ mod tests {
     display_tests! {
         display_var_list: Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
         display_var_list_empty: Value::VarList(LogicalType::String, vec![]),
-        display_fixed_list: Value::FixedList(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
+        display_array: Value::Array(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
         display_int8: Value::Int8(0),
         display_int16: Value::Int16(1),
         display_int32: Value::Int32(2),
@@ -1219,7 +1219,7 @@ mod tests {
         display_string: Value::String("Hello World".to_string()),
         display_bool: Value::Bool(false),
         display_null: Value::Null(LogicalType::VarList {
-            child_type: Box::new(LogicalType::FixedList { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
+            child_type: Box::new(LogicalType::Array { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
         }),
         display_struct: Value::Struct(vec![("NAME".to_string(), "Alice".into()), ("AGE".to_string(), 25.into())]),
         display_internal_id: Value::InternalID(InternalID { table_id: 0, offset: 0 }),
@@ -1240,7 +1240,7 @@ mod tests {
         // db_var_list_string: Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into()]), "STRING[]",
         // db_var_list_int: Value::VarList(LogicalType::Int64, vec![0i64.into(), 1i64.into(), 2i64.into()]), "INT64[]",
         // db_map: Value::Map((LogicalType::String, LogicalType::Int64), vec![(Value::String("key".to_string()), Value::Int64(24))]), "MAP(STRING,INT64)",
-        // db_fixed_list: Value::FixedList(LogicalType::Int64, vec![1i64.into(), 2i64.into(), 3i64.into()]), "INT64[3]",
+        // db_array: Value::Array(LogicalType::Int64, vec![1i64.into(), 2i64.into(), 3i64.into()]), "INT64[3]",
         // db_union: Value::Union {
         //    types: vec![("Num".to_string(), LogicalType::Int8), ("duration".to_string(), LogicalType::Interval)],
         //    value: Box::new(Value::Int8(-127))
@@ -1251,7 +1251,7 @@ mod tests {
         db_null_string: Value::Null(LogicalType::String), "STRING",
         db_null_int: Value::Null(LogicalType::Int64), "INT64",
         db_null_list: Value::Null(LogicalType::VarList {
-           child_type: Box::new(LogicalType::FixedList { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
+           child_type: Box::new(LogicalType::Array { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
         }), "INT16[3][]",
         db_int8: Value::Int8(0), "INT8",
         db_int16: Value::Int16(1), "INT16",
