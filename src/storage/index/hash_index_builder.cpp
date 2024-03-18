@@ -38,13 +38,16 @@ void HashIndexBuilder<T>::bulkReserve(uint32_t numEntries_) {
     // Build from scratch.
     auto numRequiredSlots = (numRequiredEntries + getSlotCapacity<T>() - 1) / getSlotCapacity<T>();
     auto numSlotsOfCurrentLevel = 1u << this->indexHeader->currentLevel;
-    while ((numSlotsOfCurrentLevel << 1) < numRequiredSlots) {
+    while ((numSlotsOfCurrentLevel << 1) <= numRequiredSlots) {
         this->indexHeader->incrementLevel();
         numSlotsOfCurrentLevel <<= 1;
     }
-    if (numRequiredSlots > numSlotsOfCurrentLevel) {
+    if (numRequiredSlots >= numSlotsOfCurrentLevel) {
         this->indexHeader->nextSplitSlotId = numRequiredSlots - numSlotsOfCurrentLevel;
     }
+    // The next slot to split should always be within the slots covered by the current level
+    // The level should be increased if it goes beyond that point
+    KU_ASSERT(this->indexHeader->nextSplitSlotId <= this->indexHeader->levelHashMask);
     auto existingSlots = pSlots->getNumElements();
     if (numRequiredSlots > existingSlots) {
         allocatePSlots(numRequiredSlots - existingSlots);
