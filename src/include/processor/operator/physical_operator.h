@@ -139,6 +139,8 @@ public:
 
     virtual std::unique_ptr<PhysicalOperator> clone() = 0;
 
+    virtual double getProgress(ExecutionContext* context) const;
+
 protected:
     virtual void initGlobalStateInternal(ExecutionContext* /*context*/) {}
     virtual void initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {}

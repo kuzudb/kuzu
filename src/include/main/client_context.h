@@ -7,6 +7,7 @@
 #include <mutex>
 
 #include "client_config.h"
+#include "common/task_system/progress_bar.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/scalar_function.h"
@@ -105,6 +106,10 @@ public:
     std::unique_ptr<QueryResult> query(std::string_view queryStatement);
     void runQuery(std::string query);
 
+    void setProgressBarPrinting(bool progressBarPrinting);
+
+    common::ProgressBar* getProgressBar() const { return progressBar.get(); }
+
 private:
     std::unique_ptr<QueryResult> query(
         std::string_view query, std::string_view encodedJoin, bool enumerateAllPlans = true);
@@ -154,6 +159,8 @@ private:
     std::unique_ptr<common::RandomEngine> randomEngine;
     // Attached database.
     Database* database;
+    // Progress bar for queries
+    std::unique_ptr<common::ProgressBar> progressBar;
     std::mutex mtx;
 };
 

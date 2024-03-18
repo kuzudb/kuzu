@@ -47,7 +47,12 @@ public:
 
     std::tuple<NodeTableScanState*, common::offset_t, common::offset_t> getNextRangeToRead();
 
+    uint64_t getNumNodes() const { return numNodes; }
+    uint64_t getNumNodesScanned() const { return numNodesScanned; }
+
 private:
+    uint64_t numNodes;
+    uint64_t numNodesScanned;
     std::mutex mtx;
     std::vector<std::unique_ptr<NodeTableScanState>> tableStates;
     uint32_t currentStateIdx;
@@ -71,6 +76,8 @@ public:
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<ScanNodeID>(outDataPos, sharedState, id, paramsString);
     }
+
+    double getProgress(ExecutionContext* context) const override;
 
 private:
     inline void initGlobalStateInternal(ExecutionContext* context) override {

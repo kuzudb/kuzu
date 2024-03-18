@@ -192,6 +192,7 @@ bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
     }
     metrics->executionTime.start();
     auto result = getNextTuplesInternal(context);
+    context->clientContext->getProgressBar()->updateProgress(getProgress(context));
     metrics->executionTime.stop();
     return result;
 }
@@ -228,6 +229,10 @@ std::vector<std::string> PhysicalOperator::getProfilerAttributes(Profiler& profi
         result.emplace_back(key + ": " + std::move(val));
     }
     return result;
+}
+
+double PhysicalOperator::getProgress(ExecutionContext* /*context*/) const {
+    return 0;
 }
 
 } // namespace processor

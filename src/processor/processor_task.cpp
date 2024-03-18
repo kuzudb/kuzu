@@ -31,6 +31,7 @@ void ProcessorTask::run() {
 void ProcessorTask::finalizeIfNecessary() {
     auto resultSet = populateResultSet(sink, executionContext->clientContext->getMemoryManager());
     sink->initLocalState(resultSet.get(), executionContext);
+    executionContext->clientContext->getProgressBar()->finishPipeline();
     sink->finalize(executionContext);
 }
 

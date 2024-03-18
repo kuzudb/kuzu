@@ -43,6 +43,7 @@ void ActiveQuery::reset() {
 }
 
 ClientContext::ClientContext(Database* database) : database{database} {
+    progressBar = std::make_unique<common::ProgressBar>();
     transactionContext = std::make_unique<TransactionContext>(database);
     randomEngine = std::make_unique<common::RandomEngine>();
 #if defined(_WIN32)

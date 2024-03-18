@@ -26,11 +26,14 @@ std::pair<offset_t, offset_t> NodeTableScanState::getNextRangeToRead() {
 
 void ScanNodeIDSharedState::initialize(transaction::Transaction* transaction) {
     auto numMask = tableStates[0]->getSemiMask()->getNumMasks();
+    numNodes = 0;
     for (auto& tableState : tableStates) {
         KU_ASSERT(tableState->getSemiMask()->getNumMasks() == numMask);
         tableState->initializeMaxOffset(transaction);
+        numNodes += tableState->getTable()->getNumTuples();
     }
     (void)numMask; // For clang-tidy: used for assert.
+    numNodesScanned = 0;
 }
 
 std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNextRangeToRead() {
@@ -49,6 +52,7 @@ std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNe
         endOffset = _endOffset;
     }
     KU_ASSERT(currentStateIdx < tableStates.size());
+    numNodesScanned += endOffset - startOffset;
     return std::make_tuple(tableStates[currentStateIdx].get(), startOffset, endOffset);
 }
 
@@ -96,6 +100,12 @@ void ScanNodeID::setSelVector(ExecutionContext* context, NodeTableScanState* tab
     // Apply changes to the selVector from nodes metadata.
     tableState->getTable()->setSelVectorForDeletedOffsets(
         context->clientContext->getTx(), outValueVector);
+}
+
+double ScanNodeID::getProgress(ExecutionContext* /*context*/) const {
+    uint64_t numNodes = sharedState->getNumNodes();
+    uint64_t numReadNodes = sharedState->getNumNodesScanned();
+    return numNodes == 0 ? 0.0 : (double)numReadNodes / numNodes;
 }
 
 } // namespace processor
