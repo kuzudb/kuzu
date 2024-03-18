@@ -226,7 +226,7 @@ elseif (${BUILD_BENCHMARK})
 endif ()
 add_subdirectory(tools)
 endif ()
-if(${BUILD_EXTENSIONS})
+if (${BUILD_EXTENSIONS})
     add_subdirectory(extension)
 endif ()
 
