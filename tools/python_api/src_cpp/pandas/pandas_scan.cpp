@@ -132,20 +132,7 @@ std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyC
     return result;
 }
 
-//std::unique_ptr<Value> tryReplacePD(py::dict& dict, py::str& tableName) {
-//    if (!dict.contains(tableName)) {
-//        return nullptr;
-//    }
-//    auto entry = dict[tableName];
-//    if (PyConnection::isPandasDataframe(entry)) {
-//        return Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())).copy();
-//    } else {
-//        throw RuntimeException{"Only pandas dataframe is supported."};
-//    }
-//}
-
-
-static std::unique_ptr<ScanReplacementData> play(py::dict& dict, py::str& objectName) {
+static std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objectName) {
     if (!dict.contains(objectName)) {
         return nullptr;
     }
@@ -169,14 +156,14 @@ std::unique_ptr<ScanReplacementData> replacePD(const std::string& objectName) {
     while (hasattr(currentFrame, "f_locals")) {
         auto localDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_locals"));
         if (localDict) {
-            auto result = play(localDict, pyTableName);
+            auto result = tryReplacePD(localDict, pyTableName);
             if (result) {
                 return result;
             }
         }
         auto globalDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_globals"));
         if (globalDict) {
-            auto result = play(globalDict, pyTableName);
+            auto result = tryReplacePD(globalDict, pyTableName);
             if (result) {
                 return result;
             }
