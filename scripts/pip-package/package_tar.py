@@ -55,7 +55,6 @@ if __name__ == "__main__":
         # Remove components that are not needed for the pip package
         shutil.rmtree(os.path.join(tempdir, "kuzu-source/dataset"))
         shutil.rmtree(os.path.join(tempdir, "kuzu-source/examples"))
-        shutil.rmtree(os.path.join(tempdir, "kuzu-source/scripts"))
         shutil.rmtree(os.path.join(tempdir, "kuzu-source/benchmark"))
         shutil.rmtree(os.path.join(tempdir, "kuzu-source/logo"))
         shutil.rmtree(os.path.join(tempdir, "kuzu-source/extension"))
