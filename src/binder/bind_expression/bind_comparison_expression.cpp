@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/function_expression.h"
 #include "binder/expression_binder.h"
+#include "common/exception/binder.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -31,8 +32,28 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, functions));
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
-        childrenAfterCast.push_back(
-            implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
+        if (LogicalTypeUtils::isNested(function->parameterTypeIDs[i]) &&
+            children[i]->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
+            // try matching the type to any other children
+            bool foundValidChild = false;
+            for (auto j = 0u; !foundValidChild && j < children.size(); ++j) {
+                if (children[j]->dataType.getLogicalTypeID() == function->parameterTypeIDs[i]) {
+                    childrenAfterCast.push_back(
+                        implicitCastIfNecessary(children[i], children[j]->dataType));
+                    foundValidChild = true;
+                }
+            }
+            // LCOV_EXCL_START
+            if (!foundValidChild) {
+                throw common::BinderException(
+                    stringFormat("Cannot resolve recursive data type for expression {}.",
+                        children[i]->toString()));
+            }
+            // LCOV_EXCL_STOP
+        } else {
+            childrenAfterCast.push_back(
+                implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
+        }
     }
     auto bindData = std::make_unique<function::FunctionBindData>(
         std::make_unique<LogicalType>(function->returnTypeID));
