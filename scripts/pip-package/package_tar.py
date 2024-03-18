@@ -52,6 +52,15 @@ if __name__ == "__main__":
 
         os.remove(os.path.join(tempdir, "kuzu-source.tar"))
 
+        # Remove components that are not needed for the pip package
+        shutil.rmtree(os.path.join(tempdir, "kuzu-source/dataset"))
+        shutil.rmtree(os.path.join(tempdir, "kuzu-source/examples"))
+        shutil.rmtree(os.path.join(tempdir, "kuzu-source/benchmark"))
+        shutil.rmtree(os.path.join(tempdir, "kuzu-source/logo"))
+        shutil.rmtree(os.path.join(tempdir, "kuzu-source/extension"))
+        shutil.rmtree(os.path.join(tempdir, "kuzu-source/test"))
+        shutil.rmtree(os.path.join(tempdir, "kuzu-source/.github"))
+
         os.makedirs(os.path.join(tempdir, "kuzu"))
         for path in ["setup.py", "setup.cfg", "MANIFEST.in"]:
             shutil.copy2(path, os.path.join(tempdir, path))
