@@ -1,7 +1,7 @@
 #pragma once
 
-#include "function/table_functions.h"
 #include "function/table/bind_input.h"
+#include "function/table_functions.h"
 
 namespace kuzu {
 namespace function {
@@ -19,5 +19,5 @@ struct ScanReplacement {
     scan_replace_func_t replaceFunc;
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu

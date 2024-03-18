@@ -10,12 +10,12 @@
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/scalar_function.h"
+#include "function/table/scan_replacement.h"
 #include "main/kuzu_fwd.h"
 #include "parser/statement.h"
 #include "prepared_statement.h"
 #include "query_result.h"
 #include "transaction/transaction_context.h"
-#include "function/table/scan_replacement.h"
 
 namespace kuzu {
 
@@ -79,9 +79,7 @@ public:
 
     // Replace function.
     void addScanReplace(function::ScanReplacement scanReplacement);
-    const std::vector<function::ScanReplacement>& getScanReplacements() const {
-        return scanReplacements;
-    }
+    std::unique_ptr<function::ScanReplacementData> tryReplace(const std::string& objectName) const;
     // Extension
     KUZU_API void setExtensionOption(std::string name, common::Value value);
     extension::ExtensionOptions* getExtensionOptions() const;

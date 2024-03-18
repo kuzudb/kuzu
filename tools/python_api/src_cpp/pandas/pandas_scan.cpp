@@ -31,7 +31,7 @@ static TableFunction getFunction() {
         initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
 }
 
-function_set getFunctionSet() {
+function_set PandasScanFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(getFunction().copy());
     return functionSet;
