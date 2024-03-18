@@ -124,6 +124,18 @@ void ClientContext::addScanReplace(function::ScanReplacement scanReplacement) {
     scanReplacements.push_back(std::move(scanReplacement));
 }
 
+std::unique_ptr<function::ScanReplacementData> ClientContext::tryReplace(
+    const std::string& objectName) const {
+    for (auto& scanReplacement : scanReplacements) {
+        auto replaceData = scanReplacement.replaceFunc(objectName);
+        if (replaceData == nullptr) {
+            continue; // Fail to replace.
+        }
+        return replaceData;
+    }
+    return nullptr;
+}
+
 void ClientContext::setExtensionOption(std::string name, common::Value value) {
     StringUtils::toLower(name);
     extensionOptionValues.insert_or_assign(name, std::move(value));

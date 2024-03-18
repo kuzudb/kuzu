@@ -3,6 +3,7 @@
 #include "binder/expression/variable_expression.h"
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
+#include "common/exception/message.h"
 #include "main/client_context.h"
 #include "parser/expression/parsed_variable_expression.h"
 
@@ -24,7 +25,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindVariableExpression(const std::
     if (binder->scope->contains(varName)) {
         return binder->scope->getExpression(varName);
     }
-    throw BinderException(stringFormat("Variable {} is not in scope.", varName));
+    throw BinderException(ExceptionMessage::variableNotInScope(varName));
 }
 
 std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(

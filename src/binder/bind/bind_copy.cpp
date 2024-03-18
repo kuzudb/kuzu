@@ -37,7 +37,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
         columnTypes.push_back(column->getDataType());
     }
     if (fileType != FileType::CSV && fileType != FileType::PARQUET) {
-        throw BinderException(ExceptionMessage::validateCopyToCSVParquetExtensionsException());
+        throw BinderException("COPY TO currently only supports csv and parquet files.");
     }
     if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
         throw BinderException{"Only copy to csv can have options."};
