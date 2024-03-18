@@ -2,7 +2,6 @@
 
 #include "common/static_vector.h"
 #include "common/type_utils.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/index/hash_index_header.h"
@@ -54,7 +53,7 @@ using IndexBuffer = common::StaticVector<std::pair<T, common::offset_t>, BUFFER_
 // T is the key type stored in the slots.
 // For strings this is different than the type used when inserting/searching
 // (see BufferKeyType and Key)
-template<common::IndexHashable T>
+template<typename T>
 class HashIndexBuilder final : public InMemHashIndex {
     static_assert(getSlotCapacity<T>() <= SlotHeader::FINGERPRINT_CAPACITY);
     // Size of the validity mask
@@ -177,7 +176,7 @@ public:
     common::PhysicalTypeID keyTypeID() const { return keyDataTypeID; }
 
 private:
-    template<common::IndexHashable T>
+    template<typename T>
     using HashIndexType =
         typename std::conditional<std::same_as<T, std::string_view> || std::same_as<T, std::string>,
             common::ku_string_t, T>::type;
