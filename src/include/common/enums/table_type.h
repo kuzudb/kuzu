@@ -13,6 +13,7 @@ enum class TableType : uint8_t {
     REL = 2,
     RDF = 3,
     REL_GROUP = 4,
+    FOREIGN = 5,
 };
 
 struct TableTypeUtils {

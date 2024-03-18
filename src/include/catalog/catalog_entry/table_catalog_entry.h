@@ -5,11 +5,12 @@
 #include "catalog/property.h"
 #include "catalog_entry.h"
 #include "common/enums/table_type.h"
+#include "function/table_functions.h"
 
 namespace kuzu {
 namespace catalog {
 
-class TableCatalogEntry : public CatalogEntry {
+class KUZU_API TableCatalogEntry : public CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//
     // constructors
@@ -19,7 +20,8 @@ public:
         : CatalogEntry{catalogType, std::move(name)}, tableID{tableID}, nextPID{0} {}
     TableCatalogEntry(const TableCatalogEntry& other)
         : CatalogEntry{other}, tableID{other.tableID}, comment{other.comment},
-          nextPID{other.nextPID}, properties{other.properties} {}
+          nextPID{other.nextPID}, properties{copyVector(other.properties)} {}
+    TableCatalogEntry& operator=(const TableCatalogEntry&) = delete;
 
     //===--------------------------------------------------------------------===//
     // getter & setter
@@ -27,9 +29,10 @@ public:
     common::table_id_t getTableID() const { return tableID; }
     std::string getComment() const { return comment; }
     void setComment(std::string newComment) { comment = std::move(newComment); }
-    virtual bool isParent(common::table_id_t tableID) = 0;
+    virtual bool isParent(common::table_id_t /*tableID*/) { return false; };
     // TODO(Guodong/Ziyi): This function should be removed. Instead we should use CatalogEntryType.
     virtual common::TableType getTableType() const = 0;
+    virtual function::TableFunction getScanFunction() { KU_UNREACHABLE; }
 
     //===--------------------------------------------------------------------===//
     // properties functions

@@ -10,8 +10,11 @@ void DatabaseManager::registerAttachedDatabase(std::unique_ptr<AttachedDatabase>
 }
 
 AttachedDatabase* DatabaseManager::getAttachedDatabase(const std::string& name) {
+    auto upperCaseName = common::StringUtils::getUpper(name);
     for (auto& attachedDatabase : attachedDatabases) {
-        if (attachedDatabase->getDBName() == name) {
+        auto attachedDBName = attachedDatabase->getDBName();
+        common::StringUtils::toUpper(attachedDBName);
+        if (attachedDBName == upperCaseName) {
             return attachedDatabase.get();
         }
     }
@@ -19,12 +22,11 @@ AttachedDatabase* DatabaseManager::getAttachedDatabase(const std::string& name) 
 }
 
 void DatabaseManager::detachDatabase(const std::string& databaseName) {
-    auto upperCaseDBName = databaseName;
-    common::StringUtils::toUpper(upperCaseDBName);
+    auto upperCaseName = common::StringUtils::getUpper(databaseName);
     for (auto it = attachedDatabases.begin(); it != attachedDatabases.end(); ++it) {
         auto attachedDBName = (*it)->getDBName();
         common::StringUtils::toUpper(attachedDBName);
-        if (attachedDBName == upperCaseDBName) {
+        if (attachedDBName == upperCaseName) {
             attachedDatabases.erase(it);
             return;
         }

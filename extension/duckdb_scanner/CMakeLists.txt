@@ -10,7 +10,9 @@ add_library(duckdb_scanner
         src/duckdb_scanner_extension.cpp
         src/duckdb_storage.cpp
         src/duckdb_scan.cpp
-        src/duckdb_type_converter.cpp)
+        src/duckdb_type_converter.cpp
+        src/duckdb_catalog.cpp
+        src/duckdb_table_catalog_entry.cpp)
 
 set_target_properties(duckdb_scanner PROPERTIES
         OUTPUT_NAME duckdb_scanner

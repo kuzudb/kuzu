@@ -9,6 +9,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 // Supress warnings from duckdb.hpp
 #undef ARROW_FLAG_DICTIONARY_ORDERED
+#include "common/types/types.h"
 #include "duckdb.hpp"
 #pragma GCC diagnostic pop
 
@@ -35,7 +36,10 @@ struct DuckDBScanSharedState : public function::TableFuncSharedState {
     std::unique_ptr<duckdb::QueryResult> queryResult;
 };
 
-function::TableFunction getScanFunction(std::string dbPath);
+void getDuckDBVectorConversionFunc(
+    common::PhysicalTypeID physicalTypeID, duckdb_conversion_func_t& conversion_func);
+
+function::TableFunction getScanFunction(DuckDBScanBindData bindData);
 
 } // namespace duckdb_scanner
 } // namespace kuzu
