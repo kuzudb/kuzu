@@ -26,6 +26,7 @@ std::pair<offset_t, offset_t> NodeTableScanState::getNextRangeToRead() {
 
 void ScanNodeIDSharedState::initialize(transaction::Transaction* transaction) {
     auto numMask = tableStates[0]->getSemiMask()->getNumMasks();
+    numNodes = 0;
     for (auto& tableState : tableStates) {
         KU_ASSERT(tableState->getSemiMask()->getNumMasks() == numMask);
         tableState->initializeMaxOffset(transaction);
