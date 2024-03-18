@@ -21,9 +21,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     }
     auto expressionType = parsedExpression.getExpressionType();
     auto functionName = expressionTypeToString(expressionType);
-    function::scalar_exec_func execFunc;
+    function::scalar_func_exec_t execFunc;
     function::VectorNullFunction::bindExecFunction(expressionType, children, execFunc);
-    function::scalar_select_func selectFunc;
+    function::scalar_func_select_t selectFunc;
     function::VectorNullFunction::bindSelectFunction(expressionType, children, selectFunc);
     auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::BOOL());
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);

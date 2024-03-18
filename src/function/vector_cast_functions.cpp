@@ -36,10 +36,10 @@ static void fixedListToListCastExecFunction(
     ListVector::resizeDataVector(&result, numOfEntries * numValuesPerList);
 
     auto resultVector = ListVector::getDataVector(&result);
-    scalar_exec_func func = CastFunction::bindCastFunction<CastFixedListToListFunctionExecutor>(
+    scalar_func_exec_t func = CastFunction::bindCastFunction<CastFixedListToListFunctionExecutor>(
         "CAST", FixedListType::getChildType(&inputVector->dataType)->getLogicalTypeID(),
         resultVector->dataType.getLogicalTypeID())
-                                ->execFunc;
+                                  ->execFunc;
     reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries = numOfEntries;
     func(params, *resultVector, dataPtr);
 }
@@ -64,10 +64,10 @@ void fixedListToListCastExecFunction<CastChildFunctionExecutor>(
     }
 
     auto resultVector = ListVector::getDataVector(&result);
-    scalar_exec_func func = CastFunction::bindCastFunction<CastFixedListToListFunctionExecutor>(
+    scalar_func_exec_t func = CastFunction::bindCastFunction<CastFixedListToListFunctionExecutor>(
         "CAST", FixedListType::getChildType(&inputVector->dataType)->getLogicalTypeID(),
         resultVector->dataType.getLogicalTypeID())
-                                ->execFunc;
+                                  ->execFunc;
     func(params, *resultVector, dataPtr);
 }
 
@@ -124,9 +124,9 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
     }
 
     // non-nested types
-    scalar_exec_func func = CastFunction::bindCastFunction<CastChildFunctionExecutor>(
+    scalar_func_exec_t func = CastFunction::bindCastFunction<CastChildFunctionExecutor>(
         "CAST", inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
-                                ->execFunc;
+                                  ->execFunc;
     std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
     dataPtr->numOfEntries = numOfEntries;
     func(childParams, *resultVector, (void*)dataPtr);
@@ -174,7 +174,7 @@ bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType
 template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
     const std::string& functionName, LogicalTypeID targetTypeID) {
-    scalar_exec_func execFunc;
+    scalar_func_exec_t execFunc;
     switch (targetTypeID) {
     case LogicalTypeID::DATE: {
         execFunc =
@@ -298,7 +298,7 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
 
 static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
     const std::string& functionName, LogicalTypeID targetTypeID) {
-    scalar_exec_func execFunc;
+    scalar_func_exec_t execFunc;
     switch (targetTypeID) {
     case LogicalTypeID::DATE: {
         execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, date_t,
@@ -383,7 +383,7 @@ static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
 template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID) {
-    scalar_exec_func func;
+    scalar_func_exec_t func;
     switch (sourceTypeID) {
     case LogicalTypeID::BOOL: {
         func = ScalarFunction::UnaryCastExecFunction<bool, ku_string_t, CastToString, EXECUTOR>;
@@ -497,7 +497,7 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
 
 static std::unique_ptr<ScalarFunction> bindCastToRdfVariantFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID) {
-    scalar_exec_func execFunc;
+    scalar_func_exec_t execFunc;
     switch (sourceTypeID) {
     case LogicalTypeID::DATE: {
         execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<date_t, struct_entry_t,
@@ -581,7 +581,7 @@ static std::unique_ptr<ScalarFunction> bindCastToRdfVariantFunction(
 template<typename DST_TYPE, typename OP, typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
-    scalar_exec_func func;
+    scalar_func_exec_t func;
     switch (sourceTypeID) {
     case LogicalTypeID::INT8: {
         func = ScalarFunction::UnaryExecFunction<int8_t, DST_TYPE, OP, EXECUTOR>;
@@ -664,7 +664,7 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(
 template<typename EXECUTOR = UnaryFunctionExecutor, typename DST_TYPE>
 static std::unique_ptr<ScalarFunction> bindCastToTimestampFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
-    scalar_exec_func func;
+    scalar_func_exec_t func;
     switch (sourceTypeID) {
     case LogicalTypeID::DATE: {
         func = ScalarFunction::UnaryExecFunction<date_t, DST_TYPE, CastDateToTimestamp, EXECUTOR>;

@@ -446,7 +446,7 @@ std::unique_ptr<FunctionBindData> ListSortFunction::bindFunc(
 
 template<typename T>
 void ListSortFunction::getExecFunction(
-    const binder::expression_vector& arguments, scalar_exec_func& func) {
+    const binder::expression_vector& arguments, scalar_func_exec_t& func) {
     if (arguments.size() == 1) {
         func = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, ListSort<T>>;
         return;
@@ -548,7 +548,7 @@ std::unique_ptr<FunctionBindData> ListReverseSortFunction::bindFunc(
 
 template<typename T>
 void ListReverseSortFunction::getExecFunction(
-    const binder::expression_vector& arguments, scalar_exec_func& func) {
+    const binder::expression_vector& arguments, scalar_func_exec_t& func) {
     if (arguments.size() == 1) {
         func = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t,
             ListReverseSort<T>>;

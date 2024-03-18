@@ -50,9 +50,9 @@ private:
         const std::string& name, common::LogicalTypeID leftType, common::LogicalTypeID rightType) {
         auto leftPhysical = common::LogicalType::getPhysicalType(leftType);
         auto rightPhysical = common::LogicalType::getPhysicalType(rightType);
-        scalar_exec_func execFunc;
+        scalar_func_exec_t execFunc;
         getExecFunc<FUNC>(leftPhysical, rightPhysical, execFunc);
-        scalar_select_func selectFunc;
+        scalar_func_select_t selectFunc;
         getSelectFunc<FUNC>(leftPhysical, rightPhysical, selectFunc);
         return std::make_unique<ScalarFunction>(name,
             std::vector<common::LogicalTypeID>{leftType, rightType}, common::LogicalTypeID::BOOL,
@@ -62,8 +62,8 @@ private:
     // When comparing two values, we guarantee that they must have the same dataType. So we only
     // need to switch the physical type to get the corresponding exec function.
     template<typename FUNC>
-    static void getExecFunc(
-        common::PhysicalTypeID leftType, common::PhysicalTypeID rightType, scalar_exec_func& func) {
+    static void getExecFunc(common::PhysicalTypeID leftType, common::PhysicalTypeID rightType,
+        scalar_func_exec_t& func) {
         switch (leftType) {
         case common::PhysicalTypeID::INT64: {
             func = BinaryComparisonExecFunction<int64_t, int64_t, uint8_t, FUNC>;
@@ -130,7 +130,7 @@ private:
 
     template<typename FUNC>
     static void getSelectFunc(common::PhysicalTypeID leftTypeID, common::PhysicalTypeID rightTypeID,
-        scalar_select_func& func) {
+        scalar_func_select_t& func) {
         KU_ASSERT(leftTypeID == rightTypeID);
         switch (leftTypeID) {
         case common::PhysicalTypeID::INT64: {

@@ -202,23 +202,6 @@ void CatalogContent::readFromFile(const std::string& directory, FileVersionType 
     functions = CatalogSet::deserialize(deserializer);
 }
 
-ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
-    if (!functions->containsEntry(name)) {
-        throw CatalogException{common::stringFormat("function {} does not exist.", name)};
-    }
-    auto functionEntry = functions->getEntry(name);
-    switch (functionEntry->getType()) {
-    case CatalogEntryType::SCALAR_MACRO_ENTRY:
-        return ExpressionType::MACRO;
-    case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
-        return ExpressionType::FUNCTION;
-    case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
-        return ExpressionType::AGGREGATE_FUNCTION;
-    default:
-        KU_UNREACHABLE;
-    }
-}
-
 void CatalogContent::addFunction(std::string name, function::function_set definitions) {
     if (functions->containsEntry(name)) {
         throw CatalogException{common::stringFormat("function {} already exists.", name)};

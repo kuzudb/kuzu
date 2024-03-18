@@ -111,15 +111,6 @@ private:
 
     // Table functions.
     static void registerTableFunctions(catalog::CatalogSet* catalogSet);
-
-    // Validations
-    static void validateNonEmptyCandidateFunctions(
-        std::vector<AggregateFunction*>& candidateFunctions, const std::string& name,
-        const std::vector<common::LogicalType>& inputTypes, bool isDistinct,
-        function::function_set& set);
-    static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctions,
-        const std::string& name, const std::vector<common::LogicalType>& inputTypes,
-        function::function_set& set);
 };
 
 } // namespace function

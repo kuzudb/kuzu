@@ -8,7 +8,7 @@ namespace kuzu {
 namespace function {
 
 void VectorBooleanFunction::bindExecFunction(ExpressionType expressionType,
-    const binder::expression_vector& children, scalar_exec_func& func) {
+    const binder::expression_vector& children, scalar_func_exec_t& func) {
     if (isExpressionBinary(expressionType)) {
         bindBinaryExecFunction(expressionType, children, func);
     } else {
@@ -18,7 +18,7 @@ void VectorBooleanFunction::bindExecFunction(ExpressionType expressionType,
 }
 
 void VectorBooleanFunction::bindSelectFunction(ExpressionType expressionType,
-    const binder::expression_vector& children, scalar_select_func& func) {
+    const binder::expression_vector& children, scalar_func_select_t& func) {
     if (isExpressionBinary(expressionType)) {
         bindBinarySelectFunction(expressionType, children, func);
     } else {
@@ -28,7 +28,7 @@ void VectorBooleanFunction::bindSelectFunction(ExpressionType expressionType,
 }
 
 void VectorBooleanFunction::bindBinaryExecFunction(ExpressionType expressionType,
-    const binder::expression_vector& children, scalar_exec_func& func) {
+    const binder::expression_vector& children, scalar_func_exec_t& func) {
     KU_ASSERT(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
@@ -54,7 +54,7 @@ void VectorBooleanFunction::bindBinaryExecFunction(ExpressionType expressionType
 }
 
 void VectorBooleanFunction::bindBinarySelectFunction(ExpressionType expressionType,
-    const binder::expression_vector& children, scalar_select_func& func) {
+    const binder::expression_vector& children, scalar_func_select_t& func) {
     KU_ASSERT(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
@@ -80,7 +80,7 @@ void VectorBooleanFunction::bindBinarySelectFunction(ExpressionType expressionTy
 }
 
 void VectorBooleanFunction::bindUnaryExecFunction(ExpressionType expressionType,
-    const binder::expression_vector& children, scalar_exec_func& func) {
+    const binder::expression_vector& children, scalar_func_exec_t& func) {
     KU_ASSERT(
         children.size() == 1 && children[0]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     (void)children;
@@ -96,7 +96,7 @@ void VectorBooleanFunction::bindUnaryExecFunction(ExpressionType expressionType,
 }
 
 void VectorBooleanFunction::bindUnarySelectFunction(ExpressionType expressionType,
-    const binder::expression_vector& children, scalar_select_func& func) {
+    const binder::expression_vector& children, scalar_func_select_t& func) {
     KU_ASSERT(
         children.size() == 1 && children[0]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     (void)children;

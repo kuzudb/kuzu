@@ -82,11 +82,15 @@ function_set StructExtractFunctions::getFunctionSet() {
     auto inputTypeIDs =
         std::vector<LogicalTypeID>{LogicalTypeID::STRUCT, LogicalTypeID::NODE, LogicalTypeID::REL};
     for (auto inputTypeID : inputTypeIDs) {
-        functions.push_back(make_unique<ScalarFunction>(STRUCT_EXTRACT_FUNC_NAME,
-            std::vector<LogicalTypeID>{inputTypeID, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-            nullptr, nullptr, compileFunc, bindFunc, false /* isVarLength */));
+        functions.push_back(getFunction(inputTypeID));
     }
     return functions;
+}
+
+std::unique_ptr<ScalarFunction> StructExtractFunctions::getFunction(LogicalTypeID logicalTypeID) {
+    return std::make_unique<ScalarFunction>(STRUCT_EXTRACT_FUNC_NAME,
+        std::vector<LogicalTypeID>{logicalTypeID, LogicalTypeID::STRING}, LogicalTypeID::ANY,
+        nullptr, nullptr, compileFunc, bindFunc, false /* isVarLength */);
 }
 
 std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(

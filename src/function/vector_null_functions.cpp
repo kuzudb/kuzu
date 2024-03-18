@@ -8,7 +8,7 @@ namespace kuzu {
 namespace function {
 
 void VectorNullFunction::bindExecFunction(ExpressionType expressionType,
-    const binder::expression_vector& /*children*/, scalar_exec_func& func) {
+    const binder::expression_vector& /*children*/, scalar_func_exec_t& func) {
     switch (expressionType) {
     case ExpressionType::IS_NULL: {
         func = UnaryNullExecFunction<IsNull>;
@@ -25,7 +25,7 @@ void VectorNullFunction::bindExecFunction(ExpressionType expressionType,
 }
 
 void VectorNullFunction::bindSelectFunction(ExpressionType expressionType,
-    const binder::expression_vector& children, scalar_select_func& func) {
+    const binder::expression_vector& children, scalar_func_select_t& func) {
     KU_ASSERT(children.size() == 1);
     (void)children;
     switch (expressionType) {

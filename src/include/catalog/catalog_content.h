@@ -36,8 +36,6 @@ public:
 
 private:
     // ----------------------------- Functions ----------------------------
-    common::ExpressionType getFunctionType(const std::string& name) const;
-
     void registerBuiltInFunctions();
 
     bool containMacro(const std::string& macroName) const {

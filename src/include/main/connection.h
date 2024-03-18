@@ -112,7 +112,7 @@ public:
     }
 
     template<typename TR, typename... Args>
-    void createVectorizedFunction(std::string name, function::scalar_exec_func scalarFunc) {
+    void createVectorizedFunction(std::string name, function::scalar_func_exec_t scalarFunc) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
         addScalarFunction(std::move(nameCopy), function::UDF::getVectorizedFunction<TR, Args...>(
@@ -122,7 +122,7 @@ public:
 
     void createVectorizedFunction(std::string name,
         std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
-        function::scalar_exec_func scalarFunc) {
+        function::scalar_func_exec_t scalarFunc) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
         addScalarFunction(

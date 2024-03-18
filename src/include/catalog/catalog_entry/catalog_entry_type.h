@@ -13,7 +13,8 @@ enum class CatalogEntryType : uint8_t {
     SCALAR_MACRO_ENTRY = 4,
     AGGREGATE_FUNCTION_ENTRY = 5,
     SCALAR_FUNCTION_ENTRY = 6,
-    TABLE_FUNCTION_ENTRY = 7,
+    REWRITE_FUNCTION_ENTRY = 7,
+    TABLE_FUNCTION_ENTRY = 8,
 };
 
 } // namespace catalog

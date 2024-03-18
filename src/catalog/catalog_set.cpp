@@ -1,6 +1,10 @@
 #include "catalog/catalog_set.h"
 
 #include "common/assert.h"
+#include "common/exception/catalog.h"
+#include "common/string_format.h"
+
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace catalog {
@@ -10,6 +14,13 @@ bool CatalogSet::containsEntry(const std::string& name) const {
 }
 
 CatalogEntry* CatalogSet::getEntry(const std::string& name) {
+    // LCOV_EXCL_START
+    // We should not trigger the following check. If so, we should throw more informative error
+    // message at catalog level.
+    if (!containsEntry(name)) {
+        throw CatalogException(stringFormat("Cannot find catalog entry with name {}.", name));
+    }
+    // LCOV_EXCL_STOP
     return entries.at(name).get();
 }
 
@@ -36,6 +47,7 @@ void CatalogSet::serialize(common::Serializer serializer) const {
     for (auto& [name, entry] : entries) {
         switch (entry->getType()) {
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
+        case CatalogEntryType::REWRITE_FUNCTION_ENTRY:
         case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
         case CatalogEntryType::TABLE_FUNCTION_ENTRY:
             continue;
