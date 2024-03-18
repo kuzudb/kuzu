@@ -59,7 +59,6 @@ void QueryProcessor::initTask(Task* task) {
         }
         op = op->getChild(0);
     }
-    processorTask->addSource(op);
     if (!op->canParallel()) {
         task->setSingleThreadedTask();
     }

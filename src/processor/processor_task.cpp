@@ -10,7 +10,7 @@ namespace processor {
 ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
     : Task{executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
                .getValue<uint64_t>()},
-      sharedStateInitialized{false}, sink{sink}, executionContext{executionContext}, sourceOps{} {}
+      sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {}
 
 void ProcessorTask::run() {
     // We need the lock when cloning because multiple threads can be accessing to clone,
@@ -43,21 +43,6 @@ std::unique_ptr<ResultSet> ProcessorTask::populateResultSet(
         return nullptr;
     }
     return std::make_unique<ResultSet>(resultSetDescriptor, memoryManager);
-}
-
-void ProcessorTask::addSource(PhysicalOperator* source) {
-    sourceOps.push_back(source);
-}
-
-void ProcessorTask::updateProgress() const {
-    double maxProgress = 0.0;
-    for (const auto& source : sourceOps) {
-        double progress = source->getProgress(executionContext);
-        if (progress > maxProgress) {
-            maxProgress = progress;
-        }
-    }
-    executionContext->clientContext->progressBar->updateProgress(maxProgress);
 }
 
 } // namespace processor

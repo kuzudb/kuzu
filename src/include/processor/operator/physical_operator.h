@@ -136,6 +136,7 @@ public:
         }
         metrics->executionTime.start();
         auto result = getNextTuplesInternal(context);
+        context->clientContext->progressBar->updateProgress(getProgress(context));
         metrics->executionTime.stop();
         return result;
     }

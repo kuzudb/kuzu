@@ -31,6 +31,8 @@ void ScanNodeIDSharedState::initialize(transaction::Transaction* transaction) {
         tableState->initializeMaxOffset(transaction);
     }
     (void)numMask; // For clang-tidy: used for assert.
+    numNodes = tableStates[0]->getTable()->getNumTuples();
+    numNodesScanned = 0;
 }
 
 std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNextRangeToRead() {
@@ -49,15 +51,8 @@ std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNe
         endOffset = _endOffset;
     }
     KU_ASSERT(currentStateIdx < tableStates.size());
+    numNodesScanned += endOffset - startOffset;
     return std::make_tuple(tableStates[currentStateIdx].get(), startOffset, endOffset);
-}
-
-NodeTableScanState* ScanNodeIDSharedState::getCurrentTableState() {
-	std::unique_lock lck{mtx};
-	if (currentStateIdx == tableStates.size()) {
-		return nullptr;
-	}
-	return tableStates[currentStateIdx].get();
 }
 
 void ScanNodeID::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
@@ -106,13 +101,10 @@ void ScanNodeID::setSelVector(ExecutionContext* context, NodeTableScanState* tab
         context->clientContext->getTx(), outValueVector);
 }
 
-double ScanNodeID::getProgress(ExecutionContext* context) const {
-    if (!sharedState->getCurrentTableState()) {
-        return 0.0;
-    }
-    uint64_t numTuples = sharedState->getCurrentTableState()->getTable()->getNumTuples();
-    uint64_t numReadTuples = sharedState->getCurrentTableState()->getCurrentNodeOffset();
-    return numTuples == 0 ? 0.0 : (double)numReadTuples / numTuples;
+double ScanNodeID::getProgress(ExecutionContext* /*context*/) const {
+    uint64_t numNodes = sharedState->getNumNodes();
+    uint64_t numReadNodes = sharedState->getNumNodesScanned();
+    return numNodes == 0 ? 0.0 : (double)numReadNodes / numNodes;
 }
 
 } // namespace processor

@@ -14,7 +14,8 @@ class ProgressBar {
 
 public:
     ProgressBar()
-        : numPipelines{0}, numPipelinesFinished{0}, trackProgress{false} {};
+        : numPipelines{0}, numPipelinesFinished{0},
+          prevCurPipelineProgress{0.0}, trackProgress{false} {};
 
     void addPipeline();
 
@@ -42,6 +43,7 @@ private:
 private:
     uint32_t numPipelines;
     uint32_t numPipelinesFinished;
+    double prevCurPipelineProgress;
     std::mutex progressBarLock;
     bool trackProgress;
 };

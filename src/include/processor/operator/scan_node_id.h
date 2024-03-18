@@ -25,8 +25,6 @@ public:
 
     std::pair<common::offset_t, common::offset_t> getNextRangeToRead();
 
-    common::offset_t getCurrentNodeOffset() const { return currentNodeOffset; }
-
 private:
     storage::NodeTable* table;
     common::offset_t maxNodeOffset;
@@ -44,13 +42,17 @@ public:
     }
     inline uint32_t getNumTableStates() const { return tableStates.size(); }
     inline NodeTableScanState* getTableState(uint32_t idx) const { return tableStates[idx].get(); }
-    inline NodeTableScanState* getCurrentTableState();
 
     void initialize(transaction::Transaction* transaction);
 
     std::tuple<NodeTableScanState*, common::offset_t, common::offset_t> getNextRangeToRead();
 
+    uint64_t getNumNodes() const { return numNodes; }
+    uint64_t getNumNodesScanned() const { return numNodesScanned; }
+
 private:
+    uint64_t numNodes;
+    uint64_t numNodesScanned;
     std::mutex mtx;
     std::vector<std::unique_ptr<NodeTableScanState>> tableStates;
     uint32_t currentStateIdx;

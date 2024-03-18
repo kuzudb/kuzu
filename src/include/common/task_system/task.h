@@ -85,8 +85,6 @@ private:
         }
     }
 
-    virtual void updateProgress() const {};
-
 public:
     Task* parent = nullptr;
     std::vector<std::shared_ptr<Task>>
