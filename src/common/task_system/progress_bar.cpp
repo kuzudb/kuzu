@@ -4,18 +4,18 @@ namespace kuzu {
 namespace common {
 
 void ProgressBar::startProgress() {
+    queryTimer->start();
     if (!trackProgress) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
     printProgressBar(0.0);
-    printing = true;
 }
 
 void ProgressBar::endProgress() {
     std::lock_guard<std::mutex> lock(progressBarLock);
     resetProgressBar();
-    printing = false;
+    queryTimer = std::make_unique<TimeMetric>(true);
 }
 
 void ProgressBar::addPipeline() {
@@ -46,10 +46,13 @@ void ProgressBar::updateProgress(double curPipelineProgress) {
         std::cout << "\033[2A";
     }
     printProgressBar(curPipelineProgress);
-    printing = true;
 }
 
-void ProgressBar::printProgressBar(double curPipelineProgress) const {
+void ProgressBar::printProgressBar(double curPipelineProgress) {
+    if (!shouldPrintProgress()) {
+		return;
+	}
+    printing = true;
     float pipelineProgress = 0.0;
     if (numPipelines > 0) {
         pipelineProgress = (float)numPipelinesFinished / (float)numPipelines;
@@ -71,10 +74,23 @@ void ProgressBar::resetProgressBar() {
     numPipelines = 0;
     numPipelinesFinished = 0;
     prevCurPipelineProgress = 0.0;
+    printing = false;
+    queryTimer->stop();
 }
+
+bool ProgressBar::shouldPrintProgress() const {
+    queryTimer->stop();
+    bool shouldPrint = queryTimer->getElapsedTimeMS() > showProgressAfter;
+    queryTimer->start();
+    return shouldPrint;
+}   
 
 void ProgressBar::toggleProgressBarPrinting(bool enable) {
     trackProgress = enable;
+}
+
+void ProgressBar::setShowProgressAfter(uint64_t time) {
+	showProgressAfter = time;
 }
 
 } // namespace common

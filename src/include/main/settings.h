@@ -43,6 +43,19 @@ struct ProgressBarSetting {
     }
 };
 
+struct ProgressBarTimerSetting {
+    static constexpr const char* name = "progress_bar_time";
+    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::INT64;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::INT64);
+        context->getClientConfigUnsafe()->showProgressAfter = parameter.getValue<int64_t>();
+        context->getProgressBar()->setShowProgressAfter(parameter.getValue<int64_t>());
+    }
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->getClientConfig()->showProgressAfter);
+    }
+};
+
 struct VarLengthExtendMaxDepthSetting {
     static constexpr const char* name = "var_length_extend_max_depth";
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::INT64;
