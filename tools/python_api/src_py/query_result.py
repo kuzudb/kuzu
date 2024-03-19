@@ -123,7 +123,7 @@ class QueryResult:
 
         return self._query_result.getAsDF()
 
-    def get_as_pl(self) -> pl.DataFrame:
+    def get_as_pl(self, chunk_size: int = 1_000_000) -> pl.DataFrame:
         """
         Get the query result as a Polars DataFrame.
 
@@ -141,7 +141,7 @@ class QueryResult:
 
         self.check_for_query_result_close()
 
-        return pl.from_arrow(data=self.get_as_arrow())
+        return pl.from_arrow(data=self.get_as_arrow(chunk_size=chunk_size))
 
     def get_as_arrow(self, chunk_size: int = 1_000_000) -> pa.Table:
         """
