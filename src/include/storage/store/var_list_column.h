@@ -1,6 +1,7 @@
 #pragma once
 
 #include "column.h"
+#include "var_list_column_chunk.h"
 
 // List is a nested data type which is stored as two chunks:
 // 1. Offset column (type: INT64). Using offset to partition the data column into multiple lists.
@@ -24,20 +25,21 @@
 namespace kuzu {
 namespace storage {
 
-struct ListOffsetInfoInStorage {
-    common::offset_t prevNodeListOffset;
-    std::vector<std::unique_ptr<common::ValueVector>> offsetVectors;
+struct ListOffsetSizeInfo {
+    common::offset_t numTotal;
+    std::unique_ptr<ColumnChunk> offsetColumnChunk;
+    std::unique_ptr<ColumnChunk> sizeColumnChunk;
 
-    ListOffsetInfoInStorage(common::offset_t prevNodeListOffset,
-        std::vector<std::unique_ptr<common::ValueVector>> offsetVectors)
-        : prevNodeListOffset{prevNodeListOffset}, offsetVectors{std::move(offsetVectors)} {}
+    ListOffsetSizeInfo(common::offset_t numTotal, std::unique_ptr<ColumnChunk> offsetColumnChunk,
+        std::unique_ptr<ColumnChunk> sizeColumnChunk)
+        : numTotal{numTotal}, offsetColumnChunk{std::move(offsetColumnChunk)},
+          sizeColumnChunk{std::move(sizeColumnChunk)} {}
 
-    common::offset_t getListOffset(uint64_t nodePos) const;
+    uint32_t getListLength(uint64_t pos) const;
+    common::offset_t getListEndOffset(uint64_t pos) const;
+    common::offset_t getListStartOffset(uint64_t pos) const;
 
-    inline uint64_t getListLength(uint64_t nodePos) const {
-        KU_ASSERT(getListOffset(nodePos + 1) >= getListOffset(nodePos));
-        return getListOffset(nodePos + 1) - getListOffset(nodePos);
-    }
+    bool isOffsetSortedAscending(uint64_t startPos, uint64_t endPos) const;
 };
 
 class VarListColumn : public Column {
@@ -69,18 +71,11 @@ protected:
     void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
 
 private:
-    inline common::offset_t readListOffsetInStorage(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup) {
-        return offsetInNodeGroup == 0 ?
-                   0 :
-                   readOffset(transaction, nodeGroupIdx, offsetInNodeGroup - 1);
-    }
-
     void scanUnfiltered(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::ValueVector* resultVector,
-        const ListOffsetInfoInStorage& listOffsetInfoInStorage);
+        const ListOffsetSizeInfo& listOffsetInfoInStorage);
     void scanFiltered(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        common::ValueVector* offsetVector, const ListOffsetInfoInStorage& listOffsetInfoInStorage);
+        common::ValueVector* offsetVector, const ListOffsetSizeInfo& listOffsetInfoInStorage);
 
     inline bool canCommitInPlace(transaction::Transaction*, common::node_group_idx_t,
         const ChunkCollection&, const offset_to_row_idx_t&, const ChunkCollection&,
@@ -101,13 +96,18 @@ private:
 
     common::offset_t readOffset(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup);
-    ListOffsetInfoInStorage getListOffsetInfoInStorage(transaction::Transaction* transaction,
+
+    uint32_t readSize(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        common::offset_t offsetInNodeGroup);
+
+    ListOffsetSizeInfo getListOffsetSizeInfo(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInNodeGroup,
-        common::offset_t endOffsetInNodeGroup,
-        const std::shared_ptr<common::DataChunkState>& state);
+        common::offset_t endOffsetInNodeGroup);
 
 private:
+    std::unique_ptr<Column> sizeColumn;
     std::unique_ptr<Column> dataColumn;
+    std::unique_ptr<VarListDataColumnChunk> tmpDataColumnChunk;
 };
 
 } // namespace storage
