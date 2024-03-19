@@ -15,7 +15,7 @@ class ProgressBar {
 public:
     ProgressBar()
         : numPipelines{0}, numPipelinesFinished{0}, prevCurPipelineProgress{0.0}, 
-        trackProgress{false}, printing{false} {};
+          trackProgress{false}, printing{false} {};
 
     void addPipeline();
 
