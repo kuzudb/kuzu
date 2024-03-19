@@ -1,0 +1,36 @@
+-GROUP IssueTest
+-DATASET CSV empty
+
+--
+
+-CASE BUG
+-STATEMENT CREATE NODE TABLE n ( id STRING, name STRING, PRIMARY KEY(id) )
+---- ok
+-STATEMENT CREATE NODE TABLE f ( id STRING, prop1 STRING, prop2 STRING, prop3 INT64, prop4 STRING, prop5 STRING, PRIMARY KEY(id) )
+---- ok
+-STATEMENT CREATE REL TABLE  E ( FROM n TO f , prop BOOLEAN )
+---- ok
+-STATEMENT MERGE (n:f { id: "fewnjw32i3o#new" }) SET n.prop1 = "wen3", n.prop2 = "ewfw23", n.prop5 = "d6112fewnfw2323ir203092323f78r2r" RETURN n.id
+---- ok
+-STATEMENT MERGE (n:n { id: "wfw24sd" }) SET n.name = "fs23" RETURN n.id
+---- ok
+-STATEMENT MATCH (f:n), (t:f) WHERE f.id = "wfw24sd" AND t.id = "fewnjw32i3o#new" CREATE (f)-[r:E { prop : True }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:n { id: "fwfw232few" }) SET n.name = "fw3dds" RETURN n.id
+---- ok
+-STATEMENT MATCH (f:n), (t:f) WHERE f.id = "fwfw232few" AND t.id = "fewnjw32i3o#new" CREATE (f)-[r:E { prop : True }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:n { id: "7fnfjwe*33" }) SET n.name = "89njfew23" RETURN n.id
+---- ok
+-STATEMENT MATCH (f:n), (t:f) WHERE f.id = "7fnfjwe*33" AND t.id = "fewnjw32i3o#new" CREATE (f)-[r:E { prop : True }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:n { id: "8nfw*" }) SET n.name = "fs23" RETURN n.id
+---- ok
+-STATEMENT MERGE (n:n { id: "wefn&323" }) SET n.name = "89njfew23" RETURN n.id
+---- ok
+-STATEMENT MERGE (n:f { id: "nj2r2br2&323h^w8" }) SET n.prop1 = "wen3", n.prop2 = "wpy", n.prop3 = 6, n.prop4 = "tpi32", n.prop5 = "s12" RETURN n.id
+---- ok
+-STATEMENT MERGE (n:n { id: "njwf&33bnjkfw*f" }) SET n.name = "cs" RETURN n.id
+---- ok
+-STATEMENT MATCH (f:n), (t:f) WHERE f.id = "njwf&33bnjkfw*f" AND t.id = "nj2r2br2&323h^w8" CREATE (f)-[r:E { prop : False }]->(t) RETURN r
+---- ok

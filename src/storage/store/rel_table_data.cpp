@@ -506,6 +506,7 @@ void RelTableData::distributeAndUpdateColumn(Transaction* transaction,
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(newChunk->getNumValues());
     fillSequence(dstOffsets, localState.leftCSROffset);
+    KU_ASSERT(newChunk->sanityCheck());
     column->prepareCommitForChunk(
         transaction, nodeGroupIdx, dstOffsets, newChunk.get(), 0 /*srcOffset*/);
 }
@@ -881,6 +882,7 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
         int64_t newLength = (int64_t)oldLength - deletions.size();
         KU_ASSERT(newLength >= 0);
         newHeader.length->setValue<length_t>(newLength, offset);
+        newHeader.length->getNullChunk()->setNull(offset, false);
     }
     for (auto& [offset, _] : localState.localNG->insertChunks.getSrcNodeOffsetToRelOffsets()) {
         if (localState.region.isOutOfBoundary(offset)) {
@@ -894,6 +896,7 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
         int64_t newLength = (int64_t)oldLength + numInsertions;
         KU_ASSERT(newLength >= 0);
         newHeader.length->setValue<length_t>(newLength, offset);
+        newHeader.length->getNullChunk()->setNull(offset, false);
     }
     if (localState.region.level > 0) {
         distributeOffsets(header, localState, localState.region.leftBoundary, maxNumNodesInRegion);
@@ -902,7 +905,6 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
             getNewRegionSize(header, localState.sizeChangesPerSegment, localState.region);
         localState.regionCapacity = getRegionCapacity(header, localState.region);
     }
-    KU_ASSERT(newHeader.sanityCheck());
     localState.leftCSROffset = newHeader.getStartCSROffset(localState.region.leftBoundary);
     localState.rightCSROffset = newHeader.getEndCSROffset(localState.region.rightBoundary);
     std::vector<offset_t> dstOffsets;
@@ -939,6 +941,7 @@ void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState&
         auto startCSROffset = newHeader.getStartCSROffset(nodeOffset);
         auto newOffset = startCSROffset + newLength + newGap;
         newHeader.offset->setValue(newOffset, nodeOffset);
+        newHeader.offset->getNullChunk()->setNull(nodeOffset, false);
     }
     localState.needSliding = true;
 }

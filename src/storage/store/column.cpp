@@ -475,6 +475,7 @@ static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const Logi
 
 void Column::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     KU_ASSERT(enableCompression == columnChunk->isCompressionEnabled());
+    KU_ASSERT(columnChunk->sanityCheck());
     // Main column chunk.
     auto preScanMetadata = columnChunk->getMetadataToFlush();
     auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
@@ -770,6 +771,7 @@ void Column::commitLocalChunkOutOfPlace(Transaction* transaction, node_group_idx
         }
     }
     columnChunk->finalize();
+    KU_ASSERT(columnChunk->sanityCheck());
     append(columnChunk.get(), nodeGroupIdx);
 }
 
@@ -818,6 +820,13 @@ void Column::applyLocalChunkToColumn(node_group_idx_t nodeGroupIdx,
         if (!localChunks[chunkIdx]->getNullChunk()->isNull(offsetInLocalChunk)) {
             write(nodeGroupIdx, offsetInDstChunk, localChunks[chunkIdx], offsetInLocalChunk,
                 1 /*numValues*/);
+        } else {
+            auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+            if (offsetInDstChunk >= chunkMeta.numValues) {
+                chunkMeta.numValues = offsetInDstChunk + 1;
+                KU_ASSERT(sanityCheckForWrites(chunkMeta, dataType));
+                metadataDA->update(nodeGroupIdx, chunkMeta);
+            }
         }
     }
 }
