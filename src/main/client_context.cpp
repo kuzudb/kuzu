@@ -3,7 +3,6 @@
 #include <utility>
 
 #include "binder/binder.h"
-#include "common/constants.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
 #include "common/random_engine.h"

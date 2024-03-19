@@ -31,10 +31,13 @@ void ProgressBar::finishPipeline() {
         return;
     }
     numPipelinesFinished++;
+    // allow progress to print 0% for the next pipeline
     prevCurPipelineProgress = -0.01;
     updateProgress(0.0);
 }
 
+// to mitigate unnecessary progress bar updates, we only update the progress bar when the progress
+// changes by >= 1%
 void ProgressBar::updateProgress(double curPipelineProgress) {
     if (!trackProgress || curPipelineProgress - prevCurPipelineProgress < 0.01) {
         return;
