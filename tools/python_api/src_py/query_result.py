@@ -138,12 +138,9 @@ class QueryResult:
             Query result as a Polars DataFrame.
         """
         import polars as pl
+        self.check_for_query_result_close()
 
-        target_n_elems = 10_000_000  # adaptive chunk_size; target 10m elements per chunk
-        target_chunk_size = max(target_n_elems // len(self.get_column_names()), 10)
-        return pl.from_arrow(  # type: ignore[return-value]
-            data=self.get_as_arrow(chunk_size=target_chunk_size),
-        )
+        return pl.from_arrow(data=self.get_as_arrow())
 
     def get_as_arrow(self, chunk_size: int = 1_000_000) -> pa.Table:
         """
@@ -166,7 +163,10 @@ class QueryResult:
         """
         self.check_for_query_result_close()
 
-        return self._query_result.getAsArrow(chunk_size)
+        target_n_elems = 10_000_000  # adaptive chunk_size; target 10m elements per chunk
+        target_chunk_size = max(target_n_elems // len(self.get_column_names()), 10)
+
+        return self._query_result.getAsArrow(target_chunk_size)
 
     def get_column_data_types(self) -> list[str]:
         """
