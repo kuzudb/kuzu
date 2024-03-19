@@ -1,6 +1,7 @@
 #include "function/function_collection.h"
 
 #include "function/arithmetic/vector_arithmetic_functions.h"
+#include "function/array/vector_array_functions.h"
 
 namespace kuzu {
 namespace function {
@@ -35,7 +36,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION_ALIAS(PowerFunction), SCALAR_FUNCTION(RadiansFunction),
         SCALAR_FUNCTION(RoundFunction), SCALAR_FUNCTION(SinFunction), SCALAR_FUNCTION(SignFunction),
         SCALAR_FUNCTION(SqrtFunction), SCALAR_FUNCTION(TanFunction),
-
+        SCALAR_FUNCTION(ArrayValueFunction), SCALAR_FUNCTION(ArrayCrossProductFunction),
+        SCALAR_FUNCTION(ArrayCosineSimilarityFunction), SCALAR_FUNCTION(ArrayDistanceFunction),
+        SCALAR_FUNCTION(ArrayInnerProductFunction), SCALAR_FUNCTION(ArrayDotProductFunction),
         // End of array
         FINAL_FUNCTION};
 
