@@ -32,7 +32,7 @@ void NodeBatchInsertSharedState::initPKIndex(kuzu::processor::ExecutionContext* 
 }
 
 void NodeBatchInsertSharedState::appendIncompleteNodeGroup(
-    std::unique_ptr<NodeGroup> localNodeGroup, std::optional<IndexBuilder>& indexBuilder) {
+    std::unique_ptr<ChunkedNodeGroup> localNodeGroup, std::optional<IndexBuilder>& indexBuilder) {
     std::unique_lock xLck{mtx};
     if (!sharedNodeGroup) {
         sharedNodeGroup = std::move(localNodeGroup);
@@ -129,7 +129,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
 
 void NodeBatchInsert::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
     std::optional<IndexBuilder>& indexBuilder, column_id_t pkColumnID, NodeTable* table,
-    NodeGroup* nodeGroup) {
+    ChunkedNodeGroup* nodeGroup) {
     nodeGroup->finalize(nodeGroupIdx);
     if (indexBuilder) {
         auto nodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);

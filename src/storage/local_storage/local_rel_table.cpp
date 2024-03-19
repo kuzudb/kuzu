@@ -7,9 +7,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, std::vector<LogicalType*> dataTypes,
-    MemoryManager* mm, RelMultiplicity multiplicity)
-    : LocalNodeGroup{nodeGroupStartOffset, std::move(dataTypes), mm}, multiplicity{multiplicity} {}
+LocalRelNG::LocalRelNG(
+    offset_t nodeGroupStartOffset, std::vector<LogicalType> dataTypes, RelMultiplicity multiplicity)
+    : LocalNodeGroup{nodeGroupStartOffset, std::move(dataTypes)}, multiplicity{multiplicity} {}
 
 row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOffset,
     const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
@@ -201,7 +201,7 @@ LocalNodeGroup* LocalRelTableData::getOrCreateLocalNodeGroup(ValueVector* nodeID
     if (!nodeGroups.contains(nodeGroupIdx)) {
         auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         nodeGroups[nodeGroupIdx] =
-            std::make_unique<LocalRelNG>(nodeGroupStartOffset, dataTypes, mm, multiplicity);
+            std::make_unique<LocalRelNG>(nodeGroupStartOffset, dataTypes, multiplicity);
     }
     return nodeGroups.at(nodeGroupIdx).get();
 }

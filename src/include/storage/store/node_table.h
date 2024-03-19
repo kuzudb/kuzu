@@ -57,7 +57,7 @@ public:
         common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
     void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* pkVector);
-    inline void append(NodeGroup* nodeGroup) { tableData->append(nodeGroup); }
+    inline void append(ChunkedNodeGroup* nodeGroup) { tableData->append(nodeGroup); }
 
     inline common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
     inline Column* getColumn(common::column_id_t columnID) {

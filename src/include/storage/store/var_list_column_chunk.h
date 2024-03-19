@@ -25,7 +25,7 @@ struct VarListDataColumnChunk {
     inline uint64_t getNumValues() const { return dataColumnChunk->getNumValues(); }
 };
 
-class VarListColumnChunk : public ColumnChunk {
+class VarListColumnChunk final : public ColumnChunk {
 
 public:
     VarListColumnChunk(
@@ -35,23 +35,28 @@ public:
         return varListDataColumnChunk->dataColumnChunk.get();
     }
 
-    void resetToEmpty() final;
+    void resetToEmpty() override;
 
     void append(common::ValueVector* vector, common::SelectionVector& selVector) final;
+
+    void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
+        common::sel_t posInOutputVector) const override;
+
     // Note: `write` assumes that no `append` will be called afterward.
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
-        common::offset_t offsetInChunk) final;
-    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool isCSR) final;
+        common::offset_t offsetInChunk) override;
+    void write(
+        ColumnChunk* chunk, ColumnChunk* dstOffsets, common::RelMultiplicity multiplicity) override;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
     void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
-        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) final;
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     inline void resizeDataColumnChunk(uint64_t numValues) {
         varListDataColumnChunk->resizeBuffer(numValues);
     }
 
-    void finalize() final;
+    void finalize() override;
 
     inline common::offset_t getListOffset(common::offset_t offset) const {
         return offset == 0 ? 0 : getValue<uint64_t>(offset - 1);
@@ -62,7 +67,7 @@ protected:
 
 private:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-        uint32_t numValuesToAppend) final;
+        uint32_t numValuesToAppend) override;
 
     inline void initializeIndices() {
         indicesColumnChunk = ColumnChunkFactory::createColumnChunk(

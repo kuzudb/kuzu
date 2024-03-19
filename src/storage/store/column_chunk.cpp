@@ -227,14 +227,24 @@ void ColumnChunk::append(
     numValues += numValuesToAppend;
 }
 
-void ColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool isCSR) {
+void ColumnChunk::lookup(
+    offset_t offsetInChunk, ValueVector& output, sel_t posInOutputVector) const {
+    KU_ASSERT(offsetInChunk < capacity);
+    output.setNull(posInOutputVector, nullChunk->isNull(offsetInChunk));
+    if (!output.isNull(posInOutputVector)) {
+        memcpy(output.getData() + posInOutputVector * numBytesPerValue,
+            buffer.get() + offsetInChunk * numBytesPerValue, numBytesPerValue);
+    }
+}
+
+void ColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity multiplicity) {
     KU_ASSERT(chunk->dataType.getPhysicalType() == dataType.getPhysicalType() &&
               dstOffsets->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
               chunk->getNumValues() == dstOffsets->getNumValues());
     for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {
         auto dstOffset = dstOffsets->getValue<offset_t>(i);
         KU_ASSERT(dstOffset < capacity);
-        if (!isCSR && !nullChunk->isNull(dstOffset)) {
+        if (multiplicity == RelMultiplicity::ONE && !nullChunk->isNull(dstOffset)) {
             throw CopyException(stringFormat("Node with offset: {} can only have one neighbour due "
                                              "to the MANY-ONE/ONE-ONE relationship constraint.",
                 dstOffset));
@@ -275,6 +285,9 @@ void ColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk, offset
         srcChunk->buffer.get() + srcOffsetInChunk * numBytesPerValue,
         numValuesToCopy * numBytesPerValue);
     nullChunk->write(srcChunk->getNullChunk(), srcOffsetInChunk, dstOffsetInChunk, numValuesToCopy);
+    if (dstOffsetInChunk + numValuesToCopy >= numValues) {
+        numValues = dstOffsetInChunk + numValuesToCopy;
+    }
 }
 
 void ColumnChunk::copy(ColumnChunk* srcChunk, offset_t srcOffsetInChunk, offset_t dstOffsetInChunk,
@@ -423,7 +436,18 @@ void BoolColumnChunk::append(
     numValues += numValuesToAppend;
 }
 
-void BoolColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool /*isCSR*/) {
+void BoolColumnChunk::lookup(
+    offset_t offsetInChunk, ValueVector& output, sel_t posInOutputVector) const {
+    KU_ASSERT(offsetInChunk < capacity);
+    output.setNull(posInOutputVector, nullChunk->isNull(offsetInChunk));
+    if (!output.isNull(posInOutputVector)) {
+        output.setValue<bool>(
+            posInOutputVector, NullMask::isNull((uint64_t*)buffer.get(), offsetInChunk));
+    }
+}
+
+void BoolColumnChunk::write(
+    ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity /*multiplicity*/) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
               dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INT64 &&
               chunk->getNumValues() == dstOffsets->getNumValues());
@@ -455,6 +479,9 @@ void BoolColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     }
     NullMask::copyNullMask((uint64_t*)static_cast<BoolColumnChunk*>(srcChunk)->buffer.get(),
         srcOffsetInChunk, (uint64_t*)buffer.get(), dstOffsetInChunk, numValuesToCopy);
+    if (dstOffsetInChunk + numValuesToCopy >= numValues) {
+        numValues = dstOffsetInChunk + numValuesToCopy + 1;
+    }
 }
 
 void NullColumnChunk::setNull(offset_t pos, bool isNull) {
@@ -481,6 +508,9 @@ void NullColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     }
     copyFromBuffer((uint64_t*)static_cast<NullColumnChunk*>(srcChunk)->buffer.get(),
         srcOffsetInChunk, dstOffsetInChunk, numValuesToCopy);
+    if (dstOffsetInChunk + numValuesToCopy >= numValues) {
+        numValues = dstOffsetInChunk + numValuesToCopy + 1;
+    }
 }
 
 void NullColumnChunk::append(
@@ -494,7 +524,8 @@ class InternalIDColumnChunk final : public ColumnChunk {
 public:
     // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,
     explicit InternalIDColumnChunk(uint64_t capacity)
-        : ColumnChunk(*LogicalType::INT64(), capacity, false /*enableCompression*/) {}
+        : ColumnChunk(*LogicalType::INT64(), capacity, false /*enableCompression*/),
+          commonTableID{INVALID_TABLE_ID} {}
 
     void append(ValueVector* vector, common::SelectionVector& selVector) override {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
@@ -505,7 +536,11 @@ public:
     void copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
         common::SelectionVector& selVector) override {
         auto relIDsInVector = (internalID_t*)vector->getData();
+        if (commonTableID == INVALID_TABLE_ID) {
+            commonTableID = relIDsInVector[selVector.selectedPositions[0]].tableID;
+        }
         for (auto i = 0u; i < selVector.selectedSize; i++) {
+            KU_ASSERT(relIDsInVector[i].tableID == commonTableID);
             auto pos = selVector.selectedPositions[i];
             nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
             memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
@@ -513,10 +548,27 @@ public:
         }
     }
 
+    void lookup(
+        offset_t offsetInChunk, ValueVector& output, sel_t posInOutputVector) const override {
+        KU_ASSERT(offsetInChunk < capacity);
+        output.setNull(posInOutputVector, nullChunk->isNull(offsetInChunk));
+        if (!output.isNull(posInOutputVector)) {
+            auto relID = output.getValue<internalID_t>(posInOutputVector);
+            relID.offset = getValue<offset_t>(offsetInChunk);
+            KU_ASSERT(commonTableID != INVALID_TABLE_ID);
+            relID.tableID = commonTableID;
+            output.setValue<internalID_t>(posInOutputVector, relID);
+        }
+    }
+
     void write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) override {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
         auto relIDsInVector = (internalID_t*)vector->getData();
+        if (commonTableID == INVALID_TABLE_ID) {
+            commonTableID = relIDsInVector[offsetInVector].tableID;
+        }
+        KU_ASSERT(commonTableID == relIDsInVector[offsetInVector].tableID);
         if (!vector->isNull(offsetInVector)) {
             memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
                 &relIDsInVector[offsetInVector].offset, numBytesPerValue);
@@ -525,8 +577,12 @@ public:
             numValues = offsetInChunk + 1;
         }
     }
+
+private:
+    common::table_id_t commonTableID;
 };
 
+// TODO(Guodong): Change the input param `dataType` to PhysicalType.
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     LogicalType dataType, bool enableCompression, uint64_t capacity, bool inMemory) {
     switch (dataType.getPhysicalType()) {
@@ -545,12 +601,9 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
-        if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            return std::make_unique<ColumnChunk>(std::move(dataType), capacity,
-                false /*enableCompression*/, false /* hasNullChunk */);
-        } else {
-            return std::make_unique<ColumnChunk>(std::move(dataType), capacity, enableCompression);
-        }
+        // TODO: As we have constant compression, SERIAL column should always be compressed as
+        // constant non-null when flushed to disk. We should add a sanity check for this.
+        return std::make_unique<ColumnChunk>(std::move(dataType), capacity, enableCompression);
     }
         // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
     case PhysicalTypeID::INTERNAL_ID: {

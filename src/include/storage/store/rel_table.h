@@ -71,7 +71,7 @@ public:
                                                             bwdRelTableData->getColumn(columnID);
     }
 
-    inline void append(NodeGroup* nodeGroup, common::RelDataDirection direction) {
+    inline void append(ChunkedNodeGroup* nodeGroup, common::RelDataDirection direction) {
         direction == common::RelDataDirection::FWD ? fwdRelTableData->append(nodeGroup) :
                                                      bwdRelTableData->append(nodeGroup);
     }

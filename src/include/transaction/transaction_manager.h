@@ -15,9 +15,8 @@ namespace transaction {
 class TransactionManager {
 
 public:
-    explicit TransactionManager(storage::WAL& wal, storage::MemoryManager* mm)
-        : wal{wal}, mm{mm}, activeWriteTransactionID{INT64_MAX}, lastTransactionID{0}, lastCommitID{
-                                                                                           0} {};
+    explicit TransactionManager(storage::WAL& wal)
+        : wal{wal}, activeWriteTransactionID{INT64_MAX}, lastTransactionID{0}, lastCommitID{0} {};
     std::unique_ptr<Transaction> beginWriteTransaction();
     std::unique_ptr<Transaction> beginReadOnlyTransaction();
     void commit(Transaction* transaction);
@@ -61,7 +60,6 @@ private:
 
 private:
     storage::WAL& wal;
-    storage::MemoryManager* mm;
 
     uint64_t activeWriteTransactionID;
 

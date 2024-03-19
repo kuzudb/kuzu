@@ -2,10 +2,10 @@
 
 #include <unordered_map>
 
-#include "common/data_chunk/data_chunk_collection.h"
 #include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
 #include "common/vector/value_vector.h"
+#include "storage/store/node_group.h"
 
 namespace kuzu {
 namespace storage {
@@ -18,26 +18,21 @@ using offset_set_t = std::unordered_set<common::offset_t>;
 static constexpr common::column_id_t NBR_ID_COLUMN_ID = 0;
 static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
 
-struct LocalVectorCollection {
-    std::vector<common::ValueVector*> vectors;
+using ChunkCollection = std::vector<ColumnChunk*>;
 
-    static LocalVectorCollection empty() { return LocalVectorCollection{}; }
-
-    inline bool isEmpty() const { return vectors.empty(); }
-    inline void appendVector(common::ValueVector* vector) { vectors.push_back(vector); }
-    inline common::ValueVector* getLocalVector(common::row_idx_t rowIdx) const {
-        auto vectorIdx = rowIdx >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
-        KU_ASSERT(vectorIdx < vectors.size());
-        return vectors[vectorIdx];
-    }
-
-    LocalVectorCollection getStructChildVectorCollection(common::struct_field_idx_t idx) const;
-};
-
-class LocalDataChunkCollection {
+class LocalChunkedGroupCollection {
 public:
-    LocalDataChunkCollection(MemoryManager* mm, std::vector<common::LogicalType> dataTypes)
-        : dataChunkCollection{mm}, mm{mm}, dataTypes{std::move(dataTypes)}, numRows{0} {}
+    static constexpr uint64_t CHUNK_CAPACITY = 2048;
+
+    explicit LocalChunkedGroupCollection(std::vector<common::LogicalType> dataTypes)
+        : dataTypes{std::move(dataTypes)}, numRows{0} {}
+    DELETE_COPY_DEFAULT_MOVE(LocalChunkedGroupCollection);
+
+    static inline std::pair<uint32_t, uint64_t> getChunkIdxAndOffsetInChunk(
+        common::row_idx_t rowIdx) {
+        return std::make_pair(rowIdx / LocalChunkedGroupCollection::CHUNK_CAPACITY,
+            rowIdx % LocalChunkedGroupCollection::CHUNK_CAPACITY);
+    }
 
     inline common::row_idx_t getRowIdxFromOffset(common::offset_t offset) {
         KU_ASSERT(offsetToRowIdx.contains(offset));
@@ -61,12 +56,12 @@ public:
 
     bool isEmpty() const { return offsetToRowIdx.empty() && srcNodeOffsetToRelOffsets.empty(); }
     void readValueAtRowIdx(common::row_idx_t rowIdx, common::column_id_t columnID,
-        common::ValueVector* outputVector, common::sel_t posInOutputVector);
+        common::ValueVector* outputVector, common::sel_t posInOutputVector) const;
     bool read(common::offset_t offset, common::column_id_t columnID,
         common::ValueVector* outputVector, common::sel_t posInOutputVector);
 
     inline void append(common::offset_t offset, std::vector<common::ValueVector*> vectors) {
-        offsetToRowIdx[offset] = appendToDataChunkCollection(vectors);
+        offsetToRowIdx[offset] = append(vectors);
     }
     // Only used for rel tables. Should be moved out later.
     inline void append(common::offset_t nodeOffset, common::offset_t relOffset,
@@ -84,23 +79,21 @@ public:
     // Only used for rel tables. Should be moved out later.
     void remove(common::offset_t srcNodeOffset, common::offset_t relOffset);
 
-    inline LocalVectorCollection getLocalChunk(common::column_id_t columnID) {
-        LocalVectorCollection localVectorCollection;
-        for (auto& chunk : dataChunkCollection.getChunksUnsafe()) {
-            localVectorCollection.appendVector(chunk.getValueVector(columnID).get());
+    inline ChunkCollection getLocalChunk(common::column_id_t columnID) {
+        ChunkCollection localChunkCollection;
+        for (auto& chunkedGroup : chunkedGroups.getChunkedGroups()) {
+            localChunkCollection.push_back(chunkedGroup->getColumnChunkUnsafe(columnID));
         }
-        return localVectorCollection;
+        return localChunkCollection;
     }
 
 private:
-    common::row_idx_t appendToDataChunkCollection(std::vector<common::ValueVector*> vectors);
-    common::DataChunk createNewDataChunk();
+    common::row_idx_t append(std::vector<common::ValueVector*> vectors);
 
 private:
-    common::DataChunkCollection dataChunkCollection;
+    ChunkedNodeGroupCollection chunkedGroups;
     // The offset here can either be nodeOffset ( for node table) or relOffset (for rel table).
     offset_to_row_idx_t offsetToRowIdx;
-    storage::MemoryManager* mm;
     std::vector<common::LogicalType> dataTypes;
     common::row_idx_t numRows;
 
@@ -147,8 +140,9 @@ private:
 
 class LocalNodeGroup {
 public:
-    LocalNodeGroup(common::offset_t nodeGroupStartOffset,
-        std::vector<common::LogicalType*> dataTypes, MemoryManager* mm);
+    LocalNodeGroup(
+        common::offset_t nodeGroupStartOffset, const std::vector<common::LogicalType>& dataTypes);
+    DELETE_COPY_DEFAULT_MOVE(LocalNodeGroup);
     virtual ~LocalNodeGroup() = default;
 
     virtual bool insert(std::vector<common::ValueVector*> nodeIDVectors,
@@ -157,29 +151,28 @@ public:
         common::column_id_t columnID, common::ValueVector* propertyVector) = 0;
     virtual bool delete_(common::ValueVector* IDVector, common::ValueVector* extraVector) = 0;
 
-    LocalDataChunkCollection& getUpdateChunks(common::column_id_t columnID) {
+    LocalChunkedGroupCollection& getUpdateChunks(common::column_id_t columnID) {
         KU_ASSERT(columnID < updateChunks.size());
         return updateChunks[columnID];
     }
-    LocalDataChunkCollection& getInsesrtChunks() { return insertChunks; }
+    LocalChunkedGroupCollection& getInsesrtChunks() { return insertChunks; }
 
     bool hasUpdatesOrDeletions() const;
 
 protected:
     common::offset_t nodeGroupStartOffset;
-    storage::MemoryManager* mm;
 
-    LocalDataChunkCollection insertChunks;
+    LocalChunkedGroupCollection insertChunks;
     LocalDeletionInfo deleteInfo;
-    std::vector<LocalDataChunkCollection> updateChunks;
+    std::vector<LocalChunkedGroupCollection> updateChunks;
 };
 
 class LocalTableData {
     friend class NodeTableData;
 
 public:
-    LocalTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm)
-        : dataTypes{std::move(dataTypes)}, mm{mm} {}
+    explicit LocalTableData(std::vector<common::LogicalType> dataTypes)
+        : dataTypes{std::move(dataTypes)} {}
     virtual ~LocalTableData() = default;
 
     inline void clear() { nodeGroups.clear(); }
@@ -194,8 +187,7 @@ protected:
     virtual LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) = 0;
 
 protected:
-    std::vector<common::LogicalType*> dataTypes;
-    MemoryManager* mm;
+    std::vector<common::LogicalType> dataTypes;
 
     std::unordered_map<common::node_group_idx_t, std::unique_ptr<LocalNodeGroup>> nodeGroups;
 };
@@ -206,7 +198,7 @@ public:
     explicit LocalTable(common::TableType tableType) : tableType{tableType} {};
 
     LocalTableData* getOrCreateLocalTableData(const std::vector<std::unique_ptr<Column>>& columns,
-        MemoryManager* mm, common::vector_idx_t dataIdx, common::RelMultiplicity multiplicity);
+        common::vector_idx_t dataIdx, common::RelMultiplicity multiplicity);
     inline LocalTableData* getLocalTableData(common::vector_idx_t dataIdx) {
         KU_ASSERT(dataIdx < localTableDataCollection.size());
         return localTableDataCollection[dataIdx].get();

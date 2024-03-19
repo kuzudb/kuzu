@@ -4,6 +4,7 @@
 
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
+#include "common/enums/rel_multiplicity.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/bm_file_handle.h"
@@ -70,13 +71,18 @@ public:
     inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
     inline uint8_t* getData() const { return buffer.get(); }
 
+    virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
+        common::sel_t posInOutputVector) const;
+
     // TODO(Guodong): In general, this is not a good interface. Instead of passing in
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
     virtual void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk);
-    virtual void write(ColumnChunk* chunk, ColumnChunk* offsetsInChunk, bool isCSR);
+    virtual void write(
+        ColumnChunk* chunk, ColumnChunk* offsetsInChunk, common::RelMultiplicity multiplicity);
     virtual void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
+    // TODO(Guodong): Used in `applyDeletionsToChunk`. Should unify with `write`.
     virtual void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
 
@@ -154,9 +160,14 @@ public:
     void append(common::ValueVector* vector, common::SelectionVector& sel) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
+
+    void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
+        common::sel_t posInOutputVector) const override;
+
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool isCSR) final;
+    void write(
+        ColumnChunk* chunk, ColumnChunk* dstOffsets, common::RelMultiplicity multiplicity) final;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 };

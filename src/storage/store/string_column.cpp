@@ -170,14 +170,15 @@ void StringColumn::lookupInternal(
 }
 
 bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, const LocalVectorCollection& localInsertChunk,
-    const offset_to_row_idx_t& insertInfo, const LocalVectorCollection& localUpdateChunk,
+    node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunks,
+    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
     const offset_to_row_idx_t& updateInfo) {
     auto strLenToAdd = 0u;
     for (auto& [_, rowIdx] : updateInfo) {
-        auto localVector = localUpdateChunk.getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        auto kuStr = localVector->getValue<ku_string_t>(offsetInVector);
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        auto localUpdateChunk = localUpdateChunks[chunkIdx];
+        auto kuStr = localUpdateChunk->getValue<ku_string_t>(offsetInLocalChunk);
         strLenToAdd += kuStr.len;
     }
     offset_t maxOffset = 0u;
@@ -185,9 +186,10 @@ bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
         if (offset > maxOffset) {
             maxOffset = offset;
         }
-        auto localVector = localInsertChunk.getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        auto kuStr = localVector->getValue<ku_string_t>(offsetInVector);
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        auto localInsertChunk = localInsertChunks[chunkIdx];
+        auto kuStr = localInsertChunk->getValue<ku_string_t>(offsetInLocalChunk);
         strLenToAdd += kuStr.len;
     }
     auto numStrings = insertInfo.size() + updateInfo.size();
@@ -229,7 +231,7 @@ bool StringColumn::canIndexCommitInPlace(Transaction* transaction, node_group_id
         dictionary.getNumValuesInOffsets(transaction, nodeGroupIdx) + numStrings;
     // Check if the index column can store the largest new index in-place
     if (!metadata.compMeta.canUpdateInPlace(
-            (const uint8_t*)&totalStringsAfterUpdate, 0 /*pos*/, dataType.getPhysicalType())) {
+            (const uint8_t*)&totalStringsAfterUpdate, 0 /*pos*/, PhysicalTypeID::UINT32)) {
         return false;
     }
     return true;

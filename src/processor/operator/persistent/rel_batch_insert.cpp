@@ -65,7 +65,8 @@ void RelBatchInsert::executeInternal(ExecutionContext* /*context*/) {
 void RelBatchInsert::prepareCSRNodeGroup(PartitioningBuffer::Partition& partition,
     common::offset_t startNodeOffset, vector_idx_t offsetVectorIdx, offset_t numNodes) {
     auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
-    auto csrNodeGroup = ku_dynamic_cast<NodeGroup*, CSRNodeGroup*>(localState->nodeGroup.get());
+    auto csrNodeGroup =
+        ku_dynamic_cast<ChunkedNodeGroup*, ChunkedCSRNodeGroup*>(localState->nodeGroup.get());
     auto& csrHeader = csrNodeGroup->getCSRHeader();
     csrHeader.setNumValues(numNodes);
     // Populate start csr offsets and lengths for each node.
@@ -88,7 +89,7 @@ void RelBatchInsert::prepareCSRNodeGroup(PartitioningBuffer::Partition& partitio
 }
 
 void RelBatchInsert::populateEndCSROffsets(
-    CSRHeaderChunks& csrHeader, std::vector<offset_t>& gaps) {
+    ChunkedCSRHeader& csrHeader, std::vector<offset_t>& gaps) {
     auto csrOffsets = (offset_t*)csrHeader.offset->getData();
     for (auto i = 0u; i < csrHeader.offset->getNumValues(); i++) {
         csrOffsets[i] += gaps[i];
@@ -104,7 +105,7 @@ length_t RelBatchInsert::getGapSize(length_t length) {
                    length;
 }
 
-std::vector<offset_t> RelBatchInsert::populateStartCSROffsetsAndLengths(CSRHeaderChunks& csrHeader,
+std::vector<offset_t> RelBatchInsert::populateStartCSROffsetsAndLengths(ChunkedCSRHeader& csrHeader,
     offset_t numNodes, PartitioningBuffer::Partition& partition, vector_idx_t offsetVectorIdx) {
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
@@ -154,7 +155,7 @@ void RelBatchInsert::setOffsetFromCSROffsets(
 }
 
 std::optional<common::offset_t> RelBatchInsert::checkRelMultiplicityConstraint(
-    const storage::CSRHeaderChunks& csrHeader) {
+    const storage::ChunkedCSRHeader& csrHeader) {
     auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
     auto relTableEntry =
         ku_dynamic_cast<catalog::TableCatalogEntry*, catalog::RelTableCatalogEntry*>(

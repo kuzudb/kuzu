@@ -2,15 +2,11 @@
 
 #include <unordered_map>
 
+#include "common/copy_constructors.h"
 #include "storage/local_storage/local_table.h"
 
 namespace kuzu {
-namespace catalog {
-class TableCatalogEntry;
-}
 namespace storage {
-
-class MemoryManager;
 
 // Data structures in LocalStorage are not thread-safe.
 // For now, we only support single thread insertions and updates. Once we optimize them with
@@ -18,7 +14,8 @@ class MemoryManager;
 // thread-safe.
 class LocalStorage {
 public:
-    explicit LocalStorage(storage::MemoryManager* mm);
+    explicit LocalStorage() {}
+    DELETE_COPY_AND_MOVE(LocalStorage);
 
     // This function will create the local table data if not exists.
     LocalTableData* getOrCreateLocalTableData(common::table_id_t tableID,
@@ -32,7 +29,6 @@ public:
 
 private:
     std::unordered_map<common::table_id_t, std::unique_ptr<LocalTable>> tables;
-    storage::MemoryManager* mm;
 };
 
 } // namespace storage

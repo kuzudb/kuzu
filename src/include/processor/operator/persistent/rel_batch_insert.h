@@ -66,10 +66,10 @@ private:
 
     static common::length_t getGapSize(common::length_t length);
     static std::vector<common::offset_t> populateStartCSROffsetsAndLengths(
-        storage::CSRHeaderChunks& csrHeader, common::offset_t numNodes,
+        storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
         PartitioningBuffer::Partition& partition, common::vector_idx_t offsetVectorIdx);
     static void populateEndCSROffsets(
-        storage::CSRHeaderChunks& csrHeader, std::vector<common::offset_t>& gaps);
+        storage::ChunkedCSRHeader& csrHeader, std::vector<common::offset_t>& gaps);
     static void setOffsetToWithinNodeGroup(
         storage::ColumnChunk& chunk, common::offset_t startOffset);
     static void setOffsetFromCSROffsets(
@@ -77,7 +77,7 @@ private:
 
     // We only check rel multiplcity constraint (MANY_ONE, ONE_ONE) for now.
     std::optional<common::offset_t> checkRelMultiplicityConstraint(
-        const storage::CSRHeaderChunks& csrHeader);
+        const storage::ChunkedCSRHeader& csrHeader);
 
 private:
     std::shared_ptr<PartitionerSharedState> partitionerSharedState;

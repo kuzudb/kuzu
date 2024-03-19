@@ -124,7 +124,7 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* c
         return;
     }
     auto offset = relsStatistics->getNextRelOffset(tx, table->getTableID());
-    columnDataVectors[0]->setValue(0, offset); // internal ID property
+    columnDataVectors[0]->setValue<internalID_t>(0, internalID_t{offset, table->getTableID()});
     columnDataVectors[0]->setNull(0, false);
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
         columnDataEvaluators[i]->evaluate(context->clientContext);

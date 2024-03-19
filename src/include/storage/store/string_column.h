@@ -49,8 +49,8 @@ protected:
 
 private:
     bool canCommitInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, const LocalVectorCollection& localInsertChunk,
-        const offset_to_row_idx_t& insertInfo, const LocalVectorCollection& localUpdateChunk,
+        common::node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunk,
+        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
         const offset_to_row_idx_t& updateInfo) override;
     bool canCommitInPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
@@ -60,7 +60,7 @@ private:
         common::node_group_idx_t nodeGroupIdx, uint64_t numStrings, common::offset_t maxOffset);
 
     bool checkUpdateInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, const LocalVectorCollection& localChunk,
+        common::node_group_idx_t nodeGroupIdx, const ChunkCollection& localChunk,
         const offset_to_row_idx_t& writeInfo);
 
 private:

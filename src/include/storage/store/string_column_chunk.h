@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace storage {
 
-class StringColumnChunk : public ColumnChunk {
+class StringColumnChunk final : public ColumnChunk {
 public:
     StringColumnChunk(
         common::LogicalType dataType, uint64_t capacity, bool enableCompression, bool inMemory);
@@ -17,15 +17,19 @@ public:
     void resetToEmpty() final;
     void append(common::ValueVector* vector, common::SelectionVector& selVector) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-        uint32_t numValuesToAppend) final;
+        uint32_t numValuesToAppend) override;
+
+    void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
+        common::sel_t posInOutputVector) const override;
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
-        common::offset_t offsetInChunk) final;
-    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool isCSR) final;
+        common::offset_t offsetInChunk) override;
+    void write(
+        ColumnChunk* chunk, ColumnChunk* dstOffsets, common::RelMultiplicity multiplicity) override;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
     void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
-        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) final;
+        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     template<typename T>
     T getValue(common::offset_t /*pos*/) const {
@@ -40,7 +44,7 @@ public:
     inline DictionaryChunk& getDictionaryChunk() { return *dictionaryChunk; }
     inline const DictionaryChunk& getDictionaryChunk() const { return *dictionaryChunk; }
 
-    void finalize() final;
+    void finalize() override;
 
 private:
     void appendStringColumnChunk(StringColumnChunk* other, common::offset_t startPosInOtherChunk,

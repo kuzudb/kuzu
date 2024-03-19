@@ -97,7 +97,7 @@ void NodeTableData::lookup(Transaction* transaction, TableReadState& readState,
     }
 }
 
-void NodeTableData::append(NodeGroup* nodeGroup) {
+void NodeTableData::append(ChunkedNodeGroup* nodeGroup) {
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         auto columnChunk = nodeGroup->getColumnChunkUnsafe(columnID);
         KU_ASSERT(columnID < columns.size());
@@ -112,7 +112,7 @@ void NodeTableData::prepareLocalTableToCommit(
             auto column = columns[columnID].get();
             auto localInsertChunk = localNodeGroup->getInsesrtChunks().getLocalChunk(columnID);
             auto localUpdateChunk = localNodeGroup->getUpdateChunks(columnID).getLocalChunk(0);
-            if (localInsertChunk.isEmpty() && localUpdateChunk.isEmpty()) {
+            if (localInsertChunk.empty() && localUpdateChunk.empty()) {
                 continue;
             }
             auto localNodeNG = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(localNodeGroup.get());

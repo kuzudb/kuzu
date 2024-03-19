@@ -101,7 +101,27 @@ void VarListColumnChunk::appendNullList() {
     numValues++;
 }
 
-void VarListColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, bool /*isCSR*/) {
+void VarListColumnChunk::lookup(
+    offset_t offsetInChunk, ValueVector& output, sel_t posInOutputVector) const {
+    KU_ASSERT(offsetInChunk < numValues);
+    output.setNull(posInOutputVector, nullChunk->isNull(offsetInChunk));
+    if (output.isNull(posInOutputVector)) {
+        return;
+    }
+    auto startOffset = offsetInChunk == 0 ? 0 : getValue<offset_t>(offsetInChunk - 1);
+    auto endOffset = getValue<offset_t>(offsetInChunk);
+    auto listLen = endOffset - startOffset;
+    auto dataVector = ListVector::getDataVector(&output);
+    auto currentListDataSize = ListVector::getDataVectorSize(&output);
+    ListVector::resizeDataVector(&output, currentListDataSize + listLen);
+    // TODO(Guodong): Should add `scan` interface and use `scan` here.
+    for (auto i = 0u; i < listLen; i++) {
+        varListDataColumnChunk->dataColumnChunk->lookup(startOffset + i, *dataVector, i);
+    }
+}
+
+void VarListColumnChunk::write(
+    ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity /*multiplicity*/) {
     needFinalize = true;
     if (!indicesColumnChunk) {
         initializeIndices();

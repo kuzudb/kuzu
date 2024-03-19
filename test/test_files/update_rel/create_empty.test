@@ -184,7 +184,7 @@
 ---- ok
 -STATEMENT MATCH (n1:N1)-[r:Rel1]->(n2:N2) WHERE n1.ID=10 AND n2.ID=12 RETURN r
 ---- 1
-(0:0)-{_LABEL: Rel1, _ID: 0:0}->(1:0)
+(0:0)-{_LABEL: Rel1, _ID: 2:0}->(1:0)
 -STATEMENT MATCH (n1:N1)-[r:Rel1]->(n2:N2) WHERE n1.ID=10 AND n2.ID=12 DELETE r
 ---- ok
 -STATEMENT MATCH (n:N1)-[r:Rel1]->(m:N2) RETURN n.ID, m.ID

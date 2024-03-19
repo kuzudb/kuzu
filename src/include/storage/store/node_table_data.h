@@ -36,7 +36,7 @@ public:
     void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector);
 
     // Flush the nodeGroup to disk and update metadataDAs.
-    void append(NodeGroup* nodeGroup) override;
+    void append(ChunkedNodeGroup* nodeGroup) override;
 
     void prepareLocalTableToCommit(
         transaction::Transaction* transaction, LocalTableData* localTable) override;

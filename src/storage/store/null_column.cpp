@@ -147,8 +147,8 @@ void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
     }
 }
 
-void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
-    kuzu::storage::ColumnChunk* data, offset_t dataOffset, length_t numValues) {
+void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, ColumnChunk* data,
+    offset_t dataOffset, length_t numValues) {
     auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     writeValues(state, offsetInChunk, data->getData(), dataOffset, numValues);
     auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(data);
@@ -164,8 +164,8 @@ void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
 }
 
 bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const LocalVectorCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-    const LocalVectorCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo) {
+    const ChunkCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo) {
     auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
     if (metadata.compMeta.canAlwaysUpdateInPlace()) {
         return true;
@@ -175,16 +175,18 @@ bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nod
 }
 
 bool NullColumn::checkUpdateInPlace(const ColumnChunkMetadata& metadata,
-    const LocalVectorCollection& localChunk, const offset_to_row_idx_t& writeInfo) {
+    const ChunkCollection& localChunks, const offset_to_row_idx_t& writeInfo) {
     std::vector<row_idx_t> rowIdxesToRead;
     for (auto& [_, rowIdx] : writeInfo) {
         rowIdxesToRead.push_back(rowIdx);
     }
     std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
     for (auto rowIdx : rowIdxesToRead) {
-        auto localVector = localChunk.getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        bool value = localVector->isNull(offsetInVector);
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        auto localNullChunk =
+            ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(localChunks[chunkIdx]);
+        bool value = localNullChunk->isNull(offsetInLocalChunk);
         if (!metadata.compMeta.canUpdateInPlace(
                 reinterpret_cast<const uint8_t*>(&value), 0, dataType.getPhysicalType())) {
             return false;
@@ -220,18 +222,24 @@ bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nod
 }
 
 void NullColumn::commitLocalChunkInPlace(Transaction* /*transaction*/,
-    node_group_idx_t nodeGroupIdx, const LocalVectorCollection& localInsertChunk,
-    const offset_to_row_idx_t& insertInfo, const LocalVectorCollection& localUpdateChunk,
+    node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunks,
+    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
     const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
     for (auto& [offsetInChunk, rowIdx] : updateInfo) {
-        auto localVector = localUpdateChunk.getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        write(nodeGroupIdx, offsetInChunk, localVector, offsetInVector);
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        auto localChunk = localUpdateChunks[chunkIdx];
+        KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
+                  !localChunk->getNullChunk());
+        write(nodeGroupIdx, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
     }
     for (auto& [offsetInChunk, rowIdx] : insertInfo) {
-        auto localVector = localInsertChunk.getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        write(nodeGroupIdx, offsetInChunk, localVector, offsetInVector);
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        auto localChunk = localInsertChunks[chunkIdx];
+        KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
+                  !localChunk->getNullChunk());
+        write(nodeGroupIdx, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
     }
     // Set nulls based on deleteInfo. Note that this code path actually only gets executed when
     // the column is a regular format one. This is not a good design, should be unified with csr

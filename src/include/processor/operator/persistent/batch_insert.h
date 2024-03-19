@@ -52,7 +52,7 @@ struct BatchInsertSharedState {
 };
 
 struct BatchInsertLocalState {
-    std::unique_ptr<storage::NodeGroup> nodeGroup;
+    std::unique_ptr<storage::ChunkedNodeGroup> nodeGroup;
 
     virtual ~BatchInsertLocalState() = default;
 };
