@@ -470,7 +470,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     def _test_node(_conn: kuzu.Connection) -> None:
         query = "MATCH (p:person) RETURN p ORDER BY p.ID"
         query_result = _conn.execute(query)
-        arrow_tbl = query_result.get_as_arrow(12)
+        arrow_tbl = query_result.get_as_arrow()
         p_col = arrow_tbl.column(0)
 
         assert p_col.to_pylist() == [
@@ -487,7 +487,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     def _test_node_rel(_conn: kuzu.Connection) -> None:
         query = "MATCH (a:person)-[e:workAt]->(b:organisation) RETURN a, e, b;"
         query_result = _conn.execute(query)
-        arrow_tbl = query_result.get_as_arrow(12)
+        arrow_tbl = query_result.get_as_arrow()
         assert arrow_tbl.num_columns == 3
         a_col = arrow_tbl.column(0)
         assert len(a_col) == 3
@@ -528,7 +528,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
 
     def _test_marries_table(_conn: kuzu.Connection) -> None:
         query = "MATCH (:person)-[e:marries]->(:person) RETURN e.*"
-        arrow_tbl = _conn.execute(query).get_as_arrow(8)
+        arrow_tbl = _conn.execute(query).get_as_arrow()
         assert arrow_tbl.num_columns == 3
 
         used_addr_col = arrow_tbl.column(0)
@@ -553,5 +553,5 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     def test_to_arrow1(conn_db_readonly: ConnDB) -> None:
         conn, db = conn_db_readonly
         query = "MATCH (a:person)-[e:knows]->(:person) RETURN e.summary"
-        arrow_tbl = conn.execute(query).get_as_arrow(8)
+        arrow_tbl = conn.execute(query).get_as_arrow()
         assert arrow_tbl == []

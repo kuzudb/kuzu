@@ -145,14 +145,14 @@ class QueryResult:
             data=self.get_as_arrow(chunk_size=target_chunk_size),
         )
 
-    def get_as_arrow(self, chunk_size: int) -> pa.Table:
+    def get_as_arrow(self, chunk_size: int = 1_000_000) -> pa.Table:
         """
         Get the query result as a PyArrow Table.
 
         Parameters
         ----------
         chunk_size : int
-            Number of rows to include in each chunk.
+            Number of rows to include in each chunk. Defaults to 1M.
 
         See Also
         --------
