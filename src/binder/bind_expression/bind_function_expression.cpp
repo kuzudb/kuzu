@@ -4,6 +4,7 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
+#include "function/aggregate/collect.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/cast/vector_cast_functions.h"
 #include "function/path/vector_path_functions.h"
@@ -140,6 +141,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     if (function->paramRewriteFunc) {
         function->paramRewriteFunc(children);
     }
+    if (functionName == CollectFunction::name && parsedExpression.hasAlias() &&
+        children[0]->getDataType().getLogicalTypeID() == LogicalTypeID::NODE) {
+        auto node = ku_dynamic_cast<Expression*, NodeExpression*>(children[0].get());
+        binder->scope.memorizeTableIDs(parsedExpression.getAlias(), node->getTableIDs());
+    }
     auto uniqueExpressionName =
         AggregateFunctionExpression::getUniqueName(function->name, children, function->isDistinct);
     if (children.empty()) {
@@ -209,18 +215,6 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
         return bindEndNodeExpression(*child);
     }
     return nullptr;
-}
-
-std::unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
-    const Expression& expression) {
-    auto& node = (NodeExpression&)expression;
-    std::unordered_map<table_id_t, property_id_t> propertyIDPerTable;
-    for (auto tableID : node.getTableIDs()) {
-        propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
-    }
-    return std::make_unique<PropertyExpression>(LogicalType(LogicalTypeID::INTERNAL_ID),
-        InternalKeyword::ID, node.getUniqueName(), node.getVariableName(),
-        std::move(propertyIDPerTable), false /* isPrimaryKey */);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindStartNodeExpression(

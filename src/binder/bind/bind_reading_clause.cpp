@@ -104,11 +104,18 @@ void Binder::rewriteMatchPattern(BoundGraphPattern& boundGraphPattern) {
 std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {
     auto& unwindClause = ku_dynamic_cast<const ReadingClause&, const UnwindClause&>(readingClause);
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
-    boundExpression =
-        ExpressionBinder::implicitCastIfNecessary(boundExpression, LogicalTypeID::VAR_LIST);
-    auto aliasExpression = createVariable(
-        unwindClause.getAlias(), *VarListType::getChildType(&boundExpression->dataType));
-    return make_unique<BoundUnwindClause>(std::move(boundExpression), std::move(aliasExpression));
+    ExpressionBinder::validateDataType(*boundExpression, LogicalTypeID::VAR_LIST);
+    auto aliasName = unwindClause.getAlias();
+    auto alias = createVariable(aliasName, *VarListType::getChildType(&boundExpression->dataType));
+    std::shared_ptr<Expression> idExpr = nullptr;
+    if (scope.hasMemorizedTableIDs(boundExpression->getAlias())) {
+        auto tableIDs = scope.getMemorizedTableIDs(boundExpression->getAlias());
+        auto node = createQueryNode(aliasName, tableIDs);
+        idExpr = node->getInternalID();
+        scope.addNodeReplacement(node);
+    }
+    return make_unique<BoundUnwindClause>(
+        std::move(boundExpression), std::move(alias), std::move(idExpr));
 }
 
 std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause& readingClause) {

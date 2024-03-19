@@ -101,12 +101,12 @@ std::shared_ptr<Expression> Binder::createVariable(
 
 std::shared_ptr<Expression> Binder::createVariable(
     const std::string& name, const LogicalType& dataType) {
-    if (scope->contains(name)) {
+    if (scope.contains(name)) {
         throw BinderException("Variable " + name + " already exists.");
     }
     auto expression = expressionBinder.createVariableExpression(dataType, name);
     expression->setAlias(name);
-    scope->addExpression(name, expression);
+    scope.addExpression(name, expression);
     return expression;
 }
 
@@ -182,12 +182,12 @@ bool Binder::isReservedPropertyName(const std::string& name) {
     return false;
 }
 
-std::unique_ptr<BinderScope> Binder::saveScope() {
-    return scope->copy();
+BinderScope Binder::saveScope() {
+    return scope.copy();
 }
 
-void Binder::restoreScope(std::unique_ptr<BinderScope> prevVariableScope) {
-    scope = std::move(prevVariableScope);
+void Binder::restoreScope(BinderScope prevScope) {
+    scope = std::move(prevScope);
 }
 
 function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderConfig& config) {

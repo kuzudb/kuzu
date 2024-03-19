@@ -14,11 +14,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUnwind(LogicalOperator* logical
     auto outSchema = unwind->getSchema();
     auto inSchema = unwind->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto dataPos = DataPos(outSchema->getExpressionPos(*unwind->getAliasExpression()));
-    auto expressionEvaluator = ExpressionMapper::getEvaluator(unwind->getExpression(), inSchema);
-    return std::make_unique<Unwind>(*VarListType::getChildType(&unwind->getExpression()->dataType),
-        dataPos, std::move(expressionEvaluator), std::move(prevOperator), getOperatorID(),
-        unwind->getExpressionsForPrinting());
+    auto dataPos = DataPos(outSchema->getExpressionPos(*unwind->getOutExpr()));
+    auto expressionEvaluator = ExpressionMapper::getEvaluator(unwind->getInExpr(), inSchema);
+    DataPos idPos;
+    if (unwind->hasIDExpr()) {
+        idPos = getDataPos(*unwind->getIDExpr(), *outSchema);
+    }
+    return std::make_unique<Unwind>(dataPos, idPos, std::move(expressionEvaluator),
+        std::move(prevOperator), getOperatorID(), unwind->getExpressionsForPrinting());
 }
 
 } // namespace processor

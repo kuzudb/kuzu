@@ -150,6 +150,9 @@ public:
     std::vector<std::shared_ptr<RelExpression>> getQueryRels() const;
 
 private:
+    std::vector<QueryGraph> mergeGraphs(common::idx_t baseGraphIdx);
+
+private:
     std::vector<QueryGraph> queryGraphs;
 };
 

@@ -143,6 +143,14 @@ void ExpressionBinder::validateDataType(const Expression& expr, const LogicalTyp
     }
 }
 
+void ExpressionBinder::validateDataType(const Expression& expr, LogicalTypeID expectedTypeID) {
+    if (expr.getDataType().getLogicalTypeID() != expectedTypeID) {
+        throw BinderException(
+            stringFormat("{} has data type {} but {} was expected.", expr.toString(),
+                expr.getDataType().toString(), LogicalTypeUtils::toString(expectedTypeID)));
+    }
+}
+
 void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression& expression) {
     if (expression.getNumChildren() == 0) {
         return;

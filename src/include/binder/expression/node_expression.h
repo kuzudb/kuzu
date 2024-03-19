@@ -12,10 +12,10 @@ public:
         : NodeOrRelExpression{std::move(dataType), std::move(uniqueName), std::move(variableName),
               std::move(tableIDs)} {}
 
-    inline void setInternalID(std::unique_ptr<Expression> expression) {
+    void setInternalID(std::unique_ptr<Expression> expression) {
         internalID = std::move(expression);
     }
-    inline std::shared_ptr<Expression> getInternalID() const {
+    std::shared_ptr<Expression> getInternalID() const {
         KU_ASSERT(internalID != nullptr);
         return internalID->copy();
     }

@@ -156,7 +156,7 @@ void ProjectionPushDownOptimizer::visitOrderBy(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
     auto unwind = (LogicalUnwind*)op;
-    collectExpressionsInUse(unwind->getExpression());
+    collectExpressionsInUse(unwind->getInExpr());
 }
 
 void ProjectionPushDownOptimizer::visitInsert(planner::LogicalOperator* op) {
