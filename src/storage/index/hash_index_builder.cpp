@@ -62,9 +62,8 @@ void HashIndexBuilder<T>::copy(const uint8_t* oldEntry, slot_id_t newSlotId, uin
             if (!iter.slot->header.isEntryValid(newEntryPos)) {
                 // The original slot was marked as unused, but
                 // copying to the original slot is unnecessary and will cause undefined behaviour
-                if (oldEntry != iter.slot->entries[newEntryPos].data) {
-                    memcpy(iter.slot->entries[newEntryPos].data, oldEntry,
-                        this->indexHeader->numBytesPerEntry);
+                if (oldEntry != iter.slot->entries[newEntryPos].data()) {
+                    iter.slot->entries[newEntryPos].copyFrom(oldEntry);
                 }
                 iter.slot->header.setEntryValid(newEntryPos, fingerprint);
                 return;
@@ -76,7 +75,7 @@ void HashIndexBuilder<T>::copy(const uint8_t* oldEntry, slot_id_t newSlotId, uin
     iter.slot->header.nextOvfSlotId = newOvfSlotId;
     auto newOvfSlot = getSlot(SlotInfo{newOvfSlotId, SlotType::OVF});
     auto newEntryPos = 0u; // Always insert to the first entry when there is a new slot.
-    memcpy(newOvfSlot->entries[newEntryPos].data, oldEntry, this->indexHeader->numBytesPerEntry);
+    newOvfSlot->entries[newEntryPos].copyFrom(oldEntry);
     newOvfSlot->header.setEntryValid(newEntryPos, fingerprint);
 }
 
@@ -97,11 +96,11 @@ void HashIndexBuilder<T>::splitSlot(HashIndexHeader& header) {
             if (!slotHeader.isEntryValid(entryPos)) {
                 continue; // Skip invalid entries.
             }
-            const auto* data = (iter.slot->entries[entryPos].data);
-            hash_t hash = this->hashStored(*reinterpret_cast<const T*>(data));
+            const auto& entry = iter.slot->entries[entryPos];
+            hash_t hash = this->hashStored(entry.key);
             auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
             auto newSlotId = hash & header.higherLevelHashMask;
-            copy(data, newSlotId, fingerprint);
+            copy(entry.data(), newSlotId, fingerprint);
         }
     } while (nextChainedSlot(iter));
 
@@ -146,7 +145,7 @@ bool HashIndexBuilder<T>::appendInternal(Key key, common::offset_t value, common
                 this->indexHeader->numEntries++;
                 return true;
             } else if (iter.slot->header.fingerprints[entryPos] == fingerprint &&
-                       equals(key, *(T*)iter.slot->entries[entryPos].data)) {
+                       equals(key, iter.slot->entries[entryPos].key)) {
                 // Value already exists
                 return false;
             }
@@ -168,10 +167,9 @@ bool HashIndexBuilder<T>::lookup(Key key, offset_t& result) {
         for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
             if (iter.slot->header.isEntryValid(entryPos) &&
                 iter.slot->header.fingerprints[entryPos] == fingerprint &&
-                equals(key, *(T*)iter.slot->entries[entryPos].data)) {
+                equals(key, iter.slot->entries[entryPos].key)) {
                 // Value already exists
-                result = *(common::offset_t*)(iter.slot->entries[entryPos].data +
-                                              this->indexHeader->numBytesPerKey);
+                result = iter.slot->entries[entryPos].value;
                 return true;
             }
         }
@@ -226,9 +224,9 @@ inline void HashIndexBuilder<T>::insertToNewOvfSlot(
 template<>
 void HashIndexBuilder<ku_string_t>::insert(std::string_view key, Slot<ku_string_t>* slot,
     uint8_t entryPos, offset_t offset, uint8_t fingerprint) {
-    auto entry = slot->entries[entryPos].data;
-    *(ku_string_t*)entry = overflowFileHandle->writeString(key);
-    memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
+    auto& entry = slot->entries[entryPos];
+    entry.key = overflowFileHandle->writeString(key);
+    entry.value = offset;
     slot->header.setEntryValid(entryPos, fingerprint);
 }
 

@@ -110,17 +110,16 @@ private:
     void copyAndUpdateSlotHeader(
         Slot<T>& slot, entry_pos_t entryPos, K key, common::offset_t value, uint8_t fingerprint) {
         if constexpr (isCopyEntry) {
-            memcpy(
-                slot.entries[entryPos].data, &key, this->indexHeaderForWriteTrx->numBytesPerEntry);
+            slot.entries[entryPos].copyFrom((uint8_t*)&key);
         } else {
-            insert(key, slot.entries[entryPos].data, value);
+            insert(key, slot.entries[entryPos], value);
         }
         slot.header.setEntryValid(entryPos, fingerprint);
     }
 
-    inline void insert(Key key, uint8_t* entry, common::offset_t offset) {
-        memcpy(entry, &key, sizeof(Key));
-        memcpy(entry + sizeof(Key), &offset, sizeof(common::offset_t));
+    inline void insert(Key key, SlotEntry<T>& entry, common::offset_t offset) {
+        entry.key = key;
+        entry.value = offset;
     }
     inline common::hash_t hashStored(transaction::TransactionType /*trxType*/, const T& key) const {
         return HashIndexUtils::hash(key);

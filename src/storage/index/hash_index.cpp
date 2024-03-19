@@ -10,6 +10,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/index/hash_index_header.h"
+#include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
 #include "transaction/transaction.h"
 
@@ -182,7 +183,7 @@ bool HashIndex<T>::lookupInPersistentIndex(TransactionType trxType, Key key, off
     do {
         auto entryPos = findMatchedEntryInSlot(trxType, iter.slot, key, fingerprint);
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
-            result = *(common::offset_t*)(iter.slot.entries[entryPos].data + header.numBytesPerKey);
+            result = iter.slot.entries[entryPos].value;
             return true;
         }
     } while (nextChainedSlot(trxType, iter));
@@ -243,7 +244,7 @@ entry_pos_t HashIndex<T>::findMatchedEntryInSlot(
     for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
         if (slot.header.isEntryValid(entryPos) &&
             slot.header.fingerprints[entryPos] == fingerprint &&
-            equals(trxType, key, *(T*)slot.entries[entryPos].data)) {
+            equals(trxType, key, slot.entries[entryPos].key)) {
             return entryPos;
         }
     }
@@ -308,10 +309,9 @@ inline bool HashIndex<ku_string_t>::equals(transaction::TransactionType trxType,
 
 template<>
 inline void HashIndex<ku_string_t>::insert(
-    std::string_view key, uint8_t* entry, common::offset_t offset) {
-    auto kuString = overflowFileHandle->writeString(key);
-    memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
-    memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
+    std::string_view key, SlotEntry<ku_string_t>& entry, common::offset_t offset) {
+    entry.key = overflowFileHandle->writeString(key);
+    entry.value = offset;
 }
 
 template<typename T>
@@ -325,11 +325,11 @@ void HashIndex<T>::rehashSlots(HashIndexHeader& header) {
             if (!slotHeader.isEntryValid(entryPos)) {
                 continue; // Skip invalid entries.
             }
-            auto key = (T*)slot.entries[entryPos].data;
-            hash_t hash = this->hashStored(TransactionType::WRITE, *key);
+            const auto& key = slot.entries[entryPos].key;
+            hash_t hash = this->hashStored(TransactionType::WRITE, key);
             auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
             auto newSlotId = hash & header.higherLevelHashMask;
-            copyEntryToSlot(newSlotId, *key, fingerprint);
+            copyEntryToSlot(newSlotId, key, fingerprint);
         }
     }
 }

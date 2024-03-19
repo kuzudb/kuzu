@@ -1,21 +1,14 @@
 #pragma once
 
+#include <cmath>
+
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "function/hash/hash_functions.h"
 #include "storage/index/hash_index_header.h"
-#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {
-
-// NOLINTBEGIN(cert-err58-cpp): This is the best way to get the datatype size because it avoids
-// refactoring.
-static const uint32_t NUM_BYTES_FOR_INT64_KEY =
-    storage::StorageUtils::getDataTypeSize(common::LogicalType{common::LogicalTypeID::INT64});
-static const uint32_t NUM_BYTES_FOR_STRING_KEY =
-    storage::StorageUtils::getDataTypeSize(common::LogicalType{common::LogicalTypeID::STRING});
-// NOLINTEND(cert-err58-cpp)
 
 const uint64_t NUM_HASH_INDEXES_LOG2 = 8;
 const uint64_t NUM_HASH_INDEXES = 1 << NUM_HASH_INDEXES_LOG2;

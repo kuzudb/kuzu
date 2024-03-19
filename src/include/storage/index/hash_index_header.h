@@ -2,7 +2,6 @@
 
 #include "common/types/types.h"
 #include "hash_index_slot.h"
-#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {
@@ -11,9 +10,7 @@ class HashIndexHeader {
 public:
     explicit HashIndexHeader(common::PhysicalTypeID keyDataTypeID)
         : currentLevel{1}, levelHashMask{1}, higherLevelHashMask{3}, nextSplitSlotId{0},
-          numEntries{0}, numBytesPerKey{storage::StorageUtils::getDataTypeSize(keyDataTypeID)},
-          numBytesPerEntry{(uint32_t)(numBytesPerKey + sizeof(common::offset_t))},
-          keyDataTypeID{keyDataTypeID} {}
+          numEntries{0}, keyDataTypeID{keyDataTypeID} {}
 
     // Used for element initialization in disk array only.
     HashIndexHeader() : HashIndexHeader(common::PhysicalTypeID::STRING) {}
@@ -38,8 +35,6 @@ public:
     uint64_t higherLevelHashMask;
     slot_id_t nextSplitSlotId;
     uint64_t numEntries;
-    uint32_t numBytesPerKey;
-    uint32_t numBytesPerEntry;
     common::PhysicalTypeID keyDataTypeID;
 };
 
