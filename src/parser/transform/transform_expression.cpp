@@ -1,5 +1,6 @@
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include "function/string/vector_string_functions.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
@@ -272,17 +273,17 @@ std::unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression
     auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
     auto right = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
     if (ctx.STARTS()) {
-        return std::make_unique<ParsedFunctionExpression>(
-            STARTS_WITH_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
+        return std::make_unique<ParsedFunctionExpression>(StartsWithFunction::name,
+            std::move(propertyExpression), std::move(right), rawExpression);
     } else if (ctx.ENDS()) {
         return std::make_unique<ParsedFunctionExpression>(
-            ENDS_WITH_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
+            EndsWithFunction::name, std::move(propertyExpression), std::move(right), rawExpression);
     } else if (ctx.CONTAINS()) {
         return std::make_unique<ParsedFunctionExpression>(
-            CONTAINS_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
+            ContainsFunction::name, std::move(propertyExpression), std::move(right), rawExpression);
     } else {
         KU_ASSERT(ctx.oC_RegularExpression());
-        return std::make_unique<ParsedFunctionExpression>(REGEXP_FULL_MATCH_FUNC_NAME,
+        return std::make_unique<ParsedFunctionExpression>(RegexpFullMatchFunction::name,
             std::move(propertyExpression), std::move(right), rawExpression);
     }
 }

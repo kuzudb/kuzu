@@ -106,36 +106,8 @@ const char* const LESS_THAN_FUNC_NAME = "LESS_THAN";
 const char* const LESS_THAN_EQUALS_FUNC_NAME = "LESS_THAN_EQUALS";
 
 // string
-const char* const ARRAY_EXTRACT_FUNC_NAME = "ARRAY_EXTRACT";
-const char* const CONCAT_FUNC_NAME = "CONCAT";
-const char* const CONTAINS_FUNC_NAME = "CONTAINS";
-const char* const ENDS_WITH_FUNC_NAME = "ENDS_WITH";
-const char* const LCASE_FUNC_NAME = "LCASE";
-const char* const LEFT_FUNC_NAME = "LEFT";
 const char* const LENGTH_FUNC_NAME = "LENGTH";
-const char* const LOWER_FUNC_NAME = "LOWER";
-const char* const LPAD_FUNC_NAME = "LPAD";
-const char* const LTRIM_FUNC_NAME = "LTRIM";
-const char* const PREFIX_FUNC_NAME = "PREFIX";
-const char* const REPEAT_FUNC_NAME = "REPEAT";
-const char* const REVERSE_FUNC_NAME = "REVERSE";
-const char* const RIGHT_FUNC_NAME = "RIGHT";
-const char* const RPAD_FUNC_NAME = "RPAD";
-const char* const RTRIM_FUNC_NAME = "RTRIM";
-const char* const STARTS_WITH_FUNC_NAME = "STARTS_WITH";
-const char* const SUBSTR_FUNC_NAME = "SUBSTR";
-const char* const SUBSTRING_FUNC_NAME = "SUBSTRING";
-const char* const SUFFIX_FUNC_NAME = "SUFFIX";
-const char* const TRIM_FUNC_NAME = "TRIM";
-const char* const UCASE_FUNC_NAME = "UCASE";
-const char* const UPPER_FUNC_NAME = "UPPER";
-const char* const REGEXP_FULL_MATCH_FUNC_NAME = "REGEXP_FULL_MATCH";
-const char* const REGEXP_MATCHES_FUNC_NAME = "REGEXP_MATCHES";
-const char* const REGEXP_REPLACE_FUNC_NAME = "REGEXP_REPLACE";
-const char* const REGEXP_EXTRACT_FUNC_NAME = "REGEXP_EXTRACT";
-const char* const REGEXP_EXTRACT_ALL_FUNC_NAME = "REGEXP_EXTRACT_ALL";
 const char* const SIZE_FUNC_NAME = "SIZE";
-const char* const LEVENSHTEIN_FUNC_NAME = "LEVENSHTEIN";
 
 // Date functions.
 const char* const DATE_PART_FUNC_NAME = "DATE_PART";
