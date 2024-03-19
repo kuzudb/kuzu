@@ -406,3 +406,10 @@ v3|v2
 -STATEMENT MATCH (n:MyTask) RETURN n.*;
 ---- 1
 myid|[{input1=value1}]
+
+-CASE 3083
+-STATEMENT CREATE NODE TABLE MyTable (id STRING, name STRING, scan_columns STRING[], scan_filter STRING, scan_limit INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT MERGE (n:MyTable {id: '56d0ea9d74b2143d10cc4ad05e4ba4aac8a75654b51c5691d5a56f8f97b567dc', name: 'taxi_fhvhv', scan_columns: ['driver_name', 'hvfhs_license_num', 'request_datetime'], scan_filter: "NOT driver_name IS NULL AND request_datetime < '2023-01-10T00:00:00-05:00' AND request_datetime >= '2022-01-01T00:00:00-05:00'", scan_limit: 5}) RETURN n;
+---- 1
+{_ID: 0:0, _LABEL: MyTable, id: 56d0ea9d74b2143d10cc4ad05e4ba4aac8a75654b51c5691d5a56f8f97b567dc, name: taxi_fhvhv, scan_columns: [driver_name,hvfhs_license_num,request_datetime], scan_filter: NOT driver_name IS NULL AND request_datetime < '2023-01-10T00:00:00-05:00' AND request_datetime >= '2022-01-01T00:00:00-05:00', scan_limit: 5}
