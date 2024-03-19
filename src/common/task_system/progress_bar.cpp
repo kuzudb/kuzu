@@ -30,11 +30,13 @@ void ProgressBar::finishPipeline() {
         return;
     }
     numPipelinesFinished++;
+    // This ensures that the progress bar is updated back to 0% after a pipeline is finished.
     prevCurPipelineProgress = -0.01;
     updateProgress(0.0);
 }
 
 void ProgressBar::updateProgress(double curPipelineProgress) {
+    // Only update the progress bar if the progress has changed by at least 1%.
     if (!trackProgress || curPipelineProgress - prevCurPipelineProgress < 0.01) {
         return;
     }
