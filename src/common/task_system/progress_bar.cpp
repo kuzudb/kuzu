@@ -11,6 +11,14 @@ void ProgressBar::startProgress() {
     printProgressBar(0.0);
 }
 
+void ProgressBar::endProgress() {
+    if (!trackProgress) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(progressBarLock);
+    resetProgressBar();
+}
+
 void ProgressBar::addPipeline() {
     if (!trackProgress) {
         return;
@@ -23,11 +31,8 @@ void ProgressBar::finishPipeline() {
         return;
     }
     numPipelinesFinished++;
-    prevCurPipelineProgress = 0.0;
+    prevCurPipelineProgress = -0.01;
     updateProgress(0.0);
-    if (numPipelines == numPipelinesFinished) {
-        resetProgressBar();
-    }
 }
 
 void ProgressBar::updateProgress(double curPipelineProgress) {
@@ -55,7 +60,6 @@ void ProgressBar::printProgressBar(double curPipelineProgress) const {
 }
 
 void ProgressBar::resetProgressBar() {
-    std::lock_guard<std::mutex> lock(progressBarLock);
     std::cout << "\033[2A\033[2K\033[1B\033[2K\033[1A";
     std::cout.flush();
     numPipelines = 0;

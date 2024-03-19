@@ -80,7 +80,6 @@ public:
     KUZU_API transaction::TransactionContext* getTransactionContext() const;
 
     // Progress bar
-    void setProgressBarPrinting(bool progressBarPrinting);
     common::ProgressBar* getProgressBar() const;
 
     // Replace function.

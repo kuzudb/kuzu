@@ -35,10 +35,11 @@ struct ProgressBarSetting {
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::BOOL);
-        context->getClientConfigUnsafe()->progressBar = parameter.getValue<bool>();
+        context->getClientConfigUnsafe()->enableProgressBar = parameter.getValue<bool>();
+        context->getProgressBar()->toggleProgressBarPrinting(parameter.getValue<bool>());
     }
     static common::Value getSetting(ClientContext* context) {
-        return common::Value(context->getClientConfig()->progressBar);
+        return common::Value(context->getClientConfig()->enableProgressBar);
     }
 };
 

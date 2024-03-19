@@ -21,6 +21,8 @@ public:
 
     void finishPipeline();
 
+    void endProgress();
+
     void addJobsToPipeline(int jobs);
 
     void finishJobsInPipeline(int jobs);
