@@ -27,6 +27,7 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(
     initTask(task.get());
     context->clientContext->getProgressBar()->startProgress();
     taskScheduler->scheduleTaskAndWaitOrError(task, context);
+    context->clientContext->getProgressBar()->endProgress();
     return resultCollector->getResultFactorizedTable();
 }
 

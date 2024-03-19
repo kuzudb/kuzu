@@ -3,7 +3,6 @@
 #include <utility>
 
 #include "binder/binder.h"
-#include "common/constants.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
 #include "common/random_engine.h"
@@ -56,6 +55,7 @@ ClientContext::ClientContext(Database* database) : database{database} {
     config.numThreads = database->systemConfig.maxNumThreads;
     config.timeoutInMS = ClientConfigDefault::TIMEOUT_IN_MS;
     config.varLengthMaxDepth = ClientConfigDefault::VAR_LENGTH_MAX_DEPTH;
+    config.enableProgressBar = ClientConfigDefault::ENABLE_PROGRESS_BAR;
 }
 
 uint64_t ClientContext::getTimeoutRemainingInMS() const {
@@ -114,6 +114,10 @@ transaction::Transaction* ClientContext::getTx() const {
 
 TransactionContext* ClientContext::getTransactionContext() const {
     return transactionContext.get();
+}
+
+common::ProgressBar* ClientContext::getProgressBar() const {
+    return progressBar.get();
 }
 
 void ClientContext::setExtensionOption(std::string name, common::Value value) {

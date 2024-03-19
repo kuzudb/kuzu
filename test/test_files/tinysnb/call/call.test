@@ -42,6 +42,18 @@ Binder exception: Upper bound of rel  exceeds maximum: 10.
 ---- 1
 354290
 
+-LOG SetGetProgressBar
+-STATEMENT CALL progress_bar=true
+---- ok
+-STATEMENT CALL current_setting('progress_bar') RETURN *
+---- 1
+True
+-STATEMENT CALL progress_bar=false
+---- ok
+-STATEMENT CALL current_setting('progress_bar') RETURN *
+---- 1
+False
+
 -LOG disableSemihMaskOptimization
 -STATEMENT CALL enable_semi_mask=true
 ---- ok

@@ -32,8 +32,6 @@ private:
 
     void setMaxWidth(const std::string& maxWidthString);
 
-    void toggleProgressBar(const std::string& state);
-
 private:
     std::unique_ptr<Database> database;
     std::unique_ptr<Connection> conn;
