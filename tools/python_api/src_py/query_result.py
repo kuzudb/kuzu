@@ -138,11 +138,12 @@ class QueryResult:
             Query result as a Polars DataFrame.
         """
         import polars as pl
+
         self.check_for_query_result_close()
 
         return pl.from_arrow(data=self.get_as_arrow())
 
-    def get_as_arrow(self, chunk_size: int = 1_000_000) -> pa.Table:
+    def get_as_arrow(self) -> pa.Table:
         """
         Get the query result as a PyArrow Table.
 
