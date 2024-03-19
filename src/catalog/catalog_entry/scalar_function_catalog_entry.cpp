@@ -6,6 +6,10 @@ namespace kuzu {
 namespace catalog {
 
 ScalarFunctionCatalogEntry::ScalarFunctionCatalogEntry(
+    const char* name, function::function_set functionSet)
+    : ScalarFunctionCatalogEntry{std::string{name}, std::move(functionSet)} {}
+
+ScalarFunctionCatalogEntry::ScalarFunctionCatalogEntry(
     std::string name, function::function_set functionSet)
     : FunctionCatalogEntry{
           CatalogEntryType::SCALAR_FUNCTION_ENTRY, std::move(name), std::move(functionSet)} {}

@@ -15,6 +15,7 @@
 #include "function/cast/vector_cast_functions.h"
 #include "function/comparison/vector_comparison_functions.h"
 #include "function/date/vector_date_functions.h"
+#include "function/function_collection.h"
 #include "function/interval/vector_interval_functions.h"
 #include "function/list/vector_list_functions.h"
 #include "function/map/vector_map_functions.h"
@@ -52,11 +53,12 @@ void BuiltInFunctionsUtils::createFunctions(CatalogSet* catalogSet) {
     registerScalarFunctions(catalogSet);
     registerAggregateFunctions(catalogSet);
     registerTableFunctions(catalogSet);
+
+    registerFunctions(catalogSet);
 }
 
 void BuiltInFunctionsUtils::registerScalarFunctions(CatalogSet* catalogSet) {
     registerComparisonFunctions(catalogSet);
-    registerArithmeticFunctions(catalogSet);
     registerDateFunctions(catalogSet);
     registerTimestampFunctions(catalogSet);
     registerIntervalFunctions(catalogSet);
@@ -514,7 +516,7 @@ void BuiltInFunctionsUtils::validateSpecialCases(std::vector<Function*>& candida
     const std::string& name, const std::vector<LogicalType>& inputTypes,
     function::function_set& set) {
     // special case for add func
-    if (name == ADD_FUNC_NAME) {
+    if (name == AddFunction::name) {
         auto targetType0 = candidateFunctions[0]->parameterTypeIDs[0];
         auto targetType1 = candidateFunctions[0]->parameterTypeIDs[1];
         auto inputType0 = inputTypes[0].getLogicalTypeID();
@@ -549,89 +551,6 @@ void BuiltInFunctionsUtils::registerComparisonFunctions(CatalogSet* catalogSet) 
         LESS_THAN_FUNC_NAME, LessThanFunction::getFunctionSet()));
     catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
         LESS_THAN_EQUALS_FUNC_NAME, LessThanEqualsFunction::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerArithmeticFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(
-        std::make_unique<ScalarFunctionCatalogEntry>(ADD_FUNC_NAME, AddFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        SUBTRACT_FUNC_NAME, SubtractFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        MULTIPLY_FUNC_NAME, MultiplyFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        DIVIDE_FUNC_NAME, DivideFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        MODULO_FUNC_NAME, ModuloFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        POWER_FUNC_NAME, PowerFunction::getFunctionSet()));
-    catalogSet->createEntry(
-        std::make_unique<ScalarFunctionCatalogEntry>(ABS_FUNC_NAME, AbsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        ACOS_FUNC_NAME, AcosFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        ASIN_FUNC_NAME, AsinFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        ATAN_FUNC_NAME, AtanFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        ATAN2_FUNC_NAME, Atan2Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        BITWISE_XOR_FUNC_NAME, BitwiseXorFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        BITWISE_AND_FUNC_NAME, BitwiseAndFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        BITWISE_OR_FUNC_NAME, BitwiseOrFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        BITSHIFT_LEFT_FUNC_NAME, BitShiftLeftFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        BITSHIFT_RIGHT_FUNC_NAME, BitShiftRightFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CBRT_FUNC_NAME, CbrtFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CEIL_FUNC_NAME, CeilFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CEILING_FUNC_NAME, CeilFunction::getFunctionSet()));
-    catalogSet->createEntry(
-        std::make_unique<ScalarFunctionCatalogEntry>(COS_FUNC_NAME, CosFunction::getFunctionSet()));
-    catalogSet->createEntry(
-        std::make_unique<ScalarFunctionCatalogEntry>(COT_FUNC_NAME, CotFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        DEGREES_FUNC_NAME, DegreesFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        EVEN_FUNC_NAME, EvenFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        FACTORIAL_FUNC_NAME, FactorialFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        FLOOR_FUNC_NAME, FloorFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        GAMMA_FUNC_NAME, GammaFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LGAMMA_FUNC_NAME, LgammaFunction::getFunctionSet()));
-    catalogSet->createEntry(
-        std::make_unique<ScalarFunctionCatalogEntry>(LN_FUNC_NAME, LnFunction::getFunctionSet()));
-    catalogSet->createEntry(
-        std::make_unique<ScalarFunctionCatalogEntry>(LOG_FUNC_NAME, LogFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LOG2_FUNC_NAME, Log2Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LOG10_FUNC_NAME, LogFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        NEGATE_FUNC_NAME, NegateFunction::getFunctionSet()));
-    catalogSet->createEntry(
-        std::make_unique<ScalarFunctionCatalogEntry>(PI_FUNC_NAME, PiFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        POW_FUNC_NAME, PowerFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        RADIANS_FUNC_NAME, RadiansFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        ROUND_FUNC_NAME, RoundFunction::getFunctionSet()));
-    catalogSet->createEntry(
-        std::make_unique<ScalarFunctionCatalogEntry>(SIN_FUNC_NAME, SinFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        SIGN_FUNC_NAME, SignFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        SQRT_FUNC_NAME, SqrtFunction::getFunctionSet()));
-    catalogSet->createEntry(
-        std::make_unique<ScalarFunctionCatalogEntry>(TAN_FUNC_NAME, TanFunction::getFunctionSet()));
 }
 
 void BuiltInFunctionsUtils::registerDateFunctions(CatalogSet* catalogSet) {
@@ -1062,6 +981,15 @@ void BuiltInFunctionsUtils::registerTableFunctions(CatalogSet* catalogSet) {
         IN_MEM_READ_RDF_LITERAL_TRIPLE_FUNC_NAME, RdfLiteralTripleInMemScan::getFunctionSet()));
     catalogSet->createEntry(std::make_unique<TableFunctionCatalogEntry>(
         READ_FTABLE_FUNC_NAME, FTableScan::getFunctionSet()));
+}
+
+void BuiltInFunctionsUtils::registerFunctions(catalog::CatalogSet* catalogSet) {
+    auto functions = FunctionCollection::getFunctions();
+    for (auto i = 0u; functions[i].name != nullptr; ++i) {
+        auto functionSet = functions[i].getFunctionSetFunc();
+        catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
+            functions[i].name, std::move(functionSet)));
+    }
 }
 
 static std::string getFunctionMatchFailureMsg(const std::string name,

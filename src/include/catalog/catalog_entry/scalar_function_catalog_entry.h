@@ -11,6 +11,7 @@ public:
     // constructors
     //===--------------------------------------------------------------------===//
     ScalarFunctionCatalogEntry() = default;
+    ScalarFunctionCatalogEntry(const char* name, function::function_set functionSet);
     ScalarFunctionCatalogEntry(std::string name, function::function_set functionSet);
 
     //===--------------------------------------------------------------------===//

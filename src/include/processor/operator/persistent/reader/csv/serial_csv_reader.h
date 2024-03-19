@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base_csv_reader.h"
-#include "function/scalar_function.h"
+#include "function/function.h"
 #include "function/table/bind_input.h"
 #include "function/table/scan_functions.h"
 

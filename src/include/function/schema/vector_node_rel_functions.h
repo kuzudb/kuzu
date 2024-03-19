@@ -1,6 +1,8 @@
 #pragma once
 
-#include "function/scalar_function.h"
+#include "common/vector/value_vector.h"
+#include "function/function.h"
+#include "function/unary_function_executor.h"
 #include "offset_functions.h"
 
 namespace kuzu {

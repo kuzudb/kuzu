@@ -1,5 +1,7 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 
+#include <sstream>
+
 #include "catalog/catalog.h"
 
 using namespace kuzu::common;

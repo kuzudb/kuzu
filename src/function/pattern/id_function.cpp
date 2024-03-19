@@ -2,6 +2,7 @@
 #include "binder/expression/node_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression_binder.h"
+#include "common/cast.h"
 #include "function/rewrite_function.h"
 #include "function/schema/vector_node_rel_functions.h"
 
