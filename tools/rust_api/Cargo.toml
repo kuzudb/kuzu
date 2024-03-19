@@ -14,7 +14,6 @@ include = [
     "build.rs",
     "/src",
     "/include",
-    "/kuzu-src/extension",
     "/kuzu-src/src",
     "/kuzu-src/third_party",
     "/kuzu-src/Makefile",
