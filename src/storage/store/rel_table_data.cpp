@@ -35,7 +35,7 @@ bool RelDataReadState::trySwitchToLocalStorage() {
     return false;
 }
 
-bool RelDataReadState::hasMoreToRead(transaction::Transaction* transaction) {
+bool RelDataReadState::hasMoreToRead(Transaction* transaction) {
     if (transaction->isWriteTransaction()) {
         if (readFromLocalStorage) {
             // Already read from local storage. Check if there are more in local storage.
@@ -250,18 +250,18 @@ void RelTableData::lookup(Transaction* /*transaction*/, TableReadState& /*readSt
     KU_ASSERT(false);
 }
 
-void RelTableData::insert(transaction::Transaction* transaction, ValueVector* srcNodeIDVector,
+void RelTableData::insert(Transaction* transaction, ValueVector* srcNodeIDVector,
     ValueVector* dstNodeIDVector, const std::vector<ValueVector*>& propertyVectors) {
     auto localTableData = transaction->getLocalStorage()->getOrCreateLocalTableData(
         tableID, columns, TableType::REL, getDataIdxFromDirection(direction), multiplicity);
     auto checkPersistent =
         localTableData->insert({srcNodeIDVector, dstNodeIDVector}, propertyVectors);
-    if (checkPersistent && multiplicity == common::RelMultiplicity::ONE) {
+    if (checkPersistent && multiplicity == RelMultiplicity::ONE) {
         checkRelMultiplicityConstraint(transaction, srcNodeIDVector);
     }
 }
 
-void RelTableData::update(transaction::Transaction* transaction, column_id_t columnID,
+void RelTableData::update(Transaction* transaction, column_id_t columnID,
     ValueVector* srcNodeIDVector, ValueVector* relIDVector, ValueVector* propertyVector) {
     KU_ASSERT(columnID < columns.size() && columnID != REL_ID_COLUMN_ID);
     auto localTableData = transaction->getLocalStorage()->getOrCreateLocalTableData(
@@ -278,7 +278,7 @@ bool RelTableData::delete_(
 
 void RelTableData::checkRelMultiplicityConstraint(
     Transaction* transaction, ValueVector* srcNodeIDVector) const {
-    KU_ASSERT(srcNodeIDVector->state->isFlat() && multiplicity == common::RelMultiplicity::ONE);
+    KU_ASSERT(srcNodeIDVector->state->isFlat() && multiplicity == RelMultiplicity::ONE);
     auto nodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
     auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     if (checkIfNodeHasRels(transaction, nodeOffset)) {
@@ -963,7 +963,7 @@ void RelTableData::prepareCommitNodeGroup(
 }
 
 LocalRelNG* RelTableData::getLocalNodeGroup(
-    transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx) {
+    Transaction* transaction, node_group_idx_t nodeGroupIdx) {
     auto localTableData = transaction->getLocalStorage()->getLocalTableData(
         tableID, getDataIdxFromDirection(direction));
     LocalRelNG* localNodeGroup = nullptr;

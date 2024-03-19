@@ -6,7 +6,7 @@
 #include "common/types/types.h"
 
 namespace kuzu {
-namespace catalog {
+namespace common {
 enum class RelMultiplicity : uint8_t;
 }
 namespace binder {

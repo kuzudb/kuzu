@@ -1,0 +1,1161 @@
+# These test are translated from SQLLogicTest.
+# They are part of the CypherLogicTest project.
+-GROUP CypherLogicTest
+-DATASET CSV empty
+
+--
+
+-CASE indexorderby_nosort1000slt_good_0
+-SKIP_32BIT
+-STATEMENT CREATE NODE TABLE tab0(ID SERIAL,pk INT32, col0 INT32, col1 FLOAT, col2 STRING, col3 INT32, col4 FLOAT, col5 STRING, PRIMARY KEY(ID))
+---- ok
+-STATEMENT CREATE (:tab0 {pk:0,col0:7086,col1:4595.50,col2:'gqivt',col3:9925,col4:6167.39,col5:'hzmxz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:1,col0:6270,col1:7871.18,col2:'llwfi',col3:5983,col4:6247.6,col5:'sufqd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:2,col0:5619,col1:9015.49,col2:'hheql',col3:9244,col4:2610.97,col5:'oqqxj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:3,col0:620,col1:5977.83,col2:'gsgir',col3:5949,col4:605.30,col5:'vhsef'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:4,col0:9598,col1:6807.56,col2:'wewcu',col3:8763,col4:6288.2,col5:'kjemy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:5,col0:1119,col1:904.65,col2:'xivyv',col3:3025,col4:7710.50,col5:'uhtvo'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:6,col0:9092,col1:595.28,col2:'nxxwc',col3:3004,col4:6129.13,col5:'ltjya'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:7,col0:9589,col1:718.47,col2:'ffbfn',col3:8140,col4:7281.98,col5:'uiaxk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:8,col0:6985,col1:3221.72,col2:'evmqo',col3:9304,col4:2624.39,col5:'offqy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:9,col0:621,col1:5054.64,col2:'hdxjk',col3:5038,col4:588.61,col5:'nsvtb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:10,col0:8973,col1:1105.53,col2:'gbldf',col3:7813,col4:7827.44,col5:'czjxv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:11,col0:624,col1:5105.6,col2:'sqapz',col3:604,col4:582.81,col5:'aocsq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:12,col0:3564,col1:890.86,col2:'mphca',col3:1491,col4:5352.44,col5:'ubbdu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:13,col0:9093,col1:3627.15,col2:'naufs',col3:3213,col4:1308.48,col5:'sslge'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:14,col0:2079,col1:1104.39,col2:'cbdjx',col3:6113,col4:583.9,col5:'wehtu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:15,col0:626,col1:4939.87,col2:'bjdny',col3:6039,col4:9078.10,col5:'mwdtp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:16,col0:8652,col1:1856.36,col2:'rywss',col3:606,col4:9646.62,col5:'wxreu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:17,col0:8348,col1:4923.70,col2:'cotvw',col3:3742,col4:1296.67,col5:'qldru'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:18,col0:627,col1:4806.50,col2:'fmwab',col3:5346,col4:1460.79,col5:'tojyo'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:19,col0:2471,col1:1021.66,col2:'wfxms',col3:4129,col4:7046.70,col5:'urzom'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:20,col0:6564,col1:3179.10,col2:'buicp',col3:5567,col4:5684.89,col5:'xhknu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:21,col0:3540,col1:2240.30,col2:'zuoyn',col3:7816,col4:6976.25,col5:'bozxj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:22,col0:628,col1:1762.97,col2:'crayv',col3:7953,col4:3747.73,col5:'cygmc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:23,col0:5531,col1:9150.69,col2:'lnhpg',col3:8234,col4:3295.91,col5:'ywzhz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:24,col0:6618,col1:6906.47,col2:'nrile',col3:2340,col4:8641.67,col5:'offjb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:25,col0:5233,col1:3881.44,col2:'qjkxu',col3:1626,col4:9776.80,col5:'hengv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:26,col0:3914,col1:6524.46,col2:'ygjpa',col3:1376,col4:4916.60,col5:'vocub'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:27,col0:2249,col1:598.71,col2:'lduiw',col3:7047,col4:1752.56,col5:'lvvng'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:28,col0:3129,col1:602.35,col2:'jnxkn',col3:607,col4:8691.93,col5:'zgmkm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:29,col0:8994,col1:3147.16,col2:'bialg',col3:6364,col4:6120.38,col5:'cyuqp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:30,col0:8085,col1:8640.9,col2:'gmjxv',col3:8055,col4:7643.61,col5:'jgpxm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:31,col0:697,col1:9756.99,col2:'djjum',col3:4258,col4:1340.97,col5:'jlxia'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:32,col0:5414,col1:4778.14,col2:'muteb',col3:5059,col4:1012.11,col5:'vkfyh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:33,col0:5389,col1:8337.94,col2:'sirxc',col3:8221,col4:7434.58,col5:'tbjjq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:34,col0:4563,col1:2664.50,col2:'favhb',col3:5433,col4:9603.45,col5:'pgxhy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:35,col0:3931,col1:8834.28,col2:'fcnml',col3:8559,col4:5987.97,col5:'feakm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:36,col0:7790,col1:8023.71,col2:'dlyju',col3:5889,col4:5780.16,col5:'heurj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:37,col0:9985,col1:2754.81,col2:'ojccx',col3:8389,col4:584.46,col5:'cdhgk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:38,col0:632,col1:8145.83,col2:'jddpz',col3:5951,col4:3471.32,col5:'xisyl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:39,col0:633,col1:3164.86,col2:'yqglr',col3:3641,col4:4618.88,col5:'bxkth'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:40,col0:9572,col1:1877.45,col2:'hybeh',col3:7955,col4:8169.53,col5:'zqdvz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:41,col0:3348,col1:4697.28,col2:'bcnfv',col3:3059,col4:5678.59,col5:'iictv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:42,col0:6707,col1:9633.70,col2:'uncih',col3:7050,col4:6925.92,col5:'htehp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:43,col0:2050,col1:3546.46,col2:'zvafm',col3:8197,col4:1159.51,col5:'lawbr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:44,col0:5078,col1:3389.25,col2:'ehghm',col3:1197,col4:8355.15,col5:'cgqdy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:45,col0:1045,col1:7467.34,col2:'eprdn',col3:3422,col4:591.5,col5:'hivqi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:46,col0:1006,col1:6681.26,col2:'dkeig',col3:1171,col4:2639.44,col5:'bizim'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:47,col0:8063,col1:5780.37,col2:'ozwwu',col3:5916,col4:4536.19,col5:'ikujh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:48,col0:3623,col1:4610.48,col2:'swdvx',col3:608,col4:1515.49,col5:'gchvq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:49,col0:3642,col1:9366.52,col2:'lkudb',col3:5671,col4:5913.41,col5:'gfchw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:50,col0:4877,col1:3838.14,col2:'lmdbq',col3:5756,col4:8289.57,col5:'eiior'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:51,col0:1135,col1:669.33,col2:'lzfxz',col3:5491,col4:8674.75,col5:'hmwii'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:52,col0:9525,col1:2591.4,col2:'fsumo',col3:5978,col4:7825.48,col5:'qrmpu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:53,col0:6705,col1:3693.83,col2:'trpzc',col3:998,col4:8467.75,col5:'zrwow'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:54,col0:5137,col1:656.47,col2:'jyjlr',col3:3247,col4:6551.53,col5:'anvze'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:55,col0:9331,col1:4010.60,col2:'vebjx',col3:613,col4:2500.50,col5:'jdlam'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:56,col0:2098,col1:9383.30,col2:'ogvky',col3:2399,col4:2459.58,col5:'yacsu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:57,col0:801,col1:8750.76,col2:'pzjzt',col3:5587,col4:9546.62,col5:'uxsug'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:58,col0:3603,col1:1685.89,col2:'yotwe',col3:1084,col4:5101.0,col5:'nesao'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:59,col0:5718,col1:6608.95,col2:'lixvy',col3:9973,col4:9938.27,col5:'cuiaz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:60,col0:5661,col1:2037.16,col2:'bmkhb',col3:9763,col4:5594.73,col5:'grqxj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:61,col0:1496,col1:7838.34,col2:'zjuyr',col3:638,col4:5575.11,col5:'lmrwm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:62,col0:7091,col1:6476.53,col2:'vmrgh',col3:1709,col4:6615.19,col5:'bbqqy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:63,col0:8363,col1:4261.63,col2:'mwtiz',col3:7263,col4:9916.38,col5:'mivmm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:64,col0:9529,col1:2603.99,col2:'ouchk',col3:3010,col4:2405.37,col5:'hqzky'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:65,col0:9357,col1:9258.7,col2:'jlecy',col3:2341,col4:7982.79,col5:'gojcn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:66,col0:7418,col1:9580.3,col2:'blxaw',col3:2565,col4:8768.78,col5:'pmtkw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:67,col0:634,col1:7771.41,col2:'robjk',col3:1174,col4:6358.65,col5:'cdrzd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:68,col0:8018,col1:8132.69,col2:'lfacz',col3:2083,col4:3069.47,col5:'eloxg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:69,col0:9950,col1:6309.96,col2:'siehf',col3:1883,col4:3191.74,col5:'yvtju'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:70,col0:1400,col1:610.53,col2:'gsxcc',col3:6091,col4:4237.99,col5:'metfk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:71,col0:9690,col1:2939.54,col2:'gtvbc',col3:5398,col4:8190.40,col5:'yegps'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:72,col0:636,col1:675.64,col2:'mfuui',col3:1923,col4:2761.45,col5:'ochrp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:73,col0:3841,col1:7293.52,col2:'mpbvq',col3:5460,col4:2628.51,col5:'vllaf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:74,col0:852,col1:3928.65,col2:'nxmxt',col3:9729,col4:696.49,col5:'rlvpb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:75,col0:9505,col1:613.79,col2:'yinwk',col3:8625,col4:9339.46,col5:'otiaj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:76,col0:1128,col1:7283.71,col2:'csndj',col3:2471,col4:1657.28,col5:'qdqkw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:77,col0:6597,col1:5511.77,col2:'qhplu',col3:4261,col4:2720.19,col5:'ralyf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:78,col0:2593,col1:9275.53,col2:'liaic',col3:5921,col4:822.50,col5:'oaqmz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:79,col0:7844,col1:6450.41,col2:'ypevf',col3:4548,col4:8730.15,col5:'awegt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:80,col0:9381,col1:615.31,col2:'deugr',col3:8667,col4:4932.39,col5:'aqlii'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:81,col0:8785,col1:9263.21,col2:'rbylw',col3:4479,col4:4891.35,col5:'vsjku'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:82,col0:8437,col1:1138.81,col2:'dpiuw',col3:2109,col4:2290.71,col5:'agikr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:83,col0:7772,col1:1394.17,col2:'ajfox',col3:1858,col4:593.30,col5:'uvpyc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:84,col0:9521,col1:5895.31,col2:'wptug',col3:610,col4:2763.74,col5:'xbffu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:85,col0:5970,col1:1850.84,col2:'oyyqk',col3:7304,col4:5568.6,col5:'zeeji'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:86,col0:5202,col1:9067.62,col2:'eavfi',col3:733,col4:7778.31,col5:'mwqhg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:87,col0:7355,col1:1200.31,col2:'iarbj',col3:4246,col4:2940.21,col5:'ypyfb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:88,col0:868,col1:7002.9,col2:'flayn',col3:2776,col4:594.77,col5:'ylvgp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:89,col0:8718,col1:1574.19,col2:'tptip',col3:8928,col4:6176.89,col5:'mplcu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:90,col0:4704,col1:7613.59,col2:'qgjaf',col3:9234,col4:4959.0,col5:'xerrf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:91,col0:9661,col1:6666.62,col2:'qkawy',col3:611,col4:614.72,col5:'zoyqx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:92,col0:7729,col1:617.54,col2:'mqrjo',col3:5570,col4:7794.43,col5:'hhsen'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:93,col0:2598,col1:1734.26,col2:'fadgb',col3:612,col4:3142.91,col5:'cphmq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:94,col0:3760,col1:6328.87,col2:'enhcu',col3:616,col4:6510.99,col5:'pwdms'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:95,col0:2756,col1:3595.33,col2:'dugao',col3:4023,col4:2227.15,col5:'zpyif'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:96,col0:9429,col1:8069.5,col2:'nrigw',col3:3779,col4:599.17,col5:'psugx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:97,col0:8174,col1:633.56,col2:'lwhtx',col3:8338,col4:7890.70,col5:'dhext'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:98,col0:4184,col1:9762.9,col2:'vomxu',col3:639,col4:600.97,col5:'oifff'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:99,col0:9705,col1:2787.22,col2:'pcvbo',col3:3794,col4:1714.32,col5:'ldtxg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:100,col0:637,col1:7132.50,col2:'sndfk',col3:7345,col4:8156.93,col5:'bdndo'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:101,col0:1014,col1:1568.10,col2:'keaqu',col3:3507,col4:6847.33,col5:'ikedq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:102,col0:2796,col1:7466.37,col2:'fohjm',col3:3423,col4:8424.12,col5:'dgovw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:103,col0:8576,col1:620.53,col2:'eptbv',col3:3409,col4:7998.56,col5:'lbqls'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:104,col0:9606,col1:9614.28,col2:'vpqmr',col3:1208,col4:6401.16,col5:'hqudv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:105,col0:1683,col1:2843.39,col2:'opncu',col3:2241,col4:1439.37,col5:'zawpe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:106,col0:1409,col1:3990.36,col2:'lfovp',col3:5851,col4:9140.17,col5:'hziwe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:107,col0:2435,col1:6163.5,col2:'qenns',col3:1559,col4:5004.67,col5:'lujos'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:108,col0:1714,col1:2568.27,col2:'hxart',col3:5311,col4:5256.81,col5:'ltaxm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:109,col0:5748,col1:7758.44,col2:'weobo',col3:5730,col4:8091.90,col5:'wuhdw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:110,col0:6841,col1:8886.19,col2:'curhl',col3:617,col4:4928.29,col5:'jggfg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:111,col0:9348,col1:6948.1,col2:'edcmd',col3:1936,col4:1659.0,col5:'ofija'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:112,col0:5924,col1:8043.85,col2:'xwwzb',col3:4595,col4:9897.33,col5:'emdtv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:113,col0:3776,col1:4614.75,col2:'vmisg',col3:619,col4:8229.48,col5:'hyycp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:114,col0:909,col1:6703.49,col2:'gymcs',col3:4403,col4:3465.19,col5:'ihmlp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:115,col0:2382,col1:3200.18,col2:'niznm',col3:3230,col4:1887.35,col5:'gsglu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:116,col0:6553,col1:3091.91,col2:'angap',col3:9001,col4:615.66,col5:'sipit'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:117,col0:1333,col1:6712.35,col2:'jqpwl',col3:6743,col4:8279.18,col5:'abyiv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:118,col0:638,col1:6994.41,col2:'oxjfs',col3:620,col4:7427.6,col5:'ozqlj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:119,col0:9603,col1:719.83,col2:'xcerp',col3:9135,col4:4615.6,col5:'pflxs'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:120,col0:2918,col1:9763.84,col2:'ngvay',col3:3470,col4:2239.25,col5:'qjixm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:121,col0:8984,col1:2351.74,col2:'agovh',col3:1648,col4:9667.59,col5:'jhufm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:122,col0:7216,col1:4308.57,col2:'akead',col3:5827,col4:4489.60,col5:'znzua'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:123,col0:4078,col1:623.71,col2:'bhdlw',col3:8340,col4:3769.94,col5:'dcsjz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:124,col0:9333,col1:5107.51,col2:'rbsqa',col3:7944,col4:5292.4,col5:'ddrfw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:125,col0:2298,col1:4834.92,col2:'siakl',col3:6076,col4:8818.77,col5:'bhooa'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:126,col0:8088,col1:8197.10,col2:'irglg',col3:3095,col4:7327.2,col5:'zsdjs'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:127,col0:3872,col1:7759.8,col2:'efwwd',col3:4537,col4:8274.31,col5:'vhjyh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:128,col0:5116,col1:1177.32,col2:'jkmaj',col3:7365,col4:4834.50,col5:'wpqlf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:129,col0:1840,col1:2460.41,col2:'yodwz',col3:6216,col4:7158.30,col5:'lgusj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:130,col0:4862,col1:3211.66,col2:'ojnxv',col3:9654,col4:3617.99,col5:'mvgsz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:131,col0:2053,col1:3882.70,col2:'zswov',col3:6418,col4:2056.1,col5:'heeeu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:132,col0:4584,col1:5023.15,col2:'zggvz',col3:1673,col4:1041.55,col5:'zhqjj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:133,col0:3176,col1:8531.22,col2:'qysao',col3:3261,col4:1114.24,col5:'guopz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:134,col0:4352,col1:8901.36,col2:'gsgjd',col3:7947,col4:6035.74,col5:'wqbuw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:135,col0:6686,col1:4476.83,col2:'rebmv',col3:7674,col4:4041.34,col5:'oqmgg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:136,col0:7051,col1:8695.38,col2:'ibrfj',col3:5811,col4:9089.65,col5:'dgofq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:137,col0:6873,col1:1347.86,col2:'hdydh',col3:3401,col4:2110.17,col5:'ubjmu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:138,col0:8377,col1:9818.84,col2:'omjdw',col3:5415,col4:2257.94,col5:'cksby'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:139,col0:839,col1:625.23,col2:'ajafl',col3:6997,col4:8155.14,col5:'cdbsu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:140,col0:6836,col1:9245.90,col2:'tvvxo',col3:9719,col4:9153.75,col5:'nbvru'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:141,col0:8497,col1:4210.34,col2:'wepau',col3:7829,col4:6573.17,col5:'wshhg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:142,col0:3751,col1:5513.24,col2:'buegi',col3:4499,col4:4957.80,col5:'nywng'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:143,col0:2576,col1:7276.16,col2:'grruq',col3:8078,col4:3323.72,col5:'zmfrc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:144,col0:3254,col1:8722.9,col2:'byhzz',col3:8341,col4:6409.30,col5:'tqkaf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:145,col0:8616,col1:5420.16,col2:'wrwyg',col3:2735,col4:5928.80,col5:'sxwig'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:146,col0:2292,col1:626.20,col2:'vlqaf',col3:2640,col4:1813.1,col5:'cmsrl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:147,col0:4967,col1:6084.38,col2:'axntt',col3:9607,col4:3472.91,col5:'sdtul'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:148,col0:640,col1:4178.84,col2:'rkgfr',col3:1613,col4:1033.23,col5:'zpryq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:149,col0:2794,col1:8277.35,col2:'gsnrf',col3:9311,col4:6601.13,col5:'dgdmh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:150,col0:816,col1:4438.84,col2:'mpalw',col3:2281,col4:5499.78,col5:'fvxlm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:151,col0:6075,col1:2566.15,col2:'pkodq',col3:5278,col4:7526.3,col5:'jzybk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:152,col0:8257,col1:7664.54,col2:'krhre',col3:4482,col4:8201.1,col5:'yxprl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:153,col0:1599,col1:1083.39,col2:'mxupw',col3:3749,col4:619.74,col5:'kyrch'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:154,col0:1139,col1:1770.81,col2:'dzfwy',col3:864,col4:3692.80,col5:'tgqiz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:155,col0:8968,col1:7521.23,col2:'ragnr',col3:3780,col4:9412.91,col5:'mlpfg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:156,col0:641,col1:6230.6,col2:'ptmbk',col3:6886,col4:8088.57,col5:'sdozl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:157,col0:642,col1:7138.32,col2:'mhlku',col3:7239,col4:2605.70,col5:'iqnaq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:158,col0:644,col1:2082.23,col2:'ivoht',col3:826,col4:9067.26,col5:'eopia'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:159,col0:1712,col1:6751.88,col2:'ncpwu',col3:8807,col4:8056.85,col5:'bkagq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:160,col0:6589,col1:1927.79,col2:'camoz',col3:3768,col4:5871.36,col5:'zhnbx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:161,col0:645,col1:4743.63,col2:'vnqmd',col3:5974,col4:5787.59,col5:'elgpj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:162,col0:9450,col1:9927.75,col2:'fvzba',col3:9613,col4:9301.87,col5:'iyxxc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:163,col0:7374,col1:1056.85,col2:'vlcuh',col3:9048,col4:7383.69,col5:'qgavu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:164,col0:920,col1:1806.63,col2:'gnkvu',col3:5070,col4:1724.33,col5:'xwxqq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:165,col0:6437,col1:7199.34,col2:'kpeno',col3:1145,col4:5991.47,col5:'tbwsv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:166,col0:6070,col1:4853.49,col2:'jfuca',col3:9664,col4:7069.82,col5:'rghbj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:167,col0:4019,col1:6238.42,col2:'ulthd',col3:8195,col4:6319.76,col5:'gxwai'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:168,col0:2783,col1:7918.94,col2:'xrvak',col3:5731,col4:825.93,col5:'dypya'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:169,col0:9412,col1:2806.95,col2:'rehwd',col3:8942,col4:4641.92,col5:'hpxra'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:170,col0:1755,col1:1413.9,col2:'wqwvm',col3:8421,col4:620.81,col5:'csxfi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:171,col0:4715,col1:3097.33,col2:'ewzyq',col3:4940,col4:8791.86,col5:'ltkmn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:172,col0:6495,col1:7313.62,col2:'kmwuu',col3:5695,col4:3348.11,col5:'wabsw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:173,col0:4845,col1:4866.48,col2:'rirhn',col3:622,col4:8164.1,col5:'qsmjj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:174,col0:3322,col1:9156.69,col2:'ijofr',col3:8326,col4:909.3,col5:'adlkb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:175,col0:7528,col1:7433.86,col2:'ddvtr',col3:2974,col4:3723.33,col5:'grxga'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:176,col0:1370,col1:2043.5,col2:'pjeim',col3:9902,col4:4469.31,col5:'rdefk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:177,col0:3304,col1:1679.44,col2:'wqpdv',col3:2183,col4:7987.31,col5:'aocdu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:178,col0:2586,col1:2634.93,col2:'vdspj',col3:6820,col4:7333.19,col5:'iuacd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:179,col0:5524,col1:629.75,col2:'mathq',col3:989,col4:5041.98,col5:'ecdzz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:180,col0:1727,col1:9157.11,col2:'vhuil',col3:8293,col4:4365.47,col5:'vukcn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:181,col0:647,col1:6546.83,col2:'dfucs',col3:5010,col4:621.89,col5:'gvuvt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:182,col0:6365,col1:1398.92,col2:'zcsyt',col3:6344,col4:1994.48,col5:'lmjgq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:183,col0:6770,col1:6742.27,col2:'jxtol',col3:2676,col4:1672.14,col5:'hylse'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:184,col0:6882,col1:709.20,col2:'yskwf',col3:5810,col4:8211.6,col5:'warqn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:185,col0:6562,col1:7768.17,col2:'bpmog',col3:5230,col4:7229.33,col5:'qpdue'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:186,col0:6474,col1:9998.32,col2:'xalqq',col3:4340,col4:2568.59,col5:'gkqic'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:187,col0:4331,col1:8317.17,col2:'opidk',col3:6726,col4:7540.63,col5:'cppds'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:188,col0:1150,col1:3744.19,col2:'hqbst',col3:2395,col4:6182.0,col5:'bjjnf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:189,col0:7494,col1:8645.46,col2:'oxkgd',col3:4033,col4:4502.70,col5:'xofxn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:190,col0:9730,col1:7984.25,col2:'dbfpg',col3:3250,col4:1731.73,col5:'fknjp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:191,col0:6275,col1:631.73,col2:'gklal',col3:6831,col4:1573.77,col5:'qxyhi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:192,col0:3848,col1:634.48,col2:'snlyq',col3:2989,col4:3455.76,col5:'zvlbw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:193,col0:3716,col1:7479.21,col2:'ctvnk',col3:7612,col4:3776.57,col5:'jwnns'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:194,col0:7950,col1:9909.36,col2:'uzxhj',col3:624,col4:7159.60,col5:'esevr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:195,col0:5668,col1:4309.69,col2:'dgpvy',col3:1682,col4:7695.39,col5:'ljfve'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:196,col0:9293,col1:7481.93,col2:'ohohu',col3:7533,col4:622.28,col5:'wyixk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:197,col0:796,col1:7570.44,col2:'relcu',col3:7158,col4:1478.2,col5:'uecme'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:198,col0:7949,col1:5322.77,col2:'nzxoe',col3:8573,col4:1525.38,col5:'pdgqk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:199,col0:651,col1:5329.31,col2:'mkuns',col3:4971,col4:4833.80,col5:'putuz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:200,col0:6801,col1:7282.95,col2:'qkdws',col3:969,col4:1609.0,col5:'hsyia'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:201,col0:9299,col1:7219.66,col2:'ttohi',col3:8862,col4:9033.61,col5:'mpndw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:202,col0:1545,col1:8774.12,col2:'itbxn',col3:4870,col4:2509.78,col5:'ixzik'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:203,col0:4066,col1:4432.37,col2:'atlre',col3:5388,col4:6912.83,col5:'oqjvy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:204,col0:691,col1:6773.42,col2:'jwfkm',col3:3238,col4:7841.88,col5:'lsrap'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:205,col0:4792,col1:9726.87,col2:'gquys',col3:3916,col4:2867.41,col5:'fvwig'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:206,col0:5554,col1:9817.54,col2:'xnsdo',col3:1846,col4:2784.99,col5:'vwzwr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:207,col0:4204,col1:7419.11,col2:'xopjg',col3:6626,col4:2857.81,col5:'juhbs'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:208,col0:652,col1:8005.71,col2:'ndkzo',col3:9281,col4:4078.35,col5:'aymgl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:209,col0:7841,col1:3393.58,col2:'skmha',col3:8511,col4:4406.1,col5:'hzqlf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:210,col0:1791,col1:3000.67,col2:'hattd',col3:6942,col4:623.71,col5:'aglsu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:211,col0:4056,col1:5091.29,col2:'xttbg',col3:7376,col4:6596.55,col5:'pqkam'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:212,col0:9868,col1:8027.71,col2:'ndwjx',col3:9040,col4:624.37,col5:'dyutj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:213,col0:4013,col1:1520.80,col2:'ccicx',col3:3839,col4:625.47,col5:'lsxhf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:214,col0:7074,col1:7875.65,col2:'bknrk',col3:2600,col4:6913.15,col5:'gvbwv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:215,col0:1689,col1:3248.19,col2:'gpwwb',col3:1329,col4:7053.37,col5:'hbywz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:216,col0:8793,col1:8892.82,col2:'djeqc',col3:7457,col4:2268.39,col5:'mrnrr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:217,col0:3873,col1:2408.5,col2:'viptn',col3:6090,col4:1301.37,col5:'afehf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:218,col0:3219,col1:8992.10,col2:'jlwgf',col3:6260,col4:1117.99,col5:'lxauj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:219,col0:654,col1:2692.54,col2:'qzkgb',col3:7177,col4:8154.10,col5:'yntei'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:220,col0:1362,col1:7650.91,col2:'tuknb',col3:4472,col4:9574.35,col5:'etcve'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:221,col0:2990,col1:9358.33,col2:'xeyyl',col3:6456,col4:4509.77,col5:'tcofq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:222,col0:7042,col1:5903.17,col2:'tjelt',col3:626,col4:5317.43,col5:'bgyml'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:223,col0:7563,col1:9223.63,col2:'hfkie',col3:8610,col4:8826.7,col5:'owcch'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:224,col0:6893,col1:6351.37,col2:'fwgdj',col3:5027,col4:7587.70,col5:'xeklf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:225,col0:1928,col1:670.16,col2:'vgsau',col3:1130,col4:1126.25,col5:'ynpml'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:226,col0:655,col1:3158.49,col2:'iviru',col3:2356,col4:7188.17,col5:'ycakp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:227,col0:6937,col1:3642.19,col2:'ydiqs',col3:4321,col4:2993.8,col5:'tnvea'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:228,col0:9702,col1:2047.8,col2:'vnuez',col3:9064,col4:6484.38,col5:'vkyep'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:229,col0:6254,col1:9645.54,col2:'npoug',col3:1301,col4:7575.88,col5:'jdhya'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:230,col0:9989,col1:635.19,col2:'tbqvp',col3:4674,col4:9405.41,col5:'ogyoz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:231,col0:6357,col1:1750.51,col2:'ucedp',col3:8001,col4:9582.47,col5:'njeof'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:232,col0:9106,col1:6788.43,col2:'ngpuk',col3:1524,col4:1440.85,col5:'pooip'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:233,col0:6535,col1:4585.97,col2:'lwtmx',col3:3163,col4:5285.23,col5:'ibfwi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:234,col0:7746,col1:1902.91,col2:'auzix',col3:4761,col4:9644.84,col5:'tawjc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:235,col0:8890,col1:4347.33,col2:'oykme',col3:8342,col4:2518.6,col5:'jvyvb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:236,col0:9419,col1:7625.30,col2:'oavrq',col3:2348,col4:2631.5,col5:'icspb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:237,col0:8337,col1:8790.49,col2:'qczxk',col3:7904,col4:680.39,col5:'palfw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:238,col0:656,col1:7494.78,col2:'uftcy',col3:5058,col4:626.67,col5:'zcnxa'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:239,col0:2603,col1:7234.91,col2:'nzapj',col3:9033,col4:728.17,col5:'jumbf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:240,col0:9961,col1:6609.8,col2:'vhbye',col3:6478,col4:5234.43,col5:'tbifi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:241,col0:2227,col1:637.58,col2:'nxokv',col3:1719,col4:5185.91,col5:'lcmhm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:242,col0:9907,col1:1632.44,col2:'ebton',col3:3006,col4:9892.59,col5:'dvznh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:243,col0:658,col1:1213.2,col2:'ibmdm',col3:8768,col4:8136.62,col5:'aroxx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:244,col0:5045,col1:793.65,col2:'ralib',col3:3855,col4:9422.93,col5:'aavxe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:245,col0:3770,col1:3197.26,col2:'bjfsw',col3:5797,col4:5228.87,col5:'rzlyr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:246,col0:2945,col1:3869.2,col2:'rnkqw',col3:1047,col4:628.79,col5:'qzzia'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:247,col0:831,col1:2083.91,col2:'fnvbl',col3:1237,col4:3670.73,col5:'kimmv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:248,col0:3990,col1:2219.40,col2:'yroyu',col3:9421,col4:629.1,col5:'syexx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:249,col0:3534,col1:5002.5,col2:'tbcdq',col3:6330,col4:2233.84,col5:'ouuoj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:250,col0:1376,col1:8754.16,col2:'mintr',col3:6623,col4:9340.98,col5:'jvsst'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:251,col0:6480,col1:650.34,col2:'yfmyq',col3:5132,col4:1253.33,col5:'afbie'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:252,col0:1111,col1:7947.21,col2:'yenmi',col3:3116,col4:8263.61,col5:'bjsxj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:253,col0:7084,col1:9274.95,col2:'ocbms',col3:4510,col4:2627.90,col5:'xfqya'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:254,col0:2016,col1:5838.99,col2:'esmth',col3:2174,col4:9826.35,col5:'tcvro'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:255,col0:5574,col1:2703.58,col2:'smmuy',col3:4144,col4:9814.74,col5:'wfopp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:256,col0:5725,col1:638.46,col2:'obzce',col3:9883,col4:8267.17,col5:'sikfx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:257,col0:4988,col1:4315.47,col2:'yagah',col3:6528,col4:7835.61,col5:'yjmmn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:258,col0:6682,col1:9673.14,col2:'viedk',col3:5142,col4:9390.59,col5:'rdmsz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:259,col0:1178,col1:9053.38,col2:'fdifr',col3:6965,col4:3276.78,col5:'osuwh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:260,col0:2147,col1:5505.5,col2:'dgzmj',col3:9663,col4:637.65,col5:'virmg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:261,col0:2811,col1:3425.62,col2:'wylny',col3:3575,col4:4283.6,col5:'nylbi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:262,col0:2191,col1:9809.76,col2:'alyuh',col3:7969,col4:707.91,col5:'pqjuc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:263,col0:1361,col1:5499.0,col2:'rnyeu',col3:7286,col4:638.78,col5:'bpbhz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:264,col0:9696,col1:6436.36,col2:'mfetj',col3:7396,col4:643.49,col5:'almzt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:265,col0:1120,col1:4906.91,col2:'vmwiv',col3:1843,col4:3397.81,col5:'wazyl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:266,col0:662,col1:799.47,col2:'xtpdr',col3:8095,col4:1452.1,col5:'kzqkl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:267,col0:9188,col1:2841.21,col2:'wmvhp',col3:3799,col4:5610.54,col5:'yiekv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:268,col0:2686,col1:9868.26,col2:'axsqf',col3:3026,col4:7720.64,col5:'meekg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:269,col0:5481,col1:2058.35,col2:'usggo',col3:2523,col4:1603.93,col5:'uifbf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:270,col0:8001,col1:2187.41,col2:'alpbw',col3:7963,col4:4302.7,col5:'mvamd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:271,col0:2725,col1:6878.26,col2:'ziana',col3:630,col4:7334.41,col5:'fskin'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:272,col0:663,col1:7854.15,col2:'nvcfk',col3:1492,col4:7937.54,col5:'xnsba'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:273,col0:6461,col1:3182.45,col2:'ffvmg',col3:1806,col4:644.99,col5:'ozrsq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:274,col0:6935,col1:8532.22,col2:'mhszo',col3:5013,col4:6931.81,col5:'topos'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:275,col0:5039,col1:8414.91,col2:'syymk',col3:5164,col4:9662.20,col5:'lgprh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:276,col0:7259,col1:7443.91,col2:'iwogy',col3:2737,col4:1148.15,col5:'jbooy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:277,col0:9626,col1:1579.22,col2:'bajxo',col3:885,col4:5992.8,col5:'zpkud'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:278,col0:3977,col1:9379.3,col2:'xljwa',col3:1688,col4:2016.41,col5:'pwdpg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:279,col0:4197,col1:3247.43,col2:'hrqer',col3:2400,col4:1522.23,col5:'quaot'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:280,col0:2473,col1:688.93,col2:'jopvh',col3:1701,col4:2527.91,col5:'ptpfg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:281,col0:5543,col1:5549.16,col2:'vvbtp',col3:5950,col4:650.76,col5:'ijyqq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:282,col0:943,col1:9282.48,col2:'iqjcb',col3:5428,col4:7233.57,col5:'zcubi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:283,col0:3265,col1:2180.56,col2:'mhodd',col3:632,col4:6838.32,col5:'islpe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:284,col0:665,col1:4637.9,col2:'xvkrn',col3:8327,col4:2251.77,col5:'segtu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:285,col0:9777,col1:8394.30,col2:'mqrvz',col3:8193,col4:8855.10,col5:'jyjcp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:286,col0:4651,col1:7790.69,col2:'lcdpv',col3:8675,col4:5258.49,col5:'gzeyy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:287,col0:667,col1:1011.58,col2:'lesks',col3:3433,col4:4537.80,col5:'ozfwe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:288,col0:668,col1:1342.77,col2:'udpxb',col3:7556,col4:5495.18,col5:'kiljx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:289,col0:2896,col1:8415.14,col2:'lbmlw',col3:3805,col4:3905.67,col5:'kmfoz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:290,col0:6915,col1:9455.31,col2:'gnmtd',col3:8870,col4:3765.86,col5:'kunss'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:291,col0:8394,col1:640.24,col2:'yenou',col3:9614,col4:8544.49,col5:'vydyz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:292,col0:6629,col1:7855.86,col2:'kmfgy',col3:9328,col4:2435.8,col5:'vspuj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:293,col0:670,col1:8909.69,col2:'tfdkw',col3:3978,col4:1602.55,col5:'fpnve'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:294,col0:4553,col1:3828.47,col2:'kdvnf',col3:8455,col4:5432.89,col5:'thmjs'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:295,col0:5589,col1:6578.80,col2:'eqbpg',col3:2827,col4:7786.71,col5:'fnmzh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:296,col0:8572,col1:6224.74,col2:'phyur',col3:8586,col4:8247.91,col5:'plrgn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:297,col0:3053,col1:8181.45,col2:'wqxyc',col3:4903,col4:3370.32,col5:'bmvhd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:298,col0:9382,col1:5458.80,col2:'yqyhw',col3:4871,col4:7933.27,col5:'gvgjl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:299,col0:4960,col1:9913.2,col2:'wiuck',col3:1762,col4:6188.28,col5:'gcaoh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:300,col0:672,col1:3503.31,col2:'sovgg',col3:5271,col4:3106.64,col5:'xybnd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:301,col0:6223,col1:9531.44,col2:'smnxe',col3:7771,col4:5636.3,col5:'ttfui'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:302,col0:8216,col1:3897.44,col2:'oghzh',col3:633,col4:3945.20,col5:'hcmrb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:303,col0:4572,col1:6352.17,col2:'grqcf',col3:634,col4:2675.53,col5:'yocvr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:304,col0:1695,col1:1741.94,col2:'osouf',col3:4324,col4:2189.70,col5:'khrtp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:305,col0:676,col1:1258.18,col2:'vggng',col3:8774,col4:9827.27,col5:'poerr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:306,col0:2873,col1:3696.3,col2:'grqbg',col3:2962,col4:1143.38,col5:'ukiub'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:307,col0:7492,col1:6694.99,col2:'blecz',col3:6566,col4:1173.28,col5:'vjnho'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:308,col0:6508,col1:7989.51,col2:'nsecm',col3:5686,col4:5671.4,col5:'gaytr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:309,col0:1581,col1:6665.65,col2:'ccvrz',col3:9103,col4:2365.11,col5:'iovup'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:310,col0:677,col1:4406.69,col2:'rdkjz',col3:4520,col4:2203.99,col5:'dnnsn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:311,col0:1787,col1:6740.75,col2:'maieq',col3:4817,col4:653.85,col5:'zkodt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:312,col0:4243,col1:4297.42,col2:'kbhhq',col3:4300,col4:8728.11,col5:'ddvsr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:313,col0:9900,col1:4051.39,col2:'bplok',col3:4950,col4:4679.11,col5:'fysma'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:314,col0:1922,col1:651.7,col2:'wjlih',col3:2675,col4:4801.75,col5:'htewa'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:315,col0:678,col1:7292.21,col2:'ffqwo',col3:3557,col4:4908.6,col5:'wazyj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:316,col0:9217,col1:7717.55,col2:'pscaq',col3:636,col4:1536.85,col5:'ddril'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:317,col0:1069,col1:6718.40,col2:'rvxag',col3:7506,col4:3194.36,col5:'chvrm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:318,col0:4947,col1:1759.30,col2:'modxj',col3:9868,col4:1613.85,col5:'qvahq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:319,col0:1766,col1:4150.64,col2:'ojaeo',col3:6477,col4:2996.23,col5:'odevc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:320,col0:747,col1:652.28,col2:'xccna',col3:8046,col4:9270.72,col5:'adnxg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:321,col0:5653,col1:2967.18,col2:'kkjjo',col3:2963,col4:9336.42,col5:'gutqu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:322,col0:1059,col1:2504.0,col2:'pkhmz',col3:3540,col4:654.98,col5:'abekw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:323,col0:8583,col1:8114.78,col2:'dizsc',col3:2268,col4:8798.20,col5:'pfwjd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:324,col0:3146,col1:9096.50,col2:'sfmks',col3:8061,col4:2107.66,col5:'vorcy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:325,col0:9220,col1:6097.74,col2:'ejpia',col3:2511,col4:9530.37,col5:'lcnhm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:326,col0:7077,col1:2363.33,col2:'vdhzl',col3:6134,col4:3580.34,col5:'yfjgw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:327,col0:9041,col1:4985.90,col2:'glolz',col3:4622,col4:1241.27,col5:'zbjre'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:328,col0:5735,col1:6155.59,col2:'wmvxh',col3:5093,col4:5222.12,col5:'imdew'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:329,col0:2335,col1:4410.61,col2:'oiwgs',col3:2343,col4:5203.77,col5:'yjsxm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:330,col0:4816,col1:5886.91,col2:'flzvk',col3:5090,col4:9087.63,col5:'hosgd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:331,col0:6205,col1:5565.76,col2:'pnfzr',col3:2229,col4:4250.27,col5:'hdnjl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:332,col0:2828,col1:8529.44,col2:'rygpt',col3:9083,col4:8790.4,col5:'pkiwt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:333,col0:679,col1:1207.78,col2:'ljwxh',col3:3649,col4:2780.71,col5:'ngjle'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:334,col0:1092,col1:2624.87,col2:'kpuyf',col3:2849,col4:9511.5,col5:'kvykt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:335,col0:8142,col1:5654.62,col2:'kyxhy',col3:8782,col4:6751.53,col5:'nionp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:336,col0:3742,col1:8269.43,col2:'zzkso',col3:4973,col4:7989.88,col5:'ikdjz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:337,col0:4475,col1:4788.77,col2:'icwow',col3:2621,col4:3686.74,col5:'nwado'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:338,col0:7723,col1:7128.86,col2:'lhnso',col3:6854,col4:2528.29,col5:'hkefh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:339,col0:7918,col1:6053.24,col2:'jndzg',col3:2972,col4:2670.87,col5:'fbiuu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:340,col0:2793,col1:2425.44,col2:'eoiwt',col3:2703,col4:2992.58,col5:'ryzlj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:341,col0:9634,col1:8455.58,col2:'eppac',col3:640,col4:4348.96,col5:'swsya'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:342,col0:1524,col1:8949.0,col2:'zrobs',col3:9545,col4:814.56,col5:'hydqv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:343,col0:3600,col1:2563.88,col2:'soxcl',col3:8490,col4:933.60,col5:'lecfu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:344,col0:9300,col1:3049.87,col2:'cfqgu',col3:7216,col4:8977.58,col5:'hcvie'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:345,col0:6607,col1:654.73,col2:'llhpc',col3:3330,col4:6192.91,col5:'ilaeo'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:346,col0:4312,col1:2637.93,col2:'cnslk',col3:8364,col4:2041.54,col5:'iuydw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:347,col0:8255,col1:5983.29,col2:'eyrcw',col3:4027,col4:5463.55,col5:'rcrls'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:348,col0:7574,col1:7190.59,col2:'bvnos',col3:8452,col4:6119.84,col5:'iibsg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:349,col0:965,col1:4247.23,col2:'dsqcl',col3:2449,col4:5643.69,col5:'efyro'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:350,col0:2904,col1:7744.79,col2:'jblsx',col3:5753,col4:8890.44,col5:'usiso'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:351,col0:9948,col1:2117.74,col2:'zalcl',col3:3276,col4:5190.5,col5:'ytjnh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:352,col0:6936,col1:6899.0,col2:'xxnya',col3:1354,col4:9594.80,col5:'mtqvy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:353,col0:3259,col1:7974.58,col2:'szytj',col3:4000,col4:4127.86,col5:'ojcua'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:354,col0:9114,col1:8819.21,col2:'xynia',col3:9153,col4:9035.95,col5:'qzlvl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:355,col0:1746,col1:1763.99,col2:'vospo',col3:4927,col4:4037.91,col5:'wnzds'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:356,col0:1700,col1:9228.97,col2:'alubs',col3:5862,col4:9577.41,col5:'wvyla'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:357,col0:9072,col1:4989.79,col2:'ekxjj',col3:9174,col4:8069.50,col5:'fmmkh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:358,col0:9762,col1:5414.33,col2:'hlifx',col3:1005,col4:5151.27,col5:'gjymn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:359,col0:1716,col1:723.30,col2:'yzlrb',col3:2672,col4:934.46,col5:'jhujq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:360,col0:1184,col1:6228.89,col2:'fvwbg',col3:6918,col4:1245.11,col5:'epytu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:361,col0:8965,col1:3593.38,col2:'xnuhr',col3:4162,col4:8896.17,col5:'mtrwk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:362,col0:6661,col1:2080.78,col2:'qfttj',col3:8750,col4:4914.9,col5:'neacl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:363,col0:2923,col1:9796.43,col2:'bbdwi',col3:5202,col4:9798.52,col5:'bmqth'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:364,col0:9703,col1:4948.65,col2:'wbypr',col3:4463,col4:4773.86,col5:'ooamc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:365,col0:8504,col1:7088.36,col2:'ylhfw',col3:641,col4:3034.95,col5:'dwszt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:366,col0:6630,col1:8367.69,col2:'ondwq',col3:4831,col4:1000.62,col5:'xcjtf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:367,col0:3435,col1:4786.63,col2:'ketef',col3:6208,col4:9563.41,col5:'zatmi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:368,col0:6575,col1:7439.62,col2:'upqxn',col3:3439,col4:5336.10,col5:'qvdwf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:369,col0:8256,col1:3772.23,col2:'tsrnc',col3:3348,col4:1907.41,col5:'kxdeh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:370,col0:1484,col1:8827.70,col2:'cbjzm',col3:6688,col4:1085.56,col5:'gncvk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:371,col0:6318,col1:6492.67,col2:'revee',col3:4383,col4:4151.96,col5:'pgzcy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:372,col0:6115,col1:754.71,col2:'jkzps',col3:3787,col4:3112.78,col5:'pvrra'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:373,col0:3786,col1:6949.0,col2:'hlrzz',col3:4929,col4:1943.62,col5:'doahl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:374,col0:8040,col1:3009.95,col2:'watbe',col3:6763,col4:7844.9,col5:'zdyjd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:375,col0:9637,col1:716.80,col2:'ciixz',col3:3417,col4:2490.48,col5:'zcqtw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:376,col0:7640,col1:6942.28,col2:'kyqvu',col3:642,col4:3274.34,col5:'cppbu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:377,col0:5662,col1:4918.19,col2:'agnwp',col3:1090,col4:4566.16,col5:'oywpe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:378,col0:8113,col1:5465.7,col2:'adfkk',col3:2496,col4:8954.92,col5:'bgbvx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:379,col0:6460,col1:8254.79,col2:'jnswc',col3:2002,col4:8504.80,col5:'rzmag'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:380,col0:5467,col1:3053.22,col2:'gfsht',col3:3366,col4:6000.74,col5:'hsivi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:381,col0:9449,col1:979.80,col2:'xfyzr',col3:3022,col4:6202.9,col5:'ntubx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:382,col0:8522,col1:5745.19,col2:'bpbam',col3:6331,col4:7091.24,col5:'vqdeu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:383,col0:4853,col1:4913.90,col2:'uczej',col3:3829,col4:1119.24,col5:'stvzu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:384,col0:8911,col1:1140.93,col2:'upved',col3:7479,col4:6465.41,col5:'wftdy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:385,col0:5714,col1:3435.34,col2:'mwfog',col3:6917,col4:8278.0,col5:'gdhzo'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:386,col0:1081,col1:8401.95,col2:'defid',col3:5708,col4:9928.76,col5:'fohxj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:387,col0:7882,col1:1490.88,col2:'zxqhe',col3:7590,col4:4262.63,col5:'pwmhs'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:388,col0:2290,col1:8253.27,col2:'idbcw',col3:2730,col4:4845.32,col5:'yniun'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:389,col0:682,col1:5585.83,col2:'qjamz',col3:3967,col4:7218.94,col5:'oskep'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:390,col0:2608,col1:2983.48,col2:'wazeq',col3:3068,col4:655.66,col5:'qugas'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:391,col0:3615,col1:3788.0,col2:'gfrik',col3:6976,col4:6857.28,col5:'jesaq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:392,col0:4919,col1:6441.65,col2:'sgbgn',col3:4060,col4:6316.89,col5:'euzyh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:393,col0:2944,col1:5730.77,col2:'xgpaa',col3:643,col4:4450.51,col5:'sqsbz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:394,col0:4918,col1:4041.42,col2:'hxfar',col3:5853,col4:5413.65,col5:'zrexk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:395,col0:5117,col1:2607.2,col2:'gynuk',col3:679,col4:2831.2,col5:'pdjtu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:396,col0:1115,col1:2757.94,col2:'ixyhb',col3:1410,col4:1053.9,col5:'tldjc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:397,col0:684,col1:7172.17,col2:'fqtxy',col3:7295,col4:6398.75,col5:'mohmc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:398,col0:4829,col1:1127.91,col2:'azivp',col3:6505,col4:8412.92,col5:'rwtql'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:399,col0:685,col1:3746.19,col2:'gkgsb',col3:2389,col4:1110.17,col5:'hpsrw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:400,col0:692,col1:9251.53,col2:'zpgka',col3:9723,col4:4231.36,col5:'iorgh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:401,col0:1884,col1:8211.55,col2:'bcqmx',col3:956,col4:4488.26,col5:'frpty'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:402,col0:4156,col1:8792.57,col2:'ezexb',col3:2464,col4:6815.17,col5:'qtdrl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:403,col0:2691,col1:8009.27,col2:'ykgqt',col3:802,col4:5619.55,col5:'yzohb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:404,col0:6473,col1:2974.30,col2:'agefj',col3:8939,col4:6029.64,col5:'bqbkq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:405,col0:4036,col1:2147.91,col2:'ktbno',col3:2537,col4:5147.10,col5:'pouux'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:406,col0:9716,col1:6585.54,col2:'idbgk',col3:6172,col4:3299.60,col5:'hbzym'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:407,col0:9898,col1:1194.53,col2:'nippj',col3:9599,col4:5283.49,col5:'rfeta'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:408,col0:9268,col1:5976.64,col2:'iihyp',col3:4001,col4:1619.39,col5:'oseyl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:409,col0:7065,col1:7284.75,col2:'sdeiz',col3:8229,col4:9800.84,col5:'aliwy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:410,col0:3326,col1:9059.47,col2:'pdxgh',col3:5071,col4:5540.90,col5:'mbnzb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:411,col0:5140,col1:4104.72,col2:'uyseg',col3:7482,col4:4030.80,col5:'yqkrz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:412,col0:2897,col1:5309.43,col2:'fusft',col3:4847,col4:1179.55,col5:'ainsp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:413,col0:6536,col1:6916.11,col2:'zjurw',col3:9225,col4:4872.56,col5:'exiwm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:414,col0:1801,col1:5763.47,col2:'ofbvb',col3:1601,col4:6214.28,col5:'qnjth'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:415,col0:6482,col1:2538.11,col2:'xrqki',col3:8138,col4:784.82,col5:'vendq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:416,col0:6673,col1:3023.6,col2:'neafh',col3:6421,col4:9884.57,col5:'dmywi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:417,col0:3017,col1:9350.47,col2:'qadwg',col3:1714,col4:1789.82,col5:'kdhfn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:418,col0:6958,col1:1250.20,col2:'icjkk',col3:3205,col4:2995.42,col5:'sttst'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:419,col0:6993,col1:7297.45,col2:'phvuz',col3:644,col4:9472.35,col5:'vgjtd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:420,col0:4915,col1:6168.41,col2:'qikpg',col3:8665,col4:7911.39,col5:'asxdm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:421,col0:2073,col1:7885.85,col2:'rfxsv',col3:6889,col4:6978.71,col5:'lugqk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:422,col0:5615,col1:5068.77,col2:'myexp',col3:2324,col4:8561.53,col5:'cmhwl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:423,col0:4737,col1:4183.1,col2:'cegja',col3:7536,col4:9018.73,col5:'ztdqe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:424,col0:6940,col1:6797.87,col2:'iuknd',col3:6519,col4:656.46,col5:'iaitk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:425,col0:4272,col1:822.77,col2:'omjms',col3:942,col4:1864.79,col5:'pzvpe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:426,col0:9586,col1:1769.83,col2:'cnksk',col3:6399,col4:657.31,col5:'qafra'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:427,col0:2781,col1:3996.53,col2:'delsw',col3:8661,col4:3350.77,col5:'wbtjz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:428,col0:7062,col1:1959.32,col2:'anerx',col3:9926,col4:7630.73,col5:'gzqmw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:429,col0:5180,col1:1461.23,col2:'hzgym',col3:5062,col4:2873.13,col5:'rkaxe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:430,col0:5689,col1:905.52,col2:'vzjta',col3:7871,col4:1746.94,col5:'veddl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:431,col0:9193,col1:2536.30,col2:'xoiwk',col3:7325,col4:1392.81,col5:'lclbf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:432,col0:4599,col1:3705.14,col2:'nyhfc',col3:3824,col4:4674.65,col5:'kptnf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:433,col0:5362,col1:8103.73,col2:'hgukj',col3:5443,col4:1430.31,col5:'yekxl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:434,col0:5739,col1:7023.45,col2:'sdxlh',col3:4183,col4:9718.13,col5:'ndgsj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:435,col0:7038,col1:655.5,col2:'efljz',col3:2220,col4:7071.65,col5:'hhzib'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:436,col0:3867,col1:9086.23,col2:'fbxus',col3:8158,col4:1743.17,col5:'akcqf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:437,col0:693,col1:4049.30,col2:'pksrx',col3:3275,col4:3962.40,col5:'dyzli'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:438,col0:6554,col1:9679.78,col2:'jclsj',col3:7774,col4:7177.8,col5:'dthjv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:439,col0:4382,col1:4004.6,col2:'cmtgn',col3:7037,col4:9312.63,col5:'lmtgg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:440,col0:4182,col1:657.96,col2:'whopf',col3:7868,col4:4012.72,col5:'rjozg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:441,col0:818,col1:7600.44,col2:'pahag',col3:4749,col4:1894.97,col5:'qxixu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:442,col0:9949,col1:3420.14,col2:'xpvzc',col3:6087,col4:1799.48,col5:'pgipj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:443,col0:4292,col1:3533.8,col2:'lftai',col3:647,col4:2042.56,col5:'lcmmx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:444,col0:9862,col1:3956.23,col2:'xrlir',col3:2895,col4:1656.27,col5:'ncqib'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:445,col0:2222,col1:2057.15,col2:'iefga',col3:1058,col4:1652.9,col5:'dqndi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:446,col0:2741,col1:7798.66,col2:'xxjdq',col3:1564,col4:6260.53,col5:'ildkb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:447,col0:4835,col1:4992.37,col2:'kskuj',col3:6201,col4:4184.77,col5:'hanbt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:448,col0:699,col1:2547.40,col2:'dodbo',col3:8181,col4:9851.25,col5:'hoeya'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:449,col0:5169,col1:5720.96,col2:'fltrj',col3:8391,col4:4661.34,col5:'yjcmv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:450,col0:6747,col1:7364.97,col2:'lrzqv',col3:1645,col4:8235.93,col5:'eoufm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:451,col0:9076,col1:9183.69,col2:'sugay',col3:2932,col4:9668.8,col5:'nrppz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:452,col0:9577,col1:2976.38,col2:'xatnv',col3:3668,col4:8775.62,col5:'ciqmy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:453,col0:5222,col1:1889.87,col2:'gypax',col3:7942,col4:7348.79,col5:'wsbus'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:454,col0:8783,col1:1669.21,col2:'dezjw',col3:8772,col4:660.87,col5:'qlbbs'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:455,col0:5083,col1:1907.31,col2:'pwfvy',col3:4351,col4:7415.81,col5:'fzcgh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:456,col0:7247,col1:7294.54,col2:'cmxwb',col3:4296,col4:3601.81,col5:'qjzgc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:457,col0:2949,col1:8867.38,col2:'xhbqt',col3:5901,col4:1138.1,col5:'euakz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:458,col0:701,col1:5263.2,col2:'cbhsm',col3:649,col4:661.6,col5:'nhbjg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:459,col0:5921,col1:3964.98,col2:'tsvsu',col3:9148,col4:1354.78,col5:'vhtpw'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:460,col0:7545,col1:2551.78,col2:'zwrte',col3:650,col4:4506.78,col5:'agoxi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:461,col0:3915,col1:9954.52,col2:'dmvhn',col3:3460,col4:2458.7,col5:'qiyfa'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:462,col0:9209,col1:7697.52,col2:'xofra',col3:8930,col4:1004.68,col5:'hymeg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:463,col0:9658,col1:1155.96,col2:'lsasi',col3:1016,col4:665.33,col5:'mnxsj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:464,col0:9790,col1:800.46,col2:'mrsit',col3:5743,col4:6665.98,col5:'xzjry'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:465,col0:8688,col1:3450.78,col2:'lfdhk',col3:6810,col4:2732.55,col5:'okmou'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:466,col0:6233,col1:3522.36,col2:'rlqpd',col3:1844,col4:9794.44,col5:'wqmxf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:467,col0:9358,col1:4281.1,col2:'jqjjx',col3:8646,col4:8509.26,col5:'qcifa'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:468,col0:8297,col1:9089.49,col2:'xwdit',col3:1444,col4:667.35,col5:'mctjt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:469,col0:2833,col1:2656.18,col2:'umsky',col3:7142,col4:8387.51,col5:'srqht'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:470,col0:8552,col1:2289.67,col2:'yvyld',col3:1569,col4:9478.54,col5:'peupf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:471,col0:3090,col1:9143.39,col2:'txttl',col3:5729,col4:4576.90,col5:'jxign'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:472,col0:2383,col1:9470.24,col2:'bxnwr',col3:2053,col4:668.34,col5:'kpsdc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:473,col0:6918,col1:5873.23,col2:'qxvxi',col3:651,col4:848.53,col5:'kiytu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:474,col0:7984,col1:8547.8,col2:'wmyot',col3:5547,col4:7731.66,col5:'lvmqv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:475,col0:3919,col1:6540.86,col2:'hhtji',col3:957,col4:2538.7,col5:'eirjz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:476,col0:6363,col1:8995.60,col2:'jtzpo',col3:7511,col4:7431.90,col5:'ubqtt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:477,col0:6507,col1:6402.94,col2:'ypere',col3:8520,col4:6542.69,col5:'jzluk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:478,col0:1343,col1:1851.73,col2:'aqayg',col3:6219,col4:7230.1,col5:'vjicd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:479,col0:9911,col1:2276.68,col2:'fehhk',col3:8020,col4:1320.10,col5:'dhsrf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:480,col0:9555,col1:9713.95,col2:'qwdsw',col3:2759,col4:6366.47,col5:'jmlkb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:481,col0:2169,col1:2543.82,col2:'edaxo',col3:6948,col4:6893.55,col5:'yvsum'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:482,col0:702,col1:6746.26,col2:'mybzj',col3:1028,col4:5647.29,col5:'qalkq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:483,col0:4134,col1:7149.61,col2:'gjxbb',col3:5611,col4:4847.81,col5:'sdgvh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:484,col0:6276,col1:8675.18,col2:'ffdwp',col3:7738,col4:7436.1,col5:'fjowv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:485,col0:9469,col1:7598.87,col2:'ipdke',col3:7125,col4:8329.19,col5:'wmuon'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:486,col0:2112,col1:2788.79,col2:'xrjoj',col3:2413,col4:5662.69,col5:'gqoom'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:487,col0:4653,col1:6960.92,col2:'rgore',col3:7420,col4:2047.52,col5:'awnwz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:488,col0:5840,col1:7933.68,col2:'zgngh',col3:7390,col4:5815.95,col5:'btxij'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:489,col0:8974,col1:9867.61,col2:'xornd',col3:5241,col4:2273.17,col5:'kcgnk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:490,col0:8155,col1:4524.97,col2:'inwdz',col3:7817,col4:4949.91,col5:'pltae'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:491,col0:4534,col1:2511.35,col2:'cpssc',col3:2140,col4:6843.5,col5:'oukkl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:492,col0:2565,col1:4536.32,col2:'fylmx',col3:1656,col4:1679.25,col5:'aexom'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:493,col0:6250,col1:2651.5,col2:'udlza',col3:2487,col4:5153.58,col5:'liclp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:494,col0:5391,col1:1507.92,col2:'isxpm',col3:9682,col4:6184.15,col5:'cguuv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:495,col0:1846,col1:9603.17,col2:'vujet',col3:3462,col4:8163.72,col5:'jwdpi'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:496,col0:5767,col1:658.49,col2:'uuouz',col3:5479,col4:669.35,col5:'urntn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:497,col0:1863,col1:4250.69,col2:'nxqda',col3:5057,col4:8395.98,col5:'dixta'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:498,col0:5639,col1:8287.29,col2:'bxijq',col3:5447,col4:7043.10,col5:'qhviy'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:499,col0:9653,col1:9036.14,col2:'oqarm',col3:652,col4:9932.36,col5:'ymnzx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:500,col0:9763,col1:2984.8,col2:'brwum',col3:8798,col4:1566.20,col5:'mtdqh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:501,col0:1380,col1:7966.55,col2:'ayzss',col3:4140,col4:8423.44,col5:'jtshe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:502,col0:5712,col1:4415.20,col2:'cjmjq',col3:7555,col4:672.96,col5:'qkmqq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:503,col0:6021,col1:6610.52,col2:'mnqef',col3:5676,col4:1076.30,col5:'jmwsv'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:504,col0:3869,col1:3930.48,col2:'xdcqz',col3:6556,col4:940.25,col5:'ukrlb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:505,col0:5367,col1:2099.14,col2:'vwtbg',col3:5928,col4:6663.54,col5:'jtcjx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:506,col0:7429,col1:4442.30,col2:'ougah',col3:3448,col4:3335.44,col5:'auael'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:507,col0:4020,col1:3127.7,col2:'jfthg',col3:8951,col4:5520.34,col5:'djajh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:508,col0:2401,col1:660.56,col2:'pcgbj',col3:8694,col4:8503.44,col5:'vgoxr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:509,col0:9391,col1:9951.47,col2:'vssxh',col3:1612,col4:9543.36,col5:'yybws'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:510,col0:7605,col1:7919.71,col2:'zkagv',col3:5568,col4:9121.71,col5:'ehaxl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:511,col0:1711,col1:4388.4,col2:'kdizm',col3:3593,col4:2191.81,col5:'iyfby'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:512,col0:4676,col1:4520.71,col2:'aaaeg',col3:654,col4:9429.23,col5:'ifthl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:513,col0:4018,col1:9821.4,col2:'ocapw',col3:7385,col4:8486.45,col5:'inedn'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:514,col0:8058,col1:9394.7,col2:'mxpla',col3:1352,col4:5232.50,col5:'acsif'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:515,col0:2165,col1:1193.21,col2:'hbvwi',col3:8294,col4:5013.55,col5:'krgja'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:516,col0:5010,col1:3266.82,col2:'oxnro',col3:878,col4:3896.56,col5:'jwpgf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:517,col0:4815,col1:5010.86,col2:'zdlxs',col3:4437,col4:9919.90,col5:'jcmau'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:518,col0:5603,col1:8422.52,col2:'snjnd',col3:3246,col4:4347.98,col5:'yctku'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:519,col0:3446,col1:9342.82,col2:'iigxr',col3:6745,col4:2914.86,col5:'mkmlf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:520,col0:2719,col1:8713.27,col2:'zehrw',col3:5801,col4:7077.87,col5:'qfdcg'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:521,col0:2348,col1:3820.45,col2:'nkfdw',col3:8960,col4:5268.28,col5:'iwoxl'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:522,col0:2056,col1:9551.69,col2:'syexv',col3:8690,col4:4140.86,col5:'wmiqt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:523,col0:8621,col1:9638.64,col2:'evbsv',col3:7637,col4:9818.57,col5:'aprvr'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:524,col0:2121,col1:7912.94,col2:'runxc',col3:4873,col4:9151.12,col5:'ivrmk'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:525,col0:2182,col1:9552.82,col2:'fycaa',col3:2145,col4:960.65,col5:'allqx'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:526,col0:4235,col1:2333.72,col2:'bklnm',col3:655,col4:7287.34,col5:'fbcae'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:527,col0:5757,col1:7880.93,col2:'bvhit',col3:4663,col4:4652.0,col5:'cccrc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:528,col0:2531,col1:2914.23,col2:'mgtnu',col3:3032,col4:5291.75,col5:'bsfry'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:529,col0:4886,col1:663.47,col2:'mkhyg',col3:656,col4:8417.60,col5:'qaqnd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:530,col0:3955,col1:1318.23,col2:'xpyut',col3:4993,col4:1465.11,col5:'wcgzp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:531,col0:7920,col1:4869.45,col2:'rgkgt',col3:6512,col4:1341.98,col5:'gjppt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:532,col0:8265,col1:771.1,col2:'tmedy',col3:657,col4:5675.70,col5:'zidkt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:533,col0:6025,col1:9981.42,col2:'hvpqg',col3:4267,col4:4068.19,col5:'beglo'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:534,col0:8033,col1:6058.38,col2:'vtdpx',col3:5735,col4:9348.36,col5:'gjlnb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:535,col0:3177,col1:6407.45,col2:'iikns',col3:6878,col4:8811.82,col5:'mgmqf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:536,col0:8641,col1:3531.67,col2:'izhzb',col3:1377,col4:5476.44,col5:'uukwc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:537,col0:6165,col1:6280.17,col2:'eudjb',col3:659,col4:9341.0,col5:'mduud'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:538,col0:8286,col1:1102.78,col2:'xoujt',col3:9792,col4:8613.81,col5:'gdwcf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:539,col0:4592,col1:3294.70,col2:'qztrb',col3:4450,col4:988.36,col5:'jemmt'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:540,col0:7975,col1:8247.10,col2:'orisd',col3:6444,col4:4873.90,col5:'qpkwu'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:541,col0:874,col1:2704.73,col2:'altzj',col3:661,col4:673.9,col5:'umjjh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:542,col0:1529,col1:6003.57,col2:'tgiam',col3:9606,col4:1935.64,col5:'ifetb'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:543,col0:704,col1:1329.46,col2:'xnlvq',col3:2921,col4:6797.90,col5:'waydz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:544,col0:5582,col1:6969.68,col2:'hbvls',col3:662,col4:9040.52,col5:'dtbne'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:545,col0:720,col1:7552.62,col2:'jjqth',col3:9702,col4:9439.4,col5:'ellny'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:546,col0:9580,col1:5310.40,col2:'looaw',col3:2619,col4:6990.55,col5:'ivoxe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:547,col0:3169,col1:1316.48,col2:'vvylu',col3:983,col4:674.29,col5:'pfrhe'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:548,col0:5780,col1:6748.29,col2:'wbywt',col3:3080,col4:8153.27,col5:'nvvra'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:549,col0:1259,col1:4127.84,col2:'dpoml',col3:9879,col4:2120.93,col5:'mpdep'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:550,col0:9254,col1:8573.39,col2:'pqxfd',col3:1271,col4:6455.74,col5:'svroq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:551,col0:1463,col1:9054.3,col2:'pdhom',col3:2325,col4:681.82,col5:'nqyzz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:552,col0:7885,col1:9635.32,col2:'cefet',col3:9530,col4:7388.58,col5:'jtqms'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:553,col0:3070,col1:728.91,col2:'vtrlz',col3:7059,col4:682.32,col5:'ydypc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:554,col0:2368,col1:664.18,col2:'hhfbc',col3:3005,col4:8004.91,col5:'iktfz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:555,col0:8182,col1:5344.87,col2:'yjyuz',col3:5639,col4:683.34,col5:'growp'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:556,col0:6213,col1:2680.65,col2:'kjvas',col3:9657,col4:6920.40,col5:'xevrz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:557,col0:1715,col1:665.83,col2:'kxvkm',col3:2432,col4:9875.29,col5:'jrysz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:558,col0:5740,col1:666.91,col2:'dquly',col3:663,col4:4313.25,col5:'rjjuh'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:559,col0:1393,col1:5986.25,col2:'cwwch',col3:4618,col4:9876.15,col5:'shwas'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:560,col0:705,col1:7934.67,col2:'objoe',col3:8403,col4:1925.18,col5:'salmf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:561,col0:7758,col1:2214.11,col2:'iqesc',col3:2190,col4:2800.41,col5:'bksvc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:562,col0:1182,col1:2616.20,col2:'floum',col3:669,col4:3059.46,col5:'oauuc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:563,col0:4162,col1:1782.93,col2:'ukocr',col3:7954,col4:2734.9,col5:'ouobm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:564,col0:3804,col1:2449.27,col2:'ygymc',col3:5709,col4:2581.87,col5:'axvre'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:565,col0:6768,col1:8699.76,col2:'pcmcm',col3:7524,col4:5325.75,col5:'uzfuz'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:566,col0:5515,col1:7218.20,col2:'cxway',col3:6106,col4:6917.74,col5:'lcqfo'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:567,col0:4555,col1:8533.18,col2:'gjatb',col3:9334,col4:7781.48,col5:'sebbq'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:568,col0:6700,col1:8274.82,col2:'kkexz',col3:6513,col4:4060.91,col5:'mtxlf'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:569,col0:9312,col1:8416.30,col2:'ruzxs',col3:4626,col4:8874.89,col5:'umczm'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:570,col0:706,col1:8530.53,col2:'ysnob',col3:4578,col4:3563.78,col5:'fwbnd'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:571,col0:5640,col1:7039.76,col2:'epsqu',col3:7454,col4:8940.13,col5:'uubrj'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:572,col0:3085,col1:2461.22,col2:'hmenw',col3:763,col4:6541.26,col5:'fedod'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:573,col0:954,col1:4661.73,col2:'mwkxl',col3:4687,col4:9877.89,col5:'yqihc'})
+---- ok
+-STATEMENT CREATE (:tab0 {pk:574,col0:3114,col1:6104.34,col2:'idzic',col3:8339,col4:5673.79,col5:'idvsy'})
+---- ok
