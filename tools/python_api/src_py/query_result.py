@@ -143,7 +143,7 @@ class QueryResult:
 
         return pl.from_arrow(data=self.get_as_arrow())
 
-    def get_as_arrow(self) -> pa.Table:
+    def get_as_arrow(self, chunk_size: int = 1_000_000) -> pa.Table:
         """
         Get the query result as a PyArrow Table.
 
@@ -164,8 +164,8 @@ class QueryResult:
         """
         self.check_for_query_result_close()
 
-        target_n_elems = 10_000_000  # adaptive chunk_size; target 10m elements per chunk
-        target_chunk_size = max(target_n_elems // len(self.get_column_names()), 10)
+        # adaptive chunk_size; target number of elements per chunk_zise
+        target_chunk_size = max(chunk_size // len(self.get_column_names()), 10)
 
         return self._query_result.getAsArrow(target_chunk_size)
 
