@@ -33,7 +33,6 @@ static std::string getListFunctionIncompatibleChildrenTypeErrorMsg(
 
 void ListCreationFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/) {
-    KU_ASSERT(result.dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
          ++selectedPos) {
@@ -63,6 +62,11 @@ static LogicalType getValidLogicalType(const binder::expression_vector& expressi
 
 std::unique_ptr<FunctionBindData> ListCreationFunction::bindFunc(
     const binder::expression_vector& arguments, Function* /*function*/) {
+    auto resultType = LogicalType::VAR_LIST(getChildType(arguments).copy());
+    return std::make_unique<FunctionBindData>(std::move(resultType));
+}
+
+LogicalType ListCreationFunction::getChildType(const binder::expression_vector& arguments) {
     // ListCreation requires all parameters to have the same type or be ANY type. The result type of
     // listCreation can be determined by the first non-ANY type parameter. If all parameters have
     // dataType ANY, then the resultType will be INT64[] (default type).
@@ -82,8 +86,7 @@ std::unique_ptr<FunctionBindData> ListCreationFunction::bindFunc(
             }
         }
     }
-    auto resultType = LogicalType::VAR_LIST(childType.copy());
-    return std::make_unique<FunctionBindData>(std::move(resultType));
+    return childType;
 }
 
 function_set ListCreationFunction::getFunctionSet() {
@@ -232,6 +235,9 @@ function_set ListExtractFunction::getFunctionSet() {
         LogicalTypeID::STRING,
         ScalarFunction::BinaryExecFunction<ku_string_t, int64_t, ku_string_t, ListExtract>,
         false /* isVarlength */));
+    result.push_back(std::make_unique<ScalarFunction>(LIST_EXTRACT_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::ARRAY, LogicalTypeID::INT64}, LogicalTypeID::ANY,
+        nullptr, nullptr, bindFunc, false /* isVarlength*/));
     return result;
 }
 

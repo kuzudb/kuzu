@@ -1,0 +1,121 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE ArrayValue
+
+-LOG CreateArrayValue
+-STATEMENT RETURN ARRAY_VALUE(3.2, 5.4, 7.2, 32.3)
+---- 1
+[3.200000,5.400000,7.200000,32.300000]
+
+-LOG CreateArrayValueWithNull
+-STATEMENT RETURN ARRAY_VALUE(2, 7, NULL, 256, 32, NULL)
+---- 1
+[2,7,,256,32,]
+
+-LOG CreateEmptyArray
+-STATEMENT RETURN ARRAY_VALUE()
+---- 1
+[]
+
+-LOG CreateArrayRecursively
+-STATEMENT RETURN ARRAY_VALUE(ARRAY_VALUE(3,2), ARRAY_VALUE(4,7), ARRAY_VALUE(-2,3))
+---- 1
+[[3,2],[4,7],[-2,3]]
+
+-CASE ArrayCrossProduct
+-LOG ArrayCrossProductINT128
+-STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE(to_int128(1), to_int128(2), to_int128(3)), ARRAY_VALUE(to_int128(4), to_int128(5), to_int128(6)))
+---- 1
+[-3,6,-3]
+
+-LOG ArrayCrossProductINT64
+-STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE(to_int64(148), to_int64(176), to_int64(112)), ARRAY_VALUE(to_int64(182), to_int64(187), to_int64(190)))
+---- 1
+[12496,-7736,-4356]
+
+-LOG ArrayCrossProductINT32
+-STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE(to_int32(195), to_int32(894), to_int32(539)), ARRAY_VALUE(to_int32(823), to_int32(158), to_int32(177)))
+---- 1
+[73076,409082,-704952]
+
+-LOG ArrayCrossProductINT16
+-STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE(to_int16(463), to_int16(184), to_int16(189)), ARRAY_VALUE(to_int16(94), to_int16(161), to_int16(410)))
+---- 1
+[-20525,24544,-8289]
+
+-LOG ArrayCrossProductINT8
+-STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE(to_int8(12), to_int8(7), to_int8(6)), ARRAY_VALUE(to_int8(3), to_int8(4), to_int8(5)))
+---- 1
+[11,-42,27]
+
+-LOG ArrayCrossProductFLOAT
+-STATEMENT RETURN round(ARRAY_CROSS_PRODUCT(ARRAY_VALUE(TO_FLOAT(3.5), TO_FLOAT(2.55), TO_FLOAT(6.2)), ARRAY_VALUE(TO_FLOAT(4.2), TO_FLOAT(7.8), TO_FLOAT(9.254)))[1],2)
+---- 1
+-24.760000
+
+-LOG ArrayCrossProductDOUBLE
+-STATEMENT RETURN round(ARRAY_CROSS_PRODUCT(ARRAY_VALUE(TO_DOUBLE(12.62), TO_DOUBLE(7.54), TO_DOUBLE(6.13)), ARRAY_VALUE(TO_DOUBLE(3.23), TO_DOUBLE(4.56), TO_DOUBLE(5.34)))[1],2)
+---- 1
+12.310000
+
+-LOG ArrayCrossProductTypeError
+-STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE('test','test1'), ARRAY_VALUE('test2', 'test3'))
+---- error
+Binder exception: ARRAY_CROSS_PRODUCT can only be applied on array of floating points or integers
+
+-LOG ArrayCrossProductInCorrectSize
+-STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE(32, 54, 77), ARRAY_VALUE(31, 24))
+---- error
+Binder exception: ARRAY_CROSS_PRODUCT requires both arrays to have the same element type and size of 3
+
+-LOG ArrayCosineSimilarity
+-STATEMENT MATCH (p:person)-[e:meets]->(p1:person) return round(ARRAY_COSINE_SIMILARITY(e.location, array_value(to_float(3.4), to_float(2.7))),2)
+---- 7
+0.790000
+0.880000
+0.930000
+0.930000
+0.950000
+0.950000
+0.970000
+
+-LOG ArrayCosineSimilarityWrongType
+-STATEMENT MATCH (p:person) return ARRAY_COSINE_SIMILARITY(p.grades, p.grades)
+---- error
+Binder exception: ARRAY_COSINE_SIMILARITY requires argument type of FLOAT or DOUBLE.
+
+-LOG ArrayDistance
+-STATEMENT MATCH (p:person)-[e:meets]->(p1:person) return round(ARRAY_DISTANCE(e.location, array_value(to_float(3.4), to_float(2.7))),2)
+---- 7
+1.350000
+1.600000
+1.620000
+2.530000
+4.500000
+5.750000
+6.410000
+
+-LOG ArrayInnerProduct
+-STATEMENT MATCH (p:person)-[e:meets]->(p1:person) return round(ARRAY_INNER_PRODUCT(e.location, array_value(to_float(3.4), to_float(2.7))),2)
+---- 7
+14.870000
+15.540000
+21.180000
+24.240000
+31.780000
+35.200000
+36.150000
+
+-LOG ArrayDotProduct
+-STATEMENT MATCH (p:person)-[e:meets]->(p1:person) return round(ARRAY_DOT_PRODUCT(e.location, array_value(to_float(5.6), to_float(2.1))),2)
+---- 7
+18.330000
+21.910000
+24.950000
+27.720000
+31.220000
+38.160000
+51.230000

@@ -220,6 +220,7 @@ struct ListCreationFunction {
         const binder::expression_vector& arguments, Function* function);
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr);
+    static common::LogicalType getChildType(const binder::expression_vector& arguments);
 };
 
 struct ListRangeFunction {
