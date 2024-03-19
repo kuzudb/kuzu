@@ -50,8 +50,8 @@ void ProgressBar::updateProgress(double curPipelineProgress) {
 
 void ProgressBar::printProgressBar(double curPipelineProgress) {
     if (!shouldPrintProgress()) {
-		return;
-	}
+        return;
+    }
     printing = true;
     float pipelineProgress = 0.0;
     if (numPipelines > 0) {
@@ -83,14 +83,14 @@ bool ProgressBar::shouldPrintProgress() const {
     bool shouldPrint = queryTimer->getElapsedTimeMS() > showProgressAfter;
     queryTimer->start();
     return shouldPrint;
-}   
+}
 
 void ProgressBar::toggleProgressBarPrinting(bool enable) {
     trackProgress = enable;
 }
 
 void ProgressBar::setShowProgressAfter(uint64_t time) {
-	showProgressAfter = time;
+    showProgressAfter = time;
 }
 
 } // namespace common
