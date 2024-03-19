@@ -211,7 +211,10 @@ private:
         BMFileHandle* fileHandle, common::page_idx_t pageIdx, PageState* pageState);
 
     inline uint64_t reserveUsedMemory(uint64_t size) { return usedMemory.fetch_add(size); }
-    inline uint64_t freeUsedMemory(uint64_t size) { return usedMemory.fetch_sub(size); }
+    inline uint64_t freeUsedMemory(uint64_t size) {
+        KU_ASSERT(usedMemory.load() >= size);
+        return usedMemory.fetch_sub(size);
+    }
 
     inline uint8_t* getFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx) {
         return vmRegions[fileHandle.getPageSizeClass()]->getFrame(fileHandle.getFrameIdx(pageIdx));

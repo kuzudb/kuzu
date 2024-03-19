@@ -26,22 +26,29 @@ WALPageIdxAndFrame createWALVersionIfNecessaryAndPinPage(page_idx_t originalPage
     page_idx_t pageIdxInWAL;
     uint8_t* walFrame;
     fileHandle.acquireWALPageIdxLock(originalPageIdx);
-    if (fileHandle.hasWALPageVersionNoWALPageIdxLock(originalPageIdx)) {
-        pageIdxInWAL = fileHandle.getWALPageIdxNoWALPageIdxLock(originalPageIdx);
-        walFrame = bufferManager.pin(
-            *wal.fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::READ_PAGE);
-    } else {
-        pageIdxInWAL =
-            wal.logPageUpdateRecord(dbFileID, originalPageIdx /* pageIdxInOriginalFile */);
-        walFrame = bufferManager.pin(
-            *wal.fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
-        if (!insertingNewPage) {
-            bufferManager.optimisticRead(fileHandle, originalPageIdx, [&](uint8_t* frame) -> void {
-                memcpy(walFrame, frame, BufferPoolConstants::PAGE_4KB_SIZE);
-            });
+    try {
+        if (fileHandle.hasWALPageVersionNoWALPageIdxLock(originalPageIdx)) {
+            pageIdxInWAL = fileHandle.getWALPageIdxNoWALPageIdxLock(originalPageIdx);
+            walFrame = bufferManager.pin(
+                *wal.fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::READ_PAGE);
+        } else {
+            pageIdxInWAL =
+                wal.logPageUpdateRecord(dbFileID, originalPageIdx /* pageIdxInOriginalFile */);
+            walFrame = bufferManager.pin(
+                *wal.fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
+            if (!insertingNewPage) {
+                bufferManager.optimisticRead(
+                    fileHandle, originalPageIdx, [&](uint8_t* frame) -> void {
+                        memcpy(walFrame, frame, BufferPoolConstants::PAGE_4KB_SIZE);
+                    });
+            }
+            fileHandle.setWALPageIdxNoLock(
+                originalPageIdx /* pageIdxInOriginalFile */, pageIdxInWAL);
+            wal.fileHandle->setLockedPageDirty(pageIdxInWAL);
         }
-        fileHandle.setWALPageIdxNoLock(originalPageIdx /* pageIdxInOriginalFile */, pageIdxInWAL);
-        wal.fileHandle->setLockedPageDirty(pageIdxInWAL);
+    } catch (Exception& e) {
+        fileHandle.releaseWALPageIdxLock(originalPageIdx);
+        throw;
     }
     return {originalPageIdx, pageIdxInWAL, walFrame};
 }
