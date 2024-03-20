@@ -23,13 +23,15 @@
 //!
 //! ## Safety
 //!
-//! Generally, use of of this API is safe, however creating multiple databases in the same
-//! scope is not safe.
+//! Generally, use of this API is safe - however creating multiple databases in the same
+//! scope is not considered safe.
 //! If you need to access multiple databases you will need to do so in separate processes.
 //!
 //! ## Building
 //!
 //! By default, the kuzu C++ library will be compiled from source and statically linked.
+//! Set the `CMAKE_BUILD_PARALLEL_LEVEL` environment variable to a higher value than 1 (e.g., 8-20)
+//! to speed up compilation of the C++ library.
 //!
 //! If you want to instead link against a pre-built version of the library, the following environment
 //! variables can be used to configure the build process:
