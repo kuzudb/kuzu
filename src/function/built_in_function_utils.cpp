@@ -12,7 +12,6 @@
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/blob/vector_blob_functions.h"
-#include "function/cast/vector_cast_functions.h"
 #include "function/comparison/vector_comparison_functions.h"
 #include "function/date/vector_date_functions.h"
 #include "function/function_collection.h"
@@ -61,7 +60,6 @@ void BuiltInFunctionsUtils::registerScalarFunctions(CatalogSet* catalogSet) {
     registerDateFunctions(catalogSet);
     registerTimestampFunctions(catalogSet);
     registerIntervalFunctions(catalogSet);
-    registerCastFunctions(catalogSet);
     registerStructFunctions(catalogSet);
     registerMapFunctions(catalogSet);
     registerUnionFunctions(catalogSet);
@@ -613,59 +611,6 @@ void BuiltInFunctionsUtils::registerBlobFunctions(CatalogSet* catalogSet) {
 void BuiltInFunctionsUtils::registerUUIDFunctions(CatalogSet* catalogSet) {
     catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
         GEN_RANDOM_UUID_FUNC_NAME, GenRandomUUIDFunction::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerCastFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_DATE_FUNC_NAME, CastToDateFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_DATE_FUNC_NAME, CastToDateFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_TIMESTAMP_FUNC_NAME, CastToTimestampFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_INTERVAL_FUNC_NAME, CastToIntervalFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_INTERVAL_FUNC_NAME, CastToIntervalFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_STRING_FUNC_NAME, CastToStringFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_STRING_FUNC_NAME, CastToStringFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_BLOB_FUNC_NAME, CastToBlobFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_BLOB_FUNC_NAME, CastToBlobFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_UUID_FUNC_NAME, CastToUUIDFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_UUID_FUNC_NAME, CastToUUIDFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_FLOAT_FUNC_NAME, CastToFloatFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_SERIAL_FUNC_NAME, CastToSerialFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_INT64_FUNC_NAME, CastToInt64Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_INT32_FUNC_NAME, CastToInt32Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_INT16_FUNC_NAME, CastToInt16Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_INT8_FUNC_NAME, CastToInt8Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_UINT64_FUNC_NAME, CastToUInt64Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_UINT32_FUNC_NAME, CastToUInt32Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_UINT16_FUNC_NAME, CastToUInt16Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_UINT8_FUNC_NAME, CastToUInt8Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_INT128_FUNC_NAME, CastToInt128Function::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_TO_BOOL_FUNC_NAME, CastToBoolFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CAST_FUNC_NAME, CastAnyFunction::getFunctionSet()));
 }
 
 void BuiltInFunctionsUtils::registerStructFunctions(CatalogSet* catalogSet) {

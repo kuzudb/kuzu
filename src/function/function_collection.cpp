@@ -2,6 +2,7 @@
 
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/array/vector_array_functions.h"
+#include "function/cast/vector_cast_functions.h"
 #include "function/list/vector_list_functions.h"
 #include "function/string/vector_string_functions.h"
 
@@ -78,6 +79,21 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(ListDistinctFunction), SCALAR_FUNCTION(ListUniqueFunction),
         SCALAR_FUNCTION(ListAnyValueFunction), SCALAR_FUNCTION(ListReverseFunction),
         SCALAR_FUNCTION(SizeFunction),
+
+        // Cast functions
+        SCALAR_FUNCTION(CastToDateFunction), SCALAR_FUNCTION_ALIAS(CastToDateFunction),
+        SCALAR_FUNCTION(CastToTimestampFunction), SCALAR_FUNCTION(CastToIntervalFunction),
+        SCALAR_FUNCTION_ALIAS(CastToIntervalFunction), SCALAR_FUNCTION(CastToStringFunction),
+        SCALAR_FUNCTION_ALIAS(CastToStringFunction), SCALAR_FUNCTION(CastToBlobFunction),
+        SCALAR_FUNCTION_ALIAS(CastToBlobFunction), SCALAR_FUNCTION(CastToUUIDFunction),
+        SCALAR_FUNCTION_ALIAS(CastToUUIDFunction), SCALAR_FUNCTION(CastToDoubleFunction),
+        SCALAR_FUNCTION(CastToFloatFunction), SCALAR_FUNCTION(CastToSerialFunction),
+        SCALAR_FUNCTION(CastToInt64Function), SCALAR_FUNCTION(CastToInt32Function),
+        SCALAR_FUNCTION(CastToInt16Function), SCALAR_FUNCTION(CastToInt8Function),
+        SCALAR_FUNCTION(CastToUInt64Function), SCALAR_FUNCTION(CastToUInt32Function),
+        SCALAR_FUNCTION(CastToUInt16Function), SCALAR_FUNCTION(CastToUInt8Function),
+        SCALAR_FUNCTION(CastToInt128Function), SCALAR_FUNCTION(CastToBoolFunction),
+        SCALAR_FUNCTION(CastAnyFunction),
 
         // End of array
         FINAL_FUNCTION};
