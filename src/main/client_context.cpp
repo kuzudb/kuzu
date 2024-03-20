@@ -348,6 +348,9 @@ void ClientContext::bindParametersNoLock(PreparedStatement* preparedStatement,
             throw Exception("Parameter " + name + " not found.");
         }
         auto expectParam = parameterMap.at(name);
+        if (value->getDataType()->getLogicalTypeID() == LogicalTypeID::ANY) {
+            value->setDataType(*expectParam->getDataType());
+        }
         if (*expectParam->getDataType() != *value->getDataType()) {
             throw Exception("Parameter " + name + " has data type " +
                             value->getDataType()->toString() + " but expects " +
