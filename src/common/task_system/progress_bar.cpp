@@ -75,7 +75,9 @@ void ProgressBar::resetProgressBar() {
     numPipelinesFinished = 0;
     prevCurPipelineProgress = 0.0;
     printing = false;
-    queryTimer->stop();
+    if (queryTimer->isStarted) {
+        queryTimer->stop();
+    }
 }
 
 bool ProgressBar::shouldPrintProgress() const {
