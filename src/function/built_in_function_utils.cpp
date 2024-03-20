@@ -22,7 +22,6 @@
 #include "function/path/vector_path_functions.h"
 #include "function/rdf/vector_rdf_functions.h"
 #include "function/schema/vector_node_rel_functions.h"
-#include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
 #include "function/table/call_functions.h"
 #include "function/timestamp/vector_timestamp_functions.h"
@@ -62,7 +61,6 @@ void BuiltInFunctionsUtils::registerScalarFunctions(CatalogSet* catalogSet) {
     registerDateFunctions(catalogSet);
     registerTimestampFunctions(catalogSet);
     registerIntervalFunctions(catalogSet);
-    registerStringFunctions(catalogSet);
     registerCastFunctions(catalogSet);
     registerListFunctions(catalogSet);
     registerStructFunctions(catalogSet);
@@ -616,65 +614,6 @@ void BuiltInFunctionsUtils::registerBlobFunctions(CatalogSet* catalogSet) {
 void BuiltInFunctionsUtils::registerUUIDFunctions(CatalogSet* catalogSet) {
     catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
         GEN_RANDOM_UUID_FUNC_NAME, GenRandomUUIDFunction::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerStringFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        ARRAY_EXTRACT_FUNC_NAME, ArrayExtractFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CONCAT_FUNC_NAME, ConcatFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CONTAINS_FUNC_NAME, ContainsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        ENDS_WITH_FUNC_NAME, EndsWithFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LCASE_FUNC_NAME, LowerFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LEFT_FUNC_NAME, LeftFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LOWER_FUNC_NAME, LowerFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LPAD_FUNC_NAME, LpadFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LTRIM_FUNC_NAME, LtrimFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        PREFIX_FUNC_NAME, StartsWithFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        REPEAT_FUNC_NAME, RepeatFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        REVERSE_FUNC_NAME, ReverseFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        RIGHT_FUNC_NAME, RightFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        RPAD_FUNC_NAME, RpadFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        RTRIM_FUNC_NAME, RtrimFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        STARTS_WITH_FUNC_NAME, StartsWithFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        SUBSTR_FUNC_NAME, SubStrFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        SUBSTRING_FUNC_NAME, SubStrFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        SUFFIX_FUNC_NAME, EndsWithFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TRIM_FUNC_NAME, TrimFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        UCASE_FUNC_NAME, UpperFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        UPPER_FUNC_NAME, UpperFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        REGEXP_FULL_MATCH_FUNC_NAME, RegexpFullMatchFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        REGEXP_MATCHES_FUNC_NAME, RegexpMatchesFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        REGEXP_REPLACE_FUNC_NAME, RegexpReplaceFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        REGEXP_EXTRACT_FUNC_NAME, RegexpExtractFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        REGEXP_EXTRACT_ALL_FUNC_NAME, RegexpExtractAllFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LEVENSHTEIN_FUNC_NAME, LevenshteinFunction::getFunctionSet()));
 }
 
 void BuiltInFunctionsUtils::registerCastFunctions(CatalogSet* catalogSet) {
