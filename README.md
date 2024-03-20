@@ -6,17 +6,13 @@
 
 <p align="center">
   <a href="https://github.com/kuzudb/kuzu/actions">
-    <img src="https://github.com/kuzudb/kuzu/actions/workflows/ci-workflow.yml/badge.svg?branch=master" alt="Github Actions Badge">
-  </a>
+    <img src="https://github.com/kuzudb/kuzu/actions/workflows/ci-workflow.yml/badge.svg?branch=master" alt="Github Actions Badge"></a>
   <a href="https://codecov.io/gh/kuzudb/kuzu" >
-    <img src="https://codecov.io/github/kuzudb/kuzu/branch/master/graph/badge.svg?token=N1AT6H79LM"/>
-  </a>
+    <img src="https://codecov.io/github/kuzudb/kuzu/branch/master/graph/badge.svg?token=N1AT6H79LM"/></a>
   <a href="https://discord.gg/VtX2gw9Rug">
-    <img src="https://img.shields.io/discord/1196510116388806837?logo=discord" alt="discord" />
-  </a>
+    <img src="https://img.shields.io/discord/1196510116388806837?logo=discord" alt="discord" /></a>
   <a href="https://twitter.com/kuzudb">
-    <img src="https://img.shields.io/badge/follow-@kuzudb-1DA1F2?logo=twitter" alt="twitter">
-  </a>
+    <img src="https://img.shields.io/badge/follow-@kuzudb-1DA1F2?logo=twitter" alt="twitter"></a>
 </p>
 
 # Kùzu
