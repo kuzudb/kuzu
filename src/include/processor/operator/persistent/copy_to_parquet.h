@@ -13,16 +13,18 @@ struct CopyToParquetInfo final : public CopyToInfo {
         kuzu_parquet::format::CompressionCodec::SNAPPY;
     std::unique_ptr<FactorizedTableSchema> tableSchema;
     std::vector<std::unique_ptr<common::LogicalType>> types;
+    DataPos countingVecPos;
 
     CopyToParquetInfo(std::unique_ptr<FactorizedTableSchema> tableSchema,
         std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> names,
-        std::vector<DataPos> dataPoses, std::string fileName)
+        std::vector<DataPos> dataPoses, std::string fileName, DataPos countingVecPos)
         : CopyToInfo{std::move(names), std::move(dataPoses), std::move(fileName)},
-          tableSchema{std::move(tableSchema)}, types{std::move(types)} {}
+          tableSchema{std::move(tableSchema)}, types{std::move(types)}, countingVecPos{std::move(
+                                                                            countingVecPos)} {}
 
-    inline std::unique_ptr<CopyToInfo> copy() override {
-        return std::make_unique<CopyToParquetInfo>(
-            tableSchema->copy(), common::LogicalType::copy(types), names, dataPoses, fileName);
+    std::unique_ptr<CopyToInfo> copy() override {
+        return std::make_unique<CopyToParquetInfo>(tableSchema->copy(),
+            common::LogicalType::copy(types), names, dataPoses, fileName, countingVecPos);
     }
 };
 
@@ -35,8 +37,10 @@ class CopyToParquetLocalState final : public CopyToLocalState {
 
 private:
     std::unique_ptr<FactorizedTable> ft;
+    uint64_t numTuplesInFT;
     std::vector<common::ValueVector*> vectorsToAppend;
     storage::MemoryManager* mm;
+    common::ValueVector* countingVec;
 };
 
 class CopyToParquetSharedState final : public CopyToSharedState {
