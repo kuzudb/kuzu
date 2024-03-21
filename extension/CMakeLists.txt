@@ -10,6 +10,10 @@ if ("duckdb_scanner" IN_LIST BUILD_EXTENSIONS)
     endif()
 endif()
 
+if ("postgres_scanner" IN_LIST BUILD_EXTENSIONS)
+    add_subdirectory(postgres_scanner)
+endif()
+
 if (${BUILD_EXTENSION_TESTS})
     add_definitions(-DTEST_FILES_DIR="extension")
     add_subdirectory(${CMAKE_SOURCE_DIR}/test/gtest ${CMAKE_CURRENT_BINARY_DIR}/test/gtest EXCLUDE_FROM_ALL)

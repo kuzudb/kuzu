@@ -64,7 +64,7 @@ allconfig:
 	$(call config-cmake-release, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -79,7 +79,7 @@ alldebug:
 	$(call run-cmake-debug, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -156,21 +156,25 @@ example:
 
 extension-test:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 	)
+	dropdb -h localhost -p 5432 -U ci pgscan || true
+	createdb -h localhost -p 5432 -U ci -E UTF8 -T template0  -e pgscan
+	psql -U ci -d pgscan -f extension/postgres_scanner/test/test_files/create_test_db.sql
 	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS}
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
+	dropdb -h localhost -p 5432 -U ci pgscan
 
 extension-debug:
 	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
 		-DBUILD_KUZU=FALSE \
 	)
 
 extension-release:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
 		-DBUILD_KUZU=FALSE \
 	)
 

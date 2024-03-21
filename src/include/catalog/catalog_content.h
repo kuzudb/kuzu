@@ -20,6 +20,8 @@ class CatalogContent {
 public:
     KUZU_API explicit CatalogContent(common::VirtualFileSystem* vfs);
 
+    virtual ~CatalogContent() = default;
+
     CatalogContent(const std::string& directory, common::VirtualFileSystem* vfs);
 
     CatalogContent(std::unique_ptr<CatalogSet> tables,

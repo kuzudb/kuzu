@@ -1,35 +1,37 @@
 find_package(DuckDB REQUIRED)
 
-include_directories(
-        ${PROJECT_SOURCE_DIR}/src/include
-        src/include
-        ${DuckDB_INCLUDE_DIRS})
-
-add_library(duckdb_scanner
+add_library(postgres_scanner
         SHARED
-        src/duckdb_scanner_extension.cpp
-        src/duckdb_storage.cpp
-        src/duckdb_scan.cpp
-        src/duckdb_type_converter.cpp
-        src/duckdb_catalog.cpp
-        src/duckdb_table_catalog_entry.cpp)
+        ../duckdb_scanner/src/duckdb_scan.cpp
+        ../duckdb_scanner/src/duckdb_catalog.cpp
+        ../duckdb_scanner/src/duckdb_table_catalog_entry.cpp
+        ../duckdb_scanner/src/duckdb_type_converter.cpp
+        src/postgres_scanner_extension.cpp
+        src/postgres_storage.cpp
+        src/postgres_catalog.cpp)
 
-set_target_properties(duckdb_scanner
+include_directories(
+        src/include
+        ../duckdb_scanner/src/include
+        ${DuckDB_INCLUDE_DIRS}
+        ${PROJECT_SOURCE_DIR}/src/include)
+
+set_target_properties(postgres_scanner PROPERTIES
+        OUTPUT_NAME postgres_scanner
+        PREFIX "lib"
+        SUFFIX ".kuzu_extension"
+)
+
+set_target_properties(postgres_scanner
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
 )
 
-target_link_libraries(duckdb_scanner
+target_link_libraries(postgres_scanner
         PRIVATE
         ${DuckDB_LIBRARIES})
-
-set_target_properties(duckdb_scanner PROPERTIES
-        OUTPUT_NAME duckdb_scanner
-        PREFIX "lib"
-        SUFFIX ".kuzu_extension"
-)
 
 if (WIN32)
         # On windows, there is no dynamic lookup available, so it's not
@@ -48,9 +50,9 @@ if (WIN32)
         # for its small libraries anyways...
         # Future work could make it possible to embed extension into kuzu,
         # which would help fix this problem.
-        target_link_libraries(duckdb_scanner PRIVATE kuzu)
+        target_link_libraries(postgres_scanner PRIVATE kuzu)
 endif()
 
 if (APPLE)
-    set_target_properties(duckdb_scanner PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    set_target_properties(postgres_scanner PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 endif ()

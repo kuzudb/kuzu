@@ -1,6 +1,5 @@
 #include "duckdb_scan.h"
 
-#include "common/exception/binder.h"
 #include "common/types/types.h"
 #include "function/table/bind_input.h"
 
@@ -13,10 +12,11 @@ namespace duckdb_scanner {
 void getDuckDBVectorConversionFunc(
     PhysicalTypeID physicalTypeID, duckdb_conversion_func_t& conversion_func);
 
-DuckDBScanBindData::DuckDBScanBindData(std::string query, std::string dbPath,
-    std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames)
+DuckDBScanBindData::DuckDBScanBindData(std::string query,
+    std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
+    init_duckdb_conn_t initDuckDBConn)
     : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, query{std::move(query)},
-      dbPath{std::move(dbPath)} {
+      initDuckDBConn{std::move(initDuckDBConn)} {
     conversionFunctions.resize(this->columnTypes.size());
     for (auto i = 0u; i < this->columnTypes.size(); i++) {
         getDuckDBVectorConversionFunc(
@@ -25,7 +25,7 @@ DuckDBScanBindData::DuckDBScanBindData(std::string query, std::string dbPath,
 }
 
 std::unique_ptr<TableFuncBindData> DuckDBScanBindData::copy() const {
-    return std::make_unique<DuckDBScanBindData>(query, dbPath, columnTypes, columnNames);
+    return std::make_unique<DuckDBScanBindData>(query, columnTypes, columnNames, initDuckDBConn);
 }
 
 DuckDBScanSharedState::DuckDBScanSharedState(std::unique_ptr<duckdb::QueryResult> queryResult)
@@ -52,9 +52,12 @@ struct DuckDBScanFunction {
 std::unique_ptr<function::TableFuncSharedState> DuckDBScanFunction::initSharedState(
     function::TableFunctionInitInput& input) {
     auto scanBindData = reinterpret_cast<DuckDBScanBindData*>(input.bindData);
-    auto db = duckdb::DuckDB(scanBindData->dbPath);
-    auto conn = duckdb::Connection(db);
+    auto conn = scanBindData->initDuckDBConn();
     auto result = conn.SendQuery(scanBindData->query);
+    if (result->HasError()) {
+        throw common::RuntimeException(
+            common::stringFormat("Failed to execute query: {} in duckdb.", result->GetError()));
+    }
     return std::make_unique<DuckDBScanSharedState>(std::move(result));
 }
 
