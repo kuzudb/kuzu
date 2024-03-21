@@ -75,6 +75,7 @@ public:
 
     Column* getNullColumn();
 
+    virtual void prepareCommit();
     virtual void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunks,
         const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,

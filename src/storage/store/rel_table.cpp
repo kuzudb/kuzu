@@ -154,10 +154,16 @@ void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
         transaction, localRelTable->getTableData(RelDataDirection::FWD));
     bwdRelTableData->prepareLocalTableToCommit(
         transaction, localRelTable->getTableData(RelDataDirection::BWD));
+    prepareCommit();
 }
 
 void RelTable::prepareRollback(LocalTable* localTable) {
     localTable->clear();
+}
+
+void RelTable::prepareCommit() {
+    fwdRelTableData->prepareCommit();
+    bwdRelTableData->prepareCommit();
 }
 
 void RelTable::checkpointInMemory() {

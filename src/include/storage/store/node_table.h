@@ -98,6 +98,7 @@ public:
     inline void append(ChunkedNodeGroup* nodeGroup) { tableData->append(nodeGroup); }
 
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
+    void prepareCommit() override;
     void prepareRollback(LocalTable* localTable) override;
     void checkpointInMemory() override;
     void rollbackInMemory() override;

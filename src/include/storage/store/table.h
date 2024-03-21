@@ -75,6 +75,8 @@ public:
     virtual void dropColumn(common::column_id_t columnID) = 0;
 
     virtual void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
+    // For metadata-only updates
+    virtual void prepareCommit() = 0;
     virtual void prepareRollback(LocalTable* localTable) = 0;
     virtual void checkpointInMemory() = 0;
     virtual void rollbackInMemory() = 0;

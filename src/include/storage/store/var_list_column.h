@@ -76,6 +76,7 @@ private:
     void scanFiltered(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::ValueVector* offsetVector, const ListOffsetSizeInfo& listOffsetInfoInStorage);
 
+    void prepareCommit() final;
     void checkpointInMemory() final;
     void rollbackInMemory() final;
 

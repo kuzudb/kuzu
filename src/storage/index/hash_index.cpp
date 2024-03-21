@@ -260,6 +260,9 @@ void HashIndex<T>::prepareCommit() {
             [this](
                 Key key, offset_t value) -> void { this->insertIntoPersistentIndex(key, value); });
         headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, *indexHeaderForWriteTrx);
+        headerArray->prepareCommit();
+        pSlots->prepareCommit();
+        oSlots->prepareCommit();
     }
 }
 

@@ -3,6 +3,9 @@
 #include "common/cast.h"
 #include "common/string_format.h"
 #include "common/utils.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/file_handle.h"
+#include "storage/storage_structure/db_file_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -33,7 +36,8 @@ PIPWrapper::PIPWrapper(FileHandle& fileHandle, page_idx_t pipPageIdx) : pipPageI
 BaseDiskArrayInternal::BaseDiskArrayInternal(
     FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize)
     : header{elementSize}, fileHandle{fileHandle}, headerPageIdx{headerPageIdx},
-      hasTransactionalUpdates{false}, bufferManager{nullptr}, wal{nullptr} {}
+      headerForWriteTrx{header}, hasTransactionalUpdates{false},
+      bufferManager{nullptr}, wal{nullptr} {}
 
 BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
     page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
@@ -45,6 +49,7 @@ BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID db
         transaction->getType());
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin,
         [&](uint8_t* frame) -> void { memcpy(&header, frame, sizeof(DiskArrayHeader)); });
+    headerForWriteTrx = header;
     if (this->header.firstPIPPageIdx != DBFileUtils::NULL_PAGE_IDX) {
         pips.emplace_back(fileHandle, header.firstPIPPageIdx);
         while (pips[pips.size() - 1].pipContents.nextPipPageIdx != DBFileUtils::NULL_PAGE_IDX) {
@@ -56,11 +61,6 @@ BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID db
 uint64_t BaseDiskArrayInternal::getNumElements(TransactionType trxType) {
     std::shared_lock sLck{diskArraySharedMtx};
     return getNumElementsNoLock(trxType);
-}
-
-uint64_t BaseDiskArrayInternal::getNumElementsNoLock(TransactionType trxType) {
-    return readUInt64HeaderFieldNoLock(trxType,
-        [](DiskArrayHeader* diskArrayHeader) -> uint64_t { return diskArrayHeader->numElements; });
 }
 
 bool BaseDiskArrayInternal::checkOutOfBoundAccess(TransactionType trxType, uint64_t idx) {
@@ -135,28 +135,17 @@ uint64_t BaseDiskArrayInternal::resize(uint64_t newNumElements, std::span<uint8_
 }
 
 uint64_t BaseDiskArrayInternal::pushBackNoLock(std::span<uint8_t> val) {
-    uint64_t elementIdx;
-    DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, headerPageIdx,
-        false /* not inserting a new page */, *bufferManager, *wal,
-        [this, &val, &elementIdx](uint8_t* frame) -> void {
-            auto updatedDiskArrayHeader = ((DiskArrayHeader*)frame);
-            elementIdx = updatedDiskArrayHeader->numElements;
-            auto apCursor = getAPIdxAndOffsetInAP(elementIdx);
-            auto [apPageIdx, isNewlyAdded] = getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
-                (DiskArrayHeader*)frame, apCursor.pageIdx);
-            // Now do the push back.
-            DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, apPageIdx, isNewlyAdded,
-                *bufferManager, *wal, [&apCursor, &val](uint8_t* frame) -> void {
-                    memcpy(frame + apCursor.elemPosInPage, val.data(), val.size());
-                });
-            updatedDiskArrayHeader->numElements++;
+    uint64_t elementIdx = headerForWriteTrx.numElements;
+    auto apCursor = getAPIdxAndOffsetInAP(elementIdx);
+    auto [apPageIdx, isNewlyAdded] =
+        getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(&headerForWriteTrx, apCursor.pageIdx);
+    // Now do the push back.
+    DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, apPageIdx, isNewlyAdded,
+        *bufferManager, *wal, [&apCursor, &val](uint8_t* frame) -> void {
+            memcpy(frame + apCursor.elemPosInPage, val.data(), val.size());
         });
+    headerForWriteTrx.numElements++;
     return elementIdx;
-}
-
-uint64_t BaseDiskArrayInternal::getNumAPsNoLock(TransactionType trxType) {
-    return readUInt64HeaderFieldNoLock(trxType,
-        [](DiskArrayHeader* diskArrayHeader) -> uint64_t { return diskArrayHeader->numAPs; });
 }
 
 void BaseDiskArrayInternal::setNextPIPPageIDxOfPIPNoLock(DiskArrayHeader* updatedDiskArrayHeader,
@@ -197,11 +186,19 @@ page_idx_t BaseDiskArrayInternal::getAPPageIdxNoLock(page_idx_t apIdx, Transacti
     } else {
         page_idx_t retVal;
         page_idx_t pageIdxOfUpdatedPip = getUpdatedPageIdxOfPipNoLock(pipIdx);
-        ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(pageIdxOfUpdatedPip);
-        DBFileUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
-            *bufferManager, *wal, [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
-                retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
-            });
+        if (ku_dynamic_cast<FileHandle&, BMFileHandle&>(fileHandle)
+                .hasWALPageVersionNoWALPageIdxLock(pageIdxOfUpdatedPip)) {
+            ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(pageIdxOfUpdatedPip);
+            DBFileUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
+                *bufferManager, *wal, [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
+                    retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
+                });
+        } else {
+            bufferManager->optimisticRead((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
+                [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
+                    retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
+                });
+        }
         return retVal;
     }
 }
@@ -223,10 +220,10 @@ void BaseDiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool i
     if (!hasTransactionalUpdates) {
         return;
     }
-    // Note: We update the header regardless (even if it has not changed). We can optimize this
-    // by adding logic that keep track of whether the header has been updated.
     if (isCheckpoint) {
-        header.readFromFile(this->fileHandle, headerPageIdx);
+        header = headerForWriteTrx;
+    } else {
+        headerForWriteTrx = header;
     }
     clearWALPageVersionAndRemovePageFromFrameIfNecessary(headerPageIdx);
     for (uint64_t pipIdxOfUpdatedPIP : pipUpdates.updatedPipIdxs) {
@@ -254,6 +251,17 @@ void BaseDiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool i
     hasTransactionalUpdates = false;
 }
 
+void BaseDiskArrayInternal::prepareCommit() {
+    // Update header if it has changed
+    if (headerForWriteTrx != header) {
+        DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, headerPageIdx,
+            false /* not inserting a new page */, *bufferManager, *wal,
+            [&](uint8_t* frame) -> void {
+                memcpy(frame, &headerForWriteTrx, sizeof(headerForWriteTrx));
+            });
+    }
+}
+
 bool BaseDiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) {
     // This is a request to a pipIdx > pips.size(). Since pips.size() is the original number of pips
     // we started with before the write transaction is updated, we return true, i.e., this PIP is
@@ -262,24 +270,6 @@ bool BaseDiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) {
         return true;
     }
     return pipUpdates.updatedPipIdxs.contains(pipIdx);
-}
-
-uint64_t BaseDiskArrayInternal::readUInt64HeaderFieldNoLock(
-    TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp) {
-    // TODO(Guodong): Fix the casting here, which can be incorrect for HashIndexBuilder.
-    auto bmFileHandle = reinterpret_cast<BMFileHandle*>(&fileHandle);
-    if ((trxType == TransactionType::READ_ONLY) ||
-        !bmFileHandle->hasWALPageVersionNoWALPageIdxLock(headerPageIdx)) {
-        return readOp(&this->header);
-    } else {
-        uint64_t retVal;
-        ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(headerPageIdx);
-        DBFileUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, headerPageIdx, *bufferManager,
-            *wal, [&retVal, &readOp](uint8_t* frame) -> void {
-                retVal = readOp((DiskArrayHeader*)frame);
-            });
-        return retVal;
-    }
 }
 
 std::pair<page_idx_t, bool>

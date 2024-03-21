@@ -33,6 +33,8 @@ struct DiskArrayHeader {
 
     void readFromFile(FileHandle& fileHandle, uint64_t headerPageIdx);
 
+    bool operator==(const DiskArrayHeader& other) const = default;
+
     // We do not need to store numElementsPerPageLog2, elementPageOffsetMask, and numArrayPages or
     // save them on disk as they are functions of elementSize and numElements but we
     // nonetheless store them (and save them to disk) for simplicity.
@@ -133,12 +135,18 @@ public:
         checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
     }
 
+    virtual void prepareCommit();
+
 protected:
     uint64_t pushBackNoLock(std::span<uint8_t> val);
 
-    uint64_t getNumElementsNoLock(transaction::TransactionType trxType);
+    inline uint64_t getNumElementsNoLock(transaction::TransactionType trxType) {
+        return getDiskArrayHeader(trxType).numElements;
+    }
 
-    uint64_t getNumAPsNoLock(transaction::TransactionType trxType);
+    inline uint64_t getNumAPsNoLock(transaction::TransactionType trxType) {
+        return getDiskArrayHeader(trxType).numAPs;
+    }
 
     void setNextPIPPageIDxOfPIPNoLock(DiskArrayHeader* updatedDiskArrayHeader,
         uint64_t pipIdxOfPreviousPIP, common::page_idx_t nextPIPPageIdx);
@@ -169,8 +177,13 @@ private:
     bool checkOutOfBoundAccess(transaction::TransactionType trxType, uint64_t idx);
     bool hasPIPUpdatesNoLock(uint64_t pipIdx);
 
-    uint64_t readUInt64HeaderFieldNoLock(
-        transaction::TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp);
+    inline const DiskArrayHeader& getDiskArrayHeader(transaction::TransactionType trxType) {
+        if (trxType == transaction::TransactionType::READ_ONLY) {
+            return header;
+        } else {
+            return headerForWriteTrx;
+        }
+    }
 
     // Returns the apPageIdx of the AP with idx apIdx and a bool indicating whether the apPageIdx is
     // a newly inserted page.
@@ -184,6 +197,7 @@ protected:
     FileHandle& fileHandle;
     DBFileID dbFileID;
     common::page_idx_t headerPageIdx;
+    DiskArrayHeader headerForWriteTrx;
     bool hasTransactionalUpdates;
     BufferManager* bufferManager;
     WAL* wal;
@@ -234,6 +248,7 @@ public:
 
     inline void checkpointInMemoryIfNecessary() { diskArray.checkpointInMemoryIfNecessary(); }
     inline void rollbackInMemoryIfNecessary() { diskArray.rollbackInMemoryIfNecessary(); }
+    inline void prepareCommit() { diskArray.prepareCommit(); }
 
 private:
     BaseDiskArrayInternal diskArray;
@@ -339,6 +354,7 @@ public:
 
     inline void checkpointInMemoryIfNecessary() { diskArray.checkpointInMemoryIfNecessary(); }
     inline void rollbackInMemoryIfNecessary() { diskArray.rollbackInMemoryIfNecessary(); }
+    inline void prepareCommit() { diskArray.prepareCommit(); }
 
 private:
     InMemDiskArrayInternal diskArray;

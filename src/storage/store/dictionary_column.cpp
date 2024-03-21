@@ -106,6 +106,11 @@ string_index_t DictionaryColumn::append(node_group_idx_t nodeGroupIdx, std::stri
         nodeGroupIdx, reinterpret_cast<const uint8_t*>(&startOffset), 1 /*numValues*/);
 }
 
+void DictionaryColumn::prepareCommit() {
+    dataColumn->prepareCommit();
+    offsetColumn->prepareCommit();
+}
+
 void DictionaryColumn::checkpointInMemory() {
     dataColumn->checkpointInMemory();
     offsetColumn->checkpointInMemory();

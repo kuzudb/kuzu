@@ -969,6 +969,12 @@ LocalRelNG* RelTableData::getLocalNodeGroup(
     return localNodeGroup;
 }
 
+void RelTableData::prepareCommit() {
+    csrHeaderColumns.offset->prepareCommit();
+    csrHeaderColumns.length->prepareCommit();
+    TableData::prepareCommit();
+}
+
 void RelTableData::checkpointInMemory() {
     csrHeaderColumns.offset->checkpointInMemory();
     csrHeaderColumns.length->checkpointInMemory();

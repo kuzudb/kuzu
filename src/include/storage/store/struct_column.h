@@ -23,6 +23,7 @@ public:
 
     void checkpointInMemory() override;
     void rollbackInMemory() override;
+    void prepareCommit() override;
 
     inline Column* getChild(common::vector_idx_t childIdx) {
         KU_ASSERT(childIdx < childColumns.size());

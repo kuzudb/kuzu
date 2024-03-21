@@ -45,6 +45,7 @@ public:
         transaction::Transaction* transaction, LocalTableData* localTable) = 0;
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
+    virtual void prepareCommit();
 
     virtual common::node_group_idx_t getNumNodeGroups(
         transaction::Transaction* transaction) const = 0;
