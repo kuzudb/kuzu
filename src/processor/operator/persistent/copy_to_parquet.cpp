@@ -10,7 +10,10 @@ void CopyToParquetLocalState::init(
     CopyToInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) {
     auto copyToInfo = reinterpret_cast<CopyToParquetInfo*>(info);
     ft = std::make_unique<FactorizedTable>(mm, std::move(copyToInfo->tableSchema));
+    numTuplesInFT = 0;
+    countingVec = nullptr;
     vectorsToAppend.reserve(info->dataPoses.size());
+    countingVec = resultSet->getValueVector(copyToInfo->countingVecPos).get();
     for (auto& pos : info->dataPoses) {
         vectorsToAppend.push_back(resultSet->getValueVector(pos).get());
     }
@@ -19,8 +22,10 @@ void CopyToParquetLocalState::init(
 
 void CopyToParquetLocalState::sink(CopyToSharedState* sharedState, CopyToInfo* /*info*/) {
     ft->append(vectorsToAppend);
-    if (ft->getTotalNumFlatTuples() > StorageConstants::NODE_GROUP_SIZE) {
+    numTuplesInFT += countingVec->state->selVector->selectedSize;
+    if (numTuplesInFT > StorageConstants::NODE_GROUP_SIZE) {
         reinterpret_cast<CopyToParquetSharedState*>(sharedState)->flush(*ft);
+        numTuplesInFT = 0;
     }
 }
 
