@@ -286,78 +286,20 @@ protected:
     std::vector<std::unique_ptr<uint8_t[]>> inMemArrayPages;
 };
 
-/**
- * Stores an array of type U's page by page in memory, using OS memory and not the buffer manager.
- * Designed currently to be used by lists headers and metadata, where we want to avoid using
- * pins/unpins when accessing data through the buffer manager.
- */
-class InMemDiskArrayInternal : public BaseInMemDiskArray {
+template<typename U>
+class InMemDiskArray : public BaseDiskArray<U> {
 public:
-    InMemDiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
-        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction);
-
+    // Used when loading from file
+    InMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction)
+        : BaseDiskArray<U>(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction) {}
     static inline common::page_idx_t addDAHPageToFile(
-        BMFileHandle& fileHandle, BufferManager* bufferManager, WAL* wal, size_t size) {
-        DiskArrayHeader daHeader(size);
+        BMFileHandle& fileHandle, BufferManager* bufferManager, WAL* wal) {
+        DiskArrayHeader daHeader(sizeof(U));
         return DBFileUtils::insertNewPage(fileHandle, DBFileID{DBFileType::METADATA},
             *bufferManager, *wal,
             [&](uint8_t* frame) -> void { memcpy(frame, &daHeader, sizeof(DiskArrayHeader)); });
     }
-
-    inline void checkpointInMemoryIfNecessary() override {
-        std::unique_lock xlock{this->diskArraySharedMtx};
-        checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
-    }
-    inline void rollbackInMemoryIfNecessary() override {
-        std::unique_lock xlock{this->diskArraySharedMtx};
-        checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
-    }
-
-private:
-    void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) override;
-};
-
-template<typename U>
-class InMemDiskArray {
-public:
-    InMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
-        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction)
-        : diskArray(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction) {}
-
-    inline U& operator[](uint64_t idx) { return *(U*)diskArray[idx]; }
-
-    static inline common::page_idx_t addDAHPageToFile(
-        BMFileHandle& fileHandle, BufferManager* bufferManager, WAL* wal) {
-        return InMemDiskArrayInternal::addDAHPageToFile(fileHandle, bufferManager, wal, sizeof(U));
-    }
-
-    // Note: This function is to be used only by the WRITE trx.
-    inline void update(uint64_t idx, U val) { diskArray.update(idx, getSpan(val)); }
-
-    inline U get(uint64_t idx, transaction::TransactionType trxType) {
-        U val;
-        diskArray.get(idx, trxType, getSpan(val));
-        return val;
-    }
-
-    // Note: Currently, this function doesn't support shrinking the size of the array.
-    inline uint64_t resize(uint64_t newNumElements) {
-        U defaultVal;
-        return diskArray.resize(newNumElements, getSpan(defaultVal));
-    }
-
-    inline uint64_t getNumElements(
-        transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY) {
-        return diskArray.getNumElements(trxType);
-    }
-
-    inline void checkpointInMemoryIfNecessary() { diskArray.checkpointInMemoryIfNecessary(); }
-    inline void rollbackInMemoryIfNecessary() { diskArray.rollbackInMemoryIfNecessary(); }
-    inline void prepareCommit() { diskArray.prepareCommit(); }
-
-private:
-    InMemDiskArrayInternal diskArray;
 };
 
 class InMemDiskArrayBuilderInternal : public BaseInMemDiskArray {
