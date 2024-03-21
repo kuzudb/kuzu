@@ -37,6 +37,8 @@ public:
 
     virtual bool fileOrPathExists(const std::string& path) const;
 
+    virtual std::string expandPath(main::ClientContext* context, const std::string& path) const;
+
     static std::string joinPath(const std::string& base, const std::string& part);
 
     static std::string getFileExtension(const std::filesystem::path& path);

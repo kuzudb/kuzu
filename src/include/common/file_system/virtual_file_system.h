@@ -30,6 +30,8 @@ public:
 
     bool fileOrPathExists(const std::string& path) const override;
 
+    std::string expandPath(main::ClientContext* context, const std::string& path) const override;
+
 protected:
     void readFromFile(
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) const override;

@@ -41,12 +41,7 @@ LocalFileInfo::~LocalFileInfo() {
 
 std::unique_ptr<FileInfo> LocalFileSystem::openFile(
     const std::string& path, int flags, main::ClientContext* context, FileLockType lock_type) {
-    auto fullPath = path;
-    if (path.starts_with('~')) {
-        fullPath =
-            context->getCurrentSetting(main::HomeDirectorySetting::name).getValue<std::string>() +
-            fullPath.substr(1);
-    }
+    auto fullPath = expandPath(context, path);
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
     auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
@@ -192,6 +187,17 @@ void LocalFileSystem::removeFileIfExists(const std::string& path) const {
 
 bool LocalFileSystem::fileOrPathExists(const std::string& path) const {
     return std::filesystem::exists(path);
+}
+
+std::string LocalFileSystem::expandPath(
+    main::ClientContext* context, const std::string& path) const {
+    auto fullPath = path;
+    if (path.starts_with('~')) {
+        fullPath =
+            context->getCurrentSetting(main::HomeDirectorySetting::name).getValue<std::string>() +
+            fullPath.substr(1);
+    }
+    return fullPath;
 }
 
 void LocalFileSystem::readFromFile(

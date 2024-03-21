@@ -58,3 +58,10 @@ TEST_F(CApiDatabaseTest, CreationInvalidPath) {
     auto database = kuzu_database_init(databasePathCStr, kuzu_default_system_config());
     ASSERT_EQ(database, nullptr);
 }
+
+TEST_F(CApiDatabaseTest, CreationHomeDir) {
+    auto databasePathCStr = (char*)"~/ku_test.db";
+    auto database = kuzu_database_init(databasePathCStr, kuzu_default_system_config());
+    ASSERT_NE(database, nullptr);
+    kuzu_database_destroy(database);
+}
