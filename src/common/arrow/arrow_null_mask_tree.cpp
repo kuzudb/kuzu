@@ -162,8 +162,8 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                 }
             } else {
                 for (int64_t i = 0; i < array->n_children; i++) {
-                    children->push_back(
-                        ArrowNullMaskTree(schema->children[i], array->children[i], srcOffset, count));
+                    children->push_back(ArrowNullMaskTree(
+                        schema->children[i], array->children[i], srcOffset, count));
                 }
                 for (int64_t i = srcOffset; i < srcOffset + count; i++) {
                     int8_t curType = types[i];
@@ -185,7 +185,8 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
             if (array->buffers[0] == nullptr) {
                 mask->setAllNonNull();
             } else {
-                mask->copyFromNullBits((const uint64_t*)array->buffers[0], srcOffset, 0, count, true);
+                mask->copyFromNullBits(
+                    (const uint64_t*)array->buffers[0], srcOffset, 0, count, true);
             }
             if (parentBitmap != nullptr) {
                 for (int64_t i = 0; i < count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2; i++) {
