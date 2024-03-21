@@ -123,9 +123,15 @@ class QueryResult:
 
         return self._query_result.getAsDF()
 
-    def get_as_pl(self, chunk_size: int = 1_000_000) -> pl.DataFrame:
+    def get_as_pl(self, chunk_size: int | None = None) -> pl.DataFrame:
         """
         Get the query result as a Polars DataFrame.
+
+        Parameters
+        ----------
+        chunk_size : int or None
+            Number of rows to include in each chunk. If None, the chunk size is
+            adaptive and depends on the number of columns in the query result.
 
         See Also
         --------
@@ -143,14 +149,15 @@ class QueryResult:
 
         return pl.from_arrow(data=self.get_as_arrow(chunk_size=chunk_size))
 
-    def get_as_arrow(self, chunk_size: int = 1_000_000) -> pa.Table:
+    def get_as_arrow(self, chunk_size: int | None = None) -> pa.Table:
         """
         Get the query result as a PyArrow Table.
 
         Parameters
         ----------
-        chunk_size : int
-            Number of rows to include in each chunk. Defaults to 1M.
+        chunk_size : int or None
+            Number of rows to include in each chunk. If None, the chunk size is
+            adaptive and depends on the number of columns in the query result.
 
         See Also
         --------
@@ -164,8 +171,11 @@ class QueryResult:
         """
         self.check_for_query_result_close()
 
-        # adaptive chunk_size; target number of elements per chunk_zise
-        target_chunk_size = max(chunk_size // len(self.get_column_names()), 10)
+        if chunk_size <= 0 or chunk_size is None:
+            # adaptive chunk_size; target number of elements per chunk_zise
+            target_chunk_size = max(chunk_size // len(self.get_column_names()), 10)
+        else:
+            target_chunk_size = chunk_size
 
         return self._query_result.getAsArrow(target_chunk_size)
 
