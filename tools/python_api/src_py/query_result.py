@@ -129,9 +129,13 @@ class QueryResult:
 
         Parameters
         ----------
-        chunk_size : int or None
-            Number of rows to include in each chunk. If None, the chunk size is
-            adaptive and depends on the number of columns in the query result.
+        chunk_size : Number of rows to include in each chunk.
+            None
+                The chunk size is adaptive and depends on the number of columns in the query result.
+            -1 or 0
+                The entire result is returned as a single chunk.
+            > 0
+                The chunk size is the number of elements specified.
 
         See Also
         --------
@@ -155,9 +159,13 @@ class QueryResult:
 
         Parameters
         ----------
-        chunk_size : int or None
-            Number of rows to include in each chunk. If None, the chunk size is
-            adaptive and depends on the number of columns in the query result.
+        chunk_size : Number of rows to include in each chunk.
+            None
+                The chunk size is adaptive and depends on the number of columns in the query result.
+            -1 or 0
+                The entire result is returned as a single chunk.
+            > 0
+                The chunk size is the number of elements specified.
 
         See Also
         --------
@@ -171,10 +179,14 @@ class QueryResult:
         """
         self.check_for_query_result_close()
 
-        if chunk_size <= 0 or chunk_size is None:
-            # adaptive chunk_size; target number of elements per chunk_zise
-            target_chunk_size = max(chunk_size // len(self.get_column_names()), 10)
+        if chunk_size is None:
+            # Adaptive chunk_size; target number of elements per chunk_size
+            target_chunk_size = max(1_000_000 // len(self.get_column_names()), 10)
+        elif chunk_size <= 0:
+            # No chunking: return the entire result as a single chunk
+            target_chunk_size = self.get_num_tuples()
         else:
+            # Chunk size is the number of elements specified
             target_chunk_size = chunk_size
 
         return self._query_result.getAsArrow(target_chunk_size)
