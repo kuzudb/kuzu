@@ -10,7 +10,7 @@
 #include "common/task_system/progress_bar.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
-#include "function/scalar_function.h"
+#include "function/function.h"
 #include "main/kuzu_fwd.h"
 #include "parser/statement.h"
 #include "prepared_statement.h"
@@ -79,6 +79,9 @@ public:
     transaction::Transaction* getTx() const;
     KUZU_API transaction::TransactionContext* getTransactionContext() const;
 
+    // Progress bar
+    common::ProgressBar* getProgressBar() const;
+
     // Replace function.
     inline bool hasReplaceFunc() { return replaceFunc != nullptr; }
     inline void setReplaceFunc(replace_func_t func) { replaceFunc = func; }
@@ -105,10 +108,6 @@ public:
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
     std::unique_ptr<QueryResult> query(std::string_view queryStatement);
     void runQuery(std::string query);
-
-    void setProgressBarPrinting(bool progressBarPrinting);
-
-    common::ProgressBar* getProgressBar() const { return progressBar.get(); }
 
 private:
     std::unique_ptr<QueryResult> query(

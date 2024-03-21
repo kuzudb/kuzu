@@ -1,5 +1,7 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 
+#include <sstream>
+
 #include "catalog/catalog.h"
 
 using namespace kuzu::common;
@@ -8,8 +10,8 @@ namespace kuzu {
 namespace catalog {
 
 RelTableCatalogEntry::RelTableCatalogEntry(std::string name, table_id_t tableID,
-    common::RelMultiplicity srcMultiplicity, common::RelMultiplicity dstMultiplicity,
-    table_id_t srcTableID, table_id_t dstTableID)
+    RelMultiplicity srcMultiplicity, RelMultiplicity dstMultiplicity, table_id_t srcTableID,
+    table_id_t dstTableID)
     : TableCatalogEntry{CatalogEntryType::REL_TABLE_ENTRY, std::move(name), tableID},
       srcMultiplicity{srcMultiplicity}, dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID},
       dstTableID{dstTableID} {}
@@ -30,14 +32,13 @@ column_id_t RelTableCatalogEntry::getColumnID(property_id_t propertyID) const {
     auto it = std::find_if(properties.begin(), properties.end(),
         [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
     // Skip the first column in the rel table, which is reserved for nbrID.
-    return it == properties.end() ? common::INVALID_COLUMN_ID :
-                                    std::distance(properties.begin(), it) + 1;
+    return it == properties.end() ? INVALID_COLUMN_ID : std::distance(properties.begin(), it) + 1;
 }
 
 bool RelTableCatalogEntry::isSingleMultiplicity(RelDataDirection direction) const {
-    return getMultiplicity(direction) == common::RelMultiplicity::ONE;
+    return getMultiplicity(direction) == RelMultiplicity::ONE;
 }
-common::RelMultiplicity RelTableCatalogEntry::getMultiplicity(RelDataDirection direction) const {
+RelMultiplicity RelTableCatalogEntry::getMultiplicity(RelDataDirection direction) const {
     return direction == RelDataDirection::FWD ? dstMultiplicity : srcMultiplicity;
 }
 table_id_t RelTableCatalogEntry::getBoundTableID(RelDataDirection relDirection) const {
@@ -57,8 +58,8 @@ void RelTableCatalogEntry::serialize(Serializer& serializer) const {
 
 std::unique_ptr<RelTableCatalogEntry> RelTableCatalogEntry::deserialize(
     Deserializer& deserializer) {
-    common::RelMultiplicity srcMultiplicity;
-    common::RelMultiplicity dstMultiplicity;
+    RelMultiplicity srcMultiplicity;
+    RelMultiplicity dstMultiplicity;
     table_id_t srcTableID;
     table_id_t dstTableID;
     deserializer.deserializeValue(srcMultiplicity);
@@ -85,8 +86,8 @@ std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) c
     ss << "CREATE REL TABLE " << getName() << "( FROM " << srcTableName << " TO " << dstTableName
        << ", ";
     Property::toCypher(getPropertiesRef(), ss);
-    auto srcMultiStr = srcMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
-    auto dstMultiStr = dstMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
+    auto srcMultiStr = srcMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
+    auto dstMultiStr = dstMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
     ss << srcMultiStr << "_" << dstMultiStr << ");";
     return ss.str();
 }

@@ -1,5 +1,6 @@
 #include "function/union/vector_union_functions.h"
 
+#include "function/scalar_function.h"
 #include "function/struct/vector_struct_functions.h"
 #include "function/union/functions/union_tag.h"
 

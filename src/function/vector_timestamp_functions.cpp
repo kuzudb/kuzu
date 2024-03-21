@@ -1,5 +1,6 @@
 #include "function/timestamp/vector_timestamp_functions.h"
 
+#include "function/scalar_function.h"
 #include "function/timestamp/timestamp_function.h"
 
 using namespace kuzu::common;

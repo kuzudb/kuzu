@@ -23,74 +23,65 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-void BaseLowerUpperFunction::operation(common::ku_string_t& input, common::ku_string_t& result,
-    common::ValueVector& resultValueVector, bool isUpper) {
+void BaseLowerUpperFunction::operation(
+    ku_string_t& input, ku_string_t& result, ValueVector& resultValueVector, bool isUpper) {
     uint32_t resultLen = getResultLen((char*)input.getData(), input.len, isUpper);
     result.len = resultLen;
-    if (resultLen <= common::ku_string_t::SHORT_STR_LENGTH) {
+    if (resultLen <= ku_string_t::SHORT_STR_LENGTH) {
         convertCase((char*)result.prefix, input.len, (char*)input.getData(), isUpper);
     } else {
-        result.overflowPtr = reinterpret_cast<uint64_t>(
-            common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                ->allocateSpace(result.len));
+        StringVector::reserveString(&resultValueVector, result, resultLen);
         auto buffer = reinterpret_cast<char*>(result.overflowPtr);
         convertCase(buffer, input.len, (char*)input.getData(), isUpper);
-        memcpy(result.prefix, buffer, common::ku_string_t::PREFIX_LENGTH);
+        memcpy(result.prefix, buffer, ku_string_t::PREFIX_LENGTH);
     }
 }
 
-void BaseStrOperation::operation(common::ku_string_t& input, common::ku_string_t& result,
-    common::ValueVector& resultValueVector, uint32_t (*strOperation)(char* data, uint32_t len)) {
-    if (input.len <= common::ku_string_t::SHORT_STR_LENGTH) {
+void BaseStrOperation::operation(ku_string_t& input, ku_string_t& result,
+    ValueVector& resultValueVector, uint32_t (*strOperation)(char* data, uint32_t len)) {
+    if (input.len <= ku_string_t::SHORT_STR_LENGTH) {
         memcpy(result.prefix, input.prefix, input.len);
         result.len = strOperation((char*)result.prefix, input.len);
     } else {
-        result.overflowPtr = reinterpret_cast<uint64_t>(
-            common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                ->allocateSpace(input.len));
+        StringVector::reserveString(&resultValueVector, result, input.len);
         auto buffer = reinterpret_cast<char*>(result.overflowPtr);
         memcpy(buffer, input.getData(), input.len);
         result.len = strOperation(buffer, input.len);
         memcpy(result.prefix, buffer,
-            result.len < common::ku_string_t::PREFIX_LENGTH ? result.len :
-                                                              common::ku_string_t::PREFIX_LENGTH);
+            result.len < ku_string_t::PREFIX_LENGTH ? result.len : ku_string_t::PREFIX_LENGTH);
     }
 }
 
 void Concat::concat(const char* left, uint32_t leftLen, const char* right, uint32_t rightLen,
-    common::ku_string_t& result, common::ValueVector& resultValueVector) {
+    ku_string_t& result, ValueVector& resultValueVector) {
     auto len = leftLen + rightLen;
-    if (len <= common::ku_string_t::SHORT_STR_LENGTH /* concat result is short */) {
+    if (len <= ku_string_t::SHORT_STR_LENGTH /* concat result is short */) {
         memcpy(result.prefix, left, leftLen);
         memcpy(result.prefix + leftLen, right, rightLen);
     } else {
-        result.overflowPtr = reinterpret_cast<uint64_t>(
-            common::StringVector::getInMemOverflowBuffer(&resultValueVector)->allocateSpace(len));
+        StringVector::reserveString(&resultValueVector, result, len);
         auto buffer = reinterpret_cast<char*>(result.overflowPtr);
         memcpy(buffer, left, leftLen);
         memcpy(buffer + leftLen, right, rightLen);
-        memcpy(result.prefix, buffer, common::ku_string_t::PREFIX_LENGTH);
+        memcpy(result.prefix, buffer, ku_string_t::PREFIX_LENGTH);
     }
     result.len = len;
 }
 
-void Repeat::operation(common::ku_string_t& left, int64_t& right, common::ku_string_t& result,
-    common::ValueVector& resultValueVector) {
+void Repeat::operation(
+    ku_string_t& left, int64_t& right, ku_string_t& result, ValueVector& resultValueVector) {
     result.len = left.len * right;
-    if (result.len <= common::ku_string_t::SHORT_STR_LENGTH) {
+    if (result.len <= ku_string_t::SHORT_STR_LENGTH) {
         repeatStr((char*)result.prefix, left.getAsString(), right);
     } else {
-        result.overflowPtr = reinterpret_cast<uint64_t>(
-            common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                ->allocateSpace(result.len));
+        StringVector::reserveString(&resultValueVector, result, result.len);
         auto buffer = reinterpret_cast<char*>(result.overflowPtr);
         repeatStr(buffer, left.getAsString(), right);
-        memcpy(result.prefix, buffer, common::ku_string_t::PREFIX_LENGTH);
+        memcpy(result.prefix, buffer, ku_string_t::PREFIX_LENGTH);
     }
 }
 
-void Reverse::operation(common::ku_string_t& input, common::ku_string_t& result,
-    common::ValueVector& resultValueVector) {
+void Reverse::operation(ku_string_t& input, ku_string_t& result, ValueVector& resultValueVector) {
     bool isAscii = true;
     std::string inputStr = input.getAsString();
     for (uint32_t i = 0; i < input.len; i++) {
@@ -103,12 +94,10 @@ void Reverse::operation(common::ku_string_t& input, common::ku_string_t& result,
         BaseStrOperation::operation(input, result, resultValueVector, reverseStr);
     } else {
         result.len = input.len;
-        if (result.len > common::ku_string_t::SHORT_STR_LENGTH) {
-            result.overflowPtr = reinterpret_cast<uint64_t>(
-                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                    ->allocateSpace(input.len));
+        if (result.len > ku_string_t::SHORT_STR_LENGTH) {
+            StringVector::reserveString(&resultValueVector, result, input.len);
         }
-        auto resultBuffer = result.len <= common::ku_string_t::SHORT_STR_LENGTH ?
+        auto resultBuffer = result.len <= ku_string_t::SHORT_STR_LENGTH ?
                                 reinterpret_cast<char*>(result.prefix) :
                                 reinterpret_cast<char*>(result.overflowPtr);
         utf8proc::utf8proc_grapheme_callback(
@@ -116,15 +105,15 @@ void Reverse::operation(common::ku_string_t& input, common::ku_string_t& result,
                 memcpy(resultBuffer + input.len - end, input.getData() + start, end - start);
                 return true;
             });
-        if (result.len > common::ku_string_t::SHORT_STR_LENGTH) {
-            memcpy(result.prefix, resultBuffer, common::ku_string_t::PREFIX_LENGTH);
+        if (result.len > ku_string_t::SHORT_STR_LENGTH) {
+            memcpy(result.prefix, resultBuffer, ku_string_t::PREFIX_LENGTH);
         }
     }
 }
 
 function_set ArrayExtractFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(ARRAY_EXTRACT_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
         ScalarFunction::BinaryExecFunction<ku_string_t, int64_t, ku_string_t, ArrayExtract>,
@@ -134,7 +123,7 @@ function_set ArrayExtractFunction::getFunctionSet() {
 
 function_set ConcatFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(CONCAT_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::STRING,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t, Concat>,
@@ -144,7 +133,7 @@ function_set ConcatFunction::getFunctionSet() {
 
 function_set ContainsFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(CONTAINS_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, Contains>,
@@ -155,7 +144,7 @@ function_set ContainsFunction::getFunctionSet() {
 
 function_set EndsWithFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(ENDS_WITH_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, EndsWith>,
@@ -166,7 +155,7 @@ function_set EndsWithFunction::getFunctionSet() {
 
 function_set LeftFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(LEFT_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, Left>,
@@ -176,7 +165,7 @@ function_set LeftFunction::getFunctionSet() {
 
 function_set LpadFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(LPAD_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::STRING},
         LogicalTypeID::STRING,
@@ -188,7 +177,7 @@ function_set LpadFunction::getFunctionSet() {
 
 function_set RepeatFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(REPEAT_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, Repeat>,
@@ -198,7 +187,7 @@ function_set RepeatFunction::getFunctionSet() {
 
 function_set RightFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(RIGHT_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, Right>,
@@ -208,7 +197,7 @@ function_set RightFunction::getFunctionSet() {
 
 function_set RpadFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(RPAD_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::STRING},
         LogicalTypeID::STRING,
@@ -220,7 +209,7 @@ function_set RpadFunction::getFunctionSet() {
 
 function_set StartsWithFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(STARTS_WITH_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, StartsWith>,
@@ -231,7 +220,7 @@ function_set StartsWithFunction::getFunctionSet() {
 
 function_set SubStrFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(SUBSTRING_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
@@ -243,7 +232,7 @@ function_set SubStrFunction::getFunctionSet() {
 
 function_set RegexpFullMatchFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(REGEXP_FULL_MATCH_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, RegexpFullMatch>,
@@ -254,7 +243,7 @@ function_set RegexpFullMatchFunction::getFunctionSet() {
 
 function_set RegexpMatchesFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(REGEXP_MATCHES_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, RegexpMatches>,
@@ -267,7 +256,7 @@ function_set RegexpReplaceFunction::getFunctionSet() {
     function_set functionSet;
     // Todo: Implement a function with modifiers
     //  regexp_replace(string, regex, replacement, modifiers)
-    functionSet.emplace_back(make_unique<ScalarFunction>(REGEXP_REPLACE_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::STRING,
@@ -279,13 +268,13 @@ function_set RegexpReplaceFunction::getFunctionSet() {
 
 function_set RegexpExtractFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(REGEXP_EXTRACT_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::STRING,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t,
             RegexpExtract>,
         false /* isVarLength */));
-    functionSet.emplace_back(make_unique<ScalarFunction>(REGEXP_EXTRACT_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
@@ -297,13 +286,13 @@ function_set RegexpExtractFunction::getFunctionSet() {
 
 function_set RegexpExtractAllFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(REGEXP_EXTRACT_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::VAR_LIST,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t,
             RegexpExtractAll>,
         nullptr, bindFunc, false /* isVarLength */));
-    functionSet.emplace_back(make_unique<ScalarFunction>(REGEXP_EXTRACT_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::VAR_LIST,
@@ -320,7 +309,7 @@ std::unique_ptr<FunctionBindData> RegexpExtractAllFunction::bindFunc(
 
 function_set LevenshteinFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(LEVENSHTEIN_FUNC_NAME,
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::INT64,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, int64_t, Levenshtein>, nullptr,

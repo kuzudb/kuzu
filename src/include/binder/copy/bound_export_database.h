@@ -2,6 +2,7 @@
 #include "binder/binder.h"
 #include "binder/bound_statement.h"
 #include "binder/query/bound_regular_query.h"
+#include "common/copier_config/csv_reader_config.h"
 #include "common/copier_config/reader_config.h"
 
 namespace kuzu {

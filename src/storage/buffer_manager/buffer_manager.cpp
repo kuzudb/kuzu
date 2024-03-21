@@ -334,7 +334,7 @@ void BufferManager::removeFilePagesFromFrames(BMFileHandle& fileHandle) {
 
 void BufferManager::flushAllDirtyPagesInFrames(BMFileHandle& fileHandle) {
     for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
-        removePageFromFrame(fileHandle, pageIdx, true /* flush */);
+        flushIfDirtyWithoutLock(fileHandle, pageIdx);
     }
 }
 
@@ -357,11 +357,15 @@ void BufferManager::removePageFromFrameIfNecessary(BMFileHandle& fileHandle, pag
 void BufferManager::removePageFromFrame(
     BMFileHandle& fileHandle, page_idx_t pageIdx, bool shouldFlush) {
     auto pageState = fileHandle.getPageState(pageIdx);
+    if (PageState::getState(pageState->getStateAndVersion()) == PageState::EVICTED) {
+        return;
+    }
     pageState->spinLock(pageState->getStateAndVersion());
     if (shouldFlush) {
         flushIfDirtyWithoutLock(fileHandle, pageIdx);
     }
     releaseFrameForPage(fileHandle, pageIdx);
+    freeUsedMemory(fileHandle.getPageSize());
     pageState->resetToEvicted();
 }
 

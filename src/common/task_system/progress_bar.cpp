@@ -9,6 +9,13 @@ void ProgressBar::startProgress() {
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
     printProgressBar(0.0);
+    printing = true;
+}
+
+void ProgressBar::endProgress() {
+    std::lock_guard<std::mutex> lock(progressBarLock);
+    resetProgressBar();
+    printing = false;
 }
 
 void ProgressBar::addPipeline() {
@@ -23,21 +30,23 @@ void ProgressBar::finishPipeline() {
         return;
     }
     numPipelinesFinished++;
-    prevCurPipelineProgress = 0.0;
+    // This ensures that the progress bar is updated back to 0% after a pipeline is finished.
+    prevCurPipelineProgress = -0.01;
     updateProgress(0.0);
-    if (numPipelines == numPipelinesFinished) {
-        resetProgressBar();
-    }
 }
 
 void ProgressBar::updateProgress(double curPipelineProgress) {
+    // Only update the progress bar if the progress has changed by at least 1%.
     if (!trackProgress || curPipelineProgress - prevCurPipelineProgress < 0.01) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
     prevCurPipelineProgress = curPipelineProgress;
-    std::cout << "\033[2A\033[2K\033[1B\033[2K\033[1A";
+    if (printing) {
+        std::cout << "\033[2A";
+    }
     printProgressBar(curPipelineProgress);
+    printing = true;
 }
 
 void ProgressBar::printProgressBar(double curPipelineProgress) const {
@@ -55,9 +64,10 @@ void ProgressBar::printProgressBar(double curPipelineProgress) const {
 }
 
 void ProgressBar::resetProgressBar() {
-    std::lock_guard<std::mutex> lock(progressBarLock);
-    std::cout << "\033[2A\033[2K\033[1B\033[2K\033[1A";
-    std::cout.flush();
+    if (printing) {
+        std::cout << "\033[2A\033[2K\033[1B\033[2K\033[1A";
+        std::cout.flush();
+    }
     numPipelines = 0;
     numPipelinesFinished = 0;
     prevCurPipelineProgress = 0.0;

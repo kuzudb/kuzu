@@ -1,6 +1,7 @@
 #include "function/rdf/vector_rdf_functions.h"
 
 #include "function/rdf/rdf_functions.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 

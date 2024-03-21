@@ -4,6 +4,7 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
+#include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/rewrite_function.h"
 #include "function/schema/vector_label_functions.h"
 #include "main/client_context.h"
@@ -323,12 +324,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindRecursiveJoinLengthFunction(
         children.push_back(std::move(numRelsExpression));
         children.push_back(
             ku_dynamic_cast<Expression&, RelExpression&>(*recursiveRels[0]).getLengthExpression());
-        auto result = bindScalarFunctionExpression(children, ADD_FUNC_NAME);
+        auto result = bindScalarFunctionExpression(children, AddFunction::name);
         for (auto i = 1u; i < recursiveRels.size(); ++i) {
             children[0] = std::move(result);
             children[1] = ku_dynamic_cast<Expression&, RelExpression&>(*recursiveRels[i])
                               .getLengthExpression();
-            result = bindScalarFunctionExpression(children, ADD_FUNC_NAME);
+            result = bindScalarFunctionExpression(children, AddFunction::name);
         }
         return result;
     } else if (ExpressionUtil::isRecursiveRelPattern(expression)) {

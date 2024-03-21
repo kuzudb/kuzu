@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/scalar_function.h"
+#include "function/function.h"
 #include "function/table/bind_data.h"
 #include "function/table_functions.h"
 

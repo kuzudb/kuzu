@@ -2,13 +2,13 @@
 
 #include <utility>
 
-#include "common/string_format.h"
-#include "datetime.h" // from Python
 #include "cached_import/py_cached_import.h"
+#include "common/string_format.h"
+#include "common/types/uuid.h"
+#include "datetime.h" // from Python
 #include "main/connection.h"
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
-#include "common/types/uuid.h"
 
 using namespace kuzu::common;
 using namespace kuzu;
@@ -179,7 +179,9 @@ Value transformPythonValue(py::handle val) {
     auto time_delta = importCache->datetime.timedelta();
     auto datetime_date = importCache->datetime.date();
     auto uuid = importCache->uuid.UUID();
-    if (py::isinstance<py::bool_>(val)) {
+    if (val.is_none()) {
+        return Value::createNullValue();
+    } else if (py::isinstance<py::bool_>(val)) {
         return Value::createValue<bool>(val.cast<bool>());
     } else if (py::isinstance<py::int_>(val)) {
         return Value::createValue<int64_t>(val.cast<int64_t>());

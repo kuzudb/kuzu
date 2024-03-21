@@ -1,5 +1,6 @@
 #include "function/uuid/vector_uuid_functions.h"
 
+#include "function/scalar_function.h"
 #include "function/uuid/functions/gen_random_uuid.h"
 
 using namespace kuzu::common;

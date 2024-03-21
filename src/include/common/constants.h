@@ -173,13 +173,6 @@ struct PlannerKnobs {
     static constexpr uint64_t SIP_RATIO = 5;
 };
 
-struct ClientConfigDefault {
-    // 0 means timeout is disabled by default.
-    static constexpr uint64_t TIMEOUT_IN_MS = 0;
-    static constexpr uint32_t VAR_LENGTH_MAX_DEPTH = 30;
-    static constexpr bool ENABLE_SEMI_MASK = true;
-};
-
 struct OrderByConstants {
     static constexpr uint64_t NUM_BYTES_FOR_PAYLOAD_IDX = 8;
     static constexpr uint64_t MIN_SIZE_TO_REDUCE = common::DEFAULT_VECTOR_CAPACITY * 5;
