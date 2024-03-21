@@ -61,7 +61,7 @@ void ArrowNullMaskTree::scanListPushDown(
 
 void ArrowNullMaskTree::scanStructPushDown(
     const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset, uint64_t count) {
-    for (uint64_t i = 0; i < array->n_children; i++) {
+    for (int64_t i = 0; i < array->n_children; i++) {
         children->push_back(ArrowNullMaskTree(
             schema->children[i], array->children[i], srcOffset, count, mask.get()));
     }
@@ -151,7 +151,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                     highestOffsets[curType] = curOffset;
                     countChildren[curType]++;
                 }
-                for (uint64_t i = 0; i < array->n_children; i++) {
+                for (int64_t i = 0; i < array->n_children; i++) {
                     children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
                         lowestOffsets[i], highestOffsets[i] - lowestOffsets[i]));
                 }
@@ -161,7 +161,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                     mask->setNull(i, children->operator[](curType).isNull(curOffset));
                 }
             } else {
-                for (uint64_t i = 0; i < array->n_children; i++) {
+                for (int64_t i = 0; i < array->n_children; i++) {
                     children->push_back(ArrowNullMaskTree(
                         schema->children[i], array->children[i], srcOffset, count));
                 }
@@ -197,7 +197,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
         case 'r':
             // it's better to resolve validity during the actual scanning for run-end encoded arrays
             // so for this, let's just resolve child validities and move on
-            for (uint64_t i = 0; i < array->n_children; i++) {
+            for (int64_t i = 0; i < array->n_children; i++) {
                 children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
                     array->children[i]->offset, array->children[i]->length));
             }
