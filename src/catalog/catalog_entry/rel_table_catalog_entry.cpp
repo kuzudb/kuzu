@@ -83,12 +83,12 @@ std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) c
     auto catalog = clientContext->getCatalog();
     auto srcTableName = catalog->getTableName(clientContext->getTx(), srcTableID);
     auto dstTableName = catalog->getTableName(clientContext->getTx(), dstTableID);
-    ss << "CREATE REL TABLE " << getName() << "( FROM " << srcTableName << " TO " << dstTableName
-       << ", ";
-    Property::toCypher(getPropertiesRef(), ss);
-    auto srcMultiStr = srcMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
-    auto dstMultiStr = dstMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
-    ss << srcMultiStr << "_" << dstMultiStr << ");";
+    auto srcMultiStr = srcMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
+    auto dstMultiStr = dstMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
+    std::string tableInfo =
+        stringFormat("CREATE REL TABLE {} (FROM {} TO {}, ", getName(), srcTableName, dstTableName);
+    ss << tableInfo << Property::toCypher(getPropertiesRef()) << srcMultiStr << "_" << dstMultiStr
+       << ");";
     return ss.str();
 }
 

@@ -29,13 +29,11 @@ static void writeStringStreamToFile(
 
 static void writeCopyStatement(
     stringstream& ss, std::string tableName, ReaderConfig* boundFileInfo) {
-    ss << "COPY ";
-    ss << tableName << " FROM \"" << boundFileInfo->filePaths[0] << "/" << tableName;
     auto fileTypeStr = FileTypeUtils::toString(boundFileInfo->fileType);
     StringUtils::toLower(fileTypeStr);
-    ss << "." << fileTypeStr;
     auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo->options);
-    ss << "\"" << csvConfig.option.toCypher() << std::endl;
+    ss << stringFormat("COPY {} FROM \"{}.{}\" {};\n", tableName, tableName, fileTypeStr,
+        csvConfig.option.toCypher());
 }
 
 std::string getSchemaCypher(main::ClientContext* clientContext, transaction::Transaction* tx) {

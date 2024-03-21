@@ -35,8 +35,7 @@ public:
     void serialize(common::Serializer& serializer) const;
     static Property deserialize(common::Deserializer& deserializer);
 
-    static void toCypher(
-        const std::vector<kuzu::catalog::Property>& properties, std::stringstream& ss);
+    static std::string toCypher(const std::vector<kuzu::catalog::Property>& properties);
 
 private:
     Property(const Property& other)

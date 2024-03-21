@@ -29,8 +29,8 @@ Property Property::deserialize(Deserializer& deserializer) {
     return Property(name, std::move(dataType), propertyID, tableID);
 }
 
-void Property::toCypher(
-    const std::vector<kuzu::catalog::Property>& properties, std::stringstream& ss) {
+std::string Property::toCypher(const std::vector<kuzu::catalog::Property>& properties) {
+    std::stringstream ss;
     for (auto& prop : properties) {
         if (prop.getDataType()->getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
             continue;
@@ -42,6 +42,7 @@ void Property::toCypher(
         }
         ss << prop.getName() << " " << propStr << ",";
     }
+    return ss.str();
 }
 
 } // namespace catalog

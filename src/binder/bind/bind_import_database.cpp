@@ -2,8 +2,11 @@
 
 #include "binder/binder.h"
 #include "binder/copy/bound_import_database.h"
+#include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
 #include "common/file_system/virtual_file_system.h"
+#include "parser/copy.h"
+#include "parser/parser.h"
 #include "parser/port_db.h"
 
 using namespace kuzu::common;
@@ -12,7 +15,7 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-std::string getFilePath(
+static std::string getQueryFromFile(
     common::VirtualFileSystem* vfs, const std::string boundFilePath, const std::string fileName) {
     auto filePath = vfs->joinPath(boundFilePath, fileName);
     if (!vfs->fileOrPathExists(filePath)) {
@@ -37,9 +40,27 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
         throw BinderException(stringFormat("Directory {} does not exist.", boundFilePath));
     }
     std::string finalQueryStatements;
-    finalQueryStatements += getFilePath(fs, boundFilePath, ImportDBConstants::SCHEMA_NAME);
-    finalQueryStatements += getFilePath(fs, boundFilePath, ImportDBConstants::COPY_NAME);
-    finalQueryStatements += getFilePath(fs, boundFilePath, ImportDBConstants::MACRO_NAME);
+    finalQueryStatements += getQueryFromFile(fs, boundFilePath, ImportDBConstants::SCHEMA_NAME);
+    // replace the path in copy from statement with the bound path
+    auto copyQuery = getQueryFromFile(fs, boundFilePath, ImportDBConstants::COPY_NAME);
+    auto parsedStatements = Parser::parseQuery(copyQuery);
+    for (auto& parsedStatement : parsedStatements) {
+        KU_ASSERT(parsedStatement->getStatementType() == StatementType::COPY_FROM);
+        auto copyFromStatement =
+            ku_dynamic_cast<const Statement*, const CopyFrom*>(parsedStatement.get());
+        KU_ASSERT(copyFromStatement->getSource()->type == common::ScanSourceType::FILE);
+        auto filePaths = ku_dynamic_cast<parser::BaseScanSource*, parser::FileScanSource*>(
+            copyFromStatement->getSource())
+                             ->filePaths;
+        KU_ASSERT(filePaths.size() == 1);
+        auto copyFilePath = boundFilePath + "/" + filePaths[0];
+        auto csvConfig = CSVReaderConfig::construct(
+            bindParsingOptions(copyFromStatement->getParsingOptionsRef()));
+        auto csvQuery = stringFormat("COPY {} FROM \"{}\" {};", copyFromStatement->getTableName(),
+            copyFilePath, csvConfig.option.toCypher());
+        finalQueryStatements += csvQuery;
+    }
+    finalQueryStatements += getQueryFromFile(fs, boundFilePath, ImportDBConstants::MACRO_NAME);
     return std::make_unique<BoundImportDatabase>(boundFilePath, finalQueryStatements);
 }
 } // namespace binder
