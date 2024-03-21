@@ -123,9 +123,19 @@ class QueryResult:
 
         return self._query_result.getAsDF()
 
-    def get_as_pl(self) -> pl.DataFrame:
+    def get_as_pl(self, chunk_size: int | None = None) -> pl.DataFrame:
         """
         Get the query result as a Polars DataFrame.
+
+        Parameters
+        ----------
+        chunk_size : Number of rows to include in each chunk.
+            None
+                The chunk size is adaptive and depends on the number of columns in the query result.
+            -1 or 0
+                The entire result is returned as a single chunk.
+            > 0
+                The chunk size is the number of elements specified.
 
         See Also
         --------
@@ -139,20 +149,23 @@ class QueryResult:
         """
         import polars as pl
 
-        target_n_elems = 10_000_000  # adaptive chunk_size; target 10m elements per chunk
-        target_chunk_size = max(target_n_elems // len(self.get_column_names()), 10)
-        return pl.from_arrow(  # type: ignore[return-value]
-            data=self.get_as_arrow(chunk_size=target_chunk_size),
-        )
+        self.check_for_query_result_close()
 
-    def get_as_arrow(self, chunk_size: int) -> pa.Table:
+        return pl.from_arrow(data=self.get_as_arrow(chunk_size=chunk_size))
+
+    def get_as_arrow(self, chunk_size: int | None = None) -> pa.Table:
         """
         Get the query result as a PyArrow Table.
 
         Parameters
         ----------
-        chunk_size : int
-            Number of rows to include in each chunk.
+        chunk_size : Number of rows to include in each chunk.
+            None
+                The chunk size is adaptive and depends on the number of columns in the query result.
+            -1 or 0
+                The entire result is returned as a single chunk.
+            > 0
+                The chunk size is the number of elements specified.
 
         See Also
         --------
@@ -166,7 +179,17 @@ class QueryResult:
         """
         self.check_for_query_result_close()
 
-        return self._query_result.getAsArrow(chunk_size)
+        if chunk_size is None:
+            # Adaptive chunk_size; target number of elements per chunk_size
+            target_chunk_size = max(1_000_000 // len(self.get_column_names()), 10)
+        elif chunk_size <= 0:
+            # No chunking: return the entire result as a single chunk
+            target_chunk_size = self.get_num_tuples()
+        else:
+            # Chunk size is the number of elements specified
+            target_chunk_size = chunk_size
+
+        return self._query_result.getAsArrow(target_chunk_size)
 
     def get_column_data_types(self) -> list[str]:
         """
