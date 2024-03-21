@@ -452,15 +452,15 @@ def test_to_arrow(conn_db_readonly: ConnDB) -> None:
             expected_values=[None, 325, None, None, 934, None, 824, None, None, None, None],
         )
 
-    _test_person_table(conn, "arrow")
+    _test_person_table(conn, "arrow", 9)
     _test_person_table(conn, "pl")
-    _test_movies_table(conn, "arrow")
+    _test_movies_table(conn, "arrow", 8)
     _test_movies_table(conn, "pl")
-    _test_utf8_string(conn, "arrow")
+    _test_utf8_string(conn, "arrow", 3)
     _test_utf8_string(conn, "pl")
     _test_in_small_chunk_size(conn, "arrow", 4)
-    _test_in_small_chunk_size(conn, "pl", 4)
-    _test_with_nulls(conn, "arrow")
+    _test_in_small_chunk_size(conn, "pl")
+    _test_with_nulls(conn, "arrow", 12)
     _test_with_nulls(conn, "pl")
 
 
