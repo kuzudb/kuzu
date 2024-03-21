@@ -25,7 +25,7 @@ void scanArrowArrayFixedSizePrimitive<bool>(const ArrowArray* array, ValueVector
     ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset, uint64_t count) {
     auto arrayBuffer = (const uint8_t*)array->buffers[1];
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         outputVector.setValue<bool>(
             i + dstOffset, NullMask::isNull((const uint64_t*)arrayBuffer, i + srcOffset));
     }
@@ -36,7 +36,7 @@ static void scanArrowArrayDurationScaledUp(const ArrowArray* array, ValueVector&
     uint64_t count) {
     auto arrayBuffer = ((const int64_t*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto curValue = arrayBuffer[i];
             outputVector.setValue<interval_t>(
@@ -50,7 +50,7 @@ static void scanArrowArrayDurationScaledDown(const ArrowArray* array, ValueVecto
     uint64_t count) {
     auto arrayBuffer = ((const int64_t*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto curValue = arrayBuffer[i];
             outputVector.setValue<interval_t>(
@@ -63,7 +63,7 @@ static void scanArrowArrayMonthInterval(const ArrowArray* array, ValueVector& ou
     ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset, uint64_t count) {
     auto arrayBuffer = ((const int32_t*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto curValue = arrayBuffer[i];
             outputVector.setValue<interval_t>(i + dstOffset, interval_t(curValue, 0, 0));
@@ -75,7 +75,7 @@ static void scanArrowArrayDayTimeInterval(const ArrowArray* array, ValueVector& 
     ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset, uint64_t count) {
     auto arrayBuffer = ((const int64_t*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             int64_t curValue = arrayBuffer[i];
             int32_t day = curValue;
@@ -91,7 +91,7 @@ static void scanArrowArrayMonthDayNanoInterval(const ArrowArray* array, ValueVec
     auto arrayBuffer =
         (const int64_t*)((const uint8_t*)array->buffers[1] + srcOffset * 16); // 16 bits per value
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             int64_t curValue = arrayBuffer[2 * i];
             int32_t month = curValue;
@@ -108,7 +108,7 @@ static void scanArrowArrayBLOB(const ArrowArray* array, ValueVector& outputVecto
     auto offsets = ((const offsetsT*)array->buffers[1]) + srcOffset;
     auto arrayBuffer = (const uint8_t*)array->buffers[2];
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto curOffset = offsets[i], nextOffset = offsets[i + 1];
             const uint8_t* data = arrayBuffer + curOffset;
@@ -124,7 +124,7 @@ static void scanArrowArrayBLOBView(const ArrowArray* array, ValueVector& outputV
     auto valueBuffs = (const uint8_t**)(array->buffers + 2);
     // BLOB value buffers begin from index 2 onwards
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto curView = (const int32_t*)(arrayBuffer + (i + srcOffset) * 16);
             // view structures are 16 bytes long
@@ -147,7 +147,7 @@ static void scanArrowArrayFixedBLOB(const ArrowArray* array, ValueVector& output
     uint64_t count) {
     auto arrayBuffer = ((const uint8_t*)array->buffers[1]) + srcOffset * BLOBsize;
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             BlobVector::addBlob(&outputVector, i + dstOffset, arrayBuffer + i * BLOBsize, BLOBsize);
         }
@@ -161,7 +161,7 @@ static void scanArrowArrayVarList(const ArrowSchema* schema, const ArrowArray* a
     auto offsets = ((const offsetsT*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
     ValueVector* auxiliaryBuffer = ListVector::getDataVector(&outputVector);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         auto curOffset = offsets[i], nextOffset = offsets[i + 1];
         if (!mask->isNull(i)) {
             auto newEntry = ListVector::addList(&outputVector, nextOffset - curOffset);
@@ -180,7 +180,7 @@ static void scanArrowArrayVarListView(const ArrowSchema* schema, const ArrowArra
     auto sizes = ((const offsetsT*)array->buffers[2]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
     ValueVector* auxiliaryBuffer = ListVector::getDataVector(&outputVector);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto curOffset = offsets[i], size = sizes[i];
             auto newEntry = ListVector::addList(&outputVector, size);
@@ -209,7 +209,7 @@ static void scanArrowArrayStruct(const ArrowSchema* schema, const ArrowArray* ar
     ValueVector& outputVector, ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset,
     uint64_t count) {
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             outputVector.setValue<int64_t>(i + dstOffset,
                 i + dstOffset); // struct_entry_t doesn't work for some reason
@@ -228,7 +228,7 @@ static void scanArrowArrayDenseUnion(const ArrowSchema* schema, const ArrowArray
     auto types = ((const int8_t*)array->buffers[0]) + srcOffset;
     auto offsets = ((const int32_t*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto curType = types[i];
             auto curOffset = offsets[i];
@@ -247,7 +247,7 @@ static void scanArrowArraySparseUnion(const ArrowSchema* schema, const ArrowArra
     uint64_t count) {
     auto types = ((const int8_t*)array->buffers[0]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto curType = types[i];
             UnionVector::setTagField(&outputVector, curType);
@@ -271,7 +271,7 @@ static void scanArrowArrayDictionaryEncoded(const ArrowSchema* schema, const Arr
 
     auto values = ((const offsetsT*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto dictOffseted = (*mask->getDictionary()) + values[i];
             ArrowConverter::fromArrowArray(schema->dictionary, array->dictionary, outputVector,
@@ -286,7 +286,7 @@ static void scanArrowArrayRunEndEncoded(const ArrowSchema* schema, const ArrowAr
     uint64_t count) {
 
     const ArrowArray* runEndArray = array->children[0];
-    auto runEndBuffer = (const int32_t*)runEndArray->buffers[1];
+    auto runEndBuffer = (const uint32_t*)runEndArray->buffers[1];
 
     // binary search run end corresponding to srcOffset
     auto runEndIdx = runEndArray->offset;
@@ -303,7 +303,7 @@ static void scanArrowArrayRunEndEncoded(const ArrowSchema* schema, const ArrowAr
         }
     }
 
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         while (i + srcOffset >= runEndBuffer[runEndIdx + 1]) {
             runEndIdx++;
         }

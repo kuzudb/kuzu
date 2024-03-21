@@ -37,7 +37,7 @@ bool ArrowNullMaskTree::applyParentBitmap(const NullMask* parent, uint64_t count
     }
     const uint64_t* buffer = parent->data;
     if (buffer != nullptr) {
-        for (int64_t i = 0; i < (count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2); i++) {
+        for (uint64_t i = 0; i < (count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2); i++) {
             mask->buffer[i] |= buffer[i];
         }
         return true;
@@ -52,7 +52,7 @@ void ArrowNullMaskTree::scanListPushDown(
     offsetsT auxiliaryLength = offsets[count] - offsets[0];
     NullMask pushDownMask((auxiliaryLength + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) >>
                           NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
-    for (int64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++) {
         pushDownMask.setNullFromRange(offsets[i], offsets[i + 1] - offsets[i], isNull(i));
     }
     children->push_back(ArrowNullMaskTree(
@@ -61,7 +61,7 @@ void ArrowNullMaskTree::scanListPushDown(
 
 void ArrowNullMaskTree::scanStructPushDown(
     const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset, uint64_t count) {
-    for (int64_t i = 0; i < array->n_children; i++) {
+    for (uint64_t i = 0; i < array->n_children; i++) {
         children->push_back(ArrowNullMaskTree(
             schema->children[i], array->children[i], srcOffset, count, mask.get()));
     }
@@ -142,7 +142,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                 std::vector<int32_t> countChildren(array->n_children),
                     lowestOffsets(array->n_children);
                 std::vector<int32_t> highestOffsets(array->n_children);
-                for (int64_t i = srcOffset; i < srcOffset + count; i++) {
+                for (auto i = srcOffset; i < srcOffset + count; i++) {
                     int32_t curOffset = offsets[i];
                     int32_t curType = types[i];
                     if (countChildren[curType] == 0) {
@@ -151,21 +151,21 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                     highestOffsets[curType] = curOffset;
                     countChildren[curType]++;
                 }
-                for (int64_t i = 0; i < array->n_children; i++) {
+                for (uint64_t i = 0; i < array->n_children; i++) {
                     children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
                         lowestOffsets[i], highestOffsets[i] - lowestOffsets[i]));
                 }
-                for (int64_t i = srcOffset; i < srcOffset + count; i++) {
+                for (auto i = srcOffset; i < srcOffset + count; i++) {
                     int32_t curOffset = offsets[i];
                     int8_t curType = types[i];
                     mask->setNull(i, children->operator[](curType).isNull(curOffset));
                 }
             } else {
-                for (int64_t i = 0; i < array->n_children; i++) {
+                for (uint64_t i = 0; i < array->n_children; i++) {
                     children->push_back(ArrowNullMaskTree(
                         schema->children[i], array->children[i], srcOffset, count));
                 }
-                for (int64_t i = srcOffset; i < srcOffset + count; i++) {
+                for (auto i = srcOffset; i < srcOffset + count; i++) {
                     int8_t curType = types[i];
                     mask->setNull(i, children->operator[](curType).isNull(i));
                     // this isn't specified in the arrow specification, but is it valid to
@@ -173,7 +173,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                 }
             }
             if (parentBitmap != nullptr) {
-                for (int64_t i = 0; i < count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2; i++) {
+                for (uint64_t i = 0; i < count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2; i++) {
                     mask->buffer[i] |= parentBitmap->buffer[i];
                 }
             }
@@ -189,7 +189,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                     (const uint64_t*)array->buffers[0], srcOffset, 0, count, true);
             }
             if (parentBitmap != nullptr) {
-                for (int64_t i = 0; i < count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2; i++) {
+                for (uint64_t i = 0; i < count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2; i++) {
                     mask->buffer[i] |= parentBitmap->buffer[i];
                 }
             }
@@ -197,7 +197,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
         case 'r':
             // it's better to resolve validity during the actual scanning for run-end encoded arrays
             // so for this, let's just resolve child validities and move on
-            for (int64_t i = 0; i < array->n_children; i++) {
+            for (uint64_t i = 0; i < array->n_children; i++) {
                 children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
                     array->children[i]->offset, array->children[i]->length));
             }
