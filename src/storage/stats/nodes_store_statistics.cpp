@@ -9,23 +9,14 @@ offset_t NodesStoreStatsAndDeletedIDs::getMaxNodeOffset(
     transaction::Transaction* transaction, table_id_t tableID) {
     KU_ASSERT(transaction);
     if (transaction->getType() == transaction::TransactionType::READ_ONLY) {
-        return getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset();
+        return getNodeStatisticsAndDeletedIDs(transaction, tableID)->getMaxNodeOffset();
     } else {
         std::unique_lock xLck{mtx};
         return readWriteVersion == nullptr ?
-                   getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset() :
+                   getNodeStatisticsAndDeletedIDs(transaction, tableID)->getMaxNodeOffset() :
                    getNodeTableStats(transaction::TransactionType::WRITE, tableID)
                        ->getMaxNodeOffset();
     }
-}
-
-std::map<table_id_t, offset_t> NodesStoreStatsAndDeletedIDs::getMaxNodeOffsetPerTable() const {
-    std::map<table_id_t, offset_t> retVal;
-    for (auto& tableIDStatistics : readOnlyVersion->tableStatisticPerTable) {
-        retVal[tableIDStatistics.first] =
-            getNodeStatisticsAndDeletedIDs(tableIDStatistics.first)->getMaxNodeOffset();
-    }
-    return retVal;
 }
 
 void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
@@ -41,7 +32,8 @@ void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     // pipeline that performs an add/delete node.
     lock_t lck{mtx};
     (transaction->isReadOnly() || readWriteVersion == nullptr) ?
-        getNodeStatisticsAndDeletedIDs(tableID)->setDeletedNodeOffsetsForMorsel(nodeOffsetVector) :
+        getNodeStatisticsAndDeletedIDs(transaction, tableID)
+            ->setDeletedNodeOffsetsForMorsel(nodeOffsetVector) :
         ((NodeTableStatsAndDeletedIDs*)readWriteVersion->tableStatisticPerTable[tableID].get())
             ->setDeletedNodeOffsetsForMorsel(nodeOffsetVector);
 }

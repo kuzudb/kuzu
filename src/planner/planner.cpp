@@ -11,7 +11,9 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace planner {
 
-Planner::Planner(Catalog* catalog, StorageManager* storageManager) : catalog{catalog} {
+Planner::Planner(
+    Catalog* catalog, StorageManager* storageManager, main::ClientContext* clientContext)
+    : catalog{catalog}, clientContext{clientContext} {
     auto nStats = storageManager->getNodesStatisticsAndDeletedIDs();
     auto rStats = storageManager->getRelsStatistics();
     cardinalityEstimator = CardinalityEstimator(nStats, rStats);

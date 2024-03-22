@@ -12,7 +12,6 @@
 #include "processor/operator/ddl/rename_property.h"
 #include "processor/operator/ddl/rename_table.h"
 #include "processor/plan_mapper.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -116,8 +115,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
     auto extraInfo = reinterpret_cast<BoundExtraAddPropertyInfo*>(info->extraInfo.get());
     auto expressionEvaluator =
         ExpressionMapper::getEvaluator(extraInfo->defaultValue, alter->getSchema());
-    auto tableSchema =
-        catalog->getTableCatalogEntry(&transaction::DUMMY_READ_TRANSACTION, info->tableID);
+    auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTx(), info->tableID);
     switch (tableSchema->getTableType()) {
     case TableType::NODE:
         return std::make_unique<AddNodeProperty>(catalog, info->tableID, extraInfo->propertyName,

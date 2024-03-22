@@ -144,7 +144,7 @@ static void appendColumnChunkStorageInfo(node_group_idx_t nodeGroupIdx,
 
 static void appendStorageInfoForColumn(StorageInfoLocalState* localState, std::string tableType,
     const Column* column, DataChunk& outputChunk, ClientContext* context) {
-    auto numNodeGroups = column->getNumNodeGroups(&transaction::DUMMY_READ_TRANSACTION);
+    auto numNodeGroups = column->getNumNodeGroups(context->getTx());
     for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
         if (outputChunk.state->selVector->selectedSize == DEFAULT_VECTOR_CAPACITY) {
             localState->dataChunkCollection->append(outputChunk);

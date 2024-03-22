@@ -136,7 +136,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(SubqueryT
     const expression_vector& correlatedExpressions, const QueryGraph& queryGraph,
     expression_vector& predicates) {
     context.init(&queryGraph, predicates);
-    cardinalityEstimator.initNodeIDDom(queryGraph);
+    cardinalityEstimator.initNodeIDDom(queryGraph, clientContext->getTx());
     planBaseTableScans(subqueryType, correlatedExpressions);
     context.currentLevel++;
     while (context.currentLevel < context.maxLevel) {

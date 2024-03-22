@@ -150,7 +150,7 @@ std::string ClientContext::getExtensionDir() const {
     return common::stringFormat("{}/.kuzu/extension", config.homeDirectory);
 }
 
-storage::StorageManager* ClientContext::getStorageManager() {
+storage::StorageManager* ClientContext::getStorageManager() const {
     return database->storageManager.get();
 }
 
@@ -158,7 +158,7 @@ storage::MemoryManager* ClientContext::getMemoryManager() {
     return database->memoryManager.get();
 }
 
-catalog::Catalog* ClientContext::getCatalog() {
+catalog::Catalog* ClientContext::getCatalog() const {
     return database->catalog.get();
 }
 
@@ -295,7 +295,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
         preparedStatement->statementResult =
             std::make_unique<BoundStatementResult>(boundStatement->getStatementResult()->copy());
         // planning
-        auto planner = Planner(database->catalog.get(), database->storageManager.get());
+        auto planner = Planner(database->catalog.get(), database->storageManager.get(), this);
         std::vector<std::unique_ptr<LogicalPlan>> plans;
         if (enumerateAllPlans) {
             plans = planner.getAllPlans(*boundStatement);
