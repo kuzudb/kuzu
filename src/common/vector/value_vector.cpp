@@ -59,8 +59,8 @@ bool ValueVector::discardNull(ValueVector& vector) {
 }
 
 bool ValueVector::setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOffset,
-    uint64_t dstOffset, uint64_t numBitsToCopy) {
-    return nullMask->copyFromNullBits(srcNullEntries, srcOffset, dstOffset, numBitsToCopy);
+    uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
+    return nullMask->copyFromNullBits(srcNullEntries, srcOffset, dstOffset, numBitsToCopy, invert);
 }
 
 template<typename T>

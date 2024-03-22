@@ -135,11 +135,7 @@ public:
         commitUDFTrx(autoTrx);
     }
 
-    inline void setReplaceFunc(replace_func_t replaceFunc) {
-        clientContext->setReplaceFunc(std::move(replaceFunc));
-    }
-
-    inline ClientContext* getClientContext() { return clientContext.get(); };
+    ClientContext* getClientContext() { return clientContext.get(); };
 
 private:
     std::unique_ptr<QueryResult> query(
