@@ -688,8 +688,9 @@ static double progressFunc(TableFuncSharedState* state) {
 function_set ParquetScanFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
-        std::make_unique<TableFunction>(READ_PARQUET_FUNC_NAME, tableFunc, bindFunc,
-            initSharedState, initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+        std::make_unique<TableFunction>(READ_PARQUET_FUNC_NAME, tableFunc,
+            bindFunc, initSharedState, initLocalState, progressFunc,
+            std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 

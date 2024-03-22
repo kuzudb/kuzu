@@ -116,7 +116,7 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
     auto bindData = reinterpret_cast<ScanBindData*>(input.bindData);
     auto csvConfig = CSVReaderConfig::construct(bindData->config.options);
     row_idx_t numRows = 0;
-    auto sharedState =  std::make_unique<SerialCSVScanSharedState>(bindData->config.copy(), numRows,
+    auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->config.copy(), numRows,
         bindData->columnNames.size(), csvConfig.copy(), bindData->context);
     auto reader = std::make_unique<SerialCSVReader>(sharedState->readerConfig.filePaths[0],
         sharedState->csvReaderConfig.option.copy(), sharedState->numColumns, sharedState->context);
@@ -141,9 +141,9 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 
 function_set SerialCSVScan::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>(READ_CSV_SERIAL_FUNC_NAME, tableFunc, bindFunc,
-            initSharedState, initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    functionSet.push_back(std::make_unique<TableFunction>(READ_CSV_SERIAL_FUNC_NAME, tableFunc,
+        bindFunc, initSharedState, initLocalState, progressFunc,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
