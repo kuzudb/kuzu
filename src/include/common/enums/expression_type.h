@@ -19,33 +19,6 @@ const char* const MIN_FUNC_NAME = "MIN";
 const char* const MAX_FUNC_NAME = "MAX";
 const char* const COLLECT_FUNC_NAME = "COLLECT";
 
-// cast
-const char* const CAST_FUNC_NAME = "CAST";
-const char* const CAST_DATE_FUNC_NAME = "DATE";
-const char* const CAST_TO_DATE_FUNC_NAME = "TO_DATE";
-const char* const CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";
-const char* const CAST_INTERVAL_FUNC_NAME = "INTERVAL";
-const char* const CAST_TO_INTERVAL_FUNC_NAME = "TO_INTERVAL";
-const char* const CAST_STRING_FUNC_NAME = "STRING";
-const char* const CAST_TO_STRING_FUNC_NAME = "TO_STRING";
-const char* const CAST_TO_DOUBLE_FUNC_NAME = "TO_DOUBLE";
-const char* const CAST_TO_FLOAT_FUNC_NAME = "TO_FLOAT";
-const char* const CAST_TO_SERIAL_FUNC_NAME = "TO_SERIAL";
-const char* const CAST_TO_INT64_FUNC_NAME = "TO_INT64";
-const char* const CAST_TO_INT32_FUNC_NAME = "TO_INT32";
-const char* const CAST_TO_INT16_FUNC_NAME = "TO_INT16";
-const char* const CAST_TO_INT8_FUNC_NAME = "TO_INT8";
-const char* const CAST_TO_UINT64_FUNC_NAME = "TO_UINT64";
-const char* const CAST_TO_UINT32_FUNC_NAME = "TO_UINT32";
-const char* const CAST_TO_UINT16_FUNC_NAME = "TO_UINT16";
-const char* const CAST_TO_UINT8_FUNC_NAME = "TO_UINT8";
-const char* const CAST_BLOB_FUNC_NAME = "BLOB";
-const char* const CAST_TO_BLOB_FUNC_NAME = "TO_BLOB";
-const char* const CAST_UUID_FUNC_NAME = "UUID";
-const char* const CAST_TO_UUID_FUNC_NAME = "TO_UUID";
-const char* const CAST_TO_BOOL_FUNC_NAME = "TO_BOOL";
-const char* const CAST_TO_INT128_FUNC_NAME = "TO_INT128";
-
 // struct
 const char* const STRUCT_PACK_FUNC_NAME = "STRUCT_PACK";
 const char* const STRUCT_EXTRACT_FUNC_NAME = "STRUCT_EXTRACT";
