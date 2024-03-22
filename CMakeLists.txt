@@ -46,6 +46,7 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
     message(STATUS "32-bit architecture detected")
     add_compile_definitions(__32BIT__)
+    set(__32BIT__ TRUE)
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
