@@ -1,10 +1,12 @@
 #include "function/array/vector_array_functions.h"
 
+#include "common/exception/binder.h"
 #include "function/array/functions/array_cosine_similarity.h"
 #include "function/array/functions/array_cross_product.h"
 #include "function/array/functions/array_distance.h"
 #include "function/array/functions/array_inner_product.h"
 #include "function/list/vector_list_functions.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 

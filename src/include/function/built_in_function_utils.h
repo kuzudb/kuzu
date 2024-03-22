@@ -89,7 +89,6 @@ private:
     static void registerBlobFunctions(catalog::CatalogSet* catalogSet);
     static void registerUUIDFunctions(catalog::CatalogSet* catalogSet);
     static void registerCastFunctions(catalog::CatalogSet* catalogSet);
-    static void registerListFunctions(catalog::CatalogSet* catalogSet);
     static void registerStructFunctions(catalog::CatalogSet* catalogSet);
     static void registerMapFunctions(catalog::CatalogSet* catalogSet);
     static void registerUnionFunctions(catalog::CatalogSet* catalogSet);

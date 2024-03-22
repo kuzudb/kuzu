@@ -1,5 +1,6 @@
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include "function/list/vector_list_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
@@ -293,7 +294,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     auto raw = child->getRawName() + ctx.getText();
     if (ctx.IN()) { // x IN y
         auto listContains =
-            std::make_unique<ParsedFunctionExpression>(LIST_CONTAINS_FUNC_NAME, std::move(raw));
+            std::make_unique<ParsedFunctionExpression>(ListContainsFunction::name, std::move(raw));
         auto right = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
         listContains->addChild(std::move(right));
         listContains->addChild(std::move(child));
@@ -301,7 +302,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     }
     if (ctx.COLON()) { // x[:]
         auto listSlice =
-            std::make_unique<ParsedFunctionExpression>(LIST_SLICE_FUNC_NAME, std::move(raw));
+            std::make_unique<ParsedFunctionExpression>(ListSliceFunction::name, std::move(raw));
         listSlice->addChild(std::move(child));
         std::unique_ptr<ParsedExpression> left;
         std::unique_ptr<ParsedExpression> right;
@@ -326,7 +327,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     }
     // x[a]
     auto listExtract =
-        std::make_unique<ParsedFunctionExpression>(LIST_EXTRACT_FUNC_NAME, std::move(raw));
+        std::make_unique<ParsedFunctionExpression>(ListExtractFunction::name, std::move(raw));
     listExtract->addChild(std::move(child));
     KU_ASSERT(ctx.oC_Expression().size() == 1);
     listExtract->addChild(transformExpression(*ctx.oC_Expression()[0]));
@@ -418,7 +419,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformBooleanLiteral(
 std::unique_ptr<ParsedExpression> Transformer::transformListLiteral(
     CypherParser::OC_ListLiteralContext& ctx) {
     auto listCreation =
-        std::make_unique<ParsedFunctionExpression>(LIST_CREATION_FUNC_NAME, ctx.getText());
+        std::make_unique<ParsedFunctionExpression>(ListCreationFunction::name, ctx.getText());
     if (ctx.oC_Expression() == nullptr) { // empty list
         return listCreation;
     }

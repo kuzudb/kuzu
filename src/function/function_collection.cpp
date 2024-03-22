@@ -2,6 +2,7 @@
 
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/array/vector_array_functions.h"
+#include "function/list/vector_list_functions.h"
 #include "function/string/vector_string_functions.h"
 
 namespace kuzu {
@@ -53,9 +54,31 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(RegexpFullMatchFunction), SCALAR_FUNCTION(RegexpMatchesFunction),
         SCALAR_FUNCTION(RegexpReplaceFunction), SCALAR_FUNCTION(RegexpExtractFunction),
         SCALAR_FUNCTION(RegexpExtractAllFunction), SCALAR_FUNCTION(LevenshteinFunction),
+
+        // Array Functions
         SCALAR_FUNCTION(ArrayValueFunction), SCALAR_FUNCTION(ArrayCrossProductFunction),
         SCALAR_FUNCTION(ArrayCosineSimilarityFunction), SCALAR_FUNCTION(ArrayDistanceFunction),
         SCALAR_FUNCTION(ArrayInnerProductFunction), SCALAR_FUNCTION(ArrayDotProductFunction),
+
+        // List functions
+        SCALAR_FUNCTION(ListCreationFunction), SCALAR_FUNCTION(ListRangeFunction),
+        SCALAR_FUNCTION(ListExtractFunction), SCALAR_FUNCTION_ALIAS(ListExtractFunction),
+        SCALAR_FUNCTION(ListConcatFunction), SCALAR_FUNCTION_ALIAS(ListConcatFunction),
+        SCALAR_FUNCTION(ArrayConcatFunction), SCALAR_FUNCTION_ALIAS(ArrayConcatFunction),
+        SCALAR_FUNCTION(ListAppendFunction), SCALAR_FUNCTION(ArrayAppendFunction),
+        SCALAR_FUNCTION_ALIAS(ArrayAppendFunction), SCALAR_FUNCTION(ListPrependFunction),
+        SCALAR_FUNCTION(ArrayPrependFunction), SCALAR_FUNCTION_ALIAS(ArrayPrependFunction),
+        SCALAR_FUNCTION(ListPositionFunction), SCALAR_FUNCTION_ALIAS(ListPositionFunction),
+        SCALAR_FUNCTION(ArrayPositionFunction), SCALAR_FUNCTION_ALIAS(ArrayPositionFunction),
+        SCALAR_FUNCTION(ListContainsFunction), SCALAR_FUNCTION_ALIAS(ListContainsFunction),
+        SCALAR_FUNCTION(ArrayContainsFunction), SCALAR_FUNCTION_ALIAS(ArrayContainsFunction),
+        SCALAR_FUNCTION(ListSliceFunction), SCALAR_FUNCTION(ArraySliceFunction),
+        SCALAR_FUNCTION(ListSortFunction), SCALAR_FUNCTION(ListReverseSortFunction),
+        SCALAR_FUNCTION(ListSumFunction), SCALAR_FUNCTION(ListProductFunction),
+        SCALAR_FUNCTION(ListDistinctFunction), SCALAR_FUNCTION(ListUniqueFunction),
+        SCALAR_FUNCTION(ListAnyValueFunction), SCALAR_FUNCTION(ListReverseFunction),
+        SCALAR_FUNCTION(SizeFunction),
+
         // End of array
         FINAL_FUNCTION};
 
