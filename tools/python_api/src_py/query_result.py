@@ -139,20 +139,27 @@ class QueryResult:
         """
         import polars as pl
 
-        target_n_elems = 10_000_000  # adaptive chunk_size; target 10m elements per chunk
-        target_chunk_size = max(target_n_elems // len(self.get_column_names()), 10)
+        self.check_for_query_result_close()
+
+        # note: polars should always export just a single chunk,
+        # (eg: "-1") otherwise it will just need to rechunk anyway
         return pl.from_arrow(  # type: ignore[return-value]
-            data=self.get_as_arrow(chunk_size=target_chunk_size),
+            data=self.get_as_arrow(chunk_size=-1),
         )
 
-    def get_as_arrow(self, chunk_size: int) -> pa.Table:
+    def get_as_arrow(self, chunk_size: int | None = None) -> pa.Table:
         """
         Get the query result as a PyArrow Table.
 
         Parameters
         ----------
-        chunk_size : int
-            Number of rows to include in each chunk.
+        chunk_size : Number of rows to include in each chunk.
+            None
+                The chunk size is adaptive and depends on the number of columns in the query result.
+            -1 or 0
+                The entire result is returned as a single chunk.
+            > 0
+                The chunk size is the number of rows specified.
 
         See Also
         --------
@@ -165,6 +172,15 @@ class QueryResult:
             Query result as a PyArrow Table.
         """
         self.check_for_query_result_close()
+
+        if chunk_size is None:
+            # Adaptive; target 10m total elements in each chunk.
+            # (eg: if we had 10 cols, this would result in a 1m row chunk_size).
+            target_n_elems = 10_000_000
+            chunk_size = max(target_n_elems // len(self.get_column_names()), 10)
+        elif chunk_size <= 0:
+            # No chunking: return the entire result as a single chunk
+            chunk_size = self.get_num_tuples()
 
         return self._query_result.getAsArrow(chunk_size)
 

@@ -5,6 +5,7 @@
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
+#include "function/cast/vector_cast_functions.h"
 #include "function/rewrite_function.h"
 #include "function/schema/vector_label_functions.h"
 #include "main/client_context.h"
@@ -68,7 +69,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, functions));
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
-    if (functionName == CAST_FUNC_NAME) {
+    if (functionName == CastAnyFunction::name) {
         bindData = function->bindFunc(children, function);
         if (bindData == nullptr) {
             return children[0];

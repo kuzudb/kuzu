@@ -106,6 +106,7 @@ Binder exception: Cannot match a built-in function for given function LIST_EXTRA
 Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64[],BOOL). Supported inputs are
 (VAR_LIST,INT64) -> ANY
 (STRING,INT64) -> STRING
+(ARRAY,INT64) -> ANY
 
 -STATEMENT WITH [1, 2, 3, 4, 5] AS list, 4.7 AS idx
            RETURN list[idx];
@@ -113,6 +114,7 @@ Binder exception: Cannot match a built-in function for given function LIST_EXTRA
 Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64[],DOUBLE). Supported inputs are
 (VAR_LIST,INT64) -> ANY
 (STRING,INT64) -> STRING
+(ARRAY,INT64) -> ANY
 
 -STATEMENT WITH [1, 2, 3, 4, 5] AS list, '1' AS idx
            RETURN list[idx];
@@ -120,6 +122,7 @@ Binder exception: Cannot match a built-in function for given function LIST_EXTRA
 Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64[],STRING). Supported inputs are
 (VAR_LIST,INT64) -> ANY
 (STRING,INT64) -> STRING
+(ARRAY,INT64) -> ANY
 
 -STATEMENT WITH [1, 2, 3, 4, 5] AS list, [1] AS idx
            RETURN list[idx];
@@ -127,6 +130,7 @@ Binder exception: Cannot match a built-in function for given function LIST_EXTRA
 Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64[],INT64[]). Supported inputs are
 (VAR_LIST,INT64) -> ANY
 (STRING,INT64) -> STRING
+(ARRAY,INT64) -> ANY
 
 -STATEMENT WITH [1, 2, 3, 4, 5] AS list, {x: 3} AS idx
            RETURN list[idx];
@@ -134,3 +138,4 @@ Binder exception: Cannot match a built-in function for given function LIST_EXTRA
 Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64[],STRUCT(x:INT64)). Supported inputs are
 (VAR_LIST,INT64) -> ANY
 (STRING,INT64) -> STRING
+(ARRAY,INT64) -> ANY

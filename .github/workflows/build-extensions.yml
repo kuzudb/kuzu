@@ -108,7 +108,7 @@ jobs:
 
       - name: Install OpenSSL
         run: |
-          brew install openssl@3
+          brew install openssl@3 duckdb
           OPENSSL_ROOT=$(readlink -f /opt/homebrew/Cellar/openssl@3/*/)
           echo "OPENSSL_ROOT_DIR=$OPENSSL_ROOT" >> $GITHUB_ENV
 

@@ -714,28 +714,28 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
 
 function_set CastToDateFunction::getFunctionSet() {
     function_set result;
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_DATE_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::DATE));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_DATE_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::DATE));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::DATE));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::DATE));
     return result;
 }
 
 function_set CastToTimestampFunction::getFunctionSet() {
     function_set result;
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_TIMESTAMP_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::TIMESTAMP));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_TIMESTAMP_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::TIMESTAMP));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::TIMESTAMP));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::TIMESTAMP));
     return result;
 }
 
 function_set CastToIntervalFunction::getFunctionSet() {
     function_set result;
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INTERVAL_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INTERVAL));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INTERVAL_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::INTERVAL));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::INTERVAL));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::INTERVAL));
     return result;
 }
 
@@ -743,188 +743,175 @@ function_set CastToStringFunction::getFunctionSet() {
     function_set result;
     result.reserve(LogicalTypeUtils::getAllValidLogicTypes().size());
     for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
-        result.push_back(
-            CastFunction::bindCastFunction(CAST_TO_STRING_FUNC_NAME, type, LogicalTypeID::STRING));
+        result.push_back(CastFunction::bindCastFunction(name, type, LogicalTypeID::STRING));
     }
     return result;
 }
 
 function_set CastToBlobFunction::getFunctionSet() {
     function_set result;
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_BLOB_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::BLOB));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_BLOB_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::BLOB));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::BLOB));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::BLOB));
     return result;
 }
 
 function_set CastToUUIDFunction::getFunctionSet() {
     function_set result;
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_UUID_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UUID));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::UUID));
     return result;
 }
 
 function_set CastToBoolFunction::getFunctionSet() {
     function_set result;
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_BOOL_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::BOOL));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_BOOL_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::BOOL));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::BOOL));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::BOOL));
     return result;
 }
 
 function_set CastToDoubleFunction::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(CastFunction::bindCastFunction(
-            CAST_TO_DOUBLE_FUNC_NAME, typeID, LogicalTypeID::DOUBLE));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::DOUBLE));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_DOUBLE_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::DOUBLE));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_DOUBLE_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::DOUBLE));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::DOUBLE));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::DOUBLE));
     return result;
 }
 
 function_set CastToFloatFunction::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(
-            CastFunction::bindCastFunction(CAST_TO_FLOAT_FUNC_NAME, typeID, LogicalTypeID::FLOAT));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::FLOAT));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_FLOAT_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::FLOAT));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_FLOAT_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::FLOAT));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::FLOAT));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::FLOAT));
     return result;
 }
 
 function_set CastToInt128Function::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(CastFunction::bindCastFunction(
-            CAST_TO_INT128_FUNC_NAME, typeID, LogicalTypeID::INT128));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::INT128));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INT128_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT128));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::INT128));
     return result;
 }
 
 function_set CastToSerialFunction::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(CastFunction::bindCastFunction(
-            CAST_TO_SERIAL_FUNC_NAME, typeID, LogicalTypeID::SERIAL));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::SERIAL));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_SERIAL_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::SERIAL));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_SERIAL_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::SERIAL));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::SERIAL));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::SERIAL));
     return result;
 }
 
 function_set CastToInt64Function::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(
-            CastFunction::bindCastFunction(CAST_TO_INT64_FUNC_NAME, typeID, LogicalTypeID::INT64));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::INT64));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INT64_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT64));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INT64_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::INT64));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::INT64));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::INT64));
     return result;
 }
 
 function_set CastToInt32Function::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(
-            CastFunction::bindCastFunction(CAST_TO_INT32_FUNC_NAME, typeID, LogicalTypeID::INT32));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::INT32));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INT32_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT32));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INT32_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::INT32));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::INT32));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::INT32));
     return result;
 }
 
 function_set CastToInt16Function::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(
-            CastFunction::bindCastFunction(CAST_TO_INT16_FUNC_NAME, typeID, LogicalTypeID::INT16));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::INT16));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INT16_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT16));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INT16_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::INT16));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::INT16));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::INT16));
     return result;
 }
 
 function_set CastToInt8Function::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(
-            CastFunction::bindCastFunction(CAST_TO_INT8_FUNC_NAME, typeID, LogicalTypeID::INT8));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::INT8));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INT8_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT8));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_INT8_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::INT8));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::INT8));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::INT8));
     return result;
 }
 
 function_set CastToUInt64Function::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(CastFunction::bindCastFunction(
-            CAST_TO_UINT64_FUNC_NAME, typeID, LogicalTypeID::UINT64));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::UINT64));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_UINT64_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UINT64));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_UINT64_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::UINT64));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::UINT64));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::UINT64));
     return result;
 }
 
 function_set CastToUInt32Function::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(CastFunction::bindCastFunction(
-            CAST_TO_UINT32_FUNC_NAME, typeID, LogicalTypeID::UINT32));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::UINT32));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_UINT32_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UINT32));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_UINT32_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::UINT32));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::UINT32));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::UINT32));
     return result;
 }
 
 function_set CastToUInt16Function::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(CastFunction::bindCastFunction(
-            CAST_TO_UINT16_FUNC_NAME, typeID, LogicalTypeID::UINT16));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::UINT16));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_UINT16_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UINT16));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_UINT16_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::UINT16));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::UINT16));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::UINT16));
     return result;
 }
 
 function_set CastToUInt8Function::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(
-            CastFunction::bindCastFunction(CAST_TO_UINT8_FUNC_NAME, typeID, LogicalTypeID::UINT8));
+        result.push_back(CastFunction::bindCastFunction(name, typeID, LogicalTypeID::UINT8));
     }
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_UINT8_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UINT8));
-    result.push_back(CastFunction::bindCastFunction(
-        CAST_TO_UINT8_FUNC_NAME, LogicalTypeID::RDF_VARIANT, LogicalTypeID::UINT8));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::STRING, LogicalTypeID::UINT8));
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalTypeID::RDF_VARIANT, LogicalTypeID::UINT8));
     return result;
 }
 
@@ -957,7 +944,7 @@ static std::unique_ptr<FunctionBindData> castBindFunc(
 
 function_set CastAnyFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(CAST_FUNC_NAME,
+    result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::STRING}, LogicalTypeID::ANY,
         nullptr, nullptr, castBindFunc, false));
     return result;

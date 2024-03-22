@@ -33,6 +33,18 @@ def test_read(conn_db_readonly: ConnDB) -> None:
     assert not result.has_next()
 
 
+def test_null_value(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
+    prepared_statement = conn.prepare("RETURN [4, $1, 2, $3, 4]")
+    assert prepared_statement.is_success()
+    assert prepared_statement.get_error_message() == ""
+
+    result = conn.execute(prepared_statement, {"1": None, "3": 5})
+    assert result.has_next()
+    assert result.get_next() == [[4, None, 2, 5, 4]]
+    assert not result.has_next()
+
+
 def test_write(conn_db_readwrite: ConnDB) -> None:
     conn, _ = conn_db_readwrite
     orgs = [

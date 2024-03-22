@@ -56,7 +56,7 @@ from .types import Type
 
 
 def __getattr__(name: str) -> str | int:
-    if name == "version":
+    if name in ("version", "__version__"):
         return Database.get_version()
     elif name == "storage_version":
         return Database.get_storage_version()
@@ -75,6 +75,7 @@ __all__ = [
     "PreparedStatement",
     "QueryResult",
     "Type",
+    "__version__",
     "storage_version",
     "version",
 ]
