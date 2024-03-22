@@ -4,7 +4,6 @@
 #include "storage/stats/node_table_statistics.h"
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/storage_utils.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {
@@ -27,8 +26,8 @@ public:
     }
 
     inline NodeTableStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs(
-        common::table_id_t tableID) const {
-        return getNodeTableStats(transaction::TransactionType::READ_ONLY, tableID);
+        transaction::Transaction* transaction, common::table_id_t tableID) const {
+        return getNodeTableStats(transaction->getType(), tableID);
     }
 
     static inline void saveInitialNodesStatisticsAndDeletedIDsToFile(
@@ -70,10 +69,6 @@ public:
         setToUpdated();
         getNodeTableStats(transaction::TransactionType::WRITE, tableID)->deleteNode(nodeOffset);
     }
-
-    // This function is only used by storageManager to construct relsStore during start-up, so
-    // we can just safely return the maxNodeOffsetPerTable for readOnlyVersion.
-    std::map<common::table_id_t, common::offset_t> getMaxNodeOffsetPerTable() const;
 
     void setDeletedNodeOffsetsForMorsel(transaction::Transaction* transaction,
         const std::shared_ptr<common::ValueVector>& nodeOffsetVector, common::table_id_t tableID);

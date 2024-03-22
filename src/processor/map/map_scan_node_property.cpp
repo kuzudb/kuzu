@@ -2,7 +2,6 @@
 #include "planner/operator/scan/logical_scan_node_property.h"
 #include "processor/operator/scan/scan_multi_node_tables.h"
 #include "processor/plan_mapper.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -32,9 +31,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
                 if (!property->hasPropertyID(tableID)) {
                     columns.push_back(UINT32_MAX);
                 } else {
-                    columns.push_back(
-                        catalog->getTableCatalogEntry(&transaction::DUMMY_READ_TRANSACTION, tableID)
-                            ->getColumnID(property->getPropertyID(tableID)));
+                    columns.push_back(catalog->getTableCatalogEntry(clientContext->getTx(), tableID)
+                                          ->getColumnID(property->getPropertyID(tableID)));
                 }
             }
             tables.insert({tableID, std::make_unique<ScanNodeTableInfo>(
@@ -45,8 +43,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
             scanProperty.getExpressionsForPrinting());
     } else {
         auto tableID = tableIDs[0];
-        auto tableSchema =
-            catalog->getTableCatalogEntry(&transaction::DUMMY_READ_TRANSACTION, tableID);
+        auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
         std::vector<column_id_t> columnIDs;
         for (auto& expression : scanProperty.getProperties()) {
             auto property = static_pointer_cast<PropertyExpression>(expression);

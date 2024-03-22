@@ -47,7 +47,7 @@ uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
     auto nodeTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, nodeName);
     auto nodeStatistics =
         storageManager->getNodesStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(
-            nodeTableID);
+            &DUMMY_READ_TRANSACTION, nodeTableID);
     return nodeStatistics->getNumTuples();
 }
 
