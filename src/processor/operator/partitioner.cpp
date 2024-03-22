@@ -166,9 +166,9 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx, DataChun
             partition.chunks.emplace_back();
             partition.chunks.back().reserve(chunkToCopyFrom.getNumValueVectors());
             for (auto j = 0u; j < chunkToCopyFrom.getNumValueVectors(); j++) {
-                partition.chunks.back().emplace_back(ColumnChunkFactory::createColumnChunk(
-                    chunkToCopyFrom.getValueVector(j)->dataType, false /*enableCompression*/,
-                    Partitioner::CHUNK_SIZE));
+                partition.chunks.back().emplace_back(
+                    ColumnChunkFactory::createColumnChunk(infos[partitioningIdx]->columnTypes[j],
+                        false /*enableCompression*/, Partitioner::CHUNK_SIZE));
             }
         }
         KU_ASSERT(partition.chunks.back().size() == chunkToCopyFrom.getNumValueVectors());

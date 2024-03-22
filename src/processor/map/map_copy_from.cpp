@@ -60,9 +60,9 @@ static void getRelColumnNamesInCopyOrder(TableCatalogEntry* tableEntry,
     columnNames.emplace_back(InternalKeyword::SRC_OFFSET);
     columnNames.emplace_back(InternalKeyword::DST_OFFSET);
     columnNames.emplace_back(InternalKeyword::ROW_OFFSET);
-    columnTypes.emplace_back(LogicalType(LogicalTypeID::INT64));
-    columnTypes.emplace_back(LogicalType(LogicalTypeID::INT64));
-    columnTypes.emplace_back(LogicalType(LogicalTypeID::INT64));
+    columnTypes.emplace_back(LogicalType(LogicalTypeID::INTERNAL_ID));
+    columnTypes.emplace_back(LogicalType(LogicalTypeID::INTERNAL_ID));
+    columnTypes.emplace_back(LogicalType(LogicalTypeID::INTERNAL_ID));
     auto& properties = tableEntry->getPropertiesRef();
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         columnNames.push_back(properties[i].getName());

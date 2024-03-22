@@ -122,12 +122,12 @@ void VarListColumnChunk::lookup(
 
 void VarListColumnChunk::write(
     ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity /*multiplicity*/) {
+    KU_ASSERT(dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     needFinalize = true;
     if (!indicesColumnChunk) {
         initializeIndices();
     }
     KU_ASSERT(chunk->getDataType().getPhysicalType() == dataType.getPhysicalType() &&
-              dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INT64 &&
               chunk->getNumValues() == dstOffsets->getNumValues());
     auto currentIndex = numValues;
     append(chunk, 0, chunk->getNumValues());
