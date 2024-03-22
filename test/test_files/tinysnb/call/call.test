@@ -54,6 +54,18 @@ True
 ---- 1
 False
 
+-LOG SetGetProgressBarTime
+-STATEMENT CALL progress_bar_time=4000
+---- ok
+-STATEMENT CALL current_setting('progress_bar_time') RETURN *
+---- 1
+4000
+-STATEMENT CALL progress_bar_time=0
+---- ok
+-STATEMENT CALL current_setting('progress_bar_time') RETURN *
+---- 1
+0
+
 -LOG disableSemihMaskOptimization
 -STATEMENT CALL enable_semi_mask=true
 ---- ok

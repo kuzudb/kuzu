@@ -1,7 +1,10 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
 #include <mutex>
+
+#include "common/metric.h"
 
 namespace kuzu {
 namespace common {
@@ -15,7 +18,8 @@ class ProgressBar {
 public:
     ProgressBar()
         : numPipelines{0}, numPipelinesFinished{0}, prevCurPipelineProgress{0.0},
-          trackProgress{false}, printing{false} {};
+          trackProgress{false}, printing{false}, queryTimer{std::make_unique<TimeMetric>(true)},
+          showProgressAfter{1000} {};
 
     void addPipeline();
 
@@ -31,6 +35,8 @@ public:
 
     void toggleProgressBarPrinting(bool enable);
 
+    void setShowProgressAfter(uint64_t showProgressAfter);
+
     void updateProgress(double curPipelineProgress);
 
 private:
@@ -38,9 +44,11 @@ private:
 
     inline void setDefaultFont() const { std::cerr << "\033[0m"; }
 
-    void printProgressBar(double curPipelineProgress) const;
+    void printProgressBar(double curPipelineProgress);
 
     void resetProgressBar();
+
+    bool shouldPrintProgress() const;
 
 private:
     uint32_t numPipelines;
@@ -49,6 +57,8 @@ private:
     std::mutex progressBarLock;
     bool trackProgress;
     bool printing;
+    std::unique_ptr<TimeMetric> queryTimer;
+    uint64_t showProgressAfter;
 };
 
 } // namespace common

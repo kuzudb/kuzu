@@ -56,6 +56,7 @@ ClientContext::ClientContext(Database* database) : database{database} {
     config.timeoutInMS = ClientConfigDefault::TIMEOUT_IN_MS;
     config.varLengthMaxDepth = ClientConfigDefault::VAR_LENGTH_MAX_DEPTH;
     config.enableProgressBar = ClientConfigDefault::ENABLE_PROGRESS_BAR;
+    config.showProgressAfter = ClientConfigDefault::SHOW_PROGRESS_AFTER;
 }
 
 uint64_t ClientContext::getTimeoutRemainingInMS() const {

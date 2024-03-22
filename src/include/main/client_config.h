@@ -21,6 +21,8 @@ struct ClientConfig {
     uint32_t varLengthMaxDepth;
     // If using progress bar
     bool enableProgressBar;
+    // time before displaying progress bar
+    uint64_t showProgressAfter;
 };
 
 struct ClientConfigDefault {
@@ -29,6 +31,7 @@ struct ClientConfigDefault {
     static constexpr uint32_t VAR_LENGTH_MAX_DEPTH = 30;
     static constexpr bool ENABLE_SEMI_MASK = true;
     static constexpr bool ENABLE_PROGRESS_BAR = true;
+    static constexpr uint64_t SHOW_PROGRESS_AFTER = 1000;
 };
 
 } // namespace main
