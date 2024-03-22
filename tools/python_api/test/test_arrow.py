@@ -84,8 +84,11 @@ _expected_dtypes = {
 
 
 def get_result(query_result: kuzu.QueryResult, result_type: str, chunk_size: int | None) -> Any:
-    sz = [] if chunk_size is None else [chunk_size]
-    return getattr(query_result, f"get_as_{result_type}")(*sz)
+    sz = [] if (chunk_size is None or result_type == "pl") else [chunk_size]
+    res = getattr(query_result, f"get_as_{result_type}")(*sz)
+    if result_type == "arrow" and chunk_size:
+        assert res[0].num_chunks == max((len(res) // chunk_size), 1)
+    return res
 
 
 def assert_column_equals(data: Any, col_name: str, return_type: str, expected_values: list[Any]) -> None:
