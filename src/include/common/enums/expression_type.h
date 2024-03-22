@@ -19,67 +19,6 @@ const char* const MIN_FUNC_NAME = "MIN";
 const char* const MAX_FUNC_NAME = "MAX";
 const char* const COLLECT_FUNC_NAME = "COLLECT";
 
-// cast
-const char* const CAST_FUNC_NAME = "CAST";
-const char* const CAST_DATE_FUNC_NAME = "DATE";
-const char* const CAST_TO_DATE_FUNC_NAME = "TO_DATE";
-const char* const CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";
-const char* const CAST_INTERVAL_FUNC_NAME = "INTERVAL";
-const char* const CAST_TO_INTERVAL_FUNC_NAME = "TO_INTERVAL";
-const char* const CAST_STRING_FUNC_NAME = "STRING";
-const char* const CAST_TO_STRING_FUNC_NAME = "TO_STRING";
-const char* const CAST_TO_DOUBLE_FUNC_NAME = "TO_DOUBLE";
-const char* const CAST_TO_FLOAT_FUNC_NAME = "TO_FLOAT";
-const char* const CAST_TO_SERIAL_FUNC_NAME = "TO_SERIAL";
-const char* const CAST_TO_INT64_FUNC_NAME = "TO_INT64";
-const char* const CAST_TO_INT32_FUNC_NAME = "TO_INT32";
-const char* const CAST_TO_INT16_FUNC_NAME = "TO_INT16";
-const char* const CAST_TO_INT8_FUNC_NAME = "TO_INT8";
-const char* const CAST_TO_UINT64_FUNC_NAME = "TO_UINT64";
-const char* const CAST_TO_UINT32_FUNC_NAME = "TO_UINT32";
-const char* const CAST_TO_UINT16_FUNC_NAME = "TO_UINT16";
-const char* const CAST_TO_UINT8_FUNC_NAME = "TO_UINT8";
-const char* const CAST_BLOB_FUNC_NAME = "BLOB";
-const char* const CAST_TO_BLOB_FUNC_NAME = "TO_BLOB";
-const char* const CAST_UUID_FUNC_NAME = "UUID";
-const char* const CAST_TO_UUID_FUNC_NAME = "TO_UUID";
-const char* const CAST_TO_BOOL_FUNC_NAME = "TO_BOOL";
-const char* const CAST_TO_INT128_FUNC_NAME = "TO_INT128";
-
-// list
-const char* const LIST_CREATION_FUNC_NAME = "LIST_CREATION";
-const char* const LIST_RANGE_FUNC_NAME = "RANGE";
-const char* const LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
-const char* const LIST_ELEMENT_FUNC_NAME = "LIST_ELEMENT";
-const char* const LIST_CONCAT_FUNC_NAME = "LIST_CONCAT";
-const char* const LIST_CAT_FUNC_NAME = "LIST_CAT";
-const char* const ARRAY_CONCAT_FUNC_NAME = "ARRAY_CONCAT";
-const char* const ARRAY_CAT_FUNC_NAME = "ARRAY_CAT";
-const char* const LIST_APPEND_FUNC_NAME = "LIST_APPEND";
-const char* const ARRAY_APPEND_FUNC_NAME = "ARRAY_APPEND";
-const char* const ARRAY_PUSH_BACK_FUNC_NAME = "ARRAY_PUSH_BACK";
-const char* const LIST_PREPEND_FUNC_NAME = "LIST_PREPEND";
-const char* const ARRAY_PREPEND_FUNC_NAME = "ARRAY_PREPEND";
-const char* const ARRAY_PUSH_FRONT_FUNC_NAME = "ARRAY_PUSH_FRONT";
-const char* const LIST_POSITION_FUNC_NAME = "LIST_POSITION";
-const char* const LIST_INDEXOF_FUNC_NAME = "LIST_INDEXOF";
-const char* const ARRAY_POSITION_FUNC_NAME = "ARRAY_POSITION";
-const char* const ARRAY_INDEXOF_FUNC_NAME = "ARRAY_INDEXOF";
-const char* const LIST_CONTAINS_FUNC_NAME = "LIST_CONTAINS";
-const char* const LIST_HAS_FUNC_NAME = "LIST_HAS";
-const char* const ARRAY_CONTAINS_FUNC_NAME = "ARRAY_CONTAINS";
-const char* const ARRAY_HAS_FUNC_NAME = "ARRAY_HAS";
-const char* const LIST_SLICE_FUNC_NAME = "LIST_SLICE";
-const char* const ARRAY_SLICE_FUNC_NAME = "ARRAY_SLICE";
-const char* const LIST_SUM_FUNC_NAME = "LIST_SUM";
-const char* const LIST_PRODUCT_FUNC_NAME = "LIST_PRODUCT";
-const char* const LIST_SORT_FUNC_NAME = "LIST_SORT";
-const char* const LIST_REVERSE_SORT_FUNC_NAME = "LIST_REVERSE_SORT";
-const char* const LIST_DISTINCT_FUNC_NAME = "LIST_DISTINCT";
-const char* const LIST_UNIQUE_FUNC_NAME = "LIST_UNIQUE";
-const char* const LIST_ANY_VALUE_FUNC_NAME = "LIST_ANY_VALUE";
-const char* const LIST_REVERSE_FUNC_NAME = "LIST_REVERSE";
-
 // struct
 const char* const STRUCT_PACK_FUNC_NAME = "STRUCT_PACK";
 const char* const STRUCT_EXTRACT_FUNC_NAME = "STRUCT_EXTRACT";
@@ -106,36 +45,7 @@ const char* const LESS_THAN_FUNC_NAME = "LESS_THAN";
 const char* const LESS_THAN_EQUALS_FUNC_NAME = "LESS_THAN_EQUALS";
 
 // string
-const char* const ARRAY_EXTRACT_FUNC_NAME = "ARRAY_EXTRACT";
-const char* const CONCAT_FUNC_NAME = "CONCAT";
-const char* const CONTAINS_FUNC_NAME = "CONTAINS";
-const char* const ENDS_WITH_FUNC_NAME = "ENDS_WITH";
-const char* const LCASE_FUNC_NAME = "LCASE";
-const char* const LEFT_FUNC_NAME = "LEFT";
 const char* const LENGTH_FUNC_NAME = "LENGTH";
-const char* const LOWER_FUNC_NAME = "LOWER";
-const char* const LPAD_FUNC_NAME = "LPAD";
-const char* const LTRIM_FUNC_NAME = "LTRIM";
-const char* const PREFIX_FUNC_NAME = "PREFIX";
-const char* const REPEAT_FUNC_NAME = "REPEAT";
-const char* const REVERSE_FUNC_NAME = "REVERSE";
-const char* const RIGHT_FUNC_NAME = "RIGHT";
-const char* const RPAD_FUNC_NAME = "RPAD";
-const char* const RTRIM_FUNC_NAME = "RTRIM";
-const char* const STARTS_WITH_FUNC_NAME = "STARTS_WITH";
-const char* const SUBSTR_FUNC_NAME = "SUBSTR";
-const char* const SUBSTRING_FUNC_NAME = "SUBSTRING";
-const char* const SUFFIX_FUNC_NAME = "SUFFIX";
-const char* const TRIM_FUNC_NAME = "TRIM";
-const char* const UCASE_FUNC_NAME = "UCASE";
-const char* const UPPER_FUNC_NAME = "UPPER";
-const char* const REGEXP_FULL_MATCH_FUNC_NAME = "REGEXP_FULL_MATCH";
-const char* const REGEXP_MATCHES_FUNC_NAME = "REGEXP_MATCHES";
-const char* const REGEXP_REPLACE_FUNC_NAME = "REGEXP_REPLACE";
-const char* const REGEXP_EXTRACT_FUNC_NAME = "REGEXP_EXTRACT";
-const char* const REGEXP_EXTRACT_ALL_FUNC_NAME = "REGEXP_EXTRACT_ALL";
-const char* const SIZE_FUNC_NAME = "SIZE";
-const char* const LEVENSHTEIN_FUNC_NAME = "LEVENSHTEIN";
 
 // Date functions.
 const char* const DATE_PART_FUNC_NAME = "DATE_PART";

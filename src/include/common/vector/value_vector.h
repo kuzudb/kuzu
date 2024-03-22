@@ -123,6 +123,7 @@ public:
     // Add empty string with space reserved for the provided size
     // Returned value can be modified to set the string contents
     static ku_string_t& reserveString(ValueVector* vector, uint32_t vectorPos, uint64_t length);
+    static void reserveString(ValueVector* vector, ku_string_t& dstStr, uint64_t length);
     static void addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr);
     static void addString(
         ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length);

@@ -3,3 +3,4 @@ def test_version() -> None:
 
     assert kuzu.version != ""
     assert kuzu.storage_version > 0
+    assert kuzu.version == kuzu.__version__
