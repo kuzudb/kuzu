@@ -201,10 +201,9 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 
 function_set ParallelCSVScan::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>(READ_CSV_PARALLEL_FUNC_NAME, tableFunc,
-            bindFunc, initSharedState, initLocalState, progressFunc,
-            std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    functionSet.push_back(std::make_unique<TableFunction>(READ_CSV_PARALLEL_FUNC_NAME, tableFunc,
+        bindFunc, initSharedState, initLocalState, progressFunc,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
