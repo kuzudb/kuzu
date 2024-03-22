@@ -46,7 +46,7 @@ private:
     }
 
     template<typename FUNC>
-    static inline std::unique_ptr<ScalarFunction> getFunction(
+    static std::unique_ptr<ScalarFunction> getFunction(
         const std::string& name, common::LogicalTypeID leftType, common::LogicalTypeID rightType) {
         auto leftPhysical = common::LogicalType::getPhysicalType(leftType);
         auto rightPhysical = common::LogicalType::getPhysicalType(rightType);
@@ -196,40 +196,50 @@ private:
 };
 
 struct EqualsFunction {
-    static inline function_set getFunctionSet() {
-        return ComparisonFunction::getFunctionSet<Equals>(common::EQUALS_FUNC_NAME);
+    static constexpr const char* name = "EQUALS";
+
+    static function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<Equals>(name);
     }
 };
 
 struct NotEqualsFunction {
-    static inline function_set getFunctionSet() {
-        return ComparisonFunction::getFunctionSet<NotEquals>(common::NOT_EQUALS_FUNC_NAME);
+    static constexpr const char* name = "NOT_EQUALS";
+
+    static function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<NotEquals>(name);
     }
 };
 
 struct GreaterThanFunction {
-    static inline function_set getFunctionSet() {
-        return ComparisonFunction::getFunctionSet<GreaterThan>(common::GREATER_THAN_FUNC_NAME);
+    static constexpr const char* name = "GREATER_THAN";
+
+    static function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<GreaterThan>(name);
     }
 };
 
 struct GreaterThanEqualsFunction {
-    static inline function_set getFunctionSet() {
-        return ComparisonFunction::getFunctionSet<GreaterThanEquals>(
-            common::GREATER_THAN_EQUALS_FUNC_NAME);
+    static constexpr const char* name = "GREATER_THAN_EQUALS";
+
+    static function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<GreaterThanEquals>(name);
     }
 };
 
 struct LessThanFunction {
-    static inline function_set getFunctionSet() {
-        return ComparisonFunction::getFunctionSet<LessThan>(common::LESS_THAN_FUNC_NAME);
+    static constexpr const char* name = "LESS_THAN";
+
+    static function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<LessThan>(name);
     }
 };
 
 struct LessThanEqualsFunction {
-    static inline function_set getFunctionSet() {
-        return ComparisonFunction::getFunctionSet<LessThanEquals>(
-            common::LESS_THAN_EQUALS_FUNC_NAME);
+    static constexpr const char* name = "LESS_THAN_EQUALS";
+
+    static function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<LessThanEquals>(name);
     }
 };
 

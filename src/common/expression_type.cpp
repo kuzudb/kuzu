@@ -1,6 +1,9 @@
 #include "common/enums/expression_type.h"
 
 #include "common/assert.h"
+#include "function/comparison/vector_comparison_functions.h"
+
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace common {
@@ -54,17 +57,17 @@ std::string expressionTypeToString(ExpressionType type) {
     case ExpressionType::NOT:
         return "NOT";
     case ExpressionType::EQUALS:
-        return EQUALS_FUNC_NAME;
+        return EqualsFunction::name;
     case ExpressionType::NOT_EQUALS:
-        return NOT_EQUALS_FUNC_NAME;
+        return NotEqualsFunction::name;
     case ExpressionType::GREATER_THAN:
-        return GREATER_THAN_FUNC_NAME;
+        return GreaterThanFunction::name;
     case ExpressionType::GREATER_THAN_EQUALS:
-        return GREATER_THAN_EQUALS_FUNC_NAME;
+        return GreaterThanEqualsFunction::name;
     case ExpressionType::LESS_THAN:
-        return LESS_THAN_FUNC_NAME;
+        return LessThanFunction::name;
     case ExpressionType::LESS_THAN_EQUALS:
-        return LESS_THAN_EQUALS_FUNC_NAME;
+        return LessThanEqualsFunction::name;
     case ExpressionType::IS_NULL:
         return "IS_NULL";
     case ExpressionType::IS_NOT_NULL:

@@ -6,6 +6,7 @@
 #include "common/cast.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "function/struct/vector_struct_functions.h"
 #include "parser/expression/parsed_property_expression.h"
 
 using namespace kuzu::common;
@@ -103,7 +104,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindStructPropertyExpression(
     std::shared_ptr<Expression> child, const std::string& propertyName) {
     auto children =
         expression_vector{std::move(child), createStringLiteralExpression(propertyName)};
-    return bindScalarFunctionExpression(children, STRUCT_EXTRACT_FUNC_NAME);
+    return bindScalarFunctionExpression(children, function::StructExtractFunctions::name);
 }
 
 } // namespace binder
