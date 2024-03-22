@@ -49,7 +49,15 @@ public:
 
 template<typename T>
 struct SlotEntry {
-    uint8_t data[sizeof(T) + sizeof(common::offset_t)];
+    T key;
+    common::offset_t value;
+
+    inline uint8_t* data() const { return (uint8_t*)&key; }
+
+    // otherEntry must be a pointer to the beginning of another slot's key field
+    inline void copyFrom(const uint8_t* otherEntry) {
+        memcpy(data(), otherEntry, sizeof(SlotEntry<T>));
+    }
 };
 
 template<typename T>
