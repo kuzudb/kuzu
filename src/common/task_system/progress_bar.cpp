@@ -30,6 +30,9 @@ void ProgressBar::finishPipeline() {
         return;
     }
     numPipelinesFinished++;
+    if (printing) {
+        std::cout << "\033[1A\033[2K\033[1B";
+    }
     // This ensures that the progress bar is updated back to 0% after a pipeline is finished.
     prevCurPipelineProgress = -0.01;
     updateProgress(0.0);

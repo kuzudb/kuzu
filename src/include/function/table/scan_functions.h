@@ -33,7 +33,10 @@ struct ScanFileSharedState : public ScanSharedState {
 
     ScanFileSharedState(
         common::ReaderConfig readerConfig, uint64_t numRows, main::ClientContext* context)
-        : ScanSharedState{std::move(readerConfig), numRows}, context{context} {}
+        : ScanSharedState{std::move(readerConfig), numRows}, context{context}, fileSize{0}, fileOffset{0} {}
+
+    uint64_t fileSize;
+    uint64_t fileOffset;
 };
 
 } // namespace function

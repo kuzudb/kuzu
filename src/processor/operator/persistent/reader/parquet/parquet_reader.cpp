@@ -563,6 +563,7 @@ ParquetScanSharedState::ParquetScanSharedState(
     : ScanFileSharedState{std::move(readerConfig), numRows, context} {
     readers.push_back(
         std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx], context));
+    numRowsRead = 0;
 }
 
 static bool parquetSharedStateNext(
@@ -601,9 +602,11 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     do {
         parquetScanLocalState->reader->scan(*parquetScanLocalState->state, outputChunk);
         if (outputChunk.state->selVector->selectedSize > 0) {
+            parquetScanSharedState->numRowsRead += outputChunk.state->selVector->selectedSize;
             return outputChunk.state->selVector->selectedSize;
         }
         if (!parquetSharedStateNext(*parquetScanLocalState, *parquetScanSharedState)) {
+            parquetScanSharedState->numRowsRead += outputChunk.state->selVector->selectedSize;
             return outputChunk.state->selVector->selectedSize;
         }
     } while (true);
@@ -674,11 +677,19 @@ static std::unique_ptr<function::TableFuncLocalState> initLocalState(
     return localState;
 }
 
+static double progressFunc(TableFuncSharedState* state) {
+    auto parquetScanSharedState = reinterpret_cast<ParquetScanSharedState*>(state);
+    if (parquetScanSharedState->numRows == 0) {
+        return 0.0;
+    }
+    return parquetScanSharedState->numRowsRead / (double)parquetScanSharedState->numRows;
+}
+
 function_set ParquetScanFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
         std::make_unique<TableFunction>(READ_PARQUET_FUNC_NAME, tableFunc, bindFunc,
-            initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+            initSharedState, initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
