@@ -5,6 +5,7 @@
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "common/exception/binder.h"
+#include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "function/table/bind_input.h"
@@ -12,6 +13,7 @@
 #include "main/database.h"
 #include "main/database_manager.h"
 #include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_variable_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/load_from.h"
 #include "parser/query/reading_clause/match_clause.h"
@@ -114,28 +116,52 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto expr = call.getFunctionExpression();
     auto functionExpr =
         ku_dynamic_cast<const ParsedExpression*, const ParsedFunctionExpression*>(expr);
-    std::vector<Value> inputValues;
+    // Bind parameters
+    std::unique_ptr<ScanReplacementData> replacementData;
+    expression_vector params;
     for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
-        auto parameter = expressionBinder.bindExpression(*functionExpr->getChild(i));
-        if (parameter->expressionType != ExpressionType::LITERAL) {
-            throw BinderException{
-                stringFormat("Cannot evaluate {} as a literal.", parameter->toString())};
+        auto child = functionExpr->getChild(i);
+        try {
+            params.push_back(expressionBinder.bindExpression(*child));
+        } catch (BinderException& exception) {
+            if (child->getExpressionType() != ExpressionType::VARIABLE) {
+                throw BinderException(exception.what()); // Cannot replace. Rethrow.
+            }
+            // Try replacement.
+            auto varExpr = ku_dynamic_cast<ParsedExpression*, ParsedVariableExpression*>(child);
+            auto var = varExpr->getVariableName();
+            replacementData = clientContext->tryReplace(var);
+            if (replacementData == nullptr) { // Replacement fail.
+                throw BinderException(ExceptionMessage::variableNotInScope(var));
+            }
         }
-        auto literalExpr =
-            ku_dynamic_cast<const Expression*, const LiteralExpression*>(parameter.get());
-        inputValues.push_back(*literalExpr->getValue());
     }
-    std::vector<LogicalType> inputTypes;
-    for (auto& val : inputValues) {
-        inputTypes.push_back(*val.getDataType());
+    TableFunction tableFunction;
+    std::unique_ptr<TableFuncBindData> bindData;
+    if (replacementData) {
+        tableFunction = replacementData->func;
+        bindData = tableFunction.bindFunc(clientContext, &replacementData->bindInput);
+    } else {
+        std::vector<Value> inputValues;
+        std::vector<LogicalType> inputTypes;
+        for (auto& param : params) {
+            if (param->expressionType != ExpressionType::LITERAL) {
+                throw BinderException{
+                    stringFormat("Cannot evaluate {} as a literal.", param->toString())};
+            }
+            auto literalExpr =
+                ku_dynamic_cast<const Expression*, const LiteralExpression*>(param.get());
+            inputTypes.push_back(literalExpr->getDataType());
+            inputValues.push_back(*literalExpr->getValue());
+        }
+        auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
+        auto func = BuiltInFunctionsUtils::matchFunction(
+            functionExpr->getFunctionName(), inputTypes, functions);
+        tableFunction = *ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
+        auto bindInput = function::TableFuncBindInput();
+        bindInput.inputs = std::move(inputValues);
+        bindData = tableFunction.bindFunc(clientContext, &bindInput);
     }
-    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
-    auto func = BuiltInFunctionsUtils::matchFunction(
-        functionExpr->getFunctionName(), inputTypes, functions);
-    auto tableFunc = ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
-    auto bindInput = std::make_unique<function::TableFuncBindInput>();
-    bindInput->inputs = std::move(inputValues);
-    auto bindData = tableFunc->bindFunc(clientContext, bindInput.get());
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
@@ -143,7 +169,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto offset = expressionBinder.createVariableExpression(
         *LogicalType::INT64(), std::string(InternalKeyword::ROW_OFFSET));
     auto boundInQueryCall = std::make_unique<BoundInQueryCall>(
-        *tableFunc, std::move(bindData), std::move(columns), offset);
+        tableFunction, std::move(bindData), std::move(columns), offset);
     if (call.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*call.getWherePredicate());
         boundInQueryCall->setPredicate(std::move(wherePredicate));
@@ -153,23 +179,21 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
 
 std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& readingClause) {
     auto& loadFrom = ku_dynamic_cast<const ReadingClause&, const LoadFrom&>(readingClause);
-    function::TableFunction scanFunction;
-    std::unique_ptr<TableFuncBindInput> bindInput;
+    TableFunction scanFunction;
+    std::unique_ptr<TableFuncBindData> bindData;
     auto source = loadFrom.getSource();
     switch (source->type) {
     case ScanSourceType::OBJECT: {
         auto objectSource = ku_dynamic_cast<BaseScanSource*, ObjectScanSource*>(source);
         auto objectName = objectSource->objectName;
         if (objectName.find("_") == std::string::npos) {
-            auto objectExpr = expressionBinder.bindVariableExpression(objectName);
-            auto literalExpr =
-                ku_dynamic_cast<const Expression*, const LiteralExpression*>(objectExpr.get());
-            auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
-            auto func = BuiltInFunctionsUtils::matchFunction(READ_PANDAS_FUNC_NAME,
-                std::vector<LogicalType>{objectExpr->getDataType()}, functions);
-            scanFunction = *ku_dynamic_cast<Function*, TableFunction*>(func);
-            bindInput = std::make_unique<function::TableFuncBindInput>();
-            bindInput->inputs.push_back(*literalExpr->getValue());
+            // Bind table
+            auto replacementData = clientContext->tryReplace(objectName);
+            if (replacementData == nullptr) {
+                throw BinderException(ExceptionMessage::variableNotInScope(objectName));
+            }
+            scanFunction = replacementData->func;
+            bindData = scanFunction.bindFunc(clientContext, &replacementData->bindInput);
         } else {
             auto dbName = common::StringUtils::split(objectName, "_")[0];
             auto attachedDB =
@@ -184,7 +208,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
             auto tableCatalogEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
                 attachedDB->getCatalogContent()->getTableCatalogEntry(tableID));
             scanFunction = tableCatalogEntry->getScanFunction();
-            bindInput = std::make_unique<function::TableFuncBindInput>();
+            auto bindInput = function::TableFuncBindInput();
+            bindData = scanFunction.bindFunc(clientContext, &bindInput);
         }
     } break;
     case ScanSourceType::FILE: {
@@ -213,16 +238,13 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
             expectedColumnTypes.push_back(*bindDataType(type));
         }
         scanFunction = getScanFunction(readerConfig->fileType, *readerConfig);
-        auto bindInput_ = std::make_unique<ScanTableFuncBindInput>(readerConfig->copy());
-        bindInput_->expectedColumnNames = std::move(expectedColumnNames);
-        bindInput_->expectedColumnTypes = std::move(expectedColumnTypes);
-        bindInput_->context = clientContext;
-        bindInput = std::move(bindInput_);
+        auto bindInput = ScanTableFuncBindInput(readerConfig->copy(),
+            std::move(expectedColumnNames), std::move(expectedColumnTypes), clientContext);
+        bindData = scanFunction.bindFunc(clientContext, &bindInput);
     } break;
     default:
         throw BinderException(stringFormat("LOAD FROM subquery is not supported."));
     }
-    auto bindData = scanFunction.bindFunc(clientContext, bindInput.get());
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));

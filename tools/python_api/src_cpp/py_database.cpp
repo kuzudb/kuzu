@@ -2,6 +2,7 @@
 
 #include "include/cached_import/py_cached_import.h"
 #include "pandas/pandas_scan.h"
+#include "pyarrow/pyarrow_scan.h"
 
 #include <memory>
 

@@ -4,17 +4,8 @@
 #include "function.h"
 
 namespace kuzu {
-namespace catalog {
-class Catalog;
-} // namespace catalog
-namespace common {
-class ValueVector;
-}
 namespace main {
 class ClientContext;
-}
-namespace storage {
-class StorageManager;
 }
 
 namespace function {
@@ -73,7 +64,7 @@ using table_func_init_local_t = std::function<std::unique_ptr<TableFuncLocalStat
     TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*)>;
 using table_func_can_parallel_t = std::function<bool()>;
 
-struct TableFunction : public Function {
+struct TableFunction final : public Function {
     table_func_t tableFunc;
     table_func_bind_t bindFunc;
     table_func_init_shared_t initSharedStateFunc;

@@ -33,7 +33,7 @@ void PyConnection::initialize(py::handle& m) {
 PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(pyDatabase->database.get());
     conn = std::make_unique<Connection>(pyDatabase->database.get());
-    conn->setReplaceFunc(kuzu::replacePD);
+    conn->getClientContext()->addScanReplace(function::ScanReplacement(kuzu::replacePD));
     if (numThreads > 0) {
         conn->setMaxNumThreadForExec(numThreads);
     }

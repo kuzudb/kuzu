@@ -21,6 +21,14 @@ std::string ExceptionMessage::invalidPKType(const std::string& type) {
         type);
 }
 
+std::string ExceptionMessage::nullPKException() {
+    return "Found NULL, which violates the non-null constraint of the primary key column.";
+}
+
+std::string ExceptionMessage::notAllowCopyOnNonEmptyTableException() {
+    return "COPY commands can only be executed once on a table.";
+}
+
 std::string ExceptionMessage::overLargeStringPKValueException(uint64_t length) {
     return stringFormat("The maximum length of primary key strings is 262144 bytes. The input "
                         "string's length was {}.",
@@ -45,6 +53,10 @@ std::string ExceptionMessage::violateRelMultiplicityConstraint(
     return stringFormat("Node(nodeOffset: {}) has more than one neighbour in table {} in the {} "
                         "direction, which violates the rel multiplicity constraint.",
         offset, tableName, direction);
+}
+
+std::string ExceptionMessage::variableNotInScope(const std::string& varName) {
+    return stringFormat("Variable {} is not in scope.", varName);
 }
 
 } // namespace common

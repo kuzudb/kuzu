@@ -30,6 +30,7 @@ struct ReaderConfig {
     std::vector<std::string> filePaths;
     std::unordered_map<std::string, Value> options;
 
+    ReaderConfig() = default;
     ReaderConfig(FileType fileType, std::vector<std::string> filePaths)
         : fileType{fileType}, filePaths{std::move(filePaths)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ReaderConfig);

@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <mutex>
 
@@ -11,6 +10,7 @@
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/function.h"
+#include "function/table/scan_replacement.h"
 #include "main/kuzu_fwd.h"
 #include "parser/statement.h"
 #include "prepared_statement.h"
@@ -42,8 +42,6 @@ struct ActiveQuery {
 
     void reset();
 };
-
-using replace_func_t = std::function<std::unique_ptr<common::Value>(common::Value*)>;
 
 /**
  * @brief Contain client side configuration. We make profiler associated per query, so profiler is
@@ -83,9 +81,8 @@ public:
     common::ProgressBar* getProgressBar() const;
 
     // Replace function.
-    inline bool hasReplaceFunc() { return replaceFunc != nullptr; }
-    inline void setReplaceFunc(replace_func_t func) { replaceFunc = func; }
-
+    void addScanReplace(function::ScanReplacement scanReplacement);
+    std::unique_ptr<function::ScanReplacementData> tryReplace(const std::string& objectName) const;
     // Extension
     KUZU_API void setExtensionOption(std::string name, common::Value value);
     extension::ExtensionOptions* getExtensionOptions() const;
@@ -151,7 +148,7 @@ private:
     // Transaction context.
     std::unique_ptr<transaction::TransactionContext> transactionContext;
     // Replace external object as pointer Value;
-    replace_func_t replaceFunc;
+    std::vector<function::ScanReplacement> scanReplacements;
     // Extension configurable settings.
     std::unordered_map<std::string, common::Value> extensionOptionValues;
     // Random generator for UUID.

@@ -6,7 +6,6 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/table_type.h"
 #include "common/exception/binder.h"
-#include "common/exception/message.h"
 #include "common/string_format.h"
 #include "function/table/bind_input.h"
 #include "main/client_context.h"
@@ -37,7 +36,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
         columnTypes.push_back(column->getDataType());
     }
     if (fileType != FileType::CSV && fileType != FileType::PARQUET) {
-        throw BinderException(ExceptionMessage::validateCopyToCSVParquetExtensionsException());
+        throw BinderException("COPY TO currently only supports csv and parquet files.");
     }
     if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
         throw BinderException{"Only copy to csv can have options."};

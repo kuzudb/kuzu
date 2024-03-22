@@ -51,13 +51,17 @@ public:
     }
 
     bool setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOffset, uint64_t dstOffset,
-        uint64_t numBitsToCopy);
+        uint64_t numBitsToCopy, bool invert = false);
 
     uint32_t getNumBytesPerValue() const { return numBytesPerValue; }
 
     // TODO(Guodong): Rename this to getValueRef
     template<typename T>
-    inline T& getValue(uint32_t pos) const {
+    const T& getValue(uint32_t pos) const {
+        return ((T*)valueBuffer.get())[pos];
+    }
+    template<typename T>
+    T& getValue(uint32_t pos) {
         return ((T*)valueBuffer.get())[pos];
     }
     template<typename T>
