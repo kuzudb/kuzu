@@ -68,8 +68,7 @@ public:
         if (!preparedStatement->success) {
             ASSERT_TRUE(false) << preparedStatement->errMsg;
         }
-        auto mapper = PlanMapper(*getStorageManager(*database), getMemoryManager(*database),
-            getCatalog(*database), conn->getClientContext());
+        auto mapper = PlanMapper(conn->getClientContext());
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());
@@ -138,8 +137,7 @@ public:
         conn->query(copyPersonTableCMD);
         conn->query(createKnowsTableCMD);
         auto preparedStatement = conn->prepare(copyKnowsTableCMD);
-        auto mapper = PlanMapper(*getStorageManager(*database), getMemoryManager(*database),
-            getCatalog(*database), conn->getClientContext());
+        auto mapper = PlanMapper(conn->getClientContext());
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());

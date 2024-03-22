@@ -14,6 +14,7 @@ using namespace kuzu::common;
 
 void CreateRdfGraph::executeDDLInternal(ExecutionContext* context) {
     auto tx = context->clientContext->getTx();
+    auto catalog = context->clientContext->getCatalog();
     auto newRdfGraphID = catalog->addRdfGraphSchema(info);
     auto rdfGraphEntry = common::ku_dynamic_cast<TableCatalogEntry*, RDFGraphCatalogEntry*>(
         catalog->getTableCatalogEntry(tx, newRdfGraphID));

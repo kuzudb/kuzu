@@ -33,10 +33,8 @@ struct PartitionerSharedState;
 class PlanMapper {
 public:
     // Create plan mapper with default mapper context.
-    PlanMapper(storage::StorageManager& storageManager, storage::MemoryManager* memoryManager,
-        catalog::Catalog* catalog, main::ClientContext* clientContext)
-        : storageManager{storageManager}, memoryManager{memoryManager}, expressionMapper{},
-          catalog{catalog}, clientContext{clientContext}, physicalOperatorID{0} {}
+    PlanMapper(main::ClientContext* clientContext)
+        : expressionMapper{}, clientContext{clientContext}, physicalOperatorID{0} {}
 
     std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
         planner::LogicalPlan* logicalPlan, const binder::expression_vector& expressionsToCollect);
@@ -194,10 +192,7 @@ private:
     }
 
 public:
-    storage::StorageManager& storageManager;
-    storage::MemoryManager* memoryManager;
     ExpressionMapper expressionMapper;
-    catalog::Catalog* catalog;
     main::ClientContext* clientContext;
 
 private:

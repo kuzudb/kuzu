@@ -8,9 +8,9 @@ namespace processor {
 
 class DDL : public PhysicalOperator {
 public:
-    DDL(PhysicalOperatorType operatorType, catalog::Catalog* catalog, const DataPos& outputPos,
-        uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog}, outputPos{outputPos},
+    DDL(PhysicalOperatorType operatorType, const DataPos& outputPos, uint32_t id,
+        const std::string& paramsString)
+        : PhysicalOperator{operatorType, id, paramsString}, outputPos{outputPos},
           outputVector{nullptr}, hasExecuted{false} {}
 
     bool isSource() const final { return true; }
@@ -25,7 +25,6 @@ protected:
     virtual void executeDDLInternal(ExecutionContext* context) = 0;
 
 protected:
-    catalog::Catalog* catalog;
     DataPos outputPos;
     common::ValueVector* outputVector;
 

@@ -11,6 +11,8 @@ namespace kuzu {
 namespace processor {
 
 void CreateNodeTable::executeDDLInternal(ExecutionContext* context) {
+    auto catalog = context->clientContext->getCatalog();
+    auto storageManager = context->clientContext->getStorageManager();
     auto newTableID = catalog->addNodeTableSchema(info);
     auto newNodeTableEntry = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(
         catalog->getTableCatalogEntry(context->clientContext->getTx(), newTableID));

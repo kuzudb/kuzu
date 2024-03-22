@@ -102,7 +102,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteRel(LogicalOperator* logi
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<std::unique_ptr<RelDeleteExecutor>> Executors;
     for (auto& rel : logicalDeleteRel->getRelsRef()) {
-        Executors.push_back(getRelDeleteExecutor(storageManager, *rel, *inSchema));
+        Executors.push_back(
+            getRelDeleteExecutor(*clientContext->getStorageManager(), *rel, *inSchema));
     }
     return std::make_unique<DeleteRel>(std::move(Executors), std::move(prevOperator),
         getOperatorID(), logicalOperator->getExpressionsForPrinting());

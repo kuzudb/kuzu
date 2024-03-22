@@ -12,6 +12,8 @@ namespace kuzu {
 namespace processor {
 
 void CreateRelTable::executeDDLInternal(ExecutionContext* context) {
+    auto catalog = context->clientContext->getCatalog();
+    auto storageManager = context->clientContext->getStorageManager();
     auto newTableID = catalog->addRelTableSchema(info);
     auto newRelTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
         catalog->getTableCatalogEntry(context->clientContext->getTx(), newTableID));

@@ -9,9 +9,8 @@ namespace binder {
 class QueryGraphLabelAnalyzer {
 public:
     // TODO(Jiamin): remove catalog
-    explicit QueryGraphLabelAnalyzer(
-        const catalog::Catalog& catalog, const main::ClientContext& clientContext)
-        : catalog{catalog}, clientContext{clientContext} {}
+    explicit QueryGraphLabelAnalyzer(const main::ClientContext& clientContext)
+        : clientContext{clientContext} {}
 
     void pruneLabel(const QueryGraph& graph);
 
@@ -20,7 +19,6 @@ private:
     void pruneRel(RelExpression& rel);
 
 private:
-    const catalog::Catalog& catalog;
     const main::ClientContext& clientContext;
 };
 

@@ -11,11 +11,9 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace planner {
 
-Planner::Planner(
-    Catalog* catalog, StorageManager* storageManager, main::ClientContext* clientContext)
-    : catalog{catalog}, clientContext{clientContext} {
-    auto nStats = storageManager->getNodesStatisticsAndDeletedIDs();
-    auto rStats = storageManager->getRelsStatistics();
+Planner::Planner(main::ClientContext* clientContext) : clientContext{clientContext} {
+    auto nStats = clientContext->getStorageManager()->getNodesStatisticsAndDeletedIDs();
+    auto rStats = clientContext->getStorageManager()->getRelsStatistics();
     cardinalityEstimator = CardinalityEstimator(nStats, rStats);
     context = JoinOrderEnumeratorContext();
 }

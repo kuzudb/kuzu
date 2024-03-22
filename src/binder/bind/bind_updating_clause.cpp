@@ -96,7 +96,7 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(
     const QueryGraphCollection& queryGraphCollection, const expression_set& nodeRelScope_) {
     auto nodeRelScope = nodeRelScope_;
     std::vector<BoundInsertInfo> result;
-    auto analyzer = QueryGraphLabelAnalyzer(*clientContext->getCatalog(), *clientContext);
+    auto analyzer = QueryGraphLabelAnalyzer(*clientContext);
     for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
         auto queryGraph = queryGraphCollection.getQueryGraph(i);
         // Ensure query graph does not violate declared schema.

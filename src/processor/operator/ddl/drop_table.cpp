@@ -8,8 +8,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void DropTable::executeDDLInternal(ExecutionContext* /*context*/) {
-    catalog->dropTableSchema(tableID);
+void DropTable::executeDDLInternal(ExecutionContext* context) {
+    context->clientContext->getCatalog()->dropTableSchema(tableID);
 }
 
 std::string DropTable::getOutputMsg() {
