@@ -1,7 +1,5 @@
 #pragma once
 
-#include <sstream>
-
 #include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/types/value/value.h"
@@ -23,16 +21,11 @@ struct CSVOption {
           hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER} {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
+    // TODO: COPY FROM and COPY TO should support transform special options, like '\'.
     std::string toCypher() const {
-        std::stringstream ss;
-        ss << " (escape = '\\" << escapeChar << "' , delim = '" << delimiter << "' , quote = '\\"
-           << quoteChar << "', header=";
-        if (hasHeader) {
-            ss << "true);";
-        } else {
-            ss << "false);";
-        }
-        return ss.str();
+        std::string header = hasHeader ? "true" : "false";
+        return stringFormat("(escape ='\\{}', delim ='{}', quote='\\{}', header={})", escapeChar,
+            delimiter, quoteChar, header);
     }
 
 private:
