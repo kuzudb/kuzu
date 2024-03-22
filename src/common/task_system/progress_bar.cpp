@@ -4,11 +4,11 @@ namespace kuzu {
 namespace common {
 
 void ProgressBar::startProgress() {
-    queryTimer->start();
     if (!trackProgress) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
+    queryTimer->start();
     printProgressBar(0.0);
 }
 
@@ -81,7 +81,9 @@ void ProgressBar::resetProgressBar() {
 }
 
 bool ProgressBar::shouldPrintProgress() const {
-    queryTimer->stop();
+    if (queryTimer->isStarted) {
+        queryTimer->stop();
+    }
     bool shouldPrint = queryTimer->getElapsedTimeMS() > showProgressAfter;
     queryTimer->start();
     return shouldPrint;
