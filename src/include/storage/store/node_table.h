@@ -6,7 +6,7 @@
 #include "common/cast.h"
 #include "storage/index/hash_index.h"
 #include "storage/stats/nodes_store_statistics.h"
-#include "storage/store/node_group.h"
+#include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table_data.h"
 #include "storage/store/table.h"
 

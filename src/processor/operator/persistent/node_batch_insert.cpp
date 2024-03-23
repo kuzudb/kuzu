@@ -158,7 +158,7 @@ void NodeBatchInsert::copyToNodeGroup() {
     while (numAppendedTuples < numTuplesToAppend) {
         auto numAppendedTuplesInNodeGroup =
             nodeLocalState->nodeGroup->append(nodeLocalState->columnVectors,
-                nodeLocalState->columnState, numTuplesToAppend - numAppendedTuples);
+                *nodeLocalState->columnState->selVector, numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
         if (nodeLocalState->nodeGroup->isFull()) {
             node_group_idx_t nodeGroupIdx;

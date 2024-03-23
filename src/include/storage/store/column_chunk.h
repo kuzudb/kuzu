@@ -48,6 +48,7 @@ public:
     }
 
     inline NullColumnChunk* getNullChunk() { return nullChunk.get(); }
+    inline const NullColumnChunk& getNullChunk() const { return *nullChunk; }
     inline common::LogicalType& getDataType() { return dataType; }
     inline const common::LogicalType& getDataType() const { return dataType; }
 

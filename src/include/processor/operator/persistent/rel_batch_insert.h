@@ -3,8 +3,8 @@
 #include "common/enums/rel_direction.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/batch_insert.h"
+#include "storage/store/chunked_node_group.h"
 #include "storage/store/column_chunk.h"
-#include "storage/store/node_group.h"
 
 namespace kuzu {
 namespace processor {
@@ -12,18 +12,18 @@ namespace processor {
 struct RelBatchInsertInfo final : public BatchInsertInfo {
     common::RelDataDirection direction;
     uint64_t partitioningIdx;
-    common::vector_idx_t offsetVectorIdx;
+    common::column_id_t offsetColumnID;
     std::vector<common::LogicalType> columnTypes;
 
     RelBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         common::RelDataDirection direction, uint64_t partitioningIdx,
-        common::vector_idx_t offsetVectorIdx, std::vector<common::LogicalType> columnTypes)
+        common::column_id_t offsetColumnID, std::vector<common::LogicalType> columnTypes)
         : BatchInsertInfo{tableEntry, compressionEnabled}, direction{direction},
-          partitioningIdx{partitioningIdx}, offsetVectorIdx{offsetVectorIdx}, columnTypes{std::move(
-                                                                                  columnTypes)} {}
+          partitioningIdx{partitioningIdx}, offsetColumnID{offsetColumnID}, columnTypes{std::move(
+                                                                                columnTypes)} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled}, direction{other.direction},
-          partitioningIdx{other.partitioningIdx}, offsetVectorIdx{other.offsetVectorIdx},
+          partitioningIdx{other.partitioningIdx}, offsetColumnID{other.offsetColumnID},
           columnTypes{common::LogicalType::copy(other.columnTypes)} {}
 
     inline std::unique_ptr<BatchInsertInfo> copy() const override {
@@ -60,20 +60,20 @@ public:
     }
 
 private:
-    void prepareCSRNodeGroup(PartitioningBuffer::Partition& partition,
-        common::offset_t startNodeOffset, common::vector_idx_t offsetVectorIdx,
+    void prepareCSRNodeGroup(storage::ChunkedNodeGroupCollection& partition,
+        common::offset_t startNodeOffset, common::column_id_t offsetColumnID,
         common::offset_t numNodes);
 
     static common::length_t getGapSize(common::length_t length);
     static std::vector<common::offset_t> populateStartCSROffsetsAndLengths(
         storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
-        PartitioningBuffer::Partition& partition, common::vector_idx_t offsetVectorIdx);
+        storage::ChunkedNodeGroupCollection& partition, common::column_id_t offsetColumnID);
     static void populateEndCSROffsets(
         storage::ChunkedCSRHeader& csrHeader, std::vector<common::offset_t>& gaps);
     static void setOffsetToWithinNodeGroup(
         storage::ColumnChunk& chunk, common::offset_t startOffset);
     static void setOffsetFromCSROffsets(
-        storage::ColumnChunk* nodeOffsetChunk, storage::ColumnChunk* csrOffsetChunk);
+        storage::ColumnChunk& nodeOffsetChunk, storage::ColumnChunk& csrOffsetChunk);
 
     // We only check rel multiplcity constraint (MANY_ONE, ONE_ONE) for now.
     std::optional<common::offset_t> checkRelMultiplicityConstraint(

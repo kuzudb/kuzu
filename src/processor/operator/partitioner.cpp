@@ -3,7 +3,6 @@
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "processor/execution_context.h"
-#include "storage/store/column_chunk.h"
 #include "storage/store/node_table.h"
 
 using namespace kuzu::common;
@@ -37,7 +36,7 @@ static partition_idx_t getNumPartitions(offset_t maxOffset) {
     return (maxOffset + StorageConstants::NODE_GROUP_SIZE) / StorageConstants::NODE_GROUP_SIZE;
 }
 
-void PartitionerSharedState::initialize() {
+void PartitionerSharedState::initialize(std::vector<std::unique_ptr<PartitioningInfo>>& infos) {
     maxNodeOffsets.resize(2);
     maxNodeOffsets[0] =
         srcNodeTable->getMaxNodeOffset(transaction::Transaction::getDummyWriteTrx().get());
@@ -46,7 +45,7 @@ void PartitionerSharedState::initialize() {
     numPartitions.resize(2);
     numPartitions[0] = getNumPartitions(maxNodeOffsets[0]);
     numPartitions[1] = getNumPartitions(maxNodeOffsets[1]);
-    Partitioner::initializePartitioningStates(partitioningBuffers, numPartitions);
+    Partitioner::initializePartitioningStates(infos, partitioningBuffers, numPartitions);
 }
 
 partition_idx_t PartitionerSharedState::getNextPartition(vector_idx_t partitioningIdx) {
@@ -77,11 +76,7 @@ void PartitioningBuffer::merge(std::unique_ptr<PartitioningBuffer> localPartitio
     for (auto partitionIdx = 0u; partitionIdx < partitions.size(); partitionIdx++) {
         auto& sharedPartition = partitions[partitionIdx];
         auto& localPartition = localPartitioningState->partitions[partitionIdx];
-        sharedPartition.chunks.reserve(
-            sharedPartition.chunks.size() + localPartition.chunks.size());
-        for (auto j = 0u; j < localPartition.chunks.size(); j++) {
-            sharedPartition.chunks.push_back(std::move(localPartition.chunks[j]));
-        }
+        sharedPartition.merge(localPartition);
     }
 }
 
@@ -96,12 +91,13 @@ Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescripto
 }
 
 void Partitioner::initGlobalStateInternal(ExecutionContext* /*context*/) {
-    sharedState->initialize();
+    sharedState->initialize(infos);
 }
 
 void Partitioner::initLocalStateInternal(ResultSet* /*resultSet*/, ExecutionContext* /*context*/) {
     localState = std::make_unique<PartitionerLocalState>();
-    initializePartitioningStates(localState->partitioningBuffers, sharedState->numPartitions);
+    initializePartitioningStates(
+        infos, localState->partitioningBuffers, sharedState->numPartitions);
 }
 
 DataChunk Partitioner::constructDataChunk(const std::vector<DataPos>& columnPositions,
@@ -122,6 +118,7 @@ DataChunk Partitioner::constructDataChunk(const std::vector<DataPos>& columnPosi
 }
 
 void Partitioner::initializePartitioningStates(
+    std::vector<std::unique_ptr<PartitioningInfo>>& infos,
     std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
     std::vector<partition_idx_t> numPartitions) {
     partitioningBuffers.resize(numPartitions.size());
@@ -130,7 +127,7 @@ void Partitioner::initializePartitioningStates(
         auto partitioningBuffer = std::make_unique<PartitioningBuffer>();
         partitioningBuffer->partitions.reserve(numPartition);
         for (auto i = 0u; i < numPartition; i++) {
-            partitioningBuffer->partitions.emplace_back();
+            partitioningBuffer->partitions.emplace_back(infos[partitioningIdx]->columnTypes);
         }
         partitioningBuffers[partitioningIdx] = std::move(partitioningBuffer);
     }
@@ -152,6 +149,11 @@ void Partitioner::executeInternal(ExecutionContext* context) {
 }
 
 void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx, DataChunk chunkToCopyFrom) {
+    std::vector<ValueVector*> vectorsToAppend;
+    vectorsToAppend.reserve(chunkToCopyFrom.getNumValueVectors());
+    for (auto j = 0u; j < chunkToCopyFrom.getNumValueVectors(); j++) {
+        vectorsToAppend.push_back(chunkToCopyFrom.getValueVector(j).get());
+    }
     SelectionVector selVector(1);
     selVector.resetSelectorToValuePosBufferWithSize(1);
     for (auto i = 0u; i < chunkToCopyFrom.state->selVector->selectedSize; i++) {
@@ -161,21 +163,8 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx, DataChun
             partitionIdx < localState->getPartitioningBuffer(partitioningIdx)->partitions.size());
         auto& partition =
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
-        if (partition.chunks.empty() || partition.chunks.back()[0]->getNumValues() + 1 >
-                                            partition.chunks.back()[0]->getCapacity()) {
-            partition.chunks.emplace_back();
-            partition.chunks.back().reserve(chunkToCopyFrom.getNumValueVectors());
-            for (auto j = 0u; j < chunkToCopyFrom.getNumValueVectors(); j++) {
-                partition.chunks.back().emplace_back(
-                    ColumnChunkFactory::createColumnChunk(infos[partitioningIdx]->columnTypes[j],
-                        false /*enableCompression*/, Partitioner::CHUNK_SIZE));
-            }
-        }
-        KU_ASSERT(partition.chunks.back().size() == chunkToCopyFrom.getNumValueVectors());
         selVector.selectedPositions[0] = posToCopyFrom;
-        for (auto j = 0u; j < chunkToCopyFrom.getNumValueVectors(); j++) {
-            partition.chunks.back()[j]->append(chunkToCopyFrom.getValueVector(j).get(), selVector);
-        }
+        partition.append(vectorsToAppend, selVector);
     }
 }
 
