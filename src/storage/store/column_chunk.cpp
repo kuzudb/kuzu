@@ -125,6 +125,7 @@ static std::shared_ptr<CompressionAlg> getCompression(
     case PhysicalTypeID::INT8: {
         return std::make_shared<IntegerBitpacking<int8_t>>();
     }
+    case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::UINT64: {
         return std::make_shared<IntegerBitpacking<uint64_t>>();
@@ -181,6 +182,7 @@ void ColumnChunk::initializeFunction() {
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::INT8:
+    case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::UINT64:
     case PhysicalTypeID::UINT32:
@@ -239,7 +241,7 @@ void ColumnChunk::lookup(
 
 void ColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity multiplicity) {
     KU_ASSERT(chunk->dataType.getPhysicalType() == dataType.getPhysicalType() &&
-              dstOffsets->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
+              dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID &&
               chunk->getNumValues() == dstOffsets->getNumValues());
     for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {
         auto dstOffset = dstOffsets->getValue<offset_t>(i);
@@ -453,7 +455,7 @@ void BoolColumnChunk::lookup(
 void BoolColumnChunk::write(
     ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity /*multiplicity*/) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
-              dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INT64 &&
+              dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID &&
               chunk->getNumValues() == dstOffsets->getNumValues());
     for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {
         auto dstOffset = dstOffsets->getValue<offset_t>(i);
@@ -525,18 +527,28 @@ void NullColumnChunk::append(
 class InternalIDColumnChunk final : public ColumnChunk {
 public:
     // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,
-    explicit InternalIDColumnChunk(uint64_t capacity)
-        : ColumnChunk(*LogicalType::INT64(), capacity, false /*enableCompression*/),
+    explicit InternalIDColumnChunk(uint64_t capacity, bool enableCompression)
+        : ColumnChunk(*LogicalType::INTERNAL_ID(), capacity, enableCompression),
           commonTableID{INVALID_TABLE_ID} {}
 
     void append(ValueVector* vector, common::SelectionVector& selVector) override {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-        copyVectorToBuffer(vector, numValues, selVector);
+        switch (vector->dataType.getPhysicalType()) {
+        case PhysicalTypeID::INTERNAL_ID: {
+            copyVectorToBuffer(vector, numValues, selVector);
+        } break;
+        case PhysicalTypeID::INT64: {
+            copyInt64VectorToBuffer(vector, numValues, selVector);
+        } break;
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
         numValues += selVector.selectedSize;
     }
 
     void copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
         common::SelectionVector& selVector) override {
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto relIDsInVector = (internalID_t*)vector->getData();
         if (commonTableID == INVALID_TABLE_ID) {
             commonTableID = relIDsInVector[selVector.selectedPositions[0]].tableID;
@@ -547,6 +559,17 @@ public:
             nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
             memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
                 &relIDsInVector[pos].offset, numBytesPerValue);
+        }
+    }
+
+    void copyInt64VectorToBuffer(
+        ValueVector* vector, offset_t startPosInChunk, common::SelectionVector& selVector) {
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+        for (auto i = 0u; i < selVector.selectedSize; i++) {
+            auto pos = selVector.selectedPositions[i];
+            nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
+            memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
+                &vector->getValue<offset_t>(pos), numBytesPerValue);
         }
     }
 
@@ -609,7 +632,7 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     }
         // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
     case PhysicalTypeID::INTERNAL_ID: {
-        return std::make_unique<InternalIDColumnChunk>(capacity);
+        return std::make_unique<InternalIDColumnChunk>(capacity, enableCompression);
     }
     case PhysicalTypeID::STRING: {
         return std::make_unique<StringColumnChunk>(

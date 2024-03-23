@@ -206,9 +206,9 @@ public:
 
 InternalIDColumn::InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats stats)
+    transaction::Transaction* transaction, RWPropertyStats stats, bool enableCompression)
     : Column{name, *LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager,
-          wal, transaction, stats, false /*enableCompression*/},
+          wal, transaction, stats, enableCompression},
       commonTableID{INVALID_TABLE_ID} {}
 
 void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
@@ -914,7 +914,7 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
     }
     case LogicalTypeID::INTERNAL_ID: {
         return std::make_unique<InternalIDColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
-            bufferManager, wal, transaction, propertyStatistics);
+            bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {

@@ -19,6 +19,7 @@ struct PageCursor;
 
 // Returns the size of the data type in bytes
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType);
+uint32_t getDataTypeSizeInChunk(const common::PhysicalTypeID& dataType);
 
 // Compression type is written to the data header both so we can usually catch issues when we
 // decompress uncompressed data by mistake, and to allow for runtime-configurable compression.

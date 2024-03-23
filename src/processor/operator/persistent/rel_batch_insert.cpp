@@ -136,7 +136,7 @@ std::vector<offset_t> RelBatchInsert::populateStartCSROffsetsAndLengths(ChunkedC
 }
 
 void RelBatchInsert::setOffsetToWithinNodeGroup(ColumnChunk& chunk, offset_t startOffset) {
-    KU_ASSERT(chunk.getDataType().getPhysicalType() == PhysicalTypeID::INT64);
+    KU_ASSERT(chunk.getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto offsets = (offset_t*)chunk.getData();
     for (auto i = 0u; i < chunk.getNumValues(); i++) {
         offsets[i] -= startOffset;
@@ -145,7 +145,7 @@ void RelBatchInsert::setOffsetToWithinNodeGroup(ColumnChunk& chunk, offset_t sta
 
 void RelBatchInsert::setOffsetFromCSROffsets(
     ColumnChunk* nodeOffsetChunk, ColumnChunk* csrOffsetChunk) {
-    KU_ASSERT(nodeOffsetChunk->getDataType().getPhysicalType() == PhysicalTypeID::INT64);
+    KU_ASSERT(nodeOffsetChunk->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     for (auto i = 0u; i < nodeOffsetChunk->getNumValues(); i++) {
         auto nodeOffset = nodeOffsetChunk->getValue<offset_t>(i);
         auto csrOffset = csrOffsetChunk->getValue<offset_t>(nodeOffset);

@@ -82,7 +82,7 @@ void StringColumnChunk::write(
 void StringColumnChunk::write(
     ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity /*multiplicity*/) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING &&
-              dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INT64 &&
+              dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID &&
               chunk->getNumValues() == dstOffsets->getNumValues());
     for (auto i = 0u; i < chunk->getNumValues(); i++) {
         auto offsetInChunk = dstOffsets->getValue<offset_t>(i);

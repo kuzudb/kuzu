@@ -94,7 +94,8 @@ void StructColumnChunk::write(
 
 void StructColumnChunk::write(
     ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity multiplicity) {
-    KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT &&
+              dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {
         auto offsetInChunk = dstOffsets->getValue<offset_t>(i);
         KU_ASSERT(offsetInChunk < capacity);

@@ -224,7 +224,7 @@ class InternalIDColumn : public Column {
 public:
     InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats stats);
+        transaction::Transaction* transaction, RWPropertyStats stats, bool enableCompression);
 
     inline void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) override {
