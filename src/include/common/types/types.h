@@ -46,6 +46,7 @@ constexpr node_group_idx_t INVALID_NODE_GROUP_IDX = UINT64_MAX;
 using partition_idx_t = uint64_t;
 constexpr partition_idx_t INVALID_PARTITION_IDX = UINT64_MAX;
 using length_t = uint64_t;
+using list_size_t = uint32_t;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
@@ -57,10 +58,10 @@ struct overflow_value_t {
 
 struct list_entry_t {
     common::offset_t offset;
-    uint64_t size;
+    list_size_t size;
 
-    list_entry_t() : offset{INVALID_OFFSET}, size{UINT64_MAX} {}
-    list_entry_t(common::offset_t offset, uint64_t size) : offset{offset}, size{size} {}
+    list_entry_t() : offset{INVALID_OFFSET}, size{UINT32_MAX} {}
+    list_entry_t(common::offset_t offset, list_size_t size) : offset{offset}, size{size} {}
 };
 
 struct struct_entry_t {

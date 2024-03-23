@@ -32,6 +32,7 @@ class Column {
     friend class StringColumn;
     friend class VarListLocalColumn;
     friend class StructColumn;
+    friend class VarListColumn;
 
 public:
     struct ReadState {

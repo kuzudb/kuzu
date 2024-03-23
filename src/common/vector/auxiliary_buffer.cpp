@@ -19,7 +19,7 @@ ListAuxiliaryBuffer::ListAuxiliaryBuffer(
     : capacity{DEFAULT_VECTOR_CAPACITY}, size{0}, dataVector{std::make_shared<ValueVector>(
                                                       dataVectorType, memoryManager)} {}
 
-list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {
+list_entry_t ListAuxiliaryBuffer::addList(list_size_t listSize) {
     auto listEntry = list_entry_t{size, listSize};
     bool needResizeDataVector = size + listSize > capacity;
     while (size + listSize > capacity) {

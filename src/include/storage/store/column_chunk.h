@@ -92,6 +92,7 @@ public:
 
     template<typename T>
     void setValue(T val, common::offset_t pos) {
+        KU_ASSERT(pos < capacity);
         ((T*)buffer.get())[pos] = val;
         if (pos >= numValues) {
             numValues = pos + 1;
