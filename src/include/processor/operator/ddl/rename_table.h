@@ -1,5 +1,6 @@
 #pragma once
 
+#include "catalog/catalog.h"
 #include "ddl.h"
 
 namespace kuzu {
