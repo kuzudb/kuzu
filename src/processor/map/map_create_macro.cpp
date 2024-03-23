@@ -13,8 +13,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateMacro(
     auto outSchema = logicalCreateMacro->getSchema();
     auto outputExpression = logicalCreateMacro->getOutputExpression();
     auto outputPos = DataPos(outSchema->getExpressionPos(*outputExpression));
-    auto createMacroInfo = std::make_unique<CreateMacroInfo>(
-        logicalCreateMacro->getMacroName(), logicalCreateMacro->getMacro(), outputPos, catalog);
+    auto createMacroInfo = std::make_unique<CreateMacroInfo>(logicalCreateMacro->getMacroName(),
+        logicalCreateMacro->getMacro(), outputPos, clientContext->getCatalog());
     return std::make_unique<CreateMacro>(PhysicalOperatorType::CREATE_MACRO,
         std::move(createMacroInfo), getOperatorID(),
         logicalCreateMacro->getExpressionsForPrinting());

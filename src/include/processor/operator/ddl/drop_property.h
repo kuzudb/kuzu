@@ -1,30 +1,26 @@
 #pragma once
 
 #include "ddl.h"
-#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace processor {
 
 class DropProperty : public DDL {
 public:
-    DropProperty(catalog::Catalog* catalog, common::table_id_t tableID,
-        common::property_id_t propertyID, const DataPos& outputPos,
-        storage::StorageManager& storageManager, uint32_t id, const std::string& paramsString)
-        : DDL{PhysicalOperatorType::DROP_PROPERTY, catalog, outputPos, id, paramsString},
-          storageManager{storageManager}, tableID{tableID}, propertyID{propertyID} {}
+    DropProperty(common::table_id_t tableID, common::property_id_t propertyID,
+        const DataPos& outputPos, uint32_t id, const std::string& paramsString)
+        : DDL{PhysicalOperatorType::DROP_PROPERTY, outputPos, id, paramsString}, tableID{tableID},
+          propertyID{propertyID} {}
 
     void executeDDLInternal(ExecutionContext* context) final;
 
     std::string getOutputMsg() final { return {"Drop succeed."}; }
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<DropProperty>(
-            catalog, tableID, propertyID, outputPos, storageManager, id, paramsString);
+        return make_unique<DropProperty>(tableID, propertyID, outputPos, id, paramsString);
     }
 
 protected:
-    storage::StorageManager& storageManager;
     common::table_id_t tableID;
     common::property_id_t propertyID;
 };

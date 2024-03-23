@@ -1,8 +1,10 @@
 #include "binder/bound_statement_result.h"
+#include "catalog/catalog.h"
 #include "common/string_format.h"
 #include "graph_test/graph_test.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -168,8 +170,7 @@ public:
 
     void executeQueryWithoutCommit(std::string query) {
         auto preparedStatement = conn->prepare(query);
-        auto mapper = PlanMapper(*getStorageManager(*database), getMemoryManager(*database),
-            getCatalog(*database), conn->getClientContext());
+        auto mapper = PlanMapper(conn->getClientContext());
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());

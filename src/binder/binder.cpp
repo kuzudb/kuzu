@@ -71,7 +71,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
         KU_UNREACHABLE;
     }
     }
-    BoundStatementRewriter::rewrite(*boundStatement, *clientContext->getCatalog(), *clientContext);
+    BoundStatementRewriter::rewrite(*boundStatement, *clientContext);
     return boundStatement;
 }
 

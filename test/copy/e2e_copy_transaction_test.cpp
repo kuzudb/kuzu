@@ -1,9 +1,11 @@
 #include <set>
 
 #include "binder/bound_statement_result.h"
+#include "catalog/catalog.h"
 #include "graph_test/graph_test.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
+#include "storage/storage_manager.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
@@ -68,8 +70,7 @@ public:
         if (!preparedStatement->success) {
             ASSERT_TRUE(false) << preparedStatement->errMsg;
         }
-        auto mapper = PlanMapper(*getStorageManager(*database), getMemoryManager(*database),
-            getCatalog(*database), conn->getClientContext());
+        auto mapper = PlanMapper(conn->getClientContext());
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());
@@ -138,8 +139,7 @@ public:
         conn->query(copyPersonTableCMD);
         conn->query(createKnowsTableCMD);
         auto preparedStatement = conn->prepare(copyKnowsTableCMD);
-        auto mapper = PlanMapper(*getStorageManager(*database), getMemoryManager(*database),
-            getCatalog(*database), conn->getClientContext());
+        auto mapper = PlanMapper(conn->getClientContext());
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());

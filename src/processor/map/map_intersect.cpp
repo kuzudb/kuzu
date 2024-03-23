@@ -29,8 +29,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(LogicalOperator* logi
         auto payloadExpressions =
             binder::ExpressionUtil::excludeExpressions(buildSchema->getExpressionsInScope(), keys);
         auto buildInfo = createHashBuildInfo(*buildSchema, keys, payloadExpressions);
-        auto globalHashTable = std::make_unique<JoinHashTable>(
-            *memoryManager, LogicalType::copy(keyTypes), buildInfo->getTableSchema()->copy());
+        auto globalHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
+            LogicalType::copy(keyTypes), buildInfo->getTableSchema()->copy());
         auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
         sharedStates.push_back(sharedState);
         children[i] = make_unique<IntersectBuild>(

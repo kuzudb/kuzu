@@ -88,7 +88,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
     }
     std::shared_ptr<FactorizedTable> fTable;
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
-    fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
+    fTable = std::make_shared<FactorizedTable>(
+        clientContext->getMemoryManager(), std::move(ftTableSchema));
     return createEmptyFTableScan(fTable, 0, std::move(copyTo));
 }
 

@@ -1,6 +1,7 @@
 #include <utility>
 
 #include "binder/expression/expression_util.h"
+#include "catalog/catalog.h"
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/table_scan/ftable_scan_function.h"
 #include "processor/plan_mapper.h"
@@ -25,7 +26,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     auto bindData =
         std::make_unique<FTableScanBindData>(table, std::move(colIndices), maxMorselSize);
     auto function = function::BuiltInFunctionsUtils::matchFunction(
-        READ_FTABLE_FUNC_NAME, catalog->getFunctions(clientContext->getTx()));
+        READ_FTABLE_FUNC_NAME, clientContext->getCatalog()->getFunctions(clientContext->getTx()));
     auto info = InQueryCallInfo();
     info.function = *ku_dynamic_cast<Function*, TableFunction*>(function);
     info.bindData = std::move(bindData);

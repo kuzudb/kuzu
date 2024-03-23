@@ -3,6 +3,7 @@
 #include "planner/operator/persistent/logical_insert.h"
 #include "processor/operator/persistent/insert.h"
 #include "processor/plan_mapper.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::evaluator;
 using namespace kuzu::planner;
@@ -29,21 +30,23 @@ static std::vector<DataPos> populateReturnVectorsPos(
 
 std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     const LogicalInsertInfo* info, const Schema& inSchema, const Schema& outSchema) const {
+    auto storageManager = clientContext->getStorageManager();
     auto node = ku_dynamic_cast<Expression*, NodeExpression*>(info->pattern.get());
     auto nodeTableID = node->getSingleTableID();
-    auto table = storageManager.getNodeTable(nodeTableID);
+    auto table = storageManager->getNodeTable(nodeTableID);
     std::unordered_set<RelTable*> fwdRelTablesToInit;
     std::unordered_set<RelTable*> bwdRelTablesToInit;
-    auto tableCatalogEntry = catalog->getTableCatalogEntry(clientContext->getTx(), nodeTableID);
+    auto tableCatalogEntry =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), nodeTableID);
     auto nodeTableSchema =
         ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableCatalogEntry);
     auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
     auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
     for (auto relTableID : fwdRelTableIDs) {
-        fwdRelTablesToInit.insert(storageManager.getRelTable(relTableID));
+        fwdRelTablesToInit.insert(storageManager->getRelTable(relTableID));
     }
     for (auto relTableID : bwdRelTableIDs) {
-        bwdRelTablesToInit.insert(storageManager.getRelTable(relTableID));
+        bwdRelTablesToInit.insert(storageManager->getRelTable(relTableID));
     }
     auto nodeIDPos = DataPos(outSchema.getExpressionPos(*node->getInternalID()));
     auto returnVectorsPos = populateReturnVectorsPos(*info, outSchema);
@@ -59,10 +62,11 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
 
 std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
     const planner::LogicalInsertInfo* info, const planner::Schema& inSchema,
-    const planner::Schema& outSchema) {
+    const planner::Schema& outSchema) const {
+    auto storageManager = clientContext->getStorageManager();
     auto rel = ku_dynamic_cast<Expression*, RelExpression*>(info->pattern.get());
     auto relTableID = rel->getSingleTableID();
-    auto table = storageManager.getRelTable(relTableID);
+    auto table = storageManager->getRelTable(relTableID);
     auto srcNode = rel->getSrcNode();
     auto dstNode = rel->getDstNode();
     auto srcNodePos = DataPos(inSchema.getExpressionPos(*srcNode->getInternalID()));
@@ -73,7 +77,7 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
     for (auto& expr : info->columnDataExprs) {
         evaluators.push_back(ExpressionMapper::getEvaluator(expr, &outSchema));
     }
-    return std::make_unique<RelInsertExecutor>(storageManager.getRelsStatistics(), table,
+    return std::make_unique<RelInsertExecutor>(storageManager->getRelsStatistics(), table,
         srcNodePos, dstNodePos, std::move(returnVectorsPos), std::move(evaluators));
 }
 

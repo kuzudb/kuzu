@@ -81,8 +81,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
         ExpressionUtil::excludeExpressions(hashJoin->getExpressionsToMaterialize(), probeKeys);
     // Create build
     auto buildInfo = createHashBuildInfo(*buildSchema, buildKeys, payloads);
-    auto globalHashTable = std::make_unique<JoinHashTable>(
-        *memoryManager, LogicalType::copy(buildKeyTypes), buildInfo->getTableSchema()->copy());
+    auto globalHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
+        LogicalType::copy(buildKeyTypes), buildInfo->getTableSchema()->copy());
     auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
     auto hashJoinBuild =
         make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(buildSchema), sharedState,

@@ -21,12 +21,11 @@ namespace testing {
 
 void PrivateGraphTest::validateQueryBestPlanJoinOrder(
     std::string query, std::string expectedJoinOrder) {
-    auto catalog = getCatalog(*database);
     auto statement = parser::Parser::parseQuery(query);
     ASSERT_EQ(statement.size(), 1);
     auto parsedQuery = (parser::RegularQuery*)statement[0].get();
     auto boundQuery = Binder(conn->clientContext.get()).bind(*parsedQuery);
-    auto planner = Planner(catalog, getStorageManager(*database), conn->clientContext.get());
+    auto planner = Planner(conn->clientContext.get());
     auto plan = planner.getBestPlan(*boundQuery);
     ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
 }

@@ -16,7 +16,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCommentOn(
     auto outputExpression = logicalCommentOn->getOutputExpression();
     auto outputPos = DataPos(outSchema->getExpressionPos(*outputExpression));
     auto commentOnInfo = std::make_unique<CommentOnInfo>(logicalCommentOn->getTableID(),
-        logicalCommentOn->getTableName(), logicalCommentOn->getComment(), outputPos, catalog);
+        logicalCommentOn->getTableName(), logicalCommentOn->getComment(), outputPos,
+        clientContext->getCatalog());
     return std::make_unique<CommentOn>(
         std::move(commentOnInfo), getOperatorID(), logicalCommentOn->getExpressionsForPrinting());
 }

@@ -3,6 +3,7 @@
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 #include "processor/operator/scan/scan_rel_table.h"
 #include "processor/plan_mapper.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -102,10 +103,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
     if (!rel->isMultiLabeled() && !boundNode->isMultiLabeled() &&
         extendDirection != ExtendDirection::BOTH) {
         auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
-            catalog->getTableCatalogEntry(clientContext->getTx(), rel->getSingleTableID()));
+            clientContext->getCatalog()->getTableCatalogEntry(
+                clientContext->getTx(), rel->getSingleTableID()));
         auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extendDirection);
-        auto scanInfo = getRelTableScanInfo(
-            relTableEntry, relDataDirection, &storageManager, extend->getProperties());
+        auto scanInfo = getRelTableScanInfo(relTableEntry, relDataDirection,
+            clientContext->getStorageManager(), extend->getProperties());
         return std::make_unique<ScanRelTable>(std::move(scanInfo), inNodeVectorPos, outVectorsPos,
             std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
     } else { // map to generic extend

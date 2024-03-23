@@ -17,6 +17,7 @@
 #include "planner/planner.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
+#include "storage/storage_manager.h"
 #include "transaction/transaction_context.h"
 
 #if defined(_WIN32)
@@ -295,7 +296,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
         preparedStatement->statementResult =
             std::make_unique<BoundStatementResult>(boundStatement->getStatementResult()->copy());
         // planning
-        auto planner = Planner(database->catalog.get(), database->storageManager.get(), this);
+        auto planner = Planner(this);
         std::vector<std::unique_ptr<LogicalPlan>> plans;
         if (enumerateAllPlans) {
             plans = planner.getAllPlans(*boundStatement);
@@ -395,8 +396,7 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
     }
     this->resetActiveQuery();
     this->startTimer();
-    auto mapper = PlanMapper(
-        *database->storageManager, database->memoryManager.get(), database->catalog.get(), this);
+    auto mapper = PlanMapper(this);
     std::unique_ptr<PhysicalPlan> physicalPlan;
     if (preparedStatement->isSuccess()) {
         try {
