@@ -1,0 +1,50 @@
+#include "storage/store/chunked_node_group_collection.h"
+
+using namespace kuzu::common;
+
+namespace kuzu {
+namespace storage {
+
+void ChunkedNodeGroupCollection::append(
+    const std::vector<ValueVector*>& vectors, const SelectionVector& selVector) {
+    if (chunkedGroups.empty()) {
+        chunkedGroups.push_back(
+            std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/, CHUNK_CAPACITY));
+    }
+    auto numRowsToAppend = selVector.selectedSize;
+    row_idx_t numRowsAppended = 0;
+    SelectionVector tmpSelVector(numRowsToAppend);
+    while (numRowsAppended < numRowsToAppend) {
+        auto& lastChunkedGroup = chunkedGroups.back();
+        auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
+            static_cast<row_idx_t>(CHUNK_CAPACITY - lastChunkedGroup->getNumRows()));
+        tmpSelVector.resetSelectorToValuePosBufferWithSize(numRowsToAppendInGroup);
+        for (auto i = 0u; i < numRowsToAppendInGroup; i++) {
+            tmpSelVector.selectedPositions[i] = selVector.selectedPositions[numRowsAppended + i];
+        }
+        lastChunkedGroup->append(vectors, tmpSelVector, numRowsToAppendInGroup);
+        if (lastChunkedGroup->getNumRows() == CHUNK_CAPACITY) {
+            chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(
+                types, false /*enableCompression*/, CHUNK_CAPACITY));
+        }
+        numRowsAppended += numRowsToAppendInGroup;
+    }
+}
+
+void ChunkedNodeGroupCollection::append(std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
+    KU_ASSERT(chunkedGroup->getNumColumns() == types.size());
+    for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
+        KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType() == types[i]);
+    }
+    chunkedGroups.push_back(std::move(chunkedGroup));
+}
+
+void ChunkedNodeGroupCollection::merge(ChunkedNodeGroupCollection& chunkedGroupCollection) {
+    chunkedGroups.reserve(chunkedGroups.size() + chunkedGroupCollection.getNumChunks());
+    for (auto& chunkedGroup : chunkedGroupCollection.chunkedGroups) {
+        append(std::move(chunkedGroup));
+    }
+}
+
+} // namespace storage
+} // namespace kuzu

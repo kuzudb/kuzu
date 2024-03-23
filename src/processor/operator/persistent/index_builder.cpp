@@ -89,26 +89,27 @@ void IndexBuilderSharedState::quitProducer() {
     }
 }
 
-void IndexBuilder::insert(ColumnChunk* chunk, offset_t nodeOffset, offset_t numNodes) {
-    checkNonNullConstraint(chunk->getNullChunk(), numNodes);
+void IndexBuilder::insert(const ColumnChunk& chunk, offset_t nodeOffset, offset_t numNodes) {
+    checkNonNullConstraint(chunk.getNullChunk(), numNodes);
 
     TypeUtils::visit(
-        chunk->getDataType().getPhysicalType(),
+        chunk.getDataType().getPhysicalType(),
         [&]<HashablePrimitive T>(T) {
             for (auto i = 0u; i < numNodes; i++) {
-                auto value = chunk->getValue<T>(i);
+                auto value = chunk.getValue<T>(i);
                 localBuffers.insert(value, nodeOffset + i);
             }
         },
         [&](ku_string_t) {
-            auto stringColumnChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(chunk);
+            auto& stringColumnChunk =
+                ku_dynamic_cast<const ColumnChunk&, const StringColumnChunk&>(chunk);
             for (auto i = 0u; i < numNodes; i++) {
-                auto value = stringColumnChunk->getValue<std::string>(i);
+                auto value = stringColumnChunk.getValue<std::string>(i);
                 localBuffers.insert(std::move(value), nodeOffset + i);
             }
         },
         [&](auto) {
-            throw CopyException(ExceptionMessage::invalidPKType(chunk->getDataType().toString()));
+            throw CopyException(ExceptionMessage::invalidPKType(chunk.getDataType().toString()));
         });
 }
 
@@ -129,9 +130,9 @@ void IndexBuilder::finalize(ExecutionContext* /*context*/) {
     sharedState->flush();
 }
 
-void IndexBuilder::checkNonNullConstraint(NullColumnChunk* nullChunk, offset_t numNodes) {
+void IndexBuilder::checkNonNullConstraint(const NullColumnChunk& nullChunk, offset_t numNodes) {
     for (auto i = 0u; i < numNodes; i++) {
-        if (nullChunk->isNull(i)) {
+        if (nullChunk.isNull(i)) {
             throw CopyException(ExceptionMessage::nullPKException());
         }
     }

@@ -5,7 +5,7 @@
 #include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
 #include "common/vector/value_vector.h"
-#include "storage/store/node_group.h"
+#include "storage/store/chunked_node_group_collection.h"
 
 namespace kuzu {
 namespace storage {
@@ -22,16 +22,14 @@ using ChunkCollection = std::vector<ColumnChunk*>;
 
 class LocalChunkedGroupCollection {
 public:
-    static constexpr uint64_t CHUNK_CAPACITY = 2048;
-
     explicit LocalChunkedGroupCollection(std::vector<common::LogicalType> dataTypes)
-        : dataTypes{std::move(dataTypes)}, numRows{0} {}
+        : dataTypes{std::move(dataTypes)}, chunkedGroups{this->dataTypes}, numRows{0} {}
     DELETE_COPY_DEFAULT_MOVE(LocalChunkedGroupCollection);
 
     static inline std::pair<uint32_t, uint64_t> getChunkIdxAndOffsetInChunk(
         common::row_idx_t rowIdx) {
-        return std::make_pair(rowIdx / LocalChunkedGroupCollection::CHUNK_CAPACITY,
-            rowIdx % LocalChunkedGroupCollection::CHUNK_CAPACITY);
+        return std::make_pair(rowIdx / ChunkedNodeGroupCollection::CHUNK_CAPACITY,
+            rowIdx % ChunkedNodeGroupCollection::CHUNK_CAPACITY);
     }
 
     inline common::row_idx_t getRowIdxFromOffset(common::offset_t offset) {
@@ -82,7 +80,7 @@ public:
     inline ChunkCollection getLocalChunk(common::column_id_t columnID) {
         ChunkCollection localChunkCollection;
         for (auto& chunkedGroup : chunkedGroups.getChunkedGroups()) {
-            localChunkCollection.push_back(chunkedGroup->getColumnChunkUnsafe(columnID));
+            localChunkCollection.push_back(&chunkedGroup->getColumnChunkUnsafe(columnID));
         }
         return localChunkCollection;
     }
@@ -91,10 +89,10 @@ private:
     common::row_idx_t append(std::vector<common::ValueVector*> vectors);
 
 private:
-    ChunkedNodeGroupCollection chunkedGroups;
+    std::vector<common::LogicalType> dataTypes;
+    storage::ChunkedNodeGroupCollection chunkedGroups;
     // The offset here can either be nodeOffset ( for node table) or relOffset (for rel table).
     offset_to_row_idx_t offsetToRowIdx;
-    std::vector<common::LogicalType> dataTypes;
     common::row_idx_t numRows;
 
     // Only used for rel tables. Should be moved out later.

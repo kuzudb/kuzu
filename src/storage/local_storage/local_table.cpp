@@ -3,7 +3,6 @@
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/store/column.h"
-#include "storage/store/node_group.h"
 
 using namespace kuzu::common;
 
@@ -56,9 +55,9 @@ void LocalChunkedGroupCollection::update(
     KU_ASSERT(offsetToRowIdx.contains(offset));
     auto rowIdx = offsetToRowIdx.at(offset);
     auto [chunkIdx, offsetInChunk] = getChunkIdxAndOffsetInChunk(rowIdx);
-    auto chunk = chunkedGroups.getChunkedGroupUnsafe(chunkIdx)->getColumnChunkUnsafe(columnID);
-    chunk->write(
-        propertyVector, propertyVector->state->selVector->selectedPositions[0], offsetInChunk);
+    auto& chunk = chunkedGroups.getChunkedGroupUnsafe(chunkIdx)->getColumnChunkUnsafe(columnID);
+    auto pos = propertyVector->state->selVector->selectedPositions[0];
+    chunk.write(propertyVector, pos, offsetInChunk);
 }
 
 void LocalChunkedGroupCollection::remove(offset_t srcNodeOffset, offset_t relOffset) {
@@ -76,14 +75,14 @@ row_idx_t LocalChunkedGroupCollection::append(std::vector<ValueVector*> vectors)
     KU_ASSERT(vectors.size() == dataTypes.size());
     if (chunkedGroups.getNumChunks() == 0 ||
         chunkedGroups.getChunkedGroup(chunkedGroups.getNumChunks() - 1)->getNumRows() ==
-            CHUNK_CAPACITY) {
+            ChunkedNodeGroupCollection::CHUNK_CAPACITY) {
         chunkedGroups.append(std::make_unique<ChunkedNodeGroup>(
-            dataTypes, false /*enableCompression*/, CHUNK_CAPACITY));
+            dataTypes, false /*enableCompression*/, ChunkedNodeGroupCollection::CHUNK_CAPACITY));
     }
     auto lastChunkGroup = chunkedGroups.getChunkedGroupUnsafe(chunkedGroups.getNumChunks() - 1);
     for (auto i = 0u; i < vectors.size(); i++) {
         KU_ASSERT(vectors[i]->state->selVector->selectedSize == 1);
-        lastChunkGroup->getColumnChunkUnsafe(i)->append(vectors[i], *vectors[i]->state->selVector);
+        lastChunkGroup->getColumnChunkUnsafe(i).append(vectors[i], *vectors[i]->state->selVector);
     }
     lastChunkGroup->setNumValues(lastChunkGroup->getNumRows() + 1);
     return numRows++;

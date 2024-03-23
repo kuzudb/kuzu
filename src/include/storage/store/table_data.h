@@ -1,7 +1,7 @@
 #pragma once
 
+#include "storage/store/chunked_node_group.h"
 #include "storage/store/column.h"
-#include "storage/store/node_group.h"
 
 namespace kuzu {
 namespace storage {

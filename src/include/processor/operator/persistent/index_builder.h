@@ -151,7 +151,7 @@ public:
     IndexBuilder clone() { return IndexBuilder(sharedState); }
 
     void insert(
-        storage::ColumnChunk* chunk, common::offset_t nodeOffset, common::offset_t numNodes);
+        const storage::ColumnChunk& chunk, common::offset_t nodeOffset, common::offset_t numNodes);
 
     ProducerToken getProducerToken() const { return ProducerToken(sharedState); }
 
@@ -159,7 +159,8 @@ public:
     void finalize(ExecutionContext* context);
 
 private:
-    void checkNonNullConstraint(storage::NullColumnChunk* nullChunk, common::offset_t numNodes);
+    void checkNonNullConstraint(
+        const storage::NullColumnChunk& nullChunk, common::offset_t numNodes);
     std::shared_ptr<IndexBuilderSharedState> sharedState;
 
     IndexBuilderLocalBuffers localBuffers;

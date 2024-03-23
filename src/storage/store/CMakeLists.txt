@@ -1,10 +1,11 @@
 add_library(kuzu_storage_store
         OBJECT
+        chunked_node_group.cpp
+        chunked_node_group_collection.cpp
         column.cpp
         column_chunk.cpp
         dictionary_chunk.cpp
         dictionary_column.cpp
-        node_group.cpp
         node_table.cpp
         node_table_data.cpp
         null_column.cpp

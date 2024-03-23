@@ -23,14 +23,11 @@ public:
         KU_ASSERT(columnID < chunks.size());
         return *chunks[columnID];
     }
-    inline ColumnChunk* getColumnChunkUnsafe(common::column_id_t columnID) {
-        KU_ASSERT(columnID < chunks.size());
-        return chunks[columnID].get();
-    }
-    inline const ColumnChunk& getColumnChunk(common::column_id_t columnID) {
+    inline ColumnChunk& getColumnChunkUnsafe(common::column_id_t columnID) {
         KU_ASSERT(columnID < chunks.size());
         return *chunks[columnID];
     }
+    inline std::vector<std::unique_ptr<ColumnChunk>>& getColumnChunksUnsafe() { return chunks; }
     inline bool isFull() const { return numRows == common::StorageConstants::NODE_GROUP_SIZE; }
 
     void resetToEmpty();
@@ -39,7 +36,7 @@ public:
     void resizeChunks(uint64_t newSize);
 
     uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
-        common::DataChunkState* columnState, uint64_t numValuesToAppend);
+        common::SelectionVector& selVector, uint64_t numValuesToAppend);
     common::offset_t append(ChunkedNodeGroup* other, common::offset_t offsetInOtherNodeGroup);
     void write(std::vector<std::unique_ptr<ColumnChunk>>& data, common::vector_idx_t offsetVector);
 
@@ -96,32 +93,6 @@ public:
 
 private:
     ChunkedCSRHeader csrHeader;
-};
-
-class ChunkedNodeGroupCollection {
-public:
-    ChunkedNodeGroupCollection() {}
-
-    inline const std::vector<std::unique_ptr<ChunkedNodeGroup>>& getChunkedGroups() const {
-        return chunkedGroups;
-    }
-    inline const ChunkedNodeGroup* getChunkedGroup(uint64_t groupIdx) const {
-        KU_ASSERT(groupIdx < chunkedGroups.size());
-        return chunkedGroups[groupIdx].get();
-    }
-    inline ChunkedNodeGroup* getChunkedGroupUnsafe(uint64_t groupIdx) {
-        KU_ASSERT(groupIdx < chunkedGroups.size());
-        return chunkedGroups[groupIdx].get();
-    }
-    inline uint64_t getNumChunks() const { return chunkedGroups.size(); }
-    void append(std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
-
-private:
-    // Assert that all chunked node groups have the same num columns and same data types.
-    bool sanityCheckForAppend();
-
-private:
-    std::vector<std::unique_ptr<ChunkedNodeGroup>> chunkedGroups;
 };
 
 struct NodeGroupFactory {

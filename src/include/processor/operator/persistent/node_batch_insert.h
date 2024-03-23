@@ -4,7 +4,7 @@
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/persistent/batch_insert.h"
 #include "processor/operator/persistent/index_builder.h"
-#include "storage/store/node_group.h"
+#include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"
 
 namespace kuzu {

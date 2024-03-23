@@ -307,7 +307,7 @@ void RelTableData::append(ChunkedNodeGroup* nodeGroup) {
     csrHeaderColumns.append(csrNodeGroup->getCSRHeader(), nodeGroup->getNodeGroupIdx());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         getColumn(columnID)->append(
-            nodeGroup->getColumnChunkUnsafe(columnID), nodeGroup->getNodeGroupIdx());
+            &nodeGroup->getColumnChunkUnsafe(columnID), nodeGroup->getNodeGroupIdx());
     }
 }
 

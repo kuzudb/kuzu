@@ -42,17 +42,18 @@ void RelBatchInsert::executeInternal(ExecutionContext* /*context*/) {
         auto& partitioningBuffer = partitionerSharedState->getPartitionBuffer(
             relInfo->partitioningIdx, relLocalState->nodeGroupIdx);
         auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relLocalState->nodeGroupIdx);
-        for (auto& columns : partitioningBuffer.chunks) {
-            setOffsetToWithinNodeGroup(*columns[relInfo->offsetVectorIdx], startNodeOffset);
+        for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
+            setOffsetToWithinNodeGroup(
+                chunkedGroup->getColumnChunkUnsafe(relInfo->offsetColumnID), startNodeOffset);
         }
         // Calculate num of source nodes in this node group.
         // This will be used to set the num of values of the node group.
         auto numNodes = std::min(StorageConstants::NODE_GROUP_SIZE,
             partitionerSharedState->maxNodeOffsets[relInfo->partitioningIdx] - startNodeOffset + 1);
-        prepareCSRNodeGroup(
-            partitioningBuffer, startNodeOffset, relInfo->offsetVectorIdx, numNodes);
-        for (auto& chunk : partitioningBuffer.chunks) {
-            localState->nodeGroup->write(chunk, relInfo->offsetVectorIdx);
+        prepareCSRNodeGroup(partitioningBuffer, startNodeOffset, relInfo->offsetColumnID, numNodes);
+        for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
+            localState->nodeGroup->write(
+                chunkedGroup->getColumnChunksUnsafe(), relInfo->offsetColumnID);
         }
         localState->nodeGroup->finalize(relLocalState->nodeGroupIdx);
         // Flush node group to table.
@@ -62,15 +63,15 @@ void RelBatchInsert::executeInternal(ExecutionContext* /*context*/) {
     }
 }
 
-void RelBatchInsert::prepareCSRNodeGroup(PartitioningBuffer::Partition& partition,
-    common::offset_t startNodeOffset, vector_idx_t offsetVectorIdx, offset_t numNodes) {
+void RelBatchInsert::prepareCSRNodeGroup(ChunkedNodeGroupCollection& partition,
+    common::offset_t startNodeOffset, column_id_t offsetColumnID, offset_t numNodes) {
     auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
     auto csrNodeGroup =
         ku_dynamic_cast<ChunkedNodeGroup*, ChunkedCSRNodeGroup*>(localState->nodeGroup.get());
     auto& csrHeader = csrNodeGroup->getCSRHeader();
     csrHeader.setNumValues(numNodes);
     // Populate start csr offsets and lengths for each node.
-    auto gaps = populateStartCSROffsetsAndLengths(csrHeader, numNodes, partition, offsetVectorIdx);
+    auto gaps = populateStartCSROffsetsAndLengths(csrHeader, numNodes, partition, offsetColumnID);
     auto invalid = checkRelMultiplicityConstraint(csrHeader);
     if (invalid.has_value()) {
         throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
@@ -81,9 +82,9 @@ void RelBatchInsert::prepareCSRNodeGroup(PartitioningBuffer::Partition& partitio
     offset_t csrChunkCapacity =
         csrHeader.getEndCSROffset(numNodes - 1) + csrHeader.getCSRLength(numNodes - 1);
     localState->nodeGroup->resizeChunks(csrChunkCapacity);
-    for (auto& dataChunk : partition.chunks) {
-        auto offsetChunk = dataChunk[offsetVectorIdx].get();
-        setOffsetFromCSROffsets(offsetChunk, csrHeader.offset.get());
+    for (auto& chunkedGroup : partition.getChunkedGroups()) {
+        auto& offsetChunk = chunkedGroup->getColumnChunkUnsafe(offsetColumnID);
+        setOffsetFromCSROffsets(offsetChunk, *csrHeader.offset);
     }
     populateEndCSROffsets(csrHeader, gaps);
 }
@@ -106,7 +107,7 @@ length_t RelBatchInsert::getGapSize(length_t length) {
 }
 
 std::vector<offset_t> RelBatchInsert::populateStartCSROffsetsAndLengths(ChunkedCSRHeader& csrHeader,
-    offset_t numNodes, PartitioningBuffer::Partition& partition, vector_idx_t offsetVectorIdx) {
+    offset_t numNodes, ChunkedNodeGroupCollection& partition, column_id_t offsetColumnID) {
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
     std::vector<offset_t> gaps;
@@ -115,10 +116,10 @@ std::vector<offset_t> RelBatchInsert::populateStartCSROffsetsAndLengths(ChunkedC
     auto csrLengths = (length_t*)csrHeader.length->getData();
     std::fill(csrLengths, csrLengths + numNodes, 0);
     // Calculate length for each node. Store the num of tuples of node i at csrLengths[i].
-    for (auto& chunk : partition.chunks) {
-        auto& offsetChunk = chunk[offsetVectorIdx];
-        for (auto i = 0u; i < offsetChunk->getNumValues(); i++) {
-            auto nodeOffset = offsetChunk->getValue<offset_t>(i);
+    for (auto& chunkedGroup : partition.getChunkedGroups()) {
+        auto& offsetChunk = chunkedGroup->getColumnChunk(offsetColumnID);
+        for (auto i = 0u; i < offsetChunk.getNumValues(); i++) {
+            auto nodeOffset = offsetChunk.getValue<offset_t>(i);
             KU_ASSERT(nodeOffset < numNodes);
             csrLengths[nodeOffset]++;
         }
@@ -144,13 +145,13 @@ void RelBatchInsert::setOffsetToWithinNodeGroup(ColumnChunk& chunk, offset_t sta
 }
 
 void RelBatchInsert::setOffsetFromCSROffsets(
-    ColumnChunk* nodeOffsetChunk, ColumnChunk* csrOffsetChunk) {
-    KU_ASSERT(nodeOffsetChunk->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-    for (auto i = 0u; i < nodeOffsetChunk->getNumValues(); i++) {
-        auto nodeOffset = nodeOffsetChunk->getValue<offset_t>(i);
-        auto csrOffset = csrOffsetChunk->getValue<offset_t>(nodeOffset);
-        nodeOffsetChunk->setValue<offset_t>(csrOffset, i);
-        csrOffsetChunk->setValue<offset_t>(csrOffset + 1, nodeOffset);
+    ColumnChunk& nodeOffsetChunk, ColumnChunk& csrOffsetChunk) {
+    KU_ASSERT(nodeOffsetChunk.getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+    for (auto i = 0u; i < nodeOffsetChunk.getNumValues(); i++) {
+        auto nodeOffset = nodeOffsetChunk.getValue<offset_t>(i);
+        auto csrOffset = csrOffsetChunk.getValue<offset_t>(nodeOffset);
+        nodeOffsetChunk.setValue<offset_t>(csrOffset, i);
+        csrOffsetChunk.setValue<offset_t>(csrOffset + 1, nodeOffset);
     }
 }
 

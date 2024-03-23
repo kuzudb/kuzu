@@ -1,4 +1,4 @@
-#include "storage/store/node_group.h"
+#include "storage/store/chunked_node_group.h"
 
 #include "common/assert.h"
 #include "common/constants.h"
@@ -94,12 +94,12 @@ void ChunkedNodeGroup::resizeChunks(uint64_t newSize) {
 }
 
 uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors,
-    DataChunkState* columnState, uint64_t numValuesToAppend) {
+    SelectionVector& selVector, uint64_t numValuesToAppend) {
     auto numValuesToAppendInChunk =
         std::min(numValuesToAppend, StorageConstants::NODE_GROUP_SIZE - numRows);
     auto serialSkip = 0u;
-    auto originalSize = columnState->selVector->selectedSize;
-    columnState->selVector->selectedSize = numValuesToAppendInChunk;
+    auto originalSize = selVector.selectedSize;
+    selVector.selectedSize = numValuesToAppendInChunk;
     for (auto i = 0u; i < chunks.size(); i++) {
         auto chunk = chunks[i].get();
         if (chunk->getDataType().getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
@@ -109,10 +109,9 @@ uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors
         }
         KU_ASSERT((i - serialSkip) < columnVectors.size());
         auto columnVector = columnVectors[i - serialSkip];
-        KU_ASSERT(chunk->getDataType() == columnVector->dataType);
-        chunk->append(columnVector, *columnVector->state->selVector);
+        chunk->append(columnVector, selVector);
     }
-    columnState->selVector->selectedSize = originalSize;
+    selVector.selectedSize = originalSize;
     numRows += numValuesToAppendInChunk;
     return numValuesToAppendInChunk;
 }
@@ -151,17 +150,6 @@ void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {
     for (auto i = 0u; i < chunks.size(); i++) {
         chunks[i]->finalize();
     }
-}
-
-void ChunkedNodeGroupCollection::append(std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
-    if (chunkedGroups.size() > 1) {
-        KU_ASSERT(chunkedGroup->getNumColumns() == chunkedGroups[0]->getNumColumns());
-        for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
-            KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType() ==
-                      chunkedGroups[0]->getColumnChunk(i).getDataType());
-        }
-    }
-    chunkedGroups.push_back(std::move(chunkedGroup));
 }
 
 ChunkedCSRHeader::ChunkedCSRHeader(bool enableCompression, uint64_t capacity) {
