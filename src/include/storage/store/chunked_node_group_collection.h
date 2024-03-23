@@ -9,7 +9,8 @@ class ChunkedNodeGroupCollection {
 public:
     static constexpr uint64_t CHUNK_CAPACITY = 2048;
 
-    ChunkedNodeGroupCollection(std::vector<common::LogicalType> types) : types{std::move(types)} {}
+    explicit ChunkedNodeGroupCollection(std::vector<common::LogicalType> types)
+        : types{std::move(types)} {}
     DELETE_COPY_DEFAULT_MOVE(ChunkedNodeGroupCollection);
 
     inline const std::vector<std::unique_ptr<ChunkedNodeGroup>>& getChunkedGroups() const {

@@ -3,7 +3,6 @@
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "processor/execution_context.h"
-#include "storage/store/column_chunk.h"
 #include "storage/store/node_table.h"
 
 using namespace kuzu::common;

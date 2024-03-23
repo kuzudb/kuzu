@@ -2,7 +2,6 @@
 
 #include "processor/operator/sink.h"
 #include "storage/store/chunked_node_group_collection.h"
-#include "storage/store/column_chunk.h"
 
 namespace kuzu {
 namespace storage {

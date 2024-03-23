@@ -3,7 +3,6 @@
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
-#include "processor/operator/partitioner.h"
 #include "processor/result/factorized_table.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/rel_table.h"
