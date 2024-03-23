@@ -1,5 +1,8 @@
 #include "processor/operator/ddl/add_rel_property.h"
 
+#include "catalog/catalog.h"
+#include "storage/storage_manager.h"
+
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
 using namespace kuzu::common;

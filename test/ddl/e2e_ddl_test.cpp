@@ -1,8 +1,10 @@
 #include "binder/bound_statement_result.h"
+#include "catalog/catalog.h"
 #include "common/string_format.h"
 #include "graph_test/graph_test.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

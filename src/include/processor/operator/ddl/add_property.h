@@ -2,7 +2,6 @@
 
 #include "ddl.h"
 #include "expression_evaluator/expression_evaluator.h"
-#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace processor {

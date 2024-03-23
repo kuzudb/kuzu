@@ -17,6 +17,7 @@
 #include "planner/planner.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
+#include "storage/storage_manager.h"
 #include "transaction/transaction_context.h"
 
 #if defined(_WIN32)

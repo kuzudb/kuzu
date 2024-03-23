@@ -1,6 +1,7 @@
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/plan_mapper.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;

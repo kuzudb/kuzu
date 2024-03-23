@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ddl.h"
-#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace processor {

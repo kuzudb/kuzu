@@ -3,6 +3,7 @@
 #include "planner/operator/persistent/logical_insert.h"
 #include "processor/operator/persistent/insert.h"
 #include "processor/plan_mapper.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::evaluator;
 using namespace kuzu::planner;
@@ -61,7 +62,7 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
 
 std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
     const planner::LogicalInsertInfo* info, const planner::Schema& inSchema,
-    const planner::Schema& outSchema) {
+    const planner::Schema& outSchema) const {
     auto storageManager = clientContext->getStorageManager();
     auto rel = ku_dynamic_cast<Expression*, RelExpression*>(info->pattern.get());
     auto relTableID = rel->getSingleTableID();

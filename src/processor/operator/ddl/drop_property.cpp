@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/drop_property.h"
 
+#include "storage/storage_manager.h"
+
 namespace kuzu {
 namespace processor {
 

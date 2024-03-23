@@ -6,7 +6,6 @@
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
-#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace main {
@@ -33,7 +32,7 @@ struct PartitionerSharedState;
 class PlanMapper {
 public:
     // Create plan mapper with default mapper context.
-    PlanMapper(main::ClientContext* clientContext)
+    explicit PlanMapper(main::ClientContext* clientContext)
         : expressionMapper{}, clientContext{clientContext}, physicalOperatorID{0} {}
 
     std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
@@ -171,13 +170,13 @@ private:
         const planner::LogicalInsertInfo* info, const planner::Schema& inSchema,
         const planner::Schema& outSchema) const;
     std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(const planner::LogicalInsertInfo* info,
-        const planner::Schema& inSchema, const planner::Schema& outSchema);
+        const planner::Schema& inSchema, const planner::Schema& outSchema) const;
     std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(
         planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) const;
     std::unique_ptr<RelSetExecutor> getRelSetExecutor(
         planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) const;
 
-    std::shared_ptr<FactorizedTable> getSingleStringColumnFTable();
+    std::shared_ptr<FactorizedTable> getSingleStringColumnFTable() const;
 
     inline uint32_t getOperatorID() { return physicalOperatorID++; }
 

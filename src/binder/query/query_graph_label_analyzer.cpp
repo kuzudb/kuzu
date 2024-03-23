@@ -1,5 +1,6 @@
 #include "binder/query/query_graph_label_analyzer.h"
 
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/cast.h"
 #include "common/exception/binder.h"

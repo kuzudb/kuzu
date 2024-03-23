@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catalog/catalog.h"
+#include "main/client_context.h"
 #include "query_graph.h"
 
 namespace kuzu {

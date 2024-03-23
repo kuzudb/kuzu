@@ -32,7 +32,7 @@ struct LogicalSetPropertyInfo;
 
 class Planner {
 public:
-    Planner(main::ClientContext* clientContext);
+    explicit Planner(main::ClientContext* clientContext);
     DELETE_COPY_AND_MOVE(Planner);
 
     std::unique_ptr<LogicalPlan> getBestPlan(const binder::BoundStatement& statement);

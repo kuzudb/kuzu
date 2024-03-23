@@ -1,5 +1,8 @@
 #include "processor/operator/ddl/add_node_property.h"
 
+#include "catalog/catalog.h"
+#include "storage/storage_manager.h"
+
 namespace kuzu {
 namespace processor {
 

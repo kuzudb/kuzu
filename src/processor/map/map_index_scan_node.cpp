@@ -2,6 +2,7 @@
 #include "processor/operator/index_lookup.h"
 #include "processor/operator/index_scan.h"
 #include "processor/plan_mapper.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::planner;
 

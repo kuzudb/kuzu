@@ -21,7 +21,6 @@ namespace testing {
 
 void PrivateGraphTest::validateQueryBestPlanJoinOrder(
     std::string query, std::string expectedJoinOrder) {
-    auto catalog = getCatalog(*database);
     auto statement = parser::Parser::parseQuery(query);
     ASSERT_EQ(statement.size(), 1);
     auto parsedQuery = (parser::RegularQuery*)statement[0].get();

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "catalog/catalog.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {

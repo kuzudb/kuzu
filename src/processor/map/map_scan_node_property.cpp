@@ -2,6 +2,7 @@
 #include "planner/operator/scan/logical_scan_node_property.h"
 #include "processor/operator/scan/scan_multi_node_tables.h"
 #include "processor/plan_mapper.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

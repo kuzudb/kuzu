@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/ddl/bound_create_table_info.h"
 #include "processor/operator/ddl/ddl.h"
 
 namespace kuzu {

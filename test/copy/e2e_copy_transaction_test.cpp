@@ -1,9 +1,11 @@
 #include <set>
 
 #include "binder/bound_statement_result.h"
+#include "catalog/catalog.h"
 #include "graph_test/graph_test.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
+#include "storage/storage_manager.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;

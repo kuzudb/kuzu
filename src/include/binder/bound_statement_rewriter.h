@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bound_statement.h"
-#include "catalog/catalog.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace binder {

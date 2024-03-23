@@ -2,6 +2,7 @@
 #include "planner/operator/scan/logical_scan_internal_id.h"
 #include "processor/operator/scan_node_id.h"
 #include "processor/plan_mapper.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::planner;
 
