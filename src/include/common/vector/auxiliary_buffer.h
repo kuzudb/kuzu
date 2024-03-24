@@ -73,7 +73,7 @@ public:
     ValueVector* getDataVector() const { return dataVector.get(); }
     std::shared_ptr<ValueVector> getSharedDataVector() const { return dataVector; }
 
-    list_entry_t addList(uint64_t listSize);
+    list_entry_t addList(list_size_t listSize);
 
     uint64_t getSize() const { return size; }
 

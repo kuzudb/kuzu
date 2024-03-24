@@ -1,0 +1,25 @@
+-GROUP IssueTest
+-DATASET CSV empty
+
+--
+
+-CASE 3083
+-STATEMENT CREATE NODE TABLE test ( prop0 STRING, prop1 STRING[], prop2 STRING, prop3 INT64, prop4 STRING, PRIMARY KEY(prop4) )
+---- ok
+-STATEMENT MERGE (n:test { prop4: "efwb2143d10ccfw" }) SET n.prop0 = "efwoj23", n.prop1 = ["eee", "wefwhiihifwe23343", "dmkwlenfwef232323"], n.prop2 = "NOT eee IS NULL AND dmkwlenfwef232323 < '2023-01-10T00:00:00-05:00' AND dmkwlenfwef232323 >= '2022-01-01T00:00:00-05:00'", n.prop3 = 5 RETURN n.prop4
+---- ok
+-STATEMENT MERGE (n:test { prop4: "sdnweh2382933228" }) SET n.prop0 = "efwoj23", n.prop1 = ["customer_name", "wefwhiihifwe23343", "dmkwlenfwef232323"], n.prop2 = "NOT customer_name IS NULL AND NOT dmkwlenfwef232323 IS NULL" RETURN n.prop4
+---- ok
+-STATEMENT MERGE (n:test { prop4: "sdnjb232*23ksfew" }) SET n.prop0 = "fw", n.prop1 = ["wefwhiihifwe23343", "dmkwlenfwef232323"], n.prop2 = "wefwhiihifwe23343 > 5" RETURN n.prop4
+---- ok
+-STATEMENT MERGE (n:test { prop4: "dsnfjwne*&232" }) SET n.prop0 = "tweee" RETURN n.prop4
+---- ok
+-STATEMENT MERGE (n:test { prop4: "nsdwew*232njfds^" }) SET n.prop0 = "fw" RETURN n.prop4
+---- ok
+-STATEMENT MERGE (n:test { prop4: "nsdwew*232njfds^" }) SET n.prop0 = "fw" RETURN n.prop4
+---- ok
+-STATEMENT MERGE (n:test { prop4: "fwsdmwfnw&" }) SET n.prop0 = "sds" RETURN n.prop4
+---- ok
+-STATEMENT MATCH (n:test) WHERE n.prop4 = "efwb2143d10ccfw" RETURN n.prop1
+---- 1
+[eee,wefwhiihifwe23343,dmkwlenfwef232323]

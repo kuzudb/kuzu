@@ -223,6 +223,7 @@ void ColumnChunk::append(
         KU_ASSERT(nullChunk->getNumValues() == getNumValues());
         nullChunk->append(other->nullChunk.get(), startPosInOtherChunk, numValuesToAppend);
     }
+    KU_ASSERT(numValues + numValuesToAppend <= capacity);
     memcpy(buffer.get() + numValues * numBytesPerValue,
         other->buffer.get() + startPosInOtherChunk * numBytesPerValue,
         numValuesToAppend * numBytesPerValue);
