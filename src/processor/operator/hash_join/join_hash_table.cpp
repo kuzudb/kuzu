@@ -245,22 +245,22 @@ void JoinHashTable::getHashFunction(PhysicalTypeID physicalTypeID, hash_function
     } break;
     case PhysicalTypeID::INT8: {
         func = hashEntry<int8_t>;
-    }
+    } break;
     case PhysicalTypeID::UINT64: {
         func = hashEntry<uint64_t>;
-    }
+    } break;
     case PhysicalTypeID::UINT32: {
         func = hashEntry<uint32_t>;
-    }
+    } break;
     case PhysicalTypeID::UINT16: {
         func = hashEntry<uint16_t>;
-    }
+    } break;
     case PhysicalTypeID::UINT8: {
         func = hashEntry<uint8_t>;
-    }
+    } break;
     case PhysicalTypeID::INT128: {
         func = hashEntry<int128_t>;
-    }
+    } break;
     case PhysicalTypeID::DOUBLE: {
         func = hashEntry<double>;
     } break;
