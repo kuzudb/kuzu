@@ -225,7 +225,7 @@ private:
 
     // Append Join operators
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
-        LogicalPlan& probePlan, LogicalPlan& buildPlan);
+        LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
         const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
         LogicalPlan& buildPlan);
@@ -233,8 +233,8 @@ private:
         binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
 
-    void appendCrossProduct(
-        common::AccumulateType accumulateType, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    void appendCrossProduct(common::AccumulateType accumulateType, const LogicalPlan& probePlan,
+        const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
 
     // Append accumulate
     void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan);

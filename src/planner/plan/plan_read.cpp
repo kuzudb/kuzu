@@ -103,7 +103,7 @@ void Planner::planInQueryCall(
             if (!predicatesToPushDown.empty()) {
                 appendFilters(predicatesToPushDown, *tmpPlan);
             }
-            appendCrossProduct(AccumulateType::REGULAR, *plan, *tmpPlan);
+            appendCrossProduct(AccumulateType::REGULAR, *plan, *tmpPlan, *plan);
         } else {
             appendInQueryCall(*readingClause, *plan);
             if (!predicatesToPushDown.empty()) {
@@ -139,7 +139,7 @@ void Planner::planLoadFrom(
             if (!predicatesToPushDown.empty()) {
                 appendFilters(predicatesToPushDown, *tmpPlan);
             }
-            appendCrossProduct(AccumulateType::REGULAR, *plan, *tmpPlan);
+            appendCrossProduct(AccumulateType::REGULAR, *plan, *tmpPlan, *plan);
         } else {
             appendScanFile(loadFrom->getInfo(), *plan);
             if (!predicatesToPushDown.empty()) {

@@ -39,7 +39,11 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
     if (correlatedExpressions.empty()) {
         // No join condition, apply cross product.
         auto rightPlan = planQueryGraphCollection(queryGraphCollection, predicates);
-        appendCrossProduct(AccumulateType::OPTIONAL_, leftPlan, *rightPlan);
+        if (leftPlan.hasUpdate()) {
+            appendCrossProduct(AccumulateType::OPTIONAL_, *rightPlan, leftPlan, leftPlan);
+        } else {
+            appendCrossProduct(AccumulateType::OPTIONAL_, leftPlan, *rightPlan, leftPlan);
+        }
         return;
     }
     bool isInternalIDCorrelated = ExpressionUtil::isExpressionsWithDataType(
@@ -57,7 +61,11 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
             correlatedExpressions, leftPlan.getCardinality(), queryGraphCollection, predicates);
         appendAccumulate(AccumulateType::REGULAR, correlatedExpressions, leftPlan);
     }
-    appendHashJoin(correlatedExpressions, JoinType::LEFT, leftPlan, *rightPlan);
+    if (leftPlan.hasUpdate()) {
+        throw RuntimeException(stringFormat("Optional match after update is not supported. Missing "
+                                            "right outer join implementation."));
+    }
+    appendHashJoin(correlatedExpressions, JoinType::LEFT, leftPlan, *rightPlan, leftPlan);
 }
 
 void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
@@ -76,18 +84,26 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
     }
     auto joinNodeIDs = ExpressionUtil::getExpressionsWithDataType(
         correlatedExpressions, LogicalTypeID::INTERNAL_ID);
-    std::unique_ptr<LogicalPlan> rightPlan;
     if (joinNodeIDs.empty()) {
-        rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::NONE, correlatedExpressions,
-            leftPlan.getCardinality(), queryGraphCollection, predicatesToPushDown);
-        appendCrossProduct(AccumulateType::REGULAR, leftPlan, *rightPlan);
+        auto rightPlan =
+            planQueryGraphCollectionInNewContext(SubqueryType::NONE, correlatedExpressions,
+                leftPlan.getCardinality(), queryGraphCollection, predicatesToPushDown);
+        if (leftPlan.hasUpdate()) {
+            appendCrossProduct(AccumulateType::REGULAR, *rightPlan, leftPlan, leftPlan);
+        } else {
+            appendCrossProduct(AccumulateType::REGULAR, leftPlan, *rightPlan, leftPlan);
+        }
     } else {
         // TODO(Xiyang): there is a question regarding if we want to plan as a correlated subquery
         // Multi-part query is actually CTE and CTE can be considered as a subquery but does not
         // scan from outer.
-        rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::INTERNAL_ID_CORRELATED,
+        auto rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::INTERNAL_ID_CORRELATED,
             joinNodeIDs, leftPlan.getCardinality(), queryGraphCollection, predicatesToPushDown);
-        appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlan, *rightPlan);
+        if (leftPlan.hasUpdate()) {
+            appendHashJoin(joinNodeIDs, JoinType::INNER, *rightPlan, leftPlan, leftPlan);
+        } else {
+            appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlan, *rightPlan, leftPlan);
+        }
     }
     for (auto& predicate : predicatesToPullUp) {
         appendFilter(predicate, leftPlan);
@@ -116,7 +132,7 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
         default:
             KU_UNREACHABLE;
         }
-        appendCrossProduct(AccumulateType::REGULAR, outerPlan, *innerPlan);
+        appendCrossProduct(AccumulateType::REGULAR, outerPlan, *innerPlan, outerPlan);
     } else {
         auto isInternalIDCorrelated =
             ExpressionUtil::isExpressionsWithDataType(correlatedExprs, LogicalTypeID::INTERNAL_ID);
@@ -137,7 +153,8 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
         case common::SubqueryType::COUNT: {
             appendAggregate(
                 correlatedExprs, expression_vector{subquery->getProjectionExpr()}, *innerPlan);
-            appendHashJoin(correlatedExprs, common::JoinType::COUNT, outerPlan, *innerPlan);
+            appendHashJoin(
+                correlatedExprs, common::JoinType::COUNT, outerPlan, *innerPlan, outerPlan);
         } break;
         default:
             KU_UNREACHABLE;

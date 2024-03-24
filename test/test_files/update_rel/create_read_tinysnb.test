@@ -18,6 +18,18 @@
 (0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1, someMap: {a=b}}->(0:1)
 (0:0)-{_LABEL: knows, _ID: 3:14, date: 2023-03-03}->(0:1)
 (0:0)-{_LABEL: knows, _ID: 3:15, date: 2023-04-04}->(0:1)
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 2 CREATE (a)-[e:knows {date:date('2024-01-01')}]-(b) WITH a MATCH (a)-[e:knows]->(b) RETURN a.fName, e.date, b.fName;
+---- 6
+Alice|2021-06-30|Bob
+Alice|2021-06-30|Carol
+Alice|2021-06-30|Dan
+Alice|2023-03-03|Bob
+Alice|2023-04-04|Bob
+Alice|2024-01-01|Bob
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 2 CREATE (a)-[e:knows {date:date('2023-12-20')}]-(b) WITH a, e MATCH (a)-[e2:knows]->(b) WHERE e.date<=e2.date RETURN a.fName, e.date, e2.date, b.fName;
+---- 2
+Alice|2023-12-20|2023-12-20|Bob
+Alice|2023-12-20|2024-01-01|Bob
 
 -CASE CreateRelRead2
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 CREATE (a)-[f:knows {date:date('2023-04-04')}]->(b) RETURN f;

@@ -9,7 +9,7 @@ namespace kuzu {
 namespace planner {
 
 void Planner::appendHashJoin(const binder::expression_vector& joinNodeIDs, JoinType joinType,
-    LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
     std::vector<join_condition_t> joinConditions;
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
@@ -32,11 +32,11 @@ void Planner::appendHashJoin(const binder::expression_vector& joinNodeIDs, JoinT
         hashJoin->setSIP(SidewaysInfoPassing::PROHIBIT_BUILD_TO_PROBE);
     }
     // Update cost
-    probePlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
+    resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
     // Update cardinality
-    probePlan.setCardinality(
+    resultPlan.setCardinality(
         cardinalityEstimator.estimateHashJoin(joinNodeIDs, probePlan, buildPlan));
-    probePlan.setLastOperator(std::move(hashJoin));
+    resultPlan.setLastOperator(std::move(hashJoin));
 }
 
 void Planner::appendMarkJoin(const binder::expression_vector& joinNodeIDs,

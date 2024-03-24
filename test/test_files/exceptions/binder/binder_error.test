@@ -241,14 +241,6 @@ Binder exception: p1.age has data type INT64 but (STRING) was expected.
 ---- error
 Binder exception: Union and union all can not be used together.
 
--LOG ReadAfterUpdate
--STATEMENT MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
----- error
-Binder exception: Read after update is not supported. Try query with multiple statements.
--STATEMENT MATCH (a:person) WHERE a.age = 35 DELETE a WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
----- error
-Binder exception: Read after update is not supported. Try query with multiple statements.
-
 -LOG SetDataTypeMisMatch
 -STATEMENT MATCH (a:person) SET a.age = 'hh'
 ---- error

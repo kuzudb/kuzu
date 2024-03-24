@@ -108,6 +108,20 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     }
 }
 
+bool LogicalOperatorUtils::isUpdate(LogicalOperatorType type) {
+    switch (type) {
+    case LogicalOperatorType::INSERT:
+    case LogicalOperatorType::DELETE_NODE:
+    case LogicalOperatorType::DELETE_REL:
+    case LogicalOperatorType::SET_NODE_PROPERTY:
+    case LogicalOperatorType::SET_REL_PROPERTY:
+    case LogicalOperatorType::MERGE:
+        return true;
+    default:
+        return false;
+    }
+}
+
 LogicalOperator::LogicalOperator(
     LogicalOperatorType operatorType, std::shared_ptr<LogicalOperator> child)
     : operatorType{operatorType} {
@@ -127,6 +141,18 @@ LogicalOperator::LogicalOperator(
     for (auto& child : children) {
         this->children.push_back(child);
     }
+}
+
+bool LogicalOperator::hasUpdateRecursive() {
+    if (LogicalOperatorUtils::isUpdate(operatorType)) {
+        return true;
+    }
+    for (auto& child : children) {
+        if (child->hasUpdateRecursive()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 std::string LogicalOperator::toString(uint64_t depth) const {
