@@ -1,5 +1,6 @@
 #include "common/types/uuid.h"
 
+#include "common/exception/conversion.h"
 #include "common/random_engine.h"
 
 namespace kuzu {
@@ -44,7 +45,7 @@ bool UUID::fromString(std::string str, int128_t& result) {
     result.low = 0;
     result.high = 0;
     uint32_t count = 0;
-    for (uint32_t i = numBrackets; i < str.size() - numBrackets; ++i) {
+    for (auto i = numBrackets; i < str.size() - numBrackets; ++i) {
         if (str[i] == '-') {
             continue;
         }
@@ -65,7 +66,9 @@ bool UUID::fromString(std::string str, int128_t& result) {
 
 int128_t UUID::fromString(std::string str) {
     int128_t result;
-    fromString(str, result);
+    if (!fromString(str, result)) {
+        throw ConversionException("Invalid UUID: " + str);
+    }
     return result;
 }
 
