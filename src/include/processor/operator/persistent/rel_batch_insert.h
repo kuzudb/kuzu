@@ -1,6 +1,5 @@
 #pragma once
 
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/batch_insert.h"

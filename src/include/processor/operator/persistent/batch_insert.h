@@ -1,6 +1,5 @@
 #pragma once
 
-#include "processor/data_pos.h"
 #include "processor/operator/sink.h"
 #include "storage/store/table.h"
 

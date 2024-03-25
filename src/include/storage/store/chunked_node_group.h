@@ -11,7 +11,7 @@ class Column;
 
 class ChunkedNodeGroup {
 public:
-    ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks)
+    explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks)
         : chunks{std::move(chunks)} {}
     ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
         uint64_t capacity);
