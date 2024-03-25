@@ -98,13 +98,13 @@ function::function_set PyArrowTableScanFunction::getFunctionSet() {
 
     function_set functionSet;
     functionSet.push_back(
-        std::make_unique<TableFunction>(READ_PYARROW_FUNC_NAME, tableFunc, bindFunc,
+        std::make_unique<TableFunction>(name, tableFunc, bindFunc,
             initSharedState, initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER}));
     return functionSet;
 }
 
 TableFunction PyArrowTableScanFunction::getFunction() {
-    return TableFunction(READ_PYARROW_FUNC_NAME, tableFunc, bindFunc, initSharedState,
+    return TableFunction(name, tableFunc, bindFunc, initSharedState,
         initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
 }
 

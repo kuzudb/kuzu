@@ -26,6 +26,8 @@ struct PandasScanSharedState : public function::BaseScanSharedState {
 };
 
 struct PandasScanFunction {
+    static constexpr const char* name = "READ_PANDAS";
+    
     static function::function_set getFunctionSet();
 };
 

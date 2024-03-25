@@ -92,7 +92,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(
 
 function_set TableInfoFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(TABLE_INFO_FUNC_NAME, tableFunc, bindFunc,
+    functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, bindFunc,
         initSharedState, initEmptyLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }

@@ -51,26 +51,38 @@ struct CallFunction {
 };
 
 struct CurrentSettingFunction : public CallFunction {
+    static constexpr const char* name = "CURRENT_SETTING";
+
     static function_set getFunctionSet();
 };
 
 struct DBVersionFunction : public CallFunction {
+    static constexpr const char* name = "DB_VERSION";
+
     static function_set getFunctionSet();
 };
 
 struct ShowTablesFunction : public CallFunction {
+    static constexpr const char* name = "SHOW_TABLES";
+
     static function_set getFunctionSet();
 };
 
 struct TableInfoFunction : public CallFunction {
+    static constexpr const char* name = "TABLE_INFO";
+
     static function_set getFunctionSet();
 };
 
 struct ShowConnectionFunction final : public CallFunction {
+    static constexpr const char* name = "SHOW_CONNECTION";
+
     static function_set getFunctionSet();
 };
 
 struct StorageInfoFunction final : public CallFunction {
+    static constexpr const char* name = "STORAGE_INFO";
+
     static function_set getFunctionSet();
 };
 

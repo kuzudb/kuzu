@@ -41,6 +41,8 @@ struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
 };
 
 struct SerialCSVScan {
+    static constexpr const char* name = "READ_CSV_SERIAL";
+
     static function::function_set getFunctionSet();
     static void bindColumns(const function::ScanTableFuncBindInput* bindInput,
         std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes);

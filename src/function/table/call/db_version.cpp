@@ -31,7 +31,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*, TableFuncBind
 
 function_set DBVersionFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(DB_VERSION_FUNC_NAME, tableFunc, bindFunc,
+    functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, bindFunc,
         initSharedState, initEmptyLocalState, std::vector<LogicalTypeID>{}));
     return functionSet;
 }

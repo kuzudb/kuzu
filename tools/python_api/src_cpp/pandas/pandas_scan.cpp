@@ -121,7 +121,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 }
 
 static TableFunction getFunction() {
-    return TableFunction(READ_PANDAS_FUNC_NAME, tableFunc, bindFunc, initSharedState,
+    return TableFunction(PandasScanFunction::name, tableFunc, bindFunc, initSharedState,
         initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
 }
 

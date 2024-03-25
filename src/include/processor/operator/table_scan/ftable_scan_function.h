@@ -26,6 +26,8 @@ struct FTableScanBindData : public function::TableFuncBindData {
 };
 
 struct FTableScan {
+    static constexpr const char* name = "READ_FTABLE";
+
     static function::function_set getFunctionSet();
 };
 

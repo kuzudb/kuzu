@@ -107,6 +107,8 @@ struct ParquetScanLocalState final : public function::TableFuncLocalState {
 };
 
 struct ParquetScanFunction {
+    static constexpr const char* name = "READ_PARQUET";
+
     static function::function_set getFunctionSet();
 };
 
