@@ -3,6 +3,7 @@
 #include "common/enums/table_type.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "function/hash/hash_functions.h"
 
 namespace kuzu {
 namespace storage {
@@ -234,3 +235,16 @@ private:
 
 } // namespace storage
 } // namespace kuzu
+
+namespace std {
+template<>
+struct hash<kuzu::storage::DBFileID> {
+    size_t operator()(const kuzu::storage::DBFileID& fileId) const {
+        auto dbFileTypeHash = std::hash<uint8_t>()(static_cast<uint8_t>(fileId.dbFileType));
+        auto isOverflowHash = std::hash<bool>()(fileId.isOverflow);
+        auto nodeIndexIDHash = std::hash<kuzu::common::table_id_t>()(fileId.nodeIndexID.tableID);
+        return kuzu::function::combineHashScalar(
+            dbFileTypeHash, kuzu::function::combineHashScalar(isOverflowHash, nodeIndexIDHash));
+    }
+};
+} // namespace std
