@@ -154,6 +154,8 @@ private:
 };
 
 struct RdfResourceScan {
+    static constexpr const char* name = "READ_RDF_RESOURCE";
+
     static function::function_set getFunctionSet();
 
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
@@ -161,6 +163,8 @@ struct RdfResourceScan {
 };
 
 struct RdfLiteralScan {
+    static constexpr const char* name = "READ_RDF_LITERAL";
+    
     static function::function_set getFunctionSet();
 
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
@@ -168,6 +172,8 @@ struct RdfLiteralScan {
 };
 
 struct RdfResourceTripleScan {
+    static constexpr const char* name = "READ_RDF_RESOURCE_TRIPLE";
+
     static function::function_set getFunctionSet();
 
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
@@ -175,6 +181,8 @@ struct RdfResourceTripleScan {
 };
 
 struct RdfLiteralTripleScan {
+    static constexpr const char* name = "READ_RDF_LITERAL_TRIPLE";
+
     static function::function_set getFunctionSet();
 
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
@@ -182,6 +190,8 @@ struct RdfLiteralTripleScan {
 };
 
 struct RdfAllTripleScan {
+    static constexpr const char* name = "READ_RDF_ALL_TRIPLE";
+
     static function::function_set getFunctionSet();
 
     static common::offset_t tableFunc(
@@ -193,6 +203,8 @@ struct RdfAllTripleScan {
 };
 
 struct RdfResourceInMemScan {
+    static constexpr const char* name = "IN_MEM_READ_RDF_RESOURCE";
+
     static function::function_set getFunctionSet();
 
     static common::offset_t tableFunc(
@@ -200,6 +212,8 @@ struct RdfResourceInMemScan {
 };
 
 struct RdfLiteralInMemScan {
+    static constexpr const char* name = "IN_MEM_READ_RDF_LITERAL";
+
     static function::function_set getFunctionSet();
 
     static common::offset_t tableFunc(
@@ -207,6 +221,8 @@ struct RdfLiteralInMemScan {
 };
 
 struct RdfResourceTripleInMemScan {
+    static constexpr const char* name = "IN_MEM_READ_RDF_RESOURCE_TRIPLE";
+
     static function::function_set getFunctionSet();
 
     static common::offset_t tableFunc(
@@ -214,6 +230,8 @@ struct RdfResourceTripleInMemScan {
 };
 
 struct RdfLiteralTripleInMemScan {
+    static constexpr const char* name = "IN_MEM_READ_RDF_LITERAL_TRIPLE";
+    
     static function::function_set getFunctionSet();
 
     static common::offset_t tableFunc(
