@@ -83,10 +83,12 @@ void RelBatchInsert::mergeNodeGroup(ExecutionContext* context, const RelBatchIns
     const PartitionerSharedState& partitionerSharedState) {
     auto relTable = ku_dynamic_cast<Table*, RelTable*>(sharedState.table);
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(localState.nodeGroupIdx);
-    // TODO: Fix multiplicity.
-    // TODO: Is columnTypes right here?
-    auto localNG = std::make_unique<LocalRelNG>(
-        nodeGroupStartOffset, relInfo.columnTypes, RelMultiplicity::MANY);
+    auto multiplicity =
+        ku_dynamic_cast<catalog::TableCatalogEntry*, catalog::RelTableCatalogEntry*>(
+            relInfo.tableEntry)
+            ->getMultiplicity(relInfo.direction);
+    auto localNG =
+        std::make_unique<LocalRelNG>(nodeGroupStartOffset, relInfo.columnTypes, multiplicity);
     auto& partition =
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
     auto& insertChunks = localNG->getInsesrtChunks();

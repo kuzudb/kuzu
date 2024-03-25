@@ -36,7 +36,6 @@ void ChunkedNodeGroupCollection::merge(std::unique_ptr<ChunkedNodeGroup> chunked
     for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
         KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType() == types[i]);
     }
-    numRows += chunkedGroup->getNumRows();
     chunkedGroups.push_back(std::move(chunkedGroup));
 }
 

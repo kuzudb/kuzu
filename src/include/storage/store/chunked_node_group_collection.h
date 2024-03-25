@@ -10,7 +10,7 @@ public:
     static constexpr uint64_t CHUNK_CAPACITY = 2048;
 
     explicit ChunkedNodeGroupCollection(std::vector<common::LogicalType> types)
-        : types{std::move(types)}, numRows{0} {}
+        : types{std::move(types)} {}
     DELETE_COPY_DEFAULT_MOVE(ChunkedNodeGroupCollection);
 
     static std::pair<uint64_t, common::offset_t> getChunkIdxAndOffsetInChunk(
@@ -42,7 +42,6 @@ public:
 private:
     std::vector<common::LogicalType> types;
     std::vector<std::unique_ptr<ChunkedNodeGroup>> chunkedGroups;
-    common::row_idx_t numRows;
 };
 
 } // namespace storage
