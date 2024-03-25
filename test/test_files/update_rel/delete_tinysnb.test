@@ -14,6 +14,20 @@
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=0 RETURN COUNT(*)
 ---- 1
 2
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=2 AND b.ID = 0 DELETE e WITH e MATCH (a:person)-[e2:knows]->(b:person) RETURN e.date, a.fName, e2.date, b.fName;
+---- 12
+2021-06-30|Alice|2021-06-30|Bob
+2021-06-30|Alice|2021-06-30|Dan
+2021-06-30|Bob|1950-05-14|Carol
+2021-06-30|Bob|1950-05-14|Dan
+2021-06-30|Carol|1950-05-14|Bob
+2021-06-30|Carol|2000-01-01|Dan
+2021-06-30|Carol|2021-06-30|Alice
+2021-06-30|Dan|1950-05-14|Bob
+2021-06-30|Dan|2000-01-01|Carol
+2021-06-30|Dan|2021-06-30|Alice
+2021-06-30|Elizabeth|1905-12-12|Farooq
+2021-06-30|Elizabeth|1905-12-12|Greg
 
 -CASE DeleteFromKnows2
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=0 AND b.ID>=3 DELETE e

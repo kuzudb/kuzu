@@ -1,6 +1,5 @@
 #pragma once
 
-#include "logical_explain.h"
 #include "logical_operator.h"
 
 namespace kuzu {
@@ -13,28 +12,23 @@ class LogicalPlan {
 public:
     LogicalPlan() : estCardinality{1}, cost{0} {}
 
-    inline void setLastOperator(std::shared_ptr<LogicalOperator> op) {
-        lastOperator = std::move(op);
-    }
+    void setLastOperator(std::shared_ptr<LogicalOperator> op) { lastOperator = std::move(op); }
 
-    inline bool isEmpty() const { return lastOperator == nullptr; }
+    bool isEmpty() const { return lastOperator == nullptr; }
 
-    inline std::shared_ptr<LogicalOperator> getLastOperator() const { return lastOperator; }
-    inline Schema* getSchema() const { return lastOperator->getSchema(); }
+    std::shared_ptr<LogicalOperator> getLastOperator() const { return lastOperator; }
+    Schema* getSchema() const { return lastOperator->getSchema(); }
 
-    inline void setCardinality(uint64_t cardinality) { estCardinality = cardinality; }
-    inline uint64_t getCardinality() const { return estCardinality; }
+    void setCardinality(uint64_t cardinality) { estCardinality = cardinality; }
+    uint64_t getCardinality() const { return estCardinality; }
 
-    inline void setCost(uint64_t cost_) { cost = cost_; }
-    inline uint64_t getCost() const { return cost; }
+    void setCost(uint64_t cost_) { cost = cost_; }
+    uint64_t getCost() const { return cost; }
 
-    inline std::string toString() const { return lastOperator->toString(); }
+    std::string toString() const { return lastOperator->toString(); }
 
-    inline bool isProfile() const {
-        return lastOperator->getOperatorType() == LogicalOperatorType::EXPLAIN &&
-               reinterpret_cast<LogicalExplain*>(lastOperator.get())->getExplainType() ==
-                   common::ExplainType::PROFILE;
-    }
+    bool isProfile() const;
+    bool hasUpdate() const;
 
     std::unique_ptr<LogicalPlan> shallowCopy() const;
 

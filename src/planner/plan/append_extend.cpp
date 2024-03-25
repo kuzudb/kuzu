@@ -145,7 +145,8 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         appendScanInternalID(rdfInfo->predicateID, rdfInfo->resourceTableIDs, *tmpPlan);
         appendScanNodeProperties(
             rdfInfo->predicateID, rdfInfo->resourceTableIDs, expression_vector{iri}, *tmpPlan);
-        appendHashJoin(expression_vector{rdfInfo->predicateID}, JoinType::INNER, plan, *tmpPlan);
+        appendHashJoin(
+            expression_vector{rdfInfo->predicateID}, JoinType::INNER, plan, *tmpPlan, plan);
     }
 }
 

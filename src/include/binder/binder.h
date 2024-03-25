@@ -273,10 +273,6 @@ private:
     static void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
 
-    // We don't support read after write for simplicity. User should instead querying through
-    // multiple statement.
-    static void validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
-
     void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
 

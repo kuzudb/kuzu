@@ -53,7 +53,6 @@ std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regular
     auto boundRegularQuery = std::make_unique<BoundRegularQuery>(
         regularQuery.getIsUnionAll(), normalizedSingleQueries[0].getStatementResult()->copy());
     for (auto& normalizedSingleQuery : normalizedSingleQueries) {
-        validateReadNotFollowUpdate(normalizedSingleQuery);
         boundRegularQuery->addSingleQuery(std::move(normalizedSingleQuery));
     }
     validateIsAllUnionOrUnionAll(*boundRegularQuery);

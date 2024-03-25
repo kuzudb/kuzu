@@ -561,8 +561,8 @@ void Planner::planInnerHashJoin(const SubqueryGraph& subgraph, const SubqueryGra
             if (CostModel::computeHashJoinCost(joinNodeIDs, *leftPlan, *rightPlan) < maxCost) {
                 auto leftPlanProbeCopy = leftPlan->shallowCopy();
                 auto rightPlanBuildCopy = rightPlan->shallowCopy();
-                appendHashJoin(
-                    joinNodeIDs, JoinType::INNER, *leftPlanProbeCopy, *rightPlanBuildCopy);
+                appendHashJoin(joinNodeIDs, JoinType::INNER, *leftPlanProbeCopy,
+                    *rightPlanBuildCopy, *leftPlanProbeCopy);
                 appendFilters(predicates, *leftPlanProbeCopy);
                 context.addPlan(newSubgraph, std::move(leftPlanProbeCopy));
             }
@@ -571,8 +571,8 @@ void Planner::planInnerHashJoin(const SubqueryGraph& subgraph, const SubqueryGra
                 CostModel::computeHashJoinCost(joinNodeIDs, *rightPlan, *leftPlan) < maxCost) {
                 auto leftPlanBuildCopy = leftPlan->shallowCopy();
                 auto rightPlanProbeCopy = rightPlan->shallowCopy();
-                appendHashJoin(
-                    joinNodeIDs, JoinType::INNER, *rightPlanProbeCopy, *leftPlanBuildCopy);
+                appendHashJoin(joinNodeIDs, JoinType::INNER, *rightPlanProbeCopy,
+                    *leftPlanBuildCopy, *rightPlanProbeCopy);
                 appendFilters(predicates, *rightPlanProbeCopy);
                 context.addPlan(newSubgraph, std::move(rightPlanProbeCopy));
             }
@@ -588,7 +588,8 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::planCrossProduct(
         for (auto& rightPlan : rightPlans) {
             auto leftPlanCopy = leftPlan->shallowCopy();
             auto rightPlanCopy = rightPlan->shallowCopy();
-            appendCrossProduct(AccumulateType::REGULAR, *leftPlanCopy, *rightPlanCopy);
+            appendCrossProduct(
+                AccumulateType::REGULAR, *leftPlanCopy, *rightPlanCopy, *leftPlanCopy);
             result.push_back(std::move(leftPlanCopy));
         }
     }

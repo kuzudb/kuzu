@@ -4,12 +4,37 @@
 --
 
 -CASE CreateNodeRead1
+-STATEMENT CREATE (a:person {ID:91, fName:'dummy'}) WITH a MATCH (b:person) WHERE b.ID > 9 RETURN a.ID, a.fName, b.ID, b.fName;
+---- 2
+91|dummy|10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+91|dummy|91|dummy
+-STATEMENT CREATE (a:person {ID:93, fName:'dummy'}) WITH a MATCH (b:person) WHERE b.ID = a.ID - 90 RETURN a.ID, a.fName, b.ID, b.fName;
+---- 1
+93|dummy|3|Carol
+-STATEMENT MATCH (a:person) WHERE a.ID < 3 CREATE (b:person {ID:a.ID+100, fName:a.fName}) WITH a, b MATCH (c:person) WHERE c.ID > 99 RETURN a.ID, a.fName, b.ID, b.fName, c.ID, c.fName;
+---- 4
+0|Alice|100|Alice|100|Alice
+0|Alice|100|Alice|102|Bob
+2|Bob|102|Bob|100|Alice
+2|Bob|102|Bob|102|Bob
 -STATEMENT CREATE (a:person {ID:80, isWorker:true,age:22,eyeSight:1.1}) RETURN a.ID, a.age, a.fName, a.eyeSight;
 ---- 1
 80|22||1.100000
 -STATEMENT CREATE (a:organisation {ID:0, name:'test'}) RETURN a, a.history;
 ---- 1
 {_ID: 1:3, _LABEL: organisation, ID: 0, name: test}|
+
+
+-CASE OptionalMatchAfterInsert
+-STATEMENT CREATE (a:person {ID:200, fName:'test'}) WITH a OPTIONAL MATCH (b:person) RETURN COUNT(*);
+---- 1
+9
+-STATEMENT CREATE (a:person {ID:201, fName:'test'}) WITH a OPTIONAL MATCH (b:person) WHERE b.ID > a.ID RETURN COUNT(b);
+---- error
+Runtime exception: Optional match after update is not supported. Missing right outer join implementation.
+-STATEMENT CREATE (a:person {ID:202, fName:'test'}) WITH a OPTIONAL MATCH (a)-[]->(b) RETURN COUNT(*);
+---- error
+Runtime exception: Optional match after update is not supported. Missing right outer join implementation.
 
 -CASE CreateNodeRead2
 -STATEMENT MATCH (a:person) WHERE a.ID < 3 CREATE (b:person {ID: a.ID + 11, fName: 'new', age:a.age * 2})
