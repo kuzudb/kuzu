@@ -17,7 +17,7 @@ void AddRelProperty::executeDDLInternal(ExecutionContext* context) {
     auto tableSchema = catalog->getTableCatalogEntry(context->clientContext->getTx(), tableID);
     auto addedPropertyID = tableSchema->getPropertyID(propertyName);
     auto addedProp = tableSchema->getProperty(addedPropertyID);
-    storageManager->getRelTable(tableID)->addColumn(
+    storageManager->getTable(tableID)->addColumn(
         context->clientContext->getTx(), *addedProp, getDefaultValVector(context));
     storageManager->getWAL()->logAddPropertyRecord(tableID, addedProp->getPropertyID());
 }

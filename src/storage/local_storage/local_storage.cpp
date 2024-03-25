@@ -1,7 +1,10 @@
 #include "storage/local_storage/local_storage.h"
 
+#include "storage/local_storage/local_node_table.h"
+#include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
-#include "storage/store/column.h"
+#include "storage/storage_manager.h"
+#include "storage/store/table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -9,35 +12,44 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-LocalTableData* LocalStorage::getOrCreateLocalTableData(common::table_id_t tableID,
-    const std::vector<std::unique_ptr<Column>>& columns, TableType tableType,
-    common::vector_idx_t dataIdx, RelMultiplicity multiplicity) {
+LocalTable* LocalStorage::getLocalTable(table_id_t tableID, NotExistAction action) {
     if (!tables.contains(tableID)) {
-        tables[tableID] = std::make_unique<LocalTable>(tableType);
-    }
-    return tables.at(tableID)->getOrCreateLocalTableData(columns, dataIdx, multiplicity);
-}
-
-LocalTable* LocalStorage::getLocalTable(table_id_t tableID) {
-    if (!tables.contains(tableID)) {
-        return nullptr;
+        switch (action) {
+        case NotExistAction::CREATE: {
+            auto table = clientContext.getStorageManager()->getTable(tableID);
+            switch (table->getTableType()) {
+            case TableType::NODE: {
+                tables[tableID] = std::make_unique<LocalNodeTable>(*table);
+            } break;
+            case TableType::REL: {
+                tables[tableID] = std::make_unique<LocalRelTable>(*table);
+            } break;
+            default:
+                KU_UNREACHABLE;
+            }
+        } break;
+        case NotExistAction::RETURN_NULL: {
+            return nullptr;
+        }
+        default:
+            KU_UNREACHABLE;
+        }
     }
     return tables.at(tableID).get();
 }
 
-LocalTableData* LocalStorage::getLocalTableData(table_id_t tableID, vector_idx_t dataIdx) {
-    if (!tables.contains(tableID)) {
-        return nullptr;
+void LocalStorage::prepareCommit() {
+    for (auto& [tableID, localTable] : tables) {
+        auto table = clientContext.getStorageManager()->getTable(tableID);
+        table->prepareCommit(clientContext.getTx(), localTable.get());
     }
-    return tables.at(tableID)->getLocalTableData(dataIdx);
 }
 
-std::unordered_set<table_id_t> LocalStorage::getTableIDsWithUpdates() {
-    std::unordered_set<table_id_t> tableSetToUpdate;
-    for (auto& [tableID, _] : tables) {
-        tableSetToUpdate.insert(tableID);
+void LocalStorage::prepareRollback() {
+    for (auto& [tableID, localTable] : tables) {
+        auto table = clientContext.getStorageManager()->getTable(tableID);
+        table->prepareRollback(localTable.get());
     }
-    return tableSetToUpdate;
 }
 
 } // namespace storage

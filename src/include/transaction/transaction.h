@@ -5,6 +5,9 @@
 #include "storage/local_storage/local_storage.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+} // namespace main
 namespace storage {
 class LocalStorage;
 } // namespace storage
@@ -18,9 +21,10 @@ class Transaction {
     friend class TransactionManager;
 
 public:
-    Transaction(TransactionType transactionType, uint64_t transactionID)
+    Transaction(
+        main::ClientContext& clientContext, TransactionType transactionType, uint64_t transactionID)
         : type{transactionType}, ID{transactionID} {
-        localStorage = std::make_unique<storage::LocalStorage>();
+        localStorage = std::make_unique<storage::LocalStorage>(clientContext);
     }
 
     constexpr explicit Transaction(TransactionType transactionType) noexcept

@@ -38,7 +38,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
                 }
             }
             tables.insert({tableID, std::make_unique<ScanNodeTableInfo>(
-                                        clientContext->getStorageManager()->getNodeTable(tableID),
+                                        ku_dynamic_cast<storage::Table*, storage::NodeTable*>(
+                                            clientContext->getStorageManager()->getTable(tableID)),
                                         std::move(columns))});
         }
         return std::make_unique<ScanMultiNodeTables>(inputNodeIDVectorPos, std::move(outVectorsPos),
@@ -58,7 +59,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
             }
         }
         auto info = std::make_unique<ScanNodeTableInfo>(
-            clientContext->getStorageManager()->getNodeTable(tableID), std::move(columnIDs));
+            ku_dynamic_cast<storage::Table*, storage::NodeTable*>(
+                clientContext->getStorageManager()->getTable(tableID)),
+            std::move(columnIDs));
         return std::make_unique<ScanSingleNodeTable>(std::move(info), inputNodeIDVectorPos,
             std::move(outVectorsPos), std::move(prevOperator), getOperatorID(),
             scanProperty.getExpressionsForPrinting());

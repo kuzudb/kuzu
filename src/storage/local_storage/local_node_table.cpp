@@ -2,6 +2,7 @@
 
 #include "common/cast.h"
 #include "storage/storage_utils.h"
+#include "storage/store/node_table.h"
 
 using namespace kuzu::common;
 
@@ -131,6 +132,49 @@ LocalNodeGroup* LocalNodeTableData::getOrCreateLocalNodeGroup(common::ValueVecto
         nodeGroups[nodeGroupIdx] = std::make_unique<LocalNodeNG>(nodeGroupStartOffset, dataTypes);
     }
     return nodeGroups.at(nodeGroupIdx).get();
+}
+
+LocalNodeTable::LocalNodeTable(Table& table) : LocalTable{table} {
+    auto& nodeTable = ku_dynamic_cast<Table&, NodeTable&>(table);
+    std::vector<LogicalType> types;
+    types.reserve(nodeTable.getNumColumns());
+    for (auto i = 0u; i < nodeTable.getNumColumns(); i++) {
+        types.push_back(nodeTable.getColumn(i)->getDataType());
+    }
+    localTableDataCollection.push_back(std::make_unique<LocalNodeTableData>(types));
+}
+
+bool LocalNodeTable::insert(TableInsertState& state) {
+    auto& insertState = ku_dynamic_cast<TableInsertState&, NodeTableInsertState&>(state);
+    return localTableDataCollection[0]->insert(
+        {&insertState.nodeIDVector}, insertState.propertyVectors);
+}
+
+bool LocalNodeTable::update(TableUpdateState& state) {
+    auto& updateState = ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(state);
+    return localTableDataCollection[0]->update(
+        {const_cast<ValueVector*>(&updateState.nodeIDVector)}, updateState.columnID,
+        const_cast<ValueVector*>(&updateState.propertyVector));
+}
+
+bool LocalNodeTable::delete_(TableDeleteState& deleteState) {
+    auto& deleteState_ = ku_dynamic_cast<TableDeleteState&, NodeTableDeleteState&>(deleteState);
+    return localTableDataCollection[0]->delete_(
+        const_cast<ValueVector*>(&deleteState_.nodeIDVector), nullptr);
+}
+
+void LocalNodeTable::scan(TableReadState& state) {
+    auto localTableData =
+        ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableDataCollection[0].get());
+    localTableData->scan(
+        const_cast<ValueVector*>(&state.nodeIDVector), state.columnIDs, state.outputVectors);
+}
+
+void LocalNodeTable::lookup(TableReadState& state) {
+    auto localTableData =
+        ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableDataCollection[0].get());
+    localTableData->lookup(
+        const_cast<ValueVector*>(&state.nodeIDVector), state.columnIDs, state.outputVectors);
 }
 
 } // namespace storage

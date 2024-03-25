@@ -2,8 +2,6 @@
 
 #include <unordered_map>
 
-#include "common/enums/rel_multiplicity.h"
-#include "common/enums/table_type.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/chunked_node_group_collection.h"
 
@@ -198,20 +196,29 @@ protected:
     std::unordered_map<common::node_group_idx_t, std::unique_ptr<LocalNodeGroup>> nodeGroups;
 };
 
-class Column;
+struct TableInsertState;
+struct TableUpdateState;
+struct TableDeleteState;
+struct TableReadState;
+class Table;
 class LocalTable {
 public:
-    explicit LocalTable(common::TableType tableType) : tableType{tableType} {};
+    virtual ~LocalTable() = default;
 
-    LocalTableData* getOrCreateLocalTableData(const std::vector<std::unique_ptr<Column>>& columns,
-        common::vector_idx_t dataIdx, common::RelMultiplicity multiplicity);
-    inline LocalTableData* getLocalTableData(common::vector_idx_t dataIdx) {
-        KU_ASSERT(dataIdx < localTableDataCollection.size());
-        return localTableDataCollection[dataIdx].get();
-    }
+    virtual bool insert(TableInsertState& insertState) = 0;
+    virtual bool update(TableUpdateState& updateState) = 0;
+    virtual bool delete_(TableDeleteState& deleteState) = 0;
 
-private:
-    common::TableType tableType;
+    virtual void scan(TableReadState& state) = 0;
+    virtual void lookup(TableReadState& state) = 0;
+
+    inline void clear() { localTableDataCollection.clear(); }
+
+protected:
+    explicit LocalTable(Table& table) : table{table} {}
+
+protected:
+    Table& table;
     // For a node table, it should only contain one LocalTableData, while a rel table should contain
     // two, one for each direction.
     std::vector<std::unique_ptr<LocalTableData>> localTableDataCollection;

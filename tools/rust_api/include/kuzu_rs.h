@@ -11,7 +11,7 @@
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
 #include "main/kuzu.h"
-#include "storage/storage_info.h"
+#include "storage/storage_version_info.h"
 #else
 #include <kuzu.hpp>
 #endif

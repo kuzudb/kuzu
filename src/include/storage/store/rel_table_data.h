@@ -10,7 +10,7 @@ namespace storage {
 using density_range_t = std::pair<double, double>;
 
 class LocalRelNG;
-struct RelDataReadState : public TableReadState {
+struct RelDataReadState : public TableDataReadState {
     common::RelDataDirection direction;
     common::offset_t startNodeOffset;
     common::offset_t numNodes;
@@ -133,21 +133,16 @@ public:
         common::RelDataDirection direction, bool enableCompression);
 
     void initializeReadState(transaction::Transaction* transaction,
-        std::vector<common::column_id_t> columnIDs, common::ValueVector* inNodeIDVector,
-        RelDataReadState* readState);
-    void scan(transaction::Transaction* transaction, TableReadState& readState,
-        common::ValueVector* inNodeIDVector,
+        std::vector<common::column_id_t> columnIDs, const common::ValueVector& inNodeIDVector,
+        RelDataReadState& readState);
+    void scan(transaction::Transaction* transaction, TableDataReadState& readState,
+        const common::ValueVector& inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) override;
-    void lookup(transaction::Transaction* transaction, TableReadState& readState,
-        common::ValueVector* inNodeIDVector,
+    void lookup(transaction::Transaction* transaction, TableDataReadState& readState,
+        const common::ValueVector& inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) override;
 
-    void insert(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
-        common::ValueVector* dstNodeIDVector,
-        const std::vector<common::ValueVector*>& propertyVectors);
-    void update(transaction::Transaction* transaction, common::column_id_t columnID,
-        common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector,
-        common::ValueVector* propertyVector);
+    // TODO: Should be removed. This is used by detachDelete for now.
     bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* relIDVector);
 

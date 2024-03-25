@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/copy_constructors.h"
-#include "common/enums/rel_multiplicity.h"
+#include "common/enums/rel_direction.h"
 #include "common/vector/value_vector.h"
 #include "storage/local_storage/local_table.h"
 
@@ -15,8 +15,7 @@ class LocalRelNG final : public LocalNodeGroup {
     friend class RelTableData;
 
 public:
-    LocalRelNG(common::offset_t nodeGroupStartOffset, std::vector<common::LogicalType> dataTypes,
-        common::RelMultiplicity multiplicity);
+    LocalRelNG(common::offset_t nodeGroupStartOffset, std::vector<common::LogicalType> dataTypes);
     DELETE_COPY_DEFAULT_MOVE(LocalRelNG);
 
     common::row_idx_t scanCSR(common::offset_t srcOffset, common::offset_t posToReadForOffset,
@@ -46,24 +45,36 @@ private:
     void applyCSRUpdates(common::column_id_t columnID, common::ValueVector* relIDVector,
         common::ValueVector* outputVector);
     void applyCSRDeletions(common::offset_t srcOffsetInChunk, common::ValueVector* relIDVector);
-
-private:
-    common::RelMultiplicity multiplicity;
 };
 
 class LocalRelTableData final : public LocalTableData {
     friend class RelTableData;
 
 public:
-    LocalRelTableData(
-        common::RelMultiplicity multiplicity, std::vector<common::LogicalType> dataTypes)
-        : LocalTableData{std::move(dataTypes)}, multiplicity{multiplicity} {}
+    explicit LocalRelTableData(std::vector<common::LogicalType> dataTypes)
+        : LocalTableData{std::move(dataTypes)} {}
 
 private:
     LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) override;
+};
 
-private:
-    common::RelMultiplicity multiplicity;
+class LocalRelTable final : public LocalTable {
+public:
+    explicit LocalRelTable(Table& table);
+
+    bool insert(TableInsertState& insertState) override;
+    bool update(TableUpdateState& updateState) override;
+    bool delete_(TableDeleteState& deleteState) override;
+
+    void scan(TableReadState& state) override;
+    void lookup(TableReadState& state) override;
+
+    LocalRelTableData* getTableData(common::RelDataDirection direction) {
+        KU_ASSERT(localTableDataCollection.size() == 2);
+        return common::ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(
+            direction == common::RelDataDirection::FWD ? localTableDataCollection[0].get() :
+                                                         localTableDataCollection[1].get());
+    }
 };
 
 } // namespace storage

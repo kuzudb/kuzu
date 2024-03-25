@@ -6,8 +6,8 @@
 namespace kuzu {
 namespace storage {
 
-struct TableReadState {
-    virtual ~TableReadState() = default;
+struct TableDataReadState {
+    virtual ~TableDataReadState() = default;
 
     std::vector<common::column_id_t> columnIDs;
 };
@@ -17,11 +17,11 @@ class TableData {
 public:
     virtual ~TableData() = default;
 
-    virtual void scan(transaction::Transaction* transaction, TableReadState& readState,
-        common::ValueVector* nodeIDVector,
+    virtual void scan(transaction::Transaction* transaction, TableDataReadState& readState,
+        const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) = 0;
-    virtual void lookup(transaction::Transaction* transaction, TableReadState& readState,
-        common::ValueVector* nodeIDVector,
+    virtual void lookup(transaction::Transaction* transaction, TableDataReadState& readState,
+        const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) = 0;
 
     virtual void append(ChunkedNodeGroup* nodeGroup) = 0;

@@ -4,7 +4,6 @@
 #include "storage/index/hash_index.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/stats/rels_store_statistics.h"
-#include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "storage/wal/wal.h"
 
@@ -27,17 +26,9 @@ public:
 
     PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);
 
-    inline NodeTable* getNodeTable(common::table_id_t tableID) const {
-        KU_ASSERT(tables.contains(tableID) &&
-                  tables.at(tableID)->getTableType() == common::TableType::NODE);
-        auto table = common::ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
-        return table;
-    }
-    inline RelTable* getRelTable(common::table_id_t tableID) const {
-        KU_ASSERT(tables.contains(tableID) &&
-                  tables.at(tableID)->getTableType() == common::TableType::REL);
-        auto table = common::ku_dynamic_cast<Table*, RelTable*>(tables.at(tableID).get());
-        return table;
+    inline Table* getTable(common::table_id_t tableID) const {
+        KU_ASSERT(tables.contains(tableID));
+        return tables.at(tableID).get();
     }
 
     inline WAL* getWAL() const { return wal; }

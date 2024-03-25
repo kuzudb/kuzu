@@ -15,7 +15,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanInternalID(LogicalOperator*
     auto dataPos = DataPos(outSchema->getExpressionPos(*scan->getInternalID()));
     auto sharedState = std::make_shared<ScanNodeIDSharedState>();
     for (auto& tableID : scan->getTableIDs()) {
-        auto nodeTable = clientContext->getStorageManager()->getNodeTable(tableID);
+        auto nodeTable = common::ku_dynamic_cast<storage::Table*, storage::NodeTable*>(
+            clientContext->getStorageManager()->getTable(tableID));
         sharedState->addTableState(nodeTable);
     }
     return std::make_unique<ScanNodeID>(

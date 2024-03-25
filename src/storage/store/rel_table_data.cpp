@@ -174,39 +174,39 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
 }
 
 void RelTableData::initializeReadState(Transaction* transaction, std::vector<column_id_t> columnIDs,
-    ValueVector* inNodeIDVector, RelDataReadState* readState) {
-    readState->direction = direction;
-    readState->columnIDs.clear();
-    readState->columnIDs.push_back(NBR_ID_COLUMN_ID);
-    readState->columnIDs.insert(readState->columnIDs.end(), columnIDs.begin(), columnIDs.end());
+    const ValueVector& inNodeIDVector, RelDataReadState& readState) {
+    readState.direction = direction;
+    readState.columnIDs.clear();
+    readState.columnIDs.push_back(NBR_ID_COLUMN_ID);
+    readState.columnIDs.insert(readState.columnIDs.end(), columnIDs.begin(), columnIDs.end());
     // Reset to read from persistent storage.
-    readState->readFromLocalStorage = false;
+    readState.readFromLocalStorage = false;
     auto nodeOffset =
-        inNodeIDVector->readNodeOffset(inNodeIDVector->state->selVector->selectedPositions[0]);
+        inNodeIDVector.readNodeOffset(inNodeIDVector.state->selVector->selectedPositions[0]);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     // Reset to read from beginning for the csr of the new node offset.
-    readState->posInCurrentCSR = 0;
-    if (readState->isOutOfRange(nodeOffset)) {
+    readState.posInCurrentCSR = 0;
+    if (readState.isOutOfRange(nodeOffset)) {
         // Scan csr offsets and populate csr list entries for the new node group.
-        readState->startNodeOffset = startNodeOffset;
-        csrHeaderColumns.scan(transaction, nodeGroupIdx, readState->csrHeaderChunks);
-        KU_ASSERT(readState->csrHeaderChunks.offset->getNumValues() ==
-                  readState->csrHeaderChunks.length->getNumValues());
-        readState->numNodes = readState->csrHeaderChunks.offset->getNumValues();
-        readState->populateCSRListEntries();
+        readState.startNodeOffset = startNodeOffset;
+        csrHeaderColumns.scan(transaction, nodeGroupIdx, readState.csrHeaderChunks);
+        KU_ASSERT(readState.csrHeaderChunks.offset->getNumValues() ==
+                  readState.csrHeaderChunks.length->getNumValues());
+        readState.numNodes = readState.csrHeaderChunks.offset->getNumValues();
+        readState.populateCSRListEntries();
         if (transaction->isWriteTransaction()) {
-            readState->localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
+            readState.localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
         }
     }
-    if (nodeOffset != readState->currentNodeOffset) {
-        readState->currentNodeOffset = nodeOffset;
+    if (nodeOffset != readState.currentNodeOffset) {
+        readState.currentNodeOffset = nodeOffset;
     }
 }
 
-void RelTableData::scan(Transaction* transaction, TableReadState& readState,
-    ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
-    auto& relReadState = ku_dynamic_cast<TableReadState&, RelDataReadState&>(readState);
+void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
+    const ValueVector& inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+    auto& relReadState = ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(readState);
     if (relReadState.readFromLocalStorage) {
         auto offsetInChunk = relReadState.currentNodeOffset - relReadState.startNodeOffset;
         KU_ASSERT(relReadState.localNodeGroup);
@@ -236,7 +236,7 @@ void RelTableData::scan(Transaction* transaction, TableReadState& readState,
     }
     if (transaction->isWriteTransaction() && relReadState.localNodeGroup) {
         auto nodeOffset =
-            inNodeIDVector->readNodeOffset(inNodeIDVector->state->selVector->selectedPositions[0]);
+            inNodeIDVector.readNodeOffset(inNodeIDVector.state->selVector->selectedPositions[0]);
         KU_ASSERT(relIDVectorIdx != INVALID_VECTOR_IDX);
         auto relIDVector = outputVectors[relIDVectorIdx];
         relReadState.localNodeGroup->applyLocalChangesToScannedVectors(
@@ -245,34 +245,17 @@ void RelTableData::scan(Transaction* transaction, TableReadState& readState,
     }
 }
 
-void RelTableData::lookup(Transaction* /*transaction*/, TableReadState& /*readState*/,
-    ValueVector* /*inNodeIDVector*/, const std::vector<ValueVector*>& /*outputVectors*/) {
+void RelTableData::lookup(Transaction* /*transaction*/, TableDataReadState& /*readState*/,
+    const ValueVector& /*inNodeIDVector*/, const std::vector<ValueVector*>& /*outputVectors*/) {
     KU_ASSERT(false);
-}
-
-void RelTableData::insert(Transaction* transaction, ValueVector* srcNodeIDVector,
-    ValueVector* dstNodeIDVector, const std::vector<ValueVector*>& propertyVectors) {
-    auto localTableData = transaction->getLocalStorage()->getOrCreateLocalTableData(
-        tableID, columns, TableType::REL, getDataIdxFromDirection(direction), multiplicity);
-    auto checkPersistent =
-        localTableData->insert({srcNodeIDVector, dstNodeIDVector}, propertyVectors);
-    if (checkPersistent && multiplicity == RelMultiplicity::ONE) {
-        checkRelMultiplicityConstraint(transaction, srcNodeIDVector);
-    }
-}
-
-void RelTableData::update(Transaction* transaction, column_id_t columnID,
-    ValueVector* srcNodeIDVector, ValueVector* relIDVector, ValueVector* propertyVector) {
-    KU_ASSERT(columnID < columns.size() && columnID != REL_ID_COLUMN_ID);
-    auto localTableData = transaction->getLocalStorage()->getOrCreateLocalTableData(
-        tableID, columns, TableType::REL, getDataIdxFromDirection(direction), multiplicity);
-    localTableData->update({srcNodeIDVector, relIDVector}, columnID, propertyVector);
 }
 
 bool RelTableData::delete_(
     Transaction* transaction, ValueVector* srcNodeIDVector, ValueVector* relIDVector) {
-    auto localTableData = transaction->getLocalStorage()->getOrCreateLocalTableData(
-        tableID, columns, TableType::REL, getDataIdxFromDirection(direction), multiplicity);
+    auto localTable = transaction->getLocalStorage()->getLocalTable(
+        tableID, LocalStorage::NotExistAction::CREATE);
+    auto localRelTable = ku_dynamic_cast<LocalTable*, LocalRelTable*>(localTable);
+    auto localTableData = localRelTable->getTableData(direction);
     return localTableData->delete_(srcNodeIDVector, relIDVector);
 }
 
@@ -972,16 +955,16 @@ void RelTableData::prepareCommitNodeGroup(
 
 LocalRelNG* RelTableData::getLocalNodeGroup(
     Transaction* transaction, node_group_idx_t nodeGroupIdx) {
-    auto localTableData = transaction->getLocalStorage()->getLocalTableData(
-        tableID, getDataIdxFromDirection(direction));
+    auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
+    if (!localTable) {
+        return nullptr;
+    }
+    auto localRelTable = ku_dynamic_cast<LocalTable*, LocalRelTable*>(localTable);
+    auto localTableData = localRelTable->getTableData(direction);
     LocalRelNG* localNodeGroup = nullptr;
-    if (localTableData) {
-        auto localRelTableData =
-            ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(localTableData);
-        if (localRelTableData->nodeGroups.contains(nodeGroupIdx)) {
-            localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalRelNG*>(
-                localRelTableData->nodeGroups.at(nodeGroupIdx).get());
-        }
+    if (localTableData->nodeGroups.contains(nodeGroupIdx)) {
+        localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalRelNG*>(
+            localTableData->nodeGroups.at(nodeGroupIdx).get());
     }
     return localNodeGroup;
 }

@@ -18,7 +18,7 @@ static std::unique_ptr<ScanRelTableInfo> getRelTableScanInfo(TableCatalogEntry* 
     RelDataDirection direction, StorageManager* storageManager,
     const expression_vector& properties) {
     auto relTableID = tableCatalogEntry->getTableID();
-    auto relTable = storageManager->getRelTable(relTableID);
+    auto relTable = ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(relTableID));
     std::vector<column_id_t> columnIDs;
     for (auto& property : properties) {
         auto propertyExpression = ku_dynamic_cast<Expression*, PropertyExpression*>(property.get());

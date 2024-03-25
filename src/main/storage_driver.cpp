@@ -6,6 +6,7 @@
 #include "common/vector/value_vector.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
+#include "storage/store/node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -23,7 +24,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     auto nodeTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, nodeName);
     auto propertyID = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, nodeTableID)
                           ->getPropertyID(propertyName);
-    auto nodeTable = storageManager->getNodeTable(nodeTableID);
+    auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(nodeTableID));
     auto column = nodeTable->getColumn(propertyID);
     auto current_buffer = result;
     std::vector<std::thread> threads;
@@ -35,6 +36,8 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
         threads.emplace_back(&StorageDriver::scanColumn, this, dummyReadOnlyTransaction.get(),
             column, offsets, sizeToRead, current_buffer);
         offsets += sizeToRead;
+        // TODO(Guodong/Xiyang/Chang): StorageDriver should figure numBytesPerValue from logicalType
+        // and not rely on Column to provide this information.
         current_buffer += sizeToRead * column->getNumBytesPerValue();
         sizeLeft -= sizeToRead;
     }
