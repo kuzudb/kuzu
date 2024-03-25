@@ -19,27 +19,6 @@ const char* const MIN_FUNC_NAME = "MIN";
 const char* const MAX_FUNC_NAME = "MAX";
 const char* const COLLECT_FUNC_NAME = "COLLECT";
 
-// string
-const char* const LENGTH_FUNC_NAME = "LENGTH";
-
-// Node/Rel functions.
-const char* const ID_FUNC_NAME = "ID";
-const char* const LABEL_FUNC_NAME = "LABEL";
-const char* const OFFSET_FUNC_NAME = "OFFSET";
-const char* const START_NODE_FUNC_NAME = "START_NODE";
-const char* const END_NODE_FUNC_NAME = "END_NODE";
-
-// Path functions
-const char* const NODES_FUNC_NAME = "NODES";
-const char* const RELS_FUNC_NAME = "RELS";
-const char* const PROPERTIES_FUNC_NAME = "PROPERTIES";
-const char* const IS_TRAIL_FUNC_NAME = "IS_TRAIL";
-const char* const IS_ACYCLIC_FUNC_NAME = "IS_ACYCLIC";
-
-// RDF functions
-const char* const TYPE_FUNC_NAME = "TYPE";
-const char* const VALIDATE_PREDICATE_FUNC_NAME = "VALIDATE_PREDICATE";
-
 // Table functions
 const char* const TABLE_INFO_FUNC_NAME = "TABLE_INFO";
 const char* const DB_VERSION_FUNC_NAME = "DB_VERSION";

@@ -9,6 +9,9 @@
 #include "function/interval/vector_interval_functions.h"
 #include "function/list/vector_list_functions.h"
 #include "function/map/vector_map_functions.h"
+#include "function/path/vector_path_functions.h"
+#include "function/rdf/vector_rdf_functions.h"
+#include "function/schema/vector_node_rel_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
 #include "function/timestamp/vector_timestamp_functions.h"
@@ -19,11 +22,13 @@ namespace kuzu {
 namespace function {
 
 #define SCALAR_FUNCTION(_PARAM)                                                                    \
-    { _PARAM::name, _PARAM::getFunctionSet }
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 #define SCALAR_FUNCTION_ALIAS(_PARAM)                                                              \
-    { _PARAM::alias, _PARAM::getFunctionSet }
+    { _PARAM::getFunctionSet, _PARAM::alias, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+#define REWRITE_FUNCTION(_PARAM)                                                                   \
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY }
 #define FINAL_FUNCTION                                                                             \
-    { nullptr, nullptr }
+    { nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 
 FunctionCollection* FunctionCollection::getFunctions() {
     static FunctionCollection functions[] = {
@@ -144,6 +149,17 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Union functions
         SCALAR_FUNCTION(UnionValueFunction), SCALAR_FUNCTION(UnionTagFunction),
         SCALAR_FUNCTION(UnionExtractFunction),
+
+        // Node/rel functions
+        SCALAR_FUNCTION(OffsetFunction), REWRITE_FUNCTION(IDFunction),
+
+        // Path functions
+        SCALAR_FUNCTION(NodesFunction), SCALAR_FUNCTION(RelsFunction),
+        SCALAR_FUNCTION(PropertiesFunction), SCALAR_FUNCTION(IsTrailFunction),
+        SCALAR_FUNCTION(IsACyclicFunction),
+
+        // Rdf functions
+        SCALAR_FUNCTION(RDFTypeFunction), SCALAR_FUNCTION(ValidatePredicateFunction),
 
         // End of array
         FINAL_FUNCTION};

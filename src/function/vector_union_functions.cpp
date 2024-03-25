@@ -9,7 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> UnionValueFunctionBindFunc(
+static std::unique_ptr<FunctionBindData> UnionValueBindFunc(
     const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
     KU_ASSERT(arguments.size() == 1);
     std::vector<StructField> fields;
@@ -24,13 +24,12 @@ static std::unique_ptr<FunctionBindData> UnionValueFunctionBindFunc(
     return std::make_unique<FunctionBindData>(std::move(resultType));
 }
 
-static void UnionValueFunctionExecFunc(
-    const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/, ValueVector& result,
-    void* /*dataPtr*/) {
+static void UnionValueExecFunc(const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/,
+    ValueVector& result, void* /*dataPtr*/) {
     UnionVector::setTagField(&result, UnionType::TAG_FIELD_IDX);
 }
 
-static void UnionValueFunctionCompileFunc(FunctionBindData* /*bindData*/,
+static void UnionValueCompileFunc(FunctionBindData* /*bindData*/,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     KU_ASSERT(parameters.size() == 1);
@@ -41,10 +40,9 @@ static void UnionValueFunctionCompileFunc(FunctionBindData* /*bindData*/,
 
 function_set UnionValueFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::UNION, UnionValueFunctionExecFunc, nullptr,
-            UnionValueFunctionCompileFunc, UnionValueFunctionBindFunc, false /* isVarLength */));
+    functionSet.push_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::UNION, UnionValueExecFunc,
+        nullptr, UnionValueCompileFunc, UnionValueBindFunc, false /* isVarLength */));
     return functionSet;
 }
 

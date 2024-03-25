@@ -11,7 +11,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> StructPackFunctionsBindFunc(
+static std::unique_ptr<FunctionBindData> StructPackBindFunc(
     const binder::expression_vector& arguments, Function* /*function*/) {
     std::vector<StructField> fields;
     for (auto& argument : arguments) {
@@ -73,7 +73,7 @@ function_set StructPackFunctions::getFunctionSet() {
     function_set functions;
     functions.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRUCT, execFunc, nullptr,
-        compileFunc, StructPackFunctionsBindFunc, true /* isVarLength */));
+        compileFunc, StructPackBindFunc, true /* isVarLength */));
     return functions;
 }
 
