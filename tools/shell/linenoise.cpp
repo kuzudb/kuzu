@@ -1369,6 +1369,7 @@ static void searchNext(linenoiseState* l) {
 bool pastedInput(int ifd) {
 #ifdef _WIN32
     fd_set readfds;
+    FD_ZERO(&readfds);
     FD_SET(ifd, &readfds);
     int isPasted = select(0, &readfds, NULL, NULL, NULL);
     return (isPasted != 0 && isPasted != SOCKET_ERROR);
