@@ -1,23 +1,21 @@
 #pragma once
 
 #include "common/vector/value_vector.h"
-#include "function/scalar_function.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace function {
 
 struct StructPackFunctions {
+    static constexpr const char* name = "STRUCT_PACK";
+
     static function_set getFunctionSet();
 
-    static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, Function* function);
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr);
     static void compileFunc(FunctionBindData* bindData,
         const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         std::shared_ptr<common::ValueVector>& result);
-    static void copyParameterValueToStructFieldVector(const common::ValueVector* parameter,
-        common::ValueVector* structField, common::DataChunkState* structVectorState);
 };
 
 struct StructExtractBindData : public FunctionBindData {
@@ -29,8 +27,9 @@ struct StructExtractBindData : public FunctionBindData {
 };
 
 struct StructExtractFunctions {
+    static constexpr const char* name = "STRUCT_EXTRACT";
+
     static function_set getFunctionSet();
-    static std::unique_ptr<ScalarFunction> getFunction(common::LogicalTypeID logicalTypeID);
 
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, Function* function);

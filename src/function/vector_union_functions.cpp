@@ -9,15 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-function_set UnionValueFunction::getFunctionSet() {
-    function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(UNION_VALUE_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::UNION, execFunc, nullptr,
-        compileFunc, bindFunc, false /* isVarLength */));
-    return functionSet;
-}
-
-std::unique_ptr<FunctionBindData> UnionValueFunction::bindFunc(
+static std::unique_ptr<FunctionBindData> UnionValueFunctionBindFunc(
     const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
     KU_ASSERT(arguments.size() == 1);
     std::vector<StructField> fields;
@@ -32,12 +24,13 @@ std::unique_ptr<FunctionBindData> UnionValueFunction::bindFunc(
     return std::make_unique<FunctionBindData>(std::move(resultType));
 }
 
-void UnionValueFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/,
-    ValueVector& result, void* /*dataPtr*/) {
+static void UnionValueFunctionExecFunc(
+    const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/, ValueVector& result,
+    void* /*dataPtr*/) {
     UnionVector::setTagField(&result, UnionType::TAG_FIELD_IDX);
 }
 
-void UnionValueFunction::compileFunc(FunctionBindData* /*bindData*/,
+static void UnionValueFunctionCompileFunc(FunctionBindData* /*bindData*/,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     KU_ASSERT(parameters.size() == 1);
@@ -46,9 +39,18 @@ void UnionValueFunction::compileFunc(FunctionBindData* /*bindData*/,
     UnionVector::referenceVector(result.get(), UnionType::TAG_FIELD_IDX, parameters[0]);
 }
 
+function_set UnionValueFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(
+        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
+            LogicalTypeID::UNION, UnionValueFunctionExecFunc, nullptr,
+            UnionValueFunctionCompileFunc, UnionValueFunctionBindFunc, false /* isVarLength */));
+    return functionSet;
+}
+
 function_set UnionTagFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(UNION_TAG_FUNC_NAME,
+    functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::UNION}, LogicalTypeID::STRING,
         ScalarFunction::UnaryExecNestedTypeFunction<union_entry_t, ku_string_t, UnionTag>, nullptr,
         nullptr, false /* isVarLength */));
@@ -57,7 +59,7 @@ function_set UnionTagFunction::getFunctionSet() {
 
 function_set UnionExtractFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(UNION_EXTRACT_FUNC_NAME,
+    functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::UNION, LogicalTypeID::STRING}, LogicalTypeID::ANY,
         nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc,
         false /* isVarLength */));

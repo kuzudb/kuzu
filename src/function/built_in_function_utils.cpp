@@ -11,21 +11,12 @@
 #include "function/aggregate/count_star.h"
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
-#include "function/blob/vector_blob_functions.h"
-#include "function/comparison/vector_comparison_functions.h"
-#include "function/date/vector_date_functions.h"
 #include "function/function_collection.h"
-#include "function/interval/vector_interval_functions.h"
-#include "function/list/vector_list_functions.h"
-#include "function/map/vector_map_functions.h"
 #include "function/path/vector_path_functions.h"
 #include "function/rdf/vector_rdf_functions.h"
+#include "function/scalar_function.h"
 #include "function/schema/vector_node_rel_functions.h"
-#include "function/struct/vector_struct_functions.h"
 #include "function/table/call_functions.h"
-#include "function/timestamp/vector_timestamp_functions.h"
-#include "function/union/vector_union_functions.h"
-#include "function/uuid/vector_uuid_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
@@ -56,17 +47,8 @@ void BuiltInFunctionsUtils::createFunctions(CatalogSet* catalogSet) {
 }
 
 void BuiltInFunctionsUtils::registerScalarFunctions(CatalogSet* catalogSet) {
-    registerComparisonFunctions(catalogSet);
-    registerDateFunctions(catalogSet);
-    registerTimestampFunctions(catalogSet);
-    registerIntervalFunctions(catalogSet);
-    registerStructFunctions(catalogSet);
-    registerMapFunctions(catalogSet);
-    registerUnionFunctions(catalogSet);
     registerNodeRelFunctions(catalogSet);
     registerPathFunctions(catalogSet);
-    registerBlobFunctions(catalogSet);
-    registerUUIDFunctions(catalogSet);
     registerRdfFunctions(catalogSet);
 }
 
@@ -531,117 +513,6 @@ void BuiltInFunctionsUtils::validateSpecialCases(std::vector<Function*>& candida
                                   ". Supported inputs are\n" + supportedInputsString);
         }
     }
-}
-
-void BuiltInFunctionsUtils::registerComparisonFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        EQUALS_FUNC_NAME, EqualsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        NOT_EQUALS_FUNC_NAME, NotEqualsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        GREATER_THAN_FUNC_NAME, GreaterThanFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        GREATER_THAN_EQUALS_FUNC_NAME, GreaterThanEqualsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LESS_THAN_FUNC_NAME, LessThanFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LESS_THAN_EQUALS_FUNC_NAME, LessThanEqualsFunction::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerDateFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        DATE_PART_FUNC_NAME, DatePartFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        DATEPART_FUNC_NAME, DatePartFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        DATE_TRUNC_FUNC_NAME, DateTruncFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        DATETRUNC_FUNC_NAME, DateTruncFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        DAYNAME_FUNC_NAME, DayNameFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        GREATEST_FUNC_NAME, GreatestFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LAST_DAY_FUNC_NAME, LastDayFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        LEAST_FUNC_NAME, LeastFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        MAKE_DATE_FUNC_NAME, MakeDateFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        MONTHNAME_FUNC_NAME, MonthNameFunction::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerTimestampFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CENTURY_FUNC_NAME, CenturyFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        EPOCH_MS_FUNC_NAME, EpochMsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TO_TIMESTAMP_FUNC_NAME, ToTimestampFunction::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerIntervalFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TO_YEARS_FUNC_NAME, ToYearsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TO_MONTHS_FUNC_NAME, ToMonthsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TO_DAYS_FUNC_NAME, ToDaysFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TO_HOURS_FUNC_NAME, ToHoursFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TO_MINUTES_FUNC_NAME, ToMinutesFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TO_SECONDS_FUNC_NAME, ToSecondsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TO_MILLISECONDS_FUNC_NAME, ToMillisecondsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TO_MICROSECONDS_FUNC_NAME, ToMicrosecondsFunction::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerBlobFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        OCTET_LENGTH_FUNC_NAME, OctetLengthFunctions::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        ENCODE_FUNC_NAME, EncodeFunctions::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        DECODE_FUNC_NAME, DecodeFunctions::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerUUIDFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        GEN_RANDOM_UUID_FUNC_NAME, GenRandomUUIDFunction::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerStructFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        STRUCT_PACK_FUNC_NAME, StructPackFunctions::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        STRUCT_EXTRACT_FUNC_NAME, StructExtractFunctions::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerMapFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        MAP_CREATION_FUNC_NAME, MapCreationFunctions::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        MAP_EXTRACT_FUNC_NAME, MapExtractFunctions::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        ELEMENT_AT_FUNC_NAME, MapExtractFunctions::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        CARDINALITY_FUNC_NAME, SizeFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        MAP_KEYS_FUNC_NAME, MapKeysFunctions::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        MAP_VALUES_FUNC_NAME, MapValuesFunctions::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerUnionFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        UNION_VALUE_FUNC_NAME, UnionValueFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        UNION_TAG_FUNC_NAME, UnionTagFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        UNION_EXTRACT_FUNC_NAME, UnionExtractFunction::getFunctionSet()));
 }
 
 void BuiltInFunctionsUtils::registerNodeRelFunctions(CatalogSet* catalogSet) {

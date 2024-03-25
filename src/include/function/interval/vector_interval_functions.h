@@ -9,7 +9,7 @@ namespace function {
 struct IntervalFunction {
 public:
     template<class OPERATION>
-    static inline function_set getUnaryIntervalFunction(std::string funcName) {
+    static function_set getUnaryIntervalFunction(std::string funcName) {
         function_set result;
         result.push_back(std::make_unique<ScalarFunction>(funcName,
             std::vector<common::LogicalTypeID>{common::LogicalTypeID::INT64},
@@ -20,52 +20,66 @@ public:
 };
 
 struct ToYearsFunction {
-    static inline function_set getFunctionSet() {
-        return IntervalFunction::getUnaryIntervalFunction<ToYears>(common::TO_YEARS_FUNC_NAME);
+    static constexpr const char* name = "TO_YEARS";
+
+    static function_set getFunctionSet() {
+        return IntervalFunction::getUnaryIntervalFunction<ToYears>(name);
     }
 };
 
 struct ToMonthsFunction {
-    static inline function_set getFunctionSet() {
-        return IntervalFunction::getUnaryIntervalFunction<ToMonths>(common::TO_MONTHS_FUNC_NAME);
+    static constexpr const char* name = "TO_MONTHS";
+
+    static function_set getFunctionSet() {
+        return IntervalFunction::getUnaryIntervalFunction<ToMonths>(name);
     }
 };
 
 struct ToDaysFunction {
-    static inline function_set getFunctionSet() {
-        return IntervalFunction::getUnaryIntervalFunction<ToDays>(common::TO_DAYS_FUNC_NAME);
+    static constexpr const char* name = "TO_DAYS";
+
+    static function_set getFunctionSet() {
+        return IntervalFunction::getUnaryIntervalFunction<ToDays>(name);
     }
 };
 
 struct ToHoursFunction {
-    static inline function_set getFunctionSet() {
-        return IntervalFunction::getUnaryIntervalFunction<ToHours>(common::TO_HOURS_FUNC_NAME);
+    static constexpr const char* name = "TO_HOURS";
+
+    static function_set getFunctionSet() {
+        return IntervalFunction::getUnaryIntervalFunction<ToHours>(name);
     }
 };
 
 struct ToMinutesFunction {
-    static inline function_set getFunctionSet() {
-        return IntervalFunction::getUnaryIntervalFunction<ToMinutes>(common::TO_MINUTES_FUNC_NAME);
+    static constexpr const char* name = "TO_MINUTES";
+
+    static function_set getFunctionSet() {
+        return IntervalFunction::getUnaryIntervalFunction<ToMinutes>(name);
     }
 };
 
 struct ToSecondsFunction {
-    static inline function_set getFunctionSet() {
-        return IntervalFunction::getUnaryIntervalFunction<ToSeconds>(common::TO_SECONDS_FUNC_NAME);
+    static constexpr const char* name = "TO_SECONDS";
+
+    static function_set getFunctionSet() {
+        return IntervalFunction::getUnaryIntervalFunction<ToSeconds>(name);
     }
 };
 
 struct ToMillisecondsFunction {
-    static inline function_set getFunctionSet() {
-        return IntervalFunction::getUnaryIntervalFunction<ToMilliseconds>(
-            common::TO_MILLISECONDS_FUNC_NAME);
+    static constexpr const char* name = "TO_MILLISECONDS";
+
+    static function_set getFunctionSet() {
+        return IntervalFunction::getUnaryIntervalFunction<ToMilliseconds>(name);
     }
 };
 
 struct ToMicrosecondsFunction {
-    static inline function_set getFunctionSet() {
-        return IntervalFunction::getUnaryIntervalFunction<ToMicroseconds>(
-            common::TO_MICROSECONDS_FUNC_NAME);
+    static constexpr const char* name = "TO_MICROSECONDS";
+
+    static function_set getFunctionSet() {
+        return IntervalFunction::getUnaryIntervalFunction<ToMicroseconds>(name);
     }
 };
 

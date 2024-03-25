@@ -6,6 +6,8 @@ namespace kuzu {
 namespace function {
 
 struct GenRandomUUIDFunction {
+    static constexpr const char* name = "GEN_RANDOM_UUID";
+
     static function_set getFunctionSet();
 };
 
