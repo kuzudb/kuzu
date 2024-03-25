@@ -76,7 +76,7 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(
 
 function_set RdfResourceScan::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_RESOURCE_FUNC_NAME, scanTableFunc, nullptr,
+    auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
         initSharedState, initLocalState, std::vector<LogicalTypeID>{});
     functionSet.push_back(std::move(func));
     return functionSet;
@@ -84,7 +84,7 @@ function_set RdfResourceScan::getFunctionSet() {
 
 function_set RdfLiteralScan::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_LITERAL_FUNC_NAME, scanTableFunc, nullptr,
+    auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
         initSharedState, initLocalState, std::vector<LogicalTypeID>{});
     functionSet.push_back(std::move(func));
     return functionSet;
@@ -92,7 +92,7 @@ function_set RdfLiteralScan::getFunctionSet() {
 
 function_set RdfResourceTripleScan::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_RESOURCE_TRIPLE_FUNC_NAME, scanTableFunc,
+    auto func = std::make_unique<TableFunction>(name, scanTableFunc,
         nullptr, initSharedState, initLocalState, std::vector<LogicalTypeID>{});
     functionSet.push_back(std::move(func));
     return functionSet;
@@ -100,7 +100,7 @@ function_set RdfResourceTripleScan::getFunctionSet() {
 
 function_set RdfLiteralTripleScan::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_LITERAL_TRIPLE_FUNC_NAME, scanTableFunc,
+    auto func = std::make_unique<TableFunction>(name, scanTableFunc,
         nullptr, initSharedState, initLocalState, std::vector<LogicalTypeID>{});
     functionSet.push_back(std::move(func));
     return functionSet;
@@ -108,7 +108,7 @@ function_set RdfLiteralTripleScan::getFunctionSet() {
 
 function::function_set RdfAllTripleScan::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_ALL_TRIPLE_FUNC_NAME, tableFunc, bindFunc,
+    auto func = std::make_unique<TableFunction>(name, tableFunc, bindFunc,
         initSharedState, initLocalState, std::vector<LogicalTypeID>{});
     functionSet.push_back(std::move(func));
     return functionSet;
@@ -116,7 +116,7 @@ function::function_set RdfAllTripleScan::getFunctionSet() {
 
 function_set RdfResourceInMemScan::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(IN_MEM_READ_RDF_RESOURCE_FUNC_NAME, tableFunc,
+    auto func = std::make_unique<TableFunction>(name, tableFunc,
         nullptr, inMemScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
     functionSet.push_back(std::move(func));
     return functionSet;
@@ -124,7 +124,7 @@ function_set RdfResourceInMemScan::getFunctionSet() {
 
 function_set RdfLiteralInMemScan::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(IN_MEM_READ_RDF_LITERAL_FUNC_NAME, tableFunc,
+    auto func = std::make_unique<TableFunction>(name, tableFunc,
         nullptr, inMemScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
     functionSet.push_back(std::move(func));
     return functionSet;
@@ -132,7 +132,7 @@ function_set RdfLiteralInMemScan::getFunctionSet() {
 
 function_set RdfResourceTripleInMemScan::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(IN_MEM_READ_RDF_RESOURCE_TRIPLE_FUNC_NAME,
+    auto func = std::make_unique<TableFunction>(name,
         tableFunc, nullptr, inMemScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
     functionSet.push_back(std::move(func));
     return functionSet;
@@ -140,7 +140,7 @@ function_set RdfResourceTripleInMemScan::getFunctionSet() {
 
 function_set RdfLiteralTripleInMemScan::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(IN_MEM_READ_RDF_LITERAL_TRIPLE_FUNC_NAME, tableFunc,
+    auto func = std::make_unique<TableFunction>(name, tableFunc,
         nullptr, inMemScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
     functionSet.push_back(std::move(func));
     return functionSet;

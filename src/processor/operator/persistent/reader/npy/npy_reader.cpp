@@ -332,7 +332,7 @@ static std::unique_ptr<function::TableFuncLocalState> initLocalState(
 
 function_set NpyScanFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(READ_NPY_FUNC_NAME, tableFunc, bindFunc,
+    functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, bindFunc,
         initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }

@@ -677,7 +677,7 @@ static std::unique_ptr<function::TableFuncLocalState> initLocalState(
 function_set ParquetScanFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
-        std::make_unique<TableFunction>(READ_PARQUET_FUNC_NAME, tableFunc, bindFunc,
+        std::make_unique<TableFunction>(name, tableFunc, bindFunc,
             initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }

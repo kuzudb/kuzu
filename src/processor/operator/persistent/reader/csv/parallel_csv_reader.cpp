@@ -185,7 +185,7 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
 function_set ParallelCSVScan::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
-        std::make_unique<TableFunction>(READ_CSV_PARALLEL_FUNC_NAME, tableFunc, bindFunc,
+        std::make_unique<TableFunction>(name, tableFunc, bindFunc,
             initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
