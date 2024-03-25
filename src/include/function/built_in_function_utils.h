@@ -80,9 +80,6 @@ private:
         const std::string& name, const std::vector<common::LogicalType>& inputTypes,
         function::function_set& set);
 
-    // Table functions.
-    static void registerTableFunctions(catalog::CatalogSet* catalogSet);
-
     static void registerFunctions(catalog::CatalogSet* catalogSet);
 };
 
