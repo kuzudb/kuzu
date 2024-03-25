@@ -21,7 +21,7 @@ void StringColumnChunk::resetToEmpty() {
     dictionaryChunk->resetToEmpty();
 }
 
-void StringColumnChunk::append(ValueVector* vector, SelectionVector& selVector) {
+void StringColumnChunk::append(ValueVector* vector, const SelectionVector& selVector) {
     for (auto i = 0u; i < selVector.selectedSize; i++) {
         // index is stored in main chunk, data is stored in the data chunk
         auto pos = selVector.selectedPositions[i];

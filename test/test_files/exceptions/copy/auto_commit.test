@@ -22,4 +22,4 @@ DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please c
 ---- ok
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv"
 ---- 1
-14 number of tuples has been copied to table knows.
+6 number of tuples has been copied to table knows.

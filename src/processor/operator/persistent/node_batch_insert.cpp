@@ -176,7 +176,7 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     nodeSharedState->calculateNumTuples();
-    nodeSharedState->setNumTuplesForTable();
+    nodeSharedState->updateNumTuplesForTable();
     if (nodeSharedState->sharedNodeGroup) {
         auto nodeGroupIdx = nodeSharedState->getNextNodeGroupIdx();
         auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(nodeSharedState->table);

@@ -42,7 +42,7 @@ void StructColumnChunk::append(
     numValues += numValuesToAppend;
 }
 
-void StructColumnChunk::append(ValueVector* vector, SelectionVector& selVector) {
+void StructColumnChunk::append(ValueVector* vector, const SelectionVector& selVector) {
     auto numFields = StructType::getNumFields(&dataType);
     for (auto i = 0u; i < numFields; i++) {
         childChunks[i]->append(StructVector::getFieldVector(vector, i).get(), selVector);

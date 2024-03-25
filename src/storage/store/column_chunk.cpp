@@ -210,7 +210,7 @@ void ColumnChunk::resetToEmpty() {
     numValues = 0;
 }
 
-void ColumnChunk::append(ValueVector* vector, SelectionVector& selVector) {
+void ColumnChunk::append(ValueVector* vector, const SelectionVector& selVector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == dataType.getPhysicalType());
     copyVectorToBuffer(vector, numValues, selVector);
     numValues += selVector.selectedSize;
@@ -347,7 +347,7 @@ offset_t ColumnChunk::getOffsetInBuffer(offset_t pos) const {
 }
 
 void ColumnChunk::copyVectorToBuffer(
-    ValueVector* vector, offset_t startPosInChunk, SelectionVector& selVector) {
+    ValueVector* vector, offset_t startPosInChunk, const SelectionVector& selVector) {
     auto bufferToWrite = buffer.get() + startPosInChunk * numBytesPerValue;
     KU_ASSERT(startPosInChunk + selVector.selectedSize <= capacity);
     auto vectorDataToWriteFrom = vector->getData();
@@ -423,7 +423,7 @@ uint64_t ColumnChunk::getBufferSize(uint64_t capacity_) const {
     }
 }
 
-void BoolColumnChunk::append(ValueVector* vector, SelectionVector& selVector) {
+void BoolColumnChunk::append(ValueVector* vector, const SelectionVector& selVector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
     for (auto i = 0u; i < selVector.selectedSize; i++) {
         auto pos = selVector.selectedPositions[i];
@@ -532,7 +532,7 @@ public:
         : ColumnChunk(*LogicalType::INTERNAL_ID(), capacity, enableCompression),
           commonTableID{INVALID_TABLE_ID} {}
 
-    void append(ValueVector* vector, common::SelectionVector& selVector) override {
+    void append(ValueVector* vector, const common::SelectionVector& selVector) override {
         switch (vector->dataType.getPhysicalType()) {
         case PhysicalTypeID::INTERNAL_ID: {
             copyVectorToBuffer(vector, numValues, selVector);
@@ -548,7 +548,7 @@ public:
     }
 
     void copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
-        common::SelectionVector& selVector) override {
+        const common::SelectionVector& selVector) override {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto relIDsInVector = (internalID_t*)vector->getData();
         if (commonTableID == INVALID_TABLE_ID) {
@@ -564,7 +564,7 @@ public:
     }
 
     void copyInt64VectorToBuffer(
-        ValueVector* vector, offset_t startPosInChunk, common::SelectionVector& selVector) {
+        ValueVector* vector, offset_t startPosInChunk, const common::SelectionVector& selVector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
         for (auto i = 0u; i < selVector.selectedSize; i++) {
             auto pos = selVector.selectedPositions[i];

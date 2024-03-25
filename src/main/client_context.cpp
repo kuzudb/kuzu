@@ -58,6 +58,7 @@ ClientContext::ClientContext(Database* database) : database{database} {
     config.varLengthMaxDepth = ClientConfigDefault::VAR_LENGTH_MAX_DEPTH;
     config.enableProgressBar = ClientConfigDefault::ENABLE_PROGRESS_BAR;
     config.showProgressAfter = ClientConfigDefault::SHOW_PROGRESS_AFTER;
+    config.enableMultiCopy = ClientConfigDefault::ENABLE_MULTI_COPY;
 }
 
 uint64_t ClientContext::getTimeoutRemainingInMS() const {

@@ -61,9 +61,6 @@ VarListColumn::VarListColumn(std::string name, LogicalType dataType,
     dataColumn = ColumnFactory::createColumn(dataColName,
         *VarListType::getChildType(&this->dataType)->copy(), *metaDAHeaderInfo.childrenInfos[1],
         dataFH, metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
-    tmpDataColumnChunk =
-        std::make_unique<VarListDataColumnChunk>(ColumnChunkFactory::createColumnChunk(
-            *VarListType::getChildType(&this->dataType)->copy(), enableCompression, 0));
 }
 
 void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -135,7 +132,10 @@ void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx
             varListColumnChunk->resetOffset();
         } else {
             varListColumnChunk->resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
-            tmpDataColumnChunk->resizeBuffer(std::bit_ceil(resizeNumValues));
+            auto tmpDataColumnChunk =
+                std::make_unique<VarListDataColumnChunk>(ColumnChunkFactory::createColumnChunk(
+                    *VarListType::getChildType(&this->dataType)->copy(), enableCompression,
+                    std::bit_ceil(resizeNumValues)));
             auto dataVarListColumnChunk = varListColumnChunk->getDataColumnChunk();
             for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
                 offset_t startVarListOffset = varListColumnChunk->getListStartOffset(i);

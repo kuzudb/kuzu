@@ -360,6 +360,14 @@ offset_t RelTableData::findCSROffsetInRegion(
     return posInCSRList + persistentState.leftCSROffset;
 }
 
+bool RelTableData::isNewNodeGroup(Transaction* transaction, node_group_idx_t nodeGroupIdx) const {
+    if (nodeGroupIdx >= getNumNodeGroups(transaction) ||
+        getNbrIDColumn()->getMetadata(nodeGroupIdx, transaction->getType()).numValues == 0) {
+        return true;
+    }
+    return false;
+}
+
 void RelTableData::prepareLocalTableToCommit(Transaction* transaction, LocalTableData* localTable) {
     auto localRelTableData = ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(localTable);
     for (auto& [nodeGroupIdx, nodeGroup] : localRelTableData->nodeGroups) {

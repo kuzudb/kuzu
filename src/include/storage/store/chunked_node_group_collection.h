@@ -13,23 +13,31 @@ public:
         : types{std::move(types)} {}
     DELETE_COPY_DEFAULT_MOVE(ChunkedNodeGroupCollection);
 
+    static std::pair<uint64_t, common::offset_t> getChunkIdxAndOffsetInChunk(
+        common::row_idx_t rowIdx) {
+        return std::make_pair(rowIdx / CHUNK_CAPACITY, rowIdx % CHUNK_CAPACITY);
+    }
+
     inline const std::vector<std::unique_ptr<ChunkedNodeGroup>>& getChunkedGroups() const {
         return chunkedGroups;
     }
-    inline const ChunkedNodeGroup* getChunkedGroup(uint64_t groupIdx) const {
+    inline const ChunkedNodeGroup* getChunkedGroup(common::node_group_idx_t groupIdx) const {
         KU_ASSERT(groupIdx < chunkedGroups.size());
         return chunkedGroups[groupIdx].get();
     }
-    inline ChunkedNodeGroup* getChunkedGroupUnsafe(uint64_t groupIdx) {
+    inline ChunkedNodeGroup* getChunkedGroupUnsafe(common::node_group_idx_t groupIdx) {
         KU_ASSERT(groupIdx < chunkedGroups.size());
         return chunkedGroups[groupIdx].get();
     }
-    inline uint64_t getNumChunks() const { return chunkedGroups.size(); }
 
     void append(
         const std::vector<common::ValueVector*>& vectors, const common::SelectionVector& selVector);
-    void append(std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
-    void merge(ChunkedNodeGroupCollection& chunkedGroupCollection);
+
+    void merge(std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
+    void merge(ChunkedNodeGroupCollection& other);
+
+    inline uint64_t getNumChunkedGroups() const { return chunkedGroups.size(); }
+    inline void clear() { chunkedGroups.clear(); }
 
 private:
     std::vector<common::LogicalType> types;

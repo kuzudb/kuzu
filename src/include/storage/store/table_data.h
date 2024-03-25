@@ -39,6 +39,7 @@ public:
         KU_ASSERT(columnID < columns.size() && columnID != common::INVALID_COLUMN_ID);
         return columns[columnID].get();
     }
+    inline const std::vector<std::unique_ptr<Column>>& getColumns() const { return columns; }
 
     virtual void prepareLocalTableToCommit(
         transaction::Transaction* transaction, LocalTableData* localTable) = 0;

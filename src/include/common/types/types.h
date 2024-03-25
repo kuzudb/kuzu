@@ -428,7 +428,9 @@ private:
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
 };
 
+// TODO: Should remove `logical_types_t`.
 using logical_types_t = std::vector<std::unique_ptr<LogicalType>>;
+using logical_type_vec_t = std::vector<LogicalType>;
 
 struct VarListType {
     static inline LogicalType* getChildType(const LogicalType* type) {

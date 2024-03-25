@@ -21,7 +21,8 @@ public:
 
     virtual ~TablesStatistics() = default;
 
-    virtual void setNumTuplesForTable(common::table_id_t tableID, uint64_t numTuples) = 0;
+    // Return the num of tuples before update.
+    virtual void updateNumTuplesByValue(common::table_id_t tableID, int64_t value) = 0;
 
     inline void writeTablesStatisticsFileForWALRecord(const std::string& directory) {
         saveToFile(
@@ -54,8 +55,15 @@ public:
         readOnlyVersion->tableStatisticPerTable.erase(tableID);
     }
 
-    inline uint64_t getNumTuplesForTable(common::table_id_t tableID) {
-        return readOnlyVersion->tableStatisticPerTable[tableID]->getNumTuples();
+    inline uint64_t getNumTuplesForTable(
+        transaction::Transaction* transaction, common::table_id_t tableID) {
+        if (transaction->isWriteTransaction()) {
+            initTableStatisticsForWriteTrx();
+            KU_ASSERT(readWriteVersion->tableStatisticPerTable.contains(tableID));
+            return readWriteVersion->tableStatisticPerTable.at(tableID)->getNumTuples();
+        }
+        KU_ASSERT(readOnlyVersion->tableStatisticPerTable.contains(tableID));
+        return readOnlyVersion->tableStatisticPerTable.at(tableID)->getNumTuples();
     }
 
     PropertyStatistics& getPropertyStatisticsForTable(const transaction::Transaction& transaction,

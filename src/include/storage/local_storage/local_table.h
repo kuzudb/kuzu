@@ -32,11 +32,12 @@ public:
             rowIdx % ChunkedNodeGroupCollection::CHUNK_CAPACITY);
     }
 
-    inline common::row_idx_t getRowIdxFromOffset(common::offset_t offset) {
+    inline common::row_idx_t getRowIdxFromOffset(common::offset_t offset) const {
         KU_ASSERT(offsetToRowIdx.contains(offset));
         return offsetToRowIdx.at(offset);
     }
-    inline std::vector<common::row_idx_t>& getRelOffsetsFromSrcOffset(common::offset_t srcOffset) {
+    inline const std::vector<common::row_idx_t>& getRelOffsetsFromSrcOffset(
+        common::offset_t srcOffset) const {
         KU_ASSERT(srcNodeOffsetToRelOffsets.contains(srcOffset));
         return srcNodeOffsetToRelOffsets.at(srcOffset);
     }
@@ -51,6 +52,9 @@ public:
         return srcNodeOffsetToRelOffsets;
     }
     inline const offset_to_row_idx_t& getOffsetToRowIdx() const { return offsetToRowIdx; }
+
+    void appendChunkedGroup(
+        ColumnChunk* srcOffsetChunk, std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
     bool isEmpty() const { return offsetToRowIdx.empty() && srcNodeOffsetToRelOffsets.empty(); }
     void readValueAtRowIdx(common::row_idx_t rowIdx, common::column_id_t columnID,
@@ -90,7 +94,7 @@ private:
 
 private:
     std::vector<common::LogicalType> dataTypes;
-    storage::ChunkedNodeGroupCollection chunkedGroups;
+    ChunkedNodeGroupCollection chunkedGroups;
     // The offset here can either be nodeOffset ( for node table) or relOffset (for rel table).
     offset_to_row_idx_t offsetToRowIdx;
     common::row_idx_t numRows;
@@ -149,6 +153,10 @@ public:
         common::column_id_t columnID, common::ValueVector* propertyVector) = 0;
     virtual bool delete_(common::ValueVector* IDVector, common::ValueVector* extraVector) = 0;
 
+    const LocalChunkedGroupCollection& getUpdateChunks(common::column_id_t columnID) const {
+        KU_ASSERT(columnID < updateChunks.size());
+        return updateChunks[columnID];
+    }
     LocalChunkedGroupCollection& getUpdateChunks(common::column_id_t columnID) {
         KU_ASSERT(columnID < updateChunks.size());
         return updateChunks[columnID];

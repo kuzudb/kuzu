@@ -15,7 +15,7 @@ public:
         common::LogicalType dataType, uint64_t capacity, bool enableCompression, bool inMemory);
 
     void resetToEmpty() final;
-    void append(common::ValueVector* vector, common::SelectionVector& selVector) final;
+    void append(common::ValueVector* vector, const common::SelectionVector& selVector) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 

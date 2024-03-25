@@ -48,7 +48,7 @@ struct BatchInsertSharedState {
         wal->logCopyTableRecord(table->getTableID());
         wal->flushAllPages();
     }
-    inline void setNumTuplesForTable() { table->setNumTuples(getNumRows()); }
+    inline void updateNumTuplesForTable() { table->updateNumTuplesByValue(getNumRows()); }
 };
 
 struct BatchInsertLocalState {

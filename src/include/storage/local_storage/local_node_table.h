@@ -27,10 +27,10 @@ public:
     bool delete_(
         common::ValueVector* nodeIDVector, common::ValueVector* /*extraVector*/ = nullptr) override;
 
-    inline const offset_to_row_idx_t& getInsertInfoRef() {
+    inline const offset_to_row_idx_t& getInsertInfoRef() const {
         return insertChunks.getOffsetToRowIdx();
     }
-    inline const offset_to_row_idx_t& getUpdateInfoRef(common::column_id_t columnID) {
+    inline const offset_to_row_idx_t& getUpdateInfoRef(common::column_id_t columnID) const {
         return getUpdateChunks(columnID).getOffsetToRowIdx();
     }
 };

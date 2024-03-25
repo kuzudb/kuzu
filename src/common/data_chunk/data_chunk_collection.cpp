@@ -41,6 +41,7 @@ void DataChunkCollection::merge(DataChunk chunk) {
 }
 
 void DataChunkCollection::initTypes(DataChunk& chunk) {
+    types.clear();
     types.reserve(chunk.getNumValueVectors());
     for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {
         types.push_back(chunk.getValueVector(vectorIdx)->dataType);

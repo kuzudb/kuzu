@@ -92,20 +92,12 @@ public:
 
     void validateTinysnbKnowsDateProperty() {
         std::multiset<date_t, std::greater<>> expectedResult = {
-            Date::fromCString("1905-12-12", strlen("1905-12-12")),
-            Date::fromCString("1905-12-12", strlen("1905-12-12")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
             Date::fromCString("1950-05-14", strlen("1950-05-14")),
-            Date::fromCString("1950-05-14", strlen("1950-05-14")),
-            Date::fromCString("1950-05-14", strlen("1950-05-14")),
-            Date::fromCString("1950-05-14", strlen("1950-05-14")),
-            Date::fromCString("2000-01-01", strlen("2000-01-01")),
-            Date::fromCString("2000-01-01", strlen("2000-01-01")),
-            Date::fromCString("2021-06-30", strlen("2021-06-30")),
-            Date::fromCString("2021-06-30", strlen("2021-06-30")),
-            Date::fromCString("2021-06-30", strlen("2021-06-30")),
-            Date::fromCString("2021-06-30", strlen("2021-06-30")),
-            Date::fromCString("2021-06-30", strlen("2021-06-30")),
-            Date::fromCString("2021-06-30", strlen("2021-06-30"))};
+            Date::fromCString("1950-05-14", strlen("1950-05-14"))};
         std::multiset<date_t, std::greater<>> actualResult;
         auto queryResult = conn->query("match (:person)-[e:knows]->(:person) return e.date");
         while (queryResult->hasNext()) {
@@ -119,19 +111,19 @@ public:
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
         ASSERT_EQ(getStorageManager(*database)->getRelsStatistics()->getNextRelOffset(
                       dummyWriteTrx.get(), tableID),
-            14);
+            6);
     }
 
     void validateDatabaseStateAfterCheckPointCopyRel(table_id_t knowsTableID) {
         validateTinysnbKnowsDateProperty();
         auto relsStatistics = getStorageManager(*database)->getRelsStatistics();
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
-        ASSERT_EQ(relsStatistics->getNextRelOffset(dummyWriteTrx.get(), knowsTableID), 14);
+        ASSERT_EQ(relsStatistics->getNextRelOffset(dummyWriteTrx.get(), knowsTableID), 6);
         ASSERT_EQ(relsStatistics->getReadOnlyVersion()->tableStatisticPerTable.size(), 1);
         auto knowsRelStatistics = (RelTableStats*)relsStatistics->getReadOnlyVersion()
                                       ->tableStatisticPerTable.at(knowsTableID)
                                       .get();
-        ASSERT_EQ(knowsRelStatistics->getNumTuples(), 14);
+        ASSERT_EQ(knowsRelStatistics->getNumTuples(), 6);
     }
 
     void copyRelCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
