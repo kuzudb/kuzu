@@ -1,13 +1,9 @@
 #include "function/built_in_function_utils.h"
 
-#include "catalog/catalog_entry/aggregate_function_catalog_entry.h"
 #include "catalog/catalog_entry/table_function_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "common/exception/binder.h"
 #include "common/exception/catalog.h"
-#include "function/aggregate/collect.h"
-#include "function/aggregate/count.h"
-#include "function/aggregate/count_star.h"
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/function_collection.h"
@@ -35,20 +31,9 @@ static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidate
     function::function_set& set);
 
 void BuiltInFunctionsUtils::createFunctions(CatalogSet* catalogSet) {
-    registerAggregateFunctions(catalogSet);
     registerTableFunctions(catalogSet);
 
     registerFunctions(catalogSet);
-}
-
-void BuiltInFunctionsUtils::registerAggregateFunctions(CatalogSet* catalogSet) {
-    registerCountStar(catalogSet);
-    registerCount(catalogSet);
-    registerSum(catalogSet);
-    registerAvg(catalogSet);
-    registerMin(catalogSet);
-    registerMax(catalogSet);
-    registerCollect(catalogSet);
 }
 
 Function* BuiltInFunctionsUtils::matchFunction(const std::string& name, CatalogSet* catalogSet) {
@@ -502,87 +487,6 @@ void BuiltInFunctionsUtils::validateSpecialCases(std::vector<Function*>& candida
                                   ". Supported inputs are\n" + supportedInputsString);
         }
     }
-}
-
-void BuiltInFunctionsUtils::registerCountStar(CatalogSet* catalogSet) {
-    function_set functionSet;
-    functionSet.push_back(std::make_unique<AggregateFunction>(COUNT_STAR_FUNC_NAME,
-        std::vector<common::LogicalTypeID>{}, LogicalTypeID::INT64, CountStarFunction::initialize,
-        CountStarFunction::updateAll, CountStarFunction::updatePos, CountStarFunction::combine,
-        CountStarFunction::finalize, false));
-    catalogSet->createEntry(std::make_unique<AggregateFunctionCatalogEntry>(
-        COUNT_STAR_FUNC_NAME, std::move(functionSet)));
-}
-
-void BuiltInFunctionsUtils::registerCount(CatalogSet* catalogSet) {
-    function_set functionSet;
-    for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
-        for (auto isDistinct : std::vector<bool>{true, false}) {
-            functionSet.push_back(AggregateFunctionUtil::getAggFunc<CountFunction>(COUNT_FUNC_NAME,
-                type, LogicalTypeID::INT64, isDistinct, CountFunction::paramRewriteFunc));
-        }
-    }
-    catalogSet->createEntry(
-        std::make_unique<AggregateFunctionCatalogEntry>(COUNT_FUNC_NAME, std::move(functionSet)));
-}
-
-void BuiltInFunctionsUtils::registerSum(CatalogSet* catalogSet) {
-    function_set functionSet;
-    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        for (auto isDistinct : std::vector<bool>{true, false}) {
-            functionSet.push_back(
-                AggregateFunctionUtil::getSumFunc(SUM_FUNC_NAME, typeID, typeID, isDistinct));
-        }
-    }
-    catalogSet->createEntry(
-        std::make_unique<AggregateFunctionCatalogEntry>(SUM_FUNC_NAME, std::move(functionSet)));
-}
-
-void BuiltInFunctionsUtils::registerAvg(CatalogSet* catalogSet) {
-    function_set functionSet;
-    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        for (auto isDistinct : std::vector<bool>{true, false}) {
-            functionSet.push_back(AggregateFunctionUtil::getAvgFunc(
-                AVG_FUNC_NAME, typeID, LogicalTypeID::DOUBLE, isDistinct));
-        }
-    }
-    catalogSet->createEntry(
-        std::make_unique<AggregateFunctionCatalogEntry>(AVG_FUNC_NAME, std::move(functionSet)));
-}
-
-void BuiltInFunctionsUtils::registerMin(CatalogSet* catalogSet) {
-    function_set functionSet;
-    for (auto& type : LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
-        for (auto isDistinct : std::vector<bool>{true, false}) {
-            functionSet.push_back(AggregateFunctionUtil::getMinFunc(type, isDistinct));
-        }
-    }
-    catalogSet->createEntry(
-        std::make_unique<AggregateFunctionCatalogEntry>(MIN_FUNC_NAME, std::move(functionSet)));
-}
-
-void BuiltInFunctionsUtils::registerMax(CatalogSet* catalogSet) {
-    function_set functionSet;
-    for (auto& type : LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
-        for (auto isDistinct : std::vector<bool>{true, false}) {
-            functionSet.push_back(AggregateFunctionUtil::getMaxFunc(type, isDistinct));
-        }
-    }
-    catalogSet->createEntry(
-        std::make_unique<AggregateFunctionCatalogEntry>(MAX_FUNC_NAME, std::move(functionSet)));
-}
-
-void BuiltInFunctionsUtils::registerCollect(CatalogSet* catalogSet) {
-    function_set functionSet;
-    for (auto isDistinct : std::vector<bool>{true, false}) {
-        functionSet.push_back(std::make_unique<AggregateFunction>(COLLECT_FUNC_NAME,
-            std::vector<common::LogicalTypeID>{common::LogicalTypeID::ANY}, LogicalTypeID::VAR_LIST,
-            CollectFunction::initialize, CollectFunction::updateAll, CollectFunction::updatePos,
-            CollectFunction::combine, CollectFunction::finalize, isDistinct,
-            CollectFunction::bindFunc));
-    }
-    catalogSet->createEntry(
-        std::make_unique<AggregateFunctionCatalogEntry>(COLLECT_FUNC_NAME, std::move(functionSet)));
 }
 
 void BuiltInFunctionsUtils::registerTableFunctions(CatalogSet* catalogSet) {

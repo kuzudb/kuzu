@@ -82,13 +82,13 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunc(std::string
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinFunc(
     LogicalTypeID inputType, bool isDistinct) {
     return AggregateFunctionUtil::getMinMaxFunction<LessThan>(
-        MIN_FUNC_NAME, inputType, inputType, isDistinct);
+        AggregateMinFunction::name, inputType, inputType, isDistinct);
 }
 
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMaxFunc(
     LogicalTypeID inputType, bool isDistinct) {
     return AggregateFunctionUtil::getMinMaxFunction<GreaterThan>(
-        MAX_FUNC_NAME, inputType, inputType, isDistinct);
+        AggregateMaxFunction::name, inputType, inputType, isDistinct);
 }
 
 template<typename FUNC>
@@ -183,6 +183,47 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(std:
     default:
         KU_UNREACHABLE;
     }
+}
+
+function_set AggregateSumFunction::getFunctionSet() {
+    function_set result;
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
+        for (auto isDistinct : std::vector<bool>{true, false}) {
+            result.push_back(AggregateFunctionUtil::getSumFunc(name, typeID, typeID, isDistinct));
+        }
+    }
+    return result;
+}
+
+function_set AggregateAvgFunction::getFunctionSet() {
+    function_set result;
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
+        for (auto isDistinct : std::vector<bool>{true, false}) {
+            result.push_back(
+                AggregateFunctionUtil::getAvgFunc(name, typeID, LogicalTypeID::DOUBLE, isDistinct));
+        }
+    }
+    return result;
+}
+
+function_set AggregateMinFunction::getFunctionSet() {
+    function_set result;
+    for (auto& type : LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
+        for (auto isDistinct : std::vector<bool>{true, false}) {
+            result.push_back(AggregateFunctionUtil::getMinFunc(type, isDistinct));
+        }
+    }
+    return result;
+}
+
+function_set AggregateMaxFunction::getFunctionSet() {
+    function_set result;
+    for (auto& type : LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
+        for (auto isDistinct : std::vector<bool>{true, false}) {
+            result.push_back(AggregateFunctionUtil::getMaxFunc(type, isDistinct));
+        }
+    }
+    return result;
 }
 
 } // namespace function

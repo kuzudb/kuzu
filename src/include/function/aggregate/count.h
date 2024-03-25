@@ -6,6 +6,7 @@ namespace kuzu {
 namespace function {
 
 struct CountFunction : public BaseCountFunction {
+    static constexpr const char* name = "COUNT";
 
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
         storage::MemoryManager* memoryManager);
@@ -17,6 +18,8 @@ struct CountFunction : public BaseCountFunction {
     }
 
     static void paramRewriteFunc(binder::expression_vector& arguments);
+
+    static function_set getFunctionSet();
 };
 
 } // namespace function

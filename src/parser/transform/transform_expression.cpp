@@ -1,3 +1,4 @@
+#include "function/aggregate/count_star.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/list/vector_list_functions.h"
@@ -470,7 +471,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformParenthesizedExpression(
 std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     CypherParser::OC_FunctionInvocationContext& ctx) {
     if (ctx.STAR()) {
-        return std::make_unique<ParsedFunctionExpression>(COUNT_STAR_FUNC_NAME, ctx.getText());
+        return std::make_unique<ParsedFunctionExpression>(CountStarFunction::name, ctx.getText());
     }
     std::string functionName;
     if (ctx.COUNT()) {

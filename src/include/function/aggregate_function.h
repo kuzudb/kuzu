@@ -131,5 +131,29 @@ public:
         common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);
 };
 
+struct AggregateSumFunction {
+    static constexpr const char* name = "SUM";
+
+    static function_set getFunctionSet();
+};
+
+struct AggregateAvgFunction {
+    static constexpr const char* name = "AVG";
+
+    static function_set getFunctionSet();
+};
+
+struct AggregateMinFunction {
+    static constexpr const char* name = "MIN";
+
+    static function_set getFunctionSet();
+};
+
+struct AggregateMaxFunction {
+    static constexpr const char* name = "MAX";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

@@ -10,14 +10,6 @@ namespace common {
  * Function name is a temporary identifier used for binder because grammar does not parse built in
  * functions. After binding, expression type should replace function name and used as identifier.
  */
-// aggregate
-const char* const COUNT_STAR_FUNC_NAME = "COUNT_STAR";
-const char* const COUNT_FUNC_NAME = "COUNT";
-const char* const SUM_FUNC_NAME = "SUM";
-const char* const AVG_FUNC_NAME = "AVG";
-const char* const MIN_FUNC_NAME = "MIN";
-const char* const MAX_FUNC_NAME = "MAX";
-const char* const COLLECT_FUNC_NAME = "COLLECT";
 
 // Table functions
 const char* const TABLE_INFO_FUNC_NAME = "TABLE_INFO";
