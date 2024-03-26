@@ -377,18 +377,7 @@ jobs:
   benchmark:
     name: benchmark
     needs: [gcc-build-test, clang-build-test]
-    env:
-      NUM_THREADS: 30
-      GEN: ninja
-    runs-on: kuzu-self-hosted-benchmarking
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Build
-        run: make benchmark LTO=1
-
-      - name: Benchmark
-        run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
+    uses: ./.github/workflows/benchmark-workflow.yml
 
   macos-clang-tidy:
     name: macos clang tidy & clangd diagnostics check
