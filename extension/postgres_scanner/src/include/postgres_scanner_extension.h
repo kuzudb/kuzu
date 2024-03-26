@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace postgres_scanner {
 
-class PostgresScannerExtension : public extension::Extension {
+class PostgresScannerExtension final : public extension::Extension {
 public:
     static void load(main::ClientContext* context);
 };

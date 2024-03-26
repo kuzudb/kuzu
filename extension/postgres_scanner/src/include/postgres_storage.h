@@ -6,12 +6,8 @@
 namespace kuzu {
 namespace postgres_scanner {
 
-class PostgresStorageExtension : public storage::StorageExtension {
+class PostgresStorageExtension final : public storage::StorageExtension {
 public:
-    static constexpr char POSTGRES_SCHEMA_NAME[] = "public";
-
-    static constexpr char POSTGRES_CATALOG_NAME_IN_DUCKDB[] = "pg";
-
     PostgresStorageExtension();
 
     bool canHandleDB(std::string dbType) const override;

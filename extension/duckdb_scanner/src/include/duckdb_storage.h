@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace duckdb_scanner {
 
-class DuckDBStorageExtension : public storage::StorageExtension {
+class DuckDBStorageExtension final : public storage::StorageExtension {
 public:
     DuckDBStorageExtension();
 

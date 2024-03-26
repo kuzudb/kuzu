@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace duckdb_scanner {
 
-class DuckDBScannerExtension : public extension::Extension {
+class DuckDBScannerExtension final : public extension::Extension {
 public:
     static void load(main::ClientContext* context);
 };
