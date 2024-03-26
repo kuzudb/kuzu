@@ -263,8 +263,8 @@ static void scanArrowArraySparseUnion(const ArrowSchema* schema, const ArrowArra
     // eg. nulling out unselected children
     for (int8_t i = 0; i < array->n_children; i++) {
         ArrowConverter::fromArrowArray(schema->children[i], array->children[i],
-            *StructVector::getFieldVector(&outputVector, i), mask->getChild(i), srcOffset, dstOffset,
-            count);
+            *StructVector::getFieldVector(&outputVector, i), mask->getChild(i), srcOffset,
+            dstOffset, count);
     }
 }
 

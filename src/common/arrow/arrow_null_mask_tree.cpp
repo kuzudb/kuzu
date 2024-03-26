@@ -53,7 +53,8 @@ void ArrowNullMaskTree::scanListPushDown(
     NullMask pushDownMask((auxiliaryLength + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) >>
                           NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
     for (uint64_t i = 0; i < count; i++) {
-        pushDownMask.setNullFromRange(offsets[i] - offsets[0], offsets[i + 1] - offsets[i], isNull(i));
+        pushDownMask.setNullFromRange(
+            offsets[i] - offsets[0], offsets[i + 1] - offsets[i], isNull(i));
     }
     children->push_back(ArrowNullMaskTree(
         schema->children[0], array->children[0], offsets[0], auxiliaryLength, &pushDownMask));
