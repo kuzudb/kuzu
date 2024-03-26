@@ -6,7 +6,7 @@
 -CASE ScanPostgresTable
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/postgres_scanner/build/libpostgres_scanner.kuzu_extension"
 ---- ok
--STATEMENT ATTACH 'dbname=pgscan user=ci host=127.0.0.1' as tinysnb (dbtype 'POSTGRES');
+-STATEMENT ATTACH 'dbname=pgscan user=ci host=localhost' as tinysnb (dbtype 'POSTGRES');
 ---- ok
 -STATEMENT LOAD FROM tinysnb_person RETURN *;
 ---- 8
@@ -34,7 +34,7 @@ Catalog exception: Table: person1 does not exist.
 -STATEMENT LOAD FROM tinysnb1_person RETURN *;
 ---- error
 Binder exception: No database named tinysnb1 has been attached.
--STATEMENT ATTACH 'dbname=pgscan user=ci host=127.0.0.1' (dbtype 'POSTGRES');
+-STATEMENT ATTACH 'dbname=pgscan user=ci host=localhost' (dbtype 'POSTGRES');
 ---- ok
 -STATEMENT LOAD FROM pgscan_movies RETURN count(*);
 ---- 1
@@ -45,4 +45,4 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 -LOG IncorrectConnectionStr
 -STATEMENT ATTACH 'dbname=test2132131 user=ci host=127.0.0.1' as tinysnb (dbtype 'POSTGRES');
 ---- error
-Binder exception: Failed to attach postgres database due to: IO Error: Unable to connect to Postgres at dbname=test2132131 user=ci host=127.0.0.1: connection to server at "127.0.0.1", port 5432 failed: FATAL:  database "test2132131" does not exist
+Binder exception: Failed to attach postgres database due to: IO Error: Unable to connect to Postgres at dbname=test2132131 user=ci host=127.0.0.1: connection to server at "127.0.0.1", port 5432 failed: Connection refused
