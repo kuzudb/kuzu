@@ -17,7 +17,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: audience_type; Type: TYPE; Schema: public; Owner: z473chen
+-- Name: audience_type; Type: TYPE; Schema: public; Owner: ci
 --
 
 CREATE TYPE public.audience_type AS (
@@ -26,10 +26,10 @@ CREATE TYPE public.audience_type AS (
 );
 
 
-ALTER TYPE public.audience_type OWNER TO z473chen;
+ALTER TYPE public.audience_type OWNER TO ci;
 
 --
--- Name: description_type; Type: TYPE; Schema: public; Owner: z473chen
+-- Name: description_type; Type: TYPE; Schema: public; Owner: ci
 --
 
 CREATE TYPE public.description_type AS (
@@ -50,10 +50,10 @@ CREATE TYPE public.description_type AS (
 );
 
 
-ALTER TYPE public.description_type OWNER TO z473chen;
+ALTER TYPE public.description_type OWNER TO ci;
 
 --
--- Name: mood; Type: TYPE; Schema: public; Owner: z473chen
+-- Name: mood; Type: TYPE; Schema: public; Owner: ci
 --
 
 CREATE TYPE public.mood AS ENUM (
@@ -63,10 +63,10 @@ CREATE TYPE public.mood AS ENUM (
 );
 
 
-ALTER TYPE public.mood OWNER TO z473chen;
+ALTER TYPE public.mood OWNER TO ci;
 
 --
--- Name: state_type; Type: TYPE; Schema: public; Owner: z473chen
+-- Name: state_type; Type: TYPE; Schema: public; Owner: ci
 --
 
 CREATE TYPE public.state_type AS (
@@ -75,10 +75,10 @@ CREATE TYPE public.state_type AS (
 );
 
 
-ALTER TYPE public.state_type OWNER TO z473chen;
+ALTER TYPE public.state_type OWNER TO ci;
 
 --
--- Name: stock_type; Type: TYPE; Schema: public; Owner: z473chen
+-- Name: stock_type; Type: TYPE; Schema: public; Owner: ci
 --
 
 CREATE TYPE public.stock_type AS (
@@ -87,14 +87,14 @@ CREATE TYPE public.stock_type AS (
 );
 
 
-ALTER TYPE public.stock_type OWNER TO z473chen;
+ALTER TYPE public.stock_type OWNER TO ci;
 
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: movies; Type: TABLE; Schema: public; Owner: z473chen
+-- Name: movies; Type: TABLE; Schema: public; Owner: ci
 --
 
 CREATE TABLE public.movies (
@@ -107,10 +107,10 @@ CREATE TABLE public.movies (
 );
 
 
-ALTER TABLE public.movies OWNER TO z473chen;
+ALTER TABLE public.movies OWNER TO ci;
 
 --
--- Name: organisation; Type: TABLE; Schema: public; Owner: z473chen
+-- Name: organisation; Type: TABLE; Schema: public; Owner: ci
 --
 
 CREATE TABLE public.organisation (
@@ -128,10 +128,10 @@ CREATE TABLE public.organisation (
 );
 
 
-ALTER TABLE public.organisation OWNER TO z473chen;
+ALTER TABLE public.organisation OWNER TO ci;
 
 --
--- Name: person; Type: TABLE; Schema: public; Owner: z473chen
+-- Name: person; Type: TABLE; Schema: public; Owner: ci
 --
 
 CREATE TABLE public.person (
@@ -152,10 +152,10 @@ CREATE TABLE public.person (
 );
 
 
-ALTER TABLE public.person OWNER TO z473chen;
+ALTER TABLE public.person OWNER TO ci;
 
 --
--- Name: persontest; Type: TABLE; Schema: public; Owner: z473chen
+-- Name: persontest; Type: TABLE; Schema: public; Owner: ci
 --
 
 CREATE TABLE public.persontest (
@@ -163,10 +163,10 @@ CREATE TABLE public.persontest (
 );
 
 
-ALTER TABLE public.persontest OWNER TO z473chen;
+ALTER TABLE public.persontest OWNER TO ci;
 
 --
--- Data for Name: movies; Type: TABLE DATA; Schema: public; Owner: z473chen
+-- Data for Name: movies; Type: TABLE DATA; Schema: public; Owner: ci
 --
 
 COPY public.movies (name, length, note, description, content, audience) FROM stdin;
@@ -177,7 +177,7 @@ Roma	298	the movie is very interesting and funny	(1223,100,10003,"2011-02-11 16:
 
 
 --
--- Data for Name: organisation; Type: TABLE DATA; Schema: public; Owner: z473chen
+-- Data for Name: organisation; Type: TABLE DATA; Schema: public; Owner: ci
 --
 
 COPY public.organisation (id, name, orgcode, mark, score, history, licensevalidinterval, rating, state, stock, info) FROM stdin;
@@ -188,7 +188,7 @@ COPY public.organisation (id, name, orgcode, mark, score, history, licensevalidi
 
 
 --
--- Data for Name: person; Type: TABLE DATA; Schema: public; Owner: z473chen
+-- Data for Name: person; Type: TABLE DATA; Schema: public; Owner: ci
 --
 
 COPY public.person (id, fname, gender, isstudent, isworker, age, eyesight, birthdate, registertime, lastjobduration, workedhours, usednames, height, u) FROM stdin;
@@ -204,7 +204,7 @@ COPY public.person (id, fname, gender, isstudent, isworker, age, eyesight, birth
 
 
 --
--- Data for Name: persontest; Type: TABLE DATA; Schema: public; Owner: z473chen
+-- Data for Name: persontest; Type: TABLE DATA; Schema: public; Owner: ci
 --
 
 COPY public.persontest (id) FROM stdin;
@@ -212,7 +212,7 @@ COPY public.persontest (id) FROM stdin;
 
 
 --
--- Name: movies movies_pkey; Type: CONSTRAINT; Schema: public; Owner: z473chen
+-- Name: movies movies_pkey; Type: CONSTRAINT; Schema: public; Owner: ci
 --
 
 ALTER TABLE ONLY public.movies
@@ -220,7 +220,7 @@ ALTER TABLE ONLY public.movies
 
 
 --
--- Name: organisation organisation_pkey; Type: CONSTRAINT; Schema: public; Owner: z473chen
+-- Name: organisation organisation_pkey; Type: CONSTRAINT; Schema: public; Owner: ci
 --
 
 ALTER TABLE ONLY public.organisation
@@ -228,7 +228,7 @@ ALTER TABLE ONLY public.organisation
 
 
 --
--- Name: person person_pkey; Type: CONSTRAINT; Schema: public; Owner: z473chen
+-- Name: person person_pkey; Type: CONSTRAINT; Schema: public; Owner: ci
 --
 
 ALTER TABLE ONLY public.person
