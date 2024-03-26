@@ -136,8 +136,8 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     if (state->totalSize == 0) {
         return 0.0;
     } else if (state->fileIdx >= state->readerConfig.getNumFiles()) {
-		return 1.0;
-	}
+        return 1.0;
+    }
     uint64_t totalReadSize = 0;
     for (auto i = 0u; i < state->fileIdx; i++) {
         totalReadSize += state->reader->getFileSize();
