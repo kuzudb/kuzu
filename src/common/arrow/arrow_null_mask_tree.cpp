@@ -156,7 +156,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                     children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
                         lowestOffsets[i], highestOffsets[i] - lowestOffsets[i]));
                 }
-                for (auto i = 0; i < count; i++) {
+                for (auto i = 0u; i < count; i++) {
                     int32_t curOffset = offsets[i + srcOffset];
                     int8_t curType = types[i + srcOffset];
                     mask->setNull(i, children->operator[](curType).isNull(curOffset));
