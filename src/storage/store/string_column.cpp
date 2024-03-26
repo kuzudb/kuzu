@@ -1,5 +1,6 @@
 #include "storage/store/string_column.h"
 
+#include "storage/store/column.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column_chunk.h"
 
@@ -235,6 +236,11 @@ bool StringColumn::canIndexCommitInPlace(Transaction* transaction, node_group_id
         return false;
     }
     return true;
+}
+
+void StringColumn::prepareCommit() {
+    Column::prepareCommit();
+    dictionary.prepareCommit();
 }
 
 void StringColumn::checkpointInMemory() {

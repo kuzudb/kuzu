@@ -581,6 +581,13 @@ Column::ReadState Column::getReadState(
     return {metadata, metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
 }
 
+void Column::prepareCommit() {
+    metadataDA->prepareCommit();
+    if (nullColumn) {
+        nullColumn->prepareCommit();
+    }
+}
+
 void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
     const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
@@ -629,6 +636,7 @@ void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t no
 
 void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk, offset_t startSrcOffset) {
+    metadataDA->prepareCommit();
     auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
     auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {

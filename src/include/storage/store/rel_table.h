@@ -139,6 +139,7 @@ public:
     }
 
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
+    void prepareCommit() override;
     void prepareRollback(LocalTable* localTable) override;
     void checkpointInMemory() override;
     void rollbackInMemory() override;

@@ -125,6 +125,13 @@ void StructColumn::rollbackInMemory() {
     }
 }
 
+void StructColumn::prepareCommit() {
+    Column::prepareCommit();
+    for (const auto& childColumn : childColumns) {
+        childColumn->prepareCommit();
+    }
+}
+
 bool StructColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     const ChunkCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
     const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo) {

@@ -3,6 +3,9 @@
 #include "common/cast.h"
 #include "common/string_format.h"
 #include "common/utils.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/file_handle.h"
+#include "storage/storage_structure/db_file_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -33,7 +36,8 @@ PIPWrapper::PIPWrapper(FileHandle& fileHandle, page_idx_t pipPageIdx) : pipPageI
 BaseDiskArrayInternal::BaseDiskArrayInternal(
     FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize)
     : header{elementSize}, fileHandle{fileHandle}, headerPageIdx{headerPageIdx},
-      hasTransactionalUpdates{false}, bufferManager{nullptr}, wal{nullptr} {}
+      headerForWriteTrx{header}, hasTransactionalUpdates{false},
+      bufferManager{nullptr}, wal{nullptr} {}
 
 BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
     page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
@@ -45,6 +49,7 @@ BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID db
         transaction->getType());
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin,
         [&](uint8_t* frame) -> void { memcpy(&header, frame, sizeof(DiskArrayHeader)); });
+    headerForWriteTrx = header;
     if (this->header.firstPIPPageIdx != DBFileUtils::NULL_PAGE_IDX) {
         pips.emplace_back(fileHandle, header.firstPIPPageIdx);
         while (pips[pips.size() - 1].pipContents.nextPipPageIdx != DBFileUtils::NULL_PAGE_IDX) {
@@ -56,11 +61,6 @@ BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID db
 uint64_t BaseDiskArrayInternal::getNumElements(TransactionType trxType) {
     std::shared_lock sLck{diskArraySharedMtx};
     return getNumElementsNoLock(trxType);
-}
-
-uint64_t BaseDiskArrayInternal::getNumElementsNoLock(TransactionType trxType) {
-    return readUInt64HeaderFieldNoLock(trxType,
-        [](DiskArrayHeader* diskArrayHeader) -> uint64_t { return diskArrayHeader->numElements; });
 }
 
 bool BaseDiskArrayInternal::checkOutOfBoundAccess(TransactionType trxType, uint64_t idx) {
@@ -135,28 +135,17 @@ uint64_t BaseDiskArrayInternal::resize(uint64_t newNumElements, std::span<uint8_
 }
 
 uint64_t BaseDiskArrayInternal::pushBackNoLock(std::span<uint8_t> val) {
-    uint64_t elementIdx;
-    DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, headerPageIdx,
-        false /* not inserting a new page */, *bufferManager, *wal,
-        [this, &val, &elementIdx](uint8_t* frame) -> void {
-            auto updatedDiskArrayHeader = ((DiskArrayHeader*)frame);
-            elementIdx = updatedDiskArrayHeader->numElements;
-            auto apCursor = getAPIdxAndOffsetInAP(elementIdx);
-            auto [apPageIdx, isNewlyAdded] = getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
-                (DiskArrayHeader*)frame, apCursor.pageIdx);
-            // Now do the push back.
-            DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, apPageIdx, isNewlyAdded,
-                *bufferManager, *wal, [&apCursor, &val](uint8_t* frame) -> void {
-                    memcpy(frame + apCursor.elemPosInPage, val.data(), val.size());
-                });
-            updatedDiskArrayHeader->numElements++;
+    uint64_t elementIdx = headerForWriteTrx.numElements;
+    auto apCursor = getAPIdxAndOffsetInAP(elementIdx);
+    auto [apPageIdx, isNewlyAdded] =
+        getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(&headerForWriteTrx, apCursor.pageIdx);
+    // Now do the push back.
+    DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, apPageIdx, isNewlyAdded,
+        *bufferManager, *wal, [&apCursor, &val](uint8_t* frame) -> void {
+            memcpy(frame + apCursor.elemPosInPage, val.data(), val.size());
         });
+    headerForWriteTrx.numElements++;
     return elementIdx;
-}
-
-uint64_t BaseDiskArrayInternal::getNumAPsNoLock(TransactionType trxType) {
-    return readUInt64HeaderFieldNoLock(trxType,
-        [](DiskArrayHeader* diskArrayHeader) -> uint64_t { return diskArrayHeader->numAPs; });
 }
 
 void BaseDiskArrayInternal::setNextPIPPageIDxOfPIPNoLock(DiskArrayHeader* updatedDiskArrayHeader,
@@ -197,11 +186,19 @@ page_idx_t BaseDiskArrayInternal::getAPPageIdxNoLock(page_idx_t apIdx, Transacti
     } else {
         page_idx_t retVal;
         page_idx_t pageIdxOfUpdatedPip = getUpdatedPageIdxOfPipNoLock(pipIdx);
-        ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(pageIdxOfUpdatedPip);
-        DBFileUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
-            *bufferManager, *wal, [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
-                retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
-            });
+        if (ku_dynamic_cast<FileHandle&, BMFileHandle&>(fileHandle)
+                .hasWALPageVersionNoWALPageIdxLock(pageIdxOfUpdatedPip)) {
+            ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(pageIdxOfUpdatedPip);
+            DBFileUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
+                *bufferManager, *wal, [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
+                    retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
+                });
+        } else {
+            bufferManager->optimisticRead((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
+                [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
+                    retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
+                });
+        }
         return retVal;
     }
 }
@@ -223,10 +220,10 @@ void BaseDiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool i
     if (!hasTransactionalUpdates) {
         return;
     }
-    // Note: We update the header regardless (even if it has not changed). We can optimize this
-    // by adding logic that keep track of whether the header has been updated.
     if (isCheckpoint) {
-        header.readFromFile(this->fileHandle, headerPageIdx);
+        header = headerForWriteTrx;
+    } else {
+        headerForWriteTrx = header;
     }
     clearWALPageVersionAndRemovePageFromFrameIfNecessary(headerPageIdx);
     for (uint64_t pipIdxOfUpdatedPIP : pipUpdates.updatedPipIdxs) {
@@ -254,6 +251,17 @@ void BaseDiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool i
     hasTransactionalUpdates = false;
 }
 
+void BaseDiskArrayInternal::prepareCommit() {
+    // Update header if it has changed
+    if (headerForWriteTrx != header) {
+        DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, headerPageIdx,
+            false /* not inserting a new page */, *bufferManager, *wal,
+            [&](uint8_t* frame) -> void {
+                memcpy(frame, &headerForWriteTrx, sizeof(headerForWriteTrx));
+            });
+    }
+}
+
 bool BaseDiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) {
     // This is a request to a pipIdx > pips.size(). Since pips.size() is the original number of pips
     // we started with before the write transaction is updated, we return true, i.e., this PIP is
@@ -262,24 +270,6 @@ bool BaseDiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) {
         return true;
     }
     return pipUpdates.updatedPipIdxs.contains(pipIdx);
-}
-
-uint64_t BaseDiskArrayInternal::readUInt64HeaderFieldNoLock(
-    TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp) {
-    // TODO(Guodong): Fix the casting here, which can be incorrect for HashIndexBuilder.
-    auto bmFileHandle = reinterpret_cast<BMFileHandle*>(&fileHandle);
-    if ((trxType == TransactionType::READ_ONLY) ||
-        !bmFileHandle->hasWALPageVersionNoWALPageIdxLock(headerPageIdx)) {
-        return readOp(&this->header);
-    } else {
-        uint64_t retVal;
-        ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(headerPageIdx);
-        DBFileUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, headerPageIdx, *bufferManager,
-            *wal, [&retVal, &readOp](uint8_t* frame) -> void {
-                retVal = readOp((DiskArrayHeader*)frame);
-            });
-        return retVal;
-    }
 }
 
 std::pair<page_idx_t, bool>
@@ -365,72 +355,6 @@ void BaseInMemDiskArray::addInMemoryArrayPageAndReadFromFile(page_idx_t apPageId
 void BaseInMemDiskArray::readArrayPageFromFile(uint64_t apIdx, page_idx_t apPageIdx) {
     this->fileHandle.readPage(
         reinterpret_cast<uint8_t*>(this->inMemArrayPages[apIdx].get()), apPageIdx);
-}
-
-InMemDiskArrayInternal::InMemDiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
-    page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction)
-    : BaseInMemDiskArray(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction) {}
-
-void InMemDiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) {
-    if (!this->hasTransactionalUpdates) {
-        return;
-    }
-    uint64_t numOldAPs = this->getNumAPsNoLock(TransactionType::READ_ONLY);
-    for (uint64_t apIdx = 0; apIdx < numOldAPs; ++apIdx) {
-        uint64_t apPageIdx = this->getAPPageIdxNoLock(apIdx, TransactionType::READ_ONLY);
-        if (ku_dynamic_cast<FileHandle&, BMFileHandle&>(this->fileHandle)
-                .hasWALPageVersionNoWALPageIdxLock(apPageIdx)) {
-            // Note we can directly read the new image from disk because the WALReplayer checkpoints
-            // the disk image of the page before calling
-            // InMemDiskArray::checkpointInMemoryIfNecessary.
-            if (isCheckpoint) {
-                this->readArrayPageFromFile(apIdx, apPageIdx);
-            }
-            this->clearWALPageVersionAndRemovePageFromFrameIfNecessary(apPageIdx);
-        }
-    }
-    uint64_t newNumAPs = this->getNumAPsNoLock(TransactionType::WRITE);
-    // When rolling back, unlike removing new PIPs in
-    // BaseDiskArray::checkpointOrRollbackInMemoryIfNecessaryNoLock when rolling back, we cannot
-    // directly truncate each page. Instead we need to keep track of the minimum apPageIdx we
-    // saw that we want to truncate to first. Then we call
-    // BaseDiskArray::checkpointOrRollbackInMemoryIfNecessaryNoLock, which can do its own
-    // truncation due to newly added PIPs. Then finally we truncate. The reason is this: suppose
-    // we added a new apIdx=1 with pageIdx 20 in the fileHandle, which suppose caused a new PIP
-    // to be inserted with pageIdx 21, and we further added one more new apIdx=2 with
-    // pageIdx 22. Now this function will loop through the newly added apIdxs, so apIdx=1 and 2
-    // in that order. If we directly truncate to the pageIdx of apIdx=1, which is 20, then we
-    // will remove 21 and 22. But then we will loop through apIdx=2 and we need to convert it to
-    // its pageIdx to clear its updated WAL version. But that requires reading the newly added
-    // PIP's WAL version, which had pageIdx 22 but no longer exists. That would lead to a seg
-    // fault somewhere. So we do not truncate these in order not to accidentally remove newly
-    // added PIPs, which we would need if we kept calling removePageIdxAndTruncateIfNecessary
-    // for each newly added array pages.
-    page_idx_t minNewAPPageIdxToTruncateTo = INVALID_PAGE_IDX;
-    for (uint64_t apIdx = this->header.numAPs; apIdx < newNumAPs; apIdx++) {
-        page_idx_t apPageIdx = this->getAPPageIdxNoLock(apIdx, TransactionType::WRITE);
-        if (isCheckpoint) {
-            this->addInMemoryArrayPageAndReadFromFile(apPageIdx);
-        }
-        this->clearWALPageVersionAndRemovePageFromFrameIfNecessary(apPageIdx);
-        if (!isCheckpoint) {
-            minNewAPPageIdxToTruncateTo = std::min(minNewAPPageIdxToTruncateTo, apPageIdx);
-        }
-    }
-
-    // TODO(Semih): Currently we do not support truncating DiskArrays. When we support that, we
-    // need to implement the logic to truncate InMemArrayPages as well.
-    // Note that the base class call sets hasTransactionalUpdates to false.
-    if (isCheckpoint) {
-        BaseDiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(
-            true /* is checkpoint */);
-    } else {
-        BaseDiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(
-            false /* is rollback */);
-        ((BMFileHandle&)this->fileHandle)
-            .removePageIdxAndTruncateIfNecessary(minNewAPPageIdxToTruncateTo);
-    }
 }
 
 InMemDiskArrayBuilderInternal::InMemDiskArrayBuilderInternal(FileHandle& fileHandle,

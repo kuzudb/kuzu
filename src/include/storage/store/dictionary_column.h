@@ -32,6 +32,7 @@ public:
     uint64_t getNumValuesInOffsets(
         transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx);
 
+    void prepareCommit();
     void checkpointInMemory();
     void rollbackInMemory();
 

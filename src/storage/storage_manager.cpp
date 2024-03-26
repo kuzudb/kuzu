@@ -127,6 +127,14 @@ void StorageManager::dropTable(table_id_t tableID) {
 
 void StorageManager::prepareCommit(transaction::Transaction* transaction) {
     transaction->getLocalStorage()->prepareCommit();
+    // Tables which are created but not inserted into may have pending writes
+    // which need to be flushed (specifically, the metadata disk array header)
+    // TODO(bmwinger): wal->getUpdatedTables isn't the ideal place to store this information
+    for (auto tableID : wal->getUpdatedTables()) {
+        if (transaction->getLocalStorage()->getLocalTable(tableID) == nullptr) {
+            getTable(tableID)->prepareCommit();
+        }
+    }
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
         wal->logTableStatisticsRecord(true /* isNodeTable */);
         nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(wal->getDirectory());

@@ -247,6 +247,12 @@ void VarListColumn::scanFiltered(Transaction* transaction, node_group_idx_t node
     }
 }
 
+void VarListColumn::prepareCommit() {
+    Column::prepareCommit();
+    sizeColumn->prepareCommit();
+    dataColumn->prepareCommit();
+}
+
 void VarListColumn::checkpointInMemory() {
     Column::checkpointInMemory();
     sizeColumn->checkpointInMemory();

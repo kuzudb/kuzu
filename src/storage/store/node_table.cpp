@@ -160,7 +160,15 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
     }
     auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
     tableData->prepareLocalTableToCommit(transaction, localNodeTable->getTableData());
+    tableData->prepareCommit();
     wal->addToUpdatedTables(tableID);
+}
+
+void NodeTable::prepareCommit() {
+    if (pkIndex) {
+        pkIndex->prepareCommit();
+    }
+    tableData->prepareCommit();
 }
 
 void NodeTable::prepareRollback(LocalTable* localTable) {

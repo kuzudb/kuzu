@@ -19,6 +19,12 @@ void TableData::addColumn(Transaction* transaction, const std::string& colNamePr
     columns.push_back(std::move(column));
 }
 
+void TableData::prepareCommit() {
+    for (auto& column : columns) {
+        column->prepareCommit();
+    }
+}
+
 void TableData::checkpointInMemory() {
     for (auto& column : columns) {
         column->checkpointInMemory();

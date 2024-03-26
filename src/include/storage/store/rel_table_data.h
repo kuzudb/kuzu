@@ -165,6 +165,7 @@ public:
     void prepareCommitNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalRelNG* localRelNG);
 
+    void prepareCommit() override;
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
