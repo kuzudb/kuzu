@@ -110,8 +110,8 @@ def test_map_param(tmp_path: Path) -> None:
         "MERGE (t:tab {id: 0, mp: $1, mp2: $2, mp3: $3, mp4: $4}) RETURN t.*",
         {"1": {1.0: 5, 2: 3, 2.2: -1},
          "2": {5: -0.5, 4: 0, 0: 2.2},
-         "3": {'a': 1, 'b': '2', 'c': '3',
-         "4": {}}})
+         "3": {'a': 1, 'b': '2', 'c': '3'},
+         "4": {}})
     assert result.has_next()
     assert result.get_next() == [0, {1.0: 5, 2.0: 3, 2.2: -1}, {5: -0.5, 4: -0.0, 0: 2.2}, {'a': '1', 'b': '2', 'c': '3'}, {}]
     assert not result.has_next()
