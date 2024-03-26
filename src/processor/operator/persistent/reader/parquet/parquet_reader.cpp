@@ -565,9 +565,9 @@ ParquetScanSharedState::ParquetScanSharedState(
         std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx], context));
     totalRowsGroups = 0;
     for (auto i = 0u; i < readerConfig.getNumFiles(); i++) {
-		auto reader = std::make_unique<ParquetReader>(readerConfig.filePaths[i], context);
-		totalRowsGroups += reader->getNumRowsGroups();
-	}
+        auto reader = std::make_unique<ParquetReader>(readerConfig.filePaths[i], context);
+        totalRowsGroups += reader->getNumRowsGroups();
+    }
 }
 
 static bool parquetSharedStateNext(

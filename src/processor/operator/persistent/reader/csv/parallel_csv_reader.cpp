@@ -171,10 +171,11 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
     auto sharedState = std::make_unique<ParallelCSVScanSharedState>(bindData->config.copy(),
         numRows, bindData->columnNames.size(), bindData->context, csvConfig.copy());
     for (auto filePath : sharedState->readerConfig.filePaths) {
-		auto reader = std::make_unique<ParallelCSVReader>(filePath, sharedState->csvReaderConfig.option.copy(),
-            			sharedState->numColumns, sharedState->context);
+        auto reader = std::make_unique<ParallelCSVReader>(filePath,
+            sharedState->csvReaderConfig.option.copy(), sharedState->numColumns,
+            sharedState->context);
         sharedState->totalSize += reader->getFileSize();
-	}
+    }
     return sharedState;
 }
 
