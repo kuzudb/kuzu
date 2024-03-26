@@ -53,12 +53,9 @@ std::unique_ptr<PreparedStatement> Connection::preparedStatementWithError(std::s
 }
 
 std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
-    Statement* parsedStatement, bool enumerateAllPlans, std::string_view encodedJoin) {
+    std::shared_ptr<Statement> parsedStatement, bool enumerateAllPlans,
+    std::string_view encodedJoin) {
     return clientContext->prepareNoLock(parsedStatement, enumerateAllPlans, encodedJoin);
-}
-
-std::vector<std::unique_ptr<Statement>> Connection::parseQuery(std::string_view query) {
-    return clientContext->parseQuery(query);
 }
 
 void Connection::interrupt() {

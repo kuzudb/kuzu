@@ -66,7 +66,7 @@ public:
 
     void copyNodeCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         conn->query(createPersonTableCMD);
-        auto preparedStatement = conn->prepare(copyPersonTableCMD);
+        auto preparedStatement = conn->getClientContext()->prepareTest(copyPersonTableCMD);
         if (!preparedStatement->success) {
             ASSERT_TRUE(false) << preparedStatement->errMsg;
         }
@@ -130,7 +130,7 @@ public:
         conn->query(createPersonTableCMD);
         conn->query(copyPersonTableCMD);
         conn->query(createKnowsTableCMD);
-        auto preparedStatement = conn->prepare(copyKnowsTableCMD);
+        auto preparedStatement = conn->getClientContext()->prepareTest(copyKnowsTableCMD);
         auto mapper = PlanMapper(conn->getClientContext());
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),

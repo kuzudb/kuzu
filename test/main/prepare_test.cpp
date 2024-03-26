@@ -7,6 +7,48 @@ static void checkTuple(kuzu::processor::FlatTuple* tuple, const std::string& gro
     ASSERT_STREQ(tuple->toString().c_str(), groundTruth.c_str());
 }
 
+TEST_F(ApiTest, issueTest1) {
+    conn->query("CREATE NODE TABLE T(id SERIAL, name STRING, PRIMARY KEY(id));");
+    conn->query("CREATE (t:T {name: \"foo\"});");
+    auto preparedStatement = conn->prepare("MATCH (t:T {id: $p}) return t.name;");
+    auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("p"), 0));
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "foo\n");
+    ASSERT_FALSE(result->hasNext());
+}
+
+TEST_F(ApiTest, issueTest2) {
+    conn->query("CREATE NODE TABLE NodeOne(id INT64, name STRING, PRIMARY KEY(id));");
+    conn->query("CREATE NODE TABLE NodeTwo(id INT64, name STRING, PRIMARY KEY(id));");
+    conn->query("CREATE Rel TABLE RelA(from NodeOne to NodeOne);");
+    conn->query("CREATE Rel TABLE RelB(from NodeTwo to NodeOne, name String);");
+    conn->query("CREATE (t: NodeOne {id:1, name: \"Alice\"});");
+    conn->query("CREATE (t: NodeOne {id:2, name: \"Jack\"});");
+    conn->query("CREATE (t: NodeTwo {id:3, name: \"Bob\"});");
+    auto preparedStatement = conn->prepare("MATCH (a:NodeOne { id: $a_id }),"
+                                           "(b:NodeTwo { id: $b_id }),"
+                                           "(c: NodeOne{ id: $c_id } )"
+                                           " MERGE"
+                                           " (a)-[:RelA]->(c),"
+                                           " (b)-[r:RelB { name: $my_param }]->(c)"
+                                           " return r.name;");
+    auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("a_id"), 1),
+        std::make_pair(std::string("b_id"), 3), std::make_pair(std::string("c_id"), 2),
+        std::make_pair(std::string("my_param"), "friend"));
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "friend\n");
+    ASSERT_FALSE(result->hasNext());
+}
+
+TEST_F(ApiTest, issueTest) {
+    auto preparedStatement = conn->prepare("RETURN $1 + 1;");
+    auto result =
+        conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), (int8_t)1));
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "2\n");
+    ASSERT_FALSE(result->hasNext());
+}
+
 TEST_F(ApiTest, MultiParamsPrepare) {
     auto preparedStatement = conn->prepare(
         "MATCH (a:person) WHERE a.fName STARTS WITH $n OR a.fName CONTAINS $xx RETURN COUNT(*)");
@@ -96,9 +138,8 @@ TEST_F(ApiTest, PrepareDefaultParam) {
     ASSERT_FALSE(result->hasNext());
     preparedStatement = conn->prepare("RETURN size($1)");
     result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), 1));
-    ASSERT_FALSE(result->isSuccess());
-    ASSERT_STREQ(
-        result->getErrorMessage().c_str(), "Parameter 1 has data type INT32 but expects STRING.");
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "1\n");
 }
 
 TEST_F(ApiTest, PrepareDefaultListParam) {
@@ -109,8 +150,8 @@ TEST_F(ApiTest, PrepareDefaultListParam) {
     checkTuple(result->getNext().get(), "[1,1]\n");
     result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), "as"));
     ASSERT_FALSE(result->isSuccess());
-    ASSERT_STREQ(
-        result->getErrorMessage().c_str(), "Parameter 1 has data type STRING but expects INT64.");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Cannot bind LIST_CREATION with parameter type INT64 and STRING.");
     preparedStatement = conn->prepare("RETURN [$1]");
     result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), "as"));
     ASSERT_TRUE(result->hasNext());
@@ -127,9 +168,9 @@ TEST_F(ApiTest, PrepareDefaultStructParam) {
     ASSERT_TRUE(result->hasNext());
     checkTuple(result->getNext().get(), "{a: 10}\n");
     result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), 1));
-    ASSERT_FALSE(result->isSuccess());
-    ASSERT_STREQ(
-        result->getErrorMessage().c_str(), "Parameter 1 has data type INT32 but expects STRING.");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "{a: 1}\n");
 }
 
 TEST_F(ApiTest, PrepareDefaultMapParam) {
@@ -170,9 +211,8 @@ TEST_F(ApiTest, ParamTypeError) {
         conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
     auto result =
         conn->execute(preparedStatement.get(), std::make_pair(std::string("n"), (int64_t)36));
-    ASSERT_FALSE(result->isSuccess());
-    ASSERT_STREQ(
-        "Parameter n has data type INT64 but expects STRING.", result->getErrorMessage().c_str());
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "0\n");
 }
 
 TEST_F(ApiTest, MultipleExecutionOfPreparedStatement) {

@@ -46,9 +46,9 @@ bool TestRunner::testStatement(
     replaceEnv(statement->query, "AWS_S3_ACCESS_KEY_ID");
     replaceEnv(statement->query, "AWS_S3_SECRET_ACCESS_KEY");
     replaceEnv(statement->query, "RUN_ID");
-    auto parsedStatements = std::vector<std::unique_ptr<parser::Statement>>();
+    auto parsedStatements = std::vector<std::shared_ptr<parser::Statement>>();
     try {
-        parsedStatements = conn.parseQuery(statement->query);
+        parsedStatements = conn.getClientContext()->parseQuery(statement->query);
     } catch (std::exception& exception) {
         auto errorPreparedStatement = conn.preparedStatementWithError(exception.what());
         return checkLogicalPlan(errorPreparedStatement, statement, conn, 0);
@@ -63,9 +63,9 @@ bool TestRunner::testStatement(
     }
     auto parsedStatement = std::move(parsedStatements[0]);
     if (statement->encodedJoin.empty()) {
-        preparedStatement = conn.prepareNoLock(parsedStatement.get(), statement->enumerate);
+        preparedStatement = conn.prepareNoLock(parsedStatement, statement->enumerate);
     } else {
-        preparedStatement = conn.prepareNoLock(parsedStatement.get(), true, statement->encodedJoin);
+        preparedStatement = conn.prepareNoLock(parsedStatement, true, statement->encodedJoin);
     }
     // Check for wrong statements
     if (!statement->expectedError && !statement->expectedErrorRegex &&

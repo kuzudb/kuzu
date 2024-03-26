@@ -145,10 +145,9 @@ private:
 
     std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
 
-    std::vector<std::unique_ptr<parser::Statement>> parseQuery(std::string_view query);
-
-    std::unique_ptr<PreparedStatement> prepareNoLock(parser::Statement* parsedStatement,
-        bool enumerateAllPlans = false, std::string_view joinOrder = std::string_view());
+    std::unique_ptr<PreparedStatement> prepareNoLock(
+        std::shared_ptr<parser::Statement> parsedStatement, bool enumerateAllPlans = false,
+        std::string_view joinOrder = std::string_view());
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,

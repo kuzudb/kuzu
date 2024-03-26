@@ -16,7 +16,7 @@ using namespace antlr4;
 namespace kuzu {
 namespace parser {
 
-std::vector<std::unique_ptr<Statement>> Parser::parseQuery(std::string_view query) {
+std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view query) {
     auto inputStream = ANTLRInputStream(query);
     auto parserErrorListener = ParserErrorListener();
 

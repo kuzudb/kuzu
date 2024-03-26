@@ -10,8 +10,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace parser {
 
-std::vector<std::unique_ptr<Statement>> Transformer::transform() {
-    std::vector<std::unique_ptr<Statement>> statements;
+std::vector<std::shared_ptr<Statement>> Transformer::transform() {
+    std::vector<std::shared_ptr<Statement>> statements;
     for (auto& oc_Statement : root.oC_Cypher()) {
         auto statement = transformStatement(*oc_Statement->oC_Statement());
         if (oc_Statement->oC_AnyCypherOption()) {

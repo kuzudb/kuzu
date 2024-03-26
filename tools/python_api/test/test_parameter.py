@@ -156,6 +156,27 @@ def test_param_error3(conn_db_readonly: ConnDB) -> None:
     with pytest.raises(RuntimeError, match="Parameters must be a dict"):
         conn.execute("MATCH (a:person) WHERE a.registerTime = $1 RETURN COUNT(*);", [("asd", 1, 1)])
 
+def test_param(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+    conn.execute("CREATE NODE TABLE NodeOne(id INT64, name STRING, PRIMARY KEY(id));");
+    conn.execute("CREATE NODE TABLE NodeTwo(id INT64, name STRING, PRIMARY KEY(id));");
+    conn.execute("CREATE Rel TABLE RelA(from NodeOne to NodeOne);");
+    conn.execute("CREATE Rel TABLE RelB(from NodeTwo to NodeOne, id int64, name String);");
+    conn.execute("CREATE (t: NodeOne {id:1, name: \"Alice\"});");
+    conn.execute("CREATE (t: NodeOne {id:2, name: \"Jack\"});");
+    conn.execute("CREATE (t: NodeTwo {id:3, name: \"Bob\"});");
+    result = conn.execute(
+        "MATCH (a:NodeOne { id: $a_id }),"
+        "(b:NodeTwo { id: $b_id }),"
+        "(c: NodeOne{ id: $c_id } )"
+        " MERGE"
+        " (a)-[:RelA]->(c),"
+        " (b)-[r:RelB { id: 2, name: $my_param }]->(c)"
+        " return r.*;", {"a_id": 1, "b_id": 3, "c_id": 2, "my_param": None}
+    )
+    assert result.has_next()
+    assert result.get_next() == [2, None]
+    result.close()
 
 def test_param_error4(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
