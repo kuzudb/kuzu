@@ -8,7 +8,7 @@ namespace duckdb_scanner {
 
 void DuckDBCatalogContent::init(
     const std::string& dbPath, const std::string& catalogName, main::ClientContext* context) {
-    auto con = getConnection(dbPath);
+    auto [db, con] = getConnection(dbPath);
     auto query = common::stringFormat(
         "select table_name from information_schema.tables where table_catalog = '{}' and "
         "table_schema = '{}';",
@@ -118,10 +118,11 @@ std::string DuckDBCatalogContent::getDefaultSchemaName() const {
     return "main";
 }
 
-duckdb::Connection DuckDBCatalogContent::getConnection(const std::string& dbPath) const {
+std::pair<duckdb::DuckDB, duckdb::Connection> DuckDBCatalogContent::getConnection(
+    const std::string& dbPath) const {
     duckdb::DuckDB db(dbPath);
     duckdb::Connection con(db);
-    return con;
+    return std::make_pair(std::move(db), std::move(con));
 }
 
 } // namespace duckdb_scanner

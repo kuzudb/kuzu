@@ -18,7 +18,7 @@ namespace duckdb_scanner {
 
 using duckdb_conversion_func_t = std::function<void(
     duckdb::Vector& duckDBVector, common::ValueVector& result, uint64_t numValues)>;
-using init_duckdb_conn_t = std::function<duckdb::Connection()>;
+using init_duckdb_conn_t = std::function<std::pair<duckdb::DuckDB, duckdb::Connection>()>;
 
 struct DuckDBScanBindData : public function::TableFuncBindData {
     explicit DuckDBScanBindData(std::string query, std::vector<common::LogicalType> columnTypes,

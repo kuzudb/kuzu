@@ -44,7 +44,8 @@ private:
 
     virtual std::string getDefaultSchemaName() const;
 
-    virtual duckdb::Connection getConnection(const std::string& dbPath) const;
+    virtual std::pair<duckdb::DuckDB, duckdb::Connection> getConnection(
+        const std::string& dbPath) const;
 
 private:
     void createForeignTable(duckdb::Connection& con, const std::string& tableName,
