@@ -1,0 +1,13 @@
+PostgresScanner.ScanPostgresTable /Users/lc/Developer/kuzu/extension/postgres_scanner/test/test_files/postgres_scanner.test
+DuckDBScanner.InvalidDuckDBDatabase /Users/lc/Developer/kuzu/extension/duckdb_scanner/test/test_files/duckdb_scanner.test
+DuckDBScanner.ScanDuckDBTable /Users/lc/Developer/kuzu/extension/duckdb_scanner/test/test_files/duckdb_scanner.test
+S3.DISABLED_GlobS3Folder /Users/lc/Developer/kuzu/extension/httpfs/test/test_files/s3_glob.test
+S3.DISABLED_UploadToS3 /Users/lc/Developer/kuzu/extension/httpfs/test/test_files/s3_upload.test
+S3.DISABLED_ScanFromDifferentAWSS3File /Users/lc/Developer/kuzu/extension/httpfs/test/test_files/s3_download.test
+S3.ScanFromUWS3File /Users/lc/Developer/kuzu/extension/httpfs/test/test_files/s3_download.test
+S3.DuplicateOption /Users/lc/Developer/kuzu/extension/httpfs/test/test_files/s3_download.test
+S3.S3Option /Users/lc/Developer/kuzu/extension/httpfs/test/test_files/s3_download.test
+HTTPFS.ScanFromHTTPS /Users/lc/Developer/kuzu/extension/httpfs/test/test_files/http.test
+HTTPFS.CopyFromHTTPCSV /Users/lc/Developer/kuzu/extension/httpfs/test/test_files/http.test
+HTTPFS.ScanFromLargeFiles /Users/lc/Developer/kuzu/extension/httpfs/test/test_files/http.test
+HTTPFS.ScanFromHTTPCSV /Users/lc/Developer/kuzu/extension/httpfs/test/test_files/http.test
