@@ -45,5 +45,4 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 -LOG IncorrectConnectionStr
 -STATEMENT ATTACH 'dbname=test2132131 user=ci host=127.0.0.1' as tinysnb (dbtype 'POSTGRES');
 ---- error
-Binder exception: Failed to attach postgres database due to: IO Error: Unable to connect to Postgres at dbname=test2132131 user=ci host=127.0.0.1: connection to server at "127.0.0.1", port 5432 failed: Connection refused
-	Is the server running on that host and accepting TCP/IP connections?
+Binder exception: Failed to attach postgres database due to: IO Error: Unable to connect to Postgres at dbname=test2132131 user=ci host=127.0.0.1: connection to server at "127.0.0.1", port 5432 failed: Connection refused\n\tIs the server running on that host and accepting TCP/IP connections?
