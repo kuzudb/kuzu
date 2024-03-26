@@ -22,9 +22,10 @@ std::unique_ptr<binder::BoundCreateTableInfo> PostgresCatalogContent::bindCreate
     if (!bindPropertyInfos(con, tableName, DEFAULT_CATALOG_NAME, propertyInfos)) {
         return nullptr;
     }
-    return std::make_unique<binder::BoundCreateTableInfo>(common::TableType::FOREIGN, tableName,
-        std::make_unique<BoundExtraCreatePostgresTableInfo>(dbPath, "memory", DEFAULT_CATALOG_NAME,
-            getDefaultSchemaName(), std::move(propertyInfos)));
+    auto extraCreatePostgresTableInfo = std::make_unique<BoundExtraCreatePostgresTableInfo>(dbPath,
+        "" /* dbPath */, DEFAULT_CATALOG_NAME, getDefaultSchemaName(), std::move(propertyInfos));
+    return std::make_unique<binder::BoundCreateTableInfo>(
+        common::TableType::FOREIGN, tableName, std::move(extraCreatePostgresTableInfo));
 }
 
 duckdb::Connection PostgresCatalogContent::getConnection(const std::string& dbPath) const {
@@ -32,8 +33,8 @@ duckdb::Connection PostgresCatalogContent::getConnection(const std::string& dbPa
     duckdb::Connection con(db);
     con.Query("install postgres;");
     con.Query("load postgres;");
-    auto result = con.Query(common::stringFormat("attach '{}' as {} (TYPE postgres);", dbPath,
-        PostgresStorageExtension::POSTGRES_CATALOG_NAME_IN_DUCKDB));
+    auto result = con.Query(
+        common::stringFormat("attach '{}' as {} (TYPE postgres);", dbPath, DEFAULT_CATALOG_NAME));
     if (result->HasError()) {
         throw common::BinderException(common::stringFormat(
             "Failed to attach postgres database due to: {}", result->GetError()));

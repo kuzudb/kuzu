@@ -21,13 +21,13 @@ void DuckDBCatalogContent::init(
     if (resultChunk->size() == 0) {
         return;
     }
-    auto tableNamesVector = std::make_unique<common::ValueVector>(
-        common::LogicalTypeID::STRING, context->getMemoryManager());
+    common::ValueVector tableNamesVector{
+        *common::LogicalType::STRING(), context->getMemoryManager()};
     duckdb_scanner::duckdb_conversion_func_t conversionFunc;
     duckdb_scanner::getDuckDBVectorConversionFunc(common::PhysicalTypeID::STRING, conversionFunc);
-    conversionFunc(resultChunk->data[0], *tableNamesVector, resultChunk->size());
+    conversionFunc(resultChunk->data[0], tableNamesVector, resultChunk->size());
     for (auto i = 0u; i < resultChunk->size(); i++) {
-        auto tableName = tableNamesVector->getValue<common::ku_string_t>(i).getAsString();
+        auto tableName = tableNamesVector.getValue<common::ku_string_t>(i).getAsString();
         createForeignTable(con, tableName, dbPath, catalogName);
     }
 }
