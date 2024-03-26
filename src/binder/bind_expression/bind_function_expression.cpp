@@ -6,8 +6,10 @@
 #include "common/exception/binder.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/cast/vector_cast_functions.h"
+#include "function/path/vector_path_functions.h"
 #include "function/rewrite_function.h"
 #include "function/schema/vector_label_functions.h"
+#include "function/schema/vector_node_rel_functions.h"
 #include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/parsed_expression_visitor.h"
@@ -189,19 +191,19 @@ std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
 // ENDNODE(a)         |        a._dst
 std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
     const parser::ParsedExpression& parsedExpression, const std::string& functionName) {
-    if (functionName == LABEL_FUNC_NAME) {
+    if (functionName == LabelFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
         validateExpectedDataType(
             *child, std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL});
         return bindLabelFunction(*child);
-    } else if (functionName == LENGTH_FUNC_NAME) {
+    } else if (functionName == LengthFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
         return bindRecursiveJoinLengthFunction(*child);
-    } else if (functionName == START_NODE_FUNC_NAME) {
+    } else if (functionName == StartNodeFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
         validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
         return bindStartNodeExpression(*child);
-    } else if (functionName == END_NODE_FUNC_NAME) {
+    } else if (functionName == EndNodeFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
         validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
         return bindEndNodeExpression(*child);
@@ -285,8 +287,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
     }
     auto execFunc = function::LabelFunction::execFunction;
     auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::STRING());
-    auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
-    return std::make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, ExpressionType::FUNCTION,
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(LabelFunction::name, children);
+    return std::make_shared<ScalarFunctionExpression>(LabelFunction::name, ExpressionType::FUNCTION,
         std::move(bindData), std::move(children), execFunc, nullptr, uniqueExpressionName);
 }
 

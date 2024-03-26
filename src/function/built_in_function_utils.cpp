@@ -1,7 +1,6 @@
 #include "function/built_in_function_utils.h"
 
 #include "catalog/catalog_entry/aggregate_function_catalog_entry.h"
-#include "catalog/catalog_entry/scalar_function_catalog_entry.h"
 #include "catalog/catalog_entry/table_function_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "common/exception/binder.h"
@@ -12,10 +11,7 @@
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/function_collection.h"
-#include "function/path/vector_path_functions.h"
-#include "function/rdf/vector_rdf_functions.h"
 #include "function/scalar_function.h"
-#include "function/schema/vector_node_rel_functions.h"
 #include "function/table/call_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
@@ -39,17 +35,10 @@ static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidate
     function::function_set& set);
 
 void BuiltInFunctionsUtils::createFunctions(CatalogSet* catalogSet) {
-    registerScalarFunctions(catalogSet);
     registerAggregateFunctions(catalogSet);
     registerTableFunctions(catalogSet);
 
     registerFunctions(catalogSet);
-}
-
-void BuiltInFunctionsUtils::registerScalarFunctions(CatalogSet* catalogSet) {
-    registerNodeRelFunctions(catalogSet);
-    registerPathFunctions(catalogSet);
-    registerRdfFunctions(catalogSet);
 }
 
 void BuiltInFunctionsUtils::registerAggregateFunctions(CatalogSet* catalogSet) {
@@ -515,34 +504,6 @@ void BuiltInFunctionsUtils::validateSpecialCases(std::vector<Function*>& candida
     }
 }
 
-void BuiltInFunctionsUtils::registerNodeRelFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        OFFSET_FUNC_NAME, OffsetFunction::getFunctionSet()));
-    catalogSet->createEntry(
-        std::make_unique<FunctionCatalogEntry>(catalog::CatalogEntryType::REWRITE_FUNCTION_ENTRY,
-            ID_FUNC_NAME, IDFunction::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerPathFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        NODES_FUNC_NAME, NodesFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        RELS_FUNC_NAME, RelsFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        PROPERTIES_FUNC_NAME, PropertiesFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        IS_TRAIL_FUNC_NAME, IsTrailFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        IS_ACYCLIC_FUNC_NAME, IsACyclicFunction::getFunctionSet()));
-}
-
-void BuiltInFunctionsUtils::registerRdfFunctions(CatalogSet* catalogSet) {
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        TYPE_FUNC_NAME, RDFTypeFunction::getFunctionSet()));
-    catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-        VALIDATE_PREDICATE_FUNC_NAME, ValidatePredicateFunction::getFunctionSet()));
-}
-
 void BuiltInFunctionsUtils::registerCountStar(CatalogSet* catalogSet) {
     function_set functionSet;
     functionSet.push_back(std::make_unique<AggregateFunction>(COUNT_STAR_FUNC_NAME,
@@ -672,8 +633,8 @@ void BuiltInFunctionsUtils::registerFunctions(catalog::CatalogSet* catalogSet) {
     auto functions = FunctionCollection::getFunctions();
     for (auto i = 0u; functions[i].name != nullptr; ++i) {
         auto functionSet = functions[i].getFunctionSetFunc();
-        catalogSet->createEntry(std::make_unique<ScalarFunctionCatalogEntry>(
-            functions[i].name, std::move(functionSet)));
+        catalogSet->createEntry(std::make_unique<FunctionCatalogEntry>(
+            functions[i].catalogEntryType, functions[i].name, std::move(functionSet)));
     }
 }
 

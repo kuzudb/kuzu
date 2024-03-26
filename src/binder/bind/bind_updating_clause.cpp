@@ -12,6 +12,7 @@
 #include "common/exception/binder.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
+#include "function/rdf/vector_rdf_functions.h"
 #include "main/client_context.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
@@ -208,7 +209,7 @@ void Binder::bindInsertRel(
             rel->getVariableName(), std::vector<common::table_id_t>{resourceTableID});
         auto iriData = rel->getPropertyDataExpr(std::string(rdf::IRI));
         iriData = expressionBinder.bindScalarFunctionExpression(
-            expression_vector{std::move(iriData)}, VALIDATE_PREDICATE_FUNC_NAME);
+            expression_vector{std::move(iriData)}, function::ValidatePredicateFunction::name);
         pNode->addPropertyDataExpr(std::string(rdf::IRI), std::move(iriData));
         bindInsertNode(pNode, infos);
         auto nodeInsertInfo = &infos[infos.size() - 1];

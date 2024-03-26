@@ -80,12 +80,6 @@ private:
         const std::string& name, const std::vector<common::LogicalType>& inputTypes,
         function::function_set& set);
 
-    // Scalar functions.
-    static void registerScalarFunctions(catalog::CatalogSet* catalogSet);
-    static void registerNodeRelFunctions(catalog::CatalogSet* catalogSet);
-    static void registerPathFunctions(catalog::CatalogSet* catalogSet);
-    static void registerRdfFunctions(catalog::CatalogSet* catalogSet);
-
     // Aggregate functions.
     static void registerAggregateFunctions(catalog::CatalogSet* catalogSet);
     static void registerCountStar(catalog::CatalogSet* catalogSet);
