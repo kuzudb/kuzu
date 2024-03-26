@@ -7,6 +7,8 @@ namespace planner {
 
 std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorType type) {
     switch (type) {
+    case LogicalOperatorType::ATTACH_DATABASE:
+        return "ATTACH_DATABASE";
     case LogicalOperatorType::ACCUMULATE:
         return "ACCUMULATE";
     case LogicalOperatorType::AGGREGATE:
@@ -29,6 +31,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "DELETE_NODE";
     case LogicalOperatorType::DELETE_REL:
         return "DELETE_REL";
+    case LogicalOperatorType::DETACH_DATABASE:
+        return "DETACH_DATABASE";
     case LogicalOperatorType::DISTINCT:
         return "DISTINCT";
     case LogicalOperatorType::DROP_TABLE:

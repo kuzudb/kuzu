@@ -52,7 +52,7 @@ struct DuckDBScanFunction {
 std::unique_ptr<function::TableFuncSharedState> DuckDBScanFunction::initSharedState(
     function::TableFunctionInitInput& input) {
     auto scanBindData = reinterpret_cast<DuckDBScanBindData*>(input.bindData);
-    auto conn = scanBindData->initDuckDBConn();
+    auto [db, conn] = scanBindData->initDuckDBConn();
     auto result = conn.SendQuery(scanBindData->query);
     if (result->HasError()) {
         throw common::RuntimeException(

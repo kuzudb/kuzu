@@ -39,7 +39,8 @@ private:
 
     std::string getDefaultSchemaName() const override;
 
-    duckdb::Connection getConnection(const std::string& dbPath) const override;
+    std::pair<duckdb::DuckDB, duckdb::Connection> getConnection(
+        const std::string& dbPath) const override;
 
 private:
     static constexpr char DEFAULT_CATALOG_NAME[] = "pg";
