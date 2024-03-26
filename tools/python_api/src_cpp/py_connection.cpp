@@ -2,10 +2,12 @@
 
 #include <utility>
 
+#include "common/constants.h"
 #include "cached_import/py_cached_import.h"
 #include "common/string_format.h"
 #include "common/types/uuid.h"
 #include "datetime.h" // from Python
+#include "function/built_in_function_utils.h"
 #include "main/connection.h"
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
@@ -157,7 +159,7 @@ bool PyConnection::isPandasDataframe(const py::object& object) {
 
 static Value transformPythonValue(py::handle val);
 
-std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
+static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
     const py::dict& params, Connection* conn) {
     std::unordered_map<std::string, std::unique_ptr<Value>> result;
     for (auto& [key, value] : params) {
@@ -174,22 +176,135 @@ std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameter
     return result;
 }
 
-Value transformPythonValue(py::handle val) {
+static bool canCastPyLogicalType(const LogicalType& from, const LogicalType& to) {
+    // the input of this function is restricted to the output of pyLogicalType
+    if (from.getLogicalTypeID() == LogicalTypeID::MAP) {
+        if (to.getLogicalTypeID() != LogicalTypeID::MAP) {
+            return false;
+        }
+        auto fromKeyType = MapType::getKeyType(&from), fromValueType = MapType::getValueType(&to);
+        auto toKeyType = MapType::getKeyType(&to), toValueType = MapType::getValueType(&to);
+        return
+            (canCastPyLogicalType(*fromKeyType, *toKeyType) ||
+            canCastPyLogicalType(*toKeyType, *fromKeyType)) &&
+            (canCastPyLogicalType(*fromValueType, *toValueType) ||
+            canCastPyLogicalType(*toValueType, *fromValueType));
+    } else if (from.getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
+        if (to.getLogicalTypeID() != LogicalTypeID::VAR_LIST) {
+            return false;
+        }
+        return canCastPyLogicalType(
+            *VarListType::getChildType(&from), *VarListType::getChildType(&to));
+    } else if (from.getLogicalTypeID() == LogicalTypeID::ANY ||
+        from.getLogicalTypeID() == to.getLogicalTypeID()) {
+        return true;
+    } else {
+        auto castCost = function::BuiltInFunctionsUtils::getCastCost(
+            from.getLogicalTypeID(), to.getLogicalTypeID());
+        return castCost != UNDEFINED_CAST_COST;
+    }
+    return false;
+}
+
+static std::unique_ptr<LogicalType> castPyLogicalType(const LogicalType& from, const LogicalType& to) {
+    // assumes from can cast to to
+    if (from.getLogicalTypeID() == LogicalTypeID::MAP) {
+        auto fromKeyType = MapType::getKeyType(&from), fromValueType = MapType::getValueType(&to);
+        auto toKeyType = MapType::getKeyType(&to), toValueType = MapType::getValueType(&to);
+        auto outputKeyType = canCastPyLogicalType(*fromKeyType, *toKeyType) ? toKeyType : fromKeyType;
+        auto outputValueType = canCastPyLogicalType(*fromValueType, *toValueType) ? toValueType : fromValueType;
+        return LogicalType::MAP(
+            std::make_unique<LogicalType>(*outputKeyType), std::make_unique<LogicalType>(*outputValueType));
+    }
+    return std::make_unique<LogicalType>(to);
+}
+
+static void tryConvertPyLogicalType(LogicalType& from, LogicalType& to) {
+    if (canCastPyLogicalType(from, to)) {
+        from = *castPyLogicalType(from, to);
+    } else if (canCastPyLogicalType(to, from)) {
+        from = *castPyLogicalType(to, from);
+    } else {
+        throw RuntimeException(stringFormat(
+            "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
+            from.toString(), to.toString()));
+    }
+}
+
+static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
     auto datetime_datetime = importCache->datetime.datetime();
     auto time_delta = importCache->datetime.timedelta();
     auto datetime_date = importCache->datetime.date();
     auto uuid = importCache->uuid.UUID();
     if (val.is_none()) {
-        return Value::createNullValue();
+        return LogicalType::ANY();
     } else if (py::isinstance<py::bool_>(val)) {
-        return Value::createValue<bool>(val.cast<bool>());
+        return LogicalType::BOOL();
     } else if (py::isinstance<py::int_>(val)) {
-        return Value::createValue<int64_t>(val.cast<int64_t>());
+        return LogicalType::INT64();
     } else if (py::isinstance<py::float_>(val)) {
-        return Value::createValue<double>(val.cast<double>());
+        return LogicalType::DOUBLE();
     } else if (py::isinstance<py::str>(val)) {
-        return Value::createValue<std::string>(val.cast<std::string>());
+        return LogicalType::STRING();
     } else if (py::isinstance(val, datetime_datetime)) {
+        return LogicalType::TIMESTAMP();
+    } else if (py::isinstance(val, datetime_date)) {
+        return LogicalType::DATE();
+    } else if (py::isinstance(val, time_delta)) {
+        return LogicalType::INTERVAL();
+    } else if (py::isinstance(val, uuid)) {
+        return LogicalType::UUID();
+    } else if (py::isinstance<py::list>(val)) {
+        py::list lst = py::reinterpret_borrow<py::list>(val);
+        auto childType = LogicalType::ANY();
+        if (py::len(lst) == 0) {
+            childType = LogicalType::STRING();
+        }
+        for (auto child : lst) {
+            auto curChildType = pyLogicalType(child);
+            tryConvertPyLogicalType(*childType, *curChildType);
+        }
+        return LogicalType::VAR_LIST(std::move(childType));
+    } else if (py::isinstance<py::dict>(val)) {
+        py::dict dict = py::reinterpret_borrow<py::dict>(val);
+        auto childKeyType = LogicalType::ANY(), childValueType = LogicalType::ANY();
+        if (py::len(dict) == 0) {
+            childKeyType = LogicalType::STRING();
+            childValueType = LogicalType::STRING();
+        }
+        for (auto child : dict) {
+            auto curChildKeyType = pyLogicalType(child.first),
+                curChildValueType = pyLogicalType(child.second);
+            tryConvertPyLogicalType(*childKeyType, *curChildKeyType);
+            tryConvertPyLogicalType(*childValueType, *curChildValueType);
+        }
+        return LogicalType::MAP(std::move(childKeyType), std::move(childValueType));
+    } else {
+        // LCOV_EXCL_START
+        throw common::RuntimeException(
+            "Unknown parameter type " + py::str(val.get_type()).cast<std::string>());
+        // LCOV_EXCL_STOP
+    }
+}
+
+static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
+    // ignore the type of the actual python object, just directly cast
+    switch (type->getLogicalTypeID()) {
+    case LogicalTypeID::ANY:
+        return Value::createNullValue();
+    case LogicalTypeID::BOOL:
+        return Value::createValue<bool>(val.cast<bool>());
+    case LogicalTypeID::INT64:
+        return Value::createValue<int64_t>(val.cast<int64_t>());
+    case LogicalTypeID::DOUBLE:
+        return Value::createValue<double>(val.cast<double>());
+    case LogicalTypeID::STRING:
+        if (py::isinstance<py::str>(val)) {
+            return Value::createValue<std::string>(val.cast<std::string>());
+        } else {
+            return Value::createValue<std::string>(py::str(val));
+        }
+    case LogicalTypeID::TIMESTAMP: {
         auto ptr = val.ptr();
         auto year = PyDateTime_GET_YEAR(ptr);
         auto month = PyDateTime_GET_MONTH(ptr);
@@ -201,13 +316,15 @@ Value transformPythonValue(py::handle val) {
         auto date = Date::fromDate(year, month, day);
         auto time = Time::fromTime(hour, minute, second, micros);
         return Value::createValue<timestamp_t>(Timestamp::fromDateTime(date, time));
-    } else if (py::isinstance(val, datetime_date)) {
+    }
+    case LogicalTypeID::DATE: {
         auto ptr = val.ptr();
         auto year = PyDateTime_GET_YEAR(ptr);
         auto month = PyDateTime_GET_MONTH(ptr);
         auto day = PyDateTime_GET_DAY(ptr);
         return Value::createValue<date_t>(Date::fromDate(year, month, day));
-    } else if (py::isinstance(val, time_delta)) {
+    }
+    case LogicalTypeID::INTERVAL: {
         auto ptr = val.ptr();
         auto days = PyDateTime_DELTA_GET_DAYS(ptr);
         auto seconds = PyDateTime_DELTA_GET_SECONDS(ptr);
@@ -217,14 +334,53 @@ Value transformPythonValue(py::handle val) {
         Interval::addition(interval, seconds, "seconds");
         Interval::addition(interval, microseconds, "microseconds");
         return Value::createValue<interval_t>(interval);
-    } else if (py::isinstance(val, uuid)) {
+    }
+    case LogicalTypeID::UUID: {
         auto strVal = py::str(val).cast<std::string>();
         auto uuidVal = UUID::fromString(strVal);
         ku_uuid_t uuidToAppend;
         uuidToAppend.value = uuidVal;
         return Value{uuidToAppend};
-    } else {
-        throw std::runtime_error(
-            "Unknown parameter type " + py::str(val.get_type()).cast<std::string>());
     }
+    case LogicalTypeID::VAR_LIST: {
+        py::list lst = py::reinterpret_borrow<py::list>(val);
+        std::vector<std::unique_ptr<Value>> children;
+        for (auto child : lst) {
+            children.push_back(std::make_unique<Value>(
+                transformPythonValueAs(child, VarListType::getChildType(type))));
+        }
+        return Value(std::make_unique<LogicalType>(*type), std::move(children));
+    }
+    case LogicalTypeID::MAP: {
+        py::dict dict = py::reinterpret_borrow<py::dict>(val);
+        std::vector<std::unique_ptr<Value>> children;
+        auto childKeyType = MapType::getKeyType(type),
+            childValueType = MapType::getValueType(type);
+        for (auto child : dict) {
+            // type construction is inefficient, we have to create duplicates because it asks for
+            // a unique ptr
+            std::vector<StructField> fields;
+            fields.emplace_back(
+                InternalKeyword::MAP_KEY, std::make_unique<LogicalType>(*childKeyType));
+            fields.emplace_back(
+                InternalKeyword::MAP_VALUE, std::make_unique<LogicalType>(*childValueType));
+            std::vector<std::unique_ptr<Value>> structValues;
+            structValues.push_back(std::make_unique<Value>(transformPythonValueAs(child.first, childKeyType)));
+            structValues.push_back(std::make_unique<Value>(transformPythonValueAs(child.second, childValueType)));
+            children.push_back(std::make_unique<Value>(
+                LogicalType::STRUCT(std::move(fields)),
+                std::move(structValues)));
+        }
+        return Value(std::make_unique<LogicalType>(*type), std::move(children));
+    }
+    // LCOV_EXCL_START
+    default:
+        KU_UNREACHABLE;
+    // LCOV_EXCL_STOP
+    }
+}
+
+Value transformPythonValue(py::handle val) {
+    auto type = pyLogicalType(val);
+    return transformPythonValueAs(val, type.get());
 }
