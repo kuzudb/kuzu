@@ -16,7 +16,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(
     main::ClientContext* /*context*/, TableFuncBindInput* input) {
 
     py::gil_scoped_acquire acquire;
-    py::object table(py::reinterpret_steal<py::object>(
+    py::object table(py::reinterpret_borrow<py::object>(
         reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>())));
     if (py::isinstance(table, importCache->pandas.DataFrame())) {
         table = importCache->pyarrow.lib.Table.from_pandas()(table);
@@ -29,7 +29,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(
     auto numRows = py::len(table);
     auto schema = Pyarrow::bind(table, returnTypes, names);
     return std::make_unique<PyArrowTableScanFunctionData>(
-        std::move(returnTypes), std::move(schema), std::move(names), table, numRows);
+        std::move(returnTypes), std::move(schema), std::move(names), std::move(table), numRows);
 }
 
 ArrowArrayWrapper* PyArrowTableScanSharedState::getNextChunk() {
@@ -46,7 +46,7 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     py::gil_scoped_acquire acquire;
     PyArrowTableScanFunctionData* bindData =
         dynamic_cast<PyArrowTableScanFunctionData*>(input.bindData);
-    py::list batches = bindData->table->attr("to_batches")(DEFAULT_VECTOR_CAPACITY);
+    py::list batches = bindData->table.attr("to_batches")(DEFAULT_VECTOR_CAPACITY);
     std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches;
 
     for (auto& i : batches) {

@@ -30,19 +30,16 @@ struct PyArrowTableScanSharedState final : public function::BaseScanSharedState 
 
 struct PyArrowTableScanFunctionData final : public function::TableFuncBindData {
     std::shared_ptr<ArrowSchemaWrapper> schema;
-    std::unique_ptr<py::object> table;
+    py::object table;
     uint64_t numRows;
 
     PyArrowTableScanFunctionData(std::vector<common::LogicalType> columnTypes,
         std::shared_ptr<ArrowSchemaWrapper> schema, std::vector<std::string> columnNames,
-        py::object table, uint64_t numRows)
+        py::handle table, uint64_t numRows)
         : TableFuncBindData{std::move(columnTypes), std::move(columnNames)},
-          schema{std::move(schema)}, table{std::make_unique<py::object>(table)}, numRows{numRows} {}
+          schema{std::move(schema)}, table{py::reinterpret_borrow<py::object>(table)}, numRows{numRows} {}
 
-    ~PyArrowTableScanFunctionData() override {
-        py::gil_scoped_acquire acquire;
-        table.reset();
-    }
+    ~PyArrowTableScanFunctionData() override {}
 
     std::unique_ptr<function::TableFuncBindData> copy() const override {
         py::gil_scoped_acquire acquire;

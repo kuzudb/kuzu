@@ -14,11 +14,11 @@ def generate_primitive(dtype):
     if (dtype.startswith("bool")):
         return random.randrange(0, 1) == 1
     if (dtype.startswith("int32")):
-        return random.randrange(-2147483648, 2147483648)
+        return random.randrange(-2147483648, 2147483647)
     if (dtype.startswith("int64")):
-        return random.randrange(-9223372036854775808, 9223372036854775808)
+        return random.randrange(-9223372036854775808, 9223372036854775807)
     if (dtype.startswith("uint64")):
-        return random.randrange(0, 18446744073709551616)
+        return random.randrange(0, 18446744073709551615)
     if (dtype.startswith("float32")):
         random_bits = random.getrandbits(32)
         random_bytes = struct.pack('<I', random_bits)
@@ -232,3 +232,84 @@ def test_pyarrow_dict(conn_db_readonly : ConnDB) -> None:
     for colname in ['col1', 'col2']:
         for expected, actual in zip(df[colname], result[colname]):
             assert expected == actual
+
+def test_pyarrow_list(conn_db_readonly : ConnDB) -> None:
+    conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 50
+    childlength = 5
+    index = pa.array(range(datalength))
+    col1 = pa.array(
+        [[generate_primitive('int32[pyarrow]') for x in range(random.randint(1, childlength))] if random.randint(0, 5) == 0 else None for i in range(datalength)])
+    col2 = pa.array(
+        [[[generate_primitive('int32[pyarrow]') for x in range(random.randint(1, childlength))] for y in range(1, childlength)] if random.randint(0, 5) == 0 else None for i in range(datalength)])
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1),
+        'col2': arrowtopd(col2)
+    })
+    result = conn.execute('CALL READ_PANDAS(df) RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        proc = [idx, col1[idx].as_py(), col2[idx].as_py()]
+        assert proc == nxt
+        idx += 1
+    
+    assert idx == len(index)
+
+def test_pyarrow_struct(conn_db_readonly : ConnDB) -> None:
+    conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 4096
+    index = pa.array(range(datalength))
+    col1_plaindata = [{
+            'a': generate_primitive('int32[pyarrow]'),
+            'b': { 'c': generate_string(10) } if random.randint(0, 5) != 0 else None
+        } if random.randint(0, 5) != 0 else None for i in range(datalength)]
+    col1 = pa.array(col1_plaindata, pa.struct([
+        ('a', pa.int32()),
+        ('b', pa.struct([('c', pa.string())]))
+    ]))
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1)
+    })
+    result = conn.execute('CALL READ_PANDAS(df) RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        expected = [idx, col1[idx].as_py()]
+        assert expected == nxt
+        idx += 1
+    
+    assert idx == len(index)
+
+def test_pyarrow_union(conn_db_readonly : ConnDB) -> None:
+    pytest.skip("unions are not very well supported by kuzu in general")
+    conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 4096
+    index = pa.array(range(datalength))
+    type_codes = pa.array([random.randint(0, 2) for i in range(datalength)], type=pa.int8())
+    arr1 = pa.array([generate_primitive('int32[pyarrow]') for i in range(datalength)], type=pa.int32())
+    arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength)])
+    arr3 = pa.array([[generate_primitive('float32[pyarrow]') for i in range(10)] for j in range(datalength)])
+    col1 = pa.UnionArray.from_sparse(type_codes, [arr1, arr2, arr3])
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1)
+    })
+    result = conn.execute('CALL READ_PANDAS(df) RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        expected = [idx, col1[idx].as_py()]
+        assert expected == nxt
+        idx += 1
+
+    assert idx == len(index)
+

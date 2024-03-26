@@ -52,7 +52,7 @@ void ListAuxiliaryBuffer::resizeDataVector(ValueVector* dataVector) {
     auto buffer = std::make_unique<uint8_t[]>(capacity * dataVector->getNumBytesPerValue());
     memcpy(buffer.get(), dataVector->valueBuffer.get(), size * dataVector->getNumBytesPerValue());
     dataVector->valueBuffer = std::move(buffer);
-    dataVector->nullMask->resize(capacity);
+    dataVector->nullMask->resize(capacity); // note: allocating 64 times what is needed
     // If the dataVector is a struct vector, we need to resize its field vectors.
     if (dataVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
         resizeStructDataVector(dataVector);

@@ -160,16 +160,20 @@ static void scanArrowArrayVarList(const ArrowSchema* schema, const ArrowArray* a
     uint64_t count) {
     auto offsets = ((const offsetsT*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    ValueVector* auxiliaryBuffer = ListVector::getDataVector(&outputVector);
+    uint64_t auxDstPosition = 0;
     for (uint64_t i = 0; i < count; i++) {
         auto curOffset = offsets[i], nextOffset = offsets[i + 1];
         if (!mask->isNull(i)) {
             auto newEntry = ListVector::addList(&outputVector, nextOffset - curOffset);
             outputVector.setValue<list_entry_t>(i + dstOffset, newEntry);
+            if (i == 0) {
+                auxDstPosition = newEntry.offset;
+            }
         }
     }
+    ValueVector* auxiliaryBuffer = ListVector::getDataVector(&outputVector);
     ArrowConverter::fromArrowArray(schema->children[0], array->children[0], *auxiliaryBuffer,
-        mask->getChild(0), offsets[0], 0u, offsets[count] - offsets[0]);
+        mask->getChild(0), offsets[0], auxDstPosition, offsets[count] - offsets[0]);
 }
 
 template<typename offsetsT>
@@ -259,7 +263,7 @@ static void scanArrowArraySparseUnion(const ArrowSchema* schema, const ArrowArra
     // eg. nulling out unselected children
     for (int8_t i = 0; i < array->n_children; i++) {
         ArrowConverter::fromArrowArray(schema->children[i], array->children[i],
-            *UnionVector::getValVector(&outputVector, i), mask->getChild(i), srcOffset, dstOffset,
+            *StructVector::getFieldVector(&outputVector, i), mask->getChild(i), srcOffset, dstOffset,
             count);
     }
 }
