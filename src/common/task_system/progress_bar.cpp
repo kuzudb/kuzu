@@ -40,10 +40,13 @@ void ProgressBar::finishPipeline() {
 
 void ProgressBar::updateProgress(double curPipelineProgress) {
     // Only update the progress bar if the progress has changed by at least 1%.
-    if (!trackProgress || curPipelineProgress - prevCurPipelineProgress < 0.01) {
+    if (!trackProgress) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
+    if (curPipelineProgress - prevCurPipelineProgress < 0.01) {
+        return;
+    }
     prevCurPipelineProgress = curPipelineProgress;
     if (printing) {
         std::cout << "\033[2A";

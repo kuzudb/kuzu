@@ -70,7 +70,6 @@ void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto serialCSVScanSharedState = reinterpret_cast<SerialCSVScanSharedState*>(input.sharedState);
     serialCSVScanSharedState->read(output.dataChunk);
-    serialCSVScanSharedState->fileOffset = serialCSVScanSharedState->reader->getFileOffset();
     return output.dataChunk.state->selVector->selectedSize;
 }
 
@@ -118,9 +117,11 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
     row_idx_t numRows = 0;
     auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->config.copy(), numRows,
         bindData->columnNames.size(), csvConfig.copy(), bindData->context);
-    auto reader = std::make_unique<SerialCSVReader>(sharedState->readerConfig.filePaths[0],
-        sharedState->csvReaderConfig.option.copy(), sharedState->numColumns, sharedState->context);
-    sharedState->fileSize = reader->getFileSize();
+    for (auto filePath : sharedState->readerConfig.filePaths) {
+        auto reader = std::make_unique<SerialCSVReader>(filePath,
+            sharedState->csvReaderConfig.option.copy(), sharedState->numColumns, sharedState->context);
+        sharedState->totalSize += reader->getFileSize();
+    }
     return sharedState;
 }
 
@@ -131,12 +132,17 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
 
 static double progressFunc(TableFuncSharedState* sharedState) {
     auto state = reinterpret_cast<SerialCSVScanSharedState*>(sharedState);
-    if (state->fileSize == 0) {
+    if (state->totalSize == 0) {
         return 0.0;
-    } else if (state->fileOffset == state->fileSize) {
-        return 1.0;
+    } else if (state->fileIdx >= state->readerConfig.getNumFiles()) {
+		return 1.0;
+	}
+    uint64_t totalReadSize = 0;
+    for (auto i = 0u; i < state->fileIdx; i++) {
+        totalReadSize += state->reader->getFileSize();
     }
-    return static_cast<double>(state->fileOffset) / state->fileSize;
+    totalReadSize += state->reader->getFileOffset();
+    return static_cast<double>(totalReadSize) / state->totalSize;
 }
 
 function_set SerialCSVScan::getFunctionSet() {

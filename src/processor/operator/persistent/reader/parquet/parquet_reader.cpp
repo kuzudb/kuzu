@@ -563,7 +563,11 @@ ParquetScanSharedState::ParquetScanSharedState(
     : ScanFileSharedState{std::move(readerConfig), numRows, context} {
     readers.push_back(
         std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx], context));
-    numRowsRead = 0;
+    totalRowsGroups = 0;
+    for (auto i = 0u; i < readerConfig.getNumFiles(); i++) {
+		auto reader = std::make_unique<ParquetReader>(readerConfig.filePaths[i], context);
+		totalRowsGroups += reader->getNumRowsGroups();
+	}
 }
 
 static bool parquetSharedStateNext(
@@ -602,11 +606,9 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     do {
         parquetScanLocalState->reader->scan(*parquetScanLocalState->state, outputChunk);
         if (outputChunk.state->selVector->selectedSize > 0) {
-            parquetScanSharedState->numRowsRead += outputChunk.state->selVector->selectedSize;
             return outputChunk.state->selVector->selectedSize;
         }
         if (!parquetSharedStateNext(*parquetScanLocalState, *parquetScanSharedState)) {
-            parquetScanSharedState->numRowsRead += outputChunk.state->selVector->selectedSize;
             return outputChunk.state->selVector->selectedSize;
         }
     } while (true);
@@ -679,10 +681,14 @@ static std::unique_ptr<function::TableFuncLocalState> initLocalState(
 
 static double progressFunc(TableFuncSharedState* state) {
     auto parquetScanSharedState = reinterpret_cast<ParquetScanSharedState*>(state);
-    if (parquetScanSharedState->numRows == 0) {
+    if (parquetScanSharedState->fileIdx >= parquetScanSharedState->readerConfig.getNumFiles()) {
+        return 1.0;
+    }
+    if (parquetScanSharedState->totalRowsGroups == 0) {
         return 0.0;
     }
-    return parquetScanSharedState->numRowsRead / (double)parquetScanSharedState->numRows;
+    return (double)(parquetScanSharedState->blockIdx * (parquetScanSharedState->fileIdx + 1)) /
+           parquetScanSharedState->totalRowsGroups;
 }
 
 function_set ParquetScanFunction::getFunctionSet() {

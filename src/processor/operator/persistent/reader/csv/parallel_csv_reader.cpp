@@ -124,7 +124,6 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
             auto result = parallelCSVLocalState->reader->continueBlock(outputChunk);
             outputChunk.state->selVector->selectedSize = result;
             if (result > 0) {
-                parallelCSVSharedState->fileOffset = parallelCSVLocalState->reader->getFileOffset();
                 return result;
             }
         }
@@ -142,11 +141,9 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
         auto numRowsRead = parallelCSVLocalState->reader->parseBlock(blockIdx, outputChunk);
         outputChunk.state->selVector->selectedSize = numRowsRead;
         if (numRowsRead > 0) {
-            parallelCSVSharedState->fileOffset = parallelCSVLocalState->reader->getFileOffset();
             return numRowsRead;
         }
         if (parallelCSVLocalState->reader->isEOF()) {
-            parallelCSVSharedState->fileOffset = parallelCSVLocalState->reader->getFileOffset();
             parallelCSVSharedState->setFileComplete(parallelCSVLocalState->fileIdx);
             parallelCSVLocalState->reader = nullptr;
         }
@@ -173,9 +170,11 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
     row_idx_t numRows = 0;
     auto sharedState = std::make_unique<ParallelCSVScanSharedState>(bindData->config.copy(),
         numRows, bindData->columnNames.size(), bindData->context, csvConfig.copy());
-    auto reader = std::make_unique<ParallelCSVReader>(sharedState->readerConfig.filePaths[0],
-        sharedState->csvReaderConfig.option.copy(), sharedState->numColumns, sharedState->context);
-    sharedState->fileSize = reader->getFileSize();
+    for (auto filePath : sharedState->readerConfig.filePaths) {
+		auto reader = std::make_unique<ParallelCSVReader>(filePath, sharedState->csvReaderConfig.option.copy(),
+            			sharedState->numColumns, sharedState->context);
+        sharedState->totalSize += reader->getFileSize();
+	}
     return sharedState;
 }
 
@@ -191,12 +190,15 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
 
 static double progressFunc(TableFuncSharedState* sharedState) {
     auto state = reinterpret_cast<ParallelCSVScanSharedState*>(sharedState);
-    if (state->fileSize == 0) {
+    if (state->totalSize == 0) {
         return 0.0;
-    } else if (state->fileOffset == state->fileSize) {
+    } else if ((state->blockIdx * CopyConstants::PARALLEL_BLOCK_SIZE) * (state->fileIdx + 1) >=
+               state->totalSize) {
         return 1.0;
     }
-    return static_cast<double>(state->fileOffset) / state->fileSize;
+    return static_cast<double>(
+               (state->blockIdx * CopyConstants::PARALLEL_BLOCK_SIZE) * (state->fileIdx + 1)) /
+           state->totalSize;
 }
 
 function_set ParallelCSVScan::getFunctionSet() {
