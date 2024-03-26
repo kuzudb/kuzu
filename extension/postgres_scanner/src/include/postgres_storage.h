@@ -4,14 +4,14 @@
 #include "storage/storage_extension.h"
 
 namespace kuzu {
-namespace duckdb_scanner {
+namespace postgres_scanner {
 
-class DuckDBStorageExtension final : public storage::StorageExtension {
+class PostgresStorageExtension final : public storage::StorageExtension {
 public:
-    DuckDBStorageExtension();
+    PostgresStorageExtension();
 
     bool canHandleDB(std::string dbType) const override;
 };
 
-} // namespace duckdb_scanner
+} // namespace postgres_scanner
 } // namespace kuzu

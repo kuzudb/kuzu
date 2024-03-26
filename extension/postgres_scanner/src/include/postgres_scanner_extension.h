@@ -4,12 +4,12 @@
 #include "main/database.h"
 
 namespace kuzu {
-namespace duckdb_scanner {
+namespace postgres_scanner {
 
-class DuckDBScannerExtension final : public extension::Extension {
+class PostgresScannerExtension final : public extension::Extension {
 public:
     static void load(main::ClientContext* context);
 };
 
-} // namespace duckdb_scanner
+} // namespace postgres_scanner
 } // namespace kuzu

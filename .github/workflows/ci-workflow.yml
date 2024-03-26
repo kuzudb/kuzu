@@ -46,6 +46,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
+
       - name: Ensure Python dependencies
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -179,6 +188,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
+
       - name: Ensure Python dependencies
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -225,9 +243,19 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
     steps:
       - uses: actions/checkout@v3
+
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
 
       - name: Ensure Python dependencies
         run: |
@@ -419,9 +447,19 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$(date +%s)"
     steps:
       - uses: actions/checkout@v3
+
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
 
       - name: Ensure Python dependencies
         run: |
