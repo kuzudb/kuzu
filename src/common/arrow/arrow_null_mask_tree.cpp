@@ -166,7 +166,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                     children->push_back(ArrowNullMaskTree(
                         schema->children[i], array->children[i], srcOffset, count));
                 }
-                for (auto i = 0; i < count; i++) {
+                for (auto i = 0u; i < count; i++) {
                     int8_t curType = types[i + srcOffset];
                     mask->setNull(i, children->operator[](curType).isNull(i));
                     // this isn't specified in the arrow specification, but is it valid to
