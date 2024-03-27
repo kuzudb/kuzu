@@ -510,9 +510,9 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
                 schema, array, outputVector, mask, srcOffset, dstOffset, count);
         case 'm':
             // MAP
-            // TODO maxwell;
-            // for some reason the columnar format specification doesn't mention maps at all
-            KU_UNREACHABLE;
+            return scanArrowArrayVarList<int32_t>(
+                schema, array, outputVector, mask, srcOffset, dstOffset,
+                count);
         case 'u':
             if (arrowType[2] == 'd') {
                 // DENSE UNION
