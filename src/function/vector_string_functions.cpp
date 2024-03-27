@@ -1,9 +1,9 @@
 #include "function/string/vector_string_functions.h"
 
 #include "function/string/functions/array_extract_function.h"
-#include "function/string/functions/concat_function.h"
 #include "function/string/functions/contains_function.h"
 #include "function/string/functions/ends_with_function.h"
+#include "function/string/functions/initcap_function.h"
 #include "function/string/functions/left_operation.h"
 #include "function/string/functions/levenshtein_function.h"
 #include "function/string/functions/lpad_function.h"
@@ -50,22 +50,6 @@ void BaseStrOperation::operation(ku_string_t& input, ku_string_t& result,
         memcpy(result.prefix, buffer,
             result.len < ku_string_t::PREFIX_LENGTH ? result.len : ku_string_t::PREFIX_LENGTH);
     }
-}
-
-void Concat::concat(const char* left, uint32_t leftLen, const char* right, uint32_t rightLen,
-    ku_string_t& result, ValueVector& resultValueVector) {
-    auto len = leftLen + rightLen;
-    if (len <= ku_string_t::SHORT_STR_LENGTH /* concat result is short */) {
-        memcpy(result.prefix, left, leftLen);
-        memcpy(result.prefix + leftLen, right, rightLen);
-    } else {
-        StringVector::reserveString(&resultValueVector, result, len);
-        auto buffer = reinterpret_cast<char*>(result.overflowPtr);
-        memcpy(buffer, left, leftLen);
-        memcpy(buffer + leftLen, right, rightLen);
-        memcpy(result.prefix, buffer, ku_string_t::PREFIX_LENGTH);
-    }
-    result.len = len;
 }
 
 void Repeat::operation(
@@ -121,13 +105,45 @@ function_set ArrayExtractFunction::getFunctionSet() {
     return functionSet;
 }
 
+void ConcatFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/) {
+    result.resetAuxiliaryBuffer();
+    for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
+         ++selectedPos) {
+        auto pos = result.state->selVector->selectedPositions[selectedPos];
+        auto strLen = 0u;
+        for (auto i = 0u; i < parameters.size(); i++) {
+            const auto& parameter = parameters[i];
+            auto paramPos = parameter->state->isFlat() ?
+                                parameter->state->selVector->selectedPositions[0] :
+                                pos;
+            strLen += parameter->getValue<ku_string_t>(paramPos).len;
+        }
+        auto& resultStr = result.getValue<ku_string_t>(pos);
+        StringVector::reserveString(&result, resultStr, strLen);
+        auto dstData = strLen <= ku_string_t::SHORT_STR_LENGTH ?
+                           resultStr.prefix :
+                           reinterpret_cast<uint8_t*>(resultStr.overflowPtr);
+        for (auto i = 0u; i < parameters.size(); i++) {
+            const auto& parameter = parameters[i];
+            auto paramPos = parameter->state->isFlat() ?
+                                parameter->state->selVector->selectedPositions[0] :
+                                pos;
+            auto srcStr = parameter->getValue<ku_string_t>(paramPos);
+            memcpy(dstData, srcStr.getData(), srcStr.len);
+            dstData += srcStr.len;
+        }
+        if (strLen > ku_string_t::SHORT_STR_LENGTH) {
+            memcpy(resultStr.prefix, resultStr.getData(), ku_string_t::PREFIX_LENGTH);
+        }
+    }
+}
+
 function_set ConcatFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::STRING,
-        ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t, Concat>,
-        false /* isVarLength */));
+    functionSet.emplace_back(
+        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING},
+            LogicalTypeID::STRING, execFunc, true /* isVarLength */));
     return functionSet;
 }
 
@@ -313,6 +329,15 @@ function_set LevenshteinFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::INT64,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, int64_t, Levenshtein>, nullptr,
+        nullptr, false /* isVarLength */));
+    return functionSet;
+}
+
+function_set InitcapFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
+        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, Initcap>, nullptr,
         nullptr, false /* isVarLength */));
     return functionSet;
 }
