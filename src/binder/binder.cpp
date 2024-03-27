@@ -213,8 +213,8 @@ function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderC
     case FileType::CSV: {
         auto csvConfig = CSVReaderConfig::construct(config.options);
         func = function::BuiltInFunctionsUtils::matchFunction(
-            csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name,
-            inputTypes, functions);
+            csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name, inputTypes,
+            functions);
     } break;
     default:
         KU_UNREACHABLE;

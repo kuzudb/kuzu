@@ -63,7 +63,7 @@ struct NpyScanSharedState final : public function::ScanSharedState {
 
 struct NpyScanFunction {
     static constexpr const char* name = "READ_NPY";
-    
+
     static function::function_set getFunctionSet();
 };
 

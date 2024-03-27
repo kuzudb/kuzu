@@ -49,7 +49,7 @@ struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {
 
 struct ParallelCSVScan {
     static constexpr const char* name = "READ_CSV_PARALLEL";
-    
+
     static function::function_set getFunctionSet();
 };
 

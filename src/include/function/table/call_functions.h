@@ -82,7 +82,7 @@ struct ShowConnectionFunction final : public CallFunction {
 
 struct StorageInfoFunction final : public CallFunction {
     static constexpr const char* name = "STORAGE_INFO";
-    
+
     static function_set getFunctionSet();
 };
 

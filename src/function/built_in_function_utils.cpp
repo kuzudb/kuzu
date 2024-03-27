@@ -1,6 +1,6 @@
 #include "function/built_in_function_utils.h"
 
-#include "catalog/catalog_entry/table_function_catalog_entry.h"
+#include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "common/exception/binder.h"
 #include "common/exception/catalog.h"
@@ -8,13 +8,6 @@
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/function_collection.h"
 #include "function/scalar_function.h"
-#include "function/table/call_functions.h"
-#include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
-#include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
-#include "processor/operator/persistent/reader/npy/npy_reader.h"
-#include "processor/operator/persistent/reader/parquet/parquet_reader.h"
-#include "processor/operator/persistent/reader/rdf/rdf_scan.h"
-#include "processor/operator/table_scan/ftable_scan_function.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -31,8 +24,12 @@ static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidate
     function::function_set& set);
 
 void BuiltInFunctionsUtils::createFunctions(CatalogSet* catalogSet) {
-
-    registerFunctions(catalogSet);
+    auto functions = FunctionCollection::getFunctions();
+    for (auto i = 0u; functions[i].name != nullptr; ++i) {
+        auto functionSet = functions[i].getFunctionSetFunc();
+        catalogSet->createEntry(std::make_unique<FunctionCatalogEntry>(
+            functions[i].catalogEntryType, functions[i].name, std::move(functionSet)));
+    }
 }
 
 Function* BuiltInFunctionsUtils::matchFunction(const std::string& name, CatalogSet* catalogSet) {
@@ -485,15 +482,6 @@ void BuiltInFunctionsUtils::validateSpecialCases(std::vector<Function*>& candida
                                   LogicalTypeUtils::toString(inputTypes) +
                                   ". Supported inputs are\n" + supportedInputsString);
         }
-    }
-}
-
-void BuiltInFunctionsUtils::registerFunctions(catalog::CatalogSet* catalogSet) {
-    auto functions = FunctionCollection::getFunctions();
-    for (auto i = 0u; functions[i].name != nullptr; ++i) {
-        auto functionSet = functions[i].getFunctionSetFunc();
-        catalogSet->createEntry(std::make_unique<FunctionCatalogEntry>(
-            functions[i].catalogEntryType, functions[i].name, std::move(functionSet)));
     }
 }
 

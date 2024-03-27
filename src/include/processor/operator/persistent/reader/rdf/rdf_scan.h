@@ -157,85 +157,54 @@ struct RdfResourceScan {
     static constexpr const char* name = "READ_RDF_RESOURCE";
 
     static function::function_set getFunctionSet();
-
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
 };
 
 struct RdfLiteralScan {
     static constexpr const char* name = "READ_RDF_LITERAL";
-    
-    static function::function_set getFunctionSet();
 
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
+    static function::function_set getFunctionSet();
 };
 
 struct RdfResourceTripleScan {
     static constexpr const char* name = "READ_RDF_RESOURCE_TRIPLE";
 
     static function::function_set getFunctionSet();
-
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
 };
 
 struct RdfLiteralTripleScan {
     static constexpr const char* name = "READ_RDF_LITERAL_TRIPLE";
 
     static function::function_set getFunctionSet();
-
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
 };
 
 struct RdfAllTripleScan {
     static constexpr const char* name = "READ_RDF_ALL_TRIPLE";
 
     static function::function_set getFunctionSet();
-
-    static common::offset_t tableFunc(
-        function::TableFuncInput& input, function::TableFuncOutput& output);
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(
-        main::ClientContext*, function::TableFuncBindInput* input_);
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
 };
 
 struct RdfResourceInMemScan {
     static constexpr const char* name = "IN_MEM_READ_RDF_RESOURCE";
 
     static function::function_set getFunctionSet();
-
-    static common::offset_t tableFunc(
-        function::TableFuncInput& input, function::TableFuncOutput& output);
 };
 
 struct RdfLiteralInMemScan {
     static constexpr const char* name = "IN_MEM_READ_RDF_LITERAL";
 
     static function::function_set getFunctionSet();
-
-    static common::offset_t tableFunc(
-        function::TableFuncInput& input, function::TableFuncOutput& output);
 };
 
 struct RdfResourceTripleInMemScan {
     static constexpr const char* name = "IN_MEM_READ_RDF_RESOURCE_TRIPLE";
 
     static function::function_set getFunctionSet();
-
-    static common::offset_t tableFunc(
-        function::TableFuncInput& input, function::TableFuncOutput& output);
 };
 
 struct RdfLiteralTripleInMemScan {
     static constexpr const char* name = "IN_MEM_READ_RDF_LITERAL_TRIPLE";
-    
-    static function::function_set getFunctionSet();
 
-    static common::offset_t tableFunc(
-        function::TableFuncInput& input, function::TableFuncOutput& output);
+    static function::function_set getFunctionSet();
 };
 
 } // namespace processor
