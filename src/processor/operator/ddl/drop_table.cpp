@@ -2,9 +2,12 @@
 
 #include "catalog/catalog.h"
 #include "common/string_format.h"
+#include "storage/storage_manager.h"
+#include "storage/wal_replayer_utils.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {

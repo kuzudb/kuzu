@@ -1,0 +1,180 @@
+-GROUP CreateDeleteInt64NodeTrxTest
+-DATASET CSV empty
+--
+
+-DEFINE_STATEMENT_BLOCK CREATE_COPY [
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, since INT64)
+---- ok
+-STATEMENT COPY User From "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+---- ok
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
+---- ok
+-STATEMENT MATCH (u:User) return u.name
+---- 4
+Adam
+Karissa
+Noura
+Zhang
+-STATEMENT MATCH (u:User) where u.name='Adam' return u.name
+---- 1
+Adam
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- 2
+Karissa
+Zhang
+]
+
+-CASE createCopyRelMunalCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_COPY
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (u:User) where u.name='Adam' return u.name
+---- 1
+Adam
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- 2
+Karissa
+Zhang
+
+-CASE createCopyRelMunalCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_COPY
+-STATEMENT commit_skip_checkpoint
+---- ok
+-RELOADDB
+-STATEMENT MATCH (u:User) where u.name='Adam' return u.name
+---- 1
+Adam
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- 2
+Karissa
+Zhang
+
+-CASE createCopyRelMunalRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_COPY
+-STATEMENT Rollback
+---- ok
+-STATEMENT MATCH (u:User) return u.name
+---- error
+Binder exception: Table User does not exist.
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- error
+Binder exception: Table User does not exist.
+
+-CASE createCopyRelMunalRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_COPY
+-STATEMENT Rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (u:User) return u.name
+---- error
+Binder exception: Table User does not exist.
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- error
+Binder exception: Table User does not exist.
+
+
+-CASE createCopyCommitErrorRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, since INT64)
+---- ok
+-STATEMENT COPY User From "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+---- ok
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv2"
+---- error
+Binder exception: No file found that matches the pattern: ${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv2.
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' RETURN u.age
+---- error
+Binder exception: Table User does not exist.
+
+
+-CASE copyRelCommit
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, since INT64)
+---- ok
+-STATEMENT COPY User From "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' RETURN u.age
+---- ok
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- 2
+Karissa
+Zhang
+
+-CASE copyRelCommitRecovery
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, since INT64)
+---- ok
+-STATEMENT COPY User From "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
+---- ok
+-STATEMENT COMMIT_skip_checkpoint
+---- ok
+-RELOADDB
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' RETURN u.age
+---- ok
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- 2
+Karissa
+Zhang
+
+-CASE copyRelRollback
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, since INT64)
+---- ok
+-STATEMENT COPY User From "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
+---- ok
+-STATEMENT Rollback
+---- ok
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' RETURN u.age
+---- ok
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- 0
+
+-CASE copyRelRollbackRecovery
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, since INT64)
+---- ok
+-STATEMENT COPY User From "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
+---- ok
+-STATEMENT Rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' RETURN u.age
+---- ok
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- 0
+

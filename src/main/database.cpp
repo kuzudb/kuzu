@@ -230,8 +230,7 @@ void Database::commit(Transaction* transaction, bool skipCheckpointForTestingRec
     transactionManager->allowReceivingNewTransactions();
 }
 
-void Database::rollback(
-    transaction::Transaction* transaction, bool skipCheckpointForTestingRecovery) {
+void Database::rollback(Transaction* transaction, bool skipCheckpointForTestingRecovery) {
     if (transaction->isReadOnly()) {
         transactionManager->rollback(transaction);
         return;

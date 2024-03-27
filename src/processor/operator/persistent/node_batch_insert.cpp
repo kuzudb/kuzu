@@ -4,10 +4,12 @@
 #include "common/types/types.h"
 #include "function/table/scan_functions.h"
 #include "processor/result/factorized_table.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace processor {
@@ -52,7 +54,7 @@ void NodeBatchInsertSharedState::appendIncompleteNodeGroup(
 }
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
-    checkIfTableIsEmpty();
+    checkIfTableIsEmpty(context->clientContext->getTx());
     sharedState->logBatchInsertWALRecord();
     auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
@@ -190,6 +192,14 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
         sharedState->getNumRows(), info->tableEntry->getName());
     FactorizedTableUtils::appendStringToTable(
         sharedState->fTable.get(), outputMsg, context->clientContext->getMemoryManager());
+    auto tableID = sharedState->table->getTableID();
+    auto catalogEntry = context->clientContext->getCatalog()->getTableCatalogEntry(
+        context->clientContext->getTx(), tableID);
+    auto nodeTableEntry = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(catalogEntry);
+    auto table = context->clientContext->getStorageManager()->getTable(tableID);
+    KU_ASSERT(table->getTableType() == TableType::NODE);
+    ku_dynamic_cast<Table*, NodeTable*>(table)->initializePKIndex(
+        nodeTableEntry, false /* readOnly */, context->clientContext->getVFSUnsafe());
 }
 } // namespace processor
 } // namespace kuzu

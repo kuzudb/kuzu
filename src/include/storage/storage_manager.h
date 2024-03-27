@@ -60,6 +60,7 @@ private:
     WAL* wal;
     bool enableCompression;
     common::VirtualFileSystem* vfs;
+    std::set<common::table_id_t> deleteTables;
 };
 
 } // namespace storage

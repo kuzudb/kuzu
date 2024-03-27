@@ -1,0 +1,65 @@
+-GROUP CreateDeleteInt64NodeTrxTest
+-DATASET CSV empty
+--
+
+-DEFINE_STATEMENT_BLOCK CREATE_TABLE_TEST [
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, since INT64)
+---- ok
+-STATEMENT Create (u:User {name: 'Adam', age: 42}) return u
+---- 1
+{_ID: 0:0, _LABEL: User, name: Adam, age: 42}
+-STATEMENT Create (u:User {name: 'Bob', age: 24}) return u
+---- 1
+{_ID: 0:1, _LABEL: User, name: Bob, age: 24}
+-STATEMENT MATCH (u:User) return u.*
+---- 2
+Adam
+Bob
+]
+#-STATEMENT MATCH (u:User) where u.name='Adam' return u.age
+#---- 1
+#42
+#-STATEMENT Match (a:User {name: 'Adam'}),(b:User {name: 'Bob'}) Create (a)-[:Follows {since: 2019}]->(b)
+#---- ok
+#-STATEMENT MATCH (u:User) where u.name='Adam' return u.age
+#---- 1
+#42
+#-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+#---- 1
+#Bob
+#]
+
+-DEFINE_STATEMENT_BLOCK CHECK_CREATE_TABLE_TEST_COMMIT [
+-STATEMENT MATCH (u:User) return u.name
+---- 2
+Adam
+Bob
+]
+#-STATEMENT MATCH (u:User) where u.name='Adam' return u.age
+#---- 1
+#42
+#-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+#---- 1
+#Bob
+#]
+
+-DEFINE_STATEMENT_BLOCK CHECK_CREATE_TABLE_TEST_ROLLBACK [
+-STATEMENT MATCH (u:User) where u.name='Adam' return u.age
+---- error
+Binder exception: Table User does not exist.
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- error
+Binder exception: Table User does not exist.
+]
+
+-CASE createTableMunalCommit
+-SKIP
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_TABLE_TEST
+-STATEMENT COMMIT
+---- ok
+-INSERT_STATEMENT_BLOCK CHECK_CREATE_TABLE_TEST_COMMIT
+
