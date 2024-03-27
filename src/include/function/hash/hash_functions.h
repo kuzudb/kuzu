@@ -190,32 +190,6 @@ inline void Hash::operation(
 }
 
 template<>
-inline void Hash::operation(
-    const common::list_entry_t& key, common::hash_t& result, common::ValueVector* keyVector) {
-    auto dataVector = common::ListVector::getDataVector(keyVector);
-    result = NULL_HASH;
-    common::hash_t tmpResult;
-    for (auto i = 0u; i < key.size; i++) {
-        auto pos = key.offset + i;
-        if (dataVector->isNull(pos)) {
-            result = combineHashScalar(result, NULL_HASH);
-        } else {
-            common::TypeUtils::visit(
-                dataVector->dataType.getPhysicalType(),
-                [&]<HashableTypes T>(
-                    T) { operation(dataVector->getValue<T>(pos), tmpResult, dataVector); },
-                [&](common::struct_entry_t) {
-                    // LCOV_EXCL_START
-                    throw common::RuntimeException{"Hash on list of struct is not supported yet."};
-                    // LCOV_EXCL_STOP
-                },
-                [](auto) { KU_UNREACHABLE; });
-            result = combineHashScalar(result, tmpResult);
-        }
-    }
-}
-
-template<>
 inline void Hash::operation(const std::unordered_set<std::string>& key, common::hash_t& result,
     common::ValueVector* /*keyVector*/) {
     for (auto&& s : key) {

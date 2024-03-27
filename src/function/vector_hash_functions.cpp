@@ -7,6 +7,74 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector* operand) {
+    auto hashVector = std::make_unique<ValueVector>(*LogicalType::VAR_LIST(LogicalType::HASH()));
+    auto numValuesInDataVec = ListVector::getDataVectorSize(operand);
+    ListVector::resizeDataVector(hashVector.get(), numValuesInDataVec);
+    auto selectionState = std::make_shared<DataChunkState>();
+    selectionState->selVector->resetSelectorToValuePosBuffer();
+    ListVector::getDataVector(operand)->setState(selectionState);
+    auto numValuesComputed = 0u;
+    while (numValuesComputed < numValuesInDataVec) {
+        for (auto i = 0u; i < DEFAULT_VECTOR_CAPACITY; i++) {
+            selectionState->selVector->selectedPositions[i] = numValuesComputed;
+            numValuesComputed++;
+        }
+        VectorHashFunction::computeHash(
+            ListVector::getDataVector(operand), ListVector::getDataVector(hashVector.get()));
+    }
+    return hashVector;
+}
+
+static void finalizeDataVecHash(ValueVector* operand, ValueVector* result, ValueVector* hashVec) {
+    for (auto i = 0u; i < result->state->getNumSelectedValues(); i++) {
+        auto pos = operand->state->selVector->selectedPositions[i];
+        auto entry = operand->getValue<list_entry_t>(pos);
+        if (operand->isNull(pos)) {
+            result->setValue(pos, NULL_HASH);
+        } else {
+            auto hashValue = NULL_HASH;
+            for (auto j = 0u; j < entry.size; j++) {
+                hashValue = combineHashScalar(hashValue,
+                    ListVector::getDataVector(hashVec)->getValue<hash_t>(entry.offset + j));
+            }
+            result->setValue(pos, hashValue);
+        }
+    }
+}
+
+static void computeListVectorHash(ValueVector* operand, ValueVector* result) {
+    auto dataVecHash = computeDataVecHash(operand);
+    finalizeDataVecHash(operand, result, dataVecHash.get());
+}
+
+static void computeStructVecHash(ValueVector* operand, ValueVector* result) {
+    switch (operand->dataType.getLogicalTypeID()) {
+    case LogicalTypeID::NODE: {
+        KU_ASSERT(0 == common::StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
+        UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
+            *StructVector::getFieldVector(operand, 0), *result);
+    } break;
+    case LogicalTypeID::REL: {
+        KU_ASSERT(3 == StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
+        UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
+            *StructVector::getFieldVector(operand, 3), *result);
+    } break;
+    case LogicalTypeID::STRUCT: {
+        VectorHashFunction::computeHash(
+            StructVector::getFieldVector(operand, 0 /* idx */).get(), result);
+        auto tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
+        for (auto i = 1u; i < StructType::getNumFields(&operand->dataType); i++) {
+            auto fieldVector = StructVector::getFieldVector(operand, i);
+            VectorHashFunction::computeHash(fieldVector.get(), tmpHashVector.get());
+            VectorHashFunction::combineHash(tmpHashVector.get(), result, result);
+        }
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
 void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) {
     result->state = operand->state;
     KU_ASSERT(result->dataType.getLogicalTypeID() == LogicalTypeID::INT64);
@@ -57,30 +125,10 @@ void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) 
         UnaryHashFunctionExecutor::execute<interval_t, hash_t>(*operand, *result);
     } break;
     case PhysicalTypeID::STRUCT: {
-        if (operand->dataType.getLogicalTypeID() == LogicalTypeID::NODE) {
-            KU_ASSERT(
-                0 == common::StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
-            UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
-                *StructVector::getFieldVector(operand, 0), *result);
-        } else if (operand->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
-            KU_ASSERT(3 == StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
-            UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
-                *StructVector::getFieldVector(operand, 3), *result);
-        } else {
-            VectorHashFunction::computeHash(
-                StructVector::getFieldVector(operand, 0 /* idx */).get(), result);
-            auto tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
-            for (auto i = 1u; i < StructType::getNumFields(&operand->dataType); i++) {
-                auto fieldVector = StructVector::getFieldVector(operand, i);
-                VectorHashFunction::computeHash(fieldVector.get(), tmpHashVector.get());
-                VectorHashFunction::combineHash(tmpHashVector.get(), result, result);
-            }
-        }
+        computeStructVecHash(operand, result);
     } break;
     case PhysicalTypeID::VAR_LIST: {
-        // TODO(Ziyi): We should pass in the selection state here, and do vectorized hash
-        // computation.
-        UnaryHashFunctionExecutor::execute<list_entry_t, hash_t>(*operand, *result);
+        computeListVectorHash(operand, result);
     } break;
         // LCOV_EXCL_START
     default: {
