@@ -83,6 +83,7 @@ offset_t tableFunc(
     TableFuncInput& input, TableFuncOutput& output) {
     auto pandasScanData = reinterpret_cast<PandasScanFunctionData*>(input.bindData);
     auto pandasLocalState = reinterpret_cast<PandasScanLocalState*>(input.localState);
+    auto pandasSharedState = reinterpret_cast<PandasScanSharedState*>(input.sharedState);
 
     if (pandasLocalState->start >= pandasLocalState->end) {
         if (!sharedStateNext(input.bindData, pandasLocalState, input.sharedState)) {
@@ -97,6 +98,7 @@ offset_t tableFunc(
     }
     output.dataChunk.state->selVector->selectedSize = numValuesToOutput;
     pandasLocalState->start += numValuesToOutput;
+    pandasSharedState->numReadRows += numValuesToOutput;
     return numValuesToOutput;
 }
 
@@ -109,9 +111,17 @@ std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyC
     return result;
 }
 
+static double progressFunc(TableFuncSharedState* sharedState) {
+	auto pandasSharedState = reinterpret_cast<PandasScanSharedState*>(sharedState);
+    if (pandasSharedState->numRows == 0) {
+		return 0.0;
+	}
+	return static_cast<double>(pandasSharedState->numReadRows) / pandasSharedState->numRows;
+}
+
 static TableFunction getFunction() {
     return TableFunction(READ_PANDAS_FUNC_NAME, tableFunc, bindFunc, initSharedState,
-        initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+        initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
 }
 
 function_set PandasScanFunction::getFunctionSet() {

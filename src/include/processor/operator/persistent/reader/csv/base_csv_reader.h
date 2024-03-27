@@ -26,6 +26,9 @@ public:
 
     uint64_t countRows();
     bool isEOF() const;
+    uint64_t getFileSize();
+    // Get the file offset of the current buffer position.
+    uint64_t getFileOffset() const;
 
 protected:
     template<typename Driver>
@@ -56,8 +59,6 @@ protected:
 
     inline bool isNewLine(char c) { return c == '\n' || c == '\r'; }
 
-    // Get the file offset of the current buffer position.
-    uint64_t getFileOffset() const;
     uint64_t getLineNumber();
 
 protected:

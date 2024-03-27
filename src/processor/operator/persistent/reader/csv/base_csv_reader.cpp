@@ -114,6 +114,10 @@ bool BaseCSVReader::isEOF() const {
     return getFileOffset() >= fileInfo->getFileSize();
 }
 
+uint64_t BaseCSVReader::getFileSize() {
+    return fileInfo->getFileSize();
+}
+
 template<typename Driver>
 void BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t columnIdx,
     std::string_view strVal, std::vector<uint64_t>& escapePositions) {

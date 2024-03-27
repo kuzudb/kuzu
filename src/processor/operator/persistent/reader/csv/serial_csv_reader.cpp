@@ -115,8 +115,15 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
     auto bindData = reinterpret_cast<ScanBindData*>(input.bindData);
     auto csvConfig = CSVReaderConfig::construct(bindData->config.options);
     row_idx_t numRows = 0;
-    return std::make_unique<SerialCSVScanSharedState>(bindData->config.copy(), numRows,
+    auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->config.copy(), numRows,
         bindData->columnNames.size(), csvConfig.copy(), bindData->context);
+    for (auto filePath : sharedState->readerConfig.filePaths) {
+        auto reader =
+            std::make_unique<SerialCSVReader>(filePath, sharedState->csvReaderConfig.option.copy(),
+                sharedState->numColumns, sharedState->context);
+        sharedState->totalSize += reader->getFileSize();
+    }
+    return sharedState;
 }
 
 static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput& /*input*/,
@@ -124,11 +131,26 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
     return std::make_unique<TableFuncLocalState>();
 }
 
+static double progressFunc(TableFuncSharedState* sharedState) {
+    auto state = reinterpret_cast<SerialCSVScanSharedState*>(sharedState);
+    if (state->totalSize == 0) {
+        return 0.0;
+    } else if (state->fileIdx >= state->readerConfig.getNumFiles()) {
+        return 1.0;
+    }
+    uint64_t totalReadSize = 0;
+    for (auto i = 0u; i < state->fileIdx; i++) {
+        totalReadSize += state->reader->getFileSize();
+    }
+    totalReadSize += state->reader->getFileOffset();
+    return static_cast<double>(totalReadSize) / state->totalSize;
+}
+
 function_set SerialCSVScan::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>(READ_CSV_SERIAL_FUNC_NAME, tableFunc, bindFunc,
-            initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    functionSet.push_back(std::make_unique<TableFunction>(READ_CSV_SERIAL_FUNC_NAME, tableFunc,
+        bindFunc, initSharedState, initLocalState, progressFunc,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 

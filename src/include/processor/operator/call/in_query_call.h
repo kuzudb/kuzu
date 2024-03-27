@@ -74,6 +74,8 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
+    double getProgress(ExecutionContext* context) const override;
+
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<InQueryCall>(info.copy(), sharedState, id, paramsString);
     }

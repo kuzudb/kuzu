@@ -17,10 +17,12 @@ struct PandasScanLocalState : public function::TableFuncLocalState {
 };
 
 struct PandasScanSharedState : public function::BaseScanSharedState {
-    explicit PandasScanSharedState(uint64_t numRows) : BaseScanSharedState{numRows}, position{0} {}
+    explicit PandasScanSharedState(uint64_t numRows)
+        : BaseScanSharedState{numRows}, position{0}, numReadRows{0} {}
 
     std::mutex lock;
     uint64_t position;
+    uint64_t numReadRows;
 };
 
 struct PandasScanFunction {

@@ -65,5 +65,9 @@ bool InQueryCall::getNextTuplesInternal(ExecutionContext*) {
     return numTuplesScanned != 0;
 }
 
+double InQueryCall::getProgress(ExecutionContext* /*context*/) const {
+    return info.function.progressFunc(sharedState->funcState.get());
+}
+
 } // namespace processor
 } // namespace kuzu

@@ -63,6 +63,7 @@ using table_func_init_shared_t =
 using table_func_init_local_t = std::function<std::unique_ptr<TableFuncLocalState>(
     TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*)>;
 using table_func_can_parallel_t = std::function<bool()>;
+using table_func_progress_t = std::function<double(TableFuncSharedState* sharedState)>;
 
 struct TableFunction final : public Function {
     table_func_t tableFunc;
@@ -70,6 +71,7 @@ struct TableFunction final : public Function {
     table_func_init_shared_t initSharedStateFunc;
     table_func_init_local_t initLocalStateFunc;
     table_func_can_parallel_t canParallelFunc = [] { return true; };
+    table_func_progress_t progressFunc = [](TableFuncSharedState* /*sharedState*/) { return 0.0; };
 
     TableFunction()
         : Function{}, tableFunc{nullptr}, bindFunc{nullptr}, initSharedStateFunc{nullptr},
@@ -80,6 +82,12 @@ struct TableFunction final : public Function {
         : Function{FunctionType::TABLE, std::move(name), std::move(inputTypes)},
           tableFunc{tableFunc}, bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
           initLocalStateFunc{initLocalFunc} {}
+    TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
+        table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
+        table_func_progress_t progressFunc, std::vector<common::LogicalTypeID> inputTypes)
+        : Function{FunctionType::TABLE, std::move(name), std::move(inputTypes)},
+          tableFunc{tableFunc}, bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
+          initLocalStateFunc{initLocalFunc}, progressFunc{progressFunc} {}
 
     inline std::string signatureToString() const override {
         return common::LogicalTypeUtils::toString(parameterTypeIDs);
