@@ -3,7 +3,6 @@
 #include "common/exception/storage.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
-#include "storage/store/node_table.h"
 #include "storage/wal_replayer_utils.h"
 #include "transaction/transaction.h"
 

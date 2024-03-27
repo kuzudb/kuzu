@@ -81,26 +81,6 @@ Binder exception: Table User does not exist.
 ---- error
 Binder exception: Table User does not exist.
 
-
--CASE createCopyCommitErrorRollback
--STATEMENT BEGIN TRANSACTION
----- ok
--STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
----- ok
--STATEMENT CREATE REL TABLE Follows(FROM User TO User, since INT64)
----- ok
--STATEMENT COPY User From "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
----- ok
--STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv2"
----- error
-Binder exception: No file found that matches the pattern: ${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv2.
--STATEMENT COMMIT
----- ok
--STATEMENT MATCH (u:User) WHERE u.name = 'Adam' RETURN u.age
----- error
-Binder exception: Table User does not exist.
-
-
 -CASE copyRelCommit
 -STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
 ---- ok
@@ -178,3 +158,48 @@ Zhang
 -STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
 ---- 0
 
+-CASE createCopyCommitErrorAutoRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, since INT64)
+---- ok
+-STATEMENT COPY User From "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+---- ok
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv2"
+---- error
+Binder exception: No file found that matches the pattern: ${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv2.
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' RETURN u.age
+---- error
+Binder exception: Table User does not exist.
+
+-CASE copyRelCommitAfterRollback
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, since INT64)
+---- ok
+-STATEMENT COPY User From "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
+---- ok
+-STATEMENT Rollback
+---- ok
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' RETURN u.age
+---- ok
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- 0
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
+---- ok
+-STATEMENT Commit
+---- ok
+-STATEMENT MATCH (u:User)-[r:Follows]->(u2:User) WHERE u.name = 'Adam' RETURN u2.name
+---- 2
+Karissa
+Zhang
