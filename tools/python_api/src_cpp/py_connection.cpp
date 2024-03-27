@@ -178,7 +178,12 @@ static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonPa
 
 static bool canCastPyLogicalType(const LogicalType& from, const LogicalType& to) {
     // the input of this function is restricted to the output of pyLogicalType
-    if (from.getLogicalTypeID() == LogicalTypeID::MAP) {
+    if (from.getLogicalTypeID() == LogicalTypeID::ANY ||
+        from.getLogicalTypeID() == to.getLogicalTypeID()) {
+        return true;
+    } else if (to.getLogicalTypeID() == LogicalTypeID::ANY) {
+        return false;
+    } else if (from.getLogicalTypeID() == LogicalTypeID::MAP) {
         if (to.getLogicalTypeID() != LogicalTypeID::MAP) {
             return false;
         }
@@ -195,9 +200,6 @@ static bool canCastPyLogicalType(const LogicalType& from, const LogicalType& to)
         }
         return canCastPyLogicalType(
             *VarListType::getChildType(&from), *VarListType::getChildType(&to));
-    } else if (from.getLogicalTypeID() == LogicalTypeID::ANY ||
-        from.getLogicalTypeID() == to.getLogicalTypeID()) {
-        return true;
     } else {
         auto castCost = function::BuiltInFunctionsUtils::getCastCost(
             from.getLogicalTypeID(), to.getLogicalTypeID());
@@ -206,24 +208,27 @@ static bool canCastPyLogicalType(const LogicalType& from, const LogicalType& to)
     return false;
 }
 
+static void tryConvertPyLogicalType(LogicalType& from, LogicalType& to);
+
 static std::unique_ptr<LogicalType> castPyLogicalType(const LogicalType& from, const LogicalType& to) {
     // assumes from can cast to to
     if (from.getLogicalTypeID() == LogicalTypeID::MAP) {
-        auto fromKeyType = MapType::getKeyType(&from), fromValueType = MapType::getValueType(&to);
+        auto fromKeyType = MapType::getKeyType(&from), fromValueType = MapType::getValueType(&from);
         auto toKeyType = MapType::getKeyType(&to), toValueType = MapType::getValueType(&to);
-        auto outputKeyType = canCastPyLogicalType(*fromKeyType, *toKeyType) ? toKeyType : fromKeyType;
-        auto outputValueType = canCastPyLogicalType(*fromValueType, *toValueType) ? toValueType : fromValueType;
-        return LogicalType::MAP(
-            std::make_unique<LogicalType>(*outputKeyType), std::make_unique<LogicalType>(*outputValueType));
+        auto outputKeyType = canCastPyLogicalType(*fromKeyType, *toKeyType) ?
+            castPyLogicalType(*fromKeyType, *toKeyType) : castPyLogicalType(*toKeyType, *fromKeyType);
+        auto outputValueType = canCastPyLogicalType(*fromValueType, *toValueType) ?
+            castPyLogicalType(*fromValueType, *toValueType) : castPyLogicalType(*toValueType, *fromValueType);
+        return LogicalType::MAP(std::move(outputKeyType), std::move(outputValueType));
     }
     return std::make_unique<LogicalType>(to);
 }
 
-static void tryConvertPyLogicalType(LogicalType& from, LogicalType& to) {
+void tryConvertPyLogicalType(LogicalType& from, LogicalType& to) {
     if (canCastPyLogicalType(from, to)) {
         from = *castPyLogicalType(from, to);
     } else if (canCastPyLogicalType(to, from)) {
-        from = *castPyLogicalType(to, from);
+        to = *castPyLogicalType(to, from);
     } else {
         throw RuntimeException(stringFormat(
             "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
@@ -257,9 +262,6 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
     } else if (py::isinstance<py::list>(val)) {
         py::list lst = py::reinterpret_borrow<py::list>(val);
         auto childType = LogicalType::ANY();
-        if (py::len(lst) == 0) {
-            childType = LogicalType::STRING();
-        }
         for (auto child : lst) {
             auto curChildType = pyLogicalType(child);
             tryConvertPyLogicalType(*childType, *curChildType);
@@ -268,10 +270,6 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
     } else if (py::isinstance<py::dict>(val)) {
         py::dict dict = py::reinterpret_borrow<py::dict>(val);
         auto childKeyType = LogicalType::ANY(), childValueType = LogicalType::ANY();
-        if (py::len(dict) == 0) {
-            childKeyType = LogicalType::STRING();
-            childValueType = LogicalType::STRING();
-        }
         for (auto child : dict) {
             auto curChildKeyType = pyLogicalType(child.first),
                 curChildValueType = pyLogicalType(child.second);
@@ -289,6 +287,9 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
 
 static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
     // ignore the type of the actual python object, just directly cast
+    if (val.is_none()) {
+        return Value::createNullValue(*type);
+    }
     switch (type->getLogicalTypeID()) {
     case LogicalTypeID::ANY:
         return Value::createNullValue();

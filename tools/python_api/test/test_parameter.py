@@ -97,23 +97,20 @@ def test_string_list_param(conn_db_readonly: ConnDB) -> None:
     assert result.has_next()
     assert result.get_next() == [1]
     assert not result.has_next()
-    result = conn.execute(
-        "MATCH (a:person {usedNames: $1}) RETURN COUNT(*);",
-        {"1": []}) # empty list is string
     result.close()
 
 def test_map_param(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    conn.execute("CREATE NODE TABLE tab(id int64, mp MAP(double, int64), mp2 MAP(int64, double), mp3 MAP(string, string), mp4 MAP(string, string), primary key(id))")
+    conn.execute("CREATE NODE TABLE tab(id int64, mp MAP(double, int64), mp2 MAP(int64, double), mp3 MAP(string, string), mp4 MAP(string, string)[], primary key(id))")
     result = conn.execute(
         "MERGE (t:tab {id: 0, mp: $1, mp2: $2, mp3: $3, mp4: $4}) RETURN t.*",
         {"1": {1.0: 5, 2: 3, 2.2: -1},
          "2": {5: -0.5, 4: 0, 0: 2.2},
          "3": {'a': 1, 'b': '2', 'c': '3'},
-         "4": {}})
+         "4": [{}, {'a': 'b'}]})
     assert result.has_next()
-    assert result.get_next() == [0, {1.0: 5, 2.0: 3, 2.2: -1}, {5: -0.5, 4: -0.0, 0: 2.2}, {'a': '1', 'b': '2', 'c': '3'}, {}]
+    assert result.get_next() == [0, {1.0: 5, 2.0: 3, 2.2: -1}, {5: -0.5, 4: -0.0, 0: 2.2}, {'a': '1', 'b': '2', 'c': '3'}, [{}, {'a': 'b'}]]
     assert not result.has_next()
     result.close()
 
@@ -138,6 +135,35 @@ def test_general_list_param(tmp_path: Path) -> None:
     assert result.get_next() == [0, lst1, lst2, lst3, lst4, lst5, lst6ToString]
     assert not result.has_next()
     result.close()
+
+def test_null_resolution(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    conn.execute(
+        "CREATE NODE TABLE tab(id SERIAL, lst1 INT64[], mp1 MAP(STRING, STRING), nest MAP(STRING, MAP(STRING, INT64))[], PRIMARY KEY(id))")
+    lst1 = [1, 2, 3, None]
+    mp1 = {'a': 'x', 'b': 'y', 'c': 'z', 'o': None}
+    nest = [{'a': {'foo' : 1, 'bar' : 2}}, {1: {}}]
+    result = conn.execute(
+        "MERGE (t:tab {lst1: $1, mp1: $2, nest: $3}) RETURN t.*",
+        {'1': lst1, '2': mp1, '3': nest})
+    assert result.has_next()
+    assert result.get_next() == [0, lst1, mp1, [{'a': {'foo' : 1, 'bar' : 2}}, {'1': {}}]]
+    assert not result.has_next()
+    result.close()
+
+# def test_param_empty(tmp_path: Path) -> None:
+#     db = kuzu.Database(tmp_path)
+#     conn = kuzu.Connection(db)
+#     lst = [[]]
+#     result = conn.execute("CREATE NODE TABLE tab(id SERIAL, lst INT64[][], PRIMARY KEY(id))")
+#     result = conn.execute(
+#         "MERGE (t:tab {lst: $1}) RETURN t.*",
+#         {'1': lst})
+#     assert result.has_next()
+#     assert result.get_next == [0, lst]
+#     assert not result.has_next()
+#     result.close()
 
 def test_param_error1(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
