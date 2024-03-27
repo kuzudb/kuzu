@@ -1,5 +1,8 @@
 #include "function/function_collection.h"
 
+#include "function/aggregate/collect.h"
+#include "function/aggregate/count.h"
+#include "function/aggregate/count_star.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/array/vector_array_functions.h"
 #include "function/blob/vector_blob_functions.h"
@@ -27,6 +30,8 @@ namespace function {
     { _PARAM::getFunctionSet, _PARAM::alias, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 #define REWRITE_FUNCTION(_PARAM)                                                                   \
     { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY }
+#define AGGREGATE_FUNCTION(_PARAM)                                                                 \
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY }
 #define FINAL_FUNCTION                                                                             \
     { nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 
@@ -160,6 +165,12 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Rdf functions
         SCALAR_FUNCTION(RDFTypeFunction), SCALAR_FUNCTION(ValidatePredicateFunction),
+
+        // Aggregate functions
+        AGGREGATE_FUNCTION(CountStarFunction), AGGREGATE_FUNCTION(CountFunction),
+        AGGREGATE_FUNCTION(AggregateSumFunction), AGGREGATE_FUNCTION(AggregateAvgFunction),
+        AGGREGATE_FUNCTION(AggregateMinFunction), AGGREGATE_FUNCTION(AggregateMaxFunction),
+        AGGREGATE_FUNCTION(CollectFunction),
 
         // End of array
         FINAL_FUNCTION};

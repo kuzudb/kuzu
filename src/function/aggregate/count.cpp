@@ -39,5 +39,16 @@ void CountFunction::paramRewriteFunc(binder::expression_vector& arguments) {
     }
 }
 
+function_set CountFunction::getFunctionSet() {
+    function_set result;
+    for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
+        for (auto isDistinct : std::vector<bool>{true, false}) {
+            result.push_back(AggregateFunctionUtil::getAggFunc<CountFunction>(
+                name, type, LogicalTypeID::INT64, isDistinct, paramRewriteFunc));
+        }
+    }
+    return result;
+}
+
 } // namespace function
 } // namespace kuzu

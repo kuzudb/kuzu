@@ -1,6 +1,5 @@
 add_library(kuzu_catalog_entry
         OBJECT
-        aggregate_function_catalog_entry.cpp
         catalog_entry.cpp
         function_catalog_entry.cpp
         table_catalog_entry.cpp

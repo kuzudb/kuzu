@@ -80,16 +80,6 @@ private:
         const std::string& name, const std::vector<common::LogicalType>& inputTypes,
         function::function_set& set);
 
-    // Aggregate functions.
-    static void registerAggregateFunctions(catalog::CatalogSet* catalogSet);
-    static void registerCountStar(catalog::CatalogSet* catalogSet);
-    static void registerCount(catalog::CatalogSet* catalogSet);
-    static void registerSum(catalog::CatalogSet* catalogSet);
-    static void registerAvg(catalog::CatalogSet* catalogSet);
-    static void registerMin(catalog::CatalogSet* catalogSet);
-    static void registerMax(catalog::CatalogSet* catalogSet);
-    static void registerCollect(catalog::CatalogSet* catalogSet);
-
     // Table functions.
     static void registerTableFunctions(catalog::CatalogSet* catalogSet);
 
