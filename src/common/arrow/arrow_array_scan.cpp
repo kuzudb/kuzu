@@ -511,8 +511,7 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
         case 'm':
             // MAP
             return scanArrowArrayVarList<int32_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset,
-                count);
+                schema, array, outputVector, mask, srcOffset, dstOffset, count);
         case 'u':
             if (arrowType[2] == 'd') {
                 // DENSE UNION

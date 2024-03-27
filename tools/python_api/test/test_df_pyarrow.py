@@ -333,7 +333,7 @@ def test_pyarrow_map(conn_db_readonly : ConnDB) -> None:
     while result.has_next():
         assert idx < len(index)
         nxt = result.get_next()
-        expected = [idx, None if col1[idx].as_py() == None else {key : value for key, value in col1[idx].as_py()}]
+        expected = [idx, None if col1[idx].as_py() is None else dict(col1[idx].as_py())]
         assert expected == nxt
         idx += 1
 
