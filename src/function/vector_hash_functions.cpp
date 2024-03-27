@@ -49,15 +49,18 @@ static void computeListVectorHash(ValueVector* operand, ValueVector* result) {
 }
 
 static void computeStructVecHash(ValueVector* operand, ValueVector* result) {
-    if (operand->dataType.getLogicalTypeID() == LogicalTypeID::NODE) {
+    switch (operand->dataType.getLogicalTypeID()) {
+    case LogicalTypeID::NODE: {
         KU_ASSERT(0 == common::StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
         UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
             *StructVector::getFieldVector(operand, 0), *result);
-    } else if (operand->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
+    } break;
+    case LogicalTypeID::REL: {
         KU_ASSERT(3 == StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
         UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
             *StructVector::getFieldVector(operand, 3), *result);
-    } else {
+    } break;
+    case LogicalTypeID::STRUCT: {
         VectorHashFunction::computeHash(
             StructVector::getFieldVector(operand, 0 /* idx */).get(), result);
         auto tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
@@ -66,6 +69,9 @@ static void computeStructVecHash(ValueVector* operand, ValueVector* result) {
             VectorHashFunction::computeHash(fieldVector.get(), tmpHashVector.get());
             VectorHashFunction::combineHash(tmpHashVector.get(), result, result);
         }
+    } break;
+    default:
+        KU_UNREACHABLE;
     }
 }
 
