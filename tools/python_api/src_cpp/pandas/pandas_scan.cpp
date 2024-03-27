@@ -110,7 +110,7 @@ std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyC
 }
 
 static TableFunction getFunction() {
-    return TableFunction(READ_PANDAS_FUNC_NAME, tableFunc, bindFunc, initSharedState,
+    return TableFunction(PandasScanFunction::name, tableFunc, bindFunc, initSharedState,
         initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
 }
 

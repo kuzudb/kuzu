@@ -6,15 +6,6 @@
 namespace kuzu {
 namespace common {
 
-/**
- * Function name is a temporary identifier used for binder because grammar does not parse built in
- * functions. After binding, expression type should replace function name and used as identifier.
- */
-
-// Table functions - read functions
-const char* const READ_PANDAS_FUNC_NAME = "READ_PANDAS";
-const char* const READ_PYARROW_FUNC_NAME = "READ_PYARROW";
-
 enum class ExpressionType : uint8_t {
 
     // Boolean Connection Expressions
