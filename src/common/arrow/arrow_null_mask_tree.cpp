@@ -53,7 +53,8 @@ void ArrowNullMaskTree::scanListPushDown(
     NullMask pushDownMask((auxiliaryLength + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) >>
                           NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
     for (uint64_t i = 0; i < count; i++) {
-        pushDownMask.setNullFromRange(offsets[i], offsets[i + 1] - offsets[i], isNull(i));
+        pushDownMask.setNullFromRange(
+            offsets[i] - offsets[0], offsets[i + 1] - offsets[i], isNull(i));
     }
     children->push_back(ArrowNullMaskTree(
         schema->children[0], array->children[0], offsets[0], auxiliaryLength, &pushDownMask));
@@ -155,9 +156,9 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                     children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
                         lowestOffsets[i], highestOffsets[i] - lowestOffsets[i]));
                 }
-                for (auto i = srcOffset; i < srcOffset + count; i++) {
-                    int32_t curOffset = offsets[i];
-                    int8_t curType = types[i];
+                for (auto i = 0u; i < count; i++) {
+                    int32_t curOffset = offsets[i + srcOffset];
+                    int8_t curType = types[i + srcOffset];
                     mask->setNull(i, children->operator[](curType).isNull(curOffset));
                 }
             } else {
@@ -165,8 +166,8 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                     children->push_back(ArrowNullMaskTree(
                         schema->children[i], array->children[i], srcOffset, count));
                 }
-                for (auto i = srcOffset; i < srcOffset + count; i++) {
-                    int8_t curType = types[i];
+                for (auto i = 0u; i < count; i++) {
+                    int8_t curType = types[i + srcOffset];
                     mask->setNull(i, children->operator[](curType).isNull(i));
                     // this isn't specified in the arrow specification, but is it valid to
                     // compute this using a bitwise OR?
