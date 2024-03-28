@@ -1,5 +1,7 @@
 #include "processor/operator/aggregate/hash_aggregate.h"
 
+#include "common/utils.h"
+
 using namespace kuzu::common;
 using namespace kuzu::function;
 using namespace kuzu::storage;

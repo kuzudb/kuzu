@@ -25,7 +25,7 @@ struct ExpressionUtil {
     static expression_vector excludeExpressions(
         const expression_vector& expressions, const expression_vector& expressionsToExclude);
 
-    static common::logical_types_t getDataTypes(const expression_vector& expressions);
+    static common::logical_type_vec_t getDataTypes(const expression_vector& expressions);
 
     static expression_vector removeDuplication(const expression_vector& expressions);
 

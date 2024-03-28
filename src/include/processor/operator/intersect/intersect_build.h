@@ -18,7 +18,7 @@ public:
             children[0]->clone(), id, paramsString);
     }
 
-    inline void appendVectors() final {
+    void appendVectors() final {
         KU_ASSERT(keyVectors.size() == 1);
         hashTable->appendVectorWithSorting(keyVectors[0], payloadVectors);
     }

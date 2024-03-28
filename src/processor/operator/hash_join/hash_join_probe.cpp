@@ -18,7 +18,7 @@ void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     }
     // We only need to read nonKeys from the factorizedTable. Key columns are always kept as first k
     // columns in the factorizedTable, so we skip the first k columns.
-    KU_ASSERT(probeDataInfo.keysDataPos.size() + probeDataInfo.getNumPayloads() + 1 ==
+    KU_ASSERT(probeDataInfo.keysDataPos.size() + probeDataInfo.getNumPayloads() + 2 ==
               sharedState->getHashTable()->getTableSchema()->getNumColumns());
     columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
     iota(

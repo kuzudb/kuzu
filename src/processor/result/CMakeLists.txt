@@ -1,5 +1,6 @@
 add_library(kuzu_processor_result
         OBJECT
+        base_hash_table.cpp
         factorized_table.cpp
         flat_tuple.cpp
         result_set.cpp

@@ -87,12 +87,12 @@ expression_vector ExpressionUtil::excludeExpressions(
     return result;
 }
 
-std::vector<std::unique_ptr<common::LogicalType>> ExpressionUtil::getDataTypes(
+logical_type_vec_t ExpressionUtil::getDataTypes(
     const kuzu::binder::expression_vector& expressions) {
-    std::vector<std::unique_ptr<common::LogicalType>> result;
+    std::vector<LogicalType> result;
     result.reserve(expressions.size());
     for (auto& expression : expressions) {
-        result.push_back(expression->getDataType().copy());
+        result.push_back(*expression->getDataType().copy());
     }
     return result;
 }
