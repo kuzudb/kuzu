@@ -234,3 +234,10 @@ TEST_F(ApiTest, issueTest4) {
     checkTuple(result->getNext().get(), "-123456789\n");
     ASSERT_FALSE(result->hasNext());
 }
+
+TEST_F(ApiTest, PrepareExport) {
+    auto newDBPath = databasePath + "/newdb";
+    auto preparedStatement = conn->prepare("EXPORT DATABASE '" + newDBPath + '\'');
+    auto result = conn->execute(preparedStatement.get());
+    ASSERT_TRUE(result->isSuccess());
+}
