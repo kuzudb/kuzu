@@ -58,7 +58,7 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
         }
 
     case 'd':
-        throw NotImplementedException("custom bitwidth decimals are not supported");
+        throw NotImplementedException("Decimals are not supported");
     case 'w':
         return LogicalType(LogicalTypeID::BLOB); // fixed width binary
     case 't':
