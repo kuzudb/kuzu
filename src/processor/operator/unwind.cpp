@@ -8,6 +8,9 @@ namespace processor {
 void Unwind::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     expressionEvaluator->init(*resultSet, context->clientContext->getMemoryManager());
     outValueVector = resultSet->getValueVector(outDataPos);
+    if (idPos.isValid()) {
+        idVector = resultSet->getValueVector(idPos).get();
+    }
 }
 
 bool Unwind::hasMoreToRead() const {
@@ -19,6 +22,14 @@ void Unwind::copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const {
     auto listPos = listEntry.offset + startPos;
     for (auto i = 0u; i < endPos - startPos; i++) {
         outValueVector->copyFromVectorData(i, listDataVector, listPos++);
+    }
+    if (idVector != nullptr) {
+        KU_ASSERT(listDataVector->dataType.getLogicalTypeID() == common::LogicalTypeID::NODE);
+        auto idFieldVector = StructVector::getFieldVector(listDataVector, 0);
+        listPos = listEntry.offset + startPos;
+        for (auto i = 0u; i < endPos - startPos; i++) {
+            idVector->copyFromVectorData(i, idFieldVector.get(), listPos++);
+        }
     }
 }
 

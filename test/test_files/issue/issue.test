@@ -233,7 +233,6 @@ True|True|True
 [t2,t22]
 [t3]
 
-
 -CASE 2587
 -STATEMENT CREATE NODE TABLE T (id STRING, descr STRING, PRIMARY KEY (id));
 ---- ok

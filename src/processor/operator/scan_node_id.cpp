@@ -1,6 +1,7 @@
 #include "processor/operator/scan_node_id.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace processor {
@@ -24,7 +25,7 @@ std::pair<offset_t, offset_t> NodeTableScanState::getNextRangeToRead() {
     return std::make_pair(startOffset, startOffset + range);
 }
 
-void ScanNodeIDSharedState::initialize(transaction::Transaction* transaction) {
+void ScanNodeIDSharedState::initialize(Transaction* transaction) {
     auto numMask = tableStates[0]->getSemiMask()->getNumMasks();
     numNodes = 0;
     for (auto& tableState : tableStates) {

@@ -22,7 +22,7 @@ static expression_vector getCorrelatedExpressions(const QueryGraphCollection& co
             result.push_back(node->getInternalID());
         }
     }
-    return result;
+    return ExpressionUtil::removeDuplication(result);
 }
 
 void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,

@@ -2,6 +2,7 @@
 
 #include "binder/query/bound_regular_query.h"
 #include "binder/query/query_graph.h"
+#include "binder_scope.h"
 #include "catalog/catalog.h"
 #include "common/copier_config/reader_config.h"
 #include "expression_binder.h"
@@ -40,50 +41,14 @@ struct ExportedTableData;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
-class BinderScope {
-public:
-    BinderScope() = default;
-    BinderScope(expression_vector expressions,
-        std::unordered_map<std::string, common::vector_idx_t> varNameToIdx)
-        : expressions{std::move(expressions)}, varNameToIdx{std::move(varNameToIdx)} {}
-
-    inline bool empty() const { return expressions.empty(); }
-    inline bool contains(const std::string& varName) const {
-        return varNameToIdx.contains(varName);
-    }
-    inline std::shared_ptr<Expression> getExpression(const std::string& varName) const {
-        return expressions[varNameToIdx.at(varName)];
-    }
-    inline expression_vector getExpressions() const { return expressions; }
-    inline void addExpression(const std::string& varName, std::shared_ptr<Expression> expression) {
-        varNameToIdx.insert({varName, expressions.size()});
-        expressions.push_back(std::move(expression));
-    }
-    inline void removeExpression(const std::string& name) {
-        auto idx = varNameToIdx.at(name);
-        varNameToIdx.erase(name);
-        expressions[idx] = nullptr;
-    }
-    inline void clear() {
-        expressions.clear();
-        varNameToIdx.clear();
-    }
-    inline std::unique_ptr<BinderScope> copy() {
-        return std::make_unique<BinderScope>(expressions, varNameToIdx);
-    }
-
-private:
-    expression_vector expressions;
-    std::unordered_map<std::string, common::vector_idx_t> varNameToIdx;
-};
 
 class Binder {
     friend class ExpressionBinder;
 
 public:
     explicit Binder(main::ClientContext* clientContext)
-        : lastExpressionId{0}, scope{std::make_unique<BinderScope>()},
-          expressionBinder{this, clientContext}, clientContext{clientContext} {}
+        : lastExpressionId{0}, scope{}, expressionBinder{this, clientContext}, clientContext{
+                                                                                   clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -203,8 +168,8 @@ private:
     std::unique_ptr<BoundUpdatingClause> bindDeleteClause(
         const parser::UpdatingClause& updatingClause);
 
-    std::vector<BoundInsertInfo> bindInsertInfos(
-        const QueryGraphCollection& queryGraphCollection, const expression_set& nodeRelScope_);
+    std::vector<BoundInsertInfo> bindInsertInfos(const QueryGraphCollection& queryGraphCollection,
+        const std::unordered_set<std::string>& patternsInScope);
     void bindInsertNode(std::shared_ptr<NodeExpression> node, std::vector<BoundInsertInfo>& infos);
     void bindInsertRel(std::shared_ptr<RelExpression> rel, std::vector<BoundInsertInfo>& infos);
     expression_vector bindInsertColumnDataExprs(
@@ -285,15 +250,15 @@ private:
     std::string getUniqueExpressionName(const std::string& name);
     static bool isReservedPropertyName(const std::string& name);
 
-    std::unique_ptr<BinderScope> saveScope();
-    void restoreScope(std::unique_ptr<BinderScope> prevVariableScope);
+    BinderScope saveScope();
+    void restoreScope(BinderScope prevScope);
 
     function::TableFunction getScanFunction(
         common::FileType fileType, const common::ReaderConfig& config);
 
 private:
     uint32_t lastExpressionId;
-    std::unique_ptr<BinderScope> scope;
+    BinderScope scope;
     ExpressionBinder expressionBinder;
     main::ClientContext* clientContext;
 };

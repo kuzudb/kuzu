@@ -215,13 +215,25 @@ void QueryGraphCollection::addAndMergeQueryGraphIfConnected(QueryGraph queryGrap
 }
 
 void QueryGraphCollection::finalize() {
-    auto baseGraph = std::move(queryGraphs[0]);
+    common::idx_t baseGraphIdx = 0;
+    while (true) {
+        auto prevNumGraphs = queryGraphs.size();
+        queryGraphs = mergeGraphs(baseGraphIdx++);
+        if (queryGraphs.size() == prevNumGraphs || baseGraphIdx == queryGraphs.size()) {
+            return;
+        }
+    }
+}
+
+std::vector<QueryGraph> QueryGraphCollection::mergeGraphs(common::idx_t baseGraphIdx) {
+    KU_ASSERT(baseGraphIdx < queryGraphs.size());
+    auto baseGraph = std::move(queryGraphs[baseGraphIdx]);
     std::unordered_set<common::vector_idx_t> mergedGraphIndices;
-    mergedGraphIndices.insert(0);
+    mergedGraphIndices.insert(baseGraphIdx);
     while (true) {
         // find graph to merge
         common::vector_idx_t graphToMergeIdx = common::INVALID_VECTOR_IDX;
-        for (auto i = 1u; i < queryGraphs.size(); ++i) {
+        for (auto i = 0u; i < queryGraphs.size(); ++i) {
             if (mergedGraphIndices.contains(i)) { // graph has been merged.
                 continue;
             }
@@ -238,14 +250,17 @@ void QueryGraphCollection::finalize() {
         mergedGraphIndices.insert(graphToMergeIdx);
     }
     std::vector<QueryGraph> finalGraphs;
-    finalGraphs.push_back(std::move(baseGraph));
-    for (auto i = 1u; i < queryGraphs.size(); ++i) {
+    for (auto i = 0u; i < queryGraphs.size(); ++i) {
+        if (i == baseGraphIdx) {
+            finalGraphs.push_back(baseGraph);
+            continue;
+        }
         if (mergedGraphIndices.contains(i)) {
             continue;
         }
         finalGraphs.push_back(std::move(queryGraphs[i]));
     }
-    queryGraphs = std::move(finalGraphs);
+    return finalGraphs;
 }
 
 std::vector<std::shared_ptr<NodeExpression>> QueryGraphCollection::getQueryNodes() const {
