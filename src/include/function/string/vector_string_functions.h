@@ -34,6 +34,9 @@ struct ArrayExtractFunction {
 struct ConcatFunction : public VectorStringFunction {
     static constexpr const char* name = "CONCAT";
 
+    static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        common::ValueVector& result, void* /*dataPtr*/);
+
     static function_set getFunctionSet();
 };
 
@@ -171,6 +174,12 @@ struct RegexpExtractAllFunction : public VectorStringFunction {
 
 struct LevenshteinFunction : public VectorStringFunction {
     static constexpr const char* name = "LEVENSHTEIN";
+
+    static function_set getFunctionSet();
+};
+
+struct InitcapFunction : public VectorStringFunction {
+    static constexpr const char* name = "INITCAP";
 
     static function_set getFunctionSet();
 };

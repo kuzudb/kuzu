@@ -1,4 +1,3 @@
-#include "function/string/functions/concat_function.h"
 #include "main_test_helper/main_test_helper.h"
 
 using namespace kuzu::common;
@@ -294,14 +293,29 @@ TEST_F(ApiTest, vectorizedBinaryAddDate) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
+static void concat(const ku_string_t& left, const ku_string_t& right, ku_string_t& result,
+    ValueVector& resultValueVector) {
+    result.len = left.len + right.len;
+    if (result.len <= ku_string_t::SHORT_STR_LENGTH /* concat result is short */) {
+        memcpy(result.prefix, left.getData(), left.len);
+        memcpy(result.prefix + left.len, right.getData(), right.len);
+    } else {
+        StringVector::reserveString(&resultValueVector, result, result.len);
+        auto buffer = reinterpret_cast<char*>(result.overflowPtr);
+        memcpy(buffer, left.getData(), left.len);
+        memcpy(buffer + left.len, right.getData(), right.len);
+        memcpy(result.prefix, buffer, ku_string_t::PREFIX_LENGTH);
+    }
+}
+
 struct ConditionalConcat {
     static inline void operation(
         ku_string_t& a, bool& b, ku_string_t& c, ku_string_t& result, ValueVector& resultVector) {
         // Concat a,c if b is true, otherwise concat c,a.
         if (b) {
-            function::Concat::operation(a, c, result, resultVector);
+            concat(a, c, result, resultVector);
         } else {
-            function::Concat::operation(c, a, result, resultVector);
+            concat(c, a, result, resultVector);
         }
     }
 };

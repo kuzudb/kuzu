@@ -31,6 +31,10 @@ struct KUZU_API ku_string_t {
         return isShortString(len) ? prefix : reinterpret_cast<uint8_t*>(overflowPtr);
     }
 
+    uint8_t* getDataUnsafe() {
+        return isShortString(len) ? prefix : reinterpret_cast<uint8_t*>(overflowPtr);
+    }
+
     // These functions do *NOT* allocate/resize the overflow buffer, it only copies the content and
     // set the length.
     void set(const std::string& value);

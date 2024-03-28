@@ -15,7 +15,7 @@
 #include "function/list/functions/list_concat_function.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
-#include "function/string/functions/concat_function.h"
+#include "function/string/vector_string_functions.h"
 
 using namespace kuzu::common;
 
@@ -155,8 +155,7 @@ function_set AddFunction::getFunctionSet() {
     // string + string -> string
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::STRING,
-        ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t, Concat>));
+        LogicalTypeID::STRING, ConcatFunction::execFunc));
     // interval + interval → interval
     result.push_back(getBinaryFunction<Add, interval_t, interval_t>(
         name, LogicalTypeID::INTERVAL, LogicalTypeID::INTERVAL));
