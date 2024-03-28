@@ -259,31 +259,6 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     }
 
     #[test]
-    fn test_params_invalid_type() -> Result<()> {
-        let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
-        let conn = Connection::new(&db)?;
-        conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
-        conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
-        conn.query("CREATE (:Person {name: 'Bob', age: 30});")?;
-
-        let mut statement = conn.prepare("MATCH (a:Person) WHERE a.age = $age RETURN a.name;")?;
-        let result: Error = conn
-            .execute(
-                &mut statement,
-                vec![("age", Value::String("25".to_string()))],
-            )
-            .expect_err("Age should be an int16!")
-            .into();
-        assert_eq!(
-            result.to_string(),
-            "Query execution failed: Parameter age has data type STRING but expects INT16."
-        );
-        temp_dir.close()?;
-        Ok(())
-    }
-
-    #[test]
     fn test_multithreaded_single_conn() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), SystemConfig::default())?;

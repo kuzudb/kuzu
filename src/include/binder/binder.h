@@ -87,6 +87,11 @@ public:
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
+    void setInputParameters(
+        std::unordered_map<std::string, std::shared_ptr<common::Value>> parameters) {
+        expressionBinder.parameterMap = parameters;
+    }
+
     inline std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
         return expressionBinder.parameterMap;
     }

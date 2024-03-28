@@ -169,7 +169,7 @@ public:
     }
 
     void executeQueryWithoutCommit(std::string query) {
-        auto preparedStatement = conn->prepare(query);
+        auto preparedStatement = conn->getClientContext()->prepareTest(query);
         auto mapper = PlanMapper(conn->getClientContext());
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),

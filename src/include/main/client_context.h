@@ -106,6 +106,11 @@ public:
     std::unique_ptr<QueryResult> query(std::string_view queryStatement);
     void runQuery(std::string query);
 
+    // TODO(Jiamin): should remove after supporting ddl in manual tx
+    std::unique_ptr<PreparedStatement> prepareTest(std::string_view query);
+    // only use for test framework
+    std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
+
 private:
     std::unique_ptr<QueryResult> query(
         std::string_view query, std::string_view encodedJoin, bool enumerateAllPlans = true);
@@ -114,10 +119,15 @@ private:
 
     std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
 
-    std::vector<std::unique_ptr<parser::Statement>> parseQuery(std::string_view query);
-
-    std::unique_ptr<PreparedStatement> prepareNoLock(parser::Statement* parsedStatement,
-        bool enumerateAllPlans = false, std::string_view joinOrder = std::string_view());
+    // when we do prepare, we will start a transaction for the query
+    // when we execute after prepare in a same context, we set requireNewTx to false and will not
+    // commit the transaction in prepare when we only prepare a query statement, we set requireNewTx
+    // to true and will commit the transaction in prepare
+    std::unique_ptr<PreparedStatement> prepareNoLock(
+        std::shared_ptr<parser::Statement> parsedStatement, bool enumerateAllPlans = false,
+        std::string_view joinOrder = std::string_view(), bool requireNewTx = true,
+        std::optional<std::unordered_map<std::string, std::shared_ptr<common::Value>>> inputParams =
+            std::nullopt);
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
@@ -133,7 +143,7 @@ private:
         const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
 
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
-        PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
+        PreparedStatement* preparedStatement, uint32_t planIdx = 0u, bool requiredNexTx = true);
 
     void addScalarFunction(std::string name, function::function_set definitions);
 

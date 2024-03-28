@@ -31,7 +31,7 @@ class Transformer {
 public:
     explicit Transformer(CypherParser::Ku_StatementsContext& root) : root{root} {}
 
-    std::vector<std::unique_ptr<Statement>> transform();
+    std::vector<std::shared_ptr<Statement>> transform();
 
 private:
     std::unique_ptr<Statement> transformStatement(CypherParser::OC_StatementContext& ctx);

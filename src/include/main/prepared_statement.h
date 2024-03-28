@@ -7,6 +7,7 @@
 
 #include "common/api.h"
 #include "kuzu_fwd.h"
+#include "parser/statement.h"
 #include "query_summary.h"
 
 namespace kuzu {
@@ -62,6 +63,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
     std::unique_ptr<binder::BoundStatementResult> statementResult;
     std::vector<std::unique_ptr<planner::LogicalPlan>> logicalPlans;
+    std::shared_ptr<parser::Statement> parsedStatement;
 };
 
 } // namespace main
