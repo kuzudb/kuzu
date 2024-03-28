@@ -7,7 +7,6 @@ namespace kuzu {
 namespace function {
 
 struct Initcap {
-public:
     static void operation(common::ku_string_t& operand, common::ku_string_t& result,
         common::ValueVector& resultVector) {
         Lower::operation(operand, result, resultVector);
