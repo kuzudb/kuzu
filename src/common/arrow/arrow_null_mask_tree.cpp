@@ -134,8 +134,10 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
             scanStructPushDown(schema, array, srcOffset, count);
             break;
         case 'm':
-            // TODO maxwell bind map types
-            KU_UNREACHABLE;
+            copyFromBuffer(array->buffers[0], srcOffset, count);
+            applyParentBitmap(parentBitmap, count);
+            scanListPushDown<int32_t>(schema, array, srcOffset, count);
+            break;
         case 'u': {
             const int8_t* types = (const int8_t*)array->buffers[0];
             if (schema->format[2] == 'd') {

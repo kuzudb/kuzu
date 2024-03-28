@@ -115,8 +115,9 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
             }
             return *LogicalType::STRUCT(std::move(structFields));
         case 'm':
-            // TODO maxwell bind map types
-            throw NotImplementedException("Scanning Arrow Map types is not supported");
+            return *LogicalType::MAP(
+                std::make_unique<LogicalType>(fromArrowSchema(schema->children[0]->children[0])),
+                std::make_unique<LogicalType>(fromArrowSchema(schema->children[0]->children[1])));
         case 'u':
             throw RuntimeException("Unions are currently WIP.");
             for (int64_t i = 0; i < schema->n_children; i++) {
