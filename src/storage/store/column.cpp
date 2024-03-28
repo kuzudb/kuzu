@@ -206,9 +206,10 @@ public:
 
 InternalIDColumn::InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats stats, bool enableCompression)
+    transaction::Transaction* transaction, RWPropertyStats stats, bool enableCompression,
+    bool requireNullColumn)
     : Column{name, *LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager,
-          wal, transaction, stats, enableCompression},
+          wal, transaction, stats, enableCompression, requireNullColumn},
       commonTableID{INVALID_TABLE_ID} {}
 
 void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
