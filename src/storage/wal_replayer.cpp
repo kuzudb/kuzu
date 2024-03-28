@@ -38,11 +38,25 @@ void WALReplayer::replay() {
             "Cannot checkpointInMemory WAL because last logged record is not a commit record.");
     }
     if (!wal->isEmptyWAL()) {
-        auto walIterator = wal->getIterator();
-        WALRecord walRecord;
-        while (walIterator->hasNextRecord()) {
-            walIterator->getNextRecord(walRecord);
-            replayWALRecord(walRecord);
+        // for rollback, we should replay in reverse order.
+        if ((!isCheckpoint && !isRecovering)) {
+            auto walIterator = wal->getIterator();
+            std::vector<WALRecord> walRecords;
+            while (walIterator->hasNextRecord()) {
+                WALRecord walRecord;
+                walIterator->getNextRecord(walRecord);
+                walRecords.push_back(walRecord);
+            }
+            for (auto iter = walRecords.rbegin(); iter != walRecords.rend(); ++iter) {
+                replayWALRecord(*iter);
+            }
+        } else {
+            auto walIterator = wal->getIterator();
+            WALRecord walRecord;
+            while (walIterator->hasNextRecord()) {
+                walIterator->getNextRecord(walRecord);
+                replayWALRecord(walRecord);
+            }
         }
     }
     // We next perform an in-memory checkpointing or rolling back of node/relTables.
@@ -169,6 +183,7 @@ void WALReplayer::replayCreateTableRecord(const WALRecord& walRecord) {
         storageManager->dropTable(walRecord.createTableRecord.tableID);
         wal->getUpdatedTables().erase(walRecord.createTableRecord.tableID);
     }
+    // should recovery
 }
 
 void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {
@@ -209,20 +224,11 @@ void WALReplayer::replayDropTableRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         auto tableID = walRecord.dropTableRecord.tableID;
         if (!isRecovering) {
-            auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
-            switch (tableEntry->getTableType()) {
-            case TableType::NODE:
-            case TableType::REL: {
-                storageManager->dropTable(tableID);
-                // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
-            } break;
-            case TableType::RDF: {
-                // Do nothing.
-            } break;
-            default: {
-                KU_UNREACHABLE;
-            }
-            }
+            // we will not access rdf/rel_group tabletype
+            storageManager->dropTable(tableID);
+            // need to delete table id from wal, otherwise it will trigger in-memory
+            // checkpoint/rollback
+            wal->getUpdatedTables().erase(tableID);
         } else {
             if (!wal->isLastLoggedRecordCommit()) {
                 // Nothing to undo.
