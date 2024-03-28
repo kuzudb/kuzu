@@ -6,9 +6,9 @@
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
 #include "storage/storage_utils.h"
+#include "storage/store/list_column_chunk.h"
 #include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column_chunk.h"
-#include "storage/store/var_list_column_chunk.h"
 
 using namespace kuzu::common;
 
@@ -126,7 +126,7 @@ static std::shared_ptr<CompressionAlg> getCompression(
         return std::make_shared<IntegerBitpacking<int8_t>>();
     }
     case PhysicalTypeID::INTERNAL_ID:
-    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::LIST:
     case PhysicalTypeID::UINT64: {
         return std::make_shared<IntegerBitpacking<uint64_t>>();
     }
@@ -183,7 +183,7 @@ void ColumnChunk::initializeFunction() {
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::INT8:
     case PhysicalTypeID::INTERNAL_ID:
-    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::LIST:
     case PhysicalTypeID::UINT64:
     case PhysicalTypeID::UINT32:
     case PhysicalTypeID::UINT16:
@@ -262,12 +262,12 @@ void ColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultipli
 }
 
 // NOTE: This function is only called in LocalTable right now when performing out-of-place
-// committing. VAR_LIST has a different logic for handling out-of-place committing as it has to
+// committing. LIST has a different logic for handling out-of-place committing as it has to
 // be slided. However, this is unsafe, as this function can also be used for other purposes later.
 // Thus, an assertion is added at the first line.
 void ColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
     KU_ASSERT(dataType.getPhysicalType() != PhysicalTypeID::BOOL &&
-              dataType.getPhysicalType() != PhysicalTypeID::VAR_LIST);
+              dataType.getPhysicalType() != PhysicalTypeID::LIST);
     nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
     if (offsetInChunk >= numValues) {
         numValues = offsetInChunk + 1;
@@ -642,8 +642,8 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
         return std::make_unique<StringColumnChunk>(
             std::move(dataType), capacity, enableCompression, inMemory);
     }
-    case PhysicalTypeID::VAR_LIST: {
-        return std::make_unique<VarListColumnChunk>(
+    case PhysicalTypeID::LIST: {
+        return std::make_unique<ListColumnChunk>(
             std::move(dataType), capacity, enableCompression, inMemory);
     }
     case PhysicalTypeID::STRUCT: {

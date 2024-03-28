@@ -581,24 +581,24 @@ Conversion exception: Cast failed. bool is not in INT64[] range.
 Conversion exception: Cast failed. [[231|4324] is not in INT64[][] range.
 
 -CASE CastStringToNestedError
--STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/delim_error.csv" (DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/delim_error.csv" (DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/delim_error.csv on line 1: Conversion exception: Cast failed. "[[hello],[bdfadf],]" is not in STRING[][] range.
--STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/bracket_error.csv" (DELIM="|", ESCAPE="~") RETURN * ;
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/delim_error.csv on line 1: Conversion exception: Cast failed. "[[hello],[bdfadf],]" is not in STRING[][] range.
+-STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/bracket_error.csv" (DELIM="|", ESCAPE="~") RETURN * ;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/bracket_error.csv on line 1: Conversion exception: Cast failed. [[] is not in STRING[][] range.
--STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_quote.csv" RETURN *;
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/bracket_error.csv on line 1: Conversion exception: Cast failed. [[] is not in STRING[][] range.
+-STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_quote.csv on line 1: Conversion exception: Cast failed. ['fdsfdsfe werw] is not in STRING[] range.
--STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_quote2.csv" RETURN *;
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote.csv on line 1: Conversion exception: Cast failed. ['fdsfdsfe werw] is not in STRING[] range.
+-STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote2.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_quote2.csv on line 1: Conversion exception: Cast failed. [[' this is a signle quote]] is not in STRING[] range.
--STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_struct_bracket.csv" RETURN *;
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote2.csv on line 1: Conversion exception: Cast failed. [[' this is a signle quote]] is not in STRING[] range.
+-STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_struct_bracket.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_struct_bracket.csv on line 1: Conversion exception: Cast failed. [{32, 32] is not in UINT8[] range.
--STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/conversion_error.csv" RETURN *;
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_struct_bracket.csv on line 1: Conversion exception: Cast failed. [{32, 32] is not in UINT8[] range.
+-STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/conversion_error.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/conversion_error.csv on line 1: Conversion exception: Cast failed. Could not convert "432412" to UINT8.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/conversion_error.csv on line 1: Conversion exception: Cast failed. Could not convert "432412" to UINT8.
 -STATEMENT LOAD WITH HEADERS (q STRUCT(a STRUCT(b STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error1.csv" RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error1.csv on line 1: Conversion exception: Cast failed. {a: {b: fsdf is not in STRUCT(a:STRUCT(b:STRING)) range.
@@ -692,16 +692,16 @@ Conversion exception: Unsupported casting function from REL to TIMESTAMP.
 ---- error
 Conversion exception: Unsupported casting function from RECURSIVE_REL to INT64.
 
--LOG InvalidVarListToVarList
+-LOG InvalidListToList
 -STATEMENT RETURN cast([31231], "INT64[][]");
 ---- error
-Conversion exception: Unsupported casting function from INT64 to VAR_LIST.
+Conversion exception: Unsupported casting function from INT64 to LIST.
 -STATEMENT RETURN cast([-1], "UINT8[]");
 ---- error
 Overflow exception: Value -1 is not within UINT8 range
 -STATEMENT RETURN cast([[1, 1]], "UINT8[]");
 ---- error
-Conversion exception: Unsupported casting function from VAR_LIST to UINT8.
+Conversion exception: Unsupported casting function from LIST to UINT8.
 
 -LOG InvalidMapToMap
 -STATEMENT RETURN cast(cast("{-1=3}", "MAP(INT64, INT64)"), "MAP(UINT8, UINT8)");
@@ -754,16 +754,16 @@ Overflow exception: Value 1000000000000000000 is not within INT16 range
 Overflow exception: Value 43121 is not within INT8 range
 -STATEMENT RETURN cast([[1000000000000000000]], "INT64[1]");
 ---- error
-Conversion exception: Unsupported casting function from VAR_LIST to INT64.
+Conversion exception: Unsupported casting function from LIST to INT64.
 -STATEMENT RETURN cast([1, 2], "DOUBLE[100]");
 ---- error
-Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to ARRAY. Expected: 100, Actual: 2.
+Conversion exception: Unsupported casting LIST with incorrect list entry to ARRAY. Expected: 100, Actual: 2.
 -STATEMENT RETURN cast([[1, 2], [1, 4], [2, 4, 5], [1, 2]], "INT64[2][]");
 ---- error
-Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to ARRAY. Expected: 2, Actual: 3.
+Conversion exception: Unsupported casting LIST with incorrect list entry to ARRAY. Expected: 2, Actual: 3.
 -STATEMENT RETURN cast(cast("{3={}, 3= {a: 12}, 3={a:32, b:[1, 2, 3]}}", "MAP(STRING, STRUCT(a INT64, b INT64[]))"), "MAP(STRING, STRUCT(a INT64, b INT64[1]))");
 ---- error
-Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to ARRAY. Expected: 1, Actual: 3.
+Conversion exception: Unsupported casting LIST with incorrect list entry to ARRAY. Expected: 1, Actual: 3.
 
 -LOG InvalidArrayToArray
 -STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "FLOAT[3]");
@@ -776,10 +776,10 @@ Conversion exception: Unsupported casting function from INT16[2] to FLOAT[1].
 -LOG InvalidNestedCast
 -STATEMENT RETURN cast({a: {b: {c: [[1, 3, 4]], d: "str"}}, e: [1, 9, NULL]}, "STRUCT(a STRUCT(b STRUCT(c INT64[2][], d STRING)), e INT128[3])");
 ---- error
-Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to ARRAY. Expected: 2, Actual: 3.
+Conversion exception: Unsupported casting LIST with incorrect list entry to ARRAY. Expected: 2, Actual: 3.
 -STATEMENT RETURN cast(cast("{a: {b: {c: [[1, 3, 4]], d: {18=[3, 2]}}}, e: [1, 9, 3]}", "STRUCT(a STRUCT(b STRUCT(c INT64[3][], d MAP(INT32,INT32[]))), e FLOAT[3])"), "STRUCT(a STRUCT(b STRUCT(c INT64[3][], d MAP(INT32,INT32[5]))), e INT32[3])");
 ---- error
-Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to ARRAY. Expected: 5, Actual: 2.
+Conversion exception: Unsupported casting LIST with incorrect list entry to ARRAY. Expected: 5, Actual: 2.
 
 -LOG InvalidNameCast
 -STATEMENT RETURN cast("nop", "STRUCT()");

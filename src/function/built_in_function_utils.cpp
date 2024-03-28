@@ -160,7 +160,7 @@ uint32_t BuiltInFunctionsUtils::getTargetTypeCost(LogicalTypeID typeID) {
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::MAP:
     case LogicalTypeID::ARRAY:
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::LIST:
     case LogicalTypeID::UNION:
         return 160;
     case LogicalTypeID::RDF_VARIANT:
@@ -354,7 +354,7 @@ uint32_t BuiltInFunctionsUtils::castFromString(LogicalTypeID inputTypeID) {
 uint32_t BuiltInFunctionsUtils::castFromRDFVariant(LogicalTypeID inputTypeID) {
     switch (inputTypeID) {
     case LogicalTypeID::STRUCT:
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY:
     case LogicalTypeID::UNION:
     case LogicalTypeID::MAP:

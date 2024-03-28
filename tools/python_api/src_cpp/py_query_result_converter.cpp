@@ -94,7 +94,7 @@ void NPArrayWrapper::appendElement(Value* value) {
             ((py::object*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
         } break;
         case LogicalTypeID::ARRAY:
-        case LogicalTypeID::VAR_LIST: {
+        case LogicalTypeID::LIST: {
             ((py::list*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
         } break;
         case LogicalTypeID::RECURSIVE_REL: {
@@ -173,7 +173,7 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY:
     case LogicalTypeID::STRING:
     case LogicalTypeID::MAP:

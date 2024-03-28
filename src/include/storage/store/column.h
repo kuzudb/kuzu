@@ -30,9 +30,9 @@ class NullColumn;
 class StructColumn;
 class Column {
     friend class StringColumn;
-    friend class VarListLocalColumn;
+    friend class ListLocalColumn;
     friend class StructColumn;
-    friend class VarListColumn;
+    friend class ListColumn;
 
 public:
     struct ReadState {

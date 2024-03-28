@@ -11,14 +11,14 @@ static bool upgradeType(common::LogicalType& left, const common::LogicalType& ri
         return true;
     }
     if (left.getLogicalTypeID() == common::LogicalTypeID::ANY ||
-        ((left.getLogicalTypeID() == common::LogicalTypeID::VAR_LIST) &&
-            (common::VarListType::getChildType(&left)->getLogicalTypeID() ==
+        ((left.getLogicalTypeID() == common::LogicalTypeID::LIST) &&
+            (common::ListType::getChildType(&left)->getLogicalTypeID() ==
                 common::LogicalTypeID::ANY))) {
         left = right;
         return true;
     }
-    if (((right.getLogicalTypeID() == common::LogicalTypeID::VAR_LIST) &&
-            (common::VarListType::getChildType(&right)->getLogicalTypeID() ==
+    if (((right.getLogicalTypeID() == common::LogicalTypeID::LIST) &&
+            (common::ListType::getChildType(&right)->getLogicalTypeID() ==
                 common::LogicalTypeID::ANY))) {
         return true;
     }
@@ -71,7 +71,7 @@ common::LogicalType PandasAnalyzer::getItemType(py::object ele, bool& canConvert
     case PythonObjectType::String:
         return *common::LogicalType::STRING();
     case PythonObjectType::List:
-        return *common::LogicalType::VAR_LIST(getListType(ele, canConvert));
+        return *common::LogicalType::LIST(getListType(ele, canConvert));
     default:
         KU_UNREACHABLE;
     }

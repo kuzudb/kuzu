@@ -72,7 +72,7 @@ void StructColumnReader::skip(uint64_t num_values) {
 
 static bool TypeHasExactRowCount(const common::LogicalType* type) {
     switch (type->getLogicalTypeID()) {
-    case common::LogicalTypeID::VAR_LIST:
+    case common::LogicalTypeID::LIST:
     case common::LogicalTypeID::MAP:
         return false;
     case common::LogicalTypeID::STRUCT:

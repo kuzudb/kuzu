@@ -147,8 +147,7 @@ function_set AddFunction::getFunctionSet() {
     }
     // list + list -> list
     result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST, LogicalTypeID::VAR_LIST},
-        LogicalTypeID::VAR_LIST,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::LIST,
         ScalarFunction::BinaryExecListStructFunction<list_entry_t, list_entry_t, list_entry_t,
             ListConcat>,
         nullptr, ListConcatFunction::bindFunc, false /* isVarlength*/));

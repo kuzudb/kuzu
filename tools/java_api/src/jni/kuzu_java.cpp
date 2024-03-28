@@ -545,7 +545,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1create(
         auto extraTypeInfo = num_elements_in_array > 0 ?
                                  std::make_unique<ArrayTypeInfo>(
                                      std::move(child_type_pty), num_elements_in_array) :
-                                 std::make_unique<VarListTypeInfo>(std::move(child_type_pty));
+                                 std::make_unique<ListTypeInfo>(std::move(child_type_pty));
         data_type = JavaAPIHelper::createLogicalType(logicalTypeID, std::move(extraTypeInfo));
     }
     uint64_t address = reinterpret_cast<uint64_t>(data_type);
@@ -593,8 +593,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1chil
     LogicalType* child_type;
     if (parent_type->getLogicalTypeID() == LogicalTypeID::ARRAY) {
         child_type = ArrayType::getChildType(parent_type);
-    } else if (parent_type->getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
-        child_type = VarListType::getChildType(parent_type);
+    } else if (parent_type->getLogicalTypeID() == LogicalTypeID::LIST) {
+        child_type = ListType::getChildType(parent_type);
     } else {
         return nullptr;
     }

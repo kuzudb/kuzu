@@ -52,7 +52,7 @@ static std::string entryToString(
     case LogicalTypeID::INTERNAL_ID:
         return TypeUtils::toString(*reinterpret_cast<const internalID_t*>(value));
     case LogicalTypeID::ARRAY:
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::LIST:
         return TypeUtils::toString(*reinterpret_cast<const list_entry_t*>(value), valueVector);
     case LogicalTypeID::MAP:
         return TypeUtils::toString(*reinterpret_cast<const map_entry_t*>(value), valueVector);

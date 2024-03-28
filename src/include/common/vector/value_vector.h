@@ -28,7 +28,7 @@ public:
     explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);
     explicit ValueVector(LogicalTypeID dataTypeID, storage::MemoryManager* memoryManager = nullptr)
         : ValueVector(LogicalType(dataTypeID), memoryManager) {
-        KU_ASSERT(dataTypeID != LogicalTypeID::VAR_LIST);
+        KU_ASSERT(dataTypeID != LogicalTypeID::LIST);
     }
 
     ~ValueVector() = default;
@@ -149,43 +149,43 @@ struct KUZU_API BlobVector {
 class KUZU_API ListVector {
 public:
     static void setDataVector(const ValueVector* vector, std::shared_ptr<ValueVector> dataVector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST);
         auto listBuffer =
             ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
         listBuffer->setDataVector(std::move(dataVector));
     }
     static ValueVector* getDataVector(const ValueVector* vector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST);
         return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
     static std::shared_ptr<ValueVector> getSharedDataVector(const ValueVector* vector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST);
         return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getSharedDataVector();
     }
     static uint64_t getDataVectorSize(const ValueVector* vector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST);
         return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getSize();
     }
 
     static uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST);
         auto dataVector = getDataVector(vector);
         return dataVector->getData() + dataVector->getNumBytesPerValue() * listEntry.offset;
     }
     static uint8_t* getListValuesWithOffset(
         const ValueVector* vector, const list_entry_t& listEntry, offset_t elementOffsetInList) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST);
         return getListValues(vector, listEntry) +
                elementOffsetInList * getDataVector(vector)->getNumBytesPerValue();
     }
     static list_entry_t addList(ValueVector* vector, uint64_t listSize) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST);
         return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->addList(listSize);

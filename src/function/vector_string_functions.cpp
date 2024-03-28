@@ -304,14 +304,14 @@ function_set RegexpExtractAllFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::VAR_LIST,
+        LogicalTypeID::LIST,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t,
             RegexpExtractAll>,
         nullptr, bindFunc, false /* isVarLength */));
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::INT64},
-        LogicalTypeID::VAR_LIST,
+        LogicalTypeID::LIST,
         ScalarFunction::TernaryStringExecFunction<ku_string_t, ku_string_t, int64_t, list_entry_t,
             RegexpExtractAll>,
         nullptr, bindFunc, false /* isVarLength */));
@@ -320,7 +320,7 @@ function_set RegexpExtractAllFunction::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> RegexpExtractAllFunction::bindFunc(
     const binder::expression_vector& /*arguments*/, Function* /*definition*/) {
-    return std::make_unique<FunctionBindData>(LogicalType::VAR_LIST(LogicalType::STRING()));
+    return std::make_unique<FunctionBindData>(LogicalType::LIST(LogicalType::STRING()));
 }
 
 function_set LevenshteinFunction::getFunctionSet() {

@@ -26,7 +26,7 @@ kuzu_logical_type* kuzu_data_type_create(
         auto extraTypeInfo =
             num_elements_in_array > 0 ?
                 std::make_unique<ArrayTypeInfo>(std::move(child_type_pty), num_elements_in_array) :
-                std::make_unique<VarListTypeInfo>(std::move(child_type_pty));
+                std::make_unique<ListTypeInfo>(std::move(child_type_pty));
         data_type = CAPIHelper::createLogicalType(logicalTypeID, std::move(extraTypeInfo));
     }
     c_data_type->_data_type = data_type;

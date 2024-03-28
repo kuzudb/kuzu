@@ -32,7 +32,7 @@ struct ColumnChunkMetadata {
 class ColumnChunk {
 public:
     friend struct ColumnChunkFactory;
-    friend struct VarListDataColumnChunk;
+    friend struct ListDataColumnChunk;
 
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory

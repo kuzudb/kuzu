@@ -143,7 +143,7 @@ void getDuckDBVectorConversionFunc(
     case PhysicalTypeID::INTERVAL: {
         conversion_func = convertDuckDBVectorToVector<interval_t>;
     } break;
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         conversion_func = convertDuckDBVectorToVector<list_entry_t>;
     } break;
     case PhysicalTypeID::STRUCT: {

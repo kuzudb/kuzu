@@ -7,11 +7,11 @@ namespace kuzu {
 namespace storage {
 
 // TODO(Guodong): Let's simplify the data structure here by getting rid of this class.
-struct VarListDataColumnChunk {
+struct ListDataColumnChunk {
     std::unique_ptr<ColumnChunk> dataColumnChunk;
     uint64_t capacity;
 
-    explicit VarListDataColumnChunk(std::unique_ptr<ColumnChunk> dataChunk)
+    explicit ListDataColumnChunk(std::unique_ptr<ColumnChunk> dataChunk)
         : dataColumnChunk{std::move(dataChunk)}, capacity{this->dataColumnChunk->capacity} {}
 
     void reset() const;
@@ -25,14 +25,14 @@ struct VarListDataColumnChunk {
     inline uint64_t getNumValues() const { return dataColumnChunk->getNumValues(); }
 };
 
-class VarListColumnChunk final : public ColumnChunk {
+class ListColumnChunk final : public ColumnChunk {
 
 public:
-    VarListColumnChunk(
+    ListColumnChunk(
         common::LogicalType dataType, uint64_t capacity, bool enableCompression, bool inMemory);
 
     inline ColumnChunk* getDataColumnChunk() const {
-        return varListDataColumnChunk->dataColumnChunk.get();
+        return listDataColumnChunk->dataColumnChunk.get();
     }
 
     inline ColumnChunk* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
@@ -60,7 +60,7 @@ public:
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     inline void resizeDataColumnChunk(uint64_t numValues) {
-        varListDataColumnChunk->resizeBuffer(numValues);
+        listDataColumnChunk->resizeBuffer(numValues);
     }
 
     inline void resize(uint64_t newCapacity) override {
@@ -75,7 +75,7 @@ public:
     common::list_size_t getListSize(common::offset_t offset) const;
 
     void resetOffset();
-    void resetFromOtherChunk(VarListColumnChunk* other);
+    void resetFromOtherChunk(ListColumnChunk* other);
     void finalize() override;
     bool isOffsetsConsecutiveAndSortedAscending(uint64_t startPos, uint64_t endPos) const;
     bool sanityCheck() override;
@@ -91,7 +91,7 @@ private:
 
 protected:
     std::unique_ptr<ColumnChunk> sizeColumnChunk;
-    std::unique_ptr<VarListDataColumnChunk> varListDataColumnChunk;
+    std::unique_ptr<ListDataColumnChunk> listDataColumnChunk;
     // we use checkOffsetSortedAsc flag to indicate that we do not trigger random write
     bool checkOffsetSortedAsc;
 };

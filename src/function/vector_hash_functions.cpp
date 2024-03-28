@@ -8,7 +8,7 @@ namespace kuzu {
 namespace function {
 
 static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector* operand) {
-    auto hashVector = std::make_unique<ValueVector>(*LogicalType::VAR_LIST(LogicalType::HASH()));
+    auto hashVector = std::make_unique<ValueVector>(*LogicalType::LIST(LogicalType::HASH()));
     auto numValuesInDataVec = ListVector::getDataVectorSize(operand);
     ListVector::resizeDataVector(hashVector.get(), numValuesInDataVec);
     auto selectionState = std::make_shared<DataChunkState>();
@@ -127,7 +127,7 @@ void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) 
     case PhysicalTypeID::STRUCT: {
         computeStructVecHash(operand, result);
     } break;
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         computeListVectorHash(operand, result);
     } break;
         // LCOV_EXCL_START

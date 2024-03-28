@@ -323,7 +323,7 @@ public class ValueTest extends TestBase {
 
         value = flatTuple.getValue(2);
         dataType = value.getDataType();
-        assertEquals(dataType.getID(), KuzuDataTypeID.VAR_LIST);
+        assertEquals(dataType.getID(), KuzuDataTypeID.LIST);
         KuzuDataType childDataType = dataType.getChildType();
         assertEquals(childDataType.getID(), KuzuDataTypeID.INT64);
         childDataType.destroy();

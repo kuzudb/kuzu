@@ -520,7 +520,7 @@ TEST_F(CApiValueTest, GetDataType) {
 
     value = kuzu_flat_tuple_get_value(flatTuple, 2);
     dataType = kuzu_value_get_data_type(value);
-    ASSERT_EQ(kuzu_data_type_get_id(dataType), KUZU_VAR_LIST);
+    ASSERT_EQ(kuzu_data_type_get_id(dataType), KUZU_LIST);
     kuzu_data_type_destroy(dataType);
     kuzu_value_destroy(value);
 

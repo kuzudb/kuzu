@@ -6,7 +6,7 @@ add_library(kuzu_processor_operator_parquet_writer
         interval_column_writer.cpp
         struct_column_writer.cpp
         string_column_writer.cpp
-        var_list_column_writer.cpp
+        list_column_writer.cpp
         parquet_writer.cpp
         parquet_rle_bp_encoder.cpp)
 

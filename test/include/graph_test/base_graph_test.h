@@ -107,7 +107,7 @@ protected:
         ASSERT_EQ(actualResult, expectedResult);
     }
     static inline bool containsOverflowFile(common::LogicalTypeID typeID) {
-        return typeID == common::LogicalTypeID::STRING || typeID == common::LogicalTypeID::VAR_LIST;
+        return typeID == common::LogicalTypeID::STRING || typeID == common::LogicalTypeID::LIST;
     }
 
     void commitOrRollbackConnectionAndInitDBIfNecessary(

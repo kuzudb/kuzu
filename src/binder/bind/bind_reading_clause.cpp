@@ -107,9 +107,9 @@ void Binder::rewriteMatchPattern(BoundGraphPattern& boundGraphPattern) {
 std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {
     auto& unwindClause = ku_dynamic_cast<const ReadingClause&, const UnwindClause&>(readingClause);
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
-    ExpressionBinder::validateDataType(*boundExpression, LogicalTypeID::VAR_LIST);
+    ExpressionBinder::validateDataType(*boundExpression, LogicalTypeID::LIST);
     auto aliasName = unwindClause.getAlias();
-    auto alias = createVariable(aliasName, *VarListType::getChildType(&boundExpression->dataType));
+    auto alias = createVariable(aliasName, *ListType::getChildType(&boundExpression->dataType));
     std::shared_ptr<Expression> idExpr = nullptr;
     if (scope.hasMemorizedTableIDs(boundExpression->getAlias())) {
         auto tableIDs = scope.getMemorizedTableIDs(boundExpression->getAlias());

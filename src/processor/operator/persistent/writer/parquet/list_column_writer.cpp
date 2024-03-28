@@ -1,34 +1,34 @@
-#include "processor/operator/persistent/writer/parquet/var_list_column_writer.h"
+#include "processor/operator/persistent/writer/parquet/list_column_writer.h"
 
 namespace kuzu {
 namespace processor {
 
 using namespace kuzu_parquet::format;
 
-std::unique_ptr<ColumnWriterState> VarListColumnWriter::initializeWriteState(
+std::unique_ptr<ColumnWriterState> ListColumnWriter::initializeWriteState(
     kuzu_parquet::format::RowGroup& rowGroup) {
     auto result = std::make_unique<ListColumnWriterState>(rowGroup, rowGroup.columns.size());
     result->childState = childWriter->initializeWriteState(rowGroup);
     return result;
 }
 
-bool VarListColumnWriter::hasAnalyze() {
+bool ListColumnWriter::hasAnalyze() {
     return childWriter->hasAnalyze();
 }
 
-void VarListColumnWriter::analyze(ColumnWriterState& writerState, ColumnWriterState* /*parent*/,
+void ListColumnWriter::analyze(ColumnWriterState& writerState, ColumnWriterState* /*parent*/,
     common::ValueVector* vector, uint64_t /*count*/) {
     auto& state = reinterpret_cast<ListColumnWriterState&>(writerState);
     childWriter->analyze(*state.childState, &writerState, common::ListVector::getDataVector(vector),
         common::ListVector::getDataVectorSize(vector));
 }
 
-void VarListColumnWriter::finalizeAnalyze(ColumnWriterState& writerState) {
+void ListColumnWriter::finalizeAnalyze(ColumnWriterState& writerState) {
     auto& state = reinterpret_cast<ListColumnWriterState&>(writerState);
     childWriter->finalizeAnalyze(*state.childState);
 }
 
-void VarListColumnWriter::prepare(ColumnWriterState& writerState, ColumnWriterState* parent,
+void ListColumnWriter::prepare(ColumnWriterState& writerState, ColumnWriterState* parent,
     common::ValueVector* vector, uint64_t count) {
     auto& state = reinterpret_cast<ListColumnWriterState&>(writerState);
 
@@ -85,19 +85,19 @@ void VarListColumnWriter::prepare(ColumnWriterState& writerState, ColumnWriterSt
         common::ListVector::getDataVectorSize(vector));
 }
 
-void VarListColumnWriter::beginWrite(ColumnWriterState& state_p) {
+void ListColumnWriter::beginWrite(ColumnWriterState& state_p) {
     auto& state = reinterpret_cast<ListColumnWriterState&>(state_p);
     childWriter->beginWrite(*state.childState);
 }
 
-void VarListColumnWriter::write(
+void ListColumnWriter::write(
     ColumnWriterState& writerState, common::ValueVector* vector, uint64_t /*count*/) {
     auto& state = reinterpret_cast<ListColumnWriterState&>(writerState);
     childWriter->write(*state.childState, common::ListVector::getDataVector(vector),
         common::ListVector::getDataVectorSize(vector));
 }
 
-void VarListColumnWriter::finalizeWrite(ColumnWriterState& writerState) {
+void ListColumnWriter::finalizeWrite(ColumnWriterState& writerState) {
     auto& state = reinterpret_cast<ListColumnWriterState&>(writerState);
     childWriter->finalizeWrite(*state.childState);
 }

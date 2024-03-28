@@ -8,10 +8,10 @@
 #include "storage/stats/property_statistics.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
+#include "storage/store/list_column.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column.h"
 #include "storage/store/struct_column.h"
-#include "storage/store/var_list_column.h"
 #include "transaction/transaction.h"
 #include <bit>
 
@@ -932,8 +932,8 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
     }
     case LogicalTypeID::ARRAY:
     case LogicalTypeID::MAP:
-    case LogicalTypeID::VAR_LIST: {
-        return std::make_unique<VarListColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
+    case LogicalTypeID::LIST: {
+        return std::make_unique<ListColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::UNION:

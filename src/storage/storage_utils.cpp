@@ -86,7 +86,7 @@ uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {
     case PhysicalTypeID::STRING: {
         return sizeof(ku_string_t);
     }
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         return sizeof(ku_list_t);
     }
     case PhysicalTypeID::STRUCT: {
@@ -104,7 +104,7 @@ uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
     case PhysicalTypeID::STRING: {
         return sizeof(ku_string_t);
     }
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         return sizeof(ku_list_t);
     }
     case PhysicalTypeID::STRUCT: {

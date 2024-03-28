@@ -17,7 +17,7 @@
 // in-place updates of a list column. In a list column chunk, offsets of lists are not always sorted
 // after updates. This is good for writes, but it introduces extra overheads for scans, as lists can
 // be scattered, and scans have to be broken into multiple small reads. To achieve a balance between
-// reads and writes, during updates, we rewrite the whole var list column chunk in ascending order
+// reads and writes, during updates, we rewrite the whole list column chunk in ascending order
 // when the offsets are not sorted in ascending order and the size of data column chunk is larger
 // than half of its capacity.
 
@@ -41,11 +41,11 @@ struct ListOffsetSizeInfo {
     bool isOffsetSortedAscending(uint64_t startPos, uint64_t endPos) const;
 };
 
-class VarListColumn : public Column {
-    friend class VarListLocalColumn;
+class ListColumn : public Column {
+    friend class ListLocalColumn;
 
 public:
-    VarListColumn(std::string name, common::LogicalType dataType,
+    ListColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);

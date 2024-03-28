@@ -63,8 +63,8 @@ QueryGraph Binder::bindPatternElement(const PatternElement& patternElement) {
 
 static std::unique_ptr<LogicalType> getRecursiveRelLogicalType(
     const LogicalType& nodeType, const LogicalType& relType) {
-    auto nodesType = LogicalType::VAR_LIST(nodeType.copy());
-    auto relsType = LogicalType::VAR_LIST(relType.copy());
+    auto nodesType = LogicalType::LIST(nodeType.copy());
+    auto relsType = LogicalType::LIST(relType.copy());
     std::vector<StructField> recursiveRelFields;
     recursiveRelFields.emplace_back(InternalKeyword::NODES, std::move(nodesType));
     recursiveRelFields.emplace_back(InternalKeyword::RELS, std::move(relsType));

@@ -9,8 +9,8 @@ namespace function {
 bool CastArrayHelper::checkCompatibleNestedTypes(
     LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
     switch (sourceTypeID) {
-    case LogicalTypeID::VAR_LIST: {
-        if (targetTypeID == LogicalTypeID::ARRAY || targetTypeID == LogicalTypeID::VAR_LIST) {
+    case LogicalTypeID::LIST: {
+        if (targetTypeID == LogicalTypeID::ARRAY || targetTypeID == LogicalTypeID::LIST) {
             return true;
         }
     }
@@ -21,7 +21,7 @@ bool CastArrayHelper::checkCompatibleNestedTypes(
         }
     }
     case LogicalTypeID::ARRAY: {
-        if (targetTypeID == LogicalTypeID::VAR_LIST || targetTypeID == LogicalTypeID::ARRAY) {
+        if (targetTypeID == LogicalTypeID::LIST || targetTypeID == LogicalTypeID::ARRAY) {
             return true;
         }
     }
@@ -32,7 +32,7 @@ bool CastArrayHelper::checkCompatibleNestedTypes(
 }
 
 bool CastArrayHelper::containsListToArray(const LogicalType* srcType, const LogicalType* dstType) {
-    if ((srcType->getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
+    if ((srcType->getLogicalTypeID() == LogicalTypeID::LIST ||
             srcType->getLogicalTypeID() == LogicalTypeID::ARRAY) &&
         dstType->getLogicalTypeID() == LogicalTypeID::ARRAY) {
         return true;
@@ -40,13 +40,13 @@ bool CastArrayHelper::containsListToArray(const LogicalType* srcType, const Logi
 
     if (checkCompatibleNestedTypes(srcType->getLogicalTypeID(), dstType->getLogicalTypeID())) {
         switch (srcType->getPhysicalType()) {
-        case PhysicalTypeID::VAR_LIST: {
+        case PhysicalTypeID::LIST: {
             auto srcChildType = (srcType->getLogicalTypeID() == LogicalTypeID::ARRAY) ?
                                     ArrayType::getChildType(srcType) :
-                                    VarListType::getChildType(srcType);
+                                    ListType::getChildType(srcType);
             auto dstChildType = (dstType->getLogicalTypeID() == LogicalTypeID::ARRAY) ?
                                     ArrayType::getChildType(dstType) :
-                                    VarListType::getChildType(dstType);
+                                    ListType::getChildType(dstType);
             return containsListToArray(srcChildType, dstChildType);
         }
         case PhysicalTypeID::STRUCT: {
@@ -79,8 +79,8 @@ void CastArrayHelper::validateListEntry(
     auto inputType = inputVector->dataType;
 
     switch (resultType->getPhysicalType()) {
-    case PhysicalTypeID::VAR_LIST: {
-        if (inputType.getPhysicalType() == PhysicalTypeID::VAR_LIST) {
+    case PhysicalTypeID::LIST: {
+        if (inputType.getPhysicalType() == PhysicalTypeID::LIST) {
             if (inputType.getLogicalTypeID() == LogicalTypeID::ARRAY &&
                 resultType->getLogicalTypeID() == LogicalTypeID::ARRAY) {
                 if (ArrayType::getNumElements(&inputType) !=
@@ -90,22 +90,22 @@ void CastArrayHelper::validateListEntry(
                             inputType.toString(), resultType->toString()));
                 }
             }
-            if (inputType.getLogicalTypeID() == LogicalTypeID::VAR_LIST &&
+            if (inputType.getLogicalTypeID() == LogicalTypeID::LIST &&
                 resultType->getLogicalTypeID() == LogicalTypeID::ARRAY) {
                 auto listEntry = inputVector->getValue<list_entry_t>(pos);
                 if (listEntry.size != ArrayType::getNumElements(resultType)) {
-                    throw ConversionException{stringFormat(
-                        "Unsupported casting VAR_LIST with incorrect list entry to ARRAY. "
-                        "Expected: {}, Actual: {}.",
-                        ArrayType::getNumElements(resultType),
-                        inputVector->getValue<list_entry_t>(pos).size)};
+                    throw ConversionException{
+                        stringFormat("Unsupported casting LIST with incorrect list entry to ARRAY. "
+                                     "Expected: {}, Actual: {}.",
+                            ArrayType::getNumElements(resultType),
+                            inputVector->getValue<list_entry_t>(pos).size)};
                 }
             }
             auto listEntry = inputVector->getValue<list_entry_t>(pos);
             auto inputChildVector = ListVector::getDataVector(inputVector);
             auto resultChildType = (resultType->getLogicalTypeID() == LogicalTypeID::ARRAY) ?
                                        ArrayType::getChildType(resultType) :
-                                       VarListType::getChildType(resultType);
+                                       ListType::getChildType(resultType);
             for (auto i = listEntry.offset; i < listEntry.offset + listEntry.size; i++) {
                 validateListEntry(inputChildVector, resultChildType, i);
             }

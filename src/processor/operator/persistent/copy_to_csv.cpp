@@ -167,10 +167,10 @@ void CopyToCSVLocalState::writeRows(CopyToCSVInfo* copyToCsvInfo) {
                 continue;
             }
             auto strValue = vector->getValue<ku_string_t>(pos);
-            // Note: we need blindly add quotes to VAR_LIST.
+            // Note: we need blindly add quotes to LIST.
             writeString(serializer.get(), copyToCsvInfo, strValue.getData(), strValue.len,
                 CopyToCSVConstants::DEFAULT_FORCE_QUOTE ||
-                    vectorsToCast[j]->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+                    vectorsToCast[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST);
         }
         serializer->writeBufferData(CopyToCSVConstants::DEFAULT_CSV_NEWLINE);
     }

@@ -33,7 +33,7 @@ uint32_t getDataTypeSizeInChunk(const common::PhysicalTypeID& dataType) {
     case PhysicalTypeID::STRING: {
         return sizeof(uint32_t);
     }
-    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::LIST:
     case PhysicalTypeID::INTERNAL_ID: {
         return sizeof(offset_t);
     }
@@ -100,7 +100,7 @@ bool CompressionMetadata::canUpdateInPlace(
                 value, BitpackHeader::readHeader(this->data));
         }
         case PhysicalTypeID::INTERNAL_ID:
-        case PhysicalTypeID::VAR_LIST:
+        case PhysicalTypeID::LIST:
         case PhysicalTypeID::UINT64: {
             auto value = reinterpret_cast<const uint64_t*>(data)[pos];
             return IntegerBitpacking<uint64_t>::canUpdateInPlace(
@@ -156,7 +156,7 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
         case PhysicalTypeID::INT8:
             return IntegerBitpacking<int8_t>::numValues(pageSize, BitpackHeader::readHeader(data));
         case PhysicalTypeID::INTERNAL_ID:
-        case PhysicalTypeID::VAR_LIST:
+        case PhysicalTypeID::LIST:
         case PhysicalTypeID::UINT64:
             return IntegerBitpacking<uint64_t>::numValues(
                 pageSize, BitpackHeader::readHeader(data));
@@ -213,7 +213,7 @@ std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChun
         }
         return std::optional(CompressionMetadata(CompressionType::CONSTANT, value));
     }
-    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRING:
     case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::DOUBLE:
@@ -636,7 +636,7 @@ void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame, Page
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
         }
         case PhysicalTypeID::INTERNAL_ID:
-        case PhysicalTypeID::VAR_LIST:
+        case PhysicalTypeID::LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
@@ -697,7 +697,7 @@ void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageCursor& 
                 result, startPosInResult, numValuesToRead, metadata);
         }
         case PhysicalTypeID::INTERNAL_ID:
-        case PhysicalTypeID::VAR_LIST:
+        case PhysicalTypeID::LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
@@ -759,7 +759,7 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
                 data, dataOffset, frame, posInFrame, numValues, metadata);
         }
         case PhysicalTypeID::INTERNAL_ID:
-        case PhysicalTypeID::VAR_LIST:
+        case PhysicalTypeID::LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().setValuesFromUncompressed(
                 data, dataOffset, frame, posInFrame, numValues, metadata);

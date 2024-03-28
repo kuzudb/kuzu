@@ -106,7 +106,7 @@ Binder exception: Cannot match a built-in function for given function +(INTERNAL
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -132,7 +132,7 @@ Binder exception: Cannot match a built-in function for given function +(DATE,DAT
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -158,7 +158,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -184,7 +184,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -302,7 +302,7 @@ Binder exception: No file found that matches the pattern: wrong_path.parquet.
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (pk=",")
 ---- error
 Binder exception: Unrecognized csv parsing option: PK.
--STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_END=")") RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_END=")") RETURN * ;
 ---- error
 Binder exception: Unrecognized csv parsing option: LIST_END.
 -STATEMENT LOAD WITH HEADERS (map MAP(STRING, MAP(STRING, INT16))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map_correct.csv" (LIST_BEGIN="(") RETURN *;
@@ -310,7 +310,7 @@ Binder exception: Unrecognized csv parsing option: LIST_END.
 Binder exception: Unrecognized csv parsing option: LIST_BEGIN.
 
 -LOG LoadCSVInvalidCol
--STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/quote_error.csv" RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/quote_error.csv" RETURN * ;
 ---- error
 Binder exception: Number of columns mismatch. Expected 1 but got 3.
 
@@ -517,7 +517,7 @@ Binder exception: Cannot match a built-in function for given function +(INT64,ST
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -587,7 +587,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -611,7 +611,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE

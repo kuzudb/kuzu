@@ -130,7 +130,7 @@ enum class KUZU_API LogicalTypeID : uint8_t {
     STRING = 50,
     BLOB = 51,
 
-    VAR_LIST = 52,
+    LIST = 52,
     ARRAY = 53,
     STRUCT = 54,
     MAP = 55,
@@ -161,7 +161,7 @@ enum class PhysicalTypeID : uint8_t {
 
     // Variable size types.
     STRING = 20,
-    VAR_LIST = 22,
+    LIST = 22,
     STRUCT = 23,
     POINTER = 24,
 };
@@ -180,13 +180,13 @@ protected:
     virtual void serializeInternal(Serializer& serializer) const = 0;
 };
 
-class VarListTypeInfo : public ExtraTypeInfo {
+class ListTypeInfo : public ExtraTypeInfo {
 public:
-    VarListTypeInfo() = default;
-    explicit VarListTypeInfo(std::unique_ptr<LogicalType> childType)
+    ListTypeInfo() = default;
+    explicit ListTypeInfo(std::unique_ptr<LogicalType> childType)
         : childType{std::move(childType)} {}
     inline LogicalType* getChildType() const { return childType.get(); }
-    bool operator==(const VarListTypeInfo& other) const;
+    bool operator==(const ListTypeInfo& other) const;
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
     static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
@@ -198,11 +198,11 @@ protected:
     std::unique_ptr<LogicalType> childType;
 };
 
-class ArrayTypeInfo : public VarListTypeInfo {
+class ArrayTypeInfo : public ListTypeInfo {
 public:
     ArrayTypeInfo() = default;
     explicit ArrayTypeInfo(std::unique_ptr<LogicalType> childType, uint64_t numElements)
-        : VarListTypeInfo{std::move(childType)}, numElements{numElements} {}
+        : ListTypeInfo{std::move(childType)}, numElements{numElements} {}
     inline uint64_t getNumElements() const { return numElements; }
     bool operator==(const ArrayTypeInfo& other) const;
     static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
@@ -269,7 +269,7 @@ private:
 class LogicalType {
     friend class LogicalTypeUtils;
     friend struct StructType;
-    friend struct VarListType;
+    friend struct ListType;
     friend struct ArrayType;
 
 public:
@@ -405,10 +405,10 @@ public:
 
     static KUZU_API std::unique_ptr<LogicalType> UNION(std::vector<StructField>&& fields);
 
-    static KUZU_API std::unique_ptr<LogicalType> VAR_LIST(std::unique_ptr<LogicalType> childType);
+    static KUZU_API std::unique_ptr<LogicalType> LIST(std::unique_ptr<LogicalType> childType);
     template<class T>
-    static inline std::unique_ptr<LogicalType> VAR_LIST(T&& childType) {
-        return LogicalType::VAR_LIST(std::make_unique<LogicalType>(std::forward<T>(childType)));
+    static inline std::unique_ptr<LogicalType> LIST(T&& childType) {
+        return LogicalType::LIST(std::make_unique<LogicalType>(std::forward<T>(childType)));
     }
 
     static KUZU_API std::unique_ptr<LogicalType> MAP(
@@ -443,11 +443,11 @@ private:
 using logical_types_t = std::vector<std::unique_ptr<LogicalType>>;
 using logical_type_vec_t = std::vector<LogicalType>;
 
-struct VarListType {
+struct ListType {
     static inline LogicalType* getChildType(const LogicalType* type) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(type->extraTypeInfo.get());
-        return varListTypeInfo->getChildType();
+        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::LIST);
+        auto listTypeInfo = reinterpret_cast<ListTypeInfo*>(type->extraTypeInfo.get());
+        return listTypeInfo->getChildType();
     }
 };
 
@@ -533,12 +533,12 @@ struct StructType {
 struct MapType {
     static inline LogicalType* getKeyType(const LogicalType* type) {
         KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::MAP);
-        return StructType::getFieldTypes(VarListType::getChildType(type))[0];
+        return StructType::getFieldTypes(ListType::getChildType(type))[0];
     }
 
     static inline LogicalType* getValueType(const LogicalType* type) {
         KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::MAP);
-        return StructType::getFieldTypes(VarListType::getChildType(type))[1];
+        return StructType::getFieldTypes(ListType::getChildType(type))[1];
     }
 };
 
@@ -590,7 +590,7 @@ public:
 private:
     static LogicalTypeID dataTypeIDFromString(const std::string& trimmedStr);
     static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
-    static std::unique_ptr<LogicalType> parseVarListType(const std::string& trimmedStr);
+    static std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr);
     static std::unique_ptr<LogicalType> parseArrayType(const std::string& trimmedStr);
     static std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr);
     static std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr);

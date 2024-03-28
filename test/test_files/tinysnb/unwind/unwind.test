@@ -17,10 +17,10 @@ Binder exception: Cannot set expression n with type VARIABLE. Expect node or rel
 Binder exception: Cannot delete expression n with type VARIABLE. Expect node or rel pattern.
 -STATEMENT UNWIND 1 AS a RETURN a;
 ---- error
-Binder exception: 1 has data type INT64 but VAR_LIST was expected.
+Binder exception: 1 has data type INT64 but LIST was expected.
 -STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) UNWIND p AS x RETURN x;
 ---- error
-Binder exception: p has data type RECURSIVE_REL but VAR_LIST was expected.
+Binder exception: p has data type RECURSIVE_REL but LIST was expected.
 -STATEMENT MATCH p = (a:person)-[e:knows*1..1]->(b:person) UNWIND nodes(p) AS x RETURN x.fName, COUNT(*);
 ---- 7
 Alice|6

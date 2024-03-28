@@ -185,7 +185,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 -STATEMENT MATCH (a) RETURN a.* UNION ALL MATCH (b) RETURN b.*
 ---- ok
 
--CASE RelVarList
+-CASE RelList
 -STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN r.comments
 ---- 14
 [rnme,m8sihsdnf2990nfiwf]
