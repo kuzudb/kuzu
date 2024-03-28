@@ -1,0 +1,1580 @@
+-GROUP TinySnbDDLTest
+-DATASET CSV tinysnb
+--
+
+
+-CASE CreateNodeTableCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY (STUDENT_ID))
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n:EXAM_PAPER) RETURN n
+---- ok
+
+-CASE CreateNodeTableCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY (STUDENT_ID))
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (n:EXAM_PAPER) RETURN n
+---- ok
+
+
+-CASE CreateNodeTableRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY (STUDENT_ID))
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (n:EXAM_PAPER) RETURN n
+---- error
+Binder exception: Table EXAM_PAPER does not exist.
+
+-CASE CreateNodeTableRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY (STUDENT_ID))
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (n:EXAM_PAPER) RETURN n
+---- error
+Binder exception: Table EXAM_PAPER does not exist.
+
+-CASE CreateRelTableCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH ()-[r:likes]->() RETURN r
+---- ok
+
+-CASE CreateRelTableCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH ()-[r:likes]->() RETURN r
+---- ok
+
+-CASE CreateRelTableRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH ()-[r:likes]->() RETURN r
+---- error
+Binder exception: Table likes does not exist.
+
+-CASE CreateRelTableRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH ()-[r:likes]->() RETURN r
+---- error
+Binder exception: Table likes does not exist.
+
+-CASE DropNodeTableCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP TABLE movies
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n:movies) RETURN n
+---- error
+Binder exception: Table movies does not exist.
+
+-CASE DropNodeTableCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP TABLE movies
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (n:movies) RETURN n
+---- error
+Binder exception: Table movies does not exist.
+
+-CASE DropNodeTableRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP TABLE movies
+---- ok
+-STATEMENT Rollback
+---- ok
+-STATEMENT MATCH (n:movies) RETURN n
+---- ok
+
+-CASE DropNodeTableRollbackRecovry
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP TABLE movies
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (n:movies) RETURN n
+---- ok
+
+-CASE DropRelTableCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP TABLE knows
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n)-[:knows]->(r) RETURN n
+---- error
+Binder exception: Table knows does not exist.
+
+-CASE DropRelTableCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP TABLE knows
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (n)-[:knows]->(r) RETURN n
+---- error
+Binder exception: Table knows does not exist.
+
+-CASE DropRelTableRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP TABLE knows
+---- ok
+-STATEMENT Rollback
+---- ok
+-STATEMENT MATCH (n)-[:knows]->(r) RETURN n
+---- ok
+
+-CASE DropRelTableRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP TABLE knows
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (n)-[:knows]->(r) RETURN n
+---- ok
+
+-CASE DropNodeTablePropertyRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person DROP gender
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1
+---- 1
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
+
+-CASE DropNodeTablePropertyCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person DROP gender
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1
+---- 1
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
+
+-CASE DropNodeTablePropertyRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person DROP gender
+---- ok
+-STATEMENT Rollback
+---- ok
+-STATEMENT MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1
+---- 1
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
+
+-CASE DropNodeTablePropertyRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person DROP gender
+---- ok
+-STATEMENT Rollback_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1
+---- 1
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
+
+
+-CASE DropRelTablePropertyRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt DROP places
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE DropRelTablePropertyCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt DROP places
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE DropRelTablePropertyRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt DROP places
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE DropRelTablePropertyRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt DROP places
+---- ok
+-STATEMENT rollback_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+
+-CASE AddInt64PropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return Count(p.random)
+---- 1
+0
+
+
+-CASE AddInt64PropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64
+---- ok
+-STATEMENT COMMIT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return Count(p.random)
+---- 1
+0
+
+-CASE AddInt64PropertyToPersonTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddInt64PropertyToPersonTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+
+-CASE AddArrayPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random DOUBLE[5]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return Count(p.random)
+---- 1
+0
+
+-CASE AddArrayPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random DOUBLE[5]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return Count(p.random)
+---- 1
+0
+
+-CASE AddArrayPropertyToPersonTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random DOUBLE[5]
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddArrayPropertyToPersonTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random DOUBLE[5]
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+
+-CASE AddStringPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddStringPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddStringPropertyToPersonTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING
+---- ok
+-STATEMENT Rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddStringPropertyToPersonTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING
+---- ok
+-STATEMENT Rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+
+
+-CASE AddListPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64[]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddListPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64[]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddListPropertyToPersonTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64[]
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddListPropertyToPersonTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64[]
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+
+
+-CASE AddListOfStringPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddListOfStringPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddListOfStringPropertyToPersonTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[]
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddListOfStringPropertyToPersonTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[]
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+
+
+-CASE AddListOfStructPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddListOfStructPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddListOfStructPropertyToPersonTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[]
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+
+-CASE AddListOfStructPropertyToPersonTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[]
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+
+
+-CASE AddMapPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64)
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddMapPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64)
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddMapPropertyToPersonTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64)
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddMapPropertyToPersonTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64)
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+
+-CASE AddStructPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64)
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddStructPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64)
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+
+-CASE AddStructPropertyToPersonTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64)
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddStructPropertyToPersonTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64)
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+
+-CASE AddInt64PropertyToPersonTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64 default 21
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+21
+
+-CASE AddInt64PropertyToPersonTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64 default 21
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+21
+
+-CASE AddInt64PropertyToPersonTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64 default 21
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddInt64PropertyToPersonTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64 default 21
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddStringPropertyToPersonTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random String default 'long long string'
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+long long string
+
+-CASE AddStringPropertyToPersonTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random String default 'long long string'
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+long long string
+
+-CASE AddStringPropertyToPersonTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random String default 'long long string'
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddStringPropertyToPersonTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random String default 'long long string'
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddListOfInt64PropertyToPersonTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64[] default [142,123,789]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[142,123,789]
+
+-CASE AddListOfInt64PropertyToPersonTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64[] default [142,123,789]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[142,123,789]
+
+-CASE AddListOfInt64PropertyToPersonTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64[] default [142,123,789]
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddListOfInt64PropertyToPersonTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random INT64[] default [142,123,789]
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+
+-CASE AddListOfStringPropertyToPersonTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[] default ['142','short','long long long string']
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[142,short,long long long string]
+
+-CASE AddListOfStringPropertyToPersonTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[] default ['142','short','long long long string']
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[142,short,long long long string]
+
+-CASE AddListOfStringPropertyToPersonTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[] default ['142','short','long long long string']
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddListOfStringPropertyToPersonTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[] default ['142','short','long long long string']
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- error
+Binder exception: Cannot find property random for p.
+
+
+-CASE AddListOfListOfStringPropertyToPersonTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[][] default [['142','51'],['short','long','123'],['long long long string','short short short short','short']]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random LIMIT 1
+---- 1
+[[142,51],[short,long,123],[long long long string,short short short short,short]]
+
+-CASE AddListOfListOfStringPropertyToPersonTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[][] default [['142','51'],['short','long','123'],['long long long string','short short short short','short']]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random LIMIT 1
+---- 1
+[[142,51],[short,long,123],[long long long string,short short short short,short]]
+
+-CASE AddListOfListOfStringPropertyToPersonTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[][] default [['142','51'],['short','long','123'],['long long long string','short short short short','short']]
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (p:person) return p.random LIMIT 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddListOfListOfStringPropertyToPersonTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRING[][] default [['142','51'],['short','long','123'],['long long long string','short short short short','short']]
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (p:person) return p.random LIMIT 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddListOfStructPropertyToPersonTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[] default [{revenue: 144, ages: [3.200000,7.200000]}]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[{revenue: 144, ages: [3.200000,7.200000]}]
+
+-CASE AddListOfStructPropertyToPersonTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[] default [{revenue: 144, ages: [3.200000,7.200000]}]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[{revenue: 144, ages: [3.200000,7.200000]}]
+
+
+-CASE AddListOfStructPropertyToPersonTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[] default [{revenue: 144, ages: [3.200000,7.200000]}]
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddListOfStructPropertyToPersonTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[] default [{revenue: 144, ages: [3.200000,7.200000]}]
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddMapPropertyToPersonTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64[]) default map(['key3'],[[3,2,1]])
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+{key3=[3,2,1]}
+
+-CASE AddMapPropertyToPersonTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64[]) default map(['key3'],[[3,2,1]])
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+{key3=[3,2,1]}
+
+-CASE AddMapPropertyToPersonTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64[]) default map(['key3'],[[3,2,1]])
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddMapPropertyToPersonTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64[]) default map(['key3'],[[3,2,1]])
+---- ok
+-STATEMENT rollback_skip_checkpoint
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+
+-CASE AddStructPropertyToPersonTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64) default {price: [5,3,2], volume: 24}
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+{price: [5,3,2], volume: 24}
+
+-CASE AddStructPropertyToPersonTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64) default {price: [5,3,2], volume: 24}
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+{price: [5,3,2], volume: 24}
+
+-CASE AddStructPropertyToPersonTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64) default {price: [5,3,2], volume: 24}
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddStructPropertyToPersonTableWithDefaultValueRollbackReovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64) default {price: [5,3,2], volume: 24}
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- error
+Binder exception: Cannot find property random for p.
+
+-CASE AddInt64PropertyToStudyAtTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddInt64PropertyToStudyAtTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddInt64PropertyToStudyAtTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddInt64PropertyToStudyAtTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+
+
+-CASE AddSTRINGPropertyToStudyAtTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddSTRINGPropertyToStudyAtTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddSTRINGPropertyToStudyAtTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddSTRINGPropertyToStudyAtTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+
+
+-CASE AddStringPropertyToStudyAtTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddStringPropertyToStudyAtTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+
+-CASE AddStringPropertyToStudyAtTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddStringPropertyToStudyAtTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+
+
+-CASE AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64[]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64[]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64[]
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64[]
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+
+
+-CASE AddListOfStringPropertyToStudyAtTableWithoutDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddListOfStringPropertyToStudyAtTableWithoutDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddListOfStringPropertyToStudyAtTableWithoutDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[]
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+
+-CASE AddListOfStringPropertyToStudyAtTableWithoutDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[]
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+
+-CASE AddInt64PropertyToStudyAtTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64 default 42
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+42
+42
+42
+
+-CASE AddInt64PropertyToStudyAtTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64 default 42
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+42
+42
+42
+
+-CASE AddInt64PropertyToStudyAtTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64 default 42
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddInt64PropertyToStudyAtTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64 default 42
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddStringPropertyToStudyAtTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random String default 'VERY SHORT STRING!!'
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+VERY SHORT STRING!!
+VERY SHORT STRING!!
+VERY SHORT STRING!!
+
+
+-CASE AddStringPropertyToStudyAtTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random String default 'VERY SHORT STRING!!'
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+VERY SHORT STRING!!
+VERY SHORT STRING!!
+VERY SHORT STRING!!
+
+-CASE AddStringPropertyToStudyAtTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random String default 'VERY SHORT STRING!!'
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddStringPropertyToStudyAtTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random String default 'VERY SHORT STRING!!'
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddListOfINT64PropertyToStudyAtTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64[] default [5,6,7,1,3]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[5,6,7,1,3]
+[5,6,7,1,3]
+[5,6,7,1,3]
+
+-CASE AddListOfINT64PropertyToStudyAtTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64[] default [5,6,7,1,3]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[5,6,7,1,3]
+[5,6,7,1,3]
+[5,6,7,1,3]
+
+-CASE AddListOfINT64PropertyToStudyAtTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64[] default [5,6,7,1,3]
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddListOfINT64PropertyToStudyAtTableWithDefaultValueRollbackReovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random INT64[] default [5,6,7,1,3]
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddListOfStringPropertyToStudyAtTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[] default ['2','SHORT','SUPER LONG STRINGS']
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[2,SHORT,SUPER LONG STRINGS]
+[2,SHORT,SUPER LONG STRINGS]
+[2,SHORT,SUPER LONG STRINGS]
+
+
+-CASE AddListOfStringPropertyToStudyAtTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[] default ['2','SHORT','SUPER LONG STRINGS']
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[2,SHORT,SUPER LONG STRINGS]
+[2,SHORT,SUPER LONG STRINGS]
+[2,SHORT,SUPER LONG STRINGS]
+
+-CASE AddListOfStringPropertyToStudyAtTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[] default ['2','SHORT','SUPER LONG STRINGS']
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+
+-CASE AddListOfStringPropertyToStudyAtTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[] default ['2','SHORT','SUPER LONG STRINGS']
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+
+-CASE AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[][] default [['hello','good','long long string test'],['6'],['very very long string']]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[[hello,good,long long string test],[6],[very very long string]]
+[[hello,good,long long string test],[6],[very very long string]]
+[[hello,good,long long string test],[6],[very very long string]]
+
+-CASE AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[][] default [['hello','good','long long string test'],['6'],['very very long string']]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[[hello,good,long long string test],[6],[very very long string]]
+[[hello,good,long long string test],[6],[very very long string]]
+[[hello,good,long long string test],[6],[very very long string]]
+
+-CASE AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[][] default [['hello','good','long long string test'],['6'],['very very long string']]
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE studyAt ADD random STRING[][] default [['hello','good','long long string test'],['6'],['very very long string']]
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- error
+Binder exception: Cannot find property random for e.
+
+-CASE RenameTableRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person RENAME TO student
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n:student) RETURN n
+---- ok
+-STATEMENT MATCH (n:person) RETURN n
+---- error
+Binder exception: Table person does not exist.
+
+-CASE RenameTableCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person RENAME TO student
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (n:student) RETURN n
+---- ok
+-STATEMENT MATCH (n:person) RETURN n
+---- error
+Binder exception: Table person does not exist.
+
+-CASE RenameTableRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person RENAME TO student
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (n:person) RETURN n
+---- ok
+-STATEMENT MATCH (n:student) RETURN n
+---- error
+Binder exception: Table student does not exist.
+
+-CASE RenameTableRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person RENAME TO student
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (n:person) RETURN n
+---- ok
+-STATEMENT MATCH (n:student) RETURN n
+---- error
+Binder exception: Table student does not exist.
+
+-CASE RenamePropertyRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person RENAME fName TO name
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n:person) RETURN n.name
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.fName
+---- error
+Binder exception: Cannot find property fName for n.
+
+
+-CASE RenamePropertyCommit
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person RENAME fName TO name
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.name
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.fName
+---- error
+Binder exception: Cannot find property fName for n.
+
+-CASE RenamePropertyRollback
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person RENAME fName TO name
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.fName
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.name
+---- error
+Binder exception: Cannot find property name for n.
+
+
+-CASE RenamePropertyRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person RENAME fName TO name
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.fName
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.name
+---- error
+Binder exception: Cannot find property name for n.

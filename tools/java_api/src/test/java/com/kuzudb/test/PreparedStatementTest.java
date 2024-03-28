@@ -39,22 +39,4 @@ public class PreparedStatementTest extends TestBase {
         preparedStatement2.destroy();
     }
 
-    @Test
-    void PrepStmtAllowActiveTransaction() throws KuzuObjectRefDestroyedException {
-        String query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";
-        KuzuPreparedStatement preparedStatement1 = conn.prepare(query);
-        assertNotNull(preparedStatement1);
-        assertTrue(preparedStatement1.isSuccess());
-        assertTrue(preparedStatement1.allowActiveTransaction());
-        preparedStatement1.destroy();
-
-        query = "create node table npytable (id INT64,i64 INT64[12],PRIMARY KEY(id));";
-        KuzuPreparedStatement preparedStatement2 = conn.prepare(query);
-        assertNotNull(preparedStatement2);
-        assertTrue(preparedStatement2.isSuccess());
-        assertFalse(preparedStatement2.allowActiveTransaction());
-        preparedStatement2.destroy();
-    }
-
-
 }

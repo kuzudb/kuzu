@@ -27,6 +27,7 @@ public:
     virtual void append(ChunkedNodeGroup* nodeGroup) = 0;
 
     inline void dropColumn(common::column_id_t columnID) {
+        KU_ASSERT(columnID != common::INVALID_COLUMN_ID && columnID < columns.size());
         columns.erase(columns.begin() + columnID);
     }
     void addColumn(transaction::Transaction* transaction, const std::string& colNamePrefix,

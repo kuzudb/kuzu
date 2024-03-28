@@ -16,7 +16,7 @@ namespace processor {
 
 void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     if (!context->clientContext->getClientConfig()->enableMultiCopy) {
-        checkIfTableIsEmpty();
+        checkIfTableIsEmpty(context->clientContext->getTx());
     }
     sharedState->logBatchInsertWALRecord();
 }

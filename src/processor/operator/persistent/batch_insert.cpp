@@ -4,12 +4,13 @@
 #include "common/exception/message.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace processor {
 
-void BatchInsert::checkIfTableIsEmpty() {
-    if (sharedState->table->getNumTuples(&transaction::DUMMY_READ_TRANSACTION) != 0) {
+void BatchInsert::checkIfTableIsEmpty(Transaction* transaction) {
+    if (sharedState->table->getNumTuples(transaction) != 0) {
         throw CopyException(ExceptionMessage::notAllowCopyOnNonEmptyTableException());
     }
 }

@@ -1,10 +1,8 @@
 #include "storage/wal_replayer.h"
 
-#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/storage.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
-#include "storage/store/node_table.h"
 #include "storage/wal_replayer_utils.h"
 #include "transaction/transaction.h"
 
@@ -40,11 +38,25 @@ void WALReplayer::replay() {
             "Cannot checkpointInMemory WAL because last logged record is not a commit record.");
     }
     if (!wal->isEmptyWAL()) {
-        auto walIterator = wal->getIterator();
-        WALRecord walRecord;
-        while (walIterator->hasNextRecord()) {
-            walIterator->getNextRecord(walRecord);
-            replayWALRecord(walRecord);
+        // for rollback, we should replay in reverse order.
+        if ((!isCheckpoint && !isRecovering)) {
+            auto walIterator = wal->getIterator();
+            std::vector<WALRecord> walRecords;
+            while (walIterator->hasNextRecord()) {
+                WALRecord walRecord;
+                walIterator->getNextRecord(walRecord);
+                walRecords.push_back(walRecord);
+            }
+            for (auto iter = walRecords.rbegin(); iter != walRecords.rend(); ++iter) {
+                replayWALRecord(*iter);
+            }
+        } else {
+            auto walIterator = wal->getIterator();
+            WALRecord walRecord;
+            while (walIterator->hasNextRecord()) {
+                walIterator->getNextRecord(walRecord);
+                replayWALRecord(walRecord);
+            }
         }
     }
     // We next perform an in-memory checkpointing or rolling back of node/relTables.
@@ -169,7 +181,9 @@ void WALReplayer::replayCatalogRecord() {
 void WALReplayer::replayCreateTableRecord(const WALRecord& walRecord) {
     if (!isCheckpoint) {
         storageManager->dropTable(walRecord.createTableRecord.tableID);
+        wal->getUpdatedTables().erase(walRecord.createTableRecord.tableID);
     }
+    // should recovery
 }
 
 void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {
@@ -188,24 +202,10 @@ void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {
     replayCreateTableRecord(literalTripleTableWALRecord);
 }
 
-void WALReplayer::replayCopyTableRecord(const WALRecord& walRecord) {
-    auto tableID = walRecord.copyTableRecord.tableID;
+void WALReplayer::replayCopyTableRecord(const WALRecord& /*walRecord*/) {
     if (isCheckpoint) {
         if (!isRecovering) {
             // CHECKPOINT.
-            // If we are not recovering, i.e., we are checkpointing during normal execution,
-            // then we need to update the nodeTable because the actual columns and lists
-            // files have been changed during checkpoint. So the in memory
-            // fileHandles are obsolete and should be reconstructed (e.g. since the numPages
-            // have likely changed they need to reconstruct their page locks).
-            auto catalogEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
-            if (catalogEntry->getType() == CatalogEntryType::NODE_TABLE_ENTRY) {
-                auto nodeTableEntry =
-                    ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(catalogEntry);
-                auto nodeTable =
-                    ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(tableID));
-                nodeTable->initializePKIndex(nodeTableEntry, false /* readOnly */, vfs);
-            }
         } else {
             // RECOVERY.
             if (wal->isLastLoggedRecordCommit()) {
@@ -216,6 +216,7 @@ void WALReplayer::replayCopyTableRecord(const WALRecord& walRecord) {
     } else {
         // ROLLBACK.
         // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
+        // TODO(Jiamin): should rollback hash index
     }
 }
 
@@ -223,24 +224,11 @@ void WALReplayer::replayDropTableRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         auto tableID = walRecord.dropTableRecord.tableID;
         if (!isRecovering) {
-            auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
-            switch (tableEntry->getTableType()) {
-            case TableType::NODE: {
-                storageManager->dropTable(tableID);
-                // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
-                WALReplayerUtils::removeHashIndexFile(vfs, tableID, wal->getDirectory());
-            } break;
-            case TableType::REL: {
-                storageManager->dropTable(tableID);
-                // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
-            } break;
-            case TableType::RDF: {
-                // Do nothing.
-            } break;
-            default: {
-                KU_UNREACHABLE;
-            }
-            }
+            // we will not access rdf/rel_group tabletype
+            storageManager->dropTable(tableID);
+            // need to delete table id from wal, otherwise it will trigger in-memory
+            // checkpoint/rollback
+            wal->getUpdatedTables().erase(tableID);
         } else {
             if (!wal->isLastLoggedRecordCommit()) {
                 // Nothing to undo.
@@ -292,7 +280,7 @@ void WALReplayer::replayAddPropertyRecord(const WALRecord& walRecord) {
     auto tableID = walRecord.addPropertyRecord.tableID;
     auto propertyID = walRecord.addPropertyRecord.propertyID;
     if (!isCheckpoint) {
-        auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
+        auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_WRITE_TRANSACTION, tableID);
         storageManager->getTable(tableID)->dropColumn(tableEntry->getColumnID(propertyID));
     }
 }
