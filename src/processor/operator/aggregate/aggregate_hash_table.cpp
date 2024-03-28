@@ -880,7 +880,7 @@ void AggregateHashTable::updateFlatKeyUnFlatAggVectorState(
             for (auto i = 0u; i < aggVecSelectedSize; i++) {
                 if (!aggVector->isNull(i)) {
                     aggregateFunction->updatePosState(
-                        hashSlotsToUpdateAggState[0]->entry + aggStateOffset, aggVector,
+                        hashSlotsToUpdateAggState[groupByKeyPos]->entry + aggStateOffset, aggVector,
                         multiplicity, i, &memoryManager);
                 }
             }
@@ -889,7 +889,7 @@ void AggregateHashTable::updateFlatKeyUnFlatAggVectorState(
                 auto pos = aggVector->state->selVector->selectedPositions[i];
                 if (!aggVector->isNull(pos)) {
                     aggregateFunction->updatePosState(
-                        hashSlotsToUpdateAggState[0]->entry + aggStateOffset, aggVector,
+                        hashSlotsToUpdateAggState[groupByKeyPos]->entry + aggStateOffset, aggVector,
                         multiplicity, pos, &memoryManager);
                 }
             }
