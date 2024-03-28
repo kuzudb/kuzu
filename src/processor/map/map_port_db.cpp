@@ -1,3 +1,4 @@
+#include "common/file_system/virtual_file_system.h"
 #include "planner/operator/persistent/logical_export_db.h"
 #include "planner/operator/persistent/logical_import_db.h"
 #include "processor/operator/persistent/export_db.h"
@@ -19,6 +20,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto childCopyTo : exportDatabase->getChildren()) {
         auto childPhysicalOperator = mapOperator(childCopyTo.get());
         children.push_back(std::move(childPhysicalOperator));
+    }
+    // Ideally we should create directory inside operator but ExportDatabase is executed before
+    // CopyTo which requires the directory to exist. So we create directory in mapper inside.
+    auto fs = clientContext->getVFSUnsafe();
+    auto boundFileInfo = exportDatabase->getBoundFileInfo();
+    KU_ASSERT(boundFileInfo->filePaths.size() == 1);
+    auto filePath = boundFileInfo->filePaths[0];
+    if (!fs->fileOrPathExists(filePath)) {
+        fs->createDir(filePath);
+    } else {
+        throw RuntimeException(stringFormat("Directory {} already exists.", filePath));
     }
     std::unique_ptr<ResultSetDescriptor> resultSetDescriptor;
     return std::make_unique<ExportDB>(exportDatabase->getBoundFileInfo()->copy(), getOperatorID(),

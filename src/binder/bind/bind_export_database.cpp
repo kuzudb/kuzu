@@ -3,7 +3,6 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "main/client_context.h"
 #include "parser/parser.h"
@@ -92,12 +91,6 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     }
     if (fileType != FileType::CSV && parsedOptions.size() != 0) {
         throw BinderException{"Only export to csv can have options."};
-    }
-    auto fs = clientContext->getVFSUnsafe();
-    if (!fs->fileOrPathExists(boundFilePath)) {
-        fs->createDir(boundFilePath);
-    } else {
-        throw BinderException(stringFormat("Directory {} already exists.", boundFilePath));
     }
     return std::make_unique<BoundExportDatabase>(
         boundFilePath, fileType, std::move(exportData), std::move(parsedOptions));
