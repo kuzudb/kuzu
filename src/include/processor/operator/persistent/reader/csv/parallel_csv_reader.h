@@ -39,11 +39,12 @@ struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {
     explicit ParallelCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
         uint64_t numColumns, main::ClientContext* context, common::CSVReaderConfig csvReaderConfig)
         : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
-          csvReaderConfig{std::move(csvReaderConfig)} {}
+          numBlocksReadByFiles{0}, csvReaderConfig{std::move(csvReaderConfig)} {}
 
     void setFileComplete(uint64_t completedFileIdx);
 
     uint64_t numColumns;
+    uint64_t numBlocksReadByFiles = 0;
     common::CSVReaderConfig csvReaderConfig;
 };
 

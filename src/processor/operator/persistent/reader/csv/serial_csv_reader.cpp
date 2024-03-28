@@ -55,6 +55,7 @@ void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
         if (numRows > 0) {
             return;
         }
+        totalReadSizeByFile += reader->getFileSize();
         fileIdx++;
         initReader(context);
     } while (true);
@@ -68,7 +69,7 @@ void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
 }
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
-    auto serialCSVScanSharedState = reinterpret_cast<SerialCSVScanSharedState*>(input.sharedState);
+    auto serialCSVScanSharedState = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(input.sharedState);
     serialCSVScanSharedState->read(output.dataChunk);
     return output.dataChunk.state->selVector->selectedSize;
 }
@@ -99,7 +100,7 @@ void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
 
 static std::unique_ptr<TableFuncBindData> bindFunc(
     main::ClientContext* /*context*/, TableFuncBindInput* input) {
-    auto scanInput = reinterpret_cast<ScanTableFuncBindInput*>(input);
+    auto scanInput = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
     SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes);
@@ -112,7 +113,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {
-    auto bindData = reinterpret_cast<ScanBindData*>(input.bindData);
+    auto bindData = ku_dynamic_cast<TableFuncBindData*, ScanBindData*>(input.bindData);
     auto csvConfig = CSVReaderConfig::construct(bindData->config.options);
     row_idx_t numRows = 0;
     auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->config.copy(), numRows,
@@ -132,17 +133,13 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
 }
 
 static double progressFunc(TableFuncSharedState* sharedState) {
-    auto state = reinterpret_cast<SerialCSVScanSharedState*>(sharedState);
+    auto state = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(sharedState);
     if (state->totalSize == 0) {
         return 0.0;
     } else if (state->fileIdx >= state->readerConfig.getNumFiles()) {
         return 1.0;
     }
-    uint64_t totalReadSize = 0;
-    for (auto i = 0u; i < state->fileIdx; i++) {
-        totalReadSize += state->reader->getFileSize();
-    }
-    totalReadSize += state->reader->getFileOffset();
+    uint64_t totalReadSize = state->totalReadSizeByFile + state->reader->getFileOffset();
     return static_cast<double>(totalReadSize) / state->totalSize;
 }
 

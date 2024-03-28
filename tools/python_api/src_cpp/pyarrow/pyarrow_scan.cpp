@@ -86,12 +86,12 @@ static common::offset_t tableFunc(
 }
 
 double progressFunc(function::TableFuncSharedState* sharedState) {
-	PyArrowTableScanSharedState* state =
-		dynamic_cast<PyArrowTableScanSharedState*>(sharedState);
+    PyArrowTableScanSharedState* state =
+        ku_dynamic_cast<TableFuncSharedState*, PyArrowTableScanSharedState*>(sharedState);
     if (state->chunks.size() == 0) {
 		return 0.0;
 	}
-	return static_cast<double>(state->currentChunk) / state->chunks.size();
+    return static_cast<double>(state->currentChunk) / state->chunks.size();
 }   
 
 function::function_set PyArrowTableScanFunction::getFunctionSet() {

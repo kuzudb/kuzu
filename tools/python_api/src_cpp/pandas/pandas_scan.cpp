@@ -35,7 +35,7 @@ std::unique_ptr<function::TableFuncBindData> bindFunc(
 
 bool sharedStateNext(const TableFuncBindData* /*bindData*/,
     PandasScanLocalState* localState, TableFuncSharedState* sharedState) {
-    auto pandasSharedState = reinterpret_cast<PandasScanSharedState*>(sharedState);
+    auto pandasSharedState = ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(sharedState);
     std::lock_guard<std::mutex> lck{pandasSharedState->lock};
     if (pandasSharedState->position >= pandasSharedState->numRows) {
         return false;
@@ -63,7 +63,7 @@ std::unique_ptr<function::TableFuncSharedState> initSharedState(
         throw RuntimeException("PandasScan called but GIL was already held!");
     }
     // LCOV_EXCL_STOP
-    auto scanBindData = reinterpret_cast<PandasScanFunctionData*>(input.bindData);
+    auto scanBindData = ku_dynamic_cast<TableFuncBindData*, PandasScanFunctionData*>(input.bindData);
     return std::make_unique<PandasScanSharedState>(scanBindData->numRows);
 }
 
@@ -81,9 +81,9 @@ void pandasBackendScanSwitch(
 
 offset_t tableFunc(
     TableFuncInput& input, TableFuncOutput& output) {
-    auto pandasScanData = reinterpret_cast<PandasScanFunctionData*>(input.bindData);
-    auto pandasLocalState = reinterpret_cast<PandasScanLocalState*>(input.localState);
-    auto pandasSharedState = reinterpret_cast<PandasScanSharedState*>(input.sharedState);
+    auto pandasScanData = ku_dynamic_cast<TableFuncBindData*, PandasScanFunctionData*>(input.bindData);
+    auto pandasLocalState = ku_dynamic_cast<TableFuncLocalState*, PandasScanLocalState*>(input.localState);
+    auto pandasSharedState = ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(input.sharedState);
 
     if (pandasLocalState->start >= pandasLocalState->end) {
         if (!sharedStateNext(input.bindData, pandasLocalState, input.sharedState)) {
@@ -112,11 +112,12 @@ std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyC
 }
 
 static double progressFunc(TableFuncSharedState* sharedState) {
-	auto pandasSharedState = reinterpret_cast<PandasScanSharedState*>(sharedState);
+    auto pandasSharedState = ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(sharedState);
     if (pandasSharedState->numRows == 0) {
 		return 0.0;
 	}
-	return static_cast<double>(pandasSharedState->numReadRows) / pandasSharedState->numRows;
+    return static_cast<double>(pandasSharedState->numReadRows) /
+           pandasSharedState->numRows;
 }
 
 static TableFunction getFunction() {
