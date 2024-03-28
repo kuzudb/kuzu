@@ -69,7 +69,8 @@ void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
 }
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
-    auto serialCSVScanSharedState = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(input.sharedState);
+    auto serialCSVScanSharedState =
+        ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(input.sharedState);
     serialCSVScanSharedState->read(output.dataChunk);
     return output.dataChunk.state->selVector->selectedSize;
 }

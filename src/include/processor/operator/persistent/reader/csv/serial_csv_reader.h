@@ -25,7 +25,7 @@ protected:
 struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     std::unique_ptr<SerialCSVReader> reader;
     uint64_t numColumns;
-    uint64_t totalReadSizeByFile; 
+    uint64_t totalReadSizeByFile;
     common::CSVReaderConfig csvReaderConfig;
 
     SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,

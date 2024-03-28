@@ -117,8 +117,10 @@ void ParallelCSVScanSharedState::setFileComplete(uint64_t completedFileIdx) {
 
 static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& outputChunk = output.dataChunk;
-    auto parallelCSVLocalState = ku_dynamic_cast<TableFuncLocalState*, ParallelCSVLocalState*>(input.localState);
-    auto parallelCSVSharedState = ku_dynamic_cast<TableFuncSharedState*, ParallelCSVScanSharedState*>(input.sharedState);
+    auto parallelCSVLocalState =
+        ku_dynamic_cast<TableFuncLocalState*, ParallelCSVLocalState*>(input.localState);
+    auto parallelCSVSharedState =
+        ku_dynamic_cast<TableFuncSharedState*, ParallelCSVScanSharedState*>(input.sharedState);
     do {
         if (parallelCSVLocalState->reader != nullptr &&
             parallelCSVLocalState->reader->hasMoreToRead()) {
