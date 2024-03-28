@@ -27,8 +27,10 @@ public:
 
 private:
     void init();
-    void replayWALRecord(WALRecord& walRecord);
-    void replayPageUpdateOrInsertRecord(const WALRecord& walRecord);
+    void replayWALRecord(WALRecord& walRecord,
+        std::unordered_map<DBFileID, std::unique_ptr<common::FileInfo>>& fileCache);
+    void replayPageUpdateOrInsertRecord(const WALRecord& walRecord,
+        std::unordered_map<DBFileID, std::unique_ptr<common::FileInfo>>& fileCache);
     void replayTableStatisticsRecord(const WALRecord& walRecord);
     void replayCatalogRecord();
     void replayCreateTableRecord(const WALRecord& walRecord);
