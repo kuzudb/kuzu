@@ -25,12 +25,13 @@ protected:
 struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     std::unique_ptr<SerialCSVReader> reader;
     uint64_t numColumns;
+    uint64_t totalReadSizeByFile;
     common::CSVReaderConfig csvReaderConfig;
 
     SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
         uint64_t numColumns, common::CSVReaderConfig csvReaderConfig, main::ClientContext* context)
         : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
-          csvReaderConfig{std::move(csvReaderConfig)} {
+          totalReadSizeByFile{0}, csvReaderConfig{std::move(csvReaderConfig)} {
         initReader(context);
     }
 

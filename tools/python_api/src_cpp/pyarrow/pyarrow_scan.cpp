@@ -85,18 +85,27 @@ static common::offset_t tableFunc(
     return len;
 }
 
+double progressFunc(function::TableFuncSharedState* sharedState) {
+    PyArrowTableScanSharedState* state =
+        ku_dynamic_cast<TableFuncSharedState*, PyArrowTableScanSharedState*>(sharedState);
+    if (state->chunks.size() == 0) {
+		return 0.0;
+	}
+    return static_cast<double>(state->currentChunk) / state->chunks.size();
+}   
+
 function::function_set PyArrowTableScanFunction::getFunctionSet() {
 
     function_set functionSet;
     functionSet.push_back(
         std::make_unique<TableFunction>(READ_PYARROW_FUNC_NAME, tableFunc, bindFunc,
-            initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::POINTER}));
+            initSharedState, initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER}));
     return functionSet;
 }
 
 TableFunction PyArrowTableScanFunction::getFunction() {
     return TableFunction(READ_PYARROW_FUNC_NAME, tableFunc, bindFunc, initSharedState,
-        initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+        initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
 }
 
 } // namespace kuzu
