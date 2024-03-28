@@ -313,3 +313,28 @@ def test_pyarrow_union(conn_db_readonly : ConnDB) -> None:
 
     assert idx == len(index)
 
+def test_pyarrow_map(conn_db_readonly : ConnDB) -> None:
+    conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 4096
+    index = pa.array(range(datalength))
+    keySet = range(100)
+    valueSet = 'abcdefghijklmnopqrstuvwxyz'
+    col1 = pa.array([
+        {str(key) : ''.join(random.sample(valueSet, random.randint(0, len(valueSet))))
+            for key in random.sample(keySet, random.randint(1, len(keySet)))}
+        if random.randint(0, 5) != 0 else None for i in range(datalength)],
+        type=pa.map_(pa.string(), pa.string()))
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1)})
+    result = conn.execute('CALL READ_PANDAS(df) RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        expected = [idx, None if col1[idx].as_py() is None else dict(col1[idx].as_py())]
+        assert expected == nxt
+        idx += 1
+
+    assert idx == len(index)
