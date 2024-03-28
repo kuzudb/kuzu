@@ -20,11 +20,6 @@
 
 #include "common/task_system/progress_bar.h"
 
-// TODO: REMOVE
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 using namespace kuzu::common;
 using namespace kuzu::utf8proc;
 
@@ -51,7 +46,7 @@ struct ShellCommand {
     const char* QUIT = ":quit";
     const char* MAX_ROWS = ":max_rows";
     const char* MAX_WIDTH = ":max_width";
-    const std::array<const char*, 6> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH};
+    const std::array<const char*, 5> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH};
 } shellCommand;
 
 const char* TAB = "    ";
