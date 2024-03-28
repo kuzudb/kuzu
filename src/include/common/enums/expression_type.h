@@ -6,36 +6,6 @@
 namespace kuzu {
 namespace common {
 
-/**
- * Function name is a temporary identifier used for binder because grammar does not parse built in
- * functions. After binding, expression type should replace function name and used as identifier.
- */
-
-// Table functions
-const char* const TABLE_INFO_FUNC_NAME = "TABLE_INFO";
-const char* const DB_VERSION_FUNC_NAME = "DB_VERSION";
-const char* const CURRENT_SETTING_FUNC_NAME = "CURRENT_SETTING";
-const char* const SHOW_TABLES_FUNC_NAME = "SHOW_TABLES";
-const char* const SHOW_CONNECTION_FUNC_NAME = "SHOW_CONNECTION";
-const char* const STORAGE_INFO_FUNC_NAME = "STORAGE_INFO";
-// Table functions - read functions
-const char* const READ_PARQUET_FUNC_NAME = "READ_PARQUET";
-const char* const READ_NPY_FUNC_NAME = "READ_NPY";
-const char* const READ_CSV_SERIAL_FUNC_NAME = "READ_CSV_SERIAL";
-const char* const READ_CSV_PARALLEL_FUNC_NAME = "READ_CSV_PARALLEL";
-const char* const READ_RDF_RESOURCE_FUNC_NAME = "READ_RDF_RESOURCE";
-const char* const READ_RDF_LITERAL_FUNC_NAME = "READ_RDF_LITERAL";
-const char* const READ_RDF_RESOURCE_TRIPLE_FUNC_NAME = "READ_RDF_RESOURCE_TRIPLE";
-const char* const READ_RDF_LITERAL_TRIPLE_FUNC_NAME = "READ_RDF_LITERAL_TRIPLE";
-const char* const READ_RDF_ALL_TRIPLE_FUNC_NAME = "READ_RDF_ALL_TRIPLE";
-const char* const IN_MEM_READ_RDF_RESOURCE_FUNC_NAME = "IN_MEM_READ_RDF_RESOURCE";
-const char* const IN_MEM_READ_RDF_LITERAL_FUNC_NAME = "IN_MEM_READ_RDF_LITERAL";
-const char* const IN_MEM_READ_RDF_RESOURCE_TRIPLE_FUNC_NAME = "IN_MEM_READ_RDF_RESOURCE_TRIPLE";
-const char* const IN_MEM_READ_RDF_LITERAL_TRIPLE_FUNC_NAME = "IN_MEM_READ_RDF_LITERAL_TRIPLE";
-const char* const READ_PANDAS_FUNC_NAME = "READ_PANDAS";
-const char* const READ_PYARROW_FUNC_NAME = "READ_PYARROW";
-const char* const READ_FTABLE_FUNC_NAME = "READ_FTABLE";
-
 enum class ExpressionType : uint8_t {
 
     // Boolean Connection Expressions

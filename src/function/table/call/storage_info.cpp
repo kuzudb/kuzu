@@ -226,9 +226,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(
 
 function_set StorageInfoFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(STORAGE_INFO_FUNC_NAME, tableFunc,
-        bindFunc, initStorageInfoSharedState, initLocalState,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    functionSet.push_back(
+        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initStorageInfoSharedState,
+            initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 

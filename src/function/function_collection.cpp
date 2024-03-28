@@ -17,9 +17,18 @@
 #include "function/schema/vector_node_rel_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
+#include "function/table/call_functions.h"
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
+#include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
+#include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
+#include "processor/operator/persistent/reader/npy/npy_reader.h"
+#include "processor/operator/persistent/reader/parquet/parquet_reader.h"
+#include "processor/operator/persistent/reader/rdf/rdf_scan.h"
+#include "processor/operator/table_scan/ftable_scan_function.h"
+
+using namespace kuzu::processor;
 
 namespace kuzu {
 namespace function {
@@ -32,6 +41,8 @@ namespace function {
     { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY }
 #define AGGREGATE_FUNCTION(_PARAM)                                                                 \
     { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY }
+#define TABLE_FUNCTION(_PARAM)                                                                     \
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY }
 #define FINAL_FUNCTION                                                                             \
     { nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 
@@ -172,6 +183,20 @@ FunctionCollection* FunctionCollection::getFunctions() {
         AGGREGATE_FUNCTION(AggregateSumFunction), AGGREGATE_FUNCTION(AggregateAvgFunction),
         AGGREGATE_FUNCTION(AggregateMinFunction), AGGREGATE_FUNCTION(AggregateMaxFunction),
         AGGREGATE_FUNCTION(CollectFunction),
+
+        // Table functions
+        TABLE_FUNCTION(CurrentSettingFunction), TABLE_FUNCTION(DBVersionFunction),
+        TABLE_FUNCTION(ShowTablesFunction), TABLE_FUNCTION(TableInfoFunction),
+        TABLE_FUNCTION(ShowConnectionFunction), TABLE_FUNCTION(StorageInfoFunction),
+
+        // Read functions
+        TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),
+        TABLE_FUNCTION(SerialCSVScan), TABLE_FUNCTION(ParallelCSVScan),
+        TABLE_FUNCTION(RdfResourceScan), TABLE_FUNCTION(RdfLiteralScan),
+        TABLE_FUNCTION(RdfResourceTripleScan), TABLE_FUNCTION(RdfLiteralTripleScan),
+        TABLE_FUNCTION(RdfAllTripleScan), TABLE_FUNCTION(RdfResourceInMemScan),
+        TABLE_FUNCTION(RdfLiteralInMemScan), TABLE_FUNCTION(RdfResourceTripleInMemScan),
+        TABLE_FUNCTION(RdfLiteralTripleInMemScan), TABLE_FUNCTION(FTableScan),
 
         // End of array
         FINAL_FUNCTION};
