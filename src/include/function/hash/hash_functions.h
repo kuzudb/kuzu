@@ -15,12 +15,6 @@
 namespace kuzu {
 namespace function {
 
-template<typename T>
-concept HashableTypes = (std::integral<T> || std::floating_point<T> ||
-                         std::is_same_v<T, common::int128_t> ||
-                         std::is_same_v<T, common::list_entry_t> ||
-                         std::is_same_v<T, common::ku_string_t>);
-
 constexpr const uint64_t NULL_HASH = UINT64_MAX;
 
 inline common::hash_t murmurhash64(uint64_t x) {

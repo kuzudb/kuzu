@@ -232,10 +232,11 @@ public:
             return func(ku_string_t());
         case PhysicalTypeID::VAR_LIST:
             return func(list_entry_t());
+        case PhysicalTypeID::STRUCT:
+            return func(struct_entry_t());
         /* NOLINTEND(bugprone-branch-clone)*/
         case PhysicalTypeID::ANY:
         case PhysicalTypeID::POINTER:
-        case PhysicalTypeID::STRUCT:
             // Unsupported type
             KU_UNREACHABLE;
         }

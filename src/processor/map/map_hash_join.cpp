@@ -47,9 +47,11 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
         tableSchema->appendColumn(std::move(columnSchema));
         payloadsPos.push_back(pos);
     }
-    auto pointerType = LogicalType(LogicalTypeID::INT64);
+    auto hashValueColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
+        INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(*LogicalType::HASH()));
+    tableSchema->appendColumn(std::move(hashValueColumn));
     auto pointerColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
-        INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(pointerType));
+        INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(*LogicalType::INT64()));
     tableSchema->appendColumn(std::move(pointerColumn));
     return std::make_unique<HashJoinBuildInfo>(
         std::move(keysPos), std::move(fStateTypes), std::move(payloadsPos), std::move(tableSchema));

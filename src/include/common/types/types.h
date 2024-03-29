@@ -8,6 +8,7 @@
 #include "common/api.h"
 #include "common/assert.h"
 #include "common/types/internal_id_t.h"
+#include "common/types/interval_t.h"
 
 namespace kuzu {
 namespace processor {
@@ -88,6 +89,12 @@ concept IndexHashable = ((std::integral<T> && !std::is_same_v<T, bool>) || std::
                          std::is_same_v<T, common::int128_t> ||
                          std::is_same_v<T, common::ku_string_t> ||
                          std::is_same_v<T, std::string_view> || std::same_as<T, std::string>);
+
+template<typename T>
+concept HashableTypes = (std::integral<T> || std::floating_point<T> ||
+                         std::is_same_v<T, common::int128_t> || std::is_same_v<T, struct_entry_t> ||
+                         std::is_same_v<T, list_entry_t> || std::is_same_v<T, internalID_t> ||
+                         std::is_same_v<T, interval_t> || std::is_same_v<T, ku_string_t>);
 
 enum class KUZU_API LogicalTypeID : uint8_t {
     ANY = 0,

@@ -57,4 +57,37 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Hubert Blaine Wolfeschlegelste
 {rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, release_ns: 2011-08-20 11:25:30.123456, release_ms: 2011-08-20 11:25:30.123, release_sec: 2011-08-20 11:25:30, release_tz: 2011-08-20 11:25:30.123456+00, film: 2012-05-11, u8: 220, u16: 20, u32: 1, u64: 180, hugedata: 1844674407370955161811111111}|{rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, release_ns: 2011-08-20 11:25:30.123456, release_ms: 2011-08-20 11:25:30.123, release_sec: 2011-08-20 11:25:30, release_tz: 2011-08-20 11:25:30.123456+00, film: 2012-05-11, u8: 220, u16: 20, u32: 1, u64: 180, hugedata: 1844674407370955161811111111}
 {rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, release_ns: 2018-11-13 13:33:11.123456, release_ms: 2018-11-13 13:33:11.123, release_sec: 2018-11-13 13:33:11, release_tz: 2018-11-13 13:33:11.123456+00, film: 2014-09-12, u8: 12, u16: 120, u32: 55, u64: 1, hugedata: -1844674407370955161511}|{rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, release_ns: 2018-11-13 13:33:11.123456, release_ms: 2018-11-13 13:33:11.123, release_sec: 2018-11-13 13:33:11, release_tz: 2018-11-13 13:33:11.123456+00, film: 2014-09-12, u8: 12, u16: 120, u32: 55, u64: 1, hugedata: -1844674407370955161511}
 
+-STATEMENT MATCH (a:person), (b:person) WHERE a.workedHours = b.workedHours RETURN a.ID, b.ID
+---- 8
+0|0
+10|10
+2|2
+3|3
+5|5
+7|7
+8|8
+9|9
 
+-STATEMENT MATCH (a:person), (b:person) WHERE a.courseScoresPerTerm = b.courseScoresPerTerm AND a.ID = b.ID RETURN SUM(a.ID)
+---- 1
+44
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.grades = b.grades AND a.ID = 2 RETURN a.age
+---- 1
+30
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.u = b.u AND a.ID = 0 RETURN a.ID
+---- 1
+0
+
+-STATEMENT MATCH (o:organisation), (o1:organisation) WHERE o.state = o1.state RETURN o.name
+---- 3
+ABFsUni
+CsWork
+DEsWork
+
+-STATEMENT MATCH (v1:movies), (v2:movies) WHERE v1.audience = v2.audience RETURN v1.name
+---- 3
+Roma
+Sóló cón tu párejâ
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie

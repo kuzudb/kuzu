@@ -23,14 +23,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(LogicalOperator* logi
     for (auto i = 1u; i < logicalIntersect->getNumChildren(); i++) {
         auto keyNodeID = logicalIntersect->getKeyNodeID(i - 1);
         auto keys = expression_vector{keyNodeID};
-        auto keyTypes = ExpressionUtil::getDataTypes(keys);
         auto buildSchema = logicalIntersect->getChild(i)->getSchema();
         auto buildPrevOperator = mapOperator(logicalIntersect->getChild(i).get());
         auto payloadExpressions =
             binder::ExpressionUtil::excludeExpressions(buildSchema->getExpressionsInScope(), keys);
         auto buildInfo = createHashBuildInfo(*buildSchema, keys, payloadExpressions);
         auto globalHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
-            LogicalType::copy(keyTypes), buildInfo->getTableSchema()->copy());
+            ExpressionUtil::getDataTypes(keys), buildInfo->getTableSchema()->copy());
         auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
         sharedStates.push_back(sharedState);
         children[i] = make_unique<IntersectBuild>(
