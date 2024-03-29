@@ -16,7 +16,7 @@ JoinHashTable::JoinHashTable(MemoryManager& memoryManager, logical_type_vec_t ke
     auto numSlotsPerBlock = BufferPoolConstants::PAGE_256KB_SIZE / sizeof(uint8_t*);
     initSlotConstant(numSlotsPerBlock);
     // Prev pointer is always the last column in the table.
-    prevPtrColOffset = tableSchema->getColOffset(tableSchema->getNumColumns() - 1);
+    prevPtrColOffset = tableSchema->getColOffset(tableSchema->getNumColumns() - PREV_PTR_COL_IDX);
     factorizedTable = std::make_unique<FactorizedTable>(&memoryManager, std::move(tableSchema));
     this->tableSchema = factorizedTable->getTableSchema();
 }
@@ -37,9 +37,8 @@ void JoinHashTable::appendVectors(const std::vector<ValueVector*>& keyVectors,
     discardNullFromKeys(keyVectors);
     auto numTuplesToAppend = keyState->selVector->selectedSize;
     auto appendInfos = factorizedTable->allocateFlatTupleBlocks(numTuplesToAppend);
+    computeVectorHashes(keyVectors);
     auto colIdx = 0u;
-    std::vector<ValueVector*> dummyUnFlatKeyVectors;
-    computeVectorHashes(keyVectors, dummyUnFlatKeyVectors);
     for (auto& vector : keyVectors) {
         appendVector(vector, appendInfos, colIdx++);
     }
@@ -89,8 +88,7 @@ void JoinHashTable::appendVectorWithSorting(
     KU_ASSERT(appendInfos.size() == 1);
     auto colIdx = 0u;
     std::vector<ValueVector*> keyVectors = {keyVector};
-    std::vector<ValueVector*> dummyUnflatKeyVectors;
-    computeVectorHashes(keyVectors, dummyUnflatKeyVectors);
+    computeVectorHashes(keyVectors);
     factorizedTable->copyVectorToColumn(*keyVector, appendInfos[0], numTuplesToAppend, colIdx++);
     for (auto& vector : payloadVectors) {
         factorizedTable->copyVectorToColumn(*vector, appendInfos[0], numTuplesToAppend, colIdx++);
@@ -180,7 +178,7 @@ sel_t JoinHashTable::matchUnFlatKey(ValueVector* keyVector, uint8_t** probedTupl
 }
 
 uint8_t** JoinHashTable::findHashSlot(const uint8_t* tuple) const {
-    auto hash = *(hash_t*)(tuple + tableSchema->getColOffset(tableSchema->getNumColumns() - 2));
+    auto hash = *(hash_t*)(tuple + getHashValueColOffset());
     auto slotIdx = getSlotIdxForHash(hash);
     return (uint8_t**)(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]->getData() +
                        (slotIdx & slotIdxInBlockMask) * sizeof(uint8_t*));
@@ -205,6 +203,15 @@ bool JoinHashTable::compareFlatKeys(
         }
     }
     return true;
+}
+
+void JoinHashTable::computeVectorHashes(std::vector<common::ValueVector*> keyVectors) {
+    std::vector<ValueVector*> dummyUnFlatKeyVectors;
+    BaseHashTable::computeVectorHashes(keyVectors, dummyUnFlatKeyVectors);
+}
+
+offset_t JoinHashTable::getHashValueColOffset() const {
+    return tableSchema->getColOffset(tableSchema->getNumColumns() - HASH_COL_IDX);
 }
 
 } // namespace processor

@@ -57,7 +57,14 @@ private:
 
     bool compareFlatKeys(const std::vector<common::ValueVector*>& keyVectors, const uint8_t* tuple);
 
+    // Join hash table assumes all keys to be flat.
+    void computeVectorHashes(std::vector<common::ValueVector*> keyVectors);
+
+    common::offset_t getHashValueColOffset() const;
+
 private:
+    static constexpr uint64_t PREV_PTR_COL_IDX = 1;
+    static constexpr uint64_t HASH_COL_IDX = 2;
     const FactorizedTableSchema* tableSchema;
     uint64_t prevPtrColOffset;
 };
