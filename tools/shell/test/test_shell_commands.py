@@ -125,15 +125,16 @@ def test_max_width(temp_db, csv_path) -> None:
     result.check_not_stdout("| ... |")
     result.check_stdout("(1 column)")
 
-    def test_bad_command(temp_db) -> None:
-        test = ShellTest().add_argument(temp_db).statement(":maxrows").statement(":quiy").statement("clearr;")
-        result = test.run()
-        result.check_stdout(
-            'Error: Unknown command: ":maxrows". Enter ":help" for help',
-        )
-        result.check_stdout('Did you mean: ":max_rows"?')
-        result.check_stdout('Error: Unknown command: ":quiy". Enter ":help" for help')
-        result.check_stdout('Did you mean: ":quit"?')
-        result.check_stdout(
-            'Error: "clearr;" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., ":clear"?',
-        )
+
+def test_bad_command(temp_db) -> None:
+    test = ShellTest().add_argument(temp_db).statement(":maxrows").statement(":quiy").statement("clearr;")
+    result = test.run()
+    result.check_stdout(
+        'Error: Unknown command: ":maxrows". Enter ":help" for help',
+    )
+    result.check_stdout('Did you mean: ":max_rows"?')
+    result.check_stdout('Error: Unknown command: ":quiy". Enter ":help" for help')
+    result.check_stdout('Did you mean: ":quit"?')
+    result.check_stdout(
+        'Error: "clearr;" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., ":clear"?',
+    )
