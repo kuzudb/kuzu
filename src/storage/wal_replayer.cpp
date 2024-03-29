@@ -1,10 +1,14 @@
 #include "storage/wal_replayer.h"
 
+#include <unordered_map>
+
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/storage.h"
+#include "common/file_system/file_info.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/node_table.h"
+#include "storage/wal/wal_record.h"
 #include "storage/wal_replayer_utils.h"
 #include "transaction/transaction.h"
 
@@ -42,9 +46,10 @@ void WALReplayer::replay() {
     if (!wal->isEmptyWAL()) {
         auto walIterator = wal->getIterator();
         WALRecord walRecord;
+        std::unordered_map<DBFileID, std::unique_ptr<FileInfo>> fileCache;
         while (walIterator->hasNextRecord()) {
             walIterator->getNextRecord(walRecord);
-            replayWALRecord(walRecord);
+            replayWALRecord(walRecord, fileCache);
         }
     }
     // We next perform an in-memory checkpointing or rolling back of node/relTables.
@@ -57,10 +62,11 @@ void WALReplayer::replay() {
     }
 }
 
-void WALReplayer::replayWALRecord(WALRecord& walRecord) {
+void WALReplayer::replayWALRecord(
+    WALRecord& walRecord, std::unordered_map<DBFileID, std::unique_ptr<FileInfo>>& fileCache) {
     switch (walRecord.recordType) {
     case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
-        replayPageUpdateOrInsertRecord(walRecord);
+        replayPageUpdateOrInsertRecord(walRecord, fileCache);
     } break;
     case WALRecordType::TABLE_STATISTICS_RECORD: {
         replayTableStatisticsRecord(walRecord);
@@ -95,12 +101,18 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     }
 }
 
-void WALReplayer::replayPageUpdateOrInsertRecord(const WALRecord& walRecord) {
+void WALReplayer::replayPageUpdateOrInsertRecord(const WALRecord& walRecord,
+    std::unordered_map<DBFileID, std::unique_ptr<FileInfo>>& fileCache) {
     // 1. As the first step we copy over the page on disk, regardless of if we are recovering
     // (and checkpointing) or checkpointing while during regular execution.
     auto dbFileID = walRecord.pageInsertOrUpdateRecord.dbFileID;
-    std::unique_ptr<FileInfo> fileInfoOfDBFile =
-        StorageUtils::getFileInfoForReadWrite(wal->getDirectory(), dbFileID, vfs);
+    auto entry = fileCache.find(dbFileID);
+    if (entry == fileCache.end()) {
+        fileCache.insert(std::make_pair(
+            dbFileID, StorageUtils::getFileInfoForReadWrite(wal->getDirectory(), dbFileID, vfs)));
+        entry = fileCache.find(dbFileID);
+    }
+    auto& fileInfoOfDBFile = entry->second;
     if (isCheckpoint) {
         if (!wal->isLastLoggedRecordCommit()) {
             // Nothing to undo.
