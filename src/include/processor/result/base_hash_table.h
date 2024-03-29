@@ -11,7 +11,7 @@ using compare_function_t = std::function<bool(common::ValueVector*, uint32_t, co
 
 class BaseHashTable {
 public:
-    [[maybe_unused]] BaseHashTable(storage::MemoryManager& memoryManager, common::logical_type_vec_t keyTypes);
+    BaseHashTable(storage::MemoryManager& memoryManager, common::logical_type_vec_t keyTypes);
 
     virtual ~BaseHashTable() = default;
 
