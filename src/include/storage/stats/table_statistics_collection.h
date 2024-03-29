@@ -11,6 +11,11 @@ namespace storage {
 
 struct TablesStatisticsContent {
     std::unordered_map<common::table_id_t, std::unique_ptr<TableStatistics>> tableStatisticPerTable;
+
+    const TableStatistics* getTableStat(common::table_id_t tableID) const {
+        KU_ASSERT(tableStatisticPerTable.contains(tableID));
+        return tableStatisticPerTable.at(tableID).get();
+    }
 };
 
 class WAL;
@@ -86,6 +91,11 @@ protected:
 
     virtual std::string getTableStatisticsFilePath(
         const std::string& directory, common::FileVersionType dbFileType) = 0;
+
+    const TablesStatisticsContent* getVersion(transaction::TransactionType type) const {
+        return type == transaction::TransactionType::READ_ONLY ? readOnlyVersion.get() :
+                                                                 readWriteVersion.get();
+    }
 
     void readFromFile();
     void readFromFile(common::FileVersionType dbFileType);

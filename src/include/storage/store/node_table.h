@@ -55,11 +55,13 @@ public:
             tablesStatistics);
         return nodesStats->getMaxNodeOffset(transaction, tableID);
     }
-    inline void setSelVectorForDeletedOffsets(
-        transaction::Transaction* trx, std::shared_ptr<common::ValueVector>& vector) const {
+    void setSelVectorForDeletedOffsets(
+        transaction::Transaction* trx, common::ValueVector* vector) const {
         KU_ASSERT(vector->isSequential());
-        common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
-            ->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
+        auto nodeStateCollection =
+            common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
+                tablesStatistics);
+        nodeStateCollection->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
     }
 
     inline void initializeReadState(transaction::Transaction* transaction,

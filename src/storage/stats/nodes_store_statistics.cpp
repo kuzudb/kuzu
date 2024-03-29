@@ -1,6 +1,7 @@
 #include "storage/stats/nodes_store_statistics.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
@@ -28,8 +29,7 @@ void NodesStoreStatsAndDeletedIDs::updateNumTuplesByValue(table_id_t tableID, in
 }
 
 void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
-    transaction::Transaction* transaction, const std::shared_ptr<ValueVector>& nodeOffsetVector,
-    table_id_t tableID) {
+    transaction::Transaction* tx, ValueVector* nodeIDVector, table_id_t tableID) {
     // NOTE: We can remove the lock under the following assumptions, that should currently hold:
     // 1) During the phases when nodeStatisticsAndDeletedIDsPerTableForReadOnlyTrx change, which
     // is during checkpointing, this function, which is called during scans, cannot be called.
@@ -39,11 +39,16 @@ void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     // query where scans/reads happen in a write transaction cannot run concurrently with the
     // pipeline that performs an add/delete node.
     lock_t lck{mtx};
-    (transaction->isReadOnly() || readWriteVersion == nullptr) ?
-        getNodeStatisticsAndDeletedIDs(transaction, tableID)
-            ->setDeletedNodeOffsetsForMorsel(nodeOffsetVector) :
-        ((NodeTableStatsAndDeletedIDs*)readWriteVersion->tableStatisticPerTable[tableID].get())
-            ->setDeletedNodeOffsetsForMorsel(nodeOffsetVector);
+    const TablesStatisticsContent* content;
+    if (tx->isReadOnly() || readWriteVersion == nullptr) {
+        content = getVersion(TransactionType::READ_ONLY);
+    } else {
+        content = getVersion(TransactionType::WRITE);
+    }
+    auto tableStat = content->getTableStat(tableID);
+    auto nodeStat =
+        ku_dynamic_cast<const TableStatistics*, const NodeTableStatsAndDeletedIDs*>(tableStat);
+    nodeStat->setDeletedNodeOffsetsForMorsel(nodeIDVector);
 }
 
 void NodesStoreStatsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(
