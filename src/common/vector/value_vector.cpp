@@ -74,6 +74,7 @@ void ValueVector::copyFromRowData(uint32_t pos, const uint8_t* rowData) {
     case PhysicalTypeID::STRUCT: {
         StructVector::copyFromRowData(this, pos, rowData);
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         ListVector::copyFromRowData(this, pos, rowData);
     } break;
@@ -93,6 +94,7 @@ void ValueVector::copyToRowData(uint32_t pos, uint8_t* rowData,
     case PhysicalTypeID::STRUCT: {
         StructVector::copyToRowData(this, pos, rowData, rowOverflowBuffer);
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         ListVector::copyToRowData(this, pos, rowData, rowOverflowBuffer);
     } break;
@@ -113,6 +115,7 @@ void ValueVector::copyFromVectorData(uint8_t* dstData, const ValueVector* srcVec
     case PhysicalTypeID::STRUCT: {
         StructVector::copyFromVectorData(this, dstData, srcVector, srcVectorData);
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         ListVector::copyFromVectorData(this, dstData, srcVector, srcVectorData);
     } break;
@@ -185,6 +188,7 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
         StringVector::addString(this, *(ku_string_t*)dstValue, value.strVal.data(),
             value.strVal.length());
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         auto listEntry = reinterpret_cast<list_entry_t*>(dstValue);
         auto numValues = NestedVal::getChildrenSize(&value);
@@ -259,6 +263,7 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) const {
     case PhysicalTypeID::STRING: {
         value->strVal = getValue<ku_string_t>(pos).getAsString();
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         auto dataVector = ListVector::getDataVector(this);
         auto listEntry = getValue<list_entry_t>(pos);
@@ -294,6 +299,7 @@ void ValueVector::resetAuxiliaryBuffer() {
             ->resetOverflowBuffer();
         return;
     }
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         auto listAuxiliaryBuffer =
             ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(auxiliaryBuffer.get());
@@ -322,6 +328,7 @@ uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
     case PhysicalTypeID::STRUCT: {
         return sizeof(struct_entry_t);
     }
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         return sizeof(list_entry_t);
     }
@@ -504,7 +511,8 @@ void StringVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_
 }
 
 void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData) {
-    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST);
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
+              vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
     auto& srcKuList = *(ku_list_t*)rowData;
     auto srcNullBytes = reinterpret_cast<uint8_t*>(srcKuList.overflowPtr);
     auto srcListValues = srcNullBytes + NullBuffer::getNumBytesForNullValues(srcKuList.size);

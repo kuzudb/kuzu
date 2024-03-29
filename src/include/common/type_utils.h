@@ -230,6 +230,7 @@ public:
             return func(internalID_t());
         case PhysicalTypeID::STRING:
             return func(ku_string_t());
+        case PhysicalTypeID::ARRAY:
         case PhysicalTypeID::LIST:
             return func(list_entry_t());
         case PhysicalTypeID::STRUCT:

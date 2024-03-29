@@ -64,7 +64,8 @@ uint64_t StorageDriver::getNumRels(const std::string& relName) {
 void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column, offset_t* offsets,
     size_t size, uint8_t* result) {
     auto dataType = column->getDataType();
-    if (dataType.getPhysicalType() == PhysicalTypeID::LIST) {
+    if (dataType.getPhysicalType() == PhysicalTypeID::LIST ||
+        dataType.getPhysicalType() == PhysicalTypeID::ARRAY) {
         auto resultVector = ValueVector(dataType);
         for (auto i = 0u; i < size; ++i) {
             auto nodeOffset = offsets[i];

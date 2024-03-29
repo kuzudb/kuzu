@@ -21,8 +21,10 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
     auto inputType = &inputVector->dataType;
     auto resultType = &resultVector->dataType;
     while (true) {
-        if (inputType->getPhysicalType() == PhysicalTypeID::LIST &&
-            resultType->getPhysicalType() == PhysicalTypeID::LIST) {
+        if ((inputType->getPhysicalType() == PhysicalTypeID::LIST ||
+                inputType->getPhysicalType() == PhysicalTypeID::ARRAY) &&
+            (resultType->getPhysicalType() == PhysicalTypeID::LIST ||
+                resultType->getPhysicalType() == PhysicalTypeID::ARRAY)) {
             // copy data and nullmask from input
             memcpy(resultVector->getData(), inputVector->getData(),
                 numOfEntries * resultVector->getNumBytesPerValue());
