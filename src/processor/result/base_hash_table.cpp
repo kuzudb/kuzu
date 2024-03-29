@@ -156,7 +156,7 @@ void BaseHashTable::initSlotConstant(uint64_t numSlotsPerBlock_) {
 void BaseHashTable::initCompareFuncs() {
     compareEntryFuncs.reserve(keyTypes.size());
     for (auto i = 0u; i < keyTypes.size(); ++i) {
-        compareEntryFuncs[i] = getCompareEntryFunc(keyTypes[i].getPhysicalType());
+        compareEntryFuncs.push_back(getCompareEntryFunc(keyTypes[i].getPhysicalType()));
     }
 }
 
