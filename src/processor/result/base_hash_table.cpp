@@ -63,9 +63,8 @@ static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const 
 
 static compare_function_t getCompareEntryFunc(PhysicalTypeID type);
 
-/* NOLINTBEGIN */
 template<>
-bool compareEntry<list_entry_t>(
+[[maybe_unused]]  bool compareEntry<list_entry_t>(
     common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
     auto dataVector = ListVector::getDataVector(vector);
     auto listToCompare = vector->getValue<list_entry_t>(vectorPos);
@@ -85,7 +84,6 @@ bool compareEntry<list_entry_t>(
     }
     return true;
 }
-/* NOLINTEND */
 
 static bool compareNodeEntry(
     common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
@@ -105,9 +103,8 @@ static bool compareRelEntry(common::ValueVector* vector, uint32_t vectorPos, con
                 common::StructType::getNumFields(&vector->dataType)));
 }
 
-/* NOLINTBEGIN */
 template<>
-bool compareEntry<struct_entry_t>(
+[[maybe_unused]] bool compareEntry<struct_entry_t>(
     common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
     switch (vector->dataType.getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
@@ -140,7 +137,6 @@ bool compareEntry<struct_entry_t>(
         KU_UNREACHABLE;
     }
 }
-/* NOLINTEND */
 
 static compare_function_t getCompareEntryFunc(PhysicalTypeID type) {
     compare_function_t func;
