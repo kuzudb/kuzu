@@ -1,5 +1,7 @@
 #include "processor/result/base_hash_table.h"
 
+#include "math.h"
+
 #include "common/null_buffer.h"
 #include "common/utils.h"
 #include "function/comparison/comparison_functions.h"
