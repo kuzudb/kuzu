@@ -64,7 +64,7 @@ static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const 
 static compare_function_t getCompareEntryFunc(PhysicalTypeID type);
 
 template<>
-[[maybe_unused]]  bool compareEntry<list_entry_t>(
+[[maybe_unused]] bool compareEntry<list_entry_t>(
     common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
     auto dataVector = ListVector::getDataVector(vector);
     auto listToCompare = vector->getValue<list_entry_t>(vectorPos);
