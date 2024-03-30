@@ -92,12 +92,11 @@ uint64_t HashJoinProbe::getInnerJoinResultForUnFlatKey() {
     auto keySelVector = keyVectors[0]->state->selVector.get();
     if (keySelVector->selectedSize != numTuplesToRead) {
         // Some keys have no matched tuple. So we modify selected position.
-        auto keySelectedBuffer = keySelVector->getSelectedPositionsBuffer();
+        auto buffer = keySelVector->getMultableBuffer();
         for (auto i = 0u; i < numTuplesToRead; i++) {
-            keySelectedBuffer[i] = probeState->matchedSelVector->selectedPositions[i];
+            buffer[i] = probeState->matchedSelVector->selectedPositions[i];
         }
-        keySelVector->selectedSize = numTuplesToRead;
-        keySelVector->resetSelectorToValuePosBuffer();
+        keySelVector->setToFiltered(numTuplesToRead);
     }
     sharedState->getHashTable()->lookup(vectorsToReadInto, columnIdxsToReadFrom,
         probeState->matchedTuples.get(), probeState->nextMatchedTupleIdx, numTuplesToRead);

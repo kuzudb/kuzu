@@ -20,12 +20,13 @@ bool IndexScan::getNextTuplesInternal(ExecutionContext* context) {
         }
         saveSelVector(outVector->state->selVector);
         numSelectedValues = 0u;
+        auto buffer = outVector->state->selVector->getMultableBuffer();
         for (auto i = 0u; i < indexVector->state->selVector->selectedSize; ++i) {
             auto pos = indexVector->state->selVector->selectedPositions[i];
             if (indexVector->isNull(pos)) {
                 continue;
             }
-            outVector->state->selVector->getSelectedPositionsBuffer()[numSelectedValues] = pos;
+            buffer[numSelectedValues] = pos;
             offset_t nodeOffset = INVALID_OFFSET;
             numSelectedValues +=
                 pkIndex->lookup(context->clientContext->getTx(), indexVector, pos, nodeOffset);
@@ -33,7 +34,7 @@ bool IndexScan::getNextTuplesInternal(ExecutionContext* context) {
             outVector->setValue<nodeID_t>(pos, nodeID);
         }
         if (!outVector->state->isFlat() && outVector->state->selVector->isUnfiltered()) {
-            outVector->state->selVector->resetSelectorToValuePosBuffer();
+            outVector->state->selVector->setToFiltered();
         }
     } while (numSelectedValues == 0);
     outVector->state->selVector->selectedSize = numSelectedValues;

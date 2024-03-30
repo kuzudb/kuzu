@@ -61,12 +61,12 @@ void JoinHashTable::appendVector(
 static void sortSelectedPos(ValueVector* nodeIDVector) {
     auto selVector = nodeIDVector->state->selVector.get();
     auto size = selVector->selectedSize;
-    auto selectedPos = selVector->getSelectedPositionsBuffer();
+    auto buffer = selVector->getMultableBuffer();
     if (selVector->isUnfiltered()) {
-        memcpy(selectedPos, &SelectionVector::INCREMENTAL_SELECTED_POS, size * sizeof(sel_t));
-        selVector->resetSelectorToValuePosBuffer();
+        memcpy(buffer, &SelectionVector::INCREMENTAL_SELECTED_POS, size * sizeof(sel_t));
+        selVector->setToFiltered();
     }
-    std::sort(selectedPos, selectedPos + size, [nodeIDVector](sel_t left, sel_t right) {
+    std::sort(buffer, buffer + size, [nodeIDVector](sel_t left, sel_t right) {
         return nodeIDVector->getValue<nodeID_t>(left) < nodeIDVector->getValue<nodeID_t>(right);
     });
 }
@@ -80,7 +80,7 @@ void JoinHashTable::appendVectorWithSorting(
     auto payloadNodeIDVector = payloadVectors[0];
     auto payloadsState = payloadNodeIDVector->state.get();
     if (!payloadsState->isFlat()) {
-        // Sorting is only needed when the payload is unflat (a list of values).
+        // Sorting is only needed when the payload is unFlat (a list of values).
         sortSelectedPos(payloadNodeIDVector);
     }
     // A single appendInfo will return from `allocateFlatTupleBlocks` when numTuplesToAppend is 1.
@@ -95,7 +95,9 @@ void JoinHashTable::appendVectorWithSorting(
     }
     factorizedTable->copyVectorToColumn(*hashVector, appendInfos[0], numTuplesToAppend, colIdx);
     if (!payloadsState->isFlat()) {
-        payloadsState->selVector->resetSelectorToUnselected();
+        // TODO(Xiyang): I can no longer recall why I set to un-filtered but this is probably wrong.
+        // We should set back to the un-sorted state.
+        payloadsState->selVector->setToUnfiltered();
     }
     factorizedTable->numTuples += numTuplesToAppend;
 }

@@ -68,7 +68,7 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
         if (state == nullptr) {
             return false;
         }
-        outValueVector->state->selVector->resetSelectorToUnselected();
+        outValueVector->state->selVector->setToUnfiltered();
         auto nodeIDValues = (nodeID_t*)(outValueVector->getData());
         auto size = endOffset - startOffset;
         for (auto i = 0u; i < size; ++i) {
@@ -88,19 +88,19 @@ void ScanNodeID::setSelVector(ExecutionContext* context, NodeTableScanState* tab
     tableState->getTable()->setSelVectorForDeletedOffsets(
         context->clientContext->getTx(), outValueVector.get());
     if (tableState->isSemiMaskEnabled()) {
-        auto selectedBuffer = outValueVector->state->selVector->getSelectedPositionsBuffer();
+        auto buffer = outValueVector->state->selVector->getMultableBuffer();
         sel_t prevSelectedSize = outValueVector->state->selVector->selectedSize;
         // Fill selected positions based on node mask for nodes between the given startOffset and
         // endOffset. If the node is masked (i.e., valid for read), then it is set to the selected
         // positions. Finally, we update the selectedSize for selVector.
         sel_t numSelectedValues = 0;
         for (auto i = 0u; i < (endOffset - startOffset); i++) {
-            selectedBuffer[numSelectedValues] = i;
+            buffer[numSelectedValues] = i;
             numSelectedValues += tableState->getSemiMask()->isNodeMasked(i + startOffset);
         }
         outValueVector->state->selVector->selectedSize = numSelectedValues;
         if (prevSelectedSize != numSelectedValues) {
-            outValueVector->state->selVector->resetSelectorToValuePosBuffer();
+            outValueVector->state->selVector->setToFiltered();
         }
     }
 }

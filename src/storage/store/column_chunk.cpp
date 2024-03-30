@@ -318,13 +318,16 @@ void ColumnChunk::resize(uint64_t newCapacity) {
 }
 
 void ColumnChunk::populateWithDefaultVal(ValueVector* defaultValueVector) {
+    // TODO(Guodong): don't set vector state to a new one. Default vector is shared across all
+    // operators on the pipeline so setting its state will affect others.
+    // You can only set state for vectors that is local to this class.
     defaultValueVector->setState(std::make_shared<DataChunkState>());
     auto valPos = defaultValueVector->state->selVector->selectedPositions[0];
-    defaultValueVector->state->selVector->resetSelectorToValuePosBufferWithSize(
-        DEFAULT_VECTOR_CAPACITY);
+    auto positionBuffer = defaultValueVector->state->selVector->getMultableBuffer();
     for (auto i = 0u; i < defaultValueVector->state->selVector->selectedSize; i++) {
-        defaultValueVector->state->selVector->selectedPositions[i] = valPos;
+        positionBuffer[i] = valPos;
     }
+    defaultValueVector->state->selVector->setToFiltered(DEFAULT_VECTOR_CAPACITY);
     auto numValuesAppended = 0u;
     auto numValuesToPopulate = capacity;
     while (numValuesAppended < numValuesToPopulate) {

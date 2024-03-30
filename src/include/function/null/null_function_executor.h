@@ -40,10 +40,10 @@ struct NullOperationExecutor {
             return resultValue == true;
         } else {
             uint64_t numSelectedValues = 0;
-            auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
+            auto buffer = selVector.getMultableBuffer();
             for (auto i = 0ul; i < operand.state->selVector->selectedSize; i++) {
                 auto pos = operand.state->selVector->selectedPositions[i];
-                selectOnValue<FUNC>(operand, pos, numSelectedValues, selectedPositionsBuffer);
+                selectOnValue<FUNC>(operand, pos, numSelectedValues, buffer);
             }
             selVector.selectedSize = numSelectedValues;
             return numSelectedValues > 0;

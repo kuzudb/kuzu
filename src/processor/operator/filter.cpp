@@ -23,7 +23,7 @@ bool Filter::getNextTuplesInternal(ExecutionContext* context) {
             *dataChunkToSelect->state->selVector, context->clientContext);
         if (!dataChunkToSelect->state->isFlat() &&
             dataChunkToSelect->state->selVector->isUnfiltered()) {
-            dataChunkToSelect->state->selVector->resetSelectorToValuePosBuffer();
+            dataChunkToSelect->state->selVector->setToFiltered();
         }
     } while (!hasAtLeastOneSelectedValue);
     metrics->numOutputTuple.increase(dataChunkToSelect->state->selVector->selectedSize);
@@ -44,14 +44,14 @@ bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
         }
         saveSelVector(nodeIDVector->state->selVector);
         numSelectValue = 0;
-        auto buffer = nodeIDVector->state->selVector->getSelectedPositionsBuffer();
+        auto buffer = nodeIDVector->state->selVector->getMultableBuffer();
         for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             buffer[numSelectValue] = pos;
             numSelectValue +=
                 info->nodeLabelSet.contains(nodeIDVector->getValue<nodeID_t>(pos).tableID);
         }
-        nodeIDVector->state->selVector->resetSelectorToValuePosBuffer();
+        nodeIDVector->state->selVector->setToFiltered();
     } while (numSelectValue == 0);
     nodeIDVector->state->selVector->selectedSize = numSelectValue;
     metrics->numOutputTuple.increase(nodeIDVector->state->selVector->selectedSize);
