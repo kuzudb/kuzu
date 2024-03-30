@@ -68,6 +68,7 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
         if (state == nullptr) {
             return false;
         }
+        outValueVector->state->selVector->resetSelectorToUnselected();
         auto nodeIDValues = (nodeID_t*)(outValueVector->getData());
         auto size = endOffset - startOffset;
         for (auto i = 0u; i < size; ++i) {
@@ -83,24 +84,25 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
 
 void ScanNodeID::setSelVector(ExecutionContext* context, NodeTableScanState* tableState,
     offset_t startOffset, offset_t endOffset) {
+    // Apply changes to the selVector from nodes metadata.
+    tableState->getTable()->setSelVectorForDeletedOffsets(
+        context->clientContext->getTx(), outValueVector.get());
     if (tableState->isSemiMaskEnabled()) {
-        outValueVector->state->selVector->resetSelectorToValuePosBuffer();
+        auto selectedBuffer = outValueVector->state->selVector->getSelectedPositionsBuffer();
+        sel_t prevSelectedSize = outValueVector->state->selVector->selectedSize;
         // Fill selected positions based on node mask for nodes between the given startOffset and
         // endOffset. If the node is masked (i.e., valid for read), then it is set to the selected
         // positions. Finally, we update the selectedSize for selVector.
         sel_t numSelectedValues = 0;
         for (auto i = 0u; i < (endOffset - startOffset); i++) {
-            outValueVector->state->selVector->selectedPositions[numSelectedValues] = i;
+            selectedBuffer[numSelectedValues] = i;
             numSelectedValues += tableState->getSemiMask()->isNodeMasked(i + startOffset);
         }
         outValueVector->state->selVector->selectedSize = numSelectedValues;
-    } else {
-        // By default, the selected positions is set to the const incremental pos array.
-        outValueVector->state->selVector->resetSelectorToUnselected();
+        if (prevSelectedSize != numSelectedValues) {
+            outValueVector->state->selVector->resetSelectorToValuePosBuffer();
+        }
     }
-    // Apply changes to the selVector from nodes metadata.
-    tableState->getTable()->setSelVectorForDeletedOffsets(
-        context->clientContext->getTx(), outValueVector);
 }
 
 double ScanNodeID::getProgress(ExecutionContext* /*context*/) const {

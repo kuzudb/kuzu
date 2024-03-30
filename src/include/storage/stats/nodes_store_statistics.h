@@ -65,8 +65,8 @@ public:
         getNodeTableStats(transaction::TransactionType::WRITE, tableID)->deleteNode(nodeOffset);
     }
 
-    void setDeletedNodeOffsetsForMorsel(transaction::Transaction* transaction,
-        const std::shared_ptr<common::ValueVector>& nodeOffsetVector, common::table_id_t tableID);
+    void setDeletedNodeOffsetsForMorsel(transaction::Transaction* tx,
+        common::ValueVector* nodeIDVector, common::table_id_t tableID);
 
     void addNodeStatisticsAndDeletedIDs(catalog::NodeTableCatalogEntry* nodeTableEntry);
 
