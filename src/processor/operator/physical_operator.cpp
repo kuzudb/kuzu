@@ -9,8 +9,8 @@ namespace processor {
 // LCOV_EXCL_START
 std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType operatorType) {
     switch (operatorType) {
-    case PhysicalOperatorType::ADD_PROPERTY:
-        return "ADD_PROPERTY";
+    case PhysicalOperatorType::ALTER:
+        return "ALTER";
     case PhysicalOperatorType::AGGREGATE:
         return "AGGREGATE";
     case PhysicalOperatorType::AGGREGATE_SCAN:
@@ -33,20 +33,14 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "READER";
     case PhysicalOperatorType::INSERT:
         return "INSERT";
-    case PhysicalOperatorType::CREATE_NODE_TABLE:
-        return "CREATE_NODE_TABLE";
-    case PhysicalOperatorType::CREATE_REL_TABLE:
-        return "CREATE_REL_TABLE";
-    case PhysicalOperatorType::CREATE_RDF_GRAPH:
-        return "CREATE_RDF_TABLE";
+    case PhysicalOperatorType::CREATE_TABLE:
+        return "CREATE_TABLE";
     case PhysicalOperatorType::CROSS_PRODUCT:
         return "CROSS_PRODUCT";
     case PhysicalOperatorType::DELETE_NODE:
         return "DELETE_NODE";
     case PhysicalOperatorType::DELETE_REL:
         return "DELETE_REL";
-    case PhysicalOperatorType::DROP_PROPERTY:
-        return "DROP_PROPERTY";
     case PhysicalOperatorType::DROP_TABLE:
         return "DROP_TABLE";
     case PhysicalOperatorType::EMPTY_RESULT:

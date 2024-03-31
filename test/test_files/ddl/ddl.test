@@ -35,10 +35,10 @@ Binder exception: Table movies does not exist.
 -CASE DDLOutputMessages
 -STATEMENT CREATE NODE TABLE university(ID INT64, PRIMARY KEY(ID))
 ---- 1
-Node table: university has been created.
+Table university has been created.
 -STATEMENT CREATE REL TABLE nearTo(FROM university TO university, MANY_MANY)
 ---- 1
-Rel table: nearTo has been created.
+Table nearTo has been created.
 -STATEMENT DROP TABLE nearTo;
 ---- 1
 Table: nearTo has been dropped.
@@ -47,15 +47,15 @@ Table: nearTo has been dropped.
 Table: university has been dropped.
 -STATEMENT ALTER TABLE person DROP fName
 ---- 1
-Drop succeed.
+Table person altered.
 -STATEMENT ALTER TABLE knows DROP date
 ---- 1
-Drop succeed.
+Table knows altered.
 
 -CASE CreateRelGroup
 -STATEMENT CREATE REL TABLE GROUP likes (FROM person TO person, FROM person TO organisation, since INT64);
 ---- 1
-Rel table group: likes has been created.
+Table likes has been created.
 -STATEMENT Call table_info('likes_person_person') RETURN *;
 ---- 1
 1|since|INT64
@@ -88,6 +88,42 @@ Binder exception: Table movies does not exist.
 -STATEMENT MATCH ()-[k:knows]->() RETURN count(*)
 ---- error
 Binder exception: Table knows does not exist.
+
+-CASE AddNodeProperty
+-STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
+---- ok
+-STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT alter table Comment add propx int64;
+---- ok
+-STATEMENT MATCH (c:Comment) RETURN SUM(c.propx);
+---- 1
+
+-STATEMENT alter table Comment add propy int64 default 1;
+---- ok
+-STATEMENT MATCH (c:Comment) RETURN SUM(c.propy);
+---- 1
+215488
+
+-CASE AddRelProperty
+-STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
+---- ok
+-STATEMENT create rel table replyOf (FROM Comment TO Comment, MANY_ONE);
+---- ok
+-STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT copy replyOf from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment_replyOf_Comment.csv' (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT alter table replyOf add propx int64;
+---- ok
+-STATEMENT MATCH (c:Comment)-[r:replyOf]->(c2:Comment) RETURN SUM(r.propx);
+---- 1
+
+-STATEMENT alter table replyOf add propy int64 default 1;
+---- ok
+-STATEMENT MATCH (c:Comment)-[r:replyOf]->(c2:Comment) RETURN SUM(r.propy);
+---- 1
+108027
 
 -CASE DropNodeTablePropertyNormalExecution
 -STATEMENT ALTER TABLE person DROP gender

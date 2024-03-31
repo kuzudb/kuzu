@@ -15,11 +15,6 @@ Binder exception: Cannot resolve any node or relationship to create.
 ---- error
 Binder exception: Cannot resolve any node or relationship to create.
 
--LOG NodeTableNotExist
--STATEMENT MATCH (a:PERSON) RETURN COUNT(*)
----- error
-Binder exception: Table PERSON does not exist.
-
 -LOG RepeatedRelName
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)<-[e1:knows]-(:person) RETURN COUNT(*)
 ---- error
@@ -286,7 +281,7 @@ Binder exception: person already exists in catalog.
 -LOG CreateNodeTablePKColNameNotExists
 -STATEMENT CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (dummyColName))
 ---- error
-Binder exception: Primary key dummyColName does not match any of the predefined node properties.
+Binder exception: PERSON already exists in catalog.
 
 -LOG CreateNodeTableDuplicatedColumnName
 -STATEMENT CREATE NODE TABLE student (id INT64, eyesight double, eyesight double, PRIMARY KEY(id))

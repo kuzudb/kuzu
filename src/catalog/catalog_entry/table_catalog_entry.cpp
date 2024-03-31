@@ -30,8 +30,8 @@ const Property* TableCatalogEntry::getProperty(common::property_id_t propertyID)
 common::column_id_t TableCatalogEntry::getColumnID(const common::property_id_t propertyID) const {
     auto it = std::find_if(properties.begin(), properties.end(),
         [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
-    return it == properties.end() ? common::INVALID_COLUMN_ID :
-                                    std::distance(properties.begin(), it);
+    KU_ASSERT(it != properties.end());
+    return std::distance(properties.begin(), it);
 }
 
 bool TableCatalogEntry::containPropertyType(const common::LogicalType& logicalType) const {

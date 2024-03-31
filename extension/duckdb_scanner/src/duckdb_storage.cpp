@@ -1,11 +1,8 @@
 #include "duckdb_storage.h"
 
-#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "duckdb_catalog.h"
-#include "duckdb_scan.h"
-#include "duckdb_type_converter.h"
 
 namespace kuzu {
 namespace duckdb_scanner {

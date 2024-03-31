@@ -1,5 +1,7 @@
 #include "catalog/catalog.h"
 
+#include "binder/ddl/bound_alter_info.h"
+#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
@@ -118,29 +120,33 @@ void Catalog::checkpointInMemory() {
     }
 }
 
-table_id_t Catalog::addNodeTableSchema(const binder::BoundCreateTableInfo& info) {
+table_id_t Catalog::createTableSchema(const binder::BoundCreateTableInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    return readWriteVersion->createNodeTable(info);
-}
-
-table_id_t Catalog::addRelTableSchema(const binder::BoundCreateTableInfo& info) {
-    KU_ASSERT(readWriteVersion != nullptr);
-    setToUpdated();
-    return readWriteVersion->createRelTable(info);
-}
-
-common::table_id_t Catalog::addRelTableGroupSchema(const binder::BoundCreateTableInfo& info) {
-    KU_ASSERT(readWriteVersion != nullptr);
-    setToUpdated();
-    auto tableID = readWriteVersion->createRelGroup(info);
+    auto tableID = readWriteVersion->createTable(info);
+    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
+    switch (info.type) {
+    case TableType::NODE:
+    case TableType::REL: {
+        wal->logCreateTableRecord(tableID, info.type);
+    } break;
+    case TableType::REL_GROUP: {
+        auto newRelGroupEntry = ku_dynamic_cast<CatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
+        for (auto& relTableID : newRelGroupEntry->getRelTableIDs()) {
+            wal->logCreateTableRecord(relTableID, TableType::REL);
+        }
+    } break;
+    case TableType::RDF: {
+        auto rdfGraphEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
+        wal->logCreateRdfGraphRecord(tableID, rdfGraphEntry->getResourceTableID(),
+            rdfGraphEntry->getLiteralTableID(), rdfGraphEntry->getResourceTripleTableID(),
+            rdfGraphEntry->getLiteralTripleTableID());
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
     return tableID;
-}
-
-table_id_t Catalog::addRdfGraphSchema(const binder::BoundCreateTableInfo& info) {
-    KU_ASSERT(readWriteVersion != nullptr);
-    setToUpdated();
-    return readWriteVersion->createRDFGraph(info);
 }
 
 void Catalog::dropTableSchema(table_id_t tableID) {
@@ -181,62 +187,28 @@ void Catalog::dropTableSchema(table_id_t tableID) {
     }
 }
 
-void Catalog::renameTable(table_id_t tableID, const std::string& newName) {
+void Catalog::alterTableSchema(const binder::BoundAlterInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
-    switch (tableEntry->getType()) {
-    case CatalogEntryType::RDF_GRAPH_ENTRY: {
-        auto rdfGraphSchema = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
-        readWriteVersion->renameTable(rdfGraphSchema->getResourceTableID(),
-            RDFGraphCatalogEntry::getResourceTableName(newName));
-        readWriteVersion->renameTable(rdfGraphSchema->getLiteralTableID(),
-            RDFGraphCatalogEntry::getLiteralTableName(newName));
-        readWriteVersion->renameTable(rdfGraphSchema->getResourceTripleTableID(),
-            RDFGraphCatalogEntry::getResourceTripleTableName(newName));
-        readWriteVersion->renameTable(rdfGraphSchema->getLiteralTripleTableID(),
-            RDFGraphCatalogEntry::getLiteralTripleTableName(newName));
-        readWriteVersion->renameTable(tableID, newName);
+    readWriteVersion->alterTable(info);
+    auto tableSchema = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
+        readWriteVersion->getTableCatalogEntry(info.tableID));
+    switch (info.alterType) {
+    case AlterType::ADD_PROPERTY: {
+        auto& addPropInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
+            const binder::BoundExtraAddPropertyInfo&>(*info.extraInfo);
+        wal->logAddPropertyRecord(
+            info.tableID, tableSchema->getPropertyID(addPropInfo.propertyName));
+    } break;
+    case AlterType::DROP_PROPERTY: {
+        auto& dropPropInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
+            const binder::BoundExtraDropPropertyInfo&>(*info.extraInfo);
+        wal->logDropPropertyRecord(info.tableID, dropPropInfo.propertyID);
     } break;
     default: {
-        readWriteVersion->renameTable(tableID, newName);
+        // DO NOTHING.
     }
     }
-}
-
-void Catalog::addNodeProperty(
-    table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
-    KU_ASSERT(readWriteVersion != nullptr);
-    setToUpdated();
-    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
-    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)
-        ->addProperty(propertyName, std::move(dataType));
-}
-
-void Catalog::addRelProperty(
-    table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
-    KU_ASSERT(readWriteVersion != nullptr);
-    setToUpdated();
-    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
-    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)
-        ->addProperty(propertyName, std::move(dataType));
-}
-
-void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {
-    KU_ASSERT(readWriteVersion != nullptr);
-    setToUpdated();
-    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
-    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)->dropProperty(propertyID);
-    wal->logDropPropertyRecord(tableID, propertyID);
-}
-
-void Catalog::renameProperty(
-    table_id_t tableID, property_id_t propertyID, const std::string& newName) {
-    KU_ASSERT(readWriteVersion != nullptr);
-    setToUpdated();
-    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
-    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)
-        ->renameProperty(propertyID, newName);
 }
 
 void Catalog::addFunction(std::string name, function::function_set functionSet) {

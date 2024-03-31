@@ -1,11 +1,12 @@
 #pragma once
 
+#include "binder/binder_scope.h"
+#include "binder/expression_binder.h"
 #include "binder/query/bound_regular_query.h"
 #include "binder/query/query_graph.h"
-#include "binder_scope.h"
 #include "catalog/catalog.h"
 #include "common/copier_config/reader_config.h"
-#include "expression_binder.h"
+#include "common/enums/table_type.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
 
@@ -15,9 +16,13 @@ struct CreateTableInfo;
 struct BaseScanSource;
 } // namespace parser
 
+namespace catalog {
+class Property;
+} // namespace catalog
+
 namespace extension {
 struct ExtensionOptions;
-}
+} // namespace extension
 
 namespace main {
 class ClientContext;
@@ -26,10 +31,10 @@ class Database;
 
 namespace function {
 struct TableFunction;
-}
+} // namespace function
 
 namespace binder {
-
+struct PropertyInfo;
 struct BoundBaseScanSource;
 struct BoundInsertInfo;
 struct BoundSetPropertyInfo;

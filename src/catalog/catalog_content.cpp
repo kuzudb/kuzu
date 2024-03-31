@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 
+#include "binder/ddl/bound_alter_info.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
@@ -17,6 +18,7 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
+#include "function/built_in_function_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
 
@@ -38,8 +40,31 @@ CatalogContent::CatalogContent(const std::string& directory, VirtualFileSystem* 
     registerBuiltInFunctions();
 }
 
-table_id_t CatalogContent::createNodeTable(const binder::BoundCreateTableInfo& info) {
+table_id_t CatalogContent::createTable(const binder::BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
+    std::unique_ptr<CatalogEntry> entry;
+    switch (info.type) {
+    case TableType::NODE: {
+        entry = createNodeTableEntry(tableID, info);
+    } break;
+    case TableType::REL: {
+        entry = createRelTableEntry(tableID, info);
+    } break;
+    case TableType::REL_GROUP: {
+        entry = createRelTableGroupEntry(tableID, info);
+    } break;
+    case TableType::RDF: {
+        entry = createRdfGraphEntry(tableID, info);
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    tables->createEntry(std::move(entry));
+    return tableID;
+}
+
+std::unique_ptr<CatalogEntry> CatalogContent::createNodeTableEntry(
+    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateNodeTableInfo*>(
             info.extraInfo.get());
@@ -48,13 +73,11 @@ table_id_t CatalogContent::createNodeTable(const binder::BoundCreateTableInfo& i
     for (auto& propertyInfo : extraInfo->propertyInfos) {
         nodeTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy());
     }
-    tableNameToIDMap.emplace(nodeTableEntry->getName(), tableID);
-    tables->createEntry(std::move(nodeTableEntry));
-    return tableID;
+    return nodeTableEntry;
 }
 
-table_id_t CatalogContent::createRelTable(const binder::BoundCreateTableInfo& info) {
-    table_id_t tableID = assignNextTableID();
+std::unique_ptr<CatalogEntry> CatalogContent::createRelTableEntry(
+    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
             info.extraInfo.get());
@@ -70,29 +93,24 @@ table_id_t CatalogContent::createRelTable(const binder::BoundCreateTableInfo& in
     for (auto& propertyInfo : extraInfo->propertyInfos) {
         relTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy());
     }
-    tableNameToIDMap.emplace(relTableEntry->getName(), tableID);
-    tables->createEntry(std::move(relTableEntry));
-    return tableID;
+    return relTableEntry;
 }
 
-table_id_t CatalogContent::createRelGroup(const binder::BoundCreateTableInfo& info) {
-    auto relGroupID = assignNextTableID();
-    auto extraInfo = (BoundExtraCreateRelTableGroupInfo*)info.extraInfo.get();
+std::unique_ptr<CatalogEntry> CatalogContent::createRelTableGroupEntry(
+    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
+    auto extraInfo =
+        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableGroupInfo*>(
+            info.extraInfo.get());
     std::vector<table_id_t> relTableIDs;
     relTableIDs.reserve(extraInfo->infos.size());
     for (auto& childInfo : extraInfo->infos) {
-        relTableIDs.push_back(createRelTable(childInfo));
+        relTableIDs.push_back(createTable(childInfo));
     }
-    auto relGroupName = info.tableName;
-    auto relGroupEntry =
-        std::make_unique<RelGroupCatalogEntry>(relGroupName, relGroupID, std::move(relTableIDs));
-    tableNameToIDMap.emplace(relGroupName, relGroupID);
-    tables->createEntry(std::move(relGroupEntry));
-    return relGroupID;
+    return std::make_unique<RelGroupCatalogEntry>(info.tableName, tableID, std::move(relTableIDs));
 }
 
-table_id_t CatalogContent::createRDFGraph(const binder::BoundCreateTableInfo& info) {
-    table_id_t rdfGraphID = assignNextTableID();
+std::unique_ptr<CatalogEntry> CatalogContent::createRdfGraphEntry(
+    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRdfGraphInfo*>(
             info.extraInfo.get());
@@ -107,24 +125,21 @@ table_id_t CatalogContent::createRDFGraph(const binder::BoundCreateTableInfo& in
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
             literalTripleInfo.extraInfo.get());
     // Resource table
-    auto resourceTableID = createNodeTable(resourceInfo);
+    auto resourceTableID = createTable(resourceInfo);
     // Literal table
-    auto literalTableID = createNodeTable(literalInfo);
+    auto literalTableID = createTable(literalInfo);
     // Resource triple table
     resourceTripleExtraInfo->srcTableID = resourceTableID;
     resourceTripleExtraInfo->dstTableID = resourceTableID;
-    auto resourceTripleTableID = createRelTable(resourceTripleInfo);
+    auto resourceTripleTableID = createTable(resourceTripleInfo);
     // Literal triple table
     literalTripleExtraInfo->srcTableID = resourceTableID;
     literalTripleExtraInfo->dstTableID = literalTableID;
-    auto literalTripleTableID = createRelTable(literalTripleInfo);
+    auto literalTripleTableID = createTable(literalTripleInfo);
     // Rdf graph entry
     auto rdfGraphName = info.tableName;
-    auto rdfGraphEntry = std::make_unique<RDFGraphCatalogEntry>(rdfGraphName, rdfGraphID,
-        resourceTableID, literalTableID, resourceTripleTableID, literalTripleTableID);
-    tableNameToIDMap.emplace(rdfGraphName, rdfGraphID);
-    tables->createEntry(std::move(rdfGraphEntry));
-    return rdfGraphID;
+    return std::make_unique<RDFGraphCatalogEntry>(rdfGraphName, tableID, resourceTableID,
+        literalTableID, resourceTripleTableID, literalTripleTableID);
 }
 
 void CatalogContent::dropTable(common::table_id_t tableID) {
@@ -135,14 +150,57 @@ void CatalogContent::dropTable(common::table_id_t tableID) {
             dropTable(relTableID);
         }
     }
-    tableNameToIDMap.erase(tableEntry->getName());
     tables->removeEntry(tableEntry->getName());
 }
 
+void CatalogContent::alterTable(const binder::BoundAlterInfo& info) {
+    switch (info.alterType) {
+    case AlterType::RENAME_TABLE: {
+        auto& renameInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
+            const binder::BoundExtraRenameTableInfo&>(*info.extraInfo);
+        renameTable(info.tableID, renameInfo.newName);
+    } break;
+    case AlterType::ADD_PROPERTY: {
+        auto& addPropInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
+            const binder::BoundExtraAddPropertyInfo&>(*info.extraInfo);
+        auto tableEntry =
+            ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(getTableCatalogEntry(info.tableID));
+        tableEntry->addProperty(addPropInfo.propertyName, addPropInfo.dataType.copy());
+    } break;
+    case AlterType::RENAME_PROPERTY: {
+        auto& renamePropInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
+            const binder::BoundExtraRenamePropertyInfo&>(*info.extraInfo);
+        auto tableEntry =
+            ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(getTableCatalogEntry(info.tableID));
+        tableEntry->renameProperty(renamePropInfo.propertyID, renamePropInfo.newName);
+    } break;
+    case AlterType::DROP_PROPERTY: {
+        auto& dropPropInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
+            const binder::BoundExtraDropPropertyInfo&>(*info.extraInfo);
+        auto tableEntry =
+            ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(getTableCatalogEntry(info.tableID));
+        tableEntry->dropProperty(dropPropInfo.propertyID);
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
 void CatalogContent::renameTable(table_id_t tableID, const std::string& newName) {
+    // TODO(Xiyang/Ziyi): Do we allow renaming of rel table groups?
     auto tableEntry = getTableCatalogEntry(tableID);
-    tableNameToIDMap.erase(tableEntry->getName());
-    tableNameToIDMap.emplace(newName, tableID);
+    if (tableEntry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY) {
+        auto rdfGraphEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
+        renameTable(rdfGraphEntry->getResourceTableID(),
+            RDFGraphCatalogEntry::getResourceTableName(newName));
+        renameTable(
+            rdfGraphEntry->getLiteralTableID(), RDFGraphCatalogEntry::getLiteralTableName(newName));
+        renameTable(rdfGraphEntry->getResourceTripleTableID(),
+            RDFGraphCatalogEntry::getResourceTripleTableName(newName));
+        renameTable(rdfGraphEntry->getLiteralTripleTableID(),
+            RDFGraphCatalogEntry::getLiteralTripleTableName(newName));
+    }
     tables->renameEntry(tableEntry->getName(), newName);
 }
 
@@ -197,10 +255,6 @@ void CatalogContent::readFromFile(const std::string& directory, FileVersionType 
     deserializer.deserializeValue(savedStorageVersion);
     validateStorageVersion(savedStorageVersion);
     tables = CatalogSet::deserialize(deserializer);
-    for (auto& [name, entry] : tables->getEntries()) {
-        tableNameToIDMap[entry->getName()] =
-            ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry.get())->getTableID();
-    }
     deserializer.deserializeValue(nextTableID);
     functions = CatalogSet::deserialize(deserializer);
 }
@@ -221,8 +275,7 @@ function::ScalarMacroFunction* CatalogContent::getScalarMacroFunction(
 
 std::unique_ptr<CatalogContent> CatalogContent::copy() const {
     std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macrosToCopy;
-    return std::make_unique<CatalogContent>(
-        tables->copy(), tableNameToIDMap, nextTableID, functions->copy(), vfs);
+    return std::make_unique<CatalogContent>(tables->copy(), nextTableID, functions->copy(), vfs);
 }
 
 void CatalogContent::registerBuiltInFunctions() {
@@ -230,7 +283,7 @@ void CatalogContent::registerBuiltInFunctions() {
 }
 
 bool CatalogContent::containsTable(const std::string& tableName) const {
-    return tableNameToIDMap.contains(tableName);
+    return tables->containsEntry(tableName);
 }
 
 bool CatalogContent::containsTable(CatalogEntryType tableType) const {

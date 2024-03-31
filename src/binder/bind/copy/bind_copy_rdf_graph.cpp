@@ -4,6 +4,7 @@
 #include "common/constants.h"
 #include "common/copier_config/rdf_reader_config.h"
 #include "common/keyword/rdf_keyword.h"
+#include "function/built_in_function_utils.h"
 #include "function/table/bind_input.h"
 #include "main/client_context.h"
 #include "parser/copy.h"

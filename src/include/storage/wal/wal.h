@@ -5,10 +5,6 @@
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal_record.h"
 
-namespace spdlog {
-class logger;
-}
-
 namespace kuzu {
 namespace storage {
 
@@ -102,21 +98,15 @@ public:
 
     void logCatalogRecord();
 
-    void logCreateNodeTableRecord(common::table_id_t tableID);
-    void logCreateRelTableRecord(common::table_id_t tableID);
-    void logRdfGraphRecord(common::table_id_t rdfGraphID, common::table_id_t resourceTableID,
+    void logCreateTableRecord(common::table_id_t tableID, common::TableType tableType);
+    void logCreateRdfGraphRecord(common::table_id_t rdfGraphID, common::table_id_t resourceTableID,
         common::table_id_t literalTableID, common::table_id_t resourceTripleTableID,
         common::table_id_t literalTripleTableID);
-
-    void logOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextByteToWriteTo);
+    void logDropTableRecord(common::table_id_t tableID);
+    void logDropPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID);
+    void logAddPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID);
 
     void logCopyTableRecord(common::table_id_t tableID);
-
-    void logDropTableRecord(common::table_id_t tableID);
-
-    void logDropPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID);
-
-    void logAddPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID);
 
     // Removes the contents of WAL file.
     void clearWAL();
@@ -157,7 +147,6 @@ private:
     // Node/Rel tables that might have changes to their in-memory data structures that need to be
     // committed/rolled back accordingly during the wal replaying.
     std::unordered_set<common::table_id_t> updatedTables;
-    std::shared_ptr<spdlog::logger> logger;
     std::string directory;
     std::mutex mtx;
     BufferManager& bufferManager;

@@ -2,8 +2,7 @@
 
 #include <memory>
 
-#include "catalog/catalog_entry/table_catalog_entry.h"
-#include "catalog_content.h"
+#include "catalog/catalog_content.h"
 
 namespace kuzu {
 namespace storage {
@@ -14,7 +13,7 @@ enum class TransactionAction : uint8_t;
 class Transaction;
 } // namespace transaction
 namespace catalog {
-
+class TableCatalogEntry;
 class NodeTableCatalogEntry;
 class RelTableCatalogEntry;
 class RelGroupCatalogEntry;
@@ -51,22 +50,9 @@ public:
     std::vector<TableCatalogEntry*> getTableSchemas(
         transaction::Transaction* tx, const common::table_id_vector_t& tableIDs) const;
 
-    common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
-    common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
-    common::table_id_t addRelTableGroupSchema(const binder::BoundCreateTableInfo& info);
-    common::table_id_t addRdfGraphSchema(const binder::BoundCreateTableInfo& info);
+    common::table_id_t createTableSchema(const binder::BoundCreateTableInfo& info);
     void dropTableSchema(common::table_id_t tableID);
-    void renameTable(common::table_id_t tableID, const std::string& newName);
-
-    void addNodeProperty(common::table_id_t tableID, const std::string& propertyName,
-        std::unique_ptr<common::LogicalType> dataType);
-    void addRelProperty(common::table_id_t tableID, const std::string& propertyName,
-        std::unique_ptr<common::LogicalType> dataType);
-
-    void dropProperty(common::table_id_t tableID, common::property_id_t propertyID);
-
-    void renameProperty(
-        common::table_id_t tableID, common::property_id_t propertyID, const std::string& newName);
+    void alterTableSchema(const binder::BoundAlterInfo& info);
 
     void setTableComment(common::table_id_t tableID, const std::string& comment);
 
