@@ -155,7 +155,7 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx, DataChun
         vectorsToAppend.push_back(chunkToCopyFrom.getValueVector(j).get());
     }
     SelectionVector selVector(1);
-    selVector.resetSelectorToValuePosBufferWithSize(1);
+    selVector.setToFiltered(1);
     for (auto i = 0u; i < chunkToCopyFrom.state->selVector->selectedSize; i++) {
         auto posToCopyFrom = chunkToCopyFrom.state->selVector->selectedPositions[i];
         auto partitionIdx = partitionIdxes->getValue<partition_idx_t>(posToCopyFrom);

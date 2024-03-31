@@ -11,27 +11,23 @@ class SelectionVector {
 public:
     explicit SelectionVector(sel_t capacity) : selectedSize{0} {
         selectedPositionsBuffer = std::make_unique<sel_t[]>(capacity);
-        resetSelectorToUnselected();
+        setToUnfiltered();
     }
 
-    inline bool isUnfiltered() const {
-        return selectedPositions == (sel_t*)&INCREMENTAL_SELECTED_POS;
-    }
-    inline void resetSelectorToUnselected() {
-        selectedPositions = (sel_t*)&INCREMENTAL_SELECTED_POS;
-    }
-    inline void resetSelectorToUnselectedWithSize(sel_t size) {
+    bool isUnfiltered() const { return selectedPositions == (sel_t*)&INCREMENTAL_SELECTED_POS; }
+    void setToUnfiltered() { selectedPositions = (sel_t*)&INCREMENTAL_SELECTED_POS; }
+    void setToUnfiltered(sel_t size) {
         selectedPositions = (sel_t*)&INCREMENTAL_SELECTED_POS;
         selectedSize = size;
     }
-    inline void resetSelectorToValuePosBuffer() {
-        selectedPositions = selectedPositionsBuffer.get();
-    }
-    inline void resetSelectorToValuePosBufferWithSize(sel_t size) {
+
+    // Set to filtered is not very accurate. It sets selectedPositions to a mutable array.
+    void setToFiltered() { selectedPositions = selectedPositionsBuffer.get(); }
+    void setToFiltered(sel_t size) {
         selectedPositions = selectedPositionsBuffer.get();
         selectedSize = size;
     }
-    inline sel_t* getSelectedPositionsBuffer() { return selectedPositionsBuffer.get(); }
+    sel_t* getMultableBuffer() { return selectedPositionsBuffer.get(); }
 
     KUZU_API static const sel_t INCREMENTAL_SELECTED_POS[DEFAULT_VECTOR_CAPACITY];
 

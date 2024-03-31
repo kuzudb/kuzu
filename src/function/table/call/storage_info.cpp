@@ -175,7 +175,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
                     outputVector->copyFromVectorData(i, localVector.get(), i);
                 }
             }
-            dataChunk.state->selVector->resetSelectorToUnselectedWithSize(numValuesToOutput);
+            dataChunk.state->selVector->setToUnfiltered(numValuesToOutput);
             localState->currChunkIdx++;
             return numValuesToOutput;
         }

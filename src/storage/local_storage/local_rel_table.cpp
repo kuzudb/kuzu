@@ -31,7 +31,7 @@ row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOf
         }
     }
     auto numRelsRead = rowIdxesToRead.size();
-    outputVectors[0]->state->selVector->resetSelectorToUnselectedWithSize(numRelsRead);
+    outputVectors[0]->state->selVector->setToUnfiltered(numRelsRead);
     return numRelsRead;
 }
 
@@ -65,7 +65,7 @@ void LocalRelNG::applyCSRDeletions(offset_t srcOffset, ValueVector* relIDVector)
     }
     auto selectPos = 0u;
     auto selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-    selVector->resetSelectorToValuePosBuffer();
+    selVector->setToFiltered();
     for (auto i = 0u; i < relIDVector->state->selVector->selectedSize; i++) {
         auto relIDPos = relIDVector->state->selVector->selectedPositions[i];
         auto relOffset = relIDVector->getValue<relID_t>(relIDPos).offset;
@@ -75,7 +75,7 @@ void LocalRelNG::applyCSRDeletions(offset_t srcOffset, ValueVector* relIDVector)
         selVector->selectedPositions[selectPos++] = relIDPos;
     }
     if (selectPos != relIDVector->state->selVector->selectedSize) {
-        relIDVector->state->selVector->resetSelectorToValuePosBuffer();
+        relIDVector->state->selVector->setToFiltered();
         memcpy(relIDVector->state->selVector->selectedPositions, selVector->selectedPositions,
             selectPos * sizeof(sel_t));
         relIDVector->state->selVector->selectedSize = selectPos;

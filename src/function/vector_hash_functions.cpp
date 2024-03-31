@@ -12,7 +12,7 @@ static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector* operand) {
     auto numValuesInDataVec = ListVector::getDataVectorSize(operand);
     ListVector::resizeDataVector(hashVector.get(), numValuesInDataVec);
     auto selectionState = std::make_shared<DataChunkState>();
-    selectionState->selVector->resetSelectorToValuePosBuffer();
+    selectionState->selVector->setToFiltered();
     ListVector::getDataVector(operand)->setState(selectionState);
     auto numValuesComputed = 0u;
     while (numValuesComputed < numValuesInDataVec) {

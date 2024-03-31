@@ -12,7 +12,7 @@ void CaseAlternativeEvaluator::init(const ResultSet& resultSet, MemoryManager* m
     whenEvaluator->init(resultSet, memoryManager);
     thenEvaluator->init(resultSet, memoryManager);
     whenSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-    whenSelVector->resetSelectorToValuePosBuffer();
+    whenSelVector->setToFiltered();
 }
 
 void CaseExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
@@ -51,7 +51,7 @@ bool CaseExpressionEvaluator::select(SelectionVector& selVector, ClientContext* 
     evaluate(clientContext);
     KU_ASSERT(resultVector->state->selVector->selectedSize == selVector.selectedSize);
     auto numSelectedValues = 0u;
-    auto selectedPosBuffer = selVector.getSelectedPositionsBuffer();
+    auto selectedPosBuffer = selVector.getMultableBuffer();
     for (auto i = 0u; i < selVector.selectedSize; ++i) {
         auto selVectorPos = selVector.selectedPositions[i];
         auto resultVectorPos = resultVector->state->selVector->selectedPositions[i];

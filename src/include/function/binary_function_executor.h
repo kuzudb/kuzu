@@ -325,7 +325,7 @@ struct BinaryFunctionExecutor {
         common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         auto lPos = left.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
+        auto selectedPositionsBuffer = selVector.getMultableBuffer();
         if (left.isNull(lPos)) {
             return numSelectedValues;
         } else if (right.hasNoNullsGuarantee()) {
@@ -368,7 +368,7 @@ struct BinaryFunctionExecutor {
         common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         auto rPos = right.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
+        auto selectedPositionsBuffer = selVector.getMultableBuffer();
         if (right.isNull(rPos)) {
             return numSelectedValues;
         } else if (left.hasNoNullsGuarantee()) {
@@ -411,7 +411,7 @@ struct BinaryFunctionExecutor {
     static bool selectBothUnFlat(
         common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
+        auto selectedPositionsBuffer = selVector.getMultableBuffer();
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
             if (left.state->selVector->isUnfiltered()) {
                 for (auto i = 0u; i < left.state->selVector->selectedSize; i++) {

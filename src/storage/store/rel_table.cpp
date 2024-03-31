@@ -103,7 +103,7 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
     while (relDataReadState->hasMoreToRead(transaction)) {
         scan(transaction, *relDataReadState);
         auto numRelsScanned = tempState->selVector->selectedSize;
-        tempState->selVector->resetSelectorToValuePosBufferWithSize(1);
+        tempState->selVector->setToFiltered(1);
         for (auto i = 0u; i < numRelsScanned; i++) {
             tempState->selVector->selectedPositions[0] = i;
             auto deleted =
@@ -113,7 +113,7 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
             KU_ASSERT(deleted == reverseDeleted);
             numRelsDeleted += (deleted && reverseDeleted);
         }
-        tempState->selVector->resetSelectorToUnselectedWithSize(DEFAULT_VECTOR_CAPACITY);
+        tempState->selVector->setToUnfiltered();
     }
     return numRelsDeleted;
 }

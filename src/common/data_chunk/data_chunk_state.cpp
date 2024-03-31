@@ -14,7 +14,7 @@ void DataChunkState::slice(offset_t offset) {
     // NOTE: this operation has performance penalty. Ideally we should directly modify selVector
     // instead of creating a new one.
     auto slicedSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-    slicedSelVector->resetSelectorToValuePosBufferWithSize(selVector->selectedSize - offset);
+    slicedSelVector->setToFiltered(selVector->selectedSize - offset);
     for (auto i = 0u; i < slicedSelVector->selectedSize; i++) {
         slicedSelVector->selectedPositions[i] = selVector->selectedPositions[i + offset];
     }

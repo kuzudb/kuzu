@@ -18,10 +18,11 @@ void ChunkedNodeGroupCollection::append(
         auto& lastChunkedGroup = chunkedGroups.back();
         auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
             static_cast<row_idx_t>(CHUNK_CAPACITY - lastChunkedGroup->getNumRows()));
-        tmpSelVector.resetSelectorToValuePosBufferWithSize(numRowsToAppendInGroup);
+        auto tmpSelVectorBuffer = tmpSelVector.getMultableBuffer();
         for (auto i = 0u; i < numRowsToAppendInGroup; i++) {
-            tmpSelVector.selectedPositions[i] = selVector.selectedPositions[numRowsAppended + i];
+            tmpSelVectorBuffer[i] = selVector.selectedPositions[numRowsAppended + i];
         }
+        tmpSelVector.setToFiltered(numRowsToAppendInGroup);
         lastChunkedGroup->append(vectors, tmpSelVector, numRowsToAppendInGroup);
         if (lastChunkedGroup->getNumRows() == CHUNK_CAPACITY) {
             chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(

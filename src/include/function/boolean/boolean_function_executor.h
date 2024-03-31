@@ -170,7 +170,7 @@ struct BinaryBooleanFunctionExecutor {
         common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         auto lPos = left.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
+        auto selectedPositionsBuffer = selVector.getMultableBuffer();
         if (right.state->selVector->isUnfiltered()) {
             for (auto i = 0u; i < right.state->selVector->selectedSize; ++i) {
                 selectOnValue<FUNC>(
@@ -192,7 +192,7 @@ struct BinaryBooleanFunctionExecutor {
         common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         auto rPos = right.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
+        auto selectedPositionsBuffer = selVector.getMultableBuffer();
         if (left.state->selVector->isUnfiltered()) {
             for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
                 selectOnValue<FUNC>(
@@ -213,7 +213,7 @@ struct BinaryBooleanFunctionExecutor {
     static bool selectBothUnFlat(
         common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
+        auto selectedPositionsBuffer = selVector.getMultableBuffer();
         if (left.state->selVector->isUnfiltered()) {
             for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
                 selectOnValue<FUNC>(
@@ -303,7 +303,7 @@ struct UnaryBooleanOperationExecutor {
             return resultValue == true;
         } else {
             uint64_t numSelectedValues = 0;
-            auto selectedPositionBuffer = selVector.getSelectedPositionsBuffer();
+            auto selectedPositionBuffer = selVector.getMultableBuffer();
             if (operand.state->selVector->isUnfiltered()) {
                 for (auto i = 0ul; i < operand.state->selVector->selectedSize; i++) {
                     selectOnValue<FUNC>(operand, i, numSelectedValues, selectedPositionBuffer);

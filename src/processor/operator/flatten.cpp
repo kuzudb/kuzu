@@ -7,7 +7,7 @@ namespace processor {
 
 void Flatten::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     dataChunkState = resultSet->dataChunks[dataChunkToFlattenPos]->state.get();
-    currentSelVector->resetSelectorToValuePosBufferWithSize(1 /* size */);
+    currentSelVector->setToFiltered(1 /* size */);
     localState = std::make_unique<FlattenLocalState>();
 }
 

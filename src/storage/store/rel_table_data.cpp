@@ -217,7 +217,7 @@ void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
     }
     auto [startOffset, endOffset] = relReadState.getStartAndEndOffset();
     auto numRowsToRead = endOffset - startOffset;
-    outputVectors[0]->state->selVector->resetSelectorToUnselectedWithSize(numRowsToRead);
+    outputVectors[0]->state->selVector->setToUnfiltered(numRowsToRead);
     outputVectors[0]->state->setOriginalSize(numRowsToRead);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relReadState.currentNodeOffset);
     auto relIDVectorIdx = INVALID_VECTOR_IDX;
