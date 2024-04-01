@@ -1,9 +1,7 @@
 #include "storage/wal/wal.h"
 
-#include "binder/ddl/bound_create_table_info.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
-#include "common/utils.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
