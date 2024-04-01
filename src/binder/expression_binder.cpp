@@ -126,6 +126,15 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     }
 }
 
+// cast without implicit checking.
+std::shared_ptr<Expression> ExpressionBinder::forceCast(
+    const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
+    auto functionName = "CAST";
+    auto children = expression_vector{expression,
+        createLiteralExpression(std::make_unique<Value>(targetType.toString()))};
+    return bindScalarFunctionExpression(children, functionName);
+}
+
 void ExpressionBinder::validateExpectedDataType(const Expression& expression,
     const std::vector<LogicalTypeID>& targets) {
     auto dataType = expression.dataType;

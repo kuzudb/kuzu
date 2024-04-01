@@ -122,6 +122,8 @@ public:
         const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType);
     static std::shared_ptr<Expression> implicitCast(const std::shared_ptr<Expression>& expression,
         const common::LogicalType& targetType);
+    std::shared_ptr<Expression> forceCast(const std::shared_ptr<Expression>& expression,
+        const common::LogicalType& targetType);
 
     /****** validation *****/
     // E.g. SUM(SUM(a.age)) is not allowed

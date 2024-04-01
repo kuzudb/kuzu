@@ -579,15 +579,40 @@ public:
     KUZU_API static std::string toString(const std::vector<LogicalTypeID>& dataTypeIDs);
     KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
+    static bool isDate(const LogicalType& dataType);
+    static bool isDate(const LogicalTypeID& dataType);
+    static bool isTimestamp(const LogicalType& dataType);
+    static bool isTimestamp(const LogicalTypeID& dataType);
+    static bool isUnsigned(const LogicalType& dataType);
+    static bool isUnsigned(const LogicalTypeID& dataType);
+    static bool isIntegral(const LogicalType& dataType);
+    static bool isIntegral(const LogicalTypeID& dataType);
     static bool isNumerical(const LogicalType& dataType);
+    static bool isNumerical(const LogicalTypeID& dataType);
     static bool isNested(const LogicalType& dataType);
     static bool isNested(LogicalTypeID logicalTypeID);
     static std::vector<LogicalTypeID> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
     static std::vector<LogicalTypeID> getIntegerLogicalTypeIDs();
     static std::vector<LogicalTypeID> getAllValidLogicTypes();
+    static bool tryGetMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right,
+        LogicalTypeID& result);
+    static bool tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
+        LogicalType& result);
+    static LogicalTypeID getMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right);
+    static LogicalType getMaxLogicalType(const LogicalType& left, const LogicalType& right);
 
 private:
+    static bool tryCombineListTypes(const LogicalType& left, const LogicalType& right,
+        LogicalType& result);
+    static bool tryCombineArrayTypes(const LogicalType& left, const LogicalType& right,
+        LogicalType& result);
+    static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& right,
+        LogicalType& result);
+    static bool tryCombineMapTypes(const LogicalType& left, const LogicalType& right,
+        LogicalType& result);
+    static bool tryCombineUnionTypes(const LogicalType& left, const LogicalType& right,
+        LogicalType& result);
     static LogicalTypeID dataTypeIDFromString(const std::string& trimmedStr);
     static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
     static std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr);

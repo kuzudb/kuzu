@@ -26,35 +26,31 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     ExpressionType expressionType, const expression_vector& children) {
     auto functions = context->getCatalog()->getFunctions(binder->clientContext->getTx());
     auto functionName = expressionTypeToString(expressionType);
-    std::vector<LogicalType> childrenTypes;
+    LogicalType combinedType(LogicalTypeID::ANY);
+    bool canCombine = true;
     for (auto& child : children) {
-        childrenTypes.push_back(child->dataType);
+        if (!LogicalTypeUtils::tryGetMaxLogicalType(combinedType, child->dataType, combinedType)) {
+            canCombine = false;
+        }
     }
+    if (!canCombine) {
+        return createLiteralExpression(std::make_unique<Value>(false));
+    }
+    if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {
+        combinedType = LogicalType(LogicalTypeID::INT8);
+    } else if (combinedType.getLogicalTypeID() == LogicalTypeID::RDF_VARIANT) {
+        combinedType = LogicalType(LogicalTypeID::STRING);
+    }
+    std::vector<LogicalType> childrenTypes =
+        std::vector<LogicalType>(children.size(), combinedType);
     auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
         function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, functions));
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
-        if (LogicalTypeUtils::isNested(function->parameterTypeIDs[i]) &&
-            children[i]->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
-            // try matching the type to any other children
-            bool foundValidChild = false;
-            for (auto j = 0u; !foundValidChild && j < children.size(); ++j) {
-                if (children[j]->dataType.getLogicalTypeID() == function->parameterTypeIDs[i]) {
-                    childrenAfterCast.push_back(
-                        implicitCastIfNecessary(children[i], children[j]->dataType));
-                    foundValidChild = true;
-                }
-            }
-            // LCOV_EXCL_START
-            if (!foundValidChild) {
-                throw common::BinderException(
-                    stringFormat("Cannot resolve recursive data type for expression {}.",
-                        children[i]->toString()));
-            }
-            // LCOV_EXCL_STOP
+        if (children[i]->dataType != combinedType) {
+            childrenAfterCast.push_back(forceCast(children[i], combinedType));
         } else {
-            childrenAfterCast.push_back(
-                implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
+            childrenAfterCast.push_back(children[i]);
         }
     }
     auto bindData = std::make_unique<function::FunctionBindData>(

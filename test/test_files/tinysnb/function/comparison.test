@@ -290,37 +290,37 @@ True
 True
 
 -LOG StructEqual
--STATEMENT MATCH (m:movies) WHERE m.description = {a: 7.0, b: to_int8(10), c: 982, d: timestamp('2018-11-13 13:33:11'), d1: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_NS"), d2: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_MS"), d3: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_SEC"), d4: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_TZ"), e: date('2014-09-12'), f: to_uint8(12), g: to_uint16(120), h: to_uint32(55), i: to_uint64(1), j: to_int128(-1844674407370955161511)} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description = {rating: 7.0, stars: to_int8(10), views: 982, release: timestamp('2018-11-13 13:33:11'), release_ns: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_NS"), release_ms: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_MS"), release_sec: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_SEC"), release_tz: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_TZ"), film: date('2014-09-12'), u8: to_uint8(12), u16: to_uint16(120), u32: to_uint32(55), u64: to_uint64(1), hugedata: to_int128(-1844674407370955161511)} RETURN m.name;
 ---- 1
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 
 -LOG StructNotEqual
--STATEMENT MATCH (m:movies) WHERE m.description <> {rating: 1223.0, stars: to_int8(100), views: 10003, release: timestamp('2011-02-11 16:44:22'), d1: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_NS"), d2: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_MS"), d3: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_SEC"), d4: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_TZ"), film: date('2013-02-22'), u8: to_uint8(1), u16: to_uint16(15), u32: to_uint32(200), u64: to_uint64(4), hugedata: to_int128(-15)} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description <> {rating: 1223.0, stars: to_int8(100), views: 10003, release: timestamp('2011-02-11 16:44:22'), release_ns: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_NS"), release_ms: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_MS"), release_sec: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_SEC"), release_tz: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_TZ"), film: date('2013-02-22'), u8: to_uint8(1), u16: to_uint16(15), u32: to_uint32(200), u64: to_uint64(4), hugedata: to_int128(-15)} RETURN m.name;
 ---- 2
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 
 -LOG StructGreater
--STATEMENT MATCH (m:movies) WHERE m.description > {rating: 5.3, stars: to_int8(2), views: 152, release: timestamp('2011-08-20 11:25:30'), d1: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_NS"), d2: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_MS"), d3: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_SEC"), d4: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_TZ"), film: date('2012-05-11'), u8: to_uint8(220), u16: to_uint16(20), u32: to_uint32(1), u64: to_uint64(180), hugedata: to_int128(1844674407370955161811111111)} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description > {rating: 5.3, stars: to_int8(2), views: 152, release: timestamp('2011-08-20 11:25:30'), release_ns: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_NS"), release_ms: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_MS"), release_sec: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_SEC"), release_tz: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_TZ"), film: date('2012-05-11'), u8: to_uint8(220), u16: to_uint16(20), u32: to_uint32(1), u64: to_uint64(180), hugedata: to_int128(1844674407370955161811111111)} RETURN m.name;
 ---- 2
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 Roma
 
 -LOG StructGreaterEqual
--STATEMENT MATCH (m:movies) WHERE m.description >= {rating: 5.3, stars: to_int8(2), views: 152, release: timestamp('2011-08-20 11:25:30'), d1: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_NS"), d2: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_MS"), d3: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_SEC"), d4: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_TZ"), film: date('2012-05-11'), u8: to_uint8(220), u16: to_uint16(20), u32: to_uint32(1), u64: to_uint64(180), hugedata: to_int128(1844674407370955161811111111)} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description >= {rating: 5.3, stars: to_int8(2), views: 152, release: timestamp('2011-08-20 11:25:30'), release_ns: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_NS"), release_ms: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_MS"), release_sec: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_SEC"), release_tz: cast("2011-08-20 11:25:30.1234567", "TIMESTAMP_TZ"), film: date('2012-05-11'), u8: to_uint8(220), u16: to_uint16(20), u32: to_uint32(1), u64: to_uint64(180), hugedata: to_int128(1844674407370955161811111111)} RETURN m.name;
 ---- 3
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 Roma
 
 -LOG StructLess
--STATEMENT MATCH (m:movies) WHERE m.description < {rating: 7.0, stars: to_int8(10), views: 1000, release: timestamp('2018-11-13 13:33:11'),  d1: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_NS"), d2: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_MS"), d3: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_SEC"), d4: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_TZ"), film: date('2014-09-12'), u8: to_uint8(12), u16: to_uint16(120), u32: to_uint32(55), u64: to_uint64(1), hugedata: to_int128(-1844674407370955161511)} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description < {rating: 7.0, stars: to_int8(10), views: 1000, release: timestamp('2018-11-13 13:33:11'), release_ns: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_NS"), release_ms: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_MS"), release_sec: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_SEC"), release_tz: cast("2018-11-13 13:33:11.1234567", "TIMESTAMP_TZ"), film: date('2014-09-12'), u8: to_uint8(12), u16: to_uint16(120), u32: to_uint32(55), u64: to_uint64(1), hugedata: to_int128(-1844674407370955161511)} RETURN m.name;
 ---- 2
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 
 -LOG StructLessEqual
--STATEMENT MATCH (m:movies) WHERE m.description <= {rating: 1223.0, stars: to_int8(100), views: 10004, release: timestamp('2011-02-11 16:44:22'),  d1: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_NS"), d2: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_MS"), d3: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_SEC"), d4: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_TZ"), film: date('2013-02-22'), u8: to_uint8(1), u16: to_uint16(15), u32: to_uint32(200), u64: to_uint64(4), hugedata: to_int128(-15)} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description <= {rating: 1223.0, stars: to_int8(100), views: 10004, release: timestamp('2011-02-11 16:44:22'), release_ns: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_NS"), release_ms: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_MS"), release_sec: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_SEC"), release_tz: cast("2011-02-11 16:44:22.1234567", "TIMESTAMP_TZ"), film: date('2013-02-22'), u8: to_uint8(1), u16: to_uint16(15), u32: to_uint32(200), u64: to_uint64(4), hugedata: to_int128(-15)} RETURN m.name;
 ---- 3
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
