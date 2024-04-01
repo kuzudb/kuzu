@@ -11,6 +11,12 @@ void kuzu_query_result_destroy(kuzu_query_result* query_result) {
     if (query_result == nullptr) {
         return;
     }
+    while (kuzu_query_result_has_next_query_result(query_result)) {
+        auto current_query_result = kuzu_query_result_get_next_query_result(query_result);
+        if (current_query_result != nullptr && current_query_result->_query_result != nullptr) {
+            delete static_cast<QueryResult*>(current_query_result->_query_result);
+        }
+    }
     if (query_result->_query_result != nullptr) {
         delete static_cast<QueryResult*>(query_result->_query_result);
     }
@@ -67,6 +73,21 @@ kuzu_query_summary* kuzu_query_result_get_query_summary(kuzu_query_result* query
 
 bool kuzu_query_result_has_next(kuzu_query_result* query_result) {
     return static_cast<QueryResult*>(query_result->_query_result)->hasNext();
+}
+
+bool kuzu_query_result_has_next_query_result(kuzu_query_result* query_result) {
+    return static_cast<QueryResult*>(query_result->_query_result)->hasNextQueryResult();
+}
+
+kuzu_query_result* kuzu_query_result_get_next_query_result(kuzu_query_result* query_result) {
+    auto* c_query_result = new kuzu_query_result;
+    auto next_query_result =
+        static_cast<QueryResult*>(query_result->_query_result)->getNextQueryResult();
+    if (next_query_result == nullptr) {
+        return nullptr;
+    }
+    c_query_result->_query_result = next_query_result;
+    return c_query_result;
 }
 
 kuzu_flat_tuple* kuzu_query_result_get_next(kuzu_query_result* query_result) {

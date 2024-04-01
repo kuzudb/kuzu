@@ -97,15 +97,22 @@ public:
      * @return whether there are more tuples to read.
      */
     KUZU_API bool hasNext() const;
-    std::unique_ptr<QueryResult> nextQueryResult;
+    /**
+     * @return whether there are more query results to read.
+     */
+    KUZU_API bool hasNextQueryResult() const;
+    /**
+     * @return get next query result to read (for multiple query statements).
+     */
+    KUZU_API QueryResult* getNextQueryResult() const;
 
-    std::string toSingleQueryString();
+    std::unique_ptr<QueryResult> nextQueryResult;
     /**
      * @return next flat tuple in the query result.
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
     /**
-     * @return string of query result.
+     * @return string of first query result.
      */
     KUZU_API std::string toString();
 
@@ -158,6 +165,9 @@ private:
 
     // execution statistics
     std::unique_ptr<QuerySummary> querySummary;
+
+    // query iterator
+    std::unique_ptr<QueryResultIterator> queryResultIterator;
 };
 
 } // namespace main

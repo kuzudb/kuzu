@@ -176,3 +176,21 @@ TEST_F(CApiQueryResultTest, ResetIterator) {
 
     kuzu_query_result_destroy(result);
 }
+
+TEST_F(CApiQueryResultTest, MultipleQuery) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(connection, "return 1; return 2; return 3;");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    auto str = kuzu_query_result_to_string(result);
+    ASSERT_EQ(std::string(str), "1\n1\n");
+    ASSERT_TRUE(kuzu_query_result_has_next_query_result(result));
+    auto next_query_result = kuzu_query_result_get_next_query_result(result);
+    ASSERT_TRUE(kuzu_query_result_is_success(next_query_result));
+    str = kuzu_query_result_to_string(next_query_result);
+    ASSERT_EQ(std::string(str), "2\n2\n");
+    next_query_result = kuzu_query_result_get_next_query_result(result);
+    ASSERT_TRUE(kuzu_query_result_is_success(next_query_result));
+    str = kuzu_query_result_to_string(next_query_result);
+    ASSERT_EQ(std::string(str), "3\n3\n");
+    kuzu_query_result_destroy(result);
+}
