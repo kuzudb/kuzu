@@ -10,10 +10,15 @@
 #include "common/string_utils.h"
 #include "function/built_in_function_utils.h"
 #include "function/table_functions.h"
+#include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
+#include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
+#include "processor/operator/persistent/reader/npy/npy_reader.h"
+#include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::parser;
+using namespace kuzu::processor;
 
 namespace kuzu {
 namespace binder {
@@ -201,17 +206,17 @@ function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderC
     switch (fileType) {
     case FileType::PARQUET: {
         func = function::BuiltInFunctionsUtils::matchFunction(
-            READ_PARQUET_FUNC_NAME, inputTypes, functions);
+            ParquetScanFunction::name, inputTypes, functions);
     } break;
     case FileType::NPY: {
         func = function::BuiltInFunctionsUtils::matchFunction(
-            READ_NPY_FUNC_NAME, inputTypes, functions);
+            NpyScanFunction::name, inputTypes, functions);
     } break;
     case FileType::CSV: {
         auto csvConfig = CSVReaderConfig::construct(config.options);
         func = function::BuiltInFunctionsUtils::matchFunction(
-            csvConfig.parallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
-            inputTypes, functions);
+            csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name, inputTypes,
+            functions);
     } break;
     default:
         KU_UNREACHABLE;

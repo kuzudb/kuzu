@@ -50,6 +50,8 @@ struct PyArrowTableScanFunctionData final : public function::TableFuncBindData {
 };
 
 struct PyArrowTableScanFunction {
+    static constexpr const char* name = "READ_PYARROW";
+    
     static function::function_set getFunctionSet();
 
     static function::TableFunction getFunction();

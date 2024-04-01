@@ -9,6 +9,7 @@
 #include "function/table/bind_input.h"
 #include "main/client_context.h"
 #include "parser/copy.h"
+#include "processor/operator/persistent/reader/rdf/rdf_scan.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -50,13 +51,12 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     Function* func;
     // Bind file scan;
     auto inMemory = RdfReaderConfig::construct(config->options).inMemory;
-    func = BuiltInFunctionsUtils::matchFunction(READ_RDF_ALL_TRIPLE_FUNC_NAME, functions);
+    func = BuiltInFunctionsUtils::matchFunction(RdfAllTripleScan::name, functions);
     auto scanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto bindData = scanFunc->bindFunc(clientContext, bindInput.get());
     // Bind copy resource.
-    func = inMemory ?
-               BuiltInFunctionsUtils::matchFunction(IN_MEM_READ_RDF_RESOURCE_FUNC_NAME, functions) :
-               BuiltInFunctionsUtils::matchFunction(READ_RDF_RESOURCE_FUNC_NAME, functions);
+    func = inMemory ? BuiltInFunctionsUtils::matchFunction(RdfResourceInMemScan::name, functions) :
+                      BuiltInFunctionsUtils::matchFunction(RdfResourceScan::name, functions);
     auto rScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto rColumns = expression_vector{r};
     auto rFileScanInfo = BoundFileScanInfo(*rScanFunc, bindData->copy(), std::move(rColumns));
@@ -65,9 +65,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     auto rEntry = catalog->getTableCatalogEntry(clientContext->getTx(), rTableID);
     auto rCopyInfo = BoundCopyFromInfo(rEntry, std::move(rSource), offset, nullptr /* extraInfo */);
     // Bind copy literal.
-    func = inMemory ?
-               BuiltInFunctionsUtils::matchFunction(IN_MEM_READ_RDF_LITERAL_FUNC_NAME, functions) :
-               BuiltInFunctionsUtils::matchFunction(READ_RDF_LITERAL_FUNC_NAME, functions);
+    func = inMemory ? BuiltInFunctionsUtils::matchFunction(RdfLiteralInMemScan::name, functions) :
+                      BuiltInFunctionsUtils::matchFunction(RdfLiteralScan::name, functions);
     auto lScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto lColumns = expression_vector{l, lang};
     auto lFileScanInfo = BoundFileScanInfo(*lScanFunc, bindData->copy(), std::move(lColumns));
@@ -77,9 +76,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     auto lCopyInfo = BoundCopyFromInfo(lEntry, std::move(lSource), offset, nullptr /* extraInfo */);
     // Bind copy resource triples
     func = inMemory ?
-               BuiltInFunctionsUtils::matchFunction(
-                   IN_MEM_READ_RDF_RESOURCE_TRIPLE_FUNC_NAME, functions) :
-               BuiltInFunctionsUtils::matchFunction(READ_RDF_RESOURCE_TRIPLE_FUNC_NAME, functions);
+               BuiltInFunctionsUtils::matchFunction(RdfResourceTripleInMemScan::name, functions) :
+               BuiltInFunctionsUtils::matchFunction(RdfResourceTripleScan::name, functions);
     auto rrrScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto rrrColumns = expression_vector{s, p, o};
     auto rrrFileScanInfo = BoundFileScanInfo(*rrrScanFunc, bindData->copy(), rrrColumns);
@@ -99,9 +97,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
         BoundCopyFromInfo(rrrEntry, std::move(rrrSource), offset, std::move(rrrExtraInfo));
     // Bind copy literal triples
     func = inMemory ?
-               BuiltInFunctionsUtils::matchFunction(
-                   IN_MEM_READ_RDF_LITERAL_TRIPLE_FUNC_NAME, functions) :
-               BuiltInFunctionsUtils::matchFunction(READ_RDF_LITERAL_TRIPLE_FUNC_NAME, functions);
+               BuiltInFunctionsUtils::matchFunction(RdfLiteralTripleInMemScan::name, functions) :
+               BuiltInFunctionsUtils::matchFunction(RdfLiteralTripleScan::name, functions);
     auto rrlScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto rrlColumns = expression_vector{s, p, oOffset};
     auto rrlFileScanInfo = BoundFileScanInfo(*rrlScanFunc, bindData->copy(), rrlColumns);
