@@ -29,7 +29,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace catalog {
 
-CatalogContent::CatalogContent(common::VirtualFileSystem* vfs) : nextTableID{0}, vfs{vfs} {
+CatalogContent::CatalogContent(VirtualFileSystem* vfs) : nextTableID{0}, vfs{vfs} {
     tables = std::make_unique<CatalogSet>();
     functions = std::make_unique<CatalogSet>();
     registerBuiltInFunctions();
@@ -40,7 +40,7 @@ CatalogContent::CatalogContent(const std::string& directory, VirtualFileSystem* 
     registerBuiltInFunctions();
 }
 
-table_id_t CatalogContent::createTable(const binder::BoundCreateTableInfo& info) {
+table_id_t CatalogContent::createTable(const BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
     std::unique_ptr<CatalogEntry> entry;
     switch (info.type) {
@@ -64,7 +64,7 @@ table_id_t CatalogContent::createTable(const binder::BoundCreateTableInfo& info)
 }
 
 std::unique_ptr<CatalogEntry> CatalogContent::createNodeTableEntry(
-    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
+    table_id_t tableID, const BoundCreateTableInfo& info) const {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateNodeTableInfo*>(
             info.extraInfo.get());
@@ -77,7 +77,7 @@ std::unique_ptr<CatalogEntry> CatalogContent::createNodeTableEntry(
 }
 
 std::unique_ptr<CatalogEntry> CatalogContent::createRelTableEntry(
-    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
+    table_id_t tableID, const BoundCreateTableInfo& info) const {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
             info.extraInfo.get());
@@ -97,7 +97,7 @@ std::unique_ptr<CatalogEntry> CatalogContent::createRelTableEntry(
 }
 
 std::unique_ptr<CatalogEntry> CatalogContent::createRelTableGroupEntry(
-    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
+    table_id_t tableID, const BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableGroupInfo*>(
             info.extraInfo.get());
@@ -110,7 +110,7 @@ std::unique_ptr<CatalogEntry> CatalogContent::createRelTableGroupEntry(
 }
 
 std::unique_ptr<CatalogEntry> CatalogContent::createRdfGraphEntry(
-    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
+    table_id_t tableID, const BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRdfGraphInfo*>(
             info.extraInfo.get());
@@ -142,7 +142,7 @@ std::unique_ptr<CatalogEntry> CatalogContent::createRdfGraphEntry(
         literalTableID, resourceTripleTableID, literalTripleTableID);
 }
 
-void CatalogContent::dropTable(common::table_id_t tableID) {
+void CatalogContent::dropTable(table_id_t tableID) {
     auto tableEntry = getTableCatalogEntry(tableID);
     if (tableEntry->getType() == CatalogEntryType::REL_GROUP_ENTRY) {
         auto relGroupEntry = ku_dynamic_cast<CatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
@@ -153,30 +153,34 @@ void CatalogContent::dropTable(common::table_id_t tableID) {
     tables->removeEntry(tableEntry->getName());
 }
 
-void CatalogContent::alterTable(const binder::BoundAlterInfo& info) {
+void CatalogContent::alterTable(const BoundAlterInfo& info) {
     switch (info.alterType) {
     case AlterType::RENAME_TABLE: {
-        auto& renameInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
-            const binder::BoundExtraRenameTableInfo&>(*info.extraInfo);
+        auto& renameInfo =
+            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraRenameTableInfo&>(
+                *info.extraInfo);
         renameTable(info.tableID, renameInfo.newName);
     } break;
     case AlterType::ADD_PROPERTY: {
-        auto& addPropInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
-            const binder::BoundExtraAddPropertyInfo&>(*info.extraInfo);
+        auto& addPropInfo =
+            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraAddPropertyInfo&>(
+                *info.extraInfo);
         auto tableEntry =
             ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(getTableCatalogEntry(info.tableID));
         tableEntry->addProperty(addPropInfo.propertyName, addPropInfo.dataType.copy());
     } break;
     case AlterType::RENAME_PROPERTY: {
-        auto& renamePropInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
-            const binder::BoundExtraRenamePropertyInfo&>(*info.extraInfo);
+        auto& renamePropInfo =
+            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraRenamePropertyInfo&>(
+                *info.extraInfo);
         auto tableEntry =
             ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(getTableCatalogEntry(info.tableID));
         tableEntry->renameProperty(renamePropInfo.propertyID, renamePropInfo.newName);
     } break;
     case AlterType::DROP_PROPERTY: {
-        auto& dropPropInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
-            const binder::BoundExtraDropPropertyInfo&>(*info.extraInfo);
+        auto& dropPropInfo =
+            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraDropPropertyInfo&>(
+                *info.extraInfo);
         auto tableEntry =
             ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(getTableCatalogEntry(info.tableID));
         tableEntry->dropProperty(dropPropInfo.propertyID);
@@ -261,7 +265,7 @@ void CatalogContent::readFromFile(const std::string& directory, FileVersionType 
 
 void CatalogContent::addFunction(std::string name, function::function_set definitions) {
     if (functions->containsEntry(name)) {
-        throw CatalogException{common::stringFormat("function {} already exists.", name)};
+        throw CatalogException{stringFormat("function {} already exists.", name)};
     }
     functions->createEntry(std::make_unique<FunctionCatalogEntry>(
         CatalogEntryType::SCALAR_FUNCTION_ENTRY, std::move(name), std::move(definitions)));
@@ -309,13 +313,12 @@ CatalogEntry* CatalogContent::getTableCatalogEntry(table_id_t tableID) const {
     KU_UNREACHABLE;
 }
 
-common::table_id_t CatalogContent::getTableID(const std::string& tableName) const {
+table_id_t CatalogContent::getTableID(const std::string& tableName) const {
     if (tables->containsEntry(tableName)) {
         return ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tables->getEntry(tableName))
             ->getTableID();
     } else {
-        throw common::CatalogException{
-            common::stringFormat("Table: {} does not exist.", tableName)};
+        throw CatalogException{stringFormat("Table: {} does not exist.", tableName)};
     }
 }
 

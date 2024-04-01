@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/case_expression.h"
 #include "binder/expression_binder.h"
+#include "common/cast.h"
 #include "parser/expression/parsed_case_expression.h"
 
 using namespace kuzu::common;

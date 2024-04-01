@@ -81,11 +81,11 @@ private:
     void dropTable(common::table_id_t tableID);
     void alterTable(const binder::BoundAlterInfo& info);
 
-    // ----------------------------- Internal functions -----------------------
+private:
     std::unique_ptr<CatalogEntry> createNodeTableEntry(
-        common::table_id_t tableID, const binder::BoundCreateTableInfo& info);
+        common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const;
     std::unique_ptr<CatalogEntry> createRelTableEntry(
-        common::table_id_t tableID, const binder::BoundCreateTableInfo& info);
+        common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const;
     std::unique_ptr<CatalogEntry> createRelTableGroupEntry(
         common::table_id_t tableID, const binder::BoundCreateTableInfo& info);
     std::unique_ptr<CatalogEntry> createRdfGraphEntry(

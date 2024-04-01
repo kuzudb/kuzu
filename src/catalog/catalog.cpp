@@ -12,6 +12,7 @@
 #include "transaction/transaction.h"
 #include "transaction/transaction_action.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::transaction;
@@ -47,11 +48,11 @@ table_id_t Catalog::getTableID(Transaction* tx, const std::string& tableName) co
     return getVersion(tx)->getTableID(tableName);
 }
 
-std::vector<common::table_id_t> Catalog::getNodeTableIDs(Transaction* tx) const {
+std::vector<table_id_t> Catalog::getNodeTableIDs(Transaction* tx) const {
     return getVersion(tx)->getTableIDs(CatalogEntryType::NODE_TABLE_ENTRY);
 }
 
-std::vector<common::table_id_t> Catalog::getRelTableIDs(Transaction* tx) const {
+std::vector<table_id_t> Catalog::getRelTableIDs(Transaction* tx) const {
     return getVersion(tx)->getTableIDs(CatalogEntryType::REL_TABLE_ENTRY);
 }
 
@@ -59,8 +60,7 @@ std::string Catalog::getTableName(Transaction* tx, table_id_t tableID) const {
     return getVersion(tx)->getTableName(tableID);
 }
 
-TableCatalogEntry* Catalog::getTableCatalogEntry(
-    transaction::Transaction* tx, common::table_id_t tableID) const {
+TableCatalogEntry* Catalog::getTableCatalogEntry(Transaction* tx, table_id_t tableID) const {
     return ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
         getVersion(tx)->getTableCatalogEntry(tableID));
 }
@@ -70,23 +70,22 @@ std::vector<NodeTableCatalogEntry*> Catalog::getNodeTableEntries(Transaction* tx
         CatalogEntryType::NODE_TABLE_ENTRY);
 }
 
-std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntries(transaction::Transaction* tx) const {
+std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntries(Transaction* tx) const {
     return getVersion(tx)->getTableCatalogEntries<RelTableCatalogEntry*>(
         CatalogEntryType::REL_TABLE_ENTRY);
 }
 
-std::vector<RelGroupCatalogEntry*> Catalog::getRelTableGroupEntries(
-    transaction::Transaction* tx) const {
+std::vector<RelGroupCatalogEntry*> Catalog::getRelTableGroupEntries(Transaction* tx) const {
     return getVersion(tx)->getTableCatalogEntries<RelGroupCatalogEntry*>(
         CatalogEntryType::REL_GROUP_ENTRY);
 }
 
-std::vector<RDFGraphCatalogEntry*> Catalog::getRdfGraphEntries(transaction::Transaction* tx) const {
+std::vector<RDFGraphCatalogEntry*> Catalog::getRdfGraphEntries(Transaction* tx) const {
     return getVersion(tx)->getTableCatalogEntries<RDFGraphCatalogEntry*>(
         CatalogEntryType::RDF_GRAPH_ENTRY);
 }
 
-std::vector<TableCatalogEntry*> Catalog::getTableEntries(transaction::Transaction* tx) const {
+std::vector<TableCatalogEntry*> Catalog::getTableEntries(Transaction* tx) const {
     std::vector<TableCatalogEntry*> result;
     for (auto& [_, entry] : getVersion(tx)->tables->getEntries()) {
         result.push_back(ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry.get()));
@@ -120,10 +119,15 @@ void Catalog::checkpointInMemory() {
     }
 }
 
-table_id_t Catalog::createTableSchema(const binder::BoundCreateTableInfo& info) {
+table_id_t Catalog::createTableSchema(const BoundCreateTableInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
     auto tableID = readWriteVersion->createTable(info);
+    logCreateTableToWAL(info, tableID);
+    return tableID;
+}
+
+void Catalog::logCreateTableToWAL(const BoundCreateTableInfo& info, table_id_t tableID) {
     auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
     switch (info.type) {
     case TableType::NODE:
@@ -146,7 +150,6 @@ table_id_t Catalog::createTableSchema(const binder::BoundCreateTableInfo& info) 
         KU_UNREACHABLE;
     }
     }
-    return tableID;
 }
 
 void Catalog::dropTableSchema(table_id_t tableID) {
@@ -187,22 +190,28 @@ void Catalog::dropTableSchema(table_id_t tableID) {
     }
 }
 
-void Catalog::alterTableSchema(const binder::BoundAlterInfo& info) {
+void Catalog::alterTableSchema(const BoundAlterInfo& info) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
     readWriteVersion->alterTable(info);
+    logAlterTableToWAL(info);
+}
+
+void Catalog::logAlterTableToWAL(const BoundAlterInfo& info) {
     auto tableSchema = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
         readWriteVersion->getTableCatalogEntry(info.tableID));
     switch (info.alterType) {
     case AlterType::ADD_PROPERTY: {
-        auto& addPropInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
-            const binder::BoundExtraAddPropertyInfo&>(*info.extraInfo);
+        auto& addPropInfo =
+            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraAddPropertyInfo&>(
+                *info.extraInfo);
         wal->logAddPropertyRecord(
             info.tableID, tableSchema->getPropertyID(addPropInfo.propertyName));
     } break;
     case AlterType::DROP_PROPERTY: {
-        auto& dropPropInfo = ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
-            const binder::BoundExtraDropPropertyInfo&>(*info.extraInfo);
+        auto& dropPropInfo =
+            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraDropPropertyInfo&>(
+                *info.extraInfo);
         wal->logDropPropertyRecord(info.tableID, dropPropInfo.propertyID);
     } break;
     default: {
@@ -226,7 +235,7 @@ CatalogSet* Catalog::getFunctions(Transaction* tx) const {
     return getVersion(tx)->functions.get();
 }
 
-CatalogEntry* Catalog::getFunctionEntry(transaction::Transaction* tx, const std::string& name) {
+CatalogEntry* Catalog::getFunctionEntry(Transaction* tx, const std::string& name) {
     auto catalogSet = getVersion(tx)->functions.get();
     if (!catalogSet->containsEntry(name)) {
         throw CatalogException(stringFormat("function {} does not exist.", name));
@@ -247,7 +256,7 @@ void Catalog::addScalarMacroFunction(
     readWriteVersion->functions->createEntry(std::move(scalarMacroCatalogEntry));
 }
 
-std::vector<std::string> Catalog::getMacroNames(transaction::Transaction* tx) const {
+std::vector<std::string> Catalog::getMacroNames(Transaction* tx) const {
     std::vector<std::string> macroNames;
     for (auto& [_, function] : getVersion(tx)->functions->getEntries()) {
         if (function->getType() == CatalogEntryType::SCALAR_MACRO_ENTRY) {

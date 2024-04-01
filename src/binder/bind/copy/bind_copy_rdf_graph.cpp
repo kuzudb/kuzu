@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_from.h"
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "common/constants.h"
 #include "common/copier_config/rdf_reader_config.h"

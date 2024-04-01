@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/function_expression.h"
 #include "binder/expression_binder.h"
+#include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "main/client_context.h"

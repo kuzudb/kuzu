@@ -4,7 +4,6 @@
 #include "binder/expression_binder.h"
 #include "binder/query/bound_regular_query.h"
 #include "binder/query/query_graph.h"
-#include "catalog/catalog.h"
 #include "common/copier_config/reader_config.h"
 #include "common/enums/table_type.h"
 #include "parser/query/graph_pattern/pattern_element.h"
@@ -17,6 +16,9 @@ struct BaseScanSource;
 } // namespace parser
 
 namespace catalog {
+class NodeTableCatalogEntry;
+class RelTableCatalogEntry;
+class RDFGraphCatalogEntry;
 class Property;
 } // namespace catalog
 
@@ -36,6 +38,7 @@ struct TableFunction;
 namespace binder {
 struct PropertyInfo;
 struct BoundBaseScanSource;
+struct BoundCreateTableInfo;
 struct BoundInsertInfo;
 struct BoundSetPropertyInfo;
 struct BoundDeleteInfo;

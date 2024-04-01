@@ -92,9 +92,11 @@ private:
     CatalogContent* getVersion(transaction::Transaction* tx) const;
 
     bool hasUpdates() const { return isUpdated; }
-
     void setToUpdated() { isUpdated = true; }
     void resetToNotUpdated() { isUpdated = false; }
+
+    void logCreateTableToWAL(const binder::BoundCreateTableInfo& info, common::table_id_t tableID);
+    void logAlterTableToWAL(const binder::BoundAlterInfo& info);
 
 protected:
     // The flat indicates if the readWriteVersion has been updated and is different from the

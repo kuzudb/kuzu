@@ -2,9 +2,11 @@
 
 #include "binder/binder.h"
 #include "binder/copy/bound_import_database.h"
+#include "common/cast.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
 #include "common/file_system/virtual_file_system.h"
+#include "main/client_context.h"
 #include "parser/copy.h"
 #include "parser/parser.h"
 #include "parser/port_db.h"

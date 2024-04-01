@@ -1,7 +1,5 @@
 #include "processor/operator/ddl/create_table.h"
 
-#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/string_format.h"
 #include "storage/storage_manager.h"
 

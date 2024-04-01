@@ -3,6 +3,7 @@
 #include "binder/expression/function_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/aggregate/collect.h"

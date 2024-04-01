@@ -121,7 +121,7 @@ def test_max_width(temp_db, csv_path) -> None:
     )
     result = test.run()
     # terminal width when running test is 80
-    result.check_stdout("Node table: LANGUAGE_CODE has been created.")
+    result.check_stdout("Table LANGUAGE_CODE has been created.")
     result.check_not_stdout("| ... |")
     result.check_stdout("(1 column)")
 
