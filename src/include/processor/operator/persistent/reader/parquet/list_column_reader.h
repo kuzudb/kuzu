@@ -7,7 +7,7 @@ namespace processor {
 
 class ListColumnReader : public ColumnReader {
 public:
-    static constexpr const common::PhysicalTypeID TYPE = common::PhysicalTypeID::VAR_LIST;
+    static constexpr const common::PhysicalTypeID TYPE = common::PhysicalTypeID::LIST;
 
 public:
     ListColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,

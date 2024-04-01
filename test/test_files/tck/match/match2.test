@@ -380,7 +380,7 @@ Binder exception: r has data type DOUBLE but (REL) was expected.
 Binder exception: r has data type STRING but (REL) was expected.
 -STATEMENT WITH [10] AS r MATCH ()-[r]-() RETURN r;
 ---- error
-Binder exception: r has data type VAR_LIST but (REL) was expected.
+Binder exception: r has data type LIST but (REL) was expected.
 -STATEMENT WITH {x: 1} AS r MATCH ()-[r]-() RETURN r;
 ---- error
 Binder exception: r has data type STRUCT but (REL) was expected.

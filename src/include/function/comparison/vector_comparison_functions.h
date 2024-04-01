@@ -15,8 +15,8 @@ struct ComparisonFunction {
         for (auto& comparableType : common::LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
             functionSet.push_back(getFunction<OP>(name, comparableType, comparableType));
         }
-        functionSet.push_back(getFunction<OP>(
-            name, common::LogicalTypeID::VAR_LIST, common::LogicalTypeID::VAR_LIST));
+        functionSet.push_back(
+            getFunction<OP>(name, common::LogicalTypeID::LIST, common::LogicalTypeID::LIST));
         functionSet.push_back(
             getFunction<OP>(name, common::LogicalTypeID::STRUCT, common::LogicalTypeID::STRUCT));
         // We can only check whether two internal ids are equal or not. So INTERNAL_ID is not
@@ -112,7 +112,7 @@ private:
             func =
                 BinaryComparisonExecFunction<common::interval_t, common::interval_t, uint8_t, FUNC>;
         } break;
-        case common::PhysicalTypeID::VAR_LIST: {
+        case common::PhysicalTypeID::LIST: {
             func = BinaryComparisonExecFunction<common::list_entry_t, common::list_entry_t, uint8_t,
                 FUNC>;
         } break;
@@ -178,7 +178,7 @@ private:
         case common::PhysicalTypeID::INTERVAL: {
             func = BinaryComparisonSelectFunction<common::interval_t, common::interval_t, FUNC>;
         } break;
-        case common::PhysicalTypeID::VAR_LIST: {
+        case common::PhysicalTypeID::LIST: {
             func = BinaryComparisonSelectFunction<common::list_entry_t, common::list_entry_t, FUNC>;
         } break;
         case common::PhysicalTypeID::STRUCT: {

@@ -65,8 +65,8 @@ public:
     enum class ColumnType {
         DEFAULT = 0,
         INDEX = 1,  // This is used for index columns in STRING columns.
-        OFFSET = 2, // This is used for offset columns in VAR_LIST and STRING columns.
-        DATA = 3,   // This is used for data columns in VAR_LIST and STRING columns.
+        OFFSET = 2, // This is used for offset columns in LIST and STRING columns.
+        DATA = 3,   // This is used for data columns in LIST and STRING columns.
         CSR_OFFSET = 4,
         CSR_LENGTH = 5,
         STRUCT_CHILD = 6,

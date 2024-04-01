@@ -100,7 +100,7 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
         // complex types need a complementary ExtraTypeInfo object
         case 'l':
         case 'L':
-            return *LogicalType::VAR_LIST(
+            return *LogicalType::LIST(
                 std::make_unique<LogicalType>(fromArrowSchema(schema->children[0])));
         case 'w':
             throw RuntimeException("Fixed list is currently WIP.");
@@ -129,7 +129,7 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
             switch (arrowType[2]) {
             case 'l':
             case 'L':
-                return *LogicalType::VAR_LIST(
+                return *LogicalType::LIST(
                     std::make_unique<LogicalType>(fromArrowSchema(schema->children[0])));
             default:
                 KU_UNREACHABLE;

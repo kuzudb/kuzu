@@ -272,10 +272,10 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
             // LCOV_EXCL_STOP
             auto structType = LogicalType::STRUCT(std::move(structFields));
             resultType = std::unique_ptr<LogicalType>(new LogicalType(
-                LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(structType))));
+                LogicalTypeID::MAP, std::make_unique<ListTypeInfo>(std::move(structType))));
 
             auto structReader = std::make_unique<StructColumnReader>(*this,
-                VarListType::getChildType(resultType.get())->copy(), sEle, thisIdx, maxDefine - 1,
+                ListType::getChildType(resultType.get())->copy(), sEle, thisIdx, maxDefine - 1,
                 maxRepeat - 1, std::move(childrenReaders));
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
                 maxDefine, maxRepeat, std::move(structReader), context->getMemoryManager());
@@ -291,7 +291,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
             result = std::move(childrenReaders[0]);
         }
         if (isRepeated) {
-            resultType = LogicalType::VAR_LIST(std::move(resultType));
+            resultType = LogicalType::LIST(std::move(resultType));
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
                 maxDefine, maxRepeat, std::move(result), context->getMemoryManager());
         }
@@ -305,7 +305,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         // LCOV_EXCL_STOP
         if (sEle.repetition_type == FieldRepetitionType::REPEATED) {
             auto derivedType = deriveLogicalType(sEle);
-            auto listType = LogicalType::VAR_LIST(derivedType->copy());
+            auto listType = LogicalType::LIST(derivedType->copy());
             auto elementReader = ColumnReader::createReader(
                 *this, std::move(derivedType), sEle, nextFileIdx++, maxDefine, maxRepeat);
             return std::make_unique<ListColumnReader>(*this, std::move(listType), sEle, thisIdx,

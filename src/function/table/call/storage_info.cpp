@@ -3,10 +3,10 @@
 #include "function/table/bind_input.h"
 #include "function/table/call_functions.h"
 #include "storage/storage_manager.h"
+#include "storage/store/list_column.h"
 #include "storage/store/node_table.h"
 #include "storage/store/string_column.h"
 #include "storage/store/struct_column.h"
-#include "storage/store/var_list_column.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -85,9 +85,9 @@ private:
             result.push_back(dictionary.getDataColumn());
             result.push_back(dictionary.getOffsetColumn());
         } break;
-        case PhysicalTypeID::VAR_LIST: {
-            auto varListColumn = ku_dynamic_cast<Column*, VarListColumn*>(column);
-            result.push_back(varListColumn->getDataColumn());
+        case PhysicalTypeID::LIST: {
+            auto listColumn = ku_dynamic_cast<Column*, ListColumn*>(column);
+            result.push_back(listColumn->getDataColumn());
         } break;
         default: {
             // DO NOTHING.

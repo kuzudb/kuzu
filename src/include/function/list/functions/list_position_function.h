@@ -13,7 +13,7 @@ struct ListPosition {
     static inline void operation(common::list_entry_t& list, T& element, int64_t& result,
         common::ValueVector& listVector, common::ValueVector& elementVector,
         common::ValueVector& /*resultVector*/) {
-        if (*common::VarListType::getChildType(&listVector.dataType) != elementVector.dataType) {
+        if (*common::ListType::getChildType(&listVector.dataType) != elementVector.dataType) {
             result = 0;
             return;
         }

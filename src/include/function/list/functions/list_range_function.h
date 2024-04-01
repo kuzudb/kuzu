@@ -9,7 +9,7 @@ struct Range {
 public:
     // range function:
     // - include end
-    // - when start = end: there is only one element in result varlist
+    // - when start = end: there is only one element in result list
     // - when end - start are of opposite sign of step, the result will be empty
     // - default step = 1
     template<typename T>

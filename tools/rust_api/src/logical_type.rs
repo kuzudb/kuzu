@@ -54,8 +54,8 @@ pub enum LogicalType {
     String,
     /// Correponds to [Value::Blob](crate::value::Value::Blob)
     Blob,
-    /// Correponds to [Value::VarList](crate::value::Value::VarList)
-    VarList {
+    /// Correponds to [Value::List](crate::value::Value::List)
+    List {
         child_type: Box<LogicalType>,
     },
     /// Correponds to [Value::Array](crate::value::Value::Array)
@@ -118,10 +118,8 @@ impl From<&ffi::LogicalType> for LogicalType {
             LogicalTypeID::TIMESTAMP_MS => LogicalType::TimestampMs,
             LogicalTypeID::TIMESTAMP_SEC => LogicalType::TimestampSec,
             LogicalTypeID::INTERNAL_ID => LogicalType::InternalID,
-            LogicalTypeID::VAR_LIST => LogicalType::VarList {
-                child_type: Box::new(
-                    ffi::logical_type_get_var_list_child_type(logical_type).into(),
-                ),
+            LogicalTypeID::LIST => LogicalType::List {
+                child_type: Box::new(ffi::logical_type_get_list_child_type(logical_type).into()),
             },
             LogicalTypeID::ARRAY => LogicalType::Array {
                 child_type: Box::new(ffi::logical_type_get_array_child_type(logical_type).into()),
@@ -141,7 +139,7 @@ impl From<&ffi::LogicalType> for LogicalType {
             LogicalTypeID::REL => LogicalType::Rel,
             LogicalTypeID::RECURSIVE_REL => LogicalType::RecursiveRel,
             LogicalTypeID::MAP => {
-                let child_types = ffi::logical_type_get_var_list_child_type(logical_type);
+                let child_types = ffi::logical_type_get_list_child_type(logical_type);
                 let types = ffi::logical_type_get_struct_field_types(child_types);
                 let key_type = types
                     .as_ref()
@@ -212,8 +210,8 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
             | LogicalType::Rel
             | LogicalType::RecursiveRel
             | LogicalType::UUID => ffi::create_logical_type(typ.id()),
-            LogicalType::VarList { child_type } => {
-                ffi::create_logical_type_var_list(child_type.as_ref().into())
+            LogicalType::List { child_type } => {
+                ffi::create_logical_type_list(child_type.as_ref().into())
             }
             LogicalType::Array {
                 child_type,
@@ -276,7 +274,7 @@ impl LogicalType {
             LogicalType::TimestampMs => LogicalTypeID::TIMESTAMP_MS,
             LogicalType::TimestampSec => LogicalTypeID::TIMESTAMP_SEC,
             LogicalType::InternalID => LogicalTypeID::INTERNAL_ID,
-            LogicalType::VarList { .. } => LogicalTypeID::VAR_LIST,
+            LogicalType::List { .. } => LogicalTypeID::LIST,
             LogicalType::Array { .. } => LogicalTypeID::ARRAY,
             LogicalType::Struct { .. } => LogicalTypeID::STRUCT,
             LogicalType::Node => LogicalTypeID::NODE,

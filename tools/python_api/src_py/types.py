@@ -32,7 +32,7 @@ class Type(Enum):
     STRING = "STRING"
     BLOB = "BLOB"
     UUID = "UUID"
-    VAR_LIST = "VAR_LIST"
+    LIST = "LIST"
     ARRAY = "ARRAY"
     STRUCT = "STRUCT"
     MAP = "MAP"

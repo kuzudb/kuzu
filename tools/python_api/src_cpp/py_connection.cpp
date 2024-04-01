@@ -194,12 +194,12 @@ static bool canCastPyLogicalType(const LogicalType& from, const LogicalType& to)
             canCastPyLogicalType(*toKeyType, *fromKeyType)) &&
             (canCastPyLogicalType(*fromValueType, *toValueType) ||
             canCastPyLogicalType(*toValueType, *fromValueType));
-    } else if (from.getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
-        if (to.getLogicalTypeID() != LogicalTypeID::VAR_LIST) {
+    } else if (from.getLogicalTypeID() == LogicalTypeID::LIST) {
+        if (to.getLogicalTypeID() != LogicalTypeID::LIST) {
             return false;
         }
         return canCastPyLogicalType(
-            *VarListType::getChildType(&from), *VarListType::getChildType(&to));
+            *ListType::getChildType(&from), *ListType::getChildType(&to));
     } else {
         auto castCost = function::BuiltInFunctionsUtils::getCastCost(
             from.getLogicalTypeID(), to.getLogicalTypeID());
@@ -266,7 +266,7 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
             auto curChildType = pyLogicalType(child);
             tryConvertPyLogicalType(*childType, *curChildType);
         }
-        return LogicalType::VAR_LIST(std::move(childType));
+        return LogicalType::LIST(std::move(childType));
     } else if (py::isinstance<py::dict>(val)) {
         py::dict dict = py::reinterpret_borrow<py::dict>(val);
         auto childKeyType = LogicalType::ANY(), childValueType = LogicalType::ANY();
@@ -343,12 +343,12 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
         uuidToAppend.value = uuidVal;
         return Value{uuidToAppend};
     }
-    case LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::LIST: {
         py::list lst = py::reinterpret_borrow<py::list>(val);
         std::vector<std::unique_ptr<Value>> children;
         for (auto child : lst) {
             children.push_back(std::make_unique<Value>(
-                transformPythonValueAs(child, VarListType::getChildType(type))));
+                transformPythonValueAs(child, ListType::getChildType(type))));
         }
         return Value(std::make_unique<LogicalType>(*type), std::move(children));
     }

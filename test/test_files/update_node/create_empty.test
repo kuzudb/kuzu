@@ -36,7 +36,7 @@
 -STATEMENT COMMIT
 ---- ok
 
--CASE CreateVarList
+-CASE CreateList
 -STATEMENT CREATE NODE TABLE test(id INT64, prop STRING[], PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (a:test {id:1, prop:['A', 'B', 'C', 'This is a long string for test']})

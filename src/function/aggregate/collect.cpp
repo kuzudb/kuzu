@@ -81,7 +81,7 @@ std::unique_ptr<FunctionBindData> CollectFunction::bindFunc(
     KU_ASSERT(arguments.size() == 1);
     auto aggFuncDefinition = reinterpret_cast<AggregateFunction*>(definition);
     aggFuncDefinition->parameterTypeIDs[0] = arguments[0]->dataType.getLogicalTypeID();
-    auto returnType = LogicalType::VAR_LIST(std::make_unique<LogicalType>(arguments[0]->dataType));
+    auto returnType = LogicalType::LIST(std::make_unique<LogicalType>(arguments[0]->dataType));
     return std::make_unique<FunctionBindData>(std::move(returnType));
 }
 
@@ -89,7 +89,7 @@ function_set CollectFunction::getFunctionSet() {
     function_set result;
     for (auto isDistinct : std::vector<bool>{true, false}) {
         result.push_back(std::make_unique<AggregateFunction>(name,
-            std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::VAR_LIST, initialize,
+            std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::LIST, initialize,
             updateAll, updatePos, combine, finalize, isDistinct, bindFunc));
     }
     return result;

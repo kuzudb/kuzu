@@ -10,10 +10,10 @@ TEST(CApiDataTypeTest, Create) {
     auto dataTypeCpp = (LogicalType*)dataType->_data_type;
     ASSERT_EQ(dataTypeCpp->getLogicalTypeID(), LogicalTypeID::INT64);
 
-    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_VAR_LIST, dataType, 0);
+    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_LIST, dataType, 0);
     ASSERT_NE(dataType2, nullptr);
     auto dataTypeCpp2 = (LogicalType*)dataType2->_data_type;
-    ASSERT_EQ(dataTypeCpp2->getLogicalTypeID(), LogicalTypeID::VAR_LIST);
+    ASSERT_EQ(dataTypeCpp2->getLogicalTypeID(), LogicalTypeID::LIST);
     // ASSERT_EQ(dataTypeCpp2->getChildType()->getLogicalTypeID(), LogicalTypeID::INT64);
 
     auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_ARRAY, dataType, 100);
@@ -38,7 +38,7 @@ TEST(CApiDataTypeTest, Clone) {
     auto dataTypeCloneCpp = (LogicalType*)dataTypeClone->_data_type;
     ASSERT_TRUE(*dataTypeCpp == *dataTypeCloneCpp);
 
-    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_VAR_LIST, dataType, 0);
+    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_LIST, dataType, 0);
     ASSERT_NE(dataType2, nullptr);
     auto dataTypeClone2 = kuzu_data_type_clone(dataType2);
     ASSERT_NE(dataTypeClone2, nullptr);
@@ -69,7 +69,7 @@ TEST(CApiDataTypeTest, Eqauls) {
     ASSERT_NE(dataTypeClone, nullptr);
     ASSERT_TRUE(kuzu_data_type_equals(dataType, dataTypeClone));
 
-    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_VAR_LIST, dataType, 0);
+    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_LIST, dataType, 0);
     ASSERT_NE(dataType2, nullptr);
     auto dataTypeClone2 = kuzu_data_type_clone(dataType2);
     ASSERT_NE(dataTypeClone2, nullptr);
@@ -98,9 +98,9 @@ TEST(CApiDataTypeTest, GetID) {
     ASSERT_NE(dataType, nullptr);
     ASSERT_EQ(kuzu_data_type_get_id(dataType), kuzu_data_type_id::KUZU_INT64);
 
-    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_VAR_LIST, dataType, 0);
+    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_LIST, dataType, 0);
     ASSERT_NE(dataType2, nullptr);
-    ASSERT_EQ(kuzu_data_type_get_id(dataType2), kuzu_data_type_id::KUZU_VAR_LIST);
+    ASSERT_EQ(kuzu_data_type_get_id(dataType2), kuzu_data_type_id::KUZU_LIST);
 
     auto dataType3 = kuzu_data_type_create(kuzu_data_type_id::KUZU_ARRAY, dataType, 100);
     ASSERT_NE(dataType3, nullptr);
@@ -118,7 +118,7 @@ TEST(CApiDataTypeTest, GetID) {
 //    ASSERT_NE(dataType, nullptr);
 //    ASSERT_EQ(kuzu_data_type_get_child_type(dataType), nullptr);
 //
-//    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_VAR_LIST, dataType, 0);
+//    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_LIST, dataType, 0);
 //    ASSERT_NE(dataType2, nullptr);
 //    auto childType2 = kuzu_data_type_get_child_type(dataType2);
 //    ASSERT_NE(childType2, nullptr);
@@ -143,7 +143,7 @@ TEST(CApiDataTypeTest, GetFixedNumElementsInList) {
     ASSERT_NE(dataType, nullptr);
     ASSERT_EQ(kuzu_data_type_get_num_elements_in_array(dataType), 0);
 
-    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_VAR_LIST, dataType, 0);
+    auto dataType2 = kuzu_data_type_create(kuzu_data_type_id::KUZU_LIST, dataType, 0);
     ASSERT_NE(dataType2, nullptr);
     ASSERT_EQ(kuzu_data_type_get_num_elements_in_array(dataType2), 0);
 

@@ -339,8 +339,8 @@ describe("INTERVAL", function () {
   });
 });
 
-describe("VAR_LIST", function () {
-  it("should convert VAR_LIST type", async function () {
+describe("LIST", function () {
+  it("should convert LIST type", async function () {
     const queryResult = await conn.query(
       "MATCH (a:person) WHERE a.ID = 0 RETURN a.courseScoresPerTerm;"
     );

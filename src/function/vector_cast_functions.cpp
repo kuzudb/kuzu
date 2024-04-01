@@ -21,8 +21,8 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
     auto inputType = &inputVector->dataType;
     auto resultType = &resultVector->dataType;
     while (true) {
-        if (inputType->getPhysicalType() == PhysicalTypeID::VAR_LIST &&
-            resultType->getPhysicalType() == PhysicalTypeID::VAR_LIST) {
+        if (inputType->getPhysicalType() == PhysicalTypeID::LIST &&
+            resultType->getPhysicalType() == PhysicalTypeID::LIST) {
             // copy data and nullmask from input
             memcpy(resultVector->getData(), inputVector->getData(),
                 numOfEntries * resultVector->getNumBytesPerValue());
@@ -100,8 +100,8 @@ static void nestedTypesCastExecFunction(
 
 bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {
     // TODO(Jiamin): should remove after support list implicit cast
-    if (srcType.getLogicalTypeID() == LogicalTypeID::VAR_LIST &&
-        dstType.getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
+    if (srcType.getLogicalTypeID() == LogicalTypeID::LIST &&
+        dstType.getLogicalTypeID() == LogicalTypeID::LIST) {
         return false;
     }
     if (BuiltInFunctionsUtils::getCastCost(
@@ -211,7 +211,7 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
             ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint8_t, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::ARRAY:
-    case LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::LIST: {
         execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, list_entry_t,
             CastString, EXECUTOR>;
     } break;
@@ -404,7 +404,7 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
             ScalarFunction::UnaryCastExecFunction<ku_uuid_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::ARRAY:
-    case LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::LIST: {
         func = ScalarFunction::UnaryCastExecFunction<list_entry_t, ku_string_t, CastToString,
             EXECUTOR>;
     } break;
@@ -570,7 +570,7 @@ template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastBetweenNested(
     const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
     switch (sourceTypeID) {
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::LIST:
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::ARRAY: {
@@ -700,7 +700,7 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
         return bindCastToTimestampFunction<EXECUTOR, timestamp_t>(
             functionName, sourceTypeID, targetTypeID);
     }
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY:
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {

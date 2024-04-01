@@ -53,7 +53,7 @@ static std::unique_ptr<FunctionBindData> PropertiesBindFunc(
     }
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
     auto listType = arguments[0]->getDataType();
-    auto childType = VarListType::getChildType(&listType);
+    auto childType = ListType::getChildType(&listType);
     struct_field_idx_t fieldIdx;
     if (childType->getLogicalTypeID() == LogicalTypeID::NODE ||
         childType->getLogicalTypeID() == LogicalTypeID::REL) {
@@ -66,14 +66,14 @@ static std::unique_ptr<FunctionBindData> PropertiesBindFunc(
             stringFormat("Cannot extract properties from {}.", listType.toString()));
     }
     auto field = StructType::getField(childType, fieldIdx);
-    auto returnType = LogicalType::VAR_LIST(field->getType()->copy());
+    auto returnType = LogicalType::LIST(field->getType()->copy());
     return std::make_unique<PropertiesBindData>(std::move(returnType), fieldIdx);
 }
 
 static void PropertiesCompileFunc(FunctionBindData* bindData,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
-    KU_ASSERT(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+    KU_ASSERT(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::LIST);
     auto propertiesBindData = reinterpret_cast<PropertiesBindData*>(bindData);
     auto fieldVector = StructVector::getFieldVector(
         ListVector::getDataVector(parameters[0].get()), propertiesBindData->childIdx);
@@ -111,8 +111,8 @@ static void PropertiesExecFunc(const std::vector<std::shared_ptr<ValueVector>>& 
 function_set PropertiesFunction::getFunctionSet() {
     function_set functions;
     functions.push_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST, LogicalTypeID::STRING},
-        LogicalTypeID::ANY, PropertiesExecFunc, nullptr, PropertiesCompileFunc, PropertiesBindFunc,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING}, LogicalTypeID::ANY,
+        PropertiesExecFunc, nullptr, PropertiesCompileFunc, PropertiesBindFunc,
         false /* isVarLength */));
     return functions;
 }

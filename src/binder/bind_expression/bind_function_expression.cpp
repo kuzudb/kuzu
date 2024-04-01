@@ -250,7 +250,7 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(std::vector<table
 
 std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression& expression) {
     auto catalog = context->getCatalog();
-    auto listType = LogicalType::VAR_LIST(LogicalType::STRING());
+    auto listType = LogicalType::LIST(LogicalType::STRING());
     expression_vector children;
     switch (expression.getDataType().getLogicalTypeID()) {
     case LogicalTypeID::NODE: {

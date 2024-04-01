@@ -66,7 +66,7 @@
 ---- ok
 -STATEMENT CREATE REL TABLE T(FROM A TO A);
 ---- ok
-# indexing on varlist causes segmentaion fault
+# indexing on list causes segmentaion fault
 -STATEMENT CREATE (a {var: -2}), (b {var: 0})
            WITH *
            UNWIND range(1, 20) AS i
@@ -160,7 +160,7 @@ Binder exception: Bind relationship r to relationship with same name is not supp
             MATCH (first)-[rs*]->(second)
             RETURN first, second;
 ---- error
-Binder exception: rs has data type VAR_LIST but (RECURSIVE_REL) was expected.
+Binder exception: rs has data type LIST but (RECURSIVE_REL) was expected.
 
 # Fail when asterisk operator is missing
 # Fail on negative bound

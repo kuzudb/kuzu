@@ -60,7 +60,7 @@ common::LogicalType DuckDBTypeConverter::convertDuckDBType(std::string typeStr) 
         return LogicalType{LogicalTypeID::STRING};
     } else if (typeStr.ends_with("[]")) {
         auto innerType = convertDuckDBType(typeStr.substr(0, typeStr.size() - 2));
-        return *LogicalType::VAR_LIST(innerType.copy());
+        return *LogicalType::LIST(innerType.copy());
     } else if (typeStr.starts_with("STRUCT")) {
         return *LogicalType::STRUCT(parseStructTypeInfo(typeStr));
     } else if (typeStr.starts_with("UNION")) {

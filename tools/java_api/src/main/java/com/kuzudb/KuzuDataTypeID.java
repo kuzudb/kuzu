@@ -31,7 +31,7 @@ public enum KuzuDataTypeID {
     INTERNAL_ID(42),
     STRING(50),
     BLOB(51),
-    VAR_LIST(52),
+    LIST(52),
     ARRAY(53),
     STRUCT(54),
     MAP(55),

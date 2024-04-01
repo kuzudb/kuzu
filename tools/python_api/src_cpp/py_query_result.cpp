@@ -242,7 +242,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         return py::cast<py::object>(importCache->datetime.timedelta()(py::arg("days") = days,
                                             py::arg("microseconds") = intervalVal.micros));
     }
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY: {
         py::list list;
         for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {

@@ -184,7 +184,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         auto milliseconds = microseconds / Interval::MICROS_PER_MSEC;
         return Napi::Number::New(env, milliseconds);
     }
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY: {
         auto size = NestedVal::getChildrenSize(&value);
         auto napiArray = Napi::Array::New(env, size);

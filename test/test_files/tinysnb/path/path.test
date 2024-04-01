@@ -83,18 +83,18 @@
 -STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) RETURN size(a)
 ---- error
 Binder exception: Cannot match a built-in function for given function SIZE(NODE). Supported inputs are
-(VAR_LIST) -> INT64
+(LIST) -> INT64
 (MAP) -> INT64
 (STRING) -> INT64
 -STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) RETURN size(p)
 ---- error
 Binder exception: Cannot match a built-in function for given function SIZE(RECURSIVE_REL). Supported inputs are
-(VAR_LIST) -> INT64
+(LIST) -> INT64
 (MAP) -> INT64
 (STRING) -> INT64
 -STATEMENT MATCH p = (a:person)-[e:knows]->(b:person) RETURN size(e)
 ---- error
 Binder exception: Cannot match a built-in function for given function SIZE(REL). Supported inputs are
-(VAR_LIST) -> INT64
+(LIST) -> INT64
 (MAP) -> INT64
 (STRING) -> INT64

@@ -78,7 +78,7 @@ pub(crate) mod ffi {
         // variable size types
         STRING = 50,
         BLOB = 51,
-        VAR_LIST = 52,
+        LIST = 52,
         ARRAY = 53,
         STRUCT = 54,
         MAP = 55,
@@ -205,9 +205,7 @@ pub(crate) mod ffi {
         fn getLogicalTypeID(&self) -> LogicalTypeID;
 
         fn create_logical_type(id: LogicalTypeID) -> UniquePtr<LogicalType>;
-        fn create_logical_type_var_list(
-            child_type: UniquePtr<LogicalType>,
-        ) -> UniquePtr<LogicalType>;
+        fn create_logical_type_list(child_type: UniquePtr<LogicalType>) -> UniquePtr<LogicalType>;
         fn create_logical_type_array(
             child_type: UniquePtr<LogicalType>,
             num_elements: u64,
@@ -225,7 +223,7 @@ pub(crate) mod ffi {
             valueType: UniquePtr<LogicalType>,
         ) -> UniquePtr<LogicalType>;
 
-        fn logical_type_get_var_list_child_type(value: &LogicalType) -> &LogicalType;
+        fn logical_type_get_list_child_type(value: &LogicalType) -> &LogicalType;
         fn logical_type_get_array_child_type(value: &LogicalType) -> &LogicalType;
         fn logical_type_get_array_num_elements(value: &LogicalType) -> u64;
         fn logical_type_get_struct_field_names(value: &LogicalType) -> Vec<String>;

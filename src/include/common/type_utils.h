@@ -174,7 +174,7 @@ public:
         case LogicalTypeID::UUID:
             return func(ku_uuid_t());
         case LogicalTypeID::ARRAY:
-        case LogicalTypeID::VAR_LIST:
+        case LogicalTypeID::LIST:
             return func(list_entry_t());
         case LogicalTypeID::MAP:
             return func(map_entry_t());
@@ -230,7 +230,7 @@ public:
             return func(internalID_t());
         case PhysicalTypeID::STRING:
             return func(ku_string_t());
-        case PhysicalTypeID::VAR_LIST:
+        case PhysicalTypeID::LIST:
             return func(list_entry_t());
         case PhysicalTypeID::STRUCT:
             return func(struct_entry_t());

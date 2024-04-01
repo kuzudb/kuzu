@@ -128,7 +128,7 @@ impl<'a> Connection<'a> {
     // should be generic.
     //
     // E.g.
-    // let result: QueryResult<kuzu::value::VarList<kuzu::value::String>> = conn.query("...")?;
+    // let result: QueryResult<kuzu::value::List<kuzu::value::String>> = conn.query("...")?;
     // let result: QueryResult<kuzu::value::Int64> = conn.query("...")?;
     //
     // But this would really just be syntactic sugar wrapping the current system

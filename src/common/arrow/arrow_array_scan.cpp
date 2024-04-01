@@ -155,7 +155,7 @@ static void scanArrowArrayFixedBLOB(const ArrowArray* array, ValueVector& output
 }
 
 template<typename offsetsT>
-static void scanArrowArrayVarList(const ArrowSchema* schema, const ArrowArray* array,
+static void scanArrowArrayList(const ArrowSchema* schema, const ArrowArray* array,
     ValueVector& outputVector, ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset,
     uint64_t count) {
     auto offsets = ((const offsetsT*)array->buffers[1]) + srcOffset;
@@ -177,7 +177,7 @@ static void scanArrowArrayVarList(const ArrowSchema* schema, const ArrowArray* a
 }
 
 template<typename offsetsT>
-static void scanArrowArrayVarListView(const ArrowSchema* schema, const ArrowArray* array,
+static void scanArrowArrayListView(const ArrowSchema* schema, const ArrowArray* array,
     ValueVector& outputVector, ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset,
     uint64_t count) {
     auto offsets = ((const offsetsT*)array->buffers[1]) + srcOffset;
@@ -491,12 +491,12 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
             return scanArrowArrayRunEndEncoded(
                 schema, array, outputVector, mask, srcOffset, dstOffset, count);
         case 'l':
-            // VAR_LIST
-            return scanArrowArrayVarList<int32_t>(
+            // LIST
+            return scanArrowArrayList<int32_t>(
                 schema, array, outputVector, mask, srcOffset, dstOffset, count);
         case 'L':
-            // LONG VAR_LIST
-            return scanArrowArrayVarList<int64_t>(
+            // LONG LIST
+            return scanArrowArrayList<int64_t>(
                 schema, array, outputVector, mask, srcOffset, dstOffset, count);
         case 'w':
             // FIXED_LIST
@@ -510,7 +510,7 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
                 schema, array, outputVector, mask, srcOffset, dstOffset, count);
         case 'm':
             // MAP
-            return scanArrowArrayVarList<int32_t>(
+            return scanArrowArrayList<int32_t>(
                 schema, array, outputVector, mask, srcOffset, dstOffset, count);
         case 'u':
             if (arrowType[2] == 'd') {
@@ -525,12 +525,12 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
         case 'v':
             switch (arrowType[2]) {
             case 'l':
-                return scanArrowArrayVarListView<int32_t>(
+                return scanArrowArrayListView<int32_t>(
                     schema, array, outputVector, mask, srcOffset, dstOffset, count);
             case 'L':
-                return scanArrowArrayVarListView<int64_t>(
+                return scanArrowArrayListView<int64_t>(
                     schema, array, outputVector, mask, srcOffset, dstOffset, count);
-                // LONG VAR_LIST VIEW
+                // LONG LIST VIEW
             default:
                 KU_UNREACHABLE;
             }

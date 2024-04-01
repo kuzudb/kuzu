@@ -244,7 +244,7 @@ pub enum Value {
     // LogicalType is necessary so that we can pass the correct type to the C++ API if the list is empty.
     /// These must contain elements which are all the given type.
     /// <https://kuzudb.com/docusaurus/cypher/data-types/list.html>
-    VarList(LogicalType, Vec<Value>),
+    List(LogicalType, Vec<Value>),
     /// These must contain elements which are all the same type.
     /// <https://kuzudb.com/docusaurus/cypher/data-types/list.html>
     Array(LogicalType, Vec<Value>),
@@ -300,7 +300,7 @@ impl std::fmt::Display for Value {
             Value::String(x) => write!(f, "{x}"),
             Value::Blob(x) => write!(f, "{x:x?}"),
             Value::Null(_) => write!(f, ""),
-            Value::VarList(_, x) | Value::Array(_, x) => display_list(f, x),
+            Value::List(_, x) | Value::Array(_, x) => display_list(f, x),
             // Note: These don't match kuzu's toString, but we probably don't want them to
             Value::Interval(x) => write!(f, "{x}"),
             Value::Timestamp(x) => write!(f, "{x}"),
@@ -373,7 +373,7 @@ impl From<&Value> for LogicalType {
             Value::String(_) => LogicalType::String,
             Value::Blob(_) => LogicalType::Blob,
             Value::Null(x) => x.clone(),
-            Value::VarList(x, _) => LogicalType::VarList {
+            Value::List(x, _) => LogicalType::List {
                 child_type: Box::new(x.clone()),
             },
             Value::Array(x, value) => LogicalType::Array {
@@ -497,14 +497,14 @@ impl TryFrom<&ffi::Value> for Value {
                     .map(Value::TimestampSec)
                     .ok_or(ConversionError::TimestampSec(sec))
             }
-            LogicalTypeID::VAR_LIST => {
+            LogicalTypeID::LIST => {
                 let mut result = vec![];
                 for index in 0..ffi::value_get_children_size(value) {
                     let value: Value = ffi::value_get_child(value, index).try_into()?;
                     result.push(value);
                 }
-                if let LogicalType::VarList { child_type } = value.into() {
-                    Ok(Value::VarList(*child_type, result))
+                if let LogicalType::List { child_type } = value.into() {
+                    Ok(Value::List(*child_type, result))
                 } else {
                     unreachable!()
                 }
@@ -612,7 +612,7 @@ impl TryFrom<&ffi::Value> for Value {
             LogicalTypeID::RECURSIVE_REL => {
                 let nodes: Value = ffi::recursive_rel_get_nodes(value).try_into()?;
                 let rels: Value = ffi::recursive_rel_get_rels(value).try_into()?;
-                let nodes = if let Value::VarList(LogicalType::Node, nodes) = nodes {
+                let nodes = if let Value::List(LogicalType::Node, nodes) = nodes {
                     nodes.into_iter().map(|x| {
                         if let Value::Node(x) = x {
                             x
@@ -623,7 +623,7 @@ impl TryFrom<&ffi::Value> for Value {
                 } else {
                     panic!("Unexpected value in RecursiveRel's rels: {}", rels)
                 };
-                let rels = if let Value::VarList(LogicalType::Rel, rels) = rels {
+                let rels = if let Value::List(LogicalType::Rel, rels) = rels {
                     rels.into_iter().map(|x| {
                         if let Value::Rel(x) = x {
                             x
@@ -811,13 +811,13 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
                 let (months, days, micros) = get_interval_t(value);
                 Ok(ffi::create_value_interval(months, days, micros))
             }
-            Value::VarList(typ, value) => {
+            Value::List(typ, value) => {
                 let mut builder = ffi::create_list();
                 for elem in value {
                     builder.pin_mut().insert(elem.try_into()?);
                 }
                 Ok(ffi::get_list_value(
-                    (&LogicalType::VarList {
+                    (&LogicalType::List {
                         child_type: Box::new(typ),
                     })
                         .into(),
@@ -1122,7 +1122,7 @@ mod tests {
     }
 
     type_tests! {
-        convert_var_list_type: LogicalType::VarList { child_type: Box::new(LogicalType::String) },
+        convert_list_type: LogicalType::List { child_type: Box::new(LogicalType::String) },
         convert_array_type: LogicalType::Array { child_type: Box::new(LogicalType::Int64), num_elements: 3 },
         convert_int8_type: LogicalType::Int8,
         convert_int16_type: LogicalType::Int16,
@@ -1157,8 +1157,8 @@ mod tests {
     }
 
     value_tests! {
-        convert_var_list: Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
-        convert_var_list_empty: Value::VarList(LogicalType::String, vec![]),
+        convert_list: Value::List(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
+        convert_list_empty: Value::List(LogicalType::String, vec![]),
         convert_array: Value::Array(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
         convert_int8: Value::Int8(0),
         convert_int16: Value::Int16(1),
@@ -1186,7 +1186,7 @@ mod tests {
         convert_string: Value::String("Hello World".to_string()),
         convert_blob: Value::Blob("Hello World".into()),
         convert_bool: Value::Bool(false),
-        convert_null: Value::Null(LogicalType::VarList {
+        convert_null: Value::Null(LogicalType::List {
             child_type: Box::new(LogicalType::Array { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
         }),
         convert_struct: Value::Struct(vec![("NAME".to_string(), "Alice".into()), ("AGE".to_string(), 25.into())]),
@@ -1200,8 +1200,8 @@ mod tests {
     }
 
     display_tests! {
-        display_var_list: Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
-        display_var_list_empty: Value::VarList(LogicalType::String, vec![]),
+        display_list: Value::List(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
+        display_list_empty: Value::List(LogicalType::String, vec![]),
         display_array: Value::Array(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
         display_int8: Value::Int8(0),
         display_int16: Value::Int16(1),
@@ -1218,7 +1218,7 @@ mod tests {
         // The C++ API escapes data in the blob as hex
         display_string: Value::String("Hello World".to_string()),
         display_bool: Value::Bool(false),
-        display_null: Value::Null(LogicalType::VarList {
+        display_null: Value::Null(LogicalType::List {
             child_type: Box::new(LogicalType::Array { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
         }),
         display_struct: Value::Struct(vec![("NAME".to_string(), "Alice".into()), ("AGE".to_string(), 25.into())]),
@@ -1237,8 +1237,8 @@ mod tests {
 
     database_tests! {
         // Passing these values as arguments is not yet implemented in kuzu:
-        // db_var_list_string: Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into()]), "STRING[]",
-        // db_var_list_int: Value::VarList(LogicalType::Int64, vec![0i64.into(), 1i64.into(), 2i64.into()]), "INT64[]",
+        // db_list_string: Value::List(LogicalType::String, vec!["Alice".into(), "Bob".into()]), "STRING[]",
+        // db_list_int: Value::List(LogicalType::Int64, vec![0i64.into(), 1i64.into(), 2i64.into()]), "INT64[]",
         // db_map: Value::Map((LogicalType::String, LogicalType::Int64), vec![(Value::String("key".to_string()), Value::Int64(24))]), "MAP(STRING,INT64)",
         // db_array: Value::Array(LogicalType::Int64, vec![1i64.into(), 2i64.into(), 3i64.into()]), "INT64[3]",
         // db_union: Value::Union {
@@ -1250,7 +1250,7 @@ mod tests {
            "STRUCT(item STRING, count INT32)",
         db_null_string: Value::Null(LogicalType::String), "STRING",
         db_null_int: Value::Null(LogicalType::Int64), "INT64",
-        db_null_list: Value::Null(LogicalType::VarList {
+        db_null_list: Value::Null(LogicalType::List {
            child_type: Box::new(LogicalType::Array { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
         }), "INT16[3][]",
         db_int8: Value::Int8(0), "INT8",
@@ -1280,7 +1280,7 @@ mod tests {
 
     #[test]
     /// Tests that the list value is correctly constructed
-    fn test_var_list_get() -> Result<()> {
+    fn test_list_get() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
@@ -1288,7 +1288,7 @@ mod tests {
             assert_eq!(result.len(), 1);
             assert_eq!(
                 result[0],
-                Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into(),])
+                Value::List(LogicalType::String, vec!["Alice".into(), "Bob".into(),])
             );
         }
         temp_dir.close()?;

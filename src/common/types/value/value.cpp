@@ -107,7 +107,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value(dataType.copy(), std::move(children));
     }
     case LogicalTypeID::MAP:
-    case LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::LIST: {
         return Value(dataType.copy(), std::vector<std::unique_ptr<Value>>{});
     }
     case LogicalTypeID::UNION: {
@@ -330,11 +330,11 @@ void Value::copyValueFrom(const uint8_t* value) {
         strVal = ((ku_string_t*)value)->getAsString();
     } break;
     case LogicalTypeID::MAP:
-    case LogicalTypeID::VAR_LIST: {
-        copyFromVarList(*(ku_list_t*)value, *VarListType::getChildType(dataType.get()));
+    case LogicalTypeID::LIST: {
+        copyFromList(*(ku_list_t*)value, *ListType::getChildType(dataType.get()));
     } break;
     case LogicalTypeID::ARRAY: {
-        copyFromVarList(*(ku_list_t*)value, *ArrayType::getChildType(dataType.get()));
+        copyFromList(*(ku_list_t*)value, *ArrayType::getChildType(dataType.get()));
     } break;
     case LogicalTypeID::UNION: {
         copyFromUnion(value);
@@ -407,7 +407,7 @@ void Value::copyValueFrom(const Value& other) {
     case PhysicalTypeID::STRING: {
         strVal = other.strVal;
     } break;
-    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRUCT: {
         for (auto& child : other.children) {
             children.push_back(child->copy());
@@ -480,7 +480,7 @@ std::string Value::toString() const {
     case LogicalTypeID::MAP: {
         return mapToString();
     }
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY: {
         return listToString();
     }
@@ -512,7 +512,7 @@ Value::Value(const LogicalType& dataType_) : isNull_{true} {
     dataType = dataType_.copy();
 }
 
-void Value::copyFromVarList(ku_list_t& list, const LogicalType& childType) {
+void Value::copyFromList(ku_list_t& list, const LogicalType& childType) {
     if (list.size > children.size()) {
         children.reserve(list.size);
         for (auto i = children.size(); i < list.size; ++i) {
@@ -624,7 +624,7 @@ void Value::serialize(Serializer& serializer) const {
     case PhysicalTypeID::STRING: {
         serializer.serializeValue(strVal);
     } break;
-    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRUCT: {
         for (auto i = 0u; i < childrenSize; ++i) {
             children[i]->serialize(serializer);
@@ -688,7 +688,7 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     case PhysicalTypeID::STRING: {
         deserializer.deserializeValue(val->strVal);
     } break;
-    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRUCT: {
         deserializer.deserializeVectorOfPtrs(val->children);
     } break;

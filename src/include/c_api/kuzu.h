@@ -296,7 +296,7 @@ typedef enum {
     // variable size types
     KUZU_STRING = 50,
     KUZU_BLOB = 51,
-    KUZU_VAR_LIST = 52,
+    KUZU_LIST = 52,
     KUZU_ARRAY = 53,
     KUZU_STRUCT = 54,
     KUZU_MAP = 55,
@@ -896,8 +896,8 @@ KUZU_C_API void kuzu_value_destroy(kuzu_value* value);
  */
 KUZU_C_API uint64_t kuzu_value_get_list_size(kuzu_value* value);
 /**
- * @brief Returns the element at index of the given value. The value must be of type VAR_LIST.
- * @param value The VAR_LIST value to return.
+ * @brief Returns the element at index of the given value. The value must be of type LIST.
+ * @param value The LIST value to return.
  * @param index The index of the element to return.
  */
 KUZU_C_API kuzu_value* kuzu_value_get_list_element(kuzu_value* value, uint64_t index);

@@ -127,7 +127,7 @@ void ArrowConverter::setArrowFormat(
     case LogicalTypeID::STRING: {
         child.format = "u";
     } break;
-    case LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::LIST: {
         child.format = "+l";
         child.n_children = 1;
         rootHolder.nestedChildren.emplace_back();

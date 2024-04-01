@@ -252,7 +252,7 @@ static bool isNull(std::string_view& str) {
     return false;
 }
 
-// ---------------------- cast String to Varlist Helper ------------------------------ //
+// ---------------------- cast String to List Helper ------------------------------ //
 struct CountPartOperation {
     uint64_t count = 0;
 
@@ -883,7 +883,7 @@ void CastString::copyStringToVector(
         CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, vectorPos, option);
     } break;
     case LogicalTypeID::ARRAY:
-    case LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::LIST: {
         list_entry_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, vectorPos, option);
     } break;
