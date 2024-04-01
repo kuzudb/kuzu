@@ -12,12 +12,10 @@ void OrderByScanLocalState::init(
     }
     payloadScanner = std::make_unique<PayloadScanner>(
         sharedState.getMergedKeyBlock(), sharedState.getPayloadTables());
-}
-
-void OrderByScan::initGlobalStateInternal(ExecutionContext* /*context*/) {
-    for (auto& table : sharedState->getPayloadTables()) {
-        sharedState->numTuples += table->getTotalNumFlatTuples();
+    for (auto& table : sharedState.getPayloadTables()) {
+        numTuples += table->getNumTuples();
     }
+    numTuplesRead = 0;
 }
 
 void OrderByScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
@@ -28,17 +26,16 @@ bool OrderByScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     // If there is no more tuples to read, just return false.
     auto numTuplesRead = localState->scan();
     metrics->numOutputTuple.increase(numTuplesRead);
-    sharedState->numTuplesRead += numTuplesRead;
     return numTuplesRead != 0;
 }
 
 double OrderByScan::getProgress(ExecutionContext* /*context*/) const {
-    if (sharedState->numTuples == 0) {
+    if (localState->numTuples == 0) {
         return 0.0;
-    } else if (sharedState->numTuplesRead == sharedState->numTuples) {
+    } else if (localState->numTuplesRead == localState->numTuples) {
         return 1.0;
     }
-    return static_cast<double>(sharedState->numTuplesRead) / sharedState->numTuples;
+    return static_cast<double>(localState->numTuplesRead) / localState->numTuples;
 }
 
 } // namespace processor

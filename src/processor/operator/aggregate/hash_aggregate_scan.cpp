@@ -38,13 +38,13 @@ bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
 }
 
 double HashAggregateScan::getProgress(ExecutionContext* /*context*/) const {
-    uint64_t totalNumFlatTuples = sharedState->getFactorizedTable()->getTotalNumFlatTuples();
-    if (totalNumFlatTuples == 0) {
+    uint64_t totalNumTuples = sharedState->getFactorizedTable()->getNumTuples();
+    if (totalNumTuples == 0) {
         return 0.0;
-    } else if (sharedState->getCurrentOffset() == totalNumFlatTuples) {
+    } else if (sharedState->getCurrentOffset() == totalNumTuples) {
         return 1.0;
     }
-    return static_cast<double>(sharedState->getCurrentOffset()) / totalNumFlatTuples;
+    return static_cast<double>(sharedState->getCurrentOffset()) / totalNumTuples;
 }
 
 } // namespace processor

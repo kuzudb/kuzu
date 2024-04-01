@@ -10,7 +10,7 @@ namespace processor {
 
 class SortSharedState {
 public:
-    SortSharedState() : numTuples{0}, numTuplesRead{0}, nextTableIdx{0}, numBytesPerTuple{0} {
+    SortSharedState() : nextTableIdx{0}, numBytesPerTuple{0} {
         sortedKeyBlocks = std::make_unique<std::queue<std::shared_ptr<MergedKeyBlocks>>>();
     }
 
@@ -36,10 +36,6 @@ public:
     inline MergedKeyBlocks* getMergedKeyBlock() const {
         return sortedKeyBlocks->empty() ? nullptr : sortedKeyBlocks->front().get();
     }
-
-public:
-    uint64_t numTuples;
-    uint64_t numTuplesRead;
 
 private:
     std::mutex mtx;
