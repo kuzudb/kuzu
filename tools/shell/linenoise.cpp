@@ -2350,7 +2350,7 @@ int linenoiseHistoryLoad(const char* filename) {
             // add the full line to the history
             linenoiseHistoryAdd(buf);
             continue;
-        } else if (result.empty() && buf[0] = '\0') {
+        } else if (result.empty() && buf[0] == '\0') {
             continue;
         }
         // else we are parsing a Cypher statement
