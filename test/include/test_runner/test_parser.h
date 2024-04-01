@@ -16,8 +16,6 @@ enum class TokenType {
     SKIP_MUSL,
     SKIP_32BIT,
     // body
-    BEGIN_READ_ONLY_TRANSACTION,
-    BEGIN_WRITE_TRANSACTION,
     BUFFER_POOL_SIZE,
     CASE,
     CHECK_ORDER,
@@ -53,8 +51,6 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenTyp
     {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
     {"-LOG", TokenType::LOG}, {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
     {"-ENUMERATE", TokenType::ENUMERATE},
-    {"-BEGIN_WRITE_TRANSACTION", TokenType::BEGIN_WRITE_TRANSACTION},
-    {"-BEGIN_READ_ONLY_TRANSACTION", TokenType::BEGIN_READ_ONLY_TRANSACTION},
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-SKIP", TokenType::SKIP},
     {"-SKIP_MUSL", TokenType::SKIP_MUSL}, {"-SKIP_LINE", TokenType::DEFINE},
     {"-SKIP_32BIT", TokenType::SKIP_32BIT}, {"-DEFINE", TokenType::DEFINE},
