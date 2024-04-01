@@ -2,8 +2,10 @@
 #include "binder/expression/function_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_binder.h"
+#include "catalog/catalog.h"
 #include "common/types/value/value.h"
 #include "function/aggregate/count_star.h"
+#include "function/built_in_function_utils.h"
 #include "parser/expression/parsed_subquery_expression.h"
 
 using namespace kuzu::parser;

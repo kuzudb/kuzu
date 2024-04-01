@@ -2,7 +2,6 @@
 
 #include "catalog_entry/catalog_entry.h"
 #include "common/case_insensitive_map.h"
-#include "common/serializer/serializer.h"
 
 namespace kuzu {
 namespace catalog {

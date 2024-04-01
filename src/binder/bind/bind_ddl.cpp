@@ -2,6 +2,7 @@
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_table.h"
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"

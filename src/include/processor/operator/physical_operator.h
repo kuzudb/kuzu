@@ -7,7 +7,7 @@ namespace kuzu {
 namespace processor {
 
 enum class PhysicalOperatorType : uint8_t {
-    ADD_PROPERTY,
+    ALTER,
     AGGREGATE,
     AGGREGATE_SCAN,
     ATTACH_DATABASE,
@@ -19,13 +19,10 @@ enum class PhysicalOperatorType : uint8_t {
     IN_QUERY_CALL,
     COPY_RDF,
     COPY_TO,
-    CREATE_NODE_TABLE,
-    CREATE_REL_TABLE,
-    CREATE_RDF_GRAPH,
+    CREATE_TABLE,
     CROSS_PRODUCT,
     DELETE_NODE,
     DELETE_REL,
-    DROP_PROPERTY,
     DROP_TABLE,
     EMPTY_RESULT,
     EXPORT_DATABASE,

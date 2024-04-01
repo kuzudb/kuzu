@@ -8,6 +8,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+// TODO(Xiyang/Ziyi): Should move this operator into Alter.
 bool CommentOn::getNextTuplesInternal(kuzu::processor::ExecutionContext* /*context*/) {
     if (commentOnInfo->hasExecuted) {
         return false;

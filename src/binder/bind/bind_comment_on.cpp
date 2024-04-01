@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/bound_comment_on.h"
+#include "catalog/catalog.h"
 #include "main/client_context.h"
 #include "parser/comment_on.h"
 

@@ -1,5 +1,6 @@
 #include "binder/copy/bound_export_database.h"
 #include "binder/query/bound_regular_query.h"
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"

@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/bound_create_macro.h"
+#include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"

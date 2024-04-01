@@ -2,8 +2,6 @@
 
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
-#include "common/utils.h"
-#include "spdlog/spdlog.h" // IWYU pragma: keep: public interface to spdlog.
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
@@ -13,8 +11,7 @@ namespace storage {
 
 WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
     VirtualFileSystem* vfs)
-    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::WAL)}, directory{directory},
-      bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
+    : directory{directory}, bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
     fileHandle = bufferManager.getBMFileHandle(
         vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
@@ -63,21 +60,15 @@ void WAL::logCatalogRecord() {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCreateNodeTableRecord(table_id_t tableID) {
+void WAL::logCreateTableRecord(table_id_t tableID, TableType tableType) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCreateTableRecord(tableID, TableType::NODE);
+    KU_ASSERT(tableType == TableType::NODE || tableType == TableType::REL);
+    WALRecord walRecord = WALRecord::newCreateTableRecord(tableID, tableType);
     addToUpdatedTables(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCreateRelTableRecord(table_id_t tableID) {
-    lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCreateTableRecord(tableID, TableType::REL);
-    addToUpdatedTables(tableID);
-    addNewWALRecordNoLock(walRecord);
-}
-
-void WAL::logRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourceTableID,
+void WAL::logCreateRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourceTableID,
     table_id_t literalTableID, table_id_t resourceTripleTableID, table_id_t literalTripleTableID) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newRdfGraphRecord(
@@ -160,10 +151,9 @@ void WAL::addNewWALRecordNoLock(WALRecord& walRecord) {
 void WAL::setIsLastRecordCommit() {
     WALIterator walIterator(fileHandle, mtx);
     WALRecord walRecord;
+    KU_ASSERT(walIterator.hasNextRecord());
     if (!walIterator.hasNextRecord()) {
-        logger->info(
-            "Opening an existing WAL file but the file is empty. This should never happen. file: " +
-            fileHandle->getFileInfo()->path);
+        // Opening an existing WAL file but the file is empty. This should never happen.
         return;
     }
     while (walIterator.hasNextRecord()) {

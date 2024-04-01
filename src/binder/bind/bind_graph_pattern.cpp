@@ -3,6 +3,7 @@
 #include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
@@ -11,7 +12,6 @@
 #include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "function/cast/functions/cast_from_string_functions.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

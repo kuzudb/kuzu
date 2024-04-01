@@ -49,6 +49,10 @@ private:
     void createNodeTable(common::table_id_t tableID, catalog::NodeTableCatalogEntry* tableSchema);
     void createRelTable(common::table_id_t tableID, catalog::RelTableCatalogEntry* tableSchema,
         catalog::Catalog* catalog, transaction::Transaction* transaction);
+    void createRelTableGroup(common::table_id_t tableID, catalog::RelGroupCatalogEntry* tableSchema,
+        catalog::Catalog* catalog, transaction::Transaction* transaction);
+    void createRdfGraph(common::table_id_t tableID, catalog::RDFGraphCatalogEntry* tableSchema,
+        catalog::Catalog* catalog, transaction::Transaction* transaction);
 
 private:
     std::unique_ptr<BMFileHandle> dataFH;

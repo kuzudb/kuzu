@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"

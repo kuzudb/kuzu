@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
+#include "function/built_in_function_utils.h"
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/table_scan/ftable_scan_function.h"
 #include "processor/plan_mapper.h"

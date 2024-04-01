@@ -300,7 +300,7 @@ def test_tab(temp_db) -> None:
     test.send_finished_statement(KEY_ACTION.ENTER.value)
     assert (
         test.shell_process.expect_exact(
-            ["| Node table: t0 has been created. |", pexpect.EOF],
+            ["| Table t0 has been created. |", pexpect.EOF],
         )
         == 0
     )

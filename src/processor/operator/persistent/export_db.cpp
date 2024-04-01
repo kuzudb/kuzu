@@ -10,6 +10,7 @@
 #include "common/copier_config/csv_reader_config.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
+#include "function/scalar_macro_function.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

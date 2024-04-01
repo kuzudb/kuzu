@@ -4,6 +4,11 @@
 #include "storage/store/column.h"
 
 namespace kuzu {
+namespace catalog {
+class TableCatalogEntry;
+class Property;
+} // namespace catalog
+
 namespace storage {
 
 struct TableDataReadState {
@@ -53,10 +58,7 @@ public:
 protected:
     TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         catalog::TableCatalogEntry* tableEntry, BufferManager* bufferManager, WAL* wal,
-        bool enableCompression)
-        : dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableEntry->getTableID()},
-          tableName{tableEntry->getName()}, bufferManager{bufferManager}, wal{wal},
-          enableCompression{enableCompression} {}
+        bool enableCompression);
 
 protected:
     BMFileHandle* dataFH;
