@@ -46,7 +46,7 @@ To learn more about installation, see our [Installation](https://docs.kuzudb.com
 
 ## Getting Started
 
-Refer to our [Getting Started](https://docs.kuzudb.com/getting-started/) page for your first example.
+Refer to our [Getting Started](https://docs.kuzudb.com/get-started/) page for your first example.
 
 More information can be found at
 - [Data Import](https://docs.kuzudb.com/data-import/)
