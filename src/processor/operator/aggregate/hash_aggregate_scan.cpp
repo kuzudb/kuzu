@@ -37,5 +37,15 @@ bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     return true;
 }
 
+double HashAggregateScan::getProgress(ExecutionContext* /*context*/) const {
+    uint64_t totalNumFlatTuples = sharedState->getFactorizedTable()->getTotalNumFlatTuples();
+    if (totalNumFlatTuples == 0) {
+		return 0.0;
+    } else if (sharedState->getCurrentOffset() == totalNumFlatTuples) {
+		return 1.0;
+	}
+    return static_cast<double>(sharedState->getCurrentOffset()) / totalNumFlatTuples;
+}
+
 } // namespace processor
 } // namespace kuzu

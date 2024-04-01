@@ -26,6 +26,8 @@ public:
 
     FactorizedTable* getFactorizedTable() { return globalAggregateHashTable->getFactorizedTable(); }
 
+    uint64_t getCurrentOffset() const { return currentOffset; }
+
 private:
     std::vector<std::unique_ptr<AggregateHashTable>> localAggregateHashTables;
     std::unique_ptr<AggregateHashTable> globalAggregateHashTable;

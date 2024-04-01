@@ -48,6 +48,11 @@ public:
         return std::make_unique<OrderByScan>(outVectorPos, sharedState, id, paramsString);
     }
 
+    double getProgress(ExecutionContext* context) const override;
+
+private:
+    void initGlobalStateInternal(ExecutionContext* context) final;
+
 private:
     std::vector<DataPos> outVectorPos;
     std::unique_ptr<OrderByScanLocalState> localState;
