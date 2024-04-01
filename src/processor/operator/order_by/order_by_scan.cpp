@@ -16,8 +16,8 @@ void OrderByScanLocalState::init(
 
 void OrderByScan::initGlobalStateInternal(ExecutionContext* /*context*/) {
     for (auto& table : sharedState->getPayloadTables()) {
-		sharedState->numTuples += table->getTotalNumFlatTuples();
-	}
+        sharedState->numTuples += table->getTotalNumFlatTuples();
+    }
 }
 
 void OrderByScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
@@ -34,7 +34,7 @@ bool OrderByScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
 
 double OrderByScan::getProgress(ExecutionContext* /*context*/) const {
     if (sharedState->numTuples == 0) {
-		return 0.0;
+        return 0.0;
     } else if (sharedState->numTuplesRead == sharedState->numTuples) {
         return 1.0;
     }

@@ -10,7 +10,7 @@ namespace processor {
 
 class SortSharedState {
 public:
-    SortSharedState() : numTuples{0}, numTuplesRead{0} , nextTableIdx{0}, numBytesPerTuple{0} {
+    SortSharedState() : numTuples{0}, numTuplesRead{0} ,nextTableIdx{0}, numBytesPerTuple{0} {
         sortedKeyBlocks = std::make_unique<std::queue<std::shared_ptr<MergedKeyBlocks>>>();
     }
 
