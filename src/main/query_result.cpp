@@ -55,7 +55,7 @@ QueryResult::QueryResult(const PreparedSummary& preparedSummary) {
     querySummary = std::make_unique<QuerySummary>();
     querySummary->setPreparedSummary(preparedSummary);
     nextQueryResult = nullptr;
-    queryResultIterator = std::make_unique<QueryResultIterator>(this);
+    queryResultIterator = QueryResultIterator{this};
 }
 
 QueryResult::~QueryResult() = default;
@@ -154,16 +154,16 @@ bool QueryResult::hasNext() const {
 }
 
 bool QueryResult::hasNextQueryResult() const {
-    if (!queryResultIterator->isEnd()) {
+    if (!queryResultIterator.isEnd()) {
         return true;
     }
     return false;
 }
 
-QueryResult* QueryResult::getNextQueryResult() const {
-    ++*queryResultIterator;
-    if (!queryResultIterator->isEnd()) {
-        return queryResultIterator->getCurrentResult();
+QueryResult* QueryResult::getNextQueryResult() {
+    ++queryResultIterator;
+    if (!queryResultIterator.isEnd()) {
+        return queryResultIterator.getCurrentResult();
     }
     return nullptr;
 }

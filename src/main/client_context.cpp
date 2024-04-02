@@ -262,9 +262,7 @@ std::unique_ptr<QueryResult> ClientContext::queryResultWithError(std::string_vie
     queryResult->success = false;
     queryResult->errMsg = errMsg;
     queryResult->nextQueryResult = nullptr;
-    queryResult->nextQueryResult = nullptr;
-    queryResult->queryResultIterator =
-        std::make_unique<QueryResult::QueryResultIterator>(queryResult.get());
+    queryResult->queryResultIterator = QueryResult::QueryResultIterator{queryResult.get()};
     return queryResult;
 }
 

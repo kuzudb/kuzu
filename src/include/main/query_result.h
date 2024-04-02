@@ -38,6 +38,8 @@ class QueryResult {
         QueryResult* currentResult;
 
     public:
+        QueryResultIterator() = default;
+
         explicit QueryResultIterator(QueryResult* startResult) : currentResult(startResult) {}
 
         void operator++() {
@@ -46,9 +48,9 @@ class QueryResult {
             }
         }
 
-        bool isEnd() { return currentResult == nullptr; }
+        bool isEnd() const { return currentResult == nullptr; }
 
-        QueryResult* getCurrentResult() { return currentResult; }
+        QueryResult* getCurrentResult() const { return currentResult; }
     };
 
 public:
@@ -104,7 +106,7 @@ public:
     /**
      * @return get next query result to read (for multiple query statements).
      */
-    KUZU_API QueryResult* getNextQueryResult() const;
+    KUZU_API QueryResult* getNextQueryResult();
 
     std::unique_ptr<QueryResult> nextQueryResult;
     /**
@@ -167,7 +169,7 @@ private:
     std::unique_ptr<QuerySummary> querySummary;
 
     // query iterator
-    std::unique_ptr<QueryResultIterator> queryResultIterator;
+    QueryResultIterator queryResultIterator;
 };
 
 } // namespace main
