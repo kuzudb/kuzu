@@ -12,6 +12,7 @@ void OrderByScanLocalState::init(
     }
     payloadScanner = std::make_unique<PayloadScanner>(
         sharedState.getMergedKeyBlock(), sharedState.getPayloadTables());
+    numTuples = 0;
     for (auto& table : sharedState.getPayloadTables()) {
         numTuples += table->getNumTuples();
     }
