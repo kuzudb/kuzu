@@ -11,16 +11,12 @@ void kuzu_query_result_destroy(kuzu_query_result* query_result) {
     if (query_result == nullptr) {
         return;
     }
-    while (kuzu_query_result_has_next_query_result(query_result)) {
-        auto current_query_result = kuzu_query_result_get_next_query_result(query_result);
-        if (current_query_result != nullptr && current_query_result->_query_result != nullptr) {
-            delete static_cast<QueryResult*>(current_query_result->_query_result);
+    if (query_result->_query_result != nullptr) {
+        if (!query_result->_is_owned_by_cpp) {
+            delete static_cast<QueryResult*>(query_result->_query_result);
         }
     }
-    if (query_result->_query_result != nullptr) {
-        delete static_cast<QueryResult*>(query_result->_query_result);
-    }
-    delete query_result;
+    free(query_result);
 }
 
 bool kuzu_query_result_is_success(kuzu_query_result* query_result) {
@@ -80,13 +76,14 @@ bool kuzu_query_result_has_next_query_result(kuzu_query_result* query_result) {
 }
 
 kuzu_query_result* kuzu_query_result_get_next_query_result(kuzu_query_result* query_result) {
-    auto* c_query_result = new kuzu_query_result;
     auto next_query_result =
         static_cast<QueryResult*>(query_result->_query_result)->getNextQueryResult();
     if (next_query_result == nullptr) {
         return nullptr;
     }
+    auto* c_query_result = (kuzu_query_result*)malloc(sizeof(kuzu_query_result));
     c_query_result->_query_result = next_query_result;
+    c_query_result->_is_owned_by_cpp = true;
     return c_query_result;
 }
 

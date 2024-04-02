@@ -52,8 +52,9 @@ kuzu_query_result* kuzu_connection_query(kuzu_connection* connection, const char
         if (query_result == nullptr) {
             return nullptr;
         }
-        auto* c_query_result = new kuzu_query_result;
+        auto* c_query_result = (kuzu_query_result*)malloc(sizeof(kuzu_query_result));
         c_query_result->_query_result = query_result;
+        c_query_result->_is_owned_by_cpp = false;
         return c_query_result;
     } catch (Exception& e) { return nullptr; }
 }
@@ -64,7 +65,7 @@ kuzu_prepared_statement* kuzu_connection_prepare(kuzu_connection* connection, co
     if (prepared_statement == nullptr) {
         return nullptr;
     }
-    auto* c_prepared_statement = new kuzu_prepared_statement;
+    auto* c_prepared_statement = (kuzu_prepared_statement*)malloc(sizeof(kuzu_prepared_statement));
     c_prepared_statement->_prepared_statement = prepared_statement;
     c_prepared_statement->_bound_values =
         new std::unordered_map<std::string, std::unique_ptr<Value>>;
@@ -92,8 +93,9 @@ kuzu_query_result* kuzu_connection_execute(
     if (query_result == nullptr) {
         return nullptr;
     }
-    auto* c_query_result = new kuzu_query_result;
+    auto* c_query_result = (kuzu_query_result*)malloc(sizeof(kuzu_query_result));
     c_query_result->_query_result = query_result;
+    c_query_result->_is_owned_by_cpp = false;
     return c_query_result;
 }
 
