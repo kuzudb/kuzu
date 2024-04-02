@@ -154,6 +154,7 @@ typedef struct {
  */
 typedef struct {
     void* _query_result;
+    bool _is_owned_by_cpp;
 } kuzu_query_result;
 
 /**
