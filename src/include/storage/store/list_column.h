@@ -80,10 +80,7 @@ private:
     void checkpointInMemory() final;
     void rollbackInMemory() final;
 
-    common::offset_t readOffset(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup);
-
-    common::list_size_t readSize(transaction::Transaction* transaction,
+    common::offset_t readOffsetSize(Column* column, transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup);
 
     ListOffsetSizeInfo getListOffsetSizeInfo(transaction::Transaction* transaction,
@@ -99,6 +96,7 @@ private:
         ColumnChunk* chunk, common::offset_t startSrcOffset) override;
 
 private:
+    std::unique_ptr<Column> offsetColumn;
     std::unique_ptr<Column> sizeColumn;
     std::unique_ptr<Column> dataColumn;
 };

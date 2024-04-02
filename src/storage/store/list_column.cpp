@@ -53,13 +53,18 @@ ListColumn::ListColumn(std::string name, LogicalType dataType,
     RWPropertyStats propertyStatistics, bool enableCompression)
     : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
-    auto sizeColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
+    auto offsetColName =
+        StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "offset");
+    auto sizeColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "size");
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
-    sizeColumn = ColumnFactory::createColumn(sizeColName, *LogicalType::UINT32(),
+    offsetColumn = ColumnFactory::createColumn(offsetColName, *LogicalType::UINT64(),
         *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
         propertyStatistics, enableCompression);
+    sizeColumn = ColumnFactory::createColumn(sizeColName, *LogicalType::UINT32(),
+        *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataFH, bufferManager, wal, transaction,
+        propertyStatistics, enableCompression);
     dataColumn = ColumnFactory::createColumn(dataColName,
-        *ListType::getChildType(&this->dataType)->copy(), *metaDAHeaderInfo.childrenInfos[1],
+        *ListType::getChildType(&this->dataType)->copy(), *metaDAHeaderInfo.childrenInfos[2],
         dataFH, metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
 }
 
@@ -107,7 +112,9 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
         columnChunk->setNumValues(0);
     } else {
         auto listColumnChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(columnChunk);
-        Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
+        Column::scan(transaction, nodeGroupIdx, listColumnChunk, startOffset, endOffset);
+        offsetColumn->scan(transaction, nodeGroupIdx, listColumnChunk->getOffsetColumnChunk(),
+            startOffset, endOffset);
         auto sizeColumnChunk = listColumnChunk->getSizeColumnChunk();
         sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk, startOffset, endOffset);
         auto resizeNumValues = listColumnChunk->getDataColumnChunk()->getNumValues();
@@ -173,11 +180,12 @@ void ListColumn::lookupValue(Transaction* transaction, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) {
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto listEndOffset = readOffset(transaction, nodeGroupIdx, nodeOffsetInGroup);
-    auto size = readSize(transaction, nodeGroupIdx, nodeOffsetInGroup);
+    auto listEndOffset =
+        readOffsetSize(offsetColumn.get(), transaction, nodeGroupIdx, nodeOffsetInGroup);
+    auto size = readOffsetSize(sizeColumn.get(), transaction, nodeGroupIdx, nodeOffsetInGroup);
     auto listStartOffset = listEndOffset - size;
     auto offsetInVector = posInVector == 0 ? 0 : resultVector->getValue<offset_t>(posInVector - 1);
-    resultVector->setValue(posInVector, list_entry_t{offsetInVector, size});
+    resultVector->setValue(posInVector, list_entry_t{offsetInVector, (list_size_t)size});
     ListVector::resizeDataVector(resultVector, offsetInVector + size);
     auto dataVector = ListVector::getDataVector(resultVector);
     dataColumn->scan(transaction, StorageUtils::getNodeGroupIdx(nodeOffset), listStartOffset,
@@ -188,10 +196,9 @@ void ListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == dataType.getPhysicalType());
     auto listColumnChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(columnChunk);
     Column::append(listColumnChunk, nodeGroupIdx);
-    auto sizeColumnChunk = listColumnChunk->getSizeColumnChunk();
-    sizeColumn->append(sizeColumnChunk, nodeGroupIdx);
-    auto dataColumnChunk = listColumnChunk->getDataColumnChunk();
-    dataColumn->append(dataColumnChunk, nodeGroupIdx);
+    offsetColumn->append(listColumnChunk->getOffsetColumnChunk(), nodeGroupIdx);
+    sizeColumn->append(listColumnChunk->getSizeColumnChunk(), nodeGroupIdx);
+    dataColumn->append(listColumnChunk->getDataColumnChunk(), nodeGroupIdx);
 }
 
 void ListColumn::scanUnfiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -248,39 +255,28 @@ void ListColumn::scanFiltered(Transaction* transaction, node_group_idx_t nodeGro
 
 void ListColumn::prepareCommit() {
     Column::prepareCommit();
+    offsetColumn->prepareCommit();
     sizeColumn->prepareCommit();
     dataColumn->prepareCommit();
 }
 
 void ListColumn::checkpointInMemory() {
     Column::checkpointInMemory();
+    offsetColumn->checkpointInMemory();
     sizeColumn->checkpointInMemory();
     dataColumn->checkpointInMemory();
 }
 
 void ListColumn::rollbackInMemory() {
     Column::rollbackInMemory();
+    offsetColumn->rollbackInMemory();
     sizeColumn->rollbackInMemory();
     dataColumn->rollbackInMemory();
 }
 
-offset_t ListColumn::readOffset(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
-    auto pageCursor = PageUtils::getPageCursorForPos(offsetInNodeGroup,
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
-    pageCursor.pageIdx += chunkMeta.pageIdx;
-    offset_t value;
-    readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-        readToPageFunc(frame, pageCursor, (uint8_t*)&value, 0 /* posInVector */,
-            1 /* numValuesToRead */, chunkMeta.compMeta);
-    });
-    return value;
-}
-
-list_size_t ListColumn::readSize(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
-    auto chunkMeta = sizeColumn->getMetadataDA()->get(nodeGroupIdx, transaction->getType());
+offset_t ListColumn::readOffsetSize(Column* column, Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
+    auto chunkMeta = column->getMetadataDA()->get(nodeGroupIdx, transaction->getType());
     auto pageCursor = PageUtils::getPageCursorForPos(offsetInNodeGroup,
         chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
     pageCursor.pageIdx += chunkMeta.pageIdx;
@@ -296,10 +292,10 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
     node_group_idx_t nodeGroupIdx, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) {
     auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
     auto offsetColumnChunk = ColumnChunkFactory::createColumnChunk(
-        *common::LogicalType::INT64(), enableCompression, numOffsetsToRead);
+        *common::LogicalType::UINT64(), enableCompression, numOffsetsToRead);
     auto sizeColumnChunk = ColumnChunkFactory::createColumnChunk(
         *common::LogicalType::UINT32(), enableCompression, numOffsetsToRead);
-    Column::scan(transaction, nodeGroupIdx, offsetColumnChunk.get(), startOffsetInNodeGroup,
+    offsetColumn->scan(transaction, nodeGroupIdx, offsetColumnChunk.get(), startOffsetInNodeGroup,
         endOffsetInNodeGroup);
     sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk.get(), startOffsetInNodeGroup,
         endOffsetInNodeGroup);
@@ -346,6 +342,7 @@ void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_
     } else {
         // we separate the commit into three parts: offset chunk commit, size column chunk commit,
         // data column chunk
+        Column::prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets, chunk, startSrcOffset);
         auto listChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(chunk);
         sizeColumn->prepareCommitForChunk(
             transaction, nodeGroupIdx, dstOffsets, listChunk->getSizeColumnChunk(), startSrcOffset);
@@ -363,25 +360,15 @@ void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_
         }
         dataColumn->prepareCommitForChunk(
             transaction, nodeGroupIdx, dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
-        // we need to update the offset since we do not do in-place list data update but append data
-        // in the end of list data column we need to plus to original data column size to get the
-        // new offset
-        // TODO(Jiamin): A better way is to store the offset in a offset column, just like size
-        // column. Then we can reuse prepareCommitForChunk interface for offset column.
-        auto offsetChunkMeta = getMetadata(nodeGroupIdx, transaction->getType());
-        auto offsetColumnChunk = ColumnChunkFactory::createColumnChunk(*dataType.copy(),
-            enableCompression, 1.5 * std::bit_ceil(offsetChunkMeta.numValues + dstOffsets.size()));
-        Column::scan(transaction, nodeGroupIdx, offsetColumnChunk.get());
+
+        auto offsetColumnChunk = listChunk->getOffsetColumnChunk();
         for (auto i = 0u; i < numListsToAppend; i++) {
             auto listEndOffset = listChunk->getListEndOffset(startSrcOffset + i);
-            auto isNull = listChunk->getNullChunk()->isNull(startSrcOffset + i);
-            offsetColumnChunk->setValue<offset_t>(dataColumnSize + listEndOffset, dstOffsets[i]);
-            offsetColumnChunk->getNullChunk()->setNull(dstOffsets[i], isNull);
+            offsetColumnChunk->setValue<offset_t>(
+                dataColumnSize + listEndOffset, startSrcOffset + i);
         }
-        auto offsetListChunk =
-            ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(offsetColumnChunk.get());
-        offsetListChunk->getSizeColumnChunk()->setNumValues(offsetColumnChunk->getNumValues());
-        Column::append(offsetColumnChunk.get(), nodeGroupIdx);
+        offsetColumn->prepareCommitForChunk(
+            transaction, nodeGroupIdx, dstOffsets, offsetColumnChunk, startSrcOffset);
     }
 }
 

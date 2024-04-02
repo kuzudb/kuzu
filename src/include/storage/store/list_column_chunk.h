@@ -37,10 +37,13 @@ public:
 
     inline ColumnChunk* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
 
+    inline ColumnChunk* getOffsetColumnChunk() const { return offsetColumnChunk.get(); }
+
     void resetToEmpty() override;
 
     inline void setNumValues(uint64_t numValues_) override {
         ColumnChunk::setNumValues(numValues_);
+        offsetColumnChunk->setNumValues(numValues_);
         sizeColumnChunk->setNumValues(numValues_);
     }
 
@@ -65,6 +68,7 @@ public:
 
     inline void resize(uint64_t newCapacity) override {
         ColumnChunk::resize(newCapacity);
+        offsetColumnChunk->resize(newCapacity);
         sizeColumnChunk->resize(newCapacity);
     }
 
@@ -90,6 +94,7 @@ private:
     void appendNullList();
 
 protected:
+    std::unique_ptr<ColumnChunk> offsetColumnChunk;
     std::unique_ptr<ColumnChunk> sizeColumnChunk;
     std::unique_ptr<ListDataColumnChunk> listDataColumnChunk;
     // we use checkOffsetSortedAsc flag to indicate that we do not trigger random write
