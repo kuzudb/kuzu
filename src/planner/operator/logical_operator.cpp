@@ -63,6 +63,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "INSERT";
     case LogicalOperatorType::LIMIT:
         return "LIMIT";
+    case LogicalOperatorType::MARK_ACCUMULATE:
+        return "MARK_ACCUMULATE";
     case LogicalOperatorType::MERGE:
         return "MERGE";
     case LogicalOperatorType::MULTIPLICITY_REDUCER:

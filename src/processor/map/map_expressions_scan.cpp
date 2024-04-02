@@ -14,7 +14,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(
     auto expressionsScan = (planner::LogicalExpressionsScan*)logicalOperator;
     auto outerAccumulate = (planner::LogicalAccumulate*)expressionsScan->getOuterAccumulate();
     expression_map<ft_col_idx_t> materializedExpressionToColIdx;
-    auto materializedExpressions = outerAccumulate->getExpressionsToAccumulate();
+    auto materializedExpressions = outerAccumulate->getPayloads();
     for (auto i = 0u; i < materializedExpressions.size(); ++i) {
         materializedExpressionToColIdx.insert({materializedExpressions[i], i});
     }

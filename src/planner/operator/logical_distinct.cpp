@@ -1,5 +1,6 @@
 #include "planner/operator/logical_distinct.h"
 
+#include "binder/expression/expression_util.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 
 namespace kuzu {
@@ -8,7 +9,7 @@ namespace planner {
 void LogicalDistinct::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
-    for (auto& expression : getAllDistinctExpressions()) {
+    for (auto& expression : getKeysAndPayloads()) {
         schema->insertToGroupAndScope(expression, groupPos);
     }
 }
@@ -16,7 +17,7 @@ void LogicalDistinct::computeFactorizedSchema() {
 void LogicalDistinct::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
-    for (auto& expression : getAllDistinctExpressions()) {
+    for (auto& expression : getKeysAndPayloads()) {
         schema->insertToGroupAndScope(expression, 0);
     }
 }
@@ -24,7 +25,7 @@ void LogicalDistinct::computeFlatSchema() {
 f_group_pos_set LogicalDistinct::getGroupsPosToFlatten() {
     f_group_pos_set dependentGroupsPos;
     auto childSchema = children[0]->getSchema();
-    for (auto& expression : getAllDistinctExpressions()) {
+    for (auto& expression : getKeysAndPayloads()) {
         for (auto groupPos : childSchema->getDependentGroupsPos(expression)) {
             dependentGroupsPos.insert(groupPos);
         }
@@ -33,10 +34,13 @@ f_group_pos_set LogicalDistinct::getGroupsPosToFlatten() {
 }
 
 std::string LogicalDistinct::getExpressionsForPrinting() const {
-    std::string result;
-    for (auto& expression : getAllDistinctExpressions()) {
-        result += expression->getUniqueName() + ", ";
-    }
+    return binder::ExpressionUtil::toString(getKeysAndPayloads());
+}
+
+binder::expression_vector LogicalDistinct::getKeysAndPayloads() const {
+    binder::expression_vector result;
+    result.insert(result.end(), keys.begin(), keys.end());
+    result.insert(result.end(), payloads.begin(), payloads.end());
     return result;
 }
 

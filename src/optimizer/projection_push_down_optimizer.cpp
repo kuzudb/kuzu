@@ -66,7 +66,7 @@ void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) 
     if (accumulate->getAccumulateType() != AccumulateType::REGULAR) {
         return;
     }
-    auto expressionsBeforePruning = accumulate->getExpressionsToAccumulate();
+    auto expressionsBeforePruning = accumulate->getPayloads();
     auto expressionsAfterPruning = pruneExpressions(expressionsBeforePruning);
     if (expressionsBeforePruning.size() == expressionsAfterPruning.size()) {
         return;
@@ -200,7 +200,10 @@ void ProjectionPushDownOptimizer::visitDeleteRel(planner::LogicalOperator* op) {
 // TODO(Xiyang): come back and refactor this after changing insert interface
 void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
     auto merge = (LogicalMerge*)op;
-    collectExpressionsInUse(merge->getMark());
+    if (merge->hasDistinctMark()) {
+        collectExpressionsInUse(merge->getDistinctMark());
+    }
+    collectExpressionsInUse(merge->getExistenceMark());
     for (auto& info : merge->getInsertNodeInfosRef()) {
         visitInsertInfo(&info);
     }

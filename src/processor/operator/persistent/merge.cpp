@@ -4,7 +4,10 @@ namespace kuzu {
 namespace processor {
 
 void Merge::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
-    markVector = resultSet->getValueVector(markPos).get();
+    existenceVector = resultSet->getValueVector(existenceMark).get();
+    if (distinctMark.isValid()) {
+        distinctVector = resultSet->getValueVector(distinctMark).get();
+    }
     for (auto& executor : nodeInsertExecutors) {
         executor.init(resultSet, context);
     }
@@ -29,9 +32,9 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    KU_ASSERT(markVector->state->isFlat());
-    auto pos = markVector->state->selVector->selectedPositions[0];
-    if (!markVector->isNull(pos)) {
+    KU_ASSERT(existenceVector->state->isFlat());
+    auto pos = existenceVector->state->selVector->selectedPositions[0];
+    if (!existenceVector->isNull(pos)) {
         for (auto& executor : onMatchNodeSetExecutors) {
             executor->set(context);
         }
