@@ -1,5 +1,6 @@
 #include "binder/expression/function_expression.h"
 #include "planner/operator/logical_aggregate.h"
+#include "planner/operator/logical_mark_accmulate.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
 #include "processor/operator/aggregate/simple_aggregate.h"
@@ -93,28 +94,32 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
     }
 }
 
+std::unique_ptr<PhysicalOperator> PlanMapper::mapMarkAccumulate(LogicalOperator* op) {
+    auto logicalMarkAccumulate = ku_dynamic_cast<LogicalOperator*, LogicalMarkAccumulate*>(op);
+    auto keys = logicalMarkAccumulate->getKeys();
+    auto payloads = logicalMarkAccumulate->getPayloads();
+    KU_ASSERT(false);
+    // TODO: create merge hash table here.
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
-    const binder::expression_vector& keyExpressions,
-    const binder::expression_vector& dependentKeyExpressions,
+    const binder::expression_vector& keys, const binder::expression_vector& payloads,
     std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
     std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
     std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema, planner::Schema* outSchema,
     std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString) {
     auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
-    auto flatKeyExpressions = getKeyExpressions(keyExpressions, *inSchema, true /* isFlat */);
-    auto unFlatKeyExpressions = getKeyExpressions(keyExpressions, *inSchema, false /* isFlat */);
+    auto flatKeys = getKeyExpressions(keys, *inSchema, true /* isFlat */);
+    auto unFlatKeys = getKeyExpressions(keys, *inSchema, false /* isFlat */);
     auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
-        sharedState, getExpressionsDataPos(flatKeyExpressions, *inSchema),
-        getExpressionsDataPos(unFlatKeyExpressions, *inSchema),
-        getExpressionsDataPos(dependentKeyExpressions, *inSchema), std::move(aggregateFunctions),
-        std::move(aggregateInputInfos), std::move(prevOperator), getOperatorID(), paramsString);
+        sharedState, getExpressionsDataPos(flatKeys, *inSchema),
+        getExpressionsDataPos(unFlatKeys, *inSchema), getExpressionsDataPos(payloads, *inSchema),
+        std::move(aggregateFunctions), std::move(aggregateInputInfos), std::move(prevOperator),
+        getOperatorID(), paramsString);
     binder::expression_vector outputExpressions;
-    outputExpressions.insert(
-        outputExpressions.end(), flatKeyExpressions.begin(), flatKeyExpressions.end());
-    outputExpressions.insert(
-        outputExpressions.end(), unFlatKeyExpressions.begin(), unFlatKeyExpressions.end());
-    outputExpressions.insert(
-        outputExpressions.end(), dependentKeyExpressions.begin(), dependentKeyExpressions.end());
+    outputExpressions.insert(outputExpressions.end(), flatKeys.begin(), flatKeys.end());
+    outputExpressions.insert(outputExpressions.end(), unFlatKeys.begin(), unFlatKeys.end());
+    outputExpressions.insert(outputExpressions.end(), payloads.begin(), payloads.end());
     return std::make_unique<HashAggregateScan>(sharedState,
         getExpressionsDataPos(outputExpressions, *outSchema), std::move(aggregatesOutputPos),
         std::move(aggregate), getOperatorID(), paramsString);

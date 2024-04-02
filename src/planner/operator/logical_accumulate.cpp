@@ -9,7 +9,7 @@ namespace planner {
 void LogicalAccumulate::computeFactorizedSchema() {
     createEmptySchema();
     auto childSchema = children[0]->getSchema();
-    SinkOperatorUtil::recomputeSchema(*childSchema, getExpressionsToAccumulate(), *schema);
+    SinkOperatorUtil::recomputeSchema(*childSchema, getPayloads(), *schema);
     if (offset != nullptr) {
         // If we need to generate row offset. Then all expressions must have been flattened and
         // accumulated. So the new schema should just have one group.

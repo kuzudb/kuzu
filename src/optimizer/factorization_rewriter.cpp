@@ -1,6 +1,7 @@
 #include "optimizer/factorization_rewriter.h"
 
 #include "binder/expression_visitor.h"
+#include "common/cast.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
@@ -12,6 +13,7 @@
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/logical_limit.h"
+#include "planner/operator/logical_mark_accmulate.h"
 #include "planner/operator/logical_order_by.h"
 #include "planner/operator/logical_projection.h"
 #include "planner/operator/logical_union.h"
@@ -22,6 +24,7 @@
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/operator/persistent/logical_set.h"
 
+using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::planner;
 
@@ -102,6 +105,12 @@ void FactorizationRewriter::visitAccumulate(planner::LogicalOperator* op) {
     auto accumulate = (LogicalAccumulate*)op;
     auto groupsPosToFlatten = accumulate->getGroupPositionsToFlatten();
     accumulate->setChild(0, appendFlattens(accumulate->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitMarkAccumulate(planner::LogicalOperator* op) {
+    auto markAccumulate = ku_dynamic_cast<LogicalOperator*, LogicalMarkAccumulate*>(op);
+    auto groupsPos = markAccumulate->getGroupsPosToFlatten();
+    markAccumulate->setChild(0, appendFlattens(markAccumulate->getChild(0), groupsPos));
 }
 
 void FactorizationRewriter::visitAggregate(planner::LogicalOperator* op) {

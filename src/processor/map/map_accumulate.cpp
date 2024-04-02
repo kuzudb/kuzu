@@ -13,7 +13,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* log
     auto outSchema = acc->getSchema();
     auto inSchema = acc->getChild(0)->getSchema();
     auto prevOperator = mapOperator(acc->getChild(0).get());
-    auto expressions = acc->getExpressionsToAccumulate();
+    auto expressions = acc->getPayloads();
     auto resultCollector = createResultCollector(
         acc->getAccumulateType(), expressions, inSchema, std::move(prevOperator));
     auto table = resultCollector->getResultFactorizedTable();

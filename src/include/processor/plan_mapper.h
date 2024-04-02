@@ -69,6 +69,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapOrderBy(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUnionAll(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAccumulate(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapMarkAccumulate(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDummyScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapInsert(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetNodeProperty(planner::LogicalOperator* logicalOperator);
@@ -148,9 +149,8 @@ private:
 
     std::unique_ptr<HashJoinBuildInfo> createHashBuildInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
-    std::unique_ptr<PhysicalOperator> createHashAggregate(
-        const binder::expression_vector& keyExpressions,
-        const binder::expression_vector& dependentKeyExpressions,
+    std::unique_ptr<PhysicalOperator> createHashAggregate(const binder::expression_vector& keys,
+        const binder::expression_vector& payloads,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
         std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
         std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema,
