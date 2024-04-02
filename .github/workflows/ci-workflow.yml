@@ -46,15 +46,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Update PostgreSQL host
-        working-directory: extension/postgres_scanner/test/test_files
-        env:
-          FNAME: postgres_scanner.test
-          FIND: "localhost"
-        run: |
-          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
-          cat postgres_scanner.test
-
       - name: Ensure Python dependencies
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -63,11 +54,6 @@ jobs:
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
-
-      - name: Extension test
-        run: |
-          cd scripts/ && python3 http-server.py &
-          make extension-test && make clean
 
       - name: Build
         run: make all
@@ -248,15 +234,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Update PostgreSQL host
-        working-directory: extension/postgres_scanner/test/test_files
-        env:
-          FNAME: postgres_scanner.test
-          FIND: "localhost"
-        run: |
-          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
-          cat postgres_scanner.test
-
       - name: Ensure Python dependencies
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -265,13 +242,6 @@ jobs:
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
-
-      - name: Extension test
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          cd scripts/ && start /b python http-server.py && cd ..
-          make extension-test && make clean
 
       - name: Build
         shell: cmd
@@ -452,15 +422,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Update PostgreSQL host
-        working-directory: extension/postgres_scanner/test/test_files
-        env:
-          FNAME: postgres_scanner.test
-          FIND: "localhost"
-        run: |
-          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
-          cat postgres_scanner.test
-
       - name: Ensure Python dependencies
         run: |
           pip3 install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -469,11 +430,6 @@ jobs:
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
-
-      - name: Extension test
-        run: |
-          cd scripts/ && python3 http-server.py &
-          make extension-test && make clean
 
       - name: Build
         run: make all
@@ -533,3 +489,111 @@ jobs:
         run: |
           pip3 install pytest pexpect
           python3 -m pytest -v .
+
+  linux-extension-test:
+    name: linux extension test
+    needs: [gcc-build-test, clang-build-test]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      CLANGD_DIAGNOSTIC_JOBS: 32
+      CLANGD_DIAGNOSTIC_INSTANCES: 6
+      GEN: ninja
+      CC: gcc
+      CXX: g++
+      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
+      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      RUN_ID: "$(hostname)-$(date +%s)"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
+
+      - name: Extension test
+        run: |
+          cd scripts/ && python3 http-server.py &
+          make extension-test && make clean
+
+  macos-extension-test:
+    name: macos extension test
+    needs: [macos-build-test]
+    runs-on: self-hosted-mac-x64
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      GEN: ninja
+      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
+      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      PG_HOST: ${{ secrets.PG_HOST }}
+      RUN_ID: "$(hostname)-$(date +%s)"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
+
+      - name: Extension test
+        run: |
+          cd scripts/ && python3 http-server.py &
+          make extension-test && make clean
+
+  windows-extension-test:
+    name: windows extension test
+    needs: [msvc-build-test]
+    runs-on: self-hosted-windows
+    env:
+      # Shorten build path as much as possible
+      CARGO_TARGET_DIR: ${{ github.workspace }}/rs
+      CARGO_BUILD_JOBS: 18
+      NUM_THREADS: 18
+      TEST_JOBS: 9
+      WERROR: 0
+      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
+      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      PG_HOST: ${{ secrets.PG_HOST }}
+      RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
+
+      - name: Extension test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          cd scripts/ && start /b python http-server.py && cd ..
+          make extension-test && make clean
