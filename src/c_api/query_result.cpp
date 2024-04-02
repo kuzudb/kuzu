@@ -12,7 +12,7 @@ void kuzu_query_result_destroy(kuzu_query_result* query_result) {
         return;
     }
     if (query_result->_query_result != nullptr) {
-        if (query_result->_is_owned_by_cpp) {
+        if (!query_result->_is_owned_by_cpp) {
             delete static_cast<QueryResult*>(query_result->_query_result);
         }
     }
