@@ -144,7 +144,7 @@ jobs:
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
-    # needs: [gcc-build-test]
+    needs: [gcc-build-test]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
