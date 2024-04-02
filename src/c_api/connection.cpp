@@ -54,6 +54,7 @@ kuzu_query_result* kuzu_connection_query(kuzu_connection* connection, const char
         }
         auto* c_query_result = (kuzu_query_result*)malloc(sizeof(kuzu_query_result));
         c_query_result->_query_result = query_result;
+        c_query_result->_is_owned_by_cpp = false;
         return c_query_result;
     } catch (Exception& e) { return nullptr; }
 }
