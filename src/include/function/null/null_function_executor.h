@@ -13,8 +13,9 @@ struct NullOperationExecutor {
         auto resultValues = (uint8_t*)result.getData();
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
+            auto resultPos = result.state->selVector->selectedPositions[0];
             FUNC::operation(
-                operand.getValue<uint8_t>(pos), (bool)operand.isNull(pos), resultValues[pos]);
+                operand.getValue<uint8_t>(pos), (bool)operand.isNull(pos), resultValues[resultPos]);
         } else {
             if (operand.state->selVector->isUnfiltered()) {
                 for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
