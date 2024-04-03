@@ -54,7 +54,6 @@ void RadixSort::sortSingleKeyBlock(const DataBlock& keyBlock) {
 
 void RadixSort::radixSort(uint8_t* keyBlockPtr, uint32_t numTuplesToSort, uint32_t numBytesSorted,
     uint32_t numBytesToSort) {
-    assert(numBytesSorted < numBytesPerTuple);
     // We use radixSortLSD which sorts from the least significant byte to the most significant byte.
     auto tmpKeyBlockPtr = tmpSortingResultBlock->getData();
     keyBlockPtr += numBytesSorted;
