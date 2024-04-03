@@ -46,16 +46,11 @@ To learn more about installation, see our [Installation](https://docs.kuzudb.com
 
 ## Getting Started
 
-Refer to our [Getting Started](https://docs.kuzudb.com/getting-started/) page for your first example.
-
-More information can be found at
-- [Data Import](https://docs.kuzudb.com/data-import/)
-- [Cypher Reference](https://docs.kuzudb.com/cypher/)
-- [Client APIs](https://docs.kuzudb.com/client-apis/)
+Refer to our [Getting Started](https://docs.kuzudb.com/get-started/) page for your first example.
 
 ## Build from Source
 
-Instructions can be found at [Build Kùzu from Source](https://docs.kuzudb.com/development/building-kuzu).
+You can build from source using the instructions provided in the [developer guide](https://docs.kuzudb.com/developer-guide).
 
 ## Contributing
 We welcome contributions to Kùzu. If you are interested in contributing to Kùzu, please read our [Contributing Guide](CONTRIBUTING.md).
