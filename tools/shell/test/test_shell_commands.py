@@ -86,11 +86,11 @@ def test_max_width(temp_db, csv_path) -> None:
     test = (
         ShellTest()
         .add_argument(temp_db)
-        .statement(":max_width 40")
+        .statement(":max_width 44")
         .statement(f'LOAD FROM "{csv_path}" (HEADER=true) RETURN *;')
     )
     result = test.run()
-    # while max width is 40, the columns that fit have a total width of 34
+    # while max width is 44, the columns that fit have a total width of 34
     result.check_stdout("-" * 34)
     result.check_not_stdout("-" * 35)
     result.check_stdout("| ... |")
