@@ -19,7 +19,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDistinct(LogicalOperator* logic
     return createHashAggregate(logicalDistinct.getKeys(), logicalDistinct.getPayloads(),
         std::move(emptyAggFunctions), std::move(emptyAggInputInfos),
         std::move(emptyAggregatesOutputPos), inSchema, outSchema, std::move(prevOperator),
-        logicalDistinct.getExpressionsForPrinting());
+        logicalDistinct.getExpressionsForPrinting(), nullptr /* markExpression */);
 }
 
 } // namespace processor

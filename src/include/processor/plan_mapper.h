@@ -155,7 +155,7 @@ private:
         std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
         std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema,
         planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
-        const std::string& paramsString);
+        const std::string& paramsString, std::shared_ptr<binder::Expression> markExpression);
 
     std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(
         const planner::LogicalInsertInfo* info, const planner::Schema& inSchema,

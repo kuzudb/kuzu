@@ -3,6 +3,7 @@ add_library(kuzu_processor_result
         base_hash_table.cpp
         factorized_table.cpp
         flat_tuple.cpp
+        merge_hash_table.cpp
         result_set.cpp
         result_set_descriptor.cpp
         )

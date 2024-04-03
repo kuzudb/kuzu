@@ -33,13 +33,28 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     KU_ASSERT(existenceVector->state->isFlat());
-    auto pos = existenceVector->state->selVector->selectedPositions[0];
-    if (!existenceVector->isNull(pos)) {
+    auto existencePos = existenceVector->state->selVector->selectedPositions[0];
+    if (!existenceVector->isNull(existencePos)) {
         for (auto& executor : onMatchNodeSetExecutors) {
             executor->set(context);
         }
         for (auto& executor : onMatchRelSetExecutors) {
             executor->set(context);
+        }
+    } else if (distinctVector != nullptr &&
+               !distinctVector->getValue<bool>(
+                   distinctVector->state->selVector->selectedPositions[0])) {
+        for (auto& executor : onMatchNodeSetExecutors) {
+            executor->set(context);
+        }
+        for (auto& executor : onMatchRelSetExecutors) {
+            executor->set(context);
+        }
+        for (auto& executor : nodeInsertExecutors) {
+            executor.writeResult();
+        }
+        for (auto& executor : relInsertExecutors) {
+            executor.writeResult();
         }
     } else {
         for (auto& executor : nodeInsertExecutors) {

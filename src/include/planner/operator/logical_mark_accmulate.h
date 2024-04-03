@@ -20,6 +20,7 @@ public:
     std::string getExpressionsForPrinting() const override { return {}; }
     binder::expression_vector getKeys() const { return keys; }
     binder::expression_vector getPayloads() const;
+    std::shared_ptr<binder::Expression> getMark() const { return mark; }
 
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalMarkAccumulate>(keys, mark, children[0]->copy());

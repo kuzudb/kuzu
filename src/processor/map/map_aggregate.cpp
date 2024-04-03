@@ -6,6 +6,7 @@
 #include "processor/operator/aggregate/simple_aggregate.h"
 #include "processor/operator/aggregate/simple_aggregate_scan.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/merge_hash_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -82,7 +83,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
         return createHashAggregate(logicalAggregate.getKeyExpressions(),
             logicalAggregate.getDependentKeyExpressions(), std::move(aggregateFunctions),
             std::move(aggregateInputInfos), std::move(aggregatesOutputPos), inSchema, outSchema,
-            std::move(prevOperator), paramsString);
+            std::move(prevOperator), paramsString, nullptr);
     } else {
         auto sharedState = make_shared<SimpleAggregateSharedState>(aggregateFunctions);
         auto aggregate =
@@ -98,8 +99,47 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMarkAccumulate(LogicalOperator*
     auto logicalMarkAccumulate = ku_dynamic_cast<LogicalOperator*, LogicalMarkAccumulate*>(op);
     auto keys = logicalMarkAccumulate->getKeys();
     auto payloads = logicalMarkAccumulate->getPayloads();
-    KU_ASSERT(false);
-    // TODO: create merge hash table here.
+    auto outSchema = logicalMarkAccumulate->getSchema();
+    auto inSchema = logicalMarkAccumulate->getChild(0)->getSchema();
+    auto prevOperator = mapOperator(logicalMarkAccumulate->getChild(0).get());
+    return createHashAggregate(keys, payloads,
+        std::vector<std::unique_ptr<function::AggregateFunction>>{},
+        std::vector<std::unique_ptr<AggregateInputInfo>>{}, std::vector<DataPos>{}, inSchema,
+        outSchema, std::move(prevOperator), logicalMarkAccumulate->getExpressionsForPrinting(),
+        logicalMarkAccumulate->getMark());
+}
+
+static std::unique_ptr<FactorizedTableSchema> getFactorizedTableSchema(
+    const binder::expression_vector& flatKeys, const binder::expression_vector& unflatKeys,
+    const binder::expression_vector& payloads,
+    std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
+    std::shared_ptr<Expression> markExpression) {
+    auto isUnflat = false;
+    auto dataChunkPos = 0u;
+    std::unique_ptr<FactorizedTableSchema> tableSchema = std::make_unique<FactorizedTableSchema>();
+    for (auto& flatKey : flatKeys) {
+        auto size = LogicalTypeUtils::getRowLayoutSize(flatKey->dataType);
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
+    }
+    for (auto& unflatKey : unflatKeys) {
+        auto size = LogicalTypeUtils::getRowLayoutSize(unflatKey->dataType);
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
+    }
+    for (auto& payload : payloads) {
+        auto size = LogicalTypeUtils::getRowLayoutSize(payload->dataType);
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
+    }
+    for (auto& aggregateFunc : aggregateFunctions) {
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(
+            isUnflat, dataChunkPos, aggregateFunc->getAggregateStateSize()));
+    }
+    if (markExpression != nullptr) {
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(
+            isUnflat, dataChunkPos, LogicalTypeUtils::getRowLayoutSize(markExpression->dataType)));
+    }
+    tableSchema->appendColumn(
+        std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, sizeof(hash_t)));
+    return tableSchema;
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
@@ -107,19 +147,28 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
     std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
     std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
     std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema, planner::Schema* outSchema,
-    std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString) {
+    std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString,
+    std::shared_ptr<Expression> markExpression) {
     auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
     auto flatKeys = getKeyExpressions(keys, *inSchema, true /* isFlat */);
     auto unFlatKeys = getKeyExpressions(keys, *inSchema, false /* isFlat */);
-    auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
-        sharedState, getExpressionsDataPos(flatKeys, *inSchema),
+    auto tableSchema = getFactorizedTableSchema(
+        flatKeys, unFlatKeys, payloads, aggregateFunctions, markExpression);
+    HashAggregateInfo aggregateInfo{getExpressionsDataPos(flatKeys, *inSchema),
         getExpressionsDataPos(unFlatKeys, *inSchema), getExpressionsDataPos(payloads, *inSchema),
-        std::move(aggregateFunctions), std::move(aggregateInputInfos), std::move(prevOperator),
-        getOperatorID(), paramsString);
+        std::move(tableSchema),
+        markExpression == nullptr ? HashTableType::AGGREGATE_HASH_TABLE :
+                                    HashTableType::MERGE_HASH_TABLE};
+    auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
+        sharedState, std::move(aggregateInfo), std::move(aggregateFunctions),
+        std::move(aggregateInputInfos), std::move(prevOperator), getOperatorID(), paramsString);
     binder::expression_vector outputExpressions;
     outputExpressions.insert(outputExpressions.end(), flatKeys.begin(), flatKeys.end());
     outputExpressions.insert(outputExpressions.end(), unFlatKeys.begin(), unFlatKeys.end());
     outputExpressions.insert(outputExpressions.end(), payloads.begin(), payloads.end());
+    if (markExpression != nullptr) {
+        outputExpressions.emplace_back(markExpression);
+    }
     return std::make_unique<HashAggregateScan>(sharedState,
         getExpressionsDataPos(outputExpressions, *outSchema), std::move(aggregatesOutputPos),
         std::move(aggregate), getOperatorID(), paramsString);

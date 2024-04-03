@@ -60,3 +60,23 @@ Runtime exception: Found duplicated primary key value 1, which violates the uniq
 -STATEMENT MATCH (a:person) RETURN COUNT(*);
 ---- 1
 11
+
+-CASE MergeDuplicatedKey
+-STATEMENT CREATE NODE TABLE user (ID int64, primary key(ID))
+---- ok
+-STATEMENT MATCH (a:person) with a.ID % 4 as result, a.age as age MERGE (u:user {ID: result}) RETURN u.ID, age
+---- 8
+0|35
+2|30
+3|45
+1|20
+3|20
+0|25
+1|40
+2|83
+-STATEMENT MATCH (a:user) RETURN a.ID
+---- 4
+0
+1
+2
+3
