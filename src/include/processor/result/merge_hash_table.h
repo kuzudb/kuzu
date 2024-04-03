@@ -1,5 +1,7 @@
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 
+#pragma once
+
 namespace kuzu {
 namespace processor {
 
