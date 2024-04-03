@@ -6,13 +6,11 @@ find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 add_compile_definitions(CPPHTTPLIB_OPENSSL_SUPPORT)
 
-add_subdirectory(third_party/mbedtls)
-
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
         ${PROJECT_SOURCE_DIR}/third_party/httplib
-        src/include
-        third_party/mbedtls/include)
+        ${PROJECT_SOURCE_DIR}/third_party/mbedtls/include
+        src/include)
 
 add_library(httpfs
         SHARED

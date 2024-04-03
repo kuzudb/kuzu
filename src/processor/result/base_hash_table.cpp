@@ -3,6 +3,7 @@
 #include "math.h"
 
 #include "common/null_buffer.h"
+#include "common/type_utils.h"
 #include "common/utils.h"
 #include "function/comparison/comparison_functions.h"
 #include "function/hash/vector_hash_functions.h"

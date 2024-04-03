@@ -1,0 +1,26 @@
+-GROUP HashFunctionTests
+-DATASET CSV empty
+
+--
+
+-CASE SHA256Tests
+-STATEMENT RETURN sha256(NULL);
+---- 1
+
+
+-STATEMENT RETURN sha256('hello');
+---- 1
+2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
+
+-STATEMENT RETURN sha256('');
+---- 1
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+-STATEMENT RETURN sha256('1');
+---- 1
+6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b
+
+-STATEMENT RETURN sha256();
+---- error
+Binder exception: Cannot match a built-in function for given function SHA256. Supported inputs are
+(STRING) -> STRING

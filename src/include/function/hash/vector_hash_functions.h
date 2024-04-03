@@ -1,60 +1,14 @@
 #pragma once
 
 #include "common/vector/value_vector.h"
-#include "hash_functions.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace function {
 
 struct UnaryHashFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE>
-    static void execute(common::ValueVector& operand, common::ValueVector& result) {
-        auto resultValues = (RESULT_TYPE*)result.getData();
-        if (operand.state->isFlat()) {
-            auto pos = operand.state->selVector->selectedPositions[0];
-            if (!operand.isNull(pos)) {
-                Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos], &operand);
-            } else {
-                result.setValue(pos, NULL_HASH);
-            }
-        } else {
-            if (operand.hasNoNullsGuarantee()) {
-                if (operand.state->selVector->isUnfiltered()) {
-                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                        Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i],
-                            &operand);
-                    }
-                } else {
-                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                        auto pos = operand.state->selVector->selectedPositions[i];
-                        Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
-                            &operand);
-                    }
-                }
-            } else {
-                if (operand.state->selVector->isUnfiltered()) {
-                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                        if (!operand.isNull(i)) {
-                            Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i],
-                                &operand);
-                        } else {
-                            result.setValue(i, NULL_HASH);
-                        }
-                    }
-                } else {
-                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                        auto pos = operand.state->selVector->selectedPositions[i];
-                        if (!operand.isNull(pos)) {
-                            Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
-                                &operand);
-                        } else {
-                            resultValues[pos] = NULL_HASH;
-                        }
-                    }
-                }
-            }
-        }
-    }
+    static void execute(common::ValueVector& operand, common::ValueVector& result);
 };
 
 struct VectorHashFunction {
@@ -62,6 +16,24 @@ struct VectorHashFunction {
 
     static void combineHash(common::ValueVector* left, common::ValueVector* right,
         common::ValueVector* result);
+};
+
+struct MD5Function {
+    static constexpr const char* name = "MD5";
+
+    static function_set getFunctionSet();
+};
+
+struct SHA256Function {
+    static constexpr const char* name = "SHA256";
+
+    static function_set getFunctionSet();
+};
+
+struct HashFunction {
+    static constexpr const char* name = "HASH";
+
+    static function_set getFunctionSet();
 };
 
 } // namespace function
