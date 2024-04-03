@@ -104,18 +104,6 @@ struct FileSearchPathSetting {
     }
 };
 
-struct EnableMultiCopySetting {
-    static constexpr const char* name = "enable_multi_copy";
-    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
-    static void setContext(ClientContext* context, const common::Value& parameter) {
-        parameter.validateType(inputType);
-        context->getClientConfigUnsafe()->enableMultiCopy = parameter.getValue<bool>();
-    }
-    static common::Value getSetting(ClientContext* context) {
-        return common::Value(context->getClientConfig()->enableMultiCopy);
-    }
-};
-
 struct RecursivePatternSemanticSetting {
     static constexpr const char* name = "recursive_pattern_semantic";
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::STRING;

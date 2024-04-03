@@ -14,10 +14,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
-    if (!context->clientContext->getClientConfig()->enableMultiCopy) {
-        checkIfTableIsEmpty();
-    }
+void RelBatchInsert::initGlobalStateInternal(ExecutionContext* /*context*/) {
     sharedState->logBatchInsertWALRecord();
 }
 
@@ -87,7 +84,7 @@ void RelBatchInsert::mergeNodeGroup(ExecutionContext* context, const RelBatchIns
     auto localNG = std::make_unique<LocalRelNG>(nodeGroupStartOffset, relInfo.columnTypes);
     auto& partition =
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
-    auto& insertChunks = localNG->getInsesrtChunks();
+    auto& insertChunks = localNG->getInsertChunks();
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(localState.nodeGroupIdx);
     auto numRels = 0u;
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
@@ -226,7 +223,7 @@ void RelBatchInsert::finalize(ExecutionContext* context) {
         KU_ASSERT(
             relInfo->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1);
         sharedState->updateNumTuplesForTable();
-        auto outputMsg = stringFormat("{} number of tuples has been copied to table {}.",
+        auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
             sharedState->getNumRows(), info->tableEntry->getName());
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());

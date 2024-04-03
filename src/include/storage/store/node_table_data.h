@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include "storage/store/table_data.h"
 
 namespace kuzu {
@@ -37,12 +39,20 @@ public:
     // Flush the nodeGroup to disk and update metadataDAs.
     void append(ChunkedNodeGroup* nodeGroup) override;
 
+    void prepareLocalNodeGroupToCommit(common::node_group_idx_t nodeGroupIdx,
+        transaction::Transaction* transaction, LocalNodeNG* localNodeGroup);
     void prepareLocalTableToCommit(transaction::Transaction* transaction,
         LocalTableData* localTable) override;
 
     common::node_group_idx_t getNumNodeGroups(
         transaction::Transaction* transaction) const override {
         return columns[0]->getNumNodeGroups(transaction);
+    }
+
+    common::offset_t getNumTuplesInNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx) const {
+        KU_ASSERT(nodeGroupIdx < getNumNodeGroups(transaction));
+        return columns[0]->getMetadata(nodeGroupIdx, transaction->getType()).numValues;
     }
 
 private:

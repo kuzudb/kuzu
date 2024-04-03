@@ -363,6 +363,7 @@ void ColumnChunk::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChu
 }
 
 void ColumnChunk::setNumValues(uint64_t numValues_) {
+    KU_ASSERT(numValues_ <= capacity);
     numValues = numValues_;
     if (nullChunk) {
         nullChunk->setNumValues(numValues_);

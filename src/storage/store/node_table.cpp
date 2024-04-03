@@ -136,6 +136,11 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
     wal->addToUpdatedTables(tableID);
 }
 
+void NodeTable::prepareCommitNodeGroup(node_group_idx_t nodeGroupIdx,
+    transaction::Transaction* transaction, LocalNodeNG* localNodeGroup) {
+    tableData->prepareLocalNodeGroupToCommit(nodeGroupIdx, transaction, localNodeGroup);
+}
+
 void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     if (pkIndex) {
         pkIndex->prepareCommit();

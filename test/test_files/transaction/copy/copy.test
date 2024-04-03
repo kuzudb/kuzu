@@ -11,17 +11,14 @@
 ---- ok
 -STATEMENT MATCH (p:person) return count(p);
 ---- 1
-8
+5
 -STATEMENT MATCH (p:person) return p.age;
----- 8
+---- 5
 20
 20
-25
 30
 35
-40
 45
-83
 
 -CASE CopyNodeCommitRecovery
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
@@ -33,17 +30,14 @@
 -RELOADDB
 -STATEMENT MATCH (p:person) return count(p);
 ---- 1
-8
+5
 -STATEMENT MATCH (p:person) return p.age;
----- 8
+---- 5
 20
 20
-25
 30
 35
-40
 45
-83
 
 -CASE CopyRelCommit
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
