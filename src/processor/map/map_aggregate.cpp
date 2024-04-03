@@ -6,7 +6,6 @@
 #include "processor/operator/aggregate/simple_aggregate.h"
 #include "processor/operator/aggregate/simple_aggregate_scan.h"
 #include "processor/plan_mapper.h"
-#include "processor/result/merge_hash_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

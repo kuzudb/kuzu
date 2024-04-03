@@ -56,7 +56,7 @@ struct HashAggregateLocalState {
     void init(ResultSet& resultSet, main::ClientContext* context, HashAggregateInfo& info,
         std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);
     void append(
-        std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs, uint64_t multiplicity);
+        std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs, uint64_t multiplicity) const;
 };
 
 class HashAggregate : public BaseAggregate {

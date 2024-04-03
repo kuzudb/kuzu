@@ -54,9 +54,6 @@ void Schema::insertToGroupAndScope(
 }
 
 f_group_pos Schema::getGroupPos(const std::string& expressionName) const {
-    if (!expressionNameToGroupPos.contains(expressionName)) {
-        auto a = 1;
-    }
     KU_ASSERT(expressionNameToGroupPos.contains(expressionName));
     return expressionNameToGroupPos.at(expressionName);
 }

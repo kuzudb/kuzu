@@ -99,7 +99,7 @@ void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* co
 }
 
 void HashAggregateLocalState::append(
-    std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs, uint64_t multiplicity) {
+    std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs, uint64_t multiplicity) const {
     aggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors, leadingState,
         aggregateInputs, multiplicity);
 }
