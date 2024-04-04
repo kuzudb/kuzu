@@ -26,6 +26,11 @@ std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(AccumulateTyp
         tableSchema->appendColumn(std::move(columnSchema));
         payloadsPos.push_back(dataPos);
     }
+    if (accumulateType == AccumulateType::OPTIONAL_) {
+        auto columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */,
+            INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(*LogicalType::BOOL()));
+        tableSchema->appendColumn(std::move(columnSchema));
+    }
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());
     auto sharedState = std::make_shared<ResultCollectorSharedState>(std::move(table));

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "planner/operator/schema.h"
+#include "common/cast.h"
 
 namespace kuzu {
 namespace planner {
@@ -102,6 +103,11 @@ public:
     // TODO: remove this function once planner do not share operator across plans
     virtual std::unique_ptr<LogicalOperator> copy() = 0;
     static logical_op_vector_t copy(const logical_op_vector_t& ops);
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<LogicalOperator*, TARGET*>(this);
+    }
 
 protected:
     void createEmptySchema() { schema = std::make_unique<Schema>(); }

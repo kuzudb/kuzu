@@ -113,6 +113,10 @@ private:
     void planOptionalMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, const binder::expression_vector& corrExprs,
         LogicalPlan& leftPlan);
+    // Write whether optional match succeed or not to mark.
+    void planOptionalMatch(const binder::QueryGraphCollection& queryGraphCollection,
+        const binder::expression_vector& predicates, const binder::expression_vector& corrExprs,
+        std::shared_ptr<binder::Expression> mark, LogicalPlan& leftPlan);
     void planRegularMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, LogicalPlan& leftPlan);
     void planSubquery(const std::shared_ptr<binder::Expression>& subquery, LogicalPlan& outerPlan);
@@ -231,6 +235,9 @@ private:
     // Append Join operators
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+    void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
+        std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+        LogicalPlan& resultPlan);
     void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
         const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
         LogicalPlan& buildPlan);
@@ -241,16 +248,19 @@ private:
     void appendCrossProduct(common::AccumulateType accumulateType, const LogicalPlan& probePlan,
         const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
 
-    // Append accumulate
-    void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan);
+    /* Append accumulate */
+
+    // Accumulate everything.
+    void appendAccumulate(LogicalPlan& plan);
+    // Accumulate everything. Append
+    void appendOptionalAccumulate(std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
     // Append accumulate with a set of expressions being flattened first.
-    void appendAccumulate(common::AccumulateType accumulateType,
-        const binder::expression_vector& flatExprs, LogicalPlan& plan);
+    void appendAccumulate(const binder::expression_vector& flatExprs, LogicalPlan& plan);
     // Append accumulate with a set of expressions being flattened first.
     // Additionally, scan table with row offset.
     void appendAccumulate(common::AccumulateType accumulateType,
         const binder::expression_vector& flatExprs, std::shared_ptr<binder::Expression> offset,
-        LogicalPlan& plan);
+        std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
     void appendMarkAccumulate(const binder::expression_vector& keys,
         std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
 

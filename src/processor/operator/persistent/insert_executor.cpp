@@ -60,7 +60,7 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
     writeResult();
 }
 
-void NodeInsertExecutor::evaluateResult(ExecutionContext* context) {
+void NodeInsertExecutor::skipInsert(ExecutionContext* context) {
     for (auto& evaluator : columnDataEvaluators) {
         evaluator->evaluate(context->clientContext);
     }
@@ -154,6 +154,13 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* c
     auto insertState = std::make_unique<storage::RelTableInsertState>(*srcNodeIDVector,
         *dstNodeIDVector, columnDataVectors);
     table->insert(tx, *insertState);
+    writeResult();
+}
+
+void RelInsertExecutor::skipInsert(ExecutionContext* context) {
+    for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
+        columnDataEvaluators[i]->evaluate(context->clientContext);
+    }
     writeResult();
 }
 

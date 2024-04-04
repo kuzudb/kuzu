@@ -14,8 +14,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto existenceMarkPos = getDataPos(*logicalMerge->getExistenceMark(), *inSchema);
     auto distinctMarkPos = DataPos();
-    if (logicalMerge
-            ->hasDistinctMark()) { // If there is no distinct mark, then every input is distinct.
+    if (logicalMerge->hasDistinctMark()) {
         distinctMarkPos = getDataPos(*logicalMerge->getDistinctMark(), *inSchema);
     }
     std::vector<NodeInsertExecutor> nodeInsertExecutors;

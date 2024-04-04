@@ -28,11 +28,17 @@ binder::expression_vector Planner::getCorrelatedExprs(const QueryGraphCollection
 void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, const binder::expression_vector& corrExprs,
     LogicalPlan& leftPlan) {
+    planOptionalMatch(queryGraphCollection, predicates, corrExprs, nullptr /* mark */, leftPlan);
+}
+
+void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
+    const expression_vector& predicates, const binder::expression_vector& corrExprs,
+    std::shared_ptr<Expression> mark, LogicalPlan& leftPlan) {
     if (leftPlan.isEmpty()) {
         // Optional match is the first clause. No left plan to join.
         auto plan = planQueryGraphCollection(queryGraphCollection, predicates);
         leftPlan.setLastOperator(plan->getLastOperator());
-        appendAccumulate(AccumulateType::OPTIONAL_, leftPlan);
+        appendOptionalAccumulate(mark, leftPlan);
         return;
     }
     if (corrExprs.empty()) {
@@ -58,13 +64,13 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
         // Unnest using ExpressionsScan which scans the accumulated table on probe side.
         rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::CORRELATED, corrExprs,
             leftPlan.getCardinality(), queryGraphCollection, predicates);
-        appendAccumulate(AccumulateType::REGULAR, corrExprs, leftPlan);
+        appendAccumulate(corrExprs, leftPlan);
     }
     if (leftPlan.hasUpdate()) {
         throw RuntimeException(stringFormat("Optional match after update is not supported. Missing "
                                             "right outer join implementation."));
     }
-    appendHashJoin(corrExprs, JoinType::LEFT, leftPlan, *rightPlan, leftPlan);
+    appendHashJoin(corrExprs, JoinType::LEFT, mark, leftPlan, *rightPlan, leftPlan);
 }
 
 void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
@@ -143,7 +149,7 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
             innerPlan =
                 planQueryGraphCollectionInNewContext(SubqueryType::CORRELATED, correlatedExprs,
                     outerPlan.getCardinality(), *subquery->getQueryGraphCollection(), predicates);
-            appendAccumulate(AccumulateType::REGULAR, correlatedExprs, outerPlan);
+            appendAccumulate(correlatedExprs, outerPlan);
         }
         switch (subquery->getSubqueryType()) {
         case common::SubqueryType::EXISTS: {

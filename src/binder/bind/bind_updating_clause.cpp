@@ -79,11 +79,12 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     // bindGraphPattern will update scope.
     auto boundGraphPattern = bindGraphPattern(mergeClause.getPatternElementsRef());
     rewriteMatchPattern(boundGraphPattern);
+    auto existenceMark = createVariable("__existence", *LogicalType::BOOL());
+    auto distinctMark = createVariable("__distinct", *LogicalType::BOOL());
     auto createInfos = bindInsertInfos(boundGraphPattern.queryGraphCollection, patternsScope);
-    auto distinctMark = createVariable("__distinctMark", *LogicalType::BOOL());
-    auto boundMergeClause =
-        std::make_unique<BoundMergeClause>(std::move(boundGraphPattern.queryGraphCollection),
-            std::move(boundGraphPattern.where), std::move(createInfos), std::move(distinctMark));
+    auto boundMergeClause = std::make_unique<BoundMergeClause>(std::move(existenceMark),
+        std::move(distinctMark), std::move(boundGraphPattern.queryGraphCollection),
+        std::move(boundGraphPattern.where), std::move(createInfos));
     if (mergeClause.hasOnMatchSetItems()) {
         for (auto& [lhs, rhs] : mergeClause.getOnMatchSetItemsRef()) {
             auto setPropertyInfo = bindSetPropertyInfo(lhs.get(), rhs.get());

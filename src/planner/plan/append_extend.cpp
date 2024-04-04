@@ -154,7 +154,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, LogicalPlan& plan) {
     auto recursiveInfo = rel->getRecursiveInfo();
-    appendAccumulate(AccumulateType::REGULAR, plan);
+    appendAccumulate(plan);
     // Create recursive plan
     auto recursivePlan = std::make_unique<LogicalPlan>();
     createRecursivePlan(*recursiveInfo, direction, *recursivePlan);
