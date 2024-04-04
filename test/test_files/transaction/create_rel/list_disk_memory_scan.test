@@ -1,0 +1,87 @@
+-GROUP TinySnbCreateNodeTest
+-DATASET CSV rel-update-tests
+
+--
+
+-DEFINE_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST [
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=1 and b.ID=700 CREATE (a)-[e:knows{length: 45, tag: ['123', 'good']}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=1 and b.ID=400 CREATE (a)-[e:knows{length: 34, place: 'short'}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=1 and b.ID=600 CREATE (a)-[e:knows{}]->(b)
+---- ok
+]
+
+-CASE listNodeCreateDiskAndMemoryScan
+-STATEMENT CREATE NODE TABLE person2(ID INT64, workedHours INT64[], PRIMARY KEY (ID))
+---- ok
+-STATEMENT CREATE (:person2 {ID: 17, workedHours: [4,5,6]})
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:person2 {ID: 12, workedHours: [2,3]})
+---- ok
+-STATEMENT CREATE (:person2 {ID: 14, workedHours: [2,5]})
+---- ok
+-STATEMENT MATCH (p:person2) RETURN p.workedHours
+---- 3
+[4,5,6]
+[2,3]
+[2,5]
+
+
+-CASE listRelInsertDiskAndMemoryScan
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=1 and b.ID=300 CREATE (a)-[e:knows{length: 300, place: 'this is a long str', tag: ['123', 'good']}]->(b)
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) where b.ID > 200 AND a.ID = 1 RETURN e.length, e.place, e.tag
+---- 4
+300|this is a long str|[123,good]
+34|short|
+45||[123,good]
+||
+
+
+-CASE listCreateEmptyDiskAndMemoryScan
+-STATEMENT CREATE NODE TABLE person2(ID INT64, workedHours INT64[], PRIMARY KEY (ID))
+---- ok
+-STATEMENT CREATE REL TABLE knows2(FROM person2 TO person2,  workedHours INT64[])
+---- ok
+-STATEMENT CREATE (:person2 {ID: 1,  workedHours: [4,5,6]})
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:person2 {ID: 2, workedHours: [2,3]})
+---- ok
+-STATEMENT CREATE (:person2 {ID: 3, workedHours: [2,5]})
+---- ok
+-STATEMENT MATCH (p:person2) RETURN p.workedHours
+---- 3
+[4,5,6]
+[2,3]
+[2,5]
+-STATEMENT Commit
+---- ok
+-STATEMENT MATCH (p:person2) RETURN p.workedHours
+---- 3
+[4,5,6]
+[2,3]
+[2,5]
+-STATEMENT MATCH (a:person2),(b:person2) WHERE a.ID=1 and b.ID=2 CREATE (a)-[e:knows2{workedHours: [2,3,5,6,7,89]}]->(b)
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person2),(b:person2) WHERE a.ID=2 and b.ID=3 CREATE (a)-[e:knows2{workedHours: [1,2,3]}]->(b)
+---- ok
+-STATEMENT MATCH (a:person2)-[e:knows2]->(b:person2) return e.workedHours
+---- 2
+[2,3,5,6,7,89]
+[1,2,3]
+-STATEMENT Commit
+---- ok
+-STATEMENT MATCH (a:person2)-[e:knows2]->(b:person2) return e.workedHours
+---- 2
+[2,3,5,6,7,89]
+[1,2,3]

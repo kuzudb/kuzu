@@ -76,6 +76,7 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
                                   resultVector->getValue<list_entry_t>(offsetInVector - 1).size;
     auto offsetToWriteListData = listOffsetInVector;
     auto numValues = endOffsetInGroup - startOffsetInGroup;
+    numValues = std::min(numValues, listOffsetInfoInStorage.numTotal);
     KU_ASSERT(numValues >= 0);
     for (auto i = 0u; i < numValues; i++) {
         list_size_t size = listOffsetInfoInStorage.getListSize(i);
@@ -197,6 +198,7 @@ void ListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
 void ListColumn::scanUnfiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     ValueVector* resultVector, const ListOffsetSizeInfo& listOffsetInfoInStorage) {
     auto numValuesToScan = resultVector->state->selVector->selectedSize;
+    numValuesToScan = std::min(numValuesToScan, listOffsetInfoInStorage.numTotal);
     offset_t offsetInVector = 0;
     for (auto i = 0u; i < numValuesToScan; i++) {
         auto listLen = listOffsetInfoInStorage.getListSize(i);
@@ -303,7 +305,8 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
         endOffsetInNodeGroup);
     sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk.get(), startOffsetInNodeGroup,
         endOffsetInNodeGroup);
-    return {numOffsetsToRead, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
+    return {offsetColumnChunk->getNumValues(), std::move(offsetColumnChunk),
+        std::move(sizeColumnChunk)};
 }
 
 void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
