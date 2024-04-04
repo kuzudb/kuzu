@@ -154,6 +154,7 @@ typedef struct {
  */
 typedef struct {
     void* _query_result;
+    bool _is_owned_by_cpp;
 } kuzu_query_result;
 
 /**
@@ -630,6 +631,20 @@ KUZU_C_API bool kuzu_query_result_has_next(kuzu_query_result* query_result);
  * @param query_result The query result instance to return.
  */
 KUZU_C_API kuzu_flat_tuple* kuzu_query_result_get_next(kuzu_query_result* query_result);
+/**
+ * @brief Returns true if we have not consumed all query results, false otherwise. Use this function
+ * for loop results of multiple query statements
+ * @param query_result The query result instance to check.
+ */
+KUZU_C_API bool kuzu_query_result_has_next_query_result(kuzu_query_result* query_result);
+/**
+ * @brief Returns the next query result. Use this function to loop multiple query statements'
+ * results.
+ * @param query_result The query result instance to return.
+ */
+KUZU_C_API kuzu_query_result* kuzu_query_result_get_next_query_result(
+    kuzu_query_result* query_result);
+
 /**
  * @brief Returns the query result as a string.
  * @param query_result The query result instance to return.

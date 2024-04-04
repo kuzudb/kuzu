@@ -25,7 +25,7 @@ void kuzu_prepared_statement_destroy(kuzu_prepared_statement* prepared_statement
         delete static_cast<std::unordered_map<std::string, std::unique_ptr<Value>>*>(
             prepared_statement->_bound_values);
     }
-    delete prepared_statement;
+    free(prepared_statement);
 }
 
 bool kuzu_prepared_statement_allow_active_transaction(kuzu_prepared_statement* prepared_statement) {
