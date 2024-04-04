@@ -111,12 +111,17 @@ private:
 
     // Plan subquery
     void planOptionalMatch(const binder::QueryGraphCollection& queryGraphCollection,
-        const binder::expression_vector& predicates, LogicalPlan& leftPlan);
+        const binder::expression_vector& predicates, const binder::expression_vector& corrExprs,
+        LogicalPlan& leftPlan);
     void planRegularMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, LogicalPlan& leftPlan);
     void planSubquery(const std::shared_ptr<binder::Expression>& subquery, LogicalPlan& outerPlan);
     void planSubqueryIfNecessary(
         const std::shared_ptr<binder::Expression>& expression, LogicalPlan& plan);
+
+    static binder::expression_vector getCorrelatedExprs(
+        const binder::QueryGraphCollection& collection, const binder::expression_vector& predicates,
+        Schema* outerSchema);
 
     // Plan query graphs
     std::unique_ptr<LogicalPlan> planQueryGraphCollection(
@@ -246,6 +251,8 @@ private:
     void appendAccumulate(common::AccumulateType accumulateType,
         const binder::expression_vector& flatExprs, std::shared_ptr<binder::Expression> offset,
         LogicalPlan& plan);
+    void appendMarkAccumulate(const binder::expression_vector& keys,
+        std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
 
     void appendDummyScan(LogicalPlan& plan);
 
@@ -265,7 +272,7 @@ private:
     void appendScanFile(const binder::BoundFileScanInfo* info,
         std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
 
-    void appendDistinct(const binder::expression_vector& expressionsToDistinct, LogicalPlan& plan);
+    void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);

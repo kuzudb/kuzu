@@ -108,6 +108,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::ACCUMULATE: {
         physicalOperator = mapAccumulate(logicalOperator);
     } break;
+    case LogicalOperatorType::MARK_ACCUMULATE: {
+        physicalOperator = mapMarkAccumulate(logicalOperator);
+    } break;
     case LogicalOperatorType::DUMMY_SCAN: {
         physicalOperator = mapDummyScan(logicalOperator);
     } break;

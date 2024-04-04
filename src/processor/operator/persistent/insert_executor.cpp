@@ -60,6 +60,14 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
     writeResult();
 }
 
+void NodeInsertExecutor::evaluateResult(ExecutionContext* context) {
+    for (auto& evaluator : columnDataEvaluators) {
+        evaluator->evaluate(context->clientContext);
+    }
+    nodeIDVector->setNull(nodeIDVector->state->selVector->selectedPositions[0], false);
+    writeResult();
+}
+
 bool NodeInsertExecutor::checkConfict(Transaction* transaction) {
     if (conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
         auto off = table->validateUniquenessConstraint(transaction, columnDataVectors);

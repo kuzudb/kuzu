@@ -12,7 +12,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
     auto outSchema = logicalMerge->getSchema();
     auto inSchema = logicalMerge->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto markPos = DataPos(inSchema->getExpressionPos(*logicalMerge->getMark()));
+    auto existenceMarkPos = getDataPos(*logicalMerge->getExistenceMark(), *inSchema);
+    auto distinctMarkPos = DataPos();
+    if (logicalMerge
+            ->hasDistinctMark()) { // If there is no distinct mark, then every input is distinct.
+        distinctMarkPos = getDataPos(*logicalMerge->getDistinctMark(), *inSchema);
+    }
     std::vector<NodeInsertExecutor> nodeInsertExecutors;
     for (auto& info : logicalMerge->getInsertNodeInfosRef()) {
         nodeInsertExecutors.push_back(getNodeInsertExecutor(&info, *inSchema, *outSchema)->copy());
@@ -37,11 +42,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
     for (auto& info : logicalMerge->getOnMatchSetRelInfosRef()) {
         onMatchRelSetExecutors.push_back(getRelSetExecutor(info.get(), *inSchema));
     }
-    return std::make_unique<Merge>(markPos, std::move(nodeInsertExecutors),
-        std::move(relInsertExecutors), std::move(onCreateNodeSetExecutors),
-        std::move(onCreateRelSetExecutors), std::move(onMatchNodeSetExecutors),
-        std::move(onMatchRelSetExecutors), std::move(prevOperator), getOperatorID(),
-        logicalMerge->getExpressionsForPrinting());
+    return std::make_unique<Merge>(existenceMarkPos, distinctMarkPos,
+        std::move(nodeInsertExecutors), std::move(relInsertExecutors),
+        std::move(onCreateNodeSetExecutors), std::move(onCreateRelSetExecutors),
+        std::move(onMatchNodeSetExecutors), std::move(onMatchRelSetExecutors),
+        std::move(prevOperator), getOperatorID(), logicalMerge->getExpressionsForPrinting());
 }
 
 } // namespace processor
