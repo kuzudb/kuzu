@@ -204,9 +204,9 @@ static std::unique_ptr<TableFuncSharedState> RdfAllTripleScanInitSharedState(
 }
 
 static double RdfResourceInMemScanProgressFunc(TableFuncSharedState* sharedState) {
-    auto rdfSharedState = 
+    auto rdfSharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
-    uint64_t rtSize = 
+    uint64_t rtSize =
         ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get())->rtStore.size();
     if (rtSize == 0) {
         return 0.0;
@@ -215,9 +215,9 @@ static double RdfResourceInMemScanProgressFunc(TableFuncSharedState* sharedState
 }
 
 static double RdfLiteralInMemScanProgressFunc(TableFuncSharedState* sharedState) {
-    auto rdfSharedState = 
+    auto rdfSharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
-    uint64_t ltSize = 
+    uint64_t ltSize =
         ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get())->ltStore.size();
     if (ltSize == 0) {
         return 0.0;
@@ -226,9 +226,9 @@ static double RdfLiteralInMemScanProgressFunc(TableFuncSharedState* sharedState)
 }
 
 static double RdfResourceTripleInMemScanProgressFunc(TableFuncSharedState* sharedState) {
-    auto rdfSharedState = 
+    auto rdfSharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
-    uint64_t rtSize = 
+    uint64_t rtSize =
         ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get())->rtStore.size();
     if (rtSize == 0) {
         return 0.0;
@@ -237,9 +237,9 @@ static double RdfResourceTripleInMemScanProgressFunc(TableFuncSharedState* share
 }
 
 static double RdfLiteralTripleInMemScanProgressFunc(TableFuncSharedState* sharedState) {
-    auto rdfSharedState = 
+    auto rdfSharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
-    uint64_t ltSize = 
+    uint64_t ltSize =
         ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get())->ltStore.size();
     if (ltSize == 0) {
         return 0.0;
