@@ -10,7 +10,7 @@ namespace kuzu {
 namespace function {
 
 struct AggregateState {
-    virtual inline uint32_t getStateSize() const = 0;
+    virtual uint32_t getStateSize() const = 0;
     virtual void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) = 0;
     virtual ~AggregateState() = default;
 
@@ -52,45 +52,41 @@ struct AggregateFunction final : public BaseScalarFunction {
               std::move(combineFunc), std::move(finalizeFunc), isDistinct, nullptr /* bindFunc */,
               std::move(paramRewriteFunc)} {}
 
-    inline uint32_t getAggregateStateSize() const {
-        return initialNullAggregateState->getStateSize();
-    }
+    uint32_t getAggregateStateSize() const { return initialNullAggregateState->getStateSize(); }
 
     // NOLINTNEXTLINE(readability-make-member-function-const): Returns a non-const pointer.
-    inline AggregateState* getInitialNullAggregateState() {
-        return initialNullAggregateState.get();
-    }
+    AggregateState* getInitialNullAggregateState() { return initialNullAggregateState.get(); }
 
-    inline std::unique_ptr<AggregateState> createInitialNullAggregateState() const {
+    std::unique_ptr<AggregateState> createInitialNullAggregateState() const {
         return initializeFunc();
     }
 
-    inline void updateAllState(uint8_t* state, common::ValueVector* input, uint64_t multiplicity,
+    void updateAllState(uint8_t* state, common::ValueVector* input, uint64_t multiplicity,
         storage::MemoryManager* memoryManager) const {
         return updateAllFunc(state, input, multiplicity, memoryManager);
     }
 
-    inline void updatePosState(uint8_t* state, common::ValueVector* input, uint64_t multiplicity,
+    void updatePosState(uint8_t* state, common::ValueVector* input, uint64_t multiplicity,
         uint32_t pos, storage::MemoryManager* memoryManager) const {
         return updatePosFunc(state, input, multiplicity, pos, memoryManager);
     }
 
-    inline void combineState(uint8_t* state, uint8_t* otherState,
+    void combineState(uint8_t* state, uint8_t* otherState,
         storage::MemoryManager* memoryManager) const {
         return combineFunc(state, otherState, memoryManager);
     }
 
-    inline void finalizeState(uint8_t* state) const { return finalizeFunc(state); }
+    void finalizeState(uint8_t* state) const { return finalizeFunc(state); }
 
-    inline bool isFunctionDistinct() const { return isDistinct; }
+    bool isFunctionDistinct() const { return isDistinct; }
 
-    inline std::unique_ptr<Function> copy() const override {
+    std::unique_ptr<Function> copy() const override {
         return std::make_unique<AggregateFunction>(name, parameterTypeIDs, returnTypeID,
             initializeFunc, updateAllFunc, updatePosFunc, combineFunc, finalizeFunc, isDistinct,
             bindFunc, paramRewriteFunc);
     }
 
-    inline std::unique_ptr<AggregateFunction> clone() const {
+    std::unique_ptr<AggregateFunction> clone() const {
         return std::make_unique<AggregateFunction>(name, parameterTypeIDs, returnTypeID,
             initializeFunc, updateAllFunc, updatePosFunc, combineFunc, finalizeFunc, isDistinct,
             bindFunc, paramRewriteFunc);

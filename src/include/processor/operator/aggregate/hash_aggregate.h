@@ -54,21 +54,21 @@ struct HashAggregateLocalState {
     std::unique_ptr<AggregateHashTable> aggregateHashTable;
 
     void init(ResultSet& resultSet, main::ClientContext* context, HashAggregateInfo& info,
-        std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);
-    void append(std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
-        uint64_t multiplicity) const;
+        std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
+        std::vector<common::LogicalType> types);
+    void append(const std::vector<AggregateInput>& aggregateInputs, uint64_t multiplicity) const;
 };
 
 class HashAggregate : public BaseAggregate {
 public:
     HashAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::shared_ptr<HashAggregateSharedState> sharedState, HashAggregateInfo aggregateInfo,
+        std::shared_ptr<HashAggregateSharedState> sharedState, HashAggregateInfo hashInfo,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
-        std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+        std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        const std::string& paramsString)
         : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateFunctions),
-              std::move(aggregateInputInfos), std::move(child), id, paramsString},
-          aggregateInfo{std::move(aggregateInfo)}, sharedState{std::move(sharedState)} {}
+              std::move(aggInfos), std::move(child), id, paramsString},
+          hashInfo{std::move(hashInfo)}, sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -77,12 +77,12 @@ public:
     void finalize(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState, aggregateInfo,
-            cloneAggFunctions(), cloneAggInputInfos(), children[0]->clone(), id, paramsString);
+        return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState, hashInfo,
+            cloneAggFunctions(), copyVector(aggInfos), children[0]->clone(), id, paramsString);
     }
 
 private:
-    HashAggregateInfo aggregateInfo;
+    HashAggregateInfo hashInfo;
     HashAggregateLocalState localState;
     std::shared_ptr<HashAggregateSharedState> sharedState;
 };

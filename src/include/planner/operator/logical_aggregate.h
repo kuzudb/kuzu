@@ -7,18 +7,14 @@ namespace planner {
 
 class LogicalAggregate : public LogicalOperator {
 public:
-    LogicalAggregate(binder::expression_vector keyExpressions,
-        binder::expression_vector aggregateExpressions, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)},
-          keyExpressions{std::move(keyExpressions)},
-          aggregateExpressions{std::move(aggregateExpressions)} {}
-    LogicalAggregate(binder::expression_vector keyExpressions,
-        binder::expression_vector dependentKeyExpressions,
-        binder::expression_vector aggregateExpressions, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)},
-          keyExpressions{std::move(keyExpressions)},
-          dependentKeyExpressions{std::move(dependentKeyExpressions)},
-          aggregateExpressions{std::move(aggregateExpressions)} {}
+    LogicalAggregate(binder::expression_vector keys, binder::expression_vector aggregates,
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)}, keys{std::move(keys)},
+          aggregates{std::move(aggregates)} {}
+    LogicalAggregate(binder::expression_vector keys, binder::expression_vector dependentKeys,
+        binder::expression_vector aggregates, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)}, keys{std::move(keys)},
+          dependentKeys{std::move(dependentKeys)}, aggregates{std::move(aggregates)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -28,30 +24,23 @@ public:
 
     std::string getExpressionsForPrinting() const override;
 
-    inline bool hasKeyExpressions() const { return !keyExpressions.empty(); }
-    inline binder::expression_vector getKeyExpressions() const { return keyExpressions; }
-    inline void setKeyExpressions(binder::expression_vector expressions) {
-        keyExpressions = std::move(expressions);
+    bool hasKeys() const { return !keys.empty(); }
+    binder::expression_vector getKeys() const { return keys; }
+    void setKeys(binder::expression_vector expressions) { keys = std::move(expressions); }
+    binder::expression_vector getDependentKeys() const { return dependentKeys; }
+    void setDependentKeys(binder::expression_vector expressions) {
+        dependentKeys = std::move(expressions);
     }
-    inline binder::expression_vector getDependentKeyExpressions() const {
-        return dependentKeyExpressions;
-    }
-    inline void setDependentKeyExpressions(binder::expression_vector expressions) {
-        dependentKeyExpressions = std::move(expressions);
-    }
-    inline binder::expression_vector getAllKeyExpressions() const {
+    binder::expression_vector getAllKeys() const {
         binder::expression_vector result;
-        result.insert(result.end(), keyExpressions.begin(), keyExpressions.end());
-        result.insert(result.end(), dependentKeyExpressions.begin(), dependentKeyExpressions.end());
+        result.insert(result.end(), keys.begin(), keys.end());
+        result.insert(result.end(), dependentKeys.begin(), dependentKeys.end());
         return result;
     }
-    inline binder::expression_vector getAggregateExpressions() const {
-        return aggregateExpressions;
-    }
+    binder::expression_vector getAggregates() const { return aggregates; }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalAggregate>(keyExpressions, dependentKeyExpressions,
-            aggregateExpressions, children[0]->copy());
+    std::unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalAggregate>(keys, dependentKeys, aggregates, children[0]->copy());
     }
 
 private:
@@ -59,11 +48,11 @@ private:
     void insertAllExpressionsToGroupAndScope(f_group_pos groupPos);
 
 private:
-    binder::expression_vector keyExpressions;
+    binder::expression_vector keys;
     // A dependentKeyExpression depend on a keyExpression (e.g. a.age depends on a.ID) and will not
     // be treated as a hash key during hash aggregation.
-    binder::expression_vector dependentKeyExpressions;
-    binder::expression_vector aggregateExpressions;
+    binder::expression_vector dependentKeys;
+    binder::expression_vector aggregates;
 };
 
 } // namespace planner

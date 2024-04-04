@@ -26,9 +26,9 @@ void AggKeyDependencyOptimizer::visitOperator(planner::LogicalOperator* op) {
 
 void AggKeyDependencyOptimizer::visitAggregate(planner::LogicalOperator* op) {
     auto agg = (LogicalAggregate*)op;
-    auto [keys, dependentKeys] = resolveKeysAndDependentKeys(agg->getKeyExpressions());
-    agg->setKeyExpressions(keys);
-    agg->setDependentKeyExpressions(dependentKeys);
+    auto [keys, dependentKeys] = resolveKeysAndDependentKeys(agg->getKeys());
+    agg->setKeys(keys);
+    agg->setDependentKeys(dependentKeys);
 }
 
 void AggKeyDependencyOptimizer::visitDistinct(planner::LogicalOperator* op) {

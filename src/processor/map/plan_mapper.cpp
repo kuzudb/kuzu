@@ -190,11 +190,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     return physicalOperator;
 }
 
-std::vector<DataPos> PlanMapper::getExpressionsDataPos(const binder::expression_vector& expressions,
+std::vector<DataPos> PlanMapper::getDataPos(const binder::expression_vector& expressions,
     const planner::Schema& schema) {
     std::vector<DataPos> result;
     for (auto& expression : expressions) {
-        result.emplace_back(schema.getExpressionPos(*expression));
+        result.emplace_back(getDataPos(*expression, schema));
     }
     return result;
 }

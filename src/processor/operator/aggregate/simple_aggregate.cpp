@@ -44,12 +44,20 @@ std::pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
 
 void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     BaseAggregate::initLocalStateInternal(resultSet, context);
-    for (auto& aggregateFunction : this->aggregateFunctions) {
-        localAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
-    }
-    distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
-        *context->clientContext->getMemoryManager(), std::vector<LogicalType>{},
-        this->aggregateFunctions);
+    for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
+        auto func = aggregateFunctions[i].get();
+        localAggregateStates.push_back(func->createInitialNullAggregateState());
+        std::unique_ptr<AggregateHashTable> distinctHT;
+        if (func->isDistinct) {
+            auto mm = context->clientContext->getMemoryManager();
+            distinctHT = AggregateHashTableUtils::createDistinctHashTable(*mm,
+                std::vector<LogicalType>{} /* empty group by keys */,
+                aggInfos[i].distinctAggKeyType);
+        } else {
+            distinctHT = nullptr;
+        }
+        distinctHashTables.push_back(std::move(distinctHT));
+    };
 }
 
 void SimpleAggregate::executeInternal(ExecutionContext* context) {
@@ -59,10 +67,10 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
             auto aggregateFunction = aggregateFunctions[i].get();
             if (aggregateFunction->isFunctionDistinct()) {
                 computeDistinctAggregate(distinctHashTables[i].get(), aggregateFunction,
-                    aggregateInputs[i].get(), localAggregateStates[i].get(), memoryManager);
+                    &aggInputs[i], localAggregateStates[i].get(), memoryManager);
             } else {
-                computeAggregate(aggregateFunction, aggregateInputs[i].get(),
-                    localAggregateStates[i].get(), memoryManager);
+                computeAggregate(aggregateFunction, &aggInputs[i], localAggregateStates[i].get(),
+                    memoryManager);
             }
         }
     }
