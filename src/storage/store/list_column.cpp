@@ -305,8 +305,8 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
         endOffsetInNodeGroup);
     sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk.get(), startOffsetInNodeGroup,
         endOffsetInNodeGroup);
-    return {offsetColumnChunk->getNumValues(), std::move(offsetColumnChunk),
-        std::move(sizeColumnChunk)};
+    auto numValuesScan = offsetColumnChunk->getNumValues();
+    return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }
 
 void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
