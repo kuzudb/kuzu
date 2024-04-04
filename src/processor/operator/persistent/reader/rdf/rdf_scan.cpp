@@ -228,23 +228,12 @@ static double RdfLiteralInMemScanProgressFunc(TableFuncSharedState* sharedState)
 static double RdfResourceTripleInMemScanProgressFunc(TableFuncSharedState* sharedState) {
     auto rdfSharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
-    uint64_t rtSize =
-        ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get())->rtStore.size();
-    if (rtSize == 0) {
+    TripleStore* store = ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get());
+    uint64_t size = store->rtStore.size() + store->ltStore.size();
+    if (size == 0) {
         return 0.0;
     }
-    return static_cast<double>(rdfSharedState->rtCursor) / rtSize;
-}
-
-static double RdfLiteralTripleInMemScanProgressFunc(TableFuncSharedState* sharedState) {
-    auto rdfSharedState =
-        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
-    uint64_t ltSize =
-        ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get())->ltStore.size();
-    if (ltSize == 0) {
-        return 0.0;
-    }
-    return static_cast<double>(rdfSharedState->ltCursor) / ltSize;
+    return static_cast<double>(rdfSharedState->rtCursor + rdfSharedState->ltCursor) / size;
 }
 
 function_set RdfResourceScan::getFunctionSet() {
@@ -318,7 +307,7 @@ function_set RdfResourceTripleInMemScan::getFunctionSet() {
 function_set RdfLiteralTripleInMemScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, RdfLiteralTripleInMemScanTableFunc, nullptr,
-        inMemScanInitSharedState, initLocalState, RdfLiteralTripleInMemScanProgressFunc,
+        inMemScanInitSharedState, initLocalState, RdfLiteralInMemScanProgressFunc,
         std::vector<LogicalTypeID>{});
     functionSet.push_back(std::move(func));
     return functionSet;
