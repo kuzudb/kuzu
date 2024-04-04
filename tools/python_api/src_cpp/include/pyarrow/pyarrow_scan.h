@@ -22,7 +22,7 @@ struct PyArrowTableScanSharedState final : public function::BaseScanSharedState 
     std::mutex lock;
 
     PyArrowTableScanSharedState(
-        uint64_t numRows, std::vector<std::shared_ptr<ArrowArrayWrapper>>&& chunks)
+        uint64_t numRows, std::vector<std::shared_ptr<ArrowArrayWrapper>> chunks)
         : BaseScanSharedState{numRows}, chunks{std::move(chunks)}, currentChunk{0} {}
 
     ArrowArrayWrapper* getNextChunk();
@@ -30,14 +30,14 @@ struct PyArrowTableScanSharedState final : public function::BaseScanSharedState 
 
 struct PyArrowTableScanFunctionData final : public function::TableFuncBindData {
     std::shared_ptr<ArrowSchemaWrapper> schema;
-    py::object table;
+    std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches;
     uint64_t numRows;
 
     PyArrowTableScanFunctionData(std::vector<common::LogicalType> columnTypes,
         std::shared_ptr<ArrowSchemaWrapper> schema, std::vector<std::string> columnNames,
-        py::handle table, uint64_t numRows)
+        std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches, uint64_t numRows)
         : TableFuncBindData{std::move(columnTypes), std::move(columnNames)},
-          schema{std::move(schema)}, table{py::reinterpret_borrow<py::object>(table)}, numRows{numRows} {}
+          schema{std::move(schema)}, arrowArrayBatches{arrowArrayBatches}, numRows{numRows} {}
 
     ~PyArrowTableScanFunctionData() override {}
 
@@ -45,7 +45,7 @@ struct PyArrowTableScanFunctionData final : public function::TableFuncBindData {
         py::gil_scoped_acquire acquire;
         // the schema is considered immutable so copying it by copying the shared_ptr is fine.
         return std::make_unique<PyArrowTableScanFunctionData>(
-            columnTypes, schema, columnNames, *table, numRows);
+            columnTypes, schema, columnNames, arrowArrayBatches, numRows);
     }
 };
 
