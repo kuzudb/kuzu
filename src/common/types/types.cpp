@@ -312,7 +312,7 @@ std::string LogicalType::toString() const {
         auto structType =
             ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get())->getChildType();
         auto fieldTypes = StructType::getFieldTypes(structType);
-        return "MAP(" + fieldTypes[0]->toString() + ": " + fieldTypes[1]->toString() + ")";
+        return "MAP(" + fieldTypes[0]->toString() + ", " + fieldTypes[1]->toString() + ")";
     }
     case LogicalTypeID::LIST: {
         auto listTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get());
@@ -329,7 +329,7 @@ std::string LogicalType::toString() const {
         auto numFields = unionTypeInfo->getChildrenTypes().size();
         auto fieldNames = unionTypeInfo->getChildrenNames();
         for (auto i = 1u; i < numFields; i++) {
-            dataTypeStr += fieldNames[i] + ":";
+            dataTypeStr += fieldNames[i] + " ";
             dataTypeStr += unionTypeInfo->getChildType(i)->toString();
             dataTypeStr += (i == numFields - 1 ? ")" : ", ");
         }
@@ -341,11 +341,11 @@ std::string LogicalType::toString() const {
         auto numFields = structTypeInfo->getChildrenTypes().size();
         auto fieldNames = structTypeInfo->getChildrenNames();
         for (auto i = 0u; i < numFields - 1; i++) {
-            dataTypeStr += fieldNames[i] + ":";
+            dataTypeStr += fieldNames[i] + " ";
             dataTypeStr += structTypeInfo->getChildType(i)->toString();
             dataTypeStr += ", ";
         }
-        dataTypeStr += fieldNames[numFields - 1] + ":";
+        dataTypeStr += fieldNames[numFields - 1] + " ";
         dataTypeStr += structTypeInfo->getChildType(numFields - 1)->toString();
         return dataTypeStr + ")";
     }
