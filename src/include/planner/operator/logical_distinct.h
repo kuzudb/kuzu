@@ -36,7 +36,7 @@ protected:
 
 protected:
     binder::expression_vector keys;
-    // Payloads have different meaning
+    // Payloads meaning additional keys that are functional dependent on the keys above.
     binder::expression_vector payloads;
 };
 

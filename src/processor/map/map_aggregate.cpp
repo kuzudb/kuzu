@@ -1,6 +1,5 @@
 #include "binder/expression/function_expression.h"
 #include "planner/operator/logical_aggregate.h"
-#include "planner/operator/logical_mark_accmulate.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
 #include "processor/operator/aggregate/simple_aggregate.h"
@@ -94,20 +93,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
     }
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapMarkAccumulate(LogicalOperator* op) {
-    auto logicalMarkAccumulate = ku_dynamic_cast<LogicalOperator*, LogicalMarkAccumulate*>(op);
-    auto keys = logicalMarkAccumulate->getKeys();
-    auto payloads = logicalMarkAccumulate->getPayloads();
-    auto outSchema = logicalMarkAccumulate->getSchema();
-    auto inSchema = logicalMarkAccumulate->getChild(0)->getSchema();
-    auto prevOperator = mapOperator(logicalMarkAccumulate->getChild(0).get());
-    return createHashAggregate(keys, payloads,
-        std::vector<std::unique_ptr<function::AggregateFunction>>{},
-        std::vector<std::unique_ptr<AggregateInputInfo>>{}, std::vector<DataPos>{}, inSchema,
-        outSchema, std::move(prevOperator), logicalMarkAccumulate->getExpressionsForPrinting(),
-        logicalMarkAccumulate->getMark());
-}
-
 static std::unique_ptr<FactorizedTableSchema> getFactorizedTableSchema(
     const binder::expression_vector& flatKeys, const binder::expression_vector& unflatKeys,
     const binder::expression_vector& payloads,
@@ -157,7 +142,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
         getExpressionsDataPos(unFlatKeys, *inSchema), getExpressionsDataPos(payloads, *inSchema),
         std::move(tableSchema),
         markExpression == nullptr ? HashTableType::AGGREGATE_HASH_TABLE :
-                                    HashTableType::MERGE_HASH_TABLE};
+                                    HashTableType::MARK_HASH_TABLE};
     auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
         sharedState, std::move(aggregateInfo), std::move(aggregateFunctions),
         std::move(aggregateInputInfos), std::move(prevOperator), getOperatorID(), paramsString);

@@ -11,7 +11,6 @@ namespace planner {
 void LogicalMarkAccumulate::computeFactorizedSchema() {
     createEmptySchema();
     auto childSchema = children[0]->getSchema();
-    // TODO(Ziyi): this may cause a bug, I'm not sure.
     SinkOperatorUtil::recomputeSchema(*childSchema, childSchema->getExpressionsInScope(), *schema);
     f_group_pos groupPos;
     if (!keys.empty()) {

@@ -14,7 +14,7 @@ struct HashSlot {
                          // groupKeyN, aggregateState1, ..., aggregateStateN, hashValue].
 };
 
-enum class HashTableType : uint8_t { AGGREGATE_HASH_TABLE = 0, MERGE_HASH_TABLE = 1 };
+enum class HashTableType : uint8_t { AGGREGATE_HASH_TABLE = 0, MARK_HASH_TABLE = 1 };
 
 /**
  * AggregateHashTable Design

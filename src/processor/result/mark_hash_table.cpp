@@ -1,9 +1,9 @@
-#include "processor/result/merge_hash_table.h"
+#include "processor/result/mark_hash_table.h"
 
 namespace kuzu {
 namespace processor {
 
-MergeHashTable::MergeHashTable(storage::MemoryManager& memoryManager,
+MarkHashTable::MarkHashTable(storage::MemoryManager& memoryManager,
     std::vector<common::LogicalType> keyDataTypes,
     std::vector<common::LogicalType> dependentKeyDataTypes,
     const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
@@ -13,7 +13,7 @@ MergeHashTable::MergeHashTable(storage::MemoryManager& memoryManager,
     distinctColIdxInFT = hashColIdxInFT - 1;
 }
 
-uint64_t MergeHashTable::matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
+uint64_t MarkHashTable::matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
     const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
     uint64_t numNoMatches) {
     auto colIdx = 0u;
@@ -32,7 +32,7 @@ uint64_t MergeHashTable::matchFTEntries(const std::vector<common::ValueVector*>&
     return numNoMatches;
 }
 
-void MergeHashTable::initializeFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
+void MarkHashTable::initializeFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
     const std::vector<common::ValueVector*>& unFlatKeyVectors,
     const std::vector<common::ValueVector*>& dependentKeyVectors,
     uint64_t numFTEntriesToInitialize) {

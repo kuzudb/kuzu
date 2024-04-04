@@ -71,6 +71,9 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
         distinctMark = mergeClause->getDistinctMark();
         corrExprs = getCorrelatedExprs(
             *mergeClause->getQueryGraphCollection(), predicates, plan.getSchema());
+        if (corrExprs.size() == 0) {
+            throw RuntimeException{"Constant key in merge clause is not supported yet."};
+        }
         appendMarkAccumulate(corrExprs, distinctMark, plan);
     }
     planOptionalMatch(*mergeClause->getQueryGraphCollection(), predicates, corrExprs, plan);

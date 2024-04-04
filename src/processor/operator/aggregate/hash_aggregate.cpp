@@ -1,7 +1,7 @@
 #include "processor/operator/aggregate/hash_aggregate.h"
 
 #include "common/utils.h"
-#include "processor/result/merge_hash_table.h"
+#include "processor/result/mark_hash_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -89,8 +89,8 @@ void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* co
         aggregateHashTable = std::make_unique<AggregateHashTable>(*context->getMemoryManager(),
             keyDataTypes, payloadDataTypes, aggregateFunctions, 0, std::move(info.tableSchema));
         break;
-    case HashTableType::MERGE_HASH_TABLE:
-        aggregateHashTable = std::make_unique<MergeHashTable>(*context->getMemoryManager(),
+    case HashTableType::MARK_HASH_TABLE:
+        aggregateHashTable = std::make_unique<MarkHashTable>(*context->getMemoryManager(),
             keyDataTypes, payloadDataTypes, aggregateFunctions, 0, std::move(info.tableSchema));
         break;
     default:

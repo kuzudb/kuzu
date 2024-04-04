@@ -41,33 +41,38 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
         for (auto& executor : onMatchRelSetExecutors) {
             executor->set(context);
         }
-    } else if (distinctVector != nullptr &&
-               !distinctVector->getValue<bool>(
-                   distinctVector->state->selVector->selectedPositions[0])) {
-        for (auto& executor : onMatchNodeSetExecutors) {
-            executor->set(context);
-        }
-        for (auto& executor : onMatchRelSetExecutors) {
-            executor->set(context);
-        }
-        for (auto& executor : nodeInsertExecutors) {
-            executor.writeResult();
-        }
-        for (auto& executor : relInsertExecutors) {
-            executor.writeResult();
-        }
     } else {
-        for (auto& executor : nodeInsertExecutors) {
-            executor.insert(context->clientContext->getTx(), context);
-        }
-        for (auto& executor : relInsertExecutors) {
-            executor.insert(context->clientContext->getTx(), context);
-        }
-        for (auto& executor : onCreateNodeSetExecutors) {
-            executor->set(context);
-        }
-        for (auto& executor : onCreateRelSetExecutors) {
-            executor->set(context);
+        // pattern not exist
+        if (distinctVector != nullptr &&
+            !distinctVector->getValue<bool>(
+                distinctVector->state->selVector->selectedPositions[0])) {
+            // pattern has been created
+            for (auto& executor : nodeInsertExecutors) {
+                executor.evaluateResult(context);
+            }
+            for (auto& executor : relInsertExecutors) {
+                executor.insert(context->clientContext->getTx(), context);
+            }
+            for (auto& executor : onMatchNodeSetExecutors) {
+                executor->set(context);
+            }
+            for (auto& executor : onMatchRelSetExecutors) {
+                executor->set(context);
+            }
+        } else {
+            // do insert and on create
+            for (auto& executor : nodeInsertExecutors) {
+                executor.insert(context->clientContext->getTx(), context);
+            }
+            for (auto& executor : relInsertExecutors) {
+                executor.insert(context->clientContext->getTx(), context);
+            }
+            for (auto& executor : onCreateNodeSetExecutors) {
+                executor->set(context);
+            }
+            for (auto& executor : onCreateRelSetExecutors) {
+                executor->set(context);
+            }
         }
     }
     return true;

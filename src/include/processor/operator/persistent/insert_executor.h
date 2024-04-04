@@ -28,6 +28,8 @@ public:
 
     void insert(transaction::Transaction* transaction, ExecutionContext* context);
 
+    void evaluateResult(ExecutionContext* context);
+
     void writeResult();
 
 private:

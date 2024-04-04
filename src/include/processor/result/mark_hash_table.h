@@ -5,10 +5,10 @@
 namespace kuzu {
 namespace processor {
 
-class MergeHashTable : public AggregateHashTable {
+class MarkHashTable : public AggregateHashTable {
 
 public:
-    MergeHashTable(storage::MemoryManager& memoryManager,
+    MarkHashTable(storage::MemoryManager& memoryManager,
         std::vector<common::LogicalType> keyDataTypes,
         std::vector<common::LogicalType> dependentKeyDataTypes,
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
