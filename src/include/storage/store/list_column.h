@@ -98,6 +98,18 @@ private:
         common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunk* chunk, common::offset_t startSrcOffset) override;
 
+    void prepareCommitForOffsetChunk(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
+        ColumnChunk* chunk, common::offset_t startSrcOffset);
+
+    void commitOffsetColumnChunkOutOfPlace(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
+        ColumnChunk* chunk, common::offset_t startSrcOffset);
+
+    void commitOffsetColumnChunkInPlace(common::node_group_idx_t nodeGroupIdx,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        common::offset_t srcOffset);
+
 private:
     std::unique_ptr<Column> sizeColumn;
     std::unique_ptr<Column> dataColumn;
