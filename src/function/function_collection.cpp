@@ -22,6 +22,7 @@
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
+#include "graph/function.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
@@ -202,6 +203,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(RdfAllTripleScan), TABLE_FUNCTION(RdfResourceInMemScan),
         TABLE_FUNCTION(RdfLiteralInMemScan), TABLE_FUNCTION(RdfResourceTripleInMemScan),
         TABLE_FUNCTION(RdfLiteralTripleInMemScan), TABLE_FUNCTION(FTableScan),
+
+        // Graph functions
+        TABLE_FUNCTION(graph::DemoAlgorithm),
 
         // End of array
         FINAL_FUNCTION};

@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
@@ -107,7 +108,7 @@ void Binder::rewriteMatchPattern(BoundGraphPattern& boundGraphPattern) {
 std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {
     auto& unwindClause = ku_dynamic_cast<const ReadingClause&, const UnwindClause&>(readingClause);
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
-    ExpressionBinder::validateDataType(*boundExpression, LogicalTypeID::LIST);
+    ExpressionUtil::validateDataType(*boundExpression, LogicalTypeID::LIST);
     auto aliasName = unwindClause.getAlias();
     auto alias = createVariable(aliasName, *ListType::getChildType(&boundExpression->dataType));
     std::shared_ptr<Expression> idExpr = nullptr;

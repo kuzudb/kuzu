@@ -1,5 +1,7 @@
 #include "binder/expression/expression_util.h"
 
+#include "common/exception/binder.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -123,6 +125,22 @@ bool ExpressionUtil::isRelPattern(const Expression& expression) {
 bool ExpressionUtil::isRecursiveRelPattern(const kuzu::binder::Expression& expression) {
     return expression.expressionType == ExpressionType::PATTERN &&
            expression.dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL;
+}
+
+void ExpressionUtil::validateDataType(const Expression& expr, const LogicalType& expectedType) {
+    if (expr.getDataType() == expectedType) {
+        return;
+    }
+    throw BinderException(stringFormat("{} has data type {} but {} was expected.", expr.toString(),
+        expr.getDataType().toString(), expectedType.toString()));
+}
+
+void ExpressionUtil::validateDataType(const Expression& expr, LogicalTypeID expectedTypeID) {
+    if (expr.getDataType().getLogicalTypeID() == expectedTypeID) {
+        return;
+    }
+    throw BinderException(stringFormat("{} has data type {} but {} was expected.", expr.toString(),
+        expr.getDataType().toString(), LogicalTypeUtils::toString(expectedTypeID)));
 }
 
 } // namespace binder
