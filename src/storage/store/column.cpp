@@ -698,7 +698,8 @@ bool Column::checkUpdateInPlace(const ColumnChunkMetadata& metadata,
     for (auto rowIdx : rowIdxesToRead) {
         auto [chunkIdx, offsetInLocalChunk] =
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        if (localChunks[chunkIdx]->getNullChunk()->isNull(offsetInLocalChunk)) {
+        if (localChunks[chunkIdx]->getNullChunk() != nullptr &&
+            localChunks[chunkIdx]->getNullChunk()->isNull(offsetInLocalChunk)) {
             continue;
         }
         if (!metadata.compMeta.canUpdateInPlace(

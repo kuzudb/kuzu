@@ -163,64 +163,6 @@ void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, Co
     }
 }
 
-bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const ChunkCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo) {
-    auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
-    if (metadata.compMeta.canAlwaysUpdateInPlace()) {
-        return true;
-    }
-    return checkUpdateInPlace(metadata, localInsertChunk, insertInfo) &&
-           checkUpdateInPlace(metadata, localUpdateChunk, updateInfo);
-}
-
-bool NullColumn::checkUpdateInPlace(const ColumnChunkMetadata& metadata,
-    const ChunkCollection& localChunks, const offset_to_row_idx_t& writeInfo) {
-    std::vector<row_idx_t> rowIdxesToRead;
-    for (auto& [_, rowIdx] : writeInfo) {
-        rowIdxesToRead.push_back(rowIdx);
-    }
-    std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
-    for (auto rowIdx : rowIdxesToRead) {
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localNullChunk =
-            ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(localChunks[chunkIdx]);
-        bool value = localNullChunk->isNull(offsetInLocalChunk);
-        if (!metadata.compMeta.canUpdateInPlace(
-                reinterpret_cast<const uint8_t*>(&value), 0, dataType.getPhysicalType())) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool NullColumn::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
-    KU_ASSERT(chunk->getNullChunk() == nullptr &&
-              chunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL);
-    auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
-    auto maxDstOffset = getMaxOffset(dstOffsets);
-    if ((metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType) *
-            metadata.numPages) < maxDstOffset) {
-        // Note that for constant compression, `metadata.numPages` will be equal to 0. Thus, this
-        // function will always return false.
-        return false;
-    }
-    if (metadata.compMeta.canAlwaysUpdateInPlace()) {
-        return true;
-    }
-    auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(chunk);
-    for (auto i = 0u; i < dstOffsets.size(); i++) {
-        bool value = nullChunk->isNull(srcOffset + i);
-        if (!metadata.compMeta.canUpdateInPlace(
-                reinterpret_cast<const uint8_t*>(&value), 0, dataType.getPhysicalType())) {
-            return false;
-        }
-    }
-    return true;
-}
-
 void NullColumn::commitLocalChunkInPlace(Transaction* /*transaction*/,
     node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunks,
     const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,

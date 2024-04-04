@@ -70,8 +70,16 @@ bool CompressionMetadata::canUpdateInPlace(
     switch (compression) {
     case CompressionType::CONSTANT: {
         // Value can be updated in place only if it is identical to the value already stored.
-        auto size = getDataTypeSizeInChunk(physicalType);
-        return memcmp(data + pos * size, this->data.data(), size) == 0;
+        switch (physicalType) {
+        case PhysicalTypeID::BOOL: {
+            return NullMask::isNull(reinterpret_cast<const uint64_t*>(data), pos) ==
+                   *reinterpret_cast<const bool*>(this->data.data());
+        } break;
+        default: {
+            auto size = getDataTypeSizeInChunk(physicalType);
+            return memcmp(data + pos * size, this->data.data(), size) == 0;
+        }
+        }
     }
     case CompressionType::BOOLEAN_BITPACKING:
     case CompressionType::UNCOMPRESSED: {
