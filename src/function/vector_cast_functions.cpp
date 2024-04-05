@@ -72,11 +72,13 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
     if (inputType->getLogicalTypeID() != resultType->getLogicalTypeID()) {
         scalar_func_exec_t func = CastFunction::bindCastFunction<CastChildFunctionExecutor>(
             "CAST", inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
-                                    ->execFunc;
+                                      ->execFunc;
         std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
         dataPtr->numOfEntries = numOfEntries;
         func(childParams, *resultVector, (void*)dataPtr);
     } else {
+        KU_ASSERT(inputVector->state->selVector->isUnfiltered());
+        KU_ASSERT(resultVector->state->selVector->isUnfiltered());
         for (auto i = 0u; i < numOfEntries; i++) {
             resultVector->copyFromVectorData(i, inputVector.get(), i);
         }
@@ -597,9 +599,6 @@ static std::unique_ptr<ScalarFunction> bindCastToDateFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
     scalar_func_exec_t func;
     switch (sourceTypeID) {
-    case LogicalTypeID::DATE:
-        func = ScalarFunction::UnaryExecFunction<date_t, DST_TYPE, CastToDate, EXECUTOR>;
-        break;
     case LogicalTypeID::TIMESTAMP_MS:
         func = ScalarFunction::UnaryExecFunction<timestamp_ms_t, DST_TYPE, CastToDate, EXECUTOR>;
         break;
