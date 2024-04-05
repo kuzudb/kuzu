@@ -69,12 +69,18 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
     }
 
     // non-nested types
-    scalar_func_exec_t func = CastFunction::bindCastFunction<CastChildFunctionExecutor>(
-        "CAST", inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
-                                  ->execFunc;
-    std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
-    dataPtr->numOfEntries = numOfEntries;
-    func(childParams, *resultVector, (void*)dataPtr);
+    if (inputType->getLogicalTypeID() != resultType->getLogicalTypeID()) {
+        scalar_func_exec_t func = CastFunction::bindCastFunction<CastChildFunctionExecutor>(
+            "CAST", inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
+                                    ->execFunc;
+        std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
+        dataPtr->numOfEntries = numOfEntries;
+        func(childParams, *resultVector, (void*)dataPtr);
+    } else {
+        for (auto i = 0u; i < numOfEntries; i++) {
+            resultVector->copyFromVectorData(i, inputVector.get(), i);
+        }
+    }
 }
 
 static void nestedTypesCastExecFunction(
@@ -608,8 +614,10 @@ static std::unique_ptr<ScalarFunction> bindCastToDateFunction(
         func = ScalarFunction::UnaryExecFunction<timestamp_t, DST_TYPE, CastToDate, EXECUTOR>;
         break;
     default:
+        // LCOV_EXCL_START
         throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
             LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(dstTypeID))};
+        // LCOV_EXCL_END
     }
     return std::make_unique<ScalarFunction>(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::DATE, func);

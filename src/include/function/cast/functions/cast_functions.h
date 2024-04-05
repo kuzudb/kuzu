@@ -66,11 +66,6 @@ struct CastToDate {
 };
 
 template<>
-inline void CastToDate::operation(common::date_t& input, common::date_t& result) {
-    result = input;
-}
-
-template<>
 inline void CastToDate::operation(common::timestamp_t& input, common::date_t& result) {
     result = common::Timestamp::getDate(input);
 }
