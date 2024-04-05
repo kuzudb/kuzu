@@ -713,8 +713,7 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::DATE: {
-        return bindCastToDateFunction<EXECUTOR, date_t>(
-            functionName, sourceTypeID, targetTypeID);
+        return bindCastToDateFunction<EXECUTOR, date_t>(functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::TIMESTAMP_NS: {
         return bindCastToTimestampFunction<EXECUTOR, timestamp_ns_t>(
