@@ -77,8 +77,6 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
         dataPtr->numOfEntries = numOfEntries;
         func(childParams, *resultVector, (void*)dataPtr);
     } else {
-        KU_ASSERT(inputVector->state->selVector->isUnfiltered());
-        KU_ASSERT(resultVector->state->selVector->isUnfiltered());
         for (auto i = 0u; i < numOfEntries; i++) {
             resultVector->copyFromVectorData(i, inputVector.get(), i);
         }
