@@ -587,6 +587,35 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(
 }
 
 template<typename EXECUTOR = UnaryFunctionExecutor, typename DST_TYPE>
+static std::unique_ptr<ScalarFunction> bindCastToDateFunction(
+    const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
+    scalar_func_exec_t func;
+    switch (sourceTypeID) {
+    case LogicalTypeID::DATE:
+        func = ScalarFunction::UnaryExecFunction<date_t, DST_TYPE, CastToDate, EXECUTOR>;
+        break;
+    case LogicalTypeID::TIMESTAMP_MS:
+        func = ScalarFunction::UnaryExecFunction<timestamp_ms_t, DST_TYPE, CastToDate, EXECUTOR>;
+        break;
+    case LogicalTypeID::TIMESTAMP_NS:
+        func = ScalarFunction::UnaryExecFunction<timestamp_ns_t, DST_TYPE, CastToDate, EXECUTOR>;
+        break;
+    case LogicalTypeID::TIMESTAMP_SEC:
+        func = ScalarFunction::UnaryExecFunction<timestamp_sec_t, DST_TYPE, CastToDate, EXECUTOR>;
+        break;
+    case LogicalTypeID::TIMESTAMP_TZ:
+    case LogicalTypeID::TIMESTAMP:
+        func = ScalarFunction::UnaryExecFunction<timestamp_t, DST_TYPE, CastToDate, EXECUTOR>;
+        break;
+    default:
+        throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
+            LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(dstTypeID))};
+    }
+    return std::make_unique<ScalarFunction>(
+        functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::DATE, func);
+}
+
+template<typename EXECUTOR = UnaryFunctionExecutor, typename DST_TYPE>
 static std::unique_ptr<ScalarFunction> bindCastToTimestampFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
     scalar_func_exec_t func;
@@ -681,6 +710,10 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
     }
     case LogicalTypeID::UINT8: {
         return bindCastToNumericFunction<uint8_t, CastToUInt8, EXECUTOR>(
+            functionName, sourceTypeID, targetTypeID);
+    }
+    case LogicalTypeID::DATE: {
+        return bindCastToDateFunction<EXECUTOR, date_t>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::TIMESTAMP_NS: {
