@@ -334,6 +334,9 @@ jobs:
           yes | sudo ./llvm.sh 18 all
 
       - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Check source format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r src/
@@ -348,8 +351,8 @@ jobs:
         uses: EndBug/add-and-commit@v9
         if: github.ref != 'refs/heads/master'
         with:
-          author_name: 'CI Bot'
-          message: 'Run clang-format'
+          author_name: "CI Bot"
+          message: "Run clang-format"
 
   python-lint-check:
     name: python lint check
@@ -413,8 +416,7 @@ jobs:
 
   macos-build-test:
     name: apple clang build & test
-    needs:
-      [clang-format, sanity-checks, rustfmt-check, python-lint-check]
+    needs: [clang-format, sanity-checks, rustfmt-check, python-lint-check]
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32
