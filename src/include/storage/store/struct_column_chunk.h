@@ -10,8 +10,8 @@ namespace storage {
 
 class StructColumnChunk final : public ColumnChunk {
 public:
-    StructColumnChunk(
-        common::LogicalType dataType, uint64_t capacity, bool enableCompression, bool inMemory);
+    StructColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
+        bool inMemory);
 
     inline ColumnChunk* getChild(common::vector_idx_t childIdx) {
         KU_ASSERT(childIdx < childChunks.size());
@@ -30,8 +30,8 @@ protected:
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(
-        ColumnChunk* chunk, ColumnChunk* dstOffsets, common::RelMultiplicity multiplicity) override;
+    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets,
+        common::RelMultiplicity multiplicity) override;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
     void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,

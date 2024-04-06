@@ -23,8 +23,8 @@ public:
     // Used by array only.
     uint64_t fixedNumValues;
 
-    static std::unique_ptr<DataTypeInfo> getInfoForDataType(
-        const common::LogicalType& type, const std::string& name);
+    static std::unique_ptr<DataTypeInfo> getInfoForDataType(const common::LogicalType& type,
+        const std::string& name);
 };
 
 /**

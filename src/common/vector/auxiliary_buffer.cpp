@@ -5,8 +5,8 @@
 namespace kuzu {
 namespace common {
 
-StructAuxiliaryBuffer::StructAuxiliaryBuffer(
-    const LogicalType& type, storage::MemoryManager* memoryManager) {
+StructAuxiliaryBuffer::StructAuxiliaryBuffer(const LogicalType& type,
+    storage::MemoryManager* memoryManager) {
     auto fieldTypes = StructType::getFieldTypes(&type);
     childrenVectors.reserve(fieldTypes.size());
     for (auto fieldType : fieldTypes) {
@@ -14,10 +14,10 @@ StructAuxiliaryBuffer::StructAuxiliaryBuffer(
     }
 }
 
-ListAuxiliaryBuffer::ListAuxiliaryBuffer(
-    const LogicalType& dataVectorType, storage::MemoryManager* memoryManager)
-    : capacity{DEFAULT_VECTOR_CAPACITY}, size{0}, dataVector{std::make_shared<ValueVector>(
-                                                      dataVectorType, memoryManager)} {}
+ListAuxiliaryBuffer::ListAuxiliaryBuffer(const LogicalType& dataVectorType,
+    storage::MemoryManager* memoryManager)
+    : capacity{DEFAULT_VECTOR_CAPACITY}, size{0},
+      dataVector{std::make_shared<ValueVector>(dataVectorType, memoryManager)} {}
 
 list_entry_t ListAuxiliaryBuffer::addList(list_size_t listSize) {
     auto listEntry = list_entry_t{size, listSize};
@@ -72,8 +72,8 @@ void ListAuxiliaryBuffer::resizeStructDataVector(ValueVector* dataVector) {
     }
 }
 
-std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(
-    LogicalType& type, storage::MemoryManager* memoryManager) {
+std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(LogicalType& type,
+    storage::MemoryManager* memoryManager) {
     switch (type.getPhysicalType()) {
     case PhysicalTypeID::STRING:
         return std::make_unique<StringAuxiliaryBuffer>(memoryManager);

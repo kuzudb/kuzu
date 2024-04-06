@@ -30,8 +30,8 @@ protected:
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::AGGREGATE, std::move(child),
               id, paramsString},
-          aggregateFunctions{std::move(aggregateFunctions)}, aggregateInputInfos{
-                                                                 std::move(aggregateInputInfos)} {}
+          aggregateFunctions{std::move(aggregateFunctions)},
+          aggregateInputInfos{std::move(aggregateInputInfos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

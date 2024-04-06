@@ -174,8 +174,8 @@ uint64_t ColumnReader::read(uint64_t numValues, parquet_filter_t& filter, uint8_
             auto readBuf = std::make_shared<ResizeableBuffer>();
             readBuf->resize(sizeof(bool) * (readNow - nullCount));
             rleDecoder->GetBatch<uint8_t>(readBuf->ptr, readNow - nullCount);
-            plainTemplated<bool, TemplatedParquetValueConversion<bool>>(
-                readBuf, defineOut, readNow, filter, resultOffset, resultOut);
+            plainTemplated<bool, TemplatedParquetValueConversion<bool>>(readBuf, defineOut, readNow,
+                filter, resultOffset, resultOut);
         } else {
             plain(block, defineOut, readNow, filter, resultOffset, resultOut);
         }
@@ -195,63 +195,63 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
     uint64_t fileIdx, uint64_t maxDefine, uint64_t maxRepeat) {
     switch (type->getLogicalTypeID()) {
     case common::LogicalTypeID::BOOL:
-        return std::make_unique<BooleanColumnReader>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+        return std::make_unique<BooleanColumnReader>(reader, std::move(type), schema, fileIdx,
+            maxDefine, maxRepeat);
     case common::LogicalTypeID::INT8:
         return std::make_unique<
-            TemplatedColumnReader<int8_t, TemplatedParquetValueConversion<int32_t>>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            TemplatedColumnReader<int8_t, TemplatedParquetValueConversion<int32_t>>>(reader,
+            std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::INT16:
         return std::make_unique<
-            TemplatedColumnReader<int16_t, TemplatedParquetValueConversion<int32_t>>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            TemplatedColumnReader<int16_t, TemplatedParquetValueConversion<int32_t>>>(reader,
+            std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::INT32:
         return std::make_unique<
-            TemplatedColumnReader<int32_t, TemplatedParquetValueConversion<int32_t>>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            TemplatedColumnReader<int32_t, TemplatedParquetValueConversion<int32_t>>>(reader,
+            std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::INT64:
         return std::make_unique<
-            TemplatedColumnReader<int64_t, TemplatedParquetValueConversion<int64_t>>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            TemplatedColumnReader<int64_t, TemplatedParquetValueConversion<int64_t>>>(reader,
+            std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::UINT8:
         return std::make_unique<
-            TemplatedColumnReader<uint8_t, TemplatedParquetValueConversion<uint32_t>>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            TemplatedColumnReader<uint8_t, TemplatedParquetValueConversion<uint32_t>>>(reader,
+            std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::UINT16:
         return std::make_unique<
-            TemplatedColumnReader<uint16_t, TemplatedParquetValueConversion<uint32_t>>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            TemplatedColumnReader<uint16_t, TemplatedParquetValueConversion<uint32_t>>>(reader,
+            std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::UINT32:
         return std::make_unique<
-            TemplatedColumnReader<uint32_t, TemplatedParquetValueConversion<uint32_t>>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            TemplatedColumnReader<uint32_t, TemplatedParquetValueConversion<uint32_t>>>(reader,
+            std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::UINT64:
         return std::make_unique<
-            TemplatedColumnReader<uint64_t, TemplatedParquetValueConversion<uint64_t>>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            TemplatedColumnReader<uint64_t, TemplatedParquetValueConversion<uint64_t>>>(reader,
+            std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::FLOAT:
         return std::make_unique<
-            TemplatedColumnReader<float, TemplatedParquetValueConversion<float>>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            TemplatedColumnReader<float, TemplatedParquetValueConversion<float>>>(reader,
+            std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::DOUBLE:
         return std::make_unique<
-            TemplatedColumnReader<double, TemplatedParquetValueConversion<double>>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            TemplatedColumnReader<double, TemplatedParquetValueConversion<double>>>(reader,
+            std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::DATE:
         return std::make_unique<
             CallbackColumnReader<int32_t, common::date_t, ParquetTimeStampUtils::parquetIntToDate>>(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::BLOB:
     case common::LogicalTypeID::STRING:
-        return std::make_unique<StringColumnReader>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+        return std::make_unique<StringColumnReader>(reader, std::move(type), schema, fileIdx,
+            maxDefine, maxRepeat);
     case common::LogicalTypeID::INTERVAL:
-        return std::make_unique<IntervalColumnReader>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+        return std::make_unique<IntervalColumnReader>(reader, std::move(type), schema, fileIdx,
+            maxDefine, maxRepeat);
     case common::LogicalTypeID::TIMESTAMP_TZ:
     case common::LogicalTypeID::TIMESTAMP:
-        return createTimestampReader(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+        return createTimestampReader(reader, std::move(type), schema, fileIdx, maxDefine,
+            maxRepeat);
     // TODO(kebing): timestamp
     default:
         KU_UNREACHABLE;
@@ -303,15 +303,15 @@ void ColumnReader::decompressInternal(kuzu_parquet::format::CompressionCodec::ty
         throw common::CopyException("Parquet data unexpectedly uncompressed");
     case CompressionCodec::GZIP: {
         MiniZStream s;
-        s.Decompress(
-            reinterpret_cast<const char*>(src), srcSize, reinterpret_cast<char*>(dst), dstSize);
+        s.Decompress(reinterpret_cast<const char*>(src), srcSize, reinterpret_cast<char*>(dst),
+            dstSize);
         break;
     }
     case CompressionCodec::SNAPPY: {
         {
             size_t uncompressedSize = 0;
-            auto res = kuzu_snappy::GetUncompressedLength(
-                reinterpret_cast<const char*>(src), srcSize, &uncompressedSize);
+            auto res = kuzu_snappy::GetUncompressedLength(reinterpret_cast<const char*>(src),
+                srcSize, &uncompressedSize);
             // LCOV_EXCL_START
             if (!res) {
                 throw common::RuntimeException{"Failed to decompress parquet file."};
@@ -322,8 +322,8 @@ void ColumnReader::decompressInternal(kuzu_parquet::format::CompressionCodec::ty
             }
             // LCOV_EXCL_STOP
         }
-        auto res = kuzu_snappy::RawUncompress(
-            reinterpret_cast<const char*>(src), srcSize, reinterpret_cast<char*>(dst));
+        auto res = kuzu_snappy::RawUncompress(reinterpret_cast<const char*>(src), srcSize,
+            reinterpret_cast<char*>(dst));
         // LCOV_EXCL_START
         if (!res) {
             throw common::RuntimeException{"Snappy decompression failure"};
@@ -426,8 +426,8 @@ void ColumnReader::prepareDataPage(kuzu_parquet::format::PageHeader& pageHdr) {
         uint32_t repLength =
             isV1 ? block->read<uint32_t>() : v2Header.repetition_levels_byte_length;
         block->available(repLength);
-        repeatedDecoder = std::make_unique<RleBpDecoder>(
-            block->ptr, repLength, RleBpDecoder::ComputeBitWidth(maxRepeat));
+        repeatedDecoder = std::make_unique<RleBpDecoder>(block->ptr, repLength,
+            RleBpDecoder::ComputeBitWidth(maxRepeat));
         block->inc(repLength);
     } else if (isV2 && v2Header.repetition_levels_byte_length > 0) {
         block->inc(v2Header.repetition_levels_byte_length);
@@ -436,8 +436,8 @@ void ColumnReader::prepareDataPage(kuzu_parquet::format::PageHeader& pageHdr) {
     if (hasDefines()) {
         auto defLen = isV1 ? block->read<uint32_t>() : v2Header.definition_levels_byte_length;
         block->available(defLen);
-        defineDecoder = std::make_unique<RleBpDecoder>(
-            block->ptr, defLen, RleBpDecoder::ComputeBitWidth(maxDefine));
+        defineDecoder = std::make_unique<RleBpDecoder>(block->ptr, defLen,
+            RleBpDecoder::ComputeBitWidth(maxDefine));
         block->inc(defLen);
     } else if (isV2 && v2Header.definition_levels_byte_length > 0) {
         block->inc(v2Header.definition_levels_byte_length);
@@ -491,23 +491,23 @@ std::unique_ptr<ColumnReader> ColumnReader::createTimestampReader(ParquetReader&
     switch (schema.type) {
     case Type::INT96: {
         return std::make_unique<CallbackColumnReader<Int96, common::timestamp_t,
-            ParquetTimeStampUtils::impalaTimestampToTimestamp>>(
-            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            ParquetTimeStampUtils::impalaTimestampToTimestamp>>(reader, std::move(type), schema,
+            fileIdx, maxDefine, maxRepeat);
     }
     case Type::INT64: {
         if (schema.__isset.logicalType && schema.logicalType.__isset.TIMESTAMP) {
             if (schema.logicalType.TIMESTAMP.unit.__isset.MILLIS) {
                 return std::make_unique<CallbackColumnReader<int64_t, common::timestamp_t,
-                    ParquetTimeStampUtils::parquetTimestampMsToTimestamp>>(
-                    reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+                    ParquetTimeStampUtils::parquetTimestampMsToTimestamp>>(reader, std::move(type),
+                    schema, fileIdx, maxDefine, maxRepeat);
             } else if (schema.logicalType.TIMESTAMP.unit.__isset.MICROS) {
                 return std::make_unique<CallbackColumnReader<int64_t, common::timestamp_t,
-                    ParquetTimeStampUtils::parquetTimestampMicrosToTimestamp>>(
-                    reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+                    ParquetTimeStampUtils::parquetTimestampMicrosToTimestamp>>(reader,
+                    std::move(type), schema, fileIdx, maxDefine, maxRepeat);
             } else if (schema.logicalType.TIMESTAMP.unit.__isset.NANOS) {
                 return std::make_unique<CallbackColumnReader<int64_t, common::timestamp_t,
-                    ParquetTimeStampUtils::parquetTimestampNsToTimestamp>>(
-                    reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+                    ParquetTimeStampUtils::parquetTimestampNsToTimestamp>>(reader, std::move(type),
+                    schema, fileIdx, maxDefine, maxRepeat);
             }
             // LCOV_EXCL_START
         } else if (schema.__isset.converted_type) {
@@ -515,12 +515,12 @@ std::unique_ptr<ColumnReader> ColumnReader::createTimestampReader(ParquetReader&
             switch (schema.converted_type) {
             case ConvertedType::TIMESTAMP_MICROS:
                 return std::make_unique<CallbackColumnReader<int64_t, common::timestamp_t,
-                    ParquetTimeStampUtils::parquetTimestampMicrosToTimestamp>>(
-                    reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+                    ParquetTimeStampUtils::parquetTimestampMicrosToTimestamp>>(reader,
+                    std::move(type), schema, fileIdx, maxDefine, maxRepeat);
             case ConvertedType::TIMESTAMP_MILLIS:
                 return std::make_unique<CallbackColumnReader<int64_t, common::timestamp_t,
-                    ParquetTimeStampUtils::parquetTimestampMsToTimestamp>>(
-                    reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+                    ParquetTimeStampUtils::parquetTimestampMsToTimestamp>>(reader, std::move(type),
+                    schema, fileIdx, maxDefine, maxRepeat);
             default:
                 KU_UNREACHABLE;
             }

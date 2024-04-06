@@ -7,8 +7,8 @@ namespace kuzu {
 namespace function {
 
 struct Contains {
-    static inline void operation(
-        common::ku_string_t& left, common::ku_string_t& right, uint8_t& result) {
+    static inline void operation(common::ku_string_t& left, common::ku_string_t& right,
+        uint8_t& result) {
         auto lStr = left.getAsString();
         auto rStr = right.getAsString();
         int64_t pos;

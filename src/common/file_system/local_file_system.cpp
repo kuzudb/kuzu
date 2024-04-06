@@ -39,8 +39,8 @@ LocalFileInfo::~LocalFileInfo() {
 #endif
 }
 
-std::unique_ptr<FileInfo> LocalFileSystem::openFile(
-    const std::string& path, int flags, main::ClientContext* context, FileLockType lock_type) {
+std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int flags,
+    main::ClientContext* context, FileLockType lock_type) {
     auto fullPath = expandPath(context, path);
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
@@ -93,8 +93,8 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
 #endif
 }
 
-std::vector<std::string> LocalFileSystem::glob(
-    main::ClientContext* context, const std::string& path) const {
+std::vector<std::string> LocalFileSystem::glob(main::ClientContext* context,
+    const std::string& path) const {
     if (path.empty()) {
         return std::vector<std::string>();
     }
@@ -133,11 +133,11 @@ void LocalFileSystem::overwriteFile(const std::string& from, const std::string& 
     if (!fileOrPathExists(from) || !fileOrPathExists(to))
         return;
     std::error_code errorCode;
-    if (!std::filesystem::copy_file(
-            from, to, std::filesystem::copy_options::overwrite_existing, errorCode)) {
+    if (!std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing,
+            errorCode)) {
         // LCOV_EXCL_START
-        throw Exception(stringFormat(
-            "Error copying file {} to {}.  ErrorMessage: {}", from, to, errorCode.message()));
+        throw Exception(stringFormat("Error copying file {} to {}.  ErrorMessage: {}", from, to,
+            errorCode.message()));
         // LCOV_EXCL_STOP
     }
 }
@@ -148,8 +148,8 @@ void LocalFileSystem::copyFile(const std::string& from, const std::string& to) c
     std::error_code errorCode;
     if (!std::filesystem::copy_file(from, to, std::filesystem::copy_options::none, errorCode)) {
         // LCOV_EXCL_START
-        throw Exception(stringFormat(
-            "Error copying file {} to {}.  ErrorMessage: {}", from, to, errorCode.message()));
+        throw Exception(stringFormat("Error copying file {} to {}.  ErrorMessage: {}", from, to,
+            errorCode.message()));
         // LCOV_EXCL_STOP
     }
 }
@@ -179,8 +179,8 @@ void LocalFileSystem::removeFileIfExists(const std::string& path) const {
         return;
     if (remove(path.c_str()) != 0) {
         // LCOV_EXCL_START
-        throw Exception(stringFormat(
-            "Error removing directory or file {}.  Error Message: {}", path, posixErrMessage()));
+        throw Exception(stringFormat("Error removing directory or file {}.  Error Message: {}",
+            path, posixErrMessage()));
         // LCOV_EXCL_STOP
     }
 }
@@ -189,8 +189,8 @@ bool LocalFileSystem::fileOrPathExists(const std::string& path) const {
     return std::filesystem::exists(path);
 }
 
-std::string LocalFileSystem::expandPath(
-    main::ClientContext* context, const std::string& path) const {
+std::string LocalFileSystem::expandPath(main::ClientContext* context,
+    const std::string& path) const {
     auto fullPath = path;
     if (path.starts_with('~')) {
         fullPath =
@@ -200,8 +200,8 @@ std::string LocalFileSystem::expandPath(
     return fullPath;
 }
 
-void LocalFileSystem::readFromFile(
-    FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) const {
+void LocalFileSystem::readFromFile(FileInfo* fileInfo, void* buffer, uint64_t numBytes,
+    uint64_t position) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     DWORD numBytesRead;
@@ -245,8 +245,8 @@ int64_t LocalFileSystem::readFile(FileInfo* fileInfo, void* buf, size_t nbyte) c
 #endif
 }
 
-void LocalFileSystem::writeFile(
-    FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset) const {
+void LocalFileSystem::writeFile(FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+    uint64_t offset) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
     uint64_t remainingNumBytesToWrite = numBytes;
     uint64_t bufferOffset = 0;

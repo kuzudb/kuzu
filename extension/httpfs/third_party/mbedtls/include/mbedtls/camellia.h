@@ -86,8 +86,8 @@ void mbedtls_camellia_free(mbedtls_camellia_context* ctx);
  * \return         \c 0 if successful.
  * \return         A negative error code on failure.
  */
-int mbedtls_camellia_setkey_enc(
-    mbedtls_camellia_context* ctx, const unsigned char* key, unsigned int keybits);
+int mbedtls_camellia_setkey_enc(mbedtls_camellia_context* ctx, const unsigned char* key,
+    unsigned int keybits);
 
 /**
  * \brief          Perform a CAMELLIA key schedule operation for decryption.
@@ -101,8 +101,8 @@ int mbedtls_camellia_setkey_enc(
  * \return         \c 0 if successful.
  * \return         A negative error code on failure.
  */
-int mbedtls_camellia_setkey_dec(
-    mbedtls_camellia_context* ctx, const unsigned char* key, unsigned int keybits);
+int mbedtls_camellia_setkey_dec(mbedtls_camellia_context* ctx, const unsigned char* key,
+    unsigned int keybits);
 
 /**
  * \brief          Perform a CAMELLIA-ECB block encryption/decryption operation.

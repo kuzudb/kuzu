@@ -24,8 +24,8 @@ struct BoundCopyFromInfo {
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
-        : tableEntry{tableEntry}, source{std::move(source)}, offset{offset}, extraInfo{std::move(
-                                                                                 extraInfo)} {}
+        : tableEntry{tableEntry}, source{std::move(source)}, offset{offset},
+          extraInfo{std::move(extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCopyFromInfo);
 
 private:

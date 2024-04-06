@@ -12,8 +12,8 @@ TEST(IntervalTests, FromCString) {
     EXPECT_EQ(result.months, 28);
     EXPECT_EQ(result.days, 21);
     EXPECT_EQ(result.micros, 11040000028);
-    result = Interval::fromCString(
-        "32 days 48 hours 12 minutes 280 us", strlen("32 days 48 hours 12 minutes 280 us"));
+    result = Interval::fromCString("32 days 48 hours 12 minutes 280 us",
+        strlen("32 days 48 hours 12 minutes 280 us"));
     EXPECT_EQ(result.months, 0);
     EXPECT_EQ(result.days, 32);
     EXPECT_EQ(result.micros, 173520000280);
@@ -29,8 +29,8 @@ TEST(IntervalTests, FromCString) {
     EXPECT_EQ(result.months, 28);
     EXPECT_EQ(result.days, 21);
     EXPECT_EQ(result.micros, 11040000028);
-    result = Interval::fromCString(
-        "2 years 4 months 21 days 03:04:00", strlen("2 years 4 months 21 days 03:04:00"));
+    result = Interval::fromCString("2 years 4 months 21 days 03:04:00",
+        strlen("2 years 4 months 21 days 03:04:00"));
     EXPECT_EQ(result.months, 28);
     EXPECT_EQ(result.days, 21);
     EXPECT_EQ(result.micros, 11040000000);

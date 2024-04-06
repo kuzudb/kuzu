@@ -71,8 +71,8 @@ void WAL::logCreateTableRecord(table_id_t tableID, TableType tableType) {
 void WAL::logCreateRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourceTableID,
     table_id_t literalTableID, table_id_t resourceTripleTableID, table_id_t literalTripleTableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newRdfGraphRecord(
-        rdfGraphID, resourceTableID, literalTableID, resourceTripleTableID, literalTripleTableID);
+    WALRecord walRecord = WALRecord::newRdfGraphRecord(rdfGraphID, resourceTableID, literalTableID,
+        resourceTripleTableID, literalTripleTableID);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -168,8 +168,8 @@ WALIterator::WALIterator(std::shared_ptr<BMFileHandle> fileHandle, std::mutex& m
     : BaseWALAndWALIterator{std::move(fileHandle)}, mtx{mtx} {
     resetCurrentHeaderPagePrefix();
     if (this->fileHandle->getNumPages() > 0) {
-        this->fileHandle->readPage(
-            currentHeaderPageBuffer.get(), 0 /* first header page is at pageIdx 0 */);
+        this->fileHandle->readPage(currentHeaderPageBuffer.get(),
+            0 /* first header page is at pageIdx 0 */);
     }
     numRecordsReadInCurrentHeaderPage = 0;
 }
@@ -179,8 +179,8 @@ void WALIterator::getNextRecord(WALRecord& retVal) {
     if (!hasNextRecordNoLock()) {
         throw RuntimeException("WALIterator cannot read more log records from the WAL.");
     }
-    WALRecord::constructWALRecordFromBytes(
-        retVal, currentHeaderPageBuffer.get(), offsetInCurrentHeaderPage);
+    WALRecord::constructWALRecordFromBytes(retVal, currentHeaderPageBuffer.get(),
+        offsetInCurrentHeaderPage);
     numRecordsReadInCurrentHeaderPage++;
     if ((numRecordsReadInCurrentHeaderPage == getNumRecordsInCurrentHeaderPage()) &&
         (getNextHeaderPageOfCurrentHeaderPage() != UINT32_MAX)) {

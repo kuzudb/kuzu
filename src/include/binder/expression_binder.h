@@ -27,12 +27,12 @@ public:
     std::shared_ptr<Expression> bindExpression(const parser::ParsedExpression& parsedExpression);
 
     /****** validation *****/
-    static void validateExpectedDataType(
-        const Expression& expression, common::LogicalTypeID target) {
+    static void validateExpectedDataType(const Expression& expression,
+        common::LogicalTypeID target) {
         validateExpectedDataType(expression, std::vector<common::LogicalTypeID>{target});
     }
-    static void validateExpectedDataType(
-        const Expression& expression, const std::vector<common::LogicalTypeID>& targets);
+    static void validateExpectedDataType(const Expression& expression,
+        const std::vector<common::LogicalTypeID>& targets);
     // Validate data type.
     static void validateDataType(const Expression& expr, const common::LogicalType& expectedType);
     // Validate recursive data type top level (used when child type is unknown).
@@ -44,17 +44,17 @@ public:
     // Boolean expressions.
     std::shared_ptr<Expression> bindBooleanExpression(
         const parser::ParsedExpression& parsedExpression);
-    std::shared_ptr<Expression> bindBooleanExpression(
-        common::ExpressionType expressionType, const expression_vector& children);
+    std::shared_ptr<Expression> bindBooleanExpression(common::ExpressionType expressionType,
+        const expression_vector& children);
     std::shared_ptr<Expression> combineBooleanExpressions(common::ExpressionType expressionType,
         std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
     // Comparison expressions.
     std::shared_ptr<Expression> bindComparisonExpression(
         const parser::ParsedExpression& parsedExpression);
-    std::shared_ptr<Expression> bindComparisonExpression(
-        common::ExpressionType expressionType, const expression_vector& children);
-    std::shared_ptr<Expression> createEqualityComparisonExpression(
-        std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
+    std::shared_ptr<Expression> bindComparisonExpression(common::ExpressionType expressionType,
+        const expression_vector& children);
+    std::shared_ptr<Expression> createEqualityComparisonExpression(std::shared_ptr<Expression> left,
+        std::shared_ptr<Expression> right);
     // Null operator expressions.
     std::shared_ptr<Expression> bindNullOperatorExpression(
         const parser::ParsedExpression& parsedExpression);
@@ -64,18 +64,18 @@ public:
     expression_vector bindStructPropertyStarExpression(const std::shared_ptr<Expression>& child);
     std::shared_ptr<Expression> bindPropertyExpression(
         const parser::ParsedExpression& parsedExpression);
-    std::shared_ptr<Expression> bindNodeOrRelPropertyExpression(
-        const Expression& child, const std::string& propertyName);
-    std::shared_ptr<Expression> bindStructPropertyExpression(
-        std::shared_ptr<Expression> child, const std::string& propertyName);
+    std::shared_ptr<Expression> bindNodeOrRelPropertyExpression(const Expression& child,
+        const std::string& propertyName);
+    std::shared_ptr<Expression> bindStructPropertyExpression(std::shared_ptr<Expression> child,
+        const std::string& propertyName);
     // Function expressions.
     std::shared_ptr<Expression> bindFunctionExpression(
         const parser::ParsedExpression& parsedExpression);
 
     std::shared_ptr<Expression> bindScalarFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
-    std::shared_ptr<Expression> bindScalarFunctionExpression(
-        const expression_vector& children, const std::string& functionName);
+    std::shared_ptr<Expression> bindScalarFunctionExpression(const expression_vector& children,
+        const std::string& functionName);
     std::shared_ptr<Expression> bindRewriteFunctionExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindAggregateFunctionExpression(
@@ -104,10 +104,10 @@ public:
     std::shared_ptr<Expression> bindVariableExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindVariableExpression(const std::string& varName);
-    std::shared_ptr<Expression> createVariableExpression(
-        common::LogicalType logicalType, std::string_view name);
-    std::shared_ptr<Expression> createVariableExpression(
-        common::LogicalType logicalType, std::string name);
+    std::shared_ptr<Expression> createVariableExpression(common::LogicalType logicalType,
+        std::string_view name);
+    std::shared_ptr<Expression> createVariableExpression(common::LogicalType logicalType,
+        std::string name);
     // Subquery expressions.
     std::shared_ptr<Expression> bindSubqueryExpression(
         const parser::ParsedExpression& parsedExpression);
@@ -120,8 +120,8 @@ public:
         const std::shared_ptr<Expression>& expression, common::LogicalTypeID targetTypeID);
     static std::shared_ptr<Expression> implicitCastIfNecessary(
         const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType);
-    static std::shared_ptr<Expression> implicitCast(
-        const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType);
+    static std::shared_ptr<Expression> implicitCast(const std::shared_ptr<Expression>& expression,
+        const common::LogicalType& targetType);
 
     /****** validation *****/
     // E.g. SUM(SUM(a.age)) is not allowed

@@ -19,8 +19,8 @@ struct NodeTableInsertState : public TableInsertState {
 
     NodeTableInsertState(common::ValueVector& nodeIDVector, const common::ValueVector& pkVector,
         const std::vector<common::ValueVector*>& propertyVectors)
-        : TableInsertState{std::move(propertyVectors)}, nodeIDVector{nodeIDVector}, pkVector{
-                                                                                        pkVector} {}
+        : TableInsertState{std::move(propertyVectors)}, nodeIDVector{nodeIDVector},
+          pkVector{pkVector} {}
 };
 
 struct NodeTableUpdateState : public TableUpdateState {
@@ -35,8 +35,8 @@ struct NodeTableDeleteState : public TableDeleteState {
     const common::ValueVector& nodeIDVector;
     common::ValueVector& pkVector;
 
-    explicit NodeTableDeleteState(
-        const common::ValueVector& nodeIDVector, common::ValueVector& pkVector)
+    explicit NodeTableDeleteState(const common::ValueVector& nodeIDVector,
+        common::ValueVector& pkVector)
         : nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
 };
 
@@ -55,8 +55,8 @@ public:
             tablesStatistics);
         return nodesStats->getMaxNodeOffset(transaction, tableID);
     }
-    void setSelVectorForDeletedOffsets(
-        transaction::Transaction* trx, common::ValueVector* vector) const {
+    void setSelVectorForDeletedOffsets(transaction::Transaction* trx,
+        common::ValueVector* vector) const {
         KU_ASSERT(vector->isSequential());
         auto nodeStateCollection =
             common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
@@ -67,8 +67,8 @@ public:
     inline void initializeReadState(transaction::Transaction* transaction,
         std::vector<common::column_id_t> columnIDs, const common::ValueVector& inNodeIDVector,
         TableReadState& readState) {
-        tableData->initializeReadState(
-            transaction, std::move(columnIDs), inNodeIDVector, *readState.dataReadState);
+        tableData->initializeReadState(transaction, std::move(columnIDs), inNodeIDVector,
+            *readState.dataReadState);
     }
     void read(transaction::Transaction* transaction, TableReadState& readState) override;
 
@@ -108,8 +108,8 @@ public:
 private:
     void updatePK(transaction::Transaction* transaction, common::column_id_t columnID,
         const common::ValueVector& nodeIDVector, const common::ValueVector& pkVector);
-    void insertPK(
-        const common::ValueVector& nodeIDVector, const common::ValueVector& primaryKeyVector);
+    void insertPK(const common::ValueVector& nodeIDVector,
+        const common::ValueVector& primaryKeyVector);
 
     void scan(transaction::Transaction* transaction, TableReadState& readState);
     void lookup(transaction::Transaction* transaction, TableReadState& readState);

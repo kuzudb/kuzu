@@ -13,8 +13,8 @@ namespace kuzu {
 namespace testing {
 
 // Deprecated
-std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
-    const std::string& path, bool checkOutputOrder) {
+std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const std::string& path,
+    bool checkOutputOrder) {
     std::vector<std::unique_ptr<TestQueryConfig>> result;
     if (access(path.c_str(), 0) != 0) {
         throw Exception("Test file not exists! [" + path + "].");
@@ -56,8 +56,8 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
     return result;
 }
 
-std::vector<std::string> TestHelper::convertResultToString(
-    QueryResult& queryResult, bool checkOutputOrder) {
+std::vector<std::string> TestHelper::convertResultToString(QueryResult& queryResult,
+    bool checkOutputOrder) {
     std::vector<std::string> actualOutput;
     while (queryResult.hasNext()) {
         auto tuple = queryResult.getNext();

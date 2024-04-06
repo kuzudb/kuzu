@@ -154,8 +154,8 @@ void StringColumnWriter::writeVector(common::Serializer& serializer,
     }
 }
 
-void StringColumnWriter::flushPageState(
-    common::Serializer& serializer, ColumnWriterPageState* writerPageState) {
+void StringColumnWriter::flushPageState(common::Serializer& serializer,
+    ColumnWriterPageState* writerPageState) {
     auto pageState = reinterpret_cast<StringWriterPageState*>(writerPageState);
     if (pageState->bitWidth != 0) {
         if (!pageState->writtenValue) {
@@ -168,8 +168,8 @@ void StringColumnWriter::flushPageState(
     }
 }
 
-void StringColumnWriter::flushDictionary(
-    BasicColumnWriterState& writerState, ColumnWriterStatistics* writerStats) {
+void StringColumnWriter::flushDictionary(BasicColumnWriterState& writerState,
+    ColumnWriterStatistics* writerStats) {
     auto stats = reinterpret_cast<StringStatisticsState*>(writerStats);
     auto& state = reinterpret_cast<StringColumnWriterState&>(writerState);
     if (!state.isDictionaryEncoded()) {
@@ -195,8 +195,8 @@ void StringColumnWriter::flushDictionary(
     writeDictionary(state, std::move(bufferedSerializer), values.size());
 }
 
-uint64_t StringColumnWriter::getRowSize(
-    ValueVector* vector, uint64_t index, BasicColumnWriterState& writerState) {
+uint64_t StringColumnWriter::getRowSize(ValueVector* vector, uint64_t index,
+    BasicColumnWriterState& writerState) {
     auto& state = reinterpret_cast<StringColumnWriterState&>(writerState);
     if (state.isDictionaryEncoded()) {
         return (state.keyBitWidth + 7) / 8;

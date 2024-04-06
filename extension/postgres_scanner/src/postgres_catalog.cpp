@@ -6,8 +6,8 @@
 namespace kuzu {
 namespace postgres_scanner {
 
-void PostgresCatalogContent::init(
-    const std::string& dbPath, const std::string& /*catalogName*/, main::ClientContext* context) {
+void PostgresCatalogContent::init(const std::string& dbPath, const std::string& /*catalogName*/,
+    main::ClientContext* context) {
     duckdb_scanner::DuckDBCatalogContent::init(dbPath, DEFAULT_CATALOG_NAME, context);
 }
 
@@ -24,8 +24,8 @@ std::unique_ptr<binder::BoundCreateTableInfo> PostgresCatalogContent::bindCreate
     }
     auto extraCreatePostgresTableInfo = std::make_unique<BoundExtraCreatePostgresTableInfo>(dbPath,
         "" /* dbPath */, DEFAULT_CATALOG_NAME, getDefaultSchemaName(), std::move(propertyInfos));
-    return std::make_unique<binder::BoundCreateTableInfo>(
-        common::TableType::FOREIGN, tableName, std::move(extraCreatePostgresTableInfo));
+    return std::make_unique<binder::BoundCreateTableInfo>(common::TableType::FOREIGN, tableName,
+        std::move(extraCreatePostgresTableInfo));
 }
 
 static void executeQueryAndCheckErrMsg(duckdb::Connection& con, std::string query) {

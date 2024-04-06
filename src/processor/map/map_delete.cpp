@@ -12,8 +12,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
-    LogicalDeleteNodeInfo* info, const Schema& inSchema, main::ClientContext* clientContext) {
+static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(LogicalDeleteNodeInfo* info,
+    const Schema& inSchema, main::ClientContext* clientContext) {
     auto nodeIDPos = DataPos(inSchema.getExpressionPos(*info->node->getInternalID()));
     auto storageManager = clientContext->getStorageManager();
     auto catalog = clientContext->getCatalog();
@@ -48,8 +48,8 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
     } else {
         auto table = ku_dynamic_cast<Table*, NodeTable*>(
             storageManager->getTable(info->node->getSingleTableID()));
-        auto tableEntry = catalog->getTableCatalogEntry(
-            &transaction::DUMMY_READ_TRANSACTION, info->node->getSingleTableID());
+        auto tableEntry = catalog->getTableCatalogEntry(&transaction::DUMMY_READ_TRANSACTION,
+            info->node->getSingleTableID());
         auto nodeTableEntry =
             ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
         auto fwdRelTableIDs = nodeTableEntry->getFwdRelTableIDSet();
@@ -64,8 +64,8 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
             bwdRelTables.insert(
                 ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(tableID)));
         }
-        return std::make_unique<SingleLabelNodeDeleteExecutor>(
-            table, std::move(fwdRelTables), std::move(bwdRelTables), info->deleteType, nodeIDPos);
+        return std::make_unique<SingleLabelNodeDeleteExecutor>(table, std::move(fwdRelTables),
+            std::move(bwdRelTables), info->deleteType, nodeIDPos);
     }
 }
 
@@ -93,13 +93,13 @@ static std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(
             auto table = ku_dynamic_cast<Table*, RelTable*>(storageManager.getTable(tableID));
             tableIDToTableMap.insert({tableID, table});
         }
-        return std::make_unique<MultiLabelRelDeleteExecutor>(
-            std::move(tableIDToTableMap), srcNodePos, dstNodePos, relIDPos);
+        return std::make_unique<MultiLabelRelDeleteExecutor>(std::move(tableIDToTableMap),
+            srcNodePos, dstNodePos, relIDPos);
     } else {
         auto table =
             ku_dynamic_cast<Table*, RelTable*>(storageManager.getTable(rel.getSingleTableID()));
-        return std::make_unique<SingleLabelRelDeleteExecutor>(
-            table, srcNodePos, dstNodePos, relIDPos);
+        return std::make_unique<SingleLabelRelDeleteExecutor>(table, srcNodePos, dstNodePos,
+            relIDPos);
     }
 }
 

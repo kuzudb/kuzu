@@ -49,8 +49,8 @@ public:
         common::Deserializer& deserializer);
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
-        return std::make_unique<ParsedFunctionExpression>(
-            alias, rawName, copyChildren(), functionName, isDistinct);
+        return std::make_unique<ParsedFunctionExpression>(alias, rawName, copyChildren(),
+            functionName, isDistinct);
     }
 
 private:

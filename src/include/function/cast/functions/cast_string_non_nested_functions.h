@@ -188,8 +188,8 @@ inline bool trySimpleIntegerCast(const char* input, uint64_t len, T& result) {
 }
 
 template<class T, bool IS_SIGNED = true>
-inline void simpleIntegerCast(
-    const char* input, uint64_t len, T& result, LogicalTypeID typeID = LogicalTypeID::ANY) {
+inline void simpleIntegerCast(const char* input, uint64_t len, T& result,
+    LogicalTypeID typeID = LogicalTypeID::ANY) {
     if (!trySimpleIntegerCast<T, IS_SIGNED>(input, len, result)) {
         throw ConversionException(stringFormat("Cast failed. Could not convert \"{}\" to {}.",
             std::string{input, len}, LogicalTypeUtils::toString(typeID)));
@@ -217,8 +217,8 @@ inline bool tryDoubleCast(const char* input, uint64_t len, T& result) {
 }
 
 template<class T>
-inline void doubleCast(
-    const char* input, uint64_t len, T& result, LogicalTypeID typeID = LogicalTypeID::ANY) {
+inline void doubleCast(const char* input, uint64_t len, T& result,
+    LogicalTypeID typeID = LogicalTypeID::ANY) {
     if (!tryDoubleCast<T>(input, len, result)) {
         throw ConversionException(stringFormat("Cast failed. {} is not in {} range.",
             std::string{input, len}, LogicalTypeUtils::toString(typeID)));
@@ -233,27 +233,27 @@ struct TryCastStringToTimestamp {
     template<typename T>
     static void cast(const char* input, uint64_t len, timestamp_t& result, LogicalTypeID typeID) {
         if (!tryCast<T>(input, len, result)) {
-            throw ConversionException(Timestamp::getTimestampConversionExceptionMsg(
-                input, len, LogicalTypeUtils::toString(typeID)));
+            throw ConversionException(Timestamp::getTimestampConversionExceptionMsg(input, len,
+                LogicalTypeUtils::toString(typeID)));
         }
     }
 };
 
 template<>
-bool TryCastStringToTimestamp::tryCast<timestamp_ns_t>(
-    const char* input, uint64_t len, timestamp_t& result);
+bool TryCastStringToTimestamp::tryCast<timestamp_ns_t>(const char* input, uint64_t len,
+    timestamp_t& result);
 
 template<>
-bool TryCastStringToTimestamp::tryCast<timestamp_ms_t>(
-    const char* input, uint64_t len, timestamp_t& result);
+bool TryCastStringToTimestamp::tryCast<timestamp_ms_t>(const char* input, uint64_t len,
+    timestamp_t& result);
 
 template<>
-bool TryCastStringToTimestamp::tryCast<timestamp_sec_t>(
-    const char* input, uint64_t len, timestamp_t& result);
+bool TryCastStringToTimestamp::tryCast<timestamp_sec_t>(const char* input, uint64_t len,
+    timestamp_t& result);
 
 template<>
-bool inline TryCastStringToTimestamp::tryCast<timestamp_tz_t>(
-    const char* input, uint64_t len, timestamp_t& result) {
+bool inline TryCastStringToTimestamp::tryCast<timestamp_tz_t>(const char* input, uint64_t len,
+    timestamp_t& result) {
     return Timestamp::tryConvertTimestamp(input, len, result);
 }
 

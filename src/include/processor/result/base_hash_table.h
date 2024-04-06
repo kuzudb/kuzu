@@ -18,8 +18,8 @@ public:
 protected:
     uint64_t getSlotIdxForHash(common::hash_t hash) const { return hash & bitmask; }
     void setMaxNumHashSlots(uint64_t newSize);
-    void computeAndCombineVecHash(
-        const std::vector<common::ValueVector*>& unFlatKeyVectors, uint32_t startVecIdx);
+    void computeAndCombineVecHash(const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        uint32_t startVecIdx);
     void computeVectorHashes(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors);
     void initSlotConstant(uint64_t numSlotsPerBlock_);

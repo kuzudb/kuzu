@@ -49,8 +49,8 @@ void JoinHashTable::appendVectors(const std::vector<ValueVector*>& keyVectors,
     factorizedTable->numTuples += numTuplesToAppend;
 }
 
-void JoinHashTable::appendVector(
-    ValueVector* vector, const std::vector<BlockAppendingInfo>& appendInfos, ft_col_idx_t colIdx) {
+void JoinHashTable::appendVector(ValueVector* vector,
+    const std::vector<BlockAppendingInfo>& appendInfos, ft_col_idx_t colIdx) {
     auto numAppendedTuples = 0ul;
     for (auto& blockAppendInfo : appendInfos) {
         factorizedTable->copyVectorToColumn(*vector, blockAppendInfo, numAppendedTuples, colIdx);
@@ -71,8 +71,8 @@ static void sortSelectedPos(ValueVector* nodeIDVector) {
     });
 }
 
-void JoinHashTable::appendVectorWithSorting(
-    ValueVector* keyVector, std::vector<ValueVector*> payloadVectors) {
+void JoinHashTable::appendVectorWithSorting(ValueVector* keyVector,
+    std::vector<ValueVector*> payloadVectors) {
     auto numTuplesToAppend = 1;
     KU_ASSERT(keyVector->state->selVector->selectedSize == 1);
     // Based on the way we are planning, we assume that the first and second vectors are both
@@ -144,8 +144,8 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVect
     }
 }
 
-sel_t JoinHashTable::matchFlatKeys(
-    const std::vector<ValueVector*>& keyVectors, uint8_t** probedTuples, uint8_t** matchedTuples) {
+sel_t JoinHashTable::matchFlatKeys(const std::vector<ValueVector*>& keyVectors,
+    uint8_t** probedTuples, uint8_t** matchedTuples) {
     auto numMatchedTuples = 0;
     while (probedTuples[0]) {
         if (numMatchedTuples == DEFAULT_VECTOR_CAPACITY) {
@@ -193,8 +193,8 @@ uint8_t* JoinHashTable::insertEntry(uint8_t* tuple) const {
     return prevPtr;
 }
 
-bool JoinHashTable::compareFlatKeys(
-    const std::vector<ValueVector*>& keyVectors, const uint8_t* tuple) {
+bool JoinHashTable::compareFlatKeys(const std::vector<ValueVector*>& keyVectors,
+    const uint8_t* tuple) {
     for (auto i = 0u; i < keyVectors.size(); i++) {
         auto keyVector = keyVectors[i];
         KU_ASSERT(keyVector->state->selVector->selectedSize == 1);

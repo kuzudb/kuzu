@@ -39,8 +39,8 @@ std::unique_ptr<QueryResult> Connection::query(std::string_view queryStatement) 
     return clientContext->query(queryStatement);
 }
 
-std::unique_ptr<QueryResult> Connection::query(
-    std::string_view query, std::string_view encodedJoin, bool enumerateAllPlans) {
+std::unique_ptr<QueryResult> Connection::query(std::string_view query, std::string_view encodedJoin,
+    bool enumerateAllPlans) {
     return clientContext->query(query, encodedJoin, enumerateAllPlans);
 }
 

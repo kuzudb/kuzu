@@ -125,8 +125,8 @@ TEST_F(CApiQueryResultTest, GetQuerySummary) {
 
 TEST_F(CApiQueryResultTest, GetNext) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
+    auto result = kuzu_connection_query(connection,
+        "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
 
     ASSERT_TRUE(kuzu_query_result_has_next(result));
@@ -151,8 +151,8 @@ TEST_F(CApiQueryResultTest, GetNext) {
 
 TEST_F(CApiQueryResultTest, ResetIterator) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
+    auto result = kuzu_connection_query(connection,
+        "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
 
     ASSERT_TRUE(kuzu_query_result_has_next(result));

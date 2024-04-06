@@ -65,8 +65,8 @@ void LogicalHashJoin::computeFactorizedSchema() {
                 }
             }
         }
-        SinkOperatorUtil::mergeSchema(
-            *buildSchema, expressionsToMaterializeInNonKeyGroups, *schema);
+        SinkOperatorUtil::mergeSchema(*buildSchema, expressionsToMaterializeInNonKeyGroups,
+            *schema);
     } break;
     case JoinType::MARK: {
         std::unordered_set<f_group_pos> probeSideKeyGroupPositions;

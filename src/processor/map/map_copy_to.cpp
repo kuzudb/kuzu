@@ -24,8 +24,8 @@ std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, std::string fileP
             std::unique_ptr<ColumnSchema> columnSchema;
             if (!childSchema->getGroup(dataChunkPos)->isFlat()) {
                 // payload is unFlat and not in the same group as keys
-                columnSchema = std::make_unique<ColumnSchema>(
-                    true /* isUnFlat */, dataChunkPos, sizeof(overflow_value_t));
+                columnSchema = std::make_unique<ColumnSchema>(true /* isUnFlat */, dataChunkPos,
+                    sizeof(overflow_value_t));
                 countingVecPos = DataPos(childSchema->getExpressionPos(*copyToExpression));
             } else {
                 columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, dataChunkPos,
@@ -88,8 +88,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
     }
     std::shared_ptr<FactorizedTable> fTable;
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
-    fTable = std::make_shared<FactorizedTable>(
-        clientContext->getMemoryManager(), std::move(ftTableSchema));
+    fTable = std::make_shared<FactorizedTable>(clientContext->getMemoryManager(),
+        std::move(ftTableSchema));
     return createEmptyFTableScan(fTable, 0, std::move(copyTo));
 }
 

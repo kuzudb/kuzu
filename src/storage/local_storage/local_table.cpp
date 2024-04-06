@@ -5,8 +5,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-LocalNodeGroup::LocalNodeGroup(
-    offset_t nodeGroupStartOffset, const std::vector<common::LogicalType>& dataTypes)
+LocalNodeGroup::LocalNodeGroup(offset_t nodeGroupStartOffset,
+    const std::vector<common::LogicalType>& dataTypes)
     : nodeGroupStartOffset{nodeGroupStartOffset}, insertChunks{LogicalType::copy(dataTypes)} {
     updateChunks.reserve(dataTypes.size());
     for (auto i = 0u; i < dataTypes.size(); i++) {
@@ -29,8 +29,8 @@ bool LocalNodeGroup::hasUpdatesOrDeletions() const {
     return false;
 }
 
-void LocalChunkedGroupCollection::appendChunkedGroup(
-    ColumnChunk* srcOffsetChunk, std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
+void LocalChunkedGroupCollection::appendChunkedGroup(ColumnChunk* srcOffsetChunk,
+    std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
     KU_ASSERT(chunkedGroup->getNumColumns() == dataTypes.size());
     for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
         KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType() == dataTypes[i]);
@@ -54,8 +54,8 @@ void LocalChunkedGroupCollection::readValueAtRowIdx(row_idx_t rowIdx, column_id_
     chunk.lookup(offsetInChunk, *outputVector, posInOutputVector);
 }
 
-bool LocalChunkedGroupCollection::read(
-    offset_t offset, column_id_t columnID, ValueVector* outputVector, sel_t posInOutputVector) {
+bool LocalChunkedGroupCollection::read(offset_t offset, column_id_t columnID,
+    ValueVector* outputVector, sel_t posInOutputVector) {
     if (!offsetToRowIdx.contains(offset)) {
         return false;
     }
@@ -64,8 +64,8 @@ bool LocalChunkedGroupCollection::read(
     return true;
 }
 
-void LocalChunkedGroupCollection::update(
-    offset_t offset, column_id_t columnID, ValueVector* propertyVector) {
+void LocalChunkedGroupCollection::update(offset_t offset, column_id_t columnID,
+    ValueVector* propertyVector) {
     KU_ASSERT(offsetToRowIdx.contains(offset));
     auto rowIdx = offsetToRowIdx.at(offset);
     auto [chunkIdx, offsetInChunk] = getChunkIdxAndOffsetInChunk(rowIdx);
@@ -90,8 +90,8 @@ row_idx_t LocalChunkedGroupCollection::append(std::vector<ValueVector*> vectors)
     if (chunkedGroups.getNumChunkedGroups() == 0 ||
         chunkedGroups.getChunkedGroup(chunkedGroups.getNumChunkedGroups() - 1)->getNumRows() ==
             ChunkedNodeGroupCollection::CHUNK_CAPACITY) {
-        chunkedGroups.merge(std::make_unique<ChunkedNodeGroup>(
-            dataTypes, false /*enableCompression*/, ChunkedNodeGroupCollection::CHUNK_CAPACITY));
+        chunkedGroups.merge(std::make_unique<ChunkedNodeGroup>(dataTypes,
+            false /*enableCompression*/, ChunkedNodeGroupCollection::CHUNK_CAPACITY));
     }
     auto lastChunkGroup =
         chunkedGroups.getChunkedGroupUnsafe(chunkedGroups.getNumChunkedGroups() - 1);
@@ -103,15 +103,15 @@ row_idx_t LocalChunkedGroupCollection::append(std::vector<ValueVector*> vectors)
     return numRows++;
 }
 
-bool LocalTableData::insert(
-    std::vector<ValueVector*> nodeIDVectors, std::vector<ValueVector*> propertyVectors) {
+bool LocalTableData::insert(std::vector<ValueVector*> nodeIDVectors,
+    std::vector<ValueVector*> propertyVectors) {
     KU_ASSERT(nodeIDVectors.size() >= 1);
     auto localNodeGroup = getOrCreateLocalNodeGroup(nodeIDVectors[0]);
     return localNodeGroup->insert(nodeIDVectors, propertyVectors);
 }
 
-bool LocalTableData::update(
-    std::vector<ValueVector*> nodeIDVectors, column_id_t columnID, ValueVector* propertyVector) {
+bool LocalTableData::update(std::vector<ValueVector*> nodeIDVectors, column_id_t columnID,
+    ValueVector* propertyVector) {
     KU_ASSERT(nodeIDVectors.size() >= 1);
     auto localNodeGroup = getOrCreateLocalNodeGroup(nodeIDVectors[0]);
     return localNodeGroup->update(nodeIDVectors, columnID, propertyVector);

@@ -44,8 +44,8 @@ std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
         return std::make_pair(currentOffset, currentOffset);
     }
     auto startOffset = currentOffset;
-    auto range = std::min(
-        DEFAULT_VECTOR_CAPACITY, globalAggregateHashTable->getNumEntries() - currentOffset);
+    auto range = std::min(DEFAULT_VECTOR_CAPACITY,
+        globalAggregateHashTable->getNumEntries() - currentOffset);
     currentOffset += range;
     return std::make_pair(startOffset, startOffset + range);
 }
@@ -98,8 +98,8 @@ void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* co
     }
 }
 
-void HashAggregateLocalState::append(
-    std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs, uint64_t multiplicity) const {
+void HashAggregateLocalState::append(std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
+    uint64_t multiplicity) const {
     aggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors, leadingState,
         aggregateInputs, multiplicity);
 }

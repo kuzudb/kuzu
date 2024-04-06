@@ -27,8 +27,8 @@ public:
     inline bool hasDefines() const { return maxDefine > 0; }
     inline bool hasRepeats() const { return maxRepeat > 0; }
     virtual inline void skip(uint64_t numValues) { pendingSkips += numValues; }
-    virtual inline void dictionary(
-        const std::shared_ptr<ResizeableBuffer>& /*data*/, uint64_t /*num_entries*/) {
+    virtual inline void dictionary(const std::shared_ptr<ResizeableBuffer>& /*data*/,
+        uint64_t /*num_entries*/) {
         KU_UNREACHABLE;
     }
     virtual inline void offsets(uint32_t* /*offsets*/, uint8_t* /*defines*/, uint64_t /*numValues*/,

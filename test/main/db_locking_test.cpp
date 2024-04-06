@@ -13,8 +13,8 @@ class DBLockingTest : public ApiTest {
 };
 
 TEST_F(DBLockingTest, testReadLock) {
-    uint64_t* count = (uint64_t*)mmap(
-        NULL, sizeof(uint64_t), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, 0, 0);
+    uint64_t* count = (uint64_t*)mmap(NULL, sizeof(uint64_t), PROT_READ | PROT_WRITE,
+        MAP_ANONYMOUS | MAP_SHARED, 0, 0);
     *count = 0;
     // create db
     EXPECT_NO_THROW(createDBAndConn());
@@ -52,8 +52,8 @@ TEST_F(DBLockingTest, testReadLock) {
 }
 
 TEST_F(DBLockingTest, testWriteLock) {
-    uint64_t* count = (uint64_t*)mmap(
-        NULL, sizeof(uint64_t), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, 0, 0);
+    uint64_t* count = (uint64_t*)mmap(NULL, sizeof(uint64_t), PROT_READ | PROT_WRITE,
+        MAP_ANONYMOUS | MAP_SHARED, 0, 0);
     *count = 0;
     // test write lock
     // fork away a child
@@ -94,8 +94,8 @@ TEST_F(DBLockingTest, testWriteLock) {
 }
 
 TEST_F(DBLockingTest, testReadOnly) {
-    uint64_t* count = (uint64_t*)mmap(
-        NULL, sizeof(uint64_t), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, 0, 0);
+    uint64_t* count = (uint64_t*)mmap(NULL, sizeof(uint64_t), PROT_READ | PROT_WRITE,
+        MAP_ANONYMOUS | MAP_SHARED, 0, 0);
     *count = 0;
     // cannot create a read-only database in a new directory
     systemConfig->readOnly = true;

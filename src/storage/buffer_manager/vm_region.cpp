@@ -47,8 +47,8 @@ VMRegion::VMRegion(PageSizeClass pageSizeClass, uint64_t maxRegionSize) : numFra
 
 #ifdef _WIN32
 uint8_t* VMRegion::getFrame(frame_idx_t frameIdx) {
-    auto result = VirtualAlloc(
-        region + ((std::uint64_t)frameIdx * frameSize), frameSize, MEM_COMMIT, PAGE_READWRITE);
+    auto result = VirtualAlloc(region + ((std::uint64_t)frameIdx * frameSize), frameSize,
+        MEM_COMMIT, PAGE_READWRITE);
     if (result == NULL) {
         throw BufferManagerException(stringFormat(
             "VirtualAlloc MEM_COMMIT failed with error code {}: {}.", getMaxRegionSize(),

@@ -37,8 +37,8 @@ struct ExtraCreateRelTableInfo : public ExtraCreateTableInfo {
     std::string srcTableName;
     std::string dstTableName;
 
-    ExtraCreateRelTableInfo(
-        std::string relMultiplicity, std::string srcTableName, std::string dstTableName)
+    ExtraCreateRelTableInfo(std::string relMultiplicity, std::string srcTableName,
+        std::string dstTableName)
         : relMultiplicity{std::move(relMultiplicity)}, srcTableName{std::move(srcTableName)},
           dstTableName{std::move(dstTableName)} {}
 };
@@ -49,8 +49,8 @@ struct ExtraCreateRelTableGroupInfo : public ExtraCreateTableInfo {
 
     ExtraCreateRelTableGroupInfo(std::string relMultiplicity,
         std::vector<std::pair<std::string, std::string>> srcDstTablePairs)
-        : relMultiplicity{std::move(relMultiplicity)}, srcDstTablePairs{
-                                                           std::move(srcDstTablePairs)} {}
+        : relMultiplicity{std::move(relMultiplicity)},
+          srcDstTablePairs{std::move(srcDstTablePairs)} {}
 };
 
 } // namespace parser

@@ -35,8 +35,8 @@ std::string getPlatform() {
     return getOS() + "_" + getArch();
 }
 
-std::string ExtensionUtils::getExtensionPath(
-    const std::string& extensionDir, const std::string& name) {
+std::string ExtensionUtils::getExtensionPath(const std::string& extensionDir,
+    const std::string& name) {
     return common::stringFormat("{}/lib{}.kuzu_extension", extensionDir, name);
 }
 
@@ -56,8 +56,8 @@ ExtensionRepoInfo ExtensionUtils::getExtensionRepoInfo(const std::string& extens
     return {hostPath, hostURL, extensionURL};
 }
 
-void ExtensionOptions::addExtensionOption(
-    std::string name, common::LogicalTypeID type, common::Value defaultValue) {
+void ExtensionOptions::addExtensionOption(std::string name, common::LogicalTypeID type,
+    common::Value defaultValue) {
     common::StringUtils::toLower(name);
     extensionOptions.emplace(name, main::ExtensionOption{name, type, std::move(defaultValue)});
 }

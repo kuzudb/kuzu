@@ -63,8 +63,8 @@ public:
         main::ClientContext* context = nullptr,
         common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
 
-    std::vector<std::string> glob(
-        main::ClientContext* context, const std::string& path) const override;
+    std::vector<std::string> glob(main::ClientContext* context,
+        const std::string& path) const override;
 
     bool canHandleFile(const std::string& path) const override;
 
@@ -88,8 +88,8 @@ protected:
         const std::function<httplib::Result(void)>& request, const std::string& url,
         std::string method, const std::function<void(void)>& retry = {});
 
-    virtual std::unique_ptr<HTTPResponse> headRequest(
-        common::FileInfo* fileInfo, const std::string& url, HeaderMap headerMap) const;
+    virtual std::unique_ptr<HTTPResponse> headRequest(common::FileInfo* fileInfo,
+        const std::string& url, HeaderMap headerMap) const;
 
     virtual std::unique_ptr<HTTPResponse> getRangeRequest(common::FileInfo* fileInfo,
         const std::string& url, HeaderMap headerMap, uint64_t fileOffset, char* buffer,

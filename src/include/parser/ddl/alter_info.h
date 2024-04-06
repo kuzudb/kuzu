@@ -18,8 +18,8 @@ struct AlterInfo {
     std::string tableName;
     std::unique_ptr<ExtraAlterInfo> extraInfo;
 
-    AlterInfo(
-        common::AlterType type, std::string tableName, std::unique_ptr<ExtraAlterInfo> extraInfo)
+    AlterInfo(common::AlterType type, std::string tableName,
+        std::unique_ptr<ExtraAlterInfo> extraInfo)
         : type{type}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)} {}
     DELETE_COPY_DEFAULT_MOVE(AlterInfo);
 };

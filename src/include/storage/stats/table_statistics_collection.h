@@ -30,8 +30,8 @@ public:
     virtual void updateNumTuplesByValue(common::table_id_t tableID, int64_t value) = 0;
 
     inline void writeTablesStatisticsFileForWALRecord(const std::string& directory) {
-        saveToFile(
-            directory, common::FileVersionType::WAL_VERSION, transaction::TransactionType::WRITE);
+        saveToFile(directory, common::FileVersionType::WAL_VERSION,
+            transaction::TransactionType::WRITE);
     }
 
     inline bool hasUpdates() const { return isUpdated; }
@@ -60,8 +60,8 @@ public:
         readOnlyVersion->tableStatisticPerTable.erase(tableID);
     }
 
-    inline uint64_t getNumTuplesForTable(
-        transaction::Transaction* transaction, common::table_id_t tableID) {
+    inline uint64_t getNumTuplesForTable(transaction::Transaction* transaction,
+        common::table_id_t tableID) {
         if (transaction->isWriteTransaction()) {
             initTableStatisticsForWriteTrx();
             KU_ASSERT(readWriteVersion->tableStatisticPerTable.contains(tableID));
@@ -74,8 +74,8 @@ public:
     PropertyStatistics& getPropertyStatisticsForTable(const transaction::Transaction& transaction,
         common::table_id_t tableID, common::property_id_t propertyID);
 
-    void setPropertyStatisticsForTable(
-        common::table_id_t tableID, common::property_id_t propertyID, PropertyStatistics stats);
+    void setPropertyStatisticsForTable(common::table_id_t tableID, common::property_id_t propertyID,
+        PropertyStatistics stats);
 
     static std::unique_ptr<MetadataDAHInfo> createMetadataDAHInfo(
         const common::LogicalType& dataType, BMFileHandle& metadataFH, BufferManager* bm, WAL* wal);
@@ -89,8 +89,8 @@ protected:
     virtual std::unique_ptr<TableStatistics> constructTableStatistic(
         TableStatistics* tableStatistics) = 0;
 
-    virtual std::string getTableStatisticsFilePath(
-        const std::string& directory, common::FileVersionType dbFileType) = 0;
+    virtual std::string getTableStatisticsFilePath(const std::string& directory,
+        common::FileVersionType dbFileType) = 0;
 
     const TablesStatisticsContent* getVersion(transaction::TransactionType type) const {
         return type == transaction::TransactionType::READ_ONLY ? readOnlyVersion.get() :

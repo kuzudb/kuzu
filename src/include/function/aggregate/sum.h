@@ -46,8 +46,8 @@ struct SumFunction {
         updateSingleValue(state, input, pos, multiplicity);
     }
 
-    static void updateSingleValue(
-        SumState* state, common::ValueVector* input, uint32_t pos, uint64_t multiplicity) {
+    static void updateSingleValue(SumState* state, common::ValueVector* input, uint32_t pos,
+        uint64_t multiplicity) {
         T val = input->getValue<T>(pos);
         for (auto j = 0u; j < multiplicity; ++j) {
             if (state->isNull) {
@@ -59,8 +59,8 @@ struct SumFunction {
         }
     }
 
-    static void combine(
-        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* /*memoryManager*/) {
+    static void combine(uint8_t* state_, uint8_t* otherState_,
+        storage::MemoryManager* /*memoryManager*/) {
         auto* otherState = reinterpret_cast<SumState*>(otherState_);
         if (otherState->isNull) {
             return;

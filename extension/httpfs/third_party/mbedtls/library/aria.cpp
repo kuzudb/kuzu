@@ -87,7 +87,7 @@ static inline uint32_t aria_p1(uint32_t x) {
 #endif /* x86 gnuc */
 #endif /* MBEDTLS_HAVE_ASM && GNUC */
 #if !defined(ARIA_P1)
-#define ARIA_P1(x) ((((x) >> 8) & 0x00FF00FF) ^ (((x)&0x00FF00FF) << 8))
+#define ARIA_P1(x) ((((x) >> 8) & 0x00FF00FF) ^ (((x) & 0x00FF00FF) << 8))
 #endif
 
 /*
@@ -283,8 +283,8 @@ static const uint8_t aria_is2[256] = {0x30, 0x68, 0x99, 0x1B, 0x87, 0xB9, 0x21, 
 /*
  * Helper for key schedule: r = FO( p, k ) ^ x
  */
-static void aria_fo_xor(
-    uint32_t r[4], const uint32_t p[4], const uint32_t k[4], const uint32_t x[4]) {
+static void aria_fo_xor(uint32_t r[4], const uint32_t p[4], const uint32_t k[4],
+    const uint32_t x[4]) {
     uint32_t a, b, c, d;
 
     a = p[0] ^ k[0];
@@ -304,8 +304,8 @@ static void aria_fo_xor(
 /*
  * Helper for key schedule: r = FE( p, k ) ^ x
  */
-static void aria_fe_xor(
-    uint32_t r[4], const uint32_t p[4], const uint32_t k[4], const uint32_t x[4]) {
+static void aria_fe_xor(uint32_t r[4], const uint32_t p[4], const uint32_t k[4],
+    const uint32_t x[4]) {
     uint32_t a, b, c, d;
 
     a = p[0] ^ k[0];
@@ -352,8 +352,8 @@ static void aria_rot128(uint32_t r[4], const uint32_t a[4], const uint32_t b[4],
 /*
  * Set encryption key
  */
-int mbedtls_aria_setkey_enc(
-    mbedtls_aria_context* ctx, const unsigned char* key, unsigned int keybits) {
+int mbedtls_aria_setkey_enc(mbedtls_aria_context* ctx, const unsigned char* key,
+    unsigned int keybits) {
     /* round constant masks */
     const uint32_t rc[3][4] = {{0xB7C17C51, 0x940A2227, 0xE8AB13FE, 0xE06E9AFA},
         {0xCC4AB16D, 0x20C8219E, 0xD5B128FF, 0xB0E25DEF},
@@ -411,8 +411,8 @@ int mbedtls_aria_setkey_enc(
 /*
  * Set decryption key
  */
-int mbedtls_aria_setkey_dec(
-    mbedtls_aria_context* ctx, const unsigned char* key, unsigned int keybits) {
+int mbedtls_aria_setkey_dec(mbedtls_aria_context* ctx, const unsigned char* key,
+    unsigned int keybits) {
     int i, j, k, ret;
     ARIA_VALIDATE_RET(ctx != NULL);
     ARIA_VALIDATE_RET(key != NULL);
@@ -906,8 +906,8 @@ int mbedtls_aria_self_test(int verbose) {
         memcpy(iv, aria_test2_iv, MBEDTLS_ARIA_BLOCKSIZE);
         memset(buf, 0xAA, sizeof(buf));
         j = 0;
-        mbedtls_aria_crypt_cfb128(
-            &ctx, MBEDTLS_ARIA_DECRYPT, 48, &j, iv, aria_test2_cfb_ct[i], buf);
+        mbedtls_aria_crypt_cfb128(&ctx, MBEDTLS_ARIA_DECRYPT, 48, &j, iv, aria_test2_cfb_ct[i],
+            buf);
         if (memcmp(buf, aria_test2_pt, 48) != 0)
             ARIA_SELF_TEST_IF_FAIL;
     }

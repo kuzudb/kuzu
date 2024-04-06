@@ -10,8 +10,8 @@ struct AggregateInputInfo {
     DataPos aggregateVectorPos;
     std::vector<data_chunk_pos_t> multiplicityChunksPos;
 
-    AggregateInputInfo(
-        const DataPos& vectorPos, std::vector<data_chunk_pos_t> multiplicityChunksPos)
+    AggregateInputInfo(const DataPos& vectorPos,
+        std::vector<data_chunk_pos_t> multiplicityChunksPos)
         : aggregateVectorPos{vectorPos}, multiplicityChunksPos{std::move(multiplicityChunksPos)} {}
     AggregateInputInfo(const AggregateInputInfo& other)
         : AggregateInputInfo(other.aggregateVectorPos, other.multiplicityChunksPos) {}

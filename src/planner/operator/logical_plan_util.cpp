@@ -12,8 +12,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-void LogicalPlanUtil::encodeJoinRecursive(
-    LogicalOperator* logicalOperator, std::string& encodeString) {
+void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator,
+    std::string& encodeString) {
     switch (logicalOperator->getOperatorType()) {
     case LogicalOperatorType::CROSS_PRODUCT: {
         encodeCrossProduct(logicalOperator, encodeString);
@@ -57,8 +57,8 @@ void LogicalPlanUtil::encodeJoinRecursive(
     }
 }
 
-void LogicalPlanUtil::encodeCrossProduct(
-    LogicalOperator* /*logicalOperator*/, std::string& encodeString) {
+void LogicalPlanUtil::encodeCrossProduct(LogicalOperator* /*logicalOperator*/,
+    std::string& encodeString) {
     encodeString += "CP()";
 }
 
@@ -79,15 +79,15 @@ void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, std::string
     encodeString += "E(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 
-void LogicalPlanUtil::encodeRecursiveExtend(
-    LogicalOperator* logicalOperator, std::string& encodeString) {
+void LogicalPlanUtil::encodeRecursiveExtend(LogicalOperator* logicalOperator,
+    std::string& encodeString) {
     auto logicalExtend =
         common::ku_dynamic_cast<LogicalOperator*, LogicalRecursiveExtend*>(logicalOperator);
     encodeString += "RE(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 
-void LogicalPlanUtil::encodeScanInternalID(
-    LogicalOperator* logicalOperator, std::string& encodeString) {
+void LogicalPlanUtil::encodeScanInternalID(LogicalOperator* logicalOperator,
+    std::string& encodeString) {
     auto scan = common::ku_dynamic_cast<LogicalOperator*, LogicalScanInternalID*>(logicalOperator);
     encodeString += "S(" + scan->getInternalID()->toString() + ")";
 }

@@ -18,10 +18,10 @@ public:
         std::vector<std::unique_ptr<RelSetExecutor>> onMatchRelSetExecutors,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::MERGE, std::move(child), id, paramsString},
-          existenceMark{existenceMark}, distinctMark{distinctMark}, nodeInsertExecutors{std::move(
-                                                                        nodeInsertExecutors)},
-          relInsertExecutors{std::move(relInsertExecutors)}, onCreateNodeSetExecutors{std::move(
-                                                                 onCreateNodeSetExecutors)},
+          existenceMark{existenceMark}, distinctMark{distinctMark},
+          nodeInsertExecutors{std::move(nodeInsertExecutors)},
+          relInsertExecutors{std::move(relInsertExecutors)},
+          onCreateNodeSetExecutors{std::move(onCreateNodeSetExecutors)},
           onCreateRelSetExecutors{std::move(onCreateRelSetExecutors)},
           onMatchNodeSetExecutors{std::move(onMatchNodeSetExecutors)},
           onMatchRelSetExecutors{std::move(onMatchRelSetExecutors)} {}

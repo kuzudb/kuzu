@@ -9,16 +9,16 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace evaluator {
 
-bool LiteralExpressionEvaluator::select(
-    SelectionVector& /*selVector*/, ClientContext* /*clientContext*/) {
+bool LiteralExpressionEvaluator::select(SelectionVector& /*selVector*/,
+    ClientContext* /*clientContext*/) {
     KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     auto pos = resultVector->state->selVector->selectedPositions[0];
     KU_ASSERT(pos == 0u);
     return resultVector->getValue<bool>(pos) && (!resultVector->isNull(pos));
 }
 
-void LiteralExpressionEvaluator::resolveResultVector(
-    const processor::ResultSet& /*resultSet*/, MemoryManager* memoryManager) {
+void LiteralExpressionEvaluator::resolveResultVector(const processor::ResultSet& /*resultSet*/,
+    MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(*value->getDataType(), memoryManager);
     resultVector->setState(DataChunkState::getSingleValueDataChunkState());
     if (value->isNull()) {

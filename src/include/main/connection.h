@@ -64,8 +64,8 @@ public:
      * @return the result of the query.
      */
     template<typename... Args>
-    inline std::unique_ptr<QueryResult> execute(
-        PreparedStatement* preparedStatement, std::pair<std::string, Args>... args) {
+    inline std::unique_ptr<QueryResult> execute(PreparedStatement* preparedStatement,
+        std::pair<std::string, Args>... args) {
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParameters;
         return executeWithParams(preparedStatement, std::move(inputParameters), args...);
     }
@@ -99,8 +99,8 @@ public:
     void createScalarFunction(std::string name, TR (*udfFunc)(Args...)) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
-        addScalarFunction(
-            std::move(nameCopy), function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc));
+        addScalarFunction(std::move(nameCopy),
+            function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc));
         commitUDFTrx(autoTrx);
     }
 
@@ -109,9 +109,9 @@ public:
         common::LogicalTypeID returnType, TR (*udfFunc)(Args...)) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
-        addScalarFunction(
-            std::move(nameCopy), function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc,
-                                     std::move(parameterTypes), returnType));
+        addScalarFunction(std::move(nameCopy),
+            function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc,
+                std::move(parameterTypes), returnType));
         commitUDFTrx(autoTrx);
     }
 
@@ -129,17 +129,17 @@ public:
         function::scalar_func_exec_t scalarFunc) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
-        addScalarFunction(
-            std::move(nameCopy), function::UDF::getVectorizedFunction(std::move(name),
-                                     std::move(scalarFunc), std::move(parameterTypes), returnType));
+        addScalarFunction(std::move(nameCopy),
+            function::UDF::getVectorizedFunction(std::move(name), std::move(scalarFunc),
+                std::move(parameterTypes), returnType));
         commitUDFTrx(autoTrx);
     }
 
     ClientContext* getClientContext() { return clientContext.get(); };
 
 private:
-    std::unique_ptr<QueryResult> query(
-        std::string_view query, std::string_view encodedJoin, bool enumerateAllPlans = true);
+    std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin,
+        bool enumerateAllPlans = true);
 
     std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 

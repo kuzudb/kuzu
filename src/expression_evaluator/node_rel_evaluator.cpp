@@ -24,8 +24,8 @@ void NodeRelExpressionEvaluator::evaluate(ClientContext* clientContext) {
     }
 }
 
-void NodeRelExpressionEvaluator::resolveResultVector(
-    const processor::ResultSet& /*resultSet*/, storage::MemoryManager* memoryManager) {
+void NodeRelExpressionEvaluator::resolveResultVector(const processor::ResultSet& /*resultSet*/,
+    storage::MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(nodeOrRel->getDataType(), memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());

@@ -15,13 +15,13 @@ void VirtualFileSystem::registerFileSystem(std::unique_ptr<FileSystem> fileSyste
     subSystems.push_back(std::move(fileSystem));
 }
 
-std::unique_ptr<FileInfo> VirtualFileSystem::openFile(
-    const std::string& path, int flags, main::ClientContext* context, FileLockType lockType) {
+std::unique_ptr<FileInfo> VirtualFileSystem::openFile(const std::string& path, int flags,
+    main::ClientContext* context, FileLockType lockType) {
     return findFileSystem(path)->openFile(path, flags, context, lockType);
 }
 
-std::vector<std::string> VirtualFileSystem::glob(
-    main::ClientContext* context, const std::string& path) const {
+std::vector<std::string> VirtualFileSystem::glob(main::ClientContext* context,
+    const std::string& path) const {
     return findFileSystem(path)->glob(context, path);
 }
 
@@ -41,13 +41,13 @@ bool VirtualFileSystem::fileOrPathExists(const std::string& path) const {
     return findFileSystem(path)->fileOrPathExists(path);
 }
 
-std::string VirtualFileSystem::expandPath(
-    main::ClientContext* context, const std::string& path) const {
+std::string VirtualFileSystem::expandPath(main::ClientContext* context,
+    const std::string& path) const {
     return findFileSystem(path)->expandPath(context, path);
 }
 
-void VirtualFileSystem::readFromFile(
-    FileInfo* /*fileInfo*/, void* /*buffer*/, uint64_t /*numBytes*/, uint64_t /*position*/) const {
+void VirtualFileSystem::readFromFile(FileInfo* /*fileInfo*/, void* /*buffer*/,
+    uint64_t /*numBytes*/, uint64_t /*position*/) const {
     KU_UNREACHABLE;
 }
 

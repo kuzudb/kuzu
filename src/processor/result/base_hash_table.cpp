@@ -25,8 +25,8 @@ void BaseHashTable::setMaxNumHashSlots(uint64_t newSize) {
     bitmask = maxNumHashSlots - 1;
 }
 
-void BaseHashTable::computeAndCombineVecHash(
-    const std::vector<ValueVector*>& unFlatKeyVectors, uint32_t startVecIdx) {
+void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& unFlatKeyVectors,
+    uint32_t startVecIdx) {
     for (; startVecIdx < unFlatKeyVectors.size(); startVecIdx++) {
         auto keyVector = unFlatKeyVectors[startVecIdx];
         auto tmpHashResultVector =
@@ -34,8 +34,8 @@ void BaseHashTable::computeAndCombineVecHash(
         auto tmpHashCombineResultVector =
             std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
         VectorHashFunction::computeHash(keyVector, tmpHashResultVector.get());
-        VectorHashFunction::combineHash(
-            hashVector.get(), tmpHashResultVector.get(), tmpHashCombineResultVector.get());
+        VectorHashFunction::combineHash(hashVector.get(), tmpHashResultVector.get(),
+            tmpHashCombineResultVector.get());
         hashVector = std::move(tmpHashCombineResultVector);
     }
 }
@@ -56,16 +56,16 @@ template<typename T>
 static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
     uint8_t result;
     auto key = vector->getData() + vectorPos * vector->getNumBytesPerValue();
-    function::Equals::operation(
-        *(T*)key, *(T*)entry, result, nullptr /* leftVector */, nullptr /* rightVector */);
+    function::Equals::operation(*(T*)key, *(T*)entry, result, nullptr /* leftVector */,
+        nullptr /* rightVector */);
     return result != 0;
 }
 
 static compare_function_t getCompareEntryFunc(PhysicalTypeID type);
 
 template<>
-[[maybe_unused]] bool compareEntry<list_entry_t>(
-    common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+[[maybe_unused]] bool compareEntry<list_entry_t>(common::ValueVector* vector, uint32_t vectorPos,
+    const uint8_t* entry) {
     auto dataVector = ListVector::getDataVector(vector);
     auto listToCompare = vector->getValue<list_entry_t>(vectorPos);
     auto listEntry = reinterpret_cast<const ku_list_t*>(entry);
@@ -85,8 +85,8 @@ template<>
     return true;
 }
 
-static bool compareNodeEntry(
-    common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+static bool compareNodeEntry(common::ValueVector* vector, uint32_t vectorPos,
+    const uint8_t* entry) {
     KU_ASSERT(0 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
     auto idVector = common::StructVector::getFieldVector(vector, 0).get();
     return compareEntry<common::internalID_t>(idVector, vectorPos,
@@ -104,8 +104,8 @@ static bool compareRelEntry(common::ValueVector* vector, uint32_t vectorPos, con
 }
 
 template<>
-[[maybe_unused]] bool compareEntry<struct_entry_t>(
-    common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+[[maybe_unused]] bool compareEntry<struct_entry_t>(common::ValueVector* vector, uint32_t vectorPos,
+    const uint8_t* entry) {
     switch (vector->dataType.getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
         return compareNodeEntry(vector, vectorPos, entry);

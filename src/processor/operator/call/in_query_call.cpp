@@ -42,8 +42,8 @@ void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
     function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get()};
     localState.funcState = info.function.initLocalStateFunc(tableFunctionInitInput,
         sharedState->funcState.get(), context->clientContext->getMemoryManager());
-    localState.funcInput = function::TableFuncInput{
-        info.bindData.get(), localState.funcState.get(), sharedState->funcState.get()};
+    localState.funcInput = function::TableFuncInput{info.bindData.get(), localState.funcState.get(),
+        sharedState->funcState.get()};
 }
 
 void InQueryCall::initGlobalStateInternal(ExecutionContext*) {

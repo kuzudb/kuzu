@@ -139,12 +139,12 @@ static int rsa_encrypt_wrap(void* ctx, const unsigned char* input, size_t ilen,
     return (mbedtls_rsa_pkcs1_encrypt(rsa, f_rng, p_rng, ilen, input, output));
 }
 
-static int rsa_check_pair_wrap(
-    const void* pub, const void* prv, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
+static int rsa_check_pair_wrap(const void* pub, const void* prv,
+    int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
     (void)f_rng;
     (void)p_rng;
-    return (mbedtls_rsa_check_pub_priv(
-        (const mbedtls_rsa_context*)pub, (const mbedtls_rsa_context*)prv));
+    return (mbedtls_rsa_check_pub_priv((const mbedtls_rsa_context*)pub,
+        (const mbedtls_rsa_context*)prv));
 }
 
 static void* rsa_alloc_wrap(void) {
@@ -345,10 +345,10 @@ cleanup:
 #endif /* MBEDTLS_ECP_RESTARTABLE */
 #endif /* MBEDTLS_ECDSA_C */
 
-static int eckey_check_pair(
-    const void* pub, const void* prv, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
-    return (mbedtls_ecp_check_pub_priv(
-        (const mbedtls_ecp_keypair*)pub, (const mbedtls_ecp_keypair*)prv, f_rng, p_rng));
+static int eckey_check_pair(const void* pub, const void* prv,
+    int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
+    return (mbedtls_ecp_check_pub_priv((const mbedtls_ecp_keypair*)pub,
+        (const mbedtls_ecp_keypair*)prv, f_rng, p_rng));
 }
 
 static void* eckey_alloc_wrap(void) {
@@ -431,8 +431,8 @@ static int ecdsa_can_do(mbedtls_pk_type_t type) {
  * An ASN.1 encoded signature is a sequence of two ASN.1 integers. Parse one of
  * those integers and convert it to the fixed-length encoding expected by PSA.
  */
-static int extract_ecdsa_sig_int(
-    unsigned char** from, const unsigned char* end, unsigned char* to, size_t to_len) {
+static int extract_ecdsa_sig_int(unsigned char** from, const unsigned char* end, unsigned char* to,
+    size_t to_len) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t unpadded_len, padding_len;
 
@@ -461,13 +461,13 @@ static int extract_ecdsa_sig_int(
  * to a raw {r,s} buffer. Note: the provided sig buffer must be at least
  * twice as big as int_size.
  */
-static int extract_ecdsa_sig(
-    unsigned char** p, const unsigned char* end, unsigned char* sig, size_t int_size) {
+static int extract_ecdsa_sig(unsigned char** p, const unsigned char* end, unsigned char* sig,
+    size_t int_size) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t tmp_size;
 
-    if ((ret = mbedtls_asn1_get_tag(
-             p, end, &tmp_size, MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0)
+    if ((ret = mbedtls_asn1_get_tag(p, end, &tmp_size,
+             MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0)
         return (ret);
 
     /* Extract r */
@@ -567,8 +567,8 @@ static int ecdsa_verify_wrap(void* ctx, mbedtls_md_type_t md_alg, const unsigned
 static int ecdsa_sign_wrap(void* ctx, mbedtls_md_type_t md_alg, const unsigned char* hash,
     size_t hash_len, unsigned char* sig, size_t sig_size, size_t* sig_len,
     int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
-    return (mbedtls_ecdsa_write_signature(
-        (mbedtls_ecdsa_context*)ctx, md_alg, hash, hash_len, sig, sig_size, sig_len, f_rng, p_rng));
+    return (mbedtls_ecdsa_write_signature((mbedtls_ecdsa_context*)ctx, md_alg, hash, hash_len, sig,
+        sig_size, sig_len, f_rng, p_rng));
 }
 
 #if defined(MBEDTLS_ECP_RESTARTABLE)
@@ -689,8 +689,8 @@ static int rsa_alt_decrypt_wrap(void* ctx, const unsigned char* input, size_t il
 }
 
 #if defined(MBEDTLS_RSA_C)
-static int rsa_alt_check_pair(
-    const void* pub, const void* prv, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
+static int rsa_alt_check_pair(const void* pub, const void* prv,
+    int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
     unsigned char sig[MBEDTLS_MPI_MAX_SIZE];
     unsigned char hash[32];
     size_t sig_len = 0;
@@ -860,8 +860,8 @@ static int pk_ecdsa_sig_asn1_from_psa(unsigned char* sig, size_t* sig_len, size_
     MBEDTLS_ASN1_CHK_ADD(len, asn1_write_mpibuf(&p, sig, rs_len));
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(&p, sig, len));
-    MBEDTLS_ASN1_CHK_ADD(
-        len, mbedtls_asn1_write_tag(&p, sig, MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
+    MBEDTLS_ASN1_CHK_ADD(len,
+        mbedtls_asn1_write_tag(&p, sig, MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
 
     memmove(sig, p, len);
     *sig_len = len;

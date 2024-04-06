@@ -21,13 +21,13 @@ void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     KU_ASSERT(probeDataInfo.keysDataPos.size() + probeDataInfo.getNumPayloads() + 2 ==
               sharedState->getHashTable()->getTableSchema()->getNumColumns());
     columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
-    iota(
-        columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), probeDataInfo.keysDataPos.size());
-    hashVector = std::make_unique<ValueVector>(
-        LogicalTypeID::INT64, context->clientContext->getMemoryManager());
+    iota(columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(),
+        probeDataInfo.keysDataPos.size());
+    hashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64,
+        context->clientContext->getMemoryManager());
     if (keyVectors.size() > 1) {
-        tmpHashVector = std::make_unique<ValueVector>(
-            LogicalTypeID::INT64, context->clientContext->getMemoryManager());
+        tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64,
+            context->clientContext->getMemoryManager());
     }
 }
 
@@ -45,11 +45,11 @@ bool HashJoinProbe::getMatchedTuplesForFlatKey(ExecutionContext* context) {
             return false;
         }
         saveSelVector(keyVectors[0]->state->selVector);
-        sharedState->getHashTable()->probe(
-            keyVectors, hashVector.get(), tmpHashVector.get(), probeState->probedTuples.get());
+        sharedState->getHashTable()->probe(keyVectors, hashVector.get(), tmpHashVector.get(),
+            probeState->probedTuples.get());
     }
-    auto numMatchedTuples = sharedState->getHashTable()->matchFlatKeys(
-        keyVectors, probeState->probedTuples.get(), probeState->matchedTuples.get());
+    auto numMatchedTuples = sharedState->getHashTable()->matchFlatKeys(keyVectors,
+        probeState->probedTuples.get(), probeState->matchedTuples.get());
     probeState->matchedSelVector->selectedSize = numMatchedTuples;
     probeState->nextMatchedTupleIdx = 0;
     return true;
@@ -63,8 +63,8 @@ bool HashJoinProbe::getMatchedTuplesForUnFlatKey(ExecutionContext* context) {
         return false;
     }
     saveSelVector(keyVector->state->selVector);
-    sharedState->getHashTable()->probe(
-        keyVectors, hashVector.get(), tmpHashVector.get(), probeState->probedTuples.get());
+    sharedState->getHashTable()->probe(keyVectors, hashVector.get(), tmpHashVector.get(),
+        probeState->probedTuples.get());
     auto numMatchedTuples =
         sharedState->getHashTable()->matchUnFlatKey(keyVector, probeState->probedTuples.get(),
             probeState->matchedTuples.get(), probeState->matchedSelVector.get());

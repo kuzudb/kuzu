@@ -21,8 +21,8 @@ class Transaction {
     friend class TransactionManager;
 
 public:
-    Transaction(
-        main::ClientContext& clientContext, TransactionType transactionType, uint64_t transactionID)
+    Transaction(main::ClientContext& clientContext, TransactionType transactionType,
+        uint64_t transactionID)
         : type{transactionType}, ID{transactionID} {
         localStorage = std::make_unique<storage::LocalStorage>(clientContext);
     }

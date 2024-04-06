@@ -257,10 +257,10 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
             const auto rightBlockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(rightTupleInfoPtr);
             const auto rightBlockOffset =
                 OrderByKeyEncoder::getEncodedFTBlockOffset(rightTupleInfoPtr);
-            auto leftStr = factorizedTable.getData<ku_string_t>(
-                leftBlockIdx, leftBlockOffset, keyColInfo.colOffsetInFT);
-            auto rightStr = factorizedTable.getData<ku_string_t>(
-                rightBlockIdx, rightBlockOffset, keyColInfo.colOffsetInFT);
+            auto leftStr = factorizedTable.getData<ku_string_t>(leftBlockIdx, leftBlockOffset,
+                keyColInfo.colOffsetInFT);
+            auto rightStr = factorizedTable.getData<ku_string_t>(rightBlockIdx, rightBlockOffset,
+                keyColInfo.colOffsetInFT);
             return keyColInfo.isAscOrder ? leftStr < rightStr : leftStr > rightStr;
         });
     reOrderKeyBlock(keyBlockTie, keyBlockPtr);

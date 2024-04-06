@@ -27,8 +27,8 @@ std::unique_ptr<ParsedCaseExpression> ParsedCaseExpression::deserialize(
     deserializer.deserializeVector<ParsedCaseAlternative>(caseAlternatives);
     std::unique_ptr<ParsedExpression> elseExpression;
     deserializer.deserializeOptionalValue(elseExpression);
-    return std::make_unique<ParsedCaseExpression>(
-        std::move(caseExpression), std::move(caseAlternatives), std::move(elseExpression));
+    return std::make_unique<ParsedCaseExpression>(std::move(caseExpression),
+        std::move(caseAlternatives), std::move(elseExpression));
 }
 
 std::unique_ptr<ParsedExpression> ParsedCaseExpression::copy() const {

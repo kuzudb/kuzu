@@ -36,13 +36,13 @@
 #endif /* MBEDTLS_PLATFORM_C */
 #endif /* MBEDTLS_SELF_TEST */
 
-#define BASE64_SIZE_T_MAX ((size_t)-1) /* SIZE_T_MAX is not standard */
+#define BASE64_SIZE_T_MAX ((size_t) - 1) /* SIZE_T_MAX is not standard */
 
 /*
  * Encode a buffer into base64 format
  */
-int mbedtls_base64_encode(
-    unsigned char* dst, size_t dlen, size_t* olen, const unsigned char* src, size_t slen) {
+int mbedtls_base64_encode(unsigned char* dst, size_t dlen, size_t* olen, const unsigned char* src,
+    size_t slen) {
     size_t i, n;
     int C1, C2, C3;
     unsigned char* p;
@@ -103,8 +103,8 @@ int mbedtls_base64_encode(
 /*
  * Decode a base64-formatted buffer
  */
-int mbedtls_base64_decode(
-    unsigned char* dst, size_t dlen, size_t* olen, const unsigned char* src, size_t slen) {
+int mbedtls_base64_decode(unsigned char* dst, size_t dlen, size_t* olen, const unsigned char* src,
+    size_t slen) {
     size_t i;   /* index in source */
     size_t n;   /* number of digits or trailing = in source */
     uint32_t x; /* value accumulator */

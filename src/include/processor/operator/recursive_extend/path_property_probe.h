@@ -12,8 +12,8 @@ struct PathPropertyProbeSharedState {
 
     PathPropertyProbeSharedState(std::shared_ptr<HashJoinSharedState> nodeHashTableState,
         std::shared_ptr<HashJoinSharedState> relHashTableState)
-        : nodeHashTableState{std::move(nodeHashTableState)}, relHashTableState{
-                                                                 std::move(relHashTableState)} {}
+        : nodeHashTableState{std::move(nodeHashTableState)},
+          relHashTableState{std::move(relHashTableState)} {}
 };
 
 struct PathPropertyProbeLocalState {
@@ -41,14 +41,14 @@ struct PathPropertyProbeDataInfo {
         std::vector<ft_col_idx_t> nodeTableColumnIndices,
         std::vector<ft_col_idx_t> relTableColumnIndices)
         : pathPos{pathPos}, nodeFieldIndices{std::move(nodeFieldIndices)},
-          relFieldIndices{std::move(relFieldIndices)}, nodeTableColumnIndices{std::move(
-                                                           nodeTableColumnIndices)},
+          relFieldIndices{std::move(relFieldIndices)},
+          nodeTableColumnIndices{std::move(nodeTableColumnIndices)},
           relTableColumnIndices{std::move(relTableColumnIndices)} {}
     PathPropertyProbeDataInfo(const PathPropertyProbeDataInfo& other)
         : pathPos{other.pathPos}, nodeFieldIndices{other.nodeFieldIndices},
           relFieldIndices{other.relFieldIndices},
-          nodeTableColumnIndices{other.nodeTableColumnIndices}, relTableColumnIndices{
-                                                                    other.relTableColumnIndices} {}
+          nodeTableColumnIndices{other.nodeTableColumnIndices},
+          relTableColumnIndices{other.relTableColumnIndices} {}
 
     std::unique_ptr<PathPropertyProbeDataInfo> copy() const {
         return std::make_unique<PathPropertyProbeDataInfo>(*this);
@@ -76,8 +76,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<PathPropertyProbe>(
-            info->copy(), sharedState, children[0]->clone(), id, paramsString);
+        return std::make_unique<PathPropertyProbe>(info->copy(), sharedState, children[0]->clone(),
+            id, paramsString);
     }
 
 private:

@@ -15,8 +15,8 @@ struct ParsedCaseAlternative {
         std::unique_ptr<ParsedExpression> thenExpression)
         : whenExpression{std::move(whenExpression)}, thenExpression{std::move(thenExpression)} {}
     ParsedCaseAlternative(const ParsedCaseAlternative& other)
-        : whenExpression{other.whenExpression->copy()}, thenExpression{
-                                                            other.thenExpression->copy()} {}
+        : whenExpression{other.whenExpression->copy()},
+          thenExpression{other.thenExpression->copy()} {}
     DEFAULT_BOTH_MOVE(ParsedCaseAlternative);
 
     void serialize(common::Serializer& serializer) const;
@@ -47,10 +47,9 @@ public:
     ParsedCaseExpression(std::unique_ptr<ParsedExpression> caseExpression,
         std::vector<ParsedCaseAlternative> caseAlternatives,
         std::unique_ptr<ParsedExpression> elseExpression)
-        : ParsedExpression{common::ExpressionType::CASE_ELSE}, caseExpression{std::move(
-                                                                   caseExpression)},
-          caseAlternatives{std::move(caseAlternatives)}, elseExpression{std::move(elseExpression)} {
-    }
+        : ParsedExpression{common::ExpressionType::CASE_ELSE},
+          caseExpression{std::move(caseExpression)}, caseAlternatives{std::move(caseAlternatives)},
+          elseExpression{std::move(elseExpression)} {}
 
     inline void setCaseExpression(std::unique_ptr<ParsedExpression> expression) {
         caseExpression = std::move(expression);

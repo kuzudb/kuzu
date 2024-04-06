@@ -66,8 +66,8 @@ public:
         std::unordered_map<common::table_id_t, rel_tables_set_t> tableIDToBwdRelTablesMap,
         common::DeleteNodeType deleteType, const DataPos& nodeIDPos)
         : NodeDeleteExecutor(deleteType, nodeIDPos),
-          tableIDToTableMap{std::move(tableIDToTableMap)}, tableIDToFwdRelTablesMap{std::move(
-                                                               tableIDToFwdRelTablesMap)},
+          tableIDToTableMap{std::move(tableIDToTableMap)},
+          tableIDToFwdRelTablesMap{std::move(tableIDToFwdRelTablesMap)},
           tableIDToBwdRelTablesMap{std::move(tableIDToBwdRelTablesMap)} {}
     MultiLabelNodeDeleteExecutor(const MultiLabelNodeDeleteExecutor& other)
         : NodeDeleteExecutor(other.deleteType, other.nodeIDPos),
@@ -91,8 +91,8 @@ private:
 
 class RelDeleteExecutor {
 public:
-    RelDeleteExecutor(
-        const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos)
+    RelDeleteExecutor(const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos,
+        const DataPos& relIDPos)
         : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos}, relIDPos{relIDPos},
           srcNodeIDVector(nullptr), dstNodeIDVector(nullptr), relIDVector(nullptr) {}
     virtual ~RelDeleteExecutor() = default;
@@ -136,8 +136,8 @@ public:
     MultiLabelRelDeleteExecutor(
         std::unordered_map<common::table_id_t, storage::RelTable*> tableIDToTableMap,
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos)
-        : RelDeleteExecutor(srcNodeIDPos, dstNodeIDPos, relIDPos), tableIDToTableMap{std::move(
-                                                                       tableIDToTableMap)} {}
+        : RelDeleteExecutor(srcNodeIDPos, dstNodeIDPos, relIDPos),
+          tableIDToTableMap{std::move(tableIDToTableMap)} {}
     MultiLabelRelDeleteExecutor(const MultiLabelRelDeleteExecutor& other) = default;
 
     void delete_(ExecutionContext* context) override;

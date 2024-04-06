@@ -12,8 +12,8 @@ public:
     // constructors
     //===--------------------------------------------------------------------===//
     FunctionCatalogEntry() = default;
-    FunctionCatalogEntry(
-        CatalogEntryType entryType, std::string name, function::function_set functionSet);
+    FunctionCatalogEntry(CatalogEntryType entryType, std::string name,
+        function::function_set functionSet);
 
     //===--------------------------------------------------------------------===//
     // getters & setters

@@ -8,8 +8,8 @@ namespace processor {
 class MultiplicityReducer : public PhysicalOperator {
 
 public:
-    MultiplicityReducer(
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+    MultiplicityReducer(std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::MULTIPLICITY_REDUCER, std::move(child), id,
               paramsString},
           prevMultiplicity{1}, numRepeat{0} {}

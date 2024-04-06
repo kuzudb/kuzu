@@ -3,8 +3,8 @@
 namespace kuzu {
 namespace catalog {
 
-RelGroupCatalogEntry::RelGroupCatalogEntry(
-    std::string tableName, common::table_id_t tableID, std::vector<common::table_id_t> relTableIDs)
+RelGroupCatalogEntry::RelGroupCatalogEntry(std::string tableName, common::table_id_t tableID,
+    std::vector<common::table_id_t> relTableIDs)
     : TableCatalogEntry{CatalogEntryType::REL_GROUP_ENTRY, std::move(tableName), tableID},
       relTableIDs{std::move(relTableIDs)} {}
 

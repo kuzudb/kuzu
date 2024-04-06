@@ -20,8 +20,8 @@ public:
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);
 
-    void scan(
-        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) override;
+    void scan(Transaction* transaction, ValueVector* nodeIDVector,
+        ValueVector* resultVector) override;
     void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
         offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
         uint64_t offsetInVector) override;
@@ -29,8 +29,8 @@ public:
         ColumnChunk* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
-    void lookup(
-        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) override;
+    void lookup(Transaction* transaction, ValueVector* nodeIDVector,
+        ValueVector* resultVector) override;
 
     void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
 

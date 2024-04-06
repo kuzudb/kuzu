@@ -46,8 +46,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
             if (property->getName() == rdf::PID) {
                 // Replace pid column with (virtual) iri column.
                 dataChunk.getValueVector(0)->setValue<int64_t>(vectorPos, -1);
-                dataChunk.getValueVector(1)->setValue(
-                    vectorPos, std::string(rdf::IRI) + " (Virtual)");
+                dataChunk.getValueVector(1)->setValue(vectorPos,
+                    std::string(rdf::IRI) + " (Virtual)");
                 dataChunk.getValueVector(2)->setValue(vectorPos, LogicalType::STRING()->toString());
                 vectorPos++;
                 continue;
@@ -61,16 +61,16 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
             auto nodeTableEntry =
                 ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
             auto primaryKeyID = nodeTableEntry->getPrimaryKeyPID();
-            dataChunk.getValueVector(3)->setValue(
-                vectorPos, primaryKeyID == property->getPropertyID());
+            dataChunk.getValueVector(3)->setValue(vectorPos,
+                primaryKeyID == property->getPropertyID());
         }
         vectorPos++;
     }
     return vectorPos;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(
-    main::ClientContext* context, TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     auto tableName = input->inputs[0].getValue<std::string>();
@@ -86,8 +86,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(
         columnNames.emplace_back("primary key");
         columnTypes.push_back(*LogicalType::BOOL());
     }
-    return std::make_unique<TableInfoBindData>(
-        tableEntry, std::move(columnTypes), std::move(columnNames), tableEntry->getNumProperties());
+    return std::make_unique<TableInfoBindData>(tableEntry, std::move(columnTypes),
+        std::move(columnNames), tableEntry->getNumProperties());
 }
 
 function_set TableInfoFunction::getFunctionSet() {

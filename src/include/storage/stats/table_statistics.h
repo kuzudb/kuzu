@@ -35,8 +35,8 @@ public:
         KU_ASSERT(propertyStatistics.contains(propertyID));
         return *(propertyStatistics.at(propertyID));
     }
-    inline void setPropertyStatistics(
-        common::property_id_t propertyID, PropertyStatistics newStats) {
+    inline void setPropertyStatistics(common::property_id_t propertyID,
+        PropertyStatistics newStats) {
         propertyStatistics[propertyID] = std::make_unique<PropertyStatistics>(newStats);
     }
 

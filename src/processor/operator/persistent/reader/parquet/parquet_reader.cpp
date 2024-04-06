@@ -24,8 +24,8 @@ ParquetReader::ParquetReader(const std::string& filePath, main::ClientContext* c
     initMetadata();
 }
 
-void ParquetReader::initializeScan(
-    ParquetReaderScanState& state, std::vector<uint64_t> groups_to_read, VirtualFileSystem* vfs) {
+void ParquetReader::initializeScan(ParquetReaderScanState& state,
+    std::vector<uint64_t> groups_to_read, VirtualFileSystem* vfs) {
     state.currentGroup = -1;
     state.finished = false;
     state.groupOffset = 0;
@@ -271,8 +271,8 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
             }
             // LCOV_EXCL_STOP
             auto structType = LogicalType::STRUCT(std::move(structFields));
-            resultType = std::unique_ptr<LogicalType>(new LogicalType(
-                LogicalTypeID::MAP, std::make_unique<ListTypeInfo>(std::move(structType))));
+            resultType = std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::MAP,
+                std::make_unique<ListTypeInfo>(std::move(structType))));
 
             auto structReader = std::make_unique<StructColumnReader>(*this,
                 ListType::getChildType(resultType.get())->copy(), sEle, thisIdx, maxDefine - 1,
@@ -306,14 +306,14 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         if (sEle.repetition_type == FieldRepetitionType::REPEATED) {
             auto derivedType = deriveLogicalType(sEle);
             auto listType = LogicalType::LIST(derivedType->copy());
-            auto elementReader = ColumnReader::createReader(
-                *this, std::move(derivedType), sEle, nextFileIdx++, maxDefine, maxRepeat);
+            auto elementReader = ColumnReader::createReader(*this, std::move(derivedType), sEle,
+                nextFileIdx++, maxDefine, maxRepeat);
             return std::make_unique<ListColumnReader>(*this, std::move(listType), sEle, thisIdx,
                 maxDefine, maxRepeat, std::move(elementReader), context->getMemoryManager());
         }
         // TODO check return value of derive type or should we only do this on read()
-        return ColumnReader::createReader(
-            *this, deriveLogicalType(sEle), sEle, nextFileIdx++, maxDefine, maxRepeat);
+        return ColumnReader::createReader(*this, deriveLogicalType(sEle), sEle, nextFileIdx++,
+            maxDefine, maxRepeat);
     }
 }
 
@@ -348,8 +348,8 @@ std::unique_ptr<ColumnReader> ParquetReader::createReader() {
 
 void ParquetReader::prepareRowGroupBuffer(ParquetReaderScanState& state, uint64_t /*colIdx*/) {
     auto& group = getGroup(state);
-    state.rootReader->initializeRead(
-        state.groupIdxList[state.currentGroup], group.columns, *state.thriftFileProto);
+    state.rootReader->initializeRead(state.groupIdxList[state.currentGroup], group.columns,
+        *state.thriftFileProto);
 }
 
 uint64_t ParquetReader::getGroupSpan(ParquetReaderScanState& state) {
@@ -360,8 +360,8 @@ uint64_t ParquetReader::getGroupSpan(ParquetReaderScanState& state) {
         // Set the min offset
         auto current_min_offset = UINT64_MAX;
         if (column_chunk.meta_data.__isset.dictionary_page_offset) {
-            current_min_offset = std::min<uint64_t>(
-                current_min_offset, column_chunk.meta_data.dictionary_page_offset);
+            current_min_offset = std::min<uint64_t>(current_min_offset,
+                column_chunk.meta_data.dictionary_page_offset);
         }
         if (column_chunk.meta_data.__isset.index_page_offset) {
             current_min_offset =
@@ -370,8 +370,8 @@ uint64_t ParquetReader::getGroupSpan(ParquetReaderScanState& state) {
         current_min_offset =
             std::min<uint64_t>(current_min_offset, column_chunk.meta_data.data_page_offset);
         min_offset = std::min<uint64_t>(current_min_offset, min_offset);
-        max_offset = std::max<uint64_t>(
-            max_offset, column_chunk.meta_data.total_compressed_size + current_min_offset);
+        max_offset = std::max<uint64_t>(max_offset,
+            column_chunk.meta_data.total_compressed_size + current_min_offset);
     }
 
     return max_offset - min_offset;
@@ -563,8 +563,8 @@ uint64_t ParquetReader::getGroupOffset(ParquetReaderScanState& state) {
     return minOffset;
 }
 
-ParquetScanSharedState::ParquetScanSharedState(
-    common::ReaderConfig readerConfig, uint64_t numRows, main::ClientContext* context)
+ParquetScanSharedState::ParquetScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
+    main::ClientContext* context)
     : ScanFileSharedState{std::move(readerConfig), numRows, context} {
     readers.push_back(
         std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx], context));
@@ -576,8 +576,8 @@ ParquetScanSharedState::ParquetScanSharedState(
     numBlocksReadByFiles = 0;
 }
 
-static bool parquetSharedStateNext(
-    ParquetScanLocalState& localState, ParquetScanSharedState& sharedState) {
+static bool parquetSharedStateNext(ParquetScanLocalState& localState,
+    ParquetScanSharedState& sharedState) {
     std::lock_guard<std::mutex> mtx{sharedState.lock};
     while (true) {
         if (sharedState.fileIdx >= sharedState.readerConfig.getNumFiles()) {
@@ -585,8 +585,8 @@ static bool parquetSharedStateNext(
         }
         if (sharedState.blockIdx < sharedState.readers[sharedState.fileIdx]->getNumRowsGroups()) {
             localState.reader = sharedState.readers[sharedState.fileIdx].get();
-            localState.reader->initializeScan(
-                *localState.state, {sharedState.blockIdx}, sharedState.context->getVFSUnsafe());
+            localState.reader->initializeScan(*localState.state, {sharedState.blockIdx},
+                sharedState.context->getVFSUnsafe());
             sharedState.blockIdx++;
             return true;
         } else {
@@ -648,8 +648,8 @@ static void bindColumns(const ScanTableFuncBindInput* bindInput,
     }
 }
 
-static std::unique_ptr<function::TableFuncBindData> bindFunc(
-    main::ClientContext* /*context*/, function::TableFuncBindInput* input) {
+static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+    function::TableFuncBindInput* input) {
     auto scanInput =
         ku_dynamic_cast<function::TableFuncBindInput*, function::ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
@@ -660,8 +660,8 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(
     ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
         resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
     if (!scanInput->expectedColumnTypes.empty()) {
-        ReaderBindUtils::validateColumnTypes(
-            scanInput->expectedColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes);
+        ReaderBindUtils::validateColumnTypes(scanInput->expectedColumnNames,
+            scanInput->expectedColumnTypes, detectedColumnTypes);
     }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
         std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
@@ -675,8 +675,8 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         auto reader = std::make_unique<ParquetReader>(path, parquetScanBindData->context);
         numRows += reader->getMetadata()->num_rows;
     }
-    return std::make_unique<ParquetScanSharedState>(
-        parquetScanBindData->config.copy(), numRows, parquetScanBindData->context);
+    return std::make_unique<ParquetScanSharedState>(parquetScanBindData->config.copy(), numRows,
+        parquetScanBindData->context);
 }
 
 static std::unique_ptr<function::TableFuncLocalState> initLocalState(

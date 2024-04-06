@@ -21,8 +21,8 @@ bool SimpleAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     // Output of simple aggregate is guaranteed to be a single value for each aggregate.
     KU_ASSERT(startOffset == 0 && endOffset == 1);
     for (auto i = 0u; i < aggregateVectors.size(); i++) {
-        writeAggregateResultToVector(
-            *aggregateVectors[i], 0 /* position to write */, sharedState->getAggregateState(i));
+        writeAggregateResultToVector(*aggregateVectors[i], 0 /* position to write */,
+            sharedState->getAggregateState(i));
     }
     KU_ASSERT(!aggregatesPos.empty());
     outDataChunk->state->initOriginalAndSelectedSize(1);

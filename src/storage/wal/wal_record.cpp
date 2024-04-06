@@ -119,8 +119,8 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     }
 }
 
-WALRecord WALRecord::newPageInsertOrUpdateRecord(
-    DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert) {
+WALRecord WALRecord::newPageInsertOrUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+    uint64_t pageIdxInWAL, bool isInsert) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD;
     retVal.pageInsertOrUpdateRecord =
@@ -128,16 +128,16 @@ WALRecord WALRecord::newPageInsertOrUpdateRecord(
     return retVal;
 }
 
-WALRecord WALRecord::newPageUpdateRecord(
-    DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL) {
-    return WALRecord::newPageInsertOrUpdateRecord(
-        dbFileID, pageIdxInOriginalFile, pageIdxInWAL, false /* is update */);
+WALRecord WALRecord::newPageUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+    uint64_t pageIdxInWAL) {
+    return WALRecord::newPageInsertOrUpdateRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
+        false /* is update */);
 }
 
-WALRecord WALRecord::newPageInsertRecord(
-    DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL) {
-    return WALRecord::newPageInsertOrUpdateRecord(
-        dbFileID, pageIdxInOriginalFile, pageIdxInWAL, true /* is insert */);
+WALRecord WALRecord::newPageInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+    uint64_t pageIdxInWAL) {
+    return WALRecord::newPageInsertOrUpdateRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
+        true /* is insert */);
 }
 
 WALRecord WALRecord::newCommitRecord(uint64_t transactionID) {

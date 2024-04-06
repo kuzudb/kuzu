@@ -13,8 +13,8 @@ public:
         std::unordered_set<uint32_t> discardedDataChunksPos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator(PhysicalOperatorType::PROJECTION, std::move(child), id, paramsString),
-          expressionEvaluators(std::move(expressionEvaluators)), expressionsOutputPos{std::move(
-                                                                     expressionsOutputPos)},
+          expressionEvaluators(std::move(expressionEvaluators)),
+          expressionsOutputPos{std::move(expressionsOutputPos)},
           discardedDataChunksPos{std::move(discardedDataChunksPos)}, prevMultiplicity{1} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;

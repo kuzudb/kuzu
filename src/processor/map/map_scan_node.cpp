@@ -19,8 +19,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanInternalID(LogicalOperator*
             clientContext->getStorageManager()->getTable(tableID));
         sharedState->addTableState(nodeTable);
     }
-    return std::make_unique<ScanNodeID>(
-        dataPos, sharedState, getOperatorID(), scan->getExpressionsForPrinting());
+    return std::make_unique<ScanNodeID>(dataPos, sharedState, getOperatorID(),
+        scan->getExpressionsForPrinting());
 }
 
 } // namespace processor

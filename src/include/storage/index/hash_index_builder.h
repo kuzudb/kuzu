@@ -99,8 +99,8 @@ private:
         return keyToLookup == keyInEntry;
     }
 
-    inline void insert(
-        Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value, uint8_t fingerprint) {
+    inline void insert(Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value,
+        uint8_t fingerprint) {
         auto& entry = slot->entries[entryPos];
         entry.key = key;
         entry.value = value;
@@ -108,8 +108,8 @@ private:
         KU_ASSERT(HashIndexUtils::getFingerprintForHash(HashIndexUtils::hash(key)) == fingerprint);
     }
     void copy(const uint8_t* oldEntry, slot_id_t newSlotId, uint8_t fingerprint);
-    void insertToNewOvfSlot(
-        Key key, Slot<T>* previousSlot, common::offset_t offset, uint8_t fingerprint);
+    void insertToNewOvfSlot(Key key, Slot<T>* previousSlot, common::offset_t offset,
+        uint8_t fingerprint);
     common::hash_t hashStored(const T& key) const;
 
     struct SlotIterator {
@@ -139,8 +139,8 @@ private:
 };
 
 template<>
-bool HashIndexBuilder<common::ku_string_t>::equals(
-    std::string_view keyToLookup, const common::ku_string_t& keyInEntry) const;
+bool HashIndexBuilder<common::ku_string_t>::equals(std::string_view keyToLookup,
+    const common::ku_string_t& keyInEntry) const;
 
 class PrimaryKeyIndexBuilder {
 public:

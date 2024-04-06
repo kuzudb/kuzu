@@ -36,8 +36,8 @@ struct CallTableFuncBindData : public TableFuncBindData {
 
     CallTableFuncBindData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
-        : TableFuncBindData{std::move(columnTypes), std::move(returnColumnNames)}, maxOffset{
-                                                                                       maxOffset} {}
+        : TableFuncBindData{std::move(columnTypes), std::move(returnColumnNames)},
+          maxOffset{maxOffset} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<CallTableFuncBindData>(columnTypes, columnNames, maxOffset);
@@ -46,8 +46,8 @@ struct CallTableFuncBindData : public TableFuncBindData {
 
 struct CallFunction {
     static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input);
-    static std::unique_ptr<TableFuncLocalState> initEmptyLocalState(
-        TableFunctionInitInput& input, TableFuncSharedState* state, storage::MemoryManager* mm);
+    static std::unique_ptr<TableFuncLocalState> initEmptyLocalState(TableFunctionInitInput& input,
+        TableFuncSharedState* state, storage::MemoryManager* mm);
 };
 
 struct CurrentSettingFunction : public CallFunction {

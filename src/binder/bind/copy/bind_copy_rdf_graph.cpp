@@ -21,8 +21,8 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
-    const parser::Statement& statement, RDFGraphCatalogEntry* rdfGraphEntry) {
+std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement& statement,
+    RDFGraphCatalogEntry* rdfGraphEntry) {
     auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
     // Bind path.
     KU_ASSERT(copyStatement.getSource()->type == ScanSourceType::FILE);
@@ -34,19 +34,19 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     config->options = bindParsingOptions(copyStatement.getParsingOptionsRef());
     auto catalog = clientContext->getCatalog();
     auto functions = catalog->getFunctions(clientContext->getTx());
-    auto offset = expressionBinder.createVariableExpression(
-        *LogicalType::INT64(), InternalKeyword::ROW_OFFSET);
+    auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+        InternalKeyword::ROW_OFFSET);
     auto r = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::IRI);
     auto l = expressionBinder.createVariableExpression(*LogicalType::RDF_VARIANT(), rdf::VAL);
     auto lang = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::LANG);
     auto s = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::SUBJECT);
     auto p = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::PREDICATE);
     auto o = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::OBJECT);
-    auto sOffset = expressionBinder.createVariableExpression(
-        *LogicalType::INT64(), InternalKeyword::SRC_OFFSET);
+    auto sOffset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+        InternalKeyword::SRC_OFFSET);
     auto pOffset = expressionBinder.createVariableExpression(*LogicalType::INT64(), rdf::PID);
-    auto oOffset = expressionBinder.createVariableExpression(
-        *LogicalType::INT64(), InternalKeyword::DST_OFFSET);
+    auto oOffset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+        InternalKeyword::DST_OFFSET);
     auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy());
     Function* func;
     // Bind file scan;
@@ -114,8 +114,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(
     auto rrLCopyInfo =
         BoundCopyFromInfo(rrlEntry, std::move(rrlSource), offset, std::move(rrlExtraInfo));
     // Bind copy rdf
-    auto rdfExtraInfo = std::make_unique<ExtraBoundCopyRdfInfo>(
-        std::move(rCopyInfo), std::move(lCopyInfo), std::move(rrrCopyInfo), std::move(rrLCopyInfo));
+    auto rdfExtraInfo = std::make_unique<ExtraBoundCopyRdfInfo>(std::move(rCopyInfo),
+        std::move(lCopyInfo), std::move(rrrCopyInfo), std::move(rrLCopyInfo));
     std::unique_ptr<BoundBaseScanSource> source;
     if (inMemory) {
         auto fileScanInfo = BoundFileScanInfo(*scanFunc, bindData->copy(), expression_vector{});

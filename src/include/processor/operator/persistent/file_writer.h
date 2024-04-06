@@ -10,8 +10,8 @@ class FileWriter {
 public:
     FileWriter(std::string filePath, std::vector<std::string> columnNames,
         std::vector<std::unique_ptr<common::LogicalType>> columnTypes)
-        : filePath{std::move(filePath)}, columnNames{std::move(columnNames)}, columnTypes{std::move(
-                                                                                  columnTypes)} {}
+        : filePath{std::move(filePath)}, columnNames{std::move(columnNames)},
+          columnTypes{std::move(columnTypes)} {}
     virtual ~FileWriter() = default;
     virtual void init() = 0;
     virtual void openFile() = 0;

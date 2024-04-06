@@ -21,15 +21,15 @@ namespace processor {
 
 using std::stringstream;
 
-static void writeStringStreamToFile(
-    VirtualFileSystem* vfs, std::string ss_string, const std::string& path) {
+static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ss_string,
+    const std::string& path) {
     auto fileInfo = vfs->openFile(path, O_WRONLY | O_CREAT);
-    fileInfo->writeFile(
-        reinterpret_cast<const uint8_t*>(ss_string.c_str()), ss_string.size(), 0 /* offset */);
+    fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ss_string.c_str()), ss_string.size(),
+        0 /* offset */);
 }
 
-static void writeCopyStatement(
-    stringstream& ss, std::string tableName, ReaderConfig* boundFileInfo) {
+static void writeCopyStatement(stringstream& ss, std::string tableName,
+    ReaderConfig* boundFileInfo) {
     auto fileTypeStr = FileTypeUtils::toString(boundFileInfo->fileType);
     StringUtils::toLower(fileTypeStr);
     auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo->options);
@@ -57,8 +57,8 @@ std::string getMacroCypher(catalog::Catalog* catalog, transaction::Transaction* 
     return ss.str();
 }
 
-std::string getCopyCypher(
-    catalog::Catalog* catalog, transaction::Transaction* tx, ReaderConfig* boundFileInfo) {
+std::string getCopyCypher(catalog::Catalog* catalog, transaction::Transaction* tx,
+    ReaderConfig* boundFileInfo) {
     stringstream ss;
     for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
         auto tableName = nodeTableEntry->getName();
@@ -83,8 +83,8 @@ bool ExportDB::getNextTuplesInternal(ExecutionContext* context) {
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
     writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
-        getCopyCypher(
-            context->clientContext->getCatalog(), context->clientContext->getTx(), &boundFileInfo),
+        getCopyCypher(context->clientContext->getCatalog(), context->clientContext->getTx(),
+            &boundFileInfo),
         boundFileInfo.filePaths[0] + "/copy.cypher");
     return false;
 }

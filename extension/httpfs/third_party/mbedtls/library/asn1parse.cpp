@@ -185,8 +185,8 @@ int mbedtls_asn1_get_mpi(unsigned char** p, const unsigned char* end, mbedtls_mp
 }
 #endif /* MBEDTLS_BIGNUM_C */
 
-int mbedtls_asn1_get_bitstring(
-    unsigned char** p, const unsigned char* end, mbedtls_asn1_bitstring* bs) {
+int mbedtls_asn1_get_bitstring(unsigned char** p, const unsigned char* end,
+    mbedtls_asn1_bitstring* bs) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 
     /* Certificate type is a single byte bitstring */
@@ -226,8 +226,8 @@ int mbedtls_asn1_traverse_sequence_of(unsigned char** p, const unsigned char* en
     size_t len;
 
     /* Get main sequence tag */
-    if ((ret = mbedtls_asn1_get_tag(
-             p, end, &len, MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0) {
+    if ((ret = mbedtls_asn1_get_tag(p, end, &len,
+             MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0) {
         return (ret);
     }
 
@@ -315,21 +315,21 @@ static int asn1_get_sequence_of_cb(void* ctx, int tag, unsigned char* start, siz
 /*
  *  Parses and splits an ASN.1 "SEQUENCE OF <tag>"
  */
-int mbedtls_asn1_get_sequence_of(
-    unsigned char** p, const unsigned char* end, mbedtls_asn1_sequence* cur, int tag) {
+int mbedtls_asn1_get_sequence_of(unsigned char** p, const unsigned char* end,
+    mbedtls_asn1_sequence* cur, int tag) {
     asn1_get_sequence_of_cb_ctx_t cb_ctx = {tag, cur};
     memset(cur, 0, sizeof(mbedtls_asn1_sequence));
-    return (mbedtls_asn1_traverse_sequence_of(
-        p, end, 0xFF, tag, 0, 0, asn1_get_sequence_of_cb, &cb_ctx));
+    return (mbedtls_asn1_traverse_sequence_of(p, end, 0xFF, tag, 0, 0, asn1_get_sequence_of_cb,
+        &cb_ctx));
 }
 
-int mbedtls_asn1_get_alg(
-    unsigned char** p, const unsigned char* end, mbedtls_asn1_buf* alg, mbedtls_asn1_buf* params) {
+int mbedtls_asn1_get_alg(unsigned char** p, const unsigned char* end, mbedtls_asn1_buf* alg,
+    mbedtls_asn1_buf* params) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len;
 
-    if ((ret = mbedtls_asn1_get_tag(
-             p, end, &len, MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0)
+    if ((ret = mbedtls_asn1_get_tag(p, end, &len,
+             MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0)
         return (ret);
 
     if ((end - *p) < 1)
@@ -399,8 +399,8 @@ void mbedtls_asn1_free_named_data_list(mbedtls_asn1_named_data** head) {
     }
 }
 
-const mbedtls_asn1_named_data* mbedtls_asn1_find_named_data(
-    const mbedtls_asn1_named_data* list, const char* oid, size_t len) {
+const mbedtls_asn1_named_data* mbedtls_asn1_find_named_data(const mbedtls_asn1_named_data* list,
+    const char* oid, size_t len) {
     while (list != NULL) {
         if (list->oid.len == len && memcmp(list->oid.p, oid, len) == 0) {
             break;

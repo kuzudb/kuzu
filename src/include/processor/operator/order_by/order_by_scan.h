@@ -12,8 +12,8 @@ struct OrderByScanLocalState {
     uint64_t numTuples;
     uint64_t numTuplesRead;
 
-    void init(
-        std::vector<DataPos>& outVectorPos, SortSharedState& sharedState, ResultSet& resultSet);
+    void init(std::vector<DataPos>& outVectorPos, SortSharedState& sharedState,
+        ResultSet& resultSet);
 
     // NOLINTNEXTLINE(readability-make-member-function-const): Updates vectorsToRead.
     uint64_t scan() {
@@ -31,16 +31,16 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::ORDER_BY_SCAN, std::move(child), id, paramsString},
           outVectorPos{std::move(outVectorPos)},
-          localState{std::make_unique<OrderByScanLocalState>()}, sharedState{
-                                                                     std::move(sharedState)} {}
+          localState{std::make_unique<OrderByScanLocalState>()},
+          sharedState{std::move(sharedState)} {}
 
     // This constructor is used for cloning only.
     OrderByScan(std::vector<DataPos> outVectorPos, std::shared_ptr<SortSharedState> sharedState,
         uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::ORDER_BY_SCAN, id, paramsString},
           outVectorPos{std::move(outVectorPos)},
-          localState{std::make_unique<OrderByScanLocalState>()}, sharedState{
-                                                                     std::move(sharedState)} {}
+          localState{std::make_unique<OrderByScanLocalState>()},
+          sharedState{std::move(sharedState)} {}
 
     inline bool isSource() const final { return true; }
     // Ordered table should be scanned in single-thread mode.

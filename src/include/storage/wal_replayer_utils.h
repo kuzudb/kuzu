@@ -19,8 +19,8 @@ namespace storage {
 
 class WALReplayerUtils {
 public:
-    static void removeHashIndexFile(
-        common::VirtualFileSystem* vfs, common::table_id_t tableID, const std::string& directory);
+    static void removeHashIndexFile(common::VirtualFileSystem* vfs, common::table_id_t tableID,
+        const std::string& directory);
 
     // Create empty hash index file for the new node table.
     static void createEmptyHashIndexFiles(catalog::NodeTableCatalogEntry* nodeTableEntry,

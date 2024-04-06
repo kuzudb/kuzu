@@ -23,8 +23,8 @@ struct ShowConnectionBindData : public CallTableFuncBindData {
           context{context}, tableEntry{tableEntry} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowConnectionBindData>(
-            context, tableEntry, columnTypes, columnNames, maxOffset);
+        return std::make_unique<ShowConnectionBindData>(context, tableEntry, columnTypes,
+            columnNames, maxOffset);
     }
 };
 
@@ -58,8 +58,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto vectorPos = 0u;
     switch (tableEntry->getTableType()) {
     case TableType::REL: {
-        outputRelTableConnection(
-            srcVector, dstVector, vectorPos, bindData->context, tableEntry->getTableID());
+        outputRelTableConnection(srcVector, dstVector, vectorPos, bindData->context,
+            tableEntry->getTableID());
         vectorPos++;
     } break;
     case TableType::REL_GROUP: {
@@ -78,8 +78,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return vectorPos;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(
-    ClientContext* context, TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     // Special case here Due to any -> string, but lack implicit cast
@@ -103,8 +103,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(
         auto relGroupEntry = ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
         maxOffset = relGroupEntry->getRelTableIDs().size();
     }
-    return std::make_unique<ShowConnectionBindData>(
-        context, tableEntry, std::move(columnTypes), std::move(columnNames), maxOffset);
+    return std::make_unique<ShowConnectionBindData>(context, tableEntry, std::move(columnTypes),
+        std::move(columnNames), maxOffset);
 }
 
 function_set ShowConnectionFunction::getFunctionSet() {

@@ -37,13 +37,13 @@ public:
     static std::string nodeToString(const struct_entry_t& val, ValueVector* vector);
     static std::string relToString(const struct_entry_t& val, ValueVector* vector);
 
-    static inline void encodeOverflowPtr(
-        uint64_t& overflowPtr, page_idx_t pageIdx, uint16_t pageOffset) {
+    static inline void encodeOverflowPtr(uint64_t& overflowPtr, page_idx_t pageIdx,
+        uint16_t pageOffset) {
         memcpy(&overflowPtr, &pageIdx, 4);
         memcpy(((uint8_t*)&overflowPtr) + 4, &pageOffset, 2);
     }
-    static inline void decodeOverflowPtr(
-        uint64_t overflowPtr, page_idx_t& pageIdx, uint16_t& pageOffset) {
+    static inline void decodeOverflowPtr(uint64_t overflowPtr, page_idx_t& pageIdx,
+        uint16_t& pageOffset) {
         pageIdx = 0;
         memcpy(&pageIdx, &overflowPtr, 4);
         memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 4, 2);

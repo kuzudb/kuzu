@@ -9,8 +9,8 @@ struct TopKLocalScanState {
     std::vector<common::ValueVector*> vectorsToScan;
     std::unique_ptr<PayloadScanner> payloadScanner;
 
-    void init(
-        std::vector<DataPos>& outVectorPos, TopKSharedState& sharedState, ResultSet& resultSet);
+    void init(std::vector<DataPos>& outVectorPos, TopKSharedState& sharedState,
+        ResultSet& resultSet);
 
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     inline uint64_t scan() { return payloadScanner->scan(vectorsToScan); }
@@ -33,8 +33,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<TopKScan>(
-            outVectorPos, sharedState, children[0]->clone(), id, paramsString);
+        return std::make_unique<TopKScan>(outVectorPos, sharedState, children[0]->clone(), id,
+            paramsString);
     }
 
 private:

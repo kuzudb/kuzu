@@ -20,8 +20,8 @@ void DataChunkCollection::append(DataChunk& chunk) {
             for (auto i = 0u; i < numTuplesToCopy; i++) {
                 auto srcPos = chunk.state->selVector->selectedPositions[numTuplesAppended + i];
                 auto dstPos = chunkToAppend.state->selVector->selectedSize + i;
-                chunkToAppend.getValueVector(vectorIdx)->copyFromVectorData(
-                    dstPos, chunk.getValueVector(vectorIdx).get(), srcPos);
+                chunkToAppend.getValueVector(vectorIdx)->copyFromVectorData(dstPos,
+                    chunk.getValueVector(vectorIdx).get(), srcPos);
             }
         }
         chunkToAppend.state->selVector->selectedSize += numTuplesToCopy;

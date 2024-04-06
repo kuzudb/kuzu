@@ -9,8 +9,8 @@ namespace parser {
 
 class MatchClause : public ReadingClause {
 public:
-    MatchClause(
-        std::vector<PatternElement> patternElements, common::MatchClauseType matchClauseType)
+    MatchClause(std::vector<PatternElement> patternElements,
+        common::MatchClauseType matchClauseType)
         : ReadingClause{common::ClauseType::MATCH}, patternElements{std::move(patternElements)},
           matchClauseType{matchClauseType} {}
 

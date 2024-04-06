@@ -266,8 +266,8 @@ static std::unique_ptr<LogicalType> bindColumnType(const NpyReader& reader) {
     }
     // For columns whose type is a multi-dimension array of size n*m,
     // we flatten the row data into an 1-d array with size 1*k where k = n*m
-    return LogicalType::ARRAY(
-        std::make_unique<LogicalType>(reader.getType()), reader.getNumElementsPerRow());
+    return LogicalType::ARRAY(std::make_unique<LogicalType>(reader.getType()),
+        reader.getNumElementsPerRow());
 }
 
 static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
@@ -293,8 +293,8 @@ static void bindColumns(const common::ReaderConfig& readerConfig,
     }
 }
 
-static std::unique_ptr<function::TableFuncBindData> bindFunc(
-    main::ClientContext* /*context*/, function::TableFuncBindInput* input) {
+static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+    function::TableFuncBindInput* input) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;

@@ -12,8 +12,8 @@ void deleteMatchingDir(const std::string& dirPath, const std::string& match) {
 }
 
 int main(int argc, char** argv) {
-    std::vector<std::string> tempDirs = {
-        TestHelper::PARQUET_TEMP_DATASET_PATH, TestHelper::TMP_TEST_DIR};
+    std::vector<std::string> tempDirs = {TestHelper::PARQUET_TEMP_DATASET_PATH,
+        TestHelper::TMP_TEST_DIR};
     if (argc > 1 && std::string(argv[1]) == "--gtest_list_tests") {
         for (const auto& tempDir : tempDirs) {
             // path = test/unittest_temp_

@@ -5,8 +5,8 @@
 namespace kuzu {
 namespace binder {
 
-std::string ScalarFunctionExpression::getUniqueName(
-    const std::string& functionName, const kuzu::binder::expression_vector& children) {
+std::string ScalarFunctionExpression::getUniqueName(const std::string& functionName,
+    const kuzu::binder::expression_vector& children) {
     auto result = functionName + "(";
     for (auto& child : children) {
         result += child->getUniqueName() + ", ";
@@ -26,8 +26,8 @@ std::string ScalarFunctionExpression::toStringInternal() const {
     return result;
 }
 
-std::string AggregateFunctionExpression::getUniqueName(
-    const std::string& functionName, kuzu::binder::expression_vector& children, bool isDistinct) {
+std::string AggregateFunctionExpression::getUniqueName(const std::string& functionName,
+    kuzu::binder::expression_vector& children, bool isDistinct) {
     auto result = functionName + "(";
     if (isDistinct) {
         result += "DISTINCT ";

@@ -9,8 +9,8 @@ struct CaseAlternative {
     std::shared_ptr<Expression> whenExpression;
     std::shared_ptr<Expression> thenExpression;
 
-    CaseAlternative(
-        std::shared_ptr<Expression> whenExpression, std::shared_ptr<Expression> thenExpression)
+    CaseAlternative(std::shared_ptr<Expression> whenExpression,
+        std::shared_ptr<Expression> thenExpression)
         : whenExpression{std::move(whenExpression)}, thenExpression{std::move(thenExpression)} {}
 };
 
@@ -21,8 +21,8 @@ public:
         : Expression{common::ExpressionType::CASE_ELSE, std::move(dataType), name},
           elseExpression{std::move(elseExpression)} {}
 
-    inline void addCaseAlternative(
-        std::shared_ptr<Expression> when, std::shared_ptr<Expression> then) {
+    inline void addCaseAlternative(std::shared_ptr<Expression> when,
+        std::shared_ptr<Expression> then) {
         caseAlternatives.push_back(make_unique<CaseAlternative>(std::move(when), std::move(then)));
     }
     inline size_t getNumCaseAlternatives() const { return caseAlternatives.size(); }

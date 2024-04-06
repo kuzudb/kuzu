@@ -63,8 +63,8 @@ void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
 
 void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
     if (fileIdx < readerConfig.getNumFiles()) {
-        reader = std::make_unique<SerialCSVReader>(
-            readerConfig.filePaths[fileIdx], csvReaderConfig.option.copy(), numColumns, context);
+        reader = std::make_unique<SerialCSVReader>(readerConfig.filePaths[fileIdx],
+            csvReaderConfig.option.copy(), numColumns, context);
     }
 }
 
@@ -99,8 +99,8 @@ void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
     }
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(
-    main::ClientContext* /*context*/, TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+    TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;

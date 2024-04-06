@@ -13,8 +13,8 @@ namespace function {
 struct CastFunction {
     // This function is only used by expression binder when implicit cast is needed.
     // The expression binder should consider reusing the existing matchFunction() API.
-    static bool hasImplicitCast(
-        const common::LogicalType& srcType, const common::LogicalType& dstType);
+    static bool hasImplicitCast(const common::LogicalType& srcType,
+        const common::LogicalType& dstType);
 
     template<typename EXECUTOR = UnaryFunctionExecutor>
     static std::unique_ptr<ScalarFunction> bindCastFunction(const std::string& functionName,

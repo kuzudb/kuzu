@@ -68,8 +68,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::createEqualityComparisonExpression(
     std::shared_ptr<Expression> left, std::shared_ptr<Expression> right) {
-    return bindComparisonExpression(
-        ExpressionType::EQUALS, expression_vector{std::move(left), std::move(right)});
+    return bindComparisonExpression(ExpressionType::EQUALS,
+        expression_vector{std::move(left), std::move(right)});
 }
 
 } // namespace binder

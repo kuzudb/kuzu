@@ -76,14 +76,14 @@ public:
     f_group_pos createGroup();
 
     void insertToScope(const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos);
-    void insertToGroupAndScope(
-        const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos);
+    void insertToGroupAndScope(const std::shared_ptr<binder::Expression>& expression,
+        uint32_t groupPos);
     // Use these unsafe insert functions only if the operator may work with duplicate expressions.
     // E.g. group by a.age, a.age
-    void insertToScopeMayRepeat(
-        const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos);
-    void insertToGroupAndScopeMayRepeat(
-        const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos);
+    void insertToScopeMayRepeat(const std::shared_ptr<binder::Expression>& expression,
+        uint32_t groupPos);
+    void insertToGroupAndScopeMayRepeat(const std::shared_ptr<binder::Expression>& expression,
+        uint32_t groupPos);
 
     void insertToGroupAndScope(const binder::expression_vector& expressions, uint32_t groupPos);
 
@@ -142,13 +142,13 @@ public:
     // Given a set of factorization group, a leading group is selected as the unFlat group (caller
     // should ensure at most one unFlat group which is our general assumption of factorization). If
     // all groups are flat, we select any (the first) group as leading group.
-    static f_group_pos getLeadingGroupPos(
-        const std::unordered_set<f_group_pos>& groupPositions, const Schema& schema);
+    static f_group_pos getLeadingGroupPos(const std::unordered_set<f_group_pos>& groupPositions,
+        const Schema& schema);
 
-    static void validateAtMostOneUnFlatGroup(
-        const std::unordered_set<f_group_pos>& groupPositions, const Schema& schema);
-    static void validateNoUnFlatGroup(
-        const std::unordered_set<f_group_pos>& groupPositions, const Schema& schema);
+    static void validateAtMostOneUnFlatGroup(const std::unordered_set<f_group_pos>& groupPositions,
+        const Schema& schema);
+    static void validateNoUnFlatGroup(const std::unordered_set<f_group_pos>& groupPositions,
+        const Schema& schema);
 };
 
 } // namespace planner

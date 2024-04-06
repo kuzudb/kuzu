@@ -26,8 +26,8 @@ struct BatchInsertSharedState {
     std::shared_ptr<FactorizedTable> fTable;
     storage::WAL* wal;
 
-    BatchInsertSharedState(
-        storage::Table* table, std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal)
+    BatchInsertSharedState(storage::Table* table, std::shared_ptr<FactorizedTable> fTable,
+        storage::WAL* wal)
         : numRows{0}, table{table}, fTable{std::move(fTable)}, wal{wal} {};
     BatchInsertSharedState(const BatchInsertSharedState& other) = delete;
 

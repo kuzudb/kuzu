@@ -7,8 +7,8 @@ void BooleanColumnReader::initializeRead(uint64_t rowGroupIdx,
     const std::vector<kuzu_parquet::format::ColumnChunk>& columns,
     kuzu_apache::thrift::protocol::TProtocol& protocol) {
     bytePos = 0;
-    TemplatedColumnReader<bool, BooleanParquetValueConversion>::initializeRead(
-        rowGroupIdx, columns, protocol);
+    TemplatedColumnReader<bool, BooleanParquetValueConversion>::initializeRead(rowGroupIdx, columns,
+        protocol);
 }
 
 bool BooleanParquetValueConversion::plainRead(ByteBuffer& plainData, ColumnReader& reader) {

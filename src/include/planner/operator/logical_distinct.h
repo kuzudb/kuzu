@@ -8,12 +8,12 @@ namespace planner {
 class LogicalDistinct : public LogicalOperator {
 public:
     LogicalDistinct(binder::expression_vector keys, std::shared_ptr<LogicalOperator> child)
-        : LogicalDistinct{
-              LogicalOperatorType::DISTINCT, keys, binder::expression_vector{}, std::move(child)} {}
+        : LogicalDistinct{LogicalOperatorType::DISTINCT, keys, binder::expression_vector{},
+              std::move(child)} {}
     LogicalDistinct(LogicalOperatorType type, binder::expression_vector keys,
         binder::expression_vector payloads, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{type, std::move(child)}, keys{std::move(keys)}, payloads{std::move(
-                                                                              payloads)} {}
+        : LogicalOperator{type, std::move(child)}, keys{std::move(keys)},
+          payloads{std::move(payloads)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;

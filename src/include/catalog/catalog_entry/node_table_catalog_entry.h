@@ -11,8 +11,8 @@ public:
     // constructors
     //===--------------------------------------------------------------------===//
     NodeTableCatalogEntry() = default;
-    NodeTableCatalogEntry(
-        std::string name, common::table_id_t tableID, common::property_id_t primaryKeyPID);
+    NodeTableCatalogEntry(std::string name, common::table_id_t tableID,
+        common::property_id_t primaryKeyPID);
     NodeTableCatalogEntry(const NodeTableCatalogEntry& other);
 
     //===--------------------------------------------------------------------===//

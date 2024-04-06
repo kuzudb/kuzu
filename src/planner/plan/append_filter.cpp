@@ -6,8 +6,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-void Planner::appendFilters(
-    const binder::expression_vector& predicates, kuzu::planner::LogicalPlan& plan) {
+void Planner::appendFilters(const binder::expression_vector& predicates,
+    kuzu::planner::LogicalPlan& plan) {
     for (auto& predicate : predicates) {
         appendFilter(predicate, plan);
     }

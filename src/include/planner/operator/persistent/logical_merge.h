@@ -23,8 +23,8 @@ public:
           insertNodeInfos{std::move(insertNodeInfos)}, insertRelInfos{std::move(insertRelInfos)},
           onCreateSetNodeInfos{std::move(onCreateSetNodeInfos)},
           onCreateSetRelInfos(std::move(onCreateSetRelInfos)),
-          onMatchSetNodeInfos{std::move(onMatchSetNodeInfos)}, onMatchSetRelInfos{
-                                                                   std::move(onMatchSetRelInfos)} {}
+          onMatchSetNodeInfos{std::move(onMatchSetNodeInfos)},
+          onMatchSetRelInfos{std::move(onMatchSetRelInfos)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;

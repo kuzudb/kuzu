@@ -51,8 +51,8 @@ public:
     }
     inline const offset_to_row_idx_t& getOffsetToRowIdx() const { return offsetToRowIdx; }
 
-    void appendChunkedGroup(
-        ColumnChunk* srcOffsetChunk, std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
+    void appendChunkedGroup(ColumnChunk* srcOffsetChunk,
+        std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
     bool isEmpty() const { return offsetToRowIdx.empty() && srcNodeOffsetToRelOffsets.empty(); }
     void readValueAtRowIdx(common::row_idx_t rowIdx, common::column_id_t columnID,
@@ -69,8 +69,8 @@ public:
         append(relOffset, vectors);
         srcNodeOffsetToRelOffsets[nodeOffset].push_back(relOffset);
     }
-    void update(
-        common::offset_t offset, common::column_id_t columnID, common::ValueVector* propertyVector);
+    void update(common::offset_t offset, common::column_id_t columnID,
+        common::ValueVector* propertyVector);
     void remove(common::offset_t offset) {
         if (offsetToRowIdx.contains(offset)) {
             offsetToRowIdx.erase(offset);
@@ -140,8 +140,8 @@ private:
 
 class LocalNodeGroup {
 public:
-    LocalNodeGroup(
-        common::offset_t nodeGroupStartOffset, const std::vector<common::LogicalType>& dataTypes);
+    LocalNodeGroup(common::offset_t nodeGroupStartOffset,
+        const std::vector<common::LogicalType>& dataTypes);
     DELETE_COPY_DEFAULT_MOVE(LocalNodeGroup);
     virtual ~LocalNodeGroup() = default;
 

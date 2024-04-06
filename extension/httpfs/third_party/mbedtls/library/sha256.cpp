@@ -182,7 +182,7 @@ static const uint32_t K[] = {
     0xC67178F2,
 };
 
-#define SHR(x, n) (((x)&0xFFFFFFFF) >> (n))
+#define SHR(x, n) (((x) & 0xFFFFFFFF) >> (n))
 #define ROTR(x, n) (SHR(x, n) | ((x) << (32 - (n))))
 
 #define S0(x) (ROTR(x, 7) ^ ROTR(x, 18) ^ SHR(x, 3))
@@ -195,7 +195,8 @@ static const uint32_t K[] = {
 #define F1(x, y, z) ((z) ^ ((x) & ((y) ^ (z))))
 
 #define R(t)                                                                                       \
-    (local.W[t] = S1(local.W[(t)-2]) + local.W[(t)-7] + S0(local.W[(t)-15]) + local.W[(t)-16])
+    (local.W[t] =                                                                                  \
+            S1(local.W[(t) - 2]) + local.W[(t) - 7] + S0(local.W[(t) - 15]) + local.W[(t) - 16])
 
 #define P(a, b, c, d, e, f, g, h, x, K)                                                            \
     do {                                                                                           \
@@ -442,8 +443,8 @@ exit:
 /*
  * FIPS-180-2 test vectors
  */
-static const unsigned char sha256_test_buf[3][57] = {
-    {"abc"}, {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"}, {""}};
+static const unsigned char sha256_test_buf[3][57] = {{"abc"},
+    {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"}, {""}};
 
 static const size_t sha256_test_buflen[3] = {3, 56, 1000};
 

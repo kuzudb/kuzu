@@ -8,8 +8,8 @@ namespace binder {
 
 class ParameterExpression : public Expression {
 public:
-    explicit ParameterExpression(
-        const std::string& parameterName, std::shared_ptr<common::Value> value)
+    explicit ParameterExpression(const std::string& parameterName,
+        std::shared_ptr<common::Value> value)
         : Expression{common::ExpressionType::PARAMETER, common::LogicalType(*value->getDataType()),
               createUniqueName(parameterName)},
           parameterName(parameterName), value{std::move(value)} {}

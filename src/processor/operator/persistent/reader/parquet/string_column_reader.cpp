@@ -13,8 +13,8 @@ namespace processor {
 StringColumnReader::StringColumnReader(ParquetReader& reader,
     std::unique_ptr<common::LogicalType> type, const kuzu_parquet::format::SchemaElement& schema,
     uint64_t schemaIdx, uint64_t maxDefine, uint64_t maxRepeat)
-    : TemplatedColumnReader<common::ku_string_t, StringParquetValueConversion>(
-          reader, std::move(type), schema, schemaIdx, maxDefine, maxRepeat) {
+    : TemplatedColumnReader<common::ku_string_t, StringParquetValueConversion>(reader,
+          std::move(type), schema, schemaIdx, maxDefine, maxRepeat) {
     fixedWidthStringLength = 0;
     if (schema.type == Type::FIXED_LEN_BYTE_ARRAY) {
         KU_ASSERT(schema.__isset.type_length);
@@ -22,8 +22,8 @@ StringColumnReader::StringColumnReader(ParquetReader& reader,
     }
 }
 
-uint32_t StringColumnReader::verifyString(
-    const char* strData, uint32_t strLen, const bool isVarchar) {
+uint32_t StringColumnReader::verifyString(const char* strData, uint32_t strLen,
+    const bool isVarchar) {
     if (!isVarchar) {
         return strLen;
     }
@@ -42,12 +42,12 @@ uint32_t StringColumnReader::verifyString(
 }
 
 uint32_t StringColumnReader::verifyString(const char* strData, uint32_t strLen) {
-    return verifyString(
-        strData, strLen, getDataType()->getLogicalTypeID() == common::LogicalTypeID::STRING);
+    return verifyString(strData, strLen,
+        getDataType()->getLogicalTypeID() == common::LogicalTypeID::STRING);
 }
 
-void StringColumnReader::dictionary(
-    const std::shared_ptr<ResizeableBuffer>& data, uint64_t numEntries) {
+void StringColumnReader::dictionary(const std::shared_ptr<ResizeableBuffer>& data,
+    uint64_t numEntries) {
     dict = data;
     dictStrs = std::unique_ptr<common::ku_string_t[]>(new common::ku_string_t[numEntries]);
     for (auto dictIdx = 0u; dictIdx < numEntries; dictIdx++) {
@@ -68,14 +68,14 @@ void StringColumnReader::dictionary(
     }
 }
 
-common::ku_string_t StringParquetValueConversion::dictRead(
-    ByteBuffer& /*dict*/, uint32_t& offset, ColumnReader& reader) {
+common::ku_string_t StringParquetValueConversion::dictRead(ByteBuffer& /*dict*/, uint32_t& offset,
+    ColumnReader& reader) {
     auto& dictStrings = reinterpret_cast<StringColumnReader&>(reader).dictStrs;
     return dictStrings[offset];
 }
 
-common::ku_string_t StringParquetValueConversion::plainRead(
-    ByteBuffer& plainData, ColumnReader& reader) {
+common::ku_string_t StringParquetValueConversion::plainRead(ByteBuffer& plainData,
+    ColumnReader& reader) {
     auto& scr = reinterpret_cast<StringColumnReader&>(reader);
     uint32_t strLen =
         scr.fixedWidthStringLength == 0 ? plainData.read<uint32_t>() : scr.fixedWidthStringLength;

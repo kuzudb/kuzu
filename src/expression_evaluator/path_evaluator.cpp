@@ -12,8 +12,8 @@ namespace kuzu {
 namespace evaluator {
 
 // For each result field vector, find its corresponding input field vector if exist.
-static std::vector<ValueVector*> getFieldVectors(
-    const LogicalType& inputType, const LogicalType& resultType, ValueVector* inputVector) {
+static std::vector<ValueVector*> getFieldVectors(const LogicalType& inputType,
+    const LogicalType& resultType, ValueVector* inputVector) {
     std::vector<ValueVector*> result;
     for (auto field : StructType::getFields(&resultType)) {
         auto fieldName = StringUtils::getUpper(field->getName());
@@ -27,8 +27,8 @@ static std::vector<ValueVector*> getFieldVectors(
     return result;
 }
 
-void PathExpressionEvaluator::init(
-    const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) {
+void PathExpressionEvaluator::init(const processor::ResultSet& resultSet,
+    storage::MemoryManager* memoryManager) {
     ExpressionEvaluator::init(resultSet, memoryManager);
     auto resultNodesIdx = StructType::getFieldIdx(&resultVector->dataType, InternalKeyword::NODES);
     resultNodesVector = StructVector::getFieldVector(resultVector.get(), resultNodesIdx).get();
@@ -63,14 +63,14 @@ void PathExpressionEvaluator::init(
             auto nodeFieldIdx = StructType::getFieldIdx(&child->dataType, InternalKeyword::NODES);
             vectors->nodesInput = StructVector::getFieldVector(vectors->input, nodeFieldIdx).get();
             vectors->nodesDataInput = ListVector::getDataVector(vectors->nodesInput);
-            vectors->nodeFieldVectors = getFieldVectors(
-                recursiveNode->dataType, *pathExpression->getNodeType(), vectors->nodesDataInput);
+            vectors->nodeFieldVectors = getFieldVectors(recursiveNode->dataType,
+                *pathExpression->getNodeType(), vectors->nodesDataInput);
             auto relFieldIdx =
                 StructType::getFieldIdx(&vectors->input->dataType, InternalKeyword::RELS);
             vectors->relsInput = StructVector::getFieldVector(vectors->input, relFieldIdx).get();
             vectors->relsDataInput = ListVector::getDataVector(vectors->relsInput);
-            vectors->relFieldVectors = getFieldVectors(
-                recursiveRel->dataType, *pathExpression->getRelType(), vectors->relsDataInput);
+            vectors->relFieldVectors = getFieldVectors(recursiveRel->dataType,
+                *pathExpression->getRelType(), vectors->relsDataInput);
         } break;
         default:
             KU_UNREACHABLE;
@@ -132,8 +132,8 @@ void PathExpressionEvaluator::copyNodes(sel_t resultPos, bool isEmptyRels) {
         auto inputPos = getCurrentPos(vectors->input, resultPos);
         switch (child->dataType.getLogicalTypeID()) {
         case LogicalTypeID::NODE: {
-            copyFieldVectors(
-                inputPos, vectors->nodeFieldVectors, resultDataPos, resultNodesFieldVectors);
+            copyFieldVectors(inputPos, vectors->nodeFieldVectors, resultDataPos,
+                resultNodesFieldVectors);
         } break;
         case LogicalTypeID::RECURSIVE_REL: {
             auto& listEntry = vectors->nodesInput->getValue<list_entry_t>(inputPos);
@@ -177,8 +177,8 @@ uint64_t PathExpressionEvaluator::copyRels(sel_t resultPos) {
         auto inputPos = getCurrentPos(vectors->input, resultPos);
         switch (child->dataType.getLogicalTypeID()) {
         case LogicalTypeID::REL: {
-            copyFieldVectors(
-                inputPos, vectors->relFieldVectors, resultDataPos, resultRelsFieldVectors);
+            copyFieldVectors(inputPos, vectors->relFieldVectors, resultDataPos,
+                resultRelsFieldVectors);
         } break;
         case LogicalTypeID::RECURSIVE_REL: {
             auto& listEntry = vectors->relsInput->getValue<list_entry_t>(inputPos);
@@ -212,8 +212,8 @@ void PathExpressionEvaluator::copyFieldVectors(offset_t inputVectorPos,
     resultVectorPos++;
 }
 
-void PathExpressionEvaluator::resolveResultVector(
-    const processor::ResultSet& /*resultSet*/, storage::MemoryManager* memoryManager) {
+void PathExpressionEvaluator::resolveResultVector(const processor::ResultSet& /*resultSet*/,
+    storage::MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->getDataType(), memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());

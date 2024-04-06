@@ -11,8 +11,8 @@ bool AttachDatabase::getNextTuplesInternal(kuzu::processor::ExecutionContext* co
     for (auto& [name, storageExtension] :
         context->clientContext->getDatabase()->getStorageExtensions()) {
         if (storageExtension->canHandleDB(attachInfo.dbType)) {
-            auto db = storageExtension->attach(
-                attachInfo.dbAlias, attachInfo.dbPath, context->clientContext);
+            auto db = storageExtension->attach(attachInfo.dbAlias, attachInfo.dbPath,
+                context->clientContext);
             context->clientContext->getDatabase()
                 ->getDatabaseManagerUnsafe()
                 ->registerAttachedDatabase(std::move(db));

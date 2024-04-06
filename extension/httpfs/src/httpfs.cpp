@@ -16,8 +16,8 @@ HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
 }
 
 HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags)
-    : FileInfo{std::move(path), fileSystem}, flags{flags}, length{0},
-      availableBuffer{0}, bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0} {}
+    : FileInfo{std::move(path), fileSystem}, flags{flags}, length{0}, availableBuffer{0},
+      bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0} {}
 
 void HTTPFileInfo::initialize() {
     initializeClient();
@@ -40,8 +40,8 @@ void HTTPFileInfo::initialize() {
                 hfs->getRangeRequest(this, this->path, {}, 0, nullptr /* buffer */, 2);
             if (rangeRequest->code != 206) {
                 // LCOV_EXCL_START
-                throw IOException(stringFormat(
-                    "Unable to connect to URL \"{}\": {} ({})", this->path, res->code, res->error));
+                throw IOException(stringFormat("Unable to connect to URL \"{}\": {} ({})",
+                    this->path, res->code, res->error));
                 // LCOV_EXCL_STOP
             }
             auto rangeFound = rangeRequest->headers["Content-Range"].find("/");
@@ -92,13 +92,13 @@ void HTTPFileInfo::initialize() {
             }
         } catch (std::invalid_argument& e) {
             // LCOV_EXCL_START
-            throw IOException(stringFormat(
-                "Invalid Content-Length header received: {}", res->headers["Content-Length"]));
+            throw IOException(stringFormat("Invalid Content-Length header received: {}",
+                res->headers["Content-Length"]));
             // LCOV_EXCL_STOP
         } catch (std::out_of_range& e) {
             // LCOV_EXCL_START
-            throw IOException(stringFormat(
-                "Invalid Content-Length header received: {}", res->headers["Content-Length"]));
+            throw IOException(stringFormat("Invalid Content-Length header received: {}",
+                res->headers["Content-Length"]));
             // LCOV_EXCL_STOP
         }
     }
@@ -116,8 +116,8 @@ std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& pa
     return std::move(httpFileInfo);
 }
 
-std::vector<std::string> HTTPFileSystem::glob(
-    main::ClientContext* /*context*/, const std::string& path) const {
+std::vector<std::string> HTTPFileSystem::glob(main::ClientContext* /*context*/,
+    const std::string& path) const {
     // Glob is not supported on HTTPFS, simply return the path itself.
     return {path};
 }
@@ -126,8 +126,8 @@ bool HTTPFileSystem::canHandleFile(const std::string& path) const {
     return path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0;
 }
 
-void HTTPFileSystem::readFromFile(
-    common::FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) const {
+void HTTPFileSystem::readFromFile(common::FileInfo* fileInfo, void* buffer, uint64_t numBytes,
+    uint64_t position) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     auto numBytesToRead = numBytes;
     auto bufferOffset = 0;
@@ -158,8 +158,8 @@ void HTTPFileSystem::readFromFile(
         }
 
         if (numBytesToRead > 0 && httpFileInfo->availableBuffer == 0) {
-            auto newBufferAvailableSize = std::min<uint64_t>(
-                httpFileInfo->READ_BUFFER_LEN, httpFileInfo->length - httpFileInfo->fileOffset);
+            auto newBufferAvailableSize = std::min<uint64_t>(httpFileInfo->READ_BUFFER_LEN,
+                httpFileInfo->length - httpFileInfo->fileOffset);
 
             // Bypass buffer if we read more than buffer size.
             if (numBytesToRead > newBufferAvailableSize) {
@@ -261,7 +261,9 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::runRequestWithRetry(
                 status = res->status;
                 response = res.value();
             }
-        } catch (IOException& e) { exception = std::current_exception(); }
+        } catch (IOException& e) {
+            exception = std::current_exception();
+        }
 
         if (err == httplib::Error::Success) {
             switch (status) {
@@ -292,8 +294,8 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::runRequestWithRetry(
                 std::rethrow_exception(exception);
             } else if (err == httplib::Error::Success) {
                 // LCOV_EXCL_START
-                throw IOException(stringFormat(
-                    "Request returned HTTP {} for HTTP {} to '{}'", status, method, url));
+                throw IOException(stringFormat("Request returned HTTP {} for HTTP {} to '{}'",
+                    status, method, url));
                 // LCOV_EXCL_STOP
             } else {
                 // LCOV_EXCL_START
@@ -305,8 +307,8 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::runRequestWithRetry(
     }
 }
 
-std::unique_ptr<HTTPResponse> HTTPFileSystem::headRequest(
-    FileInfo* fileInfo, const std::string& url, HeaderMap headerMap) const {
+std::unique_ptr<HTTPResponse> HTTPFileSystem::headRequest(FileInfo* fileInfo,
+    const std::string& url, HeaderMap headerMap) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     auto parsedURL = parseUrl(url);
     auto host = parsedURL.first;
@@ -330,8 +332,8 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::getRangeRequest(FileInfo* fileInfo
     auto hostPath = parsedURL.second;
     auto headers = getHTTPHeaders(headerMap);
 
-    headers->insert(std::make_pair(
-        "Range", stringFormat("bytes={}-{}", fileOffset, fileOffset + bufferLen - 1)));
+    headers->insert(std::make_pair("Range",
+        stringFormat("bytes={}-{}", fileOffset, fileOffset + bufferLen - 1)));
 
     uint64_t bufferOffset = 0;
 

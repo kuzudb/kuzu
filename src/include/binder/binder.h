@@ -55,8 +55,8 @@ class Binder {
 
 public:
     explicit Binder(main::ClientContext* clientContext)
-        : lastExpressionId{0}, scope{}, expressionBinder{this, clientContext}, clientContext{
-                                                                                   clientContext} {}
+        : lastExpressionId{0}, scope{}, expressionBinder{this, clientContext},
+          clientContext{clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -80,10 +80,10 @@ private:
     common::table_id_t bindTableID(const std::string& tableName) const;
 
     std::shared_ptr<Expression> createVariable(std::string_view name, common::LogicalTypeID typeID);
-    std::shared_ptr<Expression> createVariable(
-        const std::string& name, common::LogicalTypeID typeID);
-    std::shared_ptr<Expression> createVariable(
-        const std::string& name, const common::LogicalType& dataType);
+    std::shared_ptr<Expression> createVariable(const std::string& name,
+        common::LogicalTypeID typeID);
+    std::shared_ptr<Expression> createVariable(const std::string& name,
+        const common::LogicalType& dataType);
 
     /*** bind DDL ***/
     BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo* info);
@@ -105,12 +105,12 @@ private:
 
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCopyNodeFrom(
-        const parser::Statement& statement, catalog::NodeTableCatalogEntry* nodeTableEntry);
-    std::unique_ptr<BoundStatement> bindCopyRelFrom(
-        const parser::Statement& statement, catalog::RelTableCatalogEntry* relTableEntry);
-    std::unique_ptr<BoundStatement> bindCopyRdfFrom(
-        const parser::Statement& statement, catalog::RDFGraphCatalogEntry* rdfGraphEntry);
+    std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
+        catalog::NodeTableCatalogEntry* nodeTableEntry);
+    std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
+        catalog::RelTableCatalogEntry* relTableEntry);
+    std::unique_ptr<BoundStatement> bindCopyRdfFrom(const parser::Statement& statement,
+        catalog::RDFGraphCatalogEntry* rdfGraphEntry);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
@@ -184,8 +184,8 @@ private:
         const std::unordered_map<std::string, std::shared_ptr<Expression>>& propertyRhsExpr,
         const std::vector<catalog::Property>& properties);
 
-    BoundSetPropertyInfo bindSetPropertyInfo(
-        parser::ParsedExpression* lhs, parser::ParsedExpression* rhs);
+    BoundSetPropertyInfo bindSetPropertyInfo(parser::ParsedExpression* lhs,
+        parser::ParsedExpression* rhs);
     expression_pair bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs);
 
     /*** bind projection clause ***/
@@ -207,8 +207,8 @@ private:
     BoundGraphPattern bindGraphPattern(const std::vector<parser::PatternElement>& graphPattern);
 
     QueryGraph bindPatternElement(const parser::PatternElement& patternElement);
-    std::shared_ptr<Expression> createPath(
-        const std::string& pathName, const expression_vector& children);
+    std::shared_ptr<Expression> createPath(const std::string& pathName,
+        const expression_vector& children);
 
     std::shared_ptr<RelExpression> bindQueryRel(const parser::RelPattern& relPattern,
         const std::shared_ptr<NodeExpression>& leftNode,
@@ -222,18 +222,18 @@ private:
     std::pair<uint64_t, uint64_t> bindVariableLengthRelBound(const parser::RelPattern& relPattern);
     void bindQueryRelProperties(RelExpression& rel);
 
-    std::shared_ptr<NodeExpression> bindQueryNode(
-        const parser::NodePattern& nodePattern, QueryGraph& queryGraph);
+    std::shared_ptr<NodeExpression> bindQueryNode(const parser::NodePattern& nodePattern,
+        QueryGraph& queryGraph);
     std::shared_ptr<NodeExpression> createQueryNode(const parser::NodePattern& nodePattern);
-    std::shared_ptr<NodeExpression> createQueryNode(
-        const std::string& parsedName, const std::vector<common::table_id_t>& tableIDs);
+    std::shared_ptr<NodeExpression> createQueryNode(const std::string& parsedName,
+        const std::vector<common::table_id_t>& tableIDs);
     void bindQueryNodeProperties(NodeExpression& node);
 
     /*** bind table ID ***/
     // Bind table names to catalog table schemas. The function does NOT validate if the table schema
     // type matches node or rel pattern.
-    std::vector<common::table_id_t> bindTableIDs(
-        const std::vector<std::string>& tableNames, bool nodePattern);
+    std::vector<common::table_id_t> bindTableIDs(const std::vector<std::string>& tableNames,
+        bool nodePattern);
     std::vector<common::table_id_t> getNodeTableIDs(
         const std::vector<common::table_id_t>& tableIDs);
     std::vector<common::table_id_t> getNodeTableIDs(common::table_id_t tableID);
@@ -261,8 +261,8 @@ private:
     BinderScope saveScope();
     void restoreScope(BinderScope prevScope);
 
-    function::TableFunction getScanFunction(
-        common::FileType fileType, const common::ReaderConfig& config);
+    function::TableFunction getScanFunction(common::FileType fileType,
+        const common::ReaderConfig& config);
 
 private:
     uint32_t lastExpressionId;

@@ -36,8 +36,8 @@ void kuzu_connection_destroy(kuzu_connection* connection) {
     free(connection);
 }
 
-void kuzu_connection_set_max_num_thread_for_exec(
-    kuzu_connection* connection, uint64_t num_threads) {
+void kuzu_connection_set_max_num_thread_for_exec(kuzu_connection* connection,
+    uint64_t num_threads) {
     static_cast<Connection*>(connection->_connection)->setMaxNumThreadForExec(num_threads);
 }
 
@@ -56,7 +56,9 @@ kuzu_query_result* kuzu_connection_query(kuzu_connection* connection, const char
         c_query_result->_query_result = query_result;
         c_query_result->_is_owned_by_cpp = false;
         return c_query_result;
-    } catch (Exception& e) { return nullptr; }
+    } catch (Exception& e) {
+        return nullptr;
+    }
 }
 
 kuzu_prepared_statement* kuzu_connection_prepare(kuzu_connection* connection, const char* query) {
@@ -72,8 +74,8 @@ kuzu_prepared_statement* kuzu_connection_prepare(kuzu_connection* connection, co
     return c_prepared_statement;
 }
 
-kuzu_query_result* kuzu_connection_execute(
-    kuzu_connection* connection, kuzu_prepared_statement* prepared_statement) {
+kuzu_query_result* kuzu_connection_execute(kuzu_connection* connection,
+    kuzu_prepared_statement* prepared_statement) {
     auto prepared_statement_ptr =
         static_cast<PreparedStatement*>(prepared_statement->_prepared_statement);
     auto bound_values = static_cast<std::unordered_map<std::string, std::unique_ptr<Value>>*>(

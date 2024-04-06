@@ -58,11 +58,11 @@ public:
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
     virtual void append(common::ValueVector* vector, const common::SelectionVector& selVector);
-    virtual void append(
-        ColumnChunk* other, common::offset_t startPosInOtherChunk, uint32_t numValuesToAppend);
+    virtual void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
+        uint32_t numValuesToAppend);
 
-    ColumnChunkMetadata flushBuffer(
-        BMFileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata);
+    ColumnChunkMetadata flushBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx,
+        const ColumnChunkMetadata& metadata);
 
     static inline common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
         return (numBytes + common::BufferPoolConstants::PAGE_4KB_SIZE - 1) /
@@ -79,8 +79,8 @@ public:
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
     virtual void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk);
-    virtual void write(
-        ColumnChunk* chunk, ColumnChunk* offsetsInChunk, common::RelMultiplicity multiplicity);
+    virtual void write(ColumnChunk* chunk, ColumnChunk* offsetsInChunk,
+        common::RelMultiplicity multiplicity);
     virtual void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
     // TODO(Guodong): Used in `applyDeletionsToChunk`. Should unify with `write`.
@@ -133,8 +133,8 @@ protected:
     std::unique_ptr<uint8_t[]> buffer;
     std::unique_ptr<NullColumnChunk> nullChunk;
     uint64_t numValues;
-    std::function<ColumnChunkMetadata(
-        const uint8_t*, uint64_t, BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>
+    std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, BMFileHandle*, common::page_idx_t,
+        const ColumnChunkMetadata&)>
         flushBufferFunction;
     std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, uint64_t, uint64_t)>
         getMetadataFunction;
@@ -170,8 +170,8 @@ public:
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(
-        ColumnChunk* chunk, ColumnChunk* dstOffsets, common::RelMultiplicity multiplicity) final;
+    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets,
+        common::RelMultiplicity multiplicity) final;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 };
@@ -179,8 +179,8 @@ public:
 class NullColumnChunk final : public BoolColumnChunk {
 public:
     explicit NullColumnChunk(uint64_t capacity, bool enableCompression)
-        : BoolColumnChunk(capacity, enableCompression, false /*hasNullChunk*/), mayHaveNullValue{
-                                                                                    false} {}
+        : BoolColumnChunk(capacity, enableCompression, false /*hasNullChunk*/),
+          mayHaveNullValue{false} {}
     // Maybe this should be combined with BoolColumnChunk if the only difference is these functions?
     inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     void setNull(common::offset_t pos, bool isNull);
@@ -202,8 +202,8 @@ public:
 
     inline void copyFromBuffer(uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
         uint64_t numBits, bool invert = false) {
-        if (common::NullMask::copyNullMask(
-                srcBuffer, srcOffset, (uint64_t*)buffer.get(), dstOffset, numBits, invert)) {
+        if (common::NullMask::copyNullMask(srcBuffer, srcOffset, (uint64_t*)buffer.get(), dstOffset,
+                numBits, invert)) {
             mayHaveNullValue = true;
         }
     }
@@ -227,8 +227,8 @@ struct ColumnChunkFactory {
         bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
         bool inMemory = false);
 
-    static std::unique_ptr<ColumnChunk> createNullColumnChunk(
-        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
+    static std::unique_ptr<ColumnChunk> createNullColumnChunk(bool enableCompression,
+        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
         return std::make_unique<NullColumnChunk>(capacity, enableCompression);
     }
 };

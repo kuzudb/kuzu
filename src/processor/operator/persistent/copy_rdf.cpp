@@ -8,8 +8,8 @@ namespace processor {
 
 void CopyRdf::finalize(ExecutionContext* context) {
     auto outputMsg = common::stringFormat("Done copy rdf.");
-    FactorizedTableUtils::appendStringToTable(
-        sharedState->fTable.get(), outputMsg, context->clientContext->getMemoryManager());
+    FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
+        context->clientContext->getMemoryManager());
 }
 
 } // namespace processor

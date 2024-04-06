@@ -27,7 +27,9 @@
     DEFAULT_MOVE_ASSN(Object)
 
 #define EXPLICIT_COPY_METHOD(Object)                                                               \
-    Object copy() const { return *this; }
+    Object copy() const {                                                                          \
+        return *this;                                                                              \
+    }
 
 // EXPLICIT_COPY_DEFAULT_MOVE should be the default choice. It expects a PRIVATE copy constructor to
 // be defined, which will be used by an explicit `copy()` method. For instance:

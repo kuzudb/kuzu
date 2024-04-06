@@ -40,11 +40,11 @@ private:
         KU_ASSERT(nodeIDName2dom.contains(nodeIDName));
         return nodeIDName2dom.at(nodeIDName);
     }
-    uint64_t getNumNodes(
-        const std::vector<common::table_id_t>& tableIDs, transaction::Transaction* transaction);
+    uint64_t getNumNodes(const std::vector<common::table_id_t>& tableIDs,
+        transaction::Transaction* transaction);
 
-    uint64_t getNumRels(
-        const std::vector<common::table_id_t>& tableIDs, transaction::Transaction* transaction);
+    uint64_t getNumRels(const std::vector<common::table_id_t>& tableIDs,
+        transaction::Transaction* transaction);
 
 private:
     const storage::NodesStoreStatsAndDeletedIDs* nodesStatistics;

@@ -43,8 +43,8 @@ struct mbedtls_cipher_base_t {
     mbedtls_cipher_id_t cipher;
 
     /** Encrypt using ECB */
-    int (*ecb_func)(
-        void* ctx, mbedtls_operation_t mode, const unsigned char* input, unsigned char* output);
+    int (*ecb_func)(void* ctx, mbedtls_operation_t mode, const unsigned char* input,
+        unsigned char* output);
 
 #if defined(MBEDTLS_CIPHER_MODE_CBC)
     /** Encrypt using CBC */

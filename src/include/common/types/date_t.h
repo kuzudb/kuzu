@@ -73,8 +73,8 @@ public:
     // Convert a date object to a string in the format "YYYY-MM-DD"
     KUZU_API static std::string toString(date_t date);
     // Try to convert text in a buffer to a date; returns true if parsing was successful
-    KUZU_API static bool tryConvertDate(
-        const char* buf, uint64_t len, uint64_t& pos, date_t& result);
+    KUZU_API static bool tryConvertDate(const char* buf, uint64_t len, uint64_t& pos,
+        date_t& result);
 
     // private:
     // Returns true if (year) is a leap year, and false otherwise
@@ -83,14 +83,14 @@ public:
     // date
     KUZU_API static bool isValid(int32_t year, int32_t month, int32_t day);
     // Extract the year, month and day from a given date object
-    KUZU_API static void convert(
-        date_t date, int32_t& out_year, int32_t& out_month, int32_t& out_day);
+    KUZU_API static void convert(date_t date, int32_t& out_year, int32_t& out_month,
+        int32_t& out_day);
     // Create a Date object from a specified (year, month, day) combination
     KUZU_API static date_t fromDate(int32_t year, int32_t month, int32_t day);
 
     // Helper function to parse two digits from a string (e.g. "30" -> 30, "03" -> 3, "3" -> 3)
-    KUZU_API static bool parseDoubleDigit(
-        const char* buf, uint64_t len, uint64_t& pos, int32_t& result);
+    KUZU_API static bool parseDoubleDigit(const char* buf, uint64_t len, uint64_t& pos,
+        int32_t& result);
 
     KUZU_API static int32_t monthDays(int32_t year, int32_t month);
 
