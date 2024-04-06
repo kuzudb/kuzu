@@ -347,7 +347,11 @@ jobs:
       - name: Check and fix extension format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r extension/
 
-      - name: Commit changes
+      - name: Fail if any changes were made (master branch)
+        if: github.ref == 'refs/heads/master'
+        run: git diff --exit-code
+
+      - name: Commit changes (non-master branch)
         uses: EndBug/add-and-commit@v9
         if: github.ref != 'refs/heads/master'
         with:
