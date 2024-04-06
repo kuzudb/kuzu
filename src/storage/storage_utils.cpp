@@ -16,8 +16,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-std::string StorageUtils::getColumnName(
-    const std::string& propertyName, StorageUtils::ColumnType type, const std::string& prefix) {
+std::string StorageUtils::getColumnName(const std::string& propertyName,
+    StorageUtils::ColumnType type, const std::string& prefix) {
     switch (type) {
     case StorageUtils::ColumnType::DATA: {
         return stringFormat("{}_data", propertyName);
@@ -57,8 +57,8 @@ std::string StorageUtils::getNodeIndexFName(const VirtualFileSystem* vfs,
         vfs->joinPath(directory, fName + StorageConstants::INDEX_FILE_SUFFIX), fileVersionType);
 }
 
-std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
-    const std::string& directory, DBFileID dbFileID, VirtualFileSystem* vfs) {
+std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(const std::string& directory,
+    DBFileID dbFileID, VirtualFileSystem* vfs) {
     std::string fName;
     switch (dbFileID.dbFileType) {
     case DBFileType::METADATA: {
@@ -68,8 +68,8 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
         fName = getDataFName(vfs, directory);
     } break;
     case DBFileType::NODE_INDEX: {
-        fName = getNodeIndexFName(
-            vfs, directory, dbFileID.nodeIndexID.tableID, FileVersionType::ORIGINAL);
+        fName = getNodeIndexFName(vfs, directory, dbFileID.nodeIndexID.tableID,
+            FileVersionType::ORIGINAL);
         if (dbFileID.isOverflow) {
             fName = getOverflowFileName(fName);
         }
@@ -122,8 +122,8 @@ uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
     }
 }
 
-std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(
-    const std::string& fileName, const std::string& suffix) {
+std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(const std::string& fileName,
+    const std::string& suffix) {
     auto pos = fileName.find(StorageConstants::WAL_FILE_SUFFIX);
     if (pos == std::string::npos) {
         return fileName + suffix;

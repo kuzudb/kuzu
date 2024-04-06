@@ -24,8 +24,8 @@ public:
         const std::vector<common::LogicalType>& inputTypes, bool isDistinct,
         catalog::CatalogSet* catalogSet);
 
-    static uint32_t getCastCost(
-        common::LogicalTypeID inputTypeID, common::LogicalTypeID targetTypeID);
+    static uint32_t getCastCost(common::LogicalTypeID inputTypeID,
+        common::LogicalTypeID targetTypeID);
 
 private:
     // TODO(Xiyang): move casting cost related functions to binder.
@@ -67,8 +67,8 @@ private:
 
     static Function* getBestMatch(std::vector<Function*>& functions);
 
-    static uint32_t getFunctionCost(
-        const std::vector<common::LogicalType>& inputTypes, Function* function, bool isOverload);
+    static uint32_t getFunctionCost(const std::vector<common::LogicalType>& inputTypes,
+        Function* function, bool isOverload);
     static uint32_t matchParameters(const std::vector<common::LogicalType>& inputTypes,
         const std::vector<common::LogicalTypeID>& targetTypeIDs, bool isOverload);
     static uint32_t matchVarLengthParameters(const std::vector<common::LogicalType>& inputTypes,

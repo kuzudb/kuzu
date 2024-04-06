@@ -61,8 +61,8 @@ std::unique_ptr<LogicalOperator> LogicalIntersect::copy() {
     for (auto i = 1u; i < children.size(); ++i) {
         buildChildren.push_back(children[i]->copy());
     }
-    return make_unique<LogicalIntersect>(
-        intersectNodeID, keyNodeIDs, children[0]->copy(), std::move(buildChildren));
+    return make_unique<LogicalIntersect>(intersectNodeID, keyNodeIDs, children[0]->copy(),
+        std::move(buildChildren));
 }
 
 } // namespace planner

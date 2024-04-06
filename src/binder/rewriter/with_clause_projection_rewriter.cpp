@@ -8,8 +8,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-static expression_vector getPropertiesOfSameVariable(
-    const expression_vector& expressions, const std::string& variableName) {
+static expression_vector getPropertiesOfSameVariable(const expression_vector& expressions,
+    const std::string& variableName) {
     expression_vector result;
     for (auto& expression : expressions) {
         auto propertyExpression = (PropertyExpression*)expression.get();
@@ -21,8 +21,8 @@ static expression_vector getPropertiesOfSameVariable(
     return result;
 }
 
-static expression_vector rewriteExpressions(
-    const expression_vector& expressions, const expression_vector& properties) {
+static expression_vector rewriteExpressions(const expression_vector& expressions,
+    const expression_vector& properties) {
     expression_set distinctResult;
     for (auto& expression : expressions) {
         if (expression->expressionType != common::ExpressionType::PROPERTY) {

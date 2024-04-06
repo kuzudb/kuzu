@@ -154,8 +154,8 @@ size_t mbedtls_ct_size_mask_ge(size_t x, size_t y) {
  * Constant flow with respect to c.
  */
 MBEDTLS_STATIC_TESTABLE
-unsigned char mbedtls_ct_uchar_mask_of_range(
-    unsigned char low, unsigned char high, unsigned char c) {
+unsigned char mbedtls_ct_uchar_mask_of_range(unsigned char low, unsigned char high,
+    unsigned char c) {
     /* low_mask is: 0 if low <= c, 0x...ff if low > c */
     unsigned low_mask = ((unsigned)c - low) >> 8;
     /* high_mask is: 0 if c <= high, 0x...ff if c > high */
@@ -276,8 +276,8 @@ static int mbedtls_ct_cond_select_sign(unsigned char condition, int if1, int if0
     return ((int)ur - 1);
 }
 
-void mbedtls_ct_mpi_uint_cond_assign(
-    size_t n, mbedtls_mpi_uint* dest, const mbedtls_mpi_uint* src, unsigned char condition) {
+void mbedtls_ct_mpi_uint_cond_assign(size_t n, mbedtls_mpi_uint* dest, const mbedtls_mpi_uint* src,
+    unsigned char condition) {
     size_t i;
 
     /* MSVC has a warning about unary minus on unsigned integer types,
@@ -374,8 +374,8 @@ static void mbedtls_ct_mem_move_to_left(void* start, size_t total, size_t offset
 
 #if defined(MBEDTLS_SSL_SOME_SUITES_USE_TLS_CBC)
 
-void mbedtls_ct_memcpy_if_eq(
-    unsigned char* dest, const unsigned char* src, size_t len, size_t c1, size_t c2) {
+void mbedtls_ct_memcpy_if_eq(unsigned char* dest, const unsigned char* src, size_t len, size_t c1,
+    size_t c2) {
     /* mask = c1 == c2 ? 0xff : 0x00 */
     const size_t equal = mbedtls_ct_size_bool_eq(c1, c2);
     const unsigned char mask = (unsigned char)mbedtls_ct_size_mask(equal);
@@ -609,8 +609,8 @@ int mbedtls_mpi_lt_mpi_ct(const mbedtls_mpi* X, const mbedtls_mpi* Y, unsigned* 
 
 #if defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C) && !defined(MBEDTLS_RSA_ALT)
 
-int mbedtls_ct_rsaes_pkcs1_v15_unpadding(
-    unsigned char* input, size_t ilen, unsigned char* output, size_t output_max_len, size_t* olen) {
+int mbedtls_ct_rsaes_pkcs1_v15_unpadding(unsigned char* input, size_t ilen, unsigned char* output,
+    size_t output_max_len, size_t* olen) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t i, plaintext_max_size;
 
@@ -689,8 +689,8 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding(
      * Copy anyway to avoid revealing the length through timing, because
      * revealing the length is as bad as revealing the padding validity
      * for a Bleichenbacher attack. */
-    plaintext_size = mbedtls_ct_uint_if(
-        output_too_large, (unsigned)plaintext_max_size, (unsigned)plaintext_size);
+    plaintext_size = mbedtls_ct_uint_if(output_too_large, (unsigned)plaintext_max_size,
+        (unsigned)plaintext_size);
 
     /* Move the plaintext to the leftmost position where it can start in
      * the working buffer, i.e. make it start plaintext_max_size from
@@ -698,8 +698,8 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding(
      * does not depend on the plaintext size. After this move, the
      * starting location of the plaintext is no longer sensitive
      * information. */
-    mbedtls_ct_mem_move_to_left(
-        input + ilen - plaintext_max_size, plaintext_max_size, plaintext_max_size - plaintext_size);
+    mbedtls_ct_mem_move_to_left(input + ilen - plaintext_max_size, plaintext_max_size,
+        plaintext_max_size - plaintext_size);
 
     /* Finally copy the decrypted plaintext plus trailing zeros into the output
      * buffer. If output_max_len is 0, then output may be an invalid pointer

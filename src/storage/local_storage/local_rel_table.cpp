@@ -26,8 +26,8 @@ row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOf
     for (auto i = 0u; i < columnIDs.size(); i++) {
         uint64_t posInOutputVector = 0;
         for (auto rowIdx : rowIdxesToRead) {
-            insertChunks.readValueAtRowIdx(
-                rowIdx, columnIDs[i], outputVectors[i], posInOutputVector++);
+            insertChunks.readValueAtRowIdx(rowIdx, columnIDs[i], outputVectors[i],
+                posInOutputVector++);
         }
     }
     auto numRelsRead = rowIdxesToRead.size();
@@ -47,8 +47,8 @@ void LocalRelNG::applyLocalChangesToScannedVectors(offset_t srcOffset,
     applyCSRDeletions(srcOffset, relIDVector);
 }
 
-void LocalRelNG::applyCSRUpdates(
-    column_id_t columnID, ValueVector* relIDVector, ValueVector* outputVector) {
+void LocalRelNG::applyCSRUpdates(column_id_t columnID, ValueVector* relIDVector,
+    ValueVector* outputVector) {
     auto& updateChunk = updateChunks[columnID];
     for (auto i = 0u; i < relIDVector->state->selVector->selectedSize; i++) {
         auto pos = relIDVector->state->selVector->selectedPositions[i];
@@ -83,8 +83,8 @@ void LocalRelNG::applyCSRDeletions(offset_t srcOffset, ValueVector* relIDVector)
 }
 
 // nodeIDVectors: srcNodeIDVector, dstNodeIDVector.
-bool LocalRelNG::insert(
-    std::vector<ValueVector*> nodeIDVectors, std::vector<ValueVector*> propertyVectors) {
+bool LocalRelNG::insert(std::vector<ValueVector*> nodeIDVectors,
+    std::vector<ValueVector*> propertyVectors) {
     KU_ASSERT(nodeIDVectors.size() == 2);
     auto srcNodeIDVector = nodeIDVectors[0];
     auto dstNodeIDVector = nodeIDVectors[1];
@@ -110,8 +110,8 @@ bool LocalRelNG::insert(
 }
 
 // IDVectors: srcNodeIDVector, relIDVector.
-bool LocalRelNG::update(
-    std::vector<ValueVector*> IDVectors, column_id_t columnID, ValueVector* propertyVector) {
+bool LocalRelNG::update(std::vector<ValueVector*> IDVectors, column_id_t columnID,
+    ValueVector* propertyVector) {
     KU_ASSERT(IDVectors.size() == 2);
     auto srcNodeIDVector = IDVectors[0];
     auto relIDVector = IDVectors[1];
@@ -171,8 +171,8 @@ offset_t LocalRelNG::getNumInsertedRels(offset_t srcOffset) const {
     return insertChunks.getNumRelsFromSrcOffset(srcOffset);
 }
 
-void LocalRelNG::getChangesPerCSRSegment(
-    std::vector<int64_t>& sizeChangesPerSegment, std::vector<bool>& hasChangesPerSegment) {
+void LocalRelNG::getChangesPerCSRSegment(std::vector<int64_t>& sizeChangesPerSegment,
+    std::vector<bool>& hasChangesPerSegment) {
     auto numSegments = StorageConstants::NODE_GROUP_SIZE / StorageConstants::CSR_SEGMENT_SIZE;
     sizeChangesPerSegment.resize(numSegments, 0 /*initValue*/);
     hasChangesPerSegment.resize(numSegments, false /*initValue*/);

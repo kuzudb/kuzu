@@ -112,8 +112,8 @@ public:
     std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
 
 private:
-    std::unique_ptr<QueryResult> query(
-        std::string_view query, std::string_view encodedJoin, bool enumerateAllPlans = true);
+    std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin,
+        bool enumerateAllPlans = true);
 
     std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 

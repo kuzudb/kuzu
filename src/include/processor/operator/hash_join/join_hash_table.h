@@ -17,8 +17,8 @@ public:
         const std::vector<BlockAppendingInfo>& appendInfos, ft_col_idx_t colIdx);
 
     // Used in worst-case optimal join
-    void appendVectorWithSorting(
-        common::ValueVector* keyVector, std::vector<common::ValueVector*> payloadVectors);
+    void appendVectorWithSorting(common::ValueVector* keyVector,
+        std::vector<common::ValueVector*> payloadVectors);
 
     void allocateHashSlots(uint64_t numTuples);
     void buildHashSlots();

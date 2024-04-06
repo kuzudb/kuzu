@@ -32,8 +32,8 @@ public:
     inline std::string getExpressionsForPrinting() const override { return "CALL TABLE FUNC"; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalInQueryCall>(
-            tableFunc, bindData->copy(), outputExpressions, rowIDExpression);
+        return std::make_unique<LogicalInQueryCall>(tableFunc, bindData->copy(), outputExpressions,
+            rowIDExpression);
     }
 
 private:

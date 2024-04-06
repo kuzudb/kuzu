@@ -110,8 +110,8 @@ int mbedtls_rsa_deduce_primes(mbedtls_mpi const* N, mbedtls_mpi const* E, mbedtl
  * \note           This function does not check whether P and Q are primes.
  *
  */
-int mbedtls_rsa_deduce_private_exponent(
-    mbedtls_mpi const* P, mbedtls_mpi const* Q, mbedtls_mpi const* E, mbedtls_mpi* D);
+int mbedtls_rsa_deduce_private_exponent(mbedtls_mpi const* P, mbedtls_mpi const* Q,
+    mbedtls_mpi const* E, mbedtls_mpi* D);
 
 /**
  * \brief          Generate RSA-CRT parameters

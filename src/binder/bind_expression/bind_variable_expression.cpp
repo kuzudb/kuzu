@@ -32,10 +32,10 @@ std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(
     return createVariableExpression(logicalType, std::string(name));
 }
 
-std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(
-    LogicalType logicalType, std::string name) {
-    return std::make_shared<VariableExpression>(
-        std::move(logicalType), binder->getUniqueExpressionName(name), std::move(name));
+std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(LogicalType logicalType,
+    std::string name) {
+    return std::make_shared<VariableExpression>(std::move(logicalType),
+        binder->getUniqueExpressionName(name), std::move(name));
 }
 
 } // namespace binder

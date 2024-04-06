@@ -10,8 +10,8 @@ class CreateTable : public DDL {
 public:
     CreateTable(binder::BoundCreateTableInfo info, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
-        : DDL{PhysicalOperatorType::CREATE_TABLE, outputPos, id, paramsString}, info{std::move(
-                                                                                    info)} {}
+        : DDL{PhysicalOperatorType::CREATE_TABLE, outputPos, id, paramsString},
+          info{std::move(info)} {}
 
     void executeDDLInternal(ExecutionContext* context) final;
 

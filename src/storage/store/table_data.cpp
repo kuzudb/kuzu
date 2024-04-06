@@ -11,16 +11,16 @@ namespace storage {
 TableData::TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     catalog::TableCatalogEntry* tableEntry, BufferManager* bufferManager, WAL* wal,
     bool enableCompression)
-    : dataFH{dataFH},
-      metadataFH{metadataFH}, tableID{tableEntry->getTableID()}, tableName{tableEntry->getName()},
-      bufferManager{bufferManager}, wal{wal}, enableCompression{enableCompression} {}
+    : dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableEntry->getTableID()},
+      tableName{tableEntry->getName()}, bufferManager{bufferManager}, wal{wal},
+      enableCompression{enableCompression} {}
 
 void TableData::addColumn(Transaction* transaction, const std::string& colNamePrefix,
     InMemDiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDAHInfo,
     const catalog::Property& property, ValueVector* defaultValueVector,
     TablesStatistics* tablesStats) {
-    auto colName = StorageUtils::getColumnName(
-        property.getName(), StorageUtils::ColumnType::DEFAULT, colNamePrefix);
+    auto colName = StorageUtils::getColumnName(property.getName(),
+        StorageUtils::ColumnType::DEFAULT, colNamePrefix);
     auto column = ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
         metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, transaction,
         RWPropertyStats(tablesStats, tableID, property.getPropertyID()), enableCompression);

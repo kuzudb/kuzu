@@ -90,8 +90,8 @@ public:
     void populateWithDefaultVal(transaction::Transaction* transaction,
         InMemDiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector);
 
-    inline ColumnChunkMetadata getMetadata(
-        common::node_group_idx_t nodeGroupIdx, transaction::TransactionType transaction) const {
+    inline ColumnChunkMetadata getMetadata(common::node_group_idx_t nodeGroupIdx,
+        transaction::TransactionType transaction) const {
         return metadataDA->get(nodeGroupIdx, transaction);
     }
     inline InMemDiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
@@ -109,11 +109,11 @@ public:
         ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues);
 
     // Append values to the end of the node group, resizing it if necessary
-    common::offset_t appendValues(
-        common::node_group_idx_t nodeGroupIdx, const uint8_t* data, common::offset_t numValues);
+    common::offset_t appendValues(common::node_group_idx_t nodeGroupIdx, const uint8_t* data,
+        common::offset_t numValues);
 
-    ReadState getReadState(
-        transaction::TransactionType transactionType, common::node_group_idx_t nodeGroupIdx) const;
+    ReadState getReadState(transaction::TransactionType transactionType,
+        common::node_group_idx_t nodeGroupIdx) const;
 
     virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit(uint64_t capacity);
     static void applyLocalChunkToColumnChunk(const ChunkCollection& localChunks,
@@ -143,13 +143,13 @@ protected:
         common::offset_t dataOffset = 0, common::offset_t numValues = 1);
 
     // Produces a page cursor for the offset relative to the given node group
-    PageCursor getPageCursorForOffsetInGroup(
-        common::offset_t offsetInChunk, const ReadState& state);
+    PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
+        const ReadState& state);
     // Produces a page cursor for the absolute node offset
     PageCursor getPageCursorForOffset(transaction::TransactionType transactionType,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
-    void updatePageWithCursor(
-        PageCursor cursor, const std::function<void(uint8_t*, common::offset_t)>& writeOp);
+    void updatePageWithCursor(PageCursor cursor,
+        const std::function<void(uint8_t*, common::offset_t)>& writeOp);
 
     inline common::offset_t getMaxOffset(const std::vector<common::offset_t>& offsets) {
         common::offset_t maxOffset = 0u;
@@ -162,10 +162,10 @@ protected:
     static ChunkCollection getNullChunkCollection(const ChunkCollection& chunkCollection);
 
 private:
-    bool isInsertionsOutOfPagesCapacity(
-        const ColumnChunkMetadata& metadata, const offset_to_row_idx_t& insertInfo);
-    bool isMaxOffsetOutOfPagesCapacity(
-        const ColumnChunkMetadata& metadata, common::offset_t maxOffset);
+    bool isInsertionsOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
+        const offset_to_row_idx_t& insertInfo);
+    bool isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
+        common::offset_t maxOffset);
     bool checkUpdateInPlace(const ColumnChunkMetadata& metadata, const ChunkCollection& localChunks,
         const offset_to_row_idx_t& writeInfo);
     virtual bool canCommitInPlace(transaction::Transaction* transaction,

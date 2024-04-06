@@ -85,8 +85,8 @@ public:
      * @param databasePath Database path.
      * @param systemConfig System configurations (buffer pool size and max num threads).
      */
-    KUZU_API explicit Database(
-        std::string_view databasePath, SystemConfig systemConfig = SystemConfig());
+    KUZU_API explicit Database(std::string_view databasePath,
+        SystemConfig systemConfig = SystemConfig());
     /**
      * @brief Destructs the database object.
      */
@@ -101,16 +101,16 @@ public:
 
     // TODO(Ziyi): Instead of exposing a dedicated API for adding a new function, we should consider
     // add function through the extension module.
-    void addBuiltInFunction(
-        std::string name, std::vector<std::unique_ptr<function::Function>> functionSet);
+    void addBuiltInFunction(std::string name,
+        std::vector<std::unique_ptr<function::Function>> functionSet);
 
     KUZU_API void registerFileSystem(std::unique_ptr<common::FileSystem> fs);
 
-    KUZU_API void registerStorageExtension(
-        std::string name, std::unique_ptr<storage::StorageExtension> storageExtension);
+    KUZU_API void registerStorageExtension(std::string name,
+        std::unique_ptr<storage::StorageExtension> storageExtension);
 
-    KUZU_API void addExtensionOption(
-        std::string name, common::LogicalTypeID type, common::Value defaultValue);
+    KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
+        common::Value defaultValue);
 
     ExtensionOption* getExtensionOption(std::string name);
 

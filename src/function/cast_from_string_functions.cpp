@@ -107,8 +107,8 @@ inline void CastStringHelper::cast(const char* input, uint64_t len, timestamp_ns
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, timestamp_sec_t& result,
     ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    TryCastStringToTimestamp::cast<timestamp_sec_t>(
-        input, len, result, LogicalTypeID::TIMESTAMP_SEC);
+    TryCastStringToTimestamp::cast<timestamp_sec_t>(input, len, result,
+        LogicalTypeID::TIMESTAMP_SEC);
 }
 
 template<>
@@ -141,8 +141,8 @@ void CastString::operation(const ku_string_t& input, blob_t& result, ValueVector
         Blob::fromString(reinterpret_cast<const char*>(input.getData()), input.len, overflowPtr);
         memcpy(result.value.prefix, overflowPtr, ku_string_t::PREFIX_LENGTH);
     } else {
-        Blob::fromString(
-            reinterpret_cast<const char*>(input.getData()), input.len, result.value.prefix);
+        Blob::fromString(reinterpret_cast<const char*>(input.getData()), input.len,
+            result.value.prefix);
     }
 }
 
@@ -204,8 +204,8 @@ static bool skipToCloseQuotes(const char*& input, const char* end) {
     return false;
 }
 
-static bool skipToClose(
-    const char*& input, const char* end, uint64_t& lvl, char target, const CSVOption* option) {
+static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char target,
+    const CSVOption* option) {
     input++;
     while (input != end) {
         if (*input == '\'') {
@@ -256,12 +256,12 @@ static bool isNull(std::string_view& str) {
 struct CountPartOperation {
     uint64_t count = 0;
 
-    static inline bool handleKey(
-        const char* /*start*/, const char* /*end*/, const CSVOption* /*config*/) {
+    static inline bool handleKey(const char* /*start*/, const char* /*end*/,
+        const CSVOption* /*config*/) {
         return true;
     }
-    inline void handleValue(
-        const char* /*start*/, const char* /*end*/, const CSVOption* /*config*/) {
+    inline void handleValue(const char* /*start*/, const char* /*end*/,
+        const CSVOption* /*config*/) {
         count++;
     }
 };
@@ -276,8 +276,8 @@ struct SplitStringListOperation {
     void handleValue(const char* start, const char* end, const CSVOption* option) {
         skipWhitespace(start, end);
         trimRightWhitespace(start, end);
-        CastString::copyStringToVector(
-            resultVector, offset, std::string_view{start, (uint32_t)(end - start)}, option);
+        CastString::copyStringToVector(resultVector, offset,
+            std::string_view{start, (uint32_t)(end - start)}, option);
         offset++;
     }
 };
@@ -330,8 +330,8 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
 }
 
 template<typename T>
-static inline void startListCast(
-    const char* input, uint64_t len, T split, const CSVOption* option, ValueVector* vector) {
+static inline void startListCast(const char* input, uint64_t len, T split, const CSVOption* option,
+    ValueVector* vector) {
     if (!splitCStringList(input, len, split, option)) {
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
                                   vector->dataType.toString() + " range.");
@@ -503,8 +503,8 @@ static bool parseStructFieldName(const char*& input, const char* end) {
     return false;
 }
 
-static bool parseStructFieldValue(
-    const char*& input, const char* end, const CSVOption* option, bool& closeBrack) {
+static bool parseStructFieldValue(const char*& input, const char* end, const CSVOption* option,
+    bool& closeBrack) {
     uint64_t lvl = 0;
     while (input < end) {
         if (*input == '"' || *input == '\'') {
@@ -614,8 +614,8 @@ static inline void testAndSetValue(ValueVector* vector, uint64_t rowToAdd, T res
     }
 }
 
-static bool tryCastUnionField(
-    ValueVector* vector, uint64_t rowToAdd, const char* input, uint64_t len) {
+static bool tryCastUnionField(ValueVector* vector, uint64_t rowToAdd, const char* input,
+    uint64_t len) {
     auto& targetType = vector->dataType;
     bool success = false;
     switch (targetType.getLogicalTypeID()) {
@@ -743,8 +743,8 @@ void CastStringHelper::cast(const char* input, uint64_t len, union_entry_t& /*re
     }
 
     if (selectedFieldIdx == INVALID_STRUCT_FIELD_IDX) {
-        throw ConversionException{stringFormat(
-            "Could not convert to union type {}: {}.", type.toString(), std::string{input, len})};
+        throw ConversionException{stringFormat("Could not convert to union type {}: {}.",
+            type.toString(), std::string{input, len})};
     }
     StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
         ->setValue(rowToAdd, selectedFieldIdx);
@@ -759,8 +759,8 @@ void CastString::operation(const ku_string_t& input, union_entry_t& result,
         resultVector, rowToAdd, CSVOption);
 }
 
-void CastString::copyStringToVector(
-    ValueVector* vector, uint64_t vectorPos, std::string_view strVal, const CSVOption* option) {
+void CastString::copyStringToVector(ValueVector* vector, uint64_t vectorPos,
+    std::string_view strVal, const CSVOption* option) {
     auto& type = vector->dataType;
     if (strVal.empty() || isNull(strVal)) {
         vector->setNull(vectorPos, true /* isNull */);

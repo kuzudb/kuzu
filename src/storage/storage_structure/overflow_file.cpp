@@ -29,8 +29,8 @@ std::string OverflowFileHandle::readString(TransactionType trxType, const ku_str
         retVal.reserve(str.len);
         int32_t remainingLength = str.len;
         while (remainingLength > 0) {
-            auto numBytesToReadInPage = std::min(
-                static_cast<uint32_t>(remainingLength), END_OF_PAGE - cursor.elemPosInPage);
+            auto numBytesToReadInPage = std::min(static_cast<uint32_t>(remainingLength),
+                END_OF_PAGE - cursor.elemPosInPage);
             auto startPosInSrc = retVal.size();
             read(trxType, cursor.pageIdx, [&](uint8_t* frame) {
                 // Replace rather than append, since optimistic read may call the function multiple
@@ -75,8 +75,8 @@ bool OverflowFileHandle::equals(TransactionType trxType, std::string_view keyToL
 uint8_t* OverflowFileHandle::addANewPage() {
     page_idx_t newPageIdx = overflowFile.getNewPageIdx();
     if (pageWriteCache.size() > 0) {
-        pageWriteCache[nextPosToWriteTo.pageIdx]->write(
-            END_OF_PAGE, reinterpret_cast<uint8_t*>(&newPageIdx), sizeof(page_idx_t));
+        pageWriteCache[nextPosToWriteTo.pageIdx]->write(END_OF_PAGE,
+            reinterpret_cast<uint8_t*>(&newPageIdx), sizeof(page_idx_t));
     }
     pageWriteCache.emplace(newPageIdx, std::make_unique<InMemPage>());
     nextPosToWriteTo.elemPosInPage = 0;
@@ -84,8 +84,8 @@ uint8_t* OverflowFileHandle::addANewPage() {
     return pageWriteCache[newPageIdx]->data;
 }
 
-void OverflowFileHandle::setStringOverflow(
-    const char* srcRawString, uint64_t len, ku_string_t& diskDstString) {
+void OverflowFileHandle::setStringOverflow(const char* srcRawString, uint64_t len,
+    ku_string_t& diskDstString) {
     if (len <= ku_string_t::SHORT_STR_LENGTH) {
         return;
     } else if (len > BufferPoolConstants::PAGE_256KB_SIZE) {
@@ -105,8 +105,8 @@ void OverflowFileHandle::setStringOverflow(
         if (cached != pageWriteCache.end()) {
             pageToWrite = cached->second->data;
         } else {
-            overflowFile.readFromDisk(
-                TransactionType::WRITE, nextPosToWriteTo.pageIdx, [&](auto* frame) {
+            overflowFile.readFromDisk(TransactionType::WRITE, nextPosToWriteTo.pageIdx,
+                [&](auto* frame) {
                     auto page = std::make_unique<InMemPage>();
                     memcpy(page->data, frame, BufferPoolConstants::PAGE_4KB_SIZE);
                     pageToWrite = page->data;
@@ -115,12 +115,12 @@ void OverflowFileHandle::setStringOverflow(
         }
     }
     int32_t remainingLength = len;
-    TypeUtils::encodeOverflowPtr(
-        diskDstString.overflowPtr, nextPosToWriteTo.pageIdx, nextPosToWriteTo.elemPosInPage);
+    TypeUtils::encodeOverflowPtr(diskDstString.overflowPtr, nextPosToWriteTo.pageIdx,
+        nextPosToWriteTo.elemPosInPage);
     while (remainingLength > 0) {
         auto bytesWritten = len - remainingLength;
-        auto numBytesToWriteInPage = std::min(
-            static_cast<uint32_t>(remainingLength), END_OF_PAGE - nextPosToWriteTo.elemPosInPage);
+        auto numBytesToWriteInPage = std::min(static_cast<uint32_t>(remainingLength),
+            END_OF_PAGE - nextPosToWriteTo.elemPosInPage);
         memcpy(pageToWrite + nextPosToWriteTo.elemPosInPage, srcRawString + bytesWritten,
             numBytesToWriteInPage);
         remainingLength -= numBytesToWriteInPage;
@@ -188,8 +188,8 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
 void OverflowFile::readFromDisk(transaction::TransactionType trxType, common::page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
     auto [fileHandleToPin, pageIdxToPin] =
-        storage::DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
-            *getBMFileHandle(), pageIdx, *wal, trxType);
+        storage::DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(*getBMFileHandle(), pageIdx,
+            *wal, trxType);
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
 }
 

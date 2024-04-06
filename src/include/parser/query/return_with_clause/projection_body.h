@@ -8,8 +8,8 @@ namespace parser {
 
 class ProjectionBody {
 public:
-    ProjectionBody(
-        bool isDistinct, std::vector<std::unique_ptr<ParsedExpression>> projectionExpressions)
+    ProjectionBody(bool isDistinct,
+        std::vector<std::unique_ptr<ParsedExpression>> projectionExpressions)
         : isDistinct{isDistinct}, projectionExpressions{std::move(projectionExpressions)} {}
     DELETE_COPY_DEFAULT_MOVE(ProjectionBody);
 
@@ -19,8 +19,8 @@ public:
         return projectionExpressions;
     }
 
-    inline void setOrderByExpressions(
-        std::vector<std::unique_ptr<ParsedExpression>> expressions, std::vector<bool> sortOrders) {
+    inline void setOrderByExpressions(std::vector<std::unique_ptr<ParsedExpression>> expressions,
+        std::vector<bool> sortOrders) {
         orderByExpressions = std::move(expressions);
         isAscOrders = std::move(sortOrders);
     }

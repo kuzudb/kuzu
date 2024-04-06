@@ -34,8 +34,8 @@ void FunctionExpressionEvaluator::evaluate(ClientContext* clientContext) {
     }
 }
 
-bool FunctionExpressionEvaluator::select(
-    SelectionVector& selVector, ClientContext* /*ClientContext*/) {
+bool FunctionExpressionEvaluator::select(SelectionVector& selVector,
+    ClientContext* /*ClientContext*/) {
     for (auto& child : children) {
         child->evaluate(nullptr);
     }
@@ -66,8 +66,8 @@ std::unique_ptr<ExpressionEvaluator> FunctionExpressionEvaluator::clone() {
     return make_unique<FunctionExpressionEvaluator>(expression, std::move(clonedChildren));
 }
 
-void FunctionExpressionEvaluator::resolveResultVector(
-    const ResultSet& /*resultSet*/, MemoryManager* memoryManager) {
+void FunctionExpressionEvaluator::resolveResultVector(const ResultSet& /*resultSet*/,
+    MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());

@@ -34,8 +34,8 @@ public:
     bool delete_(common::ValueVector* srcNodeVector, common::ValueVector* relIDVector) override;
 
     common::offset_t getNumInsertedRels(common::offset_t srcOffset) const;
-    void getChangesPerCSRSegment(
-        std::vector<int64_t>& sizeChangesPerSegment, std::vector<bool>& hasChangesPerSegment);
+    void getChangesPerCSRSegment(std::vector<int64_t>& sizeChangesPerSegment,
+        std::vector<bool>& hasChangesPerSegment);
 
 private:
     static common::vector_idx_t getSegmentIdx(common::offset_t offset) {

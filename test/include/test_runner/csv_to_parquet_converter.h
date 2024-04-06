@@ -11,8 +11,8 @@ namespace testing {
 // The dataset directory must contain schema and copy files.
 class CSVToParquetConverter {
 public:
-    explicit CSVToParquetConverter(
-        std::string csvDatasetPath, std::string parquetDatasetPath, uint64_t bufferPoolSize)
+    explicit CSVToParquetConverter(std::string csvDatasetPath, std::string parquetDatasetPath,
+        uint64_t bufferPoolSize)
         : csvDatasetPath{csvDatasetPath}, parquetDatasetPath{parquetDatasetPath},
           bufferPoolSize{bufferPoolSize} {}
 

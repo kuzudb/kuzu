@@ -220,8 +220,8 @@ static std::unique_ptr<FunctionBindData> bindFuncListAggr(
     return std::make_unique<FunctionBindData>(resultType->copy());
 }
 
-static std::string getListFunctionIncompatibleChildrenTypeErrorMsg(
-    const std::string& functionName, const LogicalType& left, const LogicalType& right) {
+static std::string getListFunctionIncompatibleChildrenTypeErrorMsg(const std::string& functionName,
+    const LogicalType& left, const LogicalType& right) {
     return std::string("Cannot bind " + functionName + " with parameter type " + left.toString() +
                        " and " + right.toString() + ".");
 }
@@ -276,8 +276,8 @@ LogicalType ListCreationFunction::getChildType(const binder::expression_vector& 
             if (parameterType.getLogicalTypeID() == LogicalTypeID::ANY) {
                 argument->cast(childType);
             } else {
-                throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
-                    name, arguments[0]->getDataType(), argument->getDataType()));
+                throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(name,
+                    arguments[0]->getDataType(), argument->getDataType()));
             }
         }
     }
@@ -335,8 +335,8 @@ template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename
 static void BinaryExecListExtractFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
     ValueVector& result, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(params.size() == 2);
-    BinaryFunctionExecutor::executeListExtract<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
-        *params[0], *params[1], result);
+    BinaryFunctionExecutor::executeListExtract<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(*params[0],
+        *params[1], result);
 }
 
 static std::unique_ptr<FunctionBindData> ListExtractBindFunc(
@@ -438,8 +438,8 @@ function_set ListExtractFunction::getFunctionSet() {
 std::unique_ptr<FunctionBindData> ListConcatFunction::bindFunc(
     const binder::expression_vector& arguments, Function* /*function*/) {
     if (arguments[0]->getDataType() != arguments[1]->getDataType()) {
-        throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
-            name, arguments[0]->getDataType(), arguments[1]->getDataType()));
+        throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(name,
+            arguments[0]->getDataType(), arguments[1]->getDataType()));
     }
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType().copy());
 }
@@ -543,8 +543,8 @@ function_set ListSliceFunction::getFunctionSet() {
             ListSlice>,
         nullptr, ListSliceBindFunc, false /* isVarlength*/));
     result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{
-            LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::INT64},
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64,
+            LogicalTypeID::INT64},
         LogicalTypeID::STRING,
         ScalarFunction::TernaryExecListStructFunction<ku_string_t, int64_t, int64_t, ku_string_t,
             ListSlice>,
@@ -553,8 +553,8 @@ function_set ListSliceFunction::getFunctionSet() {
 }
 
 template<typename T>
-static void getListSortExecFunction(
-    const binder::expression_vector& arguments, scalar_func_exec_t& func) {
+static void getListSortExecFunction(const binder::expression_vector& arguments,
+    scalar_func_exec_t& func) {
     if (arguments.size() == 1) {
         func = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, ListSort<T>>;
         return;
@@ -652,15 +652,15 @@ function_set ListSortFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING}, LogicalTypeID::LIST,
         nullptr, nullptr, ListSortBindFunc, false /* isVarlength*/));
     result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{
-            LogicalTypeID::LIST, LogicalTypeID::STRING, LogicalTypeID::STRING},
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING,
+            LogicalTypeID::STRING},
         LogicalTypeID::LIST, nullptr, nullptr, ListSortBindFunc, false /* isVarlength*/));
     return result;
 }
 
 template<typename T>
-static void getListReverseSortExecFunction(
-    const binder::expression_vector& arguments, scalar_func_exec_t& func) {
+static void getListReverseSortExecFunction(const binder::expression_vector& arguments,
+    scalar_func_exec_t& func) {
     if (arguments.size() == 1) {
         func = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t,
             ListReverseSort<T>>;

@@ -55,8 +55,8 @@ struct ScalarFunction final : public BaseScalarFunction {
     static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 3);
-        TernaryFunctionExecutor::execute<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], *params[1], *params[2], result);
+        TernaryFunctionExecutor::execute<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(*params[0],
+            *params[1], *params[2], result);
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -72,8 +72,8 @@ struct ScalarFunction final : public BaseScalarFunction {
     static void BinaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 2);
-        BinaryFunctionExecutor::execute<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], *params[1], result);
+        BinaryFunctionExecutor::execute<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(*params[0],
+            *params[1], result);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -81,8 +81,8 @@ struct ScalarFunction final : public BaseScalarFunction {
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 2);
-        BinaryFunctionExecutor::executeString<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], *params[1], result);
+        BinaryFunctionExecutor::executeString<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(*params[0],
+            *params[1], result);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
@@ -90,8 +90,8 @@ struct ScalarFunction final : public BaseScalarFunction {
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::SelectionVector& selVector) {
         KU_ASSERT(params.size() == 2);
-        return BinaryFunctionExecutor::select<LEFT_TYPE, RIGHT_TYPE, FUNC>(
-            *params[0], *params[1], selVector);
+        return BinaryFunctionExecutor::select<LEFT_TYPE, RIGHT_TYPE, FUNC>(*params[0], *params[1],
+            selVector);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,

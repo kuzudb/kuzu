@@ -10,8 +10,8 @@ public:
     LogicalOrderBy(binder::expression_vector expressionsToOrderBy, std::vector<bool> sortOrders,
         std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::ORDER_BY, std::move(child)},
-          expressionsToOrderBy{std::move(expressionsToOrderBy)}, isAscOrders{
-                                                                     std::move(sortOrders)} {}
+          expressionsToOrderBy{std::move(expressionsToOrderBy)},
+          isAscOrders{std::move(sortOrders)} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 

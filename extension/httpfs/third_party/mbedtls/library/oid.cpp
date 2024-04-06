@@ -225,8 +225,8 @@ static const oid_x520_attr_t oid_x520_attr_type[] = {
         "title",
     },
     {
-        OID_DESCRIPTOR(
-            MBEDTLS_OID_AT_DN_QUALIFIER, "id-at-dnQualifier", "Distinguished Name qualifier"),
+        OID_DESCRIPTOR(MBEDTLS_OID_AT_DN_QUALIFIER, "id-at-dnQualifier",
+            "Distinguished Name qualifier"),
         "dnQualifier",
     },
     {
@@ -242,8 +242,8 @@ static const oid_x520_attr_t oid_x520_attr_type[] = {
         "DC",
     },
     {
-        OID_DESCRIPTOR(
-            MBEDTLS_OID_AT_UNIQUE_IDENTIFIER, "id-at-uniqueIdentifier", "Unique Identifier"),
+        OID_DESCRIPTOR(MBEDTLS_OID_AT_UNIQUE_IDENTIFIER, "id-at-uniqueIdentifier",
+            "Unique Identifier"),
         "uniqueIdentifier",
     },
     {
@@ -252,8 +252,8 @@ static const oid_x520_attr_t oid_x520_attr_type[] = {
     }};
 
 FN_OID_TYPED_FROM_ASN1(oid_x520_attr_t, x520_attr, oid_x520_attr_type)
-FN_OID_GET_ATTR1(
-    mbedtls_oid_get_attr_short_name, oid_x520_attr_t, x520_attr, const char*, short_name)
+FN_OID_GET_ATTR1(mbedtls_oid_get_attr_short_name, oid_x520_attr_t, x520_attr, const char*,
+    short_name)
 
 /*
  * For X509 extensions
@@ -265,8 +265,8 @@ typedef struct {
 
 static const oid_x509_ext_t oid_x509_ext[] = {
     {
-        OID_DESCRIPTOR(
-            MBEDTLS_OID_BASIC_CONSTRAINTS, "id-ce-basicConstraints", "Basic Constraints"),
+        OID_DESCRIPTOR(MBEDTLS_OID_BASIC_CONSTRAINTS, "id-ce-basicConstraints",
+            "Basic Constraints"),
         MBEDTLS_OID_X509_EXT_BASIC_CONSTRAINTS,
     },
     {
@@ -282,13 +282,13 @@ static const oid_x509_ext_t oid_x509_ext[] = {
         MBEDTLS_OID_X509_EXT_SUBJECT_ALT_NAME,
     },
     {
-        OID_DESCRIPTOR(
-            MBEDTLS_OID_NS_CERT_TYPE, "id-netscape-certtype", "Netscape Certificate Type"),
+        OID_DESCRIPTOR(MBEDTLS_OID_NS_CERT_TYPE, "id-netscape-certtype",
+            "Netscape Certificate Type"),
         MBEDTLS_OID_X509_EXT_NS_CERT_TYPE,
     },
     {
-        OID_DESCRIPTOR(
-            MBEDTLS_OID_CERTIFICATE_POLICIES, "id-ce-certificatePolicies", "Certificate Policies"),
+        OID_DESCRIPTOR(MBEDTLS_OID_CERTIFICATE_POLICIES, "id-ce-certificatePolicies",
+            "Certificate Policies"),
         MBEDTLS_OID_X509_EXT_CERTIFICATE_POLICIES,
     },
     {
@@ -443,8 +443,8 @@ static const oid_sig_alg_t oid_sig_alg[] = {
 FN_OID_TYPED_FROM_ASN1(oid_sig_alg_t, sig_alg, oid_sig_alg)
 
 #if !defined(MBEDTLS_X509_REMOVE_INFO)
-FN_OID_GET_DESCRIPTOR_ATTR1(
-    mbedtls_oid_get_sig_alg_desc, oid_sig_alg_t, sig_alg, const char*, description)
+FN_OID_GET_DESCRIPTOR_ATTR1(mbedtls_oid_get_sig_alg_desc, oid_sig_alg_t, sig_alg, const char*,
+    description)
 #endif
 
 FN_OID_GET_ATTR2(mbedtls_oid_get_sig_alg, oid_sig_alg_t, sig_alg, mbedtls_md_type_t, md_alg,
@@ -482,8 +482,8 @@ static const oid_pk_alg_t oid_pk_alg[] = {
 
 FN_OID_TYPED_FROM_ASN1(oid_pk_alg_t, pk_alg, oid_pk_alg)
 FN_OID_GET_ATTR1(mbedtls_oid_get_pk_alg, oid_pk_alg_t, pk_alg, mbedtls_pk_type_t, pk_alg)
-FN_OID_GET_OID_BY_ATTR1(
-    mbedtls_oid_get_oid_by_pk_alg, oid_pk_alg_t, oid_pk_alg, mbedtls_pk_type_t, pk_alg)
+FN_OID_GET_OID_BY_ATTR1(mbedtls_oid_get_oid_by_pk_alg, oid_pk_alg_t, oid_pk_alg, mbedtls_pk_type_t,
+    pk_alg)
 
 #if defined(MBEDTLS_ECP_C)
 /*
@@ -569,8 +569,8 @@ static const oid_ecp_grp_t oid_ecp_grp[] = {
 
 FN_OID_TYPED_FROM_ASN1(oid_ecp_grp_t, grp_id, oid_ecp_grp)
 FN_OID_GET_ATTR1(mbedtls_oid_get_ec_grp, oid_ecp_grp_t, grp_id, mbedtls_ecp_group_id, grp_id)
-FN_OID_GET_OID_BY_ATTR1(
-    mbedtls_oid_get_oid_by_ec_grp, oid_ecp_grp_t, oid_ecp_grp, mbedtls_ecp_group_id, grp_id)
+FN_OID_GET_OID_BY_ATTR1(mbedtls_oid_get_oid_by_ec_grp, oid_ecp_grp_t, oid_ecp_grp,
+    mbedtls_ecp_group_id, grp_id)
 #endif /* MBEDTLS_ECP_C */
 
 #if defined(MBEDTLS_CIPHER_C)
@@ -598,8 +598,8 @@ static const oid_cipher_alg_t oid_cipher_alg[] = {
 };
 
 FN_OID_TYPED_FROM_ASN1(oid_cipher_alg_t, cipher_alg, oid_cipher_alg)
-FN_OID_GET_ATTR1(
-    mbedtls_oid_get_cipher_alg, oid_cipher_alg_t, cipher_alg, mbedtls_cipher_type_t, cipher_alg)
+FN_OID_GET_ATTR1(mbedtls_oid_get_cipher_alg, oid_cipher_alg_t, cipher_alg, mbedtls_cipher_type_t,
+    cipher_alg)
 #endif /* MBEDTLS_CIPHER_C */
 
 #if defined(MBEDTLS_MD_C)
@@ -662,8 +662,8 @@ static const oid_md_alg_t oid_md_alg[] = {
 
 FN_OID_TYPED_FROM_ASN1(oid_md_alg_t, md_alg, oid_md_alg)
 FN_OID_GET_ATTR1(mbedtls_oid_get_md_alg, oid_md_alg_t, md_alg, mbedtls_md_type_t, md_alg)
-FN_OID_GET_OID_BY_ATTR1(
-    mbedtls_oid_get_oid_by_md, oid_md_alg_t, oid_md_alg, mbedtls_md_type_t, md_alg)
+FN_OID_GET_OID_BY_ATTR1(mbedtls_oid_get_oid_by_md, oid_md_alg_t, oid_md_alg, mbedtls_md_type_t,
+    md_alg)
 
 /*
  * For HMAC digestAlgorithm

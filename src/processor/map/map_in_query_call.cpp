@@ -23,8 +23,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInQueryCall(LogicalOperator* lo
     info.outputType =
         outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
     auto sharedState = std::make_shared<InQueryCallSharedState>();
-    return std::make_unique<InQueryCall>(
-        std::move(info), sharedState, getOperatorID(), call->getExpressionsForPrinting());
+    return std::make_unique<InQueryCall>(std::move(info), sharedState, getOperatorID(),
+        call->getExpressionsForPrinting());
 }
 
 } // namespace processor

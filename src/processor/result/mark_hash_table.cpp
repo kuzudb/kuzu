@@ -36,8 +36,8 @@ void MarkHashTable::initializeFTEntries(const std::vector<common::ValueVector*>&
     const std::vector<common::ValueVector*>& unFlatKeyVectors,
     const std::vector<common::ValueVector*>& dependentKeyVectors,
     uint64_t numFTEntriesToInitialize) {
-    AggregateHashTable::initializeFTEntries(
-        flatKeyVectors, unFlatKeyVectors, dependentKeyVectors, numFTEntriesToInitialize);
+    AggregateHashTable::initializeFTEntries(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
+        numFTEntriesToInitialize);
     for (auto i = 0u; i < numFTEntriesToInitialize; i++) {
         auto entryIdx = entryIdxesToInitialize[i];
         auto entry = hashSlotsToUpdateAggState[entryIdx]->entry;

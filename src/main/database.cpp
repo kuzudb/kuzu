@@ -50,9 +50,9 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
         // On 32-bit systems or systems with extremely large memory, the buffer pool size may
         // exceed the maximum size of a VMRegion. In this case, we set the buffer pool size to
         // 80% of the maximum size of a VMRegion.
-        bufferPoolSize_ = (uint64_t)std::min(
-            (double)bufferPoolSize_, BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE *
-                                         BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM);
+        bufferPoolSize_ = (uint64_t)std::min((double)bufferPoolSize_,
+            BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE *
+                BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM);
     }
     bufferPoolSize = bufferPoolSize_;
     if (maxNumThreads == 0) {
@@ -82,8 +82,8 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     auto clientContext = ClientContext(this);
     auto dbPathStr = std::string(databasePath);
     this->databasePath = vfs->expandPath(&clientContext, dbPathStr);
-    bufferManager = std::make_unique<BufferManager>(
-        this->systemConfig.bufferPoolSize, this->systemConfig.maxDBSize);
+    bufferManager = std::make_unique<BufferManager>(this->systemConfig.bufferPoolSize,
+        this->systemConfig.maxDBSize);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     initDBDirAndCoreFilesIfNecessary();
@@ -115,13 +115,13 @@ void Database::registerFileSystem(std::unique_ptr<common::FileSystem> fs) {
     vfs->registerFileSystem(std::move(fs));
 }
 
-void Database::registerStorageExtension(
-    std::string name, std::unique_ptr<storage::StorageExtension> storageExtension) {
+void Database::registerStorageExtension(std::string name,
+    std::unique_ptr<storage::StorageExtension> storageExtension) {
     storageExtensions.emplace(std::move(name), std::move(storageExtension));
 }
 
-void Database::addExtensionOption(
-    std::string name, common::LogicalTypeID type, common::Value defaultValue) {
+void Database::addExtensionOption(std::string name, common::LogicalTypeID type,
+    common::Value defaultValue) {
     if (extensionOptions->getExtensionOption(name) != nullptr) {
         throw ExtensionException{common::stringFormat("Extension option {} already exists.", name)};
     }
@@ -161,13 +161,13 @@ void Database::initDBDirAndCoreFilesIfNecessary() {
         vfs->createDir(databasePath);
     }
     openLockFile();
-    if (!vfs->fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
-            vfs.get(), databasePath, FileVersionType::ORIGINAL))) {
-        NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(
-            vfs.get(), databasePath);
+    if (!vfs->fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs.get(),
+            databasePath, FileVersionType::ORIGINAL))) {
+        NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(vfs.get(),
+            databasePath);
     }
-    if (!vfs->fileOrPathExists(StorageUtils::getRelsStatisticsFilePath(
-            vfs.get(), databasePath, FileVersionType::ORIGINAL))) {
+    if (!vfs->fileOrPathExists(StorageUtils::getRelsStatisticsFilePath(vfs.get(), databasePath,
+            FileVersionType::ORIGINAL))) {
         RelsStoreStats::saveInitialRelsStatisticsToFile(vfs.get(), databasePath);
     }
     if (!vfs->fileOrPathExists(
@@ -230,8 +230,8 @@ void Database::commit(Transaction* transaction, bool skipCheckpointForTestingRec
     transactionManager->allowReceivingNewTransactions();
 }
 
-void Database::rollback(
-    transaction::Transaction* transaction, bool skipCheckpointForTestingRecovery) {
+void Database::rollback(transaction::Transaction* transaction,
+    bool skipCheckpointForTestingRecovery) {
     if (transaction->isReadOnly()) {
         transactionManager->rollback(transaction);
         return;
@@ -250,8 +250,8 @@ void Database::rollback(
 void Database::checkpointAndClearWAL(WALReplayMode replayMode) {
     KU_ASSERT(replayMode == WALReplayMode::COMMIT_CHECKPOINT ||
               replayMode == WALReplayMode::RECOVERY_CHECKPOINT);
-    auto walReplayer = std::make_unique<WALReplayer>(
-        wal.get(), storageManager.get(), bufferManager.get(), catalog.get(), replayMode, vfs.get());
+    auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
+        bufferManager.get(), catalog.get(), replayMode, vfs.get());
     walReplayer->replay();
     wal->clearWAL();
 }

@@ -24,8 +24,8 @@ std::unique_ptr<ScalarMacroFunction> ScalarMacroFunction::copy() const {
     for (auto& defaultArg : defaultArgs) {
         defaultArgsCopy.emplace_back(defaultArg.first, defaultArg.second->copy());
     }
-    return std::make_unique<ScalarMacroFunction>(
-        expression->copy(), positionalArgs, std::move(defaultArgsCopy));
+    return std::make_unique<ScalarMacroFunction>(expression->copy(), positionalArgs,
+        std::move(defaultArgsCopy));
 }
 
 void ScalarMacroFunction::serialize(Serializer& serializer) const {
@@ -53,8 +53,8 @@ std::unique_ptr<ScalarMacroFunction> ScalarMacroFunction::deserialize(Deserializ
         auto val = ParsedExpression::deserialize(deserializer);
         defaultArgs.emplace_back(std::move(key), std::move(val));
     }
-    return std::make_unique<ScalarMacroFunction>(
-        std::move(expression), std::move(positionalArgs), std::move(defaultArgs));
+    return std::make_unique<ScalarMacroFunction>(std::move(expression), std::move(positionalArgs),
+        std::move(defaultArgs));
 }
 
 std::string ScalarMacroFunction::toCypher(const std::string& name) const {

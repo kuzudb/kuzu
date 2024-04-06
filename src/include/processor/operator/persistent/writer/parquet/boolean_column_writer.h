@@ -38,8 +38,8 @@ public:
     BooleanColumnWriter(ParquetWriter& writer, uint64_t schemaIdx,
         std::vector<std::string> schemaPath, uint64_t maxRepeat, uint64_t maxDefine,
         bool canHaveNulls)
-        : BasicColumnWriter(
-              writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine, canHaveNulls) {}
+        : BasicColumnWriter(writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine,
+              canHaveNulls) {}
 
     inline std::unique_ptr<ColumnWriterStatistics> initializeStatsState() override {
         return std::make_unique<BooleanStatisticsState>();
@@ -59,8 +59,8 @@ public:
         ColumnWriterStatistics* writerStatistics, ColumnWriterPageState* writerPageState,
         common::ValueVector* vector, uint64_t chunkStart, uint64_t chunkEnd) override;
 
-    void flushPageState(
-        common::Serializer& temp_writer, ColumnWriterPageState* writerPageState) override;
+    void flushPageState(common::Serializer& temp_writer,
+        ColumnWriterPageState* writerPageState) override;
 };
 
 } // namespace processor

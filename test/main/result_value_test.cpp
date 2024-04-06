@@ -17,7 +17,9 @@ TEST_F(ResultValueTest, getNextException) {
         ASSERT_STREQ("Runtime exception: No more tuples in QueryResult, Please check hasNext() "
                      "before calling getNext().",
             exception.what());
-    } catch (Exception& exception) { FAIL(); } catch (std::exception& exception) {
+    } catch (Exception& exception) {
+        FAIL();
+    } catch (std::exception& exception) {
         FAIL();
     }
 }
@@ -33,7 +35,9 @@ TEST_F(ResultValueTest, getResultValueException) {
         ASSERT_STREQ("Runtime exception: ValIdx is out of range. Number of values in flatTuple: 1, "
                      "valIdx: 100.",
             exception.what());
-    } catch (Exception& exception) { FAIL(); } catch (std::exception& exception) {
+    } catch (Exception& exception) {
+        FAIL();
+    } catch (std::exception& exception) {
         FAIL();
     }
 }

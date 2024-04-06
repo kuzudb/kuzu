@@ -20,8 +20,8 @@ static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector* operand) {
             selectionState->selVector->selectedPositions[i] = numValuesComputed;
             numValuesComputed++;
         }
-        VectorHashFunction::computeHash(
-            ListVector::getDataVector(operand), ListVector::getDataVector(hashVector.get()));
+        VectorHashFunction::computeHash(ListVector::getDataVector(operand),
+            ListVector::getDataVector(hashVector.get()));
     }
     return hashVector;
 }
@@ -61,8 +61,8 @@ static void computeStructVecHash(ValueVector* operand, ValueVector* result) {
             *StructVector::getFieldVector(operand, 3), *result);
     } break;
     case LogicalTypeID::STRUCT: {
-        VectorHashFunction::computeHash(
-            StructVector::getFieldVector(operand, 0 /* idx */).get(), result);
+        VectorHashFunction::computeHash(StructVector::getFieldVector(operand, 0 /* idx */).get(),
+            result);
         auto tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
         for (auto i = 1u; i < StructType::getNumFields(&operand->dataType); i++) {
             auto fieldVector = StructVector::getFieldVector(operand, i);

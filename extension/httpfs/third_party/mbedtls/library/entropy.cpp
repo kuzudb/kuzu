@@ -37,12 +37,12 @@
 #endif
 
 #if defined(MBEDTLS_SELF_TEST)
-//#if defined(MBEDTLS_PLATFORM_C)
-//#include "mbedtls/platform.h"
-//#else
-//#include <stdio.h>
-//#define mbedtls_printf     printf
-//#endif /* MBEDTLS_PLATFORM_C */
+// #if defined(MBEDTLS_PLATFORM_C)
+// #include "mbedtls/platform.h"
+// #else
+// #include <stdio.h>
+// #define mbedtls_printf     printf
+// #endif /* MBEDTLS_PLATFORM_C */
 #endif /* MBEDTLS_SELF_TEST */
 
 #define ENTROPY_MAX_LOOP 256 /**< Maximum amount to loop before error */
@@ -75,8 +75,8 @@ void mbedtls_entropy_init(mbedtls_entropy_context* ctx) {
         MBEDTLS_ENTROPY_SOURCE_STRONG);
 #endif
 #if defined(MBEDTLS_ENTROPY_NV_SEED)
-    mbedtls_entropy_add_source(
-        ctx, mbedtls_nv_seed_poll, NULL, MBEDTLS_ENTROPY_BLOCK_SIZE, MBEDTLS_ENTROPY_SOURCE_STRONG);
+    mbedtls_entropy_add_source(ctx, mbedtls_nv_seed_poll, NULL, MBEDTLS_ENTROPY_BLOCK_SIZE,
+        MBEDTLS_ENTROPY_SOURCE_STRONG);
     ctx->initial_entropy_run = 0;
 #endif
 #endif /* MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES */
@@ -138,8 +138,8 @@ exit:
 /*
  * Entropy accumulator update
  */
-static int entropy_update(
-    mbedtls_entropy_context* ctx, unsigned char source_id, const unsigned char* data, size_t len) {
+static int entropy_update(mbedtls_entropy_context* ctx, unsigned char source_id,
+    const unsigned char* data, size_t len) {
     unsigned char header[2];
     unsigned char tmp[MBEDTLS_ENTROPY_BLOCK_SIZE];
     size_t use_len = len;
@@ -190,8 +190,8 @@ cleanup:
     return (ret);
 }
 
-int mbedtls_entropy_update_manual(
-    mbedtls_entropy_context* ctx, const unsigned char* data, size_t len) {
+int mbedtls_entropy_update_manual(mbedtls_entropy_context* ctx, const unsigned char* data,
+    size_t len) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 
 #if defined(MBEDTLS_THREADING_C)
@@ -230,8 +230,8 @@ static int entropy_gather_internal(mbedtls_entropy_context* ctx) {
             have_one_strong = 1;
 
         olen = 0;
-        if ((ret = ctx->source[i].f_source(
-                 ctx->source[i].p_source, buf, MBEDTLS_ENTROPY_MAX_GATHER, &olen)) != 0) {
+        if ((ret = ctx->source[i].f_source(ctx->source[i].p_source, buf, MBEDTLS_ENTROPY_MAX_GATHER,
+                 &olen)) != 0) {
             goto cleanup;
         }
 
@@ -594,8 +594,8 @@ int mbedtls_entropy_self_test(int verbose) {
     if ((ret = mbedtls_entropy_gather(&ctx)) != 0)
         goto cleanup;
 
-    ret = mbedtls_entropy_add_source(
-        &ctx, entropy_dummy_source, NULL, 16, MBEDTLS_ENTROPY_SOURCE_WEAK);
+    ret = mbedtls_entropy_add_source(&ctx, entropy_dummy_source, NULL, 16,
+        MBEDTLS_ENTROPY_SOURCE_WEAK);
     if (ret != 0)
         goto cleanup;
 

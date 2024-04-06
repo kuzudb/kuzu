@@ -44,8 +44,8 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
             throw BinderException{
                 stringFormat("No file found that matches the pattern: {}.", filePath)};
         }
-        boundFilePaths.insert(
-            boundFilePaths.end(), globbedFilePaths.begin(), globbedFilePaths.end());
+        boundFilePaths.insert(boundFilePaths.end(), globbedFilePaths.begin(),
+            globbedFilePaths.end());
     }
     return boundFilePaths;
 }
@@ -109,8 +109,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* sour
     }
     case ScanSourceType::OBJECT: {
         auto objectSource = ku_dynamic_cast<BaseScanSource*, ObjectScanSource*>(source);
-        throw BinderException(stringFormat(
-            "Scan from external object {} is not supported.", objectSource->objectName));
+        throw BinderException(stringFormat("Scan from external object {} is not supported.",
+            objectSource->objectName));
     }
     default:
         KU_UNREACHABLE;

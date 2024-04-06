@@ -27,8 +27,8 @@ NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     initializePKIndex(nodeTableEntry, readOnly, vfs);
 }
 
-void NodeTable::initializePKIndex(
-    NodeTableCatalogEntry* nodeTableEntry, bool readOnly, VirtualFileSystem* vfs) {
+void NodeTable::initializePKIndex(NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
+    VirtualFileSystem* vfs) {
     if (nodeTableEntry->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
         LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
@@ -47,8 +47,8 @@ void NodeTable::read(Transaction* transaction, TableReadState& readState) {
 }
 
 void NodeTable::scan(Transaction* transaction, TableReadState& readState) {
-    tableData->scan(
-        transaction, *readState.dataReadState, readState.nodeIDVector, readState.outputVectors);
+    tableData->scan(transaction, *readState.dataReadState, readState.nodeIDVector,
+        readState.outputVectors);
     if (transaction->isWriteTransaction()) {
         auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
         if (localTable) {
@@ -58,8 +58,8 @@ void NodeTable::scan(Transaction* transaction, TableReadState& readState) {
 }
 
 void NodeTable::lookup(Transaction* transaction, TableReadState& readState) {
-    tableData->lookup(
-        transaction, *readState.dataReadState, readState.nodeIDVector, readState.outputVectors);
+    tableData->lookup(transaction, *readState.dataReadState, readState.nodeIDVector,
+        readState.outputVectors);
     if (transaction->isWriteTransaction()) {
         auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
         if (localTable) {
@@ -68,8 +68,8 @@ void NodeTable::lookup(Transaction* transaction, TableReadState& readState) {
     }
 }
 
-offset_t NodeTable::validateUniquenessConstraint(
-    Transaction* tx, const std::vector<ValueVector*>& propertyVectors) {
+offset_t NodeTable::validateUniquenessConstraint(Transaction* tx,
+    const std::vector<ValueVector*>& propertyVectors) {
     if (pkIndex == nullptr) {
         return INVALID_OFFSET;
     }
@@ -95,8 +95,8 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     if (pkIndex) {
         insertPK(nodeInsertState.nodeIDVector, nodeInsertState.pkVector);
     }
-    auto localTable = transaction->getLocalStorage()->getLocalTable(
-        tableID, LocalStorage::NotExistAction::CREATE);
+    auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+        LocalStorage::NotExistAction::CREATE);
     localTable->insert(insertState);
 }
 
@@ -110,8 +110,8 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         updatePK(transaction, updateState.columnID, nodeUpdateState.nodeIDVector,
             updateState.propertyVector);
     }
-    auto localTable = transaction->getLocalStorage()->getLocalTable(
-        tableID, LocalStorage::NotExistAction::CREATE);
+    auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+        LocalStorage::NotExistAction::CREATE);
     localTable->update(updateState);
 }
 
@@ -134,13 +134,13 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
     ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
         ->deleteNode(tableID, nodeOffset);
-    auto localTable = transaction->getLocalStorage()->getLocalTable(
-        tableID, LocalStorage::NotExistAction::CREATE);
+    auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+        LocalStorage::NotExistAction::CREATE);
     localTable->delete_(deleteState);
 }
 
-void NodeTable::addColumn(
-    Transaction* transaction, const Property& property, ValueVector* defaultValueVector) {
+void NodeTable::addColumn(Transaction* transaction, const Property& property,
+    ValueVector* defaultValueVector) {
     auto nodesStats =
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
     nodesStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),

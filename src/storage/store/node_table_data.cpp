@@ -39,8 +39,8 @@ void NodeTableData::scan(Transaction* transaction, TableDataReadState& readState
             outputVectors[i]->setAllNull();
         } else {
             KU_ASSERT(readState.columnIDs[i] < columns.size());
-            columns[readState.columnIDs[i]]->scan(
-                transaction, const_cast<ValueVector*>(&nodeIDVector), outputVectors[i]);
+            columns[readState.columnIDs[i]]->scan(transaction,
+                const_cast<ValueVector*>(&nodeIDVector), outputVectors[i]);
         }
     }
 }
@@ -54,8 +54,8 @@ void NodeTableData::lookup(Transaction* transaction, TableDataReadState& readSta
             outputVectors[i]->setNull(pos, true);
         } else {
             KU_ASSERT(readState.columnIDs[i] < columns.size());
-            columns[readState.columnIDs[i]]->lookup(
-                transaction, const_cast<ValueVector*>(&nodeIDVector), outputVectors[i]);
+            columns[readState.columnIDs[i]]->lookup(transaction,
+                const_cast<ValueVector*>(&nodeIDVector), outputVectors[i]);
         }
     }
 }
@@ -68,8 +68,8 @@ void NodeTableData::append(ChunkedNodeGroup* nodeGroup) {
     }
 }
 
-void NodeTableData::prepareLocalTableToCommit(
-    Transaction* transaction, LocalTableData* localTable) {
+void NodeTableData::prepareLocalTableToCommit(Transaction* transaction,
+    LocalTableData* localTable) {
     for (auto& [nodeGroupIdx, localNodeGroup] : localTable->nodeGroups) {
         for (auto columnID = 0u; columnID < columns.size(); columnID++) {
             auto column = columns[columnID].get();

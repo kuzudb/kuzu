@@ -21,8 +21,8 @@ TaskScheduler::~TaskScheduler() {
     }
 }
 
-void TaskScheduler::scheduleTaskAndWaitOrError(
-    const std::shared_ptr<Task>& task, processor::ExecutionContext* context) {
+void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
+    processor::ExecutionContext* context) {
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency, context);
     }

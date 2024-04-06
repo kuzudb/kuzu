@@ -9,8 +9,8 @@ namespace parser {
 class InsertClause final : public UpdatingClause {
 public:
     explicit InsertClause(std::vector<PatternElement> patternElements)
-        : UpdatingClause{common::ClauseType::INSERT}, patternElements{
-                                                          std::move(patternElements)} {};
+        : UpdatingClause{common::ClauseType::INSERT},
+          patternElements{std::move(patternElements)} {};
 
     inline const std::vector<PatternElement>& getPatternElementsRef() const {
         return patternElements;

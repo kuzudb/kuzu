@@ -22,8 +22,8 @@ TableStatistics::TableStatistics(common::TableType tableType, uint64_t numTuples
     common::table_id_t tableID,
     std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
         propertyStatistics)
-    : tableType{tableType}, numTuples{numTuples}, tableID{tableID}, propertyStatistics{std::move(
-                                                                        propertyStatistics)} {
+    : tableType{tableType}, numTuples{numTuples}, tableID{tableID},
+      propertyStatistics{std::move(propertyStatistics)} {
     KU_ASSERT(numTuples != UINT64_MAX);
 }
 

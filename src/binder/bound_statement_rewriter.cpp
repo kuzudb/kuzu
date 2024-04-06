@@ -7,8 +7,8 @@
 namespace kuzu {
 namespace binder {
 
-void BoundStatementRewriter::rewrite(
-    BoundStatement& boundStatement, const main::ClientContext& clientContext) {
+void BoundStatementRewriter::rewrite(BoundStatement& boundStatement,
+    const main::ClientContext& clientContext) {
     auto withClauseProjectionRewriter = WithClauseProjectionRewriter();
     withClauseProjectionRewriter.visitUnsafe(boundStatement);
 

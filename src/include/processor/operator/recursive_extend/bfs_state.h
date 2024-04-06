@@ -40,8 +40,8 @@ private:
 class BaseBFSState {
 public:
     explicit BaseBFSState(uint8_t upperBound, TargetDstNodes* targetDstNodes)
-        : upperBound{upperBound}, currentLevel{0}, nextNodeIdxToExtend{0}, targetDstNodes{
-                                                                               targetDstNodes} {}
+        : upperBound{upperBound}, currentLevel{0}, nextNodeIdxToExtend{0},
+          targetDstNodes{targetDstNodes} {}
     virtual ~BaseBFSState() = default;
 
     // Get next node offset to extend from current level.

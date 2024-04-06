@@ -29,10 +29,9 @@ public:
 protected:
     RdfReader(common::RdfReaderConfig rdfConfig, uint32_t fileIdx, std::string filePath,
         common::FileType fileType, RdfStore* store_, const common::offset_t startOffset)
-        : store_{store_}, cursor{0}, startOffset{startOffset},
-          numLiteralTriplesScanned{0}, rdfConfig{std::move(rdfConfig)}, fileIdx{fileIdx},
-          filePath{std::move(filePath)}, fileType{fileType}, reader{nullptr}, status{SERD_SUCCESS} {
-    }
+        : store_{store_}, cursor{0}, startOffset{startOffset}, numLiteralTriplesScanned{0},
+          rdfConfig{std::move(rdfConfig)}, fileIdx{fileIdx}, filePath{std::move(filePath)},
+          fileType{fileType}, reader{nullptr}, status{SERD_SUCCESS} {}
 
     void initInternal(SerdStatementSink statementHandle);
 

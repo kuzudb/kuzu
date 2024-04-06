@@ -85,8 +85,8 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
 void ScanNodeID::setSelVector(ExecutionContext* context, NodeTableScanState* tableState,
     offset_t startOffset, offset_t endOffset) {
     // Apply changes to the selVector from nodes metadata.
-    tableState->getTable()->setSelVectorForDeletedOffsets(
-        context->clientContext->getTx(), outValueVector.get());
+    tableState->getTable()->setSelVectorForDeletedOffsets(context->clientContext->getTx(),
+        outValueVector.get());
     if (tableState->isSemiMaskEnabled()) {
         auto buffer = outValueVector->state->selVector->getMultableBuffer();
         sel_t prevSelectedSize = outValueVector->state->selVector->selectedSize;

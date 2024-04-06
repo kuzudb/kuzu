@@ -71,8 +71,8 @@ static void getRelColumnNamesInCopyOrder(TableCatalogEntry* tableEntry,
     }
 }
 
-static std::shared_ptr<Expression> matchColumnExpression(
-    const expression_vector& columnExpressions, const std::string& columnName) {
+static std::shared_ptr<Expression> matchColumnExpression(const expression_vector& columnExpressions,
+    const std::string& columnName) {
     for (auto& expression : columnExpressions) {
         if (columnName == expression->toString()) {
             return expression;
@@ -105,8 +105,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     // Map reader.
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
     auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
-    auto sharedState = std::make_shared<NodeBatchInsertSharedState>(
-        nodeTable, getSingleStringColumnFTable(), storageManager->getWAL());
+    auto sharedState = std::make_shared<NodeBatchInsertSharedState>(nodeTable,
+        getSingleStringColumnFTable(), storageManager->getWAL());
     if (prevOperator->getOperatorType() == PhysicalOperatorType::IN_QUERY_CALL) {
         auto inQueryCall = ku_dynamic_cast<PhysicalOperator*, InQueryCall*>(prevOperator.get());
         sharedState->readerSharedState = inQueryCall->getSharedState();
@@ -213,8 +213,8 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     for (auto& property : relTableEntry->getPropertiesRef()) {
         columnTypes.push_back(*property.getDataType()->copy());
     }
-    auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(
-        relTable, getSingleStringColumnFTable(), storageManager->getWAL());
+    auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(relTable,
+        getSingleStringColumnFTable(), storageManager->getWAL());
     auto copyRelFWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
         RelDataDirection::FWD, LogicalType::copy(columnTypes));
     auto copyRelBWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,

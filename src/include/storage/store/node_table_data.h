@@ -31,8 +31,8 @@ public:
     // Flush the nodeGroup to disk and update metadataDAs.
     void append(ChunkedNodeGroup* nodeGroup) override;
 
-    void prepareLocalTableToCommit(
-        transaction::Transaction* transaction, LocalTableData* localTable) override;
+    void prepareLocalTableToCommit(transaction::Transaction* transaction,
+        LocalTableData* localTable) override;
 
     inline common::node_group_idx_t getNumNodeGroups(
         transaction::Transaction* transaction) const override {

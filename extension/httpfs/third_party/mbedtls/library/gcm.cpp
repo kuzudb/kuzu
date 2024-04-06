@@ -171,8 +171,8 @@ static const uint64_t last4[16] = {0x0000, 0x1c20, 0x3840, 0x2460, 0x7080, 0x6ca
  * Sets output to x times H using the precomputed tables.
  * x and output are seen as elements of GF(2^128) as in [MGV].
  */
-static void gcm_mult(
-    mbedtls_gcm_context* ctx, const unsigned char x[16], unsigned char output[16]) {
+static void gcm_mult(mbedtls_gcm_context* ctx, const unsigned char x[16],
+    unsigned char output[16]) {
     int i = 0;
     unsigned char lo, hi, rem;
     uint64_t zh, zl;
@@ -831,15 +831,15 @@ int mbedtls_gcm_self_test(int verbose) {
             if (ret != 0)
                 goto exit;
 
-            ret = mbedtls_gcm_update_ad(
-                &ctx, additional_test_data[add_index_test_data[i]], add_len_test_data[i]);
+            ret = mbedtls_gcm_update_ad(&ctx, additional_test_data[add_index_test_data[i]],
+                add_len_test_data[i]);
             if (ret != 0)
                 goto exit;
 
             if (pt_len_test_data[i] > 32) {
                 size_t rest_len = pt_len_test_data[i] - 32;
-                ret = mbedtls_gcm_update(
-                    &ctx, pt_test_data[pt_index_test_data[i]], 32, buf, sizeof(buf), &olen);
+                ret = mbedtls_gcm_update(&ctx, pt_test_data[pt_index_test_data[i]], 32, buf,
+                    sizeof(buf), &olen);
                 if (ret != 0)
                     goto exit;
                 if (olen != 32)
@@ -888,8 +888,8 @@ int mbedtls_gcm_self_test(int verbose) {
                 iv_len_test_data[i]);
             if (ret != 0)
                 goto exit;
-            ret = mbedtls_gcm_update_ad(
-                &ctx, additional_test_data[add_index_test_data[i]], add_len_test_data[i]);
+            ret = mbedtls_gcm_update_ad(&ctx, additional_test_data[add_index_test_data[i]],
+                add_len_test_data[i]);
             if (ret != 0)
                 goto exit;
 
@@ -909,8 +909,8 @@ int mbedtls_gcm_self_test(int verbose) {
                 if (olen != rest_len)
                     goto exit;
             } else {
-                ret = mbedtls_gcm_update(
-                    &ctx, ct_test_data[j * 6 + i], pt_len_test_data[i], buf, sizeof(buf), &olen);
+                ret = mbedtls_gcm_update(&ctx, ct_test_data[j * 6 + i], pt_len_test_data[i], buf,
+                    sizeof(buf), &olen);
                 if (ret != 0)
                     goto exit;
                 if (olen != pt_len_test_data[i])

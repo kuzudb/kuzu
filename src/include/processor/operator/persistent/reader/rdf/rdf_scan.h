@@ -17,8 +17,8 @@ struct RdfScanSharedState : public function::ScanSharedState {
         std::shared_ptr<RdfStore> store)
         : ScanSharedState{std::move(readerConfig), 0}, rdfConfig{std::move(rdfConfig)},
           store{std::move(store)}, numLiteralTriplesScanned{0} {}
-    explicit RdfScanSharedState(
-        common::ReaderConfig readerConfig, common::RdfReaderConfig rdfConfig)
+    explicit RdfScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig)
         : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig), nullptr} {}
 
     void read(common::DataChunk& dataChunk);
@@ -27,16 +27,16 @@ struct RdfScanSharedState : public function::ScanSharedState {
     void initReader();
 
 private:
-    virtual void createReader(
-        uint32_t fileIdx, const std::string& path, common::offset_t startOffset) = 0;
+    virtual void createReader(uint32_t fileIdx, const std::string& path,
+        common::offset_t startOffset) = 0;
 
     common::offset_t numLiteralTriplesScanned;
 };
 
 struct RdfResourceScanSharedState final : public RdfScanSharedState {
 
-    explicit RdfResourceScanSharedState(
-        common::ReaderConfig readerConfig, common::RdfReaderConfig rdfConfig)
+    explicit RdfResourceScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig)
         : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig)} {
         KU_ASSERT(store == nullptr);
         store = std::make_shared<ResourceStore>();
@@ -44,15 +44,15 @@ struct RdfResourceScanSharedState final : public RdfScanSharedState {
     }
 
     inline void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
-        reader = std::make_unique<RdfResourceReader>(
-            rdfConfig, fileIdx, path, readerConfig.fileType, store.get());
+        reader = std::make_unique<RdfResourceReader>(rdfConfig, fileIdx, path,
+            readerConfig.fileType, store.get());
     }
 };
 
 struct RdfLiteralScanSharedState final : public RdfScanSharedState {
 
-    explicit RdfLiteralScanSharedState(
-        common::ReaderConfig readerConfig, common::RdfReaderConfig rdfConfig)
+    explicit RdfLiteralScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig)
         : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig)} {
         KU_ASSERT(store == nullptr);
         store = std::make_shared<LiteralStore>();
@@ -60,15 +60,15 @@ struct RdfLiteralScanSharedState final : public RdfScanSharedState {
     }
 
     inline void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
-        reader = std::make_unique<RdfLiteralReader>(
-            rdfConfig, fileIdx, path, readerConfig.fileType, store.get());
+        reader = std::make_unique<RdfLiteralReader>(rdfConfig, fileIdx, path, readerConfig.fileType,
+            store.get());
     }
 };
 
 struct RdfResourceTripleScanSharedState final : public RdfScanSharedState {
 
-    explicit RdfResourceTripleScanSharedState(
-        common::ReaderConfig readerConfig, common::RdfReaderConfig rdfConfig)
+    explicit RdfResourceTripleScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig)
         : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig)} {
         KU_ASSERT(store == nullptr);
         store = std::make_shared<ResourceTripleStore>();
@@ -76,25 +76,25 @@ struct RdfResourceTripleScanSharedState final : public RdfScanSharedState {
     }
 
     inline void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
-        reader = std::make_unique<RdfResourceTripleReader>(
-            rdfConfig, fileIdx, path, readerConfig.fileType, store.get());
+        reader = std::make_unique<RdfResourceTripleReader>(rdfConfig, fileIdx, path,
+            readerConfig.fileType, store.get());
     }
 };
 
 struct RdfLiteralTripleScanSharedState final : public RdfScanSharedState {
 
-    explicit RdfLiteralTripleScanSharedState(
-        common::ReaderConfig readerConfig, common::RdfReaderConfig rdfConfig)
+    explicit RdfLiteralTripleScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig)
         : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig)} {
         KU_ASSERT(store == nullptr);
         store = std::make_shared<LiteralTripleStore>();
         initReader();
     }
 
-    void createReader(
-        uint32_t fileIdx, const std::string& path, common::offset_t startOffset) override {
-        reader = std::make_unique<RdfLiteralTripleReader>(
-            rdfConfig, fileIdx, path, readerConfig.fileType, store.get(), startOffset);
+    void createReader(uint32_t fileIdx, const std::string& path,
+        common::offset_t startOffset) override {
+        reader = std::make_unique<RdfLiteralTripleReader>(rdfConfig, fileIdx, path,
+            readerConfig.fileType, store.get(), startOffset);
     }
 };
 
@@ -107,8 +107,8 @@ struct RdfTripleScanSharedState final : public RdfScanSharedState {
     }
 
     void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
-        reader = std::make_unique<RdfTripleReader>(
-            rdfConfig, fileIdx, path, readerConfig.fileType, store.get());
+        reader = std::make_unique<RdfTripleReader>(rdfConfig, fileIdx, path, readerConfig.fileType,
+            store.get());
     }
 };
 

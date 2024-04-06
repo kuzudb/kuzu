@@ -86,8 +86,8 @@ function_set LeastFunction::getFunctionSet() {
 function_set MakeDateFunction::getFunctionSet() {
     function_set result;
     result.push_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{
-            LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::INT64},
+        std::vector<LogicalTypeID>{LogicalTypeID::INT64, LogicalTypeID::INT64,
+            LogicalTypeID::INT64},
         LogicalTypeID::DATE,
         ScalarFunction::TernaryExecFunction<int64_t, int64_t, int64_t, date_t, MakeDate>));
     return result;

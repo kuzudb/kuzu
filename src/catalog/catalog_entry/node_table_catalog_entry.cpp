@@ -3,8 +3,8 @@
 namespace kuzu {
 namespace catalog {
 
-NodeTableCatalogEntry::NodeTableCatalogEntry(
-    std::string name, common::table_id_t tableID, common::property_id_t primaryKeyPID)
+NodeTableCatalogEntry::NodeTableCatalogEntry(std::string name, common::table_id_t tableID,
+    common::property_id_t primaryKeyPID)
     : TableCatalogEntry{CatalogEntryType::NODE_TABLE_ENTRY, std::move(name), tableID},
       primaryKeyPID{primaryKeyPID} {}
 

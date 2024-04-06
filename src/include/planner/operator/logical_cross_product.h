@@ -22,8 +22,8 @@ public:
     inline common::AccumulateType getAccumulateType() const { return accumulateType; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCrossProduct>(
-            accumulateType, children[0]->copy(), children[1]->copy());
+        return make_unique<LogicalCrossProduct>(accumulateType, children[0]->copy(),
+            children[1]->copy());
     }
 
 private:

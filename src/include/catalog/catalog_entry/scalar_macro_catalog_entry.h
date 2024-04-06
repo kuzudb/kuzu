@@ -12,8 +12,8 @@ public:
     // constructors
     //===--------------------------------------------------------------------===//
     ScalarMacroCatalogEntry() = default;
-    ScalarMacroCatalogEntry(
-        std::string name, std::unique_ptr<function::ScalarMacroFunction> macroFunction);
+    ScalarMacroCatalogEntry(std::string name,
+        std::unique_ptr<function::ScalarMacroFunction> macroFunction);
 
     //===--------------------------------------------------------------------===//
     // getter & setter

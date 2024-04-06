@@ -13,8 +13,8 @@ class StringUtils {
 public:
     KUZU_API static std::vector<std::string> splitComma(const std::string& input);
 
-    KUZU_API static std::vector<std::string> split(
-        const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts = true);
+    KUZU_API static std::vector<std::string> split(const std::string& input,
+        const std::string& delimiter, bool ignoreEmptyStringParts = true);
 
     static std::vector<std::string> splitBySpace(const std::string& input);
 
@@ -39,8 +39,8 @@ public:
 
     static inline std::string ltrim(const std::string& input) {
         auto s = input;
-        s.erase(
-            s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
+        s.erase(s.begin(),
+            find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
         return s;
     }
 
@@ -58,8 +58,8 @@ public:
 
     static void removeCStringWhiteSpaces(const char*& input, uint64_t& len);
 
-    static void replaceAll(
-        std::string& str, const std::string& search, const std::string& replacement);
+    static void replaceAll(std::string& str, const std::string& search,
+        const std::string& replacement);
 
     static std::string extractStringBetween(const std::string& input, char delimiterStart,
         char delimiterEnd, bool includeDelimiter = false);

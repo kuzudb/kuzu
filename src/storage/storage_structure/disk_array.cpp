@@ -33,11 +33,11 @@ PIPWrapper::PIPWrapper(FileHandle& fileHandle, page_idx_t pipPageIdx) : pipPageI
     fileHandle.readPage(reinterpret_cast<uint8_t*>(&pipContents), pipPageIdx);
 }
 
-BaseDiskArrayInternal::BaseDiskArrayInternal(
-    FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize)
+BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, page_idx_t headerPageIdx,
+    uint64_t elementSize)
     : header{elementSize}, fileHandle{fileHandle}, headerPageIdx{headerPageIdx},
-      headerForWriteTrx{header}, hasTransactionalUpdates{false},
-      bufferManager{nullptr}, wal{nullptr} {}
+      headerForWriteTrx{header}, hasTransactionalUpdates{false}, bufferManager{nullptr},
+      wal{nullptr} {}
 
 BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
     page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
@@ -335,8 +335,8 @@ BaseInMemDiskArray::BaseInMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID
     }
 }
 
-BaseInMemDiskArray::BaseInMemDiskArray(
-    FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize)
+BaseInMemDiskArray::BaseInMemDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx,
+    uint64_t elementSize)
     : BaseDiskArrayInternal(fileHandle, headerPageIdx, elementSize) {}
 
 // [] operator to be used when building an InMemDiskArrayBuilder without transactional updates.
@@ -353,8 +353,8 @@ void BaseInMemDiskArray::addInMemoryArrayPageAndReadFromFile(page_idx_t apPageId
 }
 
 void BaseInMemDiskArray::readArrayPageFromFile(uint64_t apIdx, page_idx_t apPageIdx) {
-    this->fileHandle.readPage(
-        reinterpret_cast<uint8_t*>(this->inMemArrayPages[apIdx].get()), apPageIdx);
+    this->fileHandle.readPage(reinterpret_cast<uint8_t*>(this->inMemArrayPages[apIdx].get()),
+        apPageIdx);
 }
 
 InMemDiskArrayBuilderInternal::InMemDiskArrayBuilderInternal(FileHandle& fileHandle,
@@ -379,8 +379,8 @@ void InMemDiskArrayBuilderInternal::saveToDisk() {
     // save the header and pips.
     this->header.saveToDisk(this->fileHandle, this->headerPageIdx);
     for (auto i = 0u; i < this->pips.size(); ++i) {
-        this->fileHandle.writePage(
-            reinterpret_cast<uint8_t*>(&this->pips[i].pipContents), this->pips[i].pipPageIdx);
+        this->fileHandle.writePage(reinterpret_cast<uint8_t*>(&this->pips[i].pipContents),
+            this->pips[i].pipPageIdx);
     }
     // Save array pages
     for (page_idx_t apIdx = 0; apIdx < this->header.numAPs; ++apIdx) {

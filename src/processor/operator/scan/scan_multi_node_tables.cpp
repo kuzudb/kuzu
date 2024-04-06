@@ -13,8 +13,8 @@ bool ScanMultiNodeTables::getNextTuplesInternal(ExecutionContext* context) {
         inVector->getValue<nodeID_t>(inVector->state->selVector->selectedPositions[0]).tableID;
     KU_ASSERT(readStates.contains(tableID) && tables.contains(tableID));
     auto scanTableInfo = tables.at(tableID).get();
-    scanTableInfo->table->initializeReadState(
-        context->clientContext->getTx(), scanTableInfo->columnIDs, *inVector, *readStates[tableID]);
+    scanTableInfo->table->initializeReadState(context->clientContext->getTx(),
+        scanTableInfo->columnIDs, *inVector, *readStates[tableID]);
     scanTableInfo->table->read(context->clientContext->getTx(), *readStates.at(tableID));
     return true;
 }

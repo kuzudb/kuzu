@@ -11,8 +11,8 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace testing {
 
-void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(
-    bool isCommit, TransactionTestType transactionTestType) {
+void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(bool isCommit,
+    TransactionTestType transactionTestType) {
     commitOrRollbackConnection(isCommit, transactionTestType);
     if (transactionTestType == TransactionTestType::RECOVERY) {
         // This creates a new database/conn/readConn and should run the recovery algorithm.
@@ -68,8 +68,8 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
         auto result = conn.query(line);
         std::cout << "Executed query: " << line << std::endl;
         if (!result->isSuccess()) {
-            throw Exception(stringFormat(
-                "Failed to execute statement: {}.\nError: {}", line, result->getErrorMessage()));
+            throw Exception(stringFormat("Failed to execute statement: {}.\nError: {}", line,
+                result->getErrorMessage()));
         }
     }
 }
@@ -110,15 +110,15 @@ void BaseGraphTest::initGraph() {
         TestHelper::executeScript(getInputDir() + TestHelper::COPY_FILE_NAME, *conn);
     } else {
         // choose a conn from connMap
-        TestHelper::executeScript(
-            getInputDir() + TestHelper::SCHEMA_FILE_NAME, *(connMap.begin()->second));
-        TestHelper::executeScript(
-            getInputDir() + TestHelper::COPY_FILE_NAME, *(connMap.begin()->second));
+        TestHelper::executeScript(getInputDir() + TestHelper::SCHEMA_FILE_NAME,
+            *(connMap.begin()->second));
+        TestHelper::executeScript(getInputDir() + TestHelper::COPY_FILE_NAME,
+            *(connMap.begin()->second));
     }
 }
 
-void BaseGraphTest::commitOrRollbackConnection(
-    bool isCommit, TransactionTestType transactionTestType) const {
+void BaseGraphTest::commitOrRollbackConnection(bool isCommit,
+    TransactionTestType transactionTestType) const {
     if (transactionTestType == TransactionTestType::NORMAL_EXECUTION) {
         if (isCommit) {
             conn->query("COMMIT");

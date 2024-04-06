@@ -7,8 +7,8 @@
 namespace kuzu {
 namespace duckdb_scanner {
 
-void DuckDBCatalogContent::init(
-    const std::string& dbPath, const std::string& catalogName, main::ClientContext* context) {
+void DuckDBCatalogContent::init(const std::string& dbPath, const std::string& catalogName,
+    main::ClientContext* context) {
     auto [db, con] = getConnection(dbPath);
     auto query = common::stringFormat(
         "select table_name from information_schema.tables where table_catalog = '{}' and "
@@ -18,12 +18,14 @@ void DuckDBCatalogContent::init(
     std::unique_ptr<duckdb::DataChunk> resultChunk;
     try {
         resultChunk = result->Fetch();
-    } catch (std::exception& e) { throw common::BinderException(e.what()); }
+    } catch (std::exception& e) {
+        throw common::BinderException(e.what());
+    }
     if (resultChunk->size() == 0) {
         return;
     }
-    common::ValueVector tableNamesVector{
-        *common::LogicalType::STRING(), context->getMemoryManager()};
+    common::ValueVector tableNamesVector{*common::LogicalType::STRING(),
+        context->getMemoryManager()};
     duckdb_scanner::duckdb_conversion_func_t conversionFunc;
     duckdb_scanner::getDuckDBVectorConversionFunc(common::PhysicalTypeID::STRING, conversionFunc);
     conversionFunc(resultChunk->data[0], tableNamesVector, resultChunk->size());
@@ -36,8 +38,8 @@ void DuckDBCatalogContent::init(
 static std::string getQuery(const binder::BoundCreateTableInfo& info) {
     auto extraInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*,
         BoundExtraCreateDuckDBTableInfo*>(info.extraInfo.get());
-    return common::stringFormat(
-        "SELECT * FROM {}.{}.{}", extraInfo->catalogName, extraInfo->schemaName, info.tableName);
+    return common::stringFormat("SELECT * FROM {}.{}.{}", extraInfo->catalogName,
+        extraInfo->schemaName, info.tableName);
 }
 
 void DuckDBCatalogContent::createForeignTable(duckdb::Connection& con, const std::string& tableName,
@@ -57,8 +59,8 @@ void DuckDBCatalogContent::createForeignTable(duckdb::Connection& con, const std
     }
     DuckDBScanBindData bindData(getQuery(*info), std::move(columnTypes), std::move(columnNames),
         std::bind(&DuckDBCatalogContent::getConnection, this, dbPath));
-    auto tableEntry = std::make_unique<catalog::DuckDBTableCatalogEntry>(
-        info->tableName, tableID, getScanFunction(std::move(bindData)));
+    auto tableEntry = std::make_unique<catalog::DuckDBTableCatalogEntry>(info->tableName, tableID,
+        getScanFunction(std::move(bindData)));
     for (auto& propertyInfo : extraInfo->propertyInfos) {
         tableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy());
     }
@@ -82,7 +84,9 @@ static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,
         try {
             columnTypes.push_back(DuckDBTypeConverter::convertDuckDBType(
                 result->GetValue(0, i).GetValue<std::string>()));
-        } catch (common::BinderException& e) { return false; }
+        } catch (common::BinderException& e) {
+            return false;
+        }
         columnNames.push_back(result->GetValue(1, i).GetValue<std::string>());
     }
     return true;
@@ -92,8 +96,8 @@ bool DuckDBCatalogContent::bindPropertyInfos(duckdb::Connection& con, const std:
     const std::string& catalogName, std::vector<binder::PropertyInfo>& propertyInfos) {
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
-    if (!getTableInfo(
-            con, tableName, getDefaultSchemaName(), catalogName, columnTypes, columnNames)) {
+    if (!getTableInfo(con, tableName, getDefaultSchemaName(), catalogName, columnTypes,
+            columnNames)) {
         return false;
     }
     for (auto i = 0u; i < columnNames.size(); i++) {
@@ -111,8 +115,8 @@ std::unique_ptr<binder::BoundCreateTableInfo> DuckDBCatalogContent::bindCreateTa
         return nullptr;
     }
     return std::make_unique<binder::BoundCreateTableInfo>(common::TableType::FOREIGN, tableName,
-        std::make_unique<duckdb_scanner::BoundExtraCreateDuckDBTableInfo>(
-            dbPath, catalogName, getDefaultSchemaName(), std::move(propertyInfos)));
+        std::make_unique<duckdb_scanner::BoundExtraCreateDuckDBTableInfo>(dbPath, catalogName,
+            getDefaultSchemaName(), std::move(propertyInfos)));
 }
 
 std::string DuckDBCatalogContent::getDefaultSchemaName() const {

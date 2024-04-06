@@ -12,8 +12,8 @@ public:
         expression_vector children)
         : Expression{common::ExpressionType::PATH, std::move(dataType), std::move(children),
               std::move(uniqueName)},
-          variableName{std::move(variableName)}, nodeType{std::move(nodeType)}, relType{std::move(
-                                                                                    relType)} {}
+          variableName{std::move(variableName)}, nodeType{std::move(nodeType)},
+          relType{std::move(relType)} {}
 
     inline std::string getVariableName() const { return variableName; }
     inline common::LogicalType* getNodeType() const { return nodeType.get(); }

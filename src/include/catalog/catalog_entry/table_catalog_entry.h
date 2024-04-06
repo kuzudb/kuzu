@@ -52,8 +52,8 @@ public:
     // serialization & deserialization
     //===--------------------------------------------------------------------===//
     void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<TableCatalogEntry> deserialize(
-        common::Deserializer& deserializer, CatalogEntryType type);
+    static std::unique_ptr<TableCatalogEntry> deserialize(common::Deserializer& deserializer,
+        CatalogEntryType type);
 
 protected:
     common::table_id_t tableID;

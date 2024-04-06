@@ -6,8 +6,8 @@ namespace processor {
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
-void CopyToParquetLocalState::init(
-    CopyToInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) {
+void CopyToParquetLocalState::init(CopyToInfo* info, storage::MemoryManager* mm,
+    ResultSet* resultSet) {
     auto copyToInfo = reinterpret_cast<CopyToParquetInfo*>(info);
     ft = std::make_unique<FactorizedTable>(mm, std::move(copyToInfo->tableSchema));
     numTuplesInFT = 0;

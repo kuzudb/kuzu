@@ -40,8 +40,8 @@ public:
         return tableIDs[0];
     }
 
-    inline void addPropertyExpression(
-        const std::string& propertyName, std::unique_ptr<Expression> property) {
+    inline void addPropertyExpression(const std::string& propertyName,
+        std::unique_ptr<Expression> property) {
         KU_ASSERT(!propertyNameToIdx.contains(propertyName));
         propertyNameToIdx.insert({propertyName, propertyExprs.size()});
         propertyExprs.push_back(std::move(property));

@@ -177,8 +177,8 @@ cleanup:
  * Given P, Q and the public exponent E, deduce D.
  * This is essentially a modular inversion.
  */
-int mbedtls_rsa_deduce_private_exponent(
-    mbedtls_mpi const* P, mbedtls_mpi const* Q, mbedtls_mpi const* E, mbedtls_mpi* D) {
+int mbedtls_rsa_deduce_private_exponent(mbedtls_mpi const* P, mbedtls_mpi const* Q,
+    mbedtls_mpi const* E, mbedtls_mpi* D) {
     int ret = 0;
     mbedtls_mpi K, L;
 

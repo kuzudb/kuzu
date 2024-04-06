@@ -15,8 +15,8 @@ public:
         nextTableIdx = 0;
     }
 
-    void init(
-        common::ValueVector* inVector, const std::vector<common::ValueVector*>& outputVectors);
+    void init(common::ValueVector* inVector,
+        const std::vector<common::ValueVector*>& outputVectors);
     bool scan(common::ValueVector* inVector, const std::vector<common::ValueVector*>& outputVectors,
         transaction::Transaction* transaction);
 

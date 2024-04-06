@@ -130,8 +130,8 @@ public:
 
             if (!prefetch_buffer->data_isset) {
                 prefetch_buffer->Allocate();
-                handle->readFromFile(
-                    prefetch_buffer->data.get(), prefetch_buffer->size, prefetch_buffer->location);
+                handle->readFromFile(prefetch_buffer->data.get(), prefetch_buffer->size,
+                    prefetch_buffer->location);
                 prefetch_buffer->data_isset = true;
             }
             memcpy(buf, prefetch_buffer->data.get() + location - prefetch_buffer->location, len);

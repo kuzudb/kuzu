@@ -30,8 +30,8 @@ public:
         return chunkedGroups[groupIdx].get();
     }
 
-    void append(
-        const std::vector<common::ValueVector*>& vectors, const common::SelectionVector& selVector);
+    void append(const std::vector<common::ValueVector*>& vectors,
+        const common::SelectionVector& selVector);
 
     void merge(std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
     void merge(ChunkedNodeGroupCollection& other);

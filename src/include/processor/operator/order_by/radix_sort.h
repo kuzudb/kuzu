@@ -33,8 +33,8 @@ public:
         : tmpSortingResultBlock{std::make_unique<DataBlock>(memoryManager)},
           tmpTuplePtrSortingBlock{std::make_unique<DataBlock>(memoryManager)},
           factorizedTable{factorizedTable}, strKeyColsInfo{std::move(strKeyColsInfo)},
-          numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()}, numBytesToRadixSort{
-                                                                         numBytesPerTuple - 8} {}
+          numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()},
+          numBytesToRadixSort{numBytesPerTuple - 8} {}
 
     void sortSingleKeyBlock(const DataBlock& keyBlock);
 

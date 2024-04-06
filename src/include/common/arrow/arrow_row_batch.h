@@ -44,37 +44,37 @@ struct ArrowVector {
 // An arrow data chunk consisting of N rows in columnar format.
 class ArrowRowBatch {
 public:
-    ArrowRowBatch(
-        std::vector<std::unique_ptr<main::DataTypeInfo>> typesInfo, std::int64_t capacity);
+    ArrowRowBatch(std::vector<std::unique_ptr<main::DataTypeInfo>> typesInfo,
+        std::int64_t capacity);
 
     //! Append a data chunk to the underlying arrow array
     ArrowArray append(main::QueryResult& queryResult, std::int64_t chunkSize);
 
 private:
-    static std::unique_ptr<ArrowVector> createVector(
-        const main::DataTypeInfo& typeInfo, std::int64_t capacity);
+    static std::unique_ptr<ArrowVector> createVector(const main::DataTypeInfo& typeInfo,
+        std::int64_t capacity);
     static void appendValue(ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value);
 
-    static ArrowArray* convertVectorToArray(
-        ArrowVector& vector, const main::DataTypeInfo& typeInfo);
-    static ArrowArray* convertStructVectorToArray(
-        ArrowVector& vector, const main::DataTypeInfo& typeInfo);
+    static ArrowArray* convertVectorToArray(ArrowVector& vector,
+        const main::DataTypeInfo& typeInfo);
+    static ArrowArray* convertStructVectorToArray(ArrowVector& vector,
+        const main::DataTypeInfo& typeInfo);
     static inline void initializeNullBits(ArrowBuffer& validity, std::int64_t capacity) {
         auto numBytesForValidity = getNumBytesForBits(capacity);
         validity.resize(numBytesForValidity, 0xFF);
     }
-    static void initializeStructVector(
-        ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity);
-    static void copyNonNullValue(
-        ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos);
+    static void initializeStructVector(ArrowVector* vector, const main::DataTypeInfo& typeInfo,
+        std::int64_t capacity);
+    static void copyNonNullValue(ArrowVector* vector, const main::DataTypeInfo& typeInfo,
+        Value* value, std::int64_t pos);
     static void copyNullValue(ArrowVector* vector, Value* value, std::int64_t pos);
 
     template<LogicalTypeID DT>
-    static void templateInitializeVector(
-        ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity);
+    static void templateInitializeVector(ArrowVector* vector, const main::DataTypeInfo& typeInfo,
+        std::int64_t capacity);
     template<LogicalTypeID DT>
-    static void templateCopyNonNullValue(
-        ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos);
+    static void templateCopyNonNullValue(ArrowVector* vector, const main::DataTypeInfo& typeInfo,
+        Value* value, std::int64_t pos);
     template<LogicalTypeID DT>
     static void templateCopyNullValue(ArrowVector* vector, std::int64_t pos);
     template<LogicalTypeID DT>

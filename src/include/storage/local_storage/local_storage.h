@@ -22,8 +22,8 @@ public:
     explicit LocalStorage(main::ClientContext& clientContext) : clientContext{clientContext} {}
     DELETE_COPY_AND_MOVE(LocalStorage);
 
-    LocalTable* getLocalTable(
-        common::table_id_t tableID, NotExistAction action = NotExistAction::RETURN_NULL);
+    LocalTable* getLocalTable(common::table_id_t tableID,
+        NotExistAction action = NotExistAction::RETURN_NULL);
 
     void prepareCommit();
     void prepareRollback();

@@ -875,8 +875,8 @@ std::vector<StructField> LogicalTypeUtils::parseStructTypeInfo(const std::string
         auto pos = structFieldStr.find(' ');
         auto fieldName = structFieldStr.substr(0, pos);
         auto fieldTypeString = structFieldStr.substr(pos + 1);
-        structFields.emplace_back(
-            fieldName, std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString)));
+        structFields.emplace_back(fieldName,
+            std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString)));
     }
     return structFields;
 }
@@ -893,21 +893,21 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& t
     }
     auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
     auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
-    return LogicalType::MAP(
-        dataTypeFromString(keyValueTypes[0]), dataTypeFromString(keyValueTypes[1]));
+    return LogicalType::MAP(dataTypeFromString(keyValueTypes[0]),
+        dataTypeFromString(keyValueTypes[1]));
 }
 
 std::unique_ptr<LogicalType> LogicalTypeUtils::parseUnionType(const std::string& trimmedStr) {
     auto unionFields = parseStructTypeInfo(trimmedStr);
-    auto unionTagField = StructField(
-        UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
+    auto unionTagField = StructField(UnionType::TAG_FIELD_NAME,
+        std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
     unionFields.insert(unionFields.begin(), std::move(unionTagField));
     return LogicalType::UNION(std::move(unionFields));
 }
 
 std::unique_ptr<LogicalType> LogicalType::STRUCT(std::vector<StructField>&& fields) {
-    return std::unique_ptr<LogicalType>(new LogicalType(
-        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(fields))));
+    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::STRUCT,
+        std::make_unique<StructTypeInfo>(std::move(fields))));
 }
 
 std::unique_ptr<LogicalType> LogicalType::RECURSIVE_REL(std::unique_ptr<StructTypeInfo> typeInfo) {
@@ -942,20 +942,20 @@ std::unique_ptr<LogicalType> LogicalType::LIST(std::unique_ptr<LogicalType> chil
         new LogicalType(LogicalTypeID::LIST, std::make_unique<ListTypeInfo>(std::move(childType))));
 }
 
-std::unique_ptr<LogicalType> LogicalType::MAP(
-    std::unique_ptr<LogicalType> keyType, std::unique_ptr<LogicalType> valueType) {
+std::unique_ptr<LogicalType> LogicalType::MAP(std::unique_ptr<LogicalType> keyType,
+    std::unique_ptr<LogicalType> valueType) {
     std::vector<StructField> structFields;
     structFields.emplace_back(InternalKeyword::MAP_KEY, std::move(keyType));
     structFields.emplace_back(InternalKeyword::MAP_VALUE, std::move(valueType));
     auto mapStructType = LogicalType::STRUCT(std::move(structFields));
-    return std::unique_ptr<LogicalType>(new LogicalType(
-        LogicalTypeID::MAP, std::make_unique<ListTypeInfo>(std::move(mapStructType))));
+    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::MAP,
+        std::make_unique<ListTypeInfo>(std::move(mapStructType))));
 }
 
-std::unique_ptr<LogicalType> LogicalType::ARRAY(
-    std::unique_ptr<LogicalType> childType, uint64_t numElements) {
-    return std::unique_ptr<LogicalType>(new LogicalType(
-        LogicalTypeID::ARRAY, std::make_unique<ArrayTypeInfo>(std::move(childType), numElements)));
+std::unique_ptr<LogicalType> LogicalType::ARRAY(std::unique_ptr<LogicalType> childType,
+    uint64_t numElements) {
+    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::ARRAY,
+        std::make_unique<ArrayTypeInfo>(std::move(childType), numElements)));
 }
 
 } // namespace common

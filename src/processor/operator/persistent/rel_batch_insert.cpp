@@ -21,12 +21,12 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     sharedState->logBatchInsertWALRecord();
 }
 
-void RelBatchInsert::initLocalStateInternal(
-    ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
+void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/,
+    ExecutionContext* /*context*/) {
     localState = std::make_unique<RelBatchInsertLocalState>();
     auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
-    localState->nodeGroup = NodeGroupFactory::createNodeGroup(
-        ColumnDataFormat::CSR, relInfo->columnTypes, relInfo->compressionEnabled);
+    localState->nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::CSR,
+        relInfo->columnTypes, relInfo->compressionEnabled);
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
@@ -41,12 +41,12 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
             // No more partitions left in the partitioning buffer.
             break;
         }
-        if (relTable->isNewNodeGroup(
-                context->clientContext->getTx(), relLocalState->nodeGroupIdx, relInfo->direction)) {
+        if (relTable->isNewNodeGroup(context->clientContext->getTx(), relLocalState->nodeGroupIdx,
+                relInfo->direction)) {
             appendNewNodeGroup(*relInfo, *relLocalState, *sharedState, *partitionerSharedState);
         } else {
-            mergeNodeGroup(
-                context, *relInfo, *relLocalState, *sharedState, *partitionerSharedState);
+            mergeNodeGroup(context, *relInfo, *relLocalState, *sharedState,
+                *partitionerSharedState);
         }
     }
 }
@@ -105,13 +105,13 @@ void RelBatchInsert::mergeNodeGroup(ExecutionContext* context, const RelBatchIns
         insertChunks.appendChunkedGroup(&offsetChunk, std::move(chunkedGroupToAppend));
     }
     relTable->getDirectedTableData(relInfo.direction)
-        ->prepareCommitNodeGroup(
-            context->clientContext->getTx(), localState.nodeGroupIdx, localNG.get());
+        ->prepareCommitNodeGroup(context->clientContext->getTx(), localState.nodeGroupIdx,
+            localNG.get());
     sharedState.incrementNumRows(numRels);
 }
 
-void RelBatchInsert::populateEndCSROffsets(
-    ChunkedCSRHeader& csrHeader, std::vector<offset_t>& gaps) {
+void RelBatchInsert::populateEndCSROffsets(ChunkedCSRHeader& csrHeader,
+    std::vector<offset_t>& gaps) {
     auto csrOffsets = (offset_t*)csrHeader.offset->getData();
     for (auto i = 0u; i < csrHeader.offset->getNumValues(); i++) {
         csrOffsets[i] += gaps[i];
@@ -165,8 +165,8 @@ void RelBatchInsert::setOffsetToWithinNodeGroup(ColumnChunk& chunk, offset_t sta
     }
 }
 
-void RelBatchInsert::setOffsetFromCSROffsets(
-    ColumnChunk& nodeOffsetChunk, ColumnChunk& csrOffsetChunk) {
+void RelBatchInsert::setOffsetFromCSROffsets(ColumnChunk& nodeOffsetChunk,
+    ColumnChunk& csrOffsetChunk) {
     KU_ASSERT(nodeOffsetChunk.getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     for (auto i = 0u; i < nodeOffsetChunk.getNumValues(); i++) {
         auto nodeOffset = nodeOffsetChunk.getValue<offset_t>(i);
@@ -184,8 +184,8 @@ void RelBatchInsert::appendNewNodeGroup(const RelBatchInsertInfo& relInfo,
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
-        setOffsetToWithinNodeGroup(
-            chunkedGroup->getColumnChunkUnsafe(relInfo.offsetColumnID), startNodeOffset);
+        setOffsetToWithinNodeGroup(chunkedGroup->getColumnChunkUnsafe(relInfo.offsetColumnID),
+            startNodeOffset);
     }
     // Calculate num of source nodes in this node group.
     // This will be used to set the num of values of the node group.
@@ -227,8 +227,8 @@ void RelBatchInsert::finalize(ExecutionContext* context) {
         sharedState->updateNumTuplesForTable();
         auto outputMsg = stringFormat("{} number of tuples has been copied to table {}.",
             sharedState->getNumRows(), info->tableEntry->getName());
-        FactorizedTableUtils::appendStringToTable(
-            sharedState->fTable.get(), outputMsg, context->clientContext->getMemoryManager());
+        FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
+            context->clientContext->getMemoryManager());
     }
     sharedState->numRows.store(0);
     partitionerSharedState->resetState();

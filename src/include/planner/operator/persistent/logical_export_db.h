@@ -9,8 +9,8 @@ namespace planner {
 
 class LogicalExportDatabase : public LogicalOperator {
 public:
-    explicit LogicalExportDatabase(
-        common::ReaderConfig boundFileInfo, std::vector<std::shared_ptr<LogicalOperator>> plans)
+    explicit LogicalExportDatabase(common::ReaderConfig boundFileInfo,
+        std::vector<std::shared_ptr<LogicalOperator>> plans)
         : LogicalOperator{LogicalOperatorType::EXPORT_DATABASE, std::move(plans)},
           boundFileInfo{std::move(boundFileInfo)} {}
 

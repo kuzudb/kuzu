@@ -6,8 +6,8 @@
 namespace kuzu {
 namespace function {
 
-bool CastArrayHelper::checkCompatibleNestedTypes(
-    LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
+bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
+    LogicalTypeID targetTypeID) {
     switch (sourceTypeID) {
     case LogicalTypeID::LIST: {
         if (targetTypeID == LogicalTypeID::ARRAY || targetTypeID == LogicalTypeID::LIST) {
@@ -71,8 +71,8 @@ bool CastArrayHelper::containsListToArray(const LogicalType* srcType, const Logi
     return false;
 }
 
-void CastArrayHelper::validateListEntry(
-    ValueVector* inputVector, LogicalType* resultType, uint64_t pos) {
+void CastArrayHelper::validateListEntry(ValueVector* inputVector, LogicalType* resultType,
+    uint64_t pos) {
     if (inputVector->isNull(pos)) {
         return;
     }

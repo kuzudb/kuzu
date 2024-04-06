@@ -12,8 +12,8 @@ public:
     IntervalColumnWriter(ParquetWriter& writer, uint64_t schemaIdx,
         std::vector<std::string> schemaPath, uint64_t maxRepeat, uint64_t maxDefine,
         bool canHaveNulls)
-        : BasicColumnWriter(
-              writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine, canHaveNulls) {}
+        : BasicColumnWriter(writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine,
+              canHaveNulls) {}
 
 public:
     static void writeParquetInterval(common::interval_t input, uint8_t* result);

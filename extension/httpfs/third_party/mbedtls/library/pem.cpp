@@ -77,8 +77,8 @@ static int pem_get_iv(const unsigned char* s, unsigned char* iv, size_t iv_len) 
     return (0);
 }
 
-static int pem_pbkdf1(
-    unsigned char* key, size_t keylen, unsigned char* iv, const unsigned char* pwd, size_t pwdlen) {
+static int pem_pbkdf1(unsigned char* key, size_t keylen, unsigned char* iv,
+    const unsigned char* pwd, size_t pwdlen) {
     mbedtls_md5_context md5_ctx;
     unsigned char md5sum[16];
     size_t use_len;

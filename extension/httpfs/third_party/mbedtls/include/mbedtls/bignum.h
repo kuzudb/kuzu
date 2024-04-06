@@ -434,8 +434,8 @@ int mbedtls_mpi_read_string(mbedtls_mpi* X, int radix, const char* s);
  *                 size of \p buf required for a successful call.
  * \return         Another negative error code on different kinds of failure.
  */
-int mbedtls_mpi_write_string(
-    const mbedtls_mpi* X, int radix, char* buf, size_t buflen, size_t* olen);
+int mbedtls_mpi_write_string(const mbedtls_mpi* X, int radix, char* buf, size_t buflen,
+    size_t* olen);
 
 #if defined(MBEDTLS_FS_IO)
 /**
@@ -850,8 +850,8 @@ int mbedtls_mpi_exp_mod(mbedtls_mpi* X, const mbedtls_mpi* A, const mbedtls_mpi*
  *                 as a big-endian representation of an MPI; this can
  *                 be relevant in applications like deterministic ECDSA.
  */
-int mbedtls_mpi_fill_random(
-    mbedtls_mpi* X, size_t size, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng);
+int mbedtls_mpi_fill_random(mbedtls_mpi* X, size_t size,
+    int (*f_rng)(void*, unsigned char*, size_t), void* p_rng);
 
 /** Generate a random number uniformly in a range.
  *
@@ -946,8 +946,8 @@ int mbedtls_mpi_inv_mod(mbedtls_mpi* X, const mbedtls_mpi* A, const mbedtls_mpi*
  * \return         #MBEDTLS_ERR_MPI_NOT_ACCEPTABLE if \p X is not prime.
  * \return         Another negative error code on other kinds of failure.
  */
-int mbedtls_mpi_is_prime_ext(
-    const mbedtls_mpi* X, int rounds, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng);
+int mbedtls_mpi_is_prime_ext(const mbedtls_mpi* X, int rounds,
+    int (*f_rng)(void*, unsigned char*, size_t), void* p_rng);
 /**
  * \brief Flags for mbedtls_mpi_gen_prime()
  *

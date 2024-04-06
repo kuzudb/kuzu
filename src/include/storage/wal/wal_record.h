@@ -69,8 +69,8 @@ struct PageUpdateOrInsertRecord {
 
     PageUpdateOrInsertRecord() = default;
 
-    PageUpdateOrInsertRecord(
-        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert)
+    PageUpdateOrInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL, bool isInsert)
         : dbFileID{dbFileID}, pageIdxInOriginalFile{pageIdxInOriginalFile},
           pageIdxInWAL{pageIdxInWAL}, isInsert{isInsert} {}
 
@@ -118,8 +118,8 @@ struct RdfGraphRecord {
         CreateTableRecord literalTripleTableRecord)
         : tableID{tableID}, resourceTableRecord{resourceTableRecord},
           literalTableRecord{literalTableRecord},
-          resourceTripleTableRecord{resourceTripleTableRecord}, literalTripleTableRecord{
-                                                                    literalTripleTableRecord} {}
+          resourceTripleTableRecord{resourceTripleTableRecord},
+          literalTripleTableRecord{literalTripleTableRecord} {}
 
     inline bool operator==(const RdfGraphRecord& rhs) const {
         return tableID == rhs.tableID && resourceTableRecord == rhs.resourceTableRecord &&
@@ -206,10 +206,10 @@ struct WALRecord {
 
     bool operator==(const WALRecord& rhs) const;
 
-    static WALRecord newPageUpdateRecord(
-        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
-    static WALRecord newPageInsertRecord(
-        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
+    static WALRecord newPageUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL);
+    static WALRecord newPageInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL);
     static WALRecord newCommitRecord(uint64_t transactionID);
     static WALRecord newTableStatisticsRecord(bool isNodeTable);
     static WALRecord newCatalogRecord();
@@ -219,18 +219,18 @@ struct WALRecord {
         common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID);
     static WALRecord newCopyTableRecord(common::table_id_t tableID);
     static WALRecord newDropTableRecord(common::table_id_t tableID);
-    static WALRecord newDropPropertyRecord(
-        common::table_id_t tableID, common::property_id_t propertyID);
-    static WALRecord newAddPropertyRecord(
-        common::table_id_t tableID, common::property_id_t propertyID);
+    static WALRecord newDropPropertyRecord(common::table_id_t tableID,
+        common::property_id_t propertyID);
+    static WALRecord newAddPropertyRecord(common::table_id_t tableID,
+        common::property_id_t propertyID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.
     void writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset) const;
 
 private:
-    static WALRecord newPageInsertOrUpdateRecord(
-        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert);
+    static WALRecord newPageInsertOrUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL, bool isInsert);
 };
 
 } // namespace storage
@@ -243,8 +243,8 @@ struct hash<kuzu::storage::DBFileID> {
         auto dbFileTypeHash = std::hash<uint8_t>()(static_cast<uint8_t>(fileId.dbFileType));
         auto isOverflowHash = std::hash<bool>()(fileId.isOverflow);
         auto nodeIndexIDHash = std::hash<kuzu::common::table_id_t>()(fileId.nodeIndexID.tableID);
-        return kuzu::function::combineHashScalar(
-            dbFileTypeHash, kuzu::function::combineHashScalar(isOverflowHash, nodeIndexIDHash));
+        return kuzu::function::combineHashScalar(dbFileTypeHash,
+            kuzu::function::combineHashScalar(isOverflowHash, nodeIndexIDHash));
     }
 };
 } // namespace std

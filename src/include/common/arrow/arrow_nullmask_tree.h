@@ -23,11 +23,11 @@ private:
     bool applyParentBitmap(const NullMask* buffer, uint64_t count);
 
     template<typename offsetsT>
-    void scanListPushDown(
-        const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset, uint64_t count);
+    void scanListPushDown(const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset,
+        uint64_t count);
 
-    void scanStructPushDown(
-        const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset, uint64_t count);
+    void scanStructPushDown(const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset,
+        uint64_t count);
 
     int64_t offset;
     std::shared_ptr<NullMask> mask;

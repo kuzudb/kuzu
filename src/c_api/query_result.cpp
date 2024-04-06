@@ -43,8 +43,8 @@ char* kuzu_query_result_get_column_name(kuzu_query_result* query_result, uint64_
     return convertToOwnedCString(column_names[index]);
 }
 
-kuzu_logical_type* kuzu_query_result_get_column_data_type(
-    kuzu_query_result* query_result, uint64_t index) {
+kuzu_logical_type* kuzu_query_result_get_column_data_type(kuzu_query_result* query_result,
+    uint64_t index) {
     auto column_data_types =
         static_cast<QueryResult*>(query_result->_query_result)->getColumnDataTypes();
     if (index >= column_data_types.size()) {
@@ -107,7 +107,7 @@ struct ArrowSchema kuzu_query_result_get_arrow_schema(kuzu_query_result* query_r
     return *static_cast<QueryResult*>(query_result->_query_result)->getArrowSchema();
 }
 
-struct ArrowArray kuzu_query_result_get_next_arrow_chunk(
-    kuzu_query_result* query_result, int64_t chunk_size) {
+struct ArrowArray kuzu_query_result_get_next_arrow_chunk(kuzu_query_result* query_result,
+    int64_t chunk_size) {
     return *static_cast<QueryResult*>(query_result->_query_result)->getNextArrowChunk(chunk_size);
 }

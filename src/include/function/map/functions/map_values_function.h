@@ -11,8 +11,8 @@ struct MapValues : public BaseMapExtract {
         common::ValueVector& listVector, common::ValueVector& resultVector) {
         auto mapValueVector = common::MapVector::getValueVector(&listVector);
         auto mapValueValues = common::MapVector::getMapValues(&listVector, listEntry);
-        BaseMapExtract::operation(
-            resultEntry, resultVector, mapValueValues, mapValueVector, listEntry.size);
+        BaseMapExtract::operation(resultEntry, resultVector, mapValueValues, mapValueVector,
+            listEntry.size);
     }
 };
 

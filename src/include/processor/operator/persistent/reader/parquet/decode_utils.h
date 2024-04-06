@@ -19,8 +19,8 @@ public:
     static const uint8_t BITPACK_DLEN;
 
     template<typename T>
-    static uint32_t BitUnpack(
-        ByteBuffer& buffer, uint8_t& bitpack_pos, T* dest, uint32_t count, uint8_t width) {
+    static uint32_t BitUnpack(ByteBuffer& buffer, uint8_t& bitpack_pos, T* dest, uint32_t count,
+        uint8_t width) {
         if (width >= ParquetDecodeUtils::BITPACK_MASKS_SIZE) {
             throw common::CopyException(common::stringFormat(
                 "The width ({}) of the bitpacked data exceeds the supported max width ({}), "

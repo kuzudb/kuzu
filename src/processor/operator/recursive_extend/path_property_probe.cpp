@@ -7,8 +7,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void PathPropertyProbe::initLocalStateInternal(
-    ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
+void PathPropertyProbe::initLocalStateInternal(ResultSet* /*resultSet_*/,
+    ExecutionContext* /*context*/) {
     localState = std::make_unique<PathPropertyProbeLocalState>();
     vectors = std::make_unique<Vectors>();
     auto pathVector = resultSet->getValueVector(info->pathPos);
@@ -102,8 +102,8 @@ void PathPropertyProbe::probe(kuzu::processor::JoinHashTable* hashTable, uint64_
         for (auto j = 0u; j < propertyVectors.size(); ++j) {
             auto propertyVector = propertyVectors[j];
             auto colIdx = colIndicesToScan[j];
-            factorizedTable->readFlatColToFlatVector(
-                tuple, colIdx, *propertyVector, sizeProbed + i);
+            factorizedTable->readFlatColToFlatVector(tuple, colIdx, *propertyVector,
+                sizeProbed + i);
         }
     }
 }

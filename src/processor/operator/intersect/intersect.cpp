@@ -107,8 +107,8 @@ static std::vector<uint32_t> swapSmallestListToFront(std::vector<overflow_value_
     return listIdxes;
 }
 
-static void sliceSelVectors(
-    const std::vector<SelectionVector*>& selVectorsToSlice, SelectionVector& slicer) {
+static void sliceSelVectors(const std::vector<SelectionVector*>& selVectorsToSlice,
+    SelectionVector& slicer) {
     for (auto selVec : selVectorsToSlice) {
         for (auto i = 0u; i < slicer.selectedSize; i++) {
             auto pos = slicer.selectedPositions[i];
@@ -145,8 +145,8 @@ void Intersect::intersectLists(const std::vector<overflow_value_t>& listsToInter
     outKeyVector->state->selVector->selectedSize = lSelVector.selectedSize;
 }
 
-void Intersect::populatePayloads(
-    const std::vector<uint8_t*>& tuples, const std::vector<uint32_t>& listIdxes) {
+void Intersect::populatePayloads(const std::vector<uint8_t*>& tuples,
+    const std::vector<uint32_t>& listIdxes) {
     for (auto i = 0u; i < listIdxes.size(); i++) {
         auto listIdx = listIdxes[i];
         sharedHTs[listIdx]->getHashTable()->getFactorizedTable()->lookup(

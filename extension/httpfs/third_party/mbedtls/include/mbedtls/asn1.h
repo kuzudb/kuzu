@@ -317,8 +317,8 @@ int mbedtls_asn1_get_enum(unsigned char** p, const unsigned char* end, int* val)
  * \return      An ASN.1 error code if the input does not start with
  *              a valid ASN.1 BIT STRING.
  */
-int mbedtls_asn1_get_bitstring(
-    unsigned char** p, const unsigned char* end, mbedtls_asn1_bitstring* bs);
+int mbedtls_asn1_get_bitstring(unsigned char** p, const unsigned char* end,
+    mbedtls_asn1_bitstring* bs);
 
 /**
  * \brief       Retrieve a bitstring ASN.1 tag without unused bits and its
@@ -387,8 +387,8 @@ int mbedtls_asn1_get_bitstring_null(unsigned char** p, const unsigned char* end,
  * \return      An ASN.1 error code if the input does not start with
  *              a valid ASN.1 SEQUENCE.
  */
-int mbedtls_asn1_get_sequence_of(
-    unsigned char** p, const unsigned char* end, mbedtls_asn1_sequence* cur, int tag);
+int mbedtls_asn1_get_sequence_of(unsigned char** p, const unsigned char* end,
+    mbedtls_asn1_sequence* cur, int tag);
 /**
  * \brief          Free a heap-allocated linked list presentation of
  *                 an ASN.1 sequence, including the first element.
@@ -540,8 +540,8 @@ int mbedtls_asn1_get_mpi(unsigned char** p, const unsigned char* end, mbedtls_mp
  *
  * \return      0 if successful or a specific ASN.1 or MPI error code.
  */
-int mbedtls_asn1_get_alg(
-    unsigned char** p, const unsigned char* end, mbedtls_asn1_buf* alg, mbedtls_asn1_buf* params);
+int mbedtls_asn1_get_alg(unsigned char** p, const unsigned char* end, mbedtls_asn1_buf* alg,
+    mbedtls_asn1_buf* params);
 
 /**
  * \brief       Retrieve an AlgorithmIdentifier ASN.1 sequence with NULL or no
@@ -570,8 +570,8 @@ int mbedtls_asn1_get_alg_null(unsigned char** p, const unsigned char* end, mbedt
  *
  * \return      NULL if not found, or a pointer to the existing entry.
  */
-const mbedtls_asn1_named_data* mbedtls_asn1_find_named_data(
-    const mbedtls_asn1_named_data* list, const char* oid, size_t len);
+const mbedtls_asn1_named_data* mbedtls_asn1_find_named_data(const mbedtls_asn1_named_data* list,
+    const char* oid, size_t len);
 
 /**
  * \brief       Free a mbedtls_asn1_named_data entry

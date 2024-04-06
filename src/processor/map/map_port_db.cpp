@@ -42,8 +42,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(
     auto importDatabase =
         ku_dynamic_cast<LogicalOperator*, LogicalImportDatabase*>(logicalOperator);
     std::unique_ptr<ResultSetDescriptor> resultSetDescriptor;
-    return std::make_unique<ImportDB>(
-        importDatabase->getQuery(), getOperatorID(), importDatabase->getExpressionsForPrinting());
+    return std::make_unique<ImportDB>(importDatabase->getQuery(), getOperatorID(),
+        importDatabase->getExpressionsForPrinting());
 }
 } // namespace processor
 } // namespace kuzu

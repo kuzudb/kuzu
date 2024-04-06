@@ -25,7 +25,7 @@ concurrency:
 jobs:
   gcc-build-test:
     name: gcc build & test
-    needs: [clang-formatting-check, sanity-checks, python-lint-check]
+    needs: [clang-format, sanity-checks, python-lint-check]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -83,7 +83,7 @@ jobs:
 
   gcc-build-test-x86:
     name: gcc build & test 32-bit
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-format, sanity-checks]
     runs-on: ubuntu-latest
 
     steps:
@@ -157,7 +157,7 @@ jobs:
 
   clang-build-test:
     name: clang build and test
-    needs: [clang-formatting-check, sanity-checks, python-lint-check]
+    needs: [clang-format, sanity-checks, python-lint-check]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -214,7 +214,7 @@ jobs:
 
   msvc-build-test:
     name: msvc build & test
-    needs: [clang-formatting-check, sanity-checks, python-lint-check]
+    needs: [clang-format, sanity-checks, python-lint-check]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
@@ -285,7 +285,7 @@ jobs:
 
   tidy-and-diagnostics:
     name: clang tidy & clangd diagnostics check
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-format, sanity-checks]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -322,25 +322,37 @@ jobs:
       - name: Ensure generated grammar files are up to date
         run: cmp src/antlr4/Cypher.g4 scripts/antlr4/Cypher.g4.copy
 
-  clang-formatting-check:
-    name: clang-format check
+  clang-format:
+    name: clang format
     runs-on: ubuntu-22.04
     steps:
       - name: Install clang-format
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-format-11
+          sudo apt-get install -y lsb-release wget software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          yes | sudo ./llvm.sh 18 all
 
       - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Check source format
-        run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r src/
+      - name: Check and fix source format
+        run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r src/
 
-      - name: Check test format
-        run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r test/
+      - name: Check and fix test format
+        run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r test/
 
-      - name: Check extension format
-        run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r extension/
+      - name: Check and fix extension format
+        run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r extension/
+
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v9
+        if: github.ref != 'refs/heads/master'
+        with:
+          author_name: "CI Bot"
+          message: "Run clang-format"
 
   python-lint-check:
     name: python lint check
@@ -379,7 +391,7 @@ jobs:
 
   macos-clang-tidy:
     name: macos clang tidy & clangd diagnostics check
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-format, sanity-checks]
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32
@@ -404,8 +416,7 @@ jobs:
 
   macos-build-test:
     name: apple clang build & test
-    needs:
-      [clang-formatting-check, sanity-checks, rustfmt-check, python-lint-check]
+    needs: [clang-format, sanity-checks, rustfmt-check, python-lint-check]
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32
@@ -475,7 +486,7 @@ jobs:
   shell-test:
     name: shell test
     runs-on: ubuntu-latest
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-format, sanity-checks]
     env:
       WERROR: 0
     steps:

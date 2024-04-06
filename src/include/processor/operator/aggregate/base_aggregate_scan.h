@@ -14,8 +14,8 @@ public:
               paramsString},
           aggregatesPos{std::move(aggregatesPos)} {}
 
-    BaseAggregateScan(
-        std::vector<DataPos> aggregatesPos, uint32_t id, const std::string& paramsString)
+    BaseAggregateScan(std::vector<DataPos> aggregatesPos, uint32_t id,
+        const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::AGGREGATE_SCAN, id, paramsString},
           aggregatesPos{std::move(aggregatesPos)} {}
 
@@ -28,8 +28,8 @@ public:
     std::unique_ptr<PhysicalOperator> clone() override = 0;
 
 protected:
-    void writeAggregateResultToVector(
-        common::ValueVector& vector, uint64_t pos, function::AggregateState* aggregateState);
+    void writeAggregateResultToVector(common::ValueVector& vector, uint64_t pos,
+        function::AggregateState* aggregateState);
 
 protected:
     std::vector<DataPos> aggregatesPos;

@@ -366,8 +366,8 @@ int mbedtls_rsa_export(const mbedtls_rsa_context* ctx, mbedtls_mpi* N, mbedtls_m
  * write DER encoded RSA keys. The helper function mbedtls_rsa_deduce_crt
  * can be used in this case.
  */
-int mbedtls_rsa_export_crt(
-    const mbedtls_rsa_context* ctx, mbedtls_mpi* DP, mbedtls_mpi* DQ, mbedtls_mpi* QP) {
+int mbedtls_rsa_export_crt(const mbedtls_rsa_context* ctx, mbedtls_mpi* DP, mbedtls_mpi* DQ,
+    mbedtls_mpi* QP) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     int is_priv;
     RSA_VALIDATE_RET(ctx != NULL);
@@ -639,8 +639,8 @@ int mbedtls_rsa_check_pub_priv(const mbedtls_rsa_context* pub, const mbedtls_rsa
 /*
  * Do an RSA public key operation
  */
-int mbedtls_rsa_public(
-    mbedtls_rsa_context* ctx, const unsigned char* input, unsigned char* output) {
+int mbedtls_rsa_public(mbedtls_rsa_context* ctx, const unsigned char* input,
+    unsigned char* output) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t olen;
     mbedtls_mpi T;
@@ -689,8 +689,8 @@ cleanup:
  *  DSS, and other systems. In : Advances in Cryptology-CRYPTO'96. Springer
  *  Berlin Heidelberg, 1996. p. 104-113.
  */
-static int rsa_prepare_blinding(
-    mbedtls_rsa_context* ctx, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
+static int rsa_prepare_blinding(mbedtls_rsa_context* ctx,
+    int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
     int ret, count = 0;
     mbedtls_mpi R;
 
@@ -1363,14 +1363,14 @@ int mbedtls_rsa_pkcs1_decrypt(mbedtls_rsa_context* ctx, int (*f_rng)(void*, unsi
     switch (ctx->padding) {
 #if defined(MBEDTLS_PKCS1_V15)
     case MBEDTLS_RSA_PKCS_V15:
-        return mbedtls_rsa_rsaes_pkcs1_v15_decrypt(
-            ctx, f_rng, p_rng, olen, input, output, output_max_len);
+        return mbedtls_rsa_rsaes_pkcs1_v15_decrypt(ctx, f_rng, p_rng, olen, input, output,
+            output_max_len);
 #endif
 
 #if defined(MBEDTLS_PKCS1_V21)
     case MBEDTLS_RSA_PKCS_V21:
-        return mbedtls_rsa_rsaes_oaep_decrypt(
-            ctx, f_rng, p_rng, NULL, 0, olen, input, output, output_max_len);
+        return mbedtls_rsa_rsaes_oaep_decrypt(ctx, f_rng, p_rng, NULL, 0, olen, input, output,
+            output_max_len);
 #endif
 
     default:
@@ -1508,8 +1508,8 @@ int mbedtls_rsa_rsassa_pss_sign_ext(mbedtls_rsa_context* ctx,
 int mbedtls_rsa_rsassa_pss_sign(mbedtls_rsa_context* ctx,
     int (*f_rng)(void*, unsigned char*, size_t), void* p_rng, mbedtls_md_type_t md_alg,
     unsigned int hashlen, const unsigned char* hash, unsigned char* sig) {
-    return rsa_rsassa_pss_sign(
-        ctx, f_rng, p_rng, md_alg, hashlen, hash, MBEDTLS_RSA_SALT_LEN_ANY, sig);
+    return rsa_rsassa_pss_sign(ctx, f_rng, p_rng, md_alg, hashlen, hash, MBEDTLS_RSA_SALT_LEN_ANY,
+        sig);
 }
 #endif /* MBEDTLS_PKCS1_V21 */
 
@@ -1867,8 +1867,8 @@ int mbedtls_rsa_rsassa_pss_verify(mbedtls_rsa_context* ctx, mbedtls_md_type_t md
 
     mgf1_hash_id = (ctx->hash_id != MBEDTLS_MD_NONE) ? (mbedtls_md_type_t)ctx->hash_id : md_alg;
 
-    return (mbedtls_rsa_rsassa_pss_verify_ext(
-        ctx, md_alg, hashlen, hash, mgf1_hash_id, MBEDTLS_RSA_SALT_LEN_ANY, sig));
+    return (mbedtls_rsa_rsassa_pss_verify_ext(ctx, md_alg, hashlen, hash, mgf1_hash_id,
+        MBEDTLS_RSA_SALT_LEN_ANY, sig));
 }
 #endif /* MBEDTLS_PKCS1_V21 */
 
@@ -2163,8 +2163,8 @@ int mbedtls_rsa_self_test(int verbose) {
     if (verbose != 0)
         mbedtls_printf("passed\n  PKCS#1 decryption : ");
 
-    if (mbedtls_rsa_pkcs1_decrypt(
-            &rsa, myrand, NULL, &len, rsa_ciphertext, rsa_decrypted, sizeof(rsa_decrypted)) != 0) {
+    if (mbedtls_rsa_pkcs1_decrypt(&rsa, myrand, NULL, &len, rsa_ciphertext, rsa_decrypted,
+            sizeof(rsa_decrypted)) != 0) {
         if (verbose != 0)
             mbedtls_printf("failed\n");
 

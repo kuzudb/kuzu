@@ -62,8 +62,8 @@ void WALReplayer::replay() {
     }
 }
 
-void WALReplayer::replayWALRecord(
-    WALRecord& walRecord, std::unordered_map<DBFileID, std::unique_ptr<FileInfo>>& fileCache) {
+void WALReplayer::replayWALRecord(WALRecord& walRecord,
+    std::unordered_map<DBFileID, std::unique_ptr<FileInfo>>& fileCache) {
     switch (walRecord.recordType) {
     case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
         replayPageUpdateOrInsertRecord(walRecord, fileCache);
@@ -108,8 +108,8 @@ void WALReplayer::replayPageUpdateOrInsertRecord(const WALRecord& walRecord,
     auto dbFileID = walRecord.pageInsertOrUpdateRecord.dbFileID;
     auto entry = fileCache.find(dbFileID);
     if (entry == fileCache.end()) {
-        fileCache.insert(std::make_pair(
-            dbFileID, StorageUtils::getFileInfoForReadWrite(wal->getDirectory(), dbFileID, vfs)));
+        fileCache.insert(std::make_pair(dbFileID,
+            StorageUtils::getFileInfoForReadWrite(wal->getDirectory(), dbFileID, vfs)));
         entry = fileCache.find(dbFileID);
     }
     auto& fileInfoOfDBFile = entry->second;
@@ -135,19 +135,19 @@ void WALReplayer::replayPageUpdateOrInsertRecord(const WALRecord& walRecord,
 void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         if (walRecord.tableStatisticsRecord.isNodeTable) {
-            auto walFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
-                vfs, wal->getDirectory(), common::FileVersionType::WAL_VERSION);
-            auto originalFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
-                vfs, wal->getDirectory(), common::FileVersionType::ORIGINAL);
+            auto walFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs,
+                wal->getDirectory(), common::FileVersionType::WAL_VERSION);
+            auto originalFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs,
+                wal->getDirectory(), common::FileVersionType::ORIGINAL);
             vfs->overwriteFile(walFilePath, originalFilePath);
             if (!isRecovering) {
                 storageManager->getNodesStatisticsAndDeletedIDs()->checkpointInMemoryIfNecessary();
             }
         } else {
-            auto walFilePath = StorageUtils::getRelsStatisticsFilePath(
-                vfs, wal->getDirectory(), common::FileVersionType::WAL_VERSION);
-            auto originalFilePath = StorageUtils::getRelsStatisticsFilePath(
-                vfs, wal->getDirectory(), common::FileVersionType::ORIGINAL);
+            auto walFilePath = StorageUtils::getRelsStatisticsFilePath(vfs, wal->getDirectory(),
+                common::FileVersionType::WAL_VERSION);
+            auto originalFilePath = StorageUtils::getRelsStatisticsFilePath(vfs,
+                wal->getDirectory(), common::FileVersionType::ORIGINAL);
             vfs->overwriteFile(walFilePath, originalFilePath);
             if (!isRecovering) {
                 storageManager->getRelsStatistics()->checkpointInMemoryIfNecessary();
@@ -164,10 +164,10 @@ void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
 
 void WALReplayer::replayCatalogRecord() {
     if (isCheckpoint) {
-        auto walFile = StorageUtils::getCatalogFilePath(
-            vfs, wal->getDirectory(), common::FileVersionType::WAL_VERSION);
-        auto originalFile = StorageUtils::getCatalogFilePath(
-            vfs, wal->getDirectory(), common::FileVersionType::ORIGINAL);
+        auto walFile = StorageUtils::getCatalogFilePath(vfs, wal->getDirectory(),
+            common::FileVersionType::WAL_VERSION);
+        auto originalFile = StorageUtils::getCatalogFilePath(vfs, wal->getDirectory(),
+            common::FileVersionType::ORIGINAL);
         vfs->overwriteFile(walFile, originalFile);
         if (!isRecovering) {
             catalog->checkpointInMemory();
@@ -309,8 +309,8 @@ void WALReplayer::replayAddPropertyRecord(const WALRecord& walRecord) {
     }
 }
 
-void WALReplayer::truncateFileIfInsertion(
-    BMFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord) {
+void WALReplayer::truncateFileIfInsertion(BMFileHandle* fileHandle,
+    const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord) {
     if (pageInsertOrUpdateRecord.isInsert) {
         // If we are rolling back and this is a page insertion we truncate the fileHandle's
         // data structures that hold locks for pageIdxs.

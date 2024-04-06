@@ -12,8 +12,8 @@ std::unique_ptr<Statement> Transformer::transformRegularQuery(
     CypherParser::OC_RegularQueryContext& ctx) {
     auto regularQuery = std::make_unique<RegularQuery>(transformSingleQuery(*ctx.oC_SingleQuery()));
     for (auto unionClause : ctx.oC_Union()) {
-        regularQuery->addSingleQuery(
-            transformSingleQuery(*unionClause->oC_SingleQuery()), unionClause->ALL());
+        regularQuery->addSingleQuery(transformSingleQuery(*unionClause->oC_SingleQuery()),
+            unionClause->ALL());
     }
     return regularQuery;
 }

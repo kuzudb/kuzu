@@ -90,8 +90,8 @@ void BasicColumnWriter::beginWrite(ColumnWriterState& writerState) {
     nextPage(state);
 }
 
-void BasicColumnWriter::write(
-    ColumnWriterState& writerState, common::ValueVector* vector, uint64_t count) {
+void BasicColumnWriter::write(ColumnWriterState& writerState, common::ValueVector* vector,
+    uint64_t count) {
     auto& state = reinterpret_cast<BasicColumnWriterState&>(writerState);
 
     uint64_t remaining = count;
@@ -191,12 +191,12 @@ void BasicColumnWriter::nextPage(BasicColumnWriterState& state) {
     state.currentPage++;
 
     // write the repetition levels
-    writeLevels(
-        *writeInfo.writer, state.repetitionLevels, maxRepeat, pageInfo.offset, pageInfo.rowCount);
+    writeLevels(*writeInfo.writer, state.repetitionLevels, maxRepeat, pageInfo.offset,
+        pageInfo.rowCount);
 
     // write the definition levels
-    writeLevels(
-        *writeInfo.writer, state.definitionLevels, maxDefine, pageInfo.offset, pageInfo.rowCount);
+    writeLevels(*writeInfo.writer, state.definitionLevels, maxDefine, pageInfo.offset,
+        pageInfo.rowCount);
 }
 
 void BasicColumnWriter::flushPage(BasicColumnWriterState& state) {
@@ -265,8 +265,8 @@ void BasicColumnWriter::writeDictionary(BasicColumnWriterState& state,
     state.writeInfo.insert(state.writeInfo.begin(), std::move(writeInfo));
 }
 
-void BasicColumnWriter::setParquetStatistics(
-    BasicColumnWriterState& state, kuzu_parquet::format::ColumnChunk& column) {
+void BasicColumnWriter::setParquetStatistics(BasicColumnWriterState& state,
+    kuzu_parquet::format::ColumnChunk& column) {
     if (maxRepeat == 0) {
         column.meta_data.statistics.null_count = nullCount;
         column.meta_data.statistics.__isset.null_count = true;

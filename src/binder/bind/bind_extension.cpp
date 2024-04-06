@@ -11,8 +11,8 @@ namespace binder {
 std::unique_ptr<BoundStatement> Binder::bindExtension(const Statement& statement) {
     auto extensionStatement =
         common::ku_dynamic_cast<const Statement&, const ExtensionStatement&>(statement);
-    return std::make_unique<BoundExtensionStatement>(
-        extensionStatement.getAction(), extensionStatement.getPath());
+    return std::make_unique<BoundExtensionStatement>(extensionStatement.getAction(),
+        extensionStatement.getPath());
 }
 
 } // namespace binder

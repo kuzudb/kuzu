@@ -31,8 +31,8 @@ public:
 
     CatalogContent(std::unique_ptr<CatalogSet> tables, common::table_id_t nextTableID,
         std::unique_ptr<CatalogSet> functions, common::VirtualFileSystem* vfs)
-        : tables{std::move(tables)}, nextTableID{nextTableID}, vfs{vfs}, functions{std::move(
-                                                                             functions)} {}
+        : tables{std::move(tables)}, nextTableID{nextTableID}, vfs{vfs},
+          functions{std::move(functions)} {}
 
     common::table_id_t getTableID(const std::string& tableName) const;
     CatalogEntry* getTableCatalogEntry(common::table_id_t tableID) const;
@@ -82,14 +82,14 @@ private:
     void alterTable(const binder::BoundAlterInfo& info);
 
 private:
-    std::unique_ptr<CatalogEntry> createNodeTableEntry(
-        common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const;
-    std::unique_ptr<CatalogEntry> createRelTableEntry(
-        common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const;
-    std::unique_ptr<CatalogEntry> createRelTableGroupEntry(
-        common::table_id_t tableID, const binder::BoundCreateTableInfo& info);
-    std::unique_ptr<CatalogEntry> createRdfGraphEntry(
-        common::table_id_t tableID, const binder::BoundCreateTableInfo& info);
+    std::unique_ptr<CatalogEntry> createNodeTableEntry(common::table_id_t tableID,
+        const binder::BoundCreateTableInfo& info) const;
+    std::unique_ptr<CatalogEntry> createRelTableEntry(common::table_id_t tableID,
+        const binder::BoundCreateTableInfo& info) const;
+    std::unique_ptr<CatalogEntry> createRelTableGroupEntry(common::table_id_t tableID,
+        const binder::BoundCreateTableInfo& info);
+    std::unique_ptr<CatalogEntry> createRdfGraphEntry(common::table_id_t tableID,
+        const binder::BoundCreateTableInfo& info);
     void renameTable(common::table_id_t tableID, const std::string& newName);
 
 protected:

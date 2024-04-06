@@ -19,8 +19,8 @@ bool StandaloneCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* co
         break;
     }
     case main::OptionType::EXTENSION:
-        context->clientContext->setExtensionOption(
-            standaloneCallInfo->option->name, standaloneCallInfo->optionValue);
+        context->clientContext->setExtensionOption(standaloneCallInfo->option->name,
+            standaloneCallInfo->optionValue);
         break;
     }
     metrics->numOutputTuple.increase(1);

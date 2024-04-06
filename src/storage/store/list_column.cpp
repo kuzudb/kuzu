@@ -152,8 +152,8 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     }
 }
 
-void ListColumn::scanInternal(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void ListColumn::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     resultVector->resetAuxiliaryBuffer();
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
@@ -264,8 +264,8 @@ void ListColumn::rollbackInMemory() {
     dataColumn->rollbackInMemory();
 }
 
-offset_t ListColumn::readOffset(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
+offset_t ListColumn::readOffset(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    offset_t offsetInNodeGroup) {
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
     auto pageCursor = PageUtils::getPageCursorForPos(offsetInNodeGroup,
         chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
@@ -278,8 +278,8 @@ offset_t ListColumn::readOffset(
     return value;
 }
 
-list_size_t ListColumn::readSize(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
+list_size_t ListColumn::readSize(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    offset_t offsetInNodeGroup) {
     auto chunkMeta = sizeColumn->getMetadataDA()->get(nodeGroupIdx, transaction->getType());
     auto pageCursor = PageUtils::getPageCursorForPos(offsetInNodeGroup,
         chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
@@ -295,10 +295,10 @@ list_size_t ListColumn::readSize(
 ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
     node_group_idx_t nodeGroupIdx, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) {
     auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
-    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunk(
-        *common::LogicalType::INT64(), enableCompression, numOffsetsToRead);
-    auto sizeColumnChunk = ColumnChunkFactory::createColumnChunk(
-        *common::LogicalType::UINT32(), enableCompression, numOffsetsToRead);
+    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunk(*common::LogicalType::INT64(),
+        enableCompression, numOffsetsToRead);
+    auto sizeColumnChunk = ColumnChunkFactory::createColumnChunk(*common::LogicalType::UINT32(),
+        enableCompression, numOffsetsToRead);
     Column::scan(transaction, nodeGroupIdx, offsetColumnChunk.get(), startOffsetInNodeGroup,
         endOffsetInNodeGroup);
     sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk.get(), startOffsetInNodeGroup,
@@ -341,14 +341,14 @@ void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_
     auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
     auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {
-        commitColumnChunkOutOfPlace(
-            transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk, startSrcOffset);
+        commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk,
+            startSrcOffset);
     } else {
         // we separate the commit into three parts: offset chunk commit, size column chunk commit,
         // data column chunk
         auto listChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(chunk);
-        sizeColumn->prepareCommitForChunk(
-            transaction, nodeGroupIdx, dstOffsets, listChunk->getSizeColumnChunk(), startSrcOffset);
+        sizeColumn->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets,
+            listChunk->getSizeColumnChunk(), startSrcOffset);
         auto dataColumnSize =
             dataColumn->getMetadata(nodeGroupIdx, transaction->getType()).numValues;
         auto dataColumnChunk = listChunk->getDataColumnChunk();
@@ -361,8 +361,8 @@ void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_
                 dstOffsetsInDataColumn.push_back(dataColumnSize + dataSize++);
             }
         }
-        dataColumn->prepareCommitForChunk(
-            transaction, nodeGroupIdx, dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
+        dataColumn->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsetsInDataColumn,
+            dataColumnChunk, startListOffset);
         // we need to update the offset since we do not do in-place list data update but append data
         // in the end of list data column we need to plus to original data column size to get the
         // new offset

@@ -41,8 +41,8 @@ public:
     uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
         common::SelectionVector& selVector, uint64_t numValuesToAppend);
     common::offset_t append(ChunkedNodeGroup* other, common::offset_t offsetInOtherNodeGroup);
-    void write(
-        const std::vector<std::unique_ptr<ColumnChunk>>& data, common::column_id_t offsetColumnID);
+    void write(const std::vector<std::unique_ptr<ColumnChunk>>& data,
+        common::column_id_t offsetColumnID);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);
 
     void finalize(uint64_t nodeGroupIdx_);
@@ -66,8 +66,8 @@ struct ChunkedCSRHeader {
     std::unique_ptr<ColumnChunk> length;
 
     ChunkedCSRHeader() {}
-    explicit ChunkedCSRHeader(
-        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+    explicit ChunkedCSRHeader(bool enableCompression,
+        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
     DELETE_COPY_DEFAULT_MOVE(ChunkedCSRHeader);
 
     common::offset_t getStartCSROffset(common::offset_t nodeOffset) const;
@@ -85,8 +85,8 @@ struct ChunkedCSRHeader {
 
 class ChunkedCSRNodeGroup : public ChunkedNodeGroup {
 public:
-    ChunkedCSRNodeGroup(
-        const std::vector<common::LogicalType>& columnTypes, bool enableCompression);
+    ChunkedCSRNodeGroup(const std::vector<common::LogicalType>& columnTypes,
+        bool enableCompression);
     DELETE_COPY_DEFAULT_MOVE(ChunkedCSRNodeGroup);
 
     ChunkedCSRHeader& getCSRHeader() { return csrHeader; }

@@ -13,8 +13,8 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace main {
 
-std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
-    const LogicalType& type, const std::string& name) {
+std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(const LogicalType& type,
+    const std::string& name) {
     auto columnTypeInfo = std::make_unique<DataTypeInfo>(type.getLogicalTypeID(), name);
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID: {

@@ -11,8 +11,8 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace main {
 
-OpProfileBox::OpProfileBox(
-    std::string opName, const std::string& paramsName, std::vector<std::string> attributes)
+OpProfileBox::OpProfileBox(std::string opName, const std::string& paramsName,
+    std::vector<std::string> attributes)
     : opName{std::move(opName)}, attributes{std::move(attributes)} {
     std::stringstream paramsStream{paramsName};
     std::string paramStr = "";
@@ -94,8 +94,8 @@ std::ostringstream OpProfileTree::printPlanToOstream() const {
     return oss;
 }
 
-void OpProfileTree::calculateNumRowsAndColsForOp(
-    PhysicalOperator* op, uint32_t& numRows, uint32_t& numCols) {
+void OpProfileTree::calculateNumRowsAndColsForOp(PhysicalOperator* op, uint32_t& numRows,
+    uint32_t& numCols) {
     if (!op->getNumChildren()) {
         numRows = 1;
         numCols = 1;
@@ -123,8 +123,8 @@ uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx
 
     uint32_t colOffset = 0;
     for (auto i = 0u; i < op->getNumChildren(); i++) {
-        colOffset += fillOpProfileBoxes(
-            op->getChild(i), rowIdx + 1, colIdx + colOffset, maxFieldWidth, profiler);
+        colOffset += fillOpProfileBoxes(op->getChild(i), rowIdx + 1, colIdx + colOffset,
+            maxFieldWidth, profiler);
     }
     return colOffset;
 }
@@ -268,8 +268,8 @@ std::string OpProfileTree::genHorizLine(uint32_t len) {
     return tableFrame.str();
 }
 
-void OpProfileTree::insertOpProfileBox(
-    uint32_t rowIdx, uint32_t colIdx, std::unique_ptr<OpProfileBox> opProfileBox) {
+void OpProfileTree::insertOpProfileBox(uint32_t rowIdx, uint32_t colIdx,
+    std::unique_ptr<OpProfileBox> opProfileBox) {
     validateRowIdxAndColIdx(rowIdx, colIdx);
     opProfileBoxes[rowIdx][colIdx] = std::move(opProfileBox);
 }
@@ -295,8 +295,8 @@ uint32_t OpProfileTree::calculateRowHeight(uint32_t rowIdx) const {
     for (auto i = 0u; i < opProfileBoxes[rowIdx].size(); i++) {
         auto opProfileBox = getOpProfileBox(rowIdx, i);
         if (opProfileBox) {
-            height = std::max(
-                height, 2 * opProfileBox->getNumAttributes() + opProfileBox->getNumParams());
+            height = std::max(height,
+                2 * opProfileBox->getNumAttributes() + opProfileBox->getNumParams());
         }
     }
     return height + 2;

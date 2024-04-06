@@ -19,8 +19,8 @@ public:
         std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
         const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::INTERSECT, std::move(children), id, paramsString},
-          outputDataPos{outputDataPos},
-          intersectDataInfos{std::move(intersectDataInfos)}, sharedHTs{std::move(sharedHTs)} {
+          outputDataPos{outputDataPos}, intersectDataInfos{std::move(intersectDataInfos)},
+          sharedHTs{std::move(sharedHTs)} {
         tupleIdxPerBuildSide.resize(this->sharedHTs.size(), 0);
         carryBuildSideIdx = -1u;
         probedFlatTuples.resize(this->sharedHTs.size());
@@ -44,8 +44,8 @@ private:
     static void twoWayIntersect(common::nodeID_t* leftNodeIDs, common::SelectionVector& lSelVector,
         common::nodeID_t* rightNodeIDs, common::SelectionVector& rSelVector);
     void intersectLists(const std::vector<common::overflow_value_t>& listsToIntersect);
-    void populatePayloads(
-        const std::vector<uint8_t*>& tuples, const std::vector<uint32_t>& listIdxes);
+    void populatePayloads(const std::vector<uint8_t*>& tuples,
+        const std::vector<uint32_t>& listIdxes);
     bool hasNextTuplesToIntersect();
 
     inline uint32_t getNumBuilds() { return sharedHTs.size(); }

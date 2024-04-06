@@ -12,7 +12,9 @@ TEST(TimestampTests, FromDatetime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Conversion exception: Date out of range: 1968-12-42.");
-    } catch (std::exception& e) { FAIL(); }
+    } catch (std::exception& e) {
+        FAIL();
+    }
 
     // 2021 is not a leap year, February only has 28 days.
     try {
@@ -20,16 +22,20 @@ TEST(TimestampTests, FromDatetime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Conversion exception: Date out of range: 2021-2-29.");
-    } catch (std::exception& e) { FAIL(); }
+    } catch (std::exception& e) {
+        FAIL();
+    }
 
     // hour is out of range
     try {
         Timestamp::fromDateTime(Date::fromDate(1968, 12, 22), Time::fromTime(25, 32, 51));
         FAIL();
     } catch (ConversionException& e) {
-        ASSERT_STREQ(
-            e.what(), "Conversion exception: Time field value out of range: 25:32:51[.0].");
-    } catch (std::exception& e) { FAIL(); }
+        ASSERT_STREQ(e.what(),
+            "Conversion exception: Time field value out of range: 25:32:51[.0].");
+    } catch (std::exception& e) {
+        FAIL();
+    }
 
     // second is out of range
     try {
@@ -37,16 +43,20 @@ TEST(TimestampTests, FromDatetime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Conversion exception: Time field value out of range: 5:52:70[.0].");
-    } catch (std::exception& e) { FAIL(); }
+    } catch (std::exception& e) {
+        FAIL();
+    }
 
     // microsecond is out of rarnge
     try {
         Timestamp::fromDateTime(Date::fromDate(2021, 2, 28), Time::fromTime(5, 52, 42, 1000002));
         FAIL();
     } catch (ConversionException& e) {
-        ASSERT_STREQ(
-            e.what(), "Conversion exception: Time field value out of range: 5:52:42[.1000002].");
-    } catch (std::exception& e) { FAIL(); }
+        ASSERT_STREQ(e.what(),
+            "Conversion exception: Time field value out of range: 5:52:42[.1000002].");
+    } catch (std::exception& e) {
+        FAIL();
+    }
 
     EXPECT_EQ(
         Timestamp::fromDateTime(Date::fromDate(2020, 10, 22), Time::fromTime(21, 32, 51)).value,
@@ -85,12 +95,12 @@ TEST(TimestampTests, FromCString) {
         Timestamp::fromCString("2112-08-21 08:21:23.005612Z", strlen("2112-08-21 08:21:23.005612Z"))
             .value,
         4501210883005612);
-    EXPECT_EQ(Timestamp::fromCString(
-                  "2112-08-21 08:21:23.005612Z+00:00", strlen("2112-08-21 08:21:23.005612Z+00:00"))
+    EXPECT_EQ(Timestamp::fromCString("2112-08-21 08:21:23.005612Z+00:00",
+                  strlen("2112-08-21 08:21:23.005612Z+00:00"))
                   .value,
         4501210883005612);
-    EXPECT_EQ(Timestamp::fromCString(
-                  "2112-08-21 08:21:23.005612Z+02:00", strlen("2112-08-21 08:21:23.005612Z+02:00"))
+    EXPECT_EQ(Timestamp::fromCString("2112-08-21 08:21:23.005612Z+02:00",
+                  strlen("2112-08-21 08:21:23.005612Z+02:00"))
                   .value,
         4501203683005612);
     EXPECT_EQ(
@@ -100,8 +110,8 @@ TEST(TimestampTests, FromCString) {
     EXPECT_EQ(
         Timestamp::fromCString("1992-04-28T09:22:56-09", strlen("1992-04-28T09:22:56-09")).value,
         704485376000000);
-    EXPECT_EQ(Timestamp::fromCString(
-                  "1992-04-28T09:22:56-09:00   ", strlen("1992-04-28T09:22:56-09:00   "))
+    EXPECT_EQ(Timestamp::fromCString("1992-04-28T09:22:56-09:00   ",
+                  strlen("1992-04-28T09:22:56-09:00   "))
                   .value,
         704485376000000);
     EXPECT_EQ(

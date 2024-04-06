@@ -168,8 +168,8 @@ struct RegexpExtractAllFunction : public VectorStringFunction {
     static constexpr const char* name = "REGEXP_EXTRACT_ALL";
 
     static function_set getFunctionSet();
-    static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, Function* function);
+    static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
+        Function* function);
 };
 
 struct LevenshteinFunction : public VectorStringFunction {

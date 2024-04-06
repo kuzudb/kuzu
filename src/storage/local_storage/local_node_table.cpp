@@ -23,8 +23,8 @@ void LocalNodeNG::scan(ValueVector* nodeIDVector, const std::vector<column_id_t>
     }
 }
 
-void LocalNodeNG::lookup(
-    offset_t nodeOffset, column_id_t columnID, ValueVector* outputVector, sel_t posInOutputVector) {
+void LocalNodeNG::lookup(offset_t nodeOffset, column_id_t columnID, ValueVector* outputVector,
+    sel_t posInOutputVector) {
     if (deleteInfo.containsOffset(nodeOffset)) {
         // Node has been deleted.
         return;
@@ -146,8 +146,8 @@ LocalNodeTable::LocalNodeTable(Table& table) : LocalTable{table} {
 
 bool LocalNodeTable::insert(TableInsertState& state) {
     auto& insertState = ku_dynamic_cast<TableInsertState&, NodeTableInsertState&>(state);
-    return localTableDataCollection[0]->insert(
-        {&insertState.nodeIDVector}, insertState.propertyVectors);
+    return localTableDataCollection[0]->insert({&insertState.nodeIDVector},
+        insertState.propertyVectors);
 }
 
 bool LocalNodeTable::update(TableUpdateState& state) {
@@ -166,15 +166,15 @@ bool LocalNodeTable::delete_(TableDeleteState& deleteState) {
 void LocalNodeTable::scan(TableReadState& state) {
     auto localTableData =
         ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableDataCollection[0].get());
-    localTableData->scan(
-        const_cast<ValueVector*>(&state.nodeIDVector), state.columnIDs, state.outputVectors);
+    localTableData->scan(const_cast<ValueVector*>(&state.nodeIDVector), state.columnIDs,
+        state.outputVectors);
 }
 
 void LocalNodeTable::lookup(TableReadState& state) {
     auto localTableData =
         ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableDataCollection[0].get());
-    localTableData->lookup(
-        const_cast<ValueVector*>(&state.nodeIDVector), state.columnIDs, state.outputVectors);
+    localTableData->lookup(const_cast<ValueVector*>(&state.nodeIDVector), state.columnIDs,
+        state.outputVectors);
 }
 
 } // namespace storage

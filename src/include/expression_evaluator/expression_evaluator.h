@@ -29,8 +29,8 @@ public:
     virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
 
 protected:
-    virtual void resolveResultVector(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) = 0;
+    virtual void resolveResultVector(const processor::ResultSet& resultSet,
+        storage::MemoryManager* memoryManager) = 0;
 
     void resolveResultStateFromChildren(const std::vector<ExpressionEvaluator*>& inputEvaluators);
 

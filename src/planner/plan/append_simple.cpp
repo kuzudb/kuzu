@@ -32,8 +32,8 @@ namespace planner {
 void Planner::appendCreateTable(const BoundStatement& statement, LogicalPlan& plan) {
     auto& creatTable = ku_dynamic_cast<const BoundStatement&, const BoundCreateTable&>(statement);
     auto info = creatTable.getInfo();
-    auto op = make_shared<LogicalCreateTable>(
-        info->tableName, info->copy(), statement.getStatementResult()->getSingleColumnExpr());
+    auto op = make_shared<LogicalCreateTable>(info->tableName, info->copy(),
+        statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(op));
 }
 
@@ -47,16 +47,16 @@ void Planner::appendDropTable(const BoundStatement& statement, LogicalPlan& plan
 void Planner::appendAlter(const BoundStatement& statement, LogicalPlan& plan) {
     auto& alter = ku_dynamic_cast<const BoundStatement&, const BoundAlter&>(statement);
     auto info = alter.getInfo();
-    auto op = std::make_shared<LogicalAlter>(
-        info->copy(), info->tableName, statement.getStatementResult()->getSingleColumnExpr());
+    auto op = std::make_shared<LogicalAlter>(info->copy(), info->tableName,
+        statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(op));
 }
 
 void Planner::appendStandaloneCall(const BoundStatement& statement, LogicalPlan& plan) {
     auto& standaloneCallClause =
         ku_dynamic_cast<const BoundStatement&, const BoundStandaloneCall&>(statement);
-    auto op = make_shared<LogicalStandaloneCall>(
-        standaloneCallClause.getOption(), standaloneCallClause.getOptionValue());
+    auto op = make_shared<LogicalStandaloneCall>(standaloneCallClause.getOption(),
+        standaloneCallClause.getOptionValue());
     plan.setLastOperator(std::move(op));
 }
 
@@ -95,8 +95,8 @@ void Planner::appendTransaction(const BoundStatement& statement, LogicalPlan& pl
 void Planner::appendExtension(const BoundStatement& statement, LogicalPlan& plan) {
     auto& extensionStatement =
         common::ku_dynamic_cast<const BoundStatement&, const BoundExtensionStatement&>(statement);
-    auto op = std::make_shared<LogicalExtension>(
-        extensionStatement.getAction(), extensionStatement.getPath());
+    auto op = std::make_shared<LogicalExtension>(extensionStatement.getAction(),
+        extensionStatement.getPath());
     plan.setLastOperator(std::move(op));
 }
 

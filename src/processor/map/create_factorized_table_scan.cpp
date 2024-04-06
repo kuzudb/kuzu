@@ -26,8 +26,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     }
     auto bindData =
         std::make_unique<FTableScanBindData>(table, std::move(colIndices), maxMorselSize);
-    auto function = function::BuiltInFunctionsUtils::matchFunction(
-        FTableScan::name, clientContext->getCatalog()->getFunctions(clientContext->getTx()));
+    auto function = function::BuiltInFunctionsUtils::matchFunction(FTableScan::name,
+        clientContext->getCatalog()->getFunctions(clientContext->getTx()));
     auto info = InQueryCallInfo();
     info.function = *ku_dynamic_cast<Function*, TableFunction*>(function);
     info.bindData = std::move(bindData);
@@ -40,8 +40,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     info.outputType = TableScanOutputType::MULTI_DATA_CHUNK;
     auto sharedState = std::make_shared<InQueryCallSharedState>();
     if (child == nullptr) {
-        return std::make_unique<InQueryCall>(
-            std::move(info), sharedState, getOperatorID(), ExpressionUtil::toString(exprs));
+        return std::make_unique<InQueryCall>(std::move(info), sharedState, getOperatorID(),
+            ExpressionUtil::toString(exprs));
     }
     return std::make_unique<InQueryCall>(std::move(info), sharedState, std::move(child),
         getOperatorID(), ExpressionUtil::toString(exprs));
@@ -90,15 +90,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScanAligned(
 std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScanAligned(
     const expression_vector& exprs, Schema* schema, std::shared_ptr<FactorizedTable> table,
     uint64_t maxMorselSize, std::unique_ptr<PhysicalOperator> child) {
-    return createFTableScanAligned(
-        exprs, schema, nullptr /* offset*/, std::move(table), maxMorselSize, std::move(child));
+    return createFTableScanAligned(exprs, schema, nullptr /* offset*/, std::move(table),
+        maxMorselSize, std::move(child));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScanAligned(
     const expression_vector& exprs, planner::Schema* schema, std::shared_ptr<FactorizedTable> table,
     uint64_t maxMorselSize) {
-    return createFTableScanAligned(
-        exprs, schema, std::move(table), maxMorselSize, nullptr /* child */);
+    return createFTableScanAligned(exprs, schema, std::move(table), maxMorselSize,
+        nullptr /* child */);
 }
 
 } // namespace processor

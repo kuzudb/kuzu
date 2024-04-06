@@ -70,8 +70,8 @@ public:
     StandardColumnWriter(ParquetWriter& writer, uint64_t schemaIdx,
         std::vector<std::string> schemaPath, uint64_t maxRepeat, uint64_t maxDefine,
         bool canHaveNulls)
-        : BasicColumnWriter(
-              writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine, canHaveNulls) {}
+        : BasicColumnWriter(writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine,
+              canHaveNulls) {}
 
     inline std::unique_ptr<ColumnWriterStatistics> initializeStatsState() override {
         return OP::template initializeStats<SRC, TGT>();

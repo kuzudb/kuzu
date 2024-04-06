@@ -27,15 +27,15 @@ StorageManager::StorageManager(bool readOnly, const Catalog& catalog, MemoryMana
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
-    nodesStatisticsAndDeletedIDs = std::make_unique<NodesStoreStatsAndDeletedIDs>(
-        metadataFH.get(), memoryManager.getBufferManager(), wal, vfs);
-    relsStatistics = std::make_unique<RelsStoreStats>(
-        metadataFH.get(), memoryManager.getBufferManager(), wal, vfs);
+    nodesStatisticsAndDeletedIDs = std::make_unique<NodesStoreStatsAndDeletedIDs>(metadataFH.get(),
+        memoryManager.getBufferManager(), wal, vfs);
+    relsStatistics = std::make_unique<RelsStoreStats>(metadataFH.get(),
+        memoryManager.getBufferManager(), wal, vfs);
     loadTables(readOnly, catalog);
 }
 
-static void setCommonTableIDToRdfRelTable(
-    RelTable* relTable, std::vector<RDFGraphCatalogEntry*> rdfEntries) {
+static void setCommonTableIDToRdfRelTable(RelTable* relTable,
+    std::vector<RDFGraphCatalogEntry*> rdfEntries) {
     for (auto rdfEntry : rdfEntries) {
         if (rdfEntry->isParent(relTable->getTableID())) {
             std::vector<Column*> columns;
@@ -85,8 +85,8 @@ void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* re
     tables[tableID] = std::move(relTable);
 }
 
-void StorageManager::createRelTableGroup(
-    table_id_t, RelGroupCatalogEntry* tableSchema, Catalog* catalog, Transaction* transaction) {
+void StorageManager::createRelTableGroup(table_id_t, RelGroupCatalogEntry* tableSchema,
+    Catalog* catalog, Transaction* transaction) {
     for (auto relTableID : tableSchema->getRelTableIDs()) {
         createRelTable(relTableID,
             ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
@@ -95,8 +95,8 @@ void StorageManager::createRelTableGroup(
     }
 }
 
-void StorageManager::createRdfGraph(
-    table_id_t, RDFGraphCatalogEntry* tableSchema, Catalog* catalog, Transaction* transaction) {
+void StorageManager::createRdfGraph(table_id_t, RDFGraphCatalogEntry* tableSchema, Catalog* catalog,
+    Transaction* transaction) {
     auto rdfGraphSchema = ku_dynamic_cast<TableCatalogEntry*, RDFGraphCatalogEntry*>(tableSchema);
     auto resourceTableID = rdfGraphSchema->getResourceTableID();
     auto resourceTableEntry = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(
@@ -120,8 +120,8 @@ void StorageManager::createTable(table_id_t tableID, Catalog* catalog, Transacti
     auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
     switch (tableEntry->getTableType()) {
     case TableType::NODE: {
-        createNodeTable(
-            tableID, ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry));
+        createNodeTable(tableID,
+            ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry));
     } break;
     case TableType::REL: {
         createRelTable(tableID,

@@ -10,8 +10,8 @@ namespace parser {
 class CommentOn : public Statement {
 public:
     explicit CommentOn(std::string table, std::string comment)
-        : Statement{common::StatementType::COMMENT_ON}, table{std::move(table)}, comment{std::move(
-                                                                                     comment)} {}
+        : Statement{common::StatementType::COMMENT_ON}, table{std::move(table)},
+          comment{std::move(comment)} {}
 
     inline std::string getTable() const { return table; }
 

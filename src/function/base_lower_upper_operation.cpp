@@ -39,8 +39,8 @@ uint32_t BaseLowerUpperFunction::getResultLen(char* inputStr, uint32_t inputLen,
     return outputLength;
 }
 
-uint64_t BaseLowerUpperFunction::convertCharCase(
-    char* result, const char* input, int32_t charPos, bool toUpper) {
+uint64_t BaseLowerUpperFunction::convertCharCase(char* result, const char* input, int32_t charPos,
+    bool toUpper) {
     if (input[charPos] & 0x80) {
         int size = 0u, newSize = 0u;
         auto codepoint = utf8proc_codepoint(input + charPos, size);

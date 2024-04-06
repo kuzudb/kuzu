@@ -23,8 +23,8 @@ struct BaseCountFunction {
         return state;
     }
 
-    static void combine(
-        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* /*memoryManager*/) {
+    static void combine(uint8_t* state_, uint8_t* otherState_,
+        storage::MemoryManager* /*memoryManager*/) {
         auto state = reinterpret_cast<CountState*>(state_);
         auto otherState = reinterpret_cast<CountState*>(otherState_);
         state->count += otherState->count;

@@ -49,8 +49,8 @@ uint64_t StructColumnReader::read(uint64_t numValuesToRead, parquet_filter_t& fi
 
     uint64_t numValuesRead = numValuesToRead;
     for (auto i = 0u; i < fieldVectors.size(); i++) {
-        auto numValuesChildrenRead = childReaders[i]->read(
-            numValuesToRead, filter, define_out, repeat_out, fieldVectors[i].get());
+        auto numValuesChildrenRead = childReaders[i]->read(numValuesToRead, filter, define_out,
+            repeat_out, fieldVectors[i].get());
         if (i == 0) {
             numValuesRead = numValuesChildrenRead;
         } else if (numValuesRead != numValuesChildrenRead) {

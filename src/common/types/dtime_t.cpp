@@ -201,8 +201,8 @@ dtime_t Time::fromTimeInternal(int32_t hour, int32_t minute, int32_t second, int
 
 dtime_t Time::fromTime(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
     if (!Time::isValid(hour, minute, second, microseconds)) {
-        throw ConversionException(stringFormat(
-            "Time field value out of range: {}:{}:{}[.{}].", hour, minute, second, microseconds));
+        throw ConversionException(stringFormat("Time field value out of range: {}:{}:{}[.{}].",
+            hour, minute, second, microseconds));
     }
     return Time::fromTimeInternal(hour, minute, second, microseconds);
 }

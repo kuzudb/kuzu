@@ -41,8 +41,8 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
                                 ->getColumnID(propertyID);
             tableIDToSetInfo.insert({tableID, NodeSetInfo{table, columnID}});
         }
-        return std::make_unique<MultiLabelNodeSetExecutor>(
-            std::move(tableIDToSetInfo), nodeIDPos, propertyPos, std::move(evaluator));
+        return std::make_unique<MultiLabelNodeSetExecutor>(std::move(tableIDToSetInfo), nodeIDPos,
+            propertyPos, std::move(evaluator));
     } else {
         auto tableID = node->getSingleTableID();
         auto table = ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(tableID));
@@ -52,8 +52,8 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
             columnID = catalog->getTableCatalogEntry(clientContext->getTx(), tableID)
                            ->getColumnID(propertyID);
         }
-        return std::make_unique<SingleLabelNodeSetExecutor>(
-            NodeSetInfo{table, columnID}, nodeIDPos, propertyPos, std::move(evaluator));
+        return std::make_unique<SingleLabelNodeSetExecutor>(NodeSetInfo{table, columnID}, nodeIDPos,
+            propertyPos, std::move(evaluator));
     }
 }
 
@@ -69,8 +69,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
         getOperatorID(), logicalSetNodeProperty.getExpressionsForPrinting());
 }
 
-std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
-    planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) const {
+std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(planner::LogicalSetPropertyInfo* info,
+    const planner::Schema& inSchema) const {
     auto storageManager = clientContext->getStorageManager();
     auto catalog = clientContext->getCatalog();
     auto rel = (RelExpression*)info->nodeOrRel.get();
@@ -106,8 +106,8 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
             columnID = catalog->getTableCatalogEntry(clientContext->getTx(), tableID)
                            ->getColumnID(propertyID);
         }
-        return std::make_unique<SingleLabelRelSetExecutor>(
-            table, columnID, srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));
+        return std::make_unique<SingleLabelRelSetExecutor>(table, columnID, srcNodePos, dstNodePos,
+            relIDPos, propertyPos, std::move(evaluator));
     }
 }
 

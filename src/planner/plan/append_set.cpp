@@ -9,8 +9,8 @@ namespace planner {
 
 std::unique_ptr<LogicalSetPropertyInfo> Planner::createLogicalSetPropertyInfo(
     const BoundSetPropertyInfo* boundSetPropertyInfo) {
-    return std::make_unique<LogicalSetPropertyInfo>(
-        boundSetPropertyInfo->nodeOrRel, boundSetPropertyInfo->setItem);
+    return std::make_unique<LogicalSetPropertyInfo>(boundSetPropertyInfo->nodeOrRel,
+        boundSetPropertyInfo->setItem);
 }
 
 void Planner::appendSetNodeProperty(

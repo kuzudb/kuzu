@@ -53,8 +53,8 @@ void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_i
     auto& kuStr = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
     auto index = dictionary.append(nodeGroupIdx, kuStr.getAsStringView());
     // Write index to main column
-    auto state = ReadState{
-        chunkMeta, chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
+    auto state = ReadState{chunkMeta,
+        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
     Column::writeValues(state, offsetInChunk, (uint8_t*)&index);
 }
 
@@ -82,8 +82,8 @@ void StringColumn::write(node_group_idx_t nodeGroupIdx, offset_t dstOffset, Colu
     }
 }
 
-void StringColumn::scanInternal(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void StringColumn::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
@@ -104,8 +104,8 @@ void StringColumn::scanUnfiltered(transaction::Transaction* transaction,
     auto numValuesToRead = endOffsetInGroup - startOffsetInGroup;
     auto indices = std::make_unique<string_index_t[]>(numValuesToRead);
     auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
-    Column::scan(
-        transaction, indexState, startOffsetInGroup, endOffsetInGroup, (uint8_t*)indices.get());
+    Column::scan(transaction, indexState, startOffsetInGroup, endOffsetInGroup,
+        (uint8_t*)indices.get());
 
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < numValuesToRead; i++) {
@@ -132,8 +132,8 @@ void StringColumn::scanFiltered(transaction::Transaction* transaction,
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
             auto offsetInGroup = startOffsetInGroup + pos;
             string_index_t index;
-            Column::scan(
-                transaction, indexState, offsetInGroup, offsetInGroup + 1, (uint8_t*)&index);
+            Column::scan(transaction, indexState, offsetInGroup, offsetInGroup + 1,
+                (uint8_t*)&index);
             offsetsToScan.emplace_back(index, pos);
         }
     }
@@ -144,8 +144,8 @@ void StringColumn::scanFiltered(transaction::Transaction* transaction,
     dictionary.scan(transaction, nodeGroupIdx, offsetsToScan, resultVector, indexState.metadata);
 }
 
-void StringColumn::lookupInternal(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void StringColumn::lookupInternal(Transaction* transaction, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     KU_ASSERT(dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
@@ -158,8 +158,8 @@ void StringColumn::lookupInternal(
             auto offsetInGroup = nodeIDVector->readNodeOffset(pos) -
                                  StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
             string_index_t index;
-            Column::scan(
-                transaction, indexState, offsetInGroup, offsetInGroup + 1, (uint8_t*)&index);
+            Column::scan(transaction, indexState, offsetInGroup, offsetInGroup + 1,
+                (uint8_t*)&index);
             offsetsToScan.emplace_back(index, pos);
         }
     }
@@ -231,8 +231,8 @@ bool StringColumn::canIndexCommitInPlace(Transaction* transaction, node_group_id
     auto totalStringsAfterUpdate =
         dictionary.getNumValuesInOffsets(transaction, nodeGroupIdx) + numStrings;
     // Check if the index column can store the largest new index in-place
-    if (!metadata.compMeta.canUpdateInPlace(
-            (const uint8_t*)&totalStringsAfterUpdate, 0 /*pos*/, PhysicalTypeID::UINT32)) {
+    if (!metadata.compMeta.canUpdateInPlace((const uint8_t*)&totalStringsAfterUpdate, 0 /*pos*/,
+            PhysicalTypeID::UINT32)) {
         return false;
     }
     return true;

@@ -140,8 +140,8 @@ public:
 
     // Sets the given number of bits to null (if isNull is true) or non-null (if isNull is false),
     // starting at the offset
-    static void setNullRange(
-        uint64_t* nullEntries, uint64_t offset, uint64_t numBitsToSet, bool isNull);
+    static void setNullRange(uint64_t* nullEntries, uint64_t offset, uint64_t numBitsToSet,
+        bool isNull);
 
     void setNullFromRange(uint64_t offset, uint64_t numBitsToSet, bool isNull);
 
@@ -150,8 +150,8 @@ public:
 private:
     static inline std::pair<uint64_t, uint64_t> getNullEntryAndBitPos(uint64_t pos) {
         auto nullEntryPos = pos >> NUM_BITS_PER_NULL_ENTRY_LOG2;
-        return std::make_pair(
-            nullEntryPos, pos - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2));
+        return std::make_pair(nullEntryPos,
+            pos - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2));
     }
 
 private:

@@ -152,8 +152,8 @@ public:
      * @param dataType the logical type of the value.
      * @param children a vector of children values.
      */
-    KUZU_API explicit Value(
-        std::unique_ptr<LogicalType> dataType, std::vector<std::unique_ptr<Value>> children);
+    KUZU_API explicit Value(std::unique_ptr<LogicalType> dataType,
+        std::vector<std::unique_ptr<Value>> children);
     /**
      * @param other the value to copy from.
      */

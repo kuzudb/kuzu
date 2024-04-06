@@ -93,8 +93,8 @@ std::vector<TableCatalogEntry*> Catalog::getTableEntries(Transaction* tx) const 
     return result;
 }
 
-std::vector<TableCatalogEntry*> Catalog::getTableSchemas(
-    Transaction* tx, const table_id_vector_t& tableIDs) const {
+std::vector<TableCatalogEntry*> Catalog::getTableSchemas(Transaction* tx,
+    const table_id_vector_t& tableIDs) const {
     std::vector<TableCatalogEntry*> result;
     for (auto tableID : tableIDs) {
         result.push_back(ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
@@ -205,8 +205,8 @@ void Catalog::logAlterTableToWAL(const BoundAlterInfo& info) {
         auto& addPropInfo =
             ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraAddPropertyInfo&>(
                 *info.extraInfo);
-        wal->logAddPropertyRecord(
-            info.tableID, tableSchema->getPropertyID(addPropInfo.propertyName));
+        wal->logAddPropertyRecord(info.tableID,
+            tableSchema->getPropertyID(addPropInfo.propertyName));
     } break;
     case AlterType::DROP_PROPERTY: {
         auto& dropPropInfo =
@@ -247,8 +247,8 @@ bool Catalog::containsMacro(Transaction* tx, const std::string& macroName) const
     return getVersion(tx)->containMacro(macroName);
 }
 
-void Catalog::addScalarMacroFunction(
-    std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
+void Catalog::addScalarMacroFunction(std::string name,
+    std::unique_ptr<function::ScalarMacroFunction> macro) {
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
     auto scalarMacroCatalogEntry =

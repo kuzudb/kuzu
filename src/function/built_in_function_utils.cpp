@@ -81,8 +81,8 @@ AggregateFunction* BuiltInFunctionsUtils::matchAggregateFunction(const std::stri
         }
         candidateFunctions.push_back(aggregateFunction);
     }
-    validateNonEmptyCandidateFunctions(
-        candidateFunctions, name, inputTypes, isDistinct, functionSet);
+    validateNonEmptyCandidateFunctions(candidateFunctions, name, inputTypes, isDistinct,
+        functionSet);
     KU_ASSERT(candidateFunctions.size() == 1);
     return candidateFunctions[0];
 }
@@ -397,8 +397,8 @@ Function* BuiltInFunctionsUtils::getBestMatch(std::vector<Function*>& functionsT
     return result;
 }
 
-uint32_t BuiltInFunctionsUtils::getFunctionCost(
-    const std::vector<LogicalType>& inputTypes, Function* function, bool isOverload) {
+uint32_t BuiltInFunctionsUtils::getFunctionCost(const std::vector<LogicalType>& inputTypes,
+    Function* function, bool isOverload) {
     switch (function->type) {
     case FunctionType::SCALAR: {
         auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
@@ -414,8 +414,8 @@ uint32_t BuiltInFunctionsUtils::getFunctionCost(
     }
 }
 
-uint32_t BuiltInFunctionsUtils::getAggregateFunctionCost(
-    const std::vector<LogicalType>& inputTypes, bool isDistinct, AggregateFunction* function) {
+uint32_t BuiltInFunctionsUtils::getAggregateFunctionCost(const std::vector<LogicalType>& inputTypes,
+    bool isDistinct, AggregateFunction* function) {
     if (inputTypes.size() != function->parameterTypeIDs.size() ||
         isDistinct != function->isDistinct) {
         return UINT32_MAX;
@@ -446,8 +446,8 @@ uint32_t BuiltInFunctionsUtils::matchParameters(const std::vector<LogicalType>& 
     return cost;
 }
 
-uint32_t BuiltInFunctionsUtils::matchVarLengthParameters(
-    const std::vector<LogicalType>& inputTypes, LogicalTypeID targetTypeID, bool /*isOverload*/) {
+uint32_t BuiltInFunctionsUtils::matchVarLengthParameters(const std::vector<LogicalType>& inputTypes,
+    LogicalTypeID targetTypeID, bool /*isOverload*/) {
     auto cost = 0u;
     for (auto inputType : inputTypes) {
         auto castCost = getCastCost(inputType.getLogicalTypeID(), targetTypeID);

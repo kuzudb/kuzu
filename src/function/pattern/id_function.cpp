@@ -14,8 +14,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-static std::shared_ptr<binder::Expression> rewriteFunc(
-    const expression_vector& params, ExpressionBinder* binder) {
+static std::shared_ptr<binder::Expression> rewriteFunc(const expression_vector& params,
+    ExpressionBinder* binder) {
     KU_ASSERT(params.size() == 1);
     auto param = params[0].get();
     if (ExpressionUtil::isNodePattern(*param)) {
@@ -38,8 +38,8 @@ function_set IDFunction::getFunctionSet() {
     auto inputTypes =
         std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT};
     for (auto& inputType : inputTypes) {
-        auto function = std::make_unique<RewriteFunction>(
-            InternalKeyword::ID, std::vector<LogicalTypeID>{inputType}, rewriteFunc);
+        auto function = std::make_unique<RewriteFunction>(InternalKeyword::ID,
+            std::vector<LogicalTypeID>{inputType}, rewriteFunc);
         functionSet.push_back(std::move(function));
     }
     return functionSet;

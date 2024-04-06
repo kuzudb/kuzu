@@ -6,10 +6,10 @@ namespace kuzu {
 namespace binder {
 
 struct ExpressionUtil {
-    static bool isExpressionsWithDataType(
-        const expression_vector& expressions, common::LogicalTypeID dataTypeID);
-    static expression_vector getExpressionsWithDataType(
-        const expression_vector& expressions, common::LogicalTypeID dataTypeID);
+    static bool isExpressionsWithDataType(const expression_vector& expressions,
+        common::LogicalTypeID dataTypeID);
+    static expression_vector getExpressionsWithDataType(const expression_vector& expressions,
+        common::LogicalTypeID dataTypeID);
 
     static uint32_t find(Expression* target, expression_vector expressions);
 
@@ -20,10 +20,10 @@ struct ExpressionUtil {
     // Print as a1=a2
     static std::string toString(const expression_pair& expressionPair);
 
-    static expression_vector excludeExpression(
-        const expression_vector& exprs, const Expression& exprToExclude);
-    static expression_vector excludeExpressions(
-        const expression_vector& expressions, const expression_vector& expressionsToExclude);
+    static expression_vector excludeExpression(const expression_vector& exprs,
+        const Expression& exprToExclude);
+    static expression_vector excludeExpressions(const expression_vector& expressions,
+        const expression_vector& expressionsToExclude);
 
     static common::logical_type_vec_t getDataTypes(const expression_vector& expressions);
 

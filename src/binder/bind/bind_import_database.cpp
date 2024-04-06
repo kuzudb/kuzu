@@ -17,8 +17,8 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-static std::string getQueryFromFile(
-    common::VirtualFileSystem* vfs, const std::string boundFilePath, const std::string fileName) {
+static std::string getQueryFromFile(common::VirtualFileSystem* vfs, const std::string boundFilePath,
+    const std::string fileName) {
     auto filePath = vfs->joinPath(boundFilePath, fileName);
     if (!vfs->fileOrPathExists(filePath)) {
         throw BinderException(stringFormat("File {} does not exist.", filePath));

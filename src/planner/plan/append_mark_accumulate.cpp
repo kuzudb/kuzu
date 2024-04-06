@@ -6,8 +6,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-void Planner::appendMarkAccumulate(
-    const expression_vector& keys, std::shared_ptr<Expression> mark, LogicalPlan& plan) {
+void Planner::appendMarkAccumulate(const expression_vector& keys, std::shared_ptr<Expression> mark,
+    LogicalPlan& plan) {
     auto markAccumulate =
         std::make_shared<LogicalMarkAccumulate>(keys, mark, plan.getLastOperator());
     appendFlattens(markAccumulate->getGroupsPosToFlatten(), plan);

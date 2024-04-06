@@ -29,8 +29,8 @@ common::LogicalTypeID RdfUtils::getLogicalTypeID(const std::string& type) {
     return LogicalTypeID::STRING;
 }
 
-void RdfUtils::addRdfLiteral(
-    ValueVector* vector, uint32_t pos, const std::string& str, LogicalTypeID targetTypeID) {
+void RdfUtils::addRdfLiteral(ValueVector* vector, uint32_t pos, const std::string& str,
+    LogicalTypeID targetTypeID) {
     auto resolveAsString = true;
     switch (targetTypeID) {
     case LogicalTypeID::INT64: {

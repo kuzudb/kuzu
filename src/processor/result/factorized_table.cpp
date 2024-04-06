@@ -106,8 +106,8 @@ void DataBlockCollection::merge(DataBlockCollection& other) {
     }
 }
 
-FactorizedTable::FactorizedTable(
-    MemoryManager* memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema)
+FactorizedTable::FactorizedTable(MemoryManager* memoryManager,
+    std::unique_ptr<FactorizedTableSchema> tableSchema)
     : memoryManager{memoryManager}, tableSchema{std::move(tableSchema)}, numTuples{0} {
     KU_ASSERT(this->tableSchema->getNumBytesPerTuple() <= BufferPoolConstants::PAGE_256KB_SIZE);
     if (!this->tableSchema->isEmpty()) {
@@ -261,20 +261,20 @@ uint8_t* FactorizedTable::getTuple(ft_tuple_idx_t tupleIdx) const {
            tupleIdxInBlock * tableSchema->getNumBytesPerTuple();
 }
 
-void FactorizedTable::updateFlatCell(
-    uint8_t* tuplePtr, ft_col_idx_t colIdx, ValueVector* valueVector, uint32_t pos) {
+void FactorizedTable::updateFlatCell(uint8_t* tuplePtr, ft_col_idx_t colIdx,
+    ValueVector* valueVector, uint32_t pos) {
     auto nullBuffer = tuplePtr + tableSchema->getNullMapOffset();
     if (valueVector->isNull(pos)) {
         setNonOverflowColNull(nullBuffer, colIdx);
     } else {
-        valueVector->copyToRowData(
-            pos, tuplePtr + tableSchema->getColOffset(colIdx), inMemOverflowBuffer.get());
+        valueVector->copyToRowData(pos, tuplePtr + tableSchema->getColOffset(colIdx),
+            inMemOverflowBuffer.get());
         NullBuffer::setNoNull(nullBuffer, colIdx);
     }
 }
 
-bool FactorizedTable::isOverflowColNull(
-    const uint8_t* nullBuffer, ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx) const {
+bool FactorizedTable::isOverflowColNull(const uint8_t* nullBuffer, ft_tuple_idx_t tupleIdx,
+    ft_col_idx_t colIdx) const {
     KU_ASSERT(colIdx < tableSchema->getNumColumns());
     if (tableSchema->getColumn(colIdx)->hasNoNullGuarantee()) {
         return false;
@@ -303,8 +303,8 @@ void FactorizedTable::clear() {
     inMemOverflowBuffer->resetBuffer();
 }
 
-void FactorizedTable::setOverflowColNull(
-    uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx) {
+void FactorizedTable::setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx,
+    ft_tuple_idx_t tupleIdx) {
     NullBuffer::setNull(nullBuffer, tupleIdx);
     tableSchema->setMayContainsNullsToTrue(colIdx);
 }
@@ -345,8 +345,8 @@ std::vector<BlockAppendingInfo> FactorizedTable::allocateFlatTupleBlocks(
         auto& block = flatTupleBlockCollection->getBlocks().back();
         auto numTuplesToAppendInCurBlock =
             std::min(numTuplesToAppend, block->freeSize / numBytesPerTuple);
-        appendingInfos.emplace_back(
-            block->getData() + BufferPoolConstants::PAGE_256KB_SIZE - block->freeSize,
+        appendingInfos.emplace_back(block->getData() + BufferPoolConstants::PAGE_256KB_SIZE -
+                                        block->freeSize,
             numTuplesToAppendInCurBlock);
         block->freeSize -= numTuplesToAppendInCurBlock * numBytesPerTuple;
         block->numTuples += numTuplesToAppendInCurBlock;
@@ -372,8 +372,8 @@ uint8_t* FactorizedTable::allocateUnflatTupleBlock(uint32_t numBytes) {
     return lastBlock->getData();
 }
 
-void FactorizedTable::copyFlatVectorToFlatColumn(
-    const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo, ft_col_idx_t colIdx) {
+void FactorizedTable::copyFlatVectorToFlatColumn(const ValueVector& vector,
+    const BlockAppendingInfo& blockAppendInfo, ft_col_idx_t colIdx) {
     auto valuePositionInVectorToAppend = vector.state->selVector->selectedPositions[0];
     auto colOffsetInDataBlock = tableSchema->getColOffset(colIdx);
     auto dstDataPtr = blockAppendInfo.data;
@@ -424,8 +424,8 @@ void FactorizedTable::copyUnflatVectorToFlatColumn(const ValueVector& vector,
                 if (vector.isNull(pos)) {
                     setNonOverflowColNull(dstTuple + tableSchema->getNullMapOffset(), colIdx);
                 } else {
-                    vector.copyToRowData(
-                        pos, dstTuple + byteOffsetOfColumnInTuple, inMemOverflowBuffer.get());
+                    vector.copyToRowData(pos, dstTuple + byteOffsetOfColumnInTuple,
+                        inMemOverflowBuffer.get());
                 }
                 dstTuple += tableSchema->getNumBytesPerTuple();
             }
@@ -436,8 +436,8 @@ void FactorizedTable::copyUnflatVectorToFlatColumn(const ValueVector& vector,
 // For an unflat column, only an unflat vector is allowed to copy from, for the column, we only
 // store an overflow_value_t, which contains a pointer to the overflow dataBlock in the
 // factorizedTable. NullMasks are stored inside the overflow buffer.
-void FactorizedTable::copyVectorToUnflatColumn(
-    const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo, ft_col_idx_t colIdx) {
+void FactorizedTable::copyVectorToUnflatColumn(const ValueVector& vector,
+    const BlockAppendingInfo& blockAppendInfo, ft_col_idx_t colIdx) {
     KU_ASSERT(!vector.state->isFlat());
     auto unflatTupleValue = appendVectorToUnflatTupleBlocks(vector, colIdx);
     auto blockPtr = blockAppendInfo.data + tableSchema->getColOffset(colIdx);
@@ -456,8 +456,8 @@ void FactorizedTable::copyVectorToColumn(const ValueVector& vector,
     }
 }
 
-overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(
-    const ValueVector& vector, ft_col_idx_t colIdx) {
+overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(const ValueVector& vector,
+    ft_col_idx_t colIdx) {
     KU_ASSERT(!vector.state->isFlat());
     auto numFlatTuplesInVector = vector.state->selVector->selectedSize;
     auto numBytesPerValue = LogicalTypeUtils::getRowLayoutSize(vector.dataType);
@@ -506,8 +506,8 @@ overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(
     return overflow_value_t{numFlatTuplesInVector, overflowBlockBuffer};
 }
 
-void FactorizedTable::readUnflatCol(
-    uint8_t** tuplesToRead, ft_col_idx_t colIdx, ValueVector& vector) const {
+void FactorizedTable::readUnflatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
+    ValueVector& vector) const {
     auto overflowColValue =
         *(overflow_value_t*)(tuplesToRead[0] + tableSchema->getColOffset(colIdx));
     KU_ASSERT(vector.state->selVector->isUnfiltered());
@@ -557,16 +557,16 @@ void FactorizedTable::readUnflatCol(const uint8_t* tupleToRead, const SelectionV
                 vector.setNull(i, true);
             } else {
                 vector.setNull(i, false);
-                vector.copyFromRowData(
-                    i, vectorOverflowValue.value + pos * vector.getNumBytesPerValue());
+                vector.copyFromRowData(i,
+                    vectorOverflowValue.value + pos * vector.getNumBytesPerValue());
             }
         }
     }
     vector.state->selVector->selectedSize = selVector->selectedSize;
 }
 
-void FactorizedTable::readFlatColToFlatVector(
-    uint8_t* tupleToRead, ft_col_idx_t colIdx, ValueVector& vector, sel_t pos) const {
+void FactorizedTable::readFlatColToFlatVector(uint8_t* tupleToRead, ft_col_idx_t colIdx,
+    ValueVector& vector, sel_t pos) const {
     if (isNonOverflowColNull(tupleToRead + tableSchema->getNullMapOffset(), colIdx)) {
         vector.setNull(pos, true);
     } else {
@@ -603,15 +603,15 @@ void FactorizedTable::readFlatColToUnflatVector(uint8_t** tuplesToRead, ft_col_i
                 vector.setNull(positionInVectorToWrite, true);
             } else {
                 vector.setNull(positionInVectorToWrite, false);
-                vector.copyFromRowData(
-                    positionInVectorToWrite, dataBuffer + tableSchema->getColOffset(colIdx));
+                vector.copyFromRowData(positionInVectorToWrite,
+                    dataBuffer + tableSchema->getColOffset(colIdx));
             }
         }
     }
 }
 
-void FactorizedTableUtils::appendStringToTable(
-    FactorizedTable* factorizedTable, std::string& outputMsg, MemoryManager* memoryManager) {
+void FactorizedTableUtils::appendStringToTable(FactorizedTable* factorizedTable,
+    std::string& outputMsg, MemoryManager* memoryManager) {
     auto outputMsgVector = std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager);
     outputMsgVector->state = DataChunkState::getSingleValueDataChunkState();
     auto outputKUStr = ku_string_t();
@@ -636,8 +636,8 @@ std::shared_ptr<FactorizedTable> FactorizedTableUtils::getFactorizedTableForOutp
 }
 
 FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable, std::vector<Value*> values)
-    : factorizedTable{factorizedTable}, numFlatTuples{0}, nextFlatTupleIdx{0},
-      nextTupleIdx{1}, values{std::move(values)} {
+    : factorizedTable{factorizedTable}, numFlatTuples{0}, nextFlatTupleIdx{0}, nextTupleIdx{1},
+      values{std::move(values)} {
     resetState();
     KU_ASSERT(this->values.size() == factorizedTable.tableSchema->getNumColumns());
 }
@@ -699,8 +699,8 @@ void FlatTupleIterator::readFlatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* val
         valueBuffer + factorizedTable.getTableSchema()->getNullMapOffset(), colIdx);
     values[colIdx]->setNull(isNull);
     if (!isNull) {
-        readValueBufferToValue(
-            colIdx, valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
+        readValueBufferToValue(colIdx,
+            valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
     }
 }
 

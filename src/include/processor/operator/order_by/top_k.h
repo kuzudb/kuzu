@@ -64,8 +64,8 @@ private:
     void initVectors();
 
     template<typename FUNC>
-    void getSelectComparisonFunction(
-        common::PhysicalTypeID typeID, vector_select_comparison_func& selectFunc);
+    void getSelectComparisonFunction(common::PhysicalTypeID typeID,
+        vector_select_comparison_func& selectFunc);
 
     void initCompareFuncs();
 
@@ -79,8 +79,8 @@ private:
     void compareUnflatKeys(common::vector_idx_t vectorIdxToCompare,
         const std::vector<common::ValueVector*> keyVectors);
 
-    static void appendSelState(
-        common::SelectionVector* selVector, common::SelectionVector* selVectorToAppend);
+    static void appendSelState(common::SelectionVector* selVector,
+        common::SelectionVector* selVectorToAppend);
 
 public:
     const OrderByDataInfo* orderByDataInfo;
@@ -153,8 +153,8 @@ public:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     inline void initGlobalStateInternal(ExecutionContext* context) override {
-        sharedState->init(
-            *info, context->clientContext->getMemoryManager(), skipNumber, limitNumber);
+        sharedState->init(*info, context->clientContext->getMemoryManager(), skipNumber,
+            limitNumber);
     }
 
     void executeInternal(ExecutionContext* context) override;

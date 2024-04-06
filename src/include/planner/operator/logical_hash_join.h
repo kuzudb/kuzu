@@ -70,8 +70,8 @@ public:
     inline JoinSubPlanSolveOrder getJoinSubPlanSolveOrder() const { return order; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalHashJoin>(
-            joinConditions, joinType, mark, children[0]->copy(), children[1]->copy());
+        return make_unique<LogicalHashJoin>(joinConditions, joinType, mark, children[0]->copy(),
+            children[1]->copy());
     }
 
     // Flat probe side key group in either of the following two cases:

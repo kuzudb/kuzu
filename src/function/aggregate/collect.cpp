@@ -14,8 +14,8 @@ std::unique_ptr<AggregateState> CollectFunction::initialize() {
     return std::make_unique<CollectState>();
 }
 
-void CollectFunction::updateAll(
-    uint8_t* state_, ValueVector* input, uint64_t multiplicity, MemoryManager* memoryManager) {
+void CollectFunction::updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity,
+    MemoryManager* memoryManager) {
     KU_ASSERT(!input->state->isFlat());
     auto state = reinterpret_cast<CollectState*>(state_);
     if (input->hasNoNullsGuarantee()) {
@@ -39,12 +39,12 @@ void CollectFunction::updatePos(uint8_t* state_, ValueVector* input, uint64_t mu
     updateSingleValue(state, input, pos, multiplicity, memoryManager);
 }
 
-void CollectFunction::initCollectStateIfNecessary(
-    CollectState* state, MemoryManager* memoryManager, LogicalType& dataType) {
+void CollectFunction::initCollectStateIfNecessary(CollectState* state, MemoryManager* memoryManager,
+    LogicalType& dataType) {
     if (state->factorizedTable == nullptr) {
         auto tableSchema = std::make_unique<FactorizedTableSchema>();
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            false /* isUnflat */, 0 /* dataChunkPos */, StorageUtils::getDataTypeSize(dataType)));
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(false /* isUnflat */,
+            0 /* dataChunkPos */, StorageUtils::getDataTypeSize(dataType)));
         state->factorizedTable =
             std::make_unique<FactorizedTable>(memoryManager, std::move(tableSchema));
     }
@@ -60,8 +60,8 @@ void CollectFunction::updateSingleValue(CollectState* state, ValueVector* input,
     }
 }
 
-void CollectFunction::combine(
-    uint8_t* state_, uint8_t* otherState_, MemoryManager* /*memoryManager*/) {
+void CollectFunction::combine(uint8_t* state_, uint8_t* otherState_,
+    MemoryManager* /*memoryManager*/) {
     auto otherState = reinterpret_cast<CollectState*>(otherState_);
     if (otherState->isNull) {
         return;
@@ -76,8 +76,8 @@ void CollectFunction::combine(
     otherState->factorizedTable.reset();
 }
 
-std::unique_ptr<FunctionBindData> CollectFunction::bindFunc(
-    const expression_vector& arguments, Function* definition) {
+std::unique_ptr<FunctionBindData> CollectFunction::bindFunc(const expression_vector& arguments,
+    Function* definition) {
     KU_ASSERT(arguments.size() == 1);
     auto aggFuncDefinition = reinterpret_cast<AggregateFunction*>(definition);
     aggFuncDefinition->parameterTypeIDs[0] = arguments[0]->dataType.getLogicalTypeID();
