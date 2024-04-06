@@ -28,11 +28,14 @@ public:
 
     void insert(transaction::Transaction* transaction, ExecutionContext* context);
 
+    void evaluateResult(ExecutionContext* context);
+
+    void writeResult();
+
 private:
     NodeInsertExecutor(const NodeInsertExecutor& other);
 
     bool checkConfict(transaction::Transaction* transaction);
-    void writeResult();
 
 private:
     // Node table to insert.
@@ -69,10 +72,10 @@ public:
 
     void insert(transaction::Transaction* transaction, ExecutionContext* context);
 
+    void writeResult();
+
 private:
     RelInsertExecutor(const RelInsertExecutor& other);
-
-    void writeResult();
 
 private:
     storage::RelsStoreStats* relsStatistics;

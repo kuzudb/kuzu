@@ -33,6 +33,8 @@ public:
             sharedState, groupByKeyVectorsPos, aggregatesPos, id, paramsString);
     }
 
+    double getProgress(ExecutionContext* context) const override;
+
 private:
     std::vector<DataPos> groupByKeyVectorsPos;
     std::vector<common::ValueVector*> groupByKeyVectors;

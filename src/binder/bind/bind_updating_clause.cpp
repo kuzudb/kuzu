@@ -80,9 +80,10 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     auto boundGraphPattern = bindGraphPattern(mergeClause.getPatternElementsRef());
     rewriteMatchPattern(boundGraphPattern);
     auto createInfos = bindInsertInfos(boundGraphPattern.queryGraphCollection, patternsScope);
+    auto distinctMark = createVariable("__distinctMark", *LogicalType::BOOL());
     auto boundMergeClause =
         std::make_unique<BoundMergeClause>(std::move(boundGraphPattern.queryGraphCollection),
-            std::move(boundGraphPattern.where), std::move(createInfos));
+            std::move(boundGraphPattern.where), std::move(createInfos), std::move(distinctMark));
     if (mergeClause.hasOnMatchSetItems()) {
         for (auto& [lhs, rhs] : mergeClause.getOnMatchSetItemsRef()) {
             auto setPropertyInfo = bindSetPropertyInfo(lhs.get(), rhs.get());

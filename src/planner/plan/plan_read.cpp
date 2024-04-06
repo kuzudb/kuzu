@@ -50,7 +50,12 @@ void Planner::planMatchClause(const BoundReadingClause* boundReadingClause,
     } break;
     case MatchClauseType::OPTIONAL_MATCH: {
         for (auto& plan : plans) {
-            planOptionalMatch(*queryGraphCollection, predicates, *plan);
+            expression_vector corrExprs;
+            if (!plan->isEmpty()) {
+                corrExprs =
+                    getCorrelatedExprs(*queryGraphCollection, predicates, plan->getSchema());
+            }
+            planOptionalMatch(*queryGraphCollection, predicates, corrExprs, *plan);
         }
     } break;
     default:

@@ -9,12 +9,18 @@ namespace processor {
 struct OrderByScanLocalState {
     std::vector<common::ValueVector*> vectorsToRead;
     std::unique_ptr<PayloadScanner> payloadScanner;
+    uint64_t numTuples;
+    uint64_t numTuplesRead;
 
     void init(
         std::vector<DataPos>& outVectorPos, SortSharedState& sharedState, ResultSet& resultSet);
 
     // NOLINTNEXTLINE(readability-make-member-function-const): Updates vectorsToRead.
-    inline uint64_t scan() { return payloadScanner->scan(vectorsToRead); }
+    uint64_t scan() {
+        uint64_t tuplesRead = payloadScanner->scan(vectorsToRead);
+        numTuplesRead += tuplesRead;
+        return tuplesRead;
+    }
 };
 
 // To preserve the ordering of tuples, the orderByScan operator will only
@@ -47,6 +53,8 @@ public:
     std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<OrderByScan>(outVectorPos, sharedState, id, paramsString);
     }
+
+    double getProgress(ExecutionContext* context) const override;
 
 private:
     std::vector<DataPos> outVectorPos;

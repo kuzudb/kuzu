@@ -1,0 +1,13 @@
+-GROUP IssueTest
+-DATASET CSV ldbc-sf01
+
+--
+
+-CASE 3188
+-STATEMENT MATCH (a:Comment) RETURN a.id ORDER BY a.length, a.browserUsed, a.locationIP, a.creationDate, a.content, a.id limit 5;
+---- 5
+68719546388
+68719764543
+137438958893
+137439023070
+137439023073

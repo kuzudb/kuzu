@@ -14,6 +14,7 @@ add_library(kuzu_planner_plan_operator
         append_in_query_call.cpp
         append_join.cpp
         append_limit.cpp
+        append_mark_accumulate.cpp
         append_multiplicity_reducer.cpp
         append_order_by.cpp
         append_projection.cpp

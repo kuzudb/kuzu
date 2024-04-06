@@ -12,6 +12,11 @@ void OrderByScanLocalState::init(
     }
     payloadScanner = std::make_unique<PayloadScanner>(
         sharedState.getMergedKeyBlock(), sharedState.getPayloadTables());
+    numTuples = 0;
+    for (auto& table : sharedState.getPayloadTables()) {
+        numTuples += table->getNumTuples();
+    }
+    numTuplesRead = 0;
 }
 
 void OrderByScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
@@ -23,6 +28,15 @@ bool OrderByScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     auto numTuplesRead = localState->scan();
     metrics->numOutputTuple.increase(numTuplesRead);
     return numTuplesRead != 0;
+}
+
+double OrderByScan::getProgress(ExecutionContext* /*context*/) const {
+    if (localState->numTuples == 0) {
+        return 0.0;
+    } else if (localState->numTuplesRead == localState->numTuples) {
+        return 1.0;
+    }
+    return static_cast<double>(localState->numTuplesRead) / localState->numTuples;
 }
 
 } // namespace processor

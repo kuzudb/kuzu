@@ -20,6 +20,7 @@ add_library(kuzu_planner_operator
         logical_in_query_call.cpp
         logical_intersect.cpp
         logical_limit.cpp
+        logical_mark_accumulate.cpp
         logical_operator.cpp
         logical_order_by.cpp
         logical_partitioner.cpp
