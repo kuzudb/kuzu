@@ -338,13 +338,13 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Check source format
+      - name: Check and fix source format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r src/
 
-      - name: Check test format
+      - name: Check and fix test format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r test/
 
-      - name: Check extension format
+      - name: Check and fix extension format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r extension/
 
       - name: Commit changes
