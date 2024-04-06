@@ -112,7 +112,12 @@ if(MSVC)
 endif()
 if(CMAKE_BUILD_TYPE MATCHES Release)
     if(MSVC)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /utf-8")
+        # use /Zi for debug symbols even in release mode for pdb debugging
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /utf-8 /Zi")
+        # /DEBUG is required for pdb debugging to work and /OPT:REF /OPT:ICF are required to enable COMDAT folding
+        # CMAKE_SHARED_LINKER_FLAGS is used for shared libraries and CMAKE_EXE_LINKER_FLAGS is used for executables
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG /OPT:REF /OPT:ICF")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG /OPT:REF /OPT:ICF")
         string(REGEX REPLACE "/W[3|4]" "/w" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
         add_compile_options(/W0)
     else()
