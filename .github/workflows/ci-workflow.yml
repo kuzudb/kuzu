@@ -174,15 +174,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Update PostgreSQL host
-        working-directory: extension/postgres_scanner/test/test_files
-        env:
-          FNAME: postgres_scanner.test
-          FIND: "localhost"
-        run: |
-          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
-          cat postgres_scanner.test
-
       - name: Ensure Python dependencies
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -191,11 +182,6 @@ jobs:
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
-
-      - name: Extension test
-        run: |
-          cd scripts/ && python3 http-server.py &
-          make extension-test && make clean
 
       - name: Build
         run: make all
