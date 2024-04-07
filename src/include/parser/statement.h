@@ -13,6 +13,15 @@ public:
 
     inline common::StatementType getStatementType() const { return statementType; }
 
+    inline bool requireTx() {
+        switch (statementType) {
+        case common::StatementType::TRANSACTION:
+            return false;
+        default:
+            return true;
+        }
+    }
+
 private:
     common::StatementType statementType;
 };

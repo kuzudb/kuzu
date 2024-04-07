@@ -1,11 +1,86 @@
 #include "include/node_util.h"
 
 #include "common/exception/exception.h"
+#include "common/types/blob.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
+#include "common/types/value/rdf_variant.h"
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
+
+Napi::Value ConvertRdfVariantToNapiObject(const Value& value, Napi::Env env) {
+    auto type = RdfVariant::getLogicalTypeID(&value);
+    switch (type) {
+    case LogicalTypeID::STRING: {
+        auto str = RdfVariant::getValue<std::string>(&value);
+        return Napi::String::New(env, str.data(), str.size());
+    }
+    case LogicalTypeID::BLOB: {
+        auto blobStr = RdfVariant::getValue<blob_t>(&value).value.getAsString();
+        return Napi::Buffer<char>::Copy(env, blobStr.c_str(), blobStr.size());
+    }
+    case LogicalTypeID::INT64: {
+        return Napi::Number::New(env, RdfVariant::getValue<int64_t>(&value));
+    }
+    case LogicalTypeID::INT32: {
+        return Napi::Number::New(env, RdfVariant::getValue<int32_t>(&value));
+    }
+    case LogicalTypeID::INT16: {
+        return Napi::Number::New(env, RdfVariant::getValue<int16_t>(&value));
+    }
+    case LogicalTypeID::INT8: {
+        return Napi::Number::New(env, RdfVariant::getValue<int8_t>(&value));
+    }
+    case LogicalTypeID::UINT64: {
+        return Napi::Number::New(env, RdfVariant::getValue<uint64_t>(&value));
+    }
+    case LogicalTypeID::UINT32: {
+        return Napi::Number::New(env, RdfVariant::getValue<uint32_t>(&value));
+    }
+    case LogicalTypeID::UINT16: {
+        return Napi::Number::New(env, RdfVariant::getValue<uint16_t>(&value));
+    }
+    case LogicalTypeID::UINT8: {
+        return Napi::Number::New(env, RdfVariant::getValue<uint8_t>(&value));
+    }
+    case LogicalTypeID::DOUBLE: {
+        return Napi::Number::New(env, RdfVariant::getValue<double>(&value));
+    }
+    case LogicalTypeID::FLOAT: {
+        return Napi::Number::New(env, RdfVariant::getValue<float>(&value));
+    }
+    case LogicalTypeID::BOOL: {
+        return Napi::Boolean::New(env, RdfVariant::getValue<bool>(&value));
+    }
+    case LogicalTypeID::DATE: {
+        auto dateVal = RdfVariant::getValue<date_t>(&value);
+        // Javascript Date type contains both date and time information. This returns the Date at
+        // 00:00:00 in UTC timezone.
+        auto milliseconds = Date::getEpochNanoSeconds(dateVal) / Interval::NANOS_PER_MICRO /
+                            Interval::MICROS_PER_MSEC;
+        return Napi::Date::New(env, milliseconds);
+    }
+    case LogicalTypeID::TIMESTAMP: {
+        auto timestampVal = RdfVariant::getValue<timestamp_t>(&value);
+        auto milliseconds = timestampVal.value / Interval::MICROS_PER_MSEC;
+        return Napi::Date::New(env, milliseconds);
+    }
+    case LogicalTypeID::INTERVAL: {
+        auto intervalVal = RdfVariant::getValue<interval_t>(&value);
+        // TODO: By default, Node.js returns the difference in milliseconds between two dates, so we
+        // follow the convention here, but it might not be the best choice in terms of usability.
+        auto microseconds = intervalVal.micros;
+        microseconds += intervalVal.days * Interval::MICROS_PER_DAY;
+        microseconds += intervalVal.months * Interval::MICROS_PER_MONTH;
+        auto milliseconds = microseconds / Interval::MICROS_PER_MSEC;
+        return Napi::Number::New(env, milliseconds);
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
 
 Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     if (value.isNull()) {
@@ -74,9 +149,9 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return Napi::Date::New(env, milliseconds);
     }
     case LogicalTypeID::TIMESTAMP_TZ: {
-            auto timestampVal = value.getValue<timestamp_tz_t>();
-            auto milliseconds = timestampVal.value / Interval::MICROS_PER_MSEC;
-            return Napi::Date::New(env, milliseconds);
+        auto timestampVal = value.getValue<timestamp_tz_t>();
+        auto milliseconds = timestampVal.value / Interval::MICROS_PER_MSEC;
+        return Napi::Date::New(env, milliseconds);
     }
     case LogicalTypeID::TIMESTAMP: {
         auto timestampVal = value.getValue<timestamp_t>();
@@ -85,7 +160,8 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     }
     case LogicalTypeID::TIMESTAMP_NS: {
         auto timestampVal = value.getValue<timestamp_ns_t>();
-        auto milliseconds = timestampVal.value / Interval::NANOS_PER_MICRO / Interval::MICROS_PER_MSEC;
+        auto milliseconds =
+            timestampVal.value / Interval::NANOS_PER_MICRO / Interval::MICROS_PER_MSEC;
         return Napi::Date::New(env, milliseconds);
     }
     case LogicalTypeID::TIMESTAMP_MS: {
@@ -94,7 +170,8 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     }
     case LogicalTypeID::TIMESTAMP_SEC: {
         auto timestampVal = value.getValue<timestamp_sec_t>();
-        auto milliseconds = Timestamp::getEpochMilliSeconds(Timestamp::fromEpochSeconds(timestampVal.value));
+        auto milliseconds =
+            Timestamp::getEpochMilliSeconds(Timestamp::fromEpochSeconds(timestampVal.value));
         return Napi::Date::New(env, milliseconds);
     }
     case LogicalTypeID::INTERVAL: {
@@ -107,8 +184,8 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         auto milliseconds = microseconds / Interval::MICROS_PER_MSEC;
         return Napi::Number::New(env, milliseconds);
     }
-    case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::LIST:
+    case LogicalTypeID::ARRAY: {
         auto size = NestedVal::getChildrenSize(&value);
         auto napiArray = Napi::Array::New(env, size);
         for (auto i = 0u; i < size; ++i) {
@@ -190,6 +267,9 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         }
         return napiObj;
     }
+    case LogicalTypeID::RDF_VARIANT: {
+        return ConvertRdfVariantToNapiObject(value, env);
+    }
     default:
         throw Exception("Unsupported type: " + dataType->toString());
     }
@@ -230,11 +310,11 @@ Value Util::TransformNapiValue(
     case LogicalTypeID::BOOL: {
         return Value(napiValue.ToBoolean().Value());
     }
-    case LogicalTypeID::INT16: {
+    case LogicalTypeID::INT64: {
         if (!napiValue.IsNumber()) {
             throw Exception("Expected a number for parameter " + key + ".");
         }
-        int16_t val = napiValue.ToNumber().Int32Value();
+        int64_t val = napiValue.ToNumber().Int64Value();
         return Value(val);
     }
     case LogicalTypeID::INT32: {
@@ -244,18 +324,65 @@ Value Util::TransformNapiValue(
         int32_t val = napiValue.ToNumber().Int32Value();
         return Value(val);
     }
-    case LogicalTypeID::INT64: {
+    case LogicalTypeID::INT16: {
         if (!napiValue.IsNumber()) {
             throw Exception("Expected a number for parameter " + key + ".");
         }
-        int64_t val = napiValue.ToNumber().Int64Value();
+        int16_t val = napiValue.ToNumber().Int32Value();
         return Value(val);
     }
-    case LogicalTypeID::FLOAT: {
+    case LogicalTypeID::INT8: {
         if (!napiValue.IsNumber()) {
             throw Exception("Expected a number for parameter " + key + ".");
         }
-        float val = napiValue.ToNumber().FloatValue();
+        int8_t val = napiValue.ToNumber().Int32Value();
+        return Value(val);
+    }
+    case LogicalTypeID::UINT64: {
+        if (!napiValue.IsNumber()) {
+            throw Exception("Expected a number for parameter " + key + ".");
+        }
+        auto valStr = napiValue.ToNumber().ToString();
+        uint64_t val = std::stoull(valStr);
+        return Value(val);
+    }
+    case LogicalTypeID::UINT32: {
+        if (!napiValue.IsNumber()) {
+            throw Exception("Expected a number for parameter " + key + ".");
+        }
+        uint32_t val = napiValue.ToNumber().Uint32Value();
+        return Value(val);
+    }
+    case LogicalTypeID::UINT16: {
+        if (!napiValue.IsNumber()) {
+            throw Exception("Expected a number for parameter " + key + ".");
+        }
+        uint16_t val = napiValue.ToNumber().Uint32Value();
+        return Value(val);
+    }
+    case LogicalTypeID::UINT8: {
+        if (!napiValue.IsNumber()) {
+            throw Exception("Expected a number for parameter " + key + ".");
+        }
+        uint8_t val = napiValue.ToNumber().Uint32Value();
+        return Value(val);
+    }
+    case LogicalTypeID::INT128: {
+        if (!napiValue.IsBigInt()) {
+            throw Exception("Expected a BigInt for parameter " + key + ".");
+        }
+        auto bigInt = napiValue.As<Napi::BigInt>();
+        size_t wordsCount = bigInt.WordCount();
+        std::unique_ptr<uint64_t[]> words(new uint64_t[wordsCount]);
+        int signBit;
+        bigInt.ToWords(&signBit, &wordsCount, words.get());
+        kuzu::common::int128_t val;
+        val.low = words[0];
+        val.high = words[1];
+        // Ignore words[2] and beyond as we only support 128-bit integers but BigInt can be larger.
+        if (signBit) {
+            kuzu::common::Int128_t::negateInPlace(val);
+        }
         return Value(val);
     }
     case LogicalTypeID::DOUBLE: {
@@ -265,9 +392,12 @@ Value Util::TransformNapiValue(
         double val = napiValue.ToNumber().DoubleValue();
         return Value(val);
     }
-    case LogicalTypeID::STRING: {
-        std::string val = napiValue.ToString().Utf8Value();
-        return Value(LogicalType::STRING(), val);
+    case LogicalTypeID::FLOAT: {
+        if (!napiValue.IsNumber()) {
+            throw Exception("Expected a number for parameter " + key + ".");
+        }
+        float val = napiValue.ToNumber().FloatValue();
+        return Value(val);
     }
     case LogicalTypeID::DATE: {
         if (!napiValue.IsDate()) {
@@ -335,6 +465,15 @@ Value Util::TransformNapiValue(
             intervalVal, normalizedMonths, normalizedDays, normalizedMicros);
         auto normalizedInterval = interval_t(normalizedMonths, normalizedDays, normalizedMicros);
         return Value(normalizedInterval);
+    }
+    case LogicalTypeID::STRING: {
+        std::string val = napiValue.ToString().Utf8Value();
+        return Value(LogicalType::STRING(), val);
+    }
+    case LogicalTypeID::UUID: {
+        std::string stringVal = napiValue.ToString().Utf8Value();
+        auto val = UUID::fromString(stringVal);
+        return Value(val);
     }
     default:
         throw Exception(

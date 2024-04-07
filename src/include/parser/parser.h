@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string_view>
+#include <vector>
 
 #include "statement.h"
 
@@ -11,7 +12,7 @@ namespace parser {
 class Parser {
 
 public:
-    static std::unique_ptr<Statement> parseQuery(std::string_view query);
+    static std::vector<std::shared_ptr<Statement>> parseQuery(std::string_view query);
 };
 
 } // namespace parser

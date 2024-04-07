@@ -2,8 +2,8 @@
 
 #include "function/scalar_function.h"
 #include "function/table_functions.h"
-#include "function/table_functions/bind_data.h"
-#include "function/table_functions/scan_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/scan_functions.h"
 #include "pandas_bind.h"
 #include "pybind_include.h"
 
@@ -17,32 +17,18 @@ struct PandasScanLocalState : public function::TableFuncLocalState {
 };
 
 struct PandasScanSharedState : public function::BaseScanSharedState {
-    explicit PandasScanSharedState(uint64_t numRows) : BaseScanSharedState{numRows}, position{0} {}
+    explicit PandasScanSharedState(uint64_t numRows)
+        : BaseScanSharedState{numRows}, position{0}, numReadRows{0} {}
 
     std::mutex lock;
     uint64_t position;
+    uint64_t numReadRows;
 };
 
 struct PandasScanFunction {
+    static constexpr const char* name = "READ_PANDAS";
+    
     static function::function_set getFunctionSet();
-
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
-
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        function::TableFuncBindInput* input, catalog::Catalog* catalog, storage::StorageManager* /*storageManager*/);
-
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
-
-    static std::unique_ptr<function::TableFuncLocalState> initLocalState(
-        function::TableFunctionInitInput& input, function::TableFuncSharedState* state,
-        storage::MemoryManager* /*mm*/);
-
-    static bool sharedStateNext(const function::TableFuncBindData* bindData,
-        PandasScanLocalState* localState, function::TableFuncSharedState* sharedState);
-
-    static void pandasBackendScanSwitch(PandasColumnBindData* bindData, uint64_t count,
-        uint64_t offset, common::ValueVector* outputVector);
 };
 
 struct PandasScanFunctionData : public function::TableFuncBindData {
@@ -50,7 +36,7 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
     uint64_t numRows;
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
 
-    PandasScanFunctionData(std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
+    PandasScanFunctionData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, py::handle df, uint64_t numRows,
         std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData)
         : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, df{df},
@@ -65,10 +51,10 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
 
     std::unique_ptr<function::TableFuncBindData> copy() const override {
         return std::make_unique<PandasScanFunctionData>(
-            common::LogicalType::copy(columnTypes), columnNames, df, numRows, copyColumnBindData());
+            columnTypes, columnNames, df, numRows, copyColumnBindData());
     }
 };
 
-std::unique_ptr<common::Value> replacePD(common::Value* value);
+std::unique_ptr<function::ScanReplacementData> replacePD(const std::string& objectName);
 
 } // namespace kuzu

@@ -28,11 +28,24 @@ public:
         std::vector<DataPos> outVectorsPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString)
         : ScanRelTable{PhysicalOperatorType::SCAN_REL_TABLE, std::move(info), inVectorPos,
-              std::move(outVectorsPos), std::move(child), id, paramsString} {
-        scanState = std::make_unique<storage::RelDataReadState>(
-            this->info->table->getTableDataFormat(this->info->direction));
-    }
+              std::move(outVectorsPos), std::move(child), id, paramsString} {}
     ~ScanRelTable() override = default;
+
+    inline void initLocalStateInternal(ResultSet* resultSet,
+        ExecutionContext* executionContext) override {
+        ScanTable::initLocalStateInternal(resultSet, executionContext);
+        if (info) {
+            scanState = std::make_unique<storage::RelTableReadState>(*inVector, info->columnIDs,
+                outVectors, info->direction);
+        }
+    }
+
+    bool getNextTuplesInternal(ExecutionContext* context) override;
+
+    inline std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<ScanRelTable>(info->copy(), inVectorPos, outVectorsPos,
+            children[0]->clone(), id, paramsString);
+    }
 
 protected:
     ScanRelTable(PhysicalOperatorType operatorType, std::unique_ptr<ScanRelTableInfo> info,
@@ -44,7 +57,7 @@ protected:
 
 protected:
     std::unique_ptr<ScanRelTableInfo> info;
-    std::unique_ptr<storage::RelDataReadState> scanState;
+    std::unique_ptr<storage::RelTableReadState> scanState;
 };
 
 } // namespace processor

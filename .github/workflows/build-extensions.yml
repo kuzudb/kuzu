@@ -1,0 +1,320 @@
+name: Build-Extensions
+
+on: workflow_dispatch
+
+jobs:
+  build-linux-extensions-x86_64:
+    runs-on: kuzu-self-hosted-linux-building-x86_64_centos8
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build precompiled extensions
+        run: make extension-release LTO=1 NUM_THREADS=$(nproc)
+
+      - name: Collect built artifacts
+        run: |
+          mkdir -p extension-artifacts
+          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-extensions_linux-x86_64
+          path: extension-artifacts/*.kuzu_extension
+
+  build-linux-extensions-x86_64-old:
+    runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build precompiled extensions
+        run: |
+          source /opt/rh/devtoolset-11/enable
+          make extension-release LTO=1 NUM_THREADS=$(nproc)
+
+      - name: Collect built artifacts
+        run: |
+          mkdir -p extension-artifacts
+          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-extensions_linux_old-x86_64
+          path: extension-artifacts/*.kuzu_extension
+
+  build-linux-extensions-aarch64:
+    runs-on: kuzu-self-hosted-linux-building-aarch64
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build precompiled extensions
+        run: make extension-release LTO=1 NUM_THREADS=$(nproc)
+
+      - name: Collect built artifacts
+        run: |
+          mkdir -p extension-artifacts
+          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-extensions_linux-aarch64
+          path: extension-artifacts/*.kuzu_extension
+
+  build-linux-extensions-x86:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Start Docker container
+        run: |
+          docker run -d --name kuzu-x86 \
+                     -v $PWD:/kuzu -w /kuzu \
+                     -e NUM_THREADS=2 -e GEN=ninja -e CC=gcc -e CXX=g++ \
+                     i386/debian:stable tail -f /dev/null
+
+      - name: Install dependencies
+        run: |
+          docker exec kuzu-x86 apt-get update
+          docker exec kuzu-x86 apt-get install -y git python3 ninja-build build-essential cmake libssl-dev
+
+      - name: Build precompiled extensions
+        run: |
+          docker exec kuzu-x86 make extension-release LTO=1 NUM_THREADS=$(nproc)
+      
+      - name: Collect built artifacts
+        run: |
+          mkdir -p extension-artifacts
+          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+          sudo chown -R $USER:$USER extension-artifacts
+          sudo chmod -R 755 extension-artifacts
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-extensions_linux-x86
+          path: extension-artifacts/*.kuzu_extension
+
+      - name: Stop Docker container
+        run: docker stop kuzu-x86
+
+  build-mac-extensions-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install OpenSSL
+        run: |
+          brew install openssl@3 duckdb
+          OPENSSL_ROOT=$(readlink -f /opt/homebrew/Cellar/openssl@3/*/)
+          echo "OPENSSL_ROOT_DIR=$OPENSSL_ROOT" >> $GITHUB_ENV
+
+      - name: Build precompiled extensions
+        run: make extension-release LTO=1 NUM_THREADS=$(nproc)
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+          CMAKE_OSX_ARCHITECTURES: "arm64"
+
+      - name: Collect built artifacts
+        run: |
+          mkdir -p extension-artifacts
+          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-extensions_osx-arm64
+          path: extension-artifacts/*.kuzu_extension
+
+  build-mac-extensions-x86_64:
+    runs-on: self-hosted-mac-x64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build precompiled extensions
+        run: make extension-release LTO=1 NUM_THREADS=$(nproc)
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 10.15
+          CMAKE_OSX_ARCHITECTURES: "x86_64"
+
+      - name: Collect built artifacts
+        run: |
+          mkdir -p extension-artifacts
+          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-extensions_osx-x86_64
+          path: extension-artifacts/*.kuzu_extension
+
+  build-windows-extensions-x86_64:
+    runs-on: self-hosted-windows
+    env:
+      NUM_THREADS: 18
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build precompiled extensions
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make extension-release
+
+      - name: Collect built artifacts
+        run: |
+          mkdir -p extension-artifacts
+          Get-ChildItem -Path .\extension -Recurse -Filter "*.kuzu_extension" | ForEach-Object {Copy-Item $_.FullName -Destination extension-artifacts -Force}
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-extensions_win-x86_64
+          path: extension-artifacts/*.kuzu_extension
+
+  update-extensions-repo:
+    runs-on: ubuntu-latest
+    needs:
+      - build-linux-extensions-x86_64
+      - build-linux-extensions-x86_64-old
+      - build-linux-extensions-aarch64
+      - build-linux-extensions-x86
+      - build-mac-extensions-arm64
+      - build-mac-extensions-x86_64
+      - build-windows-extensions-x86_64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Detect release version
+        run: |
+          echo "RELEASE_VERSION=v$(cat CMakeLists.txt | grep "DKUZU_EXTENSION_VERSION" | cut -d '"' -f 2 )" >> $GITHUB_ENV
+
+      - name: Delete checked out repository
+        run: cd .. && rm -rf kuzudb
+
+      - uses: actions/checkout@v3
+        with:
+          repository: kuzudb/extension
+          token: ${{ secrets.DOC_PUSH_TOKEN }}
+
+      - name: Ensure extension directories
+        run: |
+          mkdir -p releases/$RELEASE_VERSION/linux_amd64
+          mkdir -p releases/$RELEASE_VERSION/linux_old_amd64
+          mkdir -p releases/$RELEASE_VERSION/linux_arm64
+          mkdir -p releases/$RELEASE_VERSION/linux_x86
+          mkdir -p releases/$RELEASE_VERSION/osx_amd64
+          mkdir -p releases/$RELEASE_VERSION/osx_arm64
+          mkdir -p releases/$RELEASE_VERSION/win_amd64
+
+      - name: Clear old artifacts
+        run: |
+          rm -rf releases/$RELEASE_VERSION/linux_amd64/*
+          rm -rf releases/$RELEASE_VERSION/linux_old_amd64/*
+          rm -rf releases/$RELEASE_VERSION/linux_arm64/*
+          rm -rf releases/$RELEASE_VERSION/linux_x86/*
+          rm -rf releases/$RELEASE_VERSION/osx_amd64/*
+          rm -rf releases/$RELEASE_VERSION/osx_arm64/*
+          rm -rf releases/$RELEASE_VERSION/win_amd64/*
+
+      - name: Create temporary directory for artifacts
+        run: |
+          mkdir -p extension-artifacts
+          mkdir -p extension-artifacts/linux_amd64
+          mkdir -p extension-artifacts/linux_old_amd64
+          mkdir -p extension-artifacts/linux_arm64
+          mkdir -p extension-artifacts/linux_x86
+          mkdir -p extension-artifacts/osx_amd64
+          mkdir -p extension-artifacts/osx_arm64
+          mkdir -p extension-artifacts/win_amd64
+
+      - name: Download built artifacts for linux-x86_64
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-extensions_linux-x86_64
+          path: extension-artifacts/linux_amd64
+
+      - name: Download built artifacts for linux-old-x86_64
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-extensions_linux_old-x86_64
+          path: extension-artifacts/linux_old_amd64
+
+      - name: Download built artifacts for linux-aarch64
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-extensions_linux-aarch64
+          path: extension-artifacts/linux_arm64
+
+      - name: Download built artifacts for linux-x86
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-extensions_linux-x86
+          path: extension-artifacts/linux_x86
+
+      - name: Download built artifacts for osx-x86_64
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-extensions_osx-x86_64
+          path: extension-artifacts/osx_amd64
+
+      - name: Download built artifacts for osx-aarch64
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-extensions_osx-arm64
+          path: extension-artifacts/osx_arm64
+
+      - name: Download built artifacts for windows-x86_64
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-extensions_win-x86_64
+          path: extension-artifacts/win_amd64
+
+      - name: Copy built artifacts
+        run: |
+          cp extension-artifacts/linux_amd64/*.kuzu_extension releases/$RELEASE_VERSION/linux_amd64
+          cp extension-artifacts/linux_old_amd64/*.kuzu_extension releases/$RELEASE_VERSION/linux_old_amd64
+          cp extension-artifacts/linux_arm64/*.kuzu_extension releases/$RELEASE_VERSION/linux_arm64
+          cp extension-artifacts/linux_x86/*.kuzu_extension releases/$RELEASE_VERSION/linux_x86
+          cp extension-artifacts/osx_amd64/*.kuzu_extension releases/$RELEASE_VERSION/osx_amd64
+          cp extension-artifacts/osx_arm64/*.kuzu_extension releases/$RELEASE_VERSION/osx_arm64
+          cp extension-artifacts/win_amd64/*.kuzu_extension releases/$RELEASE_VERSION/win_amd64
+
+      - name: Remove temporary directory
+        run: rm -rf extension-artifacts
+
+      - name: Set artifact permissions
+        run: |
+          chmod 755 releases/$RELEASE_VERSION/linux_amd64/*
+          chmod 755 releases/$RELEASE_VERSION/linux_old_amd64/*
+          chmod 755 releases/$RELEASE_VERSION/linux_arm64/*
+          chmod 755 releases/$RELEASE_VERSION/linux_x86/*
+          chmod 755 releases/$RELEASE_VERSION/osx_amd64/*
+          chmod 755 releases/$RELEASE_VERSION/osx_arm64/*
+          chmod 755 releases/$RELEASE_VERSION/win_amd64/*
+
+      - name: List downloaded artifacts
+        run: ls -R releases/$RELEASE_VERSION
+
+      - name: Push changes
+        run: |
+          git checkout -b "extensions-update-${{ github.sha }}"
+          git config --global user.name "CI User"
+          git config --global user.email "contact@kuzudb.com"
+          git add -A
+          git commit -m "Update extensions (CI) - $RELEASE_VERSION"
+          git push -u origin "extensions-update-${{ github.sha }}"
+
+      - name: Create pull request
+        run: |
+          echo "${{ secrets.DOC_PUSH_TOKEN }}" > token.txt
+          gh auth login --with-token < token.txt
+          rm -rf token.txt
+          gh pr create \
+            --body "Action triggered by CI workflow." \
+            --title "Update extensions (CI) - $RELEASE_VERSION" \
+            --head "extensions-update-${{ github.sha }}" \
+            --base "main"

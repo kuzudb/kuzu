@@ -1,7 +1,5 @@
 #include "main/query_result.h"
 
-#include <fstream>
-
 #include "binder/expression/expression.h"
 #include "common/arrow/arrow_converter.h"
 #include "common/types/value/node.h"
@@ -15,8 +13,8 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace main {
 
-std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
-    const LogicalType& type, const std::string& name) {
+std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(const LogicalType& type,
+    const std::string& name) {
     auto columnTypeInfo = std::make_unique<DataTypeInfo>(type.getLogicalTypeID(), name);
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID: {
@@ -25,15 +23,15 @@ std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
         columnTypeInfo->childrenTypesInfo.push_back(
             std::make_unique<DataTypeInfo>(LogicalTypeID::INT64, "tableID"));
     } break;
-    case LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::LIST: {
         auto parentTypeInfo = columnTypeInfo.get();
-        auto childType = VarListType::getChildType(&type);
+        auto childType = ListType::getChildType(&type);
         parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
     } break;
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::ARRAY: {
         auto parentTypeInfo = columnTypeInfo.get();
-        parentTypeInfo->numValuesPerList = FixedListType::getNumValuesInList(&type);
-        auto childType = FixedListType::getChildType(&type);
+        parentTypeInfo->fixedNumValues = ArrayType::getNumElements(&type);
+        auto childType = ArrayType::getChildType(&type);
         parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
     } break;
     case LogicalTypeID::STRUCT: {
@@ -56,6 +54,8 @@ QueryResult::QueryResult() = default;
 QueryResult::QueryResult(const PreparedSummary& preparedSummary) {
     querySummary = std::make_unique<QuerySummary>();
     querySummary->setPreparedSummary(preparedSummary);
+    nextQueryResult = nullptr;
+    queryResultIterator = QueryResultIterator{this};
 }
 
 QueryResult::~QueryResult() = default;
@@ -153,6 +153,21 @@ bool QueryResult::hasNext() const {
     return iterator->hasNextFlatTuple();
 }
 
+bool QueryResult::hasNextQueryResult() const {
+    if (!queryResultIterator.isEnd()) {
+        return true;
+    }
+    return false;
+}
+
+QueryResult* QueryResult::getNextQueryResult() {
+    ++queryResultIterator;
+    if (!queryResultIterator.isEnd()) {
+        return queryResultIterator.getCurrentResult();
+    }
+    return nullptr;
+}
+
 std::shared_ptr<FlatTuple> QueryResult::getNext() {
     if (!hasNext()) {
         throw RuntimeException(
@@ -183,65 +198,6 @@ std::string QueryResult::toString() {
         result = errMsg;
     }
     return result;
-}
-
-void QueryResult::writeToCSV(
-    std::string fileName, char delimiter, char escapeCharacter, char newline) {
-    std::ofstream file;
-    file.open(fileName);
-    std::shared_ptr<FlatTuple> nextTuple;
-    KU_ASSERT(delimiter != '\0');
-    KU_ASSERT(newline != '\0');
-    while (hasNext()) {
-        nextTuple = getNext();
-        for (auto idx = 0ul; idx < nextTuple->len(); idx++) {
-            std::string resultVal = nextTuple->getValue(idx)->toString();
-            bool isStringList = false;
-            if (nextTuple->getValue(idx)->getDataType()->toString() == "STRING[]") {
-                isStringList = true;
-            }
-            bool surroundQuotes = false;
-            std::string csvStr;
-            for (long unsigned int j = 0; j < resultVal.length(); j++) {
-                if (!surroundQuotes) {
-                    if (resultVal[j] == escapeCharacter || resultVal[j] == newline ||
-                        resultVal[j] == delimiter) {
-                        surroundQuotes = true;
-                    }
-                }
-                if (resultVal[j] == escapeCharacter) {
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                } else if (resultVal[j] == ',' && isStringList) {
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                    csvStr += ',';
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                } else if (resultVal[j] == '[' && isStringList) {
-                    csvStr += "[";
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                } else if (resultVal[j] == ']' && isStringList) {
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                    csvStr += "]";
-                } else {
-                    csvStr += resultVal[j];
-                }
-            }
-            if (surroundQuotes) {
-                csvStr = escapeCharacter + std::move(csvStr) + escapeCharacter;
-            }
-            file << csvStr;
-            if (idx < nextTuple->len() - 1) {
-                file << delimiter;
-            } else {
-                file << newline;
-            }
-        }
-    }
-    file.close();
 }
 
 void QueryResult::validateQuerySucceed() const {

@@ -47,7 +47,6 @@
 8:0|2023-10-10|2024
 
 -CASE SetOneToOneTable
--SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 SET e.note='nothing';

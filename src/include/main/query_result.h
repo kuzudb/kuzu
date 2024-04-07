@@ -15,16 +15,16 @@ namespace main {
 struct DataTypeInfo {
 public:
     DataTypeInfo(common::LogicalTypeID typeID, std::string name)
-        : typeID{typeID}, name{std::move(name)}, numValuesPerList{0} {}
+        : typeID{typeID}, name{std::move(name)}, fixedNumValues{0} {}
 
     common::LogicalTypeID typeID;
     std::string name;
     std::vector<std::unique_ptr<DataTypeInfo>> childrenTypesInfo;
-    // Used by fixedList only.
-    uint64_t numValuesPerList;
+    // Used by array only.
+    uint64_t fixedNumValues;
 
-    static std::unique_ptr<DataTypeInfo> getInfoForDataType(
-        const common::LogicalType& type, const std::string& name);
+    static std::unique_ptr<DataTypeInfo> getInfoForDataType(const common::LogicalType& type,
+        const std::string& name);
 };
 
 /**
@@ -32,6 +32,26 @@ public:
  */
 class QueryResult {
     friend class Connection;
+    friend class ClientContext;
+    class QueryResultIterator {
+    private:
+        QueryResult* currentResult;
+
+    public:
+        QueryResultIterator() = default;
+
+        explicit QueryResultIterator(QueryResult* startResult) : currentResult(startResult) {}
+
+        void operator++() {
+            if (currentResult) {
+                currentResult = currentResult->nextQueryResult.get();
+            }
+        }
+
+        bool isEnd() const { return currentResult == nullptr; }
+
+        QueryResult* getCurrentResult() const { return currentResult; }
+    };
 
 public:
     /**
@@ -80,20 +100,24 @@ public:
      */
     KUZU_API bool hasNext() const;
     /**
+     * @return whether there are more query results to read.
+     */
+    KUZU_API bool hasNextQueryResult() const;
+    /**
+     * @return get next query result to read (for multiple query statements).
+     */
+    KUZU_API QueryResult* getNextQueryResult();
+
+    std::unique_ptr<QueryResult> nextQueryResult;
+    /**
      * @return next flat tuple in the query result.
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
-
-    KUZU_API std::string toString();
     /**
-     * @brief writes the query result to a csv file.
-     * @param fileName name of the csv file.
-     * @param delimiter delimiter of the csv file.
-     * @param escapeCharacter escape character of the csv file.
-     * @param newline newline character of the csv file.
+     * @return string of first query result.
      */
-    KUZU_API void writeToCSV(std::string fileName, char delimiter = ',', char escapeCharacter = '"',
-        char newline = '\n');
+    KUZU_API std::string toString();
+
     /**
      * @brief Resets the result tuple iterator.
      */
@@ -143,6 +167,9 @@ private:
 
     // execution statistics
     std::unique_ptr<QuerySummary> querySummary;
+
+    // query iterator
+    QueryResultIterator queryResultIterator;
 };
 
 } // namespace main

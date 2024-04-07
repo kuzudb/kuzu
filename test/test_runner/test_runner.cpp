@@ -36,8 +36,8 @@ void replaceEnv(std::string& queryToReplace, const std::string& env) {
     }
 }
 
-bool TestRunner::testStatement(
-    TestStatement* statement, Connection& conn, std::string& databasePath) {
+bool TestRunner::testStatement(TestStatement* statement, Connection& conn,
+    std::string& databasePath) {
     std::unique_ptr<PreparedStatement> preparedStatement;
     StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", databasePath);
     StringUtils::replaceAll(statement->query, "${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY);
@@ -45,13 +45,31 @@ bool TestRunner::testStatement(
     replaceEnv(statement->query, "UW_S3_SECRET_ACCESS_KEY");
     replaceEnv(statement->query, "AWS_S3_ACCESS_KEY_ID");
     replaceEnv(statement->query, "AWS_S3_SECRET_ACCESS_KEY");
+    replaceEnv(statement->query, "RUN_ID");
+    auto parsedStatements = std::vector<std::shared_ptr<parser::Statement>>();
+    try {
+        parsedStatements = conn.getClientContext()->parseQuery(statement->query);
+    } catch (std::exception& exception) {
+        auto errorPreparedStatement = conn.preparedStatementWithError(exception.what());
+        return checkLogicalPlan(errorPreparedStatement, statement, conn, 0);
+    }
+    if (parsedStatements.empty()) {
+        auto errorPreparedStatement =
+            conn.preparedStatementWithError("Connection Exception: Query is empty.");
+        return checkLogicalPlan(errorPreparedStatement, statement, conn, 0);
+    }
+    if (parsedStatements.size() > 1) {
+        throw TestException("Current test framework does not support multiple query statements!");
+    }
+    auto parsedStatement = std::move(parsedStatements[0]);
     if (statement->encodedJoin.empty()) {
-        preparedStatement = conn.prepareNoLock(statement->query, statement->enumerate);
+        preparedStatement = conn.prepareNoLock(parsedStatement, statement->enumerate);
     } else {
-        preparedStatement = conn.prepareNoLock(statement->query, true, statement->encodedJoin);
+        preparedStatement = conn.prepareNoLock(parsedStatement, true, statement->encodedJoin);
     }
     // Check for wrong statements
-    if (!statement->expectedError && !preparedStatement->isSuccess()) {
+    if (!statement->expectedError && !statement->expectedErrorRegex &&
+        !preparedStatement->isSuccess()) {
         spdlog::error(preparedStatement->getErrorMessage());
         return false;
     }
@@ -82,9 +100,27 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
             return true;
         }
         spdlog::info("EXPECTED ERROR: {}", expectedError);
+    } else if (statement->expectedErrorRegex) {
+        std::string expectedError = StringUtils::rtrim(result->getErrorMessage());
+        std::regex pattern("^.*[\\\\/]+([^\\\\/]+)$");
+        std::smatch match1;
+        bool is_match1 = std::regex_match(expectedError, match1, pattern);
+        std::smatch match2;
+        bool is_match2 = std::regex_match(statement->errorMessage, match2, pattern);
+        if (is_match1 && is_match2) {
+            if (match1[1] == match2[1]) {
+                return true;
+            }
+        }
+        spdlog::info("EXPECTED ERROR: {}", expectedError);
     } else if (statement->expectedOk && result->isSuccess()) {
         return true;
     } else {
+        if (!preparedStatement->success) {
+            spdlog::info("Query compilation failed with error: {}",
+                preparedStatement->getErrorMessage());
+            return false;
+        }
         auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
         if (checkPlanResult(result, statement, planStr, planIdx)) {
             return true;
@@ -117,8 +153,8 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         if (resultTuples.size() == result->getNumTuples() &&
             resultHash == statement->expectedHashValue &&
             resultTuples.size() == statement->expectedNumTuples) {
-            spdlog::info(
-                "PLAN{} PASSED in {}ms.", planIdx, result->getQuerySummary()->getExecutionTime());
+            spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
+                result->getQuerySummary()->getExecutionTime());
             return true;
         } else {
             spdlog::error("PLAN{} NOT PASSED.", planIdx);
@@ -133,8 +169,8 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     }
     if (resultTuples.size() == result->getNumTuples() &&
         resultTuples == statement->expectedTuples) {
-        spdlog::info(
-            "PLAN{} PASSED in {}ms.", planIdx, result->getQuerySummary()->getExecutionTime());
+        spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
+            result->getQuerySummary()->getExecutionTime());
         return true;
     } else {
         spdlog::error("PLAN{} NOT PASSED.", planIdx);
@@ -147,8 +183,8 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     return false;
 }
 
-std::vector<std::string> TestRunner::convertResultToString(
-    QueryResult& queryResult, bool checkOutputOrder) {
+std::vector<std::string> TestRunner::convertResultToString(QueryResult& queryResult,
+    bool checkOutputOrder) {
     std::vector<std::string> actualOutput;
     while (queryResult.hasNext()) {
         auto tuple = queryResult.getNext();
@@ -174,8 +210,8 @@ std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool ch
     return std::string(hasher.finishMD5());
 }
 
-std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(
-    const std::string& query, kuzu::main::Connection& conn) {
+std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(const std::string& query,
+    kuzu::main::Connection& conn) {
     return std::move(conn.prepare(query)->logicalPlans[0]);
 }
 

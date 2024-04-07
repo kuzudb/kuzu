@@ -17,8 +17,8 @@ public:
 
     inline bool isSource() const override { return true; }
 
-    inline void initLocalStateInternal(
-        ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) override {
+    inline void initLocalStateInternal(ResultSet* /*resultSet_*/,
+        ExecutionContext* /*context*/) override {
         nodeIDVector = resultSet->getValueVector(info.nodeIDPos).get();
         flagVector = resultSet->getValueVector(info.flagPos).get();
     }

@@ -9,7 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace transaction {
 
-std::unique_ptr<Transaction> TransactionManager::beginWriteTransaction() {
+std::unique_ptr<Transaction> TransactionManager::beginWriteTransaction(
+    main::ClientContext& clientContext) {
     // We obtain the lock for starting new transactions. In case this cannot be obtained this
     // ensures calls to other public functions is not restricted.
     lock_t newTransactionLck{mtxForStartingNewTransactions};
@@ -20,18 +21,19 @@ std::unique_ptr<Transaction> TransactionManager::beginWriteTransaction() {
             "time is allowed in the system.");
     }
     auto transaction =
-        std::make_unique<Transaction>(TransactionType::WRITE, ++lastTransactionID, mm);
+        std::make_unique<Transaction>(clientContext, TransactionType::WRITE, ++lastTransactionID);
     activeWriteTransactionID = lastTransactionID;
     return transaction;
 }
 
-std::unique_ptr<Transaction> TransactionManager::beginReadOnlyTransaction() {
+std::unique_ptr<Transaction> TransactionManager::beginReadOnlyTransaction(
+    main::ClientContext& clientContext) {
     // We obtain the lock for starting new transactions. In case this cannot be obtained this
     // ensures calls to other public functions is not restricted.
     lock_t newTransactionLck{mtxForStartingNewTransactions};
     lock_t publicFunctionLck{mtxForSerializingPublicFunctionCalls};
-    auto transaction =
-        std::make_unique<Transaction>(TransactionType::READ_ONLY, ++lastTransactionID, mm);
+    auto transaction = std::make_unique<Transaction>(clientContext, TransactionType::READ_ONLY,
+        ++lastTransactionID);
     activeReadOnlyTransactionIDs.insert(transaction->getID());
     return transaction;
 }

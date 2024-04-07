@@ -1,7 +1,7 @@
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/plan_mapper.h"
-#include "transaction/transaction.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;
@@ -13,7 +13,8 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
     const binder::NodeExpression& nbrNode, const storage::StorageManager& storageManager) {
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
     for (auto tableID : nbrNode.getTableIDs()) {
-        auto nodeTable = storageManager.getNodeTable(tableID);
+        auto nodeTable = common::ku_dynamic_cast<storage::Table*, storage::NodeTable*>(
+            storageManager.getTable(tableID));
         semiMasks.push_back(std::make_unique<NodeOffsetSemiMask>(nodeTable));
     }
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
@@ -43,14 +44,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     auto boundNodeIDPos = DataPos(inSchema->getExpressionPos(*boundNode->getInternalID()));
     auto nbrNodeIDPos = DataPos(outSchema->getExpressionPos(*nbrNode->getInternalID()));
     auto lengthPos = DataPos(outSchema->getExpressionPos(*lengthExpression));
-    auto sharedState = createSharedState(*nbrNode, storageManager);
+    auto sharedState = createSharedState(*nbrNode, *clientContext->getStorageManager());
     auto pathPos = DataPos();
     if (extend->getJoinType() == planner::RecursiveJoinType::TRACK_PATH) {
         pathPos = DataPos(outSchema->getExpressionPos(*rel));
     }
     std::unordered_map<common::table_id_t, std::string> tableIDToName;
-    for (auto& schema : catalog->getTableSchemas(&transaction::DUMMY_READ_TRANSACTION)) {
-        tableIDToName.insert({schema->getTableID(), schema->tableName});
+    for (auto& entry : clientContext->getCatalog()->getTableEntries(clientContext->getTx())) {
+        tableIDToName.insert({entry->getTableID(), entry->getName()});
     }
     auto dataInfo = std::make_unique<RecursiveJoinDataInfo>(boundNodeIDPos, nbrNodeIDPos,
         nbrNode->getTableIDsSet(), lengthPos, std::move(recursivePlanResultSetDescriptor),

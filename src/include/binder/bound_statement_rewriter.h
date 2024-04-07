@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bound_statement.h"
-#include "catalog/catalog.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace binder {
@@ -9,7 +9,7 @@ namespace binder {
 // Perform semantic rewrite over bound statement.
 class BoundStatementRewriter {
 public:
-    static void rewrite(BoundStatement& boundStatement, const catalog::Catalog& catalog);
+    static void rewrite(BoundStatement& boundStatement, const main::ClientContext& clientContext);
 };
 
 } // namespace binder

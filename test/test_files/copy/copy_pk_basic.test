@@ -3,6 +3,17 @@
 
 --
 
+-DEFINE_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES [
+-STATEMENT create rel table follows (FROM person TO org)
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/primary-key-tests/vPerson.csv";
+---- ok
+-STATEMENT COPY org FROM "${KUZU_ROOT_DIRECTORY}/dataset/primary-key-tests/vOrg.csv";
+---- ok
+-STATEMENT COPY follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/primary-key-tests/eFollows.csv";
+---- ok
+]
+
 -DEFINE_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE [
 -STATEMENT create rel table follows (FROM person TO org)
 ---- ok
@@ -18,7 +29,7 @@ Foo|10020
 Bar|10020
 ]
 
--CASE CopyIntPK
+-CASE CopyInt64PK
 
 -STATEMENT create node table person (ID INT64, fName STRING, age INT64, PRIMARY KEY (ID));
 ---- ok
@@ -35,6 +46,14 @@ Bar|10020
 ---- ok
 -INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
 
+-CASE CopyBlobPK
+
+-STATEMENT create node table person (ID BLOB, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID BLOB, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
 -CASE CopyMixedStringAndIntPK
 
 -STATEMENT create node table person (ID INT64, fName STRING, age INT64, PRIMARY KEY (ID));
@@ -42,3 +61,82 @@ Bar|10020
 -STATEMENT create node table org (ID STRING, PRIMARY KEY (ID));
 ---- ok
 -INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+-CASE CopyInt8PK
+-STATEMENT create node table person (ID INT8, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID INT16, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+-CASE CopyInt16PK
+-STATEMENT create node table person (ID INT16, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID INT16, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+-CASE CopyInt32PK
+-STATEMENT create node table person (ID INT32, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID INT32, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+-CASE CopyUInt8PK
+-STATEMENT create node table person (ID UINT8, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID UINT16, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+-CASE CopyUInt16PK
+-STATEMENT create node table person (ID UINT16, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID UINT16, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+-CASE CopyUInt32PK
+-STATEMENT create node table person (ID UINT32, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID UINT32, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+-CASE CopyUInt64PK
+-STATEMENT create node table person (ID UINT64, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID UINT64, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+-CASE CopyInt128PK
+-STATEMENT create node table person (ID INT128, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID INT128, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+-CASE CopyDoublePK
+-STATEMENT create node table person (ID double, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID double, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES
+-STATEMENT MATCH (p:person)-[:follows]->(o:org) return p.fName, o.ID
+---- 2
+Foo|10020.000000
+Bar|10020.000000
+
+
+-CASE CopyFloatPK
+-STATEMENT create node table person (ID float, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID float, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES
+-STATEMENT MATCH (p:person)-[:follows]->(o:org) return p.fName, o.ID
+---- 2
+Foo|10020.000000
+Bar|10020.000000

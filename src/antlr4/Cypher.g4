@@ -13,8 +13,11 @@ grammar Cypher;
     virtual void notifyNonBinaryComparison(antlr4::Token* startToken) {};
 }
 
+ku_Statements
+    : oC_Cypher ( SP? ';' SP? oC_Cypher )* SP? EOF ;
+
 oC_Cypher
-    : SP ? oC_AnyCypherOption? SP? ( oC_Statement ) ( SP? ';' )? SP? EOF ;
+    : oC_AnyCypherOption? SP? ( oC_Statement ) ( SP? ';' )?;
 
 oC_Statement
     : oC_Query
@@ -26,19 +29,46 @@ oC_Statement
         | kU_CreateMacro
         | kU_CommentOn
         | kU_Transaction
-        | kU_Extension ;
+        | kU_Extension
+        | kU_ExportDatabase
+        | kU_ImportDatabase
+        | kU_AttachDatabase
+        | kU_DetachDatabase;
 
 kU_CopyFrom
-    : COPY SP oC_SchemaName ( ( SP? '(' SP? kU_ColumnNames SP? ')' SP? ) | SP ) FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+    : COPY SP oC_SchemaName ( ( SP? kU_ColumnNames SP? ) | SP ) FROM SP kU_ScanSource ( SP? kU_ParsingOptions )? ;
 
 kU_ColumnNames
-     : oC_SchemaName ( SP? ',' SP? oC_SchemaName )* ;
+     : '(' SP? oC_SchemaName ( SP? ',' SP? oC_SchemaName )* SP? ')';
+
+kU_ScanSource
+    : kU_FilePaths
+        | '(' SP? oC_Query SP? ')'
+        | oC_Variable ;
 
 kU_CopyFromByColumn
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
 
 kU_CopyTO
-    : COPY SP '(' SP? oC_Query SP? ')' SP TO SP StringLiteral ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+    : COPY SP '(' SP? oC_Query SP? ')' SP TO SP StringLiteral ( SP? kU_ParsingOptions )? ;
+
+kU_ExportDatabase
+    : EXPORT SP DATABASE SP StringLiteral ( SP? kU_ParsingOptions )? ;
+
+kU_ImportDatabase
+    : IMPORT SP DATABASE SP StringLiteral;
+
+kU_AttachDatabase
+    : ATTACH SP StringLiteral (SP AS SP oC_SchemaName SP)?  (SP? '(' SP? DBTYPE SP StringLiteral SP? ')')?;
+
+ATTACH:
+    ( 'A' | 'a') ( 'T' | 't') ( 'T' | 't') ( 'A' | 'a') ( 'C' | 'c') ( 'H' | 'h');
+
+DBTYPE:
+    ( 'D' | 'd') ( 'B' | 'b') ( 'T' | 't') ( 'Y' | 'y') ( 'P' | 'p') ( 'E' | 'e');
+
+kU_DetachDatabase
+    : DETACH SP oC_SchemaName;
 
 kU_StandaloneCall
     : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
@@ -46,9 +76,9 @@ kU_StandaloneCall
 CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 kU_CommentOn
-    : COMMENT SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
+    : COMMENT_ SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
 
-COMMENT : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
+COMMENT_ : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
 
 kU_CreateMacro
     : CREATE SP MACRO SP oC_FunctionName SP? '(' SP? kU_PositionalArgs? SP? kU_DefaultArg? ( SP? ',' SP? kU_DefaultArg )* SP? ')' SP AS SP oC_Expression ;
@@ -69,7 +99,7 @@ kU_FilePaths
 GLOB : ( 'G' | 'g' ) ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'B' | 'b' ) ;
 
 kU_ParsingOptions
-    : kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )* ;
+    : '(' SP? kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )*  SP? ')' ;
 
 kU_ParsingOption
     : oC_SymbolicName SP? '=' SP? oC_Literal;
@@ -79,6 +109,12 @@ COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;
 FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ;
 
 COLUMN : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'U' | 'u' ) ( 'M' | 'm' ) ( 'N' | 'n' ) ;
+
+EXPORT: ( 'E' | 'e') ( 'X' | 'x') ( 'P' | 'p') ( 'O' | 'o') ( 'R' | 'r') ( 'T' | 't');
+
+IMPORT: ( 'I' | 'i') ( 'M' | 'm') ( 'P' | 'p') ( 'O' | 'o') ( 'R' | 'r') ( 'T' | 't');
+
+DATABASE: ( 'D' | 'd') ( 'A' | 'a') ( 'T' | 't') ( 'A' | 'a') ( 'B' | 'b') ( 'A' | 'a') ( 'S' | 's')( 'E' | 'e');
 
 kU_DDL
     : kU_CreateNodeTable
@@ -108,14 +144,12 @@ kU_RelTableConnection
     : FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
 
 kU_CreateRdfGraph
-    : CREATE SP RDF SP GRAPH SP oC_SchemaName ;
+    : CREATE SP RDFGRAPH SP oC_SchemaName ;
 
-RDF : ('R' | 'r') ('D' | 'd') ('F' | 'f') ;
-
-GRAPH : ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
+RDFGRAPH : ('R' | 'r') ('D' | 'd') ('F' | 'f') ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
 
 kU_DropTable
-    : DROP SP TABLE SP oC_SchemaName ;
+    : DROP SP (TABLE | RDFGRAPH) SP oC_SchemaName ;
 
 DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
 
@@ -275,7 +309,7 @@ oC_ReadingClause
         ;
 
 kU_LoadFrom
-    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_PropertyDefinitions SP? ')' )? SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? (SP? oC_Where)? ;
+    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_PropertyDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? kU_ParsingOptions)? (SP? oC_Where)? ;
 
 LOAD : ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'A' | 'a' ) ( 'D' | 'd' )  ;
 
@@ -481,7 +515,7 @@ oC_AndExpression
 AND : ( 'A' | 'a' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ;
 
 oC_NotExpression
-    : ( NOT SP? )?  oC_ComparisonExpression ;
+    : ( NOT SP? )*  oC_ComparisonExpression ;
 
 NOT : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'T' | 't' ) ;
 
@@ -520,7 +554,7 @@ oC_PowerOfExpression
     : oC_UnaryAddSubtractOrFactorialExpression ( SP? '^' SP? oC_UnaryAddSubtractOrFactorialExpression )* ;
 
 oC_UnaryAddSubtractOrFactorialExpression
-    : ( MINUS SP? )? oC_StringListNullOperatorExpression (SP? FACTORIAL)? ;
+    : ( MINUS SP? )* oC_StringListNullOperatorExpression (SP? FACTORIAL)? ;
 
 MINUS : '-' ;
 
@@ -530,13 +564,14 @@ oC_StringListNullOperatorExpression
     : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression+ | oC_NullOperatorExpression )? ;
 
 oC_ListOperatorExpression
-    : kU_ListExtractOperatorExpression | kU_ListSliceOperatorExpression  ;
+    : ( SP IN SP? oC_PropertyOrLabelsExpression )
+        | ( '[' oC_Expression ']' )
+        | ( '[' oC_Expression? COLON oC_Expression? ']' )
+        ;
 
-kU_ListExtractOperatorExpression
-    : '[' oC_Expression ']' ;
+COLON : ':' ;
 
-kU_ListSliceOperatorExpression
-    : '[' oC_Expression? ':' oC_Expression? ']' ;
+IN : ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 oC_StringOperatorExpression
     :  ( oC_RegularExpression | ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
@@ -737,12 +772,16 @@ oC_SymbolicName
 
 // example of BEGIN and END: TCKWith2.Scenario1
 kU_NonReservedKeywords
-    : COMMENT
+    : COMMENT_
         | COUNT
         | NODE
         | REL
         | BEGIN
         | END
+        | IN
+        | IMPORT
+        | EXPORT
+        | DATABASE
         ;
 
 UnescapedSymbolicName
@@ -798,7 +837,9 @@ WHITESPACE
         ;
 
 Comment
-    : ( '/*' ( Comment_1 | ( '*' Comment_2 ) )* '*/' ) ;
+    : ( '/*' ( Comment_1 | ( '*' Comment_2 ) )* '*/' )
+        | ( '//' ( Comment_3 )* CR? ( LF | EOF ) )
+        ;
 
 oC_LeftArrowHead
     : '<'

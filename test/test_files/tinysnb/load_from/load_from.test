@@ -89,7 +89,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|1990-11-27
             WHERE ID = '10'
             RETURN *, concat(fName, 'aa');
 ---- error
-Conversion exception: Cast failed. [Aida] is not in INT64 range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "[Aida]" to INT64.
 -STATEMENT LOAD WITH HEADERS (ID StRING, fName StRING, gender StRING, isStudent StRING, isWorker StRING, age StRING, eyeSight StRING, birthdate StRING, registerTime StRING, lastJobDuration StRING, workedHours StRING, usedNames StRING, courseScoresPerTerm StRING, grades StRING, height StRING, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True)
             WHERE ID = '10'
             RETURN *, concat(fName, 'aa');

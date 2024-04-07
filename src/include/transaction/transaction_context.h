@@ -4,7 +4,7 @@
 
 namespace kuzu {
 namespace main {
-class Database;
+class ClientContext;
 }
 
 namespace transaction {
@@ -29,7 +29,7 @@ enum class TransactionMode : uint8_t { AUTO = 0, MANUAL = 1 };
 
 class TransactionContext {
 public:
-    explicit TransactionContext(main::Database* database);
+    explicit TransactionContext(main::ClientContext& clientContext);
     ~TransactionContext();
 
     inline bool isAutoTransaction() const { return mode == TransactionMode::AUTO; }
@@ -57,7 +57,7 @@ private:
 
 private:
     std::mutex mtx;
-    main::Database* database;
+    main::ClientContext& clientContext;
     TransactionMode mode;
     std::unique_ptr<Transaction> activeTransaction;
 };

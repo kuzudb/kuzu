@@ -1,56 +1,43 @@
 #pragma once
 
 #include "planner/operator/logical_operator.h"
-#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace planner {
 
 class LogicalDistinct : public LogicalOperator {
 public:
-    LogicalDistinct(
-        binder::expression_vector keyExpressions, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::DISTINCT, std::move(child)},
-          keyExpressions{std::move(keyExpressions)} {}
-    LogicalDistinct(binder::expression_vector keyExpressions,
-        binder::expression_vector dependentKeyExpressions, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::DISTINCT, std::move(child)},
-          keyExpressions{std::move(keyExpressions)}, dependentKeyExpressions{
-                                                         std::move(dependentKeyExpressions)} {}
+    LogicalDistinct(binder::expression_vector keys, std::shared_ptr<LogicalOperator> child)
+        : LogicalDistinct{LogicalOperatorType::DISTINCT, keys, binder::expression_vector{},
+              std::move(child)} {}
+    LogicalDistinct(LogicalOperatorType type, binder::expression_vector keys,
+        binder::expression_vector payloads, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{type, std::move(child)}, keys{std::move(keys)},
+          payloads{std::move(payloads)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    f_group_pos_set getGroupsPosToFlatten();
+    virtual f_group_pos_set getGroupsPosToFlatten();
 
     std::string getExpressionsForPrinting() const override;
 
-    inline binder::expression_vector getKeyExpressions() const { return keyExpressions; }
-    inline void setKeyExpressions(binder::expression_vector expressions) {
-        keyExpressions = std::move(expressions);
-    }
-    inline binder::expression_vector getDependentKeyExpressions() const {
-        return dependentKeyExpressions;
-    }
-    inline void setDependentKeyExpressions(binder::expression_vector expressions) {
-        dependentKeyExpressions = std::move(expressions);
-    }
-    inline binder::expression_vector getAllDistinctExpressions() const {
-        binder::expression_vector result;
-        result.insert(result.end(), keyExpressions.begin(), keyExpressions.end());
-        result.insert(result.end(), dependentKeyExpressions.begin(), dependentKeyExpressions.end());
-        return result;
-    }
+    binder::expression_vector getKeys() const { return keys; }
+    void setKeys(binder::expression_vector expressions) { keys = std::move(expressions); }
+    binder::expression_vector getPayloads() const { return payloads; }
+    void setPayloads(binder::expression_vector expressions) { payloads = std::move(expressions); }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalDistinct>(
-            keyExpressions, dependentKeyExpressions, children[0]->copy());
+        return make_unique<LogicalDistinct>(operatorType, keys, payloads, children[0]->copy());
     }
 
-private:
-    binder::expression_vector keyExpressions;
-    // See logical_aggregate.h for details.
-    binder::expression_vector dependentKeyExpressions;
+protected:
+    binder::expression_vector getKeysAndPayloads() const;
+
+protected:
+    binder::expression_vector keys;
+    // Payloads meaning additional keys that are functional dependent on the keys above.
+    binder::expression_vector payloads;
 };
 
 } // namespace planner

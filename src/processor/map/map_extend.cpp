@@ -1,10 +1,9 @@
 #include "binder/expression/property_expression.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "processor/operator/scan/scan_multi_rel_tables.h"
-#include "processor/operator/scan/scan_rel_csr_columns.h"
-#include "processor/operator/scan/scan_rel_regular_columns.h"
+#include "processor/operator/scan/scan_rel_table.h"
 #include "processor/plan_mapper.h"
-#include "transaction/transaction.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -15,17 +14,17 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace processor {
 
-static std::unique_ptr<ScanRelTableInfo> getRelTableScanInfo(TableSchema* tableSchema,
-    RelDataDirection direction, StorageManager& storageManager,
+static std::unique_ptr<ScanRelTableInfo> getRelTableScanInfo(TableCatalogEntry* tableCatalogEntry,
+    RelDataDirection direction, StorageManager* storageManager,
     const expression_vector& properties) {
-    auto relTableID = tableSchema->getTableID();
-    auto relTable = storageManager.getRelTable(relTableID);
+    auto relTableID = tableCatalogEntry->getTableID();
+    auto relTable = ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(relTableID));
     std::vector<column_id_t> columnIDs;
     for (auto& property : properties) {
         auto propertyExpression = ku_dynamic_cast<Expression*, PropertyExpression*>(property.get());
         columnIDs.push_back(
             propertyExpression->hasPropertyID(relTableID) ?
-                tableSchema->getColumnID(propertyExpression->getPropertyID(relTableID)) :
+                tableCatalogEntry->getColumnID(propertyExpression->getPropertyID(relTableID)) :
                 INVALID_COLUMN_ID);
     }
     return std::make_unique<ScanRelTableInfo>(relTable, direction, std::move(columnIDs));
@@ -33,41 +32,43 @@ static std::unique_ptr<ScanRelTableInfo> getRelTableScanInfo(TableSchema* tableS
 
 static std::unique_ptr<RelTableCollectionScanner> populateRelTableCollectionScanner(
     table_id_t boundNodeTableID, const RelExpression& rel, ExtendDirection extendDirection,
-    const expression_vector& properties, StorageManager& storageManager, const Catalog& catalog) {
+    const expression_vector& properties, const main::ClientContext& clientContext) {
     std::vector<std::unique_ptr<ScanRelTableInfo>> scanInfos;
+    auto catalog = clientContext.getCatalog();
+    auto storageManager = clientContext.getStorageManager();
     for (auto relTableID : rel.getTableIDs()) {
-        auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-            catalog.getTableSchema(&transaction::DUMMY_READ_TRANSACTION, relTableID));
+        auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+            catalog->getTableCatalogEntry(clientContext.getTx(), relTableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
-            if (relTableSchema->getBoundTableID(RelDataDirection::FWD) == boundNodeTableID) {
-                auto scanInfo = getRelTableScanInfo(
-                    relTableSchema, RelDataDirection::FWD, storageManager, properties);
+            if (relTableEntry->getBoundTableID(RelDataDirection::FWD) == boundNodeTableID) {
+                auto scanInfo = getRelTableScanInfo(relTableEntry, RelDataDirection::FWD,
+                    storageManager, properties);
                 if (scanInfo != nullptr) {
                     scanInfos.push_back(std::move(scanInfo));
                 }
             }
         } break;
         case ExtendDirection::BWD: {
-            if (relTableSchema->getBoundTableID(RelDataDirection::BWD) == boundNodeTableID) {
-                auto scanInfo = getRelTableScanInfo(
-                    relTableSchema, RelDataDirection::BWD, storageManager, properties);
+            if (relTableEntry->getBoundTableID(RelDataDirection::BWD) == boundNodeTableID) {
+                auto scanInfo = getRelTableScanInfo(relTableEntry, RelDataDirection::BWD,
+                    storageManager, properties);
                 if (scanInfo != nullptr) {
                     scanInfos.push_back(std::move(scanInfo));
                 }
             }
         } break;
         case ExtendDirection::BOTH: {
-            if (relTableSchema->getBoundTableID(RelDataDirection::FWD) == boundNodeTableID) {
-                auto scanInfoFWD = getRelTableScanInfo(
-                    relTableSchema, RelDataDirection::FWD, storageManager, properties);
+            if (relTableEntry->getBoundTableID(RelDataDirection::FWD) == boundNodeTableID) {
+                auto scanInfoFWD = getRelTableScanInfo(relTableEntry, RelDataDirection::FWD,
+                    storageManager, properties);
                 if (scanInfoFWD != nullptr) {
                     scanInfos.push_back(std::move(scanInfoFWD));
                 }
             }
-            if (relTableSchema->getBoundTableID(RelDataDirection::BWD) == boundNodeTableID) {
-                auto scanInfoBWD = getRelTableScanInfo(
-                    relTableSchema, RelDataDirection::BWD, storageManager, properties);
+            if (relTableEntry->getBoundTableID(RelDataDirection::BWD) == boundNodeTableID) {
+                auto scanInfoBWD = getRelTableScanInfo(relTableEntry, RelDataDirection::BWD,
+                    storageManager, properties);
                 if (scanInfoBWD != nullptr) {
                     scanInfos.push_back(std::move(scanInfoBWD));
                 }
@@ -101,25 +102,19 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
     }
     if (!rel->isMultiLabeled() && !boundNode->isMultiLabeled() &&
         extendDirection != ExtendDirection::BOTH) {
-        auto tableSchema = dynamic_cast<RelTableSchema*>(
-            catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, rel->getSingleTableID()));
+        auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+            clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(),
+                rel->getSingleTableID()));
         auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extendDirection);
-        auto scanInfo = getRelTableScanInfo(
-            tableSchema, relDataDirection, storageManager, extend->getProperties());
-        if (tableSchema->isSingleMultiplicity(relDataDirection)) {
-            return std::make_unique<ScanRelRegularColumns>(std::move(scanInfo), inNodeVectorPos,
-                outVectorsPos, std::move(prevOperator), getOperatorID(),
-                extend->getExpressionsForPrinting());
-        } else {
-            return std::make_unique<ScanRelCSRColumns>(std::move(scanInfo), inNodeVectorPos,
-                outVectorsPos, std::move(prevOperator), getOperatorID(),
-                extend->getExpressionsForPrinting());
-        }
+        auto scanInfo = getRelTableScanInfo(relTableEntry, relDataDirection,
+            clientContext->getStorageManager(), extend->getProperties());
+        return std::make_unique<ScanRelTable>(std::move(scanInfo), inNodeVectorPos, outVectorsPos,
+            std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
     } else { // map to generic extend
         std::unordered_map<table_id_t, std::unique_ptr<RelTableCollectionScanner>> scanners;
         for (auto boundNodeTableID : boundNode->getTableIDs()) {
             auto scanner = populateRelTableCollectionScanner(boundNodeTableID, *rel,
-                extendDirection, extend->getProperties(), storageManager, *catalog);
+                extendDirection, extend->getProperties(), *clientContext);
             if (scanner != nullptr) {
                 scanners.insert({boundNodeTableID, std::move(scanner)});
             }

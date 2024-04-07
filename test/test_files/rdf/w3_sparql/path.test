@@ -1,0 +1,50 @@
+-GROUP W3Sparql
+-DATASET TTL EMPTY
+
+--
+
+-CASE W3SparqlRecursivePath
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "knows"}]->(b:R_r {iri: "b"}),
+                  (b)-[{iri: "knows"}]->(:R_r {iri: "c"});
+---- ok
+-STATEMENT MATCH p = (a)-[*]->(b) RETURN a.iri, b.iri;
+---- 3
+a|b
+a|c
+b|c
+-STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "x"}]->(b:R_r {iri: "d"})
+---- ok
+-STATEMENT MATCH p = (a)-[*]->(b) RETURN properties(nodes(p), "iri"), properties(rels(p), "iri");
+---- 4
+[a,b,c]|[knows,knows]
+[a,b]|[knows]
+[a,d]|[x]
+[b,c]|[knows]
+-STATEMENT MATCH p = (a)-[* (r, n | WHERE r.iri = "knows")]->(b)
+        RETURN properties(nodes(p), "iri");
+---- 3
+[a,b,c]
+[a,b]
+[b,c]
+-STATEMENT MATCH (a)-[* (r, n | WHERE r.iri = "x")]->(b)
+        RETURN COUNT(*);
+---- 1
+1
+-CASE W3SparqlDiamondTail
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "p"}]->(:R_r {iri: "b"})-[{iri: "p"}]->(z:R_r {iri: "z"}),
+                  (a)-[{iri: "p"}]->(:R_r {iri: "c"})-[{iri: "p"}]->(z),
+                  (z)-[{iri: "p"}]->(:R_r {iri: "X"});
+---- ok
+-STATEMENT MATCH p = (a {iri: "a"})-[*]->(b) RETURN a.iri, b.iri;
+---- 6
+a|X
+a|X
+a|b
+a|c
+a|z
+a|z

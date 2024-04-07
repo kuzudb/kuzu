@@ -93,3 +93,26 @@
 -STATEMENT MATCH (t:test) SET t.id=NULL
 ---- error
 Bind exception: Cannot set SERIAL column 'id' to a different value
+
+-CASE SetLongStringPK
+-STATEMENT create node table person0 (ID STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE (:person0 {ID: "Foo"})
+---- ok
+-STATEMENT match (p:person0) return p.ID;
+---- 1
+Foo
+-DEFINE STRING_EXCEEDS_PAGE ARANGE 0 5990
+-DEFINE STRING_LARGE_BUT_FITS ARANGE 0 40000
+-DEFINE STRING_EXCEEDS_LARGE_PAGE ARANGE 0 50000
+-STATEMENT match (p:person0) SET p.ID=${STRING_EXCEEDS_PAGE}
+---- ok
+-STATEMENT match (p:person0) return p.ID;
+---- 1
+${STRING_EXCEEDS_PAGE}
+-LOG SetLongStringPKError
+-STATEMENT match (p:person0) SET p.ID=${STRING_LARGE_BUT_FITS}
+---- ok
+-STATEMENT match (p:person0) return p.ID;
+---- 1
+${STRING_LARGE_BUT_FITS}

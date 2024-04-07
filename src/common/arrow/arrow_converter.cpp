@@ -41,8 +41,8 @@ void ArrowConverter::initializeChild(ArrowSchema& child, const std::string& name
     child.dictionary = nullptr;
 }
 
-void ArrowConverter::setArrowFormatForStruct(
-    ArrowSchemaHolder& rootHolder, ArrowSchema& child, const main::DataTypeInfo& typeInfo) {
+void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
+    const main::DataTypeInfo& typeInfo) {
     auto& childrenTypesInfo = typeInfo.childrenTypesInfo;
     child.format = "+s";
     // name is set by parent.
@@ -62,8 +62,8 @@ void ArrowConverter::setArrowFormatForStruct(
     }
 }
 
-void ArrowConverter::setArrowFormat(
-    ArrowSchemaHolder& rootHolder, ArrowSchema& child, const main::DataTypeInfo& typeInfo) {
+void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
+    const main::DataTypeInfo& typeInfo) {
     switch (typeInfo.typeID) {
     case LogicalTypeID::BOOL: {
         child.format = "b";
@@ -127,7 +127,7 @@ void ArrowConverter::setArrowFormat(
     case LogicalTypeID::STRING: {
         child.format = "u";
     } break;
-    case LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::LIST: {
         child.format = "+l";
         child.n_children = 1;
         rootHolder.nestedChildren.emplace_back();
@@ -139,9 +139,9 @@ void ArrowConverter::setArrowFormat(
         child.children[0]->name = "l";
         setArrowFormat(rootHolder, **child.children, *typeInfo.childrenTypesInfo[0]);
     } break;
-    case LogicalTypeID::FIXED_LIST: {
-        auto numValuesPerList = "+w:" + std::to_string(typeInfo.numValuesPerList);
-        child.format = copyName(rootHolder, numValuesPerList);
+    case LogicalTypeID::ARRAY: {
+        auto numValuesPerArray = "+w:" + std::to_string(typeInfo.fixedNumValues);
+        child.format = copyName(rootHolder, numValuesPerArray);
         child.n_children = 1;
         rootHolder.nestedChildren.emplace_back();
         rootHolder.nestedChildren.back().resize(1);
@@ -195,8 +195,8 @@ std::unique_ptr<ArrowSchema> ArrowConverter::toArrowSchema(
     return outSchema;
 }
 
-void ArrowConverter::toArrowArray(
-    main::QueryResult& queryResult, ArrowArray* outArray, std::int64_t chunkSize) {
+void ArrowConverter::toArrowArray(main::QueryResult& queryResult, ArrowArray* outArray,
+    std::int64_t chunkSize) {
     auto typesInfo = queryResult.getColumnTypesInfo();
     auto rowBatch = make_unique<ArrowRowBatch>(std::move(typesInfo), chunkSize);
     *outArray = rowBatch->append(queryResult, chunkSize);

@@ -1,0 +1,19 @@
+-GROUP W3Sparql
+-DATASET TTL EMPTY
+
+--
+
+-CASE SqarqlMerge
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT MERGE (a:R_r {iri: "a"})-[b{iri: "b"}]->(c:R_r {iri: "c"});
+---- ok
+-STATEMENT MATCH (s)-[p]->(o) RETURN s.iri, p.iri, o.iri;
+---- 1
+a|b|c
+-STATEMENT MERGE (a:R_r {iri: "a"})-[b{iri: "b"}]->(c:R_r {iri: "c"});
+---- ok
+-STATEMENT MATCH (s)-[p]->(o) RETURN s.iri, p.iri, o.iri;
+---- 1
+a|b|c

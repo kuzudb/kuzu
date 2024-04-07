@@ -28,8 +28,8 @@ public:
     uint64_t fixedWidthStringLength;
 
 public:
-    void dictionary(
-        const std::shared_ptr<ResizeableBuffer>& dictionary_data, uint64_t numEntries) override;
+    void dictionary(const std::shared_ptr<ResizeableBuffer>& dictionary_data,
+        uint64_t numEntries) override;
     static uint32_t verifyString(const char* strData, uint32_t strLen, const bool isVarchar);
     uint32_t verifyString(const char* strData, uint32_t strLen);
 };

@@ -14,7 +14,7 @@ std::unique_ptr<Value> ExpressionEvaluatorUtils::evaluateConstantExpression(
     auto evaluator = ExpressionMapper::getConstantEvaluator(expression);
     auto emptyResultSet = std::make_unique<ResultSet>(0);
     evaluator->init(*emptyResultSet, memoryManager);
-    evaluator->evaluate();
+    evaluator->evaluate(nullptr);
     auto selVector = evaluator->resultVector->state->selVector.get();
     KU_ASSERT(selVector->selectedSize == 1);
     return evaluator->resultVector->getAsValue(selVector->selectedPositions[0]);

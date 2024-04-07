@@ -6,10 +6,6 @@
 #include "storage/wal/wal.h"
 #include "storage/wal/wal_record.h"
 
-namespace spdlog {
-class logger;
-}
-
 namespace kuzu {
 namespace storage {
 
@@ -27,22 +23,23 @@ public:
 
 private:
     void init();
-    void replayWALRecord(WALRecord& walRecord);
-    void replayPageUpdateOrInsertRecord(const WALRecord& walRecord);
+    void replayWALRecord(WALRecord& walRecord,
+        std::unordered_map<DBFileID, std::unique_ptr<common::FileInfo>>& fileCache);
+    void replayPageUpdateOrInsertRecord(const WALRecord& walRecord,
+        std::unordered_map<DBFileID, std::unique_ptr<common::FileInfo>>& fileCache);
     void replayTableStatisticsRecord(const WALRecord& walRecord);
     void replayCatalogRecord();
     void replayCreateTableRecord(const WALRecord& walRecord);
     void replayRdfGraphRecord(const WALRecord& walRecord);
-    void replayOverflowFileNextBytePosRecord(const WALRecord& walRecord);
     void replayCopyTableRecord(const WALRecord& walRecord);
     void replayDropTableRecord(const WALRecord& walRecord);
     void replayDropPropertyRecord(const WALRecord& walRecord);
     void replayAddPropertyRecord(const WALRecord& walRecord);
 
-    void checkpointOrRollbackVersionedFileHandleAndBufferManager(
-        const WALRecord& walRecord, const DBFileID& dbFileID);
-    void truncateFileIfInsertion(
-        BMFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
+    void checkpointOrRollbackVersionedFileHandleAndBufferManager(const WALRecord& walRecord,
+        const DBFileID& dbFileID);
+    void truncateFileIfInsertion(BMFileHandle* fileHandle,
+        const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
     BMFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(const DBFileID& dbFileID);
     std::unique_ptr<catalog::Catalog> getCatalogForRecovery(common::FileVersionType dbFileType);
 

@@ -16,8 +16,8 @@ TEST(NullMaskTests, TestRangeSingleEntry) {
 }
 
 TEST(NullMaskTests, TestRangeMultipleEntries) {
-    std::vector<uint64_t> data{
-        NullMask::ALL_NULL_ENTRY, NullMask::ALL_NULL_ENTRY, NullMask::ALL_NULL_ENTRY};
+    std::vector<uint64_t> data{NullMask::ALL_NULL_ENTRY, NullMask::ALL_NULL_ENTRY,
+        NullMask::ALL_NULL_ENTRY};
     NullMask::setNullRange(data.data(), 5, 150, false);
     ASSERT_EQ(data[0], 0b11111);
     ASSERT_EQ(data[1], 0);
@@ -85,10 +85,10 @@ TEST(NullMaskTests, CopyNullMaskReturnValue) {
     std::vector<uint64_t> source(10, ~0ull);
     std::vector<uint64_t> dest(10);
     ASSERT_EQ(NullMask::copyNullMask(source.data(), 0, dest.data(), 0, 64, false /*invert*/), true);
-    ASSERT_EQ(
-        NullMask::copyNullMask(emptySource.data(), 0, dest.data(), 0, 64, false /*invert*/), false);
+    ASSERT_EQ(NullMask::copyNullMask(emptySource.data(), 0, dest.data(), 0, 64, false /*invert*/),
+        false);
 
     ASSERT_EQ(NullMask::copyNullMask(source.data(), 0, dest.data(), 0, 64, true /*invert*/), false);
-    ASSERT_EQ(
-        NullMask::copyNullMask(emptySource.data(), 0, dest.data(), 0, 64, true /*invert*/), true);
+    ASSERT_EQ(NullMask::copyNullMask(emptySource.data(), 0, dest.data(), 0, 64, true /*invert*/),
+        true);
 }

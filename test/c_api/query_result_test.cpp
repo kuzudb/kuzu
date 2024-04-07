@@ -125,8 +125,8 @@ TEST_F(CApiQueryResultTest, GetQuerySummary) {
 
 TEST_F(CApiQueryResultTest, GetNext) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
+    auto result = kuzu_connection_query(connection,
+        "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
 
     ASSERT_TRUE(kuzu_query_result_has_next(result));
@@ -149,31 +149,10 @@ TEST_F(CApiQueryResultTest, GetNext) {
     kuzu_query_result_destroy(result);
 }
 
-TEST_F(CApiQueryResultTest, WriteToCSV) {
-    std::string newline = "\n";
-    std::string basicOutput =
-        R"(Carol,1,5.000000,1940-06-22,1911-08-20 02:32:21,CsWork)" + newline +
-        R"(Dan,2,4.800000,1950-07-23,2031-11-30 12:25:30,DEsWork)" + newline +
-        R"(Elizabeth,1,4.700000,1980-10-26,1976-12-23 11:21:42,DEsWork)" + newline;
-    auto query = "MATCH (a:person)-[:workAt]->(o:organisation) RETURN a.fName, a.gender,"
-                 "a.eyeSight, a.birthdate, a.registerTime, o.name";
-    auto connection = getConnection();
-    auto result = kuzu_connection_query(connection, query);
-    ASSERT_TRUE(kuzu_query_result_is_success(result));
-    auto outputPath = databasePath + "/output_CSV_CAPI.csv";
-    kuzu_query_result_write_to_csv(result, outputPath.c_str(), ',', '"', '\n');
-    std::ifstream f(outputPath);
-    std::ostringstream ss;
-    ss << f.rdbuf();
-    std::string fileString = ss.str();
-    ASSERT_STREQ(fileString.c_str(), basicOutput.c_str());
-    kuzu_query_result_destroy(result);
-}
-
 TEST_F(CApiQueryResultTest, ResetIterator) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
+    auto result = kuzu_connection_query(connection,
+        "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
 
     ASSERT_TRUE(kuzu_query_result_has_next(result));
@@ -194,6 +173,33 @@ TEST_F(CApiQueryResultTest, ResetIterator) {
     ASSERT_EQ(flatTupleCpp->getValue(0)->getValue<std::string>(), "Alice");
     ASSERT_EQ(flatTupleCpp->getValue(1)->getValue<int64_t>(), 35);
     kuzu_flat_tuple_destroy(row);
+
+    kuzu_query_result_destroy(result);
+}
+
+TEST_F(CApiQueryResultTest, MultipleQuery) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(connection, "return 1; return 2; return 3;");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+
+    auto str = kuzu_query_result_to_string(result);
+    ASSERT_EQ(std::string(str), "1\n1\n");
+    kuzu_destroy_string(str);
+
+    ASSERT_TRUE(kuzu_query_result_has_next_query_result(result));
+    auto next_query_result = kuzu_query_result_get_next_query_result(result);
+    ASSERT_TRUE(kuzu_query_result_is_success(next_query_result));
+    str = kuzu_query_result_to_string(next_query_result);
+    ASSERT_EQ(std::string(str), "2\n2\n");
+    kuzu_destroy_string(str);
+    kuzu_query_result_destroy(next_query_result);
+
+    next_query_result = kuzu_query_result_get_next_query_result(result);
+    ASSERT_TRUE(kuzu_query_result_is_success(next_query_result));
+    str = kuzu_query_result_to_string(next_query_result);
+    ASSERT_EQ(std::string(str), "3\n3\n");
+    kuzu_destroy_string(str);
+    kuzu_query_result_destroy(next_query_result);
 
     kuzu_query_result_destroy(result);
 }

@@ -86,11 +86,14 @@ ${STRING_EXCEEDS_PAGE}
 
 -CASE SetVeryLongListErrorsTest
 -DEFINE STRING_EXCEEDS_MEMORY_MANAGER_LIMIT ARANGE 0 50000
+-DEFINE STRING_TRUNCATED ARANGE 0 262144
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName="${STRING_EXCEEDS_MEMORY_MANAGER_LIMIT}"
----- error
-Runtime exception: The maximum length of strings is 262144 bytes. The input string's length was 288897.
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName;
+---- hash
+1 1c6f2aee653d75dfc2361ff73d5807f7
 
 -CASE SetNodeIntervalPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.lastJobDuration=interval('1 years 1 days')

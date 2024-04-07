@@ -1,0 +1,62 @@
+-GROUP Rdf
+-DATASET TTL EMPTY
+
+--
+
+-CASE InvalidSyntax
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_syntax.ttl" (in_memory=1);
+---- error
+Binder exception: The type of option IN_MEMORY must be a boolean.
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_syntax.ttl" (x=1);
+---- error
+Binder exception: Unrecognized parsing option: X.
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_syntax.ttl" (in_memory=true);
+---- ok
+-STATEMENT MATCH (a:R_r) RETURN a.iri;
+---- 9
+p/a
+p/b
+p/c
+p/x
+p/y
+p/z
+p/冯
+p/洋
+p/西
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri;
+---- 3
+p/a|p/b|p/c
+p/x|p/y|p/z
+p/冯|p/西|p/洋
+
+-CASE InvalidPrefix
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_prefix.ttl" (in_memory=true);
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri;
+---- 0
+-STATEMENT CREATE RDFGraph R2;
+---- ok
+-STATEMENT COPY R2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/invalid_prefix.ttl" (in_memory=false);
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri;
+---- 0
+
+
+-CASE InfiniteLoop
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/infinite_loop.ttl" (in_memory=true);
+---- ok
+
+-CASE StrictMode
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/malformed/infinite_loop.ttl" (strict=true);
+---- error
+Runtime exception: Invalid syntax while reading file at line 10120 and col 149

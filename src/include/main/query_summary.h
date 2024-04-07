@@ -18,7 +18,7 @@ struct PreparedSummary {
  * @brief QuerySummary stores the execution time, plan, compiling time and query options of a query.
  */
 class QuerySummary {
-    friend class Connection;
+    friend class ClientContext;
     friend class benchmark::Benchmark;
 
 public:

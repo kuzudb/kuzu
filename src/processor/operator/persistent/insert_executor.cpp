@@ -1,7 +1,6 @@
 #include "processor/operator/persistent/insert_executor.h"
 
 #include "storage/stats/rels_store_statistics.h"
-#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -28,7 +27,7 @@ void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
         }
     }
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->init(*resultSet, context->memoryManager);
+        evaluator->init(*resultSet, context->clientContext->getMemoryManager());
         columnDataVectors.push_back(evaluator->resultVector.get());
     }
 }
@@ -46,22 +45,44 @@ static void writeColumnVector(common::ValueVector* columnVector, common::ValueVe
     }
 }
 
-void NodeInsertExecutor::insert(Transaction* tx) {
+void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->evaluate();
+        evaluator->evaluate(context->clientContext);
     }
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
+    if (checkConfict(tx)) {
+        return;
+    }
+    // TODO: Move pkVector pos to info.
+    auto nodeInsertState = std::make_unique<storage::NodeTableInsertState>(*nodeIDVector,
+        *columnDataVectors[table->getPKColumnID()], columnDataVectors);
+    table->insert(tx, *nodeInsertState);
+    writeResult();
+}
+
+void NodeInsertExecutor::evaluateResult(ExecutionContext* context) {
+    for (auto& evaluator : columnDataEvaluators) {
+        evaluator->evaluate(context->clientContext);
+    }
+    nodeIDVector->setNull(nodeIDVector->state->selVector->selectedPositions[0], false);
+    writeResult();
+}
+
+bool NodeInsertExecutor::checkConfict(Transaction* transaction) {
     if (conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
-        auto off = table->validateUniquenessConstraint(tx, columnDataVectors);
+        auto off = table->validateUniquenessConstraint(transaction, columnDataVectors);
         if (off != INVALID_OFFSET) {
             // Conflict. Skip insertion.
             auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
             nodeIDVector->setNull(nodeIDPos, false);
             nodeIDVector->setValue<nodeID_t>(nodeIDPos, {off, table->getTableID()});
-            return;
+            return true;
         }
     }
-    auto maxNodeOffset = table->insert(tx, nodeIDVector, columnDataVectors);
+    return false;
+}
+
+void NodeInsertExecutor::writeResult() {
     for (auto i = 0u; i < columnVectors.size(); ++i) {
         auto columnVector = columnVectors[i];
         auto dataVector = columnDataVectors[i];
@@ -81,13 +102,6 @@ void NodeInsertExecutor::insert(Transaction* tx) {
         } else {
             writeColumnVector(columnVector, dataVector);
         }
-    }
-    auto numNodeGroups = storage::StorageUtils::getNodeGroupIdx(maxNodeOffset) + 1;
-    for (auto relTable : bwdRelTables) {
-        relTable->resizeColumns(tx, RelDataDirection::FWD, numNodeGroups);
-    }
-    for (auto relTable : bwdRelTables) {
-        relTable->resizeColumns(tx, RelDataDirection::BWD, numNodeGroups);
     }
 }
 
@@ -111,12 +125,12 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
         }
     }
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->init(*resultSet, context->memoryManager);
+        evaluator->init(*resultSet, context->clientContext->getMemoryManager());
         columnDataVectors.push_back(evaluator->resultVector.get());
     }
 }
 
-void RelInsertExecutor::insert(transaction::Transaction* tx) {
+void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* context) {
     auto srcNodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
     auto dstNodeIDPos = dstNodeIDVector->state->selVector->selectedPositions[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos)) {
@@ -132,12 +146,18 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
         return;
     }
     auto offset = relsStatistics->getNextRelOffset(tx, table->getTableID());
-    columnDataVectors[0]->setValue(0, offset); // internal ID property
+    columnDataVectors[0]->setValue<internalID_t>(0, internalID_t{offset, table->getTableID()});
     columnDataVectors[0]->setNull(0, false);
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
-        columnDataEvaluators[i]->evaluate();
+        columnDataEvaluators[i]->evaluate(context->clientContext);
     }
-    table->insert(tx, srcNodeIDVector, dstNodeIDVector, columnDataVectors);
+    auto insertState = std::make_unique<storage::RelTableInsertState>(*srcNodeIDVector,
+        *dstNodeIDVector, columnDataVectors);
+    table->insert(tx, *insertState);
+    writeResult();
+}
+
+void RelInsertExecutor::writeResult() {
     for (auto i = 0u; i < columnVectors.size(); ++i) {
         auto columnVector = columnVectors[i];
         auto dataVector = columnDataVectors[i];

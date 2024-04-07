@@ -6,7 +6,7 @@ namespace kuzu {
 namespace processor {
 
 void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    expressionEvaluator->init(*resultSet, context->memoryManager);
+    expressionEvaluator->init(*resultSet, context->clientContext->getMemoryManager());
     KU_ASSERT(dataChunkToSelectPos != INVALID_DATA_CHUNK_POS);
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
 }
@@ -19,19 +19,19 @@ bool Filter::getNextTuplesInternal(ExecutionContext* context) {
             return false;
         }
         saveSelVector(dataChunkToSelect->state->selVector);
-        hasAtLeastOneSelectedValue =
-            expressionEvaluator->select(*dataChunkToSelect->state->selVector);
+        hasAtLeastOneSelectedValue = expressionEvaluator->select(
+            *dataChunkToSelect->state->selVector, context->clientContext);
         if (!dataChunkToSelect->state->isFlat() &&
             dataChunkToSelect->state->selVector->isUnfiltered()) {
-            dataChunkToSelect->state->selVector->resetSelectorToValuePosBuffer();
+            dataChunkToSelect->state->selVector->setToFiltered();
         }
     } while (!hasAtLeastOneSelectedValue);
     metrics->numOutputTuple.increase(dataChunkToSelect->state->selVector->selectedSize);
     return true;
 }
 
-void NodeLabelFiler::initLocalStateInternal(
-    ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
+void NodeLabelFiler::initLocalStateInternal(ResultSet* /*resultSet_*/,
+    ExecutionContext* /*context*/) {
     nodeIDVector = resultSet->getValueVector(info->nodeVectorPos).get();
 }
 
@@ -44,14 +44,14 @@ bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
         }
         saveSelVector(nodeIDVector->state->selVector);
         numSelectValue = 0;
-        auto buffer = nodeIDVector->state->selVector->getSelectedPositionsBuffer();
+        auto buffer = nodeIDVector->state->selVector->getMultableBuffer();
         for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             buffer[numSelectValue] = pos;
             numSelectValue +=
                 info->nodeLabelSet.contains(nodeIDVector->getValue<nodeID_t>(pos).tableID);
         }
-        nodeIDVector->state->selVector->resetSelectorToValuePosBuffer();
+        nodeIDVector->state->selVector->setToFiltered();
     } while (numSelectValue == 0);
     nodeIDVector->state->selVector->selectedSize = numSelectValue;
     metrics->numOutputTuple.increase(nodeIDVector->state->selVector->selectedSize);

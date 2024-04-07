@@ -10,44 +10,77 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-void RdfUtils::addRdfLiteral(common::ValueVector* vector, uint32_t pos, const char* buf,
-    uint32_t length, const char* typeBuf, uint32_t typeLength) {
-    bool resolveAsString = true;
-    auto type = std::string_view(typeBuf, typeLength);
+common::LogicalTypeID RdfUtils::getLogicalTypeID(const std::string& type) {
     if (type.starts_with(XSD)) {
         if (type.ends_with(XSD_integer)) {
-            // XSD:integer
-            int64_t result;
-            if (function::trySimpleIntegerCast<int64_t>(buf, length, result)) {
-                RdfVariantVector::add(vector, pos, result);
-                resolveAsString = false;
-            }
+            return LogicalTypeID::INT64;
         } else if (type.ends_with(XSD_double) || type.ends_with(XSD_decimal)) {
-            // XSD:double or XSD:decimal
-            double result;
-            if (function::tryDoubleCast(buf, length, result)) {
-                RdfVariantVector::add(vector, pos, result);
-                resolveAsString = false;
-            }
+            return LogicalTypeID::DOUBLE;
         } else if (type.ends_with(XSD_boolean)) {
-            // XSD:bool
-            bool result;
-            if (function::tryCastToBool(buf, length, result)) {
-                RdfVariantVector::add(vector, pos, result);
-                resolveAsString = false;
-            }
+            return LogicalTypeID::BOOL;
         } else if (type.ends_with(XSD_date)) {
-            // XSD:date
-            date_t result;
-            uint64_t dummy = 0;
-            if (Date::tryConvertDate(buf, length, dummy, result)) {
-                RdfVariantVector::add(vector, pos, result);
-                resolveAsString = false;
-            }
+            return LogicalTypeID::DATE;
+        } else if (type.ends_with(XSD_nonNegativeInteger) || type.ends_with(XSD_positiveInteger)) {
+            return LogicalTypeID::UINT64;
+        } else if (type.ends_with(XSD_float)) {
+            return LogicalTypeID::FLOAT;
         }
     }
+    return LogicalTypeID::STRING;
+}
+
+void RdfUtils::addRdfLiteral(ValueVector* vector, uint32_t pos, const std::string& str,
+    LogicalTypeID targetTypeID) {
+    auto resolveAsString = true;
+    switch (targetTypeID) {
+    case LogicalTypeID::INT64: {
+        int64_t result;
+        if (function::trySimpleIntegerCast(str.data(), str.size(), result)) {
+            RdfVariantVector::add(vector, pos, result);
+            resolveAsString = false;
+        }
+    } break;
+    case LogicalTypeID::UINT64: {
+        uint64_t result;
+        if (function::trySimpleIntegerCast(str.data(), str.size(), result)) {
+            RdfVariantVector::add(vector, pos, result);
+            resolveAsString = false;
+        }
+    } break;
+    case LogicalTypeID::DOUBLE: {
+        double result;
+        if (function::tryDoubleCast(str.data(), str.size(), result)) {
+            RdfVariantVector::add(vector, pos, result);
+            resolveAsString = false;
+        }
+    } break;
+    case LogicalTypeID::FLOAT: {
+        float result;
+        if (function::tryDoubleCast(str.data(), str.size(), result)) {
+            RdfVariantVector::add(vector, pos, result);
+            resolveAsString = false;
+        }
+    } break;
+    case LogicalTypeID::BOOL: {
+        bool result;
+        if (function::tryCastToBool(str.data(), str.size(), result)) {
+            RdfVariantVector::add(vector, pos, result);
+            resolveAsString = false;
+        }
+    } break;
+    case LogicalTypeID::DATE: {
+        date_t result;
+        uint64_t dummy = 0;
+        if (Date::tryConvertDate(str.data(), str.size(), dummy, result)) {
+            RdfVariantVector::add(vector, pos, result);
+            resolveAsString = false;
+        }
+    } break;
+    default:
+        break;
+    }
     if (resolveAsString) {
-        RdfVariantVector::addString(vector, pos, buf, length);
+        RdfVariantVector::addString(vector, pos, str.data(), str.size());
     }
 }
 

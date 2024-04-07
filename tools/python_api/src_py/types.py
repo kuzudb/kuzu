@@ -3,6 +3,7 @@ from enum import Enum
 
 class Type(Enum):
     """The type of a value in the database."""
+
     ANY = "ANY"
     NODE = "NODE"
     REL = "REL"
@@ -27,12 +28,12 @@ class Type(Enum):
     TIMESTAMP_MS = "TIMESTAMP_MS"
     TIMESTAMP_SEC = "TIMESTAMP_SEC"
     INTERVAL = "INTERVAL"
-    FIXED_LIST = "FIXED_LIST"
     INTERNAL_ID = "INTERNAL_ID"
     STRING = "STRING"
     BLOB = "BLOB"
     UUID = "UUID"
-    VAR_LIST = "VAR_LIST"
+    LIST = "LIST"
+    ARRAY = "ARRAY"
     STRUCT = "STRUCT"
     MAP = "MAP"
     UNION = "UNION"

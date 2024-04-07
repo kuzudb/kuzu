@@ -74,14 +74,14 @@ inline bool tryCastWithOverflowCheck(float value, int16_t& result) {
 
 template<>
 inline bool tryCastWithOverflowCheck(float value, int32_t& result) {
-    return tryCastWithOverflowCheckFloat<float, int32_t>(
-        value, result, -2147483648.0f, 2147483648.0f);
+    return tryCastWithOverflowCheckFloat<float, int32_t>(value, result, -2147483648.0f,
+        2147483648.0f);
 }
 
 template<>
 inline bool tryCastWithOverflowCheck(float value, int64_t& result) {
-    return tryCastWithOverflowCheckFloat<float, int64_t>(
-        value, result, -9223372036854775808.0f, 9223372036854775808.0f);
+    return tryCastWithOverflowCheckFloat<float, int64_t>(value, result, -9223372036854775808.0f,
+        9223372036854775808.0f);
 }
 
 template<>
@@ -101,8 +101,8 @@ inline bool tryCastWithOverflowCheck(float value, uint32_t& result) {
 
 template<>
 inline bool tryCastWithOverflowCheck(float value, uint64_t& result) {
-    return tryCastWithOverflowCheckFloat<float, uint64_t>(
-        value, result, 0.0f, 18446744073709551616.0f);
+    return tryCastWithOverflowCheckFloat<float, uint64_t>(value, result, 0.0f,
+        18446744073709551616.0f);
 }
 
 template<>
@@ -117,14 +117,14 @@ inline bool tryCastWithOverflowCheck(double value, int16_t& result) {
 
 template<>
 inline bool tryCastWithOverflowCheck(double value, int32_t& result) {
-    return tryCastWithOverflowCheckFloat<double, int32_t>(
-        value, result, -2147483648.0, 2147483648.0);
+    return tryCastWithOverflowCheckFloat<double, int32_t>(value, result, -2147483648.0,
+        2147483648.0);
 }
 
 template<>
 inline bool tryCastWithOverflowCheck(double value, int64_t& result) {
-    return tryCastWithOverflowCheckFloat<double, int64_t>(
-        value, result, -9223372036854775808.0, 9223372036854775808.0);
+    return tryCastWithOverflowCheckFloat<double, int64_t>(value, result, -9223372036854775808.0,
+        9223372036854775808.0);
 }
 
 template<>
@@ -144,8 +144,8 @@ inline bool tryCastWithOverflowCheck(double value, uint32_t& result) {
 
 template<>
 inline bool tryCastWithOverflowCheck(double value, uint64_t& result) {
-    return tryCastWithOverflowCheckFloat<double, uint64_t>(
-        value, result, 0.0, 18446744073709551615.0);
+    return tryCastWithOverflowCheckFloat<double, uint64_t>(value, result, 0.0,
+        18446744073709551615.0);
 }
 
 template<>

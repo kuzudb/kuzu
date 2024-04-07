@@ -105,6 +105,12 @@ protected:
         return op;
     }
 
+    virtual void visitMarkAccumulate(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitMarkAccumulateReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
     virtual void visitDistinct(planner::LogicalOperator* /*op*/) {}
     virtual std::shared_ptr<planner::LogicalOperator> visitDistinctReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
@@ -167,6 +173,12 @@ protected:
 
     virtual void visitCopyTo(planner::LogicalOperator* /*op*/) {}
     virtual std::shared_ptr<planner::LogicalOperator> visitCopyToReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
+    virtual void visitCopyFrom(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitCopyFromReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }

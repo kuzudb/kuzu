@@ -1,0 +1,39 @@
+-GROUP S3
+-DATASET CSV ldbc-sf01
+
+--
+
+-CASE UploadToS3
+-SKIP
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL s3_access_key_id='${AWS_S3_ACCESS_KEY_ID}'
+---- ok
+-STATEMENT CALL s3_secret_access_key='${AWS_S3_SECRET_ACCESS_KEY}'
+---- ok
+-STATEMENT CALL s3_url_style='vhost'
+---- ok
+-STATEMENT CALL s3_uploader_max_num_parts_per_file=10000
+---- ok
+-STATEMENT CALL s3_uploader_max_filesize=800000000000
+---- ok
+-STATEMENT CALL s3_uploader_threads_limit=10
+---- ok
+-LOG singlePartCSVUpload
+-STATEMENT copy (match (f:Forum) return f) to 's3://kuzu-dataset-us/${RUN_ID}/forum.csv' (header=true)
+---- ok
+-STATEMENT load from 's3://kuzu-dataset-us/${RUN_ID}/forum.csv'(header=true) return count(*)
+---- 1
+13750
+-LOG singlePartParquetUpload
+-STATEMENT copy (match (p:Place) return p.*) to 's3://kuzu-dataset-us/${RUN_ID}/place.parquet'
+---- ok
+-STATEMENT load from 's3://kuzu-dataset-us/${RUN_ID}/place.parquet' return count(*)
+---- 1
+1460
+-LOG multiPartsUpload
+-STATEMENT copy (match (c:Comment) return c) to 's3://kuzu-dataset-us/${RUN_ID}/comment.csv' (header=true)
+---- ok
+-STATEMENT load from 's3://kuzu-dataset-us/${RUN_ID}/comment.csv'(header=true) return count(*)
+---- 1
+151043

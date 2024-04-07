@@ -30,10 +30,10 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/union-no-conversion.csv" (HEADER=TRUE) RETURN *
 ---- error
-Conversion exception: Could not convert to union type UNION(u:UINT8, s:INT8): a.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/union-no-conversion.csv on line 2: Conversion exception: Could not convert to union type UNION(u:UINT8, s:INT8): a.
 
 # Test that errors in serial mode don't hang the database.
 # File is large so the window for the race is large enough.
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/large-conversion-failure.csv" (HEADER=TRUE, PARALLEL=FALSE) RETURN *
 ---- error
-Conversion exception: Cast failed. a is not in INT64 range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/large-conversion-failure.csv on line 1002: Conversion exception: Cast failed. Could not convert "a" to INT64.

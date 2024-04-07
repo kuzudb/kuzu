@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-linux-java-x86_64:
-    runs-on: kuzu-self-hosted-linux-building
+    runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
     steps:
       - uses: actions/checkout@v3
 

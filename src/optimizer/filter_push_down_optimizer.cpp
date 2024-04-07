@@ -86,8 +86,8 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     if (joinConditions.empty()) {
         return finishPushDown(op);
     }
-    auto hashJoin = std::make_shared<LogicalHashJoin>(
-        joinConditions, JoinType::INNER, op->getChild(0), op->getChild(1));
+    auto hashJoin = std::make_shared<LogicalHashJoin>(joinConditions, JoinType::INNER,
+        op->getChild(0), op->getChild(1));
     hashJoin->setSIP(planner::SidewaysInfoPassing::PROHIBIT);
     hashJoin->computeFlatSchema();
     return hashJoin;
@@ -111,8 +111,8 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
             std::vector<IndexLookupInfo> infos;
             KU_ASSERT(tableIDs.size() == 1);
             infos.push_back(IndexLookupInfo(tableIDs[0], nodeID, rhs, rhs->getDataType()));
-            auto indexScan = std::make_shared<LogicalIndexScanNode>(
-                std::move(infos), std::move(expressionsScan));
+            auto indexScan = std::make_shared<LogicalIndexScanNode>(std::move(infos),
+                std::move(expressionsScan));
             indexScan->computeFlatSchema();
             op->setChild(0, std::move(indexScan));
         } else {
@@ -182,8 +182,8 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::appendScanNod
     if (properties.empty()) {
         return child;
     }
-    auto scanNodeProperty = std::make_shared<LogicalScanNodeProperty>(
-        std::move(nodeID), std::move(nodeTableIDs), std::move(properties), std::move(child));
+    auto scanNodeProperty = std::make_shared<LogicalScanNodeProperty>(std::move(nodeID),
+        std::move(nodeTableIDs), std::move(properties), std::move(child));
     scanNodeProperty->computeFlatSchema();
     return scanNodeProperty;
 }

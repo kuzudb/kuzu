@@ -8,8 +8,8 @@ namespace binder {
 
 class BoundMatchClause : public BoundReadingClause {
 public:
-    BoundMatchClause(
-        QueryGraphCollection queryGraphCollection, common::MatchClauseType matchClauseType)
+    BoundMatchClause(QueryGraphCollection queryGraphCollection,
+        common::MatchClauseType matchClauseType)
         : BoundReadingClause{common::ClauseType::MATCH},
           queryGraphCollection{std::move(queryGraphCollection)}, matchClauseType{matchClauseType} {}
 

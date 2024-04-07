@@ -12,8 +12,8 @@ uint64_t CostModel::computeExtendCost(const LogicalPlan& childPlan) {
     return childPlan.estCardinality;
 }
 
-uint64_t CostModel::computeRecursiveExtendCost(
-    uint8_t upperBound, double extensionRate, const LogicalPlan& childPlan) {
+uint64_t CostModel::computeRecursiveExtendCost(uint8_t upperBound, double extensionRate,
+    const LogicalPlan& childPlan) {
     return PlannerKnobs::BUILD_PENALTY * childPlan.estCardinality * (uint64_t)extensionRate *
            upperBound;
 }

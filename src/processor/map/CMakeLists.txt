@@ -7,6 +7,8 @@ add_library(kuzu_processor_mapper
         map_accumulate.cpp
         map_aggregate.cpp
         map_acc_hash_join.cpp
+        map_attach_database.cpp
+        map_detach_database.cpp
         map_standalone_call.cpp
         map_in_query_call.cpp
         map_comment_on.cpp
@@ -24,7 +26,6 @@ add_library(kuzu_processor_mapper
         map_dummy_scan.cpp
         map_empty_result.cpp
         map_extend.cpp
-        map_fill_table_id.cpp
         map_filter.cpp
         map_flatten.cpp
         map_hash_join.cpp
@@ -32,6 +33,7 @@ add_library(kuzu_processor_mapper
         map_intersect.cpp
         map_label_filter.cpp
         map_limit.cpp
+        map_mark_accumulate.cpp
         map_merge.cpp
         map_multiplicity_reducer.cpp
         map_order_by.cpp
@@ -47,6 +49,7 @@ add_library(kuzu_processor_mapper
         map_transaction.cpp
         map_union.cpp
         map_unwind.cpp
+        map_port_db.cpp
         plan_mapper.cpp)
 
 set(ALL_OBJECT_FILES

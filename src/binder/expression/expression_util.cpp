@@ -5,8 +5,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-bool ExpressionUtil::isExpressionsWithDataType(
-    const expression_vector& expressions, common::LogicalTypeID dataTypeID) {
+bool ExpressionUtil::isExpressionsWithDataType(const expression_vector& expressions,
+    common::LogicalTypeID dataTypeID) {
     for (auto& expression : expressions) {
         if (expression->dataType.getLogicalTypeID() != dataTypeID) {
             return false;
@@ -15,8 +15,8 @@ bool ExpressionUtil::isExpressionsWithDataType(
     return true;
 }
 
-expression_vector ExpressionUtil::getExpressionsWithDataType(
-    const expression_vector& expressions, common::LogicalTypeID dataTypeID) {
+expression_vector ExpressionUtil::getExpressionsWithDataType(const expression_vector& expressions,
+    common::LogicalTypeID dataTypeID) {
     expression_vector result;
     for (auto& expression : expressions) {
         if (expression->dataType.getLogicalTypeID() == dataTypeID) {
@@ -61,8 +61,19 @@ std::string ExpressionUtil::toString(const expression_pair& expressionPair) {
     return expressionPair.first->toString() + "=" + expressionPair.second->toString();
 }
 
-expression_vector ExpressionUtil::excludeExpressions(
-    const expression_vector& expressions, const expression_vector& expressionsToExclude) {
+expression_vector ExpressionUtil::excludeExpression(const expression_vector& exprs,
+    const Expression& exprToExclude) {
+    expression_vector result;
+    for (auto& expr : exprs) {
+        if (*expr != exprToExclude) {
+            result.push_back(expr);
+        }
+    }
+    return result;
+}
+
+expression_vector ExpressionUtil::excludeExpressions(const expression_vector& expressions,
+    const expression_vector& expressionsToExclude) {
     expression_set excludeSet;
     for (auto& expression : expressionsToExclude) {
         excludeSet.insert(expression);
@@ -76,12 +87,12 @@ expression_vector ExpressionUtil::excludeExpressions(
     return result;
 }
 
-std::vector<std::unique_ptr<common::LogicalType>> ExpressionUtil::getDataTypes(
+logical_type_vec_t ExpressionUtil::getDataTypes(
     const kuzu::binder::expression_vector& expressions) {
-    std::vector<std::unique_ptr<common::LogicalType>> result;
+    std::vector<LogicalType> result;
     result.reserve(expressions.size());
     for (auto& expression : expressions) {
-        result.push_back(expression->getDataType().copy());
+        result.push_back(*expression->getDataType().copy());
     }
     return result;
 }

@@ -54,14 +54,23 @@ public class KuzuNative {
             }
             Files.copy(lib_res.openStream(), lib_file, StandardCopyOption.REPLACE_EXISTING);
             new File(lib_file.toString()).deleteOnExit();
-            System.load(lib_file.toAbsolutePath().toString());
+            String lib_path = lib_file.toAbsolutePath().toString();
+            System.load(lib_path);
+            if(os_name.equals("linux")) {
+                kuzu_native_reload_library(lib_path);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    // Hack: Reload the native library again in JNI bindings to work around the 
+    // extension loading issue on Linux as System.load() does not set 
+    // `RTLD_GLOBAL` flag and there is no way to set it in Java.
+    protected static native void kuzu_native_reload_library(String lib_path);
+
     // Database
-    protected static native long kuzu_database_init(String database_path, long buffer_pool_size, boolean enable_compression, boolean read_only);
+    protected static native long kuzu_database_init(String database_path, long buffer_pool_size, boolean enable_compression, boolean read_only, long max_db_size);
 
     protected static native void kuzu_database_destroy(KuzuDatabase db);
 
@@ -71,14 +80,6 @@ public class KuzuNative {
     protected static native long kuzu_connection_init(KuzuDatabase database);
 
     protected static native void kuzu_connection_destroy(KuzuConnection connection);
-
-    protected static native void kuzu_connection_begin_read_only_transaction(KuzuConnection connection);
-
-    protected static native void kuzu_connection_begin_write_transaction(KuzuConnection connection);
-
-    protected static native void kuzu_connection_commit(KuzuConnection connection);
-
-    protected static native void kuzu_connection_rollback(KuzuConnection connection);
 
     protected static native void kuzu_connection_set_max_num_thread_for_exec(
             KuzuConnection connection, long num_threads);
@@ -133,9 +134,6 @@ public class KuzuNative {
 
     protected static native String kuzu_query_result_to_string(KuzuQueryResult query_result);
 
-    protected static native void kuzu_query_result_write_to_csv(KuzuQueryResult query_result,
-                                                                String file_path, char delimiter, char escape_char, char new_line);
-
     protected static native void kuzu_query_result_reset_iterator(KuzuQueryResult query_result);
 
     // FlatTuple
@@ -147,7 +145,7 @@ public class KuzuNative {
 
     // DataType
     protected static native long kuzu_data_type_create(
-            KuzuDataTypeID id, KuzuDataType child_type, long fixed_num_elements_in_list);
+            KuzuDataTypeID id, KuzuDataType child_type, long num_elements_in_array);
 
     protected static native KuzuDataType kuzu_data_type_clone(KuzuDataType data_type);
 
@@ -159,7 +157,7 @@ public class KuzuNative {
 
     protected static native KuzuDataType kuzu_data_type_get_child_type(KuzuDataType data_type);
 
-    protected static native long kuzu_data_type_get_fixed_num_elements_in_list(KuzuDataType data_type);
+    protected static native long kuzu_data_type_get_num_elements_in_array(KuzuDataType data_type);
 
     // Value
     protected static native KuzuValue kuzu_value_create_null();
@@ -219,4 +217,12 @@ public class KuzuNative {
     protected static native String kuzu_value_get_struct_field_name(KuzuValue struct_val, long index);
 
     protected static native long kuzu_value_get_struct_index(KuzuValue struct_val, String field_name);
+
+    protected static native KuzuDataType kuzu_rdf_variant_get_data_type(KuzuValue rdf_variant);
+
+    protected static native <T> T kuzu_rdf_variant_get_value(KuzuValue rdf_variant);
+
+    protected static native String kuzu_get_version();
+
+    protected static native long kuzu_get_storage_version();
 }

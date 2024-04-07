@@ -1,7 +1,10 @@
 #include "catalog/property.h"
 
+#include <sstream>
+
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/string_utils.h"
 
 using namespace kuzu::common;
 
@@ -24,6 +27,22 @@ Property Property::deserialize(Deserializer& deserializer) {
     deserializer.deserializeValue(propertyID);
     deserializer.deserializeValue(tableID);
     return Property(name, std::move(dataType), propertyID, tableID);
+}
+
+std::string Property::toCypher(const std::vector<kuzu::catalog::Property>& properties) {
+    std::stringstream ss;
+    for (auto& prop : properties) {
+        if (prop.getDataType()->getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
+            continue;
+        }
+        auto propStr = prop.getDataType()->toString();
+        StringUtils::replaceAll(propStr, ":", " ");
+        if (propStr.find("MAP") != std::string::npos) {
+            StringUtils::replaceAll(propStr, "  ", ",");
+        }
+        ss << prop.getName() << " " << propStr << ",";
+    }
+    return ss.str();
 }
 
 } // namespace catalog

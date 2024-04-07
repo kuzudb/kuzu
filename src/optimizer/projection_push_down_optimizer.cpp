@@ -1,6 +1,7 @@
 #include "optimizer/projection_push_down_optimizer.h"
 
 #include "binder/expression_visitor.h"
+#include "common/cast.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_accumulate.h"
@@ -10,6 +11,7 @@
 #include "planner/operator/logical_order_by.h"
 #include "planner/operator/logical_projection.h"
 #include "planner/operator/logical_unwind.h"
+#include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_delete.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "planner/operator/persistent/logical_merge.h"
@@ -64,7 +66,7 @@ void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) 
     if (accumulate->getAccumulateType() != AccumulateType::REGULAR) {
         return;
     }
-    auto expressionsBeforePruning = accumulate->getExpressionsToAccumulate();
+    auto expressionsBeforePruning = accumulate->getPayloads();
     auto expressionsAfterPruning = pruneExpressions(expressionsBeforePruning);
     if (expressionsBeforePruning.size() == expressionsAfterPruning.size()) {
         return;
@@ -154,7 +156,7 @@ void ProjectionPushDownOptimizer::visitOrderBy(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
     auto unwind = (LogicalUnwind*)op;
-    collectExpressionsInUse(unwind->getExpression());
+    collectExpressionsInUse(unwind->getInExpr());
 }
 
 void ProjectionPushDownOptimizer::visitInsert(planner::LogicalOperator* op) {
@@ -198,7 +200,10 @@ void ProjectionPushDownOptimizer::visitDeleteRel(planner::LogicalOperator* op) {
 // TODO(Xiyang): come back and refactor this after changing insert interface
 void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
     auto merge = (LogicalMerge*)op;
-    collectExpressionsInUse(merge->getMark());
+    if (merge->hasDistinctMark()) {
+        collectExpressionsInUse(merge->getDistinctMark());
+    }
+    collectExpressionsInUse(merge->getExistenceMark());
     for (auto& info : merge->getInsertNodeInfosRef()) {
         visitInsertInfo(&info);
     }
@@ -251,6 +256,14 @@ void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* 
     }
 }
 
+void ProjectionPushDownOptimizer::visitCopyFrom(planner::LogicalOperator* op) {
+    auto copyFrom = ku_dynamic_cast<LogicalOperator*, LogicalCopyFrom*>(op);
+    for (auto& expr : copyFrom->getInfo()->source->getColumns()) {
+        collectExpressionsInUse(expr);
+    }
+    collectExpressionsInUse(copyFrom->getInfo()->offset);
+}
+
 // See comments above this class for how to collect expressions in use.
 void ProjectionPushDownOptimizer::collectExpressionsInUse(
     std::shared_ptr<binder::Expression> expression) {
@@ -288,8 +301,8 @@ binder::expression_vector ProjectionPushDownOptimizer::pruneExpressions(
     return expression_vector{expressionsAfterPruning.begin(), expressionsAfterPruning.end()};
 }
 
-void ProjectionPushDownOptimizer::preAppendProjection(
-    planner::LogicalOperator* op, uint32_t childIdx, binder::expression_vector expressions) {
+void ProjectionPushDownOptimizer::preAppendProjection(planner::LogicalOperator* op,
+    uint32_t childIdx, binder::expression_vector expressions) {
     auto projection =
         std::make_shared<LogicalProjection>(std::move(expressions), op->getChild(childIdx));
     projection->computeFlatSchema();

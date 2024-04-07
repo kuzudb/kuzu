@@ -60,9 +60,6 @@ bool WALRecord::operator==(const WALRecord& rhs) const {
     case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
         return rdfGraphRecord == rhs.rdfGraphRecord;
     }
-    case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
-        return diskOverflowFileNextBytePosRecord == rhs.diskOverflowFileNextBytePosRecord;
-    }
     case WALRecordType::COPY_TABLE_RECORD: {
         return copyTableRecord == rhs.copyTableRecord;
     }
@@ -104,9 +101,6 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
         return "CREATE_RDF_GRAPH_RECORD";
     }
-    case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
-        return "OVERFLOW_FILE_NEXT_BYTE_POS_RECORD";
-    }
     case WALRecordType::COPY_TABLE_RECORD: {
         return "COPY_TABLE_RECORD";
     }
@@ -125,8 +119,8 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     }
 }
 
-WALRecord WALRecord::newPageInsertOrUpdateRecord(
-    DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert) {
+WALRecord WALRecord::newPageInsertOrUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+    uint64_t pageIdxInWAL, bool isInsert) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD;
     retVal.pageInsertOrUpdateRecord =
@@ -134,16 +128,16 @@ WALRecord WALRecord::newPageInsertOrUpdateRecord(
     return retVal;
 }
 
-WALRecord WALRecord::newPageUpdateRecord(
-    DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL) {
-    return WALRecord::newPageInsertOrUpdateRecord(
-        dbFileID, pageIdxInOriginalFile, pageIdxInWAL, false /* is update */);
+WALRecord WALRecord::newPageUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+    uint64_t pageIdxInWAL) {
+    return WALRecord::newPageInsertOrUpdateRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
+        false /* is update */);
 }
 
-WALRecord WALRecord::newPageInsertRecord(
-    DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL) {
-    return WALRecord::newPageInsertOrUpdateRecord(
-        dbFileID, pageIdxInOriginalFile, pageIdxInWAL, true /* is insert */);
+WALRecord WALRecord::newPageInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+    uint64_t pageIdxInWAL) {
+    return WALRecord::newPageInsertOrUpdateRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
+        true /* is insert */);
 }
 
 WALRecord WALRecord::newCommitRecord(uint64_t transactionID) {
@@ -185,19 +179,10 @@ WALRecord WALRecord::newRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourc
     return retVal;
 }
 
-WALRecord WALRecord::newOverflowFileNextBytePosRecord(
-    DBFileID dbFileID_, uint64_t prevNextByteToWriteTo_) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD;
-    retVal.diskOverflowFileNextBytePosRecord =
-        DiskOverflowFileNextBytePosRecord(dbFileID_, prevNextByteToWriteTo_);
-    return retVal;
-}
-
-WALRecord WALRecord::newCopyTableRecord(table_id_t tableID, TableType tableType) {
+WALRecord WALRecord::newCopyTableRecord(table_id_t tableID) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::COPY_TABLE_RECORD;
-    retVal.copyTableRecord = CopyTableRecord(tableID, tableType);
+    retVal.copyTableRecord = CopyTableRecord(tableID);
     return retVal;
 }
 

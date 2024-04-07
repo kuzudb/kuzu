@@ -13,34 +13,32 @@ public:
     // Should only be used by saveInitialRelsStatisticsToFile to start a database from an empty
     // directory.
     explicit RelsStoreStats(common::VirtualFileSystem* vfs)
-        : TablesStatistics{
-              nullptr /* metadataFH */, nullptr /* bufferManager */, nullptr /* wal */, vfs} {};
+        : TablesStatistics{nullptr /* metadataFH */, nullptr /* bufferManager */, nullptr /* wal */,
+              vfs} {};
     // Should be used when an already loaded database is started from a directory.
     RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         common::VirtualFileSystem* vfs);
 
-    static inline void saveInitialRelsStatisticsToFile(
-        common::VirtualFileSystem* vfs, const std::string& directory) {
-        std::make_unique<RelsStoreStats>(vfs)->saveToFile(
-            directory, common::FileVersionType::ORIGINAL, transaction::TransactionType::READ_ONLY);
+    static inline void saveInitialRelsStatisticsToFile(common::VirtualFileSystem* vfs,
+        const std::string& directory) {
+        std::make_unique<RelsStoreStats>(vfs)->saveToFile(directory,
+            common::FileVersionType::ORIGINAL, transaction::TransactionType::READ_ONLY);
     }
 
-    inline RelTableStats* getRelStatistics(
-        common::table_id_t tableID, transaction::Transaction* transaction) const {
+    inline RelTableStats* getRelStatistics(common::table_id_t tableID,
+        transaction::Transaction* transaction) const {
         auto& tableStatisticPerTable =
             transaction->getType() == transaction::TransactionType::READ_ONLY ?
-                tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable :
-                tablesStatisticsContentForWriteTrx->tableStatisticPerTable;
+                readOnlyVersion->tableStatisticPerTable :
+                readWriteVersion->tableStatisticPerTable;
         KU_ASSERT(tableStatisticPerTable.contains(tableID));
         return (RelTableStats*)tableStatisticPerTable[tableID].get();
     }
 
-    void setNumTuplesForTable(common::table_id_t relTableID, uint64_t numRels) override;
+    void updateNumTuplesByValue(common::table_id_t relTableID, int64_t value) override;
 
-    void updateNumRelsByValue(common::table_id_t relTableID, int64_t value);
-
-    common::offset_t getNextRelOffset(
-        transaction::Transaction* transaction, common::table_id_t tableID);
+    common::offset_t getNextRelOffset(transaction::Transaction* transaction,
+        common::table_id_t tableID);
 
     void addMetadataDAHInfo(common::table_id_t tableID, const common::LogicalType& dataType);
     void removeMetadataDAHInfo(common::table_id_t tableID, common::column_id_t columnID);
@@ -48,16 +46,14 @@ public:
         common::table_id_t tableID, common::RelDataDirection direction);
     MetadataDAHInfo* getCSRLengthMetadataDAHInfo(transaction::Transaction* transaction,
         common::table_id_t tableID, common::RelDataDirection direction);
-    MetadataDAHInfo* getAdjMetadataDAHInfo(transaction::Transaction* transaction,
-        common::table_id_t tableID, common::RelDataDirection direction);
-    MetadataDAHInfo* getPropertyMetadataDAHInfo(transaction::Transaction* transaction,
+    MetadataDAHInfo* getColumnMetadataDAHInfo(transaction::Transaction* transaction,
         common::table_id_t tableID, common::column_id_t columnID,
         common::RelDataDirection direction);
 
 protected:
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
-        catalog::TableSchema* tableSchema) override {
-        return std::make_unique<RelTableStats>(metadataFH, *tableSchema, bufferManager, wal);
+        catalog::TableCatalogEntry* tableEntry) override {
+        return std::make_unique<RelTableStats>(metadataFH, *tableEntry, bufferManager, wal);
     }
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
@@ -65,14 +61,13 @@ protected:
         return std::make_unique<RelTableStats>(*(RelTableStats*)tableStatistics);
     }
 
-    inline std::string getTableStatisticsFilePath(
-        const std::string& directory, common::FileVersionType dbFileType) override {
+    inline std::string getTableStatisticsFilePath(const std::string& directory,
+        common::FileVersionType dbFileType) override {
         return StorageUtils::getRelsStatisticsFilePath(vfs, directory, dbFileType);
     }
 
     inline void increaseNextRelOffset(common::table_id_t relTableID, uint64_t numTuples) {
-        ((RelTableStats*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(relTableID)
-                .get())
+        ((RelTableStats*)readWriteVersion->tableStatisticPerTable.at(relTableID).get())
             ->incrementNextRelOffset(numTuples);
     }
 };

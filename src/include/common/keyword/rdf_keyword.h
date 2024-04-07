@@ -6,10 +6,11 @@ namespace kuzu {
 namespace common {
 namespace rdf {
 
-static constexpr std::string_view IRI = "iri";
-static constexpr std::string_view VAL = "val";
-static constexpr std::string_view ID = "id";
-static constexpr std::string_view PID = "pid"; // TODO: rename
+static constexpr std::string_view IRI = "iri";   // Resource iri
+static constexpr std::string_view VAL = "val";   // Literal value
+static constexpr std::string_view LANG = "lang"; // Literal
+static constexpr std::string_view ID = "id";     // Literal id
+static constexpr std::string_view PID = "pid";   // Predicate resource id
 static constexpr std::string_view SUBJECT = "subject";
 static constexpr std::string_view PREDICATE = "predicate";
 static constexpr std::string_view OBJECT = "object";
@@ -25,6 +26,10 @@ static constexpr std::string_view XSD_double = "double";
 static constexpr std::string_view XSD_decimal = "decimal";
 static constexpr std::string_view XSD_boolean = "boolean";
 static constexpr std::string_view XSD_date = "date";
+static constexpr std::string_view XSD_dateTime = "dateTime";
+static constexpr std::string_view XSD_nonNegativeInteger = "nonNegativeInteger";
+static constexpr std::string_view XSD_positiveInteger = "positiveInteger";
+static constexpr std::string_view XSD_float = "float";
 
 } // namespace rdf
 } // namespace common

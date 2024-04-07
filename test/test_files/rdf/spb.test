@@ -1,0 +1,429 @@
+-GROUP Rdf
+-DATASET TTL rdf/spb
+-BUFFER_POOL_SIZE 1073741824
+
+--
+
+-CASE SPB
+-SKIP
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#SELECT * WHERE {
+#    ?s cwork:about ?o
+#}
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+           MATCH (s)-[p]->(o)
+           WHERE p.iri = cwork + "about"
+           RETURN COUNT(*)
+---- 1
+69492
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#SELECT * WHERE {
+#    ?s ?p <http://sws.geonames.org/2741264/> .
+#    ?s cwork:dateModified ?modified .
+#}
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+           MATCH (s)-[p1]->(o), (s)-[p2]->(modified)
+           WHERE o.iri = "http://sws.geonames.org/2741264/"
+           AND p2.iri = cwork + "dateModified"
+           RETURN s.iri, p1.iri, modified.val
+---- 1
+http://www.bbc.co.uk/things/79#id|http://www.bbc.co.uk/ontologies/creativework/mentions|2011-10-31T03:00:46.687+02:00
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#SELECT * WHERE {
+#    ?s cwork:mentions ?o .
+#    ?s cwork:dateModified ?modified .
+#}
+#ORDER BY DESC(?modified)
+#LIMIT 10
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+           MATCH (s)-[p1]->(o), (s)-[p2]->(modified)
+           WHERE p1.iri = cwork + "mentions"
+           AND p2.iri = cwork + "dateModified"
+           RETURN s.iri, o.iri, cast(modified.val, "string") AS k ORDER BY k DESC
+           LIMIT 6
+-CHECK_ORDER
+---- 6
+http://www.bbc.co.uk/things/1825#id|http://sws.geonames.org/2715796/|2012-04-19T12:43:33.777+03:00
+http://www.bbc.co.uk/things/1684#id|http://sws.geonames.org/650102/|2012-04-18T13:09:53.508+03:00
+http://www.bbc.co.uk/things/1872#id|http://sws.geonames.org/2732955/|2012-04-17T02:17:23.879+03:00
+http://www.bbc.co.uk/things/1495#id|http://sws.geonames.org/2967168/|2012-04-15T17:58:58.788+03:00
+http://www.bbc.co.uk/things/1450#id|http://sws.geonames.org/3155835/|2012-04-14T19:00:34.546+03:00
+http://www.bbc.co.uk/things/1803#id|http://sws.geonames.org/2835999/|2012-04-14T17:18:49.170+03:00
+
+# TODO(Ziyi): sometimes this query returns incorrect result
+#-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+#           MATCH (s)-[p1]->(o), (s)-[p2]->(modified)
+#           WHERE p1.iri = cwork + "mentions"
+#           AND p2.iri = cwork + "dateModified"
+#           RETURN DISTINCT s.iri, cast(modified.val, "string") AS k ORDER BY k DESC
+#           LIMIT 10
+#-CHECK_ORDER
+#---- 10
+#http://www.bbc.co.uk/things/1825#id|2012-04-19T12:43:33.777+03:00
+#http://www.bbc.co.uk/things/1684#id|2012-04-18T13:09:53.508+03:00
+#http://www.bbc.co.uk/things/1872#id|2012-04-17T02:17:23.879+03:00
+#http://www.bbc.co.uk/things/1495#id|2012-04-15T17:58:58.788+03:00
+#http://www.bbc.co.uk/things/1450#id|2012-04-14T19:00:34.546+03:00
+#http://www.bbc.co.uk/things/1803#id|2012-04-14T17:18:49.170+03:00
+#http://www.bbc.co.uk/things/47600#id|2012-04-14T13:30:50.078+03:00
+#http://www.bbc.co.uk/things/1367#id|2012-04-14T10:51:08.265+03:00
+#http://www.bbc.co.uk/things/1583#id|2012-04-14T09:24:45.676+03:00
+#http://www.bbc.co.uk/things/1650#id|2012-04-14T06:28:02.156+03:00
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#SELECT * WHERE {
+#  ?e ?p <http://dbpedia.org/resource/BankUnited> .
+#}
+-STATEMENT MATCH (s)-[p]->(o)
+           WHERE o.iri = "http://dbpedia.org/resource/BankUnited"
+           RETURN COUNT(*)
+---- 1
+1922
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#PREFIX bbc:<http://www.bbc.co.uk/ontologies/bbc/>
+#SELECT * WHERE {
+#  ?e ?p <http://dbpedia.org/resource/BankUnited> .
+#  ?e cwork:title ?title ;
+#    cwork:description ?description ;
+#    cwork:dateModified ?dateModified ;
+#    bbc:primaryContentOf ?primaryContent .
+#}
+#ORDER BY DESC(?dateModified)
+#LIMIT 5
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork,
+                "http://www.bbc.co.uk/ontologies/bbc/" AS bbc
+            MATCH (s)-[]->(o1),
+                (s)-[p2]->(o2),
+                (s)-[p3]->(o3),
+                (s)-[p4]->(o4),
+                (s)-[p5]->(o5)
+           WHERE o1.iri = "http://dbpedia.org/resource/BankUnited"
+           AND p2.iri = cwork + "title"
+           AND p3.iri = cwork + "description"
+           AND p4.iri = cwork + "dateModified"
+           ANd p5.iri = bbc + "primaryContentOf"
+           RETURN s.iri, o2.val, o3.val, cast(o4.val, "STRING") AS date, o5.iri
+           ORDER BY date DESC
+           LIMIT 5
+---- 5
+http://www.bbc.co.uk/things/1684#id|Honda of the UK Manufacturing amanuensis sultanate prairies predominate assuaged umpire mouthing tough punctiliously coffers.| wiping gravitating engage accessions augmentation calamities complaisance arthropods curbing ineptitude aftereffects dragging storks undulate scrupling nominated snorkelers uniforming dint preregistered bog communion extrapolations mainmast.|2012-04-18T13:09:53.508+03:00|http://www.bbc.co.uk/document/33224#id
+http://www.bbc.co.uk/things/1825#id|Carlo Maserati validness hypnosis forwardest howls exclusivity sough diversified rampage shrieks outright.| bloodstained dressed karats duodenum thrashed trousers laborious dove tam infringe polonium abutment confederacy remedied chipped cemeteries thrashed olives squeaking incremental woofers deficiency oppose dewy.|2012-04-19T12:43:33.777+03:00|http://www.bbc.co.uk/document/36418#id
+http://www.bbc.co.uk/things/1825#id|Carlo Maserati validness hypnosis forwardest howls exclusivity sough diversified rampage shrieks outright.| bloodstained dressed karats duodenum thrashed trousers laborious dove tam infringe polonium abutment confederacy remedied chipped cemeteries thrashed olives squeaking incremental woofers deficiency oppose dewy.|2012-04-19T12:43:33.777+03:00|http://www.bbc.co.uk/document/36419#id
+http://www.bbc.co.uk/things/1825#id|Carlo Maserati validness hypnosis forwardest howls exclusivity sough diversified rampage shrieks outright.| bloodstained dressed karats duodenum thrashed trousers laborious dove tam infringe polonium abutment confederacy remedied chipped cemeteries thrashed olives squeaking incremental woofers deficiency oppose dewy.|2012-04-19T12:43:33.777+03:00|http://www.bbc.co.uk/document/36420#id
+http://www.bbc.co.uk/things/1872#id|Yamanashi Kōtsū conjured adventuress strafe ordered mists gravitational menstruate overhands distils protection.| sourpuss ravelled chemistry disquiets inside gazebo labyrinth submission mongolism sinkable confabbing herald elision trusteeship doctoring exclusive elates.|2012-04-17T02:17:23.879+03:00|http://www.bbc.co.uk/document/37199#id
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#SELECT * WHERE {
+#  ?creativeWork cwork:mentions ?o ;
+#    cwork:title ?title ;
+#      cwork:dateModified ?dateModified .
+#    FILTER(?dateModified >= "2011-07-21T15:30:00.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> && ?dateModified < "2011-07-21T16:30:00.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>).
+#}
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+            MATCH (s)-[p]->(o1),
+                (s)-[pt]->(ot),
+                (s)-[pd]->(od)
+           WHERE cast(od.val, "STRING") >= "2011-07-21T18:30:00.000+03:00"
+           AND cast(od.val, "STRING") < "2011-07-21T19:30:00.000+03:00"
+           AND p.iri = cwork + "mentions"
+           AND pt.iri = cwork + "title"
+           AND pd.iri = cwork + "dateModified"
+           RETURN s.iri, o1.iri, ot.val, od.val
+---- 2
+http://www.bbc.co.uk/things/1041#id|http://sws.geonames.org/2877183/|Wolfgang Hahn clearness confers disbelieved anointment washouts counselings corrugation laudably stalemates flimflams.|2011-07-21T19:23:36.582+03:00
+http://www.bbc.co.uk/things/647#id|http://sws.geonames.org/2716796/|Van Walls skated entreats gulps organise unemployment digraphs ballet tornadoes alignment downier.|2011-07-21T18:36:35.520+03:00
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#SELECT * WHERE {
+#
+#    {
+#    SELECT (COUNT(*) AS ?cnt_2)
+#    WHERE {
+#      ?other_cw cwork:about ?oa .
+#      <http://www.bbc.co.uk/things/61263#id> cwork:about ?oa .
+#    }
+#  } .
+#  {
+#     SELECT (COUNT(*) AS ?cnt_0_5)
+#     WHERE {
+#       ?other_cw cwork:mentions ?om .
+#       <http://www.bbc.co.uk/things/61263#id> cwork:mentions ?om .
+#     }
+#  } .
+#}
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+            MATCH (s1)-[p1]->(o),
+                (s2)-[p2]->(o)
+           WHERE p1.iri = cwork + "about"
+           AND p2.iri = cwork + "about"
+           AND s2.iri = "http://www.bbc.co.uk/things/61263#id"
+           WITH COUNT(*) AS c1, cwork
+           MATCH (s1)-[p1]->(o),
+                (s2)-[p2]->(o)
+           WHERE p1.iri = cwork + "mentions"
+           AND p2.iri = cwork + "mentions"
+           AND s2.iri = "http://www.bbc.co.uk/things/61263#id"
+           RETURN COUNT(*), c1
+---- 1
+1|1920
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#PREFIX bbc: <http://www.bbc.co.uk/ontologies/bbc/>
+#SELECT * WHERE {
+#    ?creativeWork cwork:title ?title ;
+#    cwork:description ?description .
+#     ?creativeWork cwork:dateModified ?dateModified .
+#  OPTIONAL { ?creativeWork cwork:dateCreated ?dateCreated . }
+#  OPTIONAL { ?creativeWork cwork:category ?category . }
+#    FILTER (CONTAINS(?title, "undersell")) .
+#}
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+           MATCH (s)-[pt]->(ot),
+                (s)-[pd]->(od)
+           WHERE pt.iri = cwork + "title"
+           AND pd.iri = cwork + "description"
+           AND ot.val CONTAINS "undersell"
+           OPTIONAL MATCH (s)-[pDC]->(oDC)
+           WHERE pDC.iri = cwork + "dateCreated"
+           OPTIONAL MATCH (s)-[pC]->(oC)
+           WHERE pC.iri = cwork + "category"
+           RETURN s.iri, ot.val, od.val, oDC.val, oC.iri
+---- 7
+http://www.bbc.co.uk/things/30781#id|Gita Press rented woolgathering we subsidisation bettered sinned blusters lube descend undersell.| audios crackups hankered resells dramatics whir sticklers blower chamois spacesuit absolution sopranos interlarding flatulence nigher fiasco minuter rehiring unreadier bombastic gangling preterite.|2011-02-05T06:25:23.240+02:00|http://www.bbc.co.uk/category/Company
+http://www.bbc.co.uk/things/30831#id|Tilted Kilt Pub & Eatery adjust kneecap shirred colloquialism trialling equestrienne refuelling undersell carbonate folklore.| incorporated xylophonist expressways stroked resolved sulfate heaping memorialise morose haemorrhaging arrived.|2011-02-05T15:14:32.256+02:00|http://www.bbc.co.uk/category/Company
+http://www.bbc.co.uk/things/31693#id|Ignatius Hieronymus Berry allusion overdone aristocracies sheepishly bethinks stoles walleyed terse undersell throughput.| sweetmeats productiveness widens yarmulke neckties glitzier deficiency climatic.|2011-02-22T04:42:52.843+02:00|http://www.bbc.co.uk/category/Persons
+http://www.bbc.co.uk/things/32005#id|Dun & Bradstreet destructing hobnailing undersell augury eyetooth lark enclosure acids neighbourhoods reels.| divesting terrors whatchamacallit saluted framed famishing shakily toes outraged scenting south curls.|2011-02-28T03:18:05.373+02:00|http://www.bbc.co.uk/category/Company
+http://www.bbc.co.uk/things/77561#id|Hugo Spangenberg secretaries effortlessly sallow lyric exporter lenient uniforming squalling manually undersell.| caddies ballyhooing jerk vamoosing poisonously longings subliming tolerated muckraked umpires monstrosities.|2011-02-13T00:17:09.465+02:00|http://www.bbc.co.uk/category/Persons
+http://www.bbc.co.uk/things/844#id|Jean-Pierre Duport fused unattractive dehumidifies glossed phalanx undersell midwives headwinds inculpating nosy.| convalesced excepting spelunker honeymooner arteriosclerosis styes ringside slavish.|2011-03-03T19:09:50.740+02:00|http://www.bbc.co.uk/category/Persons
+http://www.bbc.co.uk/things/909#id|Joe Muranyi assassinations varnished cancers weekend unrewarding zithers undersell coddling overstay padlocked.| unsealing briquet brassy claws romanticised worthier unbearable cassino largesse anklet demolition hardeners postulates astrologers coefficient giddy groaning fingertips serenade puritanism.|2011-03-04T20:50:25.464+02:00|http://www.bbc.co.uk/category/Persons
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#PREFIX bbc: <http://www.bbc.co.uk/ontologies/bbc/>
+#SELECT * WHERE {
+#    ?creativeWork cwork:title ?title ;
+#    cwork:description ?description .
+#     ?creativeWork cwork:dateModified ?dateModified .
+#  OPTIONAL { ?creativeWork cwork:dateCreated ?dateCreated . }
+#  OPTIONAL { ?creativeWork cwork:category ?category . }
+#    OPTIONAL {
+#    ?creativeWork bbc:primaryContentOf ?pco .
+#    ?pco bbc:webDocumentType ?webDocType .
+#  }
+#    FILTER (CONTAINS(?title, "undersell")) .
+#}
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork, "http://www.bbc.co.uk/ontologies/bbc/" AS bbc
+           MATCH (s)-[pt]->(ot),
+                (s)-[pd]->(od)
+           WHERE pt.iri = cwork + "title"
+           AND pd.iri = cwork + "description"
+           AND ot.val CONTAINS "undersell"
+           OPTIONAL MATCH (s)-[pDC]->(oDC)
+           WHERE pDC.iri = cwork + "dateCreated"
+           OPTIONAL MATCH (s)-[pC]->(oC)
+           WHERE pC.iri = cwork + "category"
+           OPTIONAL MATCH (s)-[pPCO]->(oPCO), (oPCO)-[pWDT]->(oWDT)
+           WHERE pPCO.iri = bbc + "primaryContentOf" AND pWDT.iri = bbc + "webDocumentType"
+           RETURN COUNT(*)
+---- 1
+16
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#SELECT * WHERE {
+#     ?creativeWork cwork:dateCreated ?dateCreated .
+#     ?creativeWork cwork:title ?title .
+#     ?creativeWork cwork:category ?category .
+#     ?creativeWork cwork:liveCoverage ?liveCoverage .
+#     ?creativeWork cwork:audience ?audience .
+#    FILTER(?dateCreated >= "2011-02-08T21:01:00.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> && ?dateCreated < "2011-02-08T22:01:00.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>)
+#}
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+           MATCH (s)-[p]->(o),
+              (s)-[pT]->(oT),
+              (s)-[pC]->(oC),
+              (s)-[pLC]->(oLC),
+              (s)-[pA]->(oA)
+           WHERE p.iri = cwork + "dateCreated"
+           AND o.val >= "2011-02-08T23:01:00.000+02:00"
+           AND o.val < "2011-02-08T24:01:00.000+02:00"
+           AND pT.iri = cwork + "title"
+           AND pC.iri = cwork + "category"
+           AND pLC.iri = cwork + "liveCoverage"
+           AND pA.iri = cwork + "audience"
+           RETURN s.iri, o.val, oT.val, oC.iri, oLC.val, oA.iri
+---- 9
+http://www.bbc.co.uk/things/30977#id|2011-02-08T23:17:11.462+02:00|Lim Yoke Wah sharpshooters outlaying underfeeds sketchy monarchical uniting eardrums spacy retouches accosts.|http://www.bbc.co.uk/category/Persons|False|http://www.bbc.co.uk/ontologies/creativework/InternationalAudience
+http://www.bbc.co.uk/things/30988#id|2011-02-08T23:55:04.399+02:00|Philippe-Isidore Picot De Lapeyrouse buoyancy belatedly buckboard kingdoms outcry euros libertarians tarantula revise collectible.|http://www.bbc.co.uk/category/Persons|False|http://www.bbc.co.uk/ontologies/creativework/InternationalAudience
+http://www.bbc.co.uk/things/31004#id|2011-02-08T23:33:26.755+02:00|Studyplaces understandings cranking segregates kingly defiant confided cooled mountaintops flukier wisher.|http://www.bbc.co.uk/category/Company|True|http://www.bbc.co.uk/ontologies/creativework/InternationalAudience
+http://www.bbc.co.uk/things/31024#id|2011-02-08T23:58:01.965+02:00|Carl Emil Otto Weber mainland wisecracking paunchiest emus intersperse inequality headwords haze declared yaws.|http://www.bbc.co.uk/category/Persons|False|http://www.bbc.co.uk/ontologies/creativework/InternationalAudience
+http://www.bbc.co.uk/things/45844#id|2011-02-08T23:13:34.107+02:00|Manor House Publishing teeny slashed surged noodle dromedaries muscatel retell depending chairlift interdependent.|http://www.bbc.co.uk/category/Company|False|http://www.bbc.co.uk/ontologies/creativework/InternationalAudience
+http://www.bbc.co.uk/things/45849#id|2011-02-08T23:33:52.745+02:00|George Pruteanu accord mayflies underachieves impracticality josh warping fibbers paddled satirically tossed.|http://www.bbc.co.uk/category/Persons|False|http://www.bbc.co.uk/ontologies/creativework/InternationalAudience
+http://www.bbc.co.uk/things/45873#id|2011-02-08T23:18:42.153+02:00|Yves Delage belfry iceberg cesarean reasoning sunburn dressmaker hopped rhetoricians corrupts wingers.|http://www.bbc.co.uk/category/Persons|False|http://www.bbc.co.uk/ontologies/creativework/InternationalAudience
+http://www.bbc.co.uk/things/62296#id|2011-02-08T23:50:47.536+02:00|Sonia Faleiro allocate clotted castoffs brakemen stinted angry minicomputers broadside skewing forsooth.|http://www.bbc.co.uk/category/Persons|False|http://www.bbc.co.uk/ontologies/creativework/NationalAudience
+http://www.bbc.co.uk/things/77391#id|2011-02-08T23:31:52.163+02:00|Tony Palacios knickknack doggier swashbuckler bandiest treaties representing gleams unassigned fatherlands relished.|http://www.bbc.co.uk/category/Persons|False|http://www.bbc.co.uk/ontologies/creativework/InternationalAudience
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#SELECT ?x ((COUNT(*)) AS ?cnt) WHERE {
+#    ?creativeWork a ?x ;
+#     cwork:dateModified ?dt ;
+#   FILTER (?dt > "2011-06-23T11:44:04Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> && ?dt < "2011-06-24T00:44:04Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>) .
+#}
+#GROUP BY ?x
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+           MATCH (s)-[p]->(o),
+            (s)-[pA]->(oA)
+           WHERE p.iri = cwork + "dateModified"
+           AND o.val > "2011-06-23T14:44:04.000+03:00"
+           AND o.val < "2011-06-24T03:44:04.000+03:00"
+           AND pA.iri = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+           RETURN oA.iri, COUNT(*)
+---- 3
+http://www.bbc.co.uk/ontologies/creativework/BlogPost|7
+http://www.bbc.co.uk/ontologies/creativework/NewsItem|7
+http://www.bbc.co.uk/ontologies/creativework/Programme|5
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#SELECT * WHERE {
+#    {
+#    SELECT DISTINCT ?creativeWork {
+#      ?creativeWork cwork:about <http://dbpedia.org/resource/Dropmysite> ;
+#        a cwork:NewsItem.
+#    }
+#    ORDER BY (?creativeWork)
+#    LIMIT 1
+#    }
+#    ?creativeWork ?pred ?value.
+#   FILTER (?pred NOT IN (cwork:tag, cwork:about, cwork:mention))
+#}
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+           MATCH (s)-[p]->(o),
+            (s)-[pA]->(oA)
+           WHERE p.iri = cwork + "about"
+           AND o.iri = "http://dbpedia.org/resource/Dropmysite"
+           AND pA.iri = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+           AND oA.iri = cwork + "NewsItem"
+           WITH s, cwork ORDER BY s.iri LIMIT 1
+           MATCH (s)-[p]->(o)
+           WHERE p.iri <> cwork + "tag"
+           AND p.iri <> cwork + "about"
+           AND p.iri <> cwork + "mention"
+           RETURN p.iri, o.iri, o.val
+---- 17
+http://www.bbc.co.uk/ontologies/bbc/primaryContentOf|http://www.bbc.co.uk/document/32#id|
+http://www.bbc.co.uk/ontologies/bbc/primaryContentOf|http://www.bbc.co.uk/document/33#id|
+http://www.bbc.co.uk/ontologies/bbc/primaryContentOf|http://www.bbc.co.uk/document/34#id|
+http://www.bbc.co.uk/ontologies/creativework/altText||thumbnail atlText for CW http://www.bbc.co.uk/context/76681#id
+http://www.bbc.co.uk/ontologies/creativework/audience|http://www.bbc.co.uk/ontologies/creativework/NationalAudience|
+http://www.bbc.co.uk/ontologies/creativework/category|http://www.bbc.co.uk/category/Event|
+http://www.bbc.co.uk/ontologies/creativework/dateCreated||2011-01-27T03:12:26.355+02:00
+http://www.bbc.co.uk/ontologies/creativework/dateModified||2011-10-25T04:57:25.572+03:00
+http://www.bbc.co.uk/ontologies/creativework/description|| steppingstones capitalises uninviting ferryboats rejected tiled lustier miscarriage clings slider disassembling doughnut menacingly braces hip estranges hideaway.
+http://www.bbc.co.uk/ontologies/creativework/liveCoverage||False
+http://www.bbc.co.uk/ontologies/creativework/mentions|http://sws.geonames.org/2749838/|
+http://www.bbc.co.uk/ontologies/creativework/primaryFormat|http://www.bbc.co.uk/ontologies/creativework/InteractiveFormat|
+http://www.bbc.co.uk/ontologies/creativework/primaryFormat|http://www.bbc.co.uk/ontologies/creativework/TextualFormat|
+http://www.bbc.co.uk/ontologies/creativework/shortTitle|| valuables pronounce dulcimer plagues pinking bucksaw lambskins derringers outweighs rewire.
+http://www.bbc.co.uk/ontologies/creativework/thumbnail|http://www.bbc.co.uk/thumbnail/192350250|
+http://www.bbc.co.uk/ontologies/creativework/title||Operation I-Go told disputable hiccuping ignored readouts cheesiest opus acrobatics concede purism.
+http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://www.bbc.co.uk/ontologies/creativework/NewsItem|
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#SELECT * WHERE {
+#    ?creativeWork cwork:about ?x .
+#    ?creativeWork cwork:audience ?audience .
+#    FILTER ( ?audience = cwork:InternationalAudience) .
+#}
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork
+           MATCH (s)-[p]->(o),
+            (s)-[pA]->(oA)
+           WHERE p.iri = cwork + "about"
+           AND pA.iri = cwork + "audience"
+           AND oA.iri = cwork + "InternationalAudience"
+           RETURN COUNT(*)
+---- 1
+45078
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#PREFIX bbc: <http://www.bbc.co.uk/ontologies/bbc/>
+#SELECT * WHERE {
+#    ?creativeWork a ?x ;
+#      cwork:title ?title .
+#  OPTIONAL { ?creativeWork cwork:dateCreated ?dateCreated . }
+#  OPTIONAL { ?creativeWork cwork:dateModified ?dateModified . }
+#  OPTIONAL {
+#    ?creativeWork bbc:primaryContentOf ?pco .
+#    ?pco bbc:webDocumentType ?webDocType .
+#  }
+#  FILTER (?creativeWork = <http://www.bbc.co.uk/things/76680#id>)
+#}
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork,
+                "http://www.bbc.co.uk/ontologies/bbc/" AS bbc
+           MATCH (s)-[p]->(o),
+                (s)-[pT]->(oT)
+           WHERE p.iri = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+           AND pT.iri = cwork + "title"
+           AND s.iri = "http://www.bbc.co.uk/things/76680#id"
+           OPTIONAL MATCH (s)-[pDC]->(oDC)
+           WHERE pDC.iri = cwork + "dateCreated"
+           OPTIONAL MATCH (s)-[pDM]->(oDM)
+           WHERE pDM.iri = cwork + "dateModified"
+           OPTIONAL MATCH (s)-[pPCO]->(oPCO),
+                (oPCO)-[pWDT]->(oWDT)
+           WHERE pPCO.iri = bbc + "primaryContentOf"
+           AND pWDT.iri = bbc + "webDocumentType"
+           RETURN s.iri, oPCO.iri
+---- 3
+http://www.bbc.co.uk/things/76680#id|http://www.bbc.co.uk/document/24#id
+http://www.bbc.co.uk/things/76680#id|http://www.bbc.co.uk/document/25#id
+http://www.bbc.co.uk/things/76680#id|http://www.bbc.co.uk/document/26#id
+
+#PREFIX cwork:<http://www.bbc.co.uk/ontologies/creativework/>
+#PREFIX bbc: <http://www.bbc.co.uk/ontologies/bbc/>
+#SELECT * WHERE {
+#    ?creativeWork cwork:about <http://dbpedia.org/resource/Kenneth_Cope> ;
+#      OPTIONAL { ?creativeWork cwork:shortTitle ?shortTitle . }
+#      OPTIONAL { ?creativeWork cwork:description ?description . }
+#      OPTIONAL {
+#                 ?creativeWork cwork:mentions ?mentions .
+#               }
+#      OPTIONAL { ?creativeWork cwork:dateCreated ?created . }
+#      OPTIONAL { ?creativeWork cwork:primaryFormat ?primaryFormat . }
+#      OPTIONAL { ?webDocument bbc:primaryContent ?creativeWork .
+#                  OPTIONAL { ?webDocument bbc:webDocumentType ?webDocType . }
+#      }
+#      OPTIONAL { ?creativeWork cwork:thumbnail ?thumbnail .
+#                 OPTIONAL { ?thumbnail cwork:altText ?thumbnailAltText . }
+#                 OPTIONAL { ?thumbnail cwork:thumbnailType ?thumbnailType . }
+#      }
+#  }
+-STATEMENT WITH "http://www.bbc.co.uk/ontologies/creativework/" AS cwork,
+                "http://www.bbc.co.uk/ontologies/bbc/" AS bbc
+           MATCH (s)-[p]->(o)
+           WHERE p.iri = cwork + "about"
+           AND o.iri = "http://dbpedia.org/resource/Kenneth_Cope"
+           OPTIONAL MATCH (s)-[pST]->(oST)
+           WHERE pST.iri = cwork + "shortTitle"
+           OPTIONAL MATCH (s)-[pD]->(oD)
+           WHERE pD.iri = cwork + "description"
+           OPTIONAL MATCH (s)-[pM]->(oM)
+           WHERE pM.iri = cwork + "mentions"
+           OPTIONAL MATCH (s)-[pC]->(oC)
+           WHERE pC.iri = cwork + "dateCreated"
+           OPTIONAL MATCH (s)-[pPF]->(oPF)
+           WHERE pPF.iri = cwork + "primaryFormat"
+           OPTIONAL MATCH (oPCO)-[pPCO]->(s),
+                (oPCO)-[pWDT]->(oWDT)
+           WHERE pPCO.iri = bbc + "primaryContentOf"
+           AND pWDT.iri = bbc + "webDocumentType"
+           OPTIONAL MATCH (s)-[pT]->(oT)
+           WHERE pT.iri = cwork + "thumbnail"
+           OPTIONAL MATCH (oT)-[pAT]->(oAT)
+           WHERE pAT.iri = cwork + "altText"
+           OPTIONAL MATCH (oT)-[pTT]->(oTT)
+           WHERE pTT.iri = cwork + "thumbnailType"
+           RETURN s.iri, oST.val, oD.val, oM.iri, oC.val, oPF.iri, oPCO.iri, oWDT.iri, oT.iri, oAT.val, oTT.val
+---- 1
+http://www.bbc.co.uk/things/24#id| chemises indecipherable horn resinous curiosities windpipe upbringings robust ascendency follows.| biology iron smelt swung reproducing ripest hermits crawl searchers cabled innocuously massing boggy unmans spiders sterile yucking cheapening debars.|http://sws.geonames.org/619619/|2011-02-15T10:40:06.321+02:00|http://www.bbc.co.uk/ontologies/creativework/AudioFormat|||http://www.bbc.co.uk/thumbnail/1654848529||

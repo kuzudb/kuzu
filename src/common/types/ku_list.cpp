@@ -9,7 +9,7 @@ namespace common {
 
 void ku_list_t::set(const uint8_t* values, const LogicalType& dataType) const {
     memcpy(reinterpret_cast<uint8_t*>(overflowPtr), values,
-        size * storage::StorageUtils::getDataTypeSize(*VarListType::getChildType(&dataType)));
+        size * storage::StorageUtils::getDataTypeSize(*ListType::getChildType(&dataType)));
 }
 
 void ku_list_t::set(const std::vector<uint8_t*>& parameters, LogicalTypeID childTypeId) {

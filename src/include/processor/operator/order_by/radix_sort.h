@@ -24,14 +24,17 @@ public:
 // seen so far. If there are tie tuples, it will compare the overflow ptr of strings. For subsequent
 // columns, the algorithm only calls radixSort on tie tuples.
 class RadixSort {
+private:
+    static constexpr uint16_t COUNTING_ARRAY_SIZE = 256;
+
 public:
     RadixSort(storage::MemoryManager* memoryManager, FactorizedTable& factorizedTable,
         OrderByKeyEncoder& orderByKeyEncoder, std::vector<StrKeyColInfo> strKeyColsInfo)
         : tmpSortingResultBlock{std::make_unique<DataBlock>(memoryManager)},
           tmpTuplePtrSortingBlock{std::make_unique<DataBlock>(memoryManager)},
           factorizedTable{factorizedTable}, strKeyColsInfo{std::move(strKeyColsInfo)},
-          numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()}, numBytesToRadixSort{
-                                                                         numBytesPerTuple - 8} {}
+          numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()},
+          numBytesToRadixSort{numBytesPerTuple - 8} {}
 
     void sortSingleKeyBlock(const DataBlock& keyBlock);
 

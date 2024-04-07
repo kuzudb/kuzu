@@ -2,7 +2,7 @@
 -DATASET CSV empty
 --
 
--CASE CreateOneToOneRel
+-CASE CreateOneToOneRel1
 -STATEMENT CREATE NODE TABLE N1(ID INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE N2(ID INT64, PRIMARY KEY(ID));
@@ -25,6 +25,81 @@
 ---- 1
 10|12
 
+-CASE CreateOneToOneRel2
+-STATEMENT CREATE NODE TABLE N1(ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE N2(ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2, ONE_ONE);
+---- ok
+-STATEMENT CREATE REL TABLE Rel2(FROM N2 TO N1, ONE_ONE);
+---- ok
+-STATEMENT CREATE (:N1 {ID: 10}),(:N1 {ID: 11});
+---- ok
+-STATEMENT MATCH (:N1)-[r:Rel1]->(:N2) RETURN COUNT(*);
+---- 1
+0
+-STATEMENT CREATE (:N2 {ID: 12}),(:N2 {ID: 13});
+---- ok
+-STATEMENT MATCH (:N1)-[r:Rel1]->(:N2) RETURN COUNT(*);
+---- 1
+0
+-STATEMENT MATCH (:N2)-[r:Rel2]->(:N1) RETURN COUNT(*);
+---- 1
+0
+
+-CASE CreateOneToOneRelTableAfterCreateNodes
+-STATEMENT CREATE NODE TABLE N1(ID SERIAL, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE NODE TABLE N2(ID SERIAL, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE (:N1), (:N1), (:N2), (:N2)
+---- ok
+-STATEMENT CREATE REL TABLE N1_HAS_N2(FROM N1 TO N2, ONE_ONE);
+---- ok
+-STATEMENT MATCH (a:N1), (b:N2) WHERE a.ID = b.ID CREATE (a)-[:N1_HAS_N2]->(b);
+---- ok
+-STATEMENT MATCH ()-[e:N1_HAS_N2]->() RETURN e;
+---- 2
+(0:0)-{_LABEL: N1_HAS_N2, _ID: 2:0}->(1:0)
+(0:1)-{_LABEL: N1_HAS_N2, _ID: 2:1}->(1:1)
+
+
+-CASE CreateOneToOneInBatch
+-STATEMENT create node table animal(id int64, primary key(id));
+---- ok
+-STATEMENT create node table person(id int64, primary key(id));
+---- ok
+-STATEMENT create rel table own(from person to animal, ONE_ONE);
+---- ok
+-STATEMENT create (:person {id:1});
+---- ok
+-STATEMENT create (:animal {id:1});
+---- ok
+-STATEMENT create (:person {id:2});
+---- ok
+-STATEMENT create (:animal {id:2});
+---- ok
+-STATEMENT create (:person {id:3});
+---- ok
+-STATEMENT create (:animal {id:3});
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT match (a:animal), (p:person) where a.id=1 and p.id=1 create (p)-[e:own]->(a);
+---- ok
+-STATEMENT match (a:animal), (p:person) where a.id=2 and p.id=2 create (p)-[e:own]->(a);
+---- ok
+-STATEMENT match (a:animal), (p:person) where a.id=3 and p.id=3 create (p)-[e:own]->(a);
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT match (a)-[e]->(b) return e;
+---- 3
+(1:0)-{_LABEL: own, _ID: 2:0}->(0:0)
+(1:1)-{_LABEL: own, _ID: 2:1}->(0:1)
+(1:2)-{_LABEL: own, _ID: 2:2}->(0:2)
+
 -CASE CreateOneToOneRelOnLargeNodeTable
 -STATEMENT CREATE NODE TABLE N1(ID INT64, PRIMARY KEY(ID));
 ---- ok
@@ -32,9 +107,9 @@
 ---- ok
 -STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2, ONE_ONE);
 ---- ok
--STATEMENT COPY N1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/sf-0.1/Comment.csv" (HEADER=true, DELIM='|');
+-STATEMENT COPY N1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv" (HEADER=true, DELIM='|');
 ---- ok
--STATEMENT COPY N2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/sf-0.1/Post.csv" (HEADER=true, DELIM='|');
+-STATEMENT COPY N2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Post.csv" (HEADER=true, DELIM='|');
 ---- ok
 -STATEMENT MATCH (n1:N1), (n2:N2) WHERE n1.ID=1099512015344 AND n2.ID=3 CREATE (n1)-[r:Rel1]->(n2)
 ---- ok
@@ -107,6 +182,9 @@
 ---- ok
 -STATEMENT MATCH (n1:N1), (n2:N2) WHERE n1.ID=10 AND n2.ID=12 CREATE (n1)-[r:Rel1]->(n2)
 ---- ok
+-STATEMENT MATCH (n1:N1)-[r:Rel1]->(n2:N2) WHERE n1.ID=10 AND n2.ID=12 RETURN r
+---- 1
+(0:0)-{_LABEL: Rel1, _ID: 2:0}->(1:0)
 -STATEMENT MATCH (n1:N1)-[r:Rel1]->(n2:N2) WHERE n1.ID=10 AND n2.ID=12 DELETE r
 ---- ok
 -STATEMENT MATCH (n:N1)-[r:Rel1]->(m:N2) RETURN n.ID, m.ID
@@ -115,3 +193,61 @@
 ---- ok
 -STATEMENT MATCH (n:N1)-[r:Rel1]->(m:N2) RETURN n.ID, m.ID
 ---- 0
+
+-CASE ResizeAndDistribute
+-STATEMENT CREATE NODE TABLE Person(id INT64, age INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (:Person {id: 0, age: 20});
+---- ok
+-STATEMENT CREATE (:Person {id: 1, age: 21});
+---- ok
+-STATEMENT CREATE (:Person {id: 2, age: 22});
+---- ok
+-STATEMENT CREATE (:Person {id: 3, age: 23});
+---- ok
+-STATEMENT CREATE (:Person {id: 4, age: 24});
+---- ok
+-STATEMENT CREATE (:Person {id: 5, age: 25});
+---- ok
+-STATEMENT CREATE REL TABLE knows(FROM Person TO Person, age INT64);
+---- ok
+-STATEMENT MATCH (a:Person), (b:Person) WHERE a.id=0 AND b.id=1 CREATE (a)-[:knows {age: 100}]->(b);
+---- ok
+-STATEMENT MATCH (a:Person)-[e:knows]->(b:Person) RETURN a.id, b.id, e.age;
+---- 1
+0|1|100
+-STATEMENT MATCH (a:Person), (b:Person) WHERE a.id=0 AND b.id=2 CREATE (a)-[:knows {age: 101}]->(b);
+---- ok
+-STATEMENT MATCH (a:Person)-[e:knows]->(b:Person) RETURN a.id, b.id, e.age;
+---- 2
+0|1|100
+0|2|101
+-STATEMENT MATCH (a:Person), (b:Person) WHERE a.id=0 AND b.id=3 CREATE (a)-[:knows {age: 102}]->(b);
+---- ok
+-STATEMENT MATCH (a:Person), (b:Person) WHERE a.id=1 AND b.id=2 CREATE (a)-[:knows {age: 102}]->(b);
+---- ok
+-STATEMENT MATCH (a:Person)-[e:knows]->(b:Person) RETURN a.id, b.id, e.age;
+---- 4
+0|1|100
+0|2|101
+0|3|102
+1|2|102
+-STATEMENT MATCH (a:Person), (b:Person) WHERE a.id=4 AND b.id=0 CREATE (a)-[:knows {age: 102}]->(b);
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:Person), (b:Person) WHERE a.id=1 AND b.id=0 CREATE (a)-[:knows {age: 102}]->(b);
+---- ok
+-STATEMENT MATCH (a:Person), (b:Person) WHERE a.id=2 AND b.id=0 CREATE (a)-[:knows {age: 102}]->(b);
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (a:Person)-[e:knows]->(b:Person) RETURN a.id, b.id, e.age;
+---- 7
+0|1|100
+0|2|101
+0|3|102
+1|2|102
+1|0|102
+2|0|102
+4|0|102

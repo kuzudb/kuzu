@@ -1,115 +1,71 @@
 #pragma once
 
-#include <functional>
+#include <cmath>
 
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "function/hash/hash_functions.h"
-#include "storage/storage_structure/disk_overflow_file.h"
-#include "storage/storage_structure/in_mem_file.h"
+#include "storage/index/hash_index_header.h"
 
 namespace kuzu {
 namespace storage {
 
-using insert_function_t =
-    std::function<void(const uint8_t*, common::offset_t, uint8_t*, DiskOverflowFile*)>;
-using hash_function_t = std::function<common::hash_t(const uint8_t*)>;
-using equals_function_t = std::function<bool(
-    transaction::TransactionType trxType, const uint8_t*, const uint8_t*, DiskOverflowFile*)>;
-
-// NOLINTBEGIN(cert-err58-cpp): This is the best way to get the datatype size because it avoids
-// refactoring.
-static const uint32_t NUM_BYTES_FOR_INT64_KEY =
-    storage::StorageUtils::getDataTypeSize(common::LogicalType{common::LogicalTypeID::INT64});
-static const uint32_t NUM_BYTES_FOR_STRING_KEY =
-    storage::StorageUtils::getDataTypeSize(common::LogicalType{common::LogicalTypeID::STRING});
-// NOLINTEND(cert-err58-cpp)
-
-using in_mem_insert_function_t =
-    std::function<void(const uint8_t*, common::offset_t, uint8_t*, InMemFile*)>;
-using in_mem_equals_function_t =
-    std::function<bool(const uint8_t*, const uint8_t*, const InMemFile*)>;
-
 const uint64_t NUM_HASH_INDEXES_LOG2 = 8;
 const uint64_t NUM_HASH_INDEXES = 1 << NUM_HASH_INDEXES_LOG2;
 
-inline uint64_t getHashIndexPosition(int64_t key) {
-    common::hash_t hash;
-    function::Hash::operation(key, hash);
-    auto shiftOffset = (64 - NUM_HASH_INDEXES_LOG2) & (NUM_HASH_INDEXES - 1);
-    return hash >> (size_t)shiftOffset;
-}
-inline uint64_t getHashIndexPosition(const char* key) {
-    auto view = std::string_view(key);
-    auto shiftOffset = (64 - NUM_HASH_INDEXES_LOG2) & (NUM_HASH_INDEXES - 1);
-    return (std::hash<std::string_view>()(view) >> (size_t)shiftOffset);
-}
+static constexpr common::page_idx_t INDEX_HEADER_ARRAY_HEADER_PAGE_IDX = 0;
+static constexpr common::page_idx_t P_SLOTS_HEADER_PAGE_IDX = 1;
+static constexpr common::page_idx_t O_SLOTS_HEADER_PAGE_IDX = 2;
+static constexpr common::page_idx_t NUM_HEADER_PAGES = 3;
+static constexpr uint64_t INDEX_HEADER_IDX_IN_ARRAY = 0;
 
-class InMemHashIndexUtils {
-public:
-    static in_mem_equals_function_t initializeEqualsFunc(common::LogicalTypeID dataTypeID);
-    static in_mem_insert_function_t initializeInsertFunc(common::LogicalTypeID dataTypeID);
+enum class SlotType : uint8_t { PRIMARY = 0, OVF = 1 };
 
-private:
-    // InsertFunc
-    inline static void insertFuncForInt64(const uint8_t* key, common::offset_t offset,
-        uint8_t* entry, InMemFile* /*inMemOverflowFile*/ = nullptr) {
-        memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
-        memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(common::offset_t));
-    }
-    inline static void insertFuncForString(
-        const uint8_t* key, common::offset_t offset, uint8_t* entry, InMemFile* inMemOverflowFile) {
-        auto kuString = inMemOverflowFile->appendString(reinterpret_cast<const char*>(key));
-        memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
-        memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
-    }
-    inline static bool equalsFuncForInt64(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
-        const InMemFile* /*inMemOverflowFile*/ = nullptr) {
-        return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
-    }
-    static bool equalsFuncForString(
-        const uint8_t* keyToLookup, const uint8_t* keyInEntry, const InMemFile* inMemOverflowFile);
+struct SlotInfo {
+    slot_id_t slotId{UINT64_MAX};
+    SlotType slotType{SlotType::PRIMARY};
 };
 
 class HashIndexUtils {
 
 public:
-    // InsertFunc
-    inline static void insertFuncForInt64(const uint8_t* key, common::offset_t offset,
-        uint8_t* entry, DiskOverflowFile* /*overflowFile*/ = nullptr) {
-        memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
-        memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(common::offset_t));
+    inline static bool areStringPrefixAndLenEqual(std::string_view keyToLookup,
+        const common::ku_string_t& keyInEntry) {
+        auto prefixLen = std::min((uint64_t)keyInEntry.len,
+            static_cast<uint64_t>(common::ku_string_t::PREFIX_LENGTH));
+        return keyToLookup.length() == keyInEntry.len &&
+               memcmp(keyToLookup.data(), keyInEntry.prefix, prefixLen) == 0;
     }
-    inline static void insertFuncForString(const uint8_t* key, common::offset_t offset,
-        uint8_t* entry, DiskOverflowFile* overflowFile) {
-        auto kuString = overflowFile->writeString((const char*)key);
-        memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
-        memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
-    }
-    static insert_function_t initializeInsertFunc(common::LogicalTypeID dataTypeID);
 
-    // HashFunc
-    inline static common::hash_t hashFuncForInt64(const uint8_t* key) {
+    template<typename T>
+    inline static common::hash_t hash(const T& key) {
         common::hash_t hash;
-        function::Hash::operation(*(int64_t*)key, hash);
+        function::Hash::operation(key, hash);
         return hash;
     }
-    inline static common::hash_t hashFuncForString(const uint8_t* key) {
-        common::hash_t hash;
-        function::Hash::operation(std::string((char*)key), hash);
-        return hash;
-    }
-    static hash_function_t initializeHashFunc(common::LogicalTypeID dataTypeID);
 
-    // EqualsFunc
-    static bool isStringPrefixAndLenEquals(
-        const uint8_t* keyToLookup, const common::ku_string_t* keyInEntry);
-    inline static bool equalsFuncForInt64(transaction::TransactionType /*trxType*/,
-        const uint8_t* keyToLookup, const uint8_t* keyInEntry,
-        DiskOverflowFile* /*diskOverflowFile*/) {
-        return *(int64_t*)keyToLookup == *(int64_t*)keyInEntry;
+    inline static uint8_t getFingerprintForHash(common::hash_t hash) {
+        // Last 8 bits before the bits used to calculate the hash index position is the fingerprint
+        return (hash >> (64 - NUM_HASH_INDEXES_LOG2 - 8)) & 255;
     }
-    static bool equalsFuncForString(transaction::TransactionType trxType,
-        const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile);
-    static equals_function_t initializeEqualsFunc(common::LogicalTypeID dataTypeID);
+
+    inline static slot_id_t getPrimarySlotIdForHash(const HashIndexHeader& indexHeader,
+        common::hash_t hash) {
+        auto slotId = hash & indexHeader.levelHashMask;
+        if (slotId < indexHeader.nextSplitSlotId) {
+            slotId = hash & indexHeader.higherLevelHashMask;
+        }
+        return slotId;
+    }
+
+    inline static uint64_t getHashIndexPosition(common::IndexHashable auto key) {
+        return (HashIndexUtils::hash(key) >> (64 - NUM_HASH_INDEXES_LOG2)) & (NUM_HASH_INDEXES - 1);
+    }
+
+    static inline uint64_t getNumRequiredEntries(uint64_t numExistingEntries,
+        uint64_t numNewEntries) {
+        return ceil((double)(numExistingEntries + numNewEntries) * common::DEFAULT_HT_LOAD_FACTOR);
+    }
 };
 } // namespace storage
 } // namespace kuzu

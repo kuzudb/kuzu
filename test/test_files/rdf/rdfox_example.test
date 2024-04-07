@@ -1,27 +1,25 @@
--GROUP RdfoxExample
+-GROUP Rdf
 -DATASET TTL rdf/rdfox_example
 
 --
 
-
-
 -CASE RdfUpdate
--STATEMENT MATCH (a)-[e]->(b) WHERE a.iri <> ":brian"  DELETE e;
+-STATEMENT MATCH (a)-[e]->(b) WHERE NOT a.iri ENDS WITH "brian"  DELETE e;
 ---- ok
 -STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
 ---- 1
-:brian|:forename||Brian
+https://rdfox.com/getting-started/brian|https://rdfox.com/getting-started/forename||Brian
 -STATEMENT CREATE (a:example_r {iri: "a"})-[e:example_rt {iri: "b"}]->(b:example_r {iri: "c"})
 ---- ok
 -STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
 ---- 2
-:brian|:forename||Brian
+https://rdfox.com/getting-started/brian|https://rdfox.com/getting-started/forename||Brian
 a|b|c|
 -STATEMENT CREATE (a:example_r {iri: "a"})-[:example_rt {iri: "b"}]->(:example_r {iri: "c"})-[:example_rt {iri: "c"}]->(:example_r {iri: "d"})
 ---- ok
 -STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
 ---- 4
-:brian|:forename||Brian
+https://rdfox.com/getting-started/brian|https://rdfox.com/getting-started/forename||Brian
 a|b|c|
 a|b|c|
 c|c|d|
@@ -29,14 +27,14 @@ c|c|d|
 ---- ok
 -STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
 ---- 2
-:brian|:forename||Brian
+https://rdfox.com/getting-started/brian|https://rdfox.com/getting-started/forename||Brian
 c|c|d|
 -STATEMENT CREATE (a:example_r {iri: "a"})-[:example_lt {iri: "b"}]->(b:example_l {val: 12}),
                   (a)-[:example_lt {iri: "mm"}]->(:example_l {val:cast("2024-01-01", "DATE")})
 ---- ok
 -STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
 ---- 4
-:brian|:forename||Brian
+https://rdfox.com/getting-started/brian|https://rdfox.com/getting-started/forename||Brian
 c|c|d|
 a|b||12
 a|mm||2024-01-01
@@ -44,7 +42,7 @@ a|mm||2024-01-01
 ---- ok
 -STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
 ---- 3
-:brian|:forename||Brian
+https://rdfox.com/getting-started/brian|https://rdfox.com/getting-started/forename||Brian
 c|c|d|
 a|mm||2024-01-01
 -STATEMENT CREATE (a:example_r {iri: "x"})-[:example_lt {iri: "c"}]->(b:example_l {val: "hh"}) RETURN a.iri, b.val
@@ -52,7 +50,7 @@ a|mm||2024-01-01
 x|hh
 -STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
 ---- 4
-:brian|:forename||Brian
+https://rdfox.com/getting-started/brian|https://rdfox.com/getting-started/forename||Brian
 c|c|d|
 a|mm||2024-01-01
 x|c||hh
@@ -64,25 +62,26 @@ example_lt|REL|
 example_l|NODE|
 example_rt|REL|
 example_r|NODE|
-example|RDF|
+example|RDFGraph|
 
 -STATEMENT MATCH (s:example_r) RETURN s.iri ORDER BY offset(id(s));
----- 14
-:andy
-:literal
-:peter
-:forename
+---- 16
 http://www.w3.org/1999/02/22-rdf-syntax-ns#type
-:Person
-:marriedTo
-:lois
-:gender
-:meg
-:hasParent
-:chris
-:stewie
-:brian
-
+https://kuzudb.com/engineer
+https://rdfox.com/getting-started/Person
+https://rdfox.com/getting-started/andy
+https://rdfox.com/getting-started/brian
+https://rdfox.com/getting-started/chris
+https://rdfox.com/getting-started/forename
+https://rdfox.com/getting-started/gender
+https://rdfox.com/getting-started/hasParent
+https://rdfox.com/getting-started/literal
+https://rdfox.com/getting-started/lois
+https://rdfox.com/getting-started/marriedTo
+https://rdfox.com/getting-started/meg
+https://rdfox.com/getting-started/peter
+https://rdfox.com/getting-started/role
+https://rdfox.com/getting-started/stewie
 
 -STATEMENT MATCH (s:example_l) RETURN s.val ORDER BY s.id ;
 -CHECK_ORDER
@@ -132,62 +131,80 @@ Peter||||||||||||||||||||Peter
 |||||Petera
 
 -STATEMENT MATCH (a:example_r)-[e:example]->(b:example_r) RETURN a.iri, e.iri, b.iri
----- 10
-:peter|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
-:peter|:marriedTo|:lois
-:lois|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
-:meg|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
-:meg|:hasParent|:lois
-:meg|:hasParent|:peter
-:chris|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
-:chris|:hasParent|:peter
-:stewie|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
-:stewie|:hasParent|:lois
+---- 11
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/role|https://kuzudb.com/engineer
+https://rdfox.com/getting-started/chris|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|https://rdfox.com/getting-started/Person
+https://rdfox.com/getting-started/chris|https://rdfox.com/getting-started/hasParent|https://rdfox.com/getting-started/peter
+https://rdfox.com/getting-started/lois|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|https://rdfox.com/getting-started/Person
+https://rdfox.com/getting-started/meg|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|https://rdfox.com/getting-started/Person
+https://rdfox.com/getting-started/meg|https://rdfox.com/getting-started/hasParent|https://rdfox.com/getting-started/lois
+https://rdfox.com/getting-started/meg|https://rdfox.com/getting-started/hasParent|https://rdfox.com/getting-started/peter
+https://rdfox.com/getting-started/peter|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|https://rdfox.com/getting-started/Person
+https://rdfox.com/getting-started/peter|https://rdfox.com/getting-started/marriedTo|https://rdfox.com/getting-started/lois
+https://rdfox.com/getting-started/stewie|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|https://rdfox.com/getting-started/Person
+https://rdfox.com/getting-started/stewie|https://rdfox.com/getting-started/hasParent|https://rdfox.com/getting-started/lois
 
 -STATEMENT MATCH (a:example_r)-[e:example]->(b:example_l) RETURN a.iri, e.iri, b.val
 ---- 16
-:andy|:literal|12
-:andy|:literal|-14.900000
-:andy|:literal|True
-:andy|:literal|0.016630
-:andy|:literal|1999-08-16
-:peter|:forename|Peter
-:peter|:gender|male
-:lois|:forename|Lois
-:lois|:gender|female
-:meg|:forename|Meg
-:meg|:gender|female
-:chris|:forename|Chris
-:chris|:gender|male
-:stewie|:forename|Stewie
-:stewie|:gender|male
-:brian|:forename|Brian
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/literal|-14.900000
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/literal|0.016630
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/literal|12
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/literal|1999-08-16
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/literal|True
+https://rdfox.com/getting-started/brian|https://rdfox.com/getting-started/forename|Brian
+https://rdfox.com/getting-started/chris|https://rdfox.com/getting-started/forename|Chris
+https://rdfox.com/getting-started/chris|https://rdfox.com/getting-started/gender|male
+https://rdfox.com/getting-started/lois|https://rdfox.com/getting-started/forename|Lois
+https://rdfox.com/getting-started/lois|https://rdfox.com/getting-started/gender|female
+https://rdfox.com/getting-started/meg|https://rdfox.com/getting-started/forename|Meg
+https://rdfox.com/getting-started/meg|https://rdfox.com/getting-started/gender|female
+https://rdfox.com/getting-started/peter|https://rdfox.com/getting-started/forename|Peter
+https://rdfox.com/getting-started/peter|https://rdfox.com/getting-started/gender|male
+https://rdfox.com/getting-started/stewie|https://rdfox.com/getting-started/forename|Stewie
+https://rdfox.com/getting-started/stewie|https://rdfox.com/getting-started/gender|male
 
 -STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
----- 26
-:andy|:literal||-14.900000
-:andy|:literal||0.016630
-:andy|:literal||12
-:andy|:literal||1999-08-16
-:andy|:literal||True
-:brian|:forename||Brian
-:chris|:forename||Chris
-:chris|:gender||male
-:chris|:hasParent|:peter|
-:chris|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
-:lois|:forename||Lois
-:lois|:gender||female
-:lois|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
-:meg|:forename||Meg
-:meg|:gender||female
-:meg|:hasParent|:lois|
-:meg|:hasParent|:peter|
-:meg|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
-:peter|:forename||Peter
-:peter|:gender||male
-:peter|:marriedTo|:lois|
-:peter|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
-:stewie|:forename||Stewie
-:stewie|:gender||male
-:stewie|:hasParent|:lois|
-:stewie|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person|
+---- 27
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/literal||-14.900000
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/literal||0.016630
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/literal||12
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/literal||1999-08-16
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/literal||True
+https://rdfox.com/getting-started/andy|https://rdfox.com/getting-started/role|https://kuzudb.com/engineer|
+https://rdfox.com/getting-started/brian|https://rdfox.com/getting-started/forename||Brian
+https://rdfox.com/getting-started/chris|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|https://rdfox.com/getting-started/Person|
+https://rdfox.com/getting-started/chris|https://rdfox.com/getting-started/forename||Chris
+https://rdfox.com/getting-started/chris|https://rdfox.com/getting-started/gender||male
+https://rdfox.com/getting-started/chris|https://rdfox.com/getting-started/hasParent|https://rdfox.com/getting-started/peter|
+https://rdfox.com/getting-started/lois|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|https://rdfox.com/getting-started/Person|
+https://rdfox.com/getting-started/lois|https://rdfox.com/getting-started/forename||Lois
+https://rdfox.com/getting-started/lois|https://rdfox.com/getting-started/gender||female
+https://rdfox.com/getting-started/meg|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|https://rdfox.com/getting-started/Person|
+https://rdfox.com/getting-started/meg|https://rdfox.com/getting-started/forename||Meg
+https://rdfox.com/getting-started/meg|https://rdfox.com/getting-started/gender||female
+https://rdfox.com/getting-started/meg|https://rdfox.com/getting-started/hasParent|https://rdfox.com/getting-started/lois|
+https://rdfox.com/getting-started/meg|https://rdfox.com/getting-started/hasParent|https://rdfox.com/getting-started/peter|
+https://rdfox.com/getting-started/peter|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|https://rdfox.com/getting-started/Person|
+https://rdfox.com/getting-started/peter|https://rdfox.com/getting-started/forename||Peter
+https://rdfox.com/getting-started/peter|https://rdfox.com/getting-started/gender||male
+https://rdfox.com/getting-started/peter|https://rdfox.com/getting-started/marriedTo|https://rdfox.com/getting-started/lois|
+https://rdfox.com/getting-started/stewie|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|https://rdfox.com/getting-started/Person|
+https://rdfox.com/getting-started/stewie|https://rdfox.com/getting-started/forename||Stewie
+https://rdfox.com/getting-started/stewie|https://rdfox.com/getting-started/gender||male
+https://rdfox.com/getting-started/stewie|https://rdfox.com/getting-started/hasParent|https://rdfox.com/getting-started/lois|
+
+# Internal offset is not deterministic across platforms. So we don't check result
+-STATEMENT MATCH (a)-[e]->(b)
+            WHERE a.iri = "https://rdfox.com/getting-started/brian"
+            RETURN a, e, b
+---- ok
+-STATEMENT MATCH (a)-[e*]->(b)
+            WHERE a.iri = "https://rdfox.com/getting-started/brian"
+            RETURN e
+---- ok
+-STATEMENT RETURN 1;
+---- 1
+1
+-STATEMENT MATCH (a)-[e]->(b) RETURN e.pid;
+---- error
+Binder exception: pid is reserved for system usage. External access is not allowed.

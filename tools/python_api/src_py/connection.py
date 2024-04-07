@@ -1,15 +1,22 @@
-from .query_result import QueryResult
-from .prepared_statement import PreparedStatement
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from . import _kuzu
+from .prepared_statement import PreparedStatement
+from .query_result import QueryResult
+
+if TYPE_CHECKING:
+    from .database import Database
 
 
 class Connection:
-    """
-    Connection to a database.
-    """
+    """Connection to a database."""
 
-    def __init__(self, database, num_threads=0):
+    def __init__(self, database: Database, num_threads: int = 0):
         """
+        Initialise kuzu database connection.
+
         Parameters
         ----------
         database : Database
@@ -19,27 +26,22 @@ class Connection:
             Maximum number of threads to use for executing queries.
 
         """
-
+        self._connection: Any = None  # (type: _kuzu.Connection from pybind11)
         self.database = database
         self.num_threads = num_threads
-        self._connection = None
         self.init_connection()
 
-    def __getstate__(self):
-        state = {
-            "database": self.database,
-            "num_threads": self.num_threads,
-            "_connection": None
-        }
+    def __getstate__(self) -> dict[str, Any]:
+        state = {"database": self.database, "num_threads": self.num_threads, "_connection": None}
         return state
 
-    def init_connection(self):
+    def init_connection(self) -> None:
+        """Establish a connection to the database, if not already initalised."""
         self.database.init_database()
         if self._connection is None:
-            self._connection = _kuzu.Connection(
-                self.database._database, self.num_threads)
+            self._connection = _kuzu.Connection(self.database._database, self.num_threads)  # type: ignore[union-attr]
 
-    def set_max_threads_for_exec(self, num_threads):
+    def set_max_threads_for_exec(self, num_threads: int) -> None:
         """
         Set the maximum number of threads for executing queries.
 
@@ -52,7 +54,11 @@ class Connection:
         self.init_connection()
         self._connection.set_max_threads_for_exec(num_threads)
 
-    def execute(self, query, parameters={}):
+    def execute(
+        self,
+        query: str | PreparedStatement,
+        parameters: dict[str, Any] | None = None,
+    ) -> QueryResult:
         """
         Execute a query.
 
@@ -72,21 +78,23 @@ class Connection:
             Query result.
 
         """
+        if parameters is None:
+            parameters = {}
+
         self.init_connection()
-        if type(parameters) != dict:
+        if not isinstance(parameters, dict):
             # TODO(Chang): remove ROLLBACK once we can guarantee database is deleted after conn
             self._connection.execute(self.prepare("ROLLBACK")._prepared_statement, {})
-            raise RuntimeError("Parameters must be a dict")
-        prepared_statement = self.prepare(
-            query) if type(query) == str else query
-        _query_result = self._connection.execute(
-                               prepared_statement._prepared_statement,
-                               parameters)
+            msg = f"Parameters must be a dict; found {type(parameters)}."
+            raise RuntimeError(msg)  # noqa: TRY004
+
+        prepared_statement = self.prepare(query) if isinstance(query, str) else query
+        _query_result = self._connection.execute(prepared_statement._prepared_statement, parameters)
         if not _query_result.isSuccess():
             raise RuntimeError(_query_result.getErrorMessage())
         return QueryResult(self, _query_result)
 
-    def prepare(self, query):
+    def prepare(self, query: str) -> PreparedStatement:
         """
         Create a prepared statement for a query.
 
@@ -101,22 +109,19 @@ class Connection:
             Prepared statement.
 
         """
-
         return PreparedStatement(self, query)
 
-    def _get_node_property_names(self, table_name):
-        PRIMARY_KEY_SYMBOL = "(PRIMARY KEY)"
+    def _get_node_property_names(self, table_name: str) -> dict[str, Any]:
         LIST_START_SYMBOL = "["
         LIST_END_SYMBOL = "]"
         self.init_connection()
-        query_result = self.execute(
-            "CALL table_info('%s') RETURN *;" % table_name)
+        query_result = self.execute(f"CALL table_info('{table_name}') RETURN *;")
         results = {}
         while query_result.has_next():
             row = query_result.get_next()
             prop_name = row[1]
             prop_type = row[2]
-            is_primary_key = row[3] == True
+            is_primary_key = row[3] is True
             dimension = prop_type.count(LIST_START_SYMBOL)
             splitted = prop_type.split(LIST_START_SYMBOL)
             shape = []
@@ -127,16 +132,12 @@ class Connection:
                 if s != "":
                     shape.append(int(s))
             prop_type = splitted[0]
-            results[prop_name] = {
-                "type": prop_type,
-                "dimension": dimension,
-                "is_primary_key": is_primary_key
-            }
+            results[prop_name] = {"type": prop_type, "dimension": dimension, "is_primary_key": is_primary_key}
             if len(shape) > 0:
                 results[prop_name]["shape"] = tuple(shape)
         return results
 
-    def _get_node_table_names(self):
+    def _get_node_table_names(self) -> list[Any]:
         results = []
         self.init_connection()
         query_result = self.execute("CALL show_tables() RETURN *;")
@@ -146,7 +147,7 @@ class Connection:
                 results.append(row[0])
         return results
 
-    def _get_rel_table_names(self):
+    def _get_rel_table_names(self) -> list[dict[str, Any]]:
         results = []
         self.init_connection()
         tables_result = self.execute("CALL show_tables() RETURN *;")
@@ -154,18 +155,14 @@ class Connection:
             row = tables_result.get_next()
             if row[1] == "REL":
                 name = row[0]
-                connections_result = self.execute("CALL show_connection('%s') RETURN *;" % name)
+                connections_result = self.execute(f"CALL show_connection({name!r}) RETURN *;")
                 src_dst_row = connections_result.get_next()
                 src_node = src_dst_row[0]
                 dst_node = src_dst_row[1]
-                results.append({
-                    "name": name,
-                    "src": src_node,
-                    "dst": dst_node
-                })
+                results.append({"name": name, "src": src_node, "dst": dst_node})
         return results
 
-    def set_query_timeout(self, timeout_in_ms):
+    def set_query_timeout(self, timeout_in_ms: int) -> None:
         """
         Set the query timeout value in ms for executing queries.
 
@@ -173,7 +170,7 @@ class Connection:
         ----------
         timeout_in_ms : int
             query timeout value in ms for executing queries.
-            
+
         """
         self.init_connection()
         self._connection.set_query_timeout(timeout_in_ms)

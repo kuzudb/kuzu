@@ -114,6 +114,18 @@ False
 ---- 1
 0|1
 
+-LOG UUIDKeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE p.u = UUID("A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11") RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+0|1
+
+-LOG UUIDKeyTest2
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE p.u = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+0|1
+
 -LOG SimpleCollectINT64Test
 -STATEMENT MATCH (p:person) RETURN collect(p.age)
 ---- 1
@@ -320,11 +332,13 @@ False
 250
 
 -LOG SimpleAggSumUInt8Test
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.ulevel)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) 
+		   WHERE s.year = 2020
+		   RETURN SUM(s.ulevel)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-226
+232
 
 -LOG SimpleAggMaxInt128Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.hugedata)

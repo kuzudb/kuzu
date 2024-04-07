@@ -34,8 +34,8 @@ void CopyToCSVLocalState::init(CopyToInfo* info, MemoryManager* mm, ResultSet* r
     castFuncs.resize(info->dataPoses.size());
     for (auto i = 0u; i < info->dataPoses.size(); i++) {
         auto vectorToCast = resultSet->getValueVector(info->dataPoses[i]);
-        castFuncs[i] = function::CastFunction::bindCastFunction(
-            "cast", vectorToCast->dataType.getLogicalTypeID(), LogicalTypeID::STRING)
+        castFuncs[i] = function::CastFunction::bindCastFunction("cast",
+            vectorToCast->dataType.getLogicalTypeID(), LogicalTypeID::STRING)
                            ->execFunc;
         vectorsToCast.push_back(std::move(vectorToCast));
         auto castVector = std::make_unique<ValueVector>(LogicalTypeID::STRING, mm);
@@ -104,8 +104,8 @@ void CopyToCSVLocalState::writeString(common::BufferedSerializer* serializer,
     }
 }
 
-bool CopyToCSVLocalState::requireQuotes(
-    CopyToCSVInfo* copyToCsvInfo, const uint8_t* str, uint64_t len) {
+bool CopyToCSVLocalState::requireQuotes(CopyToCSVInfo* copyToCsvInfo, const uint8_t* str,
+    uint64_t len) {
     // Check if the string is equal to the null string.
     if (len == strlen(CopyToCSVConstants::DEFAULT_NULL_STR) &&
         memcmp(str, CopyToCSVConstants::DEFAULT_NULL_STR, len) == 0) {
@@ -167,17 +167,18 @@ void CopyToCSVLocalState::writeRows(CopyToCSVInfo* copyToCsvInfo) {
                 continue;
             }
             auto strValue = vector->getValue<ku_string_t>(pos);
-            // Note: we need blindly add quotes to VAR_LIST.
+            // Note: we need blindly add quotes to LIST.
             writeString(serializer.get(), copyToCsvInfo, strValue.getData(), strValue.len,
                 CopyToCSVConstants::DEFAULT_FORCE_QUOTE ||
-                    vectorsToCast[j]->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+                    vectorsToCast[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST);
         }
         serializer->writeBufferData(CopyToCSVConstants::DEFAULT_CSV_NEWLINE);
     }
 }
 
-void CopyToCSVSharedState::init(CopyToInfo* info, MemoryManager* /*mm*/, VirtualFileSystem* vfs) {
-    fileInfo = vfs->openFile(info->fileName, O_WRONLY | O_CREAT | O_TRUNC);
+void CopyToCSVSharedState::init(CopyToInfo* info, main::ClientContext* context) {
+    fileInfo =
+        context->getVFSUnsafe()->openFile(info->fileName, O_WRONLY | O_CREAT | O_TRUNC, context);
     writeHeader(info);
 }
 

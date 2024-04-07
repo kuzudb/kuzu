@@ -1,6 +1,6 @@
 #include "kuzu_rs.h"
 
-using kuzu::common::FixedListTypeInfo;
+using kuzu::common::ArrayTypeInfo;
 using kuzu::common::Interval;
 using kuzu::common::LogicalType;
 using kuzu::common::LogicalTypeID;
@@ -8,7 +8,7 @@ using kuzu::common::NodeVal;
 using kuzu::common::RelVal;
 using kuzu::common::StructField;
 using kuzu::common::Value;
-using kuzu::common::VarListTypeInfo;
+using kuzu::common::ListTypeInfo;
 using kuzu::main::Connection;
 using kuzu::main::Database;
 using kuzu::main::SystemConfig;
@@ -22,13 +22,13 @@ std::unique_ptr<QueryParams> new_params() {
 std::unique_ptr<LogicalType> create_logical_type(kuzu::common::LogicalTypeID id) {
     return std::make_unique<LogicalType>(id);
 }
-std::unique_ptr<LogicalType> create_logical_type_var_list(std::unique_ptr<LogicalType> childType) {
-    return LogicalType::VAR_LIST(std::move(childType));
+std::unique_ptr<LogicalType> create_logical_type_list(std::unique_ptr<LogicalType> childType) {
+    return LogicalType::LIST(std::move(childType));
 }
 
-std::unique_ptr<LogicalType> create_logical_type_fixed_list(
+std::unique_ptr<LogicalType> create_logical_type_array(
     std::unique_ptr<LogicalType> childType, uint64_t numElements) {
-    return LogicalType::FIXED_LIST(std::move(childType), numElements);
+    return LogicalType::ARRAY(std::move(childType), numElements);
 }
 
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
@@ -36,14 +36,14 @@ std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
     return LogicalType::MAP(std::move(keyType), std::move(valueType));
 }
 
-const LogicalType& logical_type_get_var_list_child_type(const LogicalType& logicalType) {
-    return *kuzu::common::VarListType::getChildType(&logicalType);
+const LogicalType& logical_type_get_list_child_type(const LogicalType& logicalType) {
+    return *kuzu::common::ListType::getChildType(&logicalType);
 }
-const LogicalType& logical_type_get_fixed_list_child_type(const LogicalType& logicalType) {
-    return *kuzu::common::FixedListType::getChildType(&logicalType);
+const LogicalType& logical_type_get_array_child_type(const LogicalType& logicalType) {
+    return *kuzu::common::ArrayType::getChildType(&logicalType);
 }
-uint64_t logical_type_get_fixed_list_num_elements(const LogicalType& logicalType) {
-    return kuzu::common::FixedListType::getNumValuesInList(&logicalType);
+uint64_t logical_type_get_array_num_elements(const LogicalType& logicalType) {
+    return kuzu::common::ArrayType::getNumElements(&logicalType);
 }
 
 rust::Vec<rust::String> logical_type_get_struct_field_names(
@@ -65,7 +65,7 @@ std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_
 }
 
 std::unique_ptr<Database> new_database(std::string_view databasePath, uint64_t bufferPoolSize,
-    uint64_t maxNumThreads, bool enableCompression, bool readOnly) {
+    uint64_t maxNumThreads, bool enableCompression, bool readOnly, uint64_t maxDBSize) {
     auto systemConfig = SystemConfig();
     if (bufferPoolSize > 0) {
         systemConfig.bufferPoolSize = bufferPoolSize;
@@ -75,6 +75,9 @@ std::unique_ptr<Database> new_database(std::string_view databasePath, uint64_t b
     }
     systemConfig.readOnly = readOnly;
     systemConfig.enableCompression = enableCompression;
+    if (maxDBSize != -1u) {
+        systemConfig.maxDBSize = maxDBSize;
+    }
     return std::make_unique<Database>(databasePath, systemConfig);
 }
 
@@ -108,12 +111,6 @@ double query_result_get_compiling_time(const kuzu::main::QueryResult& result) {
 }
 double query_result_get_execution_time(const kuzu::main::QueryResult& result) {
     return result.getQuerySummary()->getExecutionTime();
-}
-
-void query_result_write_to_csv(kuzu::main::QueryResult& query_result, const rust::String& filename,
-    int8_t delimiter, int8_t escape_character, int8_t newline) {
-    query_result.writeToCSV(
-        std::string(filename), (char)delimiter, (char)escape_character, (char)newline);
 }
 
 std::unique_ptr<std::vector<kuzu::common::LogicalType>> query_result_column_data_types(
@@ -261,9 +258,6 @@ std::unique_ptr<kuzu::common::Value> create_value_timestamp_ms(const int64_t tim
 }
 std::unique_ptr<kuzu::common::Value> create_value_timestamp_sec(const int64_t timestamp) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::timestamp_sec_t(timestamp));
-}
-std::unique_ptr<kuzu::common::Value> create_value_date(const int64_t date) {
-    return std::make_unique<kuzu::common::Value>(kuzu::common::date_t(date));
 }
 std::unique_ptr<kuzu::common::Value> create_value_interval(
     const int32_t months, const int32_t days, const int64_t micros) {

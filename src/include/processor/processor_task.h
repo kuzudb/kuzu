@@ -10,16 +10,14 @@ class ProcessorTask : public common::Task {
     friend class QueryProcessor;
 
 public:
-    ProcessorTask(Sink* sink, ExecutionContext* executionContext)
-        : Task{executionContext->numThreads}, sharedStateInitialized{false}, sink{sink},
-          executionContext{executionContext} {}
+    ProcessorTask(Sink* sink, ExecutionContext* executionContext);
 
     void run() override;
     void finalizeIfNecessary() override;
 
 private:
-    static std::unique_ptr<ResultSet> populateResultSet(
-        Sink* op, storage::MemoryManager* memoryManager);
+    static std::unique_ptr<ResultSet> populateResultSet(Sink* op,
+        storage::MemoryManager* memoryManager);
 
 private:
     bool sharedStateInitialized;

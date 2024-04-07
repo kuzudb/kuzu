@@ -1,0 +1,25 @@
+-GROUP Rdf
+-DATASET TTL EMPTY
+
+--
+
+-CASE NTriples
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT COPY R FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/ntriple/data.nt";
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val;
+---- 12
+_:0alice|http://xmlns.com/foaf/0.1/knows|_:0bob|
+_:0bob|http://xmlns.com/foaf/0.1/knows|_:0alice|
+_:0subject1|http://an.example/predicate1||object1
+_:0subject2|http://an.example/predicate2||object2
+http://en.wikipedia.org/wiki/Helium|http://example.org/elements/atomicNumber||2
+http://en.wikipedia.org/wiki/Helium|http://example.org/elements/specificGravity||0.000166
+http://example.org/#spiderman|http://www.perceive.net/schemas/relationship/enemyOf|http://example.org/#green-goblin|
+http://example.org/show/218|http://example.org/show/localName||Cette Série des Années Septante
+http://example.org/show/218|http://example.org/show/localName||That Seventies Show
+http://example.org/show/218|http://www.w3.org/2000/01/rdf-schema#label||That Seventies Show
+http://example.org/show/218|http://www.w3.org/2000/01/rdf-schema#label||That Seventies Show
+http://one.example/subject1|http://one.example/predicate1|http://one.example/object1|

@@ -4,10 +4,12 @@
 #include <cstring>
 #include <string>
 
+#include "common/api.h"
+
 namespace kuzu {
 namespace common {
 
-struct ku_string_t {
+struct KUZU_API ku_string_t {
 
     static constexpr uint64_t PREFIX_LENGTH = 4;
     static constexpr uint64_t INLINED_SUFFIX_LENGTH = 8;
@@ -25,7 +27,11 @@ struct ku_string_t {
 
     static bool isShortString(uint32_t len) { return len <= SHORT_STR_LENGTH; }
 
-    inline const uint8_t* getData() const {
+    const uint8_t* getData() const {
+        return isShortString(len) ? prefix : reinterpret_cast<uint8_t*>(overflowPtr);
+    }
+
+    uint8_t* getDataUnsafe() {
         return isShortString(len) ? prefix : reinterpret_cast<uint8_t*>(overflowPtr);
     }
 
@@ -34,20 +40,20 @@ struct ku_string_t {
     void set(const std::string& value);
     void set(const char* value, uint64_t length);
     void set(const ku_string_t& value);
-    inline void setShortString(const char* value, uint64_t length) {
+    void setShortString(const char* value, uint64_t length) {
         this->len = length;
         memcpy(prefix, value, length);
     }
-    inline void setLongString(const char* value, uint64_t length) {
+    void setLongString(const char* value, uint64_t length) {
         this->len = length;
         memcpy(prefix, value, PREFIX_LENGTH);
         memcpy(reinterpret_cast<char*>(overflowPtr), value, length);
     }
-    inline void setShortString(const ku_string_t& value) {
+    void setShortString(const ku_string_t& value) {
         this->len = value.len;
         memcpy(prefix, value.prefix, value.len);
     }
-    inline void setLongString(const ku_string_t& value) {
+    void setLongString(const ku_string_t& value) {
         this->len = value.len;
         memcpy(prefix, value.prefix, PREFIX_LENGTH);
         memcpy(reinterpret_cast<char*>(overflowPtr), reinterpret_cast<char*>(value.overflowPtr),

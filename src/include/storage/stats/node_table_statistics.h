@@ -18,7 +18,7 @@ namespace storage {
 
 class NodeTableStatsAndDeletedIDs : public TableStatistics {
 public:
-    NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH, const catalog::TableSchema& schema,
+    NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH, const catalog::TableCatalogEntry& entry,
         BufferManager* bufferManager, WAL* wal);
     NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
         const std::vector<common::offset_t>& deletedNodeOffsets);
@@ -36,11 +36,8 @@ public:
 
     void deleteNode(common::offset_t nodeOffset);
 
-    // This function assumes that it is being called right after ScanNodeID has obtained a
-    // morsel and that the nodeID structs in nodeOffsetVector.values have consecutive node
-    // offsets and the same tableID.
-    void setDeletedNodeOffsetsForMorsel(
-        const std::shared_ptr<common::ValueVector>& nodeOffsetVector);
+    // This function assumes nodeIDVector have consecutive node offsets and the same tableID.
+    void setDeletedNodeOffsetsForMorsel(common::ValueVector* nodeIDVector) const;
 
     void setNumTuples(uint64_t numTuples) override;
 

@@ -1,14 +1,17 @@
 #include "common/types/uuid.h"
 
+#include "common/exception/conversion.h"
+#include "common/random_engine.h"
+
 namespace kuzu {
 namespace common {
 
-void uuid_t::byteToHex(char byteVal, char* buf, uint64_t& pos) {
+void UUID::byteToHex(char byteVal, char* buf, uint64_t& pos) {
     buf[pos++] = HEX_DIGITS[(byteVal >> 4) & 0xf];
     buf[pos++] = HEX_DIGITS[byteVal & 0xf];
 }
 
-unsigned char uuid_t::hex2Char(char ch) {
+unsigned char UUID::hex2Char(char ch) {
     if (ch >= '0' && ch <= '9') {
         return ch - '0';
     }
@@ -19,9 +22,13 @@ unsigned char uuid_t::hex2Char(char ch) {
         return 10 + ch - 'A';
     }
     return 0;
-};
+}
 
-bool uuid_t::fromString(std::string str, int128_t& result) {
+bool UUID::isHex(char ch) {
+    return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
+}
+
+bool UUID::fromString(std::string str, int128_t& result) {
     if (str.empty()) {
         return false;
     }
@@ -38,7 +45,7 @@ bool uuid_t::fromString(std::string str, int128_t& result) {
     result.low = 0;
     result.high = 0;
     uint32_t count = 0;
-    for (uint32_t i = numBrackets; i < str.size() - numBrackets; ++i) {
+    for (auto i = numBrackets; i < str.size() - numBrackets; ++i) {
         if (str[i] == '-') {
             continue;
         }
@@ -57,7 +64,19 @@ bool uuid_t::fromString(std::string str, int128_t& result) {
     return count == 32;
 }
 
-void uuid_t::toString(int128_t input, char* buf) {
+int128_t UUID::fromString(std::string str) {
+    int128_t result;
+    if (!fromString(str, result)) {
+        throw ConversionException("Invalid UUID: " + str);
+    }
+    return result;
+}
+
+int128_t UUID::fromCString(const char* str, uint64_t len) {
+    return fromString(std::string(str, len));
+}
+
+void UUID::toString(int128_t input, char* buf) {
     // Flip back before convert to string
     int64_t high = input.high ^ (int64_t(1) << 63);
     uint64_t pos = 0;
@@ -81,6 +100,50 @@ void uuid_t::toString(int128_t input, char* buf) {
     byteToHex(input.low >> 16 & 0xFF, buf, pos);
     byteToHex(input.low >> 8 & 0xFF, buf, pos);
     byteToHex(input.low & 0xFF, buf, pos);
+}
+
+std::string UUID::toString(int128_t input) {
+    char buff[UUID_STRING_LENGTH];
+    toString(input, buff);
+    return std::string(buff, UUID_STRING_LENGTH);
+}
+
+std::string UUID::toString(ku_uuid_t val) {
+    return toString(val.value);
+}
+
+ku_uuid_t UUID::generateRandomUUID(RandomEngine* engine) {
+    uint8_t bytes[16];
+    for (int i = 0; i < 16; i += 4) {
+        *reinterpret_cast<uint32_t*>(bytes + i) = engine->nextRandomInteger();
+    }
+    // variant must be 10xxxxxx
+    bytes[8] &= 0xBF;
+    bytes[8] |= 0x80;
+    // version must be 0100xxxx
+    bytes[6] &= 0x4F;
+    bytes[6] |= 0x40;
+
+    int128_t result;
+    result.high = 0;
+    result.high |= ((int64_t)bytes[0] << 56);
+    result.high |= ((int64_t)bytes[1] << 48);
+    result.high |= ((int64_t)bytes[2] << 40);
+    result.high |= ((int64_t)bytes[3] << 32);
+    result.high |= ((int64_t)bytes[4] << 24);
+    result.high |= ((int64_t)bytes[5] << 16);
+    result.high |= ((int64_t)bytes[6] << 8);
+    result.high |= bytes[7];
+    result.low = 0;
+    result.low |= ((uint64_t)bytes[8] << 56);
+    result.low |= ((uint64_t)bytes[9] << 48);
+    result.low |= ((uint64_t)bytes[10] << 40);
+    result.low |= ((uint64_t)bytes[11] << 32);
+    result.low |= ((uint64_t)bytes[12] << 24);
+    result.low |= ((uint64_t)bytes[13] << 16);
+    result.low |= ((uint64_t)bytes[14] << 8);
+    result.low |= bytes[15];
+    return ku_uuid_t{result};
 }
 
 } // namespace common

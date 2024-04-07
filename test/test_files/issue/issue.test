@@ -233,7 +233,6 @@ True|True|True
 [t2,t22]
 [t3]
 
-
 -CASE 2587
 -STATEMENT CREATE NODE TABLE T (id STRING, descr STRING, PRIMARY KEY (id));
 ---- ok
@@ -337,3 +336,72 @@ t2
 ---- 2
 10|{a: 1, b: 2}
 11|{a: 3, b: 4}
+
+-CASE 2675
+-STATEMENT CREATE NODE TABLE V1 (id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE V2 (id STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE NODE TABLE V3 (id STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP MYREL(FROM V3 TO V2, FROM V2 TO V1);
+---- ok
+-STATEMENT CREATE REL TABLE E(FROM V1 TO V2);
+---- ok
+-STATEMENT CREATE (v21: V2 {id: "v21"})-[:E]->(v11:V1 {id: "v11"});
+---- error
+Binder exception: Query node v21 violates schema. Expected labels are V1.
+-STATEMENT CREATE (v22:V2 {id: "v22"})-[:E]->(v23: V2 {id: "v23"});
+---- error
+Binder exception: Query node v22 violates schema. Expected labels are V1.
+-STATEMENT CREATE (:V3 {id: "v3"})-[:MYREL]->(:V2 {id: "v2"})
+---- ok
+-STATEMENT MATCH (a:V3)-[:MYREL]->(b:V2) RETURN a.*, b.*;
+---- 1
+v3|v2
+
+-CASE 2701
+-STATEMENT CREATE NODE TABLE T (id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE R (FROM T TO T);
+---- ok
+-STATEMENT CREATE ({id: 1})-[:R]->({id:2});
+---- ok
+-STATEMENT MATCH (a {id: 1}) CREATE (a)-[:R]->(a);
+---- ok
+-STATEMENT MATCH (n1), (n2)<-[]-(n2), (n1)<-[]-(n2) RETURN n1.id, n2.id
+---- 2
+1|1
+2|1
+
+-CASE 2942
+
+-STATEMENT CREATE NODE TABLE V (id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE R (id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE childof (FROM V TO V);
+---- ok
+-STATEMENT CREATE REL TABLE relatedto (FROM R TO V);
+---- ok
+-STATEMENT CREATE (v1:V {id:"v1"}),(v11:V {id:"v11"}),(v12:V {id:"v12"}),(v111:V {id:"v111"}),
+(r1:R {id:"r1"}), (r12:R {id:"r12"}),
+(v111)-[:childof]->(v11),(v11)-[:childof]->(v1),(v12)-[:childof]->(v1),
+(r1)-[:relatedto]->(v1), (r12)-[:relatedto]->(v12);
+---- ok
+-STATEMENT MATCH (v:V)-[e:childof*]->(v1:V {id: "v1"})
+           OPTIONAL MATCH (r)-[:relatedto]->(v)
+           RETURN r, v.id;
+---- 3
+{_ID: 1:1, _LABEL: R, id: r12}|v12
+|v11
+|v111
+
+-CASE 3042
+-STATEMENT CREATE NODE TABLE MyTask (id STRING, inputs MAP(STRING, STRING)[], PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (:MyTask {id: 'myid', inputs: [MAP(['input1'], ['value1'])]});
+---- ok
+-STATEMENT MATCH (n:MyTask) RETURN n.*;
+---- 1
+myid|[{input1=value1}]

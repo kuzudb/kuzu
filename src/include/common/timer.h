@@ -22,7 +22,7 @@ public:
         finished = true;
     }
 
-    double getDuration() {
+    double getDuration() const {
         if (finished) {
             auto duration = stopTime - startTime;
             return (double)std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
@@ -30,7 +30,7 @@ public:
         throw Exception("Timer is still running.");
     }
 
-    uint64_t getElapsedTimeInMS() {
+    uint64_t getElapsedTimeInMS() const {
         auto now = std::chrono::high_resolution_clock::now();
         auto duration = now - startTime;
         auto count = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();

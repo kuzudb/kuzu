@@ -3,14 +3,12 @@
 #include "column_reader.h"
 #include "common/data_chunk/data_chunk.h"
 #include "common/types/types.h"
-#include "function/scalar_function.h"
-#include "function/table_functions/bind_data.h"
-#include "function/table_functions/bind_input.h"
-#include "function/table_functions/scan_functions.h"
+#include "function/function.h"
+#include "function/table/bind_input.h"
+#include "function/table/scan_functions.h"
 #include "parquet/parquet_types.h"
 #include "resizable_buffer.h"
 #include "thrift/protocol/TCompactProtocol.h"
-#include "thrift_tools.h"
 
 namespace kuzu {
 namespace processor {
@@ -42,8 +40,7 @@ struct ParquetReaderScanState {
 
 class ParquetReader {
 public:
-    ParquetReader(const std::string& filePath, storage::MemoryManager* memoryManager,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+    ParquetReader(const std::string& filePath, main::ClientContext* context);
     ~ParquetReader() = default;
 
     void initializeScan(ParquetReaderScanState& state, std::vector<uint64_t> groups_to_read,
@@ -74,7 +71,7 @@ private:
     }
     static std::unique_ptr<common::LogicalType> deriveLogicalType(
         const kuzu_parquet::format::SchemaElement& s_ele);
-    void initMetadata(common::VirtualFileSystem* vfs);
+    void initMetadata();
     std::unique_ptr<ColumnReader> createReader();
     std::unique_ptr<ColumnReader> createReaderRecursive(uint64_t depth, uint64_t maxDefine,
         uint64_t maxRepeat, uint64_t& nextSchemaIdx, uint64_t& nextFileIdx);
@@ -90,17 +87,16 @@ private:
     std::vector<std::string> columnNames;
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     std::unique_ptr<kuzu_parquet::format::FileMetaData> metadata;
-    storage::MemoryManager* memoryManager;
     main::ClientContext* context;
 };
 
 struct ParquetScanSharedState final : public function::ScanFileSharedState {
-    explicit ParquetScanSharedState(const common::ReaderConfig readerConfig,
-        storage::MemoryManager* memoryManager, uint64_t numRows, common::VirtualFileSystem* vfs,
+    explicit ParquetScanSharedState(const common::ReaderConfig readerConfig, uint64_t numRows,
         main::ClientContext* context);
 
     std::vector<std::unique_ptr<ParquetReader>> readers;
-    storage::MemoryManager* memoryManager;
+    uint64_t totalRowsGroups;
+    uint64_t numBlocksReadByFiles;
 };
 
 struct ParquetScanLocalState final : public function::TableFuncLocalState {
@@ -111,27 +107,9 @@ struct ParquetScanLocalState final : public function::TableFuncLocalState {
 };
 
 struct ParquetScanFunction {
+    static constexpr const char* name = "READ_PARQUET";
+
     static function::function_set getFunctionSet();
-
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
-
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        function::TableFuncBindInput* input, catalog::Catalog* catalog,
-        storage::StorageManager* /*storageManager*/);
-
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
-
-    static std::unique_ptr<function::TableFuncLocalState> initLocalState(
-        function::TableFunctionInitInput& input, function::TableFuncSharedState* state,
-        storage::MemoryManager* /*mm*/);
-
-    static void bindColumns(const function::ScanTableFuncBindInput* bindInput,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
-    static void bindColumns(const function::ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
 };
 
 } // namespace processor

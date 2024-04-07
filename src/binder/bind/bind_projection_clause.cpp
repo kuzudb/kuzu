@@ -54,7 +54,7 @@ BoundWithClause Binder::bindWithClause(const WithClause& withClause) {
     auto boundProjectionBody =
         bindProjectionBody(*projectionBody, rewriteProjectionInWithClause(projectionExpressions));
     validateOrderByFollowedBySkipOrLimitInWithClause(boundProjectionBody);
-    scope->clear();
+    scope.clear();
     addExpressionsToScope(projectionExpressions);
     auto boundWithClause = BoundWithClause(std::move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
@@ -75,9 +75,9 @@ BoundReturnClause Binder::bindReturnClause(const ReturnClause& returnClause) {
     return BoundReturnClause(std::move(boundProjectionBody), std::move(statementResult));
 }
 
-static bool isAggregateExpression(
-    const std::shared_ptr<Expression>& expression, BinderScope* scope) {
-    if (expression->hasAlias() && scope->contains(expression->getAlias())) {
+static bool isAggregateExpression(const std::shared_ptr<Expression>& expression,
+    const BinderScope& scope) {
+    if (expression->hasAlias() && scope.contains(expression->getAlias())) {
         return false;
     }
     if (expression->expressionType == ExpressionType::AGGREGATE_FUNCTION) {
@@ -91,10 +91,10 @@ static bool isAggregateExpression(
     return false;
 }
 
-static expression_vector getAggregateExpressions(
-    const std::shared_ptr<Expression>& expression, BinderScope* scope) {
+static expression_vector getAggregateExpressions(const std::shared_ptr<Expression>& expression,
+    const BinderScope& scope) {
     expression_vector result;
-    if (expression->hasAlias() && scope->contains(expression->getAlias())) {
+    if (expression->hasAlias() && scope.contains(expression->getAlias())) {
         return result;
     }
     if (expression->expressionType == ExpressionType::AGGREGATE_FUNCTION) {
@@ -109,16 +109,16 @@ static expression_vector getAggregateExpressions(
     return result;
 }
 
-BoundProjectionBody Binder::bindProjectionBody(
-    const parser::ProjectionBody& projectionBody, const expression_vector& projectionExpressions) {
+BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& projectionBody,
+    const expression_vector& projectionExpressions) {
     auto boundProjectionBody =
         BoundProjectionBody(projectionBody.getIsDistinct(), projectionExpressions);
     // Bind group by & aggregate.
     expression_vector groupByExpressions;
     expression_vector aggregateExpressions;
     for (auto& expression : projectionExpressions) {
-        if (isAggregateExpression(expression, scope.get())) {
-            for (auto& agg : getAggregateExpressions(expression, scope.get())) {
+        if (isAggregateExpression(expression, scope)) {
+            for (auto& agg : getAggregateExpressions(expression, scope)) {
                 aggregateExpressions.push_back(agg);
             }
         } else {
@@ -164,8 +164,8 @@ BoundProjectionBody Binder::bindProjectionBody(
                 }
             }
         }
-        boundProjectionBody.setOrderByExpressions(
-            std::move(orderByExpressions), projectionBody.getSortOrders());
+        boundProjectionBody.setOrderByExpressions(std::move(orderByExpressions),
+            projectionBody.getSortOrders());
     }
     // Bind skip
     if (projectionBody.hasSkipExpression()) {
@@ -186,11 +186,11 @@ expression_vector Binder::bindProjectionExpressions(
     for (auto& expression : projectionExpressions) {
         if (expression->getExpressionType() == ExpressionType::STAR) {
             // Rewrite star expression as all expression in scope.
-            if (scope->empty()) {
+            if (scope.empty()) {
                 throw BinderException(
                     "RETURN or WITH * is not allowed when there are no variables in scope.");
             }
-            for (auto& expr : scope->getExpressions()) {
+            for (auto& expr : scope.getExpressions()) {
                 result.push_back(expr);
             }
         } else if (expression->getExpressionType() == ExpressionType::PROPERTY) {
@@ -207,7 +207,6 @@ expression_vector Binder::bindProjectionExpressions(
             result.push_back(expressionBinder.bindExpression(*expression));
         }
     }
-    resolveAnyDataTypeWithDefaultType(result);
     validateProjectionColumnNamesAreUnique(result);
     return result;
 }
@@ -224,7 +223,6 @@ expression_vector Binder::bindOrderByExpressions(
         }
         boundOrderByExpressions.push_back(std::move(boundExpression));
     }
-    resolveAnyDataTypeWithDefaultType(boundOrderByExpressions);
     return boundOrderByExpressions;
 }
 
@@ -260,15 +258,7 @@ void Binder::addExpressionsToScope(const expression_vector& projectionExpression
     for (auto& expression : projectionExpressions) {
         // In RETURN clause, if expression is not aliased, its input name will serve its alias.
         auto alias = expression->hasAlias() ? expression->getAlias() : expression->toString();
-        scope->addExpression(alias, expression);
-    }
-}
-
-void Binder::resolveAnyDataTypeWithDefaultType(const expression_vector& expressions) {
-    for (auto& expression : expressions) {
-        if (expression->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
-            ExpressionBinder::implicitCastIfNecessary(expression, LogicalTypeID::STRING);
-        }
+        scope.addExpression(alias, expression);
     }
 }
 

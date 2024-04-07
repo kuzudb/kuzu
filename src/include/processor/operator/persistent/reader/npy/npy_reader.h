@@ -4,12 +4,9 @@
 #include <vector>
 
 #include "common/data_chunk/data_chunk.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/types.h"
-#include "function/scalar_function.h"
-#include "function/table_functions/bind_data.h"
-#include "function/table_functions/bind_input.h"
-#include "function/table_functions/scan_functions.h"
+#include "function/function.h"
+#include "function/table/scan_functions.h"
 
 namespace kuzu {
 namespace processor {
@@ -65,27 +62,9 @@ struct NpyScanSharedState final : public function::ScanSharedState {
 };
 
 struct NpyScanFunction {
+    static constexpr const char* name = "READ_NPY";
+
     static function::function_set getFunctionSet();
-
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
-
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        function::TableFuncBindInput* input, catalog::Catalog* catalog,
-        storage::StorageManager* storageManager);
-
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
-
-    static std::unique_ptr<function::TableFuncLocalState> initLocalState(
-        function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/,
-        storage::MemoryManager* /*mm*/);
-
-    static void bindColumns(const common::ReaderConfig& readerConfig,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
-    static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
 };
 
 } // namespace processor

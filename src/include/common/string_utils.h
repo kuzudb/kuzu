@@ -11,10 +11,10 @@ namespace common {
 
 class StringUtils {
 public:
-    static std::vector<std::string> splitComma(const std::string& input);
+    KUZU_API static std::vector<std::string> splitComma(const std::string& input);
 
-    static std::vector<std::string> split(
-        const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts = true);
+    KUZU_API static std::vector<std::string> split(const std::string& input,
+        const std::string& delimiter, bool ignoreEmptyStringParts = true);
 
     static std::vector<std::string> splitBySpace(const std::string& input);
 
@@ -39,8 +39,8 @@ public:
 
     static inline std::string ltrim(const std::string& input) {
         auto s = input;
-        s.erase(
-            s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
+        s.erase(s.begin(),
+            find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
         return s;
     }
 
@@ -58,8 +58,8 @@ public:
 
     static void removeCStringWhiteSpaces(const char*& input, uint64_t& len);
 
-    static void replaceAll(
-        std::string& str, const std::string& search, const std::string& replacement);
+    static void replaceAll(std::string& str, const std::string& search,
+        const std::string& replacement);
 
     static std::string extractStringBetween(const std::string& input, char delimiterStart,
         char delimiterEnd, bool includeDelimiter = false);
@@ -69,6 +69,14 @@ public:
     KUZU_API static uint64_t caseInsensitiveHash(const std::string& str);
 
     KUZU_API static bool caseInsensitiveEquals(const std::string& left, const std::string& right);
+
+    // join multiple strings into one string. Components are concatenated by the given separator
+    static std::string join(const std::vector<std::string>& input, const std::string& separator);
+
+    // join multiple items of container with given size, transformed to string
+    // using function, into one string using the given separator
+    template<typename C, typename S, typename Func>
+    static std::string join(const C& input, S count, const std::string& separator, Func f);
 
     static constexpr uint8_t asciiToLowerCaseMap[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
         14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
@@ -84,6 +92,17 @@ public:
         208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225,
         226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243,
         244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255};
+
+    // container hash function for strings which lets you hash both string_view and string
+    // references
+    struct string_hash {
+        using hash_type = std::hash<std::string_view>;
+        using is_transparent = void;
+
+        std::size_t operator()(const char* str) const { return hash_type{}(str); }
+        std::size_t operator()(std::string_view str) const { return hash_type{}(str); }
+        std::size_t operator()(std::string const& str) const { return hash_type{}(str); }
+    };
 };
 
 } // namespace common

@@ -4,14 +4,13 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
-#include "catalog/rel_table_schema.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/join_type.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_node_label_filter.h"
 #include "planner/planner.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -22,7 +21,7 @@ namespace kuzu {
 namespace planner {
 
 static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& boundNode,
-    ExtendDirection direction, const catalog::Catalog& catalog) {
+    ExtendDirection direction, const main::ClientContext& clientContext) {
     if (boundNode.isMultiLabeled()) {
         return false;
     }
@@ -33,27 +32,29 @@ static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& b
         return false;
     }
     auto relDirection = ExtendDirectionUtils::getRelDataDirection(direction);
-    auto relTableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-        catalog.getTableSchema(&DUMMY_READ_TRANSACTION, rel.getSingleTableID()));
-    return relTableSchema->isSingleMultiplicity(relDirection);
+    auto catalog = clientContext.getCatalog();
+    auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+        catalog->getTableCatalogEntry(clientContext.getTx(), rel.getSingleTableID()));
+    return relTableEntry->isSingleMultiplicity(relDirection);
 }
 
-static std::unordered_set<table_id_t> getBoundNodeTableIDSet(
-    const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
+static std::unordered_set<table_id_t> getBoundNodeTableIDSet(const RelExpression& rel,
+    ExtendDirection extendDirection, const main::ClientContext& clientContext) {
     std::unordered_set<table_id_t> result;
+    auto catalog = clientContext.getCatalog();
     for (auto tableID : rel.getTableIDs()) {
-        auto tableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-            catalog.getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
+        auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+            catalog->getTableCatalogEntry(clientContext.getTx(), tableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
-            result.insert(tableSchema->getBoundTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry->getBoundTableID(RelDataDirection::FWD));
         } break;
         case ExtendDirection::BWD: {
-            result.insert(tableSchema->getBoundTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry->getBoundTableID(RelDataDirection::BWD));
         } break;
         case ExtendDirection::BOTH: {
-            result.insert(tableSchema->getBoundTableID(RelDataDirection::FWD));
-            result.insert(tableSchema->getBoundTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry->getBoundTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry->getBoundTableID(RelDataDirection::BWD));
         } break;
         default:
             KU_UNREACHABLE;
@@ -62,28 +63,39 @@ static std::unordered_set<table_id_t> getBoundNodeTableIDSet(
     return result;
 }
 
-static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
-    const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
+static std::unordered_set<table_id_t> getNbrNodeTableIDSet(const RelExpression& rel,
+    ExtendDirection extendDirection, const main::ClientContext& clientContext) {
     std::unordered_set<table_id_t> result;
+    auto catalog = clientContext.getCatalog();
     for (auto tableID : rel.getTableIDs()) {
-        auto tableSchema = ku_dynamic_cast<TableSchema*, RelTableSchema*>(
-            catalog.getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
+        auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+            catalog->getTableCatalogEntry(clientContext.getTx(), tableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
-            result.insert(tableSchema->getNbrTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry->getNbrTableID(RelDataDirection::FWD));
         } break;
         case ExtendDirection::BWD: {
-            result.insert(tableSchema->getNbrTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry->getNbrTableID(RelDataDirection::BWD));
         } break;
         case ExtendDirection::BOTH: {
-            result.insert(tableSchema->getNbrTableID(RelDataDirection::FWD));
-            result.insert(tableSchema->getNbrTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry->getNbrTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry->getNbrTableID(RelDataDirection::BWD));
         } break;
         default:
             KU_UNREACHABLE;
         }
     }
     return result;
+}
+
+static std::shared_ptr<Expression> getIRIProperty(const expression_vector& properties) {
+    for (auto& property : properties) {
+        auto propertyExpr = ku_dynamic_cast<Expression*, PropertyExpression*>(property.get());
+        if (propertyExpr->isIRI()) {
+            return property;
+        }
+    }
+    return nullptr;
 }
 
 void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
@@ -91,51 +103,50 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
     // Filter bound node label if we know some incoming nodes won't have any outgoing rel. This
     // cannot be done at binding time because the pruning is affected by extend direction.
-    auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction, *catalog);
+    auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction, *clientContext);
     if (boundNode->getNumTableIDs() > boundNodeTableIDSet.size()) {
         appendNodeLabelFilter(boundNode->getInternalID(), boundNodeTableIDSet, plan);
     }
     // Check for each bound node, can we extend to more than 1 nbr node.
-    auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, *catalog);
-    // Split properties that cannot be scanned from rel table, specifically RDF predicate IRI.
-    expression_vector propertiesToScanFromRelTable;
-    std::shared_ptr<Expression> iri;
-    for (auto& property : properties) {
-        if (ku_dynamic_cast<Expression*, PropertyExpression*>(property.get())->isIRI()) {
-            iri = property;
-            propertiesToScanFromRelTable.push_back(rel->getRdfPredicateInfo()->predicateID);
-        } else {
-            propertiesToScanFromRelTable.push_back(property);
-        }
+    auto hasAtMostOneNbr =
+        extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, *clientContext);
+    auto properties_ = properties;
+    auto iri = getIRIProperty(properties);
+    if (iri != nullptr) {
+        // IRI cannot be scanned directly from rel table. Instead, we scan PID.
+        properties_.push_back(rel->getRdfPredicateInfo()->predicateID);
+        // Remove duplicate predicate ID.
+        properties_ = ExpressionUtil::removeDuplication(properties_);
     }
     // Append extend
-    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction,
-        propertiesToScanFromRelTable, hasAtMostOneNbr, plan.getLastOperator());
+    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction, properties_,
+        hasAtMostOneNbr, plan.getLastOperator());
     appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
     // Update cost & cardinality. Note that extend does not change cardinality.
     plan.setCost(CostModel::computeExtendCost(plan));
-    if (!hasAtMostOneNbr) {
-        auto extensionRate = cardinalityEstimator.getExtensionRate(*rel, *boundNode);
-        auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
-        group->setMultiplier(extensionRate);
-    }
+    auto extensionRate =
+        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
+    auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
+    group->setMultiplier(extensionRate);
     plan.setLastOperator(std::move(extend));
-    auto nbrNodeTableIDSet = getNbrNodeTableIDSet(*rel, direction, *catalog);
+    auto nbrNodeTableIDSet = getNbrNodeTableIDSet(*rel, direction, *clientContext);
     if (nbrNodeTableIDSet.size() > nbrNode->getNumTableIDs()) {
         appendNodeLabelFilter(nbrNode->getInternalID(), nbrNode->getTableIDsSet(), plan);
     }
     if (iri) {
+        // Use additional hash join to convert PID to IRI.
         auto rdfInfo = rel->getRdfPredicateInfo();
-        appendFillTableID(rdfInfo->predicateID, rdfInfo->resourceTableIDs[0], plan);
         // Append hash join for remaining properties
         auto tmpPlan = std::make_unique<LogicalPlan>();
-        cardinalityEstimator.addNodeIDDom(*rdfInfo->predicateID, rdfInfo->resourceTableIDs);
+        cardinalityEstimator.addNodeIDDom(*rdfInfo->predicateID, rdfInfo->resourceTableIDs,
+            clientContext->getTx());
         appendScanInternalID(rdfInfo->predicateID, rdfInfo->resourceTableIDs, *tmpPlan);
-        appendScanNodeProperties(
-            rdfInfo->predicateID, rdfInfo->resourceTableIDs, expression_vector{iri}, *tmpPlan);
-        appendHashJoin(expression_vector{rdfInfo->predicateID}, JoinType::INNER, plan, *tmpPlan);
+        appendScanNodeProperties(rdfInfo->predicateID, rdfInfo->resourceTableIDs,
+            expression_vector{iri}, *tmpPlan);
+        appendHashJoin(expression_vector{rdfInfo->predicateID}, JoinType::INNER, plan, *tmpPlan,
+            plan);
     }
 }
 
@@ -149,8 +160,8 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     createRecursivePlan(*recursiveInfo, direction, *recursivePlan);
     // Create recursive extend
     if (boundNode->getNumTableIDs() > recursiveInfo->node->getNumTableIDs()) {
-        appendNodeLabelFilter(
-            boundNode->getInternalID(), recursiveInfo->node->getTableIDsSet(), plan);
+        appendNodeLabelFilter(boundNode->getInternalID(), recursiveInfo->node->getTableIDsSet(),
+            plan);
     }
     auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
         RecursiveJoinType::TRACK_PATH, plan.getLastOperator(), recursivePlan->getLastOperator());
@@ -162,8 +173,8 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     std::shared_ptr<LogicalOperator> nodeScanRoot;
     if (!recursiveInfo->nodeProjectionList.empty()) {
         auto pathNodePropertyScanPlan = std::make_unique<LogicalPlan>();
-        createPathNodePropertyScanPlan(
-            recursiveInfo->node, recursiveInfo->nodeProjectionList, *pathNodePropertyScanPlan);
+        createPathNodePropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeProjectionList,
+            *pathNodePropertyScanPlan);
         nodeScanRoot = pathNodePropertyScanPlan->getLastOperator();
     }
     // Create path rel property scan plan
@@ -179,8 +190,8 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
         relScanCardinality = pathRelPropertyScanPlan->getCardinality();
     }
     // Create path property probe
-    auto pathPropertyProbe = std::make_shared<LogicalPathPropertyProbe>(
-        rel, extend, nodeScanRoot, relScanRoot, RecursiveJoinType::TRACK_PATH);
+    auto pathPropertyProbe = std::make_shared<LogicalPathPropertyProbe>(rel, extend, nodeScanRoot,
+        relScanRoot, RecursiveJoinType::TRACK_PATH);
     pathPropertyProbe->computeFactorizedSchema();
     // Check for sip
     auto ratio = plan.getCardinality() / relScanCardinality;
@@ -189,10 +200,12 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     }
     plan.setLastOperator(std::move(pathPropertyProbe));
     // Update cost
-    auto extensionRate = cardinalityEstimator.getExtensionRate(*rel, *boundNode);
+    auto extensionRate =
+        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
     plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
     // Update cardinality
-    auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, *catalog);
+    auto hasAtMostOneNbr =
+        extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, *clientContext);
     if (!hasAtMostOneNbr) {
         auto group = plan.getSchema()->getGroup(nbrNode->getInternalID());
         group->setMultiplier(extensionRate);
@@ -206,13 +219,13 @@ static expression_vector collectPropertiesToRead(const std::shared_ptr<Expressio
     return ExpressionCollector().collectPropertyExpressions(expression);
 }
 
-void Planner::createRecursivePlan(
-    const RecursiveInfo& recursiveInfo, ExtendDirection direction, LogicalPlan& plan) {
+void Planner::createRecursivePlan(const RecursiveInfo& recursiveInfo, ExtendDirection direction,
+    LogicalPlan& plan) {
     auto boundNode = recursiveInfo.node;
     auto nbrNode = recursiveInfo.nodeCopy;
     auto rel = recursiveInfo.rel;
-    auto scanFrontier = std::make_shared<LogicalScanFrontier>(
-        boundNode->getInternalID(), recursiveInfo.nodePredicateExecFlag);
+    auto scanFrontier = std::make_shared<LogicalScanFrontier>(boundNode->getInternalID(),
+        recursiveInfo.nodePredicateExecFlag);
     scanFrontier->computeFactorizedSchema();
     plan.setLastOperator(std::move(scanFrontier));
     auto nodeProperties = collectPropertiesToRead(recursiveInfo.nodePredicate);
@@ -225,8 +238,21 @@ void Planner::createRecursivePlan(
     }
     auto relProperties = collectPropertiesToRead(recursiveInfo.relPredicate);
     relProperties.push_back(rel->getInternalIDProperty());
-    appendNonRecursiveExtend(
-        boundNode, nbrNode, rel, direction, ExpressionUtil::removeDuplication(relProperties), plan);
+    auto iri = getIRIProperty(relProperties);
+    if (iri != nullptr) {
+        // IRI Cannot be scanned directly from rel table. For recursive plan filter, we first read
+        // PID, then lookup resource node table to convert PID to IRI.
+        relProperties = ExpressionUtil::excludeExpression(relProperties, *iri);
+        relProperties.push_back(rel->getRdfPredicateInfo()->predicateID);
+        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction,
+            ExpressionUtil::removeDuplication(relProperties), plan);
+        auto rdfInfo = rel->getRdfPredicateInfo();
+        appendScanNodeProperties(rdfInfo->predicateID, rdfInfo->resourceTableIDs,
+            expression_vector{iri}, plan);
+    } else {
+        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction,
+            ExpressionUtil::removeDuplication(relProperties), plan);
+    }
     if (recursiveInfo.relPredicate) {
         appendFilters(recursiveInfo.relPredicate->splitOnAND(), plan);
     }
@@ -248,8 +274,8 @@ void Planner::createPathRelPropertyScanPlan(const std::shared_ptr<NodeExpression
 
 void Planner::appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,
     std::unordered_set<table_id_t> tableIDSet, LogicalPlan& plan) {
-    auto filter = std::make_shared<LogicalNodeLabelFilter>(
-        std::move(nodeID), std::move(tableIDSet), plan.getLastOperator());
+    auto filter = std::make_shared<LogicalNodeLabelFilter>(std::move(nodeID), std::move(tableIDSet),
+        plan.getLastOperator());
     filter->computeFactorizedSchema();
     plan.setLastOperator(std::move(filter));
 }

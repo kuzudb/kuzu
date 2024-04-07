@@ -60,8 +60,8 @@ void SortLocalState::init(const OrderByDataInfo& orderByDataInfo, SortSharedStat
     payloadTable = table;
     orderByKeyEncoder = std::make_unique<OrderByKeyEncoder>(orderByDataInfo, memoryManager,
         globalIdx, payloadTable->getNumTuplesPerBlock(), sharedState.getNumBytesPerTuple());
-    radixSorter = std::make_unique<RadixSort>(
-        memoryManager, *payloadTable, *orderByKeyEncoder, sharedState.getStrKeyColInfo());
+    radixSorter = std::make_unique<RadixSort>(memoryManager, *payloadTable, *orderByKeyEncoder,
+        sharedState.getStrKeyColInfo());
 }
 
 void SortLocalState::append(const std::vector<common::ValueVector*>& keyVectors,
@@ -83,8 +83,8 @@ void SortLocalState::finalize(kuzu::processor::SortSharedState& sharedState) {
 
 PayloadScanner::PayloadScanner(MergedKeyBlocks* keyBlockToScan,
     std::vector<FactorizedTable*> payloadTables, uint64_t skipNumber, uint64_t limitNumber)
-    : keyBlockToScan{keyBlockToScan}, payloadTables{std::move(payloadTables)}, limitNumber{
-                                                                                   limitNumber} {
+    : keyBlockToScan{keyBlockToScan}, payloadTables{std::move(payloadTables)},
+      limitNumber{limitNumber} {
     if (this->keyBlockToScan == nullptr || this->keyBlockToScan->getNumTuples() == 0) {
         nextTupleIdxToReadInMergedKeyBlock = 0;
         endTuplesIdxToReadInMergedKeyBlock = 0;
@@ -129,8 +129,8 @@ uint64_t PayloadScanner::scan(std::vector<common::ValueVector*> vectorsToRead) {
             endTuplesIdxToReadInMergedKeyBlock - nextTupleIdxToReadInMergedKeyBlock);
         auto numTuplesRead = 0u;
         while (numTuplesRead < numTuplesToRead) {
-            auto numTuplesToReadInCurBlock = std::min(
-                numTuplesToRead - numTuplesRead, blockPtrInfo->getNumTuplesLeftInCurBlock());
+            auto numTuplesToReadInCurBlock = std::min(numTuplesToRead - numTuplesRead,
+                blockPtrInfo->getNumTuplesLeftInCurBlock());
             for (auto i = 0u; i < numTuplesToReadInCurBlock; i++) {
                 auto payloadInfo = blockPtrInfo->curTuplePtr + payloadIdxOffset;
                 auto blockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(payloadInfo);

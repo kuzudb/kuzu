@@ -117,6 +117,11 @@ typedef struct {
     // If true, open the database in read-only mode. No write transaction is allowed on the Database
     // object. If false, open the database read-write.
     bool read_only;
+    //  The maximum size of the database in bytes. Note that this is introduced temporarily for now
+    //  to get around with the default 8TB mmap address space limit under some environment. This
+    //  will be removed once we implemente a better solution later. The value is default to 1 << 43
+    //  (8TB) under 64-bit environment and 1GB under 32-bit one (see `DEFAULT_VM_REGION_MAX_SIZE`).
+    uint64_t max_db_size;
 } kuzu_system_config;
 
 /**
@@ -149,6 +154,7 @@ typedef struct {
  */
 typedef struct {
     void* _query_result;
+    bool _is_owned_by_cpp;
 } kuzu_query_result;
 
 /**
@@ -287,16 +293,18 @@ typedef enum {
     KUZU_TIMESTAMP_NS = 38,
     KUZU_TIMESTAMP_TZ = 39,
     KUZU_INTERVAL = 40,
-    KUZU_FIXED_LIST = 41,
     KUZU_INTERNAL_ID = 42,
     // variable size types
     KUZU_STRING = 50,
     KUZU_BLOB = 51,
-    KUZU_VAR_LIST = 52,
-    KUZU_STRUCT = 53,
-    KUZU_MAP = 54,
-    KUZU_UNION = 55,
-    KUZU_UUID = 56
+    KUZU_LIST = 52,
+    KUZU_ARRAY = 53,
+    KUZU_STRUCT = 54,
+    KUZU_MAP = 55,
+    KUZU_UNION = 56,
+    KUZU_RDF_VARIANT = 57,
+    KUZU_POINTER = 58,
+    KUZU_UUID = 59
 } kuzu_data_type_id;
 
 // Database
@@ -308,8 +316,8 @@ typedef enum {
  * @param system_config The runtime configuration for creating or opening the database.
  * @return The database instance.
  */
-KUZU_C_API kuzu_database* kuzu_database_init(
-    const char* database_path, kuzu_system_config system_config);
+KUZU_C_API kuzu_database* kuzu_database_init(const char* database_path,
+    kuzu_system_config system_config);
 /**
  * @brief Destroys the kuzu database instance and frees the allocated memory.
  * @param database The database instance to destroy.
@@ -342,8 +350,8 @@ KUZU_C_API void kuzu_connection_destroy(kuzu_connection* connection);
  * @param connection The connection instance to set max number of threads for execution.
  * @param num_threads The maximum number of threads to use for executing queries.
  */
-KUZU_C_API void kuzu_connection_set_max_num_thread_for_exec(
-    kuzu_connection* connection, uint64_t num_threads);
+KUZU_C_API void kuzu_connection_set_max_num_thread_for_exec(kuzu_connection* connection,
+    uint64_t num_threads);
 
 /**
  * @brief Returns the maximum number of threads of the connection to use for executing queries.
@@ -362,15 +370,15 @@ KUZU_C_API kuzu_query_result* kuzu_connection_query(kuzu_connection* connection,
  * @param connection The connection instance to prepare the query.
  * @param query The query to prepare.
  */
-KUZU_C_API kuzu_prepared_statement* kuzu_connection_prepare(
-    kuzu_connection* connection, const char* query);
+KUZU_C_API kuzu_prepared_statement* kuzu_connection_prepare(kuzu_connection* connection,
+    const char* query);
 /**
  * @brief Executes the prepared_statement using connection.
  * @param connection The connection instance to execute the prepared_statement.
  * @param prepared_statement The prepared statement to execute.
  */
-KUZU_C_API kuzu_query_result* kuzu_connection_execute(
-    kuzu_connection* connection, kuzu_prepared_statement* prepared_statement);
+KUZU_C_API kuzu_query_result* kuzu_connection_execute(kuzu_connection* connection,
+    kuzu_prepared_statement* prepared_statement);
 /**
  * @brief Interrupts the current query execution in the connection.
  * @param connection The connection instance to interrupt.
@@ -381,8 +389,8 @@ KUZU_C_API void kuzu_connection_interrupt(kuzu_connection* connection);
  * @param connection The connection instance to set query timeout value.
  * @param timeout_in_ms The timeout value in milliseconds.
  */
-KUZU_C_API void kuzu_connection_set_query_timeout(
-    kuzu_connection* connection, uint64_t timeout_in_ms);
+KUZU_C_API void kuzu_connection_set_query_timeout(kuzu_connection* connection,
+    uint64_t timeout_in_ms);
 
 // PreparedStatement
 /**
@@ -412,72 +420,72 @@ KUZU_C_API char* kuzu_prepared_statement_get_error_message(
  * @param param_name The parameter name to bind the value.
  * @param value The boolean value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_bool(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, bool value);
+KUZU_C_API void kuzu_prepared_statement_bind_bool(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, bool value);
 /**
  * @brief Binds the given int64_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The int64_t value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_int64(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, int64_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_int64(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, int64_t value);
 /**
  * @brief Binds the given int32_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The int32_t value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_int32(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, int32_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_int32(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, int32_t value);
 /**
  * @brief Binds the given int16_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The int16_t value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_int16(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, int16_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_int16(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, int16_t value);
 /**
  * @brief Binds the given int8_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The int8_t value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_int8(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, int8_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_int8(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, int8_t value);
 /**
  * @brief Binds the given uint64_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The uint64_t value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_uint64(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, uint64_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_uint64(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, uint64_t value);
 /**
  * @brief Binds the given uint32_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The uint32_t value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_uint32(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, uint32_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_uint32(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, uint32_t value);
 /**
  * @brief Binds the given uint16_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The uint16_t value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_uint16(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, uint16_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_uint16(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, uint16_t value);
 /**
  * @brief Binds the given int8_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The int8_t value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_uint8(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, uint8_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_uint8(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, uint8_t value);
 
 /**
  * @brief Binds the given double value to the given parameter name in the prepared statement.
@@ -485,24 +493,24 @@ KUZU_C_API void kuzu_prepared_statement_bind_uint8(
  * @param param_name The parameter name to bind the value.
  * @param value The double value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_double(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, double value);
+KUZU_C_API void kuzu_prepared_statement_bind_double(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, double value);
 /**
  * @brief Binds the given float value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The float value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_float(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, float value);
+KUZU_C_API void kuzu_prepared_statement_bind_float(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, float value);
 /**
  * @brief Binds the given date value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The date value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_date(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_date_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_date(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, kuzu_date_t value);
 /**
  * @brief Binds the given timestamp_ns value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -542,32 +550,32 @@ KUZU_C_API void kuzu_prepared_statement_bind_timestamp_ms(
  * @param param_name The parameter name to bind the value.
  * @param value The timestamp value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_timestamp(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_timestamp_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_timestamp(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, kuzu_timestamp_t value);
 /**
  * @brief Binds the given interval value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The interval value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_interval(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_interval_t value);
+KUZU_C_API void kuzu_prepared_statement_bind_interval(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, kuzu_interval_t value);
 /**
  * @brief Binds the given string value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The string value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_string(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, const char* value);
+KUZU_C_API void kuzu_prepared_statement_bind_string(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, const char* value);
 /**
  * @brief Binds the given kuzu value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
  * @param value The kuzu value to bind.
  */
-KUZU_C_API void kuzu_prepared_statement_bind_value(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_value* value);
+KUZU_C_API void kuzu_prepared_statement_bind_value(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, kuzu_value* value);
 
 // QueryResult
 /**
@@ -624,20 +632,24 @@ KUZU_C_API bool kuzu_query_result_has_next(kuzu_query_result* query_result);
  */
 KUZU_C_API kuzu_flat_tuple* kuzu_query_result_get_next(kuzu_query_result* query_result);
 /**
+ * @brief Returns true if we have not consumed all query results, false otherwise. Use this function
+ * for loop results of multiple query statements
+ * @param query_result The query result instance to check.
+ */
+KUZU_C_API bool kuzu_query_result_has_next_query_result(kuzu_query_result* query_result);
+/**
+ * @brief Returns the next query result. Use this function to loop multiple query statements'
+ * results.
+ * @param query_result The query result instance to return.
+ */
+KUZU_C_API kuzu_query_result* kuzu_query_result_get_next_query_result(
+    kuzu_query_result* query_result);
+
+/**
  * @brief Returns the query result as a string.
  * @param query_result The query result instance to return.
  */
 KUZU_C_API char* kuzu_query_result_to_string(kuzu_query_result* query_result);
-/**
- * @brief Writes the query result to the given file path as CSV.
- * @param query_result The query result instance to write.
- * @param file_path The file path to write the query result.
- * @param delimiter The delimiter character to use when writing csv file.
- * @param escape_char The escape character to use when writing csv file.
- * @param new_line The new line character to use when writing csv file.
- */
-KUZU_C_API void kuzu_query_result_write_to_csv(kuzu_query_result* query_result,
-    const char* file_path, char delimiter, char escape_char, char new_line);
 /**
  * @brief Resets the iterator of the query result to the beginning of the query result.
  * @param query_result The query result instance to reset iterator.
@@ -662,8 +674,8 @@ KUZU_C_API struct ArrowSchema kuzu_query_result_get_arrow_schema(kuzu_query_resu
  *
  * It is the caller's responsibility to call the release function to release the underlying data
  */
-KUZU_C_API struct ArrowArray kuzu_query_result_get_next_arrow_chunk(
-    kuzu_query_result* query_result, int64_t chunk_size);
+KUZU_C_API struct ArrowArray kuzu_query_result_get_next_arrow_chunk(kuzu_query_result* query_result,
+    int64_t chunk_size);
 
 // FlatTuple
 /**
@@ -686,15 +698,14 @@ KUZU_C_API char* kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple);
 // DataType
 // TODO(Chang): Refactor the datatype constructor to follow the cpp way of creating dataTypes.
 /**
- * @brief Creates a data type instance with the given id, childType and fixed_num_elements_in_list.
+ * @brief Creates a data type instance with the given id, childType and num_elements_in_array.
  * Caller is responsible for destroying the returned data type instance.
  * @param id The enum type id of the datatype to create.
  * @param child_type The child type of the datatype to create(only used for nested dataTypes).
- * @param fixed_num_elements_in_list The fixed number of elements in the list(only used for
- * FIXED_LIST).
+ * @param num_elements_in_array The number of elements in the array(only used for ARRAY).
  */
-KUZU_C_API kuzu_logical_type* kuzu_data_type_create(
-    kuzu_data_type_id id, kuzu_logical_type* child_type, uint64_t fixed_num_elements_in_list);
+KUZU_C_API kuzu_logical_type* kuzu_data_type_create(kuzu_data_type_id id,
+    kuzu_logical_type* child_type, uint64_t num_elements_in_array);
 /**
  * @brief Creates a new data type instance by cloning the given data type instance.
  * @param data_type The data type instance to clone.
@@ -717,10 +728,10 @@ KUZU_C_API bool kuzu_data_type_equals(kuzu_logical_type* data_type1, kuzu_logica
  */
 KUZU_C_API kuzu_data_type_id kuzu_data_type_get_id(kuzu_logical_type* data_type);
 /**
- * @brief Returns the number of elements per list for fixedSizeList.
+ * @brief Returns the number of elements for array.
  * @param data_type The data type instance to return.
  */
-KUZU_C_API uint64_t kuzu_data_type_get_fixed_num_elements_in_list(kuzu_logical_type* data_type);
+KUZU_C_API uint64_t kuzu_data_type_get_num_elements_in_array(kuzu_logical_type* data_type);
 
 // Value
 /**
@@ -895,13 +906,13 @@ KUZU_C_API void kuzu_value_copy(kuzu_value* value, kuzu_value* other);
 KUZU_C_API void kuzu_value_destroy(kuzu_value* value);
 /**
  * @brief Returns the number of elements per list of the given value. The value must be of type
- * FIXED_LIST.
- * @param value The FIXED_LIST value to get list size.
+ * ARRAY.
+ * @param value The ARRAY value to get list size.
  */
 KUZU_C_API uint64_t kuzu_value_get_list_size(kuzu_value* value);
 /**
- * @brief Returns the element at index of the given value. The value must be of type VAR_LIST.
- * @param value The VAR_LIST value to return.
+ * @brief Returns the element at index of the given value. The value must be of type LIST.
+ * @param value The LIST value to return.
  * @param index The index of the element to return.
  */
 KUZU_C_API kuzu_value* kuzu_value_get_list_element(kuzu_value* value, uint64_t index);
@@ -1142,6 +1153,117 @@ KUZU_C_API kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, u
  * @param rel_val The rel value to convert.
  */
 KUZU_C_API char* kuzu_rel_val_to_string(kuzu_value* rel_val);
+/**
+ * @brief Returns the underlying data type of the given rdf variant.
+ * @param rdf_variant The rdf variant.
+ * @return The data type of the rdf variant.
+ */
+KUZU_C_API kuzu_data_type_id kuzu_rdf_variant_get_type(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the string value of the given rdf variant. The value must be of type STRING.
+ * @param rdf_variant The rdf variant.
+ * @return The string value of the rdf variant.
+ */
+KUZU_C_API char* kuzu_rdf_variant_get_string(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the blob value of the given rdf variant. The returned buffer is null-terminated
+ * similar to a string. The value must be of type BLOB.
+ * @param rdf_variant The rdf variant.
+ * @return The blob value of the rdf variant.
+ */
+KUZU_C_API uint8_t* kuzu_rdf_variant_get_blob(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the int64 value of the given rdf variant. The value must be of type INT64.
+ * @param rdf_variant The rdf variant.
+ * @return The int64 value of the rdf variant.
+ */
+KUZU_C_API int64_t kuzu_rdf_variant_get_int64(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the int32 value of the given rdf variant. The value must be of type INT32.
+ * @param rdf_variant The rdf variant.
+ * @return The int32 value of the rdf variant.
+ */
+KUZU_C_API int32_t kuzu_rdf_variant_get_int32(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the int16 value of the given rdf variant. The value must be of type INT16.
+ * @param rdf_variant The rdf variant.
+ * @return The int16 value of the rdf variant.
+ */
+KUZU_C_API int16_t kuzu_rdf_variant_get_int16(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the int8 value of the given rdf variant. The value must be of type INT8.
+ * @param rdf_variant The rdf variant.
+ * @return The int8 value of the rdf variant.
+ */
+KUZU_C_API int8_t kuzu_rdf_variant_get_int8(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the uint64 value of the given rdf variant. The value must be of type UINT64.
+ * @param rdf_variant The rdf variant.
+ * @return The uint64 value of the rdf variant.
+ */
+KUZU_C_API uint64_t kuzu_rdf_variant_get_uint64(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the uint32 value of the given rdf variant. The value must be of type UINT32.
+ * @param rdf_variant The rdf variant.
+ * @return The uint32 value of the rdf variant.
+ */
+KUZU_C_API uint32_t kuzu_rdf_variant_get_uint32(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the uint16 value of the given rdf variant. The value must be of type UINT16.
+ * @param rdf_variant The rdf variant.
+ * @return The uint16 value of the rdf variant.
+ */
+KUZU_C_API uint16_t kuzu_rdf_variant_get_uint16(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the uint8 value of the given rdf variant. The value must be of type UINT8.
+ * @param rdf_variant The rdf variant.
+ * @return The uint8 value of the rdf variant.
+ */
+KUZU_C_API uint8_t kuzu_rdf_variant_get_uint8(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the float value of the given rdf variant. The value must be of type FLOAT.
+ * @param rdf_variant The rdf variant.
+ * @return The float value of the rdf variant.
+ */
+KUZU_C_API float kuzu_rdf_variant_get_float(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the double value of the given rdf variant. The value must be of type DOUBLE.
+ * @param rdf_variant The rdf variant.
+ * @return The double value of the rdf variant.
+ */
+KUZU_C_API double kuzu_rdf_variant_get_double(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the boolean value of the given rdf variant. The value must be of type BOOL.
+ * @param rdf_variant The rdf variant.
+ * @return The boolean value of the rdf variant.
+ */
+KUZU_C_API bool kuzu_rdf_variant_get_bool(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the date value of the given rdf variant. The value must be of type DATE.
+ * @param rdf_variant The rdf variant.
+ * @return The date value of the rdf variant.
+ */
+KUZU_C_API kuzu_date_t kuzu_rdf_variant_get_date(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the timestamp value of the given rdf variant. The value must be of type TIMESTAMP.
+ * @param rdf_variant The rdf variant.
+ * @return The timestamp value of the rdf variant.
+ */
+KUZU_C_API kuzu_timestamp_t kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant);
+/**
+ * @brief Returns the interval value of the given rdf variant. The value must be of type INTERVAL.
+ * @param rdf_variant The rdf variant.
+ * @return The interval value of the rdf variant.
+ */
+KUZU_C_API kuzu_interval_t kuzu_rdf_variant_get_interval(kuzu_value* rdf_variant);
+/**
+ * @brief Destroys any string created by the Kùzu C API, including both the error message and the
+ * values returned by the API functions. This function is provided to avoid the inconsistency
+ * between the memory allocation and deallocation across different libraries and is preferred over
+ * using the standard C free function.
+ * @param str The string to destroy.
+ */
+KUZU_C_API void kuzu_destroy_string(char* str);
 
 // QuerySummary
 /**
@@ -1161,4 +1283,15 @@ KUZU_C_API double kuzu_query_summary_get_compiling_time(kuzu_query_summary* quer
 KUZU_C_API double kuzu_query_summary_get_execution_time(kuzu_query_summary* query_summary);
 
 // TODO: Bind utility functions for kuzu_date_t, kuzu_timestamp_t, and kuzu_interval_t
+
+// Version
+/**
+ * @brief Returns the version of the Kùzu library.
+ */
+KUZU_C_API char* kuzu_get_version();
+
+/**
+ * @brief Returns the storage version of the Kùzu library.
+ */
+KUZU_C_API uint64_t kuzu_get_storage_version();
 #undef KUZU_C_API

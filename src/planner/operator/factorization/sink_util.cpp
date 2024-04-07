@@ -30,8 +30,8 @@ void SinkOperatorUtil::recomputeSchema(const Schema& inputSchema,
 }
 
 std::unordered_map<f_group_pos, binder::expression_vector>
-SinkOperatorUtil::getUnFlatPayloadsPerGroup(
-    const Schema& schema, const binder::expression_vector& payloads) {
+SinkOperatorUtil::getUnFlatPayloadsPerGroup(const Schema& schema,
+    const binder::expression_vector& payloads) {
     std::unordered_map<f_group_pos, binder::expression_vector> result;
     for (auto& payload : payloads) {
         auto groupPos = schema.getGroupPos(*payload);
@@ -46,8 +46,8 @@ SinkOperatorUtil::getUnFlatPayloadsPerGroup(
     return result;
 }
 
-binder::expression_vector SinkOperatorUtil::getFlatPayloads(
-    const Schema& schema, const binder::expression_vector& payloads) {
+binder::expression_vector SinkOperatorUtil::getFlatPayloads(const Schema& schema,
+    const binder::expression_vector& payloads) {
     binder::expression_vector result;
     for (auto& payload : payloads) {
         if (schema.getGroup(payload)->isFlat()) {
@@ -57,8 +57,8 @@ binder::expression_vector SinkOperatorUtil::getFlatPayloads(
     return result;
 }
 
-uint32_t SinkOperatorUtil::appendPayloadsToNewGroup(
-    Schema& schema, binder::expression_vector& payloads) {
+uint32_t SinkOperatorUtil::appendPayloadsToNewGroup(Schema& schema,
+    binder::expression_vector& payloads) {
     auto outputGroupPos = schema.createGroup();
     for (auto& payload : payloads) {
         schema.insertToGroupAndScope(payload, outputGroupPos);

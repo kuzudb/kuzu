@@ -2,6 +2,7 @@
 
 #include "common/exception/connection.h"
 #include "common/exception/transaction_manager.h"
+#include "main/client_context.h"
 #include "main/database.h"
 #include "transaction/transaction_manager.h"
 
@@ -10,12 +11,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace transaction {
 
-TransactionContext::TransactionContext(main::Database* database)
-    : database{database}, mode{TransactionMode::AUTO} {}
+TransactionContext::TransactionContext(main::ClientContext& clientContext)
+    : clientContext{clientContext}, mode{TransactionMode::AUTO} {}
 
 TransactionContext::~TransactionContext() {
     if (activeTransaction) {
-        database->transactionManager->rollback(activeTransaction.get());
+        clientContext.getDatabase()->transactionManager->rollback(activeTransaction.get());
     }
 }
 
@@ -39,8 +40,8 @@ void TransactionContext::beginAutoTransaction(bool readOnlyStatement) {
         readOnlyStatement ? TransactionType::READ_ONLY : TransactionType::WRITE);
 }
 
-void TransactionContext::validateManualTransaction(
-    bool allowActiveTransaction, bool readOnlyStatement) {
+void TransactionContext::validateManualTransaction(bool allowActiveTransaction,
+    bool readOnlyStatement) {
     KU_ASSERT(hasActiveTransaction());
     if (activeTransaction->isReadOnly() && !readOnlyStatement) {
         throw ConnectionException("Can't execute a write query inside a read-only transaction.");
@@ -73,7 +74,7 @@ void TransactionContext::commitInternal(bool skipCheckPointing) {
     if (!hasActiveTransaction()) {
         return;
     }
-    database->commit(activeTransaction.get(), skipCheckPointing);
+    clientContext.getDatabase()->commit(activeTransaction.get(), skipCheckPointing);
     activeTransaction.reset();
     mode = TransactionMode::AUTO;
 }
@@ -82,7 +83,7 @@ void TransactionContext::rollbackInternal(bool skipCheckPointing) {
     if (!hasActiveTransaction()) {
         return;
     }
-    database->rollback(activeTransaction.get(), skipCheckPointing);
+    clientContext.getDatabase()->rollback(activeTransaction.get(), skipCheckPointing);
     activeTransaction.reset();
     mode = TransactionMode::AUTO;
 }
@@ -97,10 +98,13 @@ void TransactionContext::beginTransactionInternal(TransactionType transactionTyp
     }
     switch (transactionType) {
     case TransactionType::READ_ONLY: {
-        activeTransaction = database->transactionManager->beginReadOnlyTransaction();
+        activeTransaction =
+            clientContext.getDatabase()->transactionManager->beginReadOnlyTransaction(
+                clientContext);
     } break;
     case TransactionType::WRITE: {
-        activeTransaction = database->transactionManager->beginWriteTransaction();
+        activeTransaction =
+            clientContext.getDatabase()->transactionManager->beginWriteTransaction(clientContext);
     } break;
     default:
         KU_UNREACHABLE;

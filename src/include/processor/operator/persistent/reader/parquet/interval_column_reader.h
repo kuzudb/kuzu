@@ -7,8 +7,8 @@ namespace kuzu {
 namespace processor {
 
 struct IntervalValueConversion {
-    static inline common::interval_t dictRead(
-        ByteBuffer& dict, uint32_t& offset, ColumnReader& /*reader*/) {
+    static inline common::interval_t dictRead(ByteBuffer& dict, uint32_t& offset,
+        ColumnReader& /*reader*/) {
         return (reinterpret_cast<common::interval_t*>(dict.ptr))[offset];
     }
 
@@ -28,12 +28,12 @@ public:
     IntervalColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
         const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefine,
         uint64_t maxRepeat)
-        : TemplatedColumnReader<common::interval_t, IntervalValueConversion>(
-              reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat){};
+        : TemplatedColumnReader<common::interval_t, IntervalValueConversion>(reader,
+              std::move(type), schema, fileIdx, maxDefine, maxRepeat){};
 
 protected:
-    void dictionary(
-        const std::shared_ptr<ResizeableBuffer>& dictionary_data, uint64_t num_entries) override;
+    void dictionary(const std::shared_ptr<ResizeableBuffer>& dictionary_data,
+        uint64_t num_entries) override;
 };
 
 } // namespace processor

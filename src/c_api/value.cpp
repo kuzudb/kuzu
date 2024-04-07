@@ -6,6 +6,7 @@
 #include "common/types/types.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
+#include "common/types/value/rdf_variant.h"
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
 #include "function/cast/functions/cast_from_string_functions.h"
@@ -476,4 +477,93 @@ kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t ind
 
 char* kuzu_rel_val_to_string(kuzu_value* rel_val) {
     return convertToOwnedCString(RelVal::toString(static_cast<Value*>(rel_val->_value)));
+}
+
+kuzu_data_type_id kuzu_rdf_variant_get_type(kuzu_value* rdf_variant) {
+    auto value = static_cast<Value*>(rdf_variant->_value);
+    auto typeVal = NestedVal::getChildVal(value, 0);
+    auto type = static_cast<LogicalTypeID>(typeVal->getValue<uint8_t>());
+    return static_cast<kuzu_data_type_id>(type);
+}
+
+char* kuzu_rdf_variant_get_string(kuzu_value* rdf_variant) {
+    auto str = RdfVariant::getValue<std::string>(static_cast<Value*>(rdf_variant->_value));
+    return convertToOwnedCString(str);
+}
+
+uint8_t* kuzu_rdf_variant_get_blob(kuzu_value* rdf_variant) {
+    auto blobData = RdfVariant::getValue<blob_t>(static_cast<Value*>(rdf_variant->_value));
+    auto blobStr = blobData.value.getAsString();
+    return (uint8_t*)convertToOwnedCString(blobStr);
+}
+
+int64_t kuzu_rdf_variant_get_int64(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<int64_t>(static_cast<Value*>(rdf_variant->_value));
+}
+
+int32_t kuzu_rdf_variant_get_int32(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<int32_t>(static_cast<Value*>(rdf_variant->_value));
+}
+
+int16_t kuzu_rdf_variant_get_int16(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<int16_t>(static_cast<Value*>(rdf_variant->_value));
+}
+
+int8_t kuzu_rdf_variant_get_int8(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<int8_t>(static_cast<Value*>(rdf_variant->_value));
+}
+
+uint64_t kuzu_rdf_variant_get_uint64(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<uint64_t>(static_cast<Value*>(rdf_variant->_value));
+}
+
+uint32_t kuzu_rdf_variant_get_uint32(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<uint32_t>(static_cast<Value*>(rdf_variant->_value));
+}
+
+uint16_t kuzu_rdf_variant_get_uint16(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<uint16_t>(static_cast<Value*>(rdf_variant->_value));
+}
+
+uint8_t kuzu_rdf_variant_get_uint8(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<uint8_t>(static_cast<Value*>(rdf_variant->_value));
+}
+
+float kuzu_rdf_variant_get_float(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<float>(static_cast<Value*>(rdf_variant->_value));
+}
+
+double kuzu_rdf_variant_get_double(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<double>(static_cast<Value*>(rdf_variant->_value));
+}
+
+bool kuzu_rdf_variant_get_bool(kuzu_value* rdf_variant) {
+    return RdfVariant::getValue<bool>(static_cast<Value*>(rdf_variant->_value));
+}
+
+kuzu_date_t kuzu_rdf_variant_get_date(kuzu_value* rdf_variant) {
+    auto dateVal = RdfVariant::getValue<date_t>(static_cast<Value*>(rdf_variant->_value));
+    kuzu_date_t c_date;
+    c_date.days = dateVal.days;
+    return c_date;
+}
+
+kuzu_timestamp_t kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant) {
+    auto timestampVal = RdfVariant::getValue<timestamp_t>(static_cast<Value*>(rdf_variant->_value));
+    kuzu_timestamp_t c_timestamp;
+    c_timestamp.value = timestampVal.value;
+    return c_timestamp;
+}
+
+kuzu_interval_t kuzu_rdf_variant_get_interval(kuzu_value* rdf_variant) {
+    auto intervalVal = RdfVariant::getValue<interval_t>(static_cast<Value*>(rdf_variant->_value));
+    kuzu_interval_t c_interval;
+    c_interval.months = intervalVal.months;
+    c_interval.days = intervalVal.days;
+    c_interval.micros = intervalVal.micros;
+    return c_interval;
+}
+
+void kuzu_destroy_string(char* str) {
+    free(str);
 }

@@ -160,8 +160,8 @@ void mbedtls_aes_xts_free(mbedtls_aes_xts_context* ctx);
  * \return         #MBEDTLS_ERR_AES_INVALID_KEY_LENGTH on failure.
  */
 MBEDTLS_CHECK_RETURN_TYPICAL
-int mbedtls_aes_setkey_enc(
-    mbedtls_aes_context* ctx, const unsigned char* key, unsigned int keybits);
+int mbedtls_aes_setkey_enc(mbedtls_aes_context* ctx, const unsigned char* key,
+    unsigned int keybits);
 
 /**
  * \brief          This function sets the decryption key.
@@ -179,8 +179,8 @@ int mbedtls_aes_setkey_enc(
  * \return         #MBEDTLS_ERR_AES_INVALID_KEY_LENGTH on failure.
  */
 MBEDTLS_CHECK_RETURN_TYPICAL
-int mbedtls_aes_setkey_dec(
-    mbedtls_aes_context* ctx, const unsigned char* key, unsigned int keybits);
+int mbedtls_aes_setkey_dec(mbedtls_aes_context* ctx, const unsigned char* key,
+    unsigned int keybits);
 
 #if defined(MBEDTLS_CIPHER_MODE_XTS)
 /**
@@ -200,8 +200,8 @@ int mbedtls_aes_setkey_dec(
  * \return         #MBEDTLS_ERR_AES_INVALID_KEY_LENGTH on failure.
  */
 MBEDTLS_CHECK_RETURN_TYPICAL
-int mbedtls_aes_xts_setkey_enc(
-    mbedtls_aes_xts_context* ctx, const unsigned char* key, unsigned int keybits);
+int mbedtls_aes_xts_setkey_enc(mbedtls_aes_xts_context* ctx, const unsigned char* key,
+    unsigned int keybits);
 
 /**
  * \brief          This function prepares an XTS context for decryption and
@@ -220,8 +220,8 @@ int mbedtls_aes_xts_setkey_enc(
  * \return         #MBEDTLS_ERR_AES_INVALID_KEY_LENGTH on failure.
  */
 MBEDTLS_CHECK_RETURN_TYPICAL
-int mbedtls_aes_xts_setkey_dec(
-    mbedtls_aes_xts_context* ctx, const unsigned char* key, unsigned int keybits);
+int mbedtls_aes_xts_setkey_dec(mbedtls_aes_xts_context* ctx, const unsigned char* key,
+    unsigned int keybits);
 #endif /* MBEDTLS_CIPHER_MODE_XTS */
 
 /**
@@ -248,8 +248,8 @@ int mbedtls_aes_xts_setkey_dec(
 * \return         \c 0 on success.
 */
 MBEDTLS_CHECK_RETURN_TYPICAL
-int mbedtls_aes_crypt_ecb(
-    mbedtls_aes_context* ctx, int mode, const unsigned char input[16], unsigned char output[16]);
+int mbedtls_aes_crypt_ecb(mbedtls_aes_context* ctx, int mode, const unsigned char input[16],
+    unsigned char output[16]);
 
 #if defined(MBEDTLS_CIPHER_MODE_CBC)
 /**
@@ -567,8 +567,8 @@ int mbedtls_aes_crypt_ctr(mbedtls_aes_context* ctx, size_t length, size_t* nc_of
  * \return          \c 0 on success.
  */
 MBEDTLS_CHECK_RETURN_TYPICAL
-int mbedtls_internal_aes_encrypt(
-    mbedtls_aes_context* ctx, const unsigned char input[16], unsigned char output[16]);
+int mbedtls_internal_aes_encrypt(mbedtls_aes_context* ctx, const unsigned char input[16],
+    unsigned char output[16]);
 
 /**
  * \brief           Internal AES block decryption function. This is only
@@ -582,8 +582,8 @@ int mbedtls_internal_aes_encrypt(
  * \return          \c 0 on success.
  */
 MBEDTLS_CHECK_RETURN_TYPICAL
-int mbedtls_internal_aes_decrypt(
-    mbedtls_aes_context* ctx, const unsigned char input[16], unsigned char output[16]);
+int mbedtls_internal_aes_decrypt(mbedtls_aes_context* ctx, const unsigned char input[16],
+    unsigned char output[16]);
 
 #if defined(MBEDTLS_SELF_TEST)
 /**

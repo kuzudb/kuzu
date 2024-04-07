@@ -4,25 +4,34 @@
 
 using namespace kuzu::storage;
 using namespace kuzu::planner;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logicalOperator) {
     auto outSchema = logicalOperator->getSchema();
-    auto scanFile = reinterpret_cast<LogicalScanFile*>(logicalOperator);
-    auto info = scanFile->getInfo();
-    std::vector<DataPos> dataColumnsPos;
-    dataColumnsPos.reserve(info->columns.size());
-    for (auto& expression : info->columns) {
-        dataColumnsPos.emplace_back(outSchema->getExpressionPos(*expression));
+    auto scanFile = ku_dynamic_cast<LogicalOperator*, LogicalScanFile*>(logicalOperator);
+    auto scanFileInfo = scanFile->getInfo();
+    std::vector<DataPos> outPosV;
+    outPosV.reserve(scanFileInfo->columns.size());
+    for (auto& expr : scanFileInfo->columns) {
+        outPosV.emplace_back(getDataPos(*expr, *outSchema));
     }
-    auto inQueryCallFuncInfo =
-        std::make_unique<InQueryCallInfo>(info->copyFunc, info->bindData->copy(),
-            std::move(dataColumnsPos), DataPos(outSchema->getExpressionPos(*info->offset)));
-    return std::make_unique<InQueryCall>(std::move(inQueryCallFuncInfo),
-        std::make_shared<InQueryCallSharedState>(), PhysicalOperatorType::IN_QUERY_CALL,
-        getOperatorID(), scanFile->getExpressionsForPrinting());
+    auto info = InQueryCallInfo();
+    info.function = scanFileInfo->func;
+    info.bindData = scanFileInfo->bindData->copy();
+    info.outPosV = outPosV;
+    if (scanFile->hasOffset()) {
+        info.rowOffsetPos = getDataPos(*scanFile->getOffset(), *outSchema);
+    } else {
+        info.rowOffsetPos = DataPos::getInvalidPos();
+    }
+    info.outputType =
+        outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
+    auto sharedState = std::make_shared<InQueryCallSharedState>();
+    return std::make_unique<InQueryCall>(std::move(info), sharedState, getOperatorID(),
+        scanFile->getExpressionsForPrinting());
 }
 
 } // namespace processor

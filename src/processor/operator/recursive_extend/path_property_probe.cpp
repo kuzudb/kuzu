@@ -7,8 +7,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void PathPropertyProbe::initLocalStateInternal(
-    ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
+void PathPropertyProbe::initLocalStateInternal(ResultSet* /*resultSet_*/,
+    ExecutionContext* /*context*/) {
     localState = std::make_unique<PathPropertyProbeLocalState>();
     vectors = std::make_unique<Vectors>();
     auto pathVector = resultSet->getValueVector(info->pathPos);
@@ -76,8 +76,8 @@ void PathPropertyProbe::probe(kuzu::processor::JoinHashTable* hashTable, uint64_
     const std::vector<ft_col_idx_t>& colIndicesToScan) {
     // Hash
     for (auto i = 0u; i < sizeToProbe; ++i) {
-        function::Hash::operation(
-            idVector->getValue<internalID_t>(sizeProbed + i), localState->hashes[i]);
+        function::Hash::operation(idVector->getValue<internalID_t>(sizeProbed + i),
+            localState->hashes[i], nullptr /* keyVector */);
     }
     // Probe hash
     for (auto i = 0u; i < sizeToProbe; ++i) {
@@ -102,8 +102,8 @@ void PathPropertyProbe::probe(kuzu::processor::JoinHashTable* hashTable, uint64_
         for (auto j = 0u; j < propertyVectors.size(); ++j) {
             auto propertyVector = propertyVectors[j];
             auto colIdx = colIndicesToScan[j];
-            factorizedTable->readFlatColToFlatVector(
-                tuple, colIdx, *propertyVector, sizeProbed + i);
+            factorizedTable->readFlatColToFlatVector(tuple, colIdx, *propertyVector,
+                sizeProbed + i);
         }
     }
 }

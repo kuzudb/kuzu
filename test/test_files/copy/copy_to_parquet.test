@@ -5,7 +5,6 @@
 
 -CASE TinySnbCopyToParquet
 
--CASE CopyPersonToParquet
 -STATEMENT COPY (MATCH (p:person) return p.ID, p.fName, p.gender, p.isStudent, p.isWorker, p.age, p.eyeSight, p.birthdate, p.registerTime, p.lastJobDuration, p.workedHours, p.usedNames, p.courseScoresPerTerm, p.height) to '${DATABASE_PATH}/tinysnb.parquet';
 ---- ok
 -STATEMENT LOAD FROM '${DATABASE_PATH}/tinysnb.parquet' RETURN *;
@@ -24,9 +23,9 @@
 ---- ok
 -STATEMENT LOAD FROM "${DATABASE_PATH}/organisation.parquet" RETURN *;
 ---- 3
-1|{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}
+1|{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}
 4|{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
-6|{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
+6|{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}
 
 -LOG CopyMoviesToParquet
 -STATEMENT COPY (MATCH (m:movies) RETURN m.*) TO "${DATABASE_PATH}/movies.parquet"

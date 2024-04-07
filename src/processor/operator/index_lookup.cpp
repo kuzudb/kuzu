@@ -1,7 +1,13 @@
 #include "processor/operator/index_lookup.h"
 
+#include "common/assert.h"
 #include "common/exception/message.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "processor/operator/persistent/node_batch_insert.h"
 #include "storage/index/hash_index.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -26,14 +32,14 @@ std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
     for (const auto& info : infos) {
         copiedInfos.push_back(info->copy());
     }
-    return make_unique<IndexLookup>(
-        std::move(copiedInfos), children[0]->clone(), getOperatorID(), paramsString);
+    return make_unique<IndexLookup>(std::move(copiedInfos), children[0]->clone(), getOperatorID(),
+        paramsString);
 }
 
-void IndexLookup::setCopyNodeSharedState(std::shared_ptr<CopyNodeSharedState> sharedState) {
+void IndexLookup::setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState) {
     for (auto& info : infos) {
-        KU_ASSERT(info->copyNodeSharedState == nullptr);
-        info->copyNodeSharedState = sharedState;
+        KU_ASSERT(info->batchInsertSharedState == nullptr);
+        info->batchInsertSharedState = sharedState;
     }
 }
 
@@ -57,66 +63,81 @@ void IndexLookup::checkNullKeys(ValueVector* keyVector) {
     }
 }
 
+void stringPKFillOffsetArraysFromVector(transaction::Transaction* transaction,
+    const IndexLookupInfo& info, ValueVector* keyVector, offset_t* offsets) {
+    auto numKeys = keyVector->state->selVector->selectedSize;
+    if (info.batchInsertSharedState == nullptr) {
+        for (auto i = 0u; i < numKeys; i++) {
+            auto key =
+                keyVector->getValue<ku_string_t>(keyVector->state->selVector->selectedPositions[i]);
+            if (!info.index->lookup(transaction, key.getAsStringView(), offsets[i])) {
+                throw RuntimeException(ExceptionMessage::nonExistentPKException(key.getAsString()));
+            }
+        }
+    } else {
+        auto nodeBatchInsertSharedState =
+            ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(
+                info.batchInsertSharedState.get());
+        for (auto i = 0u; i < numKeys; i++) {
+            auto key =
+                keyVector->getValue<ku_string_t>(keyVector->state->selVector->selectedPositions[i]);
+            if (!nodeBatchInsertSharedState->pkIndex->lookup(key.getAsStringView(), offsets[i])) {
+                throw RuntimeException(ExceptionMessage::nonExistentPKException(key.getAsString()));
+            }
+        }
+    }
+}
+
+template<HashablePrimitive T>
+void primitivePKFillOffsetArraysFromVector(transaction::Transaction* transaction,
+    const IndexLookupInfo& info, ValueVector* keyVector, offset_t* offsets) {
+    auto numKeys = keyVector->state->selVector->selectedSize;
+    if (info.batchInsertSharedState == nullptr) {
+        for (auto i = 0u; i < numKeys; i++) {
+            auto pos = keyVector->state->selVector->selectedPositions[i];
+            auto key = keyVector->getValue<T>(pos);
+            if (!info.index->lookup(transaction, key, offsets[i])) {
+                throw RuntimeException(
+                    ExceptionMessage::nonExistentPKException(TypeUtils::toString(key)));
+            }
+        }
+    } else {
+        auto nodeBatchInsertSharedState =
+            ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(
+                info.batchInsertSharedState.get());
+        for (auto i = 0u; i < numKeys; i++) {
+            auto pos = keyVector->state->selVector->selectedPositions[i];
+            auto key = keyVector->getValue<T>(pos);
+            if (!nodeBatchInsertSharedState->pkIndex->lookup(key, offsets[i])) {
+                throw RuntimeException(
+                    ExceptionMessage::nonExistentPKException(TypeUtils::toString(key)));
+            }
+        }
+    }
+}
+
 // TODO(Guodong): Add short path for unfiltered case.
 void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transaction,
     const IndexLookupInfo& info, ValueVector* keyVector, ValueVector* resultVector) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
     auto offsets = (offset_t*)resultVector->getData();
-    auto numKeys = keyVector->state->selVector->selectedSize;
-    switch (info.pkDataType->getLogicalTypeID()) {
-    case LogicalTypeID::INT64: {
-        if (info.copyNodeSharedState == nullptr) {
-            for (auto i = 0u; i < numKeys; i++) {
-                auto pos = keyVector->state->selVector->selectedPositions[i];
-                auto key = keyVector->getValue<int64_t>(pos);
-                if (!info.index->lookup(transaction, key, offsets[i])) {
-                    throw RuntimeException(
-                        ExceptionMessage::nonExistPKException(std::to_string(key)));
+    TypeUtils::visit(
+        info.pkDataType->getPhysicalType(),
+        [&](ku_string_t) {
+            stringPKFillOffsetArraysFromVector(transaction, info, keyVector, offsets);
+        },
+        [&]<HashablePrimitive T>(T) {
+            if (info.pkDataType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+                auto numKeys = keyVector->state->selVector->selectedSize;
+                for (auto i = 0u; i < numKeys; i++) {
+                    auto pos = keyVector->state->selVector->selectedPositions[i];
+                    offsets[i] = keyVector->getValue<int64_t>(pos);
                 }
+            } else {
+                primitivePKFillOffsetArraysFromVector<T>(transaction, info, keyVector, offsets);
             }
-        } else {
-            for (auto i = 0u; i < numKeys; i++) {
-                auto pos = keyVector->state->selVector->selectedPositions[i];
-                auto key = keyVector->getValue<int64_t>(pos);
-                if (!info.copyNodeSharedState->pkIndex->lookup(key, offsets[i])) {
-                    throw RuntimeException(
-                        ExceptionMessage::nonExistPKException(std::to_string(key)));
-                }
-            }
-        }
-    } break;
-    case LogicalTypeID::STRING: {
-        if (info.copyNodeSharedState == nullptr) {
-            for (auto i = 0u; i < numKeys; i++) {
-                auto key = keyVector->getValue<ku_string_t>(
-                    keyVector->state->selVector->selectedPositions[i]);
-                if (!info.index->lookup(transaction, key.getAsString().c_str(), offsets[i])) {
-                    throw RuntimeException(
-                        ExceptionMessage::nonExistPKException(key.getAsString()));
-                }
-            }
-        } else {
-            for (auto i = 0u; i < numKeys; i++) {
-                auto key = keyVector->getValue<ku_string_t>(
-                    keyVector->state->selVector->selectedPositions[i]);
-                if (!info.copyNodeSharedState->pkIndex->lookup(
-                        key.getAsString().c_str(), offsets[i])) {
-                    throw RuntimeException(
-                        ExceptionMessage::nonExistPKException(key.getAsString()));
-                }
-            }
-        }
-    } break;
-    case LogicalTypeID::SERIAL: {
-        for (auto i = 0u; i < numKeys; i++) {
-            auto pos = keyVector->state->selVector->selectedPositions[i];
-            offsets[i] = keyVector->getValue<int64_t>(pos);
-        }
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
+        },
+        [&](auto) { KU_UNREACHABLE; });
 }
 
 } // namespace processor

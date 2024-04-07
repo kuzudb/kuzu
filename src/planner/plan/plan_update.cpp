@@ -12,8 +12,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-void Planner::planUpdatingClause(
-    const BoundUpdatingClause* updatingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+void Planner::planUpdatingClause(const BoundUpdatingClause* updatingClause,
+    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
         planUpdatingClause(updatingClause, *plan);
     }
@@ -65,23 +65,18 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
     if (mergeClause->hasPredicate()) {
         predicates = mergeClause->getPredicate()->splitOnAND();
     }
-    planOptionalMatch(*mergeClause->getQueryGraphCollection(), predicates, plan);
-    std::shared_ptr<Expression> mark;
-    auto& createInfos = mergeClause->getInsertInfosRef();
-    KU_ASSERT(!createInfos.empty());
-    auto& createInfo = createInfos[0];
-    switch (createInfo.tableType) {
-    case TableType::NODE: {
-        auto node = (NodeExpression*)createInfo.pattern.get();
-        mark = node->getInternalID();
-    } break;
-    case TableType::REL: {
-        auto rel = (RelExpression*)createInfo.pattern.get();
-        mark = rel->getInternalIDProperty();
-    } break;
-    default:
-        KU_UNREACHABLE;
+    std::shared_ptr<Expression> distinctMark = nullptr;
+    expression_vector corrExprs;
+    if (!plan.isEmpty()) {
+        distinctMark = mergeClause->getDistinctMark();
+        corrExprs = getCorrelatedExprs(*mergeClause->getQueryGraphCollection(), predicates,
+            plan.getSchema());
+        if (corrExprs.size() == 0) {
+            throw RuntimeException{"Constant key in merge clause is not supported yet."};
+        }
+        appendMarkAccumulate(corrExprs, distinctMark, plan);
     }
+    planOptionalMatch(*mergeClause->getQueryGraphCollection(), predicates, corrExprs, plan);
     std::vector<LogicalInsertInfo> logicalInsertNodeInfos;
     if (mergeClause->hasInsertNodeInfo()) {
         auto boundInsertNodeInfos = mergeClause->getInsertNodeInfos();
@@ -119,10 +114,27 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
             logicalOnMatchSetRelInfos.push_back(createLogicalSetPropertyInfo(info));
         }
     }
-    auto merge = std::make_shared<LogicalMerge>(mark, std::move(logicalInsertNodeInfos),
-        std::move(logicalInsertRelInfos), std::move(logicalOnCreateSetNodeInfos),
-        std::move(logicalOnCreateSetRelInfos), std::move(logicalOnMatchSetNodeInfos),
-        std::move(logicalOnMatchSetRelInfos), plan.getLastOperator());
+    std::shared_ptr<Expression> existenceMark;
+    auto& createInfos = mergeClause->getInsertInfosRef();
+    KU_ASSERT(!createInfos.empty());
+    auto& createInfo = createInfos[0];
+    switch (createInfo.tableType) {
+    case TableType::NODE: {
+        auto node = (NodeExpression*)createInfo.pattern.get();
+        existenceMark = node->getInternalID();
+    } break;
+    case TableType::REL: {
+        auto rel = (RelExpression*)createInfo.pattern.get();
+        existenceMark = rel->getInternalIDProperty();
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    auto merge = std::make_shared<LogicalMerge>(existenceMark, distinctMark,
+        std::move(logicalInsertNodeInfos), std::move(logicalInsertRelInfos),
+        std::move(logicalOnCreateSetNodeInfos), std::move(logicalOnCreateSetRelInfos),
+        std::move(logicalOnMatchSetNodeInfos), std::move(logicalOnMatchSetRelInfos),
+        plan.getLastOperator());
     appendFlattens(merge->getGroupsPosToFlatten(), plan);
     merge->setChild(0, plan.getLastOperator());
     merge->computeFactorizedSchema();

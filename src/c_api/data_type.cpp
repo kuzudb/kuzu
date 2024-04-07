@@ -5,15 +5,15 @@ using namespace kuzu::common;
 
 namespace kuzu::common {
 struct CAPIHelper {
-    static inline LogicalType* createLogicalType(
-        LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
+    static inline LogicalType* createLogicalType(LogicalTypeID typeID,
+        std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
         return new LogicalType(typeID, std::move(extraTypeInfo));
     }
 };
 } // namespace kuzu::common
 
-kuzu_logical_type* kuzu_data_type_create(
-    kuzu_data_type_id id, kuzu_logical_type* child_type, uint64_t fixed_num_elements_in_list) {
+kuzu_logical_type* kuzu_data_type_create(kuzu_data_type_id id, kuzu_logical_type* child_type,
+    uint64_t num_elements_in_array) {
     auto* c_data_type = (kuzu_logical_type*)malloc(sizeof(kuzu_logical_type));
     uint8_t data_type_id_u8 = id;
     LogicalType* data_type;
@@ -23,10 +23,10 @@ kuzu_logical_type* kuzu_data_type_create(
     } else {
         auto child_type_pty =
             std::make_unique<LogicalType>(*static_cast<LogicalType*>(child_type->_data_type));
-        auto extraTypeInfo = fixed_num_elements_in_list > 0 ?
-                                 std::make_unique<FixedListTypeInfo>(
-                                     std::move(child_type_pty), fixed_num_elements_in_list) :
-                                 std::make_unique<VarListTypeInfo>(std::move(child_type_pty));
+        auto extraTypeInfo =
+            num_elements_in_array > 0 ?
+                std::make_unique<ArrayTypeInfo>(std::move(child_type_pty), num_elements_in_array) :
+                std::make_unique<ListTypeInfo>(std::move(child_type_pty));
         data_type = CAPIHelper::createLogicalType(logicalTypeID, std::move(extraTypeInfo));
     }
     c_data_type->_data_type = data_type;
@@ -60,10 +60,10 @@ kuzu_data_type_id kuzu_data_type_get_id(kuzu_logical_type* data_type) {
     return static_cast<kuzu_data_type_id>(data_type_id_u8);
 }
 
-uint64_t kuzu_data_type_get_fixed_num_elements_in_list(kuzu_logical_type* data_type) {
+uint64_t kuzu_data_type_get_num_elements_in_array(kuzu_logical_type* data_type) {
     auto parent_type = static_cast<LogicalType*>(data_type->_data_type);
-    if (parent_type->getLogicalTypeID() != LogicalTypeID::FIXED_LIST) {
+    if (parent_type->getLogicalTypeID() != LogicalTypeID::ARRAY) {
         return 0;
     }
-    return FixedListType::getNumValuesInList(static_cast<LogicalType*>(data_type->_data_type));
+    return ArrayType::getNumElements(static_cast<LogicalType*>(data_type->_data_type));
 }

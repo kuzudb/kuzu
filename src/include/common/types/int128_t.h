@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <stdexcept>
 #include <string>
 
@@ -186,3 +187,8 @@ bool Int128_t::tryCastTo(long double value, int128_t& result);
 
 } // namespace common
 } // namespace kuzu
+
+template<>
+struct std::hash<kuzu::common::int128_t> {
+    std::size_t operator()(const kuzu::common::int128_t& v) const noexcept;
+};

@@ -1,5 +1,8 @@
 #include "main/database.h"
 
+#include "common/random_engine.h"
+#include "main/database_manager.h"
+
 #if defined(_WIN32)
 #include <windows.h>
 #else
@@ -12,10 +15,10 @@
 #include "common/logging_level_utils.h"
 #include "common/utils.h"
 #include "extension/extension.h"
-#include "function/scalar_function.h"
 #include "main/db_config.h"
 #include "processor/processor.h"
 #include "spdlog/spdlog.h"
+#include "storage/storage_extension.h"
 #include "storage/storage_manager.h"
 #include "storage/wal_replayer.h"
 #include "transaction/transaction_action.h"
@@ -29,8 +32,8 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace main {
 
-SystemConfig::SystemConfig(
-    uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression, bool readOnly)
+SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression,
+    bool readOnly, uint64_t maxDBSize)
     : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly(readOnly) {
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
@@ -47,14 +50,18 @@ SystemConfig::SystemConfig(
         // On 32-bit systems or systems with extremely large memory, the buffer pool size may
         // exceed the maximum size of a VMRegion. In this case, we set the buffer pool size to
         // 80% of the maximum size of a VMRegion.
-        bufferPoolSize_ = (uint64_t)std::min(
-            (double)bufferPoolSize_, BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE *
-                                         BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM);
+        bufferPoolSize_ = (uint64_t)std::min((double)bufferPoolSize_,
+            BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE *
+                BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM);
     }
     bufferPoolSize = bufferPoolSize_;
     if (maxNumThreads == 0) {
         this->maxNumThreads = std::thread::hardware_concurrency();
     }
+    if (maxDBSize == -1u) {
+        maxDBSize = BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE;
+    }
+    this->maxDBSize = maxDBSize;
 }
 
 static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, FileLockType& lock) {
@@ -66,11 +73,17 @@ static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, F
 }
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig)
-    : databasePath{databasePath}, systemConfig{systemConfig} {
+    : systemConfig{systemConfig} {
     initLoggers();
     logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::DATABASE);
     vfs = std::make_unique<VirtualFileSystem>();
-    bufferManager = std::make_unique<BufferManager>(this->systemConfig.bufferPoolSize);
+    // To expand a path with home directory(~), we have to pass in a dummy clientContext which
+    // handles the home directory expansion.
+    auto clientContext = ClientContext(this);
+    auto dbPathStr = std::string(databasePath);
+    this->databasePath = vfs->expandPath(&clientContext, dbPathStr);
+    bufferManager = std::make_unique<BufferManager>(this->systemConfig.bufferPoolSize,
+        this->systemConfig.maxDBSize);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     initDBDirAndCoreFilesIfNecessary();
@@ -80,9 +93,9 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     catalog = std::make_unique<catalog::Catalog>(wal.get(), vfs.get());
     storageManager = std::make_unique<storage::StorageManager>(systemConfig.readOnly, *catalog,
         *memoryManager, wal.get(), systemConfig.enableCompression, vfs.get());
-    transactionManager =
-        std::make_unique<transaction::TransactionManager>(*wal, memoryManager.get());
+    transactionManager = std::make_unique<transaction::TransactionManager>(*wal);
     extensionOptions = std::make_unique<extension::ExtensionOptions>();
+    databaseManager = std::make_unique<DatabaseManager>();
 }
 
 Database::~Database() {
@@ -95,15 +108,20 @@ void Database::setLoggingLevel(std::string loggingLevel) {
 }
 
 void Database::addBuiltInFunction(std::string name, function::function_set functionSet) {
-    catalog->addFunction(std::move(name), std::move(functionSet));
+    catalog->addBuiltInFunction(std::move(name), std::move(functionSet));
 }
 
 void Database::registerFileSystem(std::unique_ptr<common::FileSystem> fs) {
     vfs->registerFileSystem(std::move(fs));
 }
 
-void Database::addExtensionOption(
-    std::string name, common::LogicalTypeID type, common::Value defaultValue) {
+void Database::registerStorageExtension(std::string name,
+    std::unique_ptr<storage::StorageExtension> storageExtension) {
+    storageExtensions.emplace(std::move(name), std::move(storageExtension));
+}
+
+void Database::addExtensionOption(std::string name, common::LogicalTypeID type,
+    common::Value defaultValue) {
     if (extensionOptions->getExtensionOption(name) != nullptr) {
         throw ExtensionException{common::stringFormat("Extension option {} already exists.", name)};
     }
@@ -112,6 +130,15 @@ void Database::addExtensionOption(
 
 ExtensionOption* Database::getExtensionOption(std::string name) {
     return extensionOptions->getExtensionOption(std::move(name));
+}
+
+common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
+Database::getStorageExtensions() {
+    return storageExtensions;
+}
+
+DatabaseManager* Database::getDatabaseManagerUnsafe() const {
+    return databaseManager.get();
 }
 
 void Database::openLockFile() {
@@ -134,13 +161,13 @@ void Database::initDBDirAndCoreFilesIfNecessary() {
         vfs->createDir(databasePath);
     }
     openLockFile();
-    if (!vfs->fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
-            vfs.get(), databasePath, FileVersionType::ORIGINAL))) {
-        NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(
-            vfs.get(), databasePath);
+    if (!vfs->fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs.get(),
+            databasePath, FileVersionType::ORIGINAL))) {
+        NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(vfs.get(),
+            databasePath);
     }
-    if (!vfs->fileOrPathExists(StorageUtils::getRelsStatisticsFilePath(
-            vfs.get(), databasePath, FileVersionType::ORIGINAL))) {
+    if (!vfs->fileOrPathExists(StorageUtils::getRelsStatisticsFilePath(vfs.get(), databasePath,
+            FileVersionType::ORIGINAL))) {
         RelsStoreStats::saveInitialRelsStatisticsToFile(vfs.get(), databasePath);
     }
     if (!vfs->fileOrPathExists(
@@ -203,8 +230,8 @@ void Database::commit(Transaction* transaction, bool skipCheckpointForTestingRec
     transactionManager->allowReceivingNewTransactions();
 }
 
-void Database::rollback(
-    transaction::Transaction* transaction, bool skipCheckpointForTestingRecovery) {
+void Database::rollback(transaction::Transaction* transaction,
+    bool skipCheckpointForTestingRecovery) {
     if (transaction->isReadOnly()) {
         transactionManager->rollback(transaction);
         return;
@@ -223,8 +250,8 @@ void Database::rollback(
 void Database::checkpointAndClearWAL(WALReplayMode replayMode) {
     KU_ASSERT(replayMode == WALReplayMode::COMMIT_CHECKPOINT ||
               replayMode == WALReplayMode::RECOVERY_CHECKPOINT);
-    auto walReplayer = std::make_unique<WALReplayer>(
-        wal.get(), storageManager.get(), bufferManager.get(), catalog.get(), replayMode, vfs.get());
+    auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
+        bufferManager.get(), catalog.get(), replayMode, vfs.get());
     walReplayer->replay();
     wal->clearWAL();
 }

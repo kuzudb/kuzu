@@ -38,13 +38,14 @@ private:
     void visitDeleteNode(planner::LogicalOperator* op) override;
     void visitDeleteRel(planner::LogicalOperator* op) override;
     void visitMerge(planner::LogicalOperator* op) override;
+    void visitCopyFrom(planner::LogicalOperator* op) override;
 
     void collectExpressionsInUse(std::shared_ptr<binder::Expression> expression);
 
     binder::expression_vector pruneExpressions(const binder::expression_vector& expressions);
 
-    void preAppendProjection(
-        planner::LogicalOperator* op, uint32_t childIdx, binder::expression_vector expressions);
+    void preAppendProjection(planner::LogicalOperator* op, uint32_t childIdx,
+        binder::expression_vector expressions);
 
 private:
     binder::expression_set propertiesInUse;

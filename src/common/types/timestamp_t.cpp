@@ -140,7 +140,7 @@ bool Timestamp::tryConvertTimestamp(const char* str, uint64_t len, timestamp_t& 
         pos++;
     }
     uint64_t time_pos = 0;
-    if (!Time::TryConvertTime(str + pos, len - pos, time_pos, time)) {
+    if (!Time::tryConvertTime(str + pos, len - pos, time_pos, time)) {
         return false;
     }
     pos += time_pos;
@@ -177,8 +177,8 @@ timestamp_t Timestamp::fromCString(const char* str, uint64_t len) {
     return result;
 }
 
-bool Timestamp::tryParseUTCOffset(
-    const char* str, uint64_t& pos, uint64_t len, int& hour_offset, int& minute_offset) {
+bool Timestamp::tryParseUTCOffset(const char* str, uint64_t& pos, uint64_t len, int& hour_offset,
+    int& minute_offset) {
     minute_offset = 0;
     uint64_t curpos = pos;
     // parse the next 3 characters
@@ -246,8 +246,8 @@ timestamp_t Timestamp::fromDateTime(date_t date, dtime_t time) {
     timestamp_t result;
     int32_t year, month, day, hour, minute, second, microsecond = -1;
     Date::convert(date, year, month, day);
-    Time::Convert(time, hour, minute, second, microsecond);
-    if (!Date::isValid(year, month, day) || !Time::IsValid(hour, minute, second, microsecond)) {
+    Time::convert(time, hour, minute, second, microsecond);
+    if (!Date::isValid(year, month, day) || !Time::isValid(hour, minute, second, microsecond)) {
         throw ConversionException("Invalid date or time format");
     }
     result.value = date.days * Interval::MICROS_PER_DAY + time.micros;
@@ -308,21 +308,21 @@ timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t& timestamp
     date_t date;
     dtime_t time;
     Timestamp::convert(timestamp, date, time);
-    Time::Convert(time, hour, min, sec, micros);
+    Time::convert(time, hour, min, sec, micros);
     switch (specifier) {
     case DatePartSpecifier::MICROSECOND:
         return timestamp;
     case DatePartSpecifier::MILLISECOND:
         micros -= micros % Interval::MICROS_PER_MSEC;
-        return Timestamp::fromDateTime(date, Time::FromTime(hour, min, sec, micros));
+        return Timestamp::fromDateTime(date, Time::fromTime(hour, min, sec, micros));
     case DatePartSpecifier::SECOND:
-        return Timestamp::fromDateTime(date, Time::FromTime(hour, min, sec, 0 /* microseconds */));
+        return Timestamp::fromDateTime(date, Time::fromTime(hour, min, sec, 0 /* microseconds */));
     case DatePartSpecifier::MINUTE:
-        return Timestamp::fromDateTime(
-            date, Time::FromTime(hour, min, 0 /* seconds */, 0 /* microseconds */));
+        return Timestamp::fromDateTime(date,
+            Time::fromTime(hour, min, 0 /* seconds */, 0 /* microseconds */));
     case DatePartSpecifier::HOUR:
-        return Timestamp::fromDateTime(
-            date, Time::FromTime(hour, 0 /* minutes */, 0 /* seconds */, 0 /* microseconds */));
+        return Timestamp::fromDateTime(date,
+            Time::fromTime(hour, 0 /* minutes */, 0 /* seconds */, 0 /* microseconds */));
     default:
         date_t date = getDate(timestamp);
         return fromDateTime(Date::trunc(specifier, date), dtime_t(0));

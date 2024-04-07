@@ -5,18 +5,18 @@
 #include "common/copy_constructors.h"
 #include "common/mpsc_queue.h"
 #include "common/static_vector.h"
+#include "common/types/int128_t.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "processor/execution_context.h"
 #include "storage/index/hash_index_builder.h"
+#include "storage/index/hash_index_utils.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
 namespace processor {
 
-constexpr size_t BUFFER_SIZE = 1024;
-using IntBuffer = common::StaticVector<std::pair<int64_t, common::offset_t>, BUFFER_SIZE>;
-using StringBuffer = common::StaticVector<std::pair<std::string, common::offset_t>, BUFFER_SIZE>;
+const size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
 
 class IndexBuilderGlobalQueues {
 public:
@@ -24,12 +24,19 @@ public:
 
     void flushToDisk() const;
 
-    void insert(size_t index, StringBuffer elem);
-    void insert(size_t index, IntBuffer elem);
+    template<typename T>
+    void insert(size_t index, storage::IndexBuffer<T> elem) {
+        auto& typedQueues = std::get<Queue<T>>(queues).array;
+        typedQueues[index].push(std::move(elem));
+        if (typedQueues[index].approxSize() < SHOULD_FLUSH_QUEUE_SIZE) {
+            return;
+        }
+        maybeConsumeIndex(index);
+    }
 
     void consume();
 
-    common::LogicalTypeID pkTypeID() const { return pkIndex->keyTypeID(); }
+    common::PhysicalTypeID pkTypeID() const { return pkIndex->keyTypeID(); }
 
 private:
     void maybeConsumeIndex(size_t index);
@@ -37,19 +44,43 @@ private:
     std::array<std::mutex, storage::NUM_HASH_INDEXES> mutexes;
     storage::PrimaryKeyIndexBuilder* pkIndex;
 
-    using StringQueues = std::array<common::MPSCQueue<StringBuffer>, storage::NUM_HASH_INDEXES>;
-    using IntQueues = std::array<common::MPSCQueue<IntBuffer>, storage::NUM_HASH_INDEXES>;
+    template<typename T>
+    struct Queue {
+        std::array<common::MPSCQueue<storage::IndexBuffer<T>>, storage::NUM_HASH_INDEXES> array;
+        // Type information to help std::visit. Value is not used
+        T type;
+    };
 
     // Queues for distributing primary keys.
-    std::variant<StringQueues, IntQueues> queues;
+    std::variant<Queue<std::string>, Queue<int64_t>, Queue<int32_t>, Queue<int16_t>, Queue<int8_t>,
+        Queue<uint64_t>, Queue<uint32_t>, Queue<uint16_t>, Queue<uint8_t>, Queue<common::int128_t>,
+        Queue<float>, Queue<double>>
+        queues;
 };
 
 class IndexBuilderLocalBuffers {
 public:
     explicit IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& globalQueues);
 
-    void insert(std::string key, common::offset_t value);
-    void insert(int64_t key, common::offset_t value);
+    void insert(std::string key, common::offset_t value) {
+        auto indexPos = storage::HashIndexUtils::getHashIndexPosition(std::string_view(key));
+        auto& stringBuffer = (*std::get<UniqueBuffers<std::string>>(buffers))[indexPos];
+        if (stringBuffer.full()) {
+            // StaticVector's move constructor leaves the original vector valid and empty
+            globalQueues->insert(indexPos, std::move(stringBuffer));
+        }
+        stringBuffer.push_back(std::make_pair(key, value)); // NOLINT(bugprone-use-after-move)
+    }
+
+    template<common::HashablePrimitive T>
+    void insert(T key, common::offset_t value) {
+        auto indexPos = storage::HashIndexUtils::getHashIndexPosition(key);
+        auto& buffer = (*std::get<UniqueBuffers<T>>(buffers))[indexPos];
+        if (buffer.full()) {
+            globalQueues->insert(indexPos, std::move(buffer));
+        }
+        buffer.push_back(std::make_pair(key, value)); // NOLINT(bugprone-use-after-move)
+    }
 
     void flush();
 
@@ -57,10 +88,15 @@ private:
     IndexBuilderGlobalQueues* globalQueues;
 
     // These arrays are much too large to be inline.
-    using StringBuffers = std::array<StringBuffer, storage::NUM_HASH_INDEXES>;
-    using IntBuffers = std::array<IntBuffer, storage::NUM_HASH_INDEXES>;
-    std::unique_ptr<StringBuffers> stringBuffers;
-    std::unique_ptr<IntBuffers> intBuffers;
+    template<typename T>
+    using Buffers = std::array<storage::IndexBuffer<T>, storage::NUM_HASH_INDEXES>;
+    template<typename T>
+    using UniqueBuffers = std::unique_ptr<Buffers<T>>;
+    std::variant<UniqueBuffers<std::string>, UniqueBuffers<int64_t>, UniqueBuffers<int32_t>,
+        UniqueBuffers<int16_t>, UniqueBuffers<int8_t>, UniqueBuffers<uint64_t>,
+        UniqueBuffers<uint32_t>, UniqueBuffers<uint16_t>, UniqueBuffers<uint8_t>,
+        UniqueBuffers<common::int128_t>, UniqueBuffers<float>, UniqueBuffers<double>>
+        buffers;
 };
 
 class IndexBuilderSharedState {
@@ -114,8 +150,8 @@ public:
 
     IndexBuilder clone() { return IndexBuilder(sharedState); }
 
-    void insert(
-        storage::ColumnChunk* chunk, common::offset_t nodeOffset, common::offset_t numNodes);
+    void insert(const storage::ColumnChunk& chunk, common::offset_t nodeOffset,
+        common::offset_t numNodes);
 
     ProducerToken getProducerToken() const { return ProducerToken(sharedState); }
 
@@ -123,7 +159,8 @@ public:
     void finalize(ExecutionContext* context);
 
 private:
-    void checkNonNullConstraint(storage::NullColumnChunk* nullChunk, common::offset_t numNodes);
+    void checkNonNullConstraint(const storage::NullColumnChunk& nullChunk,
+        common::offset_t numNodes);
     std::shared_ptr<IndexBuilderSharedState> sharedState;
 
     IndexBuilderLocalBuffers localBuffers;

@@ -4,12 +4,14 @@
 
 #include "rust/cxx.h"
 #ifdef KUZU_BUNDLED
+#include "common/type_utils.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
 #include "main/kuzu.h"
+#include "storage/storage_version_info.h"
 #else
 #include <kuzu.hpp>
 #endif
@@ -37,9 +39,9 @@ struct QueryParams {
 std::unique_ptr<QueryParams> new_params();
 
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type(kuzu::common::LogicalTypeID id);
-std::unique_ptr<kuzu::common::LogicalType> create_logical_type_var_list(
+std::unique_ptr<kuzu::common::LogicalType> create_logical_type_list(
     std::unique_ptr<kuzu::common::LogicalType> childType);
-std::unique_ptr<kuzu::common::LogicalType> create_logical_type_fixed_list(
+std::unique_ptr<kuzu::common::LogicalType> create_logical_type_array(
     std::unique_ptr<kuzu::common::LogicalType> childType, uint64_t numElements);
 
 inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(
@@ -62,11 +64,15 @@ std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
     std::unique_ptr<kuzu::common::LogicalType> keyType,
     std::unique_ptr<kuzu::common::LogicalType> valueType);
 
-const kuzu::common::LogicalType& logical_type_get_var_list_child_type(
+inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_rdf_variant() {
+    return kuzu::common::LogicalType::RDF_VARIANT();
+}
+
+const kuzu::common::LogicalType& logical_type_get_list_child_type(
     const kuzu::common::LogicalType& logicalType);
-const kuzu::common::LogicalType& logical_type_get_fixed_list_child_type(
+const kuzu::common::LogicalType& logical_type_get_array_child_type(
     const kuzu::common::LogicalType& logicalType);
-uint64_t logical_type_get_fixed_list_num_elements(const kuzu::common::LogicalType& logicalType);
+uint64_t logical_type_get_array_num_elements(const kuzu::common::LogicalType& logicalType);
 
 rust::Vec<rust::String> logical_type_get_struct_field_names(const kuzu::common::LogicalType& value);
 std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_field_types(
@@ -74,7 +80,8 @@ std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_
 
 /* Database */
 std::unique_ptr<kuzu::main::Database> new_database(std::string_view databasePath,
-    uint64_t bufferPoolSize, uint64_t maxNumThreads, bool enableCompression, bool readOnly);
+    uint64_t bufferPoolSize, uint64_t maxNumThreads, bool enableCompression, bool readOnly,
+    uint64_t maxDBSize);
 
 void database_set_logging_level(kuzu::main::Database& database, const std::string& level);
 
@@ -92,9 +99,6 @@ rust::String query_result_get_error_message(const kuzu::main::QueryResult& resul
 
 double query_result_get_compiling_time(const kuzu::main::QueryResult& result);
 double query_result_get_execution_time(const kuzu::main::QueryResult& result);
-
-void query_result_write_to_csv(kuzu::main::QueryResult& query_result, const rust::String& filename,
-    int8_t delimiter, int8_t escape_character, int8_t newline);
 
 std::unique_ptr<std::vector<kuzu::common::LogicalType>> query_result_column_data_types(
     const kuzu::main::QueryResult& query_result);
@@ -161,7 +165,9 @@ std::unique_ptr<kuzu::common::Value> create_value_timestamp_tz(const int64_t tim
 std::unique_ptr<kuzu::common::Value> create_value_timestamp_ns(const int64_t timestamp);
 std::unique_ptr<kuzu::common::Value> create_value_timestamp_ms(const int64_t timestamp);
 std::unique_ptr<kuzu::common::Value> create_value_timestamp_sec(const int64_t timestamp);
-std::unique_ptr<kuzu::common::Value> create_value_date(const int64_t date);
+inline std::unique_ptr<kuzu::common::Value> create_value_date(const int32_t date) {
+    return std::make_unique<kuzu::common::Value>(kuzu::common::date_t(date));
+}
 std::unique_ptr<kuzu::common::Value> create_value_interval(
     const int32_t months, const int32_t days, const int64_t micros);
 std::unique_ptr<kuzu::common::Value> create_value_null(
@@ -171,7 +177,7 @@ std::unique_ptr<kuzu::common::Value> create_value_internal_id(uint64_t offset, u
 
 inline std::unique_ptr<kuzu::common::Value> create_value_uuid_t(int64_t high, uint64_t low) {
     return std::make_unique<kuzu::common::Value>(
-        kuzu::common::uuid_t{kuzu::common::int128_t(low, high)});
+        kuzu::common::ku_uuid_t{kuzu::common::int128_t(low, high)});
 }
 
 template<typename T>
@@ -191,6 +197,21 @@ std::unique_ptr<ValueListBuilder> create_list();
 
 inline std::string_view string_view_from_str(rust::Str s) {
     return {s.data(), s.size()};
+}
+
+// Converts bytes containing blob_t into actual blob bytes
+inline rust::Vec<uint8_t> get_blob_from_bytes(const rust::Vec<uint8_t>& value) {
+    KU_ASSERT(value.size() == sizeof(kuzu::common::blob_t));
+    std::string_view blob = ((kuzu::common::blob_t*)value.data())->value.getAsStringView();
+    rust::Vec<uint8_t> result;
+    for (auto c : blob) {
+        result.push_back(c);
+    }
+    return result;
+}
+
+inline kuzu::storage::storage_version_t get_storage_version() {
+    return kuzu::storage::StorageVersionInfo::getStorageVersion();
 }
 
 } // namespace kuzu_rs

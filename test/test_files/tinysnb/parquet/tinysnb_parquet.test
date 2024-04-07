@@ -1,9 +1,7 @@
-# one sample from each tinysnb csv test CSV_TO_PARQUET 
-# https://github.com/kuzudb/kuzu/issues/1627
+# This test group is currently disabled since exporting fixed-list to parquet is not supported yet
 -GROUP TinySnbParquet
--SKIP
 -DATASET PARQUET CSV_TO_PARQUET(tinysnb)
-
+-SKIP
 --
 
 -CASE TinySnbParquet

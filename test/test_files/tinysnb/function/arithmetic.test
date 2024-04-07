@@ -4,6 +4,12 @@
 --
 
 -CASE FunctionArithmetic
+
+-LOG NestedNegateFunction
+-STATEMENT RETURN - - 1, ---2.3, --5!
+---- 1
+1|-2.300000|120
+
 -LOG moduloFunctionOnUINT16UINT8Test
 -STATEMENT MATCH (:person)-[a:studyAt]->(:organisation) RETURN a.ulength % a.ulevel
 ---- 3

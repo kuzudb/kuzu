@@ -133,7 +133,7 @@ describe("Execute", function () {
     } catch (e) {
       assert.equal(
         e.message,
-        "The value of each parameter must be a boolean, number, string, or Date object."
+        "The value of each parameter must be a boolean, number, string, Date or BigInt."
       );
     }
   });

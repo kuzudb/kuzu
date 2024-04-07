@@ -72,7 +72,7 @@ extern void (*mbedtls_test_hook_test_fail)(const char* test, int line, const cha
  * Given a multi-byte integer \p x, MBEDTLS_BYTE_n retrieves the n-th
  * byte from x, where byte 0 is the least significant byte.
  */
-#define MBEDTLS_BYTE_0(x) ((uint8_t)((x)&0xff))
+#define MBEDTLS_BYTE_0(x) ((uint8_t)((x) & 0xff))
 #define MBEDTLS_BYTE_1(x) ((uint8_t)(((x) >> 8) & 0xff))
 #define MBEDTLS_BYTE_2(x) ((uint8_t)(((x) >> 16) & 0xff))
 #define MBEDTLS_BYTE_3(x) ((uint8_t)(((x) >> 24) & 0xff))

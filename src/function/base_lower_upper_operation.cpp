@@ -39,22 +39,27 @@ uint32_t BaseLowerUpperFunction::getResultLen(char* inputStr, uint32_t inputLen,
     return outputLength;
 }
 
+uint64_t BaseLowerUpperFunction::convertCharCase(char* result, const char* input, int32_t charPos,
+    bool toUpper) {
+    if (input[charPos] & 0x80) {
+        int size = 0u, newSize = 0u;
+        auto codepoint = utf8proc_codepoint(input + charPos, size);
+        KU_ASSERT(codepoint >= 0); // Validity ensured by getResultLen.
+        int convertedCodepoint =
+            toUpper ? utf8proc_toupper(codepoint) : utf8proc_tolower(codepoint);
+        utf8proc_codepoint_to_utf8(convertedCodepoint, newSize, result);
+        return size;
+    } else {
+        *result = toUpper ? toupper(input[charPos]) : tolower(input[charPos]);
+        return 1;
+    }
+}
+
 void BaseLowerUpperFunction::convertCase(char* result, uint32_t len, char* input, bool toUpper) {
     for (auto i = 0u; i < len;) {
-        if (input[i] & 0x80) {
-            int size = 0, newSize = 0;
-            int codepoint = utf8proc_codepoint(input + i, size);
-            KU_ASSERT(codepoint >= 0); // Validity ensured by getResultLen.
-            int convertedCodepoint =
-                toUpper ? utf8proc_toupper(codepoint) : utf8proc_tolower(codepoint);
-            utf8proc_codepoint_to_utf8(convertedCodepoint, newSize, result);
-            result += newSize;
-            i += size;
-        } else {
-            *result = toUpper ? toupper(input[i]) : tolower(input[i]);
-            i++;
-            result++;
-        }
+        auto charWidth = convertCharCase(result, input, i, toUpper);
+        i += charWidth;
+        result += charWidth;
     }
 }
 

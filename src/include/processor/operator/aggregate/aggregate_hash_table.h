@@ -2,7 +2,7 @@
 
 #include "aggregate_input.h"
 #include "function/aggregate_function.h"
-#include "processor/operator/base_hash_table.h"
+#include "processor/result/base_hash_table.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -13,6 +13,8 @@ struct HashSlot {
     uint8_t* entry;      // pointer to the factorizedTable entry which stores [groupKey1, ...
                          // groupKeyN, aggregateState1, ..., aggregateStateN, hashValue].
 };
+
+enum class HashTableType : uint8_t { AGGREGATE_HASH_TABLE = 0, MARK_HASH_TABLE = 1 };
 
 /**
  * AggregateHashTable Design
@@ -31,7 +33,6 @@ struct HashSlot {
  *
  */
 class AggregateHashTable;
-using compare_function_t = std::function<bool(common::ValueVector*, uint32_t, const uint8_t*)>;
 using update_agg_function_t =
     std::function<void(AggregateHashTable*, const std::vector<common::ValueVector*>&,
         const std::vector<common::ValueVector*>&, std::unique_ptr<function::AggregateFunction>&,
@@ -41,25 +42,25 @@ class AggregateHashTable : public BaseHashTable {
 public:
     // Used by distinct aggregate hash table only.
     AggregateHashTable(storage::MemoryManager& memoryManager,
-        const std::vector<common::LogicalType>& keysDataTypes,
+        const common::logical_type_vec_t& keysDataTypes,
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
-        uint64_t numEntriesToAllocate)
+        uint64_t numEntriesToAllocate, std::unique_ptr<FactorizedTableSchema> tableSchema)
         : AggregateHashTable(memoryManager, keysDataTypes, std::vector<common::LogicalType>(),
-              aggregateFunctions, numEntriesToAllocate) {}
+              aggregateFunctions, numEntriesToAllocate, std::move(tableSchema)) {}
 
     AggregateHashTable(storage::MemoryManager& memoryManager,
         std::vector<common::LogicalType> keysDataTypes,
         std::vector<common::LogicalType> payloadsDataTypes,
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
-        uint64_t numEntriesToAllocate);
+        uint64_t numEntriesToAllocate, std::unique_ptr<FactorizedTableSchema> tableSchema);
 
-    inline uint8_t* getEntry(uint64_t idx) { return factorizedTable->getTuple(idx); }
+    uint8_t* getEntry(uint64_t idx) { return factorizedTable->getTuple(idx); }
 
-    inline FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
+    FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
 
-    inline uint64_t getNumEntries() const { return factorizedTable->getNumTuples(); }
+    uint64_t getNumEntries() const { return factorizedTable->getNumTuples(); }
 
-    inline void append(const std::vector<common::ValueVector*>& flatKeyVectors,
+    void append(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         common::DataChunkState* leadingState,
         const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
@@ -87,9 +88,26 @@ public:
 
     void resize(uint64_t newSize);
 
+protected:
+    virtual uint64_t matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
+        uint64_t numNoMatches);
+
+    virtual void initializeFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        const std::vector<common::ValueVector*>& dependentKeyVectors,
+        uint64_t numFTEntriesToInitialize);
+
+    uint64_t matchUnFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
+        uint64_t& numNoMatches, uint32_t colIdx);
+
+    uint64_t matchFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
+        uint64_t& numNoMatches, uint32_t colIdx);
+
 private:
     void initializeFT(
-        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);
+        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
+        std::unique_ptr<FactorizedTableSchema> tableSchema);
 
     void initializeHashTable(uint64_t numEntriesToAllocate);
 
@@ -97,22 +115,17 @@ private:
 
     // ! This function will only be used by distinct aggregate, which assumes that all groupByKeys
     // are flat.
-    uint8_t* findEntryInDistinctHT(
-        const std::vector<common::ValueVector*>& groupByKeyVectors, common::hash_t hash);
+    uint8_t* findEntryInDistinctHT(const std::vector<common::ValueVector*>& groupByKeyVectors,
+        common::hash_t hash);
 
-    void initializeFTEntryWithFlatVec(
-        common::ValueVector* flatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
+    void initializeFTEntryWithFlatVec(common::ValueVector* flatVector,
+        uint64_t numEntriesToInitialize, uint32_t colIdx);
 
-    void initializeFTEntryWithUnFlatVec(
-        common::ValueVector* unFlatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
+    void initializeFTEntryWithUnFlatVec(common::ValueVector* unFlatVector,
+        uint64_t numEntriesToInitialize, uint32_t colIdx);
 
-    void initializeFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        const std::vector<common::ValueVector*>& dependentKeyVectors,
-        uint64_t numFTEntriesToInitialize);
-
-    uint8_t* createEntryInDistinctHT(
-        const std::vector<common::ValueVector*>& groupByHashKeyVectors, common::hash_t hash);
+    uint8_t* createEntryInDistinctHT(const std::vector<common::ValueVector*>& groupByHashKeyVectors,
+        common::hash_t hash);
 
     void increaseSlotIdx(uint64_t& slotIdx) const;
 
@@ -124,11 +137,6 @@ private:
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
         common::DataChunkState* leadingState);
-
-    void computeAndCombineVecHash(
-        const std::vector<common::ValueVector*>& unFlatKeyVectors, uint32_t startVecIdx);
-    void computeVectorHashes(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors);
 
     void updateDistinctAggState(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
@@ -151,16 +159,6 @@ private:
     // are flat.
     bool matchFlatGroupByKeys(const std::vector<common::ValueVector*>& keyVectors, uint8_t* entry);
 
-    uint64_t matchUnFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
-        uint64_t& numNoMatches, uint32_t colIdx);
-
-    uint64_t matchFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
-        uint64_t& numNoMatches, uint32_t colIdx);
-
-    uint64_t matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
-        uint64_t numNoMatches);
-
     void fillEntryWithInitialNullAggregateState(uint8_t* entry);
 
     //! find an uninitialized hash slot for given hash and fill hash slot with block id and offset
@@ -179,9 +177,6 @@ private:
     void addDataBlocksIfNecessary(uint64_t maxNumHashSlots);
 
     void resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys);
-
-    static void getCompareEntryWithKeysFunc(
-        const common::LogicalType& logicalType, compare_function_t& func);
 
     void updateNullAggVectorState(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
@@ -214,29 +209,27 @@ private:
         std::unique_ptr<function::AggregateFunction>& aggregateFunction,
         common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
 
+protected:
+    uint32_t hashColIdxInFT;
+    std::unique_ptr<uint64_t[]> mayMatchIdxes;
+    std::unique_ptr<uint64_t[]> noMatchIdxes;
+    std::unique_ptr<uint64_t[]> entryIdxesToInitialize;
+    std::unique_ptr<HashSlot*[]> hashSlotsToUpdateAggState;
+
 private:
-    std::vector<common::LogicalType> keyDataTypes;
     std::vector<common::LogicalType> dependentKeyDataTypes;
     std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions;
 
     //! special handling of distinct aggregate
     std::vector<std::unique_ptr<AggregateHashTable>> distinctHashTables;
-    uint32_t hashColIdxInFT;
     uint32_t hashColOffsetInFT;
     uint32_t aggStateColOffsetInFT;
     uint32_t aggStateColIdxInFT;
     uint32_t numBytesForKeys = 0;
     uint32_t numBytesForDependentKeys = 0;
-    std::vector<compare_function_t> compareFuncs;
     std::vector<update_agg_function_t> updateAggFuncs;
     // Temporary arrays to hold intermediate results.
-    std::shared_ptr<common::DataChunkState> hashState;
-    std::unique_ptr<common::ValueVector> hashVector;
-    std::unique_ptr<HashSlot*[]> hashSlotsToUpdateAggState;
     std::unique_ptr<uint64_t[]> tmpValueIdxes;
-    std::unique_ptr<uint64_t[]> entryIdxesToInitialize;
-    std::unique_ptr<uint64_t[]> mayMatchIdxes;
-    std::unique_ptr<uint64_t[]> noMatchIdxes;
     std::unique_ptr<uint64_t[]> tmpSlotIdxes;
 };
 

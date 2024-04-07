@@ -11,18 +11,30 @@ namespace planner {
 std::unique_ptr<LogicalInsertInfo> Planner::createLogicalInsertInfo(const BoundInsertInfo* info) {
     auto insertInfo = std::make_unique<LogicalInsertInfo>(info->tableType, info->pattern,
         info->columnExprs, info->columnDataExprs, info->conflictAction);
+    if (info->iriReplaceExpr != nullptr) { // See bound_insert_info.h for explanation.
+        insertInfo->columnExprs = expression_vector{info->iriReplaceExpr};
+        KU_ASSERT(insertInfo->columnExprs.size() == 1);
+        auto projectIri = false;
+        for (auto& property : propertiesToScan) {
+            if (*property == *info->iriReplaceExpr) {
+                projectIri = true;
+            }
+        }
+        insertInfo->isReturnColumnExprs.push_back(projectIri);
+        return insertInfo;
+    }
     binder::expression_set propertyExprSet;
     for (auto& expr : getProperties(*info->pattern)) {
         propertyExprSet.insert(expr);
     }
-    for (auto& expr : info->columnExprs) {
+    for (auto& expr : insertInfo->columnExprs) {
         insertInfo->isReturnColumnExprs.push_back(propertyExprSet.contains(expr));
     }
     return insertInfo;
 }
 
-void Planner::appendInsertNode(
-    const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
+void Planner::appendInsertNode(const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos,
+    LogicalPlan& plan) {
     std::vector<LogicalInsertInfo> logicalInfos;
     logicalInfos.reserve(boundInsertInfos.size());
     for (auto& boundInfo : boundInsertInfos) {
@@ -36,8 +48,8 @@ void Planner::appendInsertNode(
     plan.setLastOperator(insertNode);
 }
 
-void Planner::appendInsertRel(
-    const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
+void Planner::appendInsertRel(const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos,
+    LogicalPlan& plan) {
     std::vector<LogicalInsertInfo> logicalInfos;
     logicalInfos.reserve(boundInsertInfos.size());
     for (auto& boundInfo : boundInsertInfos) {

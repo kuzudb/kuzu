@@ -90,7 +90,7 @@ public:
     /**
      * @param val_ the UUID value to set.
      */
-    KUZU_API explicit Value(uuid_t val_);
+    KUZU_API explicit Value(ku_uuid_t val_);
     /**
      * @param val_ the double value to set.
      */
@@ -136,6 +136,10 @@ public:
      */
     KUZU_API explicit Value(const char* val_);
     /**
+     * @param val_ the string value to set.
+     */
+    KUZU_API explicit Value(const std::string& val_);
+    /**
      * @param val_ the uint8_t* value to set.
      */
     KUZU_API explicit Value(uint8_t* val_);
@@ -148,8 +152,8 @@ public:
      * @param dataType the logical type of the value.
      * @param children a vector of children values.
      */
-    KUZU_API explicit Value(
-        std::unique_ptr<LogicalType> dataType, std::vector<std::unique_ptr<Value>> children);
+    KUZU_API explicit Value(std::unique_ptr<LogicalType> dataType,
+        std::vector<std::unique_ptr<Value>> children);
     /**
      * @param other the value to copy from.
      */
@@ -214,6 +218,7 @@ public:
     static Value createValue(T /*value*/) {
         throw std::runtime_error("Unimplemented template for Value::createValue()");
     }
+
     /**
      * @return a copy of the current value.
      */
@@ -231,8 +236,7 @@ private:
     Value();
     explicit Value(const LogicalType& dataType);
 
-    void copyFromFixedList(const uint8_t* fixedList);
-    void copyFromVarList(ku_list_t& list, const LogicalType& childType);
+    void copyFromList(ku_list_t& list, const LogicalType& childType);
     void copyFromStruct(const uint8_t* kuStruct);
     void copyFromUnion(const uint8_t* kuUnion);
 

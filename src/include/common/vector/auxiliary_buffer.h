@@ -37,8 +37,8 @@ class StructAuxiliaryBuffer : public AuxiliaryBuffer {
 public:
     StructAuxiliaryBuffer(const LogicalType& type, storage::MemoryManager* memoryManager);
 
-    inline void referenceChildVector(
-        vector_idx_t idx, std::shared_ptr<ValueVector> vectorToReference) {
+    inline void referenceChildVector(vector_idx_t idx,
+        std::shared_ptr<ValueVector> vectorToReference) {
         childrenVectors[idx] = std::move(vectorToReference);
     }
     inline const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors() const {
@@ -69,19 +69,17 @@ class ListAuxiliaryBuffer : public AuxiliaryBuffer {
 public:
     ListAuxiliaryBuffer(const LogicalType& dataVectorType, storage::MemoryManager* memoryManager);
 
-    inline void setDataVector(std::shared_ptr<ValueVector> vector) {
-        dataVector = std::move(vector);
-    }
-    inline ValueVector* getDataVector() const { return dataVector.get(); }
-    inline std::shared_ptr<ValueVector> getSharedDataVector() const { return dataVector; }
+    void setDataVector(std::shared_ptr<ValueVector> vector) { dataVector = std::move(vector); }
+    ValueVector* getDataVector() const { return dataVector.get(); }
+    std::shared_ptr<ValueVector> getSharedDataVector() const { return dataVector; }
 
-    list_entry_t addList(uint64_t listSize);
+    list_entry_t addList(list_size_t listSize);
 
-    inline uint64_t getSize() const { return size; }
+    uint64_t getSize() const { return size; }
 
-    inline void resetSize() { size = 0; }
+    void resetSize() { size = 0; }
 
-    void resize(uint64_t numValues);
+    KUZU_API void resize(uint64_t numValues);
 
 private:
     void resizeDataVector(ValueVector* dataVector);
@@ -96,8 +94,8 @@ private:
 
 class AuxiliaryBufferFactory {
 public:
-    static std::unique_ptr<AuxiliaryBuffer> getAuxiliaryBuffer(
-        LogicalType& type, storage::MemoryManager* memoryManager);
+    static std::unique_ptr<AuxiliaryBuffer> getAuxiliaryBuffer(LogicalType& type,
+        storage::MemoryManager* memoryManager);
 };
 
 } // namespace common

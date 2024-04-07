@@ -18,7 +18,7 @@
 
 using namespace kuzu::common;
 
-typedef void (*ext_init_func_t)(kuzu::main::Database&);
+typedef void (*ext_init_func_t)(kuzu::main::ClientContext*);
 
 namespace kuzu {
 namespace processor {
@@ -59,8 +59,7 @@ bool LoadExtension::getNextTuplesInternal(ExecutionContext* context) {
     }
     hasExecuted = true;
     if (!extension::ExtensionUtils::isFullPath(path)) {
-        path = ExtensionUtils::getExtensionPath(
-            ExtensionUtils::getExtensionDir(context->database), path);
+        path = ExtensionUtils::getExtensionPath(context->clientContext->getExtensionDir(), path);
     }
     auto libHdl = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (libHdl == nullptr) {
@@ -73,7 +72,7 @@ bool LoadExtension::getNextTuplesInternal(ExecutionContext* context) {
             stringFormat("Extension \"{}\" does not have a valid init function.\nError: {}", path,
                 dlErrMessage()));
     }
-    (*load)(*context->database);
+    (*load)(context->clientContext);
     return true;
 }
 

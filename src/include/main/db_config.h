@@ -8,7 +8,7 @@ namespace kuzu {
 namespace main {
 
 typedef void (*set_context)(ClientContext* context, const common::Value& parameter);
-typedef std::string (*get_setting)(ClientContext* context);
+typedef common::Value (*get_setting)(ClientContext* context);
 
 enum class OptionType : uint8_t { CONFIGURATION = 0, EXTENSION = 1 };
 
@@ -36,10 +36,10 @@ struct ConfigurationOption : public Option {
 struct ExtensionOption : public Option {
     common::Value defaultValue;
 
-    ExtensionOption(
-        std::string name, common::LogicalTypeID parameterType, common::Value defaultValue)
-        : Option{std::move(name), parameterType, OptionType::EXTENSION}, defaultValue{std::move(
-                                                                             defaultValue)} {}
+    ExtensionOption(std::string name, common::LogicalTypeID parameterType,
+        common::Value defaultValue)
+        : Option{std::move(name), parameterType, OptionType::EXTENSION},
+          defaultValue{std::move(defaultValue)} {}
 };
 
 class DBConfig {

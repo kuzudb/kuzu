@@ -21,8 +21,8 @@ TaskScheduler::~TaskScheduler() {
     }
 }
 
-void TaskScheduler::scheduleTaskAndWaitOrError(
-    const std::shared_ptr<Task>& task, processor::ExecutionContext* context) {
+void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
+    processor::ExecutionContext* context) {
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency, context);
     }
@@ -40,7 +40,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(
             taskLck.unlock();
             break;
         }
-        if (context->clientContext->isTimeOutEnabled()) {
+        if (context->clientContext->hasTimeout()) {
             timeout = context->clientContext->getTimeoutRemainingInMS();
             if (timeout == 0) {
                 context->clientContext->interrupt();

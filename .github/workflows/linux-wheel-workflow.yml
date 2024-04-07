@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-linux-wheels-x86_64:
-    runs-on: kuzu-self-hosted-linux-building
+    runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
     steps:
       - uses: actions/checkout@v3
 
@@ -23,9 +23,8 @@ jobs:
       - name: Build wheels
         working-directory: ./scripts/pip-package/
         run: |
-          cp Dockerfiles/x86_64/build_all_packages.sh .
+          cp /home/runner/build_all_packages.sh .
           source /opt/rh/devtoolset-11/enable
-          chmod +x build_all_packages.sh
           ./build_all_packages.sh
 
       - uses: actions/upload-artifact@v3
@@ -34,7 +33,8 @@ jobs:
           path: ./scripts/pip-package/wheelhouse/*manylinux2014_x86_64.whl
 
   build-linux-wheels-aarch64:
-    runs-on: kuzu-self-hosted-linux-building-aarch64
+    # Make sure this job runs on the larger self-hosted Linux ARM64 machine
+    runs-on: [kuzu-self-hosted-linux-building-aarch64, ac3]
     steps:
       - uses: actions/checkout@v3
 
@@ -46,8 +46,8 @@ jobs:
       - name: Build wheels
         working-directory: ./scripts/pip-package/
         run: |
-          cp Dockerfiles/aarch64/build_all_packages.sh .
-          bash build_all_packages.sh
+          cp /home/runner/build_all_packages.sh .
+          ./build_all_packages.sh
 
       - uses: actions/upload-artifact@v3
         with:

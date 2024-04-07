@@ -45,10 +45,10 @@ struct RecursiveJoinDataInfo {
         : srcNodePos{srcNodePos}, dstNodePos{dstNodePos},
           dstNodeTableIDs{std::move(dstNodeTableIDs)}, pathLengthPos{pathLengthPos},
           localResultSetDescriptor{std::move(localResultSetDescriptor)},
-          recursiveDstNodeIDPos{recursiveDstNodeIDPos}, recursiveDstNodeTableIDs{std::move(
-                                                            recursiveDstNodeTableIDs)},
-          recursiveEdgeIDPos{recursiveEdgeIDPos}, pathPos{pathPos}, tableIDToName{
-                                                                        std::move(tableIDToName)} {}
+          recursiveDstNodeIDPos{recursiveDstNodeIDPos},
+          recursiveDstNodeTableIDs{std::move(recursiveDstNodeTableIDs)},
+          recursiveEdgeIDPos{recursiveEdgeIDPos}, pathPos{pathPos},
+          tableIDToName{std::move(tableIDToName)} {}
 
     inline std::unique_ptr<RecursiveJoinDataInfo> copy() {
         return std::make_unique<RecursiveJoinDataInfo>(srcNodePos, dstNodePos, dstNodeTableIDs,
@@ -103,7 +103,7 @@ public:
 private:
     void initLocalRecursivePlan(ExecutionContext* context);
 
-    void populateTargetDstNodes();
+    void populateTargetDstNodes(ExecutionContext* context);
 
     bool scanOutput();
 

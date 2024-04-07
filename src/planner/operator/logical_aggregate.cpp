@@ -30,8 +30,8 @@ f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForGroupBy() {
     if (hasDistinctAggregate()) {
         return FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, children[0]->getSchema());
     } else {
-        return FlattenAllButOne::getGroupsPosToFlatten(
-            dependentGroupsPos, children[0]->getSchema());
+        return FlattenAllButOne::getGroupsPosToFlatten(dependentGroupsPos,
+            children[0]->getSchema());
     }
 }
 

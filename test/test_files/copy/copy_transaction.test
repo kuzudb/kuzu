@@ -43,7 +43,11 @@
             notes UNION(firstmet DATE, type INT16, comment STRING),
             someMap MAP(STRING, STRING), MANY_MANY);
 ---- ok
+-STATEMENT CALL ENABLE_MULTI_COPY=true;
+---- ok
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv"
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv"
 ---- ok
 -STATEMENT match (:person)-[e:knows]->(:person) return e.date
 ---- 14

@@ -3,6 +3,7 @@
 #include "common/enums/table_type.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "function/hash/hash_functions.h"
 
 namespace kuzu {
 namespace storage {
@@ -51,9 +52,6 @@ enum class WALRecordType : uint8_t {
     CREATE_TABLE_RECORD = 6,
     CREATE_REL_TABLE_GROUP_RECORD = 7,
     CREATE_RDF_GRAPH_RECORD = 8,
-    // Records the nextBytePosToWriteTo field's last value before the write trx started. This is
-    // used when rolling back to restore this value.
-    OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 17,
     COPY_TABLE_RECORD = 19,
     DROP_TABLE_RECORD = 20,
     DROP_PROPERTY_RECORD = 21,
@@ -71,8 +69,8 @@ struct PageUpdateOrInsertRecord {
 
     PageUpdateOrInsertRecord() = default;
 
-    PageUpdateOrInsertRecord(
-        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert)
+    PageUpdateOrInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL, bool isInsert)
         : dbFileID{dbFileID}, pageIdxInOriginalFile{pageIdxInOriginalFile},
           pageIdxInWAL{pageIdxInWAL}, isInsert{isInsert} {}
 
@@ -120,8 +118,8 @@ struct RdfGraphRecord {
         CreateTableRecord literalTripleTableRecord)
         : tableID{tableID}, resourceTableRecord{resourceTableRecord},
           literalTableRecord{literalTableRecord},
-          resourceTripleTableRecord{resourceTripleTableRecord}, literalTripleTableRecord{
-                                                                    literalTripleTableRecord} {}
+          resourceTripleTableRecord{resourceTripleTableRecord},
+          literalTripleTableRecord{literalTripleTableRecord} {}
 
     inline bool operator==(const RdfGraphRecord& rhs) const {
         return tableID == rhs.tableID && resourceTableRecord == rhs.resourceTableRecord &&
@@ -131,32 +129,14 @@ struct RdfGraphRecord {
     }
 };
 
-struct DiskOverflowFileNextBytePosRecord {
-    DBFileID dbFileID;
-    uint64_t prevNextBytePosToWriteTo;
-
-    DiskOverflowFileNextBytePosRecord() = default;
-
-    DiskOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextByteToWriteTo)
-        : dbFileID{dbFileID}, prevNextBytePosToWriteTo{prevNextByteToWriteTo} {}
-
-    inline bool operator==(const DiskOverflowFileNextBytePosRecord& rhs) const {
-        return dbFileID == rhs.dbFileID && prevNextBytePosToWriteTo == rhs.prevNextBytePosToWriteTo;
-    }
-};
-
 struct CopyTableRecord {
     common::table_id_t tableID;
-    common::TableType tableType;
 
     CopyTableRecord() = default;
 
-    explicit CopyTableRecord(common::table_id_t tableID, common::TableType tableType)
-        : tableID{tableID}, tableType{tableType} {}
+    explicit CopyTableRecord(common::table_id_t tableID) : tableID{tableID} {}
 
-    inline bool operator==(const CopyTableRecord& rhs) const {
-        return tableID == rhs.tableID && tableType == rhs.tableType;
-    }
+    inline bool operator==(const CopyTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct TableStatisticsRecord {
@@ -217,7 +197,6 @@ struct WALRecord {
         CommitRecord commitRecord;
         CreateTableRecord createTableRecord;
         RdfGraphRecord rdfGraphRecord;
-        DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
         CopyTableRecord copyTableRecord;
         TableStatisticsRecord tableStatisticsRecord;
         DropTableRecord dropTableRecord;
@@ -227,10 +206,10 @@ struct WALRecord {
 
     bool operator==(const WALRecord& rhs) const;
 
-    static WALRecord newPageUpdateRecord(
-        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
-    static WALRecord newPageInsertRecord(
-        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
+    static WALRecord newPageUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL);
+    static WALRecord newPageInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL);
     static WALRecord newCommitRecord(uint64_t transactionID);
     static WALRecord newTableStatisticsRecord(bool isNodeTable);
     static WALRecord newCatalogRecord();
@@ -238,23 +217,34 @@ struct WALRecord {
     static WALRecord newRdfGraphRecord(common::table_id_t rdfGraphID,
         common::table_id_t resourceTableID, common::table_id_t literalTableID,
         common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID);
-    static WALRecord newOverflowFileNextBytePosRecord(
-        DBFileID dbFileID, uint64_t prevNextByteToWriteTo_);
-    static WALRecord newCopyTableRecord(common::table_id_t tableID, common::TableType tableType);
+    static WALRecord newCopyTableRecord(common::table_id_t tableID);
     static WALRecord newDropTableRecord(common::table_id_t tableID);
-    static WALRecord newDropPropertyRecord(
-        common::table_id_t tableID, common::property_id_t propertyID);
-    static WALRecord newAddPropertyRecord(
-        common::table_id_t tableID, common::property_id_t propertyID);
+    static WALRecord newDropPropertyRecord(common::table_id_t tableID,
+        common::property_id_t propertyID);
+    static WALRecord newAddPropertyRecord(common::table_id_t tableID,
+        common::property_id_t propertyID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.
     void writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset) const;
 
 private:
-    static WALRecord newPageInsertOrUpdateRecord(
-        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert);
+    static WALRecord newPageInsertOrUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL, bool isInsert);
 };
 
 } // namespace storage
 } // namespace kuzu
+
+namespace std {
+template<>
+struct hash<kuzu::storage::DBFileID> {
+    size_t operator()(const kuzu::storage::DBFileID& fileId) const {
+        auto dbFileTypeHash = std::hash<uint8_t>()(static_cast<uint8_t>(fileId.dbFileType));
+        auto isOverflowHash = std::hash<bool>()(fileId.isOverflow);
+        auto nodeIndexIDHash = std::hash<kuzu::common::table_id_t>()(fileId.nodeIndexID.tableID);
+        return kuzu::function::combineHashScalar(dbFileTypeHash,
+            kuzu::function::combineHashScalar(isOverflowHash, nodeIndexIDHash));
+    }
+};
+} // namespace std

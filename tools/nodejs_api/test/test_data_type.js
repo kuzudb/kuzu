@@ -18,7 +18,7 @@ describe("BOOL", function () {
 describe("INT8", function () {
   it("should convert INT8 type", async function () {
     const queryResult = await conn.query(
-        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.level"
+      "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.level"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
@@ -74,7 +74,7 @@ describe("INT64", function () {
 describe("UINT8", function () {
   it("should convert UINT8 type", async function () {
     const queryResult = await conn.query(
-        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.ulevel"
+      "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.ulevel"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
@@ -88,7 +88,7 @@ describe("UINT8", function () {
 describe("UINT16", function () {
   it("should convert UINT16 type", async function () {
     const queryResult = await conn.query(
-        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.ulength"
+      "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.ulength"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
@@ -102,7 +102,7 @@ describe("UINT16", function () {
 describe("UINT32", function () {
   it("should convert UINT32 type", async function () {
     const queryResult = await conn.query(
-        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.temprature"
+      "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.temprature"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
@@ -116,7 +116,7 @@ describe("UINT32", function () {
 describe("UINT64", function () {
   it("should convert UINT64 type", async function () {
     const queryResult = await conn.query(
-        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.code"
+      "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.code"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
@@ -252,7 +252,7 @@ describe("TIMESTAMP", function () {
 describe("TIMESTAMP_TZ", function () {
   it("should convert TIMESTAMP_TZ type", async function () {
     const queryResult = await conn.query(
-        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
+      "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
@@ -261,8 +261,8 @@ describe("TIMESTAMP_TZ", function () {
     assert.isTrue("release_tz" in result[0]["a.description"]);
     assert.equal(typeof result[0]["a.description"]["release_tz"], "object");
     assert.equal(
-        Number(result[0]["a.description"]["release_tz"].getTime()),
-        Number(new Date("2011-08-20 11:25:30.123Z"))
+      Number(result[0]["a.description"]["release_tz"].getTime()),
+      Number(new Date("2011-08-20 11:25:30.123Z"))
     );
   });
 });
@@ -270,7 +270,7 @@ describe("TIMESTAMP_TZ", function () {
 describe("TIMESTAMP_NS", function () {
   it("should convert TIMESTAMP_NS type", async function () {
     const queryResult = await conn.query(
-        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
+      "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
@@ -279,8 +279,8 @@ describe("TIMESTAMP_NS", function () {
     assert.isTrue("release_ns" in result[0]["a.description"]);
     assert.equal(typeof result[0]["a.description"]["release_ns"], "object");
     assert.equal(
-        Number(result[0]["a.description"]["release_ns"].getTime()),
-        Number(new Date("2011-08-20 11:25:30.123Z"))
+      Number(result[0]["a.description"]["release_ns"].getTime()),
+      Number(new Date("2011-08-20 11:25:30.123Z"))
     );
   });
 });
@@ -288,7 +288,7 @@ describe("TIMESTAMP_NS", function () {
 describe("TIMESTAMP_MS", function () {
   it("should convert TIMESTAMP_MS type", async function () {
     const queryResult = await conn.query(
-        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
+      "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
@@ -297,8 +297,8 @@ describe("TIMESTAMP_MS", function () {
     assert.isTrue("release_ms" in result[0]["a.description"]);
     assert.equal(typeof result[0]["a.description"]["release_ms"], "object");
     assert.equal(
-        Number(result[0]["a.description"]["release_ms"].getTime()),
-        Number(new Date("2011-08-20 11:25:30.123Z"))
+      Number(result[0]["a.description"]["release_ms"].getTime()),
+      Number(new Date("2011-08-20 11:25:30.123Z"))
     );
   });
 });
@@ -306,7 +306,7 @@ describe("TIMESTAMP_MS", function () {
 describe("TIMESTAMP_SEC", function () {
   it("should convert TIMESTAMP_SEC type", async function () {
     const queryResult = await conn.query(
-        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
+      "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
@@ -315,8 +315,8 @@ describe("TIMESTAMP_SEC", function () {
     assert.isTrue("release_sec" in result[0]["a.description"]);
     assert.equal(typeof result[0]["a.description"]["release_sec"], "object");
     assert.equal(
-        Number(result[0]["a.description"]["release_sec"].getTime()),
-        Number(new Date("2011-08-20 11:25:30Z"))
+      Number(result[0]["a.description"]["release_sec"].getTime()),
+      Number(new Date("2011-08-20 11:25:30Z"))
     );
   });
 });
@@ -339,8 +339,8 @@ describe("INTERVAL", function () {
   });
 });
 
-describe("VAR_LIST", function () {
-  it("should convert VAR_LIST type", async function () {
+describe("LIST", function () {
+  it("should convert LIST type", async function () {
     const queryResult = await conn.query(
       "MATCH (a:person) WHERE a.ID = 0 RETURN a.courseScoresPerTerm;"
     );
@@ -359,8 +359,8 @@ describe("VAR_LIST", function () {
   });
 });
 
-describe("FIXED_LIST", function () {
-  it("should convert FIXED_LIST type", async function () {
+describe("ARRAY", function () {
+  it("should convert ARRAY type", async function () {
     const queryResult = await conn.query(
       "MATCH (a:person) -[m:meets]-> (b:person) WHERE a.ID = 0 AND b.ID = 2 RETURN m.location"
     );
@@ -387,7 +387,7 @@ describe("STRUCT", function () {
     assert.equal(typeof result[0]["o.state"], "object");
     assert.deepEqual(result[0]["o.state"], {
       revenue: 138,
-      location: ["'toronto'", " 'montr,eal'"],
+      location: ["'toronto'", "'montr,eal'"],
       stock: { price: [96, 56], volume: 1000 },
     });
   });
@@ -458,7 +458,7 @@ describe("REL", function () {
 describe("RECURSIVE_REL", function () {
   it("should convert RECURSIVE_REL type", async function () {
     const queryResult = await conn.query(
-      "MATCH (a:person)-[e*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;"
+      "MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
@@ -468,10 +468,6 @@ describe("RECURSIVE_REL", function () {
       _nodes: [],
       _rels: [
         {
-          date: null,
-          meetTime: null,
-          validInterval: null,
-          comments: null,
           year: 2021,
           places: ["wwAewsdndweusd", "wek"],
           length: 5,
@@ -481,17 +477,6 @@ describe("RECURSIVE_REL", function () {
           ulength: 33768,
           ulevel: 250,
           hugedata: BigInt("1844674407370955161811111111"),
-          grading: null,
-          rating: null,
-          location: null,
-          times: null,
-          data: null,
-          usedAddress: null,
-          address: null,
-          someMap: null,
-          note: null,
-          notes: null,
-          summary: null,
           _label: "studyAt",
           _src: {
             offset: 0,
@@ -517,6 +502,34 @@ describe("MAP", function () {
     assert.equal(Object.keys(result[0]).length, 1);
     assert.isTrue("m.audience" in result[0]);
     assert.equal(typeof result[0]["m.audience"], "object");
-    assert.deepEqual(result[0]["m.audience"], {'audience1': 33});
+    assert.deepEqual(result[0]["m.audience"], { audience1: 33 });
+  });
+});
+
+describe("RDF_VARIANT", function () {
+  it("should convert RDF_VARIANT type", async function () {
+    const queryResult = await conn.query(
+      "MATCH (a:T_l) RETURN a.val ORDER BY a.id;"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 16);
+    assert.deepEqual(result[0]["a.val"], 12);
+    assert.deepEqual(result[1]["a.val"], 43);
+    assert.deepEqual(result[2]["a.val"], 33);
+    assert.deepEqual(result[3]["a.val"], 2);
+    assert.deepEqual(result[4]["a.val"], 90);
+    assert.deepEqual(result[5]["a.val"], 77);
+    assert.deepEqual(result[6]["a.val"], 12);
+    assert.deepEqual(result[7]["a.val"], 1);
+    let val = result[8]["a.val"];
+    assert.approximately(val, 4.4, EPSILON);
+    val = result[9]["a.val"];
+    assert.approximately(val, 1.2, EPSILON);
+    assert.deepEqual(result[10]["a.val"], true);
+    assert.deepEqual(result[11]["a.val"], "hhh");
+    assert.deepEqual(result[12]["a.val"], new Date("2024-01-01"));
+    assert.deepEqual(result[13]["a.val"], new Date("2024-01-01 11:25:30Z"));
+    assert.deepEqual(result[14]["a.val"], 172800000);
+    assert.deepEqual(result[15]["a.val"], new Uint8Array([0xb2]));
   });
 });

@@ -348,7 +348,9 @@ Noura|Guelph
 16
 
 -LOG LoadFrom
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+-STATEMENT CALL file_search_path='${KUZU_ROOT_DIRECTORY}'
+---- ok
+-STATEMENT LOAD FROM "dataset/demo-db/csv/user.csv"
         RETURN *;
 ---- 4
 Adam|30

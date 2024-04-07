@@ -46,23 +46,24 @@ public:
         : Expression{expressionType, std::move(dataType), expression_vector{child},
               std::move(uniqueName)} {}
     // Create leaf expression
-    Expression(
-        common::ExpressionType expressionType, common::LogicalType dataType, std::string uniqueName)
-        : Expression{
-              expressionType, std::move(dataType), expression_vector{}, std::move(uniqueName)} {}
+    Expression(common::ExpressionType expressionType, common::LogicalType dataType,
+        std::string uniqueName)
+        : Expression{expressionType, std::move(dataType), expression_vector{},
+              std::move(uniqueName)} {}
     DELETE_COPY_DEFAULT_MOVE(Expression);
     virtual ~Expression() = default;
 
-    inline void setAlias(const std::string& name) { alias = name; }
+    void setAlias(const std::string& name) { alias = name; }
 
-    inline void setUniqueName(const std::string& name) { uniqueName = name; }
-    inline std::string getUniqueName() const {
+    void setUniqueName(const std::string& name) { uniqueName = name; }
+    std::string getUniqueName() const {
         KU_ASSERT(!uniqueName.empty());
         return uniqueName;
     }
 
-    inline common::LogicalType getDataType() const { return dataType; }
-    inline common::LogicalType& getDataTypeReference() { return dataType; }
+    virtual void cast(const common::LogicalType& type);
+    common::LogicalType getDataType() const { return dataType; }
+    common::LogicalType& getDataTypeReference() { return dataType; }
 
     inline bool hasAlias() const { return !alias.empty(); }
     inline std::string getAlias() const { return alias; }
@@ -107,8 +108,8 @@ struct ExpressionHasher {
 };
 
 struct ExpressionEquality {
-    bool operator()(
-        const std::shared_ptr<Expression>& left, const std::shared_ptr<Expression>& right) const {
+    bool operator()(const std::shared_ptr<Expression>& left,
+        const std::shared_ptr<Expression>& right) const {
         return left->getUniqueName() == right->getUniqueName();
     }
 };

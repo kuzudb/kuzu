@@ -3,14 +3,16 @@
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace planner {
 
-void Planner::appendUnwind(const BoundReadingClause& boundReadingClause, LogicalPlan& plan) {
-    auto& boundUnwindClause = (BoundUnwindClause&)boundReadingClause;
-    auto unwind = make_shared<LogicalUnwind>(
-        boundUnwindClause.getInExpr(), boundUnwindClause.getOutExpr(), plan.getLastOperator());
+void Planner::appendUnwind(const BoundReadingClause& readingClause, LogicalPlan& plan) {
+    auto& unwindClause =
+        ku_dynamic_cast<const BoundReadingClause&, const BoundUnwindClause&>(readingClause);
+    auto unwind = make_shared<LogicalUnwind>(unwindClause.getInExpr(), unwindClause.getOutExpr(),
+        unwindClause.getIDExpr(), plan.getLastOperator());
     appendFlattens(unwind->getGroupsPosToFlatten(), plan);
     unwind->setChild(0, plan.getLastOperator());
     unwind->computeFactorizedSchema();

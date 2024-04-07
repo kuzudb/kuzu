@@ -1,4 +1,9 @@
+#include "function/aggregate/count_star.h"
+#include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include "function/list/vector_list_functions.h"
+#include "function/string/vector_string_functions.h"
+#include "function/struct/vector_struct_functions.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
@@ -9,6 +14,7 @@
 #include "parser/transformer.h"
 
 using namespace kuzu::common;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace parser {
@@ -27,8 +33,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformOrExpression(
             expression = std::move(next);
         } else {
             auto rawName = expression->getRawName() + " OR " + next->getRawName();
-            expression = std::make_unique<ParsedExpression>(
-                ExpressionType::OR, std::move(expression), std::move(next), rawName);
+            expression = std::make_unique<ParsedExpression>(ExpressionType::OR,
+                std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -43,8 +49,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformXorExpression(
             expression = std::move(next);
         } else {
             auto rawName = expression->getRawName() + " XOR " + next->getRawName();
-            expression = std::make_unique<ParsedExpression>(
-                ExpressionType::XOR, std::move(expression), std::move(next), rawName);
+            expression = std::make_unique<ParsedExpression>(ExpressionType::XOR,
+                std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -59,8 +65,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformAndExpression(
             expression = std::move(next);
         } else {
             auto rawName = expression->getRawName() + " AND " + next->getRawName();
-            expression = std::make_unique<ParsedExpression>(
-                ExpressionType::AND, std::move(expression), std::move(next), rawName);
+            expression = std::make_unique<ParsedExpression>(ExpressionType::AND,
+                std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -68,11 +74,15 @@ std::unique_ptr<ParsedExpression> Transformer::transformAndExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformNotExpression(
     CypherParser::OC_NotExpressionContext& ctx) {
-    if (ctx.NOT()) {
-        return std::make_unique<ParsedExpression>(ExpressionType::NOT,
-            transformComparisonExpression(*ctx.oC_ComparisonExpression()), ctx.getText());
+    auto result = transformComparisonExpression(*ctx.oC_ComparisonExpression());
+    if (!ctx.NOT().empty()) {
+        for ([[maybe_unused]] auto& _ : ctx.NOT()) {
+            auto rawName = "NOT " + result->toString();
+            result = std::make_unique<ParsedExpression>(ExpressionType::NOT, std::move(result),
+                std::move(rawName));
+        }
     }
-    return transformComparisonExpression(*ctx.oC_ComparisonExpression());
+    return result;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformComparisonExpression(
@@ -87,24 +97,24 @@ std::unique_ptr<ParsedExpression> Transformer::transformComparisonExpression(
     auto right = transformBitwiseOrOperatorExpression(*ctx.kU_BitwiseOrOperatorExpression(1));
     auto comparisonOperator = ctx.kU_ComparisonOperator()[0]->getText();
     if (comparisonOperator == "=") {
-        return std::make_unique<ParsedExpression>(
-            ExpressionType::EQUALS, std::move(left), std::move(right), ctx.getText());
+        return std::make_unique<ParsedExpression>(ExpressionType::EQUALS, std::move(left),
+            std::move(right), ctx.getText());
     } else if (comparisonOperator == "<>") {
-        return std::make_unique<ParsedExpression>(
-            ExpressionType::NOT_EQUALS, std::move(left), std::move(right), ctx.getText());
+        return std::make_unique<ParsedExpression>(ExpressionType::NOT_EQUALS, std::move(left),
+            std::move(right), ctx.getText());
     } else if (comparisonOperator == ">") {
-        return std::make_unique<ParsedExpression>(
-            ExpressionType::GREATER_THAN, std::move(left), std::move(right), ctx.getText());
+        return std::make_unique<ParsedExpression>(ExpressionType::GREATER_THAN, std::move(left),
+            std::move(right), ctx.getText());
     } else if (comparisonOperator == ">=") {
-        return std::make_unique<ParsedExpression>(
-            ExpressionType::GREATER_THAN_EQUALS, std::move(left), std::move(right), ctx.getText());
+        return std::make_unique<ParsedExpression>(ExpressionType::GREATER_THAN_EQUALS,
+            std::move(left), std::move(right), ctx.getText());
     } else if (comparisonOperator == "<") {
-        return std::make_unique<ParsedExpression>(
-            ExpressionType::LESS_THAN, std::move(left), std::move(right), ctx.getText());
+        return std::make_unique<ParsedExpression>(ExpressionType::LESS_THAN, std::move(left),
+            std::move(right), ctx.getText());
     } else {
         KU_ASSERT(comparisonOperator == "<=");
-        return std::make_unique<ParsedExpression>(
-            ExpressionType::LESS_THAN_EQUALS, std::move(left), std::move(right), ctx.getText());
+        return std::make_unique<ParsedExpression>(ExpressionType::LESS_THAN_EQUALS, std::move(left),
+            std::move(right), ctx.getText());
     }
 }
 
@@ -117,8 +127,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformBitwiseOrOperatorExpress
             expression = std::move(next);
         } else {
             auto rawName = expression->getRawName() + " | " + next->getRawName();
-            expression = std::make_unique<ParsedFunctionExpression>(
-                BITWISE_OR_FUNC_NAME, std::move(expression), std::move(next), rawName);
+            expression = std::make_unique<ParsedFunctionExpression>(BitwiseOrFunction::name,
+                std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -133,8 +143,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformBitwiseAndOperatorExpres
             expression = std::move(next);
         } else {
             auto rawName = expression->getRawName() + " & " + next->getRawName();
-            expression = std::make_unique<ParsedFunctionExpression>(
-                BITWISE_AND_FUNC_NAME, std::move(expression), std::move(next), rawName);
+            expression = std::make_unique<ParsedFunctionExpression>(BitwiseAndFunction::name,
+                std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -152,12 +162,12 @@ std::unique_ptr<ParsedExpression> Transformer::transformBitShiftOperatorExpressi
             auto rawName =
                 expression->getRawName() + " " + bitShiftOperator + " " + next->getRawName();
             if (bitShiftOperator == "<<") {
-                expression = std::make_unique<ParsedFunctionExpression>(
-                    BITSHIFT_LEFT_FUNC_NAME, std::move(expression), std::move(next), rawName);
+                expression = std::make_unique<ParsedFunctionExpression>(BitShiftLeftFunction::name,
+                    std::move(expression), std::move(next), rawName);
             } else {
                 KU_ASSERT(bitShiftOperator == ">>");
-                expression = std::make_unique<ParsedFunctionExpression>(
-                    BITSHIFT_RIGHT_FUNC_NAME, std::move(expression), std::move(next), rawName);
+                expression = std::make_unique<ParsedFunctionExpression>(BitShiftRightFunction::name,
+                    std::move(expression), std::move(next), rawName);
             }
         }
     }
@@ -176,8 +186,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformAddOrSubtractExpression(
             auto arithmeticOperator = ctx.kU_AddOrSubtractOperator(i - 1)->getText();
             auto rawName =
                 expression->getRawName() + " " + arithmeticOperator + " " + next->getRawName();
-            expression = std::make_unique<ParsedFunctionExpression>(
-                arithmeticOperator, std::move(expression), std::move(next), rawName);
+            expression = std::make_unique<ParsedFunctionExpression>(arithmeticOperator,
+                std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -194,8 +204,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformMultiplyDivideModuloExpr
             auto arithmeticOperator = ctx.kU_MultiplyDivideModuloOperator(i - 1)->getText();
             auto rawName =
                 expression->getRawName() + " " + arithmeticOperator + " " + next->getRawName();
-            expression = std::make_unique<ParsedFunctionExpression>(
-                arithmeticOperator, std::move(expression), std::move(next), rawName);
+            expression = std::make_unique<ParsedFunctionExpression>(arithmeticOperator,
+                std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -210,8 +220,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
             expression = std::move(next);
         } else {
             auto rawName = expression->getRawName() + " ^ " + next->getRawName();
-            expression = std::make_unique<ParsedFunctionExpression>(
-                POWER_FUNC_NAME, std::move(expression), std::move(next), rawName);
+            expression = std::make_unique<ParsedFunctionExpression>(PowerFunction::name,
+                std::move(expression), std::move(next), rawName);
         }
     }
     return expression;
@@ -219,22 +229,21 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactorialExpression(
     CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx) {
-    if (ctx.MINUS() && ctx.FACTORIAL()) {
-        auto exp1 = std::make_unique<ParsedFunctionExpression>(FACTORIAL_FUNC_NAME,
-            transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
-            ctx.getText());
-        return std::make_unique<ParsedFunctionExpression>(
-            NEGATE_FUNC_NAME, std::move(exp1), ctx.getText());
-    } else if (ctx.MINUS()) {
-        return std::make_unique<ParsedFunctionExpression>(NEGATE_FUNC_NAME,
-            transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
-            ctx.getText());
-    } else if (ctx.FACTORIAL()) {
-        return std::make_unique<ParsedFunctionExpression>(FACTORIAL_FUNC_NAME,
-            transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
-            ctx.getText());
+    auto result =
+        transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression());
+    if (ctx.FACTORIAL()) { // Factorial has a higher
+        auto raw = result->toString() + "!";
+        result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
+            std::move(result), std::move(raw));
     }
-    return transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression());
+    if (!ctx.MINUS().empty()) {
+        for ([[maybe_unused]] auto& _ : ctx.MINUS()) {
+            auto raw = "-" + result->toString();
+            result = std::make_unique<ParsedFunctionExpression>(NegateFunction::name,
+                std::move(result), std::move(raw));
+        }
+    }
+    return result;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformStringListNullOperatorExpression(
@@ -242,21 +251,21 @@ std::unique_ptr<ParsedExpression> Transformer::transformStringListNullOperatorEx
     auto propertyExpression =
         transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
     if (ctx.oC_NullOperatorExpression()) {
-        return transformNullOperatorExpression(
-            *ctx.oC_NullOperatorExpression(), std::move(propertyExpression));
+        return transformNullOperatorExpression(*ctx.oC_NullOperatorExpression(),
+            std::move(propertyExpression));
     }
     if (!ctx.oC_ListOperatorExpression().empty()) {
-        auto result = transformListOperatorExpression(
-            *ctx.oC_ListOperatorExpression(0), std::move(propertyExpression));
+        auto result = transformListOperatorExpression(*ctx.oC_ListOperatorExpression(0),
+            std::move(propertyExpression));
         for (auto i = 1u; i < ctx.oC_ListOperatorExpression().size(); ++i) {
-            result = transformListOperatorExpression(
-                *ctx.oC_ListOperatorExpression(i), std::move(result));
+            result = transformListOperatorExpression(*ctx.oC_ListOperatorExpression(i),
+                std::move(result));
         }
         return result;
     }
     if (ctx.oC_StringOperatorExpression()) {
-        return transformStringOperatorExpression(
-            *ctx.oC_StringOperatorExpression(), std::move(propertyExpression));
+        return transformStringOperatorExpression(*ctx.oC_StringOperatorExpression(),
+            std::move(propertyExpression));
     }
     return propertyExpression;
 }
@@ -267,78 +276,63 @@ std::unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression
     auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
     auto right = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
     if (ctx.STARTS()) {
-        return std::make_unique<ParsedFunctionExpression>(
-            STARTS_WITH_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
+        return std::make_unique<ParsedFunctionExpression>(StartsWithFunction::name,
+            std::move(propertyExpression), std::move(right), rawExpression);
     } else if (ctx.ENDS()) {
-        return std::make_unique<ParsedFunctionExpression>(
-            ENDS_WITH_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
+        return std::make_unique<ParsedFunctionExpression>(EndsWithFunction::name,
+            std::move(propertyExpression), std::move(right), rawExpression);
     } else if (ctx.CONTAINS()) {
-        return std::make_unique<ParsedFunctionExpression>(
-            CONTAINS_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
+        return std::make_unique<ParsedFunctionExpression>(ContainsFunction::name,
+            std::move(propertyExpression), std::move(right), rawExpression);
     } else {
         KU_ASSERT(ctx.oC_RegularExpression());
-        return std::make_unique<ParsedFunctionExpression>(REGEXP_FULL_MATCH_FUNC_NAME,
+        return std::make_unique<ParsedFunctionExpression>(RegexpFullMatchFunction::name,
             std::move(propertyExpression), std::move(right), rawExpression);
     }
 }
 
-static std::unique_ptr<ParsedLiteralExpression> getZeroLiteral() {
-    return std::make_unique<ParsedLiteralExpression>(Value(0), "0");
-}
-
 std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
-    CypherParser::OC_ListOperatorExpressionContext& ctx,
-    std::unique_ptr<ParsedExpression> childExpression) {
-    auto rawExpression = childExpression->getRawName() + ctx.getText();
-    std::unique_ptr<ParsedExpression> listOperator;
-    if (ctx.kU_ListSliceOperatorExpression()) {
-        listOperator = transformListSliceOperatorExpression(
-            *ctx.kU_ListSliceOperatorExpression(), std::move(childExpression));
-    } else {
-        listOperator = transformListExtractOperatorExpression(
-            *ctx.kU_ListExtractOperatorExpression(), std::move(childExpression));
+    CypherParser::OC_ListOperatorExpressionContext& ctx, std::unique_ptr<ParsedExpression> child) {
+    auto raw = child->getRawName() + ctx.getText();
+    if (ctx.IN()) { // x IN y
+        auto listContains =
+            std::make_unique<ParsedFunctionExpression>(ListContainsFunction::name, std::move(raw));
+        auto right = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
+        listContains->addChild(std::move(right));
+        listContains->addChild(std::move(child));
+        return listContains;
     }
-    return listOperator;
-}
-
-std::unique_ptr<ParsedExpression> Transformer::transformListSliceOperatorExpression(
-    CypherParser::KU_ListSliceOperatorExpressionContext& ctx,
-    std::unique_ptr<ParsedExpression> propertyExpression) {
-    auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
-    auto listSlice =
-        std::make_unique<ParsedFunctionExpression>(LIST_SLICE_FUNC_NAME, std::move(rawExpression));
-    listSlice->addChild(std::move(propertyExpression));
-    if (ctx.children[1]->getText() == ":") {
-        listSlice->addChild(getZeroLiteral());
-        // Parsing [:right] syntax.
-        if (ctx.oC_Expression(0)) {
-            listSlice->addChild(transformExpression(*ctx.oC_Expression(0)));
-            // Parsing [:] syntax.
+    if (ctx.COLON()) { // x[:]
+        auto listSlice =
+            std::make_unique<ParsedFunctionExpression>(ListSliceFunction::name, std::move(raw));
+        listSlice->addChild(std::move(child));
+        std::unique_ptr<ParsedExpression> left;
+        std::unique_ptr<ParsedExpression> right;
+        if (ctx.oC_Expression().size() == 2) { // [left:right]
+            left = transformExpression(*ctx.oC_Expression(0));
+            right = transformExpression(*ctx.oC_Expression(1));
+        } else if (ctx.oC_Expression().size() == 0) { // [:]
+            left = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
+            right = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
         } else {
-            listSlice->addChild(getZeroLiteral());
+            if (ctx.children[1]->getText() == ":") { // [:right]
+                left = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
+                right = transformExpression(*ctx.oC_Expression(0));
+            } else { // [left:]
+                left = transformExpression(*ctx.oC_Expression(0));
+                right = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
+            }
         }
-    } else {
-        // Parsing [left:right] syntax.
-        if (ctx.oC_Expression(1)) {
-            listSlice->addChild(transformExpression(*ctx.oC_Expression(0)));
-            listSlice->addChild(transformExpression(*ctx.oC_Expression(1)));
-            // Parsing [left:] syntax.
-        } else {
-            listSlice->addChild(transformExpression(*ctx.oC_Expression(0)));
-            listSlice->addChild(getZeroLiteral());
-        }
+        listSlice->addChild(std::move(left));
+        listSlice->addChild(std::move(right));
+        return listSlice;
     }
-    return listSlice;
-}
-
-std::unique_ptr<ParsedExpression> Transformer::transformListExtractOperatorExpression(
-    CypherParser::KU_ListExtractOperatorExpressionContext& ctx,
-    std::unique_ptr<ParsedExpression> propertyExpression) {
-    auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
-    auto listExtract = std::make_unique<ParsedFunctionExpression>(
-        LIST_EXTRACT_FUNC_NAME, std::move(rawExpression));
-    listExtract->addChild(std::move(propertyExpression));
-    listExtract->addChild(transformExpression(*ctx.oC_Expression()));
+    // x[a]
+    auto listExtract =
+        std::make_unique<ParsedFunctionExpression>(ListExtractFunction::name, std::move(raw));
+    listExtract->addChild(std::move(child));
+    KU_ASSERT(ctx.oC_Expression().size() == 1);
+    listExtract->addChild(transformExpression(*ctx.oC_Expression()[0]));
     return listExtract;
 }
 
@@ -349,8 +343,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
     KU_ASSERT(ctx.IS() && ctx.NULL_());
     return ctx.NOT() ? std::make_unique<ParsedExpression>(ExpressionType::IS_NOT_NULL,
                            std::move(propertyExpression), rawExpression) :
-                       std::make_unique<ParsedExpression>(
-                           ExpressionType::IS_NULL, std::move(propertyExpression), rawExpression);
+                       std::make_unique<ParsedExpression>(ExpressionType::IS_NULL,
+                           std::move(propertyExpression), rawExpression);
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpression(
@@ -388,8 +382,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_At
         return transformCountSubquery(*ctx.kU_CountSubquery());
     } else {
         KU_ASSERT(ctx.oC_Variable());
-        return std::make_unique<ParsedVariableExpression>(
-            transformVariable(*ctx.oC_Variable()), ctx.getText());
+        return std::make_unique<ParsedVariableExpression>(transformVariable(*ctx.oC_Variable()),
+            ctx.getText());
     }
 }
 
@@ -404,8 +398,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
             Value(LogicalType::STRING(), transformStringLiteral(*ctx.StringLiteral())),
             ctx.getText());
     } else if (ctx.NULL_()) {
-        return std::make_unique<ParsedLiteralExpression>(
-            Value(Value::createNullValue()), ctx.getText());
+        return std::make_unique<ParsedLiteralExpression>(Value(Value::createNullValue()),
+            ctx.getText());
     } else if (ctx.kU_StructLiteral()) {
         return transformStructLiteral(*ctx.kU_StructLiteral());
     } else {
@@ -427,7 +421,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformBooleanLiteral(
 std::unique_ptr<ParsedExpression> Transformer::transformListLiteral(
     CypherParser::OC_ListLiteralContext& ctx) {
     auto listCreation =
-        std::make_unique<ParsedFunctionExpression>(LIST_CREATION_FUNC_NAME, ctx.getText());
+        std::make_unique<ParsedFunctionExpression>(ListCreationFunction::name, ctx.getText());
     if (ctx.oC_Expression() == nullptr) { // empty list
         return listCreation;
     }
@@ -447,7 +441,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformListLiteral(
 std::unique_ptr<ParsedExpression> Transformer::transformStructLiteral(
     CypherParser::KU_StructLiteralContext& ctx) {
     auto structPack =
-        std::make_unique<ParsedFunctionExpression>(STRUCT_PACK_FUNC_NAME, ctx.getText());
+        std::make_unique<ParsedFunctionExpression>(StructPackFunctions::name, ctx.getText());
     for (auto& structField : ctx.kU_StructField()) {
         auto structExpr = transformExpression(*structField->oC_Expression());
         std::string alias;
@@ -477,7 +471,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformParenthesizedExpression(
 std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     CypherParser::OC_FunctionInvocationContext& ctx) {
     if (ctx.STAR()) {
-        return std::make_unique<ParsedFunctionExpression>(COUNT_STAR_FUNC_NAME, ctx.getText());
+        return std::make_unique<ParsedFunctionExpression>(CountStarFunction::name, ctx.getText());
     }
     std::string functionName;
     if (ctx.COUNT()) {
@@ -485,8 +479,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     } else {
         functionName = transformFunctionName(*ctx.oC_FunctionName());
     }
-    auto expression = std::make_unique<ParsedFunctionExpression>(
-        functionName, ctx.getText(), ctx.DISTINCT() != nullptr);
+    auto expression = std::make_unique<ParsedFunctionExpression>(functionName, ctx.getText(),
+        ctx.DISTINCT() != nullptr);
     for (auto& functionParameter : ctx.kU_FunctionParameter()) {
         expression->addChild(transformFunctionParameterExpression(*functionParameter));
     }
@@ -541,8 +535,8 @@ std::unique_ptr<ParsedExpression> Transformer::createPropertyExpression(
     CypherParser::OC_PropertyLookupContext& ctx, std::unique_ptr<ParsedExpression> child) {
     auto key =
         ctx.STAR() ? InternalKeyword::STAR : transformPropertyKeyName(*ctx.oC_PropertyKeyName());
-    return std::make_unique<ParsedPropertyExpression>(
-        key, std::move(child), child->toString() + ctx.getText());
+    return std::make_unique<ParsedPropertyExpression>(key, std::move(child),
+        child->toString() + ctx.getText());
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformCaseExpression(

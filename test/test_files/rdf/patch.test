@@ -1,0 +1,99 @@
+-GROUP Rdf
+-DATASET TTL EMPTY
+
+--
+
+-CASE CatalogInfo
+
+-STATEMENT CREATE RDFGraph X;
+---- ok
+-STATEMENT CREATE NODE TABLE N(x SERIAL, PRIMARY KEY(x));
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 6
+N|NODE|
+X_lt|REL|
+X_l|NODE|
+X_rt|REL|
+X_r|NODE|
+X|RDFGraph|
+-STATEMENT CALL table_info("X_r") RETURN *;
+---- 1
+0|iri|STRING|True
+-STATEMENT CALL table_info("X_l") RETURN *;
+---- 3
+0|id|SERIAL|True
+1|val|RDF_VARIANT|False
+2|lang|STRING|False
+-STATEMENT CALL table_info("X_rt") RETURN *;
+---- 1
+-1|iri (Virtual)|STRING
+-STATEMENT CALL table_info("X_lt") RETURN *;
+---- 1
+-1|iri (Virtual)|STRING
+
+-STATEMENT RETURN dummy();
+---- error
+Catalog exception: function DUMMY does not exist.
+-STATEMENT CALL show_tables('x') RETURN *;
+---- error
+Binder exception: Cannot match a built-in function for given function show_tables(STRING). Expect empty inputs.
+-STATEMENT MATCH (a:X_lt) RETURN *;
+---- error
+Binder exception: Cannot bind X_lt as a node pattern label.
+-STATEMENT MATCH (a)-[e:X_r]->(b) RETURN *;
+---- error
+Binder exception: Cannot bind X_r as a relationship pattern label.
+-STATEMENT DROP TABLE X_lt;
+---- error
+Binder exception: Cannot delete relationship table X_lt because it is referenced by rdfGraph X.
+-STATEMENT ALTER TABLE X_r RENAME TO X_r2;
+---- error
+Binder exception: Cannot alter table X_r because it is referenced by rdfGraph X.
+-STATEMENT CREATE (a)-[e]->(b);
+---- error
+Binder exception: Create node a expects primary key iri as input.
+-STATEMENT CREATE (a {iri: "a"})-[e]->(b {iri: "b"});
+---- error
+Binder exception: Create node b with multiple node labels is not supported.
+-STATEMENT CREATE (a {iri: "a"})-[e]->(b:X_r {iri: "b"});
+---- error
+Binder exception: Insert relationship e expects iri property as input.
+-STATEMENT CREATE (a {iri: "a"})-[e {iri: "b"}]->(b:X_r {iri: "a"});
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri;
+---- 1
+a|b|a
+
+-CASE MixRDFGraphAndPropertyGraph
+-STATEMENT CREATE NODE TABLE Students(name STRING, primary key (name));
+---- ok
+-STATEMENT CREATE (s:Students {name: "Alice"});
+---- ok
+-STATEMENT CREATE (s:Students {name: "Adam"});
+---- ok
+-STATEMENT CREATE RDFGraph UniKG;
+---- ok
+-STATEMENT CREATE (a {iri:"a"})-[e {iri: "b"}]->(b:UniKG_r {iri:"http://kuzu.io/rdf-ex#Adam"})
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri;
+---- 1
+a|b|http://kuzu.io/rdf-ex#Adam
+-STATEMENT CREATE REL TABLE SameStudent(FROM Students TO UniKG_r);
+---- ok
+-STATEMENT MATCH (a:Students {name: "Adam"}), (b:UniKG_r {iri: "http://kuzu.io/rdf-ex#Adam"})
+    CREATE (a)-[e:SameStudent]->(b);
+---- ok
+-STATEMENT MATCH (a)-[s:SameStudent]->(b) RETURN a, b;
+---- 1
+{_ID: 0:1, _LABEL: Students, name: Adam}|{_ID: 2:1, _LABEL: UniKG_r, iri: http://kuzu.io/rdf-ex#Adam}
+-STATEMENT DROP RDFGraph UniKG;
+---- error
+Binder exception: Cannot delete rdfGraph UniKG because its resource table is referenced by relationship table SameStudent.
+-STATEMENT DROP TABLE SameStudent;
+---- ok
+-STATEMENT CREATE REL TABLE Y (FROM Students TO UniKG_l);
+---- ok
+-STATEMENT DROP RDFGraph UniKG;
+---- error
+Binder exception: Cannot delete rdfGraph UniKG because its literal table is referenced by relationship table Y.

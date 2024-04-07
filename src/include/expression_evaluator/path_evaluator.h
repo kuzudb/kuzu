@@ -4,6 +4,10 @@
 #include "expression_evaluator.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace evaluator {
 
 class PathExpressionEvaluator final : public ExpressionEvaluator {
@@ -12,12 +16,15 @@ public:
         std::vector<std::unique_ptr<ExpressionEvaluator>> children)
         : ExpressionEvaluator{std::move(children)}, expression{std::move(expression)} {}
 
-    void init(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
+    void init(const processor::ResultSet& resultSet,
+        storage::MemoryManager* memoryManager) override;
 
-    void evaluate() override;
+    void evaluate(main::ClientContext* clientContext) override;
 
-    bool select(common::SelectionVector& /*selVector*/) override { KU_UNREACHABLE; }
+    bool select(common::SelectionVector& /*selVector*/,
+        main::ClientContext* /*clientContext*/) override {
+        KU_UNREACHABLE;
+    }
 
     inline std::unique_ptr<ExpressionEvaluator> clone() override {
         std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;
@@ -45,8 +52,8 @@ private:
         std::vector<common::ValueVector*> relFieldVectors;
     };
 
-    void resolveResultVector(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
+    void resolveResultVector(const processor::ResultSet& resultSet,
+        storage::MemoryManager* memoryManager) override;
 
     void copyNodes(common::sel_t resultPos, bool isEmptyRels);
     uint64_t copyRels(common::sel_t resultPos);

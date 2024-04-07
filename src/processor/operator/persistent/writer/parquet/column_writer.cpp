@@ -4,11 +4,11 @@
 #include "function/cast/functions/numeric_limits.h"
 #include "processor/operator/persistent/writer/parquet/boolean_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/interval_column_writer.h"
+#include "processor/operator/persistent/writer/parquet/list_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 #include "processor/operator/persistent/writer/parquet/standard_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/string_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/struct_column_writer.h"
-#include "processor/operator/persistent/writer/parquet/var_list_column_writer.h"
 #include "snappy/snappy.h"
 
 namespace kuzu {
@@ -89,8 +89,8 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
             std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
             std::move(childWriters), canHaveNullsToCreate);
     }
-    case LogicalTypeID::VAR_LIST: {
-        auto childType = VarListType::getChildType(type);
+    case LogicalTypeID::LIST: {
+        auto childType = ListType::getChildType(type);
         // Set up the two schema elements for the list
         // for some reason we only set the converted type in the OPTIONAL element
         // first an OPTIONAL element.
@@ -119,9 +119,8 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
 
         auto child_writer = createWriterRecursive(schemas, writer, childType, "element",
             schemaPathToCreate, mm, maxRepeatToCreate + 1, maxDefineToCreate + 2);
-        return std::make_unique<VarListColumnWriter>(writer, schemaIdx,
-            std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
-            std::move(child_writer), canHaveNullsToCreate);
+        return std::make_unique<ListColumnWriter>(writer, schemaIdx, std::move(schemaPathToCreate),
+            maxRepeatToCreate, maxDefineToCreate, std::move(child_writer), canHaveNullsToCreate);
     }
     case LogicalTypeID::MAP: {
         // Maps are stored as follows in parquet:
@@ -155,8 +154,8 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         schemaPathToCreate.emplace_back("key_value");
 
         // Construct the child types recursively.
-        std::vector<common::LogicalType*> kvTypes{
-            MapType::getKeyType(type), MapType::getValueType(type)};
+        std::vector<common::LogicalType*> kvTypes{MapType::getKeyType(type),
+            MapType::getValueType(type)};
         std::vector<std::string> kvNames{"key", "value"};
         std::vector<std::unique_ptr<ColumnWriter>> childrenWriters;
         childrenWriters.reserve(2);
@@ -168,7 +167,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         auto structWriter = std::make_unique<StructColumnWriter>(writer, schemaIdx,
             schemaPathToCreate, maxRepeatToCreate, maxDefineToCreate, std::move(childrenWriters),
             canHaveNullsToCreate);
-        return std::make_unique<VarListColumnWriter>(writer, schemaIdx, schemaPathToCreate,
+        return std::make_unique<ListColumnWriter>(writer, schemaIdx, schemaPathToCreate,
             maxRepeatToCreate, maxDefineToCreate, std::move(structWriter), canHaveNullsToCreate);
     }
     default: {

@@ -119,3 +119,8 @@ False
 False
 False
 False
+
+-LOG NestedBooleanFunction
+-STATEMENT RETURN NOT NOT TRUE, NOT NOT NOT FALSE;
+---- 1
+True|True

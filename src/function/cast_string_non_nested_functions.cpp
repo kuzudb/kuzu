@@ -54,8 +54,8 @@ void castStringToBool(const char* input, uint64_t len, bool& result) {
 }
 
 template<>
-bool TryCastStringToTimestamp::tryCast<timestamp_ns_t>(
-    const char* input, uint64_t len, timestamp_t& result) {
+bool TryCastStringToTimestamp::tryCast<timestamp_ns_t>(const char* input, uint64_t len,
+    timestamp_t& result) {
     if (!Timestamp::tryConvertTimestamp(input, len, result)) {
         return false;
     }
@@ -64,8 +64,8 @@ bool TryCastStringToTimestamp::tryCast<timestamp_ns_t>(
 }
 
 template<>
-bool TryCastStringToTimestamp::tryCast<timestamp_ms_t>(
-    const char* input, uint64_t len, timestamp_t& result) {
+bool TryCastStringToTimestamp::tryCast<timestamp_ms_t>(const char* input, uint64_t len,
+    timestamp_t& result) {
     if (!Timestamp::tryConvertTimestamp(input, len, result)) {
         return false;
     }
@@ -74,8 +74,8 @@ bool TryCastStringToTimestamp::tryCast<timestamp_ms_t>(
 }
 
 template<>
-bool TryCastStringToTimestamp::tryCast<timestamp_sec_t>(
-    const char* input, uint64_t len, timestamp_t& result) {
+bool TryCastStringToTimestamp::tryCast<timestamp_sec_t>(const char* input, uint64_t len,
+    timestamp_t& result) {
     if (!Timestamp::tryConvertTimestamp(input, len, result)) {
         return false;
     }

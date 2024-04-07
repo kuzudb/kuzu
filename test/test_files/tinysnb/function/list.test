@@ -5,6 +5,46 @@
 
 -CASE FunctionList
 
+-LOG ListReverse
+-STATEMENT RETURN list_reverse([1,2,3]),
+            list_reverse(cast([1,2,3], 'INT32[]')),
+            list_reverse(cast([1,2,3], 'INT16[]')),
+            list_reverse(cast([1,2,3], 'INT8[]')),
+            list_reverse(cast([1,2,3], 'INT128[]')),
+            list_reverse(cast([1,2,3], 'UINT64[]')),
+            list_reverse(cast([1,2,3], 'UINT32[]')),
+            list_reverse(cast([1,2,3], 'UINT16[]')),
+            list_reverse(cast([1,2,3], 'UINT8[]')),
+            list_reverse(cast([1.1,2.1,3.1], 'FLOAT[]')),
+            list_reverse(cast([1.1,2.1,3.1], 'DOUBLE[]')),
+            list_reverse(cast([date('2020-01-01'), date('2020-01-02'), date('2020-01-03')], 'DATE[]')),
+            list_reverse(cast([timestamp('2020-01-01 00:00:00'), timestamp('2020-01-02 00:00:00'), timestamp('2020-01-03 00:00:00')], 'TIMESTAMP[]')),
+            list_reverse(cast([timestamp('2020-01-01 00:00:00'), timestamp('2020-01-02 00:00:00'), timestamp('2020-01-03 00:00:00')], 'TIMESTAMP_NS[]')),
+            list_reverse(cast([timestamp('2020-01-01 00:00:00'), timestamp('2020-01-02 00:00:00'), timestamp('2020-01-03 00:00:00')], 'TIMESTAMP_MS[]')),
+            list_reverse(cast([timestamp('2020-01-01 00:00:00'), timestamp('2020-01-02 00:00:00'), timestamp('2020-01-03 00:00:00')], 'TIMESTAMP_SEC[]')),
+            list_reverse(cast([timestamp('2020-01-01 00:00:00'), timestamp('2020-01-02 00:00:00'), timestamp('2020-01-03 00:00:00')], 'TIMESTAMP_TZ[]')),
+            list_reverse(cast([interval('1 days'), interval('2 days'), interval('3 days')], 'INTERVAL[]')),
+            list_reverse(['long string 1', 'long string 2']),
+            list_reverse(cast(['long string 1', 'long string 2'], 'BLOB[]')),
+            list_reverse(cast(['47c256ed-b2c4-40a0-8135-98d9c25329f7', '374a9e4a-632e-47b5-9e3d-d37b08b7980b'], 'UUID[]')),
+            list_reverse([[1,2,3], [5,6], [7,8,9]]),
+            list_reverse([map([1,2,3], [11,22,33]), map([5,6], [55,66])]),
+            list_reverse([{a:1, b:2}, {c:3, d:4}]),
+            list_reverse([union_value(a:=1), union_value(a:=2)]);
+---- 1
+[3,2,1]|[3,2,1]|[3,2,1]|[3,2,1]|[3,2,1]|[3,2,1]|[3,2,1]|[3,2,1]|[3,2,1]|[3.100000,2.100000,1.100000]|[3.100000,2.100000,1.100000]|[2020-01-03,2020-01-02,2020-01-01]|[2020-01-03 00:00:00,2020-01-02 00:00:00,2020-01-01 00:00:00]|[2020-01-03 00:00:00,2020-01-02 00:00:00,2020-01-01 00:00:00]|[2020-01-03 00:00:00,2020-01-02 00:00:00,2020-01-01 00:00:00]|[2020-01-03 00:00:00,2020-01-02 00:00:00,2020-01-01 00:00:00]|[2020-01-03 00:00:00+00,2020-01-02 00:00:00+00,2020-01-01 00:00:00+00]|[3 days,2 days,1 day]|[long string 2,long string 1]|[long string 2,long string 1]|[374a9e4a-632e-47b5-9e3d-d37b08b7980b,47c256ed-b2c4-40a0-8135-98d9c25329f7]|[[7,8,9],[5,6],[1,2,3]]|[{5=55, 6=66},{1=11, 2=22, 3=33}]|[{a: 3, b: 4},{a: 1, b: 2}]|[2,1]
+
+-STATEMENT MATCH p = (a:person)-[:knows*1]->(b:person) WHERE a.ID=0 RETURN list_reverse(nodes(p)), list_reverse(rels(p)), list_reverse(properties(nodes(p), 'fName')) ;
+---- 3
+[{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12},{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}]|[(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1, someMap: {a=b}}->(0:1)]|[Bob,Alice]
+[{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13},{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}]|[(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph], summary: {locations: , transfer: }, notes: 2020-10-10, someMap: {c=d, e=f, 1=2}}->(0:2)]|[Carol,Alice]
+[{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14},{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}]|[(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434], summary: {locations: ['shanghai'], transfer: {day: 1990-09-10, amount: [10]}}, notes: nice weather}->(0:3)]|[Dan,Alice]
+
+-LOG ListSliceOutOfRange
+-STATEMENT RETURN [1,2,3][:100], [1,2,3][-1:2], [1,2,3][2:1], [1,2,3][1:-1], [1,2,3][3:4], 'abc'[-1:4]
+---- 1
+[1,2,3]|[1]|[]|[1,2,3]|[3]|abc
+
 -LOG ListAddOperation
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) RETURN p.courseScoresPerTerm + p1.courseScoresPerTerm
 ---- 14
@@ -948,6 +988,24 @@ ad
 0
 0
 0
+
+-LOG ListIn
+-STATEMENT RETURN 1 IN [2,3,4], 2.0 IN [2,3,4], 3 IN [0,0,3]
+---- 1
+False|False|True
+-STATEMENT RETURN [1+1] IN [[2], [3], [3,4,5]], "str" IN ["a", "Xiyang", "str"]
+---- 1
+True|True
+-STATEMENT MATCH (a:person) RETURN a.ID + 1, a.workedHours, (a.ID + 1) IN a.workedHours
+---- 8
+10|[1]|False
+11|[10,11,12,3,4,5,6,7]|True
+1|[10,5]|False
+3|[12,8]|False
+4|[4,5]|True
+6|[1,9]|False
+8|[2]|False
+9|[3,4,5,6,7]|False
 
 -LOG ListContainsListOfInts
 -STATEMENT MATCH (a:person) RETURN list_contains(a.workedHours, 5)

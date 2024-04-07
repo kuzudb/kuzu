@@ -16,8 +16,8 @@ public class KuzuDataType {
     }
 
     public KuzuDataType
-            (KuzuDataTypeID id, KuzuDataType child_type, long fixed_num_elements_in_list) {
-        dt_ref = KuzuNative.kuzu_data_type_create(id, child_type, fixed_num_elements_in_list);
+            (KuzuDataTypeID id, KuzuDataType child_type, long num_elements_in_array) {
+        dt_ref = KuzuNative.kuzu_data_type_create(id, child_type, num_elements_in_array);
     }
 
     /**
@@ -97,7 +97,7 @@ public class KuzuDataType {
     */
     public long getFixedNumElementsInList() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
-        return KuzuNative.kuzu_data_type_get_fixed_num_elements_in_list(this);
+        return KuzuNative.kuzu_data_type_get_num_elements_in_array(this);
     }
 
 }

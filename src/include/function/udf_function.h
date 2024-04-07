@@ -20,8 +20,8 @@ struct UnaryUDFExecutor {
 
 struct BinaryUDFExecutor {
     template<class LEFT_TYPE, class RIGHT_TYPE, class RESULT_TYPE>
-    static inline void operation(
-        LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result, void* udfFunc) {
+    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
+        void* udfFunc) {
         typedef RESULT_TYPE (*binary_udf_func)(LEFT_TYPE, RIGHT_TYPE);
         auto binaryUDFFunc = (binary_udf_func)udfFunc;
         result = binaryUDFFunc(left, right);
@@ -30,8 +30,8 @@ struct BinaryUDFExecutor {
 
 struct TernaryUDFExecutor {
     template<class A_TYPE, class B_TYPE, class C_TYPE, class RESULT_TYPE>
-    static inline void operation(
-        A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result, void* udfFunc) {
+    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
+        void* udfFunc) {
         typedef RESULT_TYPE (*ternary_udf_func)(A_TYPE, B_TYPE, C_TYPE);
         auto ternaryUDFFunc = (ternary_udf_func)udfFunc;
         result = ternaryUDFFunc(a, b, c);
@@ -80,13 +80,13 @@ struct UDF {
     }
 
     template<typename RESULT_TYPE, typename... Args>
-    static function::scalar_exec_func createUnaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
+    static function::scalar_func_exec_t createUnaryExecFunc(RESULT_TYPE (* /*udfFunc*/)(Args...),
         const std::vector<common::LogicalTypeID>& /*parameterTypes*/) {
         KU_UNREACHABLE;
     }
 
     template<typename RESULT_TYPE, typename OPERAND_TYPE>
-    static function::scalar_exec_func createUnaryExecFunc(RESULT_TYPE (*udfFunc)(OPERAND_TYPE),
+    static function::scalar_func_exec_t createUnaryExecFunc(RESULT_TYPE (*udfFunc)(OPERAND_TYPE),
         const std::vector<common::LogicalTypeID>& parameterTypes) {
         if (parameterTypes.size() != 1) {
             throw common::CatalogException{
@@ -94,7 +94,7 @@ struct UDF {
                 std::to_string(parameterTypes.size()) + "."};
         }
         validateType<OPERAND_TYPE>(parameterTypes[0]);
-        function::scalar_exec_func execFunc =
+        function::scalar_func_exec_t execFunc =
             [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                 common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
             KU_ASSERT(params.size() == 1);
@@ -105,13 +105,13 @@ struct UDF {
     }
 
     template<typename RESULT_TYPE, typename... Args>
-    static function::scalar_exec_func createBinaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
+    static function::scalar_func_exec_t createBinaryExecFunc(RESULT_TYPE (* /*udfFunc*/)(Args...),
         const std::vector<common::LogicalTypeID>& /*parameterTypes*/) {
         KU_UNREACHABLE;
     }
 
     template<typename RESULT_TYPE, typename LEFT_TYPE, typename RIGHT_TYPE>
-    static function::scalar_exec_func createBinaryExecFunc(
+    static function::scalar_func_exec_t createBinaryExecFunc(
         RESULT_TYPE (*udfFunc)(LEFT_TYPE, RIGHT_TYPE),
         const std::vector<common::LogicalTypeID>& parameterTypes) {
         if (parameterTypes.size() != 2) {
@@ -121,7 +121,7 @@ struct UDF {
         }
         validateType<LEFT_TYPE>(parameterTypes[0]);
         validateType<RIGHT_TYPE>(parameterTypes[1]);
-        function::scalar_exec_func execFunc =
+        function::scalar_func_exec_t execFunc =
             [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                 common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
             KU_ASSERT(params.size() == 2);
@@ -132,13 +132,13 @@ struct UDF {
     }
 
     template<typename RESULT_TYPE, typename... Args>
-    static function::scalar_exec_func createTernaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
+    static function::scalar_func_exec_t createTernaryExecFunc(RESULT_TYPE (* /*udfFunc*/)(Args...),
         const std::vector<common::LogicalTypeID>& /*parameterTypes*/) {
         KU_UNREACHABLE;
     }
 
     template<typename RESULT_TYPE, typename A_TYPE, typename B_TYPE, typename C_TYPE>
-    static function::scalar_exec_func createTernaryExecFunc(
+    static function::scalar_func_exec_t createTernaryExecFunc(
         RESULT_TYPE (*udfFunc)(A_TYPE, B_TYPE, C_TYPE),
         std::vector<common::LogicalTypeID> parameterTypes) {
         if (parameterTypes.size() != 3) {
@@ -149,7 +149,7 @@ struct UDF {
         validateType<A_TYPE>(parameterTypes[0]);
         validateType<B_TYPE>(parameterTypes[1]);
         validateType<C_TYPE>(parameterTypes[2]);
-        function::scalar_exec_func execFunc =
+        function::scalar_func_exec_t execFunc =
             [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                 common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
             KU_ASSERT(params.size() == 3);
@@ -160,8 +160,8 @@ struct UDF {
     }
 
     template<typename TR, typename... Args>
-    static scalar_exec_func getScalarExecFunc(
-        TR (*udfFunc)(Args...), std::vector<common::LogicalTypeID> parameterTypes) {
+    static scalar_func_exec_t getScalarExecFunc(TR (*udfFunc)(Args...),
+        std::vector<common::LogicalTypeID> parameterTypes) {
         constexpr auto numArgs = sizeof...(Args);
         switch (numArgs) {
         case 1:
@@ -222,31 +222,31 @@ struct UDF {
             KU_UNREACHABLE;
         }
         validateType<TR>(returnType);
-        scalar_exec_func scalarExecFunc = getScalarExecFunc<TR, Args...>(udfFunc, parameterTypes);
-        definitions.push_back(std::make_unique<function::ScalarFunction>(
-            std::move(name), std::move(parameterTypes), returnType, std::move(scalarExecFunc)));
+        scalar_func_exec_t scalarExecFunc = getScalarExecFunc<TR, Args...>(udfFunc, parameterTypes);
+        definitions.push_back(std::make_unique<function::ScalarFunction>(std::move(name),
+            std::move(parameterTypes), returnType, std::move(scalarExecFunc)));
         return definitions;
     }
 
     template<typename TR, typename... Args>
     static function_set getFunction(std::string name, TR (*udfFunc)(Args...)) {
-        return getFunction<TR, Args...>(
-            std::move(name), udfFunc, getParameterTypes<Args...>(), getParameterType<TR>());
+        return getFunction<TR, Args...>(std::move(name), udfFunc, getParameterTypes<Args...>(),
+            getParameterType<TR>());
     }
 
     template<typename TR, typename... Args>
-    static function_set getVectorizedFunction(std::string name, scalar_exec_func execFunc) {
+    static function_set getVectorizedFunction(std::string name, scalar_func_exec_t execFunc) {
         function_set definitions;
         definitions.push_back(std::make_unique<function::ScalarFunction>(std::move(name),
             getParameterTypes<Args...>(), getParameterType<TR>(), std::move(execFunc)));
         return definitions;
     }
 
-    static function_set getVectorizedFunction(std::string name, scalar_exec_func execFunc,
+    static function_set getVectorizedFunction(std::string name, scalar_func_exec_t execFunc,
         std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType) {
         function_set definitions;
-        definitions.push_back(std::make_unique<function::ScalarFunction>(
-            std::move(name), std::move(parameterTypes), returnType, std::move(execFunc)));
+        definitions.push_back(std::make_unique<function::ScalarFunction>(std::move(name),
+            std::move(parameterTypes), returnType, std::move(execFunc)));
         return definitions;
     }
 };

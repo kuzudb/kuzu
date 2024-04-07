@@ -20,10 +20,10 @@ bool Insert::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     for (auto& executor : nodeExecutors) {
-        executor.insert(transaction);
+        executor.insert(context->clientContext->getTx(), context);
     }
     for (auto& executor : relExecutors) {
-        executor.insert(transaction);
+        executor.insert(context->clientContext->getTx(), context);
     }
     return true;
 }

@@ -16,7 +16,7 @@ using namespace kuzu::extension;
 bool InstallExtension::getNextTuplesInternal(ExecutionContext* context) {
     if (!hasExecuted) {
         hasExecuted = true;
-        installExtension(context->vfs, context->database);
+        installExtension(context->clientContext);
     }
     return false;
 }
@@ -25,7 +25,7 @@ std::string InstallExtension::tryDownloadExtension() {
     auto extensionRepoInfo = ExtensionUtils::getExtensionRepoInfo(name);
     httplib::Client cli(extensionRepoInfo.hostURL.c_str());
     httplib::Headers headers = {
-        {"User-Agent", common::stringFormat("kuzu/v{}", KUZU_RELEASE_VERSION)}};
+        {"User-Agent", common::stringFormat("kuzu/v{}", KUZU_EXTENSION_VERSION)}};
     auto res = cli.Get(extensionRepoInfo.hostPath.c_str(), headers);
     if (!res || res->status != 200) {
         if (res.error() == httplib::Error::Success) {
@@ -43,10 +43,11 @@ std::string InstallExtension::tryDownloadExtension() {
     return res->body;
 }
 
-void InstallExtension::saveExtensionToLocalFile(
-    const std::string& extensionData, VirtualFileSystem* vfs, main::Database* database) {
-    auto extensionDir = ExtensionUtils::getExtensionDir(database);
+void InstallExtension::saveExtensionToLocalFile(const std::string& extensionData,
+    main::ClientContext* context) {
+    auto extensionDir = context->getExtensionDir();
     auto extensionPath = ExtensionUtils::getExtensionPath(extensionDir, name);
+    auto vfs = context->getVFSUnsafe();
     if (!vfs->fileOrPathExists(extensionDir)) {
         vfs->createDir(extensionDir);
     }
@@ -55,9 +56,9 @@ void InstallExtension::saveExtensionToLocalFile(
         extensionData.size(), 0 /* offset */);
 }
 
-void InstallExtension::installExtension(VirtualFileSystem* vfs, main::Database* database) {
+void InstallExtension::installExtension(main::ClientContext* context) {
     auto extensionData = tryDownloadExtension();
-    saveExtensionToLocalFile(extensionData, vfs, database);
+    saveExtensionToLocalFile(extensionData, context);
 }
 
 } // namespace processor

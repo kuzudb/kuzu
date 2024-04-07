@@ -20,12 +20,15 @@ private:
     Napi::Value InitAsync(const Napi::CallbackInfo& info);
     void InitCppDatabase();
     void setLoggingLevel(const Napi::CallbackInfo& info);
+    static Napi::Value GetVersion(const Napi::CallbackInfo& info);
+    static Napi::Value GetStorageVersion(const Napi::CallbackInfo& info);
 
 private:
     std::string databasePath;
     size_t bufferPoolSize;
     bool enableCompression;
     bool readOnly;
+    uint64_t maxDBSize;
     std::shared_ptr<Database> database;
 };
 

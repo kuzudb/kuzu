@@ -5,4 +5,6 @@ add_kuzu_api_test(c_api_test
         flat_tuple_test.cpp
         prepared_statement_test.cpp
         query_result_test.cpp
-        value_test.cpp)
+        rdf_variant_test.cpp
+        value_test.cpp
+        version_test.cpp)

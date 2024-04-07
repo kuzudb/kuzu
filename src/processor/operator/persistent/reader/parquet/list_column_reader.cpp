@@ -15,7 +15,7 @@ ListColumnReader::ListColumnReader(ParquetReader& reader, std::unique_ptr<common
     childRepeatsPtr = (uint8_t*)childRepeats.ptr;
     childFilter.set();
     vectorToRead = std::make_unique<common::ValueVector>(
-        *common::VarListType::getChildType(this->type.get()), memoryManager);
+        *common::ListType::getChildType(this->type.get()), memoryManager);
 }
 
 void ListColumnReader::applyPendingSkips(uint64_t numValues) {
@@ -62,12 +62,11 @@ uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/
             // see if we have read enough if we have not read enough, we read another vector if we
             // have read enough, we leave any unhandled elements in the overflow vector for a
             // subsequent read
-            auto childReqNumValues = std::min<uint64_t>(
-                common::DEFAULT_VECTOR_CAPACITY, childColumnReader->getGroupRowsAvailable());
+            auto childReqNumValues = std::min<uint64_t>(common::DEFAULT_VECTOR_CAPACITY,
+                childColumnReader->getGroupRowsAvailable());
             childActualNumValues = childColumnReader->read(childReqNumValues, childFilter,
                 childDefinesPtr, childRepeatsPtr, vectorToRead.get());
         } else {
-            // we do: use the overflow values
             childActualNumValues = overflowChildCount;
             overflowChildCount = 0;
         }
@@ -96,15 +95,15 @@ uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/
                 break;
             }
             if (childDefinesPtr[childIdx] >= maxDefine) {
+                resultOut->setNull(resultOffset, false);
                 // value has been defined down the stack, hence its NOT NULL
                 resultPtr[resultOffset].offset = childIdx + currentChunkOffset;
                 resultPtr[resultOffset].size = 1;
             } else if (childDefinesPtr[childIdx] == maxDefine - 1) {
-                // empty list
+                resultOut->setNull(resultOffset, false);
                 resultPtr[resultOffset].offset = childIdx + currentChunkOffset;
                 resultPtr[resultOffset].size = 0;
             } else {
-                // value is NULL somewhere up the stack
                 resultOut->setNull(resultOffset, true);
                 resultPtr[resultOffset].offset = 0;
                 resultPtr[resultOffset].size = 0;
@@ -119,7 +118,6 @@ uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/
         if (childIdx < childActualNumValues && resultOffset == numValues) {
             common::ListVector::sliceDataVector(vectorToRead.get(), childIdx, childActualNumValues);
             overflowChildCount = childActualNumValues - childIdx;
-            // move values in the child repeats and defines *backward* by child_idx
             for (auto repdefIdx = 0u; repdefIdx < overflowChildCount; repdefIdx++) {
                 childDefinesPtr[repdefIdx] = childDefinesPtr[childIdx + repdefIdx];
                 childRepeatsPtr[repdefIdx] = childRepeatsPtr[childIdx + repdefIdx];

@@ -8,22 +8,28 @@ namespace planner {
 
 class LogicalScanFile : public LogicalOperator {
 public:
-    explicit LogicalScanFile(binder::BoundFileScanInfo info)
-        : LogicalOperator{LogicalOperatorType::SCAN_FILE}, info{std::move(info)} {}
+    LogicalScanFile(binder::BoundFileScanInfo info, std::shared_ptr<binder::Expression> offset)
+        : LogicalOperator{LogicalOperatorType::SCAN_FILE}, info{std::move(info)},
+          offset{std::move(offset)} {}
 
-    inline std::string getExpressionsForPrinting() const override { return std::string(); }
+    std::string getExpressionsForPrinting() const override { return std::string(); }
 
-    inline const binder::BoundFileScanInfo* getInfo() const { return &info; }
+    const binder::BoundFileScanInfo* getInfo() const { return &info; }
+    bool hasOffset() const { return offset != nullptr; }
+    std::shared_ptr<binder::Expression> getOffset() const { return offset; }
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
 
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalScanFile>(info.copy());
+    std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalScanFile>(info.copy(), offset);
     }
 
 private:
     binder::BoundFileScanInfo info;
+    // ScanFile may be used as a source operator for COPY pipeline. In such case, row offset needs
+    // to be provided in order to generate internal ID.
+    std::shared_ptr<binder::Expression> offset;
 };
 
 } // namespace planner

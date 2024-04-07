@@ -1,7 +1,16 @@
+# required for tests
+networkx~=3.0
+numpy
+pandas
+polars
+pyarrow>=14
 pybind11>=2.6.0
 pytest
-pandas
-networkx~=3.0.0
-numpy
-pyarrow==14.0.1
+torch
 torch-geometric~=2.3.0
+setuptools~=69.0
+
+# required for lint/formatting
+ruff==0.3.2
+mypy==1.9.0
+uv==0.1.17

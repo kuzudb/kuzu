@@ -310,8 +310,8 @@ TEST(CApiValueTestEmptyDB, Copy) {
 
 TEST_F(CApiValueTest, GetListSize) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -326,8 +326,8 @@ TEST_F(CApiValueTest, GetListSize) {
 
 TEST_F(CApiValueTest, GetListElement) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -356,8 +356,8 @@ TEST_F(CApiValueTest, GetListElement) {
 
 TEST_F(CApiValueTest, GetStructNumFields) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -371,8 +371,8 @@ TEST_F(CApiValueTest, GetStructNumFields) {
 
 TEST_F(CApiValueTest, GetStructFieldName) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -420,8 +420,8 @@ TEST_F(CApiValueTest, GetStructFieldName) {
 
 TEST_F(CApiValueTest, GetStructFieldValue) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -501,8 +501,8 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
 
 TEST_F(CApiValueTest, GetDataType) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -520,7 +520,7 @@ TEST_F(CApiValueTest, GetDataType) {
 
     value = kuzu_flat_tuple_get_value(flatTuple, 2);
     dataType = kuzu_value_get_data_type(value);
-    ASSERT_EQ(kuzu_data_type_get_id(dataType), KUZU_VAR_LIST);
+    ASSERT_EQ(kuzu_data_type_get_id(dataType), KUZU_LIST);
     kuzu_data_type_destroy(dataType);
     kuzu_value_destroy(value);
 
@@ -530,8 +530,8 @@ TEST_F(CApiValueTest, GetDataType) {
 
 TEST_F(CApiValueTest, GetBool) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (a:person) RETURN a.isStudent ORDER BY a.ID");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) RETURN a.isStudent ORDER BY a.ID");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -578,8 +578,8 @@ TEST_F(CApiValueTest, GetInt16) {
 
 TEST_F(CApiValueTest, GetInt32) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (m:movies) RETURN m.length ORDER BY m.name");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (m:movies) RETURN m.length ORDER BY m.name");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -723,8 +723,8 @@ TEST_F(CApiValueTest, GetFloat) {
 
 TEST_F(CApiValueTest, GetDouble) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (a:person) RETURN a.eyeSight ORDER BY a.ID");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) RETURN a.eyeSight ORDER BY a.ID");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -758,8 +758,8 @@ TEST_F(CApiValueTest, GetInternalID) {
 
 TEST_F(CApiValueTest, GetRelVal) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -789,8 +789,8 @@ TEST_F(CApiValueTest, GetRelVal) {
 
 TEST_F(CApiValueTest, GetDate) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (a:person) RETURN a.birthdate ORDER BY a.ID");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) RETURN a.birthdate ORDER BY a.ID");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -805,8 +805,8 @@ TEST_F(CApiValueTest, GetDate) {
 
 TEST_F(CApiValueTest, GetTimestamp) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (a:person) RETURN a.registerTime ORDER BY a.ID");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) RETURN a.registerTime ORDER BY a.ID");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -821,8 +821,8 @@ TEST_F(CApiValueTest, GetTimestamp) {
 
 TEST_F(CApiValueTest, GetInterval) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)"MATCH (a:person) RETURN a.lastJobDuration ORDER BY a.ID");
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) RETURN a.lastJobDuration ORDER BY a.ID");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -879,8 +879,8 @@ TEST_F(CApiValueTest, GetBlob) {
 
 TEST_F(CApiValueTest, GetUUID) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, (char*)R"(RETURN UUID("A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11");)");
+    auto result = kuzu_connection_query(connection,
+        (char*)R"(RETURN UUID("A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11");)");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
@@ -1043,7 +1043,7 @@ TEST_F(CApiValueTest, NodeValToString) {
     ASSERT_STREQ(str,
         "{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, "
         "score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years "
-        "5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto', 'montr,eal'], "
+        "5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], "
         "stock: {price: [96,56], volume: 1000}}, info: 3.120000}");
     free(str);
 

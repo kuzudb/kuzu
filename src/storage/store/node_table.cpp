@@ -1,8 +1,11 @@
 #include "storage/store/node_table.h"
 
-#include "catalog/node_table_schema.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "storage/local_storage/local_node_table.h"
 #include "storage/store/node_table_data.h"
 #include "transaction/transaction.h"
 
@@ -14,107 +17,130 @@ namespace kuzu {
 namespace storage {
 
 NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    catalog::NodeTableSchema* nodeTableSchema,
+    NodeTableCatalogEntry* nodeTableEntry,
     NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, MemoryManager* memoryManager,
     WAL* wal, bool readOnly, bool enableCompression, VirtualFileSystem* vfs)
-    : Table{nodeTableSchema, nodesStatisticsAndDeletedIDs, memoryManager, wal},
-      pkColumnID{nodeTableSchema->getColumnID(nodeTableSchema->getPrimaryKeyPropertyID())} {
-    tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, tableID, bufferManager, wal,
-        nodeTableSchema->getPropertiesRef(), nodesStatisticsAndDeletedIDs, enableCompression);
-    initializePKIndex(nodeTableSchema, readOnly, vfs);
+    : Table{nodeTableEntry, nodesStatisticsAndDeletedIDs, memoryManager, wal},
+      pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyPID())} {
+    tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, nodeTableEntry, bufferManager,
+        wal, nodeTableEntry->getPropertiesRef(), nodesStatisticsAndDeletedIDs, enableCompression);
+    initializePKIndex(nodeTableEntry, readOnly, vfs);
 }
 
-void NodeTable::initializePKIndex(
-    NodeTableSchema* nodeTableSchema, bool readOnly, VirtualFileSystem* vfs) {
-    if (nodeTableSchema->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
+void NodeTable::initializePKIndex(NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
+    VirtualFileSystem* vfs) {
+    if (nodeTableEntry->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
         LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(vfs, wal->getDirectory(), tableID), readOnly,
-            *nodeTableSchema->getPrimaryKey()->getDataType(), *bufferManager, wal, vfs);
+            nodeTableEntry->getPrimaryKey()->getDataType()->getPhysicalType(), *bufferManager, wal,
+            vfs);
     }
 }
 
-void NodeTable::read(Transaction* transaction, TableReadState& readState, ValueVector* nodeIDVector,
-    const std::vector<ValueVector*>& outputVectors) {
-    if (nodeIDVector->isSequential()) {
-        tableData->scan(transaction, readState, nodeIDVector, outputVectors);
+void NodeTable::read(Transaction* transaction, TableReadState& readState) {
+    if (readState.nodeIDVector.isSequential()) {
+        scan(transaction, readState);
     } else {
-        tableData->lookup(transaction, readState, nodeIDVector, outputVectors);
+        lookup(transaction, readState);
     }
 }
 
-common::offset_t NodeTable::validateUniquenessConstraint(
-    Transaction* tx, const std::vector<common::ValueVector*>& propertyVectors) {
+void NodeTable::scan(Transaction* transaction, TableReadState& readState) {
+    tableData->scan(transaction, *readState.dataReadState, readState.nodeIDVector,
+        readState.outputVectors);
+    if (transaction->isWriteTransaction()) {
+        auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
+        if (localTable) {
+            localTable->scan(readState);
+        }
+    }
+}
+
+void NodeTable::lookup(Transaction* transaction, TableReadState& readState) {
+    tableData->lookup(transaction, *readState.dataReadState, readState.nodeIDVector,
+        readState.outputVectors);
+    if (transaction->isWriteTransaction()) {
+        auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
+        if (localTable) {
+            localTable->lookup(readState);
+        }
+    }
+}
+
+offset_t NodeTable::validateUniquenessConstraint(Transaction* tx,
+    const std::vector<ValueVector*>& propertyVectors) {
     if (pkIndex == nullptr) {
         return INVALID_OFFSET;
     }
     auto pkVector = propertyVectors[pkColumnID];
     KU_ASSERT(pkVector->state->selVector->selectedSize == 1);
     auto pkVectorPos = pkVector->state->selVector->selectedPositions[0];
-    common::offset_t offset;
+    offset_t offset;
     if (pkIndex->lookup(tx, propertyVectors[pkColumnID], pkVectorPos, offset)) {
         return offset;
     }
     return INVALID_OFFSET;
 }
 
-offset_t NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
-    const std::vector<common::ValueVector*>& propertyVectors) {
-    auto maxNodeOffset = 0u;
-    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-        auto offset =
-            ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
-                ->addNode(tableID);
-        if (offset > maxNodeOffset) {
-            maxNodeOffset = offset;
-        }
-        nodeIDVector->setValue(pos, nodeID_t{offset, tableID});
-        nodeIDVector->setNull(pos, false);
-    }
+void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
+    auto nodesStats =
+        ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
+    auto& nodeInsertState = ku_dynamic_cast<TableInsertState&, NodeTableInsertState&>(insertState);
+    KU_ASSERT(nodeInsertState.nodeIDVector.state->selVector->selectedSize == 1);
+    auto pos = nodeInsertState.nodeIDVector.state->selVector->selectedPositions[0];
+    auto offset = nodesStats->addNode(tableID);
+    nodeInsertState.nodeIDVector.setValue(pos, nodeID_t{offset, tableID});
+    nodeInsertState.nodeIDVector.setNull(pos, false);
     if (pkIndex) {
-        insertPK(nodeIDVector, propertyVectors[pkColumnID]);
+        insertPK(nodeInsertState.nodeIDVector, nodeInsertState.pkVector);
     }
-    tableData->insert(transaction, nodeIDVector, propertyVectors);
-    return maxNodeOffset;
+    auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+        LocalStorage::NotExistAction::CREATE);
+    localTable->insert(insertState);
 }
 
-void NodeTable::update(transaction::Transaction* transaction, common::column_id_t columnID,
-    common::ValueVector* nodeIDVector, common::ValueVector* propertyVector) {
+void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
     // NOTE: We assume all input all flatten now. This is to simplify the implementation.
     // We should optimize this to take unflat input later.
-    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1 &&
-              propertyVector->state->selVector->selectedSize == 1);
-    if (columnID == pkColumnID && pkIndex) {
-        updatePK(transaction, columnID, nodeIDVector, propertyVector);
+    auto& nodeUpdateState = ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(updateState);
+    KU_ASSERT(nodeUpdateState.nodeIDVector.state->selVector->selectedSize == 1 &&
+              nodeUpdateState.propertyVector.state->selVector->selectedSize == 1);
+    if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
+        updatePK(transaction, updateState.columnID, nodeUpdateState.nodeIDVector,
+            updateState.propertyVector);
     }
-    tableData->update(transaction, columnID, nodeIDVector, propertyVector);
+    auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+        LocalStorage::NotExistAction::CREATE);
+    localTable->update(updateState);
 }
 
-void NodeTable::delete_(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* pkVector) {
-    auto readState = std::make_unique<TableReadState>();
-    tableData->initializeReadState(transaction, {pkColumnID}, nodeIDVector, readState.get());
-    read(transaction, *readState, nodeIDVector, {pkVector});
+void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+    auto& nodeDeleteState = ku_dynamic_cast<TableDeleteState&, NodeTableDeleteState&>(deleteState);
+    KU_ASSERT(nodeDeleteState.nodeIDVector.state->selVector->selectedSize == 1);
+    auto pos = nodeDeleteState.nodeIDVector.state->selVector->selectedPositions[0];
+    if (nodeDeleteState.nodeIDVector.isNull(pos)) {
+        return;
+    }
+    auto pkColumnIDs = {pkColumnID};
+    auto pkVectors = std::vector<ValueVector*>{&nodeDeleteState.pkVector};
+    auto readState =
+        std::make_unique<TableReadState>(nodeDeleteState.nodeIDVector, pkColumnIDs, pkVectors);
+    initializeReadState(transaction, pkColumnIDs, nodeDeleteState.nodeIDVector, *readState);
+    read(transaction, *readState);
     if (pkIndex) {
-        pkIndex->delete_(pkVector);
+        pkIndex->delete_(&nodeDeleteState.pkVector);
     }
-    // TODO(Guodong): We actually have flatten the input here. But the code is left unchanged for
-    // now, so we can remove the flattenAll logic later.
-    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-        if (nodeIDVector->isNull(pos)) {
-            continue;
-        }
-        auto nodeOffset = nodeIDVector->readNodeOffset(pos);
-        ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
-            ->deleteNode(tableID, nodeOffset);
-    }
-    tableData->delete_(transaction, nodeIDVector);
+    auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
+    ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
+        ->deleteNode(tableID, nodeOffset);
+    auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+        LocalStorage::NotExistAction::CREATE);
+    localTable->delete_(deleteState);
 }
 
-void NodeTable::addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-    common::ValueVector* defaultValueVector) {
+void NodeTable::addColumn(Transaction* transaction, const Property& property,
+    ValueVector* defaultValueVector) {
     auto nodesStats =
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
     nodesStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
@@ -132,11 +158,20 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
     if (pkIndex) {
         pkIndex->prepareCommit();
     }
-    tableData->prepareLocalTableToCommit(transaction, localTable->getLocalTableData(0));
+    auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
+    tableData->prepareLocalTableToCommit(transaction, localNodeTable->getTableData());
+    tableData->prepareCommit();
     wal->addToUpdatedTables(tableID);
 }
 
-void NodeTable::prepareRollback(LocalTableData* localTable) {
+void NodeTable::prepareCommit() {
+    if (pkIndex) {
+        pkIndex->prepareCommit();
+    }
+    tableData->prepareCommit();
+}
+
+void NodeTable::prepareRollback(LocalTable* localTable) {
     if (pkIndex) {
         pkIndex->prepareRollback();
     }
@@ -158,31 +193,37 @@ void NodeTable::rollbackInMemory() {
 }
 
 void NodeTable::updatePK(Transaction* transaction, column_id_t columnID,
-    common::ValueVector* keyVector, common::ValueVector* payloadVector) {
+    const ValueVector& nodeIDVector, const ValueVector& payloadVector) {
     auto pkVector =
-        std::make_unique<ValueVector>(*getColumn(pkColumnID)->getDataType(), memoryManager);
-    pkVector->state = keyVector->state;
-    auto readState = std::make_unique<storage::TableReadState>();
-    initializeReadState(transaction, {columnID}, keyVector, readState.get());
-    read(transaction, *readState, keyVector, {pkVector.get()});
+        std::make_unique<ValueVector>(getColumn(pkColumnID)->getDataType(), memoryManager);
+    pkVector->state = nodeIDVector.state;
+    auto outputVectors = std::vector<ValueVector*>{pkVector.get()};
+    auto columnIDs = {columnID};
+    auto readState = std::make_unique<TableReadState>(nodeIDVector, columnIDs, outputVectors);
+    initializeReadState(transaction, columnIDs, nodeIDVector, *readState);
+    read(transaction, *readState);
     pkIndex->delete_(pkVector.get());
-    insertPK(keyVector, payloadVector);
+    insertPK(nodeIDVector, payloadVector);
 }
 
-void NodeTable::insertPK(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
-    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
-        auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[i];
-        auto offset = nodeIDVector->readNodeOffset(nodeIDPos);
-        auto pkPos = primaryKeyVector->state->selVector->selectedPositions[i];
-        if (primaryKeyVector->isNull(pkPos)) {
+void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& primaryKeyVector) {
+    for (auto i = 0u; i < nodeIDVector.state->selVector->selectedSize; i++) {
+        auto nodeIDPos = nodeIDVector.state->selVector->selectedPositions[i];
+        auto offset = nodeIDVector.readNodeOffset(nodeIDPos);
+        auto pkPos = primaryKeyVector.state->selVector->selectedPositions[i];
+        if (primaryKeyVector.isNull(pkPos)) {
             throw RuntimeException(ExceptionMessage::nullPKException());
         }
-        if (!pkIndex->insert(primaryKeyVector, pkPos, offset)) {
-            std::string pkStr =
-                primaryKeyVector->dataType.getLogicalTypeID() == LogicalTypeID::INT64 ?
-                    std::to_string(primaryKeyVector->getValue<int64_t>(pkPos)) :
-                    primaryKeyVector->getValue<ku_string_t>(pkPos).getAsString();
-            throw RuntimeException(ExceptionMessage::existedPKException(pkStr));
+        if (!pkIndex->insert(const_cast<ValueVector*>(&primaryKeyVector), pkPos, offset)) {
+            std::string pkStr;
+            TypeUtils::visit(
+                primaryKeyVector.dataType.getPhysicalType(),
+                [&](ku_string_t) {
+                    pkStr = primaryKeyVector.getValue<ku_string_t>(pkPos).getAsString();
+                },
+                [&]<typename T>(
+                    T) { pkStr = TypeUtils::toString(primaryKeyVector.getValue<T>(pkPos)); });
+            throw RuntimeException(ExceptionMessage::duplicatePKException(pkStr));
         }
     }
 }

@@ -12,6 +12,13 @@ namespace common {
 
 ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager)
     : dataType{std::move(dataType)} {
+    if (this->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
+        // LCOV_EXCL_START
+        // Alternatively we can assign
+        throw RuntimeException("Trying to a create a vector with ANY type. This should not happen. "
+                               "Data type is expected to be resolved during binding.");
+        // LCOV_EXCL_STOP
+    }
     numBytesPerValue = getDataTypeSize(this->dataType);
     initializeValueBuffer();
     nullMask = std::make_unique<NullMask>();
@@ -34,11 +41,12 @@ bool ValueVector::discardNull(ValueVector& vector) {
     } else {
         auto selectedPos = 0u;
         if (vector.state->selVector->isUnfiltered()) {
-            vector.state->selVector->resetSelectorToValuePosBuffer();
+            auto buffer = vector.state->selVector->getMultableBuffer();
             for (auto i = 0u; i < vector.state->selVector->selectedSize; i++) {
-                vector.state->selVector->selectedPositions[selectedPos] = i;
+                buffer[selectedPos] = i;
                 selectedPos += !vector.isNull(i);
             }
+            vector.state->selVector->setToFiltered();
         } else {
             for (auto i = 0u; i < vector.state->selVector->selectedSize; i++) {
                 auto pos = vector.state->selVector->selectedPositions[i];
@@ -52,8 +60,8 @@ bool ValueVector::discardNull(ValueVector& vector) {
 }
 
 bool ValueVector::setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOffset,
-    uint64_t dstOffset, uint64_t numBitsToCopy) {
-    return nullMask->copyFromNullBits(srcNullEntries, srcOffset, dstOffset, numBitsToCopy);
+    uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
+    return nullMask->copyFromNullBits(srcNullEntries, srcOffset, dstOffset, numBitsToCopy, invert);
 }
 
 template<typename T>
@@ -66,7 +74,7 @@ void ValueVector::copyFromRowData(uint32_t pos, const uint8_t* rowData) {
     case PhysicalTypeID::STRUCT: {
         StructVector::copyFromRowData(this, pos, rowData);
     } break;
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         ListVector::copyFromRowData(this, pos, rowData);
     } break;
     case PhysicalTypeID::STRING: {
@@ -79,13 +87,13 @@ void ValueVector::copyFromRowData(uint32_t pos, const uint8_t* rowData) {
     }
 }
 
-void ValueVector::copyToRowData(
-    uint32_t pos, uint8_t* rowData, InMemOverflowBuffer* rowOverflowBuffer) const {
+void ValueVector::copyToRowData(uint32_t pos, uint8_t* rowData,
+    InMemOverflowBuffer* rowOverflowBuffer) const {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         StructVector::copyToRowData(this, pos, rowData, rowOverflowBuffer);
     } break;
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         ListVector::copyToRowData(this, pos, rowData, rowOverflowBuffer);
     } break;
     case PhysicalTypeID::STRING: {
@@ -98,14 +106,14 @@ void ValueVector::copyToRowData(
     }
 }
 
-void ValueVector::copyFromVectorData(
-    uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData) {
+void ValueVector::copyFromVectorData(uint8_t* dstData, const ValueVector* srcVector,
+    const uint8_t* srcVectorData) {
     KU_ASSERT(srcVector->dataType.getPhysicalType() == dataType.getPhysicalType());
     switch (srcVector->dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         StructVector::copyFromVectorData(this, dstData, srcVector, srcVectorData);
     } break;
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         ListVector::copyFromVectorData(this, dstData, srcVector, srcVectorData);
     } break;
     case PhysicalTypeID::STRING: {
@@ -117,8 +125,8 @@ void ValueVector::copyFromVectorData(
     }
 }
 
-void ValueVector::copyFromVectorData(
-    uint64_t dstPos, const ValueVector* srcVector, uint64_t srcPos) {
+void ValueVector::copyFromVectorData(uint64_t dstPos, const ValueVector* srcVector,
+    uint64_t srcPos) {
     setNull(dstPos, srcVector->isNull(srcPos));
     if (!isNull(dstPos)) {
         copyFromVectorData(getData() + dstPos * getNumBytesPerValue(), srcVector,
@@ -174,10 +182,10 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
         memcpy(dstValue, &value.val.intervalVal, numBytesPerValue);
     } break;
     case PhysicalTypeID::STRING: {
-        StringVector::addString(
-            this, *(ku_string_t*)dstValue, value.strVal.data(), value.strVal.length());
+        StringVector::addString(this, *(ku_string_t*)dstValue, value.strVal.data(),
+            value.strVal.length());
     } break;
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         auto listEntry = reinterpret_cast<list_entry_t*>(dstValue);
         auto numValues = NestedVal::getChildrenSize(&value);
         *listEntry = ListVector::addList(this, numValues);
@@ -186,39 +194,9 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
             auto childVal = NestedVal::getChildVal(&value, i);
             dstDataVector->setNull(listEntry->offset + i, childVal->isNull());
             if (!childVal->isNull()) {
-                dstDataVector->copyFromValue(
-                    listEntry->offset + i, *NestedVal::getChildVal(&value, i));
+                dstDataVector->copyFromValue(listEntry->offset + i,
+                    *NestedVal::getChildVal(&value, i));
             }
-        }
-    } break;
-    case PhysicalTypeID::FIXED_LIST: {
-        auto numValues = NestedVal::getChildrenSize(&value);
-        auto childType = FixedListType::getChildType(value.getDataType());
-        auto numBytesPerChildValue = getDataTypeSize(*childType);
-        auto bufferToWrite = valueBuffer.get() + pos * numBytesPerValue;
-        for (auto i = 0u; i < numValues; i++) {
-            auto val = NestedVal::getChildVal(&value, i);
-            switch (childType->getPhysicalType()) {
-            case PhysicalTypeID::INT64: {
-                memcpy(bufferToWrite, &val->getValueReference<int64_t>(), numBytesPerChildValue);
-            } break;
-            case PhysicalTypeID::INT32: {
-                memcpy(bufferToWrite, &val->getValueReference<int32_t>(), numBytesPerChildValue);
-            } break;
-            case PhysicalTypeID::INT16: {
-                memcpy(bufferToWrite, &val->getValueReference<int16_t>(), numBytesPerChildValue);
-            } break;
-            case PhysicalTypeID::DOUBLE: {
-                memcpy(bufferToWrite, &val->getValueReference<double>(), numBytesPerChildValue);
-            } break;
-            case PhysicalTypeID::FLOAT: {
-                memcpy(bufferToWrite, &val->getValueReference<float>(), numBytesPerChildValue);
-            } break;
-            default: {
-                KU_UNREACHABLE;
-            }
-            }
-            bufferToWrite += numBytesPerChildValue;
         }
     } break;
     case PhysicalTypeID::STRUCT: {
@@ -233,7 +211,7 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
     }
 }
 
-std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
+std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) const {
     if (isNull(pos)) {
         return Value::createNullValue(dataType).copy();
     }
@@ -281,7 +259,7 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
     case PhysicalTypeID::STRING: {
         value->strVal = getValue<ku_string_t>(pos).getAsString();
     } break;
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         auto dataVector = ListVector::getDataVector(this);
         auto listEntry = getValue<list_entry_t>(pos);
         std::vector<std::unique_ptr<Value>> children;
@@ -290,33 +268,6 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
             children.push_back(dataVector->getAsValue(listEntry.offset + i));
         }
         value->childrenSize = children.size();
-        value->children = std::move(children);
-    } break;
-    case PhysicalTypeID::FIXED_LIST: {
-        auto childDataType = FixedListType::getChildType(&dataType);
-        auto numElements = FixedListType::getNumValuesInList(&dataType);
-        std::vector<std::unique_ptr<Value>> children;
-        children.reserve(numElements);
-        switch (childDataType->getPhysicalType()) {
-        case PhysicalTypeID::INT64: {
-            FixedListVector::getAsValue<int64_t>(this, children, pos, numElements);
-        } break;
-        case PhysicalTypeID::INT32: {
-            FixedListVector::getAsValue<int32_t>(this, children, pos, numElements);
-        } break;
-        case PhysicalTypeID::INT16: {
-            FixedListVector::getAsValue<int16_t>(this, children, pos, numElements);
-        } break;
-        case PhysicalTypeID::DOUBLE: {
-            FixedListVector::getAsValue<double>(this, children, pos, numElements);
-        } break;
-        case PhysicalTypeID::FLOAT: {
-            FixedListVector::getAsValue<float>(this, children, pos, numElements);
-        } break;
-        default:
-            KU_UNREACHABLE;
-        }
-        value->childrenSize = numElements;
         value->children = std::move(children);
     } break;
     case PhysicalTypeID::STRUCT: {
@@ -343,7 +294,7 @@ void ValueVector::resetAuxiliaryBuffer() {
             ->resetOverflowBuffer();
         return;
     }
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         auto listAuxiliaryBuffer =
             ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(auxiliaryBuffer.get());
         listAuxiliaryBuffer->resetSize();
@@ -368,14 +319,10 @@ uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
     case PhysicalTypeID::STRING: {
         return sizeof(ku_string_t);
     }
-    case PhysicalTypeID::FIXED_LIST: {
-        return getDataTypeSize(*FixedListType::getChildType(&type)) *
-               FixedListType::getNumValuesInList(&type);
-    }
     case PhysicalTypeID::STRUCT: {
         return sizeof(struct_entry_t);
     }
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         return sizeof(list_entry_t);
     }
     default: {
@@ -423,6 +370,10 @@ template<>
 void ValueVector::setValue(uint32_t pos, std::string val) {
     StringVector::addString(this, pos, val.data(), val.length());
 }
+template<>
+void ValueVector::setValue(uint32_t pos, std::string_view val) {
+    StringVector::addString(this, pos, val.data(), val.length());
+}
 
 void ValueVector::setNull(uint32_t pos, bool isNull) {
     nullMask->setNull(pos, isNull);
@@ -437,15 +388,19 @@ void StringVector::addString(ValueVector* vector, uint32_t vectorPos, ku_string_
         dstStr.setShortString(srcStr);
     } else {
         if (srcStr.len > BufferPoolConstants::PAGE_256KB_SIZE) {
-            throw RuntimeException(ExceptionMessage::overLargeStringValueException(srcStr.len));
+            if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
+                srcStr.len = BufferPoolConstants::PAGE_256KB_SIZE;
+            } else {
+                throw RuntimeException(ExceptionMessage::overLargeStringValueException(srcStr.len));
+            }
         }
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(srcStr.len));
         dstStr.setLongString(srcStr);
     }
 }
 
-void StringVector::addString(
-    ValueVector* vector, uint32_t vectorPos, const char* srcStr, uint64_t length) {
+void StringVector::addString(ValueVector* vector, uint32_t vectorPos, const char* srcStr,
+    uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =
         ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
@@ -454,7 +409,11 @@ void StringVector::addString(
         dstStr.setShortString(srcStr, length);
     } else {
         if (length > BufferPoolConstants::PAGE_256KB_SIZE) {
-            throw RuntimeException(ExceptionMessage::overLargeStringValueException(length));
+            if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
+                length = BufferPoolConstants::PAGE_256KB_SIZE;
+            } else {
+                throw RuntimeException(ExceptionMessage::overLargeStringValueException(length));
+            }
         }
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(length));
         dstStr.setLongString(srcStr, length);
@@ -477,6 +436,16 @@ ku_string_t& StringVector::reserveString(ValueVector* vector, uint32_t vectorPos
     return dstStr;
 }
 
+void StringVector::reserveString(ValueVector* vector, ku_string_t& dstStr, uint64_t length) {
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    auto stringBuffer =
+        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    dstStr.len = length;
+    if (!ku_string_t::isShortString(length)) {
+        dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(length));
+    }
+}
+
 void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =
@@ -485,15 +454,19 @@ void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, ku_string
         dstStr.setShortString(srcStr);
     } else {
         if (srcStr.len > BufferPoolConstants::PAGE_256KB_SIZE) {
-            throw RuntimeException(ExceptionMessage::overLargeStringValueException(srcStr.len));
+            if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
+                srcStr.len = BufferPoolConstants::PAGE_256KB_SIZE;
+            } else {
+                throw RuntimeException(ExceptionMessage::overLargeStringValueException(srcStr.len));
+            }
         }
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(srcStr.len));
         dstStr.setLongString(srcStr);
     }
 }
 
-void StringVector::addString(
-    ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length) {
+void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, const char* srcStr,
+    uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =
         ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
@@ -501,11 +474,20 @@ void StringVector::addString(
         dstStr.setShortString(srcStr, length);
     } else {
         if (length > BufferPoolConstants::PAGE_256KB_SIZE) {
-            throw RuntimeException(ExceptionMessage::overLargeStringValueException(length));
+            if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
+                length = BufferPoolConstants::PAGE_256KB_SIZE;
+            } else {
+                throw RuntimeException(ExceptionMessage::overLargeStringValueException(length));
+            }
         }
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(length));
         dstStr.setLongString(srcStr, length);
     }
+}
+
+void StringVector::addString(kuzu::common::ValueVector* vector, ku_string_t& dstStr,
+    const std::string& srcStr) {
+    addString(vector, dstStr, srcStr.data(), srcStr.length());
 }
 
 void StringVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
@@ -522,7 +504,7 @@ void StringVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_
 }
 
 void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData) {
-    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST);
     auto& srcKuList = *(ku_list_t*)rowData;
     auto srcNullBytes = reinterpret_cast<uint8_t*>(srcKuList.overflowPtr);
     auto srcListValues = srcNullBytes + NullBuffer::getNumBytesForNullValues(srcKuList.size);
@@ -559,8 +541,8 @@ void ListVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t*
         if (srcListDataVector->isNull(srcListEntry.offset + i)) {
             NullBuffer::setNull(dstListOverflow, i);
         } else {
-            srcListDataVector->copyToRowData(
-                srcListEntry.offset + i, dstListValues, rowOverflowBuffer);
+            srcListDataVector->copyToRowData(srcListEntry.offset + i, dstListValues,
+                rowOverflowBuffer);
         }
         dstListValues += dataRowLayoutSize;
     }
@@ -590,61 +572,12 @@ void ListVector::appendDataVector(kuzu::common::ValueVector* dstVector,
     }
 }
 
-void ListVector::sliceDataVector(
-    ValueVector* vectorToSlice, uint64_t childIdx, uint64_t numValues) {
-    for (auto i = 0u; i < numValues - childIdx; i++) {
-        vectorToSlice->copyFromVectorData(i, vectorToSlice, i + childIdx);
+void ListVector::sliceDataVector(ValueVector* vectorToSlice, uint64_t offset, uint64_t numValues) {
+    if (offset == 0) {
+        return;
     }
-}
-
-template<>
-void FixedListVector::getAsValue<int64_t>(ValueVector* vector,
-    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
-    for (auto i = 0u; i < numElements; ++i) {
-        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::INT64}).copy());
-        children[i]->val.int64Val =
-            reinterpret_cast<int64_t*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
-    }
-}
-
-template<>
-void FixedListVector::getAsValue<int32_t>(ValueVector* vector,
-    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
-    for (auto i = 0u; i < numElements; ++i) {
-        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::INT32}).copy());
-        children[i]->val.int32Val =
-            reinterpret_cast<int32_t*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
-    }
-}
-
-template<>
-void FixedListVector::getAsValue<int16_t>(ValueVector* vector,
-    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
-    for (auto i = 0u; i < numElements; ++i) {
-        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::INT16}).copy());
-        children[i]->val.int16Val =
-            reinterpret_cast<int16_t*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
-    }
-}
-
-template<>
-void FixedListVector::getAsValue<float>(ValueVector* vector,
-    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
-    for (auto i = 0u; i < numElements; ++i) {
-        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::FLOAT}).copy());
-        children[i]->val.floatVal =
-            reinterpret_cast<float*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
-    }
-}
-
-template<>
-void FixedListVector::getAsValue<double>(ValueVector* vector,
-    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
-    // default: int64
-    for (auto i = 0u; i < numElements; ++i) {
-        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::DOUBLE}).copy());
-        children[i]->val.doubleVal =
-            reinterpret_cast<double*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
+    for (auto i = 0u; i < numValues - offset; i++) {
+        vectorToSlice->copyFromVectorData(i, vectorToSlice, i + offset);
     }
 }
 
@@ -701,8 +634,8 @@ void RdfVariantVector::addString(ValueVector* vector, sel_t pos, ku_string_t str
     addString(vector, pos, (const char*)str.getData(), str.len);
 }
 
-void RdfVariantVector::addString(
-    ValueVector* vector, common::sel_t pos, const char* str, uint32_t length) {
+void RdfVariantVector::addString(ValueVector* vector, common::sel_t pos, const char* str,
+    uint32_t length) {
     auto typeVector = StructVector::getFieldVector(vector, 0).get();
     auto valVector = StructVector::getFieldVector(vector, 1).get();
     typeVector->setValue<uint8_t>(pos, static_cast<uint8_t>(LogicalTypeID::STRING));

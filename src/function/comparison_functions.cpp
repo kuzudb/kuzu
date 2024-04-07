@@ -86,7 +86,7 @@ static void executeNestedOperation(uint8_t& result, ValueVector* leftVector,
             rightVector->getValue<internalID_t>(rightPos), result, nullptr /* left */,
             nullptr /* right */);
     } break;
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         OP::operation(leftVector->getValue<list_entry_t>(leftPos),
             rightVector->getValue<list_entry_t>(rightPos), result, leftVector, rightVector);
     } break;
@@ -160,11 +160,11 @@ static void executeNestedGreaterThan(uint8_t& isGreaterThan, uint8_t& isEqual,
         isGreaterThan = !isRightNull;
         isEqual = (isLeftNull == isRightNull);
     } else {
-        executeNestedOperation<GreaterThan>(
-            isGreaterThan, leftDataVector, rightDataVector, leftPos, rightPos);
+        executeNestedOperation<GreaterThan>(isGreaterThan, leftDataVector, rightDataVector, leftPos,
+            rightPos);
         if (!isGreaterThan) {
-            executeNestedOperation<Equals>(
-                isEqual, leftDataVector, rightDataVector, leftPos, rightPos);
+            executeNestedOperation<Equals>(isEqual, leftDataVector, rightDataVector, leftPos,
+                rightPos);
         } else {
             isEqual = false;
         }
@@ -182,8 +182,8 @@ void GreaterThan::operation(const list_entry_t& left, const list_entry_t& right,
     for (auto i = 0u; i < commonLength; i++) {
         auto leftPos = left.offset + i;
         auto rightPos = right.offset + i;
-        executeNestedGreaterThan(
-            result, isEqual, leftDataVector, rightDataVector, leftPos, rightPos);
+        executeNestedGreaterThan(result, isEqual, leftDataVector, rightDataVector, leftPos,
+            rightPos);
         if (result || (!result && !isEqual)) {
             return;
         }

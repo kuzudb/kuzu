@@ -66,8 +66,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CrossProduct>(
-            info->copy(), localState->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<CrossProduct>(info->copy(), localState->copy(),
+            children[0]->clone(), id, paramsString);
     }
 
 private:

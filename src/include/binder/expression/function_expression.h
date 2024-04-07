@@ -42,7 +42,7 @@ class ScalarFunctionExpression : public FunctionExpression {
 public:
     ScalarFunctionExpression(std::string functionName, common::ExpressionType expressionType,
         std::unique_ptr<function::FunctionBindData> bindData, expression_vector children,
-        function::scalar_exec_func execFunc, function::scalar_select_func selectFunc,
+        function::scalar_func_exec_t execFunc, function::scalar_func_select_t selectFunc,
         const std::string& uniqueName)
         : ScalarFunctionExpression{std::move(functionName), expressionType, std::move(bindData),
               std::move(children), std::move(execFunc), std::move(selectFunc), nullptr,
@@ -50,22 +50,22 @@ public:
 
     ScalarFunctionExpression(std::string functionName, common::ExpressionType expressionType,
         std::unique_ptr<function::FunctionBindData> bindData, expression_vector children,
-        function::scalar_exec_func execFunc, function::scalar_select_func selectFunc,
-        function::scalar_compile_func compileFunc, const std::string& uniqueName)
+        function::scalar_func_exec_t execFunc, function::scalar_func_select_t selectFunc,
+        function::scalar_func_compile_exec_t compileFunc, const std::string& uniqueName)
         : FunctionExpression{std::move(functionName), expressionType, std::move(bindData),
               std::move(children), uniqueName},
-          execFunc{std::move(execFunc)}, selectFunc{std::move(selectFunc)}, compileFunc{std::move(
-                                                                                compileFunc)} {}
+          execFunc{std::move(execFunc)}, selectFunc{std::move(selectFunc)},
+          compileFunc{std::move(compileFunc)} {}
 
-    static std::string getUniqueName(
-        const std::string& functionName, const expression_vector& children);
+    static std::string getUniqueName(const std::string& functionName,
+        const expression_vector& children);
 
     std::string toStringInternal() const final;
 
 public:
-    function::scalar_exec_func execFunc;
-    function::scalar_select_func selectFunc;
-    function::scalar_compile_func compileFunc;
+    function::scalar_func_exec_t execFunc;
+    function::scalar_func_select_t selectFunc;
+    function::scalar_func_compile_exec_t compileFunc;
 };
 
 class AggregateFunctionExpression : public FunctionExpression {
@@ -85,8 +85,8 @@ public:
               std::move(bindData), std::move(children), uniqueName},
           aggregateFunction{std::move(aggregateFunction)} {}
 
-    static std::string getUniqueName(
-        const std::string& functionName, expression_vector& children, bool isDistinct);
+    static std::string getUniqueName(const std::string& functionName, expression_vector& children,
+        bool isDistinct);
 
     inline bool isDistinct() const { return aggregateFunction->isFunctionDistinct(); }
 

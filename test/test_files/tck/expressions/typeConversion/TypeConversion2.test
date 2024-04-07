@@ -26,7 +26,7 @@
            RETURN to_int64(foo_string) AS foo, to_int64(empty_string) AS empty;
 ## Outcome: the result should be, in any order:
 ---- error
-Conversion exception: Cast failed. foo is not in INT64 range.
+Conversion exception: Cast failed. Could not convert "foo" to INT64.
 
 #  `toInteger()` handling mixed number types
 -CASE Scenario3

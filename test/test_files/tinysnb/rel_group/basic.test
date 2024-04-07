@@ -36,7 +36,7 @@ likes_personB_personA|personA|2|Bob
 Binder exception: Cannot copy into knows table with type REL_GROUP.
 -STATEMENT DROP TABLE knows_personA_personB;
 ---- error
-Binder exception: Cannot delete rel table knows_personA_personB referenced by rel group knows.
+Binder exception: Cannot delete relationship table knows_personA_personB because it is referenced by relationship group knows.
 -STATEMENT CALL show_tables() RETURN *;
 ---- 10
 knows_personA_personB|REL|

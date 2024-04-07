@@ -20,7 +20,9 @@ void Task::deRegisterThreadAndFinalizeTask() {
     if (!hasExceptionNoLock() && isCompletedNoLock()) {
         try {
             finalizeIfNecessary();
-        } catch (std::exception& e) { setExceptionNoLock(std::current_exception()); }
+        } catch (std::exception& e) {
+            setExceptionNoLock(std::current_exception());
+        }
     }
     if (isCompletedNoLock()) {
         lck.unlock();

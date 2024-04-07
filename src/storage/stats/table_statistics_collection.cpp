@@ -16,8 +16,8 @@ namespace storage {
 
 TablesStatistics::TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
     common::VirtualFileSystem* vfs)
-    : metadataFH{metadataFH}, bufferManager{bufferManager}, vfs{vfs}, wal{wal} {
-    tablesStatisticsContentForReadOnlyTrx = std::make_unique<TablesStatisticsContent>();
+    : metadataFH{metadataFH}, bufferManager{bufferManager}, vfs{vfs}, wal{wal}, isUpdated{false} {
+    readOnlyVersion = std::make_unique<TablesStatisticsContent>();
 }
 
 void TablesStatistics::readFromFile() {
@@ -28,7 +28,7 @@ void TablesStatistics::readFromFile(FileVersionType fileVersionType) {
     auto filePath = getTableStatisticsFilePath(wal->getDirectory(), fileVersionType);
     auto deser =
         Deserializer(std::make_unique<BufferedFileReader>(vfs->openFile(filePath, O_RDONLY)));
-    deser.deserializeUnorderedMap(tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable);
+    deser.deserializeUnorderedMap(readOnlyVersion->tableStatisticPerTable);
 }
 
 void TablesStatistics::saveToFile(const std::string& directory, FileVersionType fileVersionType,
@@ -37,9 +37,9 @@ void TablesStatistics::saveToFile(const std::string& directory, FileVersionType 
     auto ser = Serializer(
         std::make_unique<BufferedFileWriter>(vfs->openFile(filePath, O_WRONLY | O_CREAT)));
     auto& tablesStatisticsContent = (transactionType == transaction::TransactionType::READ_ONLY ||
-                                        tablesStatisticsContentForWriteTrx == nullptr) ?
-                                        tablesStatisticsContentForReadOnlyTrx :
-                                        tablesStatisticsContentForWriteTrx;
+                                        readWriteVersion == nullptr) ?
+                                        readOnlyVersion :
+                                        readWriteVersion;
     ser.serializeUnorderedMap(tablesStatisticsContent->tableStatisticPerTable);
 }
 
@@ -49,12 +49,10 @@ void TablesStatistics::initTableStatisticsForWriteTrx() {
 }
 
 void TablesStatistics::initTableStatisticsForWriteTrxNoLock() {
-    if (tablesStatisticsContentForWriteTrx == nullptr) {
-        tablesStatisticsContentForWriteTrx = std::make_unique<TablesStatisticsContent>();
-        for (auto& [tableID, tableStatistic] :
-            tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable) {
-            tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID] =
-                tableStatistic->copy();
+    if (readWriteVersion == nullptr) {
+        readWriteVersion = std::make_unique<TablesStatisticsContent>();
+        for (auto& [tableID, tableStatistic] : readOnlyVersion->tableStatisticPerTable) {
+            readWriteVersion->tableStatisticPerTable[tableID] = tableStatistic->copy();
         }
     }
 }
@@ -62,25 +60,23 @@ void TablesStatistics::initTableStatisticsForWriteTrxNoLock() {
 PropertyStatistics& TablesStatistics::getPropertyStatisticsForTable(
     const transaction::Transaction& transaction, table_id_t tableID, property_id_t propertyID) {
     if (transaction.isReadOnly()) {
-        KU_ASSERT(tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.contains(tableID));
-        auto tableStatistics =
-            tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.at(tableID).get();
+        KU_ASSERT(readOnlyVersion->tableStatisticPerTable.contains(tableID));
+        auto tableStatistics = readOnlyVersion->tableStatisticPerTable.at(tableID).get();
         return tableStatistics->getPropertyStatistics(propertyID);
     } else {
         initTableStatisticsForWriteTrx();
-        KU_ASSERT(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
-        auto tableStatistics =
-            tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
+        KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+        auto tableStatistics = readWriteVersion->tableStatisticPerTable.at(tableID).get();
         return tableStatistics->getPropertyStatistics(propertyID);
     }
 }
 
-void TablesStatistics::setPropertyStatisticsForTable(
-    table_id_t tableID, property_id_t propertyID, PropertyStatistics stats) {
+void TablesStatistics::setPropertyStatisticsForTable(table_id_t tableID, property_id_t propertyID,
+    PropertyStatistics stats) {
     initTableStatisticsForWriteTrx();
-    KU_ASSERT(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
-    auto tableStatistics =
-        tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
+    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+    setToUpdated();
+    auto tableStatistics = readWriteVersion->tableStatisticPerTable.at(tableID).get();
     tableStatistics->setPropertyStatistics(propertyID, stats);
 }
 
@@ -100,9 +96,11 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
                 createMetadataDAHInfo(*fields[i]->getType(), metadataFH, bm, wal);
         }
     } break;
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(*VarListType::getChildType(&dataType), metadataFH, bm, wal));
+            createMetadataDAHInfo(*LogicalType::UINT32(), metadataFH, bm, wal));
+        metadataDAHInfo->childrenInfos.push_back(
+            createMetadataDAHInfo(*ListType::getChildType(&dataType), metadataFH, bm, wal));
     } break;
     case PhysicalTypeID::STRING: {
         auto dataMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();

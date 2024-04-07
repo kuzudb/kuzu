@@ -1,5 +1,6 @@
 #pragma once
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/enums/table_type.h"
 #include "storage/stats/property_statistics.h"
 
@@ -15,7 +16,7 @@ namespace storage {
 
 class TableStatistics {
 public:
-    explicit TableStatistics(const catalog::TableSchema& schema);
+    explicit TableStatistics(const catalog::TableCatalogEntry& tableEntry);
     TableStatistics(common::TableType tableType, uint64_t numTuples, common::table_id_t tableID,
         std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
             propertyStatistics);
@@ -34,8 +35,8 @@ public:
         KU_ASSERT(propertyStatistics.contains(propertyID));
         return *(propertyStatistics.at(propertyID));
     }
-    inline void setPropertyStatistics(
-        common::property_id_t propertyID, PropertyStatistics newStats) {
+    inline void setPropertyStatistics(common::property_id_t propertyID,
+        PropertyStatistics newStats) {
         propertyStatistics[propertyID] = std::make_unique<PropertyStatistics>(newStats);
     }
 

@@ -1,0 +1,113 @@
+-GROUP W3Sparql
+-DATASET TTL EMPTY
+
+--
+
+-CASE SqarqlUpdate
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r)-[]->(:R_r {iri: "o"});
+---- error
+Binder exception: Create node a expects primary key iri as input.
+-STATEMENT CREATE (:R_r {iri: "s"})-[b]->(:R_r {iri: "o"});
+---- error
+Binder exception: Insert relationship b expects iri property as input.
+-STATEMENT WITH "http://example.org/ns#" AS prefix
+           CREATE (:R_r {iri: prefix + "s"})-[{iri: prefix + "p"}]->(:R_r {iri: prefix + "o"});
+---- ok
+-STATEMENT MATCH (s)-[p]->(o) RETURN s.iri, p.iri, o.iri;
+---- 1
+http://example.org/ns#s|http://example.org/ns#p|http://example.org/ns#o
+-STATEMENT WITH "http://example.org/ns#" AS prefix
+           CREATE (:R_r {iri: prefix + "s"})-[{iri: prefix + "p"}]->(:R_r {iri: prefix + "o2"});
+---- ok
+-STATEMENT MATCH (s)-[p]->(o) RETURN s.iri, p.iri, o.iri;
+---- 2
+http://example.org/ns#s|http://example.org/ns#p|http://example.org/ns#o
+http://example.org/ns#s|http://example.org/ns#p|http://example.org/ns#o2
+-STATEMENT MATCH (s)-[p]->(o) DELETE p;
+---- ok
+-STATEMENT MATCH (s)-[p]->(o) RETURN s.iri, p.iri, o.iri;
+---- 0
+-STATEMENT CREATE (:R_r {iri: "s"})-[{iri: "p"}]->(:R_r {iri:"o"});
+---- ok
+-STATEMENT MATCH (s)-[p]->(o)
+           DELETE p
+           CREATE (:R_r {iri: o.iri})-[{iri: p.iri}]->(:R_r {iri: s.iri});
+---- ok
+-STATEMENT MATCH (s)-[p]->(o) RETURN s.iri, p.iri, o.iri;
+---- 1
+o|p|s
+
+-CASE SparqlDL04
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "type"}]->(:R_r {iri: "Person"}),
+                  (b:R_r {iri: "b"})-[{iri: "type"}]->(:R_r {iri: "Person"}),
+                  (c:R_r {iri: "c"})-[{iri: "type"}]->(:R_r {iri: "Person"}),
+                  (a)-[{iri: "name"}]->(:R_l {val: "A"}),
+                  (a)-[{iri: "nick"}]->(:R_l {val: "Anick"}),
+                  (b)-[{iri: "name"}]->(:R_l {val: "B"}),
+                  (b)-[{iri: "nick"}]->(:R_l {val: "Bnick"});
+---- ok
+#SELECT ?X ?Y1 ?Y2
+#WHERE
+#{?X rdf:type :Person .
+#?X  :name ?Y1 .
+#?X  :nick ?Y2 .}
+-STATEMENT MATCH (x)-[{iri: "type"}]->({iri: "Person"}),
+                (x)-[{iri: "name"}]->(y1),
+                (x)-[{iri: "nick"}]->(y2)
+           RETURN x.iri, y1.val, y2.val
+---- 2
+a|A|Anick
+b|B|Bnick
+
+-CASE SparqlDL05
+-STATEMENT CREATE RDFGraph R;
+---- ok
+#:a :p :aa.
+#:dd :t :bb.
+#:bb :s :aa.
+#:cc :r :dd.
+#:aa :r :ee.
+-STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "p"}]->(aa:R_r {iri: "aa"}),
+                  (dd:R_r {iri: "dd"})-[{iri: "t"}]->(bb:R_r {iri: "bb"}),
+                  (:R_r {iri: "bb"})-[{iri: "s"}]->(aa),
+                  (:R_r {iri: "cc"})-[{iri: "r"}]->(dd),
+                  (aa)-[{iri: "r"}]->(:R_r {iri: "ee"});
+---- ok
+#ASK
+#WHERE
+#{
+#:a :p _:aa.
+#_:aa :r _:dd.
+#_:dd :t _:bb.
+#_:bb :s :a.
+#}
+-STATEMENT MATCH (a {iri:"a"})-[{iri:"p"}]->()-[{iri:"r"}]->()-[{iri:"t"}]->()-[{iri:"s"}]->(a) RETURN COUNT(*);
+---- 1
+0
+#SELECT *
+#WHERE
+#{:a :p _:aa.
+# ?X :t ?Y.
+# ?Y :s _:aa.
+# _:aa :r ?Z.}
+-STATEMENT MATCH (a {iri:"a"})-[{iri:"p"}]->(annoy)-[{iri:"r"}]->(z),
+        (x)-[{iri:"t"}]->(y)-[{iri:"s"}]->(annoy) RETURN x.iri, y.iri;
+---- 1
+dd|bb
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE EXISTS { MATCH ({iri: s.iri})-[{iri: p.iri}]->(:R_r {iri: "aa"})}
+            RETURN s.iri, p.iri;
+---- 2
+a|p
+bb|s
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE EXISTS { MATCH ({iri: s.iri})-[{iri: p.iri}]->(:R_r {iri: "aa"})}
+            RETURN s.iri, p.iri;
+---- 2
+a|p
+bb|s

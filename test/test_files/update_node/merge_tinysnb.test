@@ -60,3 +60,38 @@ Runtime exception: Found duplicated primary key value 1, which violates the uniq
 -STATEMENT MATCH (a:person) RETURN COUNT(*);
 ---- 1
 11
+
+-CASE MergeDuplicatedKey
+-STATEMENT CREATE NODE TABLE user (ID int64, primary key(ID))
+---- ok
+-STATEMENT MATCH (a:person) with a.ID % 4 as result, a.age as age MERGE (u:user {ID: result}) RETURN u.ID, age
+---- 8
+0|35
+2|30
+3|45
+1|20
+3|20
+0|25
+1|40
+2|83
+-STATEMENT MATCH (a:user) RETURN a.ID
+---- 4
+0
+1
+2
+3
+-STATEMENT MATCH (a:person) with a.ID as id MERGE (u:user {ID: 10}) RETURN u.ID, id
+---- error
+Runtime exception: Constant key in merge clause is not supported yet.
+-STATEMENT CREATE NODE TABLE user1 (ID int64, name string, primary key(ID))
+---- ok
+-STATEMENT MATCH (a:person) with a.ID % 7 as result, a.fName as name MERGE (u:user1 {ID: result}) ON MATCH SET u.name = 'match: ' + name ON CREATE SET u.name = 'create: ' + name RETURN u.ID, u.name
+---- 8
+0|create: Alice
+0|match: Elizabeth
+1|create: Farooq
+2|create: Bob
+2|match: Greg
+3|create: Carol
+3|match: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+5|create: Dan

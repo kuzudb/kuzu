@@ -13,42 +13,60 @@ common::row_idx_t InQueryCallSharedState::getAndIncreaseRowIdx(uint64_t numRows)
 }
 
 void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    localState = std::make_unique<InQueryCallLocalState>();
-    if (!inQueryCallInfo->outputPoses.empty()) {
-        localState->outputChunk = std::make_unique<DataChunk>(inQueryCallInfo->outputPoses.size(),
-            resultSet->getDataChunk(inQueryCallInfo->outputPoses[0].dataChunkPos)->state);
-    } else {
-        // Some scan function (e.g. rdf scan) doesn't output any vector.
-        localState->outputChunk = std::make_unique<DataChunk>(0);
+    // Init local state.
+    localState = InQueryCallLocalState();
+    // Init table function output.
+    switch (info.outputType) {
+    case TableScanOutputType::EMPTY:
+        break; // Do nothing.
+    case TableScanOutputType::SINGLE_DATA_CHUNK: {
+        KU_ASSERT(!info.outPosV.empty());
+        auto state = resultSet->getDataChunk(info.outPosV[0].dataChunkPos)->state;
+        localState.funcOutput.dataChunk = DataChunk(info.outPosV.size(), state);
+        for (auto i = 0u; i < info.outPosV.size(); ++i) {
+            localState.funcOutput.dataChunk.insert(i, resultSet->getValueVector(info.outPosV[i]));
+        }
+    } break;
+    case TableScanOutputType::MULTI_DATA_CHUNK: {
+        for (auto& pos : info.outPosV) {
+            localState.funcOutput.vectors.push_back(resultSet->getValueVector(pos).get());
+        }
+    } break;
+    default:
+        KU_UNREACHABLE;
     }
-    for (auto i = 0u; i < inQueryCallInfo->outputPoses.size(); i++) {
-        localState->outputChunk->insert(
-            i, resultSet->getValueVector(inQueryCallInfo->outputPoses[i]));
+    if (info.rowOffsetPos.isValid()) {
+        localState.rowOffsetVector = resultSet->getValueVector(info.rowOffsetPos).get();
     }
-    localState->rowIDVector = resultSet->getValueVector(inQueryCallInfo->rowIDPos).get();
-    function::TableFunctionInitInput tableFunctionInitInput{inQueryCallInfo->bindData.get()};
-    localState->localState = inQueryCallInfo->function->initLocalStateFunc(
-        tableFunctionInitInput, sharedState->sharedState.get(), context->memoryManager);
-    localState->tableFunctionInput = function::TableFunctionInput{inQueryCallInfo->bindData.get(),
-        localState->localState.get(), sharedState->sharedState.get()};
+    // Init table function input.
+    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get()};
+    localState.funcState = info.function.initLocalStateFunc(tableFunctionInitInput,
+        sharedState->funcState.get(), context->clientContext->getMemoryManager());
+    localState.funcInput = function::TableFuncInput{info.bindData.get(), localState.funcState.get(),
+        sharedState->funcState.get()};
 }
 
-void InQueryCall::initGlobalStateInternal(ExecutionContext* /*context*/) {
-    function::TableFunctionInitInput tableFunctionInitInput{inQueryCallInfo->bindData.get()};
-    sharedState->sharedState =
-        inQueryCallInfo->function->initSharedStateFunc(tableFunctionInitInput);
+void InQueryCall::initGlobalStateInternal(ExecutionContext*) {
+    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get()};
+    sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
 }
 
-bool InQueryCall::getNextTuplesInternal(ExecutionContext* /*context*/) {
-    localState->outputChunk->state->selVector->selectedSize = 0;
-    localState->outputChunk->resetAuxiliaryBuffer();
-    inQueryCallInfo->function->tableFunc(localState->tableFunctionInput, *localState->outputChunk);
-    auto numRowsToOutput = localState->outputChunk->state->selVector->selectedSize;
-    auto rowIdx = sharedState->getAndIncreaseRowIdx(numRowsToOutput);
-    for (auto i = 0u; i < numRowsToOutput; i++) {
-        localState->rowIDVector->setValue(i, rowIdx + i);
+bool InQueryCall::getNextTuplesInternal(ExecutionContext*) {
+    localState.funcOutput.dataChunk.state->selVector->selectedSize = 0;
+    localState.funcOutput.dataChunk.resetAuxiliaryBuffer();
+    auto numTuplesScanned = info.function.tableFunc(localState.funcInput, localState.funcOutput);
+    localState.funcOutput.dataChunk.state->selVector->selectedSize = numTuplesScanned;
+    if (localState.rowOffsetVector != nullptr) {
+        auto rowIdx = sharedState->getAndIncreaseRowIdx(numTuplesScanned);
+        for (auto i = 0u; i < numTuplesScanned; i++) {
+            localState.rowOffsetVector->setValue(i, rowIdx + i);
+        }
     }
-    return localState->outputChunk->state->selVector->selectedSize != 0;
+    return numTuplesScanned != 0;
+}
+
+double InQueryCall::getProgress(ExecutionContext* /*context*/) const {
+    return info.function.progressFunc(sharedState->funcState.get());
 }
 
 } // namespace processor

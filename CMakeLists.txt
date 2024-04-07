@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.1.0.5 LANGUAGES CXX C)
+project(Kuzu VERSION 0.3.2.5 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -46,6 +46,7 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
     message(STATUS "32-bit architecture detected")
     add_compile_definitions(__32BIT__)
+    set(__32BIT__ TRUE)
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -103,8 +104,8 @@ if(MSVC)
     # Enables support for custom hardware exception handling
     add_compile_options("/EHa")
     # Remove the default to avoid warnings
-    STRING(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-    STRING(REPLACE "/EHs" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    STRING(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    STRING(REPLACE "/EHs" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     # Store all libraries and binaries in the same directory so that kuzu_shared.dll is found at runtime
     set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/src")
     set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/src")
@@ -166,6 +167,7 @@ endif()
 
 option(AUTO_UPDATE_GRAMMAR "Automatically regenerate C++ grammar files on change." TRUE)
 option(BUILD_BENCHMARK "Build benchmarks." FALSE)
+option(BUILD_EXTENSIONS "Semicolon-separated list of extensions to build." "")
 option(BUILD_EXAMPLES "Build examples." FALSE)
 option(BUILD_WASM "Build WebAssembly." FALSE)
 option(BUILD_JAVA "Build Java API." FALSE)
@@ -175,6 +177,7 @@ option(BUILD_SHELL "Build Interactive Shell" TRUE)
 option(BUILD_SINGLE_FILE_HEADER "Build single file header. Requires Python >= 3.9." TRUE)
 option(BUILD_TESTS "Build C++ tests." FALSE)
 option(BUILD_EXTENSION_TESTS "Build C++ extension tests." FALSE)
+option(BUILD_KUZU "Build Kuzu." TRUE)
 
 option(BUILD_LCOV "Build coverage report." FALSE)
 if(${BUILD_LCOV})
@@ -199,9 +202,15 @@ function(add_kuzu_api_test TEST_NAME)
     gtest_discover_tests(${TEST_NAME})
 endfunction()
 
+# Windows doesn't support dynamic lookup, so we have to link extensions against kuzu.
+if (MSVC AND (NOT BUILD_EXTENSIONS EQUAL ""))
+    set(BUILD_KUZU TRUE)
+endif ()
+
+if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_RELEASE_VERSION="0.1.0")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.2.5")
 
 include_directories(src/include)
 include_directories(third_party/antlr4_cypher/include)
@@ -218,6 +227,7 @@ include_directories(third_party/spdlog)
 include_directories(third_party/utf8proc/include)
 include_directories(third_party/zstd/include)
 include_directories(third_party/httplib)
+include_directories(third_party/pcg)
 
 add_subdirectory(third_party)
 add_subdirectory(src)
@@ -227,10 +237,12 @@ if (${BUILD_TESTS})
 elseif (${BUILD_BENCHMARK})
     add_definitions(-DTEST_FILES_DIR="test/test_files")
     add_subdirectory(test/test_helper)
-elseif (${BUILD_EXTENSION_TESTS})
-    add_subdirectory(extension/httpfs/test)
 endif ()
 add_subdirectory(tools)
+endif ()
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/CMakeLists.txt")
+    add_subdirectory(extension)
+endif ()
 
 if (${BUILD_EXAMPLES})
     add_subdirectory(examples/c)

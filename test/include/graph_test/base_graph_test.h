@@ -35,11 +35,21 @@ public:
             2 /*numThreadsForExec*/);
         setDatabasePath();
         removeDir(databasePath);
+
+        ieDBPath = "";
     }
 
     virtual std::string getInputDir() = 0;
 
     void TearDown() override { removeDir(databasePath); }
+
+    void removeIEDBPath() const {
+        if (ieDBPath != "") {
+            auto lastSlashPos = ieDBPath.rfind('/');
+            auto deletePath = ieDBPath.substr(0, lastSlashPos);
+            removeDir(deletePath);
+        }
+    }
 
     void createDBAndConn();
 
@@ -50,6 +60,8 @@ public:
     void initGraph();
 
     void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType) const;
+
+    void setIEDatabasePath(std::string filePath) { ieDBPath = filePath; }
 
 protected:
     // Static functions to access Database's non-public properties/interfaces.
@@ -89,17 +101,17 @@ protected:
     static inline main::ClientContext* getClientContext(main::Connection& connection) {
         return connection.clientContext.get();
     }
-    static inline void sortAndCheckTestResults(
-        std::vector<std::string>& actualResult, std::vector<std::string>& expectedResult) {
+    static inline void sortAndCheckTestResults(std::vector<std::string>& actualResult,
+        std::vector<std::string>& expectedResult) {
         sort(expectedResult.begin(), expectedResult.end());
         ASSERT_EQ(actualResult, expectedResult);
     }
     static inline bool containsOverflowFile(common::LogicalTypeID typeID) {
-        return typeID == common::LogicalTypeID::STRING || typeID == common::LogicalTypeID::VAR_LIST;
+        return typeID == common::LogicalTypeID::STRING || typeID == common::LogicalTypeID::LIST;
     }
 
-    void commitOrRollbackConnectionAndInitDBIfNecessary(
-        bool isCommit, TransactionTestType transactionTestType);
+    void commitOrRollbackConnectionAndInitDBIfNecessary(bool isCommit,
+        TransactionTestType transactionTestType);
 
     inline std::string getTestGroupAndName() {
         const ::testing::TestInfo* const testInfo =
@@ -121,6 +133,8 @@ public:
     std::unique_ptr<main::Connection> conn;
     // for multiple conns
     std::unordered_map<std::string, std::unique_ptr<main::Connection>> connMap;
+    // for export import db
+    std::string ieDBPath;
 };
 
 } // namespace testing

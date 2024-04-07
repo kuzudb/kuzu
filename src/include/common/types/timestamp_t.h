@@ -103,11 +103,11 @@ public:
 
     KUZU_API static int64_t getEpochSeconds(const timestamp_t& timestamp);
 
-    KUZU_API static bool tryParseUTCOffset(
-        const char* str, uint64_t& pos, uint64_t len, int& hour_offset, int& minute_offset);
+    KUZU_API static bool tryParseUTCOffset(const char* str, uint64_t& pos, uint64_t len,
+        int& hour_offset, int& minute_offset);
 
-    static std::string getTimestampConversionExceptionMsg(
-        const char* str, uint64_t len, const std::string& typeID = "TIMESTAMP") {
+    static std::string getTimestampConversionExceptionMsg(const char* str, uint64_t len,
+        const std::string& typeID = "TIMESTAMP") {
         return "Error occurred during parsing " + typeID + ". Given: \"" + std::string(str, len) +
                "\". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])";
     }

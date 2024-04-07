@@ -3,8 +3,8 @@
 namespace kuzu {
 namespace planner {
 
-uint64_t JoinOrderUtil::getJoinKeysFlatCardinality(
-    const binder::expression_vector& joinNodeIDs, const LogicalPlan& buildPlan) {
+uint64_t JoinOrderUtil::getJoinKeysFlatCardinality(const binder::expression_vector& joinNodeIDs,
+    const LogicalPlan& buildPlan) {
     auto schema = buildPlan.getSchema();
     f_group_pos_set unFlatGroupsPos;
     for (auto& joinID : joinNodeIDs) {

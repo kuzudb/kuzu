@@ -4,47 +4,24 @@
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
-#include "function/function.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
 
-function_set StructPackFunctions::getFunctionSet() {
-    function_set functions;
-    functions.push_back(make_unique<ScalarFunction>(STRUCT_PACK_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRUCT, execFunc, nullptr,
-        compileFunc, bindFunc, true /* isVarLength */));
-    return functions;
-}
-
-std::unique_ptr<FunctionBindData> StructPackFunctions::bindFunc(
+static std::unique_ptr<FunctionBindData> StructPackBindFunc(
     const binder::expression_vector& arguments, Function* /*function*/) {
     std::vector<StructField> fields;
     for (auto& argument : arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
-            binder::ExpressionBinder::resolveAnyDataType(
-                *argument, LogicalType{LogicalTypeID::STRING});
+            argument->cast(*LogicalType::STRING());
         }
         fields.emplace_back(argument->getAlias(), argument->getDataType().copy());
     }
     auto resultType = LogicalType::STRUCT(std::move(fields));
     return std::make_unique<FunctionBindData>(std::move(resultType));
-}
-
-void StructPackFunctions::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
-    for (auto i = 0u; i < parameters.size(); i++) {
-        auto& parameter = parameters[i];
-        if (parameter->state == result.state) {
-            continue;
-        }
-        // If the parameter's state is inconsistent with the result's state, we need to copy the
-        // parameter's value to the corresponding child vector.
-        copyParameterValueToStructFieldVector(
-            parameter.get(), StructVector::getFieldVector(&result, i).get(), result.state.get());
-    }
 }
 
 void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,
@@ -61,8 +38,8 @@ void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,
     }
 }
 
-void StructPackFunctions::copyParameterValueToStructFieldVector(
-    const ValueVector* parameter, ValueVector* structField, DataChunkState* structVectorState) {
+static void copyParameterValueToStructFieldVector(const ValueVector* parameter,
+    ValueVector* structField, DataChunkState* structVectorState) {
     // If the parameter is unFlat, then its state must be consistent with the result's state.
     // Thus, we don't need to copy values to structFieldVector.
     KU_ASSERT(parameter->state->isFlat());
@@ -78,15 +55,25 @@ void StructPackFunctions::copyParameterValueToStructFieldVector(
     }
 }
 
-function_set StructExtractFunctions::getFunctionSet() {
-    function_set functions;
-    auto inputTypeIDs =
-        std::vector<LogicalTypeID>{LogicalTypeID::STRUCT, LogicalTypeID::NODE, LogicalTypeID::REL};
-    for (auto inputTypeID : inputTypeIDs) {
-        functions.push_back(make_unique<ScalarFunction>(STRUCT_EXTRACT_FUNC_NAME,
-            std::vector<LogicalTypeID>{inputTypeID, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-            nullptr, nullptr, compileFunc, bindFunc, false /* isVarLength */));
+void StructPackFunctions::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/) {
+    for (auto i = 0u; i < parameters.size(); i++) {
+        auto& parameter = parameters[i];
+        if (parameter->state == result.state) {
+            continue;
+        }
+        // If the parameter's state is inconsistent with the result's state, we need to copy the
+        // parameter's value to the corresponding child vector.
+        copyParameterValueToStructFieldVector(parameter.get(),
+            StructVector::getFieldVector(&result, i).get(), result.state.get());
     }
+}
+
+function_set StructPackFunctions::getFunctionSet() {
+    function_set functions;
+    functions.push_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRUCT, execFunc, nullptr,
+        compileFunc, StructPackBindFunc, true /* isVarLength */));
     return functions;
 }
 
@@ -112,6 +99,23 @@ void StructExtractFunctions::compileFunc(FunctionBindData* bindData,
     auto structBindData = ku_dynamic_cast<FunctionBindData*, StructExtractBindData*>(bindData);
     result = StructVector::getFieldVector(parameters[0].get(), structBindData->childIdx);
     result->state = parameters[0]->state;
+}
+
+static std::unique_ptr<ScalarFunction> getStructExtractFunction(LogicalTypeID logicalTypeID) {
+    return std::make_unique<ScalarFunction>(StructExtractFunctions::name,
+        std::vector<LogicalTypeID>{logicalTypeID, LogicalTypeID::STRING}, LogicalTypeID::ANY,
+        nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc,
+        false /* isVarLength */);
+}
+
+function_set StructExtractFunctions::getFunctionSet() {
+    function_set functions;
+    auto inputTypeIDs =
+        std::vector<LogicalTypeID>{LogicalTypeID::STRUCT, LogicalTypeID::NODE, LogicalTypeID::REL};
+    for (auto inputTypeID : inputTypeIDs) {
+        functions.push_back(getStructExtractFunction(inputTypeID));
+    }
+    return functions;
 }
 
 } // namespace function

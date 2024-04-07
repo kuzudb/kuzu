@@ -18,6 +18,16 @@
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=0 AND b.ID=5 RETURN e.date;
 ---- 1
 
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=0 AND b.ID=5 SET e.date=date('1999-01-02') WITH e MATCH (x:person)-[e2:knows]->(y:person) WHERE e2.date <= e.date RETURN e.date, x.fName, e2.date, y.fName;
+---- 7
+1999-01-02|Alice|1999-01-02|Dan
+1999-01-02|Bob|1950-05-14|Carol
+1999-01-02|Bob|1950-05-14|Dan
+1999-01-02|Carol|1950-05-14|Bob
+1999-01-02|Dan|1950-05-14|Bob
+1999-01-02|Elizabeth|1905-12-12|Farooq
+1999-01-02|Elizabeth|1905-12-12|Greg
+
 -CASE SetReadTest2
 -STATEMENT CREATE REL TABLE play(FROM person TO person, date DATE, year INT64);
 ---- ok

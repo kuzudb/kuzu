@@ -30,17 +30,18 @@ public:
         : ScanSingleNodeTable{PhysicalOperatorType::SCAN_NODE_TABLE, std::move(info), inVectorPos,
               std::move(outVectorsPos), std::move(child), id, paramsString} {}
 
-    inline void initLocalStateInternal(
-        ResultSet* resultSet, ExecutionContext* executionContext) final {
+    inline void initLocalStateInternal(ResultSet* resultSet,
+        ExecutionContext* executionContext) final {
         ScanTable::initLocalStateInternal(resultSet, executionContext);
-        readState = std::make_unique<storage::TableReadState>();
+        readState =
+            std::make_unique<storage::TableReadState>(*inVector, info->columnIDs, outVectors);
     }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanSingleNodeTable>(
-            info->copy(), inVectorPos, outVectorsPos, children[0]->clone(), id, paramsString);
+        return make_unique<ScanSingleNodeTable>(info->copy(), inVectorPos, outVectorsPos,
+            children[0]->clone(), id, paramsString);
     }
 
 protected:

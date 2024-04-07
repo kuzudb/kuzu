@@ -14,6 +14,8 @@ struct ScalarMacroFunction {
     std::vector<std::string> positionalArgs;
     parser::default_macro_args defaultArgs;
 
+    ScalarMacroFunction() = default;
+
     ScalarMacroFunction(std::unique_ptr<parser::ParsedExpression> expression,
         std::vector<std::string> positionalArgs, parser::default_macro_args defaultArgs)
         : expression{std::move(expression)}, positionalArgs{std::move(positionalArgs)},
@@ -32,6 +34,8 @@ struct ScalarMacroFunction {
     std::unique_ptr<ScalarMacroFunction> copy() const;
 
     void serialize(common::Serializer& serializer) const;
+
+    std::string toCypher(const std::string& name) const;
 
     static std::unique_ptr<ScalarMacroFunction> deserialize(common::Deserializer& deserializer);
 };

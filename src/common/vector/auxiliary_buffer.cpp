@@ -5,8 +5,8 @@
 namespace kuzu {
 namespace common {
 
-StructAuxiliaryBuffer::StructAuxiliaryBuffer(
-    const LogicalType& type, storage::MemoryManager* memoryManager) {
+StructAuxiliaryBuffer::StructAuxiliaryBuffer(const LogicalType& type,
+    storage::MemoryManager* memoryManager) {
     auto fieldTypes = StructType::getFieldTypes(&type);
     childrenVectors.reserve(fieldTypes.size());
     for (auto fieldType : fieldTypes) {
@@ -14,12 +14,12 @@ StructAuxiliaryBuffer::StructAuxiliaryBuffer(
     }
 }
 
-ListAuxiliaryBuffer::ListAuxiliaryBuffer(
-    const LogicalType& dataVectorType, storage::MemoryManager* memoryManager)
-    : capacity{DEFAULT_VECTOR_CAPACITY}, size{0}, dataVector{std::make_shared<ValueVector>(
-                                                      dataVectorType, memoryManager)} {}
+ListAuxiliaryBuffer::ListAuxiliaryBuffer(const LogicalType& dataVectorType,
+    storage::MemoryManager* memoryManager)
+    : capacity{DEFAULT_VECTOR_CAPACITY}, size{0},
+      dataVector{std::make_shared<ValueVector>(dataVectorType, memoryManager)} {}
 
-list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {
+list_entry_t ListAuxiliaryBuffer::addList(list_size_t listSize) {
     auto listEntry = list_entry_t{size, listSize};
     bool needResizeDataVector = size + listSize > capacity;
     while (size + listSize > capacity) {
@@ -52,7 +52,8 @@ void ListAuxiliaryBuffer::resizeDataVector(ValueVector* dataVector) {
     auto buffer = std::make_unique<uint8_t[]>(capacity * dataVector->getNumBytesPerValue());
     memcpy(buffer.get(), dataVector->valueBuffer.get(), size * dataVector->getNumBytesPerValue());
     dataVector->valueBuffer = std::move(buffer);
-    dataVector->nullMask->resize(capacity);
+    dataVector->nullMask->resize((capacity + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) >>
+                                 NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
     // If the dataVector is a struct vector, we need to resize its field vectors.
     if (dataVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
         resizeStructDataVector(dataVector);
@@ -71,16 +72,15 @@ void ListAuxiliaryBuffer::resizeStructDataVector(ValueVector* dataVector) {
     }
 }
 
-std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(
-    LogicalType& type, storage::MemoryManager* memoryManager) {
+std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(LogicalType& type,
+    storage::MemoryManager* memoryManager) {
     switch (type.getPhysicalType()) {
     case PhysicalTypeID::STRING:
         return std::make_unique<StringAuxiliaryBuffer>(memoryManager);
     case PhysicalTypeID::STRUCT:
         return std::make_unique<StructAuxiliaryBuffer>(type, memoryManager);
-    case PhysicalTypeID::VAR_LIST:
-        return std::make_unique<ListAuxiliaryBuffer>(
-            *VarListType::getChildType(&type), memoryManager);
+    case PhysicalTypeID::LIST:
+        return std::make_unique<ListAuxiliaryBuffer>(*ListType::getChildType(&type), memoryManager);
     default:
         return nullptr;
     }

@@ -16,8 +16,8 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunc(std::string
     common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct) {
     switch (inputType) {
     case common::LogicalTypeID::INT128:
-        return getAggFunc<SumFunction<int128_t>>(
-            std::move(name), inputType, resultType, isDistinct);
+        return getAggFunc<SumFunction<int128_t>>(std::move(name), inputType, resultType,
+            isDistinct);
     case common::LogicalTypeID::SERIAL:
     case common::LogicalTypeID::INT64:
         return getAggFunc<SumFunction<int64_t>>(name, inputType, resultType, isDistinct);
@@ -48,8 +48,8 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunc(std::string
     common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct) {
     switch (inputType) {
     case common::LogicalTypeID::INT128:
-        return getAggFunc<AvgFunction<int128_t>>(
-            std::move(name), inputType, resultType, isDistinct);
+        return getAggFunc<AvgFunction<int128_t>>(std::move(name), inputType, resultType,
+            isDistinct);
     case common::LogicalTypeID::SERIAL:
     case common::LogicalTypeID::INT64:
         return getAggFunc<AvgFunction<int64_t>>(std::move(name), inputType, resultType, isDistinct);
@@ -60,14 +60,14 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunc(std::string
     case common::LogicalTypeID::INT8:
         return getAggFunc<AvgFunction<int8_t>>(std::move(name), inputType, resultType, isDistinct);
     case common::LogicalTypeID::UINT64:
-        return getAggFunc<AvgFunction<uint64_t>>(
-            std::move(name), inputType, resultType, isDistinct);
+        return getAggFunc<AvgFunction<uint64_t>>(std::move(name), inputType, resultType,
+            isDistinct);
     case common::LogicalTypeID::UINT32:
-        return getAggFunc<AvgFunction<uint32_t>>(
-            std::move(name), inputType, resultType, isDistinct);
+        return getAggFunc<AvgFunction<uint32_t>>(std::move(name), inputType, resultType,
+            isDistinct);
     case common::LogicalTypeID::UINT16:
-        return getAggFunc<AvgFunction<uint16_t>>(
-            std::move(name), inputType, resultType, isDistinct);
+        return getAggFunc<AvgFunction<uint16_t>>(std::move(name), inputType, resultType,
+            isDistinct);
     case common::LogicalTypeID::UINT8:
         return getAggFunc<AvgFunction<uint8_t>>(std::move(name), inputType, resultType, isDistinct);
     case common::LogicalTypeID::DOUBLE:
@@ -79,16 +79,16 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunc(std::string
     }
 }
 
-std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinFunc(
-    LogicalTypeID inputType, bool isDistinct) {
-    return AggregateFunctionUtil::getMinMaxFunction<LessThan>(
-        MIN_FUNC_NAME, inputType, inputType, isDistinct);
+std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinFunc(LogicalTypeID inputType,
+    bool isDistinct) {
+    return AggregateFunctionUtil::getMinMaxFunction<LessThan>(AggregateMinFunction::name, inputType,
+        inputType, isDistinct);
 }
 
-std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMaxFunc(
-    LogicalTypeID inputType, bool isDistinct) {
-    return AggregateFunctionUtil::getMinMaxFunction<GreaterThan>(
-        MAX_FUNC_NAME, inputType, inputType, isDistinct);
+std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMaxFunc(LogicalTypeID inputType,
+    bool isDistinct) {
+    return AggregateFunctionUtil::getMinMaxFunction<GreaterThan>(AggregateMaxFunction::name,
+        inputType, inputType, isDistinct);
 }
 
 template<typename FUNC>
@@ -183,6 +183,47 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(std:
     default:
         KU_UNREACHABLE;
     }
+}
+
+function_set AggregateSumFunction::getFunctionSet() {
+    function_set result;
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
+        for (auto isDistinct : std::vector<bool>{true, false}) {
+            result.push_back(AggregateFunctionUtil::getSumFunc(name, typeID, typeID, isDistinct));
+        }
+    }
+    return result;
+}
+
+function_set AggregateAvgFunction::getFunctionSet() {
+    function_set result;
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
+        for (auto isDistinct : std::vector<bool>{true, false}) {
+            result.push_back(
+                AggregateFunctionUtil::getAvgFunc(name, typeID, LogicalTypeID::DOUBLE, isDistinct));
+        }
+    }
+    return result;
+}
+
+function_set AggregateMinFunction::getFunctionSet() {
+    function_set result;
+    for (auto& type : LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
+        for (auto isDistinct : std::vector<bool>{true, false}) {
+            result.push_back(AggregateFunctionUtil::getMinFunc(type, isDistinct));
+        }
+    }
+    return result;
+}
+
+function_set AggregateMaxFunction::getFunctionSet() {
+    function_set result;
+    for (auto& type : LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
+        for (auto isDistinct : std::vector<bool>{true, false}) {
+            result.push_back(AggregateFunctionUtil::getMaxFunc(type, isDistinct));
+        }
+    }
+    return result;
 }
 
 } // namespace function

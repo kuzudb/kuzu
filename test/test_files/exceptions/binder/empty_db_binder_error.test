@@ -29,7 +29,7 @@ Binder exception: Number of columns mismatch. Expected 1 but got 2.
 ---- ok
 -STATEMENT DROP TABLE person
 ---- error
-Binder exception: Cannot delete node table person referenced by rel table follows.
+Binder exception: Cannot delete node table person because it is referenced by relationship table follows.
 
 -CASE MismatchedPropertyDataTypes
 -STATEMENT CREATE NODE TABLE person(ID INT64, PRIMARY KEY(ID))

@@ -1,6 +1,7 @@
 #include "common/copier_config/reader_config.h"
 
 #include "common/assert.h"
+#include "common/exception/binder.h"
 #include "common/exception/copy.h"
 
 namespace kuzu {
@@ -21,6 +22,9 @@ FileType FileTypeUtils::getFileTypeFromExtension(std::string_view extension) {
     }
     if (extension == ".nq") {
         return FileType::NQUADS;
+    }
+    if (extension == ".nt") {
+        return FileType::NTRIPLES;
     }
     throw CopyException(std::string("Unsupported file type ").append(extension));
 }
@@ -45,9 +49,24 @@ std::string FileTypeUtils::toString(FileType fileType) {
     case FileType::NQUADS: {
         return "NQUADS";
     }
+    case FileType::NTRIPLES: {
+        return "NTRIPLES";
+    }
     default: {
         KU_UNREACHABLE;
     }
+    }
+}
+
+FileType FileTypeUtils::fromString(std::string fileType) {
+    if (fileType == "CSV") {
+        return FileType::CSV;
+    } else if (fileType == "PARQUET") {
+        return FileType::PARQUET;
+    } else if (fileType == "NPY") {
+        return FileType::NPY;
+    } else {
+        throw BinderException(stringFormat("Unsupported file type: {}.", fileType));
     }
 }
 

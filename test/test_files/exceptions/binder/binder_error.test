@@ -15,11 +15,6 @@ Binder exception: Cannot resolve any node or relationship to create.
 ---- error
 Binder exception: Cannot resolve any node or relationship to create.
 
--LOG NodeTableNotExist
--STATEMENT MATCH (a:PERSON) RETURN COUNT(*)
----- error
-Binder exception: Table PERSON does not exist.
-
 -LOG RepeatedRelName
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)<-[e1:knows]-(:person) RETURN COUNT(*)
 ---- error
@@ -111,7 +106,7 @@ Binder exception: Cannot match a built-in function for given function +(INTERNAL
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -137,7 +132,7 @@ Binder exception: Cannot match a built-in function for given function +(DATE,DAT
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -163,7 +158,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -189,7 +184,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -239,15 +234,7 @@ Binder exception: p1.age has data type INT64 but (STRING) was expected.
 -LOG UnionAndUnionAllInSingleQuery
 -STATEMENT MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age UNION MATCH (p1:person) RETURN p1.age
 ---- error
-Binder exception: Union and union all can't be used together.
-
--LOG ReadAfterUpdate
--STATEMENT MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
----- error
-Binder exception: Read after update is not supported. Try query with multiple statements.
--STATEMENT MATCH (a:person) WHERE a.age = 35 DELETE a WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
----- error
-Binder exception: Read after update is not supported. Try query with multiple statements.
+Binder exception: Union and union all can not be used together.
 
 -LOG SetDataTypeMisMatch
 -STATEMENT MATCH (a:person) SET a.age = 'hh'
@@ -294,7 +281,7 @@ Binder exception: person already exists in catalog.
 -LOG CreateNodeTablePKColNameNotExists
 -STATEMENT CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (dummyColName))
 ---- error
-Binder exception: Primary key dummyColName does not match any of the predefined node properties.
+Binder exception: PERSON already exists in catalog.
 
 -LOG CreateNodeTableDuplicatedColumnName
 -STATEMENT CREATE NODE TABLE student (id INT64, eyesight double, eyesight double, PRIMARY KEY(id))
@@ -315,7 +302,7 @@ Binder exception: No file found that matches the pattern: wrong_path.parquet.
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (pk=",")
 ---- error
 Binder exception: Unrecognized csv parsing option: PK.
--STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_END=")") RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_END=")") RETURN * ;
 ---- error
 Binder exception: Unrecognized csv parsing option: LIST_END.
 -STATEMENT LOAD WITH HEADERS (map MAP(STRING, MAP(STRING, INT16))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map_correct.csv" (LIST_BEGIN="(") RETURN *;
@@ -323,7 +310,7 @@ Binder exception: Unrecognized csv parsing option: LIST_END.
 Binder exception: Unrecognized csv parsing option: LIST_BEGIN.
 
 -LOG LoadCSVInvalidCol
--STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/quote_error.csv" RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/quote_error.csv" RETURN * ;
 ---- error
 Binder exception: Number of columns mismatch. Expected 1 but got 3.
 
@@ -370,7 +357,7 @@ Binder exception: Duplicated column name: date, column name must be unique.
 -LOG CreateRelTableReservedColumnName
 -STATEMENT CREATE REL TABLE teaches (FROM person TO person, _id INT64)
 ---- error
-Binder exception: PropertyName: _id is an internal reserved propertyName.
+Binder exception: _id is a reserved property name.
 
 -LOG DropNotExistsTable
 -STATEMENT DROP TABLE person1;
@@ -452,7 +439,7 @@ DISTINCT (SERIAL) -> SERIAL
 -LOG DropColumnFromNonExistedTable
 -STATEMENT alter table person1 drop k
 ---- error
-Binder exception: Table person1 does not exist.
+Catalog exception: Table: person1 does not exist.
 
 -LOG DropNonExistedColumn
 -STATEMENT alter table person drop random
@@ -477,7 +464,7 @@ Binder exception: Expression 3.2 has data type STRING but expected INT64. Implic
 -LOG RenameNonExistedTable
 -STATEMENT alter table person1 rename to person2
 ---- error
-Binder exception: Table person1 does not exist.
+Catalog exception: Table: person1 does not exist.
 
 -LOG RenameTableDuplicateName
 -STATEMENT alter table person rename to organisation
@@ -487,27 +474,17 @@ Binder exception: Table: organisation already exists.
 -LOG RenamePropertyOfNonExistedTable
 -STATEMENT alter table person1 rename col1 to col2
 ---- error
-Binder exception: Table person1 does not exist.
+Catalog exception: Table: person1 does not exist.
 
 -LOG RenamePropertyDuplicateName
 -STATEMENT alter table person rename fName to gender
 ---- error
 Binder exception: person table already has property gender.
 
--LOG InvalidFixedListChildType
--STATEMENT create node table test1(ID INT64, marks STRING[5], PRIMARY KEY(ID))
----- error
-Binder exception: The child type of a fixed list must be a numeric type. Given: STRING.
-
--LOG InvalidFixedListNumElements
+-LOG InvalidArrayNumElements
 -STATEMENT create node table test1(ID INT64, marks INT64[0], PRIMARY KEY(ID))
 ---- error
-Binder exception: The number of elements in a fixed list must be greater than 0. Given: 0.
-
--LOG InvalidFixedListSize
--STATEMENT create node table test1(ID INT64, marks INT64[512], PRIMARY KEY(ID))
----- error
-Binder exception: Cannot store a fixed list of size 4096 in a page.
+Binder exception: The number of elements in an array must be greater than 0. Given: 0.
 
 -LOG NonPKSerialType
 -STATEMENT CREATE NODE TABLE test(ID INT64, seq SERIAL, PRIMARY KEY(ID))
@@ -540,7 +517,7 @@ Binder exception: Cannot match a built-in function for given function +(INT64,ST
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -587,10 +564,12 @@ Binder exception: COPY TO currently only supports csv and parquet files.
 -LOG InvalidArgCast
 -STATEMENT RETURN cast("[sdf, fsd, fad]", "STRING[]", "3rd arg");
 ---- error
-Binder exception: Invalid number of arguments for given function CAST. Expected: 2, Actual: 3.
+Binder exception: Cannot match a built-in function for given function CAST(STRING,STRING,STRING). Supported inputs are
+(ANY,STRING) -> ANY
 -STATEMENT RETURN cast("[sdf, fsd, fad]");
 ---- error
-Binder exception: Invalid number of arguments for given function CAST. Expected: 2, Actual: 1.
+Binder exception: Cannot match a built-in function for given function CAST(STRING). Supported inputs are
+(ANY,STRING) -> ANY
 
 -LOG InvalidImplicitCast
 -STATEMENT RETURN timestamp("2019-11-21") + "ok";
@@ -608,7 +587,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -632,7 +611,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
-(VAR_LIST,VAR_LIST) -> VAR_LIST
+(LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
@@ -641,3 +620,19 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INTERVAL,DATE) -> DATE
 (TIMESTAMP,INTERVAL) -> TIMESTAMP
 (INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+-LOG CreateWithSerialPK
+-STATEMENT create node table Person1(id serial, primary key(id));
+---- ok
+-STATEMENT create (:Person1 {id: 0});
+---- error
+Binder exception: The primary key of Person1 is serial, specifying primary key value is not allowed in the create statement.
+
+-LOG CreateRelWithWrongType
+-STATEMENT CREATE NODE TABLE N (id SERIAL, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE R (FROM N TO N);
+---- ok
+-STATEMENT CREATE REL TABLE R2 (FROM R TO R);
+---- error
+Binder exception: Table type mismatch.

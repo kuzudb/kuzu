@@ -1,6 +1,9 @@
 #include "common/file_system/local_file_system.h"
 
 #include "common/cast.h"
+#include "common/string_utils.h"
+#include "main/client_context.h"
+#include "main/settings.h"
 
 #if defined(_WIN32)
 #include <fileapi.h>
@@ -36,8 +39,9 @@ LocalFileInfo::~LocalFileInfo() {
 #endif
 }
 
-std::unique_ptr<FileInfo> LocalFileSystem::openFile(
-    const std::string& path, int flags, main::ClientContext* /*context*/, FileLockType lock_type) {
+std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int flags,
+    main::ClientContext* context, FileLockType lock_type) {
+    auto fullPath = expandPath(context, path);
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
     auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
@@ -50,10 +54,10 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
         dwDesiredAccess |= GENERIC_READ;
     }
 
-    HANDLE handle = CreateFileA(path.c_str(), dwDesiredAccess, dwShareMode, nullptr,
+    HANDLE handle = CreateFileA(fullPath.c_str(), dwDesiredAccess, dwShareMode, nullptr,
         dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (handle == INVALID_HANDLE_VALUE) {
-        throw Exception(stringFormat("Cannot open file. path: {} - Error {}: {}", path,
+        throw Exception(stringFormat("Cannot open file. path: {} - Error {}: {}", fullPath,
             GetLastError(), std::system_category().message(GetLastError())));
     }
     if (lock_type != FileLockType::NO_LOCK) {
@@ -64,14 +68,14 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
         overlapped.Offset = 0;
         BOOL rc = LockFileEx(handle, dwFlags, 0, 0, 0, &overlapped);
         if (!rc) {
-            throw Exception("Could not set lock on file : " + path);
+            throw Exception("Could not set lock on file : " + fullPath);
         }
     }
-    return std::make_unique<LocalFileInfo>(path, handle, this);
+    return std::make_unique<LocalFileInfo>(fullPath, handle, this);
 #else
-    int fd = open(path.c_str(), flags, 0644);
+    int fd = open(fullPath.c_str(), flags, 0644);
     if (fd == -1) {
-        throw Exception(stringFormat("Cannot open file {}: {}", path, posixErrMessage()));
+        throw Exception(stringFormat("Cannot open file {}: {}", fullPath, posixErrMessage()));
     }
     if (lock_type != FileLockType::NO_LOCK) {
         struct flock fl;
@@ -82,42 +86,82 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(
         fl.l_len = 0;
         int rc = fcntl(fd, F_SETLK, &fl);
         if (rc == -1) {
-            throw Exception("Could not set lock on file : " + path);
+            throw Exception("Could not set lock on file : " + fullPath);
         }
     }
-    return std::make_unique<LocalFileInfo>(path, fd, this);
+    return std::make_unique<LocalFileInfo>(fullPath, fd, this);
 #endif
 }
 
-std::vector<std::string> LocalFileSystem::glob(const std::string& path) {
+std::vector<std::string> LocalFileSystem::glob(main::ClientContext* context,
+    const std::string& path) const {
+    if (path.empty()) {
+        return std::vector<std::string>();
+    }
+    std::vector<std::string> pathsToGlob;
+    if (path[0] == '/' || (std::isalpha(path[0]) && path[1] == ':')) {
+        // Note:
+        // Unix absolute path starts with '/'
+        // Windows absolute path starts with "[DiskID]://"
+        pathsToGlob.push_back(path);
+    } else if (path[0] == '~') {
+        // Expands home directory
+        auto homeDirectory =
+            context->getCurrentSetting(main::HomeDirectorySetting::name).getValue<std::string>();
+        pathsToGlob.push_back(homeDirectory + path.substr(1));
+    } else {
+        // Relative path to the file search path.
+        auto fileSearchPath =
+            context->getCurrentSetting(main::FileSearchPathSetting::name).getValue<std::string>();
+        auto searchPaths = common::StringUtils::split(fileSearchPath, ",");
+        for (auto& searchPath : searchPaths) {
+            pathsToGlob.push_back(common::stringFormat("{}/{}", searchPath, path));
+        }
+        // Relative path to the current directory.
+        pathsToGlob.push_back(path);
+    }
     std::vector<std::string> result;
-    for (auto& resultPath : glob::glob(path)) {
-        result.emplace_back(resultPath.string());
+    for (auto& pathToGlob : pathsToGlob) {
+        for (auto& resultPath : glob::glob(pathToGlob)) {
+            result.emplace_back(resultPath.string());
+        }
     }
     return result;
 }
 
-void LocalFileSystem::overwriteFile(const std::string& from, const std::string& to) {
+void LocalFileSystem::overwriteFile(const std::string& from, const std::string& to) const {
     if (!fileOrPathExists(from) || !fileOrPathExists(to))
         return;
     std::error_code errorCode;
-    if (!std::filesystem::copy_file(
-            from, to, std::filesystem::copy_options::overwrite_existing, errorCode)) {
+    if (!std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing,
+            errorCode)) {
         // LCOV_EXCL_START
-        throw Exception(stringFormat(
-            "Error copying file {} to {}.  ErrorMessage: {}", from, to, errorCode.message()));
+        throw Exception(stringFormat("Error copying file {} to {}.  ErrorMessage: {}", from, to,
+            errorCode.message()));
         // LCOV_EXCL_STOP
     }
 }
 
-void LocalFileSystem::createDir(const std::string& dir) {
+void LocalFileSystem::copyFile(const std::string& from, const std::string& to) const {
+    if (!fileOrPathExists(from))
+        return;
+    std::error_code errorCode;
+    if (!std::filesystem::copy_file(from, to, std::filesystem::copy_options::none, errorCode)) {
+        // LCOV_EXCL_START
+        throw Exception(stringFormat("Error copying file {} to {}.  ErrorMessage: {}", from, to,
+            errorCode.message()));
+        // LCOV_EXCL_STOP
+    }
+}
+
+void LocalFileSystem::createDir(const std::string& dir) const {
     try {
         if (std::filesystem::exists(dir)) {
             // LCOV_EXCL_START
             throw Exception(stringFormat("Directory {} already exists.", dir));
             // LCOV_EXCL_STOP
         }
-        if (!std::filesystem::create_directory(dir)) {
+        if (!std::filesystem::create_directories(dir)) {
             // LCOV_EXCL_START
             throw Exception(stringFormat(
                 "Directory {} cannot be created. Check if it exists and remove it.", dir));
@@ -130,23 +174,34 @@ void LocalFileSystem::createDir(const std::string& dir) {
     }
 }
 
-void LocalFileSystem::removeFileIfExists(const std::string& path) {
+void LocalFileSystem::removeFileIfExists(const std::string& path) const {
     if (!fileOrPathExists(path))
         return;
     if (remove(path.c_str()) != 0) {
         // LCOV_EXCL_START
-        throw Exception(stringFormat(
-            "Error removing directory or file {}.  Error Message: {}", path, posixErrMessage()));
+        throw Exception(stringFormat("Error removing directory or file {}.  Error Message: {}",
+            path, posixErrMessage()));
         // LCOV_EXCL_STOP
     }
 }
 
-bool LocalFileSystem::fileOrPathExists(const std::string& path) {
+bool LocalFileSystem::fileOrPathExists(const std::string& path) const {
     return std::filesystem::exists(path);
 }
 
-void LocalFileSystem::readFromFile(
-    FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
+std::string LocalFileSystem::expandPath(main::ClientContext* context,
+    const std::string& path) const {
+    auto fullPath = path;
+    if (path.starts_with('~')) {
+        fullPath =
+            context->getCurrentSetting(main::HomeDirectorySetting::name).getValue<std::string>() +
+            fullPath.substr(1);
+    }
+    return fullPath;
+}
+
+void LocalFileSystem::readFromFile(FileInfo* fileInfo, void* buffer, uint64_t numBytes,
+    uint64_t position) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     DWORD numBytesRead;
@@ -179,7 +234,7 @@ void LocalFileSystem::readFromFile(
 #endif
 }
 
-int64_t LocalFileSystem::readFile(FileInfo* fileInfo, void* buf, size_t nbyte) {
+int64_t LocalFileSystem::readFile(FileInfo* fileInfo, void* buf, size_t nbyte) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     DWORD numBytesRead;
@@ -190,8 +245,8 @@ int64_t LocalFileSystem::readFile(FileInfo* fileInfo, void* buf, size_t nbyte) {
 #endif
 }
 
-void LocalFileSystem::writeFile(
-    FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
+void LocalFileSystem::writeFile(FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+    uint64_t offset) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
     uint64_t remainingNumBytesToWrite = numBytes;
     uint64_t bufferOffset = 0;
@@ -233,7 +288,7 @@ void LocalFileSystem::writeFile(
     }
 }
 
-int64_t LocalFileSystem::seek(FileInfo* fileInfo, uint64_t offset, int whence) {
+int64_t LocalFileSystem::seek(FileInfo* fileInfo, uint64_t offset, int whence) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     LARGE_INTEGER result;
@@ -246,7 +301,7 @@ int64_t LocalFileSystem::seek(FileInfo* fileInfo, uint64_t offset, int whence) {
 #endif
 }
 
-void LocalFileSystem::truncate(FileInfo* fileInfo, uint64_t size) {
+void LocalFileSystem::truncate(FileInfo* fileInfo, uint64_t size) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #if defined(_WIN32)
     auto offsetHigh = (LONG)(size >> 32);
@@ -278,7 +333,7 @@ void LocalFileSystem::truncate(FileInfo* fileInfo, uint64_t size) {
 #endif
 }
 
-uint64_t LocalFileSystem::getFileSize(kuzu::common::FileInfo* fileInfo) {
+uint64_t LocalFileSystem::getFileSize(kuzu::common::FileInfo* fileInfo) const {
     auto localFileInfo = ku_dynamic_cast<FileInfo*, LocalFileInfo*>(fileInfo);
 #ifdef _WIN32
     LARGE_INTEGER size;

@@ -58,11 +58,10 @@ void RadixSort::radixSort(uint8_t* keyBlockPtr, uint32_t numTuplesToSort, uint32
     auto tmpKeyBlockPtr = tmpSortingResultBlock->getData();
     keyBlockPtr += numBytesSorted;
     tmpKeyBlockPtr += numBytesSorted;
-    constexpr uint16_t countingArraySize = 256;
-    uint32_t count[countingArraySize];
+    uint32_t count[COUNTING_ARRAY_SIZE];
     auto isInTmpBlock = false;
     for (auto curByteIdx = 1ul; curByteIdx <= numBytesToSort; curByteIdx++) {
-        memset(count, 0, countingArraySize * sizeof(uint32_t));
+        memset(count, 0, COUNTING_ARRAY_SIZE * sizeof(uint32_t));
         auto sourcePtr = isInTmpBlock ? tmpKeyBlockPtr : keyBlockPtr;
         auto targetPtr = isInTmpBlock ? keyBlockPtr : tmpKeyBlockPtr;
         auto curByteOffset = numBytesToSort - curByteIdx;
@@ -73,7 +72,7 @@ void RadixSort::radixSort(uint8_t* keyBlockPtr, uint32_t numTuplesToSort, uint32
             sortBytePtr += numBytesPerTuple;
         }
         auto maxCounter = count[0];
-        for (auto val = 1ul; val < countingArraySize; val++) {
+        for (auto val = 1ul; val < COUNTING_ARRAY_SIZE; val++) {
             maxCounter = std::max(count[val], maxCounter);
             count[val] = count[val] + count[val - 1];
         }
@@ -85,14 +84,16 @@ void RadixSort::radixSort(uint8_t* keyBlockPtr, uint32_t numTuplesToSort, uint32
         auto sourceTuplePtr = sourcePtr + (numTuplesToSort - 1) * numBytesPerTuple;
         for (auto j = 0ul; j < numTuplesToSort; j++) {
             auto targetTupleNum = --count[*(sourceTuplePtr + curByteOffset)];
-            memcpy(targetPtr + targetTupleNum * numBytesPerTuple, sourceTuplePtr, numBytesPerTuple);
+            memcpy(targetPtr + targetTupleNum * numBytesPerTuple - numBytesSorted,
+                sourceTuplePtr - numBytesSorted, numBytesPerTuple);
             sourceTuplePtr -= numBytesPerTuple;
         }
         isInTmpBlock = !isInTmpBlock;
     }
     // If the data is in the tmp block, copy the data from tmp block back.
     if (isInTmpBlock) {
-        memcpy(keyBlockPtr, tmpKeyBlockPtr, numTuplesToSort * numBytesPerTuple);
+        memcpy(keyBlockPtr - numBytesSorted, tmpKeyBlockPtr - numBytesSorted,
+            numTuplesToSort * numBytesPerTuple);
     }
 }
 
@@ -256,10 +257,10 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
             const auto rightBlockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(rightTupleInfoPtr);
             const auto rightBlockOffset =
                 OrderByKeyEncoder::getEncodedFTBlockOffset(rightTupleInfoPtr);
-            auto leftStr = factorizedTable.getData<ku_string_t>(
-                leftBlockIdx, leftBlockOffset, keyColInfo.colOffsetInFT);
-            auto rightStr = factorizedTable.getData<ku_string_t>(
-                rightBlockIdx, rightBlockOffset, keyColInfo.colOffsetInFT);
+            auto leftStr = factorizedTable.getData<ku_string_t>(leftBlockIdx, leftBlockOffset,
+                keyColInfo.colOffsetInFT);
+            auto rightStr = factorizedTable.getData<ku_string_t>(rightBlockIdx, rightBlockOffset,
+                keyColInfo.colOffsetInFT);
             return keyColInfo.isAscOrder ? leftStr < rightStr : leftStr > rightStr;
         });
     reOrderKeyBlock(keyBlockTie, keyBlockPtr);

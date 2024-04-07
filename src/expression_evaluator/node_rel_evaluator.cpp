@@ -2,16 +2,17 @@
 
 #include "function/struct/vector_struct_functions.h"
 
+using namespace kuzu::main;
 using namespace kuzu::common;
 using namespace kuzu::function;
 
 namespace kuzu {
 namespace evaluator {
 
-void NodeRelExpressionEvaluator::evaluate() {
+void NodeRelExpressionEvaluator::evaluate(ClientContext* clientContext) {
     resultVector->resetAuxiliaryBuffer();
     for (auto& child : children) {
-        child->evaluate();
+        child->evaluate(clientContext);
     }
     StructPackFunctions::execFunc(parameters, *resultVector);
     auto structType = nodeOrRel->getDataType();
@@ -19,14 +20,12 @@ void NodeRelExpressionEvaluator::evaluate() {
     auto internalIDVector = StructVector::getFieldVector(resultVector.get(), internalIDIdx);
     for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {
         auto pos = resultVector->state->selVector->selectedPositions[i];
-        if (internalIDVector->isNull(pos)) {
-            resultVector->setNull(pos, true);
-        }
+        resultVector->setNull(pos, internalIDVector->isNull(pos));
     }
 }
 
-void NodeRelExpressionEvaluator::resolveResultVector(
-    const processor::ResultSet& /*resultSet*/, storage::MemoryManager* memoryManager) {
+void NodeRelExpressionEvaluator::resolveResultVector(const processor::ResultSet& /*resultSet*/,
+    storage::MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(nodeOrRel->getDataType(), memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());

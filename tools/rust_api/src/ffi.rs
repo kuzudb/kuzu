@@ -41,6 +41,7 @@ pub(crate) mod ffi {
     // From types.h
     // Note: cxx will check if values change, but not if they are added.
     #[namespace = "kuzu::common"]
+    #[repr(u8)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum LogicalTypeID {
         ANY = 0,
@@ -71,19 +72,20 @@ pub(crate) mod ffi {
         TIMESTAMP_NS = 38,
         TIMESTAMP_TZ = 39,
         INTERVAL = 40,
-        FIXED_LIST = 41,
 
         INTERNAL_ID = 42,
 
         // variable size types
         STRING = 50,
         BLOB = 51,
-        VAR_LIST = 52,
-        STRUCT = 53,
-        MAP = 54,
-        UNION = 55,
+        LIST = 52,
+        ARRAY = 53,
+        STRUCT = 54,
+        MAP = 55,
+        UNION = 56,
+        RDF_VARIANT = 57,
 
-        UUID = 58,
+        UUID = 59,
     }
 
     #[namespace = "kuzu::common"]
@@ -123,6 +125,7 @@ pub(crate) mod ffi {
             maxNumThreads: u64,
             enableCompression: bool,
             readOnly: bool,
+            maxDBSize: u64,
         ) -> Result<UniquePtr<Database>>;
 
         fn database_set_logging_level(database: Pin<&mut Database>, level: &CxxString);
@@ -153,10 +156,6 @@ pub(crate) mod ffi {
 
         fn getMaxNumThreadForExec(self: Pin<&mut Connection>) -> u64;
         fn setMaxNumThreadForExec(self: Pin<&mut Connection>, num_threads: u64);
-        fn beginReadOnlyTransaction(self: Pin<&mut Connection>) -> Result<()>;
-        fn beginWriteTransaction(self: Pin<&mut Connection>) -> Result<()>;
-        fn commit(self: Pin<&mut Connection>) -> Result<()>;
-        fn rollback(self: Pin<&mut Connection>) -> Result<()>;
         fn interrupt(self: Pin<&mut Connection>) -> Result<()>;
         fn setQueryTimeOut(self: Pin<&mut Connection>, timeout_ms: u64);
     }
@@ -179,14 +178,6 @@ pub(crate) mod ffi {
         fn query_result_get_execution_time(result: &QueryResult) -> f64;
         fn getNumColumns(&self) -> usize;
         fn getNumTuples(&self) -> u64;
-        #[namespace = "kuzu_rs"]
-        fn query_result_write_to_csv(
-            query_result: Pin<&mut QueryResult>,
-            filename: &String,
-            delimiter: i8,
-            escape_character: i8,
-            newline: i8,
-        ) -> Result<()>;
 
         #[namespace = "kuzu_rs"]
         fn query_result_column_data_types(
@@ -214,10 +205,8 @@ pub(crate) mod ffi {
         fn getLogicalTypeID(&self) -> LogicalTypeID;
 
         fn create_logical_type(id: LogicalTypeID) -> UniquePtr<LogicalType>;
-        fn create_logical_type_var_list(
-            child_type: UniquePtr<LogicalType>,
-        ) -> UniquePtr<LogicalType>;
-        fn create_logical_type_fixed_list(
+        fn create_logical_type_list(child_type: UniquePtr<LogicalType>) -> UniquePtr<LogicalType>;
+        fn create_logical_type_array(
             child_type: UniquePtr<LogicalType>,
             num_elements: u64,
         ) -> UniquePtr<LogicalType>;
@@ -234,13 +223,15 @@ pub(crate) mod ffi {
             valueType: UniquePtr<LogicalType>,
         ) -> UniquePtr<LogicalType>;
 
-        fn logical_type_get_var_list_child_type(value: &LogicalType) -> &LogicalType;
-        fn logical_type_get_fixed_list_child_type(value: &LogicalType) -> &LogicalType;
-        fn logical_type_get_fixed_list_num_elements(value: &LogicalType) -> u64;
+        fn logical_type_get_list_child_type(value: &LogicalType) -> &LogicalType;
+        fn logical_type_get_array_child_type(value: &LogicalType) -> &LogicalType;
+        fn logical_type_get_array_num_elements(value: &LogicalType) -> u64;
         fn logical_type_get_struct_field_names(value: &LogicalType) -> Vec<String>;
         fn logical_type_get_struct_field_types(
             value: &LogicalType,
         ) -> UniquePtr<CxxVector<LogicalType>>;
+
+        fn create_logical_type_rdf_variant() -> UniquePtr<LogicalType>;
     }
 
     #[namespace = "kuzu_rs"]
@@ -345,7 +336,7 @@ pub(crate) mod ffi {
         fn create_value_timestamp_ns(value: i64) -> UniquePtr<Value>;
         fn create_value_timestamp_ms(value: i64) -> UniquePtr<Value>;
         fn create_value_timestamp_sec(value: i64) -> UniquePtr<Value>;
-        fn create_value_date(value: i64) -> UniquePtr<Value>;
+        fn create_value_date(value: i32) -> UniquePtr<Value>;
         fn create_value_interval(months: i32, days: i32, micros: i64) -> UniquePtr<Value>;
         fn create_value_int128_t(high: i64, low: u64) -> UniquePtr<Value>;
         fn create_value_uuid_t(high: i64, low: u64) -> UniquePtr<Value>;
@@ -369,5 +360,12 @@ pub(crate) mod ffi {
 
         fn recursive_rel_get_nodes(value: &Value) -> &Value;
         fn recursive_rel_get_rels(value: &Value) -> &Value;
+
+        fn get_blob_from_bytes(value: &Vec<u8>) -> Vec<u8>;
+    }
+
+    #[namespace = "kuzu_rs"]
+    unsafe extern "C++" {
+        fn get_storage_version() -> u64;
     }
 }

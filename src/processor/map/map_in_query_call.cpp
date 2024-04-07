@@ -3,24 +3,28 @@
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::planner;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapInQueryCall(
-    planner::LogicalOperator* logicalOperator) {
-    auto logicalInQueryCall = reinterpret_cast<LogicalInQueryCall*>(logicalOperator);
-    std::vector<DataPos> outputPoses;
-    auto outSchema = logicalInQueryCall->getSchema();
-    for (auto& outputExpr : logicalInQueryCall->getOutputExpressions()) {
-        outputPoses.emplace_back(outSchema->getExpressionPos(*outputExpr));
+std::unique_ptr<PhysicalOperator> PlanMapper::mapInQueryCall(LogicalOperator* logicalOperator) {
+    auto call = ku_dynamic_cast<LogicalOperator*, LogicalInQueryCall*>(logicalOperator);
+    std::vector<DataPos> outPosV;
+    auto outSchema = call->getSchema();
+    for (auto& expr : call->getOutputExpressions()) {
+        outPosV.emplace_back(getDataPos(*expr, *outSchema));
     }
-    auto rowIDPos = DataPos{outSchema->getExpressionPos(*logicalInQueryCall->getRowIDExpression())};
-    auto inQueryCallFuncInfo = std::make_unique<InQueryCallInfo>(logicalInQueryCall->getTableFunc(),
-        logicalInQueryCall->getBindData()->copy(), std::move(outputPoses), rowIDPos);
-    return std::make_unique<InQueryCall>(std::move(inQueryCallFuncInfo),
-        std::make_shared<InQueryCallSharedState>(), PhysicalOperatorType::IN_QUERY_CALL,
-        getOperatorID(), logicalInQueryCall->getExpressionsForPrinting());
+    auto info = InQueryCallInfo();
+    info.function = call->getTableFunc();
+    info.bindData = call->getBindData()->copy();
+    info.outPosV = outPosV;
+    info.rowOffsetPos = getDataPos(*call->getRowIDExpression(), *outSchema);
+    info.outputType =
+        outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
+    auto sharedState = std::make_shared<InQueryCallSharedState>();
+    return std::make_unique<InQueryCall>(std::move(info), sharedState, getOperatorID(),
+        call->getExpressionsForPrinting());
 }
 
 } // namespace processor

@@ -1,14 +1,12 @@
 #include "common/type_utils.h"
 
-#include "common/types/blob.h"
-#include "common/types/uuid.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace common {
 
-std::string TypeUtils::castValueToString(
-    const LogicalType& dataType, const uint8_t* value, void* vector) {
+static std::string entryToString(const LogicalType& dataType, const uint8_t* value,
+    ValueVector* vector) {
     auto valueVector = reinterpret_cast<ValueVector*>(vector);
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
@@ -53,13 +51,33 @@ std::string TypeUtils::castValueToString(
         return TypeUtils::toString(*reinterpret_cast<const ku_string_t*>(value));
     case LogicalTypeID::INTERNAL_ID:
         return TypeUtils::toString(*reinterpret_cast<const internalID_t*>(value));
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::ARRAY:
+    case LogicalTypeID::LIST:
         return TypeUtils::toString(*reinterpret_cast<const list_entry_t*>(value), valueVector);
+    case LogicalTypeID::MAP:
+        return TypeUtils::toString(*reinterpret_cast<const map_entry_t*>(value), valueVector);
     case LogicalTypeID::STRUCT:
         return TypeUtils::toString(*reinterpret_cast<const struct_entry_t*>(value), valueVector);
+    case LogicalTypeID::UNION:
+        return TypeUtils::toString(*reinterpret_cast<const union_entry_t*>(value), valueVector);
+    case LogicalTypeID::UUID:
+        return TypeUtils::toString(*reinterpret_cast<const ku_uuid_t*>(value));
+    case LogicalTypeID::NODE:
+        return TypeUtils::nodeToString(*reinterpret_cast<const struct_entry_t*>(value),
+            valueVector);
+    case LogicalTypeID::REL:
+        return TypeUtils::relToString(*reinterpret_cast<const struct_entry_t*>(value), valueVector);
     default:
         KU_UNREACHABLE;
     }
+}
+
+static std::string entryToString(sel_t pos, ValueVector* vector) {
+    if (vector->isNull(pos)) {
+        return "";
+    }
+    return entryToString(vector->dataType, vector->getData() + vector->getNumBytesPerValue() * pos,
+        vector);
 }
 
 template<>
@@ -122,12 +140,10 @@ std::string TypeUtils::toString(const blob_t& val, void* /*valueVector*/) {
     return Blob::toString(val.value.getData(), val.value.len);
 }
 
-// LCOV_EXCL_START
 template<>
-std::string TypeUtils::toString(const uuid_t& val, void* /*valueVector*/) {
-    return val.toString();
+std::string TypeUtils::toString(const ku_uuid_t& val, void* /*valueVector*/) {
+    return UUID::toString(val);
 }
-// LCOV_EXCL_STOP
 
 template<>
 std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {
@@ -136,21 +152,22 @@ std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {
         return "[]";
     }
     std::string result = "[";
-    auto values = ListVector::getListValues(listVector, val);
-    auto childType = VarListType::getChildType(&listVector->dataType);
     auto dataVector = ListVector::getDataVector(listVector);
     for (auto i = 0u; i < val.size - 1; ++i) {
-        result += dataVector->isNull(val.offset + i) ?
-                      "" :
-                      castValueToString(*childType, values, dataVector);
+        result += entryToString(val.offset + i, dataVector);
         result += ",";
-        values += ListVector::getDataVector(listVector)->getNumBytesPerValue();
     }
-    result += dataVector->isNull(val.offset + val.size - 1) ?
-                  "" :
-                  castValueToString(*childType, values, dataVector);
+    result += entryToString(val.offset + val.size - 1, dataVector);
     result += "]";
     return result;
+}
+
+static std::string getMapEntryStr(sel_t pos, ValueVector* dataVector, ValueVector* keyVector,
+    ValueVector* valVector) {
+    if (dataVector->isNull(pos)) {
+        return "";
+    }
+    return entryToString(pos, keyVector) + "=" + entryToString(pos, valVector);
 }
 
 template<>
@@ -160,55 +177,78 @@ std::string TypeUtils::toString(const map_entry_t& val, void* valueVector) {
         return "{}";
     }
     std::string result = "{";
-    auto keyType = MapType::getKeyType(&mapVector->dataType);
-    auto valType = MapType::getValueType(&mapVector->dataType);
     auto dataVector = ListVector::getDataVector(mapVector);
     auto keyVector = MapVector::getKeyVector(mapVector);
     auto valVector = MapVector::getValueVector(mapVector);
-    auto keyValues = keyVector->getData() + keyVector->getNumBytesPerValue() * val.entry.offset;
-    auto valValues = valVector->getData() + valVector->getNumBytesPerValue() * val.entry.offset;
     for (auto i = 0u; i < val.entry.size - 1; ++i) {
-        result += dataVector->isNull(val.entry.offset + i) ?
-                      "" :
-                      castValueToString(*keyType, keyValues, dataVector) + "=" +
-                          castValueToString(*valType, valValues, dataVector);
+        auto pos = val.entry.offset + i;
+        result += getMapEntryStr(pos, dataVector, keyVector, valVector);
         result += ", ";
-        keyValues += keyVector->getNumBytesPerValue();
-        valValues += valVector->getNumBytesPerValue();
     }
-    result += dataVector->isNull(val.entry.offset + val.entry.size - 1) ?
-                  "" :
-                  castValueToString(*keyType, keyValues, dataVector) + "=" +
-                      castValueToString(*valType, valValues, dataVector);
+    auto pos = val.entry.offset + val.entry.size - 1;
+    result += getMapEntryStr(pos, dataVector, keyVector, valVector);
     result += "}";
     return result;
 }
 
-template<>
-std::string TypeUtils::toString(const struct_entry_t& val, void* valVector) {
-    auto structVector = (ValueVector*)valVector;
-    auto fields = StructType::getFields(&structVector->dataType);
+template<bool SKIP_NULL_ENTRY>
+static std::string structToString(const struct_entry_t& val, ValueVector* vector) {
+    auto fields = StructType::getFields(&vector->dataType);
     if (fields.size() == 0) {
         return "{}";
     }
     std::string result = "{";
     auto i = 0u;
     for (; i < fields.size() - 1; ++i) {
-        auto fieldVector = StructVector::getFieldVector(structVector, i);
-        result += StructType::getField(&structVector->dataType, i)->getName();
+        auto fieldVector = StructVector::getFieldVector(vector, i);
+        if constexpr (SKIP_NULL_ENTRY) {
+            if (fieldVector->isNull(val.pos)) {
+                continue;
+            }
+        }
+        if (i != 0) {
+            result += ", ";
+        }
+        result += StructType::getField(&vector->dataType, i)->getName();
         result += ": ";
-        result += castValueToString(*fields[i]->getType(),
-            fieldVector->getData() + fieldVector->getNumBytesPerValue() * val.pos,
-            fieldVector.get());
+        result += entryToString(val.pos, fieldVector.get());
+    }
+    auto fieldVector = StructVector::getFieldVector(vector, i);
+    if constexpr (SKIP_NULL_ENTRY) {
+        if (fieldVector->isNull(val.pos)) {
+            result += "}";
+            return result;
+        }
+    }
+    if (i != 0) {
         result += ", ";
     }
-    auto fieldVector = StructVector::getFieldVector(structVector, i);
-    result += StructType::getField(&structVector->dataType, i)->getName();
+    result += StructType::getField(&vector->dataType, i)->getName();
     result += ": ";
-    result += castValueToString(*fields[i]->getType(),
-        fieldVector->getData() + fieldVector->getNumBytesPerValue() * val.pos, fieldVector.get());
+    result += entryToString(val.pos, fieldVector.get());
     result += "}";
     return result;
+}
+
+std::string TypeUtils::nodeToString(const struct_entry_t& val, ValueVector* vector) {
+    // Internal ID vector is the first field vector.
+    if (StructVector::getFieldVector(vector, 0)->isNull(val.pos)) {
+        return "";
+    }
+    return structToString<true>(val, vector);
+}
+
+std::string TypeUtils::relToString(const struct_entry_t& val, ValueVector* vector) {
+    // Internal ID vector is the third field vector.
+    if (StructVector::getFieldVector(vector, 3)->isNull(val.pos)) {
+        return "";
+    }
+    return structToString<true>(val, vector);
+}
+
+template<>
+std::string TypeUtils::toString(const struct_entry_t& val, void* valVector) {
+    return structToString<false>(val, (ValueVector*)valVector);
 }
 
 template<>
@@ -217,9 +257,7 @@ std::string TypeUtils::toString(const union_entry_t& val, void* valVector) {
     auto unionFieldIdx =
         UnionVector::getTagVector(structVector)->getValue<union_field_idx_t>(val.entry.pos);
     auto unionFieldVector = UnionVector::getValVector(structVector, unionFieldIdx);
-    return castValueToString(unionFieldVector->dataType,
-        unionFieldVector->getData() + unionFieldVector->getNumBytesPerValue() * val.entry.pos,
-        unionFieldVector);
+    return entryToString(val.entry.pos, unionFieldVector);
 }
 
 } // namespace common

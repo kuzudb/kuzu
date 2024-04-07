@@ -4,7 +4,6 @@ global.expect = chai.expect;
 chai.should();
 chai.config.includeStack = true;
 
-process.env.NODE_ENV = "test";
 const TEST_INSTALLED = process.env.TEST_INSTALLED || false;
 if (TEST_INSTALLED) {
   console.log("Testing installed package...");
@@ -52,11 +51,27 @@ const initTests = async () => {
   }
 
   await conn.query(
-     "create node table moviesSerial (ID SERIAL, name STRING, length INT32, note STRING, PRIMARY KEY (ID))"
+    "create node table moviesSerial (ID SERIAL, name STRING, length INT32, note STRING, PRIMARY KEY (ID))"
   );
   await conn.query(
-     'copy moviesSerial from "../../dataset/tinysnb-serial/vMovies.csv"'
+    'copy moviesSerial from "../../dataset/tinysnb-serial/vMovies.csv"'
   );
+
+  const rdfSchema = await fs.readFile(
+    "../../dataset/rdf/rdf_variant/schema.cypher"
+  );
+  const rdfCopy = await fs.readFile(
+    "../../dataset/rdf/rdf_variant/copy.cypher"
+  );
+  for (const file of [rdfSchema, rdfCopy]) {
+    const lines = file.toString().split("\n");
+    for (const line of lines) {
+      if (line.trim().length === 0) {
+        continue;
+      }
+      await conn.query(line);
+    }
+  }
 
   global.dbPath = dbPath;
   global.db = db;

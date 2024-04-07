@@ -1,0 +1,8 @@
+@prefix kz: <http://kuzu.io/rdf-ex#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+kz:Waterloo a kz:City ;
+            kz:name "Waterloo" ;
+            kz:population 10000.0 ;
+            kz:population2 "20000.0"^^xsd:decimal ;
+            kz:foundedIn "30000"^^<http://www.w3.org/2001/XMLSchema#decimal> .

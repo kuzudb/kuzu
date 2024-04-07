@@ -19,8 +19,8 @@ struct RegexpExtractAll : BaseRegexpOperation {
         for (const auto& match : matches) {
             common::ku_string_t kuString;
             copyToKuzuString(match, kuString, *resultDataVector);
-            resultDataVector->copyFromVectorData(
-                resultValues, resultDataVector, reinterpret_cast<uint8_t*>(&kuString));
+            resultDataVector->copyFromVectorData(resultValues, resultDataVector,
+                reinterpret_cast<uint8_t*>(&kuString));
             resultValues += numBytesPerValue;
         }
     }
@@ -31,8 +31,8 @@ struct RegexpExtractAll : BaseRegexpOperation {
         operation(value, pattern, defaultGroup, result, resultVector);
     }
 
-    static std::vector<std::string> regexExtractAll(
-        const std::string& value, const std::string& pattern, std::int64_t& group) {
+    static std::vector<std::string> regexExtractAll(const std::string& value,
+        const std::string& pattern, std::int64_t& group) {
         RE2 regex(parseCypherPatten(pattern));
         auto submatchCount = regex.NumberOfCapturingGroups() + 1;
         if (group >= submatchCount) {

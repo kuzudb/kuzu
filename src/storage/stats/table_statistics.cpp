@@ -1,6 +1,6 @@
 #include "storage/stats/table_statistics.h"
 
-#include "catalog/table_schema.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "storage/stats/node_table_statistics.h"
@@ -11,9 +11,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-TableStatistics::TableStatistics(const catalog::TableSchema& schema)
-    : tableType{schema.tableType}, numTuples{0}, tableID{schema.tableID} {
-    for (auto& property : schema.getPropertiesRef()) {
+TableStatistics::TableStatistics(const catalog::TableCatalogEntry& tableEntry)
+    : tableType{tableEntry.getTableType()}, numTuples{0}, tableID{tableEntry.getTableID()} {
+    for (auto& property : tableEntry.getPropertiesRef()) {
         propertyStatistics[property.getPropertyID()] = std::make_unique<PropertyStatistics>();
     }
 }
@@ -22,8 +22,8 @@ TableStatistics::TableStatistics(common::TableType tableType, uint64_t numTuples
     common::table_id_t tableID,
     std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
         propertyStatistics)
-    : tableType{tableType}, numTuples{numTuples}, tableID{tableID}, propertyStatistics{std::move(
-                                                                        propertyStatistics)} {
+    : tableType{tableType}, numTuples{numTuples}, tableID{tableID},
+      propertyStatistics{std::move(propertyStatistics)} {
     KU_ASSERT(numTuples != UINT64_MAX);
 }
 

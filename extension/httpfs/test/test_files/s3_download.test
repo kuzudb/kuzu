@@ -1,0 +1,95 @@
+-GROUP S3
+-DATASET CSV empty
+
+--
+
+-CASE S3Option
+-SET S3_ACCESS_KEY_ID random_key_id
+-SET S3_REGION random_region
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT call current_setting('s3_accesS_key_id') return *;
+---- 1
+random_key_id
+-STATEMENT call current_setting('s3_region') return *;
+---- 1
+random_region
+-STATEMENT CALL s3_access_key_id='kuzuS3keyid'
+---- ok
+-STATEMENT call current_setting('s3_accesS_key_id') return *;
+---- 1
+kuzuS3keyid
+-STATEMENT CALL s3_access_key_id='anotherkey'
+---- ok
+-STATEMENT call current_setting('s3_access_Key_id') return *;
+---- 1
+anotherkey
+
+-CASE DuplicateOption
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- error
+Extension exception: Extension option s3_access_key_id already exists.
+
+-CASE ScanFromUWS3File
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL s3_access_key_id='${UW_S3_ACCESS_KEY_ID}'
+---- ok
+-STATEMENT CALL s3_secret_access_key='${UW_S3_SECRET_ACCESS_KEY}'
+---- ok
+-STATEMENT CALL s3_endpoint='rgw.cs.uwaterloo.ca'
+---- ok
+-STATEMENT CALL s3_url_style='path'
+---- ok
+-STATEMENT CALL s3_region='US'
+---- ok
+-STATEMENT load from 's3://kuzu-test/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT load from 's3://kuzu-test/follows.parquet' return *;
+---- 4
+Adam|Karissa|2020
+Adam|Zhang|2020
+Karissa|Zhang|2021
+Zhang|Noura|2022
+
+-DEFINE_STATEMENT_BLOCK AWS_S3_SETUP [
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL s3_access_key_id='${AWS_S3_ACCESS_KEY_ID}'
+---- ok
+-STATEMENT CALL s3_secret_access_key='${AWS_S3_SECRET_ACCESS_KEY}'
+---- ok
+]
+
+-CASE ScanFromDifferentAWSS3File
+-SKIP
+-INSERT_STATEMENT_BLOCK AWS_S3_SETUP
+-STATEMENT CALL s3_url_style='path'
+---- ok
+-STATEMENT CALL s3_region='us-east-1'
+---- ok
+-STATEMENT load from 's3://kuzu-dataset-us/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT CALL s3_region='eu-central-1'
+---- ok
+-STATEMENT CALL s3_url_style='vhost'
+---- ok
+-STATEMENT CREATE NODE TABLE City(name STRING, population INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT copy City from 's3://kuzu-dataset-eu/city.csv';
+---- ok
+-STATEMENT match (c:City) return c.name, c.population;
+---- 3
+Guelph|22
+Kitchener|200000
+Waterloo|150000

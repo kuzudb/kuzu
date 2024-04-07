@@ -4,6 +4,7 @@
 
 #include "common/data_chunk/data_chunk.h"
 #include "common/file_system/virtual_file_system.h"
+#include "main/client_context.h"
 #include "thrift/protocol/TCompactProtocol.h"
 
 namespace kuzu {
@@ -14,11 +15,11 @@ using namespace kuzu::common;
 
 ParquetWriter::ParquetWriter(std::string fileName,
     std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> columnNames,
-    kuzu_parquet::format::CompressionCodec::type codec, storage::MemoryManager* mm,
-    VirtualFileSystem* vfs)
-    : fileName{std::move(fileName)}, types{std::move(types)},
-      columnNames{std::move(columnNames)}, codec{codec}, fileOffset{0}, mm{mm} {
-    fileInfo = vfs->openFile(this->fileName, O_WRONLY | O_CREAT | O_TRUNC);
+    kuzu_parquet::format::CompressionCodec::type codec, main::ClientContext* context)
+    : fileName{std::move(fileName)}, types{std::move(types)}, columnNames{std::move(columnNames)},
+      codec{codec}, fileOffset{0}, mm{context->getMemoryManager()} {
+    fileInfo =
+        context->getVFSUnsafe()->openFile(this->fileName, O_WRONLY | O_CREAT | O_TRUNC, context);
     // Parquet files start with the string "PAR1".
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ParquetConstants::PARQUET_MAGIC_WORDS),
         strlen(ParquetConstants::PARQUET_MAGIC_WORDS), fileOffset);
@@ -80,7 +81,9 @@ Type::type ParquetWriter::convertToParquetType(LogicalType* type) {
     case LogicalTypeID::INTERVAL:
         return Type::FIXED_LEN_BYTE_ARRAY;
     default:
-        KU_UNREACHABLE;
+        throw RuntimeException{
+            stringFormat("Writing a column with type: {} to parquet is not supported.",
+                LogicalTypeUtils::toString(type->getLogicalTypeID()))};
     }
 }
 
@@ -231,8 +234,8 @@ void ParquetWriter::prepareRowGroup(FactorizedTable& ft, PreparedRowGroup& resul
     while (numTuplesRead < ft.getNumTuples()) {
         readFromFT(ft, vectorsToRead, numTuplesRead);
         for (auto i = 0u; i < columnWriters.size(); i++) {
-            columnWriters[i]->write(
-                *writerStates[i], vectorsToRead[i], getNumTuples(unflatDataChunkToRead.get()));
+            columnWriters[i]->write(*writerStates[i], vectorsToRead[i],
+                getNumTuples(unflatDataChunkToRead.get()));
         }
     }
 
@@ -259,8 +262,8 @@ void ParquetWriter::flushRowGroup(PreparedRowGroup& rowGroup) {
     fileMetaData.num_rows += parquetRowGroup.num_rows;
 }
 
-void ParquetWriter::readFromFT(
-    FactorizedTable& ft, std::vector<ValueVector*> vectorsToRead, uint64_t& numTuplesRead) {
+void ParquetWriter::readFromFT(FactorizedTable& ft, std::vector<ValueVector*> vectorsToRead,
+    uint64_t& numTuplesRead) {
     auto numTuplesToRead =
         ft.getTableSchema()->getNumUnflatColumns() != 0 ?
             1 :
@@ -273,8 +276,8 @@ void ParquetWriter::finalize() {
     auto startOffset = fileOffset;
     fileMetaData.write(protocol.get());
     uint32_t metadataSize = fileOffset - startOffset;
-    fileInfo->writeFile(
-        reinterpret_cast<const uint8_t*>(&metadataSize), sizeof(metadataSize), fileOffset);
+    fileInfo->writeFile(reinterpret_cast<const uint8_t*>(&metadataSize), sizeof(metadataSize),
+        fileOffset);
     fileOffset += sizeof(uint32_t);
 
     // Parquet files also end with the string "PAR1".

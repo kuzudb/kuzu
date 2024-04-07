@@ -52,6 +52,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     case LogicalOperatorType::ACCUMULATE: {
         visitAccumulate(op);
     } break;
+    case LogicalOperatorType::MARK_ACCUMULATE: {
+        visitMarkAccumulate(op);
+    } break;
     case LogicalOperatorType::DISTINCT: {
         visitDistinct(op);
     } break;
@@ -84,6 +87,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     } break;
     case LogicalOperatorType::COPY_TO: {
         visitCopyTo(op);
+    } break;
+    case LogicalOperatorType::COPY_FROM: {
+        visitCopyFrom(op);
     } break;
     default:
         return;
@@ -138,6 +144,9 @@ std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorR
     case LogicalOperatorType::ACCUMULATE: {
         return visitAccumulateReplace(op);
     }
+    case LogicalOperatorType::MARK_ACCUMULATE: {
+        return visitMarkAccumulateReplace(op);
+    }
     case LogicalOperatorType::DISTINCT: {
         return visitDistinctReplace(op);
     }
@@ -170,6 +179,9 @@ std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorR
     }
     case LogicalOperatorType::COPY_TO: {
         return visitCopyToReplace(op);
+    }
+    case LogicalOperatorType::COPY_FROM: {
+        return visitCopyFromReplace(op);
     }
     default:
         return op;

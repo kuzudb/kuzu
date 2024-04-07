@@ -15,7 +15,8 @@ public:
         nextTableIdx = 0;
     }
 
-    void init();
+    void init(common::ValueVector* inVector,
+        const std::vector<common::ValueVector*>& outputVectors);
     bool scan(common::ValueVector* inVector, const std::vector<common::ValueVector*>& outputVectors,
         transaction::Transaction* transaction);
 
@@ -23,7 +24,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<ScanRelTableInfo>> scanInfos;
-    std::vector<std::unique_ptr<storage::RelDataReadState>> readStates;
+    std::vector<std::unique_ptr<storage::RelTableReadState>> readStates;
     uint32_t currentTableIdx = UINT32_MAX;
     uint32_t nextTableIdx = 0;
 };

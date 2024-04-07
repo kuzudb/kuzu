@@ -64,12 +64,12 @@ public:
 
     void plain(const std::shared_ptr<ByteBuffer>& plainData, uint8_t* defines, uint64_t numValues,
         parquet_filter_t& filter, uint64_t resultOffset, common::ValueVector* result) override {
-        plainTemplated<VALUE_TYPE, VALUE_CONVERSION>(
-            plainData, defines, numValues, filter, resultOffset, result);
+        plainTemplated<VALUE_TYPE, VALUE_CONVERSION>(plainData, defines, numValues, filter,
+            resultOffset, result);
     }
 
-    void dictionary(
-        const std::shared_ptr<ResizeableBuffer>& data, uint64_t /*num_entries*/) override {
+    void dictionary(const std::shared_ptr<ResizeableBuffer>& data,
+        uint64_t /*num_entries*/) override {
         dict = data;
     }
 };
@@ -78,8 +78,8 @@ template<class PARQUET_PHYSICAL_TYPE, class DUCKDB_PHYSICAL_TYPE,
     DUCKDB_PHYSICAL_TYPE (*FUNC)(const PARQUET_PHYSICAL_TYPE& input)>
 struct CallbackParquetValueConversion {
     static DUCKDB_PHYSICAL_TYPE dictRead(ByteBuffer& dict, uint32_t& offset, ColumnReader& reader) {
-        return TemplatedParquetValueConversion<DUCKDB_PHYSICAL_TYPE>::dictRead(
-            dict, offset, reader);
+        return TemplatedParquetValueConversion<DUCKDB_PHYSICAL_TYPE>::dictRead(dict, offset,
+            reader);
     }
 
     static DUCKDB_PHYSICAL_TYPE plainRead(ByteBuffer& plainData, ColumnReader& /*reader*/) {

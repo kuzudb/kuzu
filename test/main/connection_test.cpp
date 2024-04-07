@@ -48,20 +48,16 @@ TEST_F(ApiTest, ParallelConnect) {
 }
 
 TEST_F(ApiTest, CommitRollbackRemoveActiveTransaction) {
-    conn->beginWriteTransaction();
-    conn->rollback();
-    conn->beginReadOnlyTransaction();
-    conn->commit();
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
+    ASSERT_TRUE(conn->query("ROLLBACK;")->isSuccess());
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION READ ONLY;")->isSuccess());
+    ASSERT_TRUE(conn->query("COMMIT;")->isSuccess());
 }
 
 TEST_F(ApiTest, BeginningMultipleTransactionErrors) {
-    conn->beginWriteTransaction();
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
     ASSERT_FALSE(conn->query("BEGIN TRANSACTION")->isSuccess());
-    conn->beginWriteTransaction();
-    ASSERT_FALSE(conn->query("BEGIN TRANSACTION READ ONLY")->isSuccess());
-    conn->beginReadOnlyTransaction();
-    ASSERT_FALSE(conn->query("BEGIN TRANSACTION")->isSuccess());
-    conn->beginReadOnlyTransaction();
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION READ ONLY")->isSuccess());
     ASSERT_FALSE(conn->query("BEGIN TRANSACTION READ ONLY")->isSuccess());
 }
 
@@ -96,4 +92,49 @@ TEST_F(ApiTest, TimeOut) {
     auto result = conn->query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);");
     ASSERT_FALSE(result->isSuccess());
     ASSERT_EQ(result->getErrorMessage(), "Interrupted.");
+}
+
+TEST_F(ApiTest, MultipleQueryExplain) {
+    auto result = conn->query("EXPLAIN MATCH (a:person)-[:knows]->(b:person), "
+                              "(b)-[:knows]->(a) RETURN a.fName, b.fName ORDER BY a.ID; MATCH "
+                              "(a:person) RETURN a.fName;");
+    ASSERT_TRUE(result->isSuccess());
+}
+
+TEST_F(ApiTest, MultipleQuery) {
+    auto result = conn->query("");
+    ASSERT_EQ(result->getErrorMessage(), "Connection Exception: Query is empty.");
+
+    result = conn->query("MATCH (a:A)\n"
+                         "            MATCH (a)-[:LIKES..]->(c)\n"
+                         "            RETURN c.name;");
+    ASSERT_FALSE(result->isSuccess());
+
+    result = conn->query(
+        "MATCH (a:person) RETURN a.fName; MATCH (a:person)-[:knows]->(b:person) RETURN count(*);");
+    ASSERT_TRUE(result->isSuccess());
+
+    result = conn->query("CREATE NODE TABLE Test(name STRING, age INT64, PRIMARY KEY(name));CREATE "
+                         "(:Test {name: 'Alice', age: 25});"
+                         "MATCH (a:Test) where a.name='Alice' return a.age;");
+    ASSERT_TRUE(result->isSuccess());
+
+    result = conn->query("return 1; return 2; return 3;");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(result->toString(), "1\n1\n");
+    ASSERT_TRUE(result->hasNextQueryResult());
+    ASSERT_EQ(result->getNextQueryResult()->toString(), "2\n2\n");
+    ASSERT_TRUE(result->hasNextQueryResult());
+    ASSERT_EQ(result->getNextQueryResult()->toString(), "3\n3\n");
+}
+
+TEST_F(ApiTest, Prepare) {
+    auto result = conn->prepare("");
+    ASSERT_EQ(result->getErrorMessage(), "Connection Exception: Query is empty.");
+
+    result =
+        conn->prepare("CREATE NODE TABLE N(ID INT64, PRIMARY KEY(ID));CREATE REL TABLE E(FROM N TO "
+                      "N, MANY_MANY);MATCH (a:N)-[:E]->(b:N) WHERE a.ID = 0 return b.ID;");
+    ASSERT_EQ(result->getErrorMessage(),
+        "Connection Exception: We do not support prepare multiple statements.");
 }

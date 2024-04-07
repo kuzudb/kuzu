@@ -1,0 +1,115 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionStartNode
+
+-LOG StartNodeTest1
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN id(e), START_NODE(e)
+---- 3
+4:0|{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
+4:1|{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12}
+4:2|{_ID: 0:5, _LABEL: person, ID: 8, fName: Farooq, gender: 2, isStudent: True, isWorker: False, age: 25, eyeSight: 4.500000, birthdate: 1980-10-26, registerTime: 1972-07-31 13:22:30.678559, lastJobDuration: 00:18:00.024, workedHours: [3,4,5,6,7], usedNames: [Fesdwe], courseScoresPerTerm: [[8]], grades: [80,78,34,83], height: 1.510000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16}
+
+-LOG StartNodeTest2
+-STATEMENT MATCH (:person)-[e]->(:organisation) RETURN id(e), START_NODE(e)
+---- 6
+4:0|{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
+4:1|{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12}
+4:2|{_ID: 0:5, _LABEL: person, ID: 8, fName: Farooq, gender: 2, isStudent: True, isWorker: False, age: 25, eyeSight: 4.500000, birthdate: 1980-10-26, registerTime: 1972-07-31 13:22:30.678559, lastJobDuration: 00:18:00.024, workedHours: [3,4,5,6,7], usedNames: [Fesdwe], courseScoresPerTerm: [[8]], grades: [80,78,34,83], height: 1.510000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16}
+5:0|{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13}
+5:1|{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14}
+5:2|{_ID: 0:4, _LABEL: person, ID: 7, fName: Elizabeth, gender: 1, isStudent: False, isWorker: True, age: 20, eyeSight: 4.700000, birthdate: 1980-10-26, registerTime: 1976-12-23 11:21:42, lastJobDuration: 48:24:11, workedHours: [2], usedNames: [Ein], courseScoresPerTerm: [[6],[7],[8]], grades: [96,59,65,88], height: 1.463000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15}
+
+-LOG StartNodeTest3
+-STATEMENT MATCH ()-[e:workAt]->() RETURN ID(e), START_NODE(e) 
+---- 3
+5:0|{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13}
+5:1|{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14}
+5:2|{_ID: 0:4, _LABEL: person, ID: 7, fName: Elizabeth, gender: 1, isStudent: False, isWorker: True, age: 20, eyeSight: 4.700000, birthdate: 1980-10-26, registerTime: 1976-12-23 11:21:42, lastJobDuration: 48:24:11, workedHours: [2], usedNames: [Ein], courseScoresPerTerm: [[6],[7],[8]], grades: [96,59,65,88], height: 1.463000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15}
+
+-LOG StartNodeTest4
+-STATEMENT MATCH ()-[e:workAt]->() RETURN ID(e), ID(START_NODE(e))
+---- 3
+5:0|0:2
+5:1|0:3
+5:2|0:4
+
+-LOG StartNodeTest5
+-STATEMENT MATCH ()-[e:workAt]-() RETURN ID(e), START_NODE(e) 
+---- 6
+5:0|{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13}
+5:0|{_ID: 1:1, _LABEL: organisation, ID: 4, name: CsWork, orgCode: 934, mark: 4.100000, score: -100, history: 2 years 4 days 10 hours, licenseValidInterval: 26 years 52 days 48:00:00, rating: 0.780000, state: {revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}, info: abcd}
+5:1|{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14}
+5:1|{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
+5:2|{_ID: 0:4, _LABEL: person, ID: 7, fName: Elizabeth, gender: 1, isStudent: False, isWorker: True, age: 20, eyeSight: 4.700000, birthdate: 1980-10-26, registerTime: 1976-12-23 11:21:42, lastJobDuration: 48:24:11, workedHours: [2], usedNames: [Ein], courseScoresPerTerm: [[6],[7],[8]], grades: [96,59,65,88], height: 1.463000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15}
+5:2|{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
+
+-LOG StartNodeTest6
+-STATEMENT MATCH ()-[e:workAt]->() RETURN ID(e), START_NODE(e).fName
+---- 3
+5:0|Carol
+5:1|Dan
+5:2|Elizabeth
+
+-LOG StartNodeTestRecursiveRel
+-STATEMENT MATCH (:person { fName: "Alice" })-[r:knows *1..2]->(friend:person) RETURN START_NODE(r)
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+
+
+-CASE FunctionEndNode
+
+-LOG EndNodeTest1
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN id(e), END_NODE(e)
+---- 3
+4:0|{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years 5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}, info: 3.120000}
+4:1|{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years 5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}, info: 3.120000}
+4:2|{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years 5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}, info: 3.120000}
+
+-LOG EndNodeTest2
+-STATEMENT MATCH (:person)-[e]->(:organisation) RETURN id(e), END_NODE(e)
+---- 6
+4:0|{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years 5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}, info: 3.120000}
+4:1|{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years 5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}, info: 3.120000}
+4:2|{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years 5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}, info: 3.120000}
+5:0|{_ID: 1:1, _LABEL: organisation, ID: 4, name: CsWork, orgCode: 934, mark: 4.100000, score: -100, history: 2 years 4 days 10 hours, licenseValidInterval: 26 years 52 days 48:00:00, rating: 0.780000, state: {revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}, info: abcd}
+5:1|{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
+5:2|{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
+
+-LOG EndNodeTest3
+-STATEMENT MATCH ()-[e:workAt]->() RETURN ID(e), END_NODE(e) 
+---- 3
+5:0|{_ID: 1:1, _LABEL: organisation, ID: 4, name: CsWork, orgCode: 934, mark: 4.100000, score: -100, history: 2 years 4 days 10 hours, licenseValidInterval: 26 years 52 days 48:00:00, rating: 0.780000, state: {revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}, info: abcd}
+5:1|{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
+5:2|{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
+
+-LOG EndNodeTest4
+-STATEMENT MATCH ()-[e:workAt]->() RETURN ID(e), ID(END_NODE(e))
+---- 3
+5:0|1:1
+5:1|1:2
+5:2|1:2
+
+-LOG EndNodeTest5
+-STATEMENT MATCH ()-[e:workAt]-() RETURN ID(e), END_NODE(e) 
+---- 6
+5:0|{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13}
+5:0|{_ID: 1:1, _LABEL: organisation, ID: 4, name: CsWork, orgCode: 934, mark: 4.100000, score: -100, history: 2 years 4 days 10 hours, licenseValidInterval: 26 years 52 days 48:00:00, rating: 0.780000, state: {revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}, info: abcd}
+5:1|{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14}
+5:1|{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
+5:2|{_ID: 0:4, _LABEL: person, ID: 7, fName: Elizabeth, gender: 1, isStudent: False, isWorker: True, age: 20, eyeSight: 4.700000, birthdate: 1980-10-26, registerTime: 1976-12-23 11:21:42, lastJobDuration: 48:24:11, workedHours: [2], usedNames: [Ein], courseScoresPerTerm: [[6],[7],[8]], grades: [96,59,65,88], height: 1.463000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15}
+5:2|{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
+
+-LOG EndNodeTest6
+-STATEMENT MATCH ()-[e:workAt]->() RETURN ID(e), END_NODE(e).name
+---- 3
+5:0|CsWork
+5:1|DEsWork
+5:2|DEsWork
+
+-LOG EndNodeTestRecursiveRel
+-STATEMENT MATCH (:person { fName: "Alice" })-[r:knows *1..2]->(friend:person) RETURN END_NODE(r)
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.

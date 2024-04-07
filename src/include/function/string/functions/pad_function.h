@@ -20,8 +20,8 @@ public:
         }
         KU_ASSERT(characterToPad.len == 1);
         padOperation(result, src, characterToPad);
-        common::StringVector::addString(
-            &resultValueVector, result, (const char*)result.getData(), count);
+        common::StringVector::addString(&resultValueVector, result, (const char*)result.getData(),
+            count);
     }
 };
 

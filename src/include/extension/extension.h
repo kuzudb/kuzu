@@ -28,8 +28,6 @@ struct ExtensionUtils {
     static constexpr const char* EXTENSION_REPO =
         "http://extension.kuzudb.com/v{}/{}/lib{}.kuzu_extension";
 
-    static std::string getExtensionDir(main::Database* database);
-
     static std::string getExtensionPath(const std::string& extensionDir, const std::string& name);
 
     static bool isFullPath(const std::string& extension);
@@ -40,12 +38,10 @@ struct ExtensionUtils {
 struct ExtensionOptions {
     std::unordered_map<std::string, main::ExtensionOption> extensionOptions;
 
-    void addExtensionOption(
-        std::string name, common::LogicalTypeID type, common::Value defaultValue);
+    void addExtensionOption(std::string name, common::LogicalTypeID type,
+        common::Value defaultValue);
 
     main::ExtensionOption* getExtensionOption(std::string name);
-
-    std::unordered_map<std::string, main::ExtensionOption>& getExtensionOptions();
 };
 
 } // namespace extension

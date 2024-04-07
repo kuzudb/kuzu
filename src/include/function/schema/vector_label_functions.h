@@ -7,6 +7,8 @@ namespace kuzu {
 namespace function {
 
 struct LabelFunction {
+    static constexpr const char* name = "LABEL";
+
     static void execFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 2);

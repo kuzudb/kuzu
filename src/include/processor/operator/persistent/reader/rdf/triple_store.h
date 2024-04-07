@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "common/assert.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace processor {
@@ -28,7 +29,8 @@ struct ResourceStore final : public RdfStore {
 
 struct LiteralStore final : public RdfStore {
     std::vector<std::string> literals;
-    std::vector<std::string> literalTypes;
+    std::vector<common::LogicalTypeID> literalTypes;
+    std::vector<std::string> langs;
 
     inline bool isEmpty() const override { return literals.empty(); }
 
@@ -37,6 +39,7 @@ struct LiteralStore final : public RdfStore {
     inline void clear() override {
         literals.clear();
         literalTypes.clear();
+        langs.clear();
     }
 };
 
@@ -60,7 +63,8 @@ struct LiteralTripleStore final : public RdfStore {
     std::vector<std::string> subjects;
     std::vector<std::string> predicates;
     std::vector<std::string> objects;
-    std::vector<std::string> objectTypes;
+    std::vector<common::LogicalTypeID> objectTypes;
+    std::vector<std::string> langs;
 
     inline bool isEmpty() const override { return subjects.empty(); }
 
@@ -71,6 +75,7 @@ struct LiteralTripleStore final : public RdfStore {
         predicates.clear();
         objects.clear();
         objectTypes.clear();
+        langs.clear();
     }
 };
 

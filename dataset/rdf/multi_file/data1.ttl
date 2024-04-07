@@ -1,0 +1,3 @@
+@prefix : <https://test/> .
+:s1 :p1 1 .
+:s0 :p3 :x .

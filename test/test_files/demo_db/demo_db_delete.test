@@ -1,6 +1,5 @@
 -GROUP DemoDBDeleteTest
 -DATASET CSV demo-db/csv
-
 --
 
 -CASE DeleteNodeTest

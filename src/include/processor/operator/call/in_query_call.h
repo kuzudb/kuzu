@@ -1,14 +1,14 @@
 #pragma once
 
+#include "function/table/bind_data.h"
 #include "function/table_functions.h"
-#include "function/table_functions/bind_data.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {
 namespace processor {
 
 struct InQueryCallSharedState {
-    std::unique_ptr<function::TableFuncSharedState> sharedState;
+    std::unique_ptr<function::TableFuncSharedState> funcState;
     common::row_idx_t nextRowIdx = 0;
     std::mutex mtx;
 
@@ -16,42 +16,57 @@ struct InQueryCallSharedState {
 };
 
 struct InQueryCallLocalState {
-    std::unique_ptr<common::DataChunk> outputChunk;
-    common::ValueVector* rowIDVector;
-    std::unique_ptr<function::TableFuncLocalState> localState;
-    function::TableFunctionInput tableFunctionInput;
+    std::unique_ptr<function::TableFuncLocalState> funcState;
+    function::TableFuncInput funcInput;
+    function::TableFuncOutput funcOutput;
+    common::ValueVector* rowOffsetVector;
+
+    InQueryCallLocalState() = default;
+    DELETE_COPY_DEFAULT_MOVE(InQueryCallLocalState);
+};
+
+enum class TableScanOutputType : uint8_t {
+    EMPTY = 0,
+    SINGLE_DATA_CHUNK = 1,
+    MULTI_DATA_CHUNK = 2,
 };
 
 struct InQueryCallInfo {
-    function::TableFunction* function;
+    function::TableFunction function;
     std::unique_ptr<function::TableFuncBindData> bindData;
-    std::vector<DataPos> outputPoses;
-    DataPos rowIDPos;
+    std::vector<DataPos> outPosV;
+    DataPos rowOffsetPos;
+    TableScanOutputType outputType;
 
-    InQueryCallInfo(function::TableFunction* function,
-        std::unique_ptr<function::TableFuncBindData> bindData, std::vector<DataPos> outputPoses,
-        DataPos rowIDPos)
-        : function{function}, bindData{std::move(bindData)},
-          outputPoses{std::move(outputPoses)}, rowIDPos{rowIDPos} {}
+    InQueryCallInfo() = default;
+    EXPLICIT_COPY_DEFAULT_MOVE(InQueryCallInfo);
 
-    std::unique_ptr<InQueryCallInfo> copy() {
-        return std::make_unique<InQueryCallInfo>(function, bindData->copy(), outputPoses, rowIDPos);
+private:
+    InQueryCallInfo(const InQueryCallInfo& other) {
+        function = other.function;
+        bindData = other.bindData->copy();
+        outPosV = other.outPosV;
+        rowOffsetPos = other.rowOffsetPos;
+        outputType = other.outputType;
     }
 };
 
 class InQueryCall : public PhysicalOperator {
 public:
-    InQueryCall(std::unique_ptr<InQueryCallInfo> localState,
-        std::shared_ptr<InQueryCallSharedState> sharedState, PhysicalOperatorType operatorType,
+    InQueryCall(InQueryCallInfo info, std::shared_ptr<InQueryCallSharedState> sharedState,
         uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, inQueryCallInfo{std::move(localState)},
-          sharedState{std::move(sharedState)} {}
+        : PhysicalOperator{PhysicalOperatorType::IN_QUERY_CALL, id, paramsString},
+          info{std::move(info)}, sharedState{std::move(sharedState)} {}
+    InQueryCall(InQueryCallInfo info, std::shared_ptr<InQueryCallSharedState> sharedState,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+        : PhysicalOperator{PhysicalOperatorType::IN_QUERY_CALL, std::move(child), id, paramsString},
+          info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
-    inline bool isSource() const override { return true; }
+    InQueryCallSharedState* getSharedState() { return sharedState.get(); }
 
-    inline bool canParallel() const override {
-        return inQueryCallInfo->function->canParallelFunc();
-    }
+    bool isSource() const override { return true; }
+
+    bool canParallel() const override { return info.function.canParallelFunc(); }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -59,17 +74,16 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<InQueryCall>(
-            inQueryCallInfo->copy(), sharedState, operatorType, id, paramsString);
+    double getProgress(ExecutionContext* context) const override;
+
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<InQueryCall>(info.copy(), sharedState, id, paramsString);
     }
 
-    inline InQueryCallSharedState* getSharedState() { return sharedState.get(); }
-
 protected:
-    std::unique_ptr<InQueryCallInfo> inQueryCallInfo;
+    InQueryCallInfo info;
     std::shared_ptr<InQueryCallSharedState> sharedState;
-    std::unique_ptr<InQueryCallLocalState> localState;
+    InQueryCallLocalState localState;
 };
 
 } // namespace processor

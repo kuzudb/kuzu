@@ -1,12 +1,8 @@
 #pragma once
 
-#include <mutex>
-
 #include "client_context.h"
 #include "database.h"
 #include "function/udf_function.h"
-#include "prepared_statement.h"
-#include "query_result.h"
 
 namespace kuzu {
 namespace main {
@@ -34,22 +30,6 @@ public:
      */
     KUZU_API ~Connection();
     /**
-     * @brief Manually starts a new read-only transaction in the current connection.
-     */
-    KUZU_API void beginReadOnlyTransaction();
-    /**
-     * @brief Manually starts a new write transaction in the current connection.
-     */
-    KUZU_API void beginWriteTransaction();
-    /**
-     * @brief Manually commits the current transaction.
-     */
-    KUZU_API void commit();
-    /**
-     * @brief Manually rollbacks the current transaction.
-     */
-    KUZU_API void rollback();
-    /**
      * @brief Sets the maximum number of threads to use for execution in the current connection.
      * @param numThreads The number of threads to use for execution in the current connection.
      */
@@ -59,6 +39,10 @@ public:
      * @return the maximum number of threads to use for execution in the current connection.
      */
     KUZU_API uint64_t getMaxNumThreadForExec();
+
+    void setProgressBarPrinting(bool enable) {
+        clientContext->progressBar->toggleProgressBarPrinting(enable);
+    }
 
     /**
      * @brief Executes the given query and returns the result.
@@ -80,8 +64,8 @@ public:
      * @return the result of the query.
      */
     template<typename... Args>
-    inline std::unique_ptr<QueryResult> execute(
-        PreparedStatement* preparedStatement, std::pair<std::string, Args>... args) {
+    inline std::unique_ptr<QueryResult> execute(PreparedStatement* preparedStatement,
+        std::pair<std::string, Args>... args) {
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParameters;
         return executeWithParams(preparedStatement, std::move(inputParameters), args...);
     }
@@ -113,56 +97,63 @@ public:
 
     template<typename TR, typename... Args>
     void createScalarFunction(std::string name, TR (*udfFunc)(Args...)) {
+        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
-        addScalarFunction(
-            std::move(nameCopy), function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc));
+        addScalarFunction(std::move(nameCopy),
+            function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc));
+        commitUDFTrx(autoTrx);
     }
 
     template<typename TR, typename... Args>
     void createScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypes,
         common::LogicalTypeID returnType, TR (*udfFunc)(Args...)) {
+        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
-        addScalarFunction(
-            std::move(nameCopy), function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc,
-                                     std::move(parameterTypes), returnType));
+        addScalarFunction(std::move(nameCopy),
+            function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc,
+                std::move(parameterTypes), returnType));
+        commitUDFTrx(autoTrx);
     }
 
     template<typename TR, typename... Args>
-    void createVectorizedFunction(std::string name, function::scalar_exec_func scalarFunc) {
+    void createVectorizedFunction(std::string name, function::scalar_func_exec_t scalarFunc) {
+        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
         addScalarFunction(std::move(nameCopy), function::UDF::getVectorizedFunction<TR, Args...>(
                                                    std::move(name), std::move(scalarFunc)));
+        commitUDFTrx(autoTrx);
     }
 
     void createVectorizedFunction(std::string name,
         std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
-        function::scalar_exec_func scalarFunc) {
+        function::scalar_func_exec_t scalarFunc) {
+        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
-        addScalarFunction(
-            std::move(nameCopy), function::UDF::getVectorizedFunction(std::move(name),
-                                     std::move(scalarFunc), std::move(parameterTypes), returnType));
+        addScalarFunction(std::move(nameCopy),
+            function::UDF::getVectorizedFunction(std::move(name), std::move(scalarFunc),
+                std::move(parameterTypes), returnType));
+        commitUDFTrx(autoTrx);
     }
 
-    inline void setReplaceFunc(replace_func_t replaceFunc) {
-        clientContext->setReplaceFunc(std::move(replaceFunc));
-    }
+    ClientContext* getClientContext() { return clientContext.get(); };
 
 private:
-    std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin);
+    std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin,
+        bool enumerateAllPlans = true);
 
     std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 
-    std::unique_ptr<PreparedStatement> prepareNoLock(std::string_view query,
-        bool enumerateAllPlans = false, std::string_view joinOrder = std::string_view());
+    std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
+
+    std::unique_ptr<PreparedStatement> prepareNoLock(
+        std::shared_ptr<parser::Statement> parsedStatement, bool enumerateAllPlans = false,
+        std::string_view joinOrder = std::string_view());
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> params,
         std::pair<std::string, T> arg, std::pair<std::string, Args>... args) {
-        auto name = arg.first;
-        auto val = std::make_unique<common::Value>((T)arg.second);
-        params.insert({name, std::move(val)});
-        return executeWithParams(preparedStatement, std::move(params), args...);
+        return clientContext->executeWithParams(preparedStatement, std::move(params), arg, args...);
     }
 
     void bindParametersNoLock(PreparedStatement* preparedStatement,
@@ -173,10 +164,12 @@ private:
 
     KUZU_API void addScalarFunction(std::string name, function::function_set definitions);
 
+    KUZU_API bool startUDFAutoTrx(transaction::TransactionContext* trx);
+    KUZU_API void commitUDFTrx(bool isAutoCommitTrx);
+
 private:
     Database* database;
     std::unique_ptr<ClientContext> clientContext;
-    std::mutex mtx;
 };
 
 } // namespace main

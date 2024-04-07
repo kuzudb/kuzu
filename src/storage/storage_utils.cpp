@@ -2,20 +2,22 @@
 
 #include <fcntl.h>
 
+#include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/null_buffer.h"
 #include "common/string_format.h"
 #include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
+#include "common/types/types.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-std::string StorageUtils::getColumnName(
-    const std::string& propertyName, StorageUtils::ColumnType type, const std::string& prefix) {
+std::string StorageUtils::getColumnName(const std::string& propertyName,
+    StorageUtils::ColumnType type, const std::string& prefix) {
     switch (type) {
     case StorageUtils::ColumnType::DATA: {
         return stringFormat("{}_data", propertyName);
@@ -30,10 +32,10 @@ std::string StorageUtils::getColumnName(
         return stringFormat("{}_offset", propertyName);
     }
     case StorageUtils::ColumnType::CSR_OFFSET: {
-        return stringFormat("{}_csr_offset", propertyName);
+        return stringFormat("{}_csr_offset", prefix);
     }
-    case StorageUtils::ColumnType::ADJ: {
-        return stringFormat("{}_adj", prefix);
+    case StorageUtils::ColumnType::CSR_LENGTH: {
+        return stringFormat("{}_csr_length", prefix);
     }
     case StorageUtils::ColumnType::STRUCT_CHILD: {
         return stringFormat("{}_{}_child", propertyName, prefix);
@@ -48,15 +50,15 @@ std::string StorageUtils::getColumnName(
     }
 }
 
-std::string StorageUtils::getNodeIndexFName(VirtualFileSystem* vfs, const std::string& directory,
-    const table_id_t& tableID, FileVersionType fileVersionType) {
+std::string StorageUtils::getNodeIndexFName(const VirtualFileSystem* vfs,
+    const std::string& directory, const table_id_t& tableID, FileVersionType fileVersionType) {
     auto fName = stringFormat("n-{}", tableID);
     return appendWALFileSuffixIfNecessary(
         vfs->joinPath(directory, fName + StorageConstants::INDEX_FILE_SUFFIX), fileVersionType);
 }
 
-std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
-    const std::string& directory, DBFileID dbFileID, VirtualFileSystem* vfs) {
+std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(const std::string& directory,
+    DBFileID dbFileID, VirtualFileSystem* vfs) {
     std::string fName;
     switch (dbFileID.dbFileType) {
     case DBFileType::METADATA: {
@@ -66,18 +68,35 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
         fName = getDataFName(vfs, directory);
     } break;
     case DBFileType::NODE_INDEX: {
-        fName = getNodeIndexFName(
-            vfs, directory, dbFileID.nodeIndexID.tableID, FileVersionType::ORIGINAL);
+        fName = getNodeIndexFName(vfs, directory, dbFileID.nodeIndexID.tableID,
+            FileVersionType::ORIGINAL);
         if (dbFileID.isOverflow) {
             fName = getOverflowFileName(fName);
         }
     } break;
     default: {
-        throw RuntimeException("Unsupported dbFileID in "
-                               "StorageUtils::getFileInfoFromdbFileID.");
+        throw RuntimeException("Unsupported dbFileID in StorageUtils::getFileInfoForReadWrite.");
     }
     }
     return vfs->openFile(fName, O_RDWR);
+}
+
+uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {
+    switch (type) {
+    case PhysicalTypeID::STRING: {
+        return sizeof(ku_string_t);
+    }
+    case PhysicalTypeID::LIST: {
+        return sizeof(ku_list_t);
+    }
+    case PhysicalTypeID::STRUCT: {
+        // Not calculable using this interface!
+        KU_UNREACHABLE;
+    }
+    default: {
+        return PhysicalTypeUtils::getFixedTypeSize(type);
+    }
+    }
 }
 
 uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
@@ -85,11 +104,7 @@ uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
     case PhysicalTypeID::STRING: {
         return sizeof(ku_string_t);
     }
-    case PhysicalTypeID::FIXED_LIST: {
-        return getDataTypeSize(*FixedListType::getChildType(&type)) *
-               FixedListType::getNumValuesInList(&type);
-    }
-    case PhysicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::LIST: {
         return sizeof(ku_list_t);
     }
     case PhysicalTypeID::STRUCT: {
@@ -107,8 +122,8 @@ uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
     }
 }
 
-std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(
-    const std::string& fileName, const std::string& suffix) {
+std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(const std::string& fileName,
+    const std::string& suffix) {
     auto pos = fileName.find(StorageConstants::WAL_FILE_SUFFIX);
     if (pos == std::string::npos) {
         return fileName + suffix;

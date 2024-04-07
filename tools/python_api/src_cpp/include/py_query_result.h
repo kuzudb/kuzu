@@ -24,9 +24,6 @@ public:
 
     py::list getNext();
 
-    void writeToCSV(const py::str& filename, const py::str& delimiter,
-        const py::str& escapeCharacter, const py::str& newline);
-
     void close();
 
     static py::object convertValueToPyObject(const kuzu::common::Value& value);
@@ -56,6 +53,7 @@ private:
 
     bool getNextArrowChunk(const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo,
         py::list& batches, std::int64_t chunk_size);
+
     py::object getArrowChunks(
         const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, std::int64_t chunkSize);
 

@@ -65,16 +65,28 @@ void EvictionQueue::removeCandidatesForFile(kuzu::storage::BMFileHandle& fileHan
     }
 }
 
-BufferManager::BufferManager(uint64_t bufferPoolSize)
+BufferManager::BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize)
     : usedMemory{0}, bufferPoolSize{bufferPoolSize}, numEvictionQueueInsertions{0} {
+    verifySizeParams(bufferPoolSize, maxDBSize);
+    vmRegions.resize(2);
+    vmRegions[0] = std::make_unique<VMRegion>(PageSizeClass::PAGE_4KB, maxDBSize);
+    vmRegions[1] = std::make_unique<VMRegion>(PageSizeClass::PAGE_256KB, bufferPoolSize);
+    evictionQueue = std::make_unique<EvictionQueue>();
+}
+
+void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize) {
     if (bufferPoolSize < BufferPoolConstants::PAGE_4KB_SIZE) {
         throw BufferManagerException("The given buffer pool size should be at least 4KB.");
     }
-    vmRegions.resize(2);
-    vmRegions[0] = std::make_unique<VMRegion>(
-        PageSizeClass::PAGE_4KB, BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE);
-    vmRegions[1] = std::make_unique<VMRegion>(PageSizeClass::PAGE_256KB, bufferPoolSize);
-    evictionQueue = std::make_unique<EvictionQueue>();
+    if (maxDBSize < BufferPoolConstants::PAGE_4KB_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
+        throw BufferManagerException(
+            "The given max db size should be at least " +
+            std::to_string(BufferPoolConstants::PAGE_4KB_SIZE * StorageConstants::PAGE_GROUP_SIZE) +
+            " bytes.");
+    }
+    if ((maxDBSize & (maxDBSize - 1)) != 0) {
+        throw BufferManagerException("The given max db size should be a power of 2.");
+    }
 }
 
 // Important Note: Pin returns a raw pointer to the frame. This is potentially very dangerous and
@@ -86,8 +98,8 @@ BufferManager::BufferManager(uint64_t bufferPoolSize)
 // should be flushed to disk if it is evicted.
 // (3) If multiple threads are writing to the page, they should coordinate separately because they
 // both get access to the same piece of memory.
-uint8_t* BufferManager::pin(
-    BMFileHandle& fileHandle, page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
+uint8_t* BufferManager::pin(BMFileHandle& fileHandle, page_idx_t pageIdx,
+    PageReadPolicy pageReadPolicy) {
     auto pageState = fileHandle.getPageState(pageIdx);
     while (true) {
         auto currStateAndVersion = pageState->getStateAndVersion();
@@ -173,8 +185,8 @@ inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
     return true;
 }
 
-void BufferManager::optimisticRead(
-    BMFileHandle& fileHandle, page_idx_t pageIdx, const std::function<void(uint8_t*)>& func) {
+void BufferManager::optimisticRead(BMFileHandle& fileHandle, page_idx_t pageIdx,
+    const std::function<void(uint8_t*)>& func) {
     auto pageState = fileHandle.getPageState(pageIdx);
 #if defined(_WIN32)
     // Change the Structured Exception handling just for the scope of this function
@@ -227,8 +239,8 @@ void BufferManager::unpin(BMFileHandle& fileHandle, page_idx_t pageIdx) {
 // or we can find no more pages to be evicted.
 // Lastly, we double check if the needed memory is available. If not, we free the memory we reserved
 // and return false, otherwise, we load the page to its corresponding frame and return true.
-bool BufferManager::claimAFrame(
-    BMFileHandle& fileHandle, page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
+bool BufferManager::claimAFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
+    PageReadPolicy pageReadPolicy) {
     page_offset_t pageSizeToClaim = fileHandle.getPageSize();
     // Reserve the memory for the page.
     auto currentUsedMem = reserveUsedMemory(pageSizeToClaim);
@@ -266,16 +278,16 @@ bool BufferManager::claimAFrame(
     return true;
 }
 
-void BufferManager::addToEvictionQueue(
-    BMFileHandle* fileHandle, page_idx_t pageIdx, PageState* pageState) {
+void BufferManager::addToEvictionQueue(BMFileHandle* fileHandle, page_idx_t pageIdx,
+    PageState* pageState) {
     auto currStateAndVersion = pageState->getStateAndVersion();
     if (++numEvictionQueueInsertions == BufferPoolConstants::EVICTION_QUEUE_PURGING_INTERVAL) {
         evictionQueue->removeNonEvictableCandidates();
         numEvictionQueueInsertions = 0;
     }
     pageState->tryMark(currStateAndVersion);
-    evictionQueue->enqueue(
-        fileHandle, pageIdx, pageState, PageState::getVersion(currStateAndVersion));
+    evictionQueue->enqueue(fileHandle, pageIdx, pageState,
+        PageState::getVersion(currStateAndVersion));
 }
 
 uint64_t BufferManager::tryEvictPage(EvictionCandidate& candidate) {
@@ -295,8 +307,8 @@ uint64_t BufferManager::tryEvictPage(EvictionCandidate& candidate) {
     return numBytesFreed;
 }
 
-void BufferManager::cachePageIntoFrame(
-    BMFileHandle& fileHandle, page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
+void BufferManager::cachePageIntoFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
+    PageReadPolicy pageReadPolicy) {
     auto pageState = fileHandle.getPageState(pageIdx);
     pageState->clearDirty();
     if (pageReadPolicy == PageReadPolicy::READ_PAGE) {
@@ -322,12 +334,12 @@ void BufferManager::removeFilePagesFromFrames(BMFileHandle& fileHandle) {
 
 void BufferManager::flushAllDirtyPagesInFrames(BMFileHandle& fileHandle) {
     for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
-        removePageFromFrame(fileHandle, pageIdx, true /* flush */);
+        flushIfDirtyWithoutLock(fileHandle, pageIdx);
     }
 }
 
-void BufferManager::updateFrameIfPageIsInFrameWithoutLock(
-    BMFileHandle& fileHandle, uint8_t* newPage, page_idx_t pageIdx) {
+void BufferManager::updateFrameIfPageIsInFrameWithoutLock(BMFileHandle& fileHandle,
+    uint8_t* newPage, page_idx_t pageIdx) {
     auto pageState = fileHandle.getPageState(pageIdx);
     if (pageState) {
         memcpy(getFrame(fileHandle, pageIdx), newPage, BufferPoolConstants::PAGE_4KB_SIZE);
@@ -342,14 +354,18 @@ void BufferManager::removePageFromFrameIfNecessary(BMFileHandle& fileHandle, pag
 }
 
 // NOTE: We assume the page is not pinned (locked) here.
-void BufferManager::removePageFromFrame(
-    BMFileHandle& fileHandle, page_idx_t pageIdx, bool shouldFlush) {
+void BufferManager::removePageFromFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
+    bool shouldFlush) {
     auto pageState = fileHandle.getPageState(pageIdx);
+    if (PageState::getState(pageState->getStateAndVersion()) == PageState::EVICTED) {
+        return;
+    }
     pageState->spinLock(pageState->getStateAndVersion());
     if (shouldFlush) {
         flushIfDirtyWithoutLock(fileHandle, pageIdx);
     }
     releaseFrameForPage(fileHandle, pageIdx);
+    freeUsedMemory(fileHandle.getPageSize());
     pageState->resetToEvicted();
 }
 

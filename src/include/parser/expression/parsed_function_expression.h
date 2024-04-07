@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/string_utils.h"
 #include "parsed_expression.h"
 
 namespace kuzu {
@@ -34,7 +35,10 @@ public:
 
     inline bool getIsDistinct() const { return isDistinct; }
 
-    inline std::string getFunctionName() const { return functionName; }
+    std::string getFunctionName() const { return functionName; }
+    std::string getNormalizedFunctionName() const {
+        return common::StringUtils::getUpper(functionName);
+    }
 
     // A function might have more than 2 parameters.
     inline void addChild(std::unique_ptr<ParsedExpression> child) {
@@ -45,8 +49,8 @@ public:
         common::Deserializer& deserializer);
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
-        return std::make_unique<ParsedFunctionExpression>(
-            alias, rawName, copyChildren(), functionName, isDistinct);
+        return std::make_unique<ParsedFunctionExpression>(alias, rawName, copyChildren(),
+            functionName, isDistinct);
     }
 
 private:

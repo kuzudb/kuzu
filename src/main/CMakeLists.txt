@@ -3,11 +3,13 @@ add_library(kuzu_main
         client_context.cpp
         connection.cpp
         database.cpp
+        database_manager.cpp
         plan_printer.cpp
         prepared_statement.cpp
         query_result.cpp
         query_summary.cpp
         storage_driver.cpp
+        version.cpp
         db_config.cpp)
 
 set(ALL_OBJECT_FILES

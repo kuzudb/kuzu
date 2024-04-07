@@ -20,10 +20,7 @@ public:
     static void interruptHandler(int signal);
 
 private:
-    void setNumThreads(const std::string& numThreadsString);
-
-    void printNodeSchema(const std::string& tableName);
-    void printRelSchema(const std::string& tableName);
+    int processShellCommands(std::string lineStr);
 
     static void printHelp();
 
@@ -31,14 +28,16 @@ private:
 
     void updateTableNames();
 
-    void setLoggingLevel(const std::string& loggingLevel);
+    void setMaxRows(const std::string& maxRowsString);
 
-    void setQueryTimeout(const std::string& timeoutInMS);
+    void setMaxWidth(const std::string& maxWidthString);
 
 private:
     std::unique_ptr<Database> database;
     std::unique_ptr<Connection> conn;
     const char* path_to_history;
+    uint64_t maxRowSize;
+    uint32_t maxPrintWidth;
 };
 
 } // namespace main

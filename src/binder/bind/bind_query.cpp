@@ -23,8 +23,8 @@ void validateUnionColumnsOfTheSameType(
         // Check whether the dataTypes in union expressions are exactly the same in each single
         // query.
         for (auto j = 0u; j < columns.size(); j++) {
-            ExpressionBinder::validateExpectedDataType(
-                *otherColumns[j], columns[j]->dataType.getLogicalTypeID());
+            ExpressionBinder::validateExpectedDataType(*otherColumns[j],
+                columns[j]->dataType.getLogicalTypeID());
         }
     }
 }
@@ -36,7 +36,7 @@ void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
     }
     if ((0 < unionAllExpressionCounter) &&
         (unionAllExpressionCounter < regularQuery.getNumSingleQueries() - 1)) {
-        throw BinderException("Union and union all can't be used together.");
+        throw BinderException("Union and union all can not be used together.");
     }
 }
 
@@ -45,15 +45,14 @@ std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regular
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
         // Don't clear scope within bindSingleQuery() yet because it is also used for subquery
         // binding.
-        scope->clear();
+        scope.clear();
         normalizedSingleQueries.push_back(bindSingleQuery(*regularQuery.getSingleQuery(i)));
     }
     validateUnionColumnsOfTheSameType(normalizedSingleQueries);
     KU_ASSERT(!normalizedSingleQueries.empty());
-    auto boundRegularQuery = std::make_unique<BoundRegularQuery>(
-        regularQuery.getIsUnionAll(), normalizedSingleQueries[0].getStatementResult()->copy());
+    auto boundRegularQuery = std::make_unique<BoundRegularQuery>(regularQuery.getIsUnionAll(),
+        normalizedSingleQueries[0].getStatementResult()->copy());
     for (auto& normalizedSingleQuery : normalizedSingleQueries) {
-        validateReadNotFollowUpdate(normalizedSingleQuery);
         boundRegularQuery->addSingleQuery(std::move(normalizedSingleQuery));
     }
     validateIsAllUnionOrUnionAll(*boundRegularQuery);

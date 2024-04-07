@@ -7,6 +7,12 @@
 namespace kuzu {
 namespace common {
 
+static void validateBoolOption(const LogicalType& type, const std::string& optionName) {
+    if (type != *LogicalType::BOOL()) {
+        throw BinderException(stringFormat("The type of option {} must be a boolean.", optionName));
+    }
+}
+
 RdfReaderConfig RdfReaderConfig::construct(
     const std::unordered_map<std::string, common::Value>& options) {
     auto config = RdfReaderConfig();
@@ -14,13 +20,13 @@ RdfReaderConfig RdfReaderConfig::construct(
         auto name = op.first;
         StringUtils::toUpper(name);
         if (name == RdfConstants::IN_MEMORY_OPTION) {
-            if (*op.second.getDataType() != *LogicalType::BOOL()) {
-                throw BinderException(
-                    stringFormat("The type of option {} must be a boolean.", name));
-            }
+            validateBoolOption(*op.second.getDataType(), name);
             config.inMemory = op.second.getValue<bool>();
+        } else if (name == RdfConstants::STRICT_OPTION) {
+            validateBoolOption(*op.second.getDataType(), name);
+            config.strict = op.second.getValue<bool>();
         } else {
-            throw BinderException(stringFormat("Unrecognized csv parsing option: {}.", name));
+            throw BinderException(stringFormat("Unrecognized parsing option: {}.", name));
         }
     }
     return config;

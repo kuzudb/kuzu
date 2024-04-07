@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/bound_create_macro.h"
+#include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
@@ -16,7 +17,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateMacro(const Statement& stateme
     auto& createMacro = ku_dynamic_cast<const Statement&, const CreateMacro&>(statement);
     auto macroName = createMacro.getMacroName();
     StringUtils::toUpper(macroName);
-    if (catalog.containsMacro(clientContext->getTx(), macroName)) {
+    if (clientContext->getCatalog()->containsMacro(clientContext->getTx(), macroName)) {
         throw BinderException{stringFormat("Macro {} already exists.", macroName)};
     }
     parser::default_macro_args defaultArgs;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/interrupt.h"
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
 
@@ -8,32 +7,30 @@ namespace kuzu {
 namespace processor {
 
 enum class PhysicalOperatorType : uint8_t {
-    ADD_PROPERTY,
+    ALTER,
     AGGREGATE,
     AGGREGATE_SCAN,
+    ATTACH_DATABASE,
+    BATCH_INSERT,
     COMMENT_ON,
     CREATE_MACRO,
+    DETACH_DATABASE,
     STANDALONE_CALL,
     IN_QUERY_CALL,
-    COPY_NODE,
     COPY_RDF,
-    COPY_REL,
     COPY_TO,
-    CREATE_NODE_TABLE,
-    CREATE_REL_TABLE,
-    CREATE_RDF_GRAPH,
+    CREATE_TABLE,
     CROSS_PRODUCT,
     DELETE_NODE,
     DELETE_REL,
-    DROP_PROPERTY,
     DROP_TABLE,
     EMPTY_RESULT,
-    FACTORIZED_TABLE_SCAN,
-    FILL_TABLE_ID,
+    EXPORT_DATABASE,
     FILTER,
     FLATTEN,
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,
+    IMPORT_DATABASE,
     INDEX_LOOKUP,
     INDEX_SCAN,
     INSERT,
@@ -96,8 +93,7 @@ class PhysicalOperator {
 public:
     // Leaf operator
     PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id, std::string paramsString)
-        : id{id}, operatorType{operatorType}, transaction{nullptr}, paramsString{
-                                                                        std::move(paramsString)} {}
+        : id{id}, operatorType{operatorType}, paramsString{std::move(paramsString)} {}
     // Unary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, const std::string& paramsString);
@@ -132,21 +128,15 @@ public:
     // Local state is initialized for each thread.
     void initLocalState(ResultSet* resultSet, ExecutionContext* context);
 
-    inline bool getNextTuple(ExecutionContext* context) {
-        if (context->clientContext->isInterrupted()) {
-            throw common::InterruptException{};
-        }
-        metrics->executionTime.start();
-        auto result = getNextTuplesInternal(context);
-        metrics->executionTime.stop();
-        return result;
-    }
+    bool getNextTuple(ExecutionContext* context);
 
     std::unordered_map<std::string, std::string> getProfilerKeyValAttributes(
         common::Profiler& profiler) const;
     std::vector<std::string> getProfilerAttributes(common::Profiler& profiler) const;
 
     virtual std::unique_ptr<PhysicalOperator> clone() = 0;
+
+    virtual double getProgress(ExecutionContext* context) const;
 
 protected:
     virtual void initGlobalStateInternal(ExecutionContext* /*context*/) {}
@@ -168,7 +158,6 @@ protected:
     PhysicalOperatorType operatorType;
 
     physical_op_vector_t children;
-    transaction::Transaction* transaction;
     ResultSet* resultSet;
 
     std::string paramsString;

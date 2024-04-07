@@ -21,8 +21,8 @@ f_group_pos_set LogicalUnion::getGroupsPosToFlatten(uint32_t childIdx) {
 void LogicalUnion::computeFactorizedSchema() {
     auto firstChildSchema = children[0]->getSchema();
     createEmptySchema();
-    SinkOperatorUtil::recomputeSchema(
-        *firstChildSchema, firstChildSchema->getExpressionsInScope(), *schema);
+    SinkOperatorUtil::recomputeSchema(*firstChildSchema, firstChildSchema->getExpressionsInScope(),
+        *schema);
 }
 
 void LogicalUnion::computeFlatSchema() {

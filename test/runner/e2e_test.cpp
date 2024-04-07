@@ -15,8 +15,8 @@ public:
         const std::set<std::string>& connNames,
         std::vector<std::unique_ptr<TestStatement>> testStatements)
         : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
-          checkpointWaitTimeout{checkpointWaitTimeout},
-          testStatements{std::move(testStatements)}, connNames{connNames} {}
+          checkpointWaitTimeout{checkpointWaitTimeout}, testStatements{std::move(testStatements)},
+          connNames{connNames} {}
 
     void SetUp() override {
         setUpDataset();
@@ -30,16 +30,23 @@ public:
     }
 
     void setUpDataset() {
-        parquetTempDatasetPath = generateParquetTempDatasetPath();
-        dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
-            throw NotImplementedException("CSV_TO_PARQUET dataset type is not implemented yet.");
+            auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+            parquetTempDatasetPath = generateParquetTempDatasetPath();
+            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize);
+            converter.convertCSVDatasetToParquet();
+            dataset = parquetTempDatasetPath;
+        } else {
+            dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
         }
     }
 
     void TearDown() override {
         std::filesystem::remove_all(databasePath);
-        std::filesystem::remove_all(parquetTempDatasetPath);
+        BaseGraphTest::removeIEDBPath();
+        if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
+            std::filesystem::remove_all(parquetTempDatasetPath);
+        }
     }
 
     void TestBody() override { runTest(testStatements, checkpointWaitTimeout, connNames); }
@@ -55,10 +62,11 @@ private:
     std::set<std::string> connNames;
 
     std::string generateParquetTempDatasetPath() {
-        return TestHelper::appendKuzuRootPath(
-            TestHelper::PARQUET_TEMP_DATASET_PATH +
-            CSVToParquetConverter::replaceSlashesWithUnderscores(dataset) + getTestGroupAndName() +
-            TestHelper::getMillisecondsSuffix());
+        std::string datasetName = dataset;
+        std::replace(datasetName.begin(), datasetName.end(), '/', '_');
+        return TestHelper::appendKuzuRootPath(TestHelper::PARQUET_TEMP_DATASET_PATH + datasetName +
+                                              "_" + getTestGroupAndName() + "_" +
+                                              TestHelper::getMillisecondsSuffix());
     }
 };
 

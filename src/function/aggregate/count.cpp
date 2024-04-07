@@ -11,8 +11,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-void CountFunction::updateAll(
-    uint8_t* state_, ValueVector* input, uint64_t multiplicity, MemoryManager* /*memoryManager*/) {
+void CountFunction::updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity,
+    MemoryManager* /*memoryManager*/) {
     auto state = reinterpret_cast<CountState*>(state_);
     if (input->hasNoNullsGuarantee()) {
         for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
@@ -37,6 +37,17 @@ void CountFunction::paramRewriteFunc(binder::expression_vector& arguments) {
         auto rel = (RelExpression*)arguments[0].get();
         arguments[0] = rel->getInternalIDProperty();
     }
+}
+
+function_set CountFunction::getFunctionSet() {
+    function_set result;
+    for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
+        for (auto isDistinct : std::vector<bool>{true, false}) {
+            result.push_back(AggregateFunctionUtil::getAggFunc<CountFunction>(name, type,
+                LogicalTypeID::INT64, isDistinct, paramRewriteFunc));
+        }
+    }
+    return result;
 }
 
 } // namespace function

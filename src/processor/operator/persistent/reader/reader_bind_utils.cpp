@@ -19,14 +19,14 @@ void ReaderBindUtils::validateNumColumns(uint32_t expectedNumber, uint32_t detec
 }
 
 void ReaderBindUtils::validateColumnTypes(const std::vector<std::string>& columnNames,
-    const std::vector<std::unique_ptr<common::LogicalType>>& expectedColumnTypes,
-    const std::vector<std::unique_ptr<common::LogicalType>>& detectedColumnTypes) {
+    const std::vector<common::LogicalType>& expectedColumnTypes,
+    const std::vector<common::LogicalType>& detectedColumnTypes) {
     KU_ASSERT(expectedColumnTypes.size() == detectedColumnTypes.size());
     for (auto i = 0u; i < expectedColumnTypes.size(); ++i) {
-        if (*expectedColumnTypes[i] != *detectedColumnTypes[i]) {
+        if (expectedColumnTypes[i] != detectedColumnTypes[i]) {
             throw common::BinderException(common::stringFormat(
                 "Column `{}` type mismatch. Expected {} but got {}.", columnNames[i],
-                expectedColumnTypes[i]->toString(), detectedColumnTypes[i]->toString()));
+                expectedColumnTypes[i].toString(), detectedColumnTypes[i].toString()));
         }
     }
 }
@@ -34,16 +34,16 @@ void ReaderBindUtils::validateColumnTypes(const std::vector<std::string>& column
 void ReaderBindUtils::resolveColumns(const std::vector<std::string>& expectedColumnNames,
     const std::vector<std::string>& detectedColumnNames,
     std::vector<std::string>& resultColumnNames,
-    const std::vector<std::unique_ptr<common::LogicalType>>& expectedColumnTypes,
-    const std::vector<std::unique_ptr<common::LogicalType>>& detectedColumnTypes,
-    std::vector<std::unique_ptr<common::LogicalType>>& resultColumnTypes) {
+    const std::vector<common::LogicalType>& expectedColumnTypes,
+    const std::vector<common::LogicalType>& detectedColumnTypes,
+    std::vector<common::LogicalType>& resultColumnTypes) {
     if (expectedColumnTypes.empty()) {
         resultColumnNames = detectedColumnNames;
-        resultColumnTypes = LogicalType::copy(detectedColumnTypes);
+        resultColumnTypes = detectedColumnTypes;
     } else {
         validateNumColumns(expectedColumnTypes.size(), detectedColumnTypes.size());
         resultColumnNames = expectedColumnNames;
-        resultColumnTypes = LogicalType::copy(expectedColumnTypes);
+        resultColumnTypes = expectedColumnTypes;
     }
 }
 

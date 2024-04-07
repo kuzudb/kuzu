@@ -6,10 +6,6 @@
 namespace kuzu {
 namespace httpfs {
 
-#if defined(_WIN32)
-#define O_ACCMODE 0x0003
-#endif
-
 using namespace kuzu::common;
 
 HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
@@ -20,24 +16,32 @@ HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
 }
 
 HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags)
-    : FileInfo{std::move(path), fileSystem}, flags{flags}, length{0},
-      availableBuffer{0}, bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0} {}
+    : FileInfo{std::move(path), fileSystem}, flags{flags}, length{0}, availableBuffer{0},
+      bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0} {}
 
 void HTTPFileInfo::initialize() {
     initializeClient();
-    auto hfs = ku_dynamic_cast<FileSystem*, HTTPFileSystem*>(fileSystem);
-    auto res = hfs->headRequest(ku_dynamic_cast<HTTPFileInfo*, FileInfo*>(this), this->path, {});
+    auto hfs = ku_dynamic_cast<const FileSystem*, const HTTPFileSystem*>(fileSystem);
+    auto res = hfs->headRequest(ku_dynamic_cast<HTTPFileInfo*, FileInfo*>(this), path, {});
     std::string rangeLength;
-
     if (res->code != 200) {
-        // HEAD request fail, use Range request for another try (read only one byte).
-        if (((flags & O_ACCMODE) == O_RDONLY) && res->code != 404) {
+        auto accessMode = flags & O_ACCMODE;
+        if ((accessMode & O_WRONLY) && res->code == 404) {
+            if (!(flags & O_CREAT)) {
+                throw IOException(stringFormat("Unable to open URL: \"{}\" for writing: file does "
+                                               "not exist and CREATE flag is not set",
+                    path));
+            }
+            length = 0;
+            return;
+        } else if ((accessMode & O_RDONLY) && res->code != 404) {
+            // HEAD request fail, use Range request for another try (read only one byte).
             auto rangeRequest =
                 hfs->getRangeRequest(this, this->path, {}, 0, nullptr /* buffer */, 2);
             if (rangeRequest->code != 206) {
                 // LCOV_EXCL_START
-                throw IOException(stringFormat(
-                    "Unable to connect to URL \"{}\": {} ({})", this->path, res->code, res->error));
+                throw IOException(stringFormat("Unable to connect to URL \"{}\": {} ({})",
+                    this->path, res->code, res->error));
                 // LCOV_EXCL_STOP
             }
             auto rangeFound = rangeRequest->headers["Content-Range"].find("/");
@@ -88,21 +92,20 @@ void HTTPFileInfo::initialize() {
             }
         } catch (std::invalid_argument& e) {
             // LCOV_EXCL_START
-            throw IOException(stringFormat(
-                "Invalid Content-Length header received: {}", res->headers["Content-Length"]));
+            throw IOException(stringFormat("Invalid Content-Length header received: {}",
+                res->headers["Content-Length"]));
             // LCOV_EXCL_STOP
         } catch (std::out_of_range& e) {
             // LCOV_EXCL_START
-            throw IOException(stringFormat(
-                "Invalid Content-Length header received: {}", res->headers["Content-Length"]));
+            throw IOException(stringFormat("Invalid Content-Length header received: {}",
+                res->headers["Content-Length"]));
             // LCOV_EXCL_STOP
         }
     }
 }
 
 void HTTPFileInfo::initializeClient() {
-    std::string hostPath, host;
-    HTTPFileSystem::parseUrl(path, hostPath, host);
+    auto [host, hostPath] = HTTPFileSystem::parseUrl(path);
     httpClient = HTTPFileSystem::getClient(host.c_str());
 }
 
@@ -113,17 +116,18 @@ std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& pa
     return std::move(httpFileInfo);
 }
 
-std::vector<std::string> HTTPFileSystem::glob(const std::string& path) {
+std::vector<std::string> HTTPFileSystem::glob(main::ClientContext* /*context*/,
+    const std::string& path) const {
     // Glob is not supported on HTTPFS, simply return the path itself.
     return {path};
 }
 
-bool HTTPFileSystem::canHandleFile(const std::string& path) {
+bool HTTPFileSystem::canHandleFile(const std::string& path) const {
     return path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0;
 }
 
-void HTTPFileSystem::readFromFile(
-    common::FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
+void HTTPFileSystem::readFromFile(common::FileInfo* fileInfo, void* buffer, uint64_t numBytes,
+    uint64_t position) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     auto numBytesToRead = numBytes;
     auto bufferOffset = 0;
@@ -154,8 +158,8 @@ void HTTPFileSystem::readFromFile(
         }
 
         if (numBytesToRead > 0 && httpFileInfo->availableBuffer == 0) {
-            auto newBufferAvailableSize = std::min<uint64_t>(
-                httpFileInfo->READ_BUFFER_LEN, httpFileInfo->length - httpFileInfo->fileOffset);
+            auto newBufferAvailableSize = std::min<uint64_t>(httpFileInfo->READ_BUFFER_LEN,
+                httpFileInfo->length - httpFileInfo->fileOffset);
 
             // Bypass buffer if we read more than buffer size.
             if (numBytesToRead > newBufferAvailableSize) {
@@ -177,7 +181,7 @@ void HTTPFileSystem::readFromFile(
     }
 }
 
-int64_t HTTPFileSystem::readFile(common::FileInfo* fileInfo, void* buf, size_t numBytes) {
+int64_t HTTPFileSystem::readFile(common::FileInfo* fileInfo, void* buf, size_t numBytes) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     auto maxNumBytesToRead = httpFileInfo->length - httpFileInfo->fileOffset;
     numBytes = std::min<uint64_t>(maxNumBytesToRead, numBytes);
@@ -188,13 +192,13 @@ int64_t HTTPFileSystem::readFile(common::FileInfo* fileInfo, void* buf, size_t n
     return numBytes;
 }
 
-int64_t HTTPFileSystem::seek(common::FileInfo* fileInfo, uint64_t offset, int /*whence*/) {
+int64_t HTTPFileSystem::seek(common::FileInfo* fileInfo, uint64_t offset, int /*whence*/) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     httpFileInfo->fileOffset = offset;
     return offset;
 }
 
-uint64_t HTTPFileSystem::getFileSize(common::FileInfo* fileInfo) {
+uint64_t HTTPFileSystem::getFileSize(common::FileInfo* fileInfo) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     return httpFileInfo->length;
 }
@@ -212,7 +216,15 @@ std::unique_ptr<httplib::Client> HTTPFileSystem::getClient(const std::string& ho
     return client;
 }
 
-void HTTPFileSystem::parseUrl(const std::string& url, std::string& hostPath, std::string& host) {
+std::unique_ptr<httplib::Headers> HTTPFileSystem::getHTTPHeaders(HeaderMap& headerMap) {
+    auto headers = std::make_unique<httplib::Headers>();
+    for (auto& entry : headerMap) {
+        headers->insert(entry);
+    }
+    return headers;
+}
+
+std::pair<std::string, std::string> HTTPFileSystem::parseUrl(const std::string& url) {
     if (url.rfind("http://", 0) != 0 && url.rfind("https://", 0) != 0) {
         throw IOException("URL needs to start with http:// or https://");
     }
@@ -222,21 +234,14 @@ void HTTPFileSystem::parseUrl(const std::string& url, std::string& hostPath, std
         throw IOException("URL needs to contain a '/' after the host");
     }
     // LCOV_EXCL_STOP
-    host = url.substr(0, hostPathPos);
-    hostPath = url.substr(hostPathPos);
+    auto host = url.substr(0, hostPathPos);
+    auto hostPath = url.substr(hostPathPos);
     // LCOV_EXCEL_START
     if (hostPath.empty()) {
         throw IOException("URL needs to contain a path");
     }
     // LCOV_EXCEL_STOP
-}
-
-std::unique_ptr<httplib::Headers> HTTPFileSystem::getHttpHeaders(HeaderMap& headerMap) {
-    auto headers = std::make_unique<httplib::Headers>();
-    for (auto& entry : headerMap) {
-        headers->insert(entry);
-    }
-    return headers;
+    return {host, hostPath};
 }
 
 std::unique_ptr<HTTPResponse> HTTPFileSystem::runRequestWithRetry(
@@ -256,7 +261,9 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::runRequestWithRetry(
                 status = res->status;
                 response = res.value();
             }
-        } catch (IOException& e) { exception = std::current_exception(); }
+        } catch (IOException& e) {
+            exception = std::current_exception();
+        }
 
         if (err == httplib::Error::Success) {
             switch (status) {
@@ -287,8 +294,8 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::runRequestWithRetry(
                 std::rethrow_exception(exception);
             } else if (err == httplib::Error::Success) {
                 // LCOV_EXCL_START
-                throw IOException(stringFormat(
-                    "Request returned HTTP {} for HTTP {} to '{}'", status, method, url));
+                throw IOException(stringFormat("Request returned HTTP {} for HTTP {} to '{}'",
+                    status, method, url));
                 // LCOV_EXCL_STOP
             } else {
                 // LCOV_EXCL_START
@@ -300,12 +307,13 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::runRequestWithRetry(
     }
 }
 
-std::unique_ptr<HTTPResponse> HTTPFileSystem::headRequest(
-    FileInfo* fileInfo, std::string url, HeaderMap headerMap) {
+std::unique_ptr<HTTPResponse> HTTPFileSystem::headRequest(FileInfo* fileInfo,
+    const std::string& url, HeaderMap headerMap) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
-    std::string hostPath, host;
-    parseUrl(url, hostPath, host);
-    auto headers = getHttpHeaders(headerMap);
+    auto parsedURL = parseUrl(url);
+    auto host = parsedURL.first;
+    auto hostPath = parsedURL.second;
+    auto headers = getHTTPHeaders(headerMap);
 
     std::function<httplib::Result(void)> request(
         [&]() { return httpFileInfo->httpClient->Head(hostPath.c_str(), *headers); });
@@ -317,14 +325,15 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::headRequest(
 
 std::unique_ptr<HTTPResponse> HTTPFileSystem::getRangeRequest(FileInfo* fileInfo,
     const std::string& url, HeaderMap headerMap, uint64_t fileOffset, char* buffer,
-    uint64_t bufferLen) {
+    uint64_t bufferLen) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
-    std::string hostPath, host;
-    parseUrl(url, hostPath, host);
-    auto headers = getHttpHeaders(headerMap);
+    auto parsedURL = parseUrl(url);
+    auto host = parsedURL.first;
+    auto hostPath = parsedURL.second;
+    auto headers = getHTTPHeaders(headerMap);
 
-    headers->insert(std::make_pair(
-        "Range", stringFormat("bytes={}-{}", fileOffset, fileOffset + bufferLen - 1)));
+    headers->insert(std::make_pair("Range",
+        stringFormat("bytes={}-{}", fileOffset, fileOffset + bufferLen - 1)));
 
     uint64_t bufferOffset = 0;
 
@@ -375,6 +384,61 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::getRangeRequest(FileInfo* fileInfo
     });
     std::function<void(void)> retryFunc([&]() { httpFileInfo->httpClient = getClient(host); });
     return runRequestWithRetry(request, url, "GET Range", retryFunc);
+}
+
+std::unique_ptr<HTTPResponse> HTTPFileSystem::postRequest(common::FileInfo* fileInfo,
+    const std::string& url, HeaderMap headerMap, std::unique_ptr<uint8_t[]>& outputBuffer,
+    uint64_t& outputBufferLen, const uint8_t* inputBuffer, uint64_t inputBufferLen,
+    std::string /*params*/) const {
+    auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
+    auto parsedURL = parseUrl(url);
+    auto host = parsedURL.first;
+    auto hostPath = parsedURL.second;
+    auto headers = getHTTPHeaders(headerMap);
+    uint64_t outputBufferPos = 0;
+
+    std::function<httplib::Result(void)> request([&]() {
+        auto client = httpFileInfo->httpClient.get();
+        httplib::Request req;
+        req.method = "POST";
+        req.path = hostPath;
+        req.headers = *headers;
+        req.headers.emplace("Content-Type", "application/octet-stream");
+        req.content_receiver = [&](const char* data, size_t dataLen, uint64_t /*offset*/,
+                                   uint64_t /*totalLen*/) {
+            if (outputBufferPos + dataLen > outputBufferLen) {
+                auto newBufferSize =
+                    std::max<uint64_t>(outputBufferPos + dataLen, outputBufferLen * 2);
+                auto newBuffer = std::make_unique<uint8_t[]>(newBufferSize);
+                memcpy(newBuffer.get(), outputBuffer.get(), outputBufferLen);
+                outputBuffer = std::move(newBuffer);
+                outputBufferLen = newBufferSize;
+            }
+            memcpy(outputBuffer.get() + outputBufferPos, data, dataLen);
+            outputBufferPos += dataLen;
+            return true;
+        };
+        req.body.assign(reinterpret_cast<const char*>(inputBuffer), inputBufferLen);
+        return client->send(req);
+    });
+    return runRequestWithRetry(request, url, "POST");
+}
+
+std::unique_ptr<HTTPResponse> HTTPFileSystem::putRequest(common::FileInfo* fileInfo,
+    const std::string& url, kuzu::httpfs::HeaderMap headerMap, const uint8_t* inputBuffer,
+    uint64_t inputBufferLen, std::string /*params*/) const {
+    auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
+    auto parsedURL = parseUrl(url);
+    auto host = parsedURL.first;
+    auto hostPath = parsedURL.second;
+    auto headers = getHTTPHeaders(headerMap);
+    std::function<httplib::Result(void)> request([&]() {
+        auto client = httpFileInfo->httpClient.get();
+        return client->Put(hostPath.c_str(), *headers, reinterpret_cast<const char*>(inputBuffer),
+            inputBufferLen, "application/octet-stream");
+    });
+
+    return runRequestWithRetry(request, url, "PUT");
 }
 
 } // namespace httpfs

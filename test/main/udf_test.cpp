@@ -1,4 +1,3 @@
-#include "function/string/functions/concat_function.h"
 #include "main_test_helper/main_test_helper.h"
 
 using namespace kuzu::common;
@@ -21,8 +20,8 @@ TEST_F(ApiTest, UnaryUDFInt64) {
 }
 
 TEST_F(ApiTest, UnaryUDFAddDate) {
-    conn->createScalarFunction(
-        "addFiveDays", std::vector<LogicalTypeID>{LogicalTypeID::DATE}, LogicalTypeID::DATE, &add5);
+    conn->createScalarFunction("addFiveDays", std::vector<LogicalTypeID>{LogicalTypeID::DATE},
+        LogicalTypeID::DATE, &add5);
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (p:person) return addFiveDays(p.birthdate)"));
     auto expectedResult = std::vector<std::string>{"1900-01-06", "1900-01-06", "1940-06-27",
@@ -77,8 +76,8 @@ TEST_F(ApiTest, BinaryUDFFlatUnflat) {
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (p:person)-[:knows]->(p1:person) return "
                      "addSecondParamTwice(to_int16(p.ID), to_int32(p1.age))"));
-    auto expectedResult = std::vector<std::string>{
-        "60", "90", "40", "72", "92", "42", "73", "63", "43", "75", "65", "95", "57", "87"};
+    auto expectedResult = std::vector<std::string>{"60", "90", "40", "72", "92", "42", "73", "63",
+        "43", "75", "65", "95", "57", "87"};
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
@@ -133,8 +132,8 @@ TEST_F(ApiTest, BinaryAddNanoSeconds) {
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (m:movies) return addNano(m.description.release_ns, "
                      "to_int32(m.description.stars))"));
-    auto expectedResult = std::vector<std::string>{
-        "2011-08-20 11:25:30.123456", "2018-11-13 13:33:11.123456", "2011-02-11 16:44:22.123456"};
+    auto expectedResult = std::vector<std::string>{"2011-08-20 11:25:30.123456",
+        "2018-11-13 13:33:11.123456", "2011-02-11 16:44:22.123456"};
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
@@ -145,8 +144,8 @@ TEST_F(ApiTest, BinaryAddMilliSeconds) {
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (m:movies) return addMilli(m.description.release_ms, "
                      "to_int32(m.description.stars))"));
-    auto expectedResult = std::vector<std::string>{
-        "2011-08-20 11:25:30.125", "2018-11-13 13:33:11.133", "2011-02-11 16:44:22.223"};
+    auto expectedResult = std::vector<std::string>{"2011-08-20 11:25:30.125",
+        "2018-11-13 13:33:11.133", "2011-02-11 16:44:22.223"};
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
@@ -157,8 +156,8 @@ TEST_F(ApiTest, BinaryAddSeconds) {
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (m:movies) return addSec(m.description.release_sec, "
                      "to_int32(m.description.stars))"));
-    auto expectedResult = std::vector<std::string>{
-        "2011-08-20 11:25:32", "2018-11-13 13:33:21", "2011-02-11 16:46:02"};
+    auto expectedResult = std::vector<std::string>{"2011-08-20 11:25:32", "2018-11-13 13:33:21",
+        "2011-02-11 16:46:02"};
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
@@ -180,8 +179,8 @@ int32_t ternaryLenTotal(ku_string_t a, blob_t b, ku_string_t c) {
 
 TEST_F(ApiTest, TernaryUDFStr) {
     conn->createScalarFunction("ternaryLenTotal",
-        std::vector<LogicalTypeID>{
-            LogicalTypeID::STRING, LogicalTypeID::BLOB, LogicalTypeID::STRING},
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::BLOB,
+            LogicalTypeID::STRING},
         LogicalTypeID::INT32, &ternaryLenTotal);
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (m:movies) return ternaryLenTotal(m.name, m.content, m.note)"));
@@ -195,14 +194,16 @@ static void validateUDFError(std::function<void()> createFunc, std::string errMs
     } catch (CatalogException& e) {
         ASSERT_EQ(std::string(e.what()), errMsg);
         return;
-    } catch (Exception&) { FAIL(); }
+    } catch (Exception&) {
+        FAIL();
+    }
     FAIL();
 }
 
 TEST_F(ApiTest, UDFError) {
     conn->createScalarFunction("add5", &add5);
     validateUDFError([&]() { conn->createScalarFunction("add5", &add5); },
-        "Catalog exception: function ADD5 already exists.");
+        "Catalog exception: function add5 already exists.");
 }
 
 TEST_F(ApiTest, UDFTypeError) {
@@ -279,8 +280,8 @@ struct AddDate {
 static void addDate(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(parameters.size() == 2);
-    function::BinaryFunctionExecutor::execute<date_t, int64_t, date_t, AddDate>(
-        *parameters[0], *parameters[1], result);
+    function::BinaryFunctionExecutor::execute<date_t, int64_t, date_t, AddDate>(*parameters[0],
+        *parameters[1], result);
 }
 
 TEST_F(ApiTest, vectorizedBinaryAddDate) {
@@ -294,14 +295,29 @@ TEST_F(ApiTest, vectorizedBinaryAddDate) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
+static void concat(const ku_string_t& left, const ku_string_t& right, ku_string_t& result,
+    ValueVector& resultValueVector) {
+    result.len = left.len + right.len;
+    if (result.len <= ku_string_t::SHORT_STR_LENGTH /* concat result is short */) {
+        memcpy(result.prefix, left.getData(), left.len);
+        memcpy(result.prefix + left.len, right.getData(), right.len);
+    } else {
+        StringVector::reserveString(&resultValueVector, result, result.len);
+        auto buffer = reinterpret_cast<char*>(result.overflowPtr);
+        memcpy(buffer, left.getData(), left.len);
+        memcpy(buffer + left.len, right.getData(), right.len);
+        memcpy(result.prefix, buffer, ku_string_t::PREFIX_LENGTH);
+    }
+}
+
 struct ConditionalConcat {
-    static inline void operation(
-        ku_string_t& a, bool& b, ku_string_t& c, ku_string_t& result, ValueVector& resultVector) {
+    static inline void operation(ku_string_t& a, bool& b, ku_string_t& c, ku_string_t& result,
+        ValueVector& resultVector) {
         // Concat a,c if b is true, otherwise concat c,a.
         if (b) {
-            function::Concat::operation(a, c, result, resultVector);
+            concat(a, c, result, resultVector);
         } else {
-            function::Concat::operation(c, a, result, resultVector);
+            concat(c, a, result, resultVector);
         }
     }
 };
@@ -314,8 +330,8 @@ static void conditionalConcat(const std::vector<std::shared_ptr<ValueVector>>& p
 }
 
 TEST_F(ApiTest, vectorizedTernaryConditionalAdd) {
-    conn->createVectorizedFunction<ku_string_t, ku_string_t, bool, ku_string_t>(
-        "conditionalConcat", &conditionalConcat);
+    conn->createVectorizedFunction<ku_string_t, ku_string_t, bool, ku_string_t>("conditionalConcat",
+        &conditionalConcat);
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (p:person)-[:knows]->(p1:person) return conditionalConcat(p.fName, "
                      "p.isStudent, p1.fName)"));
@@ -323,6 +339,20 @@ TEST_F(ApiTest, vectorizedTernaryConditionalAdd) {
         "AliceDan", "AliceDan", "BobAlice", "BobCarol", "BobCarol", "BobDan", "BobDan", "CarolDan",
         "DanCarol", "FarooqElizabeth", "GregElizabeth"};
     sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+TEST_F(ApiTest, UDFTrxTest) {
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
+    conn->createScalarFunction("add5", &add5);
+    auto actualResult = TestHelper::convertResultToString(*conn->query("return add5(to_int32(5))"));
+    auto expectedResult = std::vector<std::string>{"10"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+    ASSERT_TRUE(conn->query("COMMIT;")->isSuccess());
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
+    conn->createScalarFunction("times2", &times2);
+    ASSERT_TRUE(conn->query("ROLLBACK;")->isSuccess());
+    ASSERT_EQ(conn->query("return times2(5)")->getErrorMessage(),
+        "Catalog exception: function TIMES2 does not exist.");
 }
 
 } // namespace testing

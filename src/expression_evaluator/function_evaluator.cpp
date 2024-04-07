@@ -1,10 +1,12 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
+#include "function/cast/vector_cast_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace evaluator {
@@ -17,24 +19,25 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager
     }
 }
 
-void FunctionExpressionEvaluator::evaluate() {
+void FunctionExpressionEvaluator::evaluate(ClientContext* clientContext) {
     for (auto& child : children) {
-        child->evaluate();
+        child->evaluate(clientContext);
     }
     auto expr =
         ku_dynamic_cast<binder::Expression*, binder::ScalarFunctionExpression*>(expression.get());
-    if (expr->getFunctionName() == CAST_FUNC_NAME) {
+    if (expr->getFunctionName() == function::CastAnyFunction::name) {
         execFunc(parameters, *resultVector, expr->getBindData());
         return;
     }
     if (execFunc != nullptr) {
-        execFunc(parameters, *resultVector, nullptr);
+        execFunc(parameters, *resultVector, clientContext);
     }
 }
 
-bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
+bool FunctionExpressionEvaluator::select(SelectionVector& selVector,
+    ClientContext* /*ClientContext*/) {
     for (auto& child : children) {
-        child->evaluate();
+        child->evaluate(nullptr);
     }
     // Temporary code path for function whose return type is BOOL but select interface is not
     // implemented (e.g. list_contains). We should remove this if statement eventually.
@@ -44,7 +47,7 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
         auto numSelectedValues = 0u;
         for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {
             auto pos = resultVector->state->selVector->selectedPositions[i];
-            auto selectedPosBuffer = selVector.getSelectedPositionsBuffer();
+            auto selectedPosBuffer = selVector.getMultableBuffer();
             selectedPosBuffer[numSelectedValues] = pos;
             numSelectedValues += resultVector->getValue<bool>(pos);
         }
@@ -63,8 +66,8 @@ std::unique_ptr<ExpressionEvaluator> FunctionExpressionEvaluator::clone() {
     return make_unique<FunctionExpressionEvaluator>(expression, std::move(clonedChildren));
 }
 
-void FunctionExpressionEvaluator::resolveResultVector(
-    const ResultSet& /*resultSet*/, MemoryManager* memoryManager) {
+void FunctionExpressionEvaluator::resolveResultVector(const ResultSet& /*resultSet*/,
+    MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());

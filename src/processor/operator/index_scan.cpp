@@ -6,7 +6,7 @@ namespace kuzu {
 namespace processor {
 
 void IndexScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    indexEvaluator->init(*resultSet, context->memoryManager);
+    indexEvaluator->init(*resultSet, context->clientContext->getMemoryManager());
     indexVector = indexEvaluator->resultVector.get();
     outVector = resultSet->getValueVector(outDataPos).get();
 }
@@ -20,19 +20,21 @@ bool IndexScan::getNextTuplesInternal(ExecutionContext* context) {
         }
         saveSelVector(outVector->state->selVector);
         numSelectedValues = 0u;
+        auto buffer = outVector->state->selVector->getMultableBuffer();
         for (auto i = 0u; i < indexVector->state->selVector->selectedSize; ++i) {
             auto pos = indexVector->state->selVector->selectedPositions[i];
             if (indexVector->isNull(pos)) {
                 continue;
             }
-            outVector->state->selVector->getSelectedPositionsBuffer()[numSelectedValues] = pos;
+            buffer[numSelectedValues] = pos;
             offset_t nodeOffset = INVALID_OFFSET;
-            numSelectedValues += pkIndex->lookup(transaction, indexVector, pos, nodeOffset);
+            numSelectedValues +=
+                pkIndex->lookup(context->clientContext->getTx(), indexVector, pos, nodeOffset);
             nodeID_t nodeID{nodeOffset, tableID};
             outVector->setValue<nodeID_t>(pos, nodeID);
         }
         if (!outVector->state->isFlat() && outVector->state->selVector->isUnfiltered()) {
-            outVector->state->selVector->resetSelectorToValuePosBuffer();
+            outVector->state->selVector->setToFiltered();
         }
     } while (numSelectedValues == 0);
     outVector->state->selVector->selectedSize = numSelectedValues;

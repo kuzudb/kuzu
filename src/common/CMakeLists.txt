@@ -11,6 +11,7 @@ add_subdirectory(file_system)
 
 add_library(kuzu_common
         OBJECT
+        case_insensitive_map.cpp
         constants.cpp
         expression_type.cpp
         in_mem_overflow_buffer.cpp
@@ -22,7 +23,9 @@ add_library(kuzu_common
         type_utils.cpp
         utils.cpp
         string_utils.cpp
-        system_message.cpp)
+        system_message.cpp
+        random_engine.cpp
+        windows_utils.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common>

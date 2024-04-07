@@ -9,6 +9,8 @@ enum class LogicalOperatorType : uint8_t {
     ACCUMULATE,
     AGGREGATE,
     ALTER,
+    ATTACH_DATABASE,
+    DETACH_DATABASE,
     COMMENT_ON,
     COPY_FROM,
     COPY_TO,
@@ -24,7 +26,6 @@ enum class LogicalOperatorType : uint8_t {
     EXPLAIN,
     EXPRESSIONS_SCAN,
     EXTEND,
-    FILL_TABLE_ID,
     FILTER,
     FLATTEN,
     HASH_JOIN,
@@ -33,6 +34,7 @@ enum class LogicalOperatorType : uint8_t {
     INTERSECT,
     INSERT,
     LIMIT,
+    MARK_ACCUMULATE,
     MERGE,
     MULTIPLICITY_REDUCER,
     NODE_LABEL_FILTER,
@@ -53,11 +55,13 @@ enum class LogicalOperatorType : uint8_t {
     UNION_ALL,
     UNWIND,
     EXTENSION,
+    EXPORT_DATABASE,
+    IMPORT_DATABASE,
 };
 
-class LogicalOperatorUtils {
-public:
+struct LogicalOperatorUtils {
     static std::string logicalOperatorTypeToString(LogicalOperatorType type);
+    static bool isUpdate(LogicalOperatorType type);
 };
 
 class LogicalOperator;
@@ -65,35 +69,33 @@ using logical_op_vector_t = std::vector<std::shared_ptr<LogicalOperator>>;
 
 class LogicalOperator {
 public:
-    // Leaf operator.
     explicit LogicalOperator(LogicalOperatorType operatorType) : operatorType{operatorType} {}
-    // Unary operator.
-    explicit LogicalOperator(
-        LogicalOperatorType operatorType, std::shared_ptr<LogicalOperator> child);
-    // Binary operator.
+    explicit LogicalOperator(LogicalOperatorType operatorType,
+        std::shared_ptr<LogicalOperator> child);
     explicit LogicalOperator(LogicalOperatorType operatorType,
         std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right);
     explicit LogicalOperator(LogicalOperatorType operatorType, const logical_op_vector_t& children);
 
     virtual ~LogicalOperator() = default;
 
-    inline uint32_t getNumChildren() const { return children.size(); }
-
-    inline std::shared_ptr<LogicalOperator> getChild(uint64_t idx) const { return children[idx]; }
-    inline std::vector<std::shared_ptr<LogicalOperator>> getChildren() const { return children; }
-    inline void setChild(uint64_t idx, std::shared_ptr<LogicalOperator> child) {
+    uint32_t getNumChildren() const { return children.size(); }
+    std::shared_ptr<LogicalOperator> getChild(uint64_t idx) const { return children[idx]; }
+    std::vector<std::shared_ptr<LogicalOperator>> getChildren() const { return children; }
+    void setChild(uint64_t idx, std::shared_ptr<LogicalOperator> child) {
         children[idx] = std::move(child);
     }
-    inline void setChildren(logical_op_vector_t children_) { children = std::move(children_); }
 
-    inline LogicalOperatorType getOperatorType() const { return operatorType; }
+    // Operator type.
+    LogicalOperatorType getOperatorType() const { return operatorType; }
+    bool hasUpdateRecursive();
 
-    inline Schema* getSchema() const { return schema.get(); }
+    // Schema
+    Schema* getSchema() const { return schema.get(); }
     virtual void computeFactorizedSchema() = 0;
     virtual void computeFlatSchema() = 0;
 
+    // Printing.
     virtual std::string getExpressionsForPrinting() const = 0;
-
     // Print the sub-plan rooted at this operator.
     virtual std::string toString(uint64_t depth = 0) const;
 
@@ -102,8 +104,8 @@ public:
     static logical_op_vector_t copy(const logical_op_vector_t& ops);
 
 protected:
-    inline void createEmptySchema() { schema = std::make_unique<Schema>(); }
-    inline void copyChildSchema(uint32_t idx) { schema = children[idx]->getSchema()->copy(); }
+    void createEmptySchema() { schema = std::make_unique<Schema>(); }
+    void copyChildSchema(uint32_t idx) { schema = children[idx]->getSchema()->copy(); }
 
 protected:
     LogicalOperatorType operatorType;

@@ -6,8 +6,9 @@
 
 #include "common/copier_config/csv_reader_config.h"
 #include "common/data_chunk/data_chunk.h"
-#include "common/file_system/virtual_file_system.h"
+#include "common/file_system/file_info.h"
 #include "common/types/types.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace processor {
@@ -17,7 +18,7 @@ class BaseCSVReader {
 
 public:
     BaseCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+        main::ClientContext* context);
 
     virtual ~BaseCSVReader() = default;
 
@@ -25,6 +26,9 @@ public:
 
     uint64_t countRows();
     bool isEOF() const;
+    uint64_t getFileSize();
+    // Get the file offset of the current buffer position.
+    uint64_t getFileOffset() const;
 
 protected:
     template<typename Driver>
@@ -55,8 +59,6 @@ protected:
 
     inline bool isNewLine(char c) { return c == '\n' || c == '\r'; }
 
-    // Get the file offset of the current buffer position.
-    uint64_t getFileOffset() const;
     uint64_t getLineNumber();
 
 protected:

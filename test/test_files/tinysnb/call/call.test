@@ -42,17 +42,41 @@ Binder exception: Upper bound of rel  exceeds maximum: 10.
 ---- 1
 354290
 
+-LOG SetGetProgressBar
+-STATEMENT CALL progress_bar=true
+---- ok
+-STATEMENT CALL current_setting('progress_bar') RETURN *
+---- 1
+True
+-STATEMENT CALL progress_bar=false
+---- ok
+-STATEMENT CALL current_setting('progress_bar') RETURN *
+---- 1
+False
+
+-LOG SetGetProgressBarTime
+-STATEMENT CALL progress_bar_time=4000
+---- ok
+-STATEMENT CALL current_setting('progress_bar_time') RETURN *
+---- 1
+4000
+-STATEMENT CALL progress_bar_time=0
+---- ok
+-STATEMENT CALL current_setting('progress_bar_time') RETURN *
+---- 1
+0
+
 -LOG disableSemihMaskOptimization
 -STATEMENT CALL enable_semi_mask=true
 ---- ok
 -STATEMENT CALL current_setting('enable_semi_mask') RETURN *
 ---- 1
-true
+True
 -STATEMENT CALL enable_semi_mask=false
 ---- ok
 -STATEMENT CALL current_setting('enable_semi_mask') RETURN *
 ---- 1
-false
+False
 
 -LOG CallTransaction
 -STATEMENT BEGIN TRANSACTION READ ONLY;
@@ -159,9 +183,9 @@ person|person
 -STATEMENT CALL show_connection('workAt') RETURN *
 ---- 1
 person|organisation
--STATEMENT CREATE REL TABLE GROUP Knows (FROM person To person, FROM person to organisation, year INT64);
+-STATEMENT CREATE REL TABLE GROUP Knows1 (FROM person To person, FROM person to organisation, year INT64);
 ---- ok
--STATEMENT CALL show_connection('Knows') RETURN *
+-STATEMENT CALL show_connection('Knows1') RETURN *
 ---- 2
 person|person
 person|organisation
@@ -172,7 +196,7 @@ Binder exception: Show connection can only be called on a rel table!
 -LOG WrongNumParameter
 -STATEMENT CALL table_info('person', 'knows') RETURN *
 ---- error
-Binder exception: Cannot match a built-in function for given function TABLE_INFO(STRING,STRING). Supported inputs are
+Binder exception: Cannot match a built-in function for given function table_info(STRING,STRING). Supported inputs are
 (STRING)
 
 -LOG WrongParameterType
@@ -183,7 +207,10 @@ Binder exception: Show connection can only bind to String!
 -LOG WrongParameterExprType
 -STATEMENT CALL show_connection(upper("person")) RETURN *
 ---- error
-Binder exception: Parameters in table function must be a literal expression.
+Binder exception: Show connection can only be called on a rel table!
+-STATEMENT MATCH (a:person) CALL show_connection(a.fName) RETURN *
+---- error
+Binder exception: Cannot evaluate a.fName as a literal.
 
 -CASE StorageInfo
 -PARALLELISM 1
@@ -192,10 +219,10 @@ Binder exception: Parameters in table function must be a literal expression.
 8
 -STATEMENT CALL storage_info('person') RETURN COUNT(*)
 ---- 1
-37
+38
 -STATEMENT CALL storage_info('knows') RETURN COUNT(*)
 ---- 1
-78
+80
 -STATEMENT CALL storage_info('workAt') RETURN COUNT(*)
 ---- 1
-18
+22

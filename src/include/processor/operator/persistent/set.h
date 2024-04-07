@@ -21,8 +21,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return make_unique<SetNodeProperty>(
-            NodeSetExecutor::copy(executors), children[0]->clone(), id, paramsString);
+        return make_unique<SetNodeProperty>(NodeSetExecutor::copy(executors), children[0]->clone(),
+            id, paramsString);
     }
 
 private:
@@ -44,8 +44,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return make_unique<SetRelProperty>(
-            RelSetExecutor::copy(executors), children[0]->clone(), id, paramsString);
+        return make_unique<SetRelProperty>(RelSetExecutor::copy(executors), children[0]->clone(),
+            id, paramsString);
     }
 
 private:

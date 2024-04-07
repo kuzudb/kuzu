@@ -1,5 +1,7 @@
 #include "processor/operator/physical_operator.h"
 
+#include "common/exception/interrupt.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -7,50 +9,42 @@ namespace processor {
 // LCOV_EXCL_START
 std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType operatorType) {
     switch (operatorType) {
-    case PhysicalOperatorType::ADD_PROPERTY:
-        return "ADD_PROPERTY";
+    case PhysicalOperatorType::ALTER:
+        return "ALTER";
     case PhysicalOperatorType::AGGREGATE:
         return "AGGREGATE";
     case PhysicalOperatorType::AGGREGATE_SCAN:
         return "AGGREGATE_SCAN";
+    case PhysicalOperatorType::ATTACH_DATABASE:
+        return "ATTACH_DATABASE";
+    case PhysicalOperatorType::BATCH_INSERT:
+        return "BATCH_INSERT";
     case PhysicalOperatorType::STANDALONE_CALL:
         return "STANDALONE_CALL";
     case PhysicalOperatorType::COPY_TO:
         return "COPY_TO";
-    case PhysicalOperatorType::COPY_NODE:
-        return "COPY_NODE";
     case PhysicalOperatorType::COPY_RDF:
         return "COPY_RDF";
-    case PhysicalOperatorType::COPY_REL:
-        return "COPY_REL";
     case PhysicalOperatorType::CREATE_MACRO:
         return "CREATE_MACRO";
+    case PhysicalOperatorType::DETACH_DATABASE:
+        return "DETACH_DATABASE";
     case PhysicalOperatorType::READER:
         return "READER";
     case PhysicalOperatorType::INSERT:
         return "INSERT";
-    case PhysicalOperatorType::CREATE_NODE_TABLE:
-        return "CREATE_NODE_TABLE";
-    case PhysicalOperatorType::CREATE_REL_TABLE:
-        return "CREATE_REL_TABLE";
-    case PhysicalOperatorType::CREATE_RDF_GRAPH:
-        return "CREATE_RDF_TABLE";
+    case PhysicalOperatorType::CREATE_TABLE:
+        return "CREATE_TABLE";
     case PhysicalOperatorType::CROSS_PRODUCT:
         return "CROSS_PRODUCT";
     case PhysicalOperatorType::DELETE_NODE:
         return "DELETE_NODE";
     case PhysicalOperatorType::DELETE_REL:
         return "DELETE_REL";
-    case PhysicalOperatorType::DROP_PROPERTY:
-        return "DROP_PROPERTY";
     case PhysicalOperatorType::DROP_TABLE:
         return "DROP_TABLE";
     case PhysicalOperatorType::EMPTY_RESULT:
         return "EMPTY_RESULT";
-    case PhysicalOperatorType::FACTORIZED_TABLE_SCAN:
-        return "FACTORIZED_TABLE_SCAN";
-    case PhysicalOperatorType::FILL_TABLE_ID:
-        return "FILL_TABLE_ID";
     case PhysicalOperatorType::FILTER:
         return "FILTER";
     case PhysicalOperatorType::FLATTEN:
@@ -131,6 +125,10 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "IN_QUERY_CALL";
     case PhysicalOperatorType::PROFILE:
         return "PROFILE";
+    case PhysicalOperatorType::EXPORT_DATABASE:
+        return "EXPORT_DATABASE";
+    case PhysicalOperatorType::IMPORT_DATABASE:
+        return "IMPORT_DATABASE";
     default:
         KU_UNREACHABLE;
     }
@@ -177,10 +175,20 @@ void PhysicalOperator::initLocalState(ResultSet* resultSet_, ExecutionContext* c
     if (!isSource()) {
         children[0]->initLocalState(resultSet_, context);
     }
-    transaction = context->clientContext->getTx();
     resultSet = resultSet_;
     registerProfilingMetrics(context->profiler);
     initLocalStateInternal(resultSet_, context);
+}
+
+bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
+    if (context->clientContext->interrupted()) {
+        throw InterruptException{};
+    }
+    metrics->executionTime.start();
+    auto result = getNextTuplesInternal(context);
+    context->clientContext->getProgressBar()->updateProgress(getProgress(context));
+    metrics->executionTime.stop();
+    return result;
 }
 
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {
@@ -215,6 +223,10 @@ std::vector<std::string> PhysicalOperator::getProfilerAttributes(Profiler& profi
         result.emplace_back(key + ": " + std::move(val));
     }
     return result;
+}
+
+double PhysicalOperator::getProgress(ExecutionContext* /*context*/) const {
+    return 0;
 }
 
 } // namespace processor

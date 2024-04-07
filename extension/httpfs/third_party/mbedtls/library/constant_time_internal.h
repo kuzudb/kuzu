@@ -154,8 +154,8 @@ unsigned mbedtls_ct_uint_if(unsigned condition, unsigned if1, unsigned if0);
  *                      initialized MPI.
  * \param condition     Condition to test, must be 0 or 1.
  */
-void mbedtls_ct_mpi_uint_cond_assign(
-    size_t n, mbedtls_mpi_uint* dest, const mbedtls_mpi_uint* src, unsigned char condition);
+void mbedtls_ct_mpi_uint_cond_assign(size_t n, mbedtls_mpi_uint* dest, const mbedtls_mpi_uint* src,
+    unsigned char condition);
 
 #endif /* MBEDTLS_BIGNUM_C */
 
@@ -201,8 +201,8 @@ signed char mbedtls_ct_base64_dec_value(unsigned char c);
  * \param c1        The first value to analyze in the condition.
  * \param c2        The second value to analyze in the condition.
  */
-void mbedtls_ct_memcpy_if_eq(
-    unsigned char* dest, const unsigned char* src, size_t len, size_t c1, size_t c2);
+void mbedtls_ct_memcpy_if_eq(unsigned char* dest, const unsigned char* src, size_t len, size_t c1,
+    size_t c2);
 
 /** Copy data from a secret position with constant flow.
  *
@@ -296,8 +296,8 @@ int mbedtls_ct_hmac(mbedtls_md_context_t* ctx, const unsigned char* add_data, si
  * \return      #MBEDTLS_ERR_RSA_INVALID_PADDING
  *              The input doesn't contain properly formatted padding.
  */
-int mbedtls_ct_rsaes_pkcs1_v15_unpadding(
-    unsigned char* input, size_t ilen, unsigned char* output, size_t output_max_len, size_t* olen);
+int mbedtls_ct_rsaes_pkcs1_v15_unpadding(unsigned char* input, size_t ilen, unsigned char* output,
+    size_t output_max_len, size_t* olen);
 
 #endif /* MBEDTLS_PKCS1_V15 && MBEDTLS_RSA_C && ! MBEDTLS_RSA_ALT */
 

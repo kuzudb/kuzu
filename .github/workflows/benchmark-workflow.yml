@@ -1,0 +1,20 @@
+name: Benchmark
+on:
+  workflow_dispatch:
+  workflow_call:
+    
+jobs:
+  benchmark:
+    name: benchmark
+    env:
+      NUM_THREADS: 30
+      GEN: ninja
+    runs-on: kuzu-self-hosted-benchmarking
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: make benchmark LTO=1
+
+      - name: Benchmark
+        run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10

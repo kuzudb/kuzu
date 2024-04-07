@@ -1,0 +1,106 @@
+-GROUP W3Sparql
+-DATASET TTL EMPTY
+
+--
+
+-CASE W3SparqlGroup
+
+#:s1 :p 1 .
+#:s1 :q 9 .
+#:s2 :p 2 .
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (s1:R_r {iri: "s1"})-[{iri: "p"}]->(:R_l {val: 1}),
+                  (s1)-[{iri: "q"}]->(:R_l {val: 9}),
+                  (:R_r {iri: "s2"})-[{iri: "p"}]->(:R_l {val: 2});
+---- ok
+#SELECT ?s
+#{
+#  ?s :p ?v .
+#}
+#GROUP BY ?s
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "p"
+            RETURN s.iri, COUNT(*)
+---- 2
+s1|1
+s2|1
+
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "p"
+            AND EXISTS {
+                MATCH (s)-[p2]->(o2)
+                WHERE o2.val = 9
+            }
+            RETURN s.iri
+---- 1
+s1
+
+-CASE W3SparqlEqual
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "p"}]->(:R_l {val: 1}),
+                  (a)-[{iri: "q"}]->(:R_l {val: 1}),
+                  (a)-[{iri: "q"}]->(:R_l {val: "foobar"});
+---- ok
+#select ?x ?y ?z ((?y = ?z) as ?eq) where {
+#  ?x ex:p ?y .
+#  ?x ex:q ?z
+#}
+-STATEMENT MATCH (x)-[p]->(y),
+            (x)-[q]->(z)
+            WHERE p.iri = "p" AND q.iri = "q"
+            RETURN x.iri, y.val = z.val
+---- 2
+a|True
+a|False
+
+#select ?x ?y ?z ((?y + ?z) as ?sum) where {
+#  ?x ex:p ?y .
+#  ?x ex:q ?z
+#}
+-STATEMENT MATCH (x)-[p]->(y),
+            (x)-[q]->(z)
+            WHERE p.iri = "p" AND q.iri = "q"
+            RETURN x.iri, cast(y.val, "INT64") + z.val
+---- 2
+a|
+a|2
+
+-CASE W3SparqlOptional
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "p"}]->(:R_l {val: 1}),
+                  (a)-[{iri: "q"}]->(:R_l {val: 2}),
+                  (b:R_r {iri: "b"})-[{iri: "p"}]->(:R_l {val: 3});
+---- ok
+#select ?x (datatype(?l) as ?dt) where {
+#  ?x ex:p ?y .
+#  optional {?x ex:q ?l}
+#}
+-STATEMENT MATCH (x)-[p]->(y)
+            WHERE p.iri = "p"
+            OPTIONAL MATCH (x)-[q]->(l)
+            WHERE q.iri = "q"
+            RETURN x.iri, l.val + 1
+---- 2
+a|3
+b|
+
+-CASE W3SparqlNegatePath
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "p1"}]->(:R_r {iri: "b"}),
+                  (a)-[{iri: "p2"}]->(:R_r {iri: "c"}),
+                  (a)-[{iri: "p3"}]->(:R_r {iri: "d"});
+---- ok
+#select * where {
+#in:a !(ex:p1|ex:p2) ?x
+#}
+-STATEMENT MATCH (a)-[p1]->(b)
+            WHERE a.iri = "a" AND p1.iri <> "p1" AND p1.iri <> "p2"
+            RETURN b.iri
+---- 1
+d
+

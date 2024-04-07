@@ -14,8 +14,8 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
     taskScheduler = std::make_unique<TaskScheduler>(numThreads);
 }
 
-std::shared_ptr<FactorizedTable> QueryProcessor::execute(
-    PhysicalPlan* physicalPlan, ExecutionContext* context) {
+std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalPlan,
+    ExecutionContext* context) {
     auto lastOperator = physicalPlan->lastOperator.get();
     auto resultCollector = ku_dynamic_cast<PhysicalOperator*, ResultCollector*>(lastOperator);
     // The root pipeline(task) consists of operators and its prevOperator only, because we
@@ -25,12 +25,17 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(
     auto task = std::make_shared<ProcessorTask>(resultCollector, context);
     decomposePlanIntoTask(lastOperator->getChild(0), task.get(), context);
     initTask(task.get());
+    context->clientContext->getProgressBar()->startProgress();
     taskScheduler->scheduleTaskAndWaitOrError(task, context);
+    context->clientContext->getProgressBar()->endProgress();
     return resultCollector->getResultFactorizedTable();
 }
 
-void QueryProcessor::decomposePlanIntoTask(
-    PhysicalOperator* op, Task* task, ExecutionContext* context) {
+void QueryProcessor::decomposePlanIntoTask(PhysicalOperator* op, Task* task,
+    ExecutionContext* context) {
+    if (op->isSource()) {
+        context->clientContext->getProgressBar()->addPipeline();
+    }
     if (op->isSink()) {
         auto childTask =
             std::make_unique<ProcessorTask>(ku_dynamic_cast<PhysicalOperator*, Sink*>(op), context);

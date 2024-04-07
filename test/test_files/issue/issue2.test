@@ -1,0 +1,125 @@
+-GROUP IssueTest
+-DATASET CSV empty
+
+--
+
+-CASE 3129
+-STATEMENT CREATE NODE TABLE V (id UUID, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE E (FROM V TO V);
+---- ok
+-STATEMENT CREATE (v1:V {id: UUID('11111111-1111-1111-1111-111111111111')})-[:E]->(v2:V {id: UUID('22222222-2222-2222-2222-222222222222')});
+---- ok
+-STATEMENT MATCH (v:V {id: UUID('11111111-1111-1111-1111-111111111111')})
+           OPTIONAL MATCH (v)-[:E]->(v1:V)
+           RETURN v1.id
+---- 1
+22222222-2222-2222-2222-222222222222
+
+-CASE 3055
+-STATEMENT CREATE NODE TABLE test ( id STRING, prop1 STRING, prop2 INT64, prop3 STRING, prop4 STRING, PRIMARY KEY(id) )
+---- ok
+-STATEMENT MERGE (n:test { id: "ewm8ewnn@l23:" }) SET n.prop1 = "model", n.prop2 = 6, n.prop3 = "trips_2", n.prop4 = "0bbhfwnenwafnw88989382932wwewej332938293jiwojewie923892389283923" RETURN n.id
+---- ok
+-STATEMENT MERGE (n:test { id: "ewm8ewnn ewweklnbgeireg@l23:ewe" }) SET n.prop1 = "model", n.prop2 = 16, n.prop3 = "normalize_data", n.prop4 = "1bbhfwnenwafnw88989234342wwewej332938293jiwojewie923892389283923" RETURN n.id
+---- ok
+-STATEMENT MERGE (n:test { id: "ewm8ewnn ewweklnbgew888g@lew3:ewe" }) SET n.prop1 = "model", n.prop2 = 74, n.prop3 = "zones", n.prop4 = "2bbhfwnenaafnw88989234342wwewej332938293jiwojewie923192389283923" RETURN n.id
+---- ok
+-STATEMENT MERGE (n:test { id: "ewm8ew43lnbgew888g@lew3:ewe" }) SET n.prop1 = "expectation", n.prop2 = 27, n.prop3 = "test_trips_1", n.prop4 = "3bbhfwnenaafnw88989234342wwewej332938213jiwojewie923192389283923" RETURN n.id
+---- ok
+-STATEMENT MERGE (n:test { id: "ewm8ew43ffbgew888g@lew3:ewe" }) SET n.prop1 = "expectation", n.prop2 = 37, n.prop3 = "test_trips_2", n.prop4 = "4bbhfwnenaafnw88989234312wwewej332938213jiwojewie923192389283923" RETURN n.id
+---- ok
+-STATEMENT MERGE (n:test { id: "ewm8ew43ffrrr88g@lew3:ewe" }) SET n.prop1 = "expectation", n.prop2 = 47, n.prop3 = "test_norm_data_1", n.prop4 = "5bbhfwnenaafnw88989234312wwewej332938213jiwojewie923192389283923" RETURN n.id
+---- ok
+-STATEMENT MERGE (n:test { id: "fwfwfe8g@lew3:ewe" }) SET n.prop1 = "model", n.prop4 = "6bbhfwnenaafnw88989234312wwewej332938213jiwojewie923192389283923" RETURN n.id
+---- ok
+-STATEMENT MATCH (n:test) WHERE n.id = "fwfwfe8g@lew3:ewe" AND n.prop1 = "model" AND n.prop2 IS NULL AND n.prop3 IS NULL RETURN n
+---- ok
+-STATEMENT MATCH (n:test) WHERE n.id = "ewm8ewnn ewweklnbgew888g@lew3:ewe" AND n.prop1 = "model" AND n.prop2 = 74 AND n.prop3 = "zones" RETURN n
+---- ok
+-STATEMENT MATCH (n:test) WHERE n.id = "ewm8ewnn@l23:" AND n.prop1 = "model" AND n.prop2 = 6 AND n.prop3 = "trips_2" RETURN n
+---- ok
+-STATEMENT MATCH (n:test) WHERE n.id = "ewm8ewnn ewweklnbgeireg@l23:ewe" AND n.prop1 = "model" AND n.prop2 = 16 AND n.prop3 = "normalize_data" RETURN n
+---- ok
+-STATEMENT MATCH (n:test) WHERE n.id = "ewm8ew43lnbgew888g@lew3:ewe" AND n.prop1 = "expectation" AND n.prop2 = 27 AND n.prop3 = "test_trips_1" RETURN n
+---- ok
+-STATEMENT MATCH (n:test) WHERE n.id = "ewm8ew43ffbgew888g@lew3:ewe" AND n.prop1 = "expectation" AND n.prop2 = 37 AND n.prop3 = "test_trips_2" RETURN n
+---- ok
+-STATEMENT MATCH (n:test) WHERE n.id = "ewm8ew43ffrrr88g@lew3:ewe" AND n.prop1 = "expectation" AND n.prop2 = 47 AND n.prop3 = "test_norm_data_1" RETURN n
+---- ok
+-STATEMENT MERGE (n:test { id: "nfewnfwn+wnfw"}) RETURN n.id
+---- ok
+-STATEMENT MERGE (n:test { id: "nfewn32n+wnfw"}) RETURN n.id
+---- ok
+-STATEMENT CREATE NODE TABLE res ( name STRING, PRIMARY KEY(name) )
+---- ok
+-STATEMENT MERGE (n:res { name: "nfewnnfw" })  RETURN n.name
+---- ok
+-STATEMENT CREATE REL TABLE  etable ( FROM res TO test , eprop1 STRING, eprop2 STRING, eprop3 STRING )
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "nfewnnfw" AND t.id = "nfewnfwn+wnfw" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "nfewj932-ew2b-5f33-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "fwfsiewmk" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "fwfsiewmk" AND t.id = "nfewnfwn+wnfw" CREATE (f)-[r:etable { eprop1 : "0.0.0", eprop3 : "nfewj932-ew2b-5f33-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "nfewnnfw" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "nfewnnfw" AND t.id = "nfewn32n+wnfw" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "mdewj932-ew2b-5f44-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "nfewnnfw" AND t.id = "s3scan+taxi_fhvhv" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "mdewj932-ew2b-5f44-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "fwfsiewmk" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "fwfsiewmk" AND t.id = "nfewn32n+wnfw" CREATE (f)-[r:etable { eprop1 : "0.0.0", eprop3 : "mdewj932-ew2b-5f44-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "fwfsiewmk" AND t.id = "s3scan+taxi_fhvhv" CREATE (f)-[r:etable { eprop1 : "0.0.0", eprop3 : "mdewj932-ew2b-5f44-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "nfewnnfw" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "nfewnnfw" AND t.id = "ewm8ewnn ewweklnbgew888g@lew3:ewe" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "qqewj932-ew2b-5f88-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "nfewnnfw" AND t.id = "ewm8ewnn@l23:" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "qqewj932-ew2b-5f88-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "nfewnnfw" AND t.id = "ewm8ew43ffrrr88g@lew3:ewe" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "qqewj932-ew2b-5f88-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MATCH  (f) - [r:etable] -> (t) WHERE  t.id = 'ewm8ewnn@l23:' and r.eprop3 = 'qqewj932-ew2b-5f88-nfew' RETURN COUNT(*);
+---- 1
+1
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "nfewnnfw" AND t.id = "ewm8ew43ffbgew888g@lew3:ewe" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "ooewj932-ew2b-5f19-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "pdanwewer" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "pdanwewer" AND t.id = "ewm8ew43ffbgew888g@lew3:ewe" CREATE (f)-[r:etable { eprop1 : "1.2.4", eprop3 : "ooewj932-ew2b-5f19-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "another_dep" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "another_dep" AND t.id = "ewm8ew43ffbgew888g@lew3:ewe" CREATE (f)-[r:etable { eprop1 : "9.9.9", eprop3 : "ooewj932-ew2b-5f19-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "nfewnnfw" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "nfewnnfw" AND t.id = "ewm8ewnn ewweklnbgeireg@l23:ewe" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "rrewj932-ew2b-5f92-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "pdanwewer" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "pdanwewer" AND t.id = "ewm8ewnn ewweklnbgeireg@l23:ewe" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "rrewj932-ew2b-5f92-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "numpy" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "numpy" AND t.id = "ewm8ewnn ewweklnbgeireg@l23:ewe" CREATE (f)-[r:etable { eprop1 : "2.2.2", eprop3 : "rrewj932-ew2b-5f92-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "nfewnnfw" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "nfewnnfw" AND t.id = "fwfwfe8g@lew3:ewe" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "mmewj932-ew2b-5f00-nfew" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "nfewnnfw" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "nfewnnfw" AND t.id = "ewm8ew43lnbgew888g@lew3:ewe" CREATE (f)-[r:etable { eprop1 : "1.1.1", eprop3 : "piewj932-ew2b-5f00-nfrr" }]->(t) RETURN r
+---- ok
+-STATEMENT MERGE (n:res { name: "pdanwewer" })  RETURN n.name
+---- ok
+-STATEMENT MATCH (f:res), (t:test) WHERE f.name = "pdanwewer" AND t.id = "ewm8ew43lnbgew888g@lew3:ewe" CREATE (f)-[r:etable { eprop1 : "1.2.3", eprop3 : "piewj932-ew2b-5f00-nfrr" }]->(t) RETURN r
+---- ok
+-STATEMENT MATCH  (f) - [r:etable] -> (t) WHERE  t.id = 'ewm8ewnn@l23:' and r.eprop3 = 'qqewj932-ew2b-5f88-nfew' RETURN COUNT(*);
+---- 1
+1

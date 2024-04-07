@@ -1,21 +1,25 @@
 #pragma once
 
-#include "function/scalar_function.h"
-#include "function/table_functions/bind_data.h"
-#include "function/table_functions/scan_functions.h"
+#include "function/function.h"
+#include "function/table/bind_data.h"
+#include "function/table/scan_functions.h"
 #include "rdf_reader.h"
 
 namespace kuzu {
 namespace processor {
 
 struct RdfScanSharedState : public function::ScanSharedState {
+    common::RdfReaderConfig rdfConfig;
     std::unique_ptr<RdfReader> reader;
     std::shared_ptr<RdfStore> store;
 
-    RdfScanSharedState(common::ReaderConfig readerConfig, std::shared_ptr<RdfStore> store)
-        : ScanSharedState{std::move(readerConfig), 0}, store{std::move(store)} {}
-    explicit RdfScanSharedState(common::ReaderConfig readerConfig)
-        : RdfScanSharedState{std::move(readerConfig), nullptr} {}
+    RdfScanSharedState(common::ReaderConfig readerConfig, common::RdfReaderConfig rdfConfig,
+        std::shared_ptr<RdfStore> store)
+        : ScanSharedState{std::move(readerConfig), 0}, rdfConfig{std::move(rdfConfig)},
+          store{std::move(store)}, numLiteralTriplesScanned{0} {}
+    explicit RdfScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig)
+        : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig), nullptr} {}
 
     void read(common::DataChunk& dataChunk);
     void readAll();
@@ -23,87 +27,99 @@ struct RdfScanSharedState : public function::ScanSharedState {
     void initReader();
 
 private:
-    virtual void createReader(const std::string& path) = 0;
+    virtual void createReader(uint32_t fileIdx, const std::string& path,
+        common::offset_t startOffset) = 0;
+
+    common::offset_t numLiteralTriplesScanned;
 };
 
 struct RdfResourceScanSharedState final : public RdfScanSharedState {
 
-    explicit RdfResourceScanSharedState(common::ReaderConfig readerConfig)
-        : RdfScanSharedState{std::move(readerConfig)} {
+    explicit RdfResourceScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig)
+        : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig)} {
         KU_ASSERT(store == nullptr);
         store = std::make_shared<ResourceStore>();
         initReader();
     }
 
-    inline void createReader(const std::string& path) override {
-        reader = std::make_unique<RdfResourceReader>(path, readerConfig.fileType, store.get());
+    inline void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
+        reader = std::make_unique<RdfResourceReader>(rdfConfig, fileIdx, path,
+            readerConfig.fileType, store.get());
     }
 };
 
 struct RdfLiteralScanSharedState final : public RdfScanSharedState {
 
-    explicit RdfLiteralScanSharedState(common::ReaderConfig readerConfig)
-        : RdfScanSharedState{std::move(readerConfig)} {
+    explicit RdfLiteralScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig)
+        : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig)} {
         KU_ASSERT(store == nullptr);
         store = std::make_shared<LiteralStore>();
         initReader();
     }
 
-    inline void createReader(const std::string& path) override {
-        reader = std::make_unique<RdfLiteralReader>(path, readerConfig.fileType, store.get());
+    inline void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
+        reader = std::make_unique<RdfLiteralReader>(rdfConfig, fileIdx, path, readerConfig.fileType,
+            store.get());
     }
 };
 
 struct RdfResourceTripleScanSharedState final : public RdfScanSharedState {
 
-    explicit RdfResourceTripleScanSharedState(common::ReaderConfig readerConfig)
-        : RdfScanSharedState{std::move(readerConfig)} {
+    explicit RdfResourceTripleScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig)
+        : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig)} {
         KU_ASSERT(store == nullptr);
         store = std::make_shared<ResourceTripleStore>();
         initReader();
     }
 
-    inline void createReader(const std::string& path) override {
-        reader =
-            std::make_unique<RdfResourceTripleReader>(path, readerConfig.fileType, store.get());
+    inline void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
+        reader = std::make_unique<RdfResourceTripleReader>(rdfConfig, fileIdx, path,
+            readerConfig.fileType, store.get());
     }
 };
 
 struct RdfLiteralTripleScanSharedState final : public RdfScanSharedState {
 
-    explicit RdfLiteralTripleScanSharedState(common::ReaderConfig readerConfig)
-        : RdfScanSharedState{std::move(readerConfig)} {
+    explicit RdfLiteralTripleScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig)
+        : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig)} {
         KU_ASSERT(store == nullptr);
         store = std::make_shared<LiteralTripleStore>();
         initReader();
     }
 
-    void createReader(const std::string& path) override {
-        reader = std::make_unique<RdfLiteralTripleReader>(path, readerConfig.fileType, store.get());
+    void createReader(uint32_t fileIdx, const std::string& path,
+        common::offset_t startOffset) override {
+        reader = std::make_unique<RdfLiteralTripleReader>(rdfConfig, fileIdx, path,
+            readerConfig.fileType, store.get(), startOffset);
     }
 };
 
 struct RdfTripleScanSharedState final : public RdfScanSharedState {
 
-    explicit RdfTripleScanSharedState(
-        common::ReaderConfig readerConfig, std::shared_ptr<RdfStore> store)
-        : RdfScanSharedState{std::move(readerConfig), std::move(store)} {
+    explicit RdfTripleScanSharedState(common::ReaderConfig readerConfig,
+        common::RdfReaderConfig rdfConfig, std::shared_ptr<RdfStore> store)
+        : RdfScanSharedState{std::move(readerConfig), std::move(rdfConfig), std::move(store)} {
         initReader();
     }
 
-    void createReader(const std::string& path) override {
-        reader = std::make_unique<RdfTripleReader>(path, readerConfig.fileType, store.get());
+    void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
+        reader = std::make_unique<RdfTripleReader>(rdfConfig, fileIdx, path, readerConfig.fileType,
+            store.get());
     }
 };
 
 struct RdfScanBindData final : public function::ScanBindData {
     std::shared_ptr<RdfStore> store;
 
-    RdfScanBindData(common::logical_types_t columnTypes, std::vector<std::string> columnNames,
-        storage::MemoryManager* mm, common::ReaderConfig config, common::VirtualFileSystem* vfs,
+    RdfScanBindData(std::vector<common::LogicalType> columnTypes,
+        std::vector<std::string> columnNames, common::ReaderConfig config,
         main::ClientContext* context, std::shared_ptr<RdfStore> store)
-        : function::ScanBindData{std::move(columnTypes), std::move(columnNames), mm,
-              std::move(config), vfs, context},
+        : function::ScanBindData{std::move(columnTypes), std::move(columnNames), std::move(config),
+              context},
           store{std::move(store)} {}
     RdfScanBindData(const RdfScanBindData& other)
         : function::ScanBindData{other}, store{other.store} {}
@@ -138,65 +154,57 @@ private:
 };
 
 struct RdfResourceScan {
-    static function::function_set getFunctionSet();
+    static constexpr const char* name = "READ_RDF_RESOURCE";
 
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
+    static function::function_set getFunctionSet();
 };
 
 struct RdfLiteralScan {
-    static function::function_set getFunctionSet();
+    static constexpr const char* name = "READ_RDF_LITERAL";
 
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
+    static function::function_set getFunctionSet();
 };
 
 struct RdfResourceTripleScan {
-    static function::function_set getFunctionSet();
+    static constexpr const char* name = "READ_RDF_RESOURCE_TRIPLE";
 
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
+    static function::function_set getFunctionSet();
 };
 
 struct RdfLiteralTripleScan {
-    static function::function_set getFunctionSet();
+    static constexpr const char* name = "READ_RDF_LITERAL_TRIPLE";
 
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
+    static function::function_set getFunctionSet();
 };
 
 struct RdfAllTripleScan {
-    static function::function_set getFunctionSet();
+    static constexpr const char* name = "READ_RDF_ALL_TRIPLE";
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
-    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext*,
-        function::TableFuncBindInput* input_, catalog::Catalog*, storage::StorageManager*);
-    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-        function::TableFunctionInitInput& input);
+    static function::function_set getFunctionSet();
 };
 
 struct RdfResourceInMemScan {
-    static function::function_set getFunctionSet();
+    static constexpr const char* name = "IN_MEM_READ_RDF_RESOURCE";
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+    static function::function_set getFunctionSet();
 };
 
 struct RdfLiteralInMemScan {
-    static function::function_set getFunctionSet();
+    static constexpr const char* name = "IN_MEM_READ_RDF_LITERAL";
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+    static function::function_set getFunctionSet();
 };
 
 struct RdfResourceTripleInMemScan {
-    static function::function_set getFunctionSet();
+    static constexpr const char* name = "IN_MEM_READ_RDF_RESOURCE_TRIPLE";
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+    static function::function_set getFunctionSet();
 };
 
 struct RdfLiteralTripleInMemScan {
-    static function::function_set getFunctionSet();
+    static constexpr const char* name = "IN_MEM_READ_RDF_LITERAL_TRIPLE";
 
-    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+    static function::function_set getFunctionSet();
 };
 
 } // namespace processor

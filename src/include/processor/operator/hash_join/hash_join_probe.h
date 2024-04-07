@@ -15,7 +15,7 @@ struct ProbeState {
         probedTuples = std::make_unique<uint8_t*[]>(common::DEFAULT_VECTOR_CAPACITY);
         matchedSelVector =
             std::make_unique<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
-        matchedSelVector->resetSelectorToValuePosBuffer();
+        matchedSelVector->setToFiltered();
     }
 
     // Each key corresponds to a pointer with the same hash value from the ht directory.

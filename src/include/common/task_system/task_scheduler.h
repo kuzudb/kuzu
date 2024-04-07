@@ -46,8 +46,8 @@ public:
     // whether or not the given task or one of its dependencies errors, when this function
     // returns, no task related to the given task will be in the task queue. Further no worker
     // thread will be working on the given task.
-    void scheduleTaskAndWaitOrError(
-        const std::shared_ptr<Task>& task, processor::ExecutionContext* context);
+    void scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
+        processor::ExecutionContext* context);
 
 private:
     std::shared_ptr<ScheduledTask> pushTaskIntoQueue(const std::shared_ptr<Task>& task);

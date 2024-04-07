@@ -20,8 +20,8 @@ ReturnClause Transformer::transformReturn(CypherParser::OC_ReturnContext& ctx) {
 }
 
 ProjectionBody Transformer::transformProjectionBody(CypherParser::OC_ProjectionBodyContext& ctx) {
-    auto projectionBody = ProjectionBody(
-        nullptr != ctx.DISTINCT(), transformProjectionItems(*ctx.oC_ProjectionItems()));
+    auto projectionBody = ProjectionBody(nullptr != ctx.DISTINCT(),
+        transformProjectionItems(*ctx.oC_ProjectionItems()));
     if (ctx.oC_Order()) {
         std::vector<std::unique_ptr<ParsedExpression>> orderByExpressions;
         std::vector<bool> isAscOrders;

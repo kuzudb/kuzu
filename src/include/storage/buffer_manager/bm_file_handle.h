@@ -36,12 +36,12 @@ public:
     inline static uint64_t getVersion(uint64_t stateAndVersion) {
         return stateAndVersion & VERSION_MASK;
     }
-    inline static uint64_t updateStateWithSameVersion(
-        uint64_t oldStateAndVersion, uint64_t newState) {
+    inline static uint64_t updateStateWithSameVersion(uint64_t oldStateAndVersion,
+        uint64_t newState) {
         return ((oldStateAndVersion << 8) >> 8) | (newState << NUM_BITS_TO_SHIFT_FOR_STATE);
     }
-    inline static uint64_t updateStateAndIncrementVersion(
-        uint64_t oldStateAndVersion, uint64_t newState) {
+    inline static uint64_t updateStateAndIncrementVersion(uint64_t oldStateAndVersion,
+        uint64_t newState) {
         return (((oldStateAndVersion << 8) >> 8) + 1) | (newState << NUM_BITS_TO_SHIFT_FOR_STATE);
     }
     inline void spinLock(uint64_t oldStateAndVersion) {
@@ -52,8 +52,8 @@ public:
         }
     }
     inline bool tryLock(uint64_t oldStateAndVersion) {
-        return stateAndVersion.compare_exchange_strong(
-            oldStateAndVersion, updateStateWithSameVersion(oldStateAndVersion, LOCKED));
+        return stateAndVersion.compare_exchange_strong(oldStateAndVersion,
+            updateStateWithSameVersion(oldStateAndVersion, LOCKED));
     }
     inline void unlock() {
         // TODO(Keenan / Guodong): Track down this rare bug and re-enable the assert. Ref #2289.
@@ -64,12 +64,12 @@ public:
     // Change page state from Mark to Unlocked.
     inline bool tryClearMark(uint64_t oldStateAndVersion) {
         KU_ASSERT(getState(oldStateAndVersion) == MARKED);
-        return stateAndVersion.compare_exchange_strong(
-            oldStateAndVersion, updateStateWithSameVersion(oldStateAndVersion, UNLOCKED));
+        return stateAndVersion.compare_exchange_strong(oldStateAndVersion,
+            updateStateWithSameVersion(oldStateAndVersion, UNLOCKED));
     }
     inline bool tryMark(uint64_t oldStateAndVersion) {
-        return stateAndVersion.compare_exchange_strong(
-            oldStateAndVersion, updateStateWithSameVersion(oldStateAndVersion, MARKED));
+        return stateAndVersion.compare_exchange_strong(oldStateAndVersion,
+            updateStateWithSameVersion(oldStateAndVersion, MARKED));
     }
 
     inline void setDirty() {
@@ -113,8 +113,8 @@ public:
     inline common::page_idx_t getWALVersionPageIdxNoLock(common::page_idx_t pageIdxInGroup) const {
         return walPageIdxes[pageIdxInGroup];
     }
-    inline void setWALVersionPageIdxNoLock(
-        common::page_idx_t pageIdxInGroup, common::page_idx_t walVersionPageIdx) {
+    inline void setWALVersionPageIdxNoLock(common::page_idx_t pageIdxInGroup,
+        common::page_idx_t walVersionPageIdx) {
         walPageIdxes[pageIdxInGroup] = walVersionPageIdx;
     }
 

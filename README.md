@@ -6,17 +6,13 @@
 
 <p align="center">
   <a href="https://github.com/kuzudb/kuzu/actions">
-    <img src="https://github.com/kuzudb/kuzu/actions/workflows/ci-workflow.yml/badge.svg?branch=master" alt="Github Actions Badge">
-  </a>
+    <img src="https://github.com/kuzudb/kuzu/actions/workflows/ci-workflow.yml/badge.svg?branch=master" alt="Github Actions Badge"></a>
   <a href="https://codecov.io/gh/kuzudb/kuzu" >
-    <img src="https://codecov.io/github/kuzudb/kuzu/branch/master/graph/badge.svg?token=N1AT6H79LM"/>
-  </a>
+    <img src="https://codecov.io/github/kuzudb/kuzu/branch/master/graph/badge.svg?token=N1AT6H79LM"/></a>
   <a href="https://discord.gg/VtX2gw9Rug">
-    <img src="https://img.shields.io/discord/1196510116388806837?logo=discord" alt="discord" />
-  </a>
+    <img src="https://img.shields.io/discord/1196510116388806837?logo=discord" alt="discord" /></a>
   <a href="https://twitter.com/kuzudb">
-    <img src="https://img.shields.io/badge/follow-@kuzudb-1DA1F2?logo=twitter" alt="twitter">
-  </a>
+    <img src="https://img.shields.io/badge/follow-@kuzudb-1DA1F2?logo=twitter" alt="twitter"></a>
 </p>
 
 # Kùzu
@@ -46,20 +42,15 @@ Kùzu is available under a permissible license. So try it out and help us make i
 | C/C++  | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
 | CLI    | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
 
-To learn more about installation, see our [Installation](https://kuzudb.com/docusaurus/installation/) page.
+To learn more about installation, see our [Installation](https://docs.kuzudb.com/installation) page.
 
 ## Getting Started
 
-Refer to our [Getting Started](https://kuzudb.com/docusaurus/getting-started/) page for your first example.
-
-More information can be found at
-- [Data Import](https://kuzudb.com/docusaurus/data-import/)
-- [Cypher Reference](https://kuzudb.com/docusaurus/cypher/)
-- [Client APIs](https://kuzudb.com/docusaurus/client-apis/)
+Refer to our [Getting Started](https://docs.kuzudb.com/get-started/) page for your first example.
 
 ## Build from Source
 
-Instructions can be found at [Build Kùzu from Source](https://kuzudb.com/docusaurus/development/building-kuzu).
+You can build from source using the instructions provided in the [developer guide](https://docs.kuzudb.com/developer-guide).
 
 ## Contributing
 We welcome contributions to Kùzu. If you are interested in contributing to Kùzu, please read our [Contributing Guide](CONTRIBUTING.md).
@@ -95,4 +86,4 @@ You can use the following BibTeX citation:
 ```
 
 ## Contact Us
-You can contact us at [contact@kuzudb.com](mailto:contact@kuzudb.com) or [join our Discord community](https://discord.gg/cnxYf3Yc).
+You can contact us at [contact@kuzudb.com](mailto:contact@kuzudb.com) or [join our Discord community](https://discord.gg/VtX2gw9Rug).

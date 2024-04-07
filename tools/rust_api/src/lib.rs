@@ -23,13 +23,15 @@
 //!
 //! ## Safety
 //!
-//! Generally, use of of this API is safe, however creating multiple databases in the same
-//! scope is not safe.
+//! Generally, use of this API is safe - however creating multiple databases in the same
+//! scope is not considered safe.
 //! If you need to access multiple databases you will need to do so in separate processes.
 //!
 //! ## Building
 //!
 //! By default, the kuzu C++ library will be compiled from source and statically linked.
+//! If the kuzu C++ library is not being built using multiple threads by default, you can set the
+//! CMAKE_BUILD_PARALLEL_LEVEL environment variable to potentially speed up the build process.
 //!
 //! If you want to instead link against a pre-built version of the library, the following environment
 //! variables can be used to configure the build process:
@@ -44,6 +46,7 @@ mod error;
 mod ffi;
 mod logical_type;
 mod query_result;
+mod rdf_variant;
 mod value;
 
 pub use connection::{Connection, PreparedStatement};
@@ -51,7 +54,15 @@ pub use database::{Database, LoggingLevel, SystemConfig};
 pub use error::Error;
 pub use logical_type::LogicalType;
 pub use query_result::{CSVOptions, QueryResult};
+pub use rdf_variant::RDFVariant;
 pub use value::{InternalID, NodeVal, RelVal, Value};
 
 #[cfg(feature = "arrow")]
 pub use query_result::ArrowIterator;
+
+/// The version of the Kùzu crate as reported by Cargo's CARGO_PKG_VERSION environment variable
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Returns the storage version of the Kùzu library
+pub fn get_storage_version() -> u64 {
+    crate::ffi::ffi::get_storage_version()
+}

@@ -9,8 +9,8 @@ namespace function {
 // https://github.com/duckdb/duckdb/blob/master/src/function/scalar/string/contains.cpp
 
 struct Find {
-    static inline void operation(
-        common::ku_string_t& left, common::ku_string_t& right, int64_t& result) {
+    static inline void operation(common::ku_string_t& left, common::ku_string_t& right,
+        int64_t& result) {
         if (right.len == 0) {
             result = 1;
         } else if (right.len > left.len) {
@@ -33,8 +33,8 @@ private:
 
     // Returns the position of the first occurrence of needle in the haystack. If haystack doesn't
     // contain needle, it returns -1.
-    static int64_t find(
-        const uint8_t* haystack, uint32_t haystackLen, const uint8_t* needle, uint32_t needleLen);
+    static int64_t find(const uint8_t* haystack, uint32_t haystackLen, const uint8_t* needle,
+        uint32_t needleLen);
 };
 
 } // namespace function

@@ -1,0 +1,13 @@
+<http://one.example/subject1> <http://one.example/predicate1> <http://one.example/object1> . # comments here
+# or on a line by themselves
+_:subject1 <http://an.example/predicate1> "object1" .
+_:subject2 <http://an.example/predicate2> "object2" .
+<http://example.org/#spiderman> <http://www.perceive.net/schemas/relationship/enemyOf> <http://example.org/#green-goblin> .
+<http://example.org/show/218> <http://www.w3.org/2000/01/rdf-schema#label> "That Seventies Show"^^<http://www.w3.org/2001/XMLSchema#string> . # literal with XML Schema string datatype
+<http://example.org/show/218> <http://www.w3.org/2000/01/rdf-schema#label> "That Seventies Show" . # same as above
+<http://example.org/show/218> <http://example.org/show/localName> "That Seventies Show"@en . # literal with a language tag
+<http://example.org/show/218> <http://example.org/show/localName> "Cette Série des Années Septante"@fr-be .  # literal outside of ASCII range with a region subtag
+<http://en.wikipedia.org/wiki/Helium> <http://example.org/elements/atomicNumber> "2"^^<http://www.w3.org/2001/XMLSchema#integer> . # xsd:integer
+<http://en.wikipedia.org/wiki/Helium> <http://example.org/elements/specificGravity> "1.663E-4"^^<http://www.w3.org/2001/XMLSchema#double> .     # xsd:double
+_:alice <http://xmlns.com/foaf/0.1/knows> _:bob .
+_:bob <http://xmlns.com/foaf/0.1/knows> _:alice .

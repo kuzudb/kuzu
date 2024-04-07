@@ -104,12 +104,20 @@ struct StorageConstants {
 
     static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
     static constexpr uint64_t NODE_GROUP_SIZE = (uint64_t)1 << NODE_GROUP_SIZE_LOG2;
+
+    static constexpr double PACKED_CSR_DENSITY = 0.8;
+    static constexpr double LEAF_LOW_CSR_DENSITY = 0.1;
+    static constexpr double LEAF_HIGH_CSR_DENSITY = 1.0;
+    // The number of CSR lists in a segment.
+    static constexpr uint64_t CSR_SEGMENT_SIZE_LOG2 = 10;
+    static constexpr uint64_t CSR_SEGMENT_SIZE = (uint64_t)1 << CSR_SEGMENT_SIZE_LOG2;
+
+    static constexpr bool TRUNCATE_OVER_LARGE_STRINGS = true;
 };
 
 // Hash Index Configurations
 struct HashIndexConstants {
-    static constexpr uint8_t INT64_SLOT_CAPACITY = 15;
-    static constexpr uint8_t STRING_SLOT_CAPACITY = 10;
+    static constexpr uint16_t SLOT_CAPACITY_BYTES = 256;
     static constexpr double MAX_LOAD_FACTOR = 0.8;
 };
 
@@ -139,6 +147,7 @@ struct CopyConstants {
 
 struct RdfConstants {
     static constexpr const char IN_MEMORY_OPTION[] = "IN_MEMORY";
+    static constexpr const char STRICT_OPTION[] = "STRICT";
 };
 
 struct LoggerConstants {
@@ -162,11 +171,6 @@ struct PlannerKnobs {
     // Avoid doing probe to build SIP if we have to accumulate a probe side that is much bigger than
     // build side. Also avoid doing build to probe SIP if probe side is not much bigger than build.
     static constexpr uint64_t SIP_RATIO = 5;
-};
-
-struct ClientContextConstants {
-    // We disable query timeout by default.
-    static constexpr uint64_t TIMEOUT_IN_MS = 0;
 };
 
 struct OrderByConstants {
@@ -197,6 +201,12 @@ struct CopyToCSVConstants {
     static constexpr const char* DEFAULT_NULL_STR = "";
     static constexpr const bool DEFAULT_FORCE_QUOTE = false;
     static constexpr const uint64_t DEFAULT_CSV_FLUSH_SIZE = 4096 * 8;
+};
+
+struct ImportDBConstants {
+    static constexpr char SCHEMA_NAME[] = "schema.cypher";
+    static constexpr char COPY_NAME[] = "copy.cypher";
+    static constexpr char MACRO_NAME[] = "macro.cypher";
 };
 
 } // namespace common

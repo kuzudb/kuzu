@@ -1,10 +1,12 @@
 @prefix : <https://rdfox.com/getting-started/> .
+@prefix kuzu: <https://kuzudb.com/> .
 
 :andy :literal 12 ;
       :literal -14.9 ;
       :literal true ;
       :literal 1.663E-2 ;
-      :literal "1999-08-16"^^<http://www.w3.org/2001/XMLSchema#date> .
+      :literal "1999-08-16"^^<http://www.w3.org/2001/XMLSchema#date> ;
+      :role kuzu:engineer .
 
 :peter :forename "Peter" ;
     a :Person ;

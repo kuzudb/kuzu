@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 # Only allow one run in this group to run at a time, and cancel any runs in progress in this group.
 # We use the workflow name and then add the pull request number, or (if it's a push to master), we use the name of the branch.
@@ -24,7 +25,7 @@ concurrency:
 jobs:
   gcc-build-test:
     name: gcc build & test
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-format, sanity-checks, python-lint-check]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -38,6 +39,9 @@ jobs:
       UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
       AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      RUN_ID: "$(hostname)-$(date +%s)"
 
     steps:
       - uses: actions/checkout@v3
@@ -50,11 +54,6 @@ jobs:
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
-
-      - name: Extension test
-        run: |
-          cd scripts/ && python3 http-server.py &
-          make extension-test
 
       - name: Build
         run: make all
@@ -84,7 +83,7 @@ jobs:
 
   gcc-build-test-x86:
     name: gcc build & test 32-bit
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-format, sanity-checks]
     runs-on: ubuntu-latest
 
     steps:
@@ -92,10 +91,10 @@ jobs:
 
       - name: Start Docker container
         run: |
-         docker run -d --name kuzu-x86 \
-                    -v $PWD:/kuzu -w /kuzu \
-                    -e NUM_THREADS=2 -e GEN=ninja -e CC=gcc -e CXX=g++ \
-                    i386/debian:latest tail -f /dev/null
+          docker run -d --name kuzu-x86 \
+                     -v $PWD:/kuzu -w /kuzu \
+                     -e NUM_THREADS=2 -e GEN=ninja -e CC=gcc -e CXX=g++ \
+                     i386/debian:stable tail -f /dev/null
 
       - name: Install dependencies
         run: |
@@ -105,7 +104,7 @@ jobs:
       - name: Build & Test
         run: |
           docker exec kuzu-x86 make test
-      
+
       - name: Stop Docker container
         run: docker stop kuzu-x86
 
@@ -120,20 +119,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Rust share build
-        # Share build cache when building rust API and the example project
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
       - name: Rust test
         working-directory: tools/rust_api
         run: |
-          cargo update -p half@2.3.1 --precise '2.2.1'
-          cargo update -p time --precise '0.3.23'
-          cargo test --features arrow -- --test-threads=1
+          cargo test --locked --features arrow -- --test-threads=1
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build --features arrow
+        run: cargo build --locked --features arrow
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
@@ -164,7 +157,7 @@ jobs:
 
   clang-build-test:
     name: clang build and test
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-format, sanity-checks, python-lint-check]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -175,8 +168,20 @@ jobs:
       UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
       AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      RUN_ID: "$(hostname)-$(date +%s)"
     steps:
       - uses: actions/checkout@v3
+
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
 
       - name: Ensure Python dependencies
         run: |
@@ -209,7 +214,7 @@ jobs:
 
   msvc-build-test:
     name: msvc build & test
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-format, sanity-checks, python-lint-check]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
@@ -218,6 +223,14 @@ jobs:
       NUM_THREADS: 18
       TEST_JOBS: 9
       WERROR: 0
+      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
+      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      PG_HOST: ${{ secrets.PG_HOST }}
+      RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
     steps:
       - uses: actions/checkout@v3
 
@@ -262,9 +275,7 @@ jobs:
           set KUZU_TESTING=1
           set CFLAGS=/MDd
           set CXXFLAGS=/MDd /std:c++20
-          cargo update -p half@2.3.1 --precise 2.2.1
-          cargo update -p time --precise '0.3.23'
-          cargo test -- --test-threads=1
+          cargo test --locked -- --test-threads=1
 
       - name: Java test
         shell: cmd
@@ -274,7 +285,7 @@ jobs:
 
   tidy-and-diagnostics:
     name: clang tidy & clangd diagnostics check
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-format, sanity-checks]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -311,25 +322,58 @@ jobs:
       - name: Ensure generated grammar files are up to date
         run: cmp src/antlr4/Cypher.g4 scripts/antlr4/Cypher.g4.copy
 
-  clang-formatting-check:
-    name: clang-format check
+  clang-format:
+    name: clang format
     runs-on: ubuntu-22.04
     steps:
       - name: Install clang-format
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-format-11
+          sudo apt-get install -y lsb-release wget software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          yes | sudo ./llvm.sh 18 all
 
       - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Check source format
-        run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r src/
+      - name: Check and fix source format
+        run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r src/
 
-      - name: Check test format
-        run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r test/
+      - name: Check and fix test format
+        run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r test/
 
-      - name: Check extension format
-        run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r extension/
+      - name: Check and fix extension format
+        run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r extension/
+
+      - name: Fail if any chang is made (master branch)
+        if: github.ref == 'refs/heads/master'
+        run: git diff --exit-code
+
+      - name: Commit changes (non-master branch)
+        uses: EndBug/add-and-commit@v9
+        if: github.ref != 'refs/heads/master'
+        with:
+          author_name: "CI Bot"
+          message: "Run clang-format"
+
+  python-lint-check:
+    name: python lint check
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.11"
+
+      - name: Run Python lint
+        working-directory: tools/python_api
+        run: |
+          make requirements
+          ./.venv/bin/ruff check src_py test --verbose
 
   rustfmt-check:
     name: rustfmt check
@@ -347,22 +391,11 @@ jobs:
   benchmark:
     name: benchmark
     needs: [gcc-build-test, clang-build-test]
-    env:
-      NUM_THREADS: 30
-      GEN: ninja
-    runs-on: kuzu-self-hosted-benchmarking
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Build
-        run: make benchmark LTO=1
-
-      - name: Benchmark
-        run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
+    uses: ./.github/workflows/benchmark-workflow.yml
 
   macos-clang-tidy:
     name: macos clang tidy & clangd diagnostics check
-    needs: [clang-formatting-check, sanity-checks]
+    needs: [clang-format, sanity-checks]
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32
@@ -387,7 +420,7 @@ jobs:
 
   macos-build-test:
     name: apple clang build & test
-    needs: [clang-formatting-check, sanity-checks, rustfmt-check]
+    needs: [clang-format, sanity-checks, rustfmt-check, python-lint-check]
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32
@@ -397,6 +430,10 @@ jobs:
       UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
       AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      PG_HOST: ${{ secrets.PG_HOST }}
+      RUN_ID: "$(hostname)-$(date +%s)"
     steps:
       - uses: actions/checkout@v3
 
@@ -408,11 +445,6 @@ jobs:
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
-
-      - name: Extension test
-        run: |
-          cd scripts/ && python3 http-server.py &
-          make extension-test && make clean
 
       - name: Build
         run: make all
@@ -442,10 +474,6 @@ jobs:
           ulimit -n 10240
           make javatest
 
-      - name: Rust share build
-        # Share build cache when building rust API and the example project
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
       - name: Rust test
         run: |
           ulimit -n 10240
@@ -457,4 +485,130 @@ jobs:
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          cargo build --features arrow
+          cargo build --locked --features arrow
+
+  shell-test:
+    name: shell test
+    runs-on: ubuntu-latest
+    needs: [clang-format, sanity-checks]
+    env:
+      WERROR: 0
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: make release NUM_THREADS=$(nproc)
+
+      - name: Test
+        working-directory: tools/shell/test
+        run: |
+          pip3 install pytest pexpect
+          python3 -m pytest -v .
+
+  linux-extension-test:
+    name: linux extension test
+    needs: [gcc-build-test, clang-build-test]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      CLANGD_DIAGNOSTIC_JOBS: 32
+      CLANGD_DIAGNOSTIC_INSTANCES: 6
+      GEN: ninja
+      CC: gcc
+      CXX: g++
+      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
+      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      RUN_ID: "$(hostname)-$(date +%s)"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
+
+      - name: Extension test
+        run: |
+          cd scripts/ && python3 http-server.py &
+          make extension-test && make clean
+
+  macos-extension-test:
+    name: macos extension test
+    needs: [macos-build-test]
+    runs-on: self-hosted-mac-x64
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      GEN: ninja
+      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
+      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      PG_HOST: ${{ secrets.PG_HOST }}
+      RUN_ID: "$(hostname)-$(date +%s)"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
+
+      - name: Extension test
+        run: |
+          cd scripts/ && python3 http-server.py &
+          make extension-test && make clean
+
+  windows-extension-test:
+    name: windows extension test
+    needs: [msvc-build-test]
+    runs-on: self-hosted-windows
+    env:
+      # Shorten build path as much as possible
+      CARGO_TARGET_DIR: ${{ github.workspace }}/rs
+      CARGO_BUILD_JOBS: 18
+      NUM_THREADS: 18
+      TEST_JOBS: 9
+      WERROR: 0
+      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
+      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      PG_HOST: ${{ secrets.PG_HOST }}
+      RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update PostgreSQL host
+        working-directory: extension/postgres_scanner/test/test_files
+        env:
+          FNAME: postgres_scanner.test
+          FIND: "localhost"
+        run: |
+          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          cat postgres_scanner.test
+
+      - name: Extension test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          cd scripts/ && start /b python http-server.py && cd ..
+          make extension-test && make clean

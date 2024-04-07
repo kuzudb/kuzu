@@ -1,0 +1,3 @@
+@prefix foaf: <x> .
+
+[ foaf:name "Alice" ] foaf:knows "Xiyang" .

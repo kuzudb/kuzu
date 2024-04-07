@@ -323,7 +323,7 @@ public class ValueTest extends TestBase {
 
         value = flatTuple.getValue(2);
         dataType = value.getDataType();
-        assertEquals(dataType.getID(), KuzuDataTypeID.VAR_LIST);
+        assertEquals(dataType.getID(), KuzuDataTypeID.LIST);
         KuzuDataType childDataType = dataType.getChildType();
         assertEquals(childDataType.getID(), KuzuDataTypeID.INT64);
         childDataType.destroy();
@@ -471,6 +471,23 @@ public class ValueTest extends TestBase {
     }
 
     @Test
+    void ValueGetUINT64() throws KuzuObjectRefDestroyedException {
+        // UINT64
+        KuzuQueryResult result = conn.query("RETURN cast(1000043524, \"UINT64\")");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        assertEquals(value.getValue(), new BigInteger("1000043524"));
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
     void ValueGetInt128() throws KuzuObjectRefDestroyedException {
         // INT128
         KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY a.ID");
@@ -488,22 +505,22 @@ public class ValueTest extends TestBase {
         result.destroy();
     }
 
-//     @Test
-//     void ValueGetSERIAL() throws KuzuObjectRefDestroyedException {
-//         // SERIAL
-//         KuzuQueryResult result = conn.query("MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;");
-//         assertTrue(result.isSuccess());
-//         assertTrue(result.hasNext());
-//         KuzuFlatTuple flatTuple = result.getNext();
-//         KuzuValue value = flatTuple.getValue(0);
-//         assertTrue(value.isOwnedByCPP());
-//         assertFalse(value.isNull());
-//
-//         assertTrue(value.getValue().equals(2L));
-//         value.destroy();
-//         flatTuple.destroy();
-//         result.destroy();
-//     }
+    @Test
+    void ValueGetSERIAL() throws KuzuObjectRefDestroyedException {
+        // SERIAL
+        KuzuQueryResult result = conn.query("MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        assertTrue(value.getValue().equals(2L));
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
 
 
     @Test
@@ -837,7 +854,7 @@ public class ValueTest extends TestBase {
         String str = KuzuValueNodeUtil.toString(value);
         assertEquals(str, "{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, " +
                 "score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years " +
-                "5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto', 'montr,eal'], " +
+                "5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], " +
                 "stock: {price: [96,56], volume: 1000}}, info: 3.120000}");
         value.destroy();
         flatTuple.destroy();
@@ -1018,7 +1035,7 @@ public class ValueTest extends TestBase {
 
     @Test
     void RecursiveRelGetNodeAndRelList() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person)-[e*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;");
+        KuzuQueryResult result = conn.query("MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         KuzuFlatTuple flatTuple = result.getNext();
@@ -1048,6 +1065,117 @@ public class ValueTest extends TestBase {
         relList.destroy();
         value.destroy();
         flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void RdfVariantTest() throws KuzuObjectRefDestroyedException {
+        KuzuQueryResult result = conn.query("MATCH (a:T_l) RETURN a.val ORDER BY a.id;");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        int i = 0;
+        while (result.hasNext()) {
+            KuzuFlatTuple flatTuple = result.getNext();
+            KuzuValue value = flatTuple.getValue(0);
+            KuzuDataType dataType = KuzuValueRdfVariantUtil.getDataType(value);
+            switch (i) {
+                case 0: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.INT64);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals(12L);
+                    break;
+                }
+                case 1: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.INT32);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals(43);
+                    break;
+                }
+                case 2: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.INT16);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals((short) 33);
+                    break;
+                }
+                case 3: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.INT8);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals((byte) 2);
+                    break;
+                }
+                case 4: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.UINT64);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals(BigInteger.valueOf(90));
+                    break;
+                }
+                case 5: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.UINT32);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals(77);
+                    break;
+                }
+                case 6: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.UINT16);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals((short) 12);
+                    break;
+                }
+                case 7: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.UINT8);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals((byte) 1);
+                    break;
+                }
+                case 8: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.DOUBLE);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals((double) 4.4);
+                    break;
+                }
+                case 9: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.FLOAT);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals((float) 1.2);
+                    break;
+                }
+                case 10: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.BOOL);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals(true);
+                    break;
+                }
+                case 11: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.STRING);
+                    assert KuzuValueRdfVariantUtil.getValue(value).equals("hhh");
+                    break;
+                }
+                case 12: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.DATE);
+                    LocalDate date = KuzuValueRdfVariantUtil.getValue(value);
+                    assertEquals((long) date.toEpochDay(), 19723L);
+                    break;
+                }
+                case 13: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.TIMESTAMP);
+                    Instant stamp = KuzuValueRdfVariantUtil.getValue(value);
+                    assertEquals(stamp.toEpochMilli(), 1704108330000L);
+                    break;
+                }
+                case 14: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.INTERVAL);
+                    Duration interval = KuzuValueRdfVariantUtil.getValue(value);
+                    long month = (long) (interval.toDays() / 30);
+                    long day = interval.toDays() - (long) (month * 30);
+                    long micros = interval.minusDays(interval.toDays()).toMillis() * 1000;
+                    assertEquals(month, 0);
+                    assertEquals(day, 2);
+                    assertEquals(micros, 0);
+                    break;
+                }
+                case 15: {
+                    assertEquals(dataType.getID(), KuzuDataTypeID.BLOB);
+                    byte[] bytes = KuzuValueRdfVariantUtil.getValue(value);
+                    assertEquals(bytes.length, 1);
+                    assertEquals(bytes[0], (byte) 0xB2);
+                    break;
+                }
+            }
+            value.destroy();
+            dataType.destroy();
+            flatTuple.destroy();
+            i++;
+        }
+        assertEquals(i, 16);
         result.destroy();
     }
 }

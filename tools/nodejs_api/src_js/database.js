@@ -1,6 +1,6 @@
 "use strict";
 
-const KuzuNative = require("./kuzujs.node");
+const KuzuNative = require("./kuzu_native.js");
 const LoggingLevel = require("./logging_level.js");
 
 class Database {
@@ -14,12 +14,16 @@ class Database {
    * @param {Number} bufferManagerSize size of the buffer manager in bytes.
    * @param {Boolean} enableCompression whether to enable compression.
    * @param {Boolean} readOnly if true, database will be opened in read-only mode.
+   * @param {Number} maxDBSize maximum size of the database file in bytes. Note that
+   * this is introduced temporarily for now to get around with the default 8TB mmap
+   * address space limit some environment.
    */
   constructor(
     databasePath,
     bufferManagerSize = 0,
     enableCompression = true,
-    readOnly = false
+    readOnly = false,
+    maxDBSize = 0
   ) {
     if (typeof databasePath !== "string") {
       throw new Error("Database path must be a string.");
@@ -27,15 +31,36 @@ class Database {
     if (typeof bufferManagerSize !== "number" || bufferManagerSize < 0) {
       throw new Error("Buffer manager size must be a positive integer.");
     }
+    if (typeof maxDBSize !== "number" || maxDBSize < 0) {
+      throw new Error("Max DB size must be a positive integer.");
+    }
     bufferManagerSize = Math.floor(bufferManagerSize);
+    maxDBSize = Math.floor(maxDBSize);
     this._database = new KuzuNative.NodeDatabase(
       databasePath,
       bufferManagerSize,
       enableCompression,
       readOnly,
+      maxDBSize
     );
     this._isInitialized = false;
     this._initPromise = null;
+  }
+
+  /**
+   * Get the version of the library.
+   * @returns {String} the version of the library.
+   */
+  static getVersion() {
+    return KuzuNative.NodeDatabase.getVersion();
+  }
+
+  /**
+   * Get the storage version of the library.
+   * @returns {Number} the storage version of the library.
+   */
+  static getStorageVersion() {
+    return KuzuNative.NodeDatabase.getStorageVersion();
   }
 
   /**

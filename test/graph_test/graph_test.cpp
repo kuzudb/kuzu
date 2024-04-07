@@ -19,16 +19,13 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace testing {
 
-void PrivateGraphTest::validateQueryBestPlanJoinOrder(
-    std::string query, std::string expectedJoinOrder) {
-    auto catalog = getCatalog(*database);
+void PrivateGraphTest::validateQueryBestPlanJoinOrder(std::string query,
+    std::string expectedJoinOrder) {
     auto statement = parser::Parser::parseQuery(query);
-    auto parsedQuery = (parser::RegularQuery*)statement.get();
-    auto boundQuery =
-        Binder(*catalog, database->memoryManager.get(), database->storageManager.get(),
-            database->vfs.get(), conn->clientContext.get(), database->extensionOptions.get())
-            .bind(*parsedQuery);
-    auto planner = Planner(catalog, getStorageManager(*database));
+    ASSERT_EQ(statement.size(), 1);
+    auto parsedQuery = (parser::RegularQuery*)statement[0].get();
+    auto boundQuery = Binder(conn->clientContext.get()).bind(*parsedQuery);
+    auto planner = Planner(conn->clientContext.get());
     auto plan = planner.getBestPlan(*boundQuery);
     ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
 }
@@ -41,6 +38,13 @@ void DBTest::createDB(uint64_t checkpointWaitTimeout) {
     getTransactionManager(*database)->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
         checkpointWaitTimeout /* 10ms */);
     spdlog::set_level(spdlog::level::info);
+}
+
+void DBTest::createNewDB() {
+    database.reset();
+    conn.reset();
+    removeDir(databasePath);
+    createDBAndConn();
 }
 
 } // namespace testing

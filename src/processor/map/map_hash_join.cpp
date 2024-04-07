@@ -10,8 +10,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
-    const Schema& buildSchema, const expression_vector& keys, const expression_vector& payloads) {
+std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(const Schema& buildSchema,
+    const expression_vector& keys, const expression_vector& payloads) {
     planner::f_group_pos_set keyGroupPosSet;
     std::vector<DataPos> keysPos;
     std::vector<FStateType> fStateTypes;
@@ -41,18 +41,20 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
             columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, pos.dataChunkPos,
                 LogicalTypeUtils::getRowLayoutSize(payload->dataType));
         } else {
-            columnSchema = std::make_unique<ColumnSchema>(
-                true /* isUnFlat */, pos.dataChunkPos, (uint32_t)sizeof(overflow_value_t));
+            columnSchema = std::make_unique<ColumnSchema>(true /* isUnFlat */, pos.dataChunkPos,
+                (uint32_t)sizeof(overflow_value_t));
         }
         tableSchema->appendColumn(std::move(columnSchema));
         payloadsPos.push_back(pos);
     }
-    auto pointerType = LogicalType(LogicalTypeID::INT64);
+    auto hashValueColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
+        INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(*LogicalType::HASH()));
+    tableSchema->appendColumn(std::move(hashValueColumn));
     auto pointerColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
-        INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(pointerType));
+        INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(*LogicalType::INT64()));
     tableSchema->appendColumn(std::move(pointerColumn));
-    return std::make_unique<HashJoinBuildInfo>(
-        std::move(keysPos), std::move(fStateTypes), std::move(payloadsPos), std::move(tableSchema));
+    return std::make_unique<HashJoinBuildInfo>(std::move(keysPos), std::move(fStateTypes),
+        std::move(payloadsPos), std::move(tableSchema));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logicalOperator) {
@@ -81,8 +83,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
         ExpressionUtil::excludeExpressions(hashJoin->getExpressionsToMaterialize(), probeKeys);
     // Create build
     auto buildInfo = createHashBuildInfo(*buildSchema, buildKeys, payloads);
-    auto globalHashTable = std::make_unique<JoinHashTable>(
-        *memoryManager, LogicalType::copy(buildKeyTypes), buildInfo->getTableSchema()->copy());
+    auto globalHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
+        LogicalType::copy(buildKeyTypes), buildInfo->getTableSchema()->copy());
     auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
     auto hashJoinBuild =
         make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(buildSchema), sharedState,

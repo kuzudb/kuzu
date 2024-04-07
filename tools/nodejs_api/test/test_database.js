@@ -65,8 +65,8 @@ describe("Database constructor", function () {
     const testDbReadOnly = new kuzu.Database(
       tmpDbPath,
       1 << 28 /* 256MB */,
-      true, /* compression */
-      true, /* readOnly */
+      true /* compression */,
+      true /* readOnly */
     );
     assert.exists(testDbReadOnly);
     assert.equal(testDbReadOnly.constructor.name, "Database");
@@ -94,6 +94,31 @@ describe("Database constructor", function () {
         "Cannot execute write operations in a read-only database!"
       );
     }
+  });
+
+  it("should create a database with a valid max DB size", async function () {
+    const tmpDbPath = await new Promise((resolve, reject) => {
+      tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(path);
+      });
+    }
+    );
+    const testDb = new kuzu.Database(
+      tmpDbPath,
+      1 << 28 /* 256MB */,
+      true /* compression */,
+      false /* readOnly */,
+      1 << 30 /* 1GB */
+    );
+    assert.exists(testDb);
+    assert.equal(testDb.constructor.name, "Database");
+    await testDb.init();
+    assert.exists(testDb._database);
+    assert.isTrue(testDb._isInitialized);
+    assert.notExists(testDb._initPromise);
   });
 
   it("should throw error if the path is invalid", async function () {
@@ -126,6 +151,15 @@ describe("Database constructor", function () {
         e.message,
         "Buffer manager size must be a positive integer."
       );
+    }
+  });
+
+  it("should throw error if the max DB size is invalid", async function () {
+    try {
+      const _ = new kuzu.Database("", 1 << 28 /* 256MB */, true, false, {});
+      assert.fail("No error thrown when the max DB size is invalid.");
+    } catch (e) {
+      assert.equal(e.message, "Max DB size must be a positive integer.");
     }
   });
 });

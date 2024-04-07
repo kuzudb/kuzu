@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catalog/catalog.h"
+#include "main/client_context.h"
 #include "query_graph.h"
 
 namespace kuzu {
@@ -8,7 +8,9 @@ namespace binder {
 
 class QueryGraphLabelAnalyzer {
 public:
-    explicit QueryGraphLabelAnalyzer(const catalog::Catalog& catalog) : catalog{catalog} {}
+    // TODO(Jiamin): remove catalog
+    explicit QueryGraphLabelAnalyzer(const main::ClientContext& clientContext)
+        : clientContext{clientContext} {}
 
     void pruneLabel(const QueryGraph& graph);
 
@@ -17,7 +19,7 @@ private:
     void pruneRel(RelExpression& rel);
 
 private:
-    const catalog::Catalog& catalog;
+    const main::ClientContext& clientContext;
 };
 
 } // namespace binder

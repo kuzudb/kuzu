@@ -3,6 +3,10 @@
 #include "expression_evaluator.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace evaluator {
 
 class LiteralExpressionEvaluator : public ExpressionEvaluator {
@@ -12,17 +16,17 @@ public:
 
     ~LiteralExpressionEvaluator() override = default;
 
-    inline void evaluate() override {}
+    inline void evaluate(main::ClientContext* /* clientContext */) override {}
 
-    bool select(common::SelectionVector& selVector) override;
+    bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
 
     inline std::unique_ptr<ExpressionEvaluator> clone() override {
         return make_unique<LiteralExpressionEvaluator>(value);
     }
 
 protected:
-    void resolveResultVector(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
+    void resolveResultVector(const processor::ResultSet& resultSet,
+        storage::MemoryManager* memoryManager) override;
 
 private:
     std::shared_ptr<common::Value> value;

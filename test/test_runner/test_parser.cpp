@@ -6,10 +6,11 @@
 #include <unistd.h>
 #endif
 
-#if defined(__linux__) && defined(__GLIBC__)
-// Do nothing if glibc is used
-#else
+#ifdef __linux__
+#include <features.h>
+#ifndef __GLIBC__
 #define __MUSL__
+#endif
 #endif
 
 #include <filesystem>
@@ -84,14 +85,15 @@ void TestParser::parseHeader() {
             testGroup->group = "DISABLED_" + testGroup->group;
             break;
         }
-        case TokenType::SKIP_WINDOWS: {
-#ifdef _WIN32
+        case TokenType::SKIP_MUSL: {
+#ifdef __MUSL__
             testGroup->group = "DISABLED_" + testGroup->group;
             break;
 #endif
+            break;
         }
-        case TokenType::SKIP_MUSL: {
-#ifdef __MUSL__
+        case TokenType::SKIP_32BIT: {
+#ifdef __32BIT__
             testGroup->group = "DISABLED_" + testGroup->group;
             break;
 #endif
@@ -120,6 +122,10 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         statement->expectedOk = true;
     } else if (result == "error") {
         statement->expectedError = true;
+        statement->errorMessage = extractTextBeforeNextStatement();
+        replaceVariables(statement->errorMessage);
+    } else if (result == "error(regex)") {
+        statement->expectedErrorRegex = true;
         statement->errorMessage = extractTextBeforeNextStatement();
         replaceVariables(statement->errorMessage);
     } else if (result.substr(0, 4) == "hash") {
@@ -167,8 +173,8 @@ std::string TestParser::extractTextBeforeNextStatement(bool ignoreLineBreak) {
     return extractedText;
 }
 
-TestStatement* TestParser::extractStatement(
-    TestStatement* statement, const std::string& testCaseName) {
+TestStatement* TestParser::extractStatement(TestStatement* statement,
+    const std::string& testCaseName) {
     if (endOfFile()) {
         return statement;
     }
@@ -193,12 +199,37 @@ TestStatement* TestParser::extractStatement(
         statement->reloadDBFlag = true;
         return statement;
     }
+    case TokenType::IMPORT_DATABASE: {
+        statement->importDBFlag = true;
+        auto filePath = getParam(1);
+        replaceVariables(filePath);
+        statement->importFilePath = filePath;
+        return statement;
+    }
+    case TokenType::REMOVE_FILE: {
+        statement->removeFileFlag = true;
+        auto filePath = getParam(1);
+        replaceVariables(filePath);
+        statement->removeFilePath = filePath;
+        return statement;
+    }
     case TokenType::STATEMENT: {
         std::string query = paramsToString(1);
         extractConnName(query, statement);
         query += extractTextBeforeNextStatement(true);
         replaceVariables(query);
         statement->query = query;
+        break;
+    }
+    case TokenType::SET: {
+        auto envName = getParam(1);
+        auto envValue = getParam(2);
+#if defined(_WIN32)
+        _putenv_s(envName.c_str(), envValue.c_str());
+#else
+        // NOLINTNEXTLINE(*-mt-unsafe)
+        setenv(envName.c_str(), envValue.c_str(), 1 /* overwrite existing env*/);
+#endif
         break;
     }
     case TokenType::BATCH_STATEMENTS: {
@@ -330,14 +361,14 @@ void TestParser::parseBody() {
             testCaseName = "DISABLED_" + testCaseName;
             break;
         }
-        case TokenType::SKIP_WINDOWS: {
-#ifdef _WIN32
+        case TokenType::SKIP_MUSL: {
+#ifdef __MUSL__
             testCaseName = "DISABLED_" + testCaseName;
             break;
 #endif
         }
-        case TokenType::SKIP_MUSL: {
-#ifdef __MUSL__
+        case TokenType::SKIP_32BIT: {
+#ifdef __32BIT__
             testCaseName = "DISABLED_" + testCaseName;
             break;
 #endif

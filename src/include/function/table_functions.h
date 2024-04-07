@@ -4,17 +4,8 @@
 #include "function.h"
 
 namespace kuzu {
-namespace catalog {
-class Catalog;
-} // namespace catalog
-namespace common {
-class ValueVector;
-}
 namespace main {
 class ClientContext;
-}
-namespace storage {
-class StorageManager;
 }
 
 namespace function {
@@ -30,15 +21,30 @@ struct TableFuncLocalState {
     virtual ~TableFuncLocalState() = default;
 };
 
-struct TableFunctionInput {
+struct TableFuncInput {
     TableFuncBindData* bindData;
     TableFuncLocalState* localState;
     TableFuncSharedState* sharedState;
 
-    TableFunctionInput() = default;
-    TableFunctionInput(TableFuncBindData* bindData, TableFuncLocalState* localState,
+    TableFuncInput() = default;
+    TableFuncInput(TableFuncBindData* bindData, TableFuncLocalState* localState,
         TableFuncSharedState* sharedState)
         : bindData{bindData}, localState{localState}, sharedState{sharedState} {}
+    DELETE_COPY_DEFAULT_MOVE(TableFuncInput);
+};
+
+// We are in the middle of merging different scan operators into table function. But they organize
+// output vectors in different ways. E.g.
+// - Call functions and scan file functions put all vectors into single data chunk
+// - Factorized table scan instead
+// We introduce this as a temporary solution to unify the interface. In the long term, we should aim
+// to use ResultSet as TableFuncOutput.
+struct TableFuncOutput {
+    common::DataChunk dataChunk;
+    std::vector<common::ValueVector*> vectors;
+
+    TableFuncOutput() = default;
+    DELETE_COPY_DEFAULT_MOVE(TableFuncOutput);
 };
 
 struct TableFunctionInitInput {
@@ -49,29 +55,39 @@ struct TableFunctionInitInput {
     virtual ~TableFunctionInitInput() = default;
 };
 
-typedef std::unique_ptr<TableFuncBindData> (*table_func_bind_t)(main::ClientContext* /*context*/,
-    TableFuncBindInput* /*input*/, catalog::Catalog* /*catalog*/,
-    storage::StorageManager* /*storageManager*/);
-typedef void (*table_func_t)(TableFunctionInput& data, common::DataChunk& output);
-typedef std::unique_ptr<TableFuncSharedState> (*table_func_init_shared_t)(
-    TableFunctionInitInput& input);
-typedef std::unique_ptr<TableFuncLocalState> (*table_func_init_local_t)(
-    TableFunctionInitInput& input, TableFuncSharedState* state, storage::MemoryManager* mm);
-typedef bool (*table_func_can_parallel_t)();
+using table_func_bind_t = std::function<std::unique_ptr<TableFuncBindData>(main::ClientContext*,
+    function::TableFuncBindInput*)>;
+using table_func_t = std::function<common::offset_t(TableFuncInput&, TableFuncOutput&)>;
+using table_func_init_shared_t =
+    std::function<std::unique_ptr<TableFuncSharedState>(TableFunctionInitInput&)>;
+using table_func_init_local_t = std::function<std::unique_ptr<TableFuncLocalState>(
+    TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*)>;
+using table_func_can_parallel_t = std::function<bool()>;
+using table_func_progress_t = std::function<double(TableFuncSharedState* sharedState)>;
 
-struct TableFunction : public Function {
+struct TableFunction final : public Function {
     table_func_t tableFunc;
     table_func_bind_t bindFunc;
     table_func_init_shared_t initSharedStateFunc;
     table_func_init_local_t initLocalStateFunc;
     table_func_can_parallel_t canParallelFunc = [] { return true; };
+    table_func_progress_t progressFunc = [](TableFuncSharedState* /*sharedState*/) { return 0.0; };
 
+    TableFunction()
+        : Function{}, tableFunc{nullptr}, bindFunc{nullptr}, initSharedStateFunc{nullptr},
+          initLocalStateFunc{nullptr} {};
     TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
         table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
         std::vector<common::LogicalTypeID> inputTypes)
         : Function{FunctionType::TABLE, std::move(name), std::move(inputTypes)},
           tableFunc{tableFunc}, bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
           initLocalStateFunc{initLocalFunc} {}
+    TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
+        table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
+        table_func_progress_t progressFunc, std::vector<common::LogicalTypeID> inputTypes)
+        : Function{FunctionType::TABLE, std::move(name), std::move(inputTypes)},
+          tableFunc{tableFunc}, bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
+          initLocalStateFunc{initLocalFunc}, progressFunc{progressFunc} {}
 
     inline std::string signatureToString() const override {
         return common::LogicalTypeUtils::toString(parameterTypeIDs);

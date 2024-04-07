@@ -13,8 +13,8 @@ public:
 
 TEST_F(CApiFlatTupleTest, GetValue) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, "MATCH (a:person) RETURN a.fName, a.age, a.height ORDER BY a.fName LIMIT 1");
+    auto result = kuzu_connection_query(connection,
+        "MATCH (a:person) RETURN a.fName, a.age, a.height ORDER BY a.fName LIMIT 1");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     auto flatTuple = kuzu_query_result_get_next(result);
     ASSERT_NE(flatTuple, nullptr);
@@ -47,8 +47,8 @@ TEST_F(CApiFlatTupleTest, GetValue) {
 
 TEST_F(CApiFlatTupleTest, ToString) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, "MATCH (a:person) RETURN a.fName, a.age, a.height ORDER BY a.fName LIMIT 1");
+    auto result = kuzu_connection_query(connection,
+        "MATCH (a:person) RETURN a.fName, a.age, a.height ORDER BY a.fName LIMIT 1");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     auto flatTuple = kuzu_query_result_get_next(result);
     ASSERT_NE(flatTuple, nullptr);

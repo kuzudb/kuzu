@@ -45,14 +45,14 @@ static std::vector<std::unique_ptr<AggregateInputInfo>> getAggregateInputInfos(
                 multiplicityChunksPos.push_back(groupPos);
             }
         }
-        result.emplace_back(std::make_unique<AggregateInputInfo>(
-            aggregateVectorPos, std::move(multiplicityChunksPos)));
+        result.emplace_back(std::make_unique<AggregateInputInfo>(aggregateVectorPos,
+            std::move(multiplicityChunksPos)));
     }
     return result;
 }
 
-static binder::expression_vector getKeyExpressions(
-    const binder::expression_vector& expressions, const Schema& schema, bool isFlat) {
+static binder::expression_vector getKeyExpressions(const binder::expression_vector& expressions,
+    const Schema& schema, bool isFlat) {
     binder::expression_vector result;
     for (auto& expression : expressions) {
         if (schema.getGroup(schema.getGroupPos(*expression))->isFlat() == isFlat) {
@@ -81,40 +81,78 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
         return createHashAggregate(logicalAggregate.getKeyExpressions(),
             logicalAggregate.getDependentKeyExpressions(), std::move(aggregateFunctions),
             std::move(aggregateInputInfos), std::move(aggregatesOutputPos), inSchema, outSchema,
-            std::move(prevOperator), paramsString);
+            std::move(prevOperator), paramsString, nullptr);
     } else {
         auto sharedState = make_shared<SimpleAggregateSharedState>(aggregateFunctions);
         auto aggregate =
             make_unique<SimpleAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
                 sharedState, std::move(aggregateFunctions), std::move(aggregateInputInfos),
                 std::move(prevOperator), getOperatorID(), paramsString);
-        return make_unique<SimpleAggregateScan>(
-            sharedState, aggregatesOutputPos, std::move(aggregate), getOperatorID(), paramsString);
+        return make_unique<SimpleAggregateScan>(sharedState, aggregatesOutputPos,
+            std::move(aggregate), getOperatorID(), paramsString);
     }
 }
 
+static std::unique_ptr<FactorizedTableSchema> getFactorizedTableSchema(
+    const binder::expression_vector& flatKeys, const binder::expression_vector& unflatKeys,
+    const binder::expression_vector& payloads,
+    std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
+    std::shared_ptr<Expression> markExpression) {
+    auto isUnflat = false;
+    auto dataChunkPos = 0u;
+    std::unique_ptr<FactorizedTableSchema> tableSchema = std::make_unique<FactorizedTableSchema>();
+    for (auto& flatKey : flatKeys) {
+        auto size = LogicalTypeUtils::getRowLayoutSize(flatKey->dataType);
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
+    }
+    for (auto& unflatKey : unflatKeys) {
+        auto size = LogicalTypeUtils::getRowLayoutSize(unflatKey->dataType);
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
+    }
+    for (auto& payload : payloads) {
+        auto size = LogicalTypeUtils::getRowLayoutSize(payload->dataType);
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
+    }
+    for (auto& aggregateFunc : aggregateFunctions) {
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos,
+            aggregateFunc->getAggregateStateSize()));
+    }
+    if (markExpression != nullptr) {
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos,
+            LogicalTypeUtils::getRowLayoutSize(markExpression->dataType)));
+    }
+    tableSchema->appendColumn(
+        std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, sizeof(hash_t)));
+    return tableSchema;
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
-    const binder::expression_vector& keyExpressions,
-    const binder::expression_vector& dependentKeyExpressions,
+    const binder::expression_vector& keys, const binder::expression_vector& payloads,
     std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
     std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
     std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema, planner::Schema* outSchema,
-    std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString) {
+    std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString,
+    std::shared_ptr<Expression> markExpression) {
     auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
-    auto flatKeyExpressions = getKeyExpressions(keyExpressions, *inSchema, true /* isFlat */);
-    auto unFlatKeyExpressions = getKeyExpressions(keyExpressions, *inSchema, false /* isFlat */);
+    auto flatKeys = getKeyExpressions(keys, *inSchema, true /* isFlat */);
+    auto unFlatKeys = getKeyExpressions(keys, *inSchema, false /* isFlat */);
+    auto tableSchema = getFactorizedTableSchema(flatKeys, unFlatKeys, payloads, aggregateFunctions,
+        markExpression);
+    HashAggregateInfo aggregateInfo{getExpressionsDataPos(flatKeys, *inSchema),
+        getExpressionsDataPos(unFlatKeys, *inSchema), getExpressionsDataPos(payloads, *inSchema),
+        std::move(tableSchema),
+        markExpression == nullptr ? HashTableType::AGGREGATE_HASH_TABLE :
+                                    HashTableType::MARK_HASH_TABLE};
     auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
-        sharedState, getExpressionsDataPos(flatKeyExpressions, *inSchema),
-        getExpressionsDataPos(unFlatKeyExpressions, *inSchema),
-        getExpressionsDataPos(dependentKeyExpressions, *inSchema), std::move(aggregateFunctions),
+        sharedState, std::move(aggregateInfo), std::move(aggregateFunctions),
         std::move(aggregateInputInfos), std::move(prevOperator), getOperatorID(), paramsString);
     binder::expression_vector outputExpressions;
-    outputExpressions.insert(
-        outputExpressions.end(), flatKeyExpressions.begin(), flatKeyExpressions.end());
-    outputExpressions.insert(
-        outputExpressions.end(), unFlatKeyExpressions.begin(), unFlatKeyExpressions.end());
-    outputExpressions.insert(
-        outputExpressions.end(), dependentKeyExpressions.begin(), dependentKeyExpressions.end());
+    outputExpressions.insert(outputExpressions.end(), flatKeys.begin(), flatKeys.end());
+    outputExpressions.insert(outputExpressions.end(), unFlatKeys.begin(), unFlatKeys.end());
+    outputExpressions.insert(outputExpressions.end(), payloads.begin(), payloads.end());
+    if (markExpression != nullptr) {
+        outputExpressions.emplace_back(markExpression);
+    }
     return std::make_unique<HashAggregateScan>(sharedState,
         getExpressionsDataPos(outputExpressions, *outSchema), std::move(aggregatesOutputPos),
         std::move(aggregate), getOperatorID(), paramsString);

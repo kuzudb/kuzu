@@ -3,8 +3,8 @@
 namespace kuzu {
 namespace processor {
 
-void ScanTable::initLocalStateInternal(kuzu::processor::ResultSet* resultSet,
-    kuzu::processor::ExecutionContext* /*executionContext*/) {
+void ScanTable::initLocalStateInternal(ResultSet* resultSet,
+    ExecutionContext* /*executionContext*/) {
     inVector = resultSet->getValueVector(inVectorPos).get();
     outVectors.reserve(outVectorsPos.size());
     for (auto& pos : outVectorsPos) {

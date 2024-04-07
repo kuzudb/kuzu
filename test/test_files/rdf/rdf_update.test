@@ -1,10 +1,72 @@
--GROUP RdfoxExample
+-GROUP Rdf
 -DATASET TTL EMPTY
 
 --
 
+-CASE RdfDDL
+-STATEMENT CREATE RDFGraph T;
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 5
+T_lt|REL|
+T_l|NODE|
+T_rt|REL|
+T_r|NODE|
+T|RDFGraph|
+-STATEMENT DROP RDFGraph T;
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 0
+
+-STATEMENT CREATE RDFGraph T;
+---- ok
+-STATEMENT ALTER TABLE T RENAME TO X;
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 5
+X_lt|REL|
+X_l|NODE|
+X_rt|REL|
+X_r|NODE|
+X|RDFGraph|
+-STATEMENT MATCH (a:T)-[e:T]->(b:T) RETURN COUNT(*);
+---- error
+Binder exception: Table T does not exist.
+-STATEMENT MATCH (a:X)-[e:X]->(b:X) RETURN COUNT(*);
+---- error
+Binder exception: Cannot bind X as a node pattern label.
+-STATEMENT MATCH (a)-[e:X]->(b) RETURN COUNT(*);
+---- 1
+0
+-STATEMENT ALTER TABLE X_r RENAME TO hh;
+---- error
+Binder exception: Cannot alter table X_r because it is referenced by rdfGraph X.
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "a"})-[:R_rt {iri: "b"}]->(b:R_r {iri: "c"});
+---- ok
+-STATEMENT CREATE (a:X_r {iri: "x"})-[:X_rt {iri: "y"}]->(b:X_r {iri: "z"});
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri
+---- 2
+a|b|c
+x|y|z
+-STATEMENT MATCH (a)-[e:R_rt]->(b) RETURN a.iri, e.iri, b.iri
+---- 1
+a|b|c
+-STATEMENT CREATE (a:R_r {iri: "a"})-[:R_rt {iri: "_:b"}]->(b:R_r {iri: "c"});
+---- error
+Runtime exception: _:b is a blank node and cannot be a valid predicate.
+-STATEMENT CREATE (a:R_r {iri: "_:a"})-[:R_rt {iri: "bb"}]->(b:R_r {iri: "_:c"});
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri
+---- 3
+a|b|c
+x|y|z
+_:a|bb|_:c
+
 -CASE EmptyUpdate
--STATEMENT CREATE RDF GRAPH T;
+-STATEMENT CREATE RDFGraph T;
 ---- ok
 -STATEMENT CREATE (:T_r {iri:"a"}),
                   (:T_r {iri:"a"}),
@@ -33,7 +95,7 @@ aaa
                   (:T_l {val:cast("2024-01-01 11:25:30Z+00:00", "TIMESTAMP")}),
                   (:T_l {val:cast("1 year", "INTERVAL")})
 ---- ok
--STATEMENT MATCH (a:T_l) RETURN a.* ORDER BY a.id;
+-STATEMENT MATCH (a:T_l) RETURN a.id, a.val ORDER BY a.id;
 -CHECK_ORDER
 ---- 16
 0|12
@@ -110,3 +172,33 @@ aaa
 13|||2024-01-01a|2024-01-01||
 14|||2024-01-01 11:25:30a||2024-01-01 11:25:30|
 15|||1 yeara|||1 year
+-STATEMENT MATCH (a)-[e]->(b) SET a.iri = "x";
+---- error
+Binder exception: Cannot set properties of RDFGraph tables. Set a.iri requires modifying table T_r under rdf graph T.
+-STATEMENT MATCH (a)-[e]->(b) SET e.iri = "x";
+---- error
+Binder exception: Cannot set properties of RDFGraph tables. Set e.iri requires modifying table T_rt under rdf graph T.
+-STATEMENT MATCH (a)-[e]->(b:T_l) SET b.val = "x";
+---- error
+Binder exception: Cannot set properties of RDFGraph tables. Set b.val requires modifying table T_l under rdf graph T.
+
+-CASE DeleteRdfNodeTable
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "a"})-[:R_rt {iri: "b"}]->(b:R_r {iri: "c"});
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "e"})-[:R_lt {iri: "f"}]->(b:R_l {val: 2});
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val;
+---- 2
+a|b|c|
+e|f||2
+-STATEMENT MATCH (a) WHERE a.iri = "b" DELETE a;
+---- error
+Binder exception: Cannot delete node a because it references to resource node table under RDFGraph R.
+-STATEMENT MATCH (a:R_l) WHERE a.val = 2 DETACH DELETE a;
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val;
+---- 1
+a|b|c|

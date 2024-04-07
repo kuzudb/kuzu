@@ -41,9 +41,11 @@ public:
 
     static bool isConstant(const Expression& expression);
 
+    static bool isRandom(const Expression& expression);
+
 private:
-    static bool satisfyAny(
-        const Expression& expression, const std::function<bool(const Expression&)>& condition);
+    static bool satisfyAny(const Expression& expression,
+        const std::function<bool(const Expression&)>& condition);
 };
 
 class ExpressionCollector {

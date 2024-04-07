@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/copy/bound_copy_from.h"
-#include "catalog/table_schema.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {
@@ -19,7 +19,7 @@ public:
           info{std::move(info)}, outExprs{std::move(outExprs)} {}
 
     inline std::string getExpressionsForPrinting() const override {
-        return info.tableSchema->tableName;
+        return info.tableEntry->getName();
     }
 
     void computeFactorizedSchema() override;

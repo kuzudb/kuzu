@@ -1,0 +1,31 @@
+-GROUP Rdf
+-DATASET TTL rdf/blank
+
+--
+
+-CASE BlankNode
+
+-STATEMENT MATCH (a)-[p]->(o) RETURN a.iri, p.iri, o.iri, o.val;
+---- 22
+_:0alice|yknows|_:0bob|
+_:0b1|xknows|_:0b2|
+_:0b1|xname||Alice
+_:0b2|xknows|_:0b3|
+_:0b2|xmbox|bob@example.com|
+_:0b2|xname||Bob
+_:0b3|xname||Eve
+_:0b4|http://www.w3.org/1999/02/22-rdf-syntax-ns#first||apple
+_:0b4|http://www.w3.org/1999/02/22-rdf-syntax-ns#rest|_:0b5|
+_:0b5|http://www.w3.org/1999/02/22-rdf-syntax-ns#first||banana
+_:0b5|http://www.w3.org/1999/02/22-rdf-syntax-ns#rest|http://www.w3.org/1999/02/22-rdf-syntax-ns#nil|
+_:0b6|http://www.w3.org/1999/02/22-rdf-syntax-ns#first||1
+_:0b6|http://www.w3.org/1999/02/22-rdf-syntax-ns#rest|_:0b7|
+_:0b6|yp||w
+_:0b7|http://www.w3.org/1999/02/22-rdf-syntax-ns#first||2.000000
+_:0b7|http://www.w3.org/1999/02/22-rdf-syntax-ns#rest|_:0b8|
+_:0b8|http://www.w3.org/1999/02/22-rdf-syntax-ns#first||30.000000
+_:0b8|http://www.w3.org/1999/02/22-rdf-syntax-ns#rest|http://www.w3.org/1999/02/22-rdf-syntax-ns#nil|
+_:0bob|yknows|_:0alice|
+_:1b1|xknows||Xiyang
+_:1b1|xname||Alice
+ya|yb|_:0b4|

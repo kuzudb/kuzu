@@ -75,8 +75,8 @@ struct AggregateFunction final : public BaseScalarFunction {
         return updatePosFunc(state, input, multiplicity, pos, memoryManager);
     }
 
-    inline void combineState(
-        uint8_t* state, uint8_t* otherState, storage::MemoryManager* memoryManager) const {
+    inline void combineState(uint8_t* state, uint8_t* otherState,
+        storage::MemoryManager* memoryManager) const {
         return combineFunc(state, otherState, memoryManager);
     }
 
@@ -122,13 +122,37 @@ public:
         common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);
     static std::unique_ptr<AggregateFunction> getAvgFunc(const std::string name,
         common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);
-    static std::unique_ptr<AggregateFunction> getMinFunc(
-        common::LogicalTypeID inputType, bool isDistinct);
-    static std::unique_ptr<AggregateFunction> getMaxFunc(
-        common::LogicalTypeID inputType, bool isDistinct);
+    static std::unique_ptr<AggregateFunction> getMinFunc(common::LogicalTypeID inputType,
+        bool isDistinct);
+    static std::unique_ptr<AggregateFunction> getMaxFunc(common::LogicalTypeID inputType,
+        bool isDistinct);
     template<typename FUNC>
     static std::unique_ptr<AggregateFunction> getMinMaxFunction(const std::string name,
         common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);
+};
+
+struct AggregateSumFunction {
+    static constexpr const char* name = "SUM";
+
+    static function_set getFunctionSet();
+};
+
+struct AggregateAvgFunction {
+    static constexpr const char* name = "AVG";
+
+    static function_set getFunctionSet();
+};
+
+struct AggregateMinFunction {
+    static constexpr const char* name = "MIN";
+
+    static function_set getFunctionSet();
+};
+
+struct AggregateMaxFunction {
+    static constexpr const char* name = "MAX";
+
+    static function_set getFunctionSet();
 };
 
 } // namespace function

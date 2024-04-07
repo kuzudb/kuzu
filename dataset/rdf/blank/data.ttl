@@ -1,0 +1,15 @@
+@prefix foaf: <x> .
+@prefix : <y> .
+
+_:alice :knows _:bob .
+_:bob :knows _:alice .
+
+[ foaf:name "Alice" ] foaf:knows [
+    foaf:name "Bob" ;
+    foaf:knows [
+        foaf:name "Eve" ] ;
+    foaf:mbox <bob@example.com> ] .
+
+:a :b ( "apple" "banana" ) .
+
+(1 2.0 3E1) :p "w" .

@@ -9,7 +9,8 @@ namespace processor {
 
 class Merge : public PhysicalOperator {
 public:
-    Merge(const DataPos& markPos, std::vector<NodeInsertExecutor> nodeInsertExecutors,
+    Merge(const DataPos& existenceMark, const DataPos& distinctMark,
+        std::vector<NodeInsertExecutor> nodeInsertExecutors,
         std::vector<RelInsertExecutor> relInsertExecutors,
         std::vector<std::unique_ptr<NodeSetExecutor>> onCreateNodeSetExecutors,
         std::vector<std::unique_ptr<RelSetExecutor>> onCreateRelSetExecutors,
@@ -17,9 +18,10 @@ public:
         std::vector<std::unique_ptr<RelSetExecutor>> onMatchRelSetExecutors,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::MERGE, std::move(child), id, paramsString},
-          markPos{markPos}, nodeInsertExecutors{std::move(nodeInsertExecutors)},
-          relInsertExecutors{std::move(relInsertExecutors)}, onCreateNodeSetExecutors{std::move(
-                                                                 onCreateNodeSetExecutors)},
+          existenceMark{existenceMark}, distinctMark{distinctMark},
+          nodeInsertExecutors{std::move(nodeInsertExecutors)},
+          relInsertExecutors{std::move(relInsertExecutors)},
+          onCreateNodeSetExecutors{std::move(onCreateNodeSetExecutors)},
           onCreateRelSetExecutors{std::move(onCreateRelSetExecutors)},
           onMatchNodeSetExecutors{std::move(onMatchNodeSetExecutors)},
           onMatchRelSetExecutors{std::move(onMatchRelSetExecutors)} {}
@@ -31,7 +33,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<Merge>(markPos, copyVector(nodeInsertExecutors),
+        return std::make_unique<Merge>(existenceMark, distinctMark, copyVector(nodeInsertExecutors),
             copyVector(relInsertExecutors), NodeSetExecutor::copy(onCreateNodeSetExecutors),
             RelSetExecutor::copy(onCreateRelSetExecutors),
             NodeSetExecutor::copy(onMatchNodeSetExecutors),
@@ -39,8 +41,10 @@ public:
     }
 
 private:
-    DataPos markPos;
-    common::ValueVector* markVector = nullptr;
+    DataPos existenceMark;
+    DataPos distinctMark;
+    common::ValueVector* existenceVector = nullptr;
+    common::ValueVector* distinctVector = nullptr;
 
     std::vector<NodeInsertExecutor> nodeInsertExecutors;
     std::vector<RelInsertExecutor> relInsertExecutors;

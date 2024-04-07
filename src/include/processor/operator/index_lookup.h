@@ -1,6 +1,5 @@
 #pragma once
 
-#include "processor/operator/persistent/copy_node.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {
@@ -9,23 +8,24 @@ class PrimaryKeyIndex;
 } // namespace storage
 namespace processor {
 
+struct BatchInsertSharedState;
 struct IndexLookupInfo {
     std::unique_ptr<common::LogicalType> pkDataType;
     storage::PrimaryKeyIndex* index; // NULL if the PK data type is SERIAL.
     // In copy rdf, we need to perform lookup before primary key is persist on disk. So we need to
     // use index builder.
-    std::shared_ptr<CopyNodeSharedState> copyNodeSharedState;
+    std::shared_ptr<BatchInsertSharedState> batchInsertSharedState;
     DataPos keyVectorPos;
     DataPos resultVectorPos;
 
     IndexLookupInfo(std::unique_ptr<common::LogicalType> pkDataType,
         storage::PrimaryKeyIndex* index, const DataPos& keyVectorPos,
         const DataPos& resultVectorPos)
-        : pkDataType{std::move(pkDataType)}, index{index}, copyNodeSharedState{nullptr},
+        : pkDataType{std::move(pkDataType)}, index{index}, batchInsertSharedState{nullptr},
           keyVectorPos{keyVectorPos}, resultVectorPos{resultVectorPos} {}
     IndexLookupInfo(const IndexLookupInfo& other)
         : pkDataType{other.pkDataType->copy()}, index{other.index},
-          copyNodeSharedState{other.copyNodeSharedState}, keyVectorPos{other.keyVectorPos},
+          batchInsertSharedState{other.batchInsertSharedState}, keyVectorPos{other.keyVectorPos},
           resultVectorPos{other.resultVectorPos} {}
 
     inline std::unique_ptr<IndexLookupInfo> copy() {
@@ -40,7 +40,7 @@ public:
         : PhysicalOperator{PhysicalOperatorType::INDEX_LOOKUP, std::move(child), id, paramsString},
           infos{std::move(infos)} {}
 
-    void setCopyNodeSharedState(std::shared_ptr<CopyNodeSharedState> sharedState);
+    void setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState);
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 

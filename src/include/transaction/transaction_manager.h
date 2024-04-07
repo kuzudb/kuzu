@@ -10,16 +10,18 @@
 using lock_t = std::unique_lock<std::mutex>;
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+} // namespace main
 namespace transaction {
 
 class TransactionManager {
 
 public:
-    explicit TransactionManager(storage::WAL& wal, storage::MemoryManager* mm)
-        : wal{wal}, mm{mm}, activeWriteTransactionID{INT64_MAX}, lastTransactionID{0}, lastCommitID{
-                                                                                           0} {};
-    std::unique_ptr<Transaction> beginWriteTransaction();
-    std::unique_ptr<Transaction> beginReadOnlyTransaction();
+    explicit TransactionManager(storage::WAL& wal)
+        : wal{wal}, activeWriteTransactionID{INT64_MAX}, lastTransactionID{0}, lastCommitID{0} {};
+    std::unique_ptr<Transaction> beginWriteTransaction(main::ClientContext& clientContext);
+    std::unique_ptr<Transaction> beginReadOnlyTransaction(main::ClientContext& clientContext);
     void commit(Transaction* transaction);
     void commitButKeepActiveWriteTransaction(Transaction* transaction);
     void manuallyClearActiveWriteTransaction(Transaction* transaction);
@@ -61,7 +63,6 @@ private:
 
 private:
     storage::WAL& wal;
-    storage::MemoryManager* mm;
 
     uint64_t activeWriteTransactionID;
 

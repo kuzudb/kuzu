@@ -2,15 +2,19 @@
 
 #include "common/string_format.h"
 #include "common/string_utils.h"
-#include "main/database.h"
 
 namespace kuzu {
 namespace extension {
 
 std::string getOS() {
     std::string os = "linux";
+#if !defined(_GLIBCXX_USE_CXX11_ABI) || _GLIBCXX_USE_CXX11_ABI == 0
+    if (os == "linux") {
+        os = "linux_old";
+    }
+#endif
 #ifdef _WIN32
-    os = "windows";
+    os = "win";
 #elif defined(__APPLE__)
     os = "osx";
 #endif
@@ -31,12 +35,8 @@ std::string getPlatform() {
     return getOS() + "_" + getArch();
 }
 
-std::string ExtensionUtils::getExtensionDir(kuzu::main::Database* database) {
-    return common::stringFormat("{}/extension", database->databasePath);
-}
-
-std::string ExtensionUtils::getExtensionPath(
-    const std::string& extensionDir, const std::string& name) {
+std::string ExtensionUtils::getExtensionPath(const std::string& extensionDir,
+    const std::string& name) {
     return common::stringFormat("{}/lib{}.kuzu_extension", extensionDir, name);
 }
 
@@ -47,7 +47,7 @@ bool ExtensionUtils::isFullPath(const std::string& extension) {
 
 ExtensionRepoInfo ExtensionUtils::getExtensionRepoInfo(const std::string& extension) {
     auto extensionURL =
-        common::stringFormat(EXTENSION_REPO, KUZU_RELEASE_VERSION, getPlatform(), extension);
+        common::stringFormat(EXTENSION_REPO, KUZU_EXTENSION_VERSION, getPlatform(), extension);
     common::StringUtils::replaceAll(extensionURL, "http://", "");
     auto hostNamePos = extensionURL.find('/');
     auto hostName = extensionURL.substr(0, hostNamePos);
@@ -56,8 +56,8 @@ ExtensionRepoInfo ExtensionUtils::getExtensionRepoInfo(const std::string& extens
     return {hostPath, hostURL, extensionURL};
 }
 
-void ExtensionOptions::addExtensionOption(
-    std::string name, common::LogicalTypeID type, common::Value defaultValue) {
+void ExtensionOptions::addExtensionOption(std::string name, common::LogicalTypeID type,
+    common::Value defaultValue) {
     common::StringUtils::toLower(name);
     extensionOptions.emplace(name, main::ExtensionOption{name, type, std::move(defaultValue)});
 }
@@ -65,10 +65,6 @@ void ExtensionOptions::addExtensionOption(
 main::ExtensionOption* ExtensionOptions::getExtensionOption(std::string name) {
     common::StringUtils::toLower(name);
     return extensionOptions.contains(name) ? &extensionOptions.at(name) : nullptr;
-}
-
-std::unordered_map<std::string, main::ExtensionOption>& ExtensionOptions::getExtensionOptions() {
-    return extensionOptions;
 }
 
 } // namespace extension

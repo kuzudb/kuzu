@@ -7,13 +7,14 @@ namespace storage {
 
 class StructColumn final : public Column {
 public:
-    StructColumn(std::string name, std::unique_ptr<common::LogicalType> dataType,
+    StructColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk) override;
+        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+        common::offset_t endOffset = common::INVALID_OFFSET) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) override;
@@ -22,6 +23,7 @@ public:
 
     void checkpointInMemory() override;
     void rollbackInMemory() override;
+    void prepareCommit() override;
 
     inline Column* getChild(common::vector_idx_t childIdx) {
         KU_ASSERT(childIdx < childColumns.size());
@@ -29,18 +31,34 @@ public:
     }
     void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
-    void setNull(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk) override;
+    void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
+        ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues) override;
 
     void prepareCommitForChunk(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
-        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
-        const offset_set_t& deleteInfo) override;
+        common::node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunk,
+        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
+        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override;
+    void prepareCommitForChunk(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
+        ColumnChunk* chunk, common::offset_t startSrcOffset) override;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) override;
     void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) override;
+
+    bool canCommitInPlace(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunk,
+        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
+        const offset_to_row_idx_t& updateInfo) override;
+    bool canCommitInPlace(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
+        ColumnChunk* chunk, common::offset_t dataOffset) override;
+
+private:
+    static ChunkCollection getStructChildChunkCollection(const ChunkCollection& chunkCollection,
+        common::vector_idx_t childIdx);
 
 private:
     std::vector<std::unique_ptr<Column>> childColumns;

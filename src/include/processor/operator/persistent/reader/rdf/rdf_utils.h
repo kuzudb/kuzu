@@ -6,8 +6,9 @@ namespace kuzu {
 namespace processor {
 
 struct RdfUtils {
-    static void addRdfLiteral(common::ValueVector* vector, uint32_t pos, const char* buf,
-        uint32_t length, const char* typeBuf, uint32_t typeLength);
+    static common::LogicalTypeID getLogicalTypeID(const std::string& type);
+    static void addRdfLiteral(common::ValueVector* vector, uint32_t pos, const std::string& str,
+        common::LogicalTypeID targetTypeID);
 };
 
 } // namespace processor

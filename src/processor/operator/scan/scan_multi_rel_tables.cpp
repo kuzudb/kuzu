@@ -7,10 +7,13 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace processor {
 
-void RelTableCollectionScanner::init() {
-    for (auto& scanInfo : scanInfos) {
-        readStates.push_back(std::make_unique<RelDataReadState>(
-            scanInfo->table->getTableDataFormat(scanInfo->direction)));
+void RelTableCollectionScanner::init(ValueVector* inVector,
+    const std::vector<ValueVector*>& outputVectors) {
+    readStates.resize(scanInfos.size());
+    for (auto i = 0u; i < scanInfos.size(); i++) {
+        auto scanInfo = scanInfos[i].get();
+        readStates[i] = std::make_unique<RelTableReadState>(*inVector, scanInfo->columnIDs,
+            outputVectors, scanInfo->direction);
     }
 }
 
@@ -18,10 +21,8 @@ bool RelTableCollectionScanner::scan(ValueVector* inVector,
     const std::vector<ValueVector*>& outputVectors, Transaction* transaction) {
     while (true) {
         if (readStates[currentTableIdx]->hasMoreToRead(transaction)) {
-            KU_ASSERT(readStates[currentTableIdx]->dataFormat == ColumnDataFormat::CSR);
             auto scanInfo = scanInfos[currentTableIdx].get();
-            scanInfo->table->read(
-                transaction, *readStates[currentTableIdx], inVector, outputVectors);
+            scanInfo->table->read(transaction, *readStates[currentTableIdx]);
             if (outputVectors[0]->state->selVector->selectedSize > 0) {
                 return true;
             }
@@ -32,18 +33,8 @@ bool RelTableCollectionScanner::scan(ValueVector* inVector,
             }
             auto scanInfo = scanInfos[currentTableIdx].get();
             scanInfo->table->initializeReadState(transaction, scanInfo->direction,
-                scanInfo->columnIDs, inVector, readStates[currentTableIdx].get());
+                scanInfo->columnIDs, *inVector, *readStates[currentTableIdx]);
             nextTableIdx++;
-            if (readStates[currentTableIdx]->dataFormat == ColumnDataFormat::REGULAR) {
-                outputVectors[0]->state->selVector->resetSelectorToValuePosBufferWithSize(1);
-                outputVectors[0]->state->selVector->selectedPositions[0] =
-                    inVector->state->selVector->selectedPositions[0];
-                scanInfo->table->read(
-                    transaction, *readStates[currentTableIdx], inVector, outputVectors);
-                if (outputVectors[0]->state->selVector->selectedSize > 0) {
-                    return true;
-                }
-            }
         }
     }
 }
@@ -60,14 +51,15 @@ std::unique_ptr<RelTableCollectionScanner> RelTableCollectionScanner::clone() co
 void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanRelTable::initLocalStateInternal(resultSet, context);
     for (auto& [_, scanner] : scannerPerNodeTable) {
-        scanner->init();
+        scanner->init(inVector, outVectors);
     }
     currentScanner = nullptr;
 }
 
 bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
-        if (currentScanner != nullptr && currentScanner->scan(inVector, outVectors, transaction)) {
+        if (currentScanner != nullptr &&
+            currentScanner->scan(inVector, outVectors, context->clientContext->getTx())) {
             metrics->numOutputTuple.increase(outVectors[0]->state->selVector->selectedSize);
             return true;
         }

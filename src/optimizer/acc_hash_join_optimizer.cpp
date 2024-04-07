@@ -201,8 +201,8 @@ std::vector<planner::LogicalOperator*> HashJoinSIPOptimizer::resolveScanInternal
 }
 
 std::vector<planner::LogicalOperator*>
-HashJoinSIPOptimizer::resolveShortestPathExtendToApplySemiMask(
-    const binder::Expression& nodeID, planner::LogicalOperator* root) {
+HashJoinSIPOptimizer::resolveShortestPathExtendToApplySemiMask(const binder::Expression& nodeID,
+    planner::LogicalOperator* root) {
     std::vector<planner::LogicalOperator*> result;
     auto recursiveJoinCollector = LogicalRecursiveExtendCollector();
     recursiveJoinCollector.collect(root);
@@ -252,16 +252,16 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendPathSemiMa
     auto op = opsToApplySemiMask[0];
     KU_ASSERT(op->getOperatorType() == planner::LogicalOperatorType::SCAN_INTERNAL_ID);
     auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanInternalID*>(op);
-    auto semiMasker = std::make_shared<LogicalSemiMasker>(
-        SemiMaskType::PATH, pathExpression, scan->getTableIDs(), opsToApplySemiMask, child);
+    auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskType::PATH, pathExpression,
+        scan->getTableIDs(), opsToApplySemiMask, child);
     semiMasker->computeFlatSchema();
     return semiMasker;
 }
 
 std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendAccumulate(
     std::shared_ptr<planner::LogicalOperator> child) {
-    auto accumulate = std::make_shared<LogicalAccumulate>(
-        AccumulateType::REGULAR, expression_vector{}, std::move(child));
+    auto accumulate = std::make_shared<LogicalAccumulate>(AccumulateType::REGULAR,
+        expression_vector{}, nullptr /* offset */, std::move(child));
     accumulate->computeFlatSchema();
     return accumulate;
 }

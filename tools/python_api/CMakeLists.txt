@@ -9,13 +9,19 @@ file(GLOB SOURCE_PY
 pybind11_add_module(_kuzu
         SHARED
         src_cpp/kuzu_binding.cpp
+        src_cpp/cached_import/py_cached_item.cpp
+        src_cpp/cached_import/py_cached_import.cpp
         src_cpp/py_connection.cpp
         src_cpp/py_database.cpp
         src_cpp/py_prepared_statement.cpp
         src_cpp/py_query_result.cpp
         src_cpp/py_query_result_converter.cpp
+        src_cpp/py_conversion.cpp
+        src_cpp/pyarrow/pyarrow_bind.cpp
+        src_cpp/pyarrow/pyarrow_scan.cpp
         src_cpp/pandas/pandas_bind.cpp
         src_cpp/pandas/pandas_scan.cpp
+        src_cpp/pandas/pandas_analyzer.cpp
         src_cpp/numpy/numpy_type.cpp
         src_cpp/numpy/numpy_scan.cpp)
 

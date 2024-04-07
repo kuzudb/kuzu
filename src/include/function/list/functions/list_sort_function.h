@@ -10,8 +10,8 @@ template<typename T>
 struct ListSort : BaseListSortOperation {
     static inline void operation(common::list_entry_t& input, common::list_entry_t& result,
         common::ValueVector& inputVector, common::ValueVector& resultVector) {
-        sortValues<T>(
-            input, result, inputVector, resultVector, true /* ascOrder */, true /* nullFirst */);
+        sortValues<T>(input, result, inputVector, resultVector, true /* ascOrder */,
+            true /* nullFirst */);
     }
 
     static inline void operation(common::list_entry_t& input, common::ku_string_t& sortOrder,

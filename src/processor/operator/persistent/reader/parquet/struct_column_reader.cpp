@@ -39,7 +39,7 @@ void StructColumnReader::registerPrefetch(ThriftFileTransport& transport, bool a
     }
 }
 
-uint64_t StructColumnReader::read(uint64_t num_values, parquet_filter_t& filter,
+uint64_t StructColumnReader::read(uint64_t numValuesToRead, parquet_filter_t& filter,
     uint8_t* define_out, uint8_t* repeat_out, common::ValueVector* result) {
     auto& fieldVectors = common::StructVector::getFieldVectors(result);
     KU_ASSERT(common::StructType::getNumFields(type.get()) == fieldVectors.size());
@@ -47,24 +47,21 @@ uint64_t StructColumnReader::read(uint64_t num_values, parquet_filter_t& filter,
         applyPendingSkips(pendingSkips);
     }
 
-    uint64_t read_count = num_values;
+    uint64_t numValuesRead = numValuesToRead;
     for (auto i = 0u; i < fieldVectors.size(); i++) {
-        auto child_num_values = childReaders[i]->read(
-            num_values, filter, define_out, repeat_out, fieldVectors[i].get());
+        auto numValuesChildrenRead = childReaders[i]->read(numValuesToRead, filter, define_out,
+            repeat_out, fieldVectors[i].get());
         if (i == 0) {
-            read_count = child_num_values;
-        } else if (read_count != child_num_values) {
+            numValuesRead = numValuesChildrenRead;
+        } else if (numValuesRead != numValuesChildrenRead) {
             throw std::runtime_error("Struct child row count mismatch");
         }
     }
-    // set the validity mask for this level
-    for (auto i = 0u; i < read_count; i++) {
-        if (define_out[i] < maxDefine) {
-            result->setNull(i, true);
-        }
+    for (auto i = 0u; i < numValuesRead; i++) {
+        result->setNull(i, define_out[i] < maxDefine);
     }
 
-    return read_count;
+    return numValuesRead;
 }
 
 void StructColumnReader::skip(uint64_t num_values) {
@@ -75,7 +72,7 @@ void StructColumnReader::skip(uint64_t num_values) {
 
 static bool TypeHasExactRowCount(const common::LogicalType* type) {
     switch (type->getLogicalTypeID()) {
-    case common::LogicalTypeID::VAR_LIST:
+    case common::LogicalTypeID::LIST:
     case common::LogicalTypeID::MAP:
         return false;
     case common::LogicalTypeID::STRUCT:

@@ -9,6 +9,8 @@
 namespace kuzu {
 namespace common {
 
+class ArrowNullMaskTree;
+
 constexpr uint64_t NULL_BITMASKS_WITH_SINGLE_ONE[64] = {0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
     0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000,
     0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000, 0x10000000,
@@ -66,6 +68,7 @@ const uint64_t NULL_HIGH_MASKS[65] = {0x0, 0x8000000000000000, 0xc00000000000000
     0xfffffffffffffffe, 0xffffffffffffffff};
 
 class NullMask {
+    friend class ArrowNullMaskTree;
 
 public:
     static constexpr uint64_t NO_NULL_ENTRY = 0;
@@ -133,12 +136,12 @@ public:
         uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert = false);
 
     bool copyFromNullBits(const uint64_t* srcNullEntries, uint64_t srcOffset, uint64_t dstOffset,
-        uint64_t numBitsToCopy);
+        uint64_t numBitsToCopy, bool invert = false);
 
     // Sets the given number of bits to null (if isNull is true) or non-null (if isNull is false),
     // starting at the offset
-    static void setNullRange(
-        uint64_t* nullEntries, uint64_t offset, uint64_t numBitsToSet, bool isNull);
+    static void setNullRange(uint64_t* nullEntries, uint64_t offset, uint64_t numBitsToSet,
+        bool isNull);
 
     void setNullFromRange(uint64_t offset, uint64_t numBitsToSet, bool isNull);
 
@@ -147,8 +150,8 @@ public:
 private:
     static inline std::pair<uint64_t, uint64_t> getNullEntryAndBitPos(uint64_t pos) {
         auto nullEntryPos = pos >> NUM_BITS_PER_NULL_ENTRY_LOG2;
-        return std::make_pair(
-            nullEntryPos, pos - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2));
+        return std::make_pair(nullEntryPos,
+            pos - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2));
     }
 
 private:

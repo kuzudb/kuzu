@@ -1,9 +1,8 @@
 #!/bin/bash
 
 rm -rf cpp/docs cpp/headers c/docs c/kuzu.h
-python3 ../pre-compiled-bins/collect_files.py
-python3 ../pre-compiled-bins/merge_headers.py
-mv ../pre-compiled-bins/headers ./cpp/
+python3 collect_files.py
+mv headers ./cpp/
 cp ../../src/include/c_api/kuzu.h ./c/
 cd cpp && doxygen Doxyfile
 cd ..

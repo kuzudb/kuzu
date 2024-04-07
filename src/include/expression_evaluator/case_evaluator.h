@@ -6,6 +6,10 @@
 #include "expression_evaluator.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace evaluator {
 
 struct CaseAlternativeEvaluator {
@@ -20,8 +24,8 @@ struct CaseAlternativeEvaluator {
     void init(const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager);
 
     inline std::unique_ptr<CaseAlternativeEvaluator> clone() const {
-        return make_unique<CaseAlternativeEvaluator>(
-            whenEvaluator->clone(), thenEvaluator->clone());
+        return make_unique<CaseAlternativeEvaluator>(whenEvaluator->clone(),
+            thenEvaluator->clone());
     }
 };
 
@@ -31,21 +35,21 @@ public:
         std::vector<std::unique_ptr<CaseAlternativeEvaluator>> alternativeEvaluators,
         std::unique_ptr<ExpressionEvaluator> elseEvaluator)
         : ExpressionEvaluator{}, expression{std::move(expression)},
-          alternativeEvaluators{std::move(alternativeEvaluators)}, elseEvaluator{
-                                                                       std::move(elseEvaluator)} {}
+          alternativeEvaluators{std::move(alternativeEvaluators)},
+          elseEvaluator{std::move(elseEvaluator)} {}
 
-    void init(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
+    void init(const processor::ResultSet& resultSet,
+        storage::MemoryManager* memoryManager) override;
 
-    void evaluate() override;
+    void evaluate(main::ClientContext* clientContext) override;
 
-    bool select(common::SelectionVector& selVector) override;
+    bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
 
     std::unique_ptr<ExpressionEvaluator> clone() override;
 
 protected:
-    void resolveResultVector(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
+    void resolveResultVector(const processor::ResultSet& resultSet,
+        storage::MemoryManager* memoryManager) override;
 
 private:
     void fillSelected(const common::SelectionVector& selVector, common::ValueVector* srcVector);

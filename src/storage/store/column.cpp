@@ -3,11 +3,15 @@
 #include <memory>
 
 #include "common/assert.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include "storage/stats/property_statistics.h"
+#include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
+#include "storage/store/list_column.h"
+#include "storage/store/null_column.h"
 #include "storage/store/string_column.h"
 #include "storage/store/struct_column.h"
-#include "storage/store/var_list_column.h"
 #include "transaction/transaction.h"
 #include <bit>
 
@@ -25,7 +29,7 @@ static inline bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata&
 
 struct ReadInternalIDValuesToVector {
     ReadInternalIDValuesToVector() : compressedReader{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
-    void operator()(const uint8_t* frame, PageElementCursor& pageCursor, ValueVector* resultVector,
+    void operator()(const uint8_t* frame, PageCursor& pageCursor, ValueVector* resultVector,
         uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata) {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
 
@@ -45,51 +49,19 @@ struct WriteInternalIDValuesToPage {
     WriteInternalIDValuesToPage() : compressedWriter{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
     void operator()(uint8_t* frame, uint16_t posInFrame, const uint8_t* data, uint32_t dataOffset,
         offset_t numValues, const CompressionMetadata& metadata) {
-        auto internalIDValues = reinterpret_cast<const internalID_t*>(data);
-
-        for (auto i = 0u; i < numValues; i++) {
-            compressedWriter(frame, posInFrame,
-                reinterpret_cast<const uint8_t*>(&internalIDValues[dataOffset + i].offset),
-                0 /*dataOffset*/, 1 /*numValues*/, metadata);
-        }
+        compressedWriter(frame, posInFrame, data, dataOffset, numValues, metadata);
     }
     void operator()(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
         uint32_t offsetInVector, const CompressionMetadata& metadata) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-        compressedWriter(
-            frame, posInFrame, vector->getData(), offsetInVector, 1 /*numValues*/, metadata);
+        compressedWriter(frame, posInFrame,
+            reinterpret_cast<const uint8_t*>(
+                &vector->getValue<internalID_t>(offsetInVector).offset),
+            0 /*dataOffset*/, 1 /*numValues*/, metadata);
     }
 
 private:
     WriteCompressedValuesToPage compressedWriter;
-};
-
-struct NullColumnFunc {
-    static void readValuesFromPageToVector(const uint8_t* frame, PageElementCursor& pageCursor,
-        ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
-        const CompressionMetadata& metadata) {
-        // Read bit-packed null flags from the frame into the result vector
-        // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
-        // Otherwise, it could read off the end of the page.
-        if (metadata.isConstant()) {
-            auto value = ConstantCompression::getValue<bool>(metadata);
-            resultVector->setNullRange(posInVector, numValuesToRead, value);
-        } else {
-            resultVector->setNullFromBits(
-                (uint64_t*)frame, pageCursor.elemPosInPage, posInVector, numValuesToRead);
-        }
-    }
-
-    static void writeValueToPageFromVector(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& metadata) {
-        if (metadata.isConstant()) {
-            // Value to write is identical to the constant value
-            return;
-        }
-        // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
-        // Otherwise, it could read off the end of the page.
-        NullMask::setNull((uint64_t*)frame, posInFrame, vector->isNull(posInVector));
-    }
 };
 
 static read_values_to_vector_func_t getReadValuesToVectorFunc(const LogicalType& logicalType) {
@@ -119,185 +91,11 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     }
 }
 
-class NullColumn final : public Column {
-    friend StructColumn;
-
-public:
-    // Page size must be aligned to 8 byte chunks for the 64-bit NullMask algorithms to work
-    // without the possibility of memory errors from reading/writing off the end of a page.
-    static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
-
-    NullColumn(std::string name, page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction,
-        RWPropertyStats propertyStatistics, bool enableCompression)
-        : Column{name, LogicalType::BOOL(), MetadataDAHInfo{metaDAHPageIdx}, dataFH, metadataFH,
-              bufferManager, wal, transaction, propertyStatistics, enableCompression,
-              false /*requireNullColumn*/} {
-        readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
-        writeFromVectorFunc = NullColumnFunc::writeValueToPageFromVector;
-        // Should never be used
-        batchLookupFunc = nullptr;
-    }
-
-    void scan(
-        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) override {
-        if (propertyStatistics.mayHaveNull(*transaction)) {
-            scanInternal(transaction, nodeIDVector, resultVector);
-        } else {
-            resultVector->setAllNonNull();
-        }
-    }
-
-    void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-        uint64_t offsetInVector) override {
-        if (propertyStatistics.mayHaveNull(*transaction)) {
-            Column::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
-                resultVector, offsetInVector);
-        } else {
-            resultVector->setNullRange(
-                offsetInVector, endOffsetInGroup - startOffsetInGroup, false /*set non-null*/);
-        }
-    }
-
-    void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk) override {
-        if (propertyStatistics.mayHaveNull(DUMMY_WRITE_TRANSACTION)) {
-            Column::scan(transaction, nodeGroupIdx, columnChunk);
-        } else {
-            static_cast<NullColumnChunk*>(columnChunk)->resetToNoNull();
-            if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
-                columnChunk->setNumValues(0);
-            } else {
-                auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
-                columnChunk->setNumValues(chunkMetadata.numValues);
-            }
-        }
-    }
-
-    void lookup(
-        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) override {
-        if (propertyStatistics.mayHaveNull(*transaction)) {
-            lookupInternal(transaction, nodeIDVector, resultVector);
-        } else {
-            for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
-                auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-                resultVector->setNull(pos, false);
-            }
-        }
-    }
-
-    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override {
-        auto preScanMetadata = columnChunk->getMetadataToFlush();
-        auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
-        auto metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
-        metadataDA->resize(nodeGroupIdx + 1);
-        metadataDA->update(nodeGroupIdx, metadata);
-        if (static_cast<NullColumnChunk*>(columnChunk)->mayHaveNull()) {
-            propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
-        }
-    }
-
-    bool isNull(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        offset_t offsetInChunk) override {
-        auto state = getReadState(transaction->getType(), nodeGroupIdx);
-        uint64_t result = false;
-        if (offsetInChunk >= state.metadata.numValues) {
-            return true;
-        }
-        // Must be aligned to an 8-byte chunk for NullMask read to not overflow
-        Column::scan(transaction, state, offsetInChunk, offsetInChunk + 1,
-            reinterpret_cast<uint8_t*>(&result));
-        return result;
-    }
-
-    void setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) override {
-        auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-        propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
-        // Must be aligned to an 8-byte chunk for NullMask read to not overflow
-        uint64_t value = true;
-        writeValue(
-            chunkMeta, nodeGroupIdx, offsetInChunk, reinterpret_cast<const uint8_t*>(&value));
-        if (offsetInChunk >= chunkMeta.numValues) {
-            chunkMeta.numValues = offsetInChunk + 1;
-            metadataDA->update(nodeGroupIdx, chunkMeta);
-        }
-    }
-
-    void write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
-        ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override {
-        auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-        writeValue(
-            chunkMeta, nodeGroupIdx, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
-        if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
-            propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
-        }
-        if (offsetInChunk >= chunkMeta.numValues) {
-            chunkMeta.numValues = offsetInChunk + 1;
-            metadataDA->update(nodeGroupIdx, chunkMeta);
-        }
-    }
-
-    bool canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
-        const offset_to_row_idx_t& updateInfo) override {
-        auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
-        if (metadata.compMeta.canAlwaysUpdateInPlace()) {
-            return true;
-        }
-        std::vector<row_idx_t> rowIdxesToRead;
-        for (auto& [_, rowIdx] : updateInfo) {
-            rowIdxesToRead.push_back(rowIdx);
-        }
-        for (auto& [_, rowIdx] : insertInfo) {
-            rowIdxesToRead.push_back(rowIdx);
-        }
-        std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
-        for (auto rowIdx : rowIdxesToRead) {
-            auto localVector = localChunk->getLocalVector(rowIdx);
-            auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-            bool value = localVector->getVector()->isNull(offsetInVector);
-            if (!metadata.compMeta.canUpdateInPlace(
-                    reinterpret_cast<const uint8_t*>(&value), 0, dataType->getPhysicalType())) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-protected:
-    void commitLocalChunkInPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
-        LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
-        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override {
-        for (auto& [offsetInChunk, rowIdx] : updateInfo) {
-            auto localVector = localChunk->getLocalVector(rowIdx);
-            auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-            write(nodeGroupIdx, offsetInChunk, localVector->getVector(), offsetInVector);
-        }
-        for (auto& [offsetInChunk, rowIdx] : insertInfo) {
-            auto localVector = localChunk->getLocalVector(rowIdx);
-            auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-            write(nodeGroupIdx, offsetInChunk, localVector->getVector(), offsetInVector);
-        }
-        // Set nulls based on deleteInfo. Note that this code path actually only gets executed when
-        // the column is a regular format one. This is not a good design, should be unified with csr
-        // one in the future.
-        for (auto offsetInChunk : deleteInfo) {
-            setNull(nodeGroupIdx, offsetInChunk);
-        }
-    }
-
-private:
-    std::unique_ptr<ColumnChunk> getEmptyChunkForCommit() override {
-        return ColumnChunkFactory::createNullColumnChunk(enableCompression);
-    }
-};
-
 class SerialColumn final : public Column {
 public:
     SerialColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction)
-        : Column{name, LogicalType::SERIAL(), metaDAHeaderInfo, dataFH, metadataFH,
+        : Column{name, *LogicalType::SERIAL(), metaDAHeaderInfo, dataFH, metadataFH,
               // Serials can't be null, so they don't need PropertyStatistics
               bufferManager, wal, transaction, RWPropertyStats::empty(),
               false /* enableCompression */, false /*requireNullColumn*/} {}
@@ -324,16 +122,29 @@ public:
         }
     }
 
-    bool canCommitInPlace(Transaction* /*transaction*/, node_group_idx_t /*nodeGroupIdx*/,
-        LocalVectorCollection* /*localChunk*/, const offset_to_row_idx_t& /*insertInfo*/,
+    bool canCommitInPlace(Transaction*, node_group_idx_t, const ChunkCollection&,
+        const offset_to_row_idx_t&, const ChunkCollection&,
         const offset_to_row_idx_t& updateInfo) override {
+        (void)updateInfo; // Avoid unused parameter warnings during release build.
         KU_ASSERT(updateInfo.empty());
         return true;
     }
 
+    bool canCommitInPlace(transaction::Transaction* /*transaction*/,
+        common::node_group_idx_t /*nodeGroupIdx*/,
+        const std::vector<common::offset_t>& /*dstOffset*/, ColumnChunk* /*chunk*/,
+        common::offset_t /*startOffset*/) override {
+        // Note: only updates to rel table can trigger this code path. SERIAL is not supported in
+        // rel table yet.
+        KU_UNREACHABLE;
+    }
+
     void commitLocalChunkInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        LocalVectorCollection* /*localChunk*/, const offset_to_row_idx_t& insertInfo,
+        const ChunkCollection&, const offset_to_row_idx_t& insertInfo, const ChunkCollection&,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override {
+        // Avoid unused parameter warnings during release build.
+        (void)updateInfo;
+        (void)deleteInfo;
         KU_ASSERT(updateInfo.empty() && deleteInfo.empty());
         auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
         auto numValues = chunkMeta.numValues;
@@ -349,9 +160,13 @@ public:
     }
 
     void commitLocalChunkOutOfPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
-        LocalVectorCollection* /*localChunk*/, bool isNewNodeGroup,
-        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
+        bool isNewNodeGroup, const ChunkCollection&, const offset_to_row_idx_t& insertInfo,
+        const ChunkCollection&, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo) override {
+        // Avoid unused parameter warnings during release build.
+        (void)isNewNodeGroup;
+        (void)updateInfo;
+        (void)deleteInfo;
         KU_ASSERT(isNewNodeGroup && updateInfo.empty() && deleteInfo.empty());
         // Only when a new node group is created, we need to commit out of place.
         auto numValues = 0u;
@@ -364,16 +179,36 @@ public:
         metadataDA->update(nodeGroupIdx, chunkMeta);
     }
 
-    void append(ColumnChunk* /*columnChunk*/, uint64_t nodeGroupIdx) override {
+    void commitColumnChunkInPlace(common::node_group_idx_t /*nodeGroupIdx*/,
+        const std::vector<common::offset_t>& /*dstOffset*/, ColumnChunk* /*chunk*/,
+        common::offset_t /*srcOffsetInChunk*/) override {
+        // Note: only updates to rel table can trigger this code path. SERIAL is not supported in
+        // rel table yet.
+        KU_UNREACHABLE;
+    }
+
+    void commitColumnChunkOutOfPlace(Transaction* /*transaction*/,
+        common::node_group_idx_t /*nodeGroupIdx*/, bool /*isNewNodeGroup*/,
+        const std::vector<common::offset_t>& /*dstOffset*/, ColumnChunk* /*chunk*/,
+        common::offset_t /*srcOffsetInChunk*/) override {
+        // Note: only updates to rel table can trigger this code path. SERIAL is not supported in
+        // rel table yet.
+        KU_UNREACHABLE;
+    }
+
+    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override {
+        ColumnChunkMetadata metadata;
+        metadata.numValues = columnChunk->getNumValues();
         metadataDA->resize(nodeGroupIdx + 1);
+        metadataDA->update(nodeGroupIdx, metadata);
     }
 };
 
 InternalIDColumn::InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats stats)
-    : Column{name, LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager,
-          wal, transaction, stats, false /* enableCompression */},
+    transaction::Transaction* transaction, RWPropertyStats stats, bool enableCompression)
+    : Column{name, *LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager,
+          wal, transaction, stats, enableCompression, false /*requireNullColumn*/},
       commonTableID{INVALID_TABLE_ID} {}
 
 void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
@@ -384,22 +219,22 @@ void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
     }
 }
 
-Column::Column(std::string name, std::unique_ptr<LogicalType> dataType,
-    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-    RWPropertyStats propertyStatistics, bool enableCompression, bool requireNullColumn)
+Column::Column(std::string name, LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
+    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
+    bool enableCompression, bool requireNullColumn)
     : name{std::move(name)}, dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)},
       dataFH{dataFH}, metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal},
       propertyStatistics{propertyStatistics}, enableCompression{enableCompression} {
     metadataDA = std::make_unique<InMemDiskArray<ColumnChunkMetadata>>(*metadataFH,
         DBFileID::newMetadataFileID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal,
         transaction);
-    numBytesPerFixedSizedValue = getDataTypeSizeInChunk(*this->dataType);
-    readToVectorFunc = getReadValuesToVectorFunc(*this->dataType);
-    readToPageFunc = ReadCompressedValuesFromPage(*this->dataType);
-    batchLookupFunc = ReadCompressedValuesFromPage(*this->dataType);
-    writeFromVectorFunc = getWriteValueFromVectorFunc(*this->dataType);
-    writeFunc = getWriteValuesFunc(*this->dataType);
+    numBytesPerFixedSizedValue = getDataTypeSizeInChunk(this->dataType);
+    readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
+    readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
+    batchLookupFunc = ReadCompressedValuesFromPage(this->dataType);
+    writeFromVectorFunc = getWriteValueFromVectorFunc(this->dataType);
+    writeFunc = getWriteValuesFunc(this->dataType);
     KU_ASSERT(numBytesPerFixedSizedValue <= BufferPoolConstants::PAGE_4KB_SIZE);
     if (requireNullColumn) {
         auto columnName =
@@ -410,9 +245,15 @@ Column::Column(std::string name, std::unique_ptr<LogicalType> dataType,
     }
 }
 
+Column::~Column() = default;
+
+Column* Column::getNullColumn() {
+    return nullColumn.get();
+}
+
 // NOTE: This function should only be called on node tables.
-void Column::batchLookup(
-    Transaction* transaction, const offset_t* nodeOffsets, size_t size, uint8_t* result) {
+void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, size_t size,
+    uint8_t* result) {
     for (auto i = 0u; i < size; ++i) {
         auto nodeOffset = nodeOffsets[i];
         auto [nodeGroupIdx, offsetInChunk] =
@@ -443,40 +284,49 @@ void Column::scan(transaction::Transaction* transaction, node_group_idx_t nodeGr
     auto state = getReadState(transaction->getType(), nodeGroupIdx);
     auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, state);
     auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
-    scanUnfiltered(
-        transaction, pageCursor, numValuesToScan, resultVector, state.metadata, offsetInVector);
+    scanUnfiltered(transaction, pageCursor, numValuesToScan, resultVector, state.metadata,
+        offsetInVector);
 }
 
-void Column::scan(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
+void Column::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk,
+    offset_t startOffset, offset_t endOffset) {
     if (nullColumn) {
-        nullColumn->scan(transaction, nodeGroupIdx, columnChunk->getNullChunk());
+        nullColumn->scan(transaction, nodeGroupIdx, columnChunk->getNullChunk(), startOffset,
+            endOffset);
     }
     if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
         columnChunk->setNumValues(0);
     } else {
         auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
-        auto cursor = PageElementCursor(chunkMetadata.pageIdx, 0);
-        uint64_t numValuesPerPage =
-            chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
-        uint64_t numValuesScanned = 0u;
-        if (chunkMetadata.numValues > columnChunk->getCapacity()) {
-            columnChunk->resize(std::bit_ceil(chunkMetadata.numValues));
+        if (chunkMetadata.numValues == 0) {
+            columnChunk->setNumValues(0);
+            return;
         }
-        auto numValuesToScan = chunkMetadata.numValues;
-        KU_ASSERT(chunkMetadata.numValues <= columnChunk->getCapacity());
+        uint64_t numValuesPerPage =
+            chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        auto cursor = PageUtils::getPageCursorForPos(startOffset, numValuesPerPage);
+        cursor.pageIdx += chunkMetadata.pageIdx;
+        uint64_t numValuesScanned = 0u;
+        endOffset = std::min(endOffset, chunkMetadata.numValues);
+        KU_ASSERT(endOffset >= startOffset);
+        auto numValuesToScan = endOffset - startOffset;
+        if (numValuesToScan > columnChunk->getCapacity()) {
+            columnChunk->resize(std::bit_ceil(numValuesToScan));
+        }
+        KU_ASSERT((numValuesToScan + startOffset) <= chunkMetadata.numValues);
         while (numValuesScanned < numValuesToScan) {
-            auto numValuesToReadInPage =
-                std::min(numValuesPerPage, numValuesToScan - numValuesScanned);
+            auto numValuesToReadInPage = std::min(numValuesPerPage - cursor.elemPosInPage,
+                numValuesToScan - numValuesScanned);
             KU_ASSERT(isPageIdxValid(cursor.pageIdx, chunkMetadata));
-            readFromPage(&DUMMY_READ_TRANSACTION, cursor.pageIdx, [&](uint8_t* frame) -> void {
+            readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
                 readToPageFunc(frame, cursor, columnChunk->getData(), numValuesScanned,
                     numValuesToReadInPage, chunkMetadata.compMeta);
             });
             numValuesScanned += numValuesToReadInPage;
             cursor.nextPage();
         }
-        columnChunk->setNumValues(chunkMetadata.numValues);
+        KU_ASSERT(numValuesScanned == numValuesToScan);
+        columnChunk->setNumValues(numValuesScanned);
     }
 }
 
@@ -498,8 +348,8 @@ void Column::scan(Transaction* transaction, const ReadState& state, offset_t sta
     }
 }
 
-void Column::scanInternal(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void Column::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
     // TODO: replace with state
@@ -515,12 +365,12 @@ void Column::scanInternal(
     }
 }
 
-void Column::scanUnfiltered(Transaction* transaction, PageElementCursor& pageCursor,
+void Column::scanUnfiltered(Transaction* transaction, PageCursor& pageCursor,
     uint64_t numValuesToScan, ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta,
     uint64_t startPosInVector) {
     uint64_t numValuesScanned = 0;
     auto numValuesPerPage =
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
+        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
     while (numValuesScanned < numValuesToScan) {
         uint64_t numValuesToScanInPage =
             std::min((uint64_t)numValuesPerPage - pageCursor.elemPosInPage,
@@ -535,13 +385,13 @@ void Column::scanUnfiltered(Transaction* transaction, PageElementCursor& pageCur
     }
 }
 
-void Column::scanFiltered(Transaction* transaction, PageElementCursor& pageCursor,
+void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
     ValueVector* nodeIDVector, ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta) {
     auto numValuesToScan = nodeIDVector->state->getOriginalSize();
     auto numValuesScanned = 0u;
     auto posInSelVector = 0u;
     auto numValuesPerPage =
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
+        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
     while (numValuesScanned < numValuesToScan) {
         uint64_t numValuesToScanInPage =
             std::min((uint64_t)numValuesPerPage - pageCursor.elemPosInPage,
@@ -564,16 +414,16 @@ void Column::scanFiltered(Transaction* transaction, PageElementCursor& pageCurso
     }
 }
 
-void Column::lookup(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void Column::lookup(Transaction* transaction, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     if (nullColumn) {
         nullColumn->lookup(transaction, nodeIDVector, resultVector);
     }
     lookupInternal(transaction, nodeIDVector, resultVector);
 }
 
-void Column::lookupInternal(
-    transaction::Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void Column::lookupInternal(transaction::Transaction* transaction, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (nodeIDVector->isNull(pos)) {
@@ -591,13 +441,13 @@ void Column::lookupValue(transaction::Transaction* transaction, offset_t nodeOff
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
     KU_ASSERT(isPageIdxValid(cursor.pageIdx, chunkMeta));
     readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
-        readToVectorFunc(
-            frame, cursor, resultVector, posInVector, 1 /* numValuesToRead */, chunkMeta.compMeta);
+        readToVectorFunc(frame, cursor, resultVector, posInVector, 1 /* numValuesToRead */,
+            chunkMeta.compMeta);
     });
 }
 
-void Column::readFromPage(
-    Transaction* transaction, page_idx_t pageIdx, const std::function<void(uint8_t*)>& func) {
+void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
+    const std::function<void(uint8_t*)>& func) {
     // For constant compression, call read on a nullptr since there is no data on disk and
     // decompression only requires metadata
     if (pageIdx == INVALID_PAGE_IDX) {
@@ -608,11 +458,29 @@ void Column::readFromPage(
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
 }
 
+static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const LogicalType& dataType) {
+    if (metadata.compMeta.compression == CompressionType::CONSTANT) {
+        return metadata.numPages == 0;
+    } else {
+        auto numValuesPerPage =
+            metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        if (numValuesPerPage == UINT64_MAX) {
+            return metadata.numPages == 0;
+        } else {
+            return std::ceil((double)metadata.numValues / (double)numValuesPerPage) <=
+                   metadata.numPages;
+        }
+    }
+}
+
 void Column::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
+    KU_ASSERT(enableCompression == columnChunk->isCompressionEnabled());
+    KU_ASSERT(columnChunk->sanityCheck());
     // Main column chunk.
     auto preScanMetadata = columnChunk->getMetadataToFlush();
     auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
     auto metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
+    KU_ASSERT(sanityCheckForWrites(metadata, dataType));
     metadataDA->resize(nodeGroupIdx + 1);
     metadataDA->update(nodeGroupIdx, metadata);
     if (nullColumn) {
@@ -626,211 +494,250 @@ void Column::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
     bool isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
     auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
     if (!isNull) {
-        writeValue(
-            chunkMeta, nodeGroupIdx, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
+        writeValue(chunkMeta, nodeGroupIdx, offsetInChunk, vectorToWriteFrom,
+            posInVectorToWriteFrom);
     }
     if (offsetInChunk >= chunkMeta.numValues) {
         chunkMeta.numValues = offsetInChunk + 1;
+        KU_ASSERT(sanityCheckForWrites(chunkMeta, dataType));
         metadataDA->update(nodeGroupIdx, chunkMeta);
     }
 }
 
 void Column::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_idx_t nodeGroupIdx,
     offset_t offsetInChunk, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    auto walPageInfo = createWALVersionOfPageForValue(nodeGroupIdx, offsetInChunk);
-    KU_ASSERT(isPageIdxValid(walPageInfo.originalPageIdx, chunkMeta));
-    try {
-        writeFromVectorFunc(walPageInfo.frame, walPageInfo.posInPage, vectorToWriteFrom,
-            posInVectorToWriteFrom, chunkMeta.compMeta);
-    } catch (Exception& e) {
-        DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
-            walPageInfo, *dataFH, *bufferManager, *wal);
-        throw;
-    }
-    DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(walPageInfo, *dataFH, *bufferManager, *wal);
+    updatePageWithCursor(
+        getPageCursorForOffset(TransactionType::WRITE, nodeGroupIdx, offsetInChunk),
+        [&](auto frame, auto posInPage) {
+            writeFromVectorFunc(frame, posInPage, vectorToWriteFrom, posInVectorToWriteFrom,
+                chunkMeta.compMeta);
+        });
 }
 
-void Column::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_idx_t nodeGroupIdx,
-    offset_t offsetInChunk, const uint8_t* data) {
-    auto walPageInfo = createWALVersionOfPageForValue(nodeGroupIdx, offsetInChunk);
-    try {
-        writeFunc(walPageInfo.frame, walPageInfo.posInPage, data, 0, 1, chunkMeta.compMeta);
-    } catch (Exception& e) {
-        DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
-            walPageInfo, *dataFH, *bufferManager, *wal);
-        throw;
+void Column::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, ColumnChunk* data,
+    offset_t dataOffset, length_t numValues) {
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
+    writeValues(state, offsetInChunk, data->getData(), dataOffset, numValues);
+    if (offsetInChunk + numValues > state.metadata.numValues) {
+        state.metadata.numValues = offsetInChunk + numValues;
+        KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
+        metadataDA->update(nodeGroupIdx, state.metadata);
     }
-    DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(walPageInfo, *dataFH, *bufferManager, *wal);
 }
 
-offset_t Column::appendValues(
-    node_group_idx_t nodeGroupIdx, const uint8_t* data, offset_t numValues) {
+void Column::writeValues(ReadState& state, common::offset_t dstOffset, const uint8_t* data,
+    common::offset_t srcOffset, common::offset_t numValues) {
+    auto numValuesWritten = 0u;
+    auto cursor = getPageCursorForOffsetInGroup(dstOffset, state);
+    while (numValuesWritten < numValues) {
+        auto numValuesToWriteInPage =
+            std::min(numValues - numValuesWritten, state.numValuesPerPage - cursor.elemPosInPage);
+        updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
+            writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
+                numValuesToWriteInPage, state.metadata.compMeta);
+        });
+
+        numValuesWritten += numValuesToWriteInPage;
+        cursor.nextPage();
+    }
+}
+
+offset_t Column::appendValues(node_group_idx_t nodeGroupIdx, const uint8_t* data,
+    offset_t numValues) {
     auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     auto startOffset = state.metadata.numValues;
-    auto cursor = getPageCursorForOffsetInGroup(startOffset, state);
-    offset_t valuesWritten = 0;
-    while (valuesWritten < numValues) {
-        bool insertingNewPage = false;
-        if (cursor.pageIdx >= dataFH->getNumPages()) {
-            KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
-            DBFileUtils::insertNewPage(*dataFH, dbFileID, *bufferManager, *wal);
-            insertingNewPage = true;
-        }
-
-        uint64_t numValuesToWriteInPage = std::min(
-            (uint64_t)state.numValuesPerPage - cursor.elemPosInPage, numValues - valuesWritten);
-        auto walPageInfo = DBFileUtils::createWALVersionIfNecessaryAndPinPage(
-            cursor.pageIdx, insertingNewPage, *dataFH, dbFileID, *bufferManager, *wal);
-
-        try {
-            writeFunc(walPageInfo.frame, cursor.elemPosInPage, data, 0, numValuesToWriteInPage,
-                state.metadata.compMeta);
-        } catch (Exception& e) {
-            DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
-                walPageInfo, *dataFH, *bufferManager, *wal);
-            throw;
-        }
-        DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
-            walPageInfo, *dataFH, *bufferManager, *wal);
-        valuesWritten += numValuesToWriteInPage;
-        if (valuesWritten < numValues) {
-            cursor.nextPage();
-            state.metadata.numPages++;
-        }
-    }
+    auto numPages = dataFH->getNumPages();
+    writeValues(state, state.metadata.numValues, data, 0 /*dataOffset*/, numValues);
+    auto newNumPages = dataFH->getNumPages();
     state.metadata.numValues += numValues;
+    state.metadata.numPages += (newNumPages - numPages);
     metadataDA->update(nodeGroupIdx, state.metadata);
     return startOffset;
 }
 
-PageElementCursor Column::getPageCursorForOffsetInGroup(
-    offset_t offsetInChunk, const ReadState& state) {
-    auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInChunk, state.numValuesPerPage);
+PageCursor Column::getPageCursorForOffsetInGroup(offset_t offsetInChunk, const ReadState& state) {
+    auto pageCursor = PageUtils::getPageCursorForPos(offsetInChunk, state.numValuesPerPage);
     pageCursor.pageIdx += state.metadata.pageIdx;
     return pageCursor;
 }
 
-WALPageIdxPosInPageAndFrame Column::createWALVersionOfPageForValue(
-    node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
-    auto originalPageCursor =
-        getPageCursorForOffset(TransactionType::WRITE, nodeGroupIdx, offsetInChunk);
+void Column::updatePageWithCursor(PageCursor cursor,
+    const std::function<void(uint8_t*, offset_t)>& writeOp) {
     bool insertingNewPage = false;
-    if (originalPageCursor.pageIdx == INVALID_PAGE_IDX) {
-        return {{INVALID_PAGE_IDX, INVALID_PAGE_IDX, nullptr}, originalPageCursor.elemPosInPage};
-    } else if (originalPageCursor.pageIdx >= dataFH->getNumPages()) {
-        KU_ASSERT(originalPageCursor.pageIdx == dataFH->getNumPages());
+    if (cursor.pageIdx == INVALID_PAGE_IDX) {
+        return writeOp(nullptr, cursor.elemPosInPage);
+    } else if (cursor.pageIdx >= dataFH->getNumPages()) {
+        KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
         DBFileUtils::insertNewPage(*dataFH, dbFileID, *bufferManager, *wal);
         insertingNewPage = true;
     }
-    auto walPageIdxAndFrame = DBFileUtils::createWALVersionIfNecessaryAndPinPage(
-        originalPageCursor.pageIdx, insertingNewPage, *dataFH, dbFileID, *bufferManager, *wal);
-    return {walPageIdxAndFrame, originalPageCursor.elemPosInPage};
+    DBFileUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *bufferManager,
+        *wal, [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
 }
 
-Column::ReadState Column::getReadState(
-    TransactionType transactionType, node_group_idx_t nodeGroupIdx) const {
+Column::ReadState Column::getReadState(TransactionType transactionType,
+    node_group_idx_t nodeGroupIdx) const {
     auto metadata = metadataDA->get(nodeGroupIdx, transactionType);
-    return {metadata, metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType)};
+    return {metadata, metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
 }
 
-bool Column::isNull(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
+void Column::prepareCommit() {
+    metadataDA->prepareCommit();
     if (nullColumn) {
-        return nullColumn->isNull(transaction, nodeGroupIdx, offsetInChunk);
-    }
-    return false;
-}
-
-void Column::setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
-    if (nullColumn) {
-        nullColumn->setNull(nodeGroupIdx, offsetInChunk);
+        nullColumn->prepareCommit();
     }
 }
 
 void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    LocalVectorCollection* localColumnChunk, const offset_to_row_idx_t& insertInfo,
-    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
+    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+    const offset_set_t& deleteInfo) {
     auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
     auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {
         // If this is a new node group, updateInfo should be empty. We should perform out-of-place
         // commit with a new column chunk.
-        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup,
-            insertInfo, updateInfo, deleteInfo);
+        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunks,
+            insertInfo, localUpdateChunks, updateInfo, deleteInfo);
     } else {
         bool didInPlaceCommit = false;
         // If this is not a new node group, we should first check if we can perform in-place commit.
-        if (canCommitInPlace(transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo)) {
-            commitLocalChunkInPlace(
-                transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo, deleteInfo);
+        if (canCommitInPlace(transaction, nodeGroupIdx, localInsertChunks, insertInfo,
+                localUpdateChunks, updateInfo)) {
+            commitLocalChunkInPlace(transaction, nodeGroupIdx, localInsertChunks, insertInfo,
+                localUpdateChunks, updateInfo, deleteInfo);
             didInPlaceCommit = true;
         } else {
-            commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup,
-                insertInfo, updateInfo, deleteInfo);
+            commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunks,
+                insertInfo, localUpdateChunks, updateInfo, deleteInfo);
         }
+        // TODO(Guodong/Ben): The logic here on NullColumn is confusing as out-of-place commits and
+        // in-place commits handle it differently. See if we can unify them.
         if (nullColumn) {
             // Uses functions written for the null chunk which only access the localColumnChunk's
             // null information
-            if (nullColumn->canCommitInPlace(
-                    transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo)) {
-                nullColumn->commitLocalChunkInPlace(transaction, nodeGroupIdx, localColumnChunk,
-                    insertInfo, updateInfo, deleteInfo);
+            if (nullColumn->canCommitInPlace(transaction, nodeGroupIdx,
+                    getNullChunkCollection(localInsertChunks), insertInfo,
+                    getNullChunkCollection(localUpdateChunks), updateInfo)) {
+                nullColumn->commitLocalChunkInPlace(transaction, nodeGroupIdx,
+                    getNullChunkCollection(localInsertChunks), insertInfo,
+                    getNullChunkCollection(localUpdateChunks), updateInfo, deleteInfo);
             } else if (didInPlaceCommit) {
                 // Out-of-place commits also commit the null chunk out of place,
                 // so we only need to do a separate out of place commit for the null chunk if the
                 // main chunk did an in-place commit.
-                nullColumn->commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk,
-                    isNewNodeGroup, insertInfo, updateInfo, deleteInfo);
+                nullColumn->commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
+                    getNullChunkCollection(localInsertChunks), insertInfo,
+                    getNullChunkCollection(localUpdateChunks), updateInfo, deleteInfo);
             }
         }
     }
 }
 
-bool Column::containsVarList(LogicalType& dataType) {
-    switch (dataType.getPhysicalType()) {
-    case PhysicalTypeID::VAR_LIST: {
-        return true;
-    }
-    case PhysicalTypeID::STRUCT: {
-        for (auto field : StructType::getFieldTypes(&dataType)) {
-            if (containsVarList(*field)) {
-                return true;
+void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk, offset_t startSrcOffset) {
+    metadataDA->prepareCommit();
+    auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
+    auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
+    if (isNewNodeGroup) {
+        commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk,
+            startSrcOffset);
+    } else {
+        bool didInPlaceCommit = false;
+        // If this is not a new node group, we should first check if we can perform in-place commit.
+        if (canCommitInPlace(transaction, nodeGroupIdx, dstOffsets, chunk, startSrcOffset)) {
+            commitColumnChunkInPlace(nodeGroupIdx, dstOffsets, chunk, startSrcOffset);
+            didInPlaceCommit = true;
+        } else {
+            commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
+                chunk, startSrcOffset);
+        }
+        if (nullColumn) {
+            if (nullColumn->canCommitInPlace(transaction, nodeGroupIdx, dstOffsets,
+                    chunk->getNullChunk(), startSrcOffset)) {
+                nullColumn->commitColumnChunkInPlace(nodeGroupIdx, dstOffsets,
+                    chunk->getNullChunk(), startSrcOffset);
+            } else if (didInPlaceCommit) {
+                nullColumn->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
+                    dstOffsets, chunk->getNullChunk(), startSrcOffset);
             }
         }
-    } break;
-    default:
-        return false;
+    }
+}
+
+bool Column::isInsertionsOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
+    const offset_to_row_idx_t& insertInfo) {
+    auto maxOffset = 0u;
+    for (auto& [offset, rowIdx] : insertInfo) {
+        if (offset > maxOffset) {
+            maxOffset = offset;
+        }
+    }
+    return isMaxOffsetOutOfPagesCapacity(metadata, maxOffset);
+}
+
+bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
+    offset_t maxOffset) {
+    if (metadata.compMeta.compression != CompressionType::CONSTANT &&
+        (metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType) *
+            metadata.numPages) <= (maxOffset + 1)) {
+        // Note that for constant compression, `metadata.numPages` will be equal to 0. Thus, this
+        // function will always return true.
+        return true;
     }
     return false;
 }
 
-bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
-    const offset_to_row_idx_t& updateInfo) {
-    if (containsVarList(*dataType)) {
-        // Always perform out of place commit for VAR_LIST data type.
-        return false;
-    }
-    auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
-    if (metadata.compMeta.canAlwaysUpdateInPlace()) {
-        return true;
-    }
+bool Column::checkUpdateInPlace(const ColumnChunkMetadata& metadata,
+    const ChunkCollection& localChunks, const offset_to_row_idx_t& writeInfo) {
     std::vector<row_idx_t> rowIdxesToRead;
-    for (auto& [_, rowIdx] : updateInfo) {
-        rowIdxesToRead.push_back(rowIdx);
-    }
-    for (auto& [_, rowIdx] : insertInfo) {
+    for (auto& [_, rowIdx] : writeInfo) {
         rowIdxesToRead.push_back(rowIdx);
     }
     std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
     for (auto rowIdx : rowIdxesToRead) {
-        auto localVector = localChunk->getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        if (localVector->getVector()->isNull(offsetInVector)) {
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        if (localChunks[chunkIdx]->getNullChunk() != nullptr &&
+            localChunks[chunkIdx]->getNullChunk()->isNull(offsetInLocalChunk)) {
             continue;
         }
-        if (!metadata.compMeta.canUpdateInPlace(
-                localVector->getVector()->getData(), offsetInVector, dataType->getPhysicalType())) {
+        if (!metadata.compMeta.canUpdateInPlace(localChunks[chunkIdx]->getData(),
+                offsetInLocalChunk, dataType.getPhysicalType())) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo) {
+    auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
+    if (isInsertionsOutOfPagesCapacity(metadata, insertInfo)) {
+        return false;
+    }
+    if (metadata.compMeta.canAlwaysUpdateInPlace()) {
+        return true;
+    }
+    return checkUpdateInPlace(metadata, localInsertChunks, insertInfo) &&
+           checkUpdateInPlace(metadata, localUpdateChunks, updateInfo);
+}
+
+bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+    common::offset_t srcOffset) {
+    auto maxDstOffset = getMaxOffset(dstOffsets);
+    auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
+    if (isMaxOffsetOutOfPagesCapacity(metadata, maxDstOffset)) {
+        return false;
+    }
+    if (metadata.compMeta.canAlwaysUpdateInPlace()) {
+        return true;
+    }
+    for (auto i = 0u; i < dstOffsets.size(); i++) {
+        if (!metadata.compMeta.canUpdateInPlace(chunk->getData(), srcOffset + i,
+                dataType.getPhysicalType())) {
             return false;
         }
     }
@@ -838,31 +745,33 @@ bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGro
 }
 
 void Column::commitLocalChunkInPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
-    LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
-    const offset_to_row_idx_t& updateInfo, const offset_set_t& /*deleteInfo*/) {
-    applyLocalChunkToColumn(nodeGroupIdx, localChunk, updateInfo);
-    applyLocalChunkToColumn(nodeGroupIdx, localChunk, insertInfo);
+    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+    const offset_set_t& /*deleteInfo*/) {
+    applyLocalChunkToColumn(nodeGroupIdx, localUpdateChunks, updateInfo);
+    applyLocalChunkToColumn(nodeGroupIdx, localInsertChunks, insertInfo);
 }
 
-std::unique_ptr<ColumnChunk> Column::getEmptyChunkForCommit() {
-    return ColumnChunkFactory::createColumnChunk(dataType->copy(), enableCompression);
+std::unique_ptr<ColumnChunk> Column::getEmptyChunkForCommit(uint64_t capacity) {
+    return ColumnChunkFactory::createColumnChunk(*dataType.copy(), enableCompression, capacity);
 }
 
 void Column::commitLocalChunkOutOfPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    LocalVectorCollection* localChunk, bool isNewNodeGroup, const offset_to_row_idx_t& insertInfo,
+    bool isNewNodeGroup, const ChunkCollection& localInsertChunks,
+    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
     const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
-    auto columnChunk = getEmptyChunkForCommit();
+    auto columnChunk = getEmptyChunkForCommit(common::StorageConstants::NODE_GROUP_SIZE);
     if (isNewNodeGroup) {
         KU_ASSERT(updateInfo.empty() && deleteInfo.empty());
         // Apply inserts from the local chunk.
-        applyLocalChunkToColumnChunk(localChunk, columnChunk.get(), insertInfo);
+        applyLocalChunkToColumnChunk(localInsertChunks, columnChunk.get(), insertInfo);
     } else {
         // First, scan the whole column chunk from persistent storage.
         scan(transaction, nodeGroupIdx, columnChunk.get());
         // Then, apply updates from the local chunk.
-        applyLocalChunkToColumnChunk(localChunk, columnChunk.get(), updateInfo);
+        applyLocalChunkToColumnChunk(localUpdateChunks, columnChunk.get(), updateInfo);
         // Lastly, apply inserts from the local chunk.
-        applyLocalChunkToColumnChunk(localChunk, columnChunk.get(), insertInfo);
+        applyLocalChunkToColumnChunk(localInsertChunks, columnChunk.get(), insertInfo);
         if (columnChunk->getNullChunk()) {
             // Set nulls based on deleteInfo.
             for (auto offsetInChunk : deleteInfo) {
@@ -871,26 +780,63 @@ void Column::commitLocalChunkOutOfPlace(Transaction* transaction, node_group_idx
         }
     }
     columnChunk->finalize();
+    KU_ASSERT(columnChunk->sanityCheck());
     append(columnChunk.get(), nodeGroupIdx);
 }
 
-void Column::applyLocalChunkToColumnChunk(LocalVectorCollection* localChunk,
-    ColumnChunk* columnChunk, const std::map<offset_t, row_idx_t>& updateInfo) {
-    for (auto& [offsetInChunk, rowIdx] : updateInfo) {
-        auto localVector = localChunk->getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        localVector->getVector()->state->selVector->selectedPositions[0] = offsetInVector;
-        columnChunk->write(localVector->getVector(), offsetInVector, offsetInChunk);
+void Column::commitColumnChunkInPlace(node_group_idx_t nodeGroupIdx,
+    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
+    for (auto i = 0u; i < dstOffsets.size(); i++) {
+        write(nodeGroupIdx, dstOffsets[i], chunk, srcOffset + i, 1 /* numValues */);
+    }
+}
+
+void Column::commitColumnChunkOutOfPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    bool isNewNodeGroup, const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk,
+    offset_t srcOffset) {
+    if (isNewNodeGroup) {
+        chunk->finalize();
+        append(chunk, nodeGroupIdx);
+    } else {
+        auto chunkMeta = getMetadata(nodeGroupIdx, transaction->getType());
+        // TODO(Guodong): Should consider caching the scanned column chunk to avoid redundant
+        // scans in the same transaction.
+        auto columnChunk =
+            getEmptyChunkForCommit(1.5 * std::bit_ceil(chunkMeta.numValues + dstOffsets.size()));
+        scan(transaction, nodeGroupIdx, columnChunk.get());
+        for (auto i = 0u; i < dstOffsets.size(); i++) {
+            columnChunk->write(chunk, srcOffset + i, dstOffsets[i], 1 /* numValues */);
+        }
+        columnChunk->finalize();
+        append(columnChunk.get(), nodeGroupIdx);
+    }
+}
+
+void Column::applyLocalChunkToColumnChunk(const ChunkCollection& localChunks,
+    ColumnChunk* columnChunk, const offset_to_row_idx_t& updateInfo) {
+    for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        columnChunk->write(localChunks[chunkIdx], offsetInLocalChunk, offsetInDstChunk,
+            1 /* numValues */);
     }
 }
 
 void Column::applyLocalChunkToColumn(node_group_idx_t nodeGroupIdx,
-    LocalVectorCollection* localChunk, const std::map<offset_t, row_idx_t>& updateInfo) {
-    for (auto& [offsetInChunk, rowIdx] : updateInfo) {
-        auto localVector = localChunk->getLocalVector(rowIdx);
-        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
-        if (!localVector->getVector()->isNull(offsetInVector)) {
-            write(nodeGroupIdx, offsetInChunk, localVector->getVector(), offsetInVector);
+    const ChunkCollection& localChunks, const offset_to_row_idx_t& updateInfo) {
+    for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        if (!localChunks[chunkIdx]->getNullChunk()->isNull(offsetInLocalChunk)) {
+            write(nodeGroupIdx, offsetInDstChunk, localChunks[chunkIdx], offsetInLocalChunk,
+                1 /*numValues*/);
+        } else {
+            auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+            if (offsetInDstChunk >= chunkMeta.numValues) {
+                chunkMeta.numValues = offsetInDstChunk + 1;
+                KU_ASSERT(sanityCheckForWrites(chunkMeta, dataType));
+                metadataDA->update(nodeGroupIdx, chunkMeta);
+            }
         }
     }
 }
@@ -909,43 +855,50 @@ void Column::rollbackInMemory() {
     }
 }
 
-void Column::populateWithDefaultVal(const Property& property, Column* column,
-    InMemDiskArray<ColumnChunkMetadata>* metadataDA_, ValueVector* defaultValueVector,
-    uint64_t numNodeGroups) const {
-    auto columnChunk =
-        ColumnChunkFactory::createColumnChunk(property.getDataType()->copy(), enableCompression);
+void Column::populateWithDefaultVal(Transaction* transaction,
+    InMemDiskArray<ColumnChunkMetadata>* metadataDA_, ValueVector* defaultValueVector) {
+    KU_ASSERT(metadataDA_ != nullptr);
+    auto numNodeGroups = metadataDA_->getNumElements(transaction->getType());
+    auto columnChunk = ColumnChunkFactory::createColumnChunk(*dataType.copy(), enableCompression);
     columnChunk->populateWithDefaultVal(defaultValueVector);
     for (auto i = 0u; i < numNodeGroups; i++) {
-        auto chunkMeta = metadataDA_->get(i, TransactionType::WRITE);
+        auto chunkMeta = metadataDA_->get(i, transaction->getType());
         auto capacity = columnChunk->getCapacity();
         while (capacity < chunkMeta.numValues) {
             capacity *= CHUNK_RESIZE_RATIO;
         }
         if (capacity > columnChunk->getCapacity()) {
-            auto newColumnChunk = ColumnChunkFactory::createColumnChunk(
-                property.getDataType()->copy(), enableCompression);
+            auto newColumnChunk = ColumnChunkFactory::createColumnChunk(*dataType.copy(),
+                enableCompression, capacity);
             newColumnChunk->populateWithDefaultVal(defaultValueVector);
             newColumnChunk->setNumValues(chunkMeta.numValues);
-            column->append(newColumnChunk.get(), i);
+            append(newColumnChunk.get(), i);
         } else {
             columnChunk->setNumValues(chunkMeta.numValues);
-            column->append(columnChunk.get(), i);
+            append(columnChunk.get(), i);
         }
     }
 }
 
-PageElementCursor Column::getPageCursorForOffset(
-    TransactionType transactionType, node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
+PageCursor Column::getPageCursorForOffset(TransactionType transactionType,
+    node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
     auto state = getReadState(transactionType, nodeGroupIdx);
     return getPageCursorForOffsetInGroup(offsetInChunk, state);
 }
 
-std::unique_ptr<Column> ColumnFactory::createColumn(std::string name,
-    std::unique_ptr<LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-    bool enableCompression) {
-    switch (dataType->getLogicalTypeID()) {
+ChunkCollection Column::getNullChunkCollection(const ChunkCollection& chunkCollection) {
+    ChunkCollection nullChunkCollection;
+    for (const auto& chunk : chunkCollection) {
+        nullChunkCollection.push_back(chunk->getNullChunk());
+    }
+    return nullChunkCollection;
+}
+
+std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalType dataType,
+    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+    RWPropertyStats propertyStatistics, bool enableCompression) {
+    switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
@@ -965,23 +918,23 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name,
     case LogicalTypeID::TIMESTAMP_NS:
     case LogicalTypeID::TIMESTAMP_SEC:
     case LogicalTypeID::TIMESTAMP_TZ:
-    case LogicalTypeID::INTERVAL:
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::INTERVAL: {
         return std::make_unique<Column>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::INTERNAL_ID: {
         return std::make_unique<InternalIDColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
-            bufferManager, wal, transaction, propertyStatistics);
+            bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         return std::make_unique<StringColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::MAP:
-    case LogicalTypeID::VAR_LIST: {
-        return std::make_unique<VarListColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
+    case LogicalTypeID::LIST: {
+        return std::make_unique<ListColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::UNION:
@@ -991,8 +944,8 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::SERIAL: {
-        return std::make_unique<SerialColumn>(
-            name, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction);
+        return std::make_unique<SerialColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
+            bufferManager, wal, transaction);
     }
     default: {
         KU_UNREACHABLE;

@@ -1,0 +1,56 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE RdfAndPropertyGraph
+
+-STATEMENT CREATE RDFGraph R;
+---- ok
+-STATEMENT CREATE (a:R_r {iri: "a"})-[e:R_rt {iri: "b"}]->(b:R_r {iri: "c"}) RETURN a.iri, e.iri, b.iri;
+---- 1
+a|b|c
+-STATEMENT MATCH (a)-[e:knows|:R]->(b) RETURN *;
+---- error
+Binder exception: Relationship pattern e contains both PropertyGraph relationship label knows and RDFGraph label R. Mixing relationships tables from an RDFGraph and PropertyGraph in one pattern is currently not supported.
+-STATEMENT MATCH (a)-[:marries|:R*]->(b) RETURN *;
+---- error
+Binder exception: Relationship pattern  contains both PropertyGraph relationship label marries and RDFGraph label R. Mixing relationships tables from an RDFGraph and PropertyGraph in one pattern is currently not supported.
+-STATEMENT MATCH (a:person:R_r) RETURN a.fName, a.iri;
+---- 11
+Alice|
+Bob|
+Carol|
+Dan|
+Elizabeth|
+Farooq|
+Greg|
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+|a
+|b
+|c
+-STATEMENT MATCH (a:person:R_r)-[e:knows]->(b:person:R_r) RETURN a.fName, a.iri, b.fName, b.iri;
+---- 14
+Alice||Bob|
+Alice||Carol|
+Alice||Dan|
+Bob||Alice|
+Bob||Carol|
+Bob||Dan|
+Carol||Alice|
+Carol||Bob|
+Carol||Dan|
+Dan||Alice|
+Dan||Bob|
+Dan||Carol|
+Elizabeth||Farooq|
+Elizabeth||Greg|
+-STATEMENT MATCH (a:person:R_r)-[e:R_rt]->(b:person:R_r) RETURN a.fName, a.iri, e.iri, b.fName, b.iri;
+---- 1
+|a|b||c
+-STATEMENT MATCH (a:R_r)-[e:R]->(b:R_r) DELETE e RETURN a.iri, e.iri, b.iri;
+---- 1
+a|b|c
+-STATEMENT MATCH (a:R_r)-[e:R]->(b:R_r) RETURN COUNT(*)
+---- 1
+0

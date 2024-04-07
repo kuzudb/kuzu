@@ -1,5 +1,9 @@
 #include "embedded_shell.h"
 
+#ifndef _WIN32
+#include <termios.h>
+#include <unistd.h>
+#endif
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -8,16 +12,28 @@
 #include <sstream>
 
 #include "catalog/catalog.h"
-#include "common/string_utils.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "transaction/transaction.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
-#include "transaction/transaction.h"
+
+#include "common/task_system/progress_bar.h"
 
 using namespace kuzu::common;
 using namespace kuzu::utf8proc;
 
 namespace kuzu {
 namespace main {
+
+#ifdef _WIN32
+#ifndef STDIN_FILENO
+#define STDIN_FILENO (_fileno(stdin))
+#endif
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO (_fileno(stdout))
+#endif
+#endif
 
 // prompt for user input
 const char* PROMPT = "kuzu> ";
@@ -28,16 +44,14 @@ struct ShellCommand {
     const char* HELP = ":help";
     const char* CLEAR = ":clear";
     const char* QUIT = ":quit";
-    const char* THREAD = ":thread";
-    const char* LOGGING_LEVEL = ":logging_level";
-    const char* QUERY_TIMEOUT = ":timeout";
-    const std::array<const char*, 6> commandList = {
-        HELP, CLEAR, QUIT, THREAD, LOGGING_LEVEL, QUERY_TIMEOUT};
+    const char* MAX_ROWS = ":max_rows";
+    const char* MAX_WIDTH = ":max_width";
+    const std::array<const char*, 5> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH};
 } shellCommand;
 
 const char* TAB = "    ";
 
-const std::array<const char*, 82> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXISTS",
+const std::array<const char*, 103> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXISTS",
     "FOREACH", "LOAD", "MATCH", "MERGE", "OPTIONAL", "REMOVE", "RETURN", "SET", "START", "UNION",
     "UNWIND", "WITH", "LIMIT", "ORDER", "SKIP", "WHERE", "YIELD", "ASC", "ASCENDING", "ASSERT",
     "BY", "CSV", "DESC", "DESCENDING", "ON", "ALL", "CASE", "ELSE", "END", "THEN", "WHEN", "AND",
@@ -45,10 +59,13 @@ const std::array<const char*, 82> keywordList = {"CALL", "CREATE", "DELETE", "DE
     "CONSTRAINT", "DROP", "EXISTS", "INDEX", "NODE", "KEY", "UNIQUE", "INDEX", "JOIN", "PERIODIC",
     "COMMIT", "SCAN", "USING", "FALSE", "NULL", "TRUE", "ADD", "DO", "FOR", "MANDATORY", "OF",
     "REQUIRE", "SCALAR", "EXPLAIN", "PROFILE", "HEADERS", "FROM", "FIELDTERMINATOR", "STAR",
-    "MINUS", "COUNT", "PRIMARY", "COPY"};
+    "MINUS", "COUNT", "PRIMARY", "COPY", "RDFGRAPH", "ALTER", "RENAME", "COMMENT", "MACRO", "GLOB",
+    "COLUMN", "GROUP", "DEFAULT", "TO", "BEGIN", "TRANSACTION", "READ", "ONLY", "WRITE",
+    "COMMIT_SKIP_CHECKPOINT", "ROLLBACK", "ROLLBACK_SKIP_CHECKPOINT", "INSTALL", "EXTENSION",
+    "SHORTEST"};
 
 const char* keywordColorPrefix = "\033[32m\033[1m";
-const char* keywordResetPostfix = "\033[00m";
+const char* keywordResetPostfix = "\033[39m\033[22m";
 
 // NOLINTNEXTLINE(cert-err58-cpp): OK to have a global regex, even if the constructor allocates.
 const std::regex specialChars{R"([-[\]{}()*+?.,\^$|#\s])"};
@@ -59,16 +76,25 @@ std::vector<std::string> relTableNames;
 bool continueLine = false;
 std::string currLine;
 
+const int defaultMaxRows = 20;
+
 static Connection* globalConnection;
+
+#ifndef _WIN32
+    struct termios orig_termios;
+    bool noEcho = false;
+#endif
 
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
-    for (auto& tableSchema : database->catalog->getNodeTableSchemas(&transaction::DUMMY_READ_TRANSACTION)) {
-        nodeTableNames.push_back(tableSchema->tableName);
+    for (auto& nodeTableEntry :
+        database->catalog->getNodeTableEntries(&transaction::DUMMY_READ_TRANSACTION)) {
+        nodeTableNames.push_back(nodeTableEntry->getName());
     }
-    for (auto& tableSchema : database->catalog->getRelTableSchemas(&transaction::DUMMY_READ_TRANSACTION)) {
-        relTableNames.push_back(tableSchema->tableName);
+    for (auto& relTableEntry :
+        database->catalog->getRelTableEntries(&transaction::DUMMY_READ_TRANSACTION)) {
+        relTableNames.push_back(relTableEntry->getName());
     }
 }
 
@@ -182,9 +208,11 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
                 if (regex_search(
                         token, std::regex("^" + keyword + "$", std::regex_constants::icase)) ||
                     regex_search(
-                        token, std::regex("^" + keyword + "\\(", std::regex_constants::icase))) {
+                        token, std::regex("^" + keyword + "\\(", std::regex_constants::icase)) ||
+                    regex_search(
+                        token, std::regex("\\(" + keyword + "$", std::regex_constants::icase))) {
                     token = regex_replace(token,
-                        std::regex(std::string("^(").append(keyword).append(")"),
+                        std::regex(std::string("(").append(keyword).append(")"),
                             std::regex_constants::icase),
                         std::string(keywordColorPrefix).append("$1").append(keywordResetPostfix));
                     break;
@@ -196,8 +224,66 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
     }
     // Linenoise allocates a fixed size buffer for the current line's contents, and doesn't export
     // the length.
-    constexpr size_t LINENOISE_MAX_LINE = 4096;
+    constexpr uint64_t LINENOISE_MAX_LINE = 4096;
     strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
+}
+
+uint64_t damerauLevenshteinDistance(const std::string& s1, const std::string& s2) {
+    const uint64_t m = s1.size(), n = s2.size();
+    std::vector<std::vector<uint64_t>> dp(m + 1, std::vector<uint64_t>(n + 1, 0));
+    for (uint64_t i = 0; i <= m; i++) {
+        dp[i][0] = i;
+    }
+    for (uint64_t j = 0; j <= n; j++) {
+        dp[0][j] = j;
+    }
+    for (uint64_t i = 1; i <= m; i++) {
+        for (uint64_t j = 1; j <= n; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+				dp[i][j] = dp[i - 1][j - 1];
+                if (i > 1 && j > 1 && s1[i - 1] == s2[j - 2] && s1[i - 2] == s2[j - 1]) {
+					dp[i][j] = std::min(dp[i][j], dp[i - 2][j - 2]);
+				}
+            } else {
+                dp[i][j] = 1 + std::min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]});
+                if (i > 1 && j > 1 && s1[i - 1] == s2[j - 2] && s1[i - 2] == s2[j - 1]) {
+					dp[i][j] = std::min(dp[i][j], dp[i - 2][j - 2] + 1);
+				}
+            }
+        }
+    }
+    return dp[m][n];
+}
+
+std::string findClosestCommand(std::string lineStr) {
+    std::string closestCommand = "";
+    uint64_t editDistance = INT_MAX;
+    for (auto& command : shellCommand.commandList) {
+        auto distance = damerauLevenshteinDistance(command, lineStr);
+        if (distance < editDistance) {
+            editDistance = distance;
+            closestCommand = command;
+        }
+    }
+    return closestCommand;
+}
+
+int EmbeddedShell::processShellCommands(std::string lineStr) {
+    if (lineStr == shellCommand.HELP) {
+        printHelp();
+    } else if (lineStr == shellCommand.CLEAR) {
+        linenoiseClearScreen();
+    } else if (lineStr == shellCommand.QUIT) {
+        return -1;
+    } else if (lineStr.rfind(shellCommand.MAX_ROWS) == 0) {
+        setMaxRows(lineStr.substr(strlen(shellCommand.MAX_ROWS)));
+    } else if (lineStr.rfind(shellCommand.MAX_WIDTH) == 0) {
+        setMaxWidth(lineStr.substr(strlen(shellCommand.MAX_WIDTH)));
+    } else {
+        printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
+        printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
+    }
+    return 0;
 }
 
 EmbeddedShell::EmbeddedShell(
@@ -209,6 +295,8 @@ EmbeddedShell::EmbeddedShell(
     database = std::make_unique<Database>(databasePath, systemConfig);
     conn = std::make_unique<Connection>(database.get());
     globalConnection = conn.get();
+    maxRowSize = defaultMaxRows;
+    maxPrintWidth = 0; // Will be determined when printing
     updateTableNames();
     KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
 }
@@ -219,8 +307,28 @@ void EmbeddedShell::run() {
     std::stringstream ss;
     const char ctrl_c = '\3';
     int numCtrlC = 0;
+
+#ifndef _WIN32
+    struct termios raw;
+    if (isatty(STDIN_FILENO)) {
+        if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
+            errno = ENOTTY;
+            return;
+        }
+        raw = orig_termios;
+        raw.c_lflag &= ~ECHO;
+
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &raw) < 0) {
+            errno = ENOTTY;
+            return;
+        }
+        noEcho = true;
+    }
+#endif
+
     while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT)) != nullptr) {
         auto lineStr = std::string(line);
+        lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
             if (!continueLine && lineStr[1] == '\0') {
                 numCtrlC++;
@@ -240,74 +348,94 @@ void EmbeddedShell::run() {
             currLine = "";
             continueLine = false;
         }
-        if (lineStr == shellCommand.HELP) {
-            printHelp();
-        } else if (lineStr == shellCommand.CLEAR) {
-            linenoiseClearScreen();
-        } else if (lineStr == shellCommand.QUIT) {
+        if (!continueLine && lineStr[0] == ':' && processShellCommands(lineStr) < 0) {
             free(line);
             break;
-        } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
-            setNumThreads(lineStr.substr(strlen(shellCommand.THREAD)));
-        } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
-            setLoggingLevel(lineStr.substr(strlen(shellCommand.LOGGING_LEVEL)));
-        } else if (lineStr.rfind(shellCommand.QUERY_TIMEOUT) == 0) {
-            setQueryTimeout(lineStr.substr(strlen(shellCommand.QUERY_TIMEOUT)));
-        } else if (!lineStr.empty()) {
+        } else if (!lineStr.empty() && lineStr.back() == ';') {
             ss.clear();
             ss.str(lineStr);
             while (getline(ss, query, ';')) {
-                if (ss.eof() && ss.peek() == -1) {
-                    continueLine = true;
-                    currLine += query + " ";
+                auto queryResult = conn->query(query);
+                if (queryResult->isSuccess()) {
+                    printExecutionResult(*queryResult);
                 } else {
-                    auto queryResult = conn->query(query);
-                    if (queryResult->isSuccess()) {
-                        printExecutionResult(*queryResult);
-                    } else {
+                    std::string lineStrTrimmed = lineStr;
+                    lineStrTrimmed = lineStrTrimmed.erase(0, lineStr.find_first_not_of(" \t\n\r\f\v"));
+                    if (lineStrTrimmed.find_first_of(" \t\n\r\f\v") == std::string::npos && lineStrTrimmed.length() > 1) {
+                        printf("Error: \"%s\" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., \"%s\"?\n", lineStr.c_str(), findClosestCommand(lineStrTrimmed).c_str());
+                    }
+                    else {
                         printf("Error: %s\n", queryResult->getErrorMessage().c_str());
                     }
                 }
             }
+        } else if (!lineStr.empty() && lineStr[0] != ':') {
+            continueLine = true;
+            currLine += lineStr + " ";
         }
         updateTableNames();
 
-        linenoiseHistoryAdd(line);
+        if (!continueLine) {
+            linenoiseHistoryAdd(lineStr.c_str());
+        }
         linenoiseHistorySave(path_to_history);
         free(line);
     }
+#ifndef _WIN32
+    /* Don't even check the return value as it's too late. */
+    if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1)
+        noEcho = false;
+#endif
 }
 
 void EmbeddedShell::interruptHandler(int /*signal*/) {
     globalConnection->interrupt();
+#ifndef _WIN32
+    /* Don't even check the return value as it's too late. */
+    if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1)
+        noEcho = false;
+#endif
 }
 
-void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
-    auto numThreads = 0;
+void EmbeddedShell::setMaxRows(const std::string& maxRowsString) {
+    uint64_t parsedMaxRows = 0;
     try {
-        numThreads = stoi(numThreadsString);
+        parsedMaxRows = stoull(maxRowsString);
     } catch (std::exception& e) {
-        printf(
-            "Cannot parse '%s' as number of threads. Expect integer.\n", numThreadsString.c_str());
+        printf("Cannot parse '%s' as number of rows. Expect integer.\n", maxRowsString.c_str());
         return;
     }
+    maxRowSize = parsedMaxRows == 0 ? defaultMaxRows : parsedMaxRows;
+    printf("maxRows set as %" PRIu64 "\n", maxRowSize);
+}
+
+void EmbeddedShell::setMaxWidth(const std::string& maxWidthString) {
+    uint32_t parsedMaxWidth = 0;
     try {
-        conn->setMaxNumThreadForExec(numThreads);
-        printf("numThreads set as %d\n", numThreads);
-    } catch (Exception& e) { printf("%s", e.what()); }
+        parsedMaxWidth = stoul(maxWidthString);
+    } catch (std::exception& e) {
+        printf(
+            "Cannot parse '%s' as number of characters. Expect integer.\n", maxWidthString.c_str());
+        return;
+    }
+    maxPrintWidth = parsedMaxWidth;
+    printf("maxWidth set as %d\n", parsedMaxWidth);
 }
 
 void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR, TAB);
     printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT, TAB);
-    printf("%s%s [num_threads] %sset number of threads for query execution\n", TAB,
-        shellCommand.THREAD, TAB);
-    printf("%s%s [logging_level] %sset logging level of database, available options: debug, info, "
-           "err\n",
-        TAB, shellCommand.LOGGING_LEVEL, TAB);
-    printf(
-        "%s%s [query_timeout] %sset query timeout in ms\n", TAB, shellCommand.QUERY_TIMEOUT, TAB);
+    printf("%s%s [max_rows] %sset maximum number of rows for display (default: 20)\n", TAB,
+        shellCommand.MAX_ROWS, TAB);
+    printf("%s%s [max_width] %sset maximum width in characters for display\n", TAB,
+        shellCommand.MAX_WIDTH, TAB);
+    printf("\n");
+    printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
+        TAB);
+    printf("%s%s  timeout, and progress_bar using Cypher CALL statements.\n", TAB, TAB);
+    printf("%s%s  e.g. CALL THREADS=5; or CALL current_setting('threads') return *;\n", TAB, TAB);
+    printf("%s%s  See: https://docs.kuzudb.com/cypher/configuration\n", TAB, TAB);
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
@@ -315,15 +443,22 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
     if (querySummary->isExplain()) {
         printf("%s", queryResult.getNext()->toString().c_str());
     } else {
-        const uint32_t maxWidth = 80;
+        constexpr uint32_t SMALL_TABLE_SEPERATOR_LENGTH = 3;
+        const uint32_t minTruncatedWidth = 20;
         uint64_t numTuples = queryResult.getNumTuples();
         std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
         for (auto i = 0u; i < colsWidth.size(); i++) {
             colsWidth[i] = queryResult.getColumnNames()[i].length() + 2;
         }
-        uint32_t lineSeparatorLen = 1u + colsWidth.size();
         std::string lineSeparator;
+        uint64_t rowCount = 0;
         while (queryResult.hasNext()) {
+            if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
+                rowCount < numTuples - maxRowSize / 2) {
+                auto tuple = queryResult.getNext();
+                rowCount++;
+                continue;
+            }
             auto tuple = queryResult.getNext();
             for (auto i = 0u; i < colsWidth.size(); i++) {
                 if (tuple->getValue(i)->isNull()) {
@@ -339,56 +474,226 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 }
                 // An extra 2 spaces are added for an extra space on either
                 // side of the std::string.
-                colsWidth[i] = std::max(colsWidth[i], std::min(fieldLen, maxWidth) + 2);
+                colsWidth[i] = std::max(colsWidth[i], fieldLen + 2);
+            }
+            rowCount++;
+        }
+
+        uint32_t sumGoal = minTruncatedWidth;
+        uint32_t maxWidth = minTruncatedWidth;
+        if (colsWidth.size() == 1) {
+            uint32_t minDisplayWidth = minTruncatedWidth + SMALL_TABLE_SEPERATOR_LENGTH;
+            if (maxPrintWidth > minDisplayWidth) {
+				sumGoal = maxPrintWidth - 2;
+            } else {
+                sumGoal = std::max(
+                    (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
+                    minDisplayWidth);
+			}
+        } else if (colsWidth.size() > 1) {
+            uint32_t minDisplayWidth = SMALL_TABLE_SEPERATOR_LENGTH + minTruncatedWidth * 2;
+            if (maxPrintWidth > minDisplayWidth) {
+                sumGoal = maxPrintWidth - colsWidth.size() - 1;
+            } else {
+                // make sure there is space for the first and last column
+                sumGoal = std::max(
+                    (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1), minDisplayWidth);
+            }
+        } else if (maxPrintWidth > minTruncatedWidth) {
+            sumGoal = maxPrintWidth;
+        }
+        uint32_t sum = 0;
+        std::vector<uint32_t> maxValueIndex;
+        uint32_t secondHighestValue = 0;
+        for (auto i = 0u; i < colsWidth.size(); i++) {
+            if (maxValueIndex.empty() || colsWidth[i] == colsWidth[maxValueIndex[0]]) {
+                maxValueIndex.push_back(i);
+                maxWidth = colsWidth[maxValueIndex[0]];
+            } else if (colsWidth[i] > colsWidth[maxValueIndex[0]]) {
+                secondHighestValue = colsWidth[maxValueIndex[0]];
+                maxValueIndex.clear();
+                maxValueIndex.push_back(i);
+                maxWidth = colsWidth[maxValueIndex[0]];
+            } else if (colsWidth[i] > secondHighestValue) {
+                secondHighestValue = colsWidth[i];
+            }
+            sum += colsWidth[i];
+        }
+
+        while (sum > sumGoal) {
+            uint32_t truncationValue = ((sum - sumGoal) / maxValueIndex.size()) +
+                                       ((sum - sumGoal) % maxValueIndex.size() != 0);
+            uint32_t newValue = 0;
+            if (truncationValue < colsWidth[maxValueIndex[0]]) {
+                newValue = colsWidth[maxValueIndex[0]] - truncationValue;
+            }
+            uint32_t oldValue = colsWidth[maxValueIndex[0]];
+            if (secondHighestValue < minTruncatedWidth + 2 && newValue < minTruncatedWidth + 2) {
+                newValue = minTruncatedWidth + 2;
+            } else {
+                uint32_t sumDifference =
+                    sum - ((oldValue - secondHighestValue) * maxValueIndex.size());
+                if (sumDifference > sumGoal) {
+                    newValue = secondHighestValue;
+                }
+            }
+            for (auto i = 0u; i < maxValueIndex.size(); i++) {
+                colsWidth[maxValueIndex[i]] = newValue;
+            }
+            maxWidth = newValue - 2;
+            sum -= (oldValue - newValue) * maxValueIndex.size();
+            if (newValue == minTruncatedWidth + 2) {
+                break;
+            }
+
+            maxValueIndex.clear();
+            secondHighestValue = 0;
+            for (auto i = 0u; i < colsWidth.size(); i++) {
+                if (maxValueIndex.empty() || colsWidth[i] == colsWidth[maxValueIndex[0]]) {
+                    maxValueIndex.push_back(i);
+                } else if (colsWidth[i] > colsWidth[maxValueIndex[0]]) {
+                    secondHighestValue = colsWidth[maxValueIndex[0]];
+                    maxValueIndex.clear();
+                    maxValueIndex.push_back(i);
+                } else if (colsWidth[i] > secondHighestValue) {
+                    secondHighestValue = colsWidth[i];
+                }
             }
         }
-        for (auto width : colsWidth) {
-            lineSeparatorLen += width;
+
+        int k = 0;
+        int j = colsWidth.size() - 1;
+        bool colTruncated = false;
+        uint64_t colsPrinted = 0;
+        uint32_t lineSeparatorLen = 1u;
+        for (auto i = 0u; i < colsWidth.size(); i++) {
+            if (k <= j) {
+                if ((lineSeparatorLen + colsWidth[k] < sumGoal + colsWidth.size() - 5) ||
+                    (lineSeparatorLen + colsWidth[k] < sumGoal + colsWidth.size() + 1 &&
+                        (colTruncated || k == j))) {
+                    lineSeparatorLen += colsWidth[k] + 1;
+                    k++;
+                    colsPrinted++;
+                } else if (!colTruncated) {
+                    lineSeparatorLen += 6;
+                    colTruncated = true;
+                }
+            }
+            if (j >= k) {
+                if ((lineSeparatorLen + colsWidth[j] < sumGoal + colsWidth.size() - 5) ||
+                    (lineSeparatorLen + colsWidth[j] < sumGoal + colsWidth.size() + 1 &&
+                        (colTruncated || j == k))) {
+                    lineSeparatorLen += colsWidth[j] + 1;
+                    j--;
+                    colsPrinted++;
+                } else if (!colTruncated) {
+                    lineSeparatorLen += 6;
+                    colTruncated = true;
+                }
+            }
         }
+
         lineSeparator = std::string(lineSeparatorLen, '-');
         printf("%s\n", lineSeparator.c_str());
 
         if (queryResult.getNumColumns() != 0 && !queryResult.getColumnNames()[0].empty()) {
-            for (auto i = 0u; i < colsWidth.size(); i++) {
-                printf("| %s", queryResult.getColumnNames()[i].c_str());
-                printf("%s",
-                    std::string(colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ')
-                        .c_str());
+            std::string printString = "";
+            for (auto i = 0; i < k; i++) {
+                printString += "| ";
+                printString += queryResult.getColumnNames()[i];
+                printString +=
+                    std::string(colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ');
             }
-            printf("|\n");
+            if (j >= k) {
+                printString += "| ... ";
+            }
+            for (auto i = j + 1; i < (int)colsWidth.size(); i++) {
+                printString += "| ";
+                printString += queryResult.getColumnNames()[i];
+                printString +=
+                    std::string(colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ');
+            }
+            printf("%s|\n", printString.c_str());
             printf("%s\n", lineSeparator.c_str());
         }
 
         queryResult.resetIterator();
+        rowCount = 0;
+        bool rowTruncated = false;
         while (queryResult.hasNext()) {
+            if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
+                rowCount < numTuples - maxRowSize / 2) {
+                auto tuple = queryResult.getNext();
+                if (!rowTruncated) {
+                    rowTruncated = true;
+                    uint32_t spacesToPrint = (lineSeparatorLen / 2) - 1;
+                    for (auto i = 0u; i < 3; i++) {
+                        std::string printString = "|";
+                        printString += std::string(spacesToPrint, ' ');
+                        printString += ".";
+                        if (lineSeparatorLen % 2 == 1) {
+                            printString += " ";
+                        }
+                        printString += std::string(spacesToPrint - 1, ' ');
+                        printf("%s|\n", printString.c_str());
+                    }
+                    printf("%s\n", lineSeparator.c_str());
+                }
+                rowCount++;
+                continue;
+            }
             auto tuple = queryResult.getNext();
-            printf("|%s|\n", tuple->toString(colsWidth, "|", maxWidth).c_str());
+            auto result = tuple->toString(colsWidth, "|", maxWidth);
+            uint64_t startPos = 0;
+            std::vector<std::string> colResults;
+            for (auto i = 0u; i < colsWidth.size(); i++) {
+                uint32_t chrIter = startPos;
+                uint32_t fieldLen = 0;
+                while (fieldLen < colsWidth[i]) {
+                    fieldLen += Utf8Proc::renderWidth(result.c_str(), chrIter);
+                    chrIter = utf8proc_next_grapheme(result.c_str(), result.length(), chrIter);
+                }
+                colResults.push_back(result.substr(startPos, chrIter - startPos));
+                // new start position is after the | seperating results
+                startPos = chrIter + 1;
+            }
+            std::string printString = "|";
+            for (auto i = 0; i < k; i++) {
+                printString += colResults[i] + "|";
+            }
+            if (j >= k) {
+                printString += " ... |";
+            }
+            for (auto i = j + 1; i < (int)colResults.size(); i++) {
+                printString += colResults[i] + "|";
+            }
+            printf("%s\n", printString.c_str());
             printf("%s\n", lineSeparator.c_str());
+            rowCount++;
         }
 
         // print query result (numFlatTuples & tuples)
         if (numTuples == 1) {
             printf("(1 tuple)\n");
         } else {
-            printf("(%" PRIu64 " tuples)\n", numTuples);
+            printf("(%" PRIu64 " tuples", numTuples);
+            if (rowTruncated) {
+                printf(", %" PRIu64 " shown", maxRowSize);
+            }
+            printf(")\n");
+        }
+        if (colsWidth.size() == 1) {
+            printf("(1 column)\n");
+        } else {
+            printf("(%" PRIu64 " columns", (uint64_t)colsWidth.size());
+            if (colTruncated) {
+                printf(", %" PRIu64 " shown", colsPrinted);
+            }
+            printf(")\n");
         }
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());
     }
-}
-
-void EmbeddedShell::setLoggingLevel(const std::string& loggingLevel) {
-    auto level = StringUtils::ltrim(loggingLevel);
-    try {
-        database->setLoggingLevel(level);
-        printf("logging level has been set to: %s.\n", level.c_str());
-    } catch (Exception& e) { printf("%s", e.what()); }
-}
-
-void EmbeddedShell::setQueryTimeout(const std::string& timeoutInMS) {
-    auto queryTimeOutVal = std::stoull(StringUtils::ltrim(timeoutInMS));
-    conn->setQueryTimeOut(queryTimeOutVal);
-    printf("query timeout value has been set to: %llu ms.\n", queryTimeOutVal);
 }
 
 } // namespace main

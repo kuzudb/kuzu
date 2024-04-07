@@ -31,7 +31,7 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* client
     auto projectionPushDownOptimizer = ProjectionPushDownOptimizer();
     projectionPushDownOptimizer.rewrite(plan);
 
-    if (client->isEnableSemiMask()) {
+    if (client->getClientConfig()->enableSemiMask) {
         // HashJoinSIPOptimizer should be applied after optimizers that manipulate hash join.
         auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
         hashJoinSIPOptimizer.rewrite(plan);

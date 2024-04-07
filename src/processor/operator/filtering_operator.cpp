@@ -23,11 +23,11 @@ void SelVectorOverWriter::saveSelVector(std::shared_ptr<SelectionVector>& selVec
 void SelVectorOverWriter::resetToCurrentSelVector(std::shared_ptr<SelectionVector>& selVector) {
     currentSelVector->selectedSize = selVector->selectedSize;
     if (selVector->isUnfiltered()) {
-        currentSelVector->resetSelectorToUnselected();
+        currentSelVector->setToUnfiltered();
     } else {
-        memcpy(currentSelVector->getSelectedPositionsBuffer(), selVector->selectedPositions,
+        memcpy(currentSelVector->getMultableBuffer(), selVector->selectedPositions,
             selVector->selectedSize * sizeof(sel_t));
-        currentSelVector->resetSelectorToValuePosBuffer();
+        currentSelVector->setToFiltered();
     }
     selVector = currentSelVector;
 }

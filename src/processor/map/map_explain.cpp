@@ -6,12 +6,12 @@
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(
-    planner::LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(LogicalOperator* logicalOperator) {
     auto logicalExplain = (LogicalExplain*)logicalOperator;
     auto outSchema = logicalExplain->getSchema();
     auto inSchema = logicalExplain->getChild(0)->getSchema();
@@ -30,10 +30,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(
         auto planPrinter =
             std::make_unique<main::PlanPrinter>(physicalPlanToExplain.get(), profiler.get());
         auto explainStr = planPrinter->printPlanToOstream().str();
-        auto factorizedTable =
-            FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr, memoryManager);
-        return createFactorizedTableScanAligned(binder::expression_vector{outputExpression},
-            outSchema, factorizedTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, nullptr);
+        auto factorizedTable = FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr,
+            clientContext->getMemoryManager());
+        return createFTableScanAligned(expression_vector{outputExpression}, outSchema,
+            factorizedTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
     }
 }
 

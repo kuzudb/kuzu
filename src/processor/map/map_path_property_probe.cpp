@@ -57,15 +57,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         auto nodePayloads =
             ExpressionUtil::excludeExpressions(nodeBuildSchema->getExpressionsInScope(), nodeKeys);
         auto nodeBuildInfo = createHashBuildInfo(*nodeBuildSchema, nodeKeys, nodePayloads);
-        auto nodeHashTable = std::make_unique<JoinHashTable>(
-            *memoryManager, std::move(nodeKeyTypes), nodeBuildInfo->getTableSchema()->copy());
+        auto nodeHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
+            std::move(nodeKeyTypes), nodeBuildInfo->getTableSchema()->copy());
         nodeBuildSharedState = std::make_shared<HashJoinSharedState>(std::move(nodeHashTable));
         nodeBuild = make_unique<HashJoinBuild>(
             std::make_unique<ResultSetDescriptor>(nodeBuildSchema), nodeBuildSharedState,
             std::move(nodeBuildInfo), std::move(nodeBuildPrevOperator), getOperatorID(), "");
         auto relDataType = rel->getDataType();
         auto nodesField = StructType::getField(&relDataType, InternalKeyword::NODES);
-        auto nodeStructType = VarListType::getChildType(nodesField->getType());
+        auto nodeStructType = ListType::getChildType(nodesField->getType());
         auto [fieldIndices, columnIndices] =
             getColIdxToScan(nodePayloads, nodeKeys.size(), *nodeStructType);
         nodeFieldIndices = std::move(fieldIndices);
@@ -84,15 +84,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         auto relPayloads =
             ExpressionUtil::excludeExpressions(relBuildSchema->getExpressionsInScope(), relKeys);
         auto relBuildInfo = createHashBuildInfo(*relBuildSchema, relKeys, relPayloads);
-        auto relHashTable = std::make_unique<JoinHashTable>(
-            *memoryManager, std::move(relKeyTypes), relBuildInfo->getTableSchema()->copy());
+        auto relHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
+            std::move(relKeyTypes), relBuildInfo->getTableSchema()->copy());
         relBuildSharedState = std::make_shared<HashJoinSharedState>(std::move(relHashTable));
         relBuild = std::make_unique<HashJoinBuild>(
             std::make_unique<ResultSetDescriptor>(relBuildSchema), relBuildSharedState,
             std::move(relBuildInfo), std::move(relBuildPrvOperator), getOperatorID(), "");
         auto relDataType = rel->getDataType();
         auto relsField = StructType::getField(&relDataType, InternalKeyword::RELS);
-        auto relStructType = VarListType::getChildType(relsField->getType());
+        auto relStructType = ListType::getChildType(relsField->getType());
         auto [fieldIndices, columnIndices] =
             getColIdxToScan(relPayloads, relKeys.size(), *relStructType);
         relFieldIndices = std::move(fieldIndices);
@@ -115,8 +115,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     if (relBuild != nullptr) {
         children.push_back(std::move(relBuild));
     }
-    auto pathPropertyProbe = std::make_unique<PathPropertyProbe>(
-        std::move(pathProbeInfo), pathProbeSharedState, std::move(children), getOperatorID(), "");
+    auto pathPropertyProbe = std::make_unique<PathPropertyProbe>(std::move(pathProbeInfo),
+        pathProbeSharedState, std::move(children), getOperatorID(), "");
     if (logicalProbe->getSIP() == planner::SidewaysInfoPassing::PROBE_TO_BUILD) {
         mapSIPJoin(pathPropertyProbe.get());
     }

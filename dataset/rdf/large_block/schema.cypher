@@ -1,1 +1,1 @@
-CREATE RDF GRAPH example;
+CREATE RDFGraph example;

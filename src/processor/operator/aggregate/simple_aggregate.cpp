@@ -48,36 +48,37 @@ void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         localAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
     }
     distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
-        *context->memoryManager, std::vector<LogicalType>{}, this->aggregateFunctions);
+        *context->clientContext->getMemoryManager(), std::vector<LogicalType>{},
+        this->aggregateFunctions);
 }
 
 void SimpleAggregate::executeInternal(ExecutionContext* context) {
+    auto memoryManager = context->clientContext->getMemoryManager();
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
             auto aggregateFunction = aggregateFunctions[i].get();
             if (aggregateFunction->isFunctionDistinct()) {
                 computeDistinctAggregate(distinctHashTables[i].get(), aggregateFunction,
-                    aggregateInputs[i].get(), localAggregateStates[i].get(),
-                    context->memoryManager);
+                    aggregateInputs[i].get(), localAggregateStates[i].get(), memoryManager);
             } else {
                 computeAggregate(aggregateFunction, aggregateInputs[i].get(),
-                    localAggregateStates[i].get(), context->memoryManager);
+                    localAggregateStates[i].get(), memoryManager);
             }
         }
     }
-    sharedState->combineAggregateStates(localAggregateStates, context->memoryManager);
+    sharedState->combineAggregateStates(localAggregateStates, memoryManager);
 }
 
 void SimpleAggregate::computeDistinctAggregate(AggregateHashTable* distinctHT,
     function::AggregateFunction* function, AggregateInput* input, function::AggregateState* state,
     storage::MemoryManager* memoryManager) {
     auto multiplicity = 1; // Distinct aggregate should ignore multiplicity.
-    if (distinctHT->isAggregateValueDistinctForGroupByKeys(
-            std::vector<ValueVector*>{}, input->aggregateVector)) {
+    if (distinctHT->isAggregateValueDistinctForGroupByKeys(std::vector<ValueVector*>{},
+            input->aggregateVector)) {
         auto pos = input->aggregateVector->state->selVector->selectedPositions[0];
         if (!input->aggregateVector->isNull(pos)) {
-            function->updatePosState(
-                (uint8_t*)state, input->aggregateVector, multiplicity, pos, memoryManager);
+            function->updatePosState((uint8_t*)state, input->aggregateVector, multiplicity, pos,
+                memoryManager);
         }
     }
 }
@@ -91,12 +92,12 @@ void SimpleAggregate::computeAggregate(function::AggregateFunction* function, Ag
     if (input->aggregateVector && input->aggregateVector->state->isFlat()) {
         auto pos = input->aggregateVector->state->selVector->selectedPositions[0];
         if (!input->aggregateVector->isNull(pos)) {
-            function->updatePosState(
-                (uint8_t*)state, input->aggregateVector, multiplicity, pos, memoryManager);
+            function->updatePosState((uint8_t*)state, input->aggregateVector, multiplicity, pos,
+                memoryManager);
         }
     } else {
-        function->updateAllState(
-            (uint8_t*)state, input->aggregateVector, multiplicity, memoryManager);
+        function->updateAllState((uint8_t*)state, input->aggregateVector, multiplicity,
+            memoryManager);
     }
 }
 

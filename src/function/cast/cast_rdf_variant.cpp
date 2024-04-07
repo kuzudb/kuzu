@@ -186,7 +186,7 @@ void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, ui
 // RDF_VARIANT -> STRING
 template<>
 void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, uint64_t inputPos,
-    ku_string_t& result, ValueVector& resultVector, uint64_t) {
+    ku_string_t& result, ValueVector& resultVector, uint64_t resultPos) {
     auto typeVector = StructVector::getFieldVector(&inputVector, 0).get();
     auto blobVector = StructVector::getFieldVector(&inputVector, 1).get();
     auto type = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
@@ -260,6 +260,7 @@ void CastFromRdfVariant::operation(struct_entry_t&, ValueVector& inputVector, ui
             stringFormat("CastFromRdfVariant::operation on type {} is not implemented.",
                 LogicalTypeUtils::toString(type)));
     }
+    resultVector.setNull(resultPos, false);
 }
 
 } // namespace function

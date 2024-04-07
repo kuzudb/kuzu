@@ -31,9 +31,9 @@ void OrderByMerge::executeInternal(ExecutionContext* /*context*/) {
 
 void OrderByMerge::initGlobalStateInternal(ExecutionContext* context) {
     // TODO(Ziyi): directly feed sharedState to merger and dispatcher.
-    sharedDispatcher->init(context->memoryManager, sharedState->getSortedKeyBlocks(),
-        sharedState->getPayloadTables(), sharedState->getStrKeyColInfo(),
-        sharedState->getNumBytesPerTuple());
+    sharedDispatcher->init(context->clientContext->getMemoryManager(),
+        sharedState->getSortedKeyBlocks(), sharedState->getPayloadTables(),
+        sharedState->getStrKeyColInfo(), sharedState->getNumBytesPerTuple());
 }
 
 } // namespace processor

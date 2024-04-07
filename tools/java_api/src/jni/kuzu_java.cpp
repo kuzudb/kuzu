@@ -1,5 +1,11 @@
 #include <unordered_map>
 
+#ifdef _WIN32
+// Do nothing on Windows
+#else
+#include <dlfcn.h>
+#endif
+
 // This header is generated at build time. See CMakeLists.txt.
 #include "com_kuzudb_KuzuNative.h"
 #include "common/exception/conversion.h"
@@ -7,10 +13,10 @@
 #include "common/types/types.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
+#include "common/types/value/rdf_variant.h"
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
 #include "main/kuzu.h"
-#include "main/query_summary.h"
 #include <jni.h>
 
 using namespace kuzu::main;
@@ -149,10 +155,27 @@ std::unordered_map<std::string, std::unique_ptr<Value>> javaMapToCPPMap(
 /**
  * All Database native functions
  */
+//     protected static native void kuzu_native_reload_library(String lib_path);
+JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1native_1reload_1library(
+    JNIEnv* env, jclass, jstring lib_path) {
+#ifdef _WIN32
+// Do nothing on Windows
+#else
+    const char* path = env->GetStringUTFChars(lib_path, JNI_FALSE);
+    void* handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
+    env->ReleaseStringUTFChars(lib_path, path);
+    if (handle == nullptr) {
+        jclass Exception = env->FindClass("java/lang/Exception");
+        auto error =
+            dlerror(); // NOLINT(concurrency-mt-unsafe): load can only be executed in single thread.
+        env->ThrowNew(Exception, error);
+    }
+#endif
+}
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1init(JNIEnv* env, jclass,
     jstring database_path, jlong buffer_pool_size, jboolean enable_compression,
-    jboolean read_only) {
+    jboolean read_only, jlong max_db_size) {
 
     const char* path = env->GetStringUTFChars(database_path, JNI_FALSE);
     uint64_t buffer = static_cast<uint64_t>(buffer_pool_size);
@@ -160,6 +183,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1init(JNIEnv* 
     systemConfig.bufferPoolSize = buffer == 0 ? -1u : buffer;
     systemConfig.enableCompression = enable_compression;
     systemConfig.readOnly = read_only;
+    systemConfig.maxDBSize = max_db_size == 0 ? systemConfig.maxDBSize : max_db_size;
     try {
         Database* db = new Database(path, systemConfig);
         uint64_t address = reinterpret_cast<uint64_t>(db);
@@ -218,30 +242,6 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1destroy(
     JNIEnv* env, jclass, jobject thisConn) {
     Connection* conn = getConnection(env, thisConn);
     delete conn;
-}
-
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1begin_1read_1only_1transaction(
-    JNIEnv* env, jclass, jobject thisConn) {
-    Connection* conn = getConnection(env, thisConn);
-    conn->beginReadOnlyTransaction();
-}
-
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1begin_1write_1transaction(
-    JNIEnv* env, jclass, jobject thisConn) {
-    Connection* conn = getConnection(env, thisConn);
-    conn->beginWriteTransaction();
-}
-
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1commit(
-    JNIEnv* env, jclass, jobject thisConn) {
-    Connection* conn = getConnection(env, thisConn);
-    conn->commit();
-}
-
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1rollback(
-    JNIEnv* env, jclass, jobject thisConn) {
-    Connection* conn = getConnection(env, thisConn);
-    conn->rollback();
 }
 
 JNIEXPORT void JNICALL
@@ -469,21 +469,6 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1query_1result_1to_1st
     return ret;
 }
 
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1query_1result_1write_1to_1csv(JNIEnv* env,
-    jclass, jobject thisQR, jstring file_path, jchar delimiter, jchar escape_char, jchar new_line) {
-    QueryResult* qr = getQueryResult(env, thisQR);
-    const char* cpp_file_path = env->GetStringUTFChars(file_path, JNI_FALSE);
-
-    // TODO: confirm this convertion is ok to do.
-    // jchar is 16-bit unicode character so converting to char will lose the higher oreder-bits
-    char cpp_delimiter = static_cast<char>(delimiter);
-    char cpp_escape_char = static_cast<char>(escape_char);
-    char cpp_new_line = static_cast<char>(new_line);
-
-    qr->writeToCSV(cpp_file_path, cpp_delimiter, cpp_escape_char, cpp_new_line);
-    env->ReleaseStringUTFChars(file_path, cpp_file_path);
-}
-
 JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1query_1result_1reset_1iterator(
     JNIEnv* env, jclass, jobject thisQR) {
     QueryResult* qr = getQueryResult(env, thisQR);
@@ -545,7 +530,7 @@ struct JavaAPIHelper {
 } // namespace kuzu::common
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1create(
-    JNIEnv* env, jclass, jobject id, jobject child_type, jlong fixed_num_elements_in_list) {
+    JNIEnv* env, jclass, jobject id, jobject child_type, jlong num_elements_in_array) {
     jclass javaIDClass = env->GetObjectClass(id);
     jfieldID fieldID = env->GetFieldID(javaIDClass, "value", "I");
     jint fieldValue = env->GetIntField(id, fieldID);
@@ -557,10 +542,10 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1create(
         data_type = new LogicalType(logicalTypeID);
     } else {
         auto child_type_pty = std::make_unique<LogicalType>(*getDataType(env, child_type));
-        auto extraTypeInfo = fixed_num_elements_in_list > 0 ?
-                                 std::make_unique<FixedListTypeInfo>(
-                                     std::move(child_type_pty), fixed_num_elements_in_list) :
-                                 std::make_unique<VarListTypeInfo>(std::move(child_type_pty));
+        auto extraTypeInfo = num_elements_in_array > 0 ?
+                                 std::make_unique<ArrayTypeInfo>(
+                                     std::move(child_type_pty), num_elements_in_array) :
+                                 std::make_unique<ListTypeInfo>(std::move(child_type_pty));
         data_type = JavaAPIHelper::createLogicalType(logicalTypeID, std::move(extraTypeInfo));
     }
     uint64_t address = reinterpret_cast<uint64_t>(data_type);
@@ -606,10 +591,10 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1chil
     JNIEnv* env, jclass, jobject thisDT) {
     auto* parent_type = getDataType(env, thisDT);
     LogicalType* child_type;
-    if (parent_type->getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
-        child_type = FixedListType::getChildType(parent_type);
-    } else if (parent_type->getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
-        child_type = VarListType::getChildType(parent_type);
+    if (parent_type->getLogicalTypeID() == LogicalTypeID::ARRAY) {
+        child_type = ArrayType::getChildType(parent_type);
+    } else if (parent_type->getLogicalTypeID() == LogicalTypeID::LIST) {
+        child_type = ListType::getChildType(parent_type);
     } else {
         return nullptr;
     }
@@ -619,13 +604,13 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1chil
 }
 
 JNIEXPORT jlong JNICALL
-Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1fixed_1num_1elements_1in_1list(
+Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1num_1elements_1in_1array(
     JNIEnv* env, jclass, jobject thisDT) {
     auto* dt = getDataType(env, thisDT);
-    if (dt->getLogicalTypeID() != LogicalTypeID::FIXED_LIST) {
+    if (dt->getLogicalTypeID() != LogicalTypeID::ARRAY) {
         return 0;
     }
-    return static_cast<jlong>(FixedListType::getNumValuesInList(dt));
+    return static_cast<jlong>(ArrayType::getNumElements(dt));
 }
 
 /**
@@ -821,6 +806,14 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         jmethodID ctor = env->GetMethodID(retClass, "<init>", "(B)V");
         jbyte val = static_cast<jbyte>(v->getValue<int8_t>());
         jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT64: {
+        jclass bigIntegerClass = env->FindClass("java/math/BigInteger");
+        jmethodID ctor = env->GetMethodID(bigIntegerClass, "<init>", "(Ljava/lang/String;)V");
+        auto value = v->toString();
+        jstring val = env->NewStringUTF(value.c_str());
+        jobject ret = env->NewObject(bigIntegerClass, ctor, val);
         return ret;
     }
     case LogicalTypeID::UINT32: {
@@ -1131,4 +1124,143 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1ind
     } else {
         return static_cast<jlong>(index);
     }
+}
+
+// protected static native KuzuDataType kuzu_rdf_variant_get_data_type(KuzuValue rdf_variant);
+JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rdf_1variant_1get_1data_1type(
+    JNIEnv* env, jclass, jobject thisValue) {
+    auto* value = getValue(env, thisValue);
+    auto logicalTypeId = RdfVariant::getLogicalTypeID(value);
+    auto* dt = new LogicalType(logicalTypeId);
+    return createJavaObject(env, dt, "com/kuzudb/KuzuDataType", "dt_ref");
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rdf_1variant_1get_1value(
+    JNIEnv* env, jclass, jobject thisValue) {
+    auto* value = getValue(env, thisValue);
+    auto logicalTypeId = RdfVariant::getLogicalTypeID(value);
+    switch (logicalTypeId) {
+    case LogicalTypeID::STRING: {
+        std::string str = RdfVariant::getValue<std::string>(value);
+        jstring ret = env->NewStringUTF(str.c_str());
+        return ret;
+    }
+    case LogicalTypeID::BLOB: {
+        auto blob = RdfVariant::getValue<blob_t>(value);
+        auto blobStr = blob.value.getAsString();
+        auto byteBuffer = blobStr.c_str();
+        auto ret = env->NewByteArray(blobStr.size());
+        env->SetByteArrayRegion(ret, 0, blobStr.size(), (jbyte*)byteBuffer);
+        return ret;
+    }
+    case LogicalTypeID::INT64: {
+        jclass retClass = env->FindClass("java/lang/Long");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(J)V");
+        jlong val = static_cast<jlong>(RdfVariant::getValue<int64_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::INT32: {
+        jclass retClass = env->FindClass("java/lang/Integer");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(I)V");
+        jint val = static_cast<jint>(RdfVariant::getValue<int32_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::INT16: {
+        jclass retClass = env->FindClass("java/lang/Short");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(S)V");
+        jshort val = static_cast<jshort>(RdfVariant::getValue<int16_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::INT8: {
+        jclass retClass = env->FindClass("java/lang/Byte");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(B)V");
+        jbyte val = static_cast<jbyte>(RdfVariant::getValue<int8_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT64: {
+        jclass bigIntegerClass = env->FindClass("java/math/BigInteger");
+        jmethodID ctor = env->GetMethodID(bigIntegerClass, "<init>", "(Ljava/lang/String;)V");
+        auto uintValue = RdfVariant::getValue<uint64_t>(value);
+        jstring val = env->NewStringUTF(std::to_string(uintValue).c_str());
+        jobject ret = env->NewObject(bigIntegerClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT32: {
+        jclass retClass = env->FindClass("java/lang/Long");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(J)V");
+        jlong val = static_cast<jlong>(RdfVariant::getValue<uint32_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT16: {
+        jclass retClass = env->FindClass("java/lang/Integer");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(I)V");
+        jint val = static_cast<jint>(RdfVariant::getValue<uint16_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT8: {
+        jclass retClass = env->FindClass("java/lang/Short");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(S)V");
+        jshort val = static_cast<jshort>(RdfVariant::getValue<uint8_t>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::DOUBLE: {
+        jclass retClass = env->FindClass("java/lang/Double");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(D)V");
+        jdouble val = static_cast<jdouble>(RdfVariant::getValue<double>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::FLOAT: {
+        jclass retClass = env->FindClass("java/lang/Float");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(F)V");
+        jfloat val = static_cast<jfloat>(RdfVariant::getValue<float>(value));
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::DATE: {
+        date_t date = RdfVariant::getValue<date_t>(value);
+        jclass ldClass = env->FindClass("java/time/LocalDate");
+        jmethodID ofEpochDay =
+            env->GetStaticMethodID(ldClass, "ofEpochDay", "(J)Ljava/time/LocalDate;");
+        jobject ret =
+            env->CallStaticObjectMethod(ldClass, ofEpochDay, static_cast<jlong>(date.days));
+        return ret;
+    }
+    case LogicalTypeID::TIMESTAMP: {
+        timestamp_t ts = RdfVariant::getValue<timestamp_t>(value);
+        int64_t seconds = ts.value / 1000000L;
+        int64_t nano = ts.value % 1000000L * 1000L;
+        jclass retClass = env->FindClass("java/time/Instant");
+        jmethodID ofEpochSecond =
+            env->GetStaticMethodID(retClass, "ofEpochSecond", "(JJ)Ljava/time/Instant;");
+        jobject ret = env->CallStaticObjectMethod(retClass, ofEpochSecond, seconds, nano);
+        return ret;
+    }
+    case LogicalTypeID::INTERVAL: {
+        jclass retClass = env->FindClass("java/time/Duration");
+        jmethodID ofMillis =
+            env->GetStaticMethodID(retClass, "ofMillis", "(J)Ljava/time/Duration;");
+        interval_t in = RdfVariant::getValue<interval_t>(value);
+        long millis = Interval::getMicro(in) / 1000;
+        jobject ret = env->CallStaticObjectMethod(retClass, ofMillis, millis);
+        return ret;
+    }
+    default:
+        return nullptr;
+    }
+}
+
+JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1get_1version(JNIEnv* env, jclass) {
+    return env->NewStringUTF(Version::getVersion());
+}
+
+JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1get_1storage_1version(JNIEnv*, jclass) {
+    return static_cast<jlong>(Version::getStorageVersion());
 }

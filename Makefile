@@ -6,8 +6,8 @@
 	benchmark example \
 	clangd tidy clangd-diagnostics \
 	install \
-	clean-python-api clean-java clean \
-	extension-debug extension-release extension-test clean-extension \
+	clean-extension clean-python-api clean-java clean \
+	extension-test shell-test 
 
 .ONESHELL:
 .SHELLFLAGS = -ec
@@ -49,6 +49,10 @@ ifdef LTO
 	CMAKE_FLAGS += -DENABLE_LTO=$(LTO)
 endif
 
+ifdef SKIP_SINGLE_FILE_HEADER
+	CMAKE_FLAGS += -DBUILD_SINGLE_FILE_HEADER=FALSE
+endif
+
 # Must be first in the Makefile so that it is the default target.
 release:
 	$(call run-cmake-release,)
@@ -60,6 +64,7 @@ allconfig:
 	$(call config-cmake-release, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
+		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -67,13 +72,14 @@ allconfig:
 		-DBUILD_TESTS=TRUE \
 	)
 
-all: allconfig extension-release
+all: allconfig
 	$(call build-cmake-release)
 
-alldebug: extension-debug
+alldebug:
 	$(call run-cmake-debug, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
+		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -139,7 +145,7 @@ pytest: python
 	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -v tools/python_api/test
 
 rusttest: rust
-	cd tools/rust_api && cargo test --all-features -- --test-threads=1
+	cd tools/rust_api && cargo test --locked --all-features -- --test-threads=1
 
 wasm:
 	mkdir -p build/wasm && cd build/wasm &&\
@@ -153,15 +159,31 @@ benchmark:
 example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
 
+extension-test:
+	$(call run-cmake-release, \
+		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
+		-DBUILD_EXTENSION_TESTS=TRUE \
+	)
+	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS}
+	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
+
 extension-debug:
-	$(call run-extension,Debug)
+	$(call run-cmake-debug, \
+		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
+		-DBUILD_KUZU=FALSE \
+	)
 
 extension-release:
-	$(call run-extension,Release)
+	$(call run-cmake-release, \
+		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
+		-DBUILD_KUZU=FALSE \
+	)
 
-extension-test: extension-release
-	$(call run-cmake-release,-DBUILD_EXTENSION_TESTS=TRUE)
-	ctest --test-dir build/release/extension/httpfs/test --output-on-failure -j ${TEST_JOBS}
+shell-test:
+	$(call run-cmake-release, \
+		-DBUILD_SHELL=TRUE \
+	)
+	cd tools/shell/test && python3 -m pytest -v 
 
 # Clang-related tools and checks
 
@@ -187,16 +209,16 @@ install:
 	cmake --install build/release --prefix $(PREFIX) --strip
 
 # Cleaning
+clean-extension:
+	cmake -E rm -rf extension/httpfs/build
+
 clean-python-api:
 	cmake -E rm -rf tools/python_api/build
 
 clean-java:
 	cmake -E rm -rf tools/java_api/build
 
-clean-extension:
-	cmake -E rm -rf extension/*/build
-
-clean: clean-python-api clean-java clean-extension
+clean: clean-extension clean-python-api clean-java
 	cmake -E rm -rf build
 
 
@@ -229,17 +251,4 @@ endef
 define run-cmake-release
 	$(call config-cmake-release,$1)
 	$(call build-cmake-release,$1)
-endef
-
-define config-extension
-	cmake -B extension/httpfs/build -DCMAKE_BUILD_TYPE=$1 -S extension/httpfs $2
-endef
-
-define build-extension
-	cmake --build extension/httpfs/build --config $1
-endef
-
-define run-extension
-	$(call config-extension,$1,$2)
-	$(call build-extension,$1,$2)
 endef

@@ -10,9 +10,9 @@ add_subdirectory(wal)
 add_library(kuzu_storage
         OBJECT
         file_handle.cpp
-        storage_info.cpp
         storage_manager.cpp
         storage_utils.cpp
+        storage_version_info.cpp
         wal_replayer.cpp
         wal_replayer_utils.cpp)
 

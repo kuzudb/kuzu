@@ -15,7 +15,7 @@ Runtime exception: Divide by zero.
 Runtime exception: Modulo by zero.
 
 -LOG EmptyQuery
--STATEMENT  
+-STATEMENT
 ---- error
 Connection Exception: Query is empty.
 
@@ -25,10 +25,9 @@ Connection Exception: Query is empty.
 Overflow exception: Value 10000000000 is not within INT16 range
 
 -LOG Int32PrimaryKey
--STATEMENT CREATE NODE TABLE play(a INT32, PRIMARY KEY (a))
+-STATEMENT CREATE NODE TABLE play(a INT32[], PRIMARY KEY (a))
 ---- error
-Binder exception: Invalid primary key type: INT32. Expected STRING or INT64.
-
+Binder exception: Invalid primary key column type INT32[]. Primary keys must be either STRING or a numeric type.
 -LOG UnalignedKeyAndValueList
 -STATEMENT RETURN MAP([4],[3,2])
 ---- error

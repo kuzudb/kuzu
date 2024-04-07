@@ -27,8 +27,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
             for (auto i = 0u; i < scanNodeID->getSharedState()->getNumTableStates(); ++i) {
                 auto tableState = scanNodeID->getSharedState()->getTableState(i);
                 auto tableID = tableState->getTable()->getTableID();
-                masksPerTable.at(tableID).emplace_back(
-                    tableState->getSemiMask(), 0 /* initial mask idx */);
+                masksPerTable.at(tableID).emplace_back(tableState->getSemiMask(),
+                    0 /* initial mask idx */);
             }
         } break;
         case PhysicalOperatorType::RECURSIVE_JOIN: {

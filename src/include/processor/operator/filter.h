@@ -35,8 +35,8 @@ struct NodeLabelFilterInfo {
     DataPos nodeVectorPos;
     std::unordered_set<common::table_id_t> nodeLabelSet;
 
-    NodeLabelFilterInfo(
-        const DataPos& nodeVectorPos, std::unordered_set<common::table_id_t> nodeLabelSet)
+    NodeLabelFilterInfo(const DataPos& nodeVectorPos,
+        std::unordered_set<common::table_id_t> nodeLabelSet)
         : nodeVectorPos{nodeVectorPos}, nodeLabelSet{std::move(nodeLabelSet)} {}
     NodeLabelFilterInfo(const NodeLabelFilterInfo& other)
         : nodeVectorPos{other.nodeVectorPos}, nodeLabelSet{other.nodeLabelSet} {}
@@ -58,8 +58,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<NodeLabelFiler>(
-            info->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<NodeLabelFiler>(info->copy(), children[0]->clone(), id,
+            paramsString);
     }
 
 private:

@@ -19,6 +19,15 @@
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age, a.gender, a.fName
 ---- 1
 70|1|
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName = 'XX' WITH a MATCH (b:person) WHERE b.ID < 6 RETURN a.ID, a.fName, b.ID, b.fName;
+---- 4
+0|XX|0|XX
+0|XX|2|Bob
+0|XX|3|Carol
+0|XX|5|Dan
+-STATEMENT MATCH (a:person) WHERE a.ID=2 SET a.fName = 'BB' WITH a MATCH (b:person) WHERE b.ID=a.ID RETURN a.ID, a.fName, b.ID, b.fName;
+---- 1
+2|BB|2|BB
 
 -CASE SetReadTest2
 -STATEMENT CREATE NODE TABLE play(ID INT64, name STRING, PRIMARY KEY(ID));

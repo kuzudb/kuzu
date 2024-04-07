@@ -53,9 +53,7 @@ bool dtime_t::operator>=(const dtime_t& rhs) const {
     return micros >= rhs.micros;
 }
 
-// string format is hh:mm:ss[.mmmmmm] (ISO 8601) (m represent microseconds)
-// microseconds is optional, timezone is currently not supported
-bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t& result) {
+bool Time::tryConvertInternal(const char* buf, uint64_t len, uint64_t& pos, dtime_t& result) {
     int32_t hour = -1, min = -1, sec = -1, micros = -1;
     pos = 0;
 
@@ -78,8 +76,14 @@ bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t&
         return false;
     }
 
-    if (!Date::parseDoubleDigit(buf, len, pos, hour)) {
-        return false;
+    // Allow up to 9 digit hours to support intervals
+    hour = 0;
+    for (int32_t digits = 9; pos < len && isdigit(buf[pos]); ++pos) {
+        if (digits-- > 0) {
+            hour = hour * 10 + (buf[pos] - '0');
+        } else {
+            return false;
+        }
     }
 
     if (pos >= len) {
@@ -96,6 +100,9 @@ bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t&
     if (!Date::parseDoubleDigit(buf, len, pos, min)) {
         return false;
     }
+    if (min < 0 || min >= 60) {
+        return false;
+    }
 
     if (pos >= len) {
         return false;
@@ -106,6 +113,9 @@ bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t&
     }
 
     if (!Date::parseDoubleDigit(buf, len, pos, sec)) {
+        return false;
+    }
+    if (sec < 0 || sec >= 60) {
         return false;
     }
 
@@ -121,18 +131,39 @@ bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t&
         }
     }
 
-    if (!IsValid(hour, min, sec, micros)) {
-        return false;
-    }
-
-    result = Time::FromTime(hour, min, sec, micros);
+    result = Time::fromTimeInternal(hour, min, sec, micros);
     return true;
 }
 
-dtime_t Time::FromCString(const char* buf, uint64_t len) {
+bool Time::tryConvertInterval(const char* buf, uint64_t len, uint64_t& pos, dtime_t& result) {
+    if (!Time::tryConvertInternal(buf, len, pos, result)) {
+        return false;
+    }
+    // check remaining string for non-space characters
+    // skip trailing spaces
+    while (pos < len && isspace(buf[pos])) {
+        pos++;
+    }
+    // check position. if end was not reached, non-space chars remaining
+    if (pos < len) {
+        return false;
+    }
+    return true;
+}
+
+// string format is hh:mm:ss[.mmmmmm] (ISO 8601) (m represent microseconds)
+// microseconds is optional, timezone is currently not supported
+bool Time::tryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t& result) {
+    if (!Time::tryConvertInternal(buf, len, pos, result)) {
+        return false;
+    }
+    return result.micros < Interval::MICROS_PER_DAY;
+}
+
+dtime_t Time::fromCString(const char* buf, uint64_t len) {
     dtime_t result;
     uint64_t pos;
-    if (!Time::TryConvertTime(buf, len, pos, result)) {
+    if (!Time::tryConvertTime(buf, len, pos, result)) {
         throw ConversionException(stringFormat("Error occurred during parsing time. Given: \"{}\". "
                                                "Expected format: (hh:mm:ss[.zzzzzz]).",
             std::string(buf, len)));
@@ -142,7 +173,7 @@ dtime_t Time::FromCString(const char* buf, uint64_t len) {
 
 std::string Time::toString(dtime_t time) {
     int32_t time_units[4];
-    Time::Convert(time, time_units[0], time_units[1], time_units[2], time_units[3]);
+    Time::convert(time, time_units[0], time_units[1], time_units[2], time_units[3]);
 
     char micro_buffer[6];
     auto length = TimeToStringCast::Length(time_units, micro_buffer);
@@ -151,7 +182,7 @@ std::string Time::toString(dtime_t time) {
     return std::string(buffer.get(), length);
 }
 
-bool Time::IsValid(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
+bool Time::isValid(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
     if (hour > 23 || hour < 0 || minute > 59 || minute < 0 || second > 59 || second < 0 ||
         microseconds > 999999 || microseconds < 0) {
         return false;
@@ -159,11 +190,7 @@ bool Time::IsValid(int32_t hour, int32_t minute, int32_t second, int32_t microse
     return true;
 }
 
-dtime_t Time::FromTime(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
-    if (!Time::IsValid(hour, minute, second, microseconds)) {
-        throw ConversionException(stringFormat(
-            "Time field value out of range: {}:{}:{}[.{}].", hour, minute, second, microseconds));
-    }
+dtime_t Time::fromTimeInternal(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
     int64_t result;
     result = hour;                                             // hours
     result = result * Interval::MINS_PER_HOUR + minute;        // hours -> minutes
@@ -172,7 +199,15 @@ dtime_t Time::FromTime(int32_t hour, int32_t minute, int32_t second, int32_t mic
     return dtime_t(result);
 }
 
-void Time::Convert(dtime_t dtime, int32_t& hour, int32_t& min, int32_t& sec, int32_t& micros) {
+dtime_t Time::fromTime(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
+    if (!Time::isValid(hour, minute, second, microseconds)) {
+        throw ConversionException(stringFormat("Time field value out of range: {}:{}:{}[.{}].",
+            hour, minute, second, microseconds));
+    }
+    return Time::fromTimeInternal(hour, minute, second, microseconds);
+}
+
+void Time::convert(dtime_t dtime, int32_t& hour, int32_t& min, int32_t& sec, int32_t& micros) {
     int64_t time = dtime.micros;
     hour = int32_t(time / Interval::MICROS_PER_HOUR);
     time -= int64_t(hour) * Interval::MICROS_PER_HOUR;

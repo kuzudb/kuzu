@@ -55,6 +55,8 @@ void Intersect::probeHTs() {
 void Intersect::twoWayIntersect(nodeID_t* leftNodeIDs, SelectionVector& lSelVector,
     nodeID_t* rightNodeIDs, SelectionVector& rSelVector) {
     KU_ASSERT(lSelVector.selectedSize <= rSelVector.selectedSize);
+    auto leftPositionBuffer = lSelVector.getMultableBuffer();
+    auto rightPositionBuffer = rSelVector.getMultableBuffer();
     sel_t leftPosition = 0, rightPosition = 0;
     uint64_t outputValuePosition = 0;
     while (leftPosition < lSelVector.selectedSize && rightPosition < rSelVector.selectedSize) {
@@ -65,16 +67,16 @@ void Intersect::twoWayIntersect(nodeID_t* leftNodeIDs, SelectionVector& lSelVect
         } else if (leftNodeID.offset > rightNodeID.offset) {
             rightPosition++;
         } else {
-            lSelVector.getSelectedPositionsBuffer()[outputValuePosition] = leftPosition;
-            rSelVector.getSelectedPositionsBuffer()[outputValuePosition] = rightPosition;
+            leftPositionBuffer[outputValuePosition] = leftPosition;
+            rightPositionBuffer[outputValuePosition] = rightPosition;
             leftNodeIDs[outputValuePosition] = leftNodeID;
             leftPosition++;
             rightPosition++;
             outputValuePosition++;
         }
     }
-    lSelVector.resetSelectorToValuePosBufferWithSize(outputValuePosition);
-    rSelVector.resetSelectorToValuePosBufferWithSize(outputValuePosition);
+    lSelVector.setToFiltered(outputValuePosition);
+    rSelVector.setToFiltered(outputValuePosition);
 }
 
 static std::vector<overflow_value_t> fetchListsToIntersectFromTuples(
@@ -105,14 +107,15 @@ static std::vector<uint32_t> swapSmallestListToFront(std::vector<overflow_value_
     return listIdxes;
 }
 
-static void sliceSelVectors(
-    const std::vector<SelectionVector*>& selVectorsToSlice, SelectionVector& slicer) {
+static void sliceSelVectors(const std::vector<SelectionVector*>& selVectorsToSlice,
+    SelectionVector& slicer) {
     for (auto selVec : selVectorsToSlice) {
         for (auto i = 0u; i < slicer.selectedSize; i++) {
             auto pos = slicer.selectedPositions[i];
-            selVec->getSelectedPositionsBuffer()[i] = selVec->selectedPositions[pos];
+            auto buffer = selVec->getMultableBuffer();
+            buffer[i] = selVec->selectedPositions[pos];
         }
-        selVec->resetSelectorToValuePosBufferWithSize(slicer.selectedSize);
+        selVec->setToFiltered(slicer.selectedSize);
     }
 }
 
@@ -127,24 +130,23 @@ void Intersect::intersectLists(const std::vector<overflow_value_t>& listsToInter
     SelectionVector lSelVector(listsToIntersect[0].numElements);
     lSelVector.selectedSize = listsToIntersect[0].numElements;
     std::vector<SelectionVector*> selVectorsForIntersectedLists;
-    intersectSelVectors[0]->resetSelectorToUnselectedWithSize(listsToIntersect[0].numElements);
+    intersectSelVectors[0]->setToUnfiltered(listsToIntersect[0].numElements);
     selVectorsForIntersectedLists.push_back(intersectSelVectors[0].get());
     for (auto i = 0u; i < listsToIntersect.size() - 1; i++) {
-        intersectSelVectors[i + 1]->resetSelectorToUnselectedWithSize(
-            listsToIntersect[i + 1].numElements);
+        intersectSelVectors[i + 1]->setToUnfiltered(listsToIntersect[i + 1].numElements);
         twoWayIntersect((nodeID_t*)outKeyVector->getData(), lSelVector,
             (nodeID_t*)listsToIntersect[i + 1].value, *intersectSelVectors[i + 1]);
         // Here we need to slice all selVectors that have been previously intersected, as all these
         // lists need to be selected synchronously to read payloads correctly.
         sliceSelVectors(selVectorsForIntersectedLists, lSelVector);
-        lSelVector.resetSelectorToUnselected();
+        lSelVector.setToUnfiltered();
         selVectorsForIntersectedLists.push_back(intersectSelVectors[i + 1].get());
     }
     outKeyVector->state->selVector->selectedSize = lSelVector.selectedSize;
 }
 
-void Intersect::populatePayloads(
-    const std::vector<uint8_t*>& tuples, const std::vector<uint32_t>& listIdxes) {
+void Intersect::populatePayloads(const std::vector<uint8_t*>& tuples,
+    const std::vector<uint32_t>& listIdxes) {
     for (auto i = 0u; i < listIdxes.size(); i++) {
         auto listIdx = listIdxes[i];
         sharedHTs[listIdx]->getHashTable()->getFactorizedTable()->lookup(

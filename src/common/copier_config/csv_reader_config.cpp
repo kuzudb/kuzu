@@ -1,7 +1,6 @@
 #include "common/copier_config/csv_reader_config.h"
 
 #include "common/exception/binder.h"
-#include "common/string_utils.h"
 
 namespace kuzu {
 namespace common {
@@ -17,8 +16,8 @@ static char bindParsingOptionValue(std::string value) {
     return value[value.length() - 1];
 }
 
-static void bindBoolParsingOption(
-    CSVReaderConfig& config, const std::string& optionName, bool optionValue) {
+static void bindBoolParsingOption(CSVReaderConfig& config, const std::string& optionName,
+    bool optionValue) {
     if (optionName == "HEADER") {
         config.option.hasHeader = optionValue;
     } else if (optionName == "PARALLEL") {
@@ -26,8 +25,8 @@ static void bindBoolParsingOption(
     }
 }
 
-static void bindStringParsingOption(
-    CSVReaderConfig& config, const std::string& optionName, const std::string& optionValue) {
+static void bindStringParsingOption(CSVReaderConfig& config, const std::string& optionName,
+    const std::string& optionValue) {
     auto parsingOptionValue = bindParsingOptionValue(optionValue);
     if (optionName == "ESCAPE") {
         config.option.escapeChar = parsingOptionValue;
@@ -56,7 +55,6 @@ CSVReaderConfig CSVReaderConfig::construct(
     auto config = CSVReaderConfig();
     for (auto& op : options) {
         auto name = op.first;
-        StringUtils::toUpper(name);
         auto isValidStringParsingOption = validateStringParsingOptionName(name);
         auto isValidBoolParsingOption = validateBoolParsingOptionName(name);
         if (isValidBoolParsingOption) {

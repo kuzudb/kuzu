@@ -21,8 +21,8 @@ struct CopyToCSVInfo final : public CopyToInfo {
     uint64_t getNumFlatVectors();
 
     inline std::unique_ptr<CopyToInfo> copy() override {
-        return std::make_unique<CopyToCSVInfo>(
-            names, dataPoses, fileName, isFlat, copyToOption.copy());
+        return std::make_unique<CopyToCSVInfo>(names, dataPoses, fileName, isFlat,
+            copyToOption.copy());
     }
 };
 
@@ -49,14 +49,13 @@ private:
     std::unique_ptr<common::DataChunk> unflatCastDataChunk;
     std::unique_ptr<common::DataChunk> flatCastDataChunk;
     std::vector<common::ValueVector*> castVectors;
-    std::vector<function::scalar_exec_func> castFuncs;
+    std::vector<function::scalar_func_exec_t> castFuncs;
     std::vector<std::shared_ptr<common::ValueVector>> vectorsToCast;
 };
 
 class CopyToCSVSharedState final : public CopyToSharedState {
 public:
-    void init(
-        CopyToInfo* info, storage::MemoryManager* mm, common::VirtualFileSystem* vfs) override;
+    void init(CopyToInfo* info, main::ClientContext* context) override;
 
     void finalize() override {}
 

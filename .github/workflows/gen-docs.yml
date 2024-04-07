@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 jobs:
   build-python-package:
-    runs-on: kuzu-self-hosted-linux-building
+    runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
     env:
       PLATFORM: manylinux2014_x86_64
     steps:

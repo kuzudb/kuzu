@@ -47,6 +47,18 @@ void StatementVisitor::visit(const Statement& statement) {
     case StatementType::EXTENSION: {
         visitExtension(statement);
     } break;
+    case StatementType::EXPORT_DATABASE: {
+        visitExportDatabase(statement);
+    } break;
+    case StatementType::IMPORT_DATABASE: {
+        visitImportDatabase(statement);
+    } break;
+    case StatementType::ATTACH_DATABASE: {
+        visitAttachDatabase(statement);
+    } break;
+    case StatementType::DETACH_DATABASE: {
+        visitDetachDatabase(statement);
+    } break;
     default:
         KU_UNREACHABLE;
     }

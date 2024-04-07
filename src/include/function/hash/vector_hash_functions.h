@@ -13,7 +13,7 @@ struct UnaryHashFunctionExecutor {
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
             if (!operand.isNull(pos)) {
-                Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos]);
+                Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos], &operand);
             } else {
                 result.setValue(pos, NULL_HASH);
             }
@@ -21,19 +21,22 @@ struct UnaryHashFunctionExecutor {
             if (operand.hasNoNullsGuarantee()) {
                 if (operand.state->selVector->isUnfiltered()) {
                     for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                        Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i]);
+                        Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i],
+                            &operand);
                     }
                 } else {
                     for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                         auto pos = operand.state->selVector->selectedPositions[i];
-                        Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos]);
+                        Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
+                            &operand);
                     }
                 }
             } else {
                 if (operand.state->selVector->isUnfiltered()) {
                     for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                         if (!operand.isNull(i)) {
-                            Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i]);
+                            Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i],
+                                &operand);
                         } else {
                             result.setValue(i, NULL_HASH);
                         }
@@ -42,7 +45,8 @@ struct UnaryHashFunctionExecutor {
                     for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                         auto pos = operand.state->selVector->selectedPositions[i];
                         if (!operand.isNull(pos)) {
-                            Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos]);
+                            Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
+                                &operand);
                         } else {
                             resultValues[pos] = NULL_HASH;
                         }
@@ -56,8 +60,8 @@ struct UnaryHashFunctionExecutor {
 struct VectorHashFunction {
     static void computeHash(common::ValueVector* operand, common::ValueVector* result);
 
-    static void combineHash(
-        common::ValueVector* left, common::ValueVector* right, common::ValueVector* result);
+    static void combineHash(common::ValueVector* left, common::ValueVector* right,
+        common::ValueVector* result);
 };
 
 } // namespace function

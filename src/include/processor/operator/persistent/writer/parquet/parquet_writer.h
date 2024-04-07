@@ -9,6 +9,10 @@
 #include "thrift/protocol/TProtocol.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace processor {
 
 class ParquetWriterTransport : public kuzu_apache::thrift::protocol::TTransport {
@@ -41,7 +45,7 @@ class ParquetWriter {
 public:
     ParquetWriter(std::string fileName, std::vector<std::unique_ptr<common::LogicalType>> types,
         std::vector<std::string> names, kuzu_parquet::format::CompressionCodec::type codec,
-        storage::MemoryManager* mm, common::VirtualFileSystem* vfs);
+        main::ClientContext* context);
 
     inline common::offset_t getOffset() const { return fileOffset; }
     inline void write(const uint8_t* buf, uint32_t len) {
@@ -56,8 +60,8 @@ public:
     void flush(FactorizedTable& ft);
     void finalize();
     static kuzu_parquet::format::Type::type convertToParquetType(common::LogicalType* type);
-    static void setSchemaProperties(
-        common::LogicalType* type, kuzu_parquet::format::SchemaElement& schemaElement);
+    static void setSchemaProperties(common::LogicalType* type,
+        kuzu_parquet::format::SchemaElement& schemaElement);
 
 private:
     void prepareRowGroup(FactorizedTable& ft, PreparedRowGroup& result);

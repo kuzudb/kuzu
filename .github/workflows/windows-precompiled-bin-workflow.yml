@@ -10,9 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install networkx
-        run: python.exe -m pip install networkx --user
-
       - name: Build precompiled binaries
         shell: cmd
         run: |

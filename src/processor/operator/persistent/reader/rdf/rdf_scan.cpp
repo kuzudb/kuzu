@@ -1,6 +1,6 @@
 #include "processor/operator/persistent/reader/rdf/rdf_scan.h"
 
-#include "function/table_functions/bind_input.h"
+#include "function/table/bind_input.h"
 #include "processor/operator/persistent/reader/rdf/rdf_utils.h"
 
 using namespace kuzu::common;
@@ -19,6 +19,8 @@ void RdfScanSharedState::read(common::DataChunk& dataChunk) {
         if (reader->readChunk(&dataChunk) > 0) {
             return;
         }
+        // No more to read in current file, move to next.
+        numLiteralTriplesScanned += reader->getNumLiteralTriplesScanned();
         fileIdx++;
         initReader();
         store->clear();
@@ -42,12 +44,12 @@ void RdfScanSharedState::initReader() {
         return;
     }
     auto path = readerConfig.filePaths[fileIdx];
-    createReader(path);
+    createReader(fileIdx, path, numLiteralTriplesScanned);
     reader->init();
 }
 
-std::pair<uint64_t, uint64_t> RdfInMemScanSharedState::getRange(
-    const RdfStore& store_, uint64_t& cursor) {
+std::pair<uint64_t, uint64_t> RdfInMemScanSharedState::getRange(const RdfStore& store_,
+    uint64_t& cursor) {
     std::unique_lock lck{lock};
     auto numTuplesToScan = std::min(batchSize, store_.size() - cursor);
     auto startIdx = cursor;
@@ -55,9 +57,10 @@ std::pair<uint64_t, uint64_t> RdfInMemScanSharedState::getRange(
     return {startIdx, numTuplesToScan};
 }
 
-static void scanTableFunc(TableFunctionInput& input, common::DataChunk& outputChunk) {
+static common::offset_t scanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState = reinterpret_cast<RdfScanSharedState*>(input.sharedState);
-    sharedState->read(outputChunk);
+    sharedState->read(output.dataChunk);
+    return output.dataChunk.state->selVector->selectedSize;
 }
 
 static std::unique_ptr<TableFuncSharedState> inMemScanInitSharedState(
@@ -66,100 +69,29 @@ static std::unique_ptr<TableFuncSharedState> inMemScanInitSharedState(
     return std::make_unique<RdfInMemScanSharedState>(bindData->store);
 }
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(
-    TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*) {
+static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput&,
+    TableFuncSharedState*, storage::MemoryManager*) {
     return std::make_unique<TableFuncLocalState>();
 }
 
-function_set RdfResourceScan::getFunctionSet() {
-    function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_RESOURCE_FUNC_NAME, scanTableFunc, nullptr,
-        initSharedState, initLocalState, std::vector<LogicalTypeID>{});
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
-function_set RdfLiteralScan::getFunctionSet() {
-    function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_LITERAL_FUNC_NAME, scanTableFunc, nullptr,
-        initSharedState, initLocalState, std::vector<LogicalTypeID>{});
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
-function_set RdfResourceTripleScan::getFunctionSet() {
-    function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_RESOURCE_TRIPLE_FUNC_NAME, scanTableFunc,
-        nullptr, initSharedState, initLocalState, std::vector<LogicalTypeID>{});
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
-function_set RdfLiteralTripleScan::getFunctionSet() {
-    function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_LITERAL_TRIPLE_FUNC_NAME, scanTableFunc,
-        nullptr, initSharedState, initLocalState, std::vector<LogicalTypeID>{});
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
-function::function_set RdfAllTripleScan::getFunctionSet() {
-    function_set functionSet;
-    auto func = std::make_unique<TableFunction>(READ_RDF_ALL_TRIPLE_FUNC_NAME, tableFunc, bindFunc,
-        initSharedState, initLocalState, std::vector<LogicalTypeID>{});
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
-function_set RdfResourceInMemScan::getFunctionSet() {
-    function_set functionSet;
-    auto func = std::make_unique<TableFunction>(IN_MEM_READ_RDF_RESOURCE_FUNC_NAME, tableFunc,
-        nullptr, inMemScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
-function_set RdfLiteralInMemScan::getFunctionSet() {
-    function_set functionSet;
-    auto func = std::make_unique<TableFunction>(IN_MEM_READ_RDF_LITERAL_FUNC_NAME, tableFunc,
-        nullptr, inMemScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
-function_set RdfResourceTripleInMemScan::getFunctionSet() {
-    function_set functionSet;
-    auto func = std::make_unique<TableFunction>(IN_MEM_READ_RDF_RESOURCE_TRIPLE_FUNC_NAME,
-        tableFunc, nullptr, inMemScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
-function_set RdfLiteralTripleInMemScan::getFunctionSet() {
-    function_set functionSet;
-    auto func = std::make_unique<TableFunction>(IN_MEM_READ_RDF_LITERAL_TRIPLE_FUNC_NAME, tableFunc,
-        nullptr, inMemScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
-void RdfAllTripleScan::tableFunc(TableFunctionInput& input, DataChunk&) {
+static offset_t RdfAllTripleScanTableFunc(TableFuncInput& input, TableFuncOutput&) {
     auto sharedState = reinterpret_cast<RdfScanSharedState*>(input.sharedState);
     sharedState->readAll();
+    return 0;
 }
 
-std::unique_ptr<function::TableFuncBindData> RdfAllTripleScan::bindFunc(main::ClientContext*,
-    function::TableFuncBindInput* input_, catalog::Catalog*, storage::StorageManager*) {
+static std::unique_ptr<function::TableFuncBindData> RdfAllTripleScanBindFunc(main::ClientContext*,
+    function::TableFuncBindInput* input_) {
     auto input = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input_);
-    return std::make_unique<RdfScanBindData>(common::logical_types_t{}, std::vector<std::string>{},
-        input->mm, input->config.copy(), input->vfs, input->context,
+    return std::make_unique<RdfScanBindData>(std::vector<common::LogicalType>{},
+        std::vector<std::string>{}, input->config.copy(), input->context,
         std::make_shared<TripleStore>());
 }
 
-void RdfResourceInMemScan::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+static offset_t RdfResourceInMemScanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
-    auto sVector = outputChunk.getValueVector(0).get();
+    auto sVector = output.dataChunk.getValueVector(0).get();
     auto vectorPos = 0u;
     // Scan resource triples
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
@@ -171,96 +103,214 @@ void RdfResourceInMemScan::tableFunc(TableFunctionInput& input, DataChunk& outpu
             StringVector::addString(sVector, vectorPos++, store.ltStore.subjects[lStartIdx + i]);
             StringVector::addString(sVector, vectorPos++, store.ltStore.predicates[lStartIdx + i]);
         }
-        outputChunk.state->selVector->selectedSize = vectorPos;
-        return;
+        return vectorPos;
     }
     for (auto i = 0u; i < rNumTuplesToScan; ++i) {
         StringVector::addString(sVector, vectorPos++, store.rtStore.subjects[rStartIdx + i]);
         StringVector::addString(sVector, vectorPos++, store.rtStore.predicates[rStartIdx + i]);
         StringVector::addString(sVector, vectorPos++, store.rtStore.objects[rStartIdx + i]);
     }
-    outputChunk.state->selVector->selectedSize = vectorPos;
+    return vectorPos;
 }
 
-void RdfLiteralInMemScan::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+static offset_t RdfLiteralInMemScanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
-    auto oVector = outputChunk.getValueVector(0).get();
+    auto oVector = output.dataChunk.getValueVector(0).get();
+    auto langVector = output.dataChunk.getValueVector(1).get();
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
     auto [startIdx, numTuplesToScan] = sharedState->getLiteralTripleRange();
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         auto& object = store.ltStore.objects[startIdx + i];
         auto& objectType = store.ltStore.objectTypes[startIdx + i];
-        if (objectType.empty()) {
-            RdfVariantVector::addString(oVector, i, object.data(), object.size());
-        } else {
-            RdfUtils::addRdfLiteral(
-                oVector, i, object.data(), object.size(), objectType.data(), objectType.size());
-        }
+        auto& lang = store.ltStore.langs[startIdx + i];
+        RdfUtils::addRdfLiteral(oVector, i, object, objectType);
+        StringVector::addString(langVector, i, lang);
     }
-    outputChunk.state->selVector->selectedSize = numTuplesToScan;
+    return numTuplesToScan;
 }
 
-void RdfResourceTripleInMemScan::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+static offset_t RdfResourceTripleInMemScanTableFunc(TableFuncInput& input,
+    TableFuncOutput& output) {
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
     auto [startIdx, numTuplesToScan] = sharedState->getResourceTripleRange();
-    auto sVector = outputChunk.getValueVector(0).get();
-    auto pVector = outputChunk.getValueVector(1).get();
-    auto oVector = outputChunk.getValueVector(2).get();
+    auto sVector = output.dataChunk.getValueVector(0).get();
+    auto pVector = output.dataChunk.getValueVector(1).get();
+    auto oVector = output.dataChunk.getValueVector(2).get();
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         StringVector::addString(sVector, i, store.rtStore.subjects[startIdx + i]);
         StringVector::addString(pVector, i, store.rtStore.predicates[startIdx + i]);
         StringVector::addString(oVector, i, store.rtStore.objects[startIdx + i]);
     }
-    outputChunk.state->selVector->selectedSize = numTuplesToScan;
+    return numTuplesToScan;
 }
 
-void RdfLiteralTripleInMemScan::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+static offset_t RdfLiteralTripleInMemScanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
     auto [startIdx, numTuplesToScan] = sharedState->getLiteralTripleRange();
-    auto sVector = outputChunk.getValueVector(0).get();
-    auto pVector = outputChunk.getValueVector(1).get();
-    auto oVector = outputChunk.getValueVector(2).get();
+    auto sVector = output.dataChunk.getValueVector(0).get();
+    auto pVector = output.dataChunk.getValueVector(1).get();
+    auto oVector = output.dataChunk.getValueVector(2).get();
     auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         StringVector::addString(sVector, i, store.ltStore.subjects[startIdx + i]);
         StringVector::addString(pVector, i, store.ltStore.predicates[startIdx + i]);
         oVector->setValue(i, startIdx + i);
     }
-    outputChunk.state->selVector->selectedSize = numTuplesToScan;
+    return numTuplesToScan;
 }
 
-std::unique_ptr<TableFuncSharedState> RdfResourceScan::initSharedState(
+static std::unique_ptr<TableFuncSharedState> RdfResourceScanInitSharedState(
     TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<RdfScanBindData*>(input.bindData);
-    return std::make_unique<RdfResourceScanSharedState>(bindData->config.copy());
+    auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
+    return std::make_unique<RdfResourceScanSharedState>(bindData->config.copy(),
+        std::move(rdfConfig));
 }
 
-std::unique_ptr<TableFuncSharedState> RdfLiteralScan::initSharedState(
+static std::unique_ptr<TableFuncSharedState> RdfLiteralScanInitSharedState(
     TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<RdfScanBindData*>(input.bindData);
-    return std::make_unique<RdfLiteralScanSharedState>(bindData->config.copy());
+    auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
+    return std::make_unique<RdfLiteralScanSharedState>(bindData->config.copy(),
+        std::move(rdfConfig));
 }
 
-std::unique_ptr<TableFuncSharedState> RdfResourceTripleScan::initSharedState(
+static std::unique_ptr<TableFuncSharedState> RdfResourceTripleScanInitSharedState(
     TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<RdfScanBindData*>(input.bindData);
-    return std::make_unique<RdfResourceTripleScanSharedState>(bindData->config.copy());
+    auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
+    return std::make_unique<RdfResourceTripleScanSharedState>(bindData->config.copy(),
+        std::move(rdfConfig));
 }
 
-std::unique_ptr<TableFuncSharedState> RdfLiteralTripleScan::initSharedState(
+static std::unique_ptr<TableFuncSharedState> RdfLiteralTripleScanInitSharedState(
     TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<RdfScanBindData*>(input.bindData);
-    return std::make_unique<RdfLiteralTripleScanSharedState>(bindData->config.copy());
+    auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
+    return std::make_unique<RdfLiteralTripleScanSharedState>(bindData->config.copy(),
+        std::move(rdfConfig));
 }
 
-std::unique_ptr<TableFuncSharedState> RdfAllTripleScan::initSharedState(
+static std::unique_ptr<TableFuncSharedState> RdfAllTripleScanInitSharedState(
     TableFunctionInitInput& input) {
     auto bindData = ku_dynamic_cast<TableFuncBindData*, RdfScanBindData*>(input.bindData);
-    return std::make_unique<RdfTripleScanSharedState>(bindData->config.copy(), bindData->store);
+    auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
+    return std::make_unique<RdfTripleScanSharedState>(bindData->config.copy(), std::move(rdfConfig),
+        bindData->store);
+}
+
+static double RdfResourceInMemScanProgressFunc(TableFuncSharedState* sharedState) {
+    auto rdfSharedState =
+        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
+    uint64_t rtSize =
+        ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get())->rtStore.size();
+    if (rtSize == 0) {
+        return 0.0;
+    }
+    return static_cast<double>(rdfSharedState->rtCursor) / rtSize;
+}
+
+static double RdfLiteralInMemScanProgressFunc(TableFuncSharedState* sharedState) {
+    auto rdfSharedState =
+        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
+    uint64_t ltSize =
+        ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get())->ltStore.size();
+    if (ltSize == 0) {
+        return 0.0;
+    }
+    return static_cast<double>(rdfSharedState->ltCursor) / ltSize;
+}
+
+static double RdfResourceTripleInMemScanProgressFunc(TableFuncSharedState* sharedState) {
+    auto rdfSharedState =
+        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
+    TripleStore* store = ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get());
+    uint64_t size = store->rtStore.size() + store->ltStore.size();
+    if (size == 0) {
+        return 0.0;
+    }
+    return static_cast<double>(rdfSharedState->rtCursor + rdfSharedState->ltCursor) / size;
+}
+
+function_set RdfResourceScan::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
+        RdfResourceScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+function_set RdfLiteralScan::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
+        RdfLiteralScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+function_set RdfResourceTripleScan::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
+        RdfResourceTripleScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+function_set RdfLiteralTripleScan::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
+        RdfLiteralTripleScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+function::function_set RdfAllTripleScan::getFunctionSet() {
+    function_set functionSet;
+    auto func =
+        std::make_unique<TableFunction>(name, RdfAllTripleScanTableFunc, RdfAllTripleScanBindFunc,
+            RdfAllTripleScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+function_set RdfResourceInMemScan::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(name, RdfResourceInMemScanTableFunc, nullptr,
+        inMemScanInitSharedState, initLocalState, RdfResourceInMemScanProgressFunc,
+        std::vector<LogicalTypeID>{});
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+function_set RdfLiteralInMemScan::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(name, RdfLiteralInMemScanTableFunc, nullptr,
+        inMemScanInitSharedState, initLocalState, RdfLiteralInMemScanProgressFunc,
+        std::vector<LogicalTypeID>{});
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+function_set RdfResourceTripleInMemScan::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(name, RdfResourceTripleInMemScanTableFunc, nullptr,
+        inMemScanInitSharedState, initLocalState, RdfResourceTripleInMemScanProgressFunc,
+        std::vector<LogicalTypeID>{});
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+function_set RdfLiteralTripleInMemScan::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(name, RdfLiteralTripleInMemScanTableFunc, nullptr,
+        inMemScanInitSharedState, initLocalState, RdfLiteralInMemScanProgressFunc,
+        std::vector<LogicalTypeID>{});
+    functionSet.push_back(std::move(func));
+    return functionSet;
 }
 
 } // namespace processor

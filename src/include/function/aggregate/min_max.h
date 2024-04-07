@@ -66,8 +66,8 @@ struct MinMaxFunction {
     }
 
     template<class OP>
-    static void combine(
-        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* memoryManager) {
+    static void combine(uint8_t* state_, uint8_t* otherState_,
+        storage::MemoryManager* memoryManager) {
         auto* otherState = reinterpret_cast<MinMaxState*>(otherState_);
         if (otherState->isNull) {
             return;
@@ -91,8 +91,8 @@ struct MinMaxFunction {
 };
 
 template<>
-void MinMaxFunction<common::ku_string_t>::MinMaxState::setVal(
-    common::ku_string_t& val_, storage::MemoryManager* memoryManager) {
+void MinMaxFunction<common::ku_string_t>::MinMaxState::setVal(common::ku_string_t& val_,
+    storage::MemoryManager* memoryManager) {
     if (overflowBuffer == nullptr) {
         overflowBuffer = std::make_unique<common::InMemOverflowBuffer>(memoryManager);
     }

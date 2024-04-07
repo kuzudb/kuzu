@@ -1,0 +1,184 @@
+-GROUP W3Sparql
+-DATASET TTL rdf/w3_sparql/type
+
+--
+
+-CASE W3SparqlTypeRead
+
+#PREFIX : <http://example.org/>
+#SELECT * WHERE {
+#	?s :num ?num
+#	FILTER(ABS(?num) >= 2)
+#}
+-LOG ABS
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "http://example.org/num"
+            AND abs(CAST(o.val, "double")) >= 2
+            RETURN s.iri
+---- 2
+http://example.org/n4
+http://example.org/n5
+
+#SELECT ?s ?num (CEIL(?num) AS ?ceil) WHERE {
+#	?s :num ?num
+#}
+-LOG CEIL
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "http://example.org/num"
+            RETURN s.iri, o.val, ceil(CAST(o.val, "double"))
+---- 5
+http://example.org/n1|-1|-1.000000
+http://example.org/n2|-1.600000|-1.000000
+http://example.org/n3|1.100000|2.000000
+http://example.org/n4|-2|-2.000000
+http://example.org/n5|2.500000|3.000000
+
+#SELECT (CONCAT(?str1,?str2) AS ?str) WHERE {
+#	:s6 :str ?str1 .
+#	:s7 :str ?str2 .
+#}
+-LOG CONCAT
+-STATEMENT MATCH (s6)-[p6]->(o6),
+             (s7)-[p7]->(o7)
+            WHERE p6.iri = "http://example.org/str"
+            AND p7.iri = "http://example.org/str"
+            AND s6.iri = "http://example.org/s6"
+            AND s7.iri = "http://example.org/s7"
+            RETURN o6.val + o7.val
+---- 1
+abcDEF
+
+#SELECT ?s ?str WHERE {
+#	?s :str ?str
+#	FILTER CONTAINS(?str, "a")
+#}
+-LOG CONTAINS
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "http://example.org/str"
+            AND o.val CONTAINS "a"
+            RETURN s.iri, o.val
+---- 2
+http://example.org/s2|bar
+http://example.org/s6|abc
+
+#SELECT ?s ?str WHERE {
+#	?s ?p ?str
+#	FILTER STRENDS(?str, "bc")
+#}
+-LOG STRENDS
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE o.val ENDS WITH "bc"
+            RETURN s.iri, o.val
+---- 1
+http://example.org/s6|abc
+
+#SELECT ?s ?num (FLOOR(?num) AS ?floor) WHERE {
+#	?s :num ?num
+#}
+-LOG FLOOR
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "http://example.org/num"
+            RETURN s.iri, o.val, floor(CAST(o.val, "double"))
+---- 5
+http://example.org/n1|-1|-1.000000
+http://example.org/n2|-1.600000|-2.000000
+http://example.org/n3|1.100000|1.000000
+http://example.org/n4|-2|-2.000000
+http://example.org/n5|2.500000|2.000000
+
+-LOG IF
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "http://example.org/num"
+            RETURN o.val, CASE WHEN o.val > 0 THEN "positive"
+                        WHEN o.val < 0 THEN "negative"
+                        ELSE "zero" END
+---- 5
+-1.600000|negative
+-1|negative
+-2|negative
+1.100000|positive
+2.500000|positive
+
+#SELECT ?s (LCASE(?str) AS ?lstr) WHERE {
+#	?s :str ?str
+#}
+-LOG LCASE
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "http://example.org/str"
+            RETURN o.val, lower(o.val)
+---- 7
+100%|100%
+BAZ|baz
+DEF|def
+abc|abc
+bar|bar
+foo|foo
+é£Ÿã¹ç‰©|é£ÿã¹ç‰©
+
+#SELECT ?str (STRLEN(?str) AS ?len) WHERE {
+#	?s :str ?str
+#}
+-LOG STRLEN
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "http://example.org/str"
+            RETURN o.val, size(o.val)
+---- 7
+100%|4
+BAZ|3
+DEF|3
+abc|3
+bar|3
+foo|3
+é£Ÿã¹ç‰©|9
+
+-LOG PLUS
+-STATEMENT MATCH (s1)-[p1]->(o1),
+            (s2)-[p2]->(o2)
+            WHERE s1.iri = "http://example.org/n1"
+            AND s2.iri = "http://example.org/n4"
+            RETURN cast(o1.val, "INT64") + o2.val
+---- 1
+-3
+
+#SELECT ?s ?num (ROUND(?num) AS ?round) WHERE {
+#	?s :num ?num
+#}
+-LOG ROUND
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "http://example.org/num"
+            RETURN s.iri, o.val, round(CAST(o.val, "double"), 0)
+---- 5
+http://example.org/n1|-1|-1.000000
+http://example.org/n2|-1.600000|-2.000000
+http://example.org/n3|1.100000|1.000000
+http://example.org/n4|-2|-2.000000
+http://example.org/n5|2.500000|3.000000
+
+#SELECT ?s ?str WHERE {
+#	?s ?p ?str
+#	FILTER STRSTARTS(STR(?str), "1")
+#}
+-LOG STRSTARTS
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE o.val STARTS WITH "1"
+            RETURN s.iri, o.val
+---- 2
+http://example.org/n3|1.100000
+http://example.org/s5|100%
+
+#PREFIX : <http://example.org/>
+#SELECT ?s (UCASE(?str) AS ?ustr) WHERE {
+#	?s :str ?str
+#}
+-LOG UCASE
+-STATEMENT MATCH (s)-[p]->(o)
+            WHERE p.iri = "http://example.org/str"
+            RETURN o.val, upper(o.val)
+---- 7
+100%|100%
+BAZ|BAZ
+DEF|DEF
+abc|ABC
+bar|BAR
+foo|FOO
+é£Ÿã¹ç‰©|É£ŸÃ¹Ç‰©

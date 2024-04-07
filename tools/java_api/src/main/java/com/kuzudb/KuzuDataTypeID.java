@@ -28,15 +28,15 @@ public enum KuzuDataTypeID {
     TIMESTAMP_NS(38),
     TIMESTAMP_TZ(39),
     INTERVAL(40),
-    FIXED_LIST(41),
     INTERNAL_ID(42),
     STRING(50),
     BLOB(51),
-    VAR_LIST(52),
-    STRUCT(53),
-    MAP(54),
-    UNION(55),
-    UUID(56),;
+    LIST(52),
+    ARRAY(53),
+    STRUCT(54),
+    MAP(55),
+    UNION(56),
+    UUID(59),;
 
     public final int value;
 

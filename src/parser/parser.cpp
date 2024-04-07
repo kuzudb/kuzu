@@ -16,7 +16,7 @@ using namespace antlr4;
 namespace kuzu {
 namespace parser {
 
-std::unique_ptr<Statement> Parser::parseQuery(std::string_view query) {
+std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view query) {
     auto inputStream = ANTLRInputStream(query);
     auto parserErrorListener = ParserErrorListener();
 
@@ -31,7 +31,7 @@ std::unique_ptr<Statement> Parser::parseQuery(std::string_view query) {
     kuzuCypherParser.addErrorListener(&parserErrorListener);
     kuzuCypherParser.setErrorHandler(std::make_shared<ParserErrorStrategy>());
 
-    Transformer transformer(*kuzuCypherParser.oC_Cypher());
+    Transformer transformer(*kuzuCypherParser.ku_Statements());
     return transformer.transform();
 }
 

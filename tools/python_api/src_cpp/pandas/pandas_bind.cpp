@@ -1,6 +1,7 @@
 #include "pandas/pandas_bind.h"
 
 #include "common/exception/runtime.h"
+#include "pandas/pandas_analyzer.h"
 
 namespace kuzu {
 
@@ -40,9 +41,9 @@ private:
     py::object getter;
 };
 
-static std::unique_ptr<common::LogicalType> bindColumn(PandasBindColumn& bindColumn,
-    PandasColumnBindData* bindData) {
-    std::unique_ptr<common::LogicalType> columnType;
+static common::LogicalType bindColumn(
+    PandasBindColumn& bindColumn, PandasColumnBindData* bindData) {
+    common::LogicalType columnType;
     auto& column = bindColumn.handle;
 
     bindData->npType = NumpyTypeUtils::convertNumpyType(bindColumn.type);
@@ -57,7 +58,7 @@ static std::unique_ptr<common::LogicalType> bindColumn(PandasBindColumn& bindCol
         bindData->pandasCol =
             std::make_unique<PandasNumpyColumn>(py::array(column.attr("to_numpy")("float32")));
         bindData->npType.type = NumpyNullableType::FLOAT_32;
-        columnType = NumpyTypeUtils::numpyToLogicalType(bindData->npType);
+        columnType = *NumpyTypeUtils::numpyToLogicalType(bindData->npType);
     } else {
         auto pandasArray = column.attr("array");
         if (py::hasattr(pandasArray, "_data")) {
@@ -73,15 +74,20 @@ static std::unique_ptr<common::LogicalType> bindColumn(PandasBindColumn& bindCol
             bindData->pandasCol =
                 std::make_unique<PandasNumpyColumn>(py::array(column.attr("to_numpy")()));
         }
-        columnType = NumpyTypeUtils::numpyToLogicalType(bindData->npType);
+        columnType = *NumpyTypeUtils::numpyToLogicalType(bindData->npType);
+    }
+    if (bindData->npType.type == NumpyNullableType::OBJECT) {
+        PandasAnalyzer analyzer;
+        if (analyzer.analyze(column)) {
+            columnType = analyzer.getAnalyzedType();
+        }
     }
     return columnType;
 }
 
 void Pandas::bind(py::handle dfToBind,
     std::vector<std::unique_ptr<PandasColumnBindData>>& columnBindData,
-    std::vector<std::unique_ptr<common::LogicalType>>& returnTypes,
-    std::vector<std::string>& names) {
+    std::vector<common::LogicalType>& returnTypes, std::vector<std::string>& names) {
 
     PandasDataFrameBind df(dfToBind);
     auto numColumns = py::len(df.names);

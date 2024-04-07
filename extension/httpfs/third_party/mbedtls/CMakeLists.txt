@@ -1,3 +1,5 @@
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 if(POLICY CMP0063)
     cmake_policy(SET CMP0063 NEW)
 endif()

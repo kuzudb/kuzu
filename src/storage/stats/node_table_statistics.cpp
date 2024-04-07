@@ -12,18 +12,18 @@ namespace kuzu {
 namespace storage {
 
 NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH,
-    const catalog::TableSchema& schema, BufferManager* bufferManager, WAL* wal)
-    : TableStatistics{schema}, tableID{schema.tableID} {
+    const catalog::TableCatalogEntry& entry, BufferManager* bufferManager, WAL* wal)
+    : TableStatistics{entry}, tableID{entry.getTableID()} {
     metadataDAHInfos.clear();
-    metadataDAHInfos.reserve(schema.getNumProperties());
-    for (auto& property : schema.getPropertiesRef()) {
-        metadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
-            *property.getDataType(), *metadataFH, bufferManager, wal));
+    metadataDAHInfos.reserve(entry.getNumProperties());
+    for (auto& property : entry.getPropertiesRef()) {
+        metadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(*property.getDataType(),
+            *metadataFH, bufferManager, wal));
     }
 }
 
-NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(
-    table_id_t tableID, offset_t maxNodeOffset, const std::vector<offset_t>& deletedNodeOffsets)
+NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(table_id_t tableID, offset_t maxNodeOffset,
+    const std::vector<offset_t>& deletedNodeOffsets)
     : NodeTableStatsAndDeletedIDs{tableID, maxNodeOffset, deletedNodeOffsets, {}} {}
 
 NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other)
@@ -104,33 +104,32 @@ void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
 
 // Note: this function will always be called right after scanNodeID, so we have the guarantee
 // that the nodeOffsetVector is always unselected.
-void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
-    const std::shared_ptr<ValueVector>& nodeOffsetVector) {
-    auto morselIdxAndOffset = StorageUtils::getQuotientRemainder(
-        nodeOffsetVector->readNodeOffset(0), DEFAULT_VECTOR_CAPACITY);
-    if (hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {
-        auto deletedNodeOffsets = deletedNodeOffsetsPerMorsel[morselIdxAndOffset.first];
-        uint64_t morselBeginOffset = morselIdxAndOffset.first * DEFAULT_VECTOR_CAPACITY;
-        nodeOffsetVector->state->selVector->resetSelectorToValuePosBuffer();
+void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(ValueVector* nodeIDVector) const {
+    auto [morselIdx, _] = StorageUtils::getQuotientRemainder(nodeIDVector->readNodeOffset(0),
+        DEFAULT_VECTOR_CAPACITY);
+    if (hasDeletedNodesPerMorsel[morselIdx]) {
+        auto& deletedNodeOffsets = deletedNodeOffsetsPerMorsel.at(morselIdx);
+        uint64_t morselBeginOffset = morselIdx * DEFAULT_VECTOR_CAPACITY;
+        auto originalSize = nodeIDVector->state->getOriginalSize();
         auto itr = deletedNodeOffsets.begin();
-        sel_t nextDeletedNodeOffset = *itr - morselBeginOffset;
-        uint64_t nextSelectedPosition = 0;
-        for (auto pos = 0u; pos < nodeOffsetVector->state->getOriginalSize(); ++pos) {
-            if (pos == nextDeletedNodeOffset) {
-                itr++;
-                if (itr == deletedNodeOffsets.end()) {
-                    nextDeletedNodeOffset = UINT16_MAX;
-                    // We do not break because we need to keep setting the positions after
-                    // the last deletedNodeOffset.
-                    continue;
-                }
-                nextDeletedNodeOffset = *itr - morselBeginOffset;
+        common::sel_t numSelectedValue = 0;
+        auto selectedBuffer = nodeIDVector->state->selVector->getMultableBuffer();
+        KU_ASSERT(nodeIDVector->state->selVector->isUnfiltered());
+        for (auto pos = 0u; pos < nodeIDVector->state->getOriginalSize(); ++pos) {
+            if (itr == deletedNodeOffsets.end()) { // no more deleted offset to check.
+                selectedBuffer[numSelectedValue++] = pos;
                 continue;
             }
-            nodeOffsetVector->state->selVector->selectedPositions[nextSelectedPosition++] = pos;
+            if (pos + morselBeginOffset == *itr) { // node has been deleted.
+                itr++;
+                continue;
+            }
+            selectedBuffer[numSelectedValue++] = pos;
         }
-        nodeOffsetVector->state->selVector->selectedSize =
-            nodeOffsetVector->state->getOriginalSize() - deletedNodeOffsets.size();
+        if (numSelectedValue != originalSize) {
+            nodeIDVector->state->selVector->setToFiltered();
+        }
+        nodeIDVector->state->selVector->selectedSize = numSelectedValue;
     }
 }
 

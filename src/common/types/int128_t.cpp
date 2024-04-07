@@ -3,7 +3,9 @@
 #include <cmath>
 
 #include "common/exception/overflow.h"
+#include "common/exception/runtime.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "function/hash/hash_functions.h"
 
 namespace kuzu::common {
 
@@ -331,11 +333,17 @@ int128_t Int128_t::divMod(int128_t lhs, int128_t rhs, int128_t& remainder) {
 }
 
 int128_t Int128_t::Div(int128_t lhs, int128_t rhs) {
+    if (rhs.high == 0 && rhs.low == 0) {
+        throw common::RuntimeException("Divide by zero.");
+    }
     int128_t remainder{};
     return divMod(lhs, rhs, remainder);
 }
 
 int128_t Int128_t::Mod(int128_t lhs, int128_t rhs) {
+    if (rhs.high == 0 && rhs.low == 0) {
+        throw common::RuntimeException("Modulo by zero.");
+    }
     int128_t result{};
     divMod(lhs, rhs, result);
     return result;
@@ -620,3 +628,10 @@ int128_t::operator int64_t() const {
 }
 
 } // namespace kuzu::common
+
+std::size_t std::hash<kuzu::common::int128_t>::operator()(
+    const kuzu::common::int128_t& v) const noexcept {
+    kuzu::common::hash_t hash;
+    kuzu::function::Hash::operation(v, hash);
+    return hash;
+}

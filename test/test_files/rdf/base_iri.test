@@ -1,0 +1,38 @@
+-GROUP Rdf
+-DATASET TTL rdf/base_iri
+
+--
+
+-CASE BaseIri
+
+-STATEMENT MATCH (s)-[p]->(o) RETURN s.iri, p.iri, o.iri, o.val;
+---- 9
+http://example.org/#green-goblin|http://www.perceive.net/schemas/relationship/enemyOf|http://example.org/#spiderman|
+http://example.org/#green-goblin|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://xmlns.com/foaf/0.1/Person|
+http://example.org/#green-goblin|http://xmlns.com/foaf/0.1/name||Green Goblin
+http://example.org/#spiderman|http://www.perceive.net/schemas/relationship/enemyOf|http://example.org/#green-goblin|
+http://example.org/#spiderman|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://xmlns.com/foaf/0.1/Person|
+http://example.org/#spiderman|http://xmlns.com/foaf/0.1/name||Spiderman
+http://example.org/#spiderman|http://xmlns.com/foaf/0.1/name||Человек-паук
+http://example.org/a|http://example.org/b|http://example.org/c|
+http://www.bbc.co.uk/things/1#id|http://www.bbc.co.uk/ontologies/creativework/description|http://www.bbc.co.uk/context/1#id|
+
+-LOG CopyRDFTOCsv
+-STATEMENT COPY (MATCH (s)-[p]->(o) RETURN s.iri, p.iri, o.iri, o.val) TO 'rdf.csv'
+---- ok
+-STATEMENT LOAD FROM 'rdf.csv' RETURN *;
+---- 9
+http://example.org/#green-goblin|http://www.perceive.net/schemas/relationship/enemyOf|http://example.org/#spiderman|
+http://example.org/#green-goblin|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://xmlns.com/foaf/0.1/Person|
+http://example.org/#green-goblin|http://xmlns.com/foaf/0.1/name||Green Goblin
+http://example.org/#spiderman|http://www.perceive.net/schemas/relationship/enemyOf|http://example.org/#green-goblin|
+http://example.org/#spiderman|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http://xmlns.com/foaf/0.1/Person|
+http://example.org/#spiderman|http://xmlns.com/foaf/0.1/name||Spiderman
+http://example.org/#spiderman|http://xmlns.com/foaf/0.1/name||Человек-паук
+http://example.org/a|http://example.org/b|http://example.org/c|
+http://www.bbc.co.uk/things/1#id|http://www.bbc.co.uk/ontologies/creativework/description|http://www.bbc.co.uk/context/1#id|
+
+-LOG CopyRDFTOParquetError
+-STATEMENT COPY (MATCH (s)-[p]->(o) RETURN o.val) TO 'rdf.parquet'
+---- error
+Runtime exception: Writing a column with type: RDF_VARIANT to parquet is not supported.

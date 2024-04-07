@@ -47,23 +47,23 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
 -LOG OrgNodesReturnStarTest
 -STATEMENT MATCH (a:organisation) RETURN *
 ---- 3
-{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years 5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}, info: 3.120000}
+{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years 5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}, info: 3.120000}
 {_ID: 1:1, _LABEL: organisation, ID: 4, name: CsWork, orgCode: 934, mark: 4.100000, score: -100, history: 2 years 4 days 10 hours, licenseValidInterval: 26 years 52 days 48:00:00, rating: 0.780000, state: {revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}, info: abcd}
-{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
+{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
 
 -LOG ReturnNodeStarTest
 -STATEMENT MATCH (a:organisation) RETURN a.*
 ---- 3
-1|ABFsUni|325|3.700000|-2|10 years 5 months 13 hours 24 us|3 years 5 days|1.000000|{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}|3.120000
+1|ABFsUni|325|3.700000|-2|10 years 5 months 13 hours 24 us|3 years 5 days|1.000000|{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}|3.120000
 4|CsWork|934|4.100000|-100|2 years 4 days 10 hours|26 years 52 days 48:00:00|0.780000|{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}|abcd
-6|DEsWork|824|4.100000|7|2 years 4 hours 22 us 34 minutes|82:00:00.1|0.520000|{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}|2023-12-15
+6|DEsWork|824|4.100000|7|2 years 4 hours 22 us 34 minutes|82:00:00.1|0.520000|{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}|2023-12-15
 
 -LOG ReturnStructStarTest
 -STATEMENT MATCH (a:organisation) RETURN a.state.*
 ---- 3
-138|['toronto', 'montr,eal']|{price: [96,56], volume: 1000}
+138|['toronto','montr,eal']|{price: [96,56], volume: 1000}
 152|["vanco,uver north area"]|{price: [15,78,671], volume: 432}
-558|['very long city name', 'new york']|{price: [22], volume: 99}
+558|['very long city name','new york']|{price: [22], volume: 99}
 
 -LOG ReturnRelStarTest
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID =7 RETURN e.*;
@@ -395,7 +395,7 @@ Dan|Carol
 #(0:2)-{_LABEL: marries, _ID: 7:1, address: [2,5], note: long long long string}->(0:3)
 #(0:4)-{_LABEL: marries, _ID: 7:2, usedAddress: [], address: [3,9], note: short str}->(0:5)
 
--LOG ReturnFixedListNodeProp
+-LOG ReturnArrayNodeProp
 -STATEMENT MATCH (a:person) RETURN a.grades
 ---- 8
 [96,54,86,92]
@@ -407,7 +407,7 @@ Dan|Carol
 [43,83,67,43]
 [77,64,100,54]
 
--LOG ReturnFixedListRelProp
+-LOG ReturnArrayRelProp
 -STATEMENT MATCH (a:person)-[e:workAt]->(o:organisation) RETURN e.grading
 ---- 3
 [2.100000,4.400000]
@@ -433,7 +433,7 @@ Dan|Carol
 7.600000
 9.200000
 
--LOG ReturnFixedListFloatRelProp
+-LOG ReturnArrayFloatRelProp
 -STATEMENT MATCH (a:person)-[e:meets]->(b:person) RETURN e.location
 ---- 7
 [7.820000,3.540000]
@@ -458,7 +458,7 @@ Dan|Carol
 55
 22
 
--LOG ReturnFixedListInt16RelProp
+-LOG ReturnArrayInt16RelProp
 -STATEMENT MATCH (a:person)-[e:marries]->(b:person) RETURN e.address
 ---- 3
 [4,5]
@@ -725,3 +725,17 @@ cool stuff found
 happy new year
 matthew perry
 nice weather
+
+-LOG RandomFunction
+-STATEMENT match (p1:person)-[:knows]->(p2:person) WITH p1.fName AS x, p2.fName AS y, gen_random_uuid() AS z WITH DISTINCT z AS a RETURN COUNT(*);
+-ENUMERATE
+---- 1
+14
+-STATEMENT match (p1:person)-[:knows]->(p2:person) WITH DISTINCT p1.fName AS x, gen_random_uuid() AS y RETURN COUNT(*);
+-ENUMERATE
+---- 1
+14
+-STATEMENT match (p1:person)-[:knows]->(p2:person) with DISTINCT gen_random_uuid() AS x RETURN COUNT(*);
+-ENUMERATE
+---- 1
+14

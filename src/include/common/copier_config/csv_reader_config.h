@@ -21,6 +21,13 @@ struct CSVOption {
           hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER} {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
+    // TODO: COPY FROM and COPY TO should support transform special options, like '\'.
+    std::string toCypher() const {
+        std::string header = hasHeader ? "true" : "false";
+        return stringFormat("(escape ='\\{}', delim ='{}', quote='\\{}', header={})", escapeChar,
+            delimiter, quoteChar, header);
+    }
+
 private:
     CSVOption(const CSVOption& other)
         : escapeChar{other.escapeChar}, delimiter{other.delimiter}, quoteChar{other.quoteChar},
