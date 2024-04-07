@@ -120,6 +120,7 @@ if(BUILD_WASM)
     add_compile_options(-fexceptions)
     add_link_options(-s DISABLE_EXCEPTION_CATCHING=0)
     add_link_options(-fexceptions)
+    add_link_options(--embed-file ${CMAKE_SOURCE_DIR}/dataset/demo-db@demo-db)
 endif()
 
 if(CMAKE_BUILD_TYPE MATCHES Release)
