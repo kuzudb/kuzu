@@ -51,6 +51,7 @@ void TablesStatistics::initTableStatisticsForWriteTrx() {
 void TablesStatistics::initTableStatisticsForWriteTrxNoLock() {
     if (readWriteVersion == nullptr) {
         readWriteVersion = std::make_unique<TablesStatisticsContent>();
+        KU_ASSERT(readOnlyVersion);
         for (auto& [tableID, tableStatistic] : readOnlyVersion->tableStatisticPerTable) {
             readWriteVersion->tableStatisticPerTable[tableID] = tableStatistic->copy();
         }

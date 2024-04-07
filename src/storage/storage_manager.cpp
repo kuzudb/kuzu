@@ -180,21 +180,21 @@ void StorageManager::prepareCommit(Transaction* transaction) {
         }
     }
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
-        wal->logTableStatisticsRecord(true /* isNodeTable */);
+        wal->logTableStatisticsRecord(TableType::NODE);
         nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(wal->getDirectory());
     }
     if (relsStatistics->hasUpdates()) {
-        wal->logTableStatisticsRecord(false /* isNodeTable */);
+        wal->logTableStatisticsRecord(TableType::REL);
         relsStatistics->writeTablesStatisticsFileForWALRecord(wal->getDirectory());
     }
 }
 
 void StorageManager::prepareRollback(Transaction* transaction) {
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
-        wal->logTableStatisticsRecord(true /* isNodeTable */);
+        wal->logTableStatisticsRecord(TableType::NODE);
     }
     if (relsStatistics->hasUpdates()) {
-        wal->logTableStatisticsRecord(false /* isNodeTable */);
+        wal->logTableStatisticsRecord(TableType::REL);
     }
     transaction->getLocalStorage()->prepareRollback();
 }

@@ -84,6 +84,7 @@ struct BufferPoolConstants {
 struct StorageConstants {
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
+    static constexpr char SHADOWING_SUFFIX[] = ".shadow";
     static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
     static constexpr char NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME[] =
         "nodes.statistics_and_deleted.ids";

@@ -38,6 +38,7 @@ public:
 
     inline void checkpointInMemoryIfNecessary() {
         std::unique_lock lck{mtx};
+        KU_ASSERT(readWriteVersion);
         readOnlyVersion = std::move(readWriteVersion);
         resetToNotUpdated();
     }

@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "common/assert.h"
+#include "common/exception/runtime.h"
 #include "common/file_system/file_info.h"
 
 namespace kuzu {
@@ -15,7 +17,9 @@ BufferedFileWriter::BufferedFileWriter(std::unique_ptr<FileInfo> fileInfo)
     : buffer(std::make_unique<uint8_t[]>(BUFFER_SIZE)), fileOffset(0), bufferOffset(0),
       fileInfo(std::move(fileInfo)) {}
 
+// TODO: write assumes size is always less than BUFFER_SIZE here. should change this when needed.
 void BufferedFileWriter::write(const uint8_t* data, uint64_t size) {
+    KU_ASSERT(size <= BUFFER_SIZE);
     if (bufferOffset + size <= BUFFER_SIZE) {
         memcpy(&buffer[bufferOffset], data, size);
         bufferOffset += size;
@@ -39,7 +43,8 @@ void BufferedFileWriter::flush() {
 
 BufferedFileReader::BufferedFileReader(std::unique_ptr<FileInfo> fileInfo)
     : buffer(std::make_unique<uint8_t[]>(BUFFER_SIZE)), fileOffset(0), bufferOffset(0),
-      fileInfo(std::move(fileInfo)) {
+      fileInfo(std::move(fileInfo)), bufferSize{0} {
+    fileSize = this->fileInfo->getFileSize();
     readNextPage();
 }
 
@@ -58,9 +63,17 @@ void BufferedFileReader::read(uint8_t* data, uint64_t size) {
     }
 }
 
+bool BufferedFileReader::finished() {
+    return bufferOffset >= bufferSize && fileSize <= fileOffset;
+}
+
 void BufferedFileReader::readNextPage() {
-    fileInfo->readFromFile(buffer.get(), BUFFER_SIZE, fileOffset);
-    fileOffset += BUFFER_SIZE;
+    bufferSize = std::min(fileSize - fileOffset, BUFFER_SIZE);
+    if (bufferSize == 0) {
+        throw RuntimeException(stringFormat("Reading past the end of the file {}", fileInfo->path));
+    }
+    fileInfo->readFromFile(buffer.get(), bufferSize, fileOffset);
+    fileOffset += bufferSize;
     bufferOffset = 0;
 }
 

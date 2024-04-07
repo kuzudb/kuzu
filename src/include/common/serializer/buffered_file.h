@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 
 #include "common/constants.h"
@@ -19,13 +18,22 @@ public:
 
     void write(const uint8_t* data, uint64_t size) override;
 
+    void flush();
+
+    void resetOffsets() {
+        fileOffset = 0;
+        bufferOffset = 0;
+    }
+
+    uint64_t getFileOffset() const { return fileOffset; }
+
+    FileInfo& getFileInfo() { return *fileInfo; }
+
 protected:
     std::unique_ptr<uint8_t[]> buffer;
     uint64_t fileOffset, bufferOffset;
     std::unique_ptr<FileInfo> fileInfo;
     static const uint64_t BUFFER_SIZE = BufferPoolConstants::PAGE_4KB_SIZE;
-
-    void flush();
 };
 
 class BufferedFileReader final : public Reader {
@@ -34,12 +42,18 @@ public:
 
     void read(uint8_t* data, uint64_t size) override;
 
+    bool finished() override;
+
 private:
+    static constexpr uint64_t BUFFER_SIZE = BufferPoolConstants::PAGE_4KB_SIZE;
+
     std::unique_ptr<uint8_t[]> buffer;
     uint64_t fileOffset, bufferOffset;
     std::unique_ptr<FileInfo> fileInfo;
-    static const uint64_t BUFFER_SIZE = BufferPoolConstants::PAGE_4KB_SIZE;
+    uint64_t fileSize;
+    uint64_t bufferSize;
 
+private:
     void readNextPage();
 };
 
