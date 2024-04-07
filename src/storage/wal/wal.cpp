@@ -37,8 +37,8 @@ WAL::~WAL() {
 page_idx_t WAL::logPageUpdateRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
     lock_t lck{mtx};
     auto pageIdxInWAL = shadowingFH->addNewPage();
-    PageUpdateOrInsertRecord walRecord(
-        dbFileID, pageIdxInOriginalFile, pageIdxInWAL, false /*isInsert*/);
+    PageUpdateOrInsertRecord walRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
+        false /*isInsert*/);
     addNewWALRecordNoLock(walRecord);
     return pageIdxInWAL;
 }
@@ -46,8 +46,8 @@ page_idx_t WAL::logPageUpdateRecord(DBFileID dbFileID, page_idx_t pageIdxInOrigi
 page_idx_t WAL::logPageInsertRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
     lock_t lck{mtx};
     auto pageIdxInWAL = shadowingFH->addNewPage();
-    PageUpdateOrInsertRecord walRecord(
-        dbFileID, pageIdxInOriginalFile, pageIdxInWAL, true /*isInsert*/);
+    PageUpdateOrInsertRecord walRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
+        true /*isInsert*/);
     addNewWALRecordNoLock(walRecord);
     return pageIdxInWAL;
 }

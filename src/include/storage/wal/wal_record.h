@@ -83,11 +83,11 @@ struct PageUpdateOrInsertRecord final : public WALRecord {
     bool isInsert;
 
     PageUpdateOrInsertRecord() = default;
-    PageUpdateOrInsertRecord(
-        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert)
+    PageUpdateOrInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL, bool isInsert)
         : WALRecord{WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD}, dbFileID{dbFileID},
-          pageIdxInOriginalFile{pageIdxInOriginalFile}, pageIdxInWAL{pageIdxInWAL}, isInsert{
-                                                                                        isInsert} {}
+          pageIdxInOriginalFile{pageIdxInOriginalFile}, pageIdxInWAL{pageIdxInWAL},
+          isInsert{isInsert} {}
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<PageUpdateOrInsertRecord> deserialize(
         common::Deserializer& deserializer);
@@ -142,8 +142,8 @@ struct RdfGraphRecord final : public WALRecord {
         std::unique_ptr<CreateTableRecord> literalTripleTableRecord)
         : WALRecord{WALRecordType::CREATE_RDF_GRAPH_RECORD}, tableID{tableID},
           resourceTableRecord{std::move(resourceTableRecord)},
-          literalTableRecord{std::move(literalTableRecord)}, resourceTripleTableRecord{std::move(
-                                                                 resourceTripleTableRecord)},
+          literalTableRecord{std::move(literalTableRecord)},
+          resourceTripleTableRecord{std::move(resourceTripleTableRecord)},
           literalTripleTableRecord{std::move(literalTripleTableRecord)} {}
 
     void serialize(common::Serializer& serializer) const override;

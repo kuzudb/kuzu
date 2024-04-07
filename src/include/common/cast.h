@@ -16,7 +16,9 @@ TO ku_dynamic_cast(FROM old) {
             KU_ASSERT(newVal != nullptr);
         }
         return newVal;
-    } catch (std::bad_cast& e) { KU_ASSERT(false); }
+    } catch (std::bad_cast& e) {
+        KU_ASSERT(false);
+    }
 #else
     return reinterpret_cast<TO>(old);
 #endif

@@ -151,29 +151,28 @@ void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         switch (tableStatisticsRecord.tableType) {
         case TableType::NODE: {
-            auto walFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
-                vfs, wal->getDirectory(), common::FileVersionType::WAL_VERSION);
-            auto originalFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
-                vfs, wal->getDirectory(), common::FileVersionType::ORIGINAL);
+            auto walFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs,
+                wal->getDirectory(), common::FileVersionType::WAL_VERSION);
+            auto originalFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs,
+                wal->getDirectory(), common::FileVersionType::ORIGINAL);
             vfs->overwriteFile(walFilePath, originalFilePath);
             if (!isRecovering) {
                 storageManager->getNodesStatisticsAndDeletedIDs()->checkpointInMemoryIfNecessary();
             }
         } break;
         case TableType::REL: {
-            auto walFilePath = StorageUtils::getRelsStatisticsFilePath(
-                vfs, wal->getDirectory(), common::FileVersionType::WAL_VERSION);
-            auto originalFilePath = StorageUtils::getRelsStatisticsFilePath(
-                vfs, wal->getDirectory(), common::FileVersionType::ORIGINAL);
+            auto walFilePath = StorageUtils::getRelsStatisticsFilePath(vfs, wal->getDirectory(),
+                common::FileVersionType::WAL_VERSION);
+            auto originalFilePath = StorageUtils::getRelsStatisticsFilePath(vfs,
+                wal->getDirectory(), common::FileVersionType::ORIGINAL);
             vfs->overwriteFile(walFilePath, originalFilePath);
             if (!isRecovering) {
                 storageManager->getRelsStatistics()->checkpointInMemoryIfNecessary();
             }
+        } break;
+        default: {
+            KU_UNREACHABLE;
         }
-        break;
-    default: {
-        KU_UNREACHABLE;
-    }
         }
     } else {
         switch (tableStatisticsRecord.tableType) {
@@ -368,8 +367,8 @@ void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
             // Update the page in buffer manager if it is in a frame. Note that we assume
             // that the pageBuffer currently contains the contents of the WALVersion, so the
             // caller needs to make sure that this assumption holds.
-            bufferManager->updateFrameIfPageIsInFrameWithoutLock(
-                *fileHandle, pageBuffer.get(), pageInsertOrUpdateRecord.pageIdxInOriginalFile);
+            bufferManager->updateFrameIfPageIsInFrameWithoutLock(*fileHandle, pageBuffer.get(),
+                pageInsertOrUpdateRecord.pageIdxInOriginalFile);
         } else {
             truncateFileIfInsertion(fileHandle, pageInsertOrUpdateRecord);
         }
