@@ -159,13 +159,17 @@ void ListColumnChunk::lookup(offset_t offsetInChunk, ValueVector& output,
     }
     auto startOffset = offsetInChunk == 0 ? 0 : getValue<offset_t>(offsetInChunk - 1);
     auto listSize = getListSize(offsetInChunk);
+    output.setValue<list_entry_t>(posInOutputVector, list_entry_t{startOffset, listSize});
     auto dataVector = ListVector::getDataVector(&output);
     auto currentListDataSize = ListVector::getDataVectorSize(&output);
     ListVector::resizeDataVector(&output, currentListDataSize + listSize);
     // TODO(Guodong): Should add `scan` interface and use `scan` here.
     for (auto i = 0u; i < listSize; i++) {
-        listDataColumnChunk->dataColumnChunk->lookup(startOffset + i, *dataVector, i);
+        listDataColumnChunk->dataColumnChunk->lookup(
+            startOffset + i, *dataVector, currentListDataSize + i);
     }
+    // reset offset
+    output.setValue<list_entry_t>(posInOutputVector, list_entry_t{currentListDataSize, listSize});
 }
 
 void ListColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets,
