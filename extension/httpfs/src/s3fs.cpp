@@ -376,7 +376,8 @@ std::string S3FileSystem::decodeURL(std::string input) {
     for (auto i = 0u; i < input.length(); i++) {
         if (int(input[i]) == 37 /* % */) {
             unsigned int ii;
-            sscanf(input.substr(i + 1, 2).c_str(), "%x", &ii);
+            auto ret = sscanf(input.substr(i + 1, 2).c_str(), "%x", &ii);
+            KU_ASSERT(ret != EOF);
             ch = static_cast<char>(ii);
             result += ch;
             i += 2;

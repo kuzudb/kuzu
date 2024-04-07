@@ -23,7 +23,7 @@
  * mbedtls_config.h, which pulls in glibc's features.h. Harmless on other platforms.
  */
 #if !defined(_POSIX_C_SOURCE)
-#define _POSIX_C_SOURCE 200112L
+#define _POSIX_C_SOURCE 200112L // NOLINT
 #endif
 
 #include "mbedtls/platform_util.h"
