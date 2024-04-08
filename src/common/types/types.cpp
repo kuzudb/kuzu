@@ -1142,7 +1142,7 @@ static uint32_t internalTypeOrder(const LogicalTypeID& type) {
 bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right,
     LogicalTypeID& result) {
     if (left == right || (left == LogicalTypeID::ANY || left == LogicalTypeID::RDF_VARIANT ||
-               left == LogicalTypeID::STRING)) {
+                             left == LogicalTypeID::STRING)) {
         result = right;
         return true;
     } else if (right == LogicalTypeID::ANY || right == LogicalTypeID::RDF_VARIANT ||
