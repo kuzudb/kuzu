@@ -343,8 +343,8 @@ void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_
     auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
     auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {
-        commitColumnChunkOutOfPlace(
-            transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk, startSrcOffset);
+        commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk,
+            startSrcOffset);
         return;
     }
     // we first check if we can in place commit data column chunk
@@ -363,16 +363,16 @@ void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_
             dstOffsetsInDataColumn.push_back(dataColumnSize + dataSize++);
         }
     }
-    bool dataColumnCanCommitInPlace = dataColumn->canCommitInPlace(
-        transaction, nodeGroupIdx, dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
+    bool dataColumnCanCommitInPlace = dataColumn->canCommitInPlace(transaction, nodeGroupIdx,
+        dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
     if (!dataColumnCanCommitInPlace) {
-        commitColumnChunkOutOfPlace(
-            transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk, startSrcOffset);
+        commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk,
+            startSrcOffset);
     } else {
-        dataColumn->commitColumnChunkOutOfPlace(
-            transaction, nodeGroupIdx, isNewNodeGroup, dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
-        sizeColumn->prepareCommitForChunk(
-            transaction, nodeGroupIdx, dstOffsets, listChunk->getSizeColumnChunk(), startSrcOffset);
+        dataColumn->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
+            dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
+        sizeColumn->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets,
+            listChunk->getSizeColumnChunk(), startSrcOffset);
         for (auto i = 0u; i < numListsToAppend; i++) {
             auto listEndOffset = listChunk->getListEndOffset(startSrcOffset + i);
             chunk->setValue<offset_t>(dataColumnSize + listEndOffset, startSrcOffset + i);
@@ -390,14 +390,14 @@ void ListColumn::prepareCommitForOffsetChunk(Transaction* transaction,
         commitOffsetColumnChunkInPlace(nodeGroupIdx, dstOffsets, chunk, startSrcOffset);
         didInPlaceCommit = true;
     } else {
-        commitOffsetColumnChunkOutOfPlace(
-            transaction, nodeGroupIdx, dstOffsets, chunk, startSrcOffset);
+        commitOffsetColumnChunkOutOfPlace(transaction, nodeGroupIdx, dstOffsets, chunk,
+            startSrcOffset);
     }
     if (nullColumn) {
-        if (nullColumn->canCommitInPlace(
-                transaction, nodeGroupIdx, dstOffsets, chunk->getNullChunk(), startSrcOffset)) {
-            nullColumn->commitColumnChunkInPlace(
-                nodeGroupIdx, dstOffsets, chunk->getNullChunk(), startSrcOffset);
+        if (nullColumn->canCommitInPlace(transaction, nodeGroupIdx, dstOffsets,
+                chunk->getNullChunk(), startSrcOffset)) {
+            nullColumn->commitColumnChunkInPlace(nodeGroupIdx, dstOffsets, chunk->getNullChunk(),
+                startSrcOffset);
         } else if (didInPlaceCommit) {
             nullColumn->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, false, dstOffsets,
                 chunk->getNullChunk(), startSrcOffset);
