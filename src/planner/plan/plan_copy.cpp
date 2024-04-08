@@ -95,7 +95,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(const BoundCopyFromInfo* 
             ku_dynamic_cast<BoundBaseScanSource*, BoundQueryScanSource*>(info->source.get());
         plan = getBestPlan(planQuery(*querySource->statement));
         appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
-            info->offset, *plan);
+            info->offset, nullptr /* mark */, *plan);
     } break;
     default:
         KU_UNREACHABLE;
@@ -130,7 +130,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* i
             ku_dynamic_cast<BoundBaseScanSource*, BoundQueryScanSource*>(info->source.get());
         plan = getBestPlan(planQuery(*querySource->statement));
         appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
-            info->offset, *plan);
+            info->offset, nullptr /* mark */, *plan);
     } break;
     default:
         KU_UNREACHABLE;

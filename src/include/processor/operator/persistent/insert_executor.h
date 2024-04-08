@@ -9,6 +9,8 @@
 namespace kuzu {
 namespace processor {
 
+class InsertExecutor {};
+
 class NodeInsertExecutor {
 public:
     NodeInsertExecutor(storage::NodeTable* table,
@@ -28,14 +30,16 @@ public:
 
     void insert(transaction::Transaction* transaction, ExecutionContext* context);
 
-    void evaluateResult(ExecutionContext* context);
-
-    void writeResult();
+    // For MERGE, we might need to skip the insert for duplicate input. But still, we need to write
+    // the output vector for later usage.
+    void skipInsert(ExecutionContext* context);
 
 private:
     NodeInsertExecutor(const NodeInsertExecutor& other);
 
     bool checkConfict(transaction::Transaction* transaction);
+
+    void writeResult();
 
 private:
     // Node table to insert.
@@ -72,10 +76,13 @@ public:
 
     void insert(transaction::Transaction* transaction, ExecutionContext* context);
 
-    void writeResult();
+    // See comment in NodeInsertExecutor.
+    void skipInsert(ExecutionContext* context);
 
 private:
     RelInsertExecutor(const RelInsertExecutor& other);
+
+    void writeResult();
 
 private:
     storage::RelsStoreStats* relsStatistics;

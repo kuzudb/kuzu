@@ -7,19 +7,26 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void Planner::appendAccumulate(AccumulateType accumulateType, LogicalPlan& plan) {
-    appendAccumulate(accumulateType, expression_vector{}, plan);
+void Planner::appendAccumulate(LogicalPlan& plan) {
+    appendAccumulate(AccumulateType::REGULAR, expression_vector{}, nullptr /* offset */,
+        nullptr /* mark */, plan);
+}
+
+void Planner::appendOptionalAccumulate(std::shared_ptr<Expression> mark, LogicalPlan& plan) {
+    appendAccumulate(AccumulateType::OPTIONAL_, expression_vector{}, nullptr /* offset */, mark,
+        plan);
+}
+
+void Planner::appendAccumulate(const expression_vector& flatExprs,
+    kuzu::planner::LogicalPlan& plan) {
+    appendAccumulate(AccumulateType::REGULAR, flatExprs, nullptr /* offset */, nullptr /* mark */,
+        plan);
 }
 
 void Planner::appendAccumulate(AccumulateType accumulateType, const expression_vector& flatExprs,
-    LogicalPlan& plan) {
-    appendAccumulate(accumulateType, flatExprs, nullptr, plan);
-}
-
-void Planner::appendAccumulate(AccumulateType accumulateType, const expression_vector& flatExprs,
-    std::shared_ptr<Expression> offset, LogicalPlan& plan) {
-    auto op =
-        make_shared<LogicalAccumulate>(accumulateType, flatExprs, offset, plan.getLastOperator());
+    std::shared_ptr<Expression> offset, std::shared_ptr<Expression> mark, LogicalPlan& plan) {
+    auto op = make_shared<LogicalAccumulate>(accumulateType, flatExprs, offset, mark,
+        plan.getLastOperator());
     appendFlattens(op->getGroupPositionsToFlatten(), plan);
     op->setChild(0, plan.getLastOperator());
     op->computeFactorizedSchema();

@@ -10,12 +10,16 @@ namespace binder {
 
 class BoundMergeClause : public BoundUpdatingClause {
 public:
-    BoundMergeClause(QueryGraphCollection queryGraphCollection,
-        std::shared_ptr<Expression> predicate, std::vector<BoundInsertInfo> insertInfos,
-        std::shared_ptr<Expression> distinctMark)
-        : BoundUpdatingClause{common::ClauseType::MERGE},
+    BoundMergeClause(std::shared_ptr<Expression> existenceMark,
+        std::shared_ptr<Expression> distinctMark, QueryGraphCollection queryGraphCollection,
+        std::shared_ptr<Expression> predicate, std::vector<BoundInsertInfo> insertInfos)
+        : BoundUpdatingClause{common::ClauseType::MERGE}, existenceMark{std::move(existenceMark)},
+          distinctMark{std::move(distinctMark)},
           queryGraphCollection{std::move(queryGraphCollection)}, predicate{std::move(predicate)},
-          insertInfos{std::move(insertInfos)}, distinctMark{std::move(distinctMark)} {}
+          insertInfos{std::move(insertInfos)} {}
+
+    std::shared_ptr<Expression> getExistenceMark() const { return existenceMark; }
+    std::shared_ptr<Expression> getDistinctMark() const { return distinctMark; }
 
     const QueryGraphCollection* getQueryGraphCollection() const { return &queryGraphCollection; }
     bool hasPredicate() const { return predicate != nullptr; }
@@ -95,8 +99,6 @@ public:
         onCreateSetPropertyInfos.push_back(std::move(setPropertyInfo));
     }
 
-    std::shared_ptr<Expression> getDistinctMark() const { return distinctMark; }
-
 private:
     bool hasInsertInfo(const std::function<bool(const BoundInsertInfo& info)>& check) const;
     std::vector<const BoundInsertInfo*> getInsertInfos(
@@ -113,6 +115,8 @@ private:
         const std::function<bool(const BoundSetPropertyInfo& info)>& check) const;
 
 private:
+    std::shared_ptr<Expression> existenceMark;
+    std::shared_ptr<Expression> distinctMark;
     // Pattern to match.
     QueryGraphCollection queryGraphCollection;
     std::shared_ptr<Expression> predicate;
@@ -122,7 +126,6 @@ private:
     std::vector<BoundSetPropertyInfo> onMatchSetPropertyInfos;
     // Update on create
     std::vector<BoundSetPropertyInfo> onCreateSetPropertyInfos;
-    std::shared_ptr<Expression> distinctMark;
 };
 
 } // namespace binder

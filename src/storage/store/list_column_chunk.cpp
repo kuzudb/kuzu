@@ -165,8 +165,8 @@ void ListColumnChunk::lookup(offset_t offsetInChunk, ValueVector& output,
     ListVector::resizeDataVector(&output, currentListDataSize + listSize);
     // TODO(Guodong): Should add `scan` interface and use `scan` here.
     for (auto i = 0u; i < listSize; i++) {
-        listDataColumnChunk->dataColumnChunk->lookup(
-            startOffset + i, *dataVector, currentListDataSize + i);
+        listDataColumnChunk->dataColumnChunk->lookup(startOffset + i, *dataVector,
+            currentListDataSize + i);
     }
     // reset offset
     output.setValue<list_entry_t>(posInOutputVector, list_entry_t{currentListDataSize, listSize});

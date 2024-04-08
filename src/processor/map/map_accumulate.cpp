@@ -8,8 +8,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* logicalOperator) {
-    auto acc = (LogicalAccumulate*)logicalOperator;
+std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* op) {
+    auto acc = op->ptrCast<LogicalAccumulate>();
     auto outSchema = acc->getSchema();
     auto inSchema = acc->getChild(0)->getSchema();
     auto prevOperator = mapOperator(acc->getChild(0).get());
@@ -18,6 +18,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* log
         std::move(prevOperator));
     auto table = resultCollector->getResultFactorizedTable();
     auto maxMorselSize = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
+    if (acc->hasMark()) {
+        expressions.push_back(acc->getMark());
+    }
     return createFTableScanAligned(expressions, outSchema, acc->getOffset(), table, maxMorselSize,
         std::move(resultCollector));
 }

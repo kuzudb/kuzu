@@ -10,8 +10,10 @@ void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (auto& keyDataPos : probeDataInfo.keysDataPos) {
         keyVectors.push_back(resultSet->getValueVector(keyDataPos).get());
     }
-    if (joinType == JoinType::MARK) {
-        markVector = resultSet->getValueVector(probeDataInfo.markDataPos);
+    if (probeDataInfo.markDataPos.isValid()) {
+        markVector = resultSet->getValueVector(probeDataInfo.markDataPos).get();
+    } else {
+        markVector = nullptr;
     }
     for (auto& dataPos : probeDataInfo.payloadsOutPos) {
         vectorsToReadInto.push_back(resultSet->getValueVector(dataPos).get());
@@ -104,6 +106,15 @@ uint64_t HashJoinProbe::getInnerJoinResultForUnFlatKey() {
     return numTuplesToRead;
 }
 
+static void writeLeftJoinMarkVector(ValueVector* markVector, bool flag) {
+    if (markVector == nullptr) {
+        return;
+    }
+    KU_ASSERT(markVector->state->selVector->selectedSize == 1);
+    auto pos = markVector->state->selVector->selectedPositions[0];
+    markVector->setValue<bool>(pos, flag);
+}
+
 uint64_t HashJoinProbe::getLeftJoinResult() {
     if (getInnerJoinResult() == 0) {
         for (auto& vector : vectorsToReadInto) {
@@ -117,7 +128,10 @@ uint64_t HashJoinProbe::getLeftJoinResult() {
             vector->state->selVector->selectedSize = 1;
         }
         probeState->probedTuples[0] = nullptr;
+        writeLeftJoinMarkVector(markVector, false);
+        return 1;
     }
+    writeLeftJoinMarkVector(markVector, true);
     return 1;
 }
 

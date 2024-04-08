@@ -82,7 +82,7 @@ Runtime exception: Found duplicated primary key value 1, which violates the uniq
 3
 -STATEMENT MATCH (a:person) with a.ID as id MERGE (u:user {ID: 10}) RETURN u.ID, id
 ---- error
-Runtime exception: Constant key in merge clause is not supported yet.
+Runtime exception: Empty key in merge clause is not supported yet.
 -STATEMENT CREATE NODE TABLE user1 (ID int64, name string, primary key(ID))
 ---- ok
 -STATEMENT MATCH (a:person) with a.ID % 7 as result, a.fName as name MERGE (u:user1 {ID: result}) ON MATCH SET u.name = 'match: ' + name ON CREATE SET u.name = 'create: ' + name RETURN u.ID, u.name
@@ -95,3 +95,19 @@ Runtime exception: Constant key in merge clause is not supported yet.
 3|create: Carol
 3|match: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 5|create: Dan
+-STATEMENT MATCH (a:user1) RETURN COUNT(*);
+---- 1
+5
+-STATEMENT CREATE REL TABLE knows2 (FROM person TO person, comment STRING)
+---- ok
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 0 UNWIND [1,2] AS x MERGE (a)-[e:knows2 {comment: 'h'}]->(b) RETURN e.comment
+---- 6
+h
+h
+h
+h
+h
+h
+-STATEMENT MATCH (a:person)-[:knows2]->(b:person) RETURN COUNT(*);
+---- 1
+3

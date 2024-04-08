@@ -99,11 +99,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
         probePayloadsOutPos.emplace_back(outSchema->getExpressionPos(*payload));
     }
     ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsOutPos);
-    if (hashJoin->getJoinType() == JoinType::MARK) {
+    if (hashJoin->hasMark()) {
         auto mark = hashJoin->getMark();
         auto markOutputPos = DataPos(outSchema->getExpressionPos(*mark));
         probeDataInfo.markDataPos = markOutputPos;
+    } else {
+        probeDataInfo.markDataPos = DataPos::getInvalidPos();
     }
+
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
         hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
         std::move(hashJoinBuild), getOperatorID(), paramsString);

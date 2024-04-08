@@ -87,7 +87,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
         return finishPushDown(op);
     }
     auto hashJoin = std::make_shared<LogicalHashJoin>(joinConditions, JoinType::INNER,
-        op->getChild(0), op->getChild(1));
+        nullptr /* mark */, op->getChild(0), op->getChild(1));
     hashJoin->setSIP(planner::SidewaysInfoPassing::PROHIBIT);
     hashJoin->computeFlatSchema();
     return hashJoin;

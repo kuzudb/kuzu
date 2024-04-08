@@ -9,7 +9,16 @@ namespace processor {
 void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     payloadVectors.reserve(info->payloadPositions.size());
     for (auto& pos : info->payloadPositions) {
-        payloadVectors.push_back(resultSet->getValueVector(pos).get());
+        auto vec = resultSet->getValueVector(pos).get();
+        payloadVectors.push_back(vec);
+        payloadAndMarkVectors.push_back(vec);
+    }
+    if (info->accumulateType == AccumulateType::OPTIONAL_) {
+        markVector = std::make_unique<ValueVector>(*LogicalType::BOOL(),
+            context->clientContext->getMemoryManager());
+        markVector->state = DataChunkState::getSingleValueDataChunkState();
+        markVector->setValue<bool>(0, true);
+        payloadAndMarkVectors.push_back(markVector.get());
     }
     localTable = std::make_unique<FactorizedTable>(context->clientContext->getMemoryManager(),
         info->tableSchema->copy());
@@ -19,7 +28,7 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         if (!payloadVectors.empty()) {
             for (auto i = 0u; i < resultSet->multiplicity; i++) {
-                localTable->append(payloadVectors);
+                localTable->append(payloadAndMarkVectors);
             }
         }
     }
@@ -36,7 +45,7 @@ void ResultCollector::finalize(ExecutionContext* /*context*/) {
         // TODO(Ziyi): add an interface in factorized table
         auto table = sharedState->getTable();
         auto tableSchema = table->getTableSchema();
-        for (auto i = 0u; i < tableSchema->getNumColumns(); ++i) {
+        for (auto i = 0u; i < payloadVectors.size(); ++i) {
             auto columnSchema = tableSchema->getColumn(i);
             if (columnSchema->isFlat()) {
                 payloadVectors[i]->state->setToFlat();
@@ -46,7 +55,8 @@ void ResultCollector::finalize(ExecutionContext* /*context*/) {
             for (auto& vector : payloadVectors) {
                 vector->setAsSingleNullEntry();
             }
-            table->append(payloadVectors);
+            markVector->setValue<bool>(0, false);
+            table->append(payloadAndMarkVectors);
         }
     }
     default:

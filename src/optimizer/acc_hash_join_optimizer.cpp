@@ -261,7 +261,7 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendPathSemiMa
 std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendAccumulate(
     std::shared_ptr<planner::LogicalOperator> child) {
     auto accumulate = std::make_shared<LogicalAccumulate>(AccumulateType::REGULAR,
-        expression_vector{}, nullptr /* offset */, std::move(child));
+        expression_vector{}, nullptr /* offset */, nullptr /* mark */, std::move(child));
     accumulate->computeFlatSchema();
     return accumulate;
 }

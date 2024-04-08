@@ -4,17 +4,24 @@
 #include "planner/planner.h"
 
 using namespace kuzu::common;
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
-void Planner::appendHashJoin(const binder::expression_vector& joinNodeIDs, JoinType joinType,
+void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
     LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+    appendHashJoin(joinNodeIDs, joinType, nullptr /* mark */, probePlan, buildPlan, resultPlan);
+}
+
+void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
+    std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+    LogicalPlan& resultPlan) {
     std::vector<join_condition_t> joinConditions;
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
     }
-    auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, joinType,
+    auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, joinType, mark,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
     auto groupsPosToFlattenOnProbeSide = hashJoin->getGroupsPosToFlattenOnProbeSide();
@@ -39,15 +46,14 @@ void Planner::appendHashJoin(const binder::expression_vector& joinNodeIDs, JoinT
     resultPlan.setLastOperator(std::move(hashJoin));
 }
 
-void Planner::appendMarkJoin(const binder::expression_vector& joinNodeIDs,
-    const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
-    LogicalPlan& buildPlan) {
+void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,
+    const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     std::vector<join_condition_t> joinConditions;
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
     }
-    auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, mark, probePlan.getLastOperator(),
-        buildPlan.getLastOperator());
+    auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, JoinType::MARK, mark,
+        probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
     appendFlattens(hashJoin->getGroupsPosToFlattenOnProbeSide(), probePlan);
     hashJoin->setChild(0, probePlan.getLastOperator());
@@ -60,12 +66,12 @@ void Planner::appendMarkJoin(const binder::expression_vector& joinNodeIDs,
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
-void Planner::appendIntersect(const std::shared_ptr<binder::Expression>& intersectNodeID,
-    binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
+void Planner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
+    expression_vector& boundNodeIDs, LogicalPlan& probePlan,
     std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
     KU_ASSERT(boundNodeIDs.size() == buildPlans.size());
     std::vector<std::shared_ptr<LogicalOperator>> buildChildren;
-    binder::expression_vector keyNodeIDs;
+    expression_vector keyNodeIDs;
     for (auto i = 0u; i < buildPlans.size(); ++i) {
         keyNodeIDs.push_back(boundNodeIDs[i]);
         buildChildren.push_back(buildPlans[i]->getLastOperator());
