@@ -137,10 +137,11 @@ void ArrowConverter::setArrowFormat(
         initializeChild(rootHolder.nestedChildren.back()[0]);
         child.children = &rootHolder.nestedChildrenPtr.back()[0];
         child.children[0]->name = "l";
-        setArrowFormat(rootHolder, **child.children, *VarListType::getChildType(&dataType));
+        setArrowFormat(rootHolder, **child.children, *ListType::getChildType(&dataType));
     } break;
     case LogicalTypeID::ARRAY: {
-        auto numValuesPerArray = "+w:" + std::to_string(typeInfo.fixedNumValues);
+        auto numValuesPerArray =
+            "+w:" + std::to_string(ArrayType::getNumElements(&dataType));
         child.format = copyName(rootHolder, numValuesPerArray);
         child.n_children = 1;
         rootHolder.nestedChildren.emplace_back();
@@ -150,7 +151,7 @@ void ArrowConverter::setArrowFormat(
         initializeChild(rootHolder.nestedChildren.back()[0]);
         child.children = &rootHolder.nestedChildrenPtr.back()[0];
         child.children[0]->name = "l";
-        setArrowFormat(rootHolder, **child.children, *FixedListType::getChildType(&dataType));
+        setArrowFormat(rootHolder, **child.children, *ArrayType::getChildType(&dataType));
     } break;
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::INTERNAL_ID:

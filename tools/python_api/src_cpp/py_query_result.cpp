@@ -336,7 +336,7 @@ bool PyQueryResult::getNextArrowChunk(const std::vector<kuzu::common::LogicalTyp
     
     auto batchImportFunc = importCache->pyarrow.lib.RecordBatch._import_from_c();
 
-    auto schema = ArrowConverter::toArrowSchema(typesInfo);
+    auto schema = ArrowConverter::toArrowSchema(types, names);
     batches.append(batchImportFunc((std::uint64_t)&data, (std::uint64_t)schema.get()));
     return true;
 }

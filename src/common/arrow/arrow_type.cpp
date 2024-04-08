@@ -105,7 +105,7 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
         case 'w':
             throw RuntimeException("Fixed list is currently WIP.");
             // TODO Manh: Array Binding
-            // return *LogicalType::FIXED_LIST(
+            // return *LogicalType::ARRAY(
             //    std::make_unique<LogicalType>(fromArrowSchema(schema->children[0])),
             //    std::stoi(arrowType+3));
         case 's':
