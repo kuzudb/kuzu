@@ -294,8 +294,8 @@ def test_to_torch_geometric_heterogeneous_graph(conn_db_readonly: ConnDB) -> Non
         "Property organisation.history of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
         "Property person.usedNames of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
         "Property organisation.licenseValidInterval of type INTERVAL is not supported by torch_geometric. The property is marked as unconverted.",
-        "Property organisation.state of type STRUCT(revenue:INT16, location:STRING is not supported by torch_geometric. The property is marked as unconverted.",
-        "Property organisation.info of type UNION(price:FLOAT, movein:DATE, note:STRING) is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property organisation.state of type STRUCT(revenue INT16, location STRING is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property organisation.info of type UNION(price FLOAT, movein DATE, note STRING) is not supported by torch_geometric. The property is marked as unconverted.",
     }
 
     for w in ws:

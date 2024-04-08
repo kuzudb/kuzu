@@ -465,7 +465,7 @@ Binder exception: Cannot match a built-in function for given function RANGE(INT6
 
 -STATEMENT RETURN range({start: 0}, 1, 1);
 ---- error
-Binder exception: Cannot match a built-in function for given function RANGE(STRUCT(start:INT64),INT64,INT64). Supported inputs are
+Binder exception: Cannot match a built-in function for given function RANGE(STRUCT(start INT64),INT64,INT64). Supported inputs are
 (INT64,INT64) -> LIST
 (INT64,INT64,INT64) -> LIST
 (INT32,INT32) -> LIST
@@ -480,7 +480,7 @@ Binder exception: Cannot match a built-in function for given function RANGE(STRU
 
 -STATEMENT RETURN range(0, 1, {step: 1});
 ---- error
-Binder exception: Cannot match a built-in function for given function RANGE(INT64,INT64,STRUCT(step:INT64)). Supported inputs are
+Binder exception: Cannot match a built-in function for given function RANGE(INT64,INT64,STRUCT(step INT64)). Supported inputs are
 (INT64,INT64) -> LIST
 (INT64,INT64,INT64) -> LIST
 (INT32,INT32) -> LIST
