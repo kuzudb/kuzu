@@ -130,7 +130,7 @@ std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path
 bool likes(const char* string, uint64_t slen, const char* pattern, uint64_t plen) {
     uint64_t sidx = 0;
     uint64_t pidx = 0;
-main_loop : {
+main_loop: {
     // main matching loop
     while (sidx < slen && pidx < plen) {
         char s = string[sidx];
@@ -188,7 +188,7 @@ main_loop : {
     // we are finished only if we have consumed the full pattern
     return pidx == plen && sidx == slen;
 }
-parse_bracket : {
+parse_bracket: {
     // inside a bracket
     if (pidx == plen) {
         return false;
@@ -287,8 +287,8 @@ static bool match(std::vector<std::string>::const_iterator key,
     return key == key_end && pattern == pattern_end;
 }
 
-std::vector<std::string> S3FileSystem::glob(
-    main::ClientContext* context, const std::string& path) const {
+std::vector<std::string> S3FileSystem::glob(main::ClientContext* context,
+    const std::string& path) const {
     auto s3AuthParams = getS3AuthParams(context);
     auto parsedS3URL = parseS3URL(path, s3AuthParams);
     auto parsedGlobURL = parsedS3URL.trimmedS3URL;
@@ -311,8 +311,8 @@ std::vector<std::string> S3FileSystem::glob(
             commonPrefixes.pop_back();
             std::string commonPrefixContinuationToken = "";
             do {
-                auto prefixRequest = AWSListObjectV2::request(
-                    prefixPath, s3AuthParams, commonPrefixContinuationToken);
+                auto prefixRequest = AWSListObjectV2::request(prefixPath, s3AuthParams,
+                    commonPrefixContinuationToken);
                 AWSListObjectV2::parseKey(prefixRequest, s3Keys);
                 auto commonPrefixesToInsert = AWSListObjectV2::parseCommonPrefix(prefixRequest);
                 commonPrefixes.insert(commonPrefixes.end(), commonPrefixesToInsert.begin(),
@@ -455,8 +455,8 @@ std::string S3FileSystem::initializeMultiPartUpload(S3FileInfo* fileInfo) const 
     return getUploadID(result);
 }
 
-void S3FileSystem::writeFile(
-    common::FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset) const {
+void S3FileSystem::writeFile(common::FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+    uint64_t offset) const {
     auto s3FileInfo = ku_dynamic_cast<FileInfo*, S3FileInfo*>(fileInfo);
     if (!((s3FileInfo->flags & O_ACCMODE) & O_WRONLY)) {
         throw IOException("Write called on a file which is not open in write mode.");
@@ -485,8 +485,8 @@ void S3FileSystem::writeFile(
     }
 }
 
-std::shared_ptr<S3WriteBuffer> S3FileSystem::allocateWriteBuffer(
-    uint16_t writeBufferIdx, uint64_t partSize, uint16_t maxThreads) {
+std::shared_ptr<S3WriteBuffer> S3FileSystem::allocateWriteBuffer(uint16_t writeBufferIdx,
+    uint64_t partSize, uint16_t maxThreads) {
     std::unique_lock<std::mutex> lck(bufferInfoLock);
     if (numUsedBuffers >= maxThreads) {
         bufferInfoCV.wait(lck, [&] { return numUsedBuffers < maxThreads; });
@@ -509,8 +509,8 @@ void S3FileSystem::flushAllBuffers(S3FileInfo* fileInfo) {
         }
     }
     std::unique_lock<std::mutex> lck(fileInfo->uploadsInProgressLock);
-    fileInfo->uploadsInProgressCV.wait(
-        lck, [fileInfo] { return fileInfo->uploadsInProgress == 0; });
+    fileInfo->uploadsInProgressCV.wait(lck,
+        [fileInfo] { return fileInfo->uploadsInProgress == 0; });
     fileInfo->rethrowIOError();
 }
 
@@ -650,8 +650,8 @@ HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::
     return res;
 }
 
-std::unique_ptr<HTTPResponse> S3FileSystem::headRequest(
-    common::FileInfo* fileInfo, const std::string& url, HeaderMap /*headerMap*/) const {
+std::unique_ptr<HTTPResponse> S3FileSystem::headRequest(common::FileInfo* fileInfo,
+    const std::string& url, HeaderMap /*headerMap*/) const {
     auto& authParams = ku_dynamic_cast<FileInfo*, S3FileInfo*>(fileInfo)->authParams;
     auto parsedS3URL = parseS3URL(url, authParams);
     auto httpURL = parsedS3URL.getHTTPURL();
@@ -666,8 +666,8 @@ std::unique_ptr<HTTPResponse> S3FileSystem::getRangeRequest(common::FileInfo* fi
     auto parsedS3URL = parseS3URL(url, authParams);
     auto s3HTTPUrl = parsedS3URL.getHTTPURL();
     auto headers = createS3Header(parsedS3URL.path, "", parsedS3URL.host, "s3", "GET", authParams);
-    return HTTPFileSystem::getRangeRequest(
-        fileInfo, s3HTTPUrl, headers, fileOffset, buffer, bufferLen);
+    return HTTPFileSystem::getRangeRequest(fileInfo, s3HTTPUrl, headers, fileOffset, buffer,
+        bufferLen);
 }
 
 std::unique_ptr<HTTPResponse> S3FileSystem::postRequest(common::FileInfo* fileInfo,
@@ -680,8 +680,8 @@ std::unique_ptr<HTTPResponse> S3FileSystem::postRequest(common::FileInfo* fileIn
     auto payloadHash = getPayloadHash(inputBuffer, inputBufferLen);
     auto headers = createS3Header(parsedS3URL.path, httpParams, parsedS3URL.host, "s3", "POST",
         authParams, payloadHash, "application/octet-stream");
-    return HTTPFileSystem::postRequest(
-        fileInfo, httpURL, headers, outputBuffer, outputBufferLen, inputBuffer, inputBufferLen);
+    return HTTPFileSystem::postRequest(fileInfo, httpURL, headers, outputBuffer, outputBufferLen,
+        inputBuffer, inputBufferLen);
 }
 
 std::unique_ptr<HTTPResponse> S3FileSystem::putRequest(common::FileInfo* fileInfo,
@@ -708,8 +708,8 @@ std::string S3FileSystem::getPayloadHash(const uint8_t* buffer, uint64_t bufferL
     }
 }
 
-void S3FileSystem::flushBuffer(
-    S3FileInfo* fileInfo, std::shared_ptr<S3WriteBuffer> bufferToFlush) const {
+void S3FileSystem::flushBuffer(S3FileInfo* fileInfo,
+    std::shared_ptr<S3WriteBuffer> bufferToFlush) const {
     if (bufferToFlush->numBytesWritten == 0) {
         return;
     }
@@ -734,8 +734,8 @@ void S3FileSystem::flushBuffer(
     uploadThread.detach();
 }
 
-void S3FileSystem::uploadBuffer(
-    S3FileInfo* fileInfo, std::shared_ptr<S3WriteBuffer> bufferToUpload) {
+void S3FileSystem::uploadBuffer(S3FileInfo* fileInfo,
+    std::shared_ptr<S3WriteBuffer> bufferToUpload) {
     auto s3FileSystem = ku_dynamic_cast<FileSystem*, S3FileSystem*>(fileInfo->fileSystem);
     std::string queryParam =
         "partNumber=" + std::to_string(bufferToUpload->partID + 1) + "&" +
@@ -797,8 +797,8 @@ std::string S3FileSystem::getUploadID(const std::string& response) {
     return response.substr(openTagPos, closeTagPos - openTagPos);
 }
 
-std::string AWSListObjectV2::request(
-    std::string& path, S3AuthParams& authParams, std::string& continuationToken) {
+std::string AWSListObjectV2::request(std::string& path, S3AuthParams& authParams,
+    std::string& continuationToken) {
     auto parsedURL = S3FileSystem::parseS3URL(path, authParams);
     std::string requestPath;
     if (authParams.urlStyle == "path") {
@@ -830,8 +830,8 @@ std::string AWSListObjectV2::request(
         listObjectV2URL.c_str(), *headers,
         [&](const httplib::Response& response) {
             if (response.status >= 400) {
-                throw IOException{common::stringFormat(
-                    "HTTP GET error on '{}' (HTTP {})", listObjectV2URL, response.status)};
+                throw IOException{common::stringFormat("HTTP GET error on '{}' (HTTP {})",
+                    listObjectV2URL, response.status)};
             }
             return true;
         },

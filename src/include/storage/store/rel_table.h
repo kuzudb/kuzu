@@ -54,8 +54,8 @@ struct RelTableDeleteState : public TableDeleteState {
 
     RelTableDeleteState(const common::ValueVector& srcNodeIDVector,
         const common::ValueVector& dstNodeIDVector, const common::ValueVector& relIDVector)
-        : srcNodeIDVector{srcNodeIDVector}, dstNodeIDVector{dstNodeIDVector}, relIDVector{
-                                                                                  relIDVector} {}
+        : srcNodeIDVector{srcNodeIDVector}, dstNodeIDVector{dstNodeIDVector},
+          relIDVector{relIDVector} {}
 };
 
 // TODO(Guodong): Should move inside RelTableDeleteState.

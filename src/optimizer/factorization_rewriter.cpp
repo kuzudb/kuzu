@@ -1,6 +1,7 @@
 #include "optimizer/factorization_rewriter.h"
 
 #include "binder/expression_visitor.h"
+#include "common/cast.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
@@ -12,6 +13,7 @@
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/logical_limit.h"
+#include "planner/operator/logical_mark_accmulate.h"
 #include "planner/operator/logical_order_by.h"
 #include "planner/operator/logical_projection.h"
 #include "planner/operator/logical_union.h"
@@ -22,6 +24,7 @@
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/operator/persistent/logical_set.h"
 
+using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::planner;
 
@@ -68,8 +71,8 @@ void FactorizationRewriter::visitIntersect(planner::LogicalOperator* op) {
     for (auto i = 0u; i < intersect->getNumBuilds(); ++i) {
         auto groupPosToFlatten = intersect->getGroupsPosToFlattenOnBuildSide(i);
         auto childIdx = i + 1; // skip probe
-        intersect->setChild(
-            childIdx, appendFlattens(intersect->getChild(childIdx), groupPosToFlatten));
+        intersect->setChild(childIdx,
+            appendFlattens(intersect->getChild(childIdx), groupPosToFlatten));
     }
 }
 
@@ -84,8 +87,8 @@ void FactorizationRewriter::visitProjection(planner::LogicalOperator* op) {
     if (hasRandomFunction) {
         // Fall back to tuple-at-a-time evaluation.
         auto groupsPos = op->getChild(0)->getSchema()->getGroupsPosInScope();
-        auto groupsPosToFlatten = factorization::FlattenAll::getGroupsPosToFlatten(
-            groupsPos, op->getChild(0)->getSchema());
+        auto groupsPosToFlatten = factorization::FlattenAll::getGroupsPosToFlatten(groupsPos,
+            op->getChild(0)->getSchema());
         projection->setChild(0, appendFlattens(projection->getChild(0), groupsPosToFlatten));
     } else {
         for (auto& expression : projection->getExpressionsToProject()) {
@@ -102,6 +105,12 @@ void FactorizationRewriter::visitAccumulate(planner::LogicalOperator* op) {
     auto accumulate = (LogicalAccumulate*)op;
     auto groupsPosToFlatten = accumulate->getGroupPositionsToFlatten();
     accumulate->setChild(0, appendFlattens(accumulate->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitMarkAccumulate(planner::LogicalOperator* op) {
+    auto markAccumulate = ku_dynamic_cast<LogicalOperator*, LogicalMarkAccumulate*>(op);
+    auto groupsPos = markAccumulate->getGroupsPosToFlatten();
+    markAccumulate->setChild(0, appendFlattens(markAccumulate->getChild(0), groupsPos));
 }
 
 void FactorizationRewriter::visitAggregate(planner::LogicalOperator* op) {
@@ -154,8 +163,8 @@ void FactorizationRewriter::visitSetNodeProperty(planner::LogicalOperator* op) {
     auto setNodeProperty = (LogicalSetNodeProperty*)op;
     for (auto i = 0u; i < setNodeProperty->getInfosRef().size(); ++i) {
         auto groupsPosToFlatten = setNodeProperty->getGroupsPosToFlatten(i);
-        setNodeProperty->setChild(
-            0, appendFlattens(setNodeProperty->getChild(0), groupsPosToFlatten));
+        setNodeProperty->setChild(0,
+            appendFlattens(setNodeProperty->getChild(0), groupsPosToFlatten));
     }
 }
 
@@ -163,8 +172,8 @@ void FactorizationRewriter::visitSetRelProperty(planner::LogicalOperator* op) {
     auto setRelProperty = (LogicalSetRelProperty*)op;
     for (auto i = 0u; i < setRelProperty->getInfosRef().size(); ++i) {
         auto groupsPosToFlatten = setRelProperty->getGroupsPosToFlatten(i);
-        setRelProperty->setChild(
-            0, appendFlattens(setRelProperty->getChild(0), groupsPosToFlatten));
+        setRelProperty->setChild(0,
+            appendFlattens(setRelProperty->getChild(0), groupsPosToFlatten));
     }
 }
 

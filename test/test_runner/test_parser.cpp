@@ -173,8 +173,8 @@ std::string TestParser::extractTextBeforeNextStatement(bool ignoreLineBreak) {
     return extractedText;
 }
 
-TestStatement* TestParser::extractStatement(
-    TestStatement* statement, const std::string& testCaseName) {
+TestStatement* TestParser::extractStatement(TestStatement* statement,
+    const std::string& testCaseName) {
     if (endOfFile()) {
         return statement;
     }

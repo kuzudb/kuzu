@@ -12,8 +12,8 @@ public:
         binder::expression_vector keyNodeIDs, std::shared_ptr<LogicalOperator> probeChild,
         std::vector<std::shared_ptr<LogicalOperator>> buildChildren)
         : LogicalOperator{LogicalOperatorType::INTERSECT, std::move(probeChild)},
-          intersectNodeID{std::move(intersectNodeID)},
-          keyNodeIDs{std::move(keyNodeIDs)}, sip{SidewaysInfoPassing::NONE} {
+          intersectNodeID{std::move(intersectNodeID)}, keyNodeIDs{std::move(keyNodeIDs)},
+          sip{SidewaysInfoPassing::NONE} {
         for (auto& child : buildChildren) {
             children.push_back(std::move(child));
         }

@@ -72,6 +72,9 @@ private:
     std::unique_ptr<ResultCollectorInfo> info;
     std::shared_ptr<ResultCollectorSharedState> sharedState;
     std::vector<common::ValueVector*> payloadVectors;
+    std::vector<common::ValueVector*> payloadAndMarkVectors;
+
+    std::unique_ptr<common::ValueVector> markVector;
     std::unique_ptr<FactorizedTable> localTable;
 };
 

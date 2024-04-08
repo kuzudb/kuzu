@@ -10,8 +10,8 @@ namespace storage {
 
 class LocalNodeNG final : public LocalNodeGroup {
 public:
-    LocalNodeNG(
-        common::offset_t nodeGroupStartOffset, const std::vector<common::LogicalType>& dataTypes)
+    LocalNodeNG(common::offset_t nodeGroupStartOffset,
+        const std::vector<common::LogicalType>& dataTypes)
         : LocalNodeGroup{nodeGroupStartOffset, dataTypes} {}
     DELETE_COPY_DEFAULT_MOVE(LocalNodeNG);
 
@@ -24,8 +24,8 @@ public:
         std::vector<common::ValueVector*> propertyVectors) override;
     bool update(std::vector<common::ValueVector*> nodeIDVectors, common::column_id_t columnID,
         common::ValueVector* propertyVector) override;
-    bool delete_(
-        common::ValueVector* nodeIDVector, common::ValueVector* /*extraVector*/ = nullptr) override;
+    bool delete_(common::ValueVector* nodeIDVector,
+        common::ValueVector* /*extraVector*/ = nullptr) override;
 
     inline const offset_to_row_idx_t& getInsertInfoRef() const {
         return insertChunks.getOffsetToRowIdx();

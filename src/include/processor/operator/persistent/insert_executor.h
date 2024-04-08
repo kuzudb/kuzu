@@ -9,6 +9,8 @@
 namespace kuzu {
 namespace processor {
 
+class InsertExecutor {};
+
 class NodeInsertExecutor {
 public:
     NodeInsertExecutor(storage::NodeTable* table,
@@ -17,9 +19,9 @@ public:
         std::vector<DataPos> columnVectorsPos,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators,
         common::ConflictAction conflictAction)
-        : table{table}, fwdRelTables{std::move(fwdRelTables)}, bwdRelTables{std::move(
-                                                                   bwdRelTables)},
-          nodeIDVectorPos{nodeIDVectorPos}, columnVectorsPos{std::move(columnVectorsPos)},
+        : table{table}, fwdRelTables{std::move(fwdRelTables)},
+          bwdRelTables{std::move(bwdRelTables)}, nodeIDVectorPos{nodeIDVectorPos},
+          columnVectorsPos{std::move(columnVectorsPos)},
           columnDataEvaluators{std::move(columnDataEvaluators)}, conflictAction{conflictAction},
           nodeIDVector{nullptr} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeInsertExecutor);
@@ -28,10 +30,15 @@ public:
 
     void insert(transaction::Transaction* transaction, ExecutionContext* context);
 
+    // For MERGE, we might need to skip the insert for duplicate input. But still, we need to write
+    // the output vector for later usage.
+    void skipInsert(ExecutionContext* context);
+
 private:
     NodeInsertExecutor(const NodeInsertExecutor& other);
 
     bool checkConfict(transaction::Transaction* transaction);
+
     void writeResult();
 
 private:
@@ -68,6 +75,9 @@ public:
     void init(ResultSet* resultSet, ExecutionContext* context);
 
     void insert(transaction::Transaction* transaction, ExecutionContext* context);
+
+    // See comment in NodeInsertExecutor.
+    void skipInsert(ExecutionContext* context);
 
 private:
     RelInsertExecutor(const RelInsertExecutor& other);

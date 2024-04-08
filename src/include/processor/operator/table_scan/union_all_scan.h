@@ -31,10 +31,10 @@ struct UnionAllScanMorsel {
 
 class UnionAllScanSharedState {
 public:
-    UnionAllScanSharedState(
-        std::vector<std::shared_ptr<FactorizedTable>> tables, uint64_t maxMorselSize)
-        : tables{std::move(tables)}, maxMorselSize{maxMorselSize}, tableIdx{0}, nextTupleIdxToScan{
-                                                                                    0} {}
+    UnionAllScanSharedState(std::vector<std::shared_ptr<FactorizedTable>> tables,
+        uint64_t maxMorselSize)
+        : tables{std::move(tables)}, maxMorselSize{maxMorselSize}, tableIdx{0},
+          nextTupleIdxToScan{0} {}
 
     std::unique_ptr<UnionAllScanMorsel> getMorsel();
 

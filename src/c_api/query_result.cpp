@@ -12,9 +12,11 @@ void kuzu_query_result_destroy(kuzu_query_result* query_result) {
         return;
     }
     if (query_result->_query_result != nullptr) {
-        delete static_cast<QueryResult*>(query_result->_query_result);
+        if (!query_result->_is_owned_by_cpp) {
+            delete static_cast<QueryResult*>(query_result->_query_result);
+        }
     }
-    delete query_result;
+    free(query_result);
 }
 
 bool kuzu_query_result_is_success(kuzu_query_result* query_result) {
@@ -41,8 +43,8 @@ char* kuzu_query_result_get_column_name(kuzu_query_result* query_result, uint64_
     return convertToOwnedCString(column_names[index]);
 }
 
-kuzu_logical_type* kuzu_query_result_get_column_data_type(
-    kuzu_query_result* query_result, uint64_t index) {
+kuzu_logical_type* kuzu_query_result_get_column_data_type(kuzu_query_result* query_result,
+    uint64_t index) {
     auto column_data_types =
         static_cast<QueryResult*>(query_result->_query_result)->getColumnDataTypes();
     if (index >= column_data_types.size()) {
@@ -69,6 +71,22 @@ bool kuzu_query_result_has_next(kuzu_query_result* query_result) {
     return static_cast<QueryResult*>(query_result->_query_result)->hasNext();
 }
 
+bool kuzu_query_result_has_next_query_result(kuzu_query_result* query_result) {
+    return static_cast<QueryResult*>(query_result->_query_result)->hasNextQueryResult();
+}
+
+kuzu_query_result* kuzu_query_result_get_next_query_result(kuzu_query_result* query_result) {
+    auto next_query_result =
+        static_cast<QueryResult*>(query_result->_query_result)->getNextQueryResult();
+    if (next_query_result == nullptr) {
+        return nullptr;
+    }
+    auto* c_query_result = (kuzu_query_result*)malloc(sizeof(kuzu_query_result));
+    c_query_result->_query_result = next_query_result;
+    c_query_result->_is_owned_by_cpp = true;
+    return c_query_result;
+}
+
 kuzu_flat_tuple* kuzu_query_result_get_next(kuzu_query_result* query_result) {
     auto flat_tuple = static_cast<QueryResult*>(query_result->_query_result)->getNext();
     auto* flat_tuple_c = (kuzu_flat_tuple*)malloc(sizeof(kuzu_flat_tuple));
@@ -89,7 +107,7 @@ struct ArrowSchema kuzu_query_result_get_arrow_schema(kuzu_query_result* query_r
     return *static_cast<QueryResult*>(query_result->_query_result)->getArrowSchema();
 }
 
-struct ArrowArray kuzu_query_result_get_next_arrow_chunk(
-    kuzu_query_result* query_result, int64_t chunk_size) {
+struct ArrowArray kuzu_query_result_get_next_arrow_chunk(kuzu_query_result* query_result,
+    int64_t chunk_size) {
     return *static_cast<QueryResult*>(query_result->_query_result)->getNextArrowChunk(chunk_size);
 }

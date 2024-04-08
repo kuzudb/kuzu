@@ -56,14 +56,14 @@ private:
     // Plan copy.
     std::unique_ptr<LogicalPlan> planCopyTo(const binder::BoundStatement& statement);
     std::unique_ptr<LogicalPlan> planCopyFrom(const binder::BoundStatement& statement);
-    std::unique_ptr<LogicalPlan> planCopyNodeFrom(
-        const binder::BoundCopyFromInfo* info, binder::expression_vector outExprs);
-    std::unique_ptr<LogicalPlan> planCopyResourceFrom(
-        const binder::BoundCopyFromInfo* info, binder::expression_vector results);
-    std::unique_ptr<LogicalPlan> planCopyRelFrom(
-        const binder::BoundCopyFromInfo* info, binder::expression_vector outExprs);
-    std::unique_ptr<LogicalPlan> planCopyRdfFrom(
-        const binder::BoundCopyFromInfo* info, binder::expression_vector outExprs);
+    std::unique_ptr<LogicalPlan> planCopyNodeFrom(const binder::BoundCopyFromInfo* info,
+        binder::expression_vector outExprs);
+    std::unique_ptr<LogicalPlan> planCopyResourceFrom(const binder::BoundCopyFromInfo* info,
+        binder::expression_vector results);
+    std::unique_ptr<LogicalPlan> planCopyRelFrom(const binder::BoundCopyFromInfo* info,
+        binder::expression_vector outExprs);
+    std::unique_ptr<LogicalPlan> planCopyRdfFrom(const binder::BoundCopyFromInfo* info,
+        binder::expression_vector outExprs);
 
     // Plan export/import database
     std::unique_ptr<LogicalPlan> planExportDatabase(const binder::BoundStatement& statement);
@@ -111,12 +111,21 @@ private:
 
     // Plan subquery
     void planOptionalMatch(const binder::QueryGraphCollection& queryGraphCollection,
-        const binder::expression_vector& predicates, LogicalPlan& leftPlan);
+        const binder::expression_vector& predicates, const binder::expression_vector& corrExprs,
+        LogicalPlan& leftPlan);
+    // Write whether optional match succeed or not to mark.
+    void planOptionalMatch(const binder::QueryGraphCollection& queryGraphCollection,
+        const binder::expression_vector& predicates, const binder::expression_vector& corrExprs,
+        std::shared_ptr<binder::Expression> mark, LogicalPlan& leftPlan);
     void planRegularMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, LogicalPlan& leftPlan);
     void planSubquery(const std::shared_ptr<binder::Expression>& subquery, LogicalPlan& outerPlan);
-    void planSubqueryIfNecessary(
-        const std::shared_ptr<binder::Expression>& expression, LogicalPlan& plan);
+    void planSubqueryIfNecessary(const std::shared_ptr<binder::Expression>& expression,
+        LogicalPlan& plan);
+
+    static binder::expression_vector getCorrelatedExprs(
+        const binder::QueryGraphCollection& collection, const binder::expression_vector& predicates,
+        Schema* outerSchema);
 
     // Plan query graphs
     std::unique_ptr<LogicalPlan> planQueryGraphCollection(
@@ -134,8 +143,8 @@ private:
         const binder::QueryGraph& queryGraph, binder::expression_vector& predicates);
 
     // Plan node/rel table scan
-    void planBaseTableScans(
-        SubqueryType subqueryType, const binder::expression_vector& correlatedExpressions);
+    void planBaseTableScans(SubqueryType subqueryType,
+        const binder::expression_vector& correlatedExpressions);
     void planCorrelatedExpressionsScan(const binder::expression_vector& correlatedExpressions);
     void planNodeScan(uint32_t nodePos);
     void planNodeIDScan(uint32_t nodePos);
@@ -170,18 +179,18 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>> rightPlans);
 
     // Append updating operators
-    void appendInsertNode(
-        const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan);
-    void appendInsertRel(
-        const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan);
-    void appendSetNodeProperty(
-        const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
-    void appendSetRelProperty(
-        const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
-    void appendDeleteNode(
-        const std::vector<const binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
-    void appendDeleteRel(
-        const std::vector<const binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
+    void appendInsertNode(const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos,
+        LogicalPlan& plan);
+    void appendInsertRel(const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos,
+        LogicalPlan& plan);
+    void appendSetNodeProperty(const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos,
+        LogicalPlan& plan);
+    void appendSetRelProperty(const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos,
+        LogicalPlan& plan);
+    void appendDeleteNode(const std::vector<const binder::BoundDeleteInfo*>& boundInfos,
+        LogicalPlan& plan);
+    void appendDeleteRel(const std::vector<const binder::BoundDeleteInfo*>& boundInfos,
+        LogicalPlan& plan);
     std::unique_ptr<LogicalInsertInfo> createLogicalInsertInfo(const binder::BoundInsertInfo* info);
     std::unique_ptr<LogicalSetPropertyInfo> createLogicalSetPropertyInfo(
         const binder::BoundSetPropertyInfo* boundSetPropertyInfo);
@@ -212,8 +221,8 @@ private:
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
         const std::shared_ptr<binder::RelExpression>& rel, ExtendDirection direction,
         LogicalPlan& plan);
-    void createRecursivePlan(
-        const binder::RecursiveInfo& recursiveInfo, ExtendDirection direction, LogicalPlan& plan);
+    void createRecursivePlan(const binder::RecursiveInfo& recursiveInfo, ExtendDirection direction,
+        LogicalPlan& plan);
     void createPathNodePropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& node,
         const binder::expression_vector& properties, LogicalPlan& plan);
     void createPathRelPropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& boundNode,
@@ -226,6 +235,9 @@ private:
     // Append Join operators
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+    void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
+        std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+        LogicalPlan& resultPlan);
     void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
         const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
         LogicalPlan& buildPlan);
@@ -236,16 +248,21 @@ private:
     void appendCrossProduct(common::AccumulateType accumulateType, const LogicalPlan& probePlan,
         const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
 
-    // Append accumulate
-    void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan);
+    /* Append accumulate */
+
+    // Accumulate everything.
+    void appendAccumulate(LogicalPlan& plan);
+    // Accumulate everything. Append
+    void appendOptionalAccumulate(std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
     // Append accumulate with a set of expressions being flattened first.
-    void appendAccumulate(common::AccumulateType accumulateType,
-        const binder::expression_vector& flatExprs, LogicalPlan& plan);
+    void appendAccumulate(const binder::expression_vector& flatExprs, LogicalPlan& plan);
     // Append accumulate with a set of expressions being flattened first.
     // Additionally, scan table with row offset.
     void appendAccumulate(common::AccumulateType accumulateType,
         const binder::expression_vector& flatExprs, std::shared_ptr<binder::Expression> offset,
-        LogicalPlan& plan);
+        std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
+    void appendMarkAccumulate(const binder::expression_vector& keys,
+        std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
 
     void appendDummyScan(LogicalPlan& plan);
 
@@ -265,7 +282,7 @@ private:
     void appendScanFile(const binder::BoundFileScanInfo* info,
         std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
 
-    void appendDistinct(const binder::expression_vector& expressionsToDistinct, LogicalPlan& plan);
+    void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);

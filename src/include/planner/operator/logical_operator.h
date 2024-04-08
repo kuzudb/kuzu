@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/cast.h"
 #include "planner/operator/schema.h"
 
 namespace kuzu {
@@ -34,6 +35,7 @@ enum class LogicalOperatorType : uint8_t {
     INTERSECT,
     INSERT,
     LIMIT,
+    MARK_ACCUMULATE,
     MERGE,
     MULTIPLICITY_REDUCER,
     NODE_LABEL_FILTER,
@@ -69,8 +71,8 @@ using logical_op_vector_t = std::vector<std::shared_ptr<LogicalOperator>>;
 class LogicalOperator {
 public:
     explicit LogicalOperator(LogicalOperatorType operatorType) : operatorType{operatorType} {}
-    explicit LogicalOperator(
-        LogicalOperatorType operatorType, std::shared_ptr<LogicalOperator> child);
+    explicit LogicalOperator(LogicalOperatorType operatorType,
+        std::shared_ptr<LogicalOperator> child);
     explicit LogicalOperator(LogicalOperatorType operatorType,
         std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right);
     explicit LogicalOperator(LogicalOperatorType operatorType, const logical_op_vector_t& children);
@@ -101,6 +103,11 @@ public:
     // TODO: remove this function once planner do not share operator across plans
     virtual std::unique_ptr<LogicalOperator> copy() = 0;
     static logical_op_vector_t copy(const logical_op_vector_t& ops);
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<LogicalOperator*, TARGET*>(this);
+    }
 
 protected:
     void createEmptySchema() { schema = std::make_unique<Schema>(); }

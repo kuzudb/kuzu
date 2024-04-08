@@ -234,8 +234,8 @@ void ParquetWriter::prepareRowGroup(FactorizedTable& ft, PreparedRowGroup& resul
     while (numTuplesRead < ft.getNumTuples()) {
         readFromFT(ft, vectorsToRead, numTuplesRead);
         for (auto i = 0u; i < columnWriters.size(); i++) {
-            columnWriters[i]->write(
-                *writerStates[i], vectorsToRead[i], getNumTuples(unflatDataChunkToRead.get()));
+            columnWriters[i]->write(*writerStates[i], vectorsToRead[i],
+                getNumTuples(unflatDataChunkToRead.get()));
         }
     }
 
@@ -262,8 +262,8 @@ void ParquetWriter::flushRowGroup(PreparedRowGroup& rowGroup) {
     fileMetaData.num_rows += parquetRowGroup.num_rows;
 }
 
-void ParquetWriter::readFromFT(
-    FactorizedTable& ft, std::vector<ValueVector*> vectorsToRead, uint64_t& numTuplesRead) {
+void ParquetWriter::readFromFT(FactorizedTable& ft, std::vector<ValueVector*> vectorsToRead,
+    uint64_t& numTuplesRead) {
     auto numTuplesToRead =
         ft.getTableSchema()->getNumUnflatColumns() != 0 ?
             1 :
@@ -276,8 +276,8 @@ void ParquetWriter::finalize() {
     auto startOffset = fileOffset;
     fileMetaData.write(protocol.get());
     uint32_t metadataSize = fileOffset - startOffset;
-    fileInfo->writeFile(
-        reinterpret_cast<const uint8_t*>(&metadataSize), sizeof(metadataSize), fileOffset);
+    fileInfo->writeFile(reinterpret_cast<const uint8_t*>(&metadataSize), sizeof(metadataSize),
+        fileOffset);
     fileOffset += sizeof(uint32_t);
 
     // Parquet files also end with the string "PAR1".

@@ -9,11 +9,11 @@ namespace parser {
 class ParsedLiteralExpression : public ParsedExpression {
 public:
     ParsedLiteralExpression(common::Value value, std::string raw)
-        : ParsedExpression{common::ExpressionType::LITERAL, std::move(raw)}, value{std::move(
-                                                                                 value)} {}
+        : ParsedExpression{common::ExpressionType::LITERAL, std::move(raw)},
+          value{std::move(value)} {}
 
-    ParsedLiteralExpression(
-        std::string alias, std::string rawName, parsed_expr_vector children, common::Value value)
+    ParsedLiteralExpression(std::string alias, std::string rawName, parsed_expr_vector children,
+        common::Value value)
         : ParsedExpression{common::ExpressionType::LITERAL, std::move(alias), std::move(rawName),
               std::move(children)},
           value{std::move(value)} {}

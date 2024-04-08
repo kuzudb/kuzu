@@ -9,6 +9,7 @@
 #include "function/cast/vector_cast_functions.h"
 #include "function/comparison/vector_comparison_functions.h"
 #include "function/date/vector_date_functions.h"
+#include "function/hash/vector_hash_functions.h"
 #include "function/interval/vector_interval_functions.h"
 #include "function/list/vector_list_functions.h"
 #include "function/map/vector_map_functions.h"
@@ -177,6 +178,10 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Rdf functions
         SCALAR_FUNCTION(RDFTypeFunction), SCALAR_FUNCTION(ValidatePredicateFunction),
+
+        // Hash functions
+        SCALAR_FUNCTION(MD5Function), SCALAR_FUNCTION(SHA256Function),
+        SCALAR_FUNCTION(HashFunction),
 
         // Aggregate functions
         AGGREGATE_FUNCTION(CountStarFunction), AGGREGATE_FUNCTION(CountFunction),

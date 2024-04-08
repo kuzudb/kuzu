@@ -28,8 +28,16 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(
     }
     auto numRows = py::len(table);
     auto schema = Pyarrow::bind(table, returnTypes, names);
+
+    py::list batches = table.attr("to_batches")(DEFAULT_VECTOR_CAPACITY);
+    std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches;
+    for (auto& i: batches) {
+        arrowArrayBatches.push_back(std::make_shared<ArrowArrayWrapper>());
+        i.attr("_export_to_c")(reinterpret_cast<uint64_t>(arrowArrayBatches.back().get()));
+    }
+
     return std::make_unique<PyArrowTableScanFunctionData>(
-        std::move(returnTypes), std::move(schema), std::move(names), std::move(table), numRows);
+        std::move(returnTypes), std::move(schema), std::move(names), arrowArrayBatches, numRows);
 }
 
 ArrowArrayWrapper* PyArrowTableScanSharedState::getNextChunk() {
@@ -46,16 +54,9 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     py::gil_scoped_acquire acquire;
     PyArrowTableScanFunctionData* bindData =
         dynamic_cast<PyArrowTableScanFunctionData*>(input.bindData);
-    py::list batches = bindData->table.attr("to_batches")(DEFAULT_VECTOR_CAPACITY);
-    std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches;
-
-    for (auto& i : batches) {
-        arrowArrayBatches.push_back(std::make_shared<ArrowArrayWrapper>());
-        i.attr("_export_to_c")(reinterpret_cast<uint64_t>(arrowArrayBatches.back().get()));
-    }
 
     return std::make_unique<PyArrowTableScanSharedState>(
-        bindData->numRows, std::move(arrowArrayBatches));
+        bindData->numRows, bindData->arrowArrayBatches);
 }
 
 static std::unique_ptr<function::TableFuncLocalState> initLocalState(

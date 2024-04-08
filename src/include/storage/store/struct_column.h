@@ -57,8 +57,8 @@ protected:
         ColumnChunk* chunk, common::offset_t dataOffset) override;
 
 private:
-    static ChunkCollection getStructChildChunkCollection(
-        const ChunkCollection& chunkCollection, common::vector_idx_t childIdx);
+    static ChunkCollection getStructChildChunkCollection(const ChunkCollection& chunkCollection,
+        common::vector_idx_t childIdx);
 
 private:
     std::vector<std::unique_ptr<Column>> childColumns;

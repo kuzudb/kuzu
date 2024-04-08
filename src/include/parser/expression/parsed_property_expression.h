@@ -9,8 +9,8 @@ namespace parser {
 
 class ParsedPropertyExpression : public ParsedExpression {
 public:
-    ParsedPropertyExpression(
-        std::string propertyName, std::unique_ptr<ParsedExpression> child, std::string raw)
+    ParsedPropertyExpression(std::string propertyName, std::unique_ptr<ParsedExpression> child,
+        std::string raw)
         : ParsedExpression{common::ExpressionType::PROPERTY, std::move(child), std::move(raw)},
           propertyName{std::move(propertyName)} {}
 
@@ -21,8 +21,8 @@ public:
           propertyName{std::move(propertyName)} {}
 
     explicit ParsedPropertyExpression(std::string propertyName)
-        : ParsedExpression{common::ExpressionType::PROPERTY}, propertyName{
-                                                                  std::move(propertyName)} {}
+        : ParsedExpression{common::ExpressionType::PROPERTY},
+          propertyName{std::move(propertyName)} {}
 
     inline std::string getPropertyName() const { return propertyName; }
     inline bool isStar() const { return propertyName == common::InternalKeyword::STAR; }
@@ -31,8 +31,8 @@ public:
         common::Deserializer& deserializer);
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
-        return std::make_unique<ParsedPropertyExpression>(
-            alias, rawName, copyChildren(), propertyName);
+        return std::make_unique<ParsedPropertyExpression>(alias, rawName, copyChildren(),
+            propertyName);
     }
 
 private:

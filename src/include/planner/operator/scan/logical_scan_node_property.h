@@ -12,8 +12,8 @@ public:
         std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties,
         std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::SCAN_NODE_PROPERTY, std::move(child)},
-          nodeID{std::move(nodeID)}, nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(
-                                                                                properties)} {}
+          nodeID{std::move(nodeID)}, nodeTableIDs{std::move(nodeTableIDs)},
+          properties{std::move(properties)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
@@ -27,8 +27,8 @@ public:
     inline binder::expression_vector getProperties() const { return properties; }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return make_unique<LogicalScanNodeProperty>(
-            nodeID, nodeTableIDs, properties, children[0]->copy());
+        return make_unique<LogicalScanNodeProperty>(nodeID, nodeTableIDs, properties,
+            children[0]->copy());
     }
 
 private:

@@ -16,8 +16,8 @@ public:
 
     void notifyQueryNotConcludeWithReturn(antlr4::Token* startToken) override;
 
-    void notifyNodePatternWithoutParentheses(
-        std::string nodeName, antlr4::Token* startToken) override;
+    void notifyNodePatternWithoutParentheses(std::string nodeName,
+        antlr4::Token* startToken) override;
 
     void notifyInvalidNotEqualOperator(antlr4::Token* startToken) override;
 

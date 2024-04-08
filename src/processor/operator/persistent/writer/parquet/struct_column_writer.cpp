@@ -35,8 +35,8 @@ void StructColumnWriter::analyze(ColumnWriterState& state_p, ColumnWriterState* 
     for (auto child_idx = 0u; child_idx < childWriters.size(); child_idx++) {
         // Need to check again. It might be that just one child needs it but the rest not
         if (childWriters[child_idx]->hasAnalyze()) {
-            childWriters[child_idx]->analyze(
-                *state.childStates[child_idx], &state_p, childVectors[child_idx].get(), count);
+            childWriters[child_idx]->analyze(*state.childStates[child_idx], &state_p,
+                childVectors[child_idx].get(), count);
         }
     }
 }
@@ -51,8 +51,8 @@ void StructColumnWriter::finalizeAnalyze(ColumnWriterState& state_p) {
     }
 }
 
-void StructColumnWriter::prepare(
-    ColumnWriterState& state_p, ColumnWriterState* parent, ValueVector* vector, uint64_t count) {
+void StructColumnWriter::prepare(ColumnWriterState& state_p, ColumnWriterState* parent,
+    ValueVector* vector, uint64_t count) {
     auto& state = reinterpret_cast<StructColumnWriterState&>(state_p);
     if (parent) {
         // propagate empty entries from the parent
@@ -61,12 +61,12 @@ void StructColumnWriter::prepare(
         }
     }
     handleRepeatLevels(state_p, parent);
-    handleDefineLevels(
-        state_p, parent, vector, count, ParquetConstants::PARQUET_DEFINE_VALID, maxDefine - 1);
+    handleDefineLevels(state_p, parent, vector, count, ParquetConstants::PARQUET_DEFINE_VALID,
+        maxDefine - 1);
     auto& child_vectors = StructVector::getFieldVectors(vector);
     for (auto child_idx = 0u; child_idx < childWriters.size(); child_idx++) {
-        childWriters[child_idx]->prepare(
-            *state.childStates[child_idx], &state_p, child_vectors[child_idx].get(), count);
+        childWriters[child_idx]->prepare(*state.childStates[child_idx], &state_p,
+            child_vectors[child_idx].get(), count);
     }
 }
 
@@ -81,8 +81,8 @@ void StructColumnWriter::write(ColumnWriterState& state_p, ValueVector* vector, 
     auto& state = reinterpret_cast<StructColumnWriterState&>(state_p);
     auto& child_vectors = StructVector::getFieldVectors(vector);
     for (auto child_idx = 0u; child_idx < childWriters.size(); child_idx++) {
-        childWriters[child_idx]->write(
-            *state.childStates[child_idx], child_vectors[child_idx].get(), count);
+        childWriters[child_idx]->write(*state.childStates[child_idx],
+            child_vectors[child_idx].get(), count);
     }
 }
 

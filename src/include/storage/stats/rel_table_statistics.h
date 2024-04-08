@@ -14,8 +14,8 @@ public:
     RelTableStats(BMFileHandle* metadataFH, const catalog::TableCatalogEntry& tableEntry,
         BufferManager* bufferManager, WAL* wal);
     RelTableStats(uint64_t numRels, common::table_id_t tableID, common::offset_t nextRelOffset)
-        : TableStatistics{common::TableType::REL, numRels, tableID, {}}, nextRelOffset{
-                                                                             nextRelOffset} {}
+        : TableStatistics{common::TableType::REL, numRels, tableID, {}},
+          nextRelOffset{nextRelOffset} {}
     RelTableStats(uint64_t numRels, common::table_id_t tableID,
         std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
             propertyStats,
@@ -28,13 +28,13 @@ public:
     inline common::offset_t getNextRelOffset() const { return nextRelOffset; }
     inline void incrementNextRelOffset(uint64_t numTuples) { nextRelOffset += numTuples; }
 
-    inline void addMetadataDAHInfoForColumn(
-        std::unique_ptr<MetadataDAHInfo> metadataDAHInfo, common::RelDataDirection direction) {
+    inline void addMetadataDAHInfoForColumn(std::unique_ptr<MetadataDAHInfo> metadataDAHInfo,
+        common::RelDataDirection direction) {
         auto& metadataDAHInfos = getDirectedMetadataDAHInfosRef(direction);
         metadataDAHInfos.push_back(std::move(metadataDAHInfo));
     }
-    inline void removeMetadataDAHInfoForColumn(
-        common::column_id_t columnID, common::RelDataDirection direction) {
+    inline void removeMetadataDAHInfoForColumn(common::column_id_t columnID,
+        common::RelDataDirection direction) {
         auto& metadataDAHInfos = getDirectedMetadataDAHInfosRef(direction);
         KU_ASSERT(columnID < metadataDAHInfos.size());
         metadataDAHInfos.erase(metadataDAHInfos.begin() + columnID);
@@ -47,16 +47,16 @@ public:
         return direction == common::RelDataDirection::FWD ? fwdCSRLengthMetadataDAHInfo.get() :
                                                             bwdCSRLengthMetadataDAHInfo.get();
     }
-    inline MetadataDAHInfo* getColumnMetadataDAHInfo(
-        common::column_id_t columnID, common::RelDataDirection direction) {
+    inline MetadataDAHInfo* getColumnMetadataDAHInfo(common::column_id_t columnID,
+        common::RelDataDirection direction) {
         auto& metadataDAHInfos = getDirectedMetadataDAHInfosRef(direction);
         KU_ASSERT(columnID < metadataDAHInfos.size());
         return metadataDAHInfos[columnID].get();
     }
 
     void serializeInternal(common::Serializer& serializer) final;
-    static std::unique_ptr<RelTableStats> deserialize(
-        uint64_t numRels, common::table_id_t tableID, common::Deserializer& deserializer);
+    static std::unique_ptr<RelTableStats> deserialize(uint64_t numRels, common::table_id_t tableID,
+        common::Deserializer& deserializer);
 
     inline std::unique_ptr<TableStatistics> copy() final {
         return std::make_unique<RelTableStats>(*this);

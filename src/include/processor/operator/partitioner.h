@@ -112,8 +112,8 @@ private:
         const std::shared_ptr<common::DataChunkState>& state);
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.
-    void copyDataToPartitions(
-        common::partition_idx_t partitioningIdx, common::DataChunk chunkToCopyFrom);
+    void copyDataToPartitions(common::partition_idx_t partitioningIdx,
+        common::DataChunk chunkToCopyFrom);
 
 private:
     std::vector<std::unique_ptr<PartitioningInfo>> infos;

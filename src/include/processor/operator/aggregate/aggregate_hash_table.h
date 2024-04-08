@@ -14,6 +14,8 @@ struct HashSlot {
                          // groupKeyN, aggregateState1, ..., aggregateStateN, hashValue].
 };
 
+enum class HashTableType : uint8_t { AGGREGATE_HASH_TABLE = 0, MARK_HASH_TABLE = 1 };
+
 /**
  * AggregateHashTable Design
  *
@@ -42,15 +44,15 @@ public:
     AggregateHashTable(storage::MemoryManager& memoryManager,
         const common::logical_type_vec_t& keysDataTypes,
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
-        uint64_t numEntriesToAllocate)
+        uint64_t numEntriesToAllocate, std::unique_ptr<FactorizedTableSchema> tableSchema)
         : AggregateHashTable(memoryManager, keysDataTypes, std::vector<common::LogicalType>(),
-              aggregateFunctions, numEntriesToAllocate) {}
+              aggregateFunctions, numEntriesToAllocate, std::move(tableSchema)) {}
 
     AggregateHashTable(storage::MemoryManager& memoryManager,
         std::vector<common::LogicalType> keysDataTypes,
         std::vector<common::LogicalType> payloadsDataTypes,
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
-        uint64_t numEntriesToAllocate);
+        uint64_t numEntriesToAllocate, std::unique_ptr<FactorizedTableSchema> tableSchema);
 
     uint8_t* getEntry(uint64_t idx) { return factorizedTable->getTuple(idx); }
 
@@ -86,9 +88,26 @@ public:
 
     void resize(uint64_t newSize);
 
+protected:
+    virtual uint64_t matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
+        uint64_t numNoMatches);
+
+    virtual void initializeFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        const std::vector<common::ValueVector*>& dependentKeyVectors,
+        uint64_t numFTEntriesToInitialize);
+
+    uint64_t matchUnFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
+        uint64_t& numNoMatches, uint32_t colIdx);
+
+    uint64_t matchFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
+        uint64_t& numNoMatches, uint32_t colIdx);
+
 private:
     void initializeFT(
-        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);
+        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
+        std::unique_ptr<FactorizedTableSchema> tableSchema);
 
     void initializeHashTable(uint64_t numEntriesToAllocate);
 
@@ -96,22 +115,17 @@ private:
 
     // ! This function will only be used by distinct aggregate, which assumes that all groupByKeys
     // are flat.
-    uint8_t* findEntryInDistinctHT(
-        const std::vector<common::ValueVector*>& groupByKeyVectors, common::hash_t hash);
+    uint8_t* findEntryInDistinctHT(const std::vector<common::ValueVector*>& groupByKeyVectors,
+        common::hash_t hash);
 
-    void initializeFTEntryWithFlatVec(
-        common::ValueVector* flatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
+    void initializeFTEntryWithFlatVec(common::ValueVector* flatVector,
+        uint64_t numEntriesToInitialize, uint32_t colIdx);
 
-    void initializeFTEntryWithUnFlatVec(
-        common::ValueVector* unFlatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
+    void initializeFTEntryWithUnFlatVec(common::ValueVector* unFlatVector,
+        uint64_t numEntriesToInitialize, uint32_t colIdx);
 
-    void initializeFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        const std::vector<common::ValueVector*>& dependentKeyVectors,
-        uint64_t numFTEntriesToInitialize);
-
-    uint8_t* createEntryInDistinctHT(
-        const std::vector<common::ValueVector*>& groupByHashKeyVectors, common::hash_t hash);
+    uint8_t* createEntryInDistinctHT(const std::vector<common::ValueVector*>& groupByHashKeyVectors,
+        common::hash_t hash);
 
     void increaseSlotIdx(uint64_t& slotIdx) const;
 
@@ -144,16 +158,6 @@ private:
     // ! This function will only be used by distinct aggregate, which assumes that all keyVectors
     // are flat.
     bool matchFlatGroupByKeys(const std::vector<common::ValueVector*>& keyVectors, uint8_t* entry);
-
-    uint64_t matchUnFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
-        uint64_t& numNoMatches, uint32_t colIdx);
-
-    uint64_t matchFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
-        uint64_t& numNoMatches, uint32_t colIdx);
-
-    uint64_t matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
-        uint64_t numNoMatches);
 
     void fillEntryWithInitialNullAggregateState(uint8_t* entry);
 
@@ -205,13 +209,19 @@ private:
         std::unique_ptr<function::AggregateFunction>& aggregateFunction,
         common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
 
+protected:
+    uint32_t hashColIdxInFT;
+    std::unique_ptr<uint64_t[]> mayMatchIdxes;
+    std::unique_ptr<uint64_t[]> noMatchIdxes;
+    std::unique_ptr<uint64_t[]> entryIdxesToInitialize;
+    std::unique_ptr<HashSlot*[]> hashSlotsToUpdateAggState;
+
 private:
     std::vector<common::LogicalType> dependentKeyDataTypes;
     std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions;
 
     //! special handling of distinct aggregate
     std::vector<std::unique_ptr<AggregateHashTable>> distinctHashTables;
-    uint32_t hashColIdxInFT;
     uint32_t hashColOffsetInFT;
     uint32_t aggStateColOffsetInFT;
     uint32_t aggStateColIdxInFT;
@@ -219,11 +229,7 @@ private:
     uint32_t numBytesForDependentKeys = 0;
     std::vector<update_agg_function_t> updateAggFuncs;
     // Temporary arrays to hold intermediate results.
-    std::unique_ptr<HashSlot*[]> hashSlotsToUpdateAggState;
     std::unique_ptr<uint64_t[]> tmpValueIdxes;
-    std::unique_ptr<uint64_t[]> entryIdxesToInitialize;
-    std::unique_ptr<uint64_t[]> mayMatchIdxes;
-    std::unique_ptr<uint64_t[]> noMatchIdxes;
     std::unique_ptr<uint64_t[]> tmpSlotIdxes;
 };
 

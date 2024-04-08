@@ -75,8 +75,8 @@ BoundReturnClause Binder::bindReturnClause(const ReturnClause& returnClause) {
     return BoundReturnClause(std::move(boundProjectionBody), std::move(statementResult));
 }
 
-static bool isAggregateExpression(
-    const std::shared_ptr<Expression>& expression, const BinderScope& scope) {
+static bool isAggregateExpression(const std::shared_ptr<Expression>& expression,
+    const BinderScope& scope) {
     if (expression->hasAlias() && scope.contains(expression->getAlias())) {
         return false;
     }
@@ -91,8 +91,8 @@ static bool isAggregateExpression(
     return false;
 }
 
-static expression_vector getAggregateExpressions(
-    const std::shared_ptr<Expression>& expression, const BinderScope& scope) {
+static expression_vector getAggregateExpressions(const std::shared_ptr<Expression>& expression,
+    const BinderScope& scope) {
     expression_vector result;
     if (expression->hasAlias() && scope.contains(expression->getAlias())) {
         return result;
@@ -109,8 +109,8 @@ static expression_vector getAggregateExpressions(
     return result;
 }
 
-BoundProjectionBody Binder::bindProjectionBody(
-    const parser::ProjectionBody& projectionBody, const expression_vector& projectionExpressions) {
+BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& projectionBody,
+    const expression_vector& projectionExpressions) {
     auto boundProjectionBody =
         BoundProjectionBody(projectionBody.getIsDistinct(), projectionExpressions);
     // Bind group by & aggregate.
@@ -164,8 +164,8 @@ BoundProjectionBody Binder::bindProjectionBody(
                 }
             }
         }
-        boundProjectionBody.setOrderByExpressions(
-            std::move(orderByExpressions), projectionBody.getSortOrders());
+        boundProjectionBody.setOrderByExpressions(std::move(orderByExpressions),
+            projectionBody.getSortOrders());
     }
     // Bind skip
     if (projectionBody.hasSkipExpression()) {

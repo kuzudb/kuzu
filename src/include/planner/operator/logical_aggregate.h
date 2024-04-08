@@ -10,14 +10,14 @@ public:
     LogicalAggregate(binder::expression_vector keyExpressions,
         binder::expression_vector aggregateExpressions, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)},
-          keyExpressions{std::move(keyExpressions)}, aggregateExpressions{
-                                                         std::move(aggregateExpressions)} {}
+          keyExpressions{std::move(keyExpressions)},
+          aggregateExpressions{std::move(aggregateExpressions)} {}
     LogicalAggregate(binder::expression_vector keyExpressions,
         binder::expression_vector dependentKeyExpressions,
         binder::expression_vector aggregateExpressions, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)},
-          keyExpressions{std::move(keyExpressions)}, dependentKeyExpressions{std::move(
-                                                         dependentKeyExpressions)},
+          keyExpressions{std::move(keyExpressions)},
+          dependentKeyExpressions{std::move(dependentKeyExpressions)},
           aggregateExpressions{std::move(aggregateExpressions)} {}
 
     void computeFactorizedSchema() override;
@@ -50,8 +50,8 @@ public:
     }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalAggregate>(
-            keyExpressions, dependentKeyExpressions, aggregateExpressions, children[0]->copy());
+        return make_unique<LogicalAggregate>(keyExpressions, dependentKeyExpressions,
+            aggregateExpressions, children[0]->copy());
     }
 
 private:

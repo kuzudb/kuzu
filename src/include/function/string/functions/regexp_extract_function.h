@@ -17,8 +17,8 @@ struct RegexpExtract : BaseRegexpOperation {
     static inline void operation(common::ku_string_t& value, common::ku_string_t& pattern,
         common::ku_string_t& result, common::ValueVector& resultValueVector) {
         int64_t defaultGroup = 0;
-        regexExtract(
-            value.getAsString(), pattern.getAsString(), defaultGroup, result, resultValueVector);
+        regexExtract(value.getAsString(), pattern.getAsString(), defaultGroup, result,
+            resultValueVector);
     }
 
     static void regexExtract(const std::string& input, const std::string& pattern,

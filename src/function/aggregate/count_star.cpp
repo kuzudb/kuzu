@@ -6,8 +6,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace function {
 
-void CountStarFunction::updateAll(
-    uint8_t* state_, ValueVector* input, uint64_t multiplicity, MemoryManager* /*memoryManager*/) {
+void CountStarFunction::updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity,
+    MemoryManager* /*memoryManager*/) {
     auto state = reinterpret_cast<CountState*>(state_);
     KU_ASSERT(input == nullptr);
     (void)input;

@@ -24,8 +24,8 @@ public:
     void finalize(ExecutionContext*) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CopyRdf>(
-            sharedState, resultSetDescriptor->copy(), id, paramsString);
+        return std::make_unique<CopyRdf>(sharedState, resultSetDescriptor->copy(), id,
+            paramsString);
     }
 
 private:

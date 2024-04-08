@@ -16,8 +16,8 @@ void NodeBatchInsertSharedState::initPKIndex(kuzu::processor::ExecutionContext* 
     KU_ASSERT(pkType.getLogicalTypeID() != LogicalTypeID::SERIAL);
     auto indexFName = StorageUtils::getNodeIndexFName(context->clientContext->getVFSUnsafe(),
         wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
-    pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
-        indexFName, pkType.getPhysicalType(), context->clientContext->getVFSUnsafe());
+    pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(indexFName, pkType.getPhysicalType(),
+        context->clientContext->getVFSUnsafe());
     uint64_t numRows;
     if (readerSharedState != nullptr) {
         KU_ASSERT(distinctSharedState == nullptr);
@@ -43,8 +43,8 @@ void NodeBatchInsertSharedState::appendIncompleteNodeGroup(
     if (sharedNodeGroup->isFull()) {
         auto nodeGroupIdx = getNextNodeGroupIdxWithoutLock();
         auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(table);
-        NodeBatchInsert::writeAndResetNodeGroup(
-            nodeGroupIdx, indexBuilder, pkColumnIdx, nodeTable, sharedNodeGroup.get());
+        NodeBatchInsert::writeAndResetNodeGroup(nodeGroupIdx, indexBuilder, pkColumnIdx, nodeTable,
+            sharedNodeGroup.get());
     }
     if (numNodesAppended < localNodeGroup->getNumRows()) {
         sharedNodeGroup->append(localNodeGroup.get(), numNodesAppended);
@@ -95,8 +95,8 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
             nodeLocalState->columnVectors.push_back(nullVector.get());
         }
     }
-    nodeLocalState->nodeGroup = NodeGroupFactory::createNodeGroup(
-        ColumnDataFormat::REGULAR, nodeInfo->columnTypes, info->compressionEnabled);
+    nodeLocalState->nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR,
+        nodeInfo->columnTypes, info->compressionEnabled);
     nodeLocalState->columnState = state.get();
 }
 
@@ -117,8 +117,8 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         auto nodeSharedState =
             ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(
                 sharedState.get());
-        nodeSharedState->appendIncompleteNodeGroup(
-            std::move(nodeLocalState->nodeGroup), nodeLocalState->localIndexBuilder);
+        nodeSharedState->appendIncompleteNodeGroup(std::move(nodeLocalState->nodeGroup),
+            nodeLocalState->localIndexBuilder);
     }
     if (nodeLocalState->localIndexBuilder) {
         KU_ASSERT(token);
@@ -133,8 +133,8 @@ void NodeBatchInsert::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
     nodeGroup->finalize(nodeGroupIdx);
     if (indexBuilder) {
         auto nodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        indexBuilder->insert(
-            nodeGroup->getColumnChunkUnsafe(pkColumnID), nodeOffset, nodeGroup->getNumRows());
+        indexBuilder->insert(nodeGroup->getColumnChunkUnsafe(pkColumnID), nodeOffset,
+            nodeGroup->getNumRows());
     }
     table->append(nodeGroup);
     nodeGroup->resetToEmpty();
@@ -188,8 +188,8 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     }
     auto outputMsg = stringFormat("{} number of tuples has been copied to table: {}.",
         sharedState->getNumRows(), info->tableEntry->getName());
-    FactorizedTableUtils::appendStringToTable(
-        sharedState->fTable.get(), outputMsg, context->clientContext->getMemoryManager());
+    FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
+        context->clientContext->getMemoryManager());
 }
 } // namespace processor
 } // namespace kuzu

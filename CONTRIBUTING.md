@@ -3,7 +3,7 @@
 Welcome to Kùzu! We are excited that you are interested in contributing to Kùzu.
 Before submitting your contribution though, please make sure to take a moment and read through the following guidelines.
 
-Join our project's [Slack workspace](https://join.slack.com/t/kuzudb/shared_invite/zt-1w0thj6s7-0bLaU8Sb~4fDMKJ~oejG_g) for real-time communication with the core team and other contributors.
+Join our project's [Discord community](https://discord.gg/VtX2gw9Rug) for real-time communication with the core team and other contributors.
 If you have a question or need help, feel free to ask in the appropriate channel or create an issue.
 
 ## Code of Conduct

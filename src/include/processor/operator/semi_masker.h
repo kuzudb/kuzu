@@ -68,8 +68,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<SingleTableSemiMasker>(
-            info->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<SingleTableSemiMasker>(info->copy(), children[0]->clone(), id,
+            paramsString);
     }
 };
 
@@ -82,8 +82,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<MultiTableSemiMasker>(
-            info->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<MultiTableSemiMasker>(info->copy(), children[0]->clone(), id,
+            paramsString);
     }
 };
 
@@ -110,8 +110,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<PathSingleTableSemiMasker>(
-            info->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<PathSingleTableSemiMasker>(info->copy(), children[0]->clone(), id,
+            paramsString);
     }
 };
 
@@ -124,8 +124,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<PathMultipleTableSemiMasker>(
-            info->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<PathMultipleTableSemiMasker>(info->copy(), children[0]->clone(), id,
+            paramsString);
     }
 };
 

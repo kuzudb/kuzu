@@ -22,8 +22,8 @@ public:
     void prepare(ColumnWriterState& writerState, ColumnWriterState* parent,
         common::ValueVector* vector, uint64_t count) override;
     void beginWrite(ColumnWriterState& state) override;
-    void write(
-        ColumnWriterState& writerState, common::ValueVector* vector, uint64_t count) override;
+    void write(ColumnWriterState& writerState, common::ValueVector* vector,
+        uint64_t count) override;
     void finalizeWrite(ColumnWriterState& writerState) override;
 
 private:

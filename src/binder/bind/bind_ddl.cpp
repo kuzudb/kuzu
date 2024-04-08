@@ -40,8 +40,8 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.reserve(propertyNameDataTypes.size());
     for (auto& propertyNameDataType : propertyNameDataTypes) {
-        propertyInfos.emplace_back(
-            propertyNameDataType.first, *bindDataType(propertyNameDataType.second));
+        propertyInfos.emplace_back(propertyNameDataType.first,
+            *bindDataType(propertyNameDataType.second));
     }
     validateUniquePropertyName(propertyInfos);
     for (auto& info : propertyInfos) {
@@ -52,8 +52,8 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
     return propertyInfos;
 }
 
-static uint32_t bindPrimaryKey(
-    const std::string& pkColName, const std::vector<PropertyInfo>& infos) {
+static uint32_t bindPrimaryKey(const std::string& pkColName,
+    const std::vector<PropertyInfo>& infos) {
     uint32_t primaryKeyIdx = UINT32_MAX;
     for (auto i = 0u; i < infos.size(); i++) {
         if (infos[i].name == pkColName) {
@@ -138,8 +138,8 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     validateTableType(srcTableID, TableType::NODE);
     auto dstTableID = bindTableID(extraInfo->dstTableName);
     validateTableType(dstTableID, TableType::NODE);
-    auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
-        srcMultiplicity, dstMultiplicity, srcTableID, dstTableID, std::move(propertyInfos));
+    auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity,
+        dstMultiplicity, srcTableID, dstTableID, std::move(propertyInfos));
     return BoundCreateTableInfo(TableType::REL, info->tableName, std::move(boundExtraInfo));
 }
 
@@ -306,16 +306,16 @@ static void validatePropertyExist(TableCatalogEntry* tableEntry, const std::stri
     }
 }
 
-static void validatePropertyNotExist(
-    TableCatalogEntry* tableEntry, const std::string& propertyName) {
+static void validatePropertyNotExist(TableCatalogEntry* tableEntry,
+    const std::string& propertyName) {
     if (tableEntry->containProperty(propertyName)) {
         throw BinderException(
             tableEntry->getName() + " table already has property " + propertyName + ".");
     }
 }
 
-static void validatePropertyDDLOnTable(
-    TableCatalogEntry* tableEntry, const std::string& ddlOperation) {
+static void validatePropertyDDLOnTable(TableCatalogEntry* tableEntry,
+    const std::string& ddlOperation) {
     switch (tableEntry->getTableType()) {
     case TableType::REL_GROUP:
     case TableType::RDF: {

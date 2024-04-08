@@ -13,8 +13,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> NodesBindFunc(
-    const binder::expression_vector& arguments, Function* /*function*/) {
+static std::unique_ptr<FunctionBindData> NodesBindFunc(const binder::expression_vector& arguments,
+    Function* /*function*/) {
     auto structType = arguments[0]->getDataType();
     auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::NODES);
     return std::make_unique<StructExtractBindData>(
@@ -29,8 +29,8 @@ function_set NodesFunction::getFunctionSet() {
     return functionSet;
 }
 
-static std::unique_ptr<FunctionBindData> RelsBindFunc(
-    const binder::expression_vector& arguments, Function* /*function*/) {
+static std::unique_ptr<FunctionBindData> RelsBindFunc(const binder::expression_vector& arguments,
+    Function* /*function*/) {
     auto structType = arguments[0]->getDataType();
     auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::RELS);
     return std::make_unique<StructExtractBindData>(
@@ -75,8 +75,8 @@ static void PropertiesCompileFunc(FunctionBindData* bindData,
     std::shared_ptr<ValueVector>& result) {
     KU_ASSERT(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::LIST);
     auto propertiesBindData = reinterpret_cast<PropertiesBindData*>(bindData);
-    auto fieldVector = StructVector::getFieldVector(
-        ListVector::getDataVector(parameters[0].get()), propertiesBindData->childIdx);
+    auto fieldVector = StructVector::getFieldVector(ListVector::getDataVector(parameters[0].get()),
+        propertiesBindData->childIdx);
     ListVector::setDataVector(result.get(), fieldVector);
 }
 
@@ -122,8 +122,8 @@ static void IsTrailExecFunc(const std::vector<std::shared_ptr<ValueVector>>& par
     UnaryPathExecutor::executeRelIDs(*parameters[0], result);
 }
 
-static bool IsTrailSelectFunc(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, SelectionVector& selectionVector) {
+static bool IsTrailSelectFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    SelectionVector& selectionVector) {
     return UnaryPathExecutor::selectRelIDs(*parameters[0], selectionVector);
 }
 
@@ -140,8 +140,8 @@ static void IsACyclicExecFunc(const std::vector<std::shared_ptr<ValueVector>>& p
     UnaryPathExecutor::executeNodeIDs(*parameters[0], result);
 }
 
-static bool IsACyclicSelectFunc(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, SelectionVector& selectionVector) {
+static bool IsACyclicSelectFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    SelectionVector& selectionVector) {
     return UnaryPathExecutor::selectNodeIDs(*parameters[0], selectionVector);
 }
 

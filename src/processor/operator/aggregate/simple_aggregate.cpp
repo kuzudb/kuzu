@@ -73,12 +73,12 @@ void SimpleAggregate::computeDistinctAggregate(AggregateHashTable* distinctHT,
     function::AggregateFunction* function, AggregateInput* input, function::AggregateState* state,
     storage::MemoryManager* memoryManager) {
     auto multiplicity = 1; // Distinct aggregate should ignore multiplicity.
-    if (distinctHT->isAggregateValueDistinctForGroupByKeys(
-            std::vector<ValueVector*>{}, input->aggregateVector)) {
+    if (distinctHT->isAggregateValueDistinctForGroupByKeys(std::vector<ValueVector*>{},
+            input->aggregateVector)) {
         auto pos = input->aggregateVector->state->selVector->selectedPositions[0];
         if (!input->aggregateVector->isNull(pos)) {
-            function->updatePosState(
-                (uint8_t*)state, input->aggregateVector, multiplicity, pos, memoryManager);
+            function->updatePosState((uint8_t*)state, input->aggregateVector, multiplicity, pos,
+                memoryManager);
         }
     }
 }
@@ -92,12 +92,12 @@ void SimpleAggregate::computeAggregate(function::AggregateFunction* function, Ag
     if (input->aggregateVector && input->aggregateVector->state->isFlat()) {
         auto pos = input->aggregateVector->state->selVector->selectedPositions[0];
         if (!input->aggregateVector->isNull(pos)) {
-            function->updatePosState(
-                (uint8_t*)state, input->aggregateVector, multiplicity, pos, memoryManager);
+            function->updatePosState((uint8_t*)state, input->aggregateVector, multiplicity, pos,
+                memoryManager);
         }
     } else {
-        function->updateAllState(
-            (uint8_t*)state, input->aggregateVector, multiplicity, memoryManager);
+        function->updateAllState((uint8_t*)state, input->aggregateVector, multiplicity,
+            memoryManager);
     }
 }
 

@@ -9,7 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-static expression_vector getCorrelatedExpressions(const QueryGraphCollection& collection,
+binder::expression_vector Planner::getCorrelatedExprs(const QueryGraphCollection& collection,
     const expression_vector& predicates, Schema* outerSchema) {
     expression_vector result;
     for (auto& predicate : predicates) {
@@ -26,17 +26,22 @@ static expression_vector getCorrelatedExpressions(const QueryGraphCollection& co
 }
 
 void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
-    const expression_vector& predicates, LogicalPlan& leftPlan) {
+    const expression_vector& predicates, const binder::expression_vector& corrExprs,
+    LogicalPlan& leftPlan) {
+    planOptionalMatch(queryGraphCollection, predicates, corrExprs, nullptr /* mark */, leftPlan);
+}
+
+void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
+    const expression_vector& predicates, const binder::expression_vector& corrExprs,
+    std::shared_ptr<Expression> mark, LogicalPlan& leftPlan) {
     if (leftPlan.isEmpty()) {
         // Optional match is the first clause. No left plan to join.
         auto plan = planQueryGraphCollection(queryGraphCollection, predicates);
         leftPlan.setLastOperator(plan->getLastOperator());
-        appendAccumulate(AccumulateType::OPTIONAL_, leftPlan);
+        appendOptionalAccumulate(mark, leftPlan);
         return;
     }
-    auto correlatedExpressions =
-        getCorrelatedExpressions(queryGraphCollection, predicates, leftPlan.getSchema());
-    if (correlatedExpressions.empty()) {
+    if (corrExprs.empty()) {
         // No join condition, apply cross product.
         auto rightPlan = planQueryGraphCollection(queryGraphCollection, predicates);
         if (leftPlan.hasUpdate()) {
@@ -46,32 +51,32 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
         }
         return;
     }
-    bool isInternalIDCorrelated = ExpressionUtil::isExpressionsWithDataType(
-        correlatedExpressions, LogicalTypeID::INTERNAL_ID);
+    bool isInternalIDCorrelated =
+        ExpressionUtil::isExpressionsWithDataType(corrExprs, LogicalTypeID::INTERNAL_ID);
     std::unique_ptr<LogicalPlan> rightPlan;
     if (isInternalIDCorrelated) {
         // If all correlated expressions are node IDs. We can trivially unnest by scanning internal
         // ID in both outer and inner plan as these are fast in-memory operations. For node
         // properties, we only scan in the outer query.
         rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::INTERNAL_ID_CORRELATED,
-            correlatedExpressions, leftPlan.getCardinality(), queryGraphCollection, predicates);
+            corrExprs, leftPlan.getCardinality(), queryGraphCollection, predicates);
     } else {
         // Unnest using ExpressionsScan which scans the accumulated table on probe side.
-        rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::CORRELATED,
-            correlatedExpressions, leftPlan.getCardinality(), queryGraphCollection, predicates);
-        appendAccumulate(AccumulateType::REGULAR, correlatedExpressions, leftPlan);
+        rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::CORRELATED, corrExprs,
+            leftPlan.getCardinality(), queryGraphCollection, predicates);
+        appendAccumulate(corrExprs, leftPlan);
     }
     if (leftPlan.hasUpdate()) {
         throw RuntimeException(stringFormat("Optional match after update is not supported. Missing "
                                             "right outer join implementation."));
     }
-    appendHashJoin(correlatedExpressions, JoinType::LEFT, leftPlan, *rightPlan, leftPlan);
+    appendHashJoin(corrExprs, JoinType::LEFT, mark, leftPlan, *rightPlan, leftPlan);
 }
 
 void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, LogicalPlan& leftPlan) {
     auto correlatedExpressions =
-        getCorrelatedExpressions(queryGraphCollection, predicates, leftPlan.getSchema());
+        getCorrelatedExprs(queryGraphCollection, predicates, leftPlan.getSchema());
     expression_vector predicatesToPushDown, predicatesToPullUp;
     // E.g. MATCH (a) WITH COUNT(*) AS s MATCH (b) WHERE b.age > s
     // "b.age > s" should be pulled up after both MATCH clauses are joined.
@@ -82,8 +87,8 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
             predicatesToPullUp.push_back(predicate);
         }
     }
-    auto joinNodeIDs = ExpressionUtil::getExpressionsWithDataType(
-        correlatedExpressions, LogicalTypeID::INTERNAL_ID);
+    auto joinNodeIDs = ExpressionUtil::getExpressionsWithDataType(correlatedExpressions,
+        LogicalTypeID::INTERNAL_ID);
     if (joinNodeIDs.empty()) {
         auto rightPlan =
             planQueryGraphCollectionInNewContext(SubqueryType::NONE, correlatedExpressions,
@@ -121,13 +126,13 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
             outerPlan.getCardinality(), *subquery->getQueryGraphCollection(), predicates);
         switch (subquery->getSubqueryType()) {
         case common::SubqueryType::EXISTS: {
-            appendAggregate(
-                expression_vector{}, expression_vector{subquery->getCountStarExpr()}, *innerPlan);
+            appendAggregate(expression_vector{}, expression_vector{subquery->getCountStarExpr()},
+                *innerPlan);
             appendProjection(expression_vector{subquery->getProjectionExpr()}, *innerPlan);
         } break;
         case common::SubqueryType::COUNT: {
-            appendAggregate(
-                expression_vector{}, expression_vector{subquery->getProjectionExpr()}, *innerPlan);
+            appendAggregate(expression_vector{}, expression_vector{subquery->getProjectionExpr()},
+                *innerPlan);
         } break;
         default:
             KU_UNREACHABLE;
@@ -144,17 +149,17 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
             innerPlan =
                 planQueryGraphCollectionInNewContext(SubqueryType::CORRELATED, correlatedExprs,
                     outerPlan.getCardinality(), *subquery->getQueryGraphCollection(), predicates);
-            appendAccumulate(AccumulateType::REGULAR, correlatedExprs, outerPlan);
+            appendAccumulate(correlatedExprs, outerPlan);
         }
         switch (subquery->getSubqueryType()) {
         case common::SubqueryType::EXISTS: {
             appendMarkJoin(correlatedExprs, expression, outerPlan, *innerPlan);
         } break;
         case common::SubqueryType::COUNT: {
-            appendAggregate(
-                correlatedExprs, expression_vector{subquery->getProjectionExpr()}, *innerPlan);
-            appendHashJoin(
-                correlatedExprs, common::JoinType::COUNT, outerPlan, *innerPlan, outerPlan);
+            appendAggregate(correlatedExprs, expression_vector{subquery->getProjectionExpr()},
+                *innerPlan);
+            appendHashJoin(correlatedExprs, common::JoinType::COUNT, outerPlan, *innerPlan,
+                outerPlan);
         } break;
         default:
             KU_UNREACHABLE;
@@ -162,8 +167,8 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
     }
 }
 
-void Planner::planSubqueryIfNecessary(
-    const std::shared_ptr<Expression>& expression, LogicalPlan& plan) {
+void Planner::planSubqueryIfNecessary(const std::shared_ptr<Expression>& expression,
+    LogicalPlan& plan) {
     if (ExpressionVisitor::hasSubquery(*expression)) {
         auto expressionCollector = std::make_unique<ExpressionCollector>();
         for (auto& expr : expressionCollector->collectTopLevelSubqueryExpressions(expression)) {

@@ -9,8 +9,8 @@ namespace parser {
 class UnwindClause : public ReadingClause {
 public:
     UnwindClause(std::unique_ptr<ParsedExpression> expression, std::string listAlias)
-        : ReadingClause{common::ClauseType::UNWIND},
-          expression{std::move(expression)}, alias{std::move(listAlias)} {}
+        : ReadingClause{common::ClauseType::UNWIND}, expression{std::move(expression)},
+          alias{std::move(listAlias)} {}
 
     const ParsedExpression* getExpression() const { return expression.get(); }
 

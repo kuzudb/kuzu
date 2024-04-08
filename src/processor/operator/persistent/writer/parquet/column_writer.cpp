@@ -154,8 +154,8 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         schemaPathToCreate.emplace_back("key_value");
 
         // Construct the child types recursively.
-        std::vector<common::LogicalType*> kvTypes{
-            MapType::getKeyType(type), MapType::getValueType(type)};
+        std::vector<common::LogicalType*> kvTypes{MapType::getKeyType(type),
+            MapType::getValueType(type)};
         std::vector<std::string> kvNames{"key", "value"};
         std::vector<std::unique_ptr<ColumnWriter>> childrenWriters;
         childrenWriters.reserve(2);

@@ -14,14 +14,14 @@ struct BoundDeleteInfo {
 
     BoundDeleteInfo(UpdateTableType updateTableType, std::shared_ptr<Expression> nodeOrRel,
         common::DeleteClauseType deleteClauseType)
-        : deleteClauseType{deleteClauseType}, updateTableType{updateTableType}, nodeOrRel{std::move(
-                                                                                    nodeOrRel)} {}
+        : deleteClauseType{deleteClauseType}, updateTableType{updateTableType},
+          nodeOrRel{std::move(nodeOrRel)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundDeleteInfo);
 
 private:
     BoundDeleteInfo(const BoundDeleteInfo& other)
-        : deleteClauseType{other.deleteClauseType},
-          updateTableType{other.updateTableType}, nodeOrRel{other.nodeOrRel} {}
+        : deleteClauseType{other.deleteClauseType}, updateTableType{other.updateTableType},
+          nodeOrRel{other.nodeOrRel} {}
 };
 
 } // namespace binder

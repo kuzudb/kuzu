@@ -13,8 +13,8 @@ TopKSortState::TopKSortState() : numTuples{0}, memoryManager{nullptr} {
     orderBySharedState = std::make_unique<SortSharedState>();
 }
 
-void TopKSortState::init(
-    const OrderByDataInfo& orderByDataInfo, storage::MemoryManager* memoryManager) {
+void TopKSortState::init(const OrderByDataInfo& orderByDataInfo,
+    storage::MemoryManager* memoryManager) {
     this->memoryManager = memoryManager;
     orderBySharedState->init(orderByDataInfo);
     orderByLocalState->init(orderByDataInfo, *orderBySharedState, memoryManager);
@@ -42,8 +42,8 @@ void TopKSortState::finalize() {
     }
 }
 
-void TopKBuffer::init(
-    storage::MemoryManager* memoryManager, uint64_t skipNumber, uint64_t limitNumber) {
+void TopKBuffer::init(storage::MemoryManager* memoryManager, uint64_t skipNumber,
+    uint64_t limitNumber) {
     this->memoryManager = memoryManager;
     sortState->init(*orderByDataInfo, memoryManager);
     this->skip = skipNumber;
@@ -132,8 +132,8 @@ void TopKBuffer::initVectors() {
 }
 
 template<typename FUNC>
-void TopKBuffer::getSelectComparisonFunction(
-    common::PhysicalTypeID typeID, vector_select_comparison_func& selectFunc) {
+void TopKBuffer::getSelectComparisonFunction(common::PhysicalTypeID typeID,
+    vector_select_comparison_func& selectFunc) {
     switch (typeID) {
     case common::PhysicalTypeID::INT64: {
         selectFunc = function::BinaryFunctionExecutor::selectComparison<int64_t, int64_t, FUNC>;
@@ -209,12 +209,12 @@ bool TopKBuffer::compareBoundaryValue(const std::vector<common::ValueVector*>& k
     }
 }
 
-bool TopKBuffer::compareFlatKeys(
-    vector_idx_t vectorIdxToCompare, std::vector<ValueVector*> keyVectors) {
+bool TopKBuffer::compareFlatKeys(vector_idx_t vectorIdxToCompare,
+    std::vector<ValueVector*> keyVectors) {
     auto selVector = std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
     selVector->setToFiltered();
-    auto compareResult = compareFuncs[vectorIdxToCompare](
-        *keyVectors[vectorIdxToCompare], *boundaryVecs[vectorIdxToCompare], *selVector);
+    auto compareResult = compareFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
+        *boundaryVecs[vectorIdxToCompare], *selVector);
     if (vectorIdxToCompare == keyVectors.size() - 1) {
         return compareResult;
     } else if (equalsFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
@@ -225,13 +225,13 @@ bool TopKBuffer::compareFlatKeys(
     }
 }
 
-void TopKBuffer::compareUnflatKeys(
-    vector_idx_t vectorIdxToCompare, std::vector<ValueVector*> keyVectors) {
+void TopKBuffer::compareUnflatKeys(vector_idx_t vectorIdxToCompare,
+    std::vector<ValueVector*> keyVectors) {
     auto compareSelVector =
         std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
     compareSelVector->setToFiltered();
-    compareFuncs[vectorIdxToCompare](
-        *keyVectors[vectorIdxToCompare], *boundaryVecs[vectorIdxToCompare], *compareSelVector);
+    compareFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
+        *boundaryVecs[vectorIdxToCompare], *compareSelVector);
     if (vectorIdxToCompare != keyVectors.size() - 1) {
         auto equalsSelVector =
             std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
@@ -246,8 +246,8 @@ void TopKBuffer::compareUnflatKeys(
     keyVectors[vectorIdxToCompare]->state->selVector = std::move(compareSelVector);
 }
 
-void TopKBuffer::appendSelState(
-    common::SelectionVector* selVector, common::SelectionVector* selVectorToAppend) {
+void TopKBuffer::appendSelState(common::SelectionVector* selVector,
+    common::SelectionVector* selVectorToAppend) {
     for (auto i = 0u; i < selVectorToAppend->selectedSize; i++) {
         selVector->selectedPositions[selVector->selectedSize + i] =
             selVectorToAppend->selectedPositions[i];
@@ -271,8 +271,8 @@ void TopKLocalState::append(const std::vector<common::ValueVector*>& keyVectors,
 
 void TopK::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<TopKLocalState>();
-    localState->init(
-        *info, context->clientContext->getMemoryManager(), *resultSet, skipNumber, limitNumber);
+    localState->init(*info, context->clientContext->getMemoryManager(), *resultSet, skipNumber,
+        limitNumber);
     for (auto& dataPos : info->payloadsPos) {
         payloadVectors.push_back(resultSet->getValueVector(dataPos).get());
     }

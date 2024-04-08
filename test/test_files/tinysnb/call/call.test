@@ -114,9 +114,9 @@ Can't execute a write query inside a read-only transaction.
 2|meetTime|TIMESTAMP
 3|validInterval|INTERVAL
 4|comments|STRING[]
-5|summary|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
-6|notes|UNION(firstmet:DATE, type:INT16, comment:STRING)
-7|someMap|MAP(STRING: STRING)
+5|summary|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))
+6|notes|UNION(firstmet DATE, type INT16, comment STRING)
+7|someMap|MAP(STRING, STRING)
 
 -LOG ReturnNodeName
 -STATEMENT CALL table_info('person') WHERE name <> 'ID' RETURN name
@@ -142,25 +142,25 @@ height
 ---- 21
 2:0|DATE
 2:0|INTERVAL
-2:0|MAP(STRING: STRING)
+2:0|MAP(STRING, STRING)
 2:0|STRING[]
 2:0|TIMESTAMP
-2:0|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
-2:0|UNION(firstmet:DATE, type:INT16, comment:STRING)
+2:0|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))
+2:0|UNION(firstmet DATE, type INT16, comment STRING)
 2:1|DATE
 2:1|INTERVAL
-2:1|MAP(STRING: STRING)
+2:1|MAP(STRING, STRING)
 2:1|STRING[]
 2:1|TIMESTAMP
-2:1|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
-2:1|UNION(firstmet:DATE, type:INT16, comment:STRING)
+2:1|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))
+2:1|UNION(firstmet DATE, type INT16, comment STRING)
 2:2|DATE
 2:2|INTERVAL
-2:2|MAP(STRING: STRING)
+2:2|MAP(STRING, STRING)
 2:2|STRING[]
 2:2|TIMESTAMP
-2:2|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
-2:2|UNION(firstmet:DATE, type:INT16, comment:STRING)
+2:2|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))
+2:2|UNION(firstmet DATE, type INT16, comment STRING)
 
 -CASE CallNodeTableWith300ColumnsInfo
 -DEFINE COLS REPEAT 2400 "col${count} INT64,"

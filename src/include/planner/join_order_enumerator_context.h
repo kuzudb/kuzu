@@ -18,8 +18,8 @@ class JoinOrderEnumeratorContext {
 public:
     JoinOrderEnumeratorContext()
         : currentLevel{0}, maxLevel{0}, subPlansTable{std::make_unique<SubPlansTable>()},
-          queryGraph{nullptr}, subqueryType{SubqueryType::NONE}, correlatedExpressionsCardinality{
-                                                                     1} {}
+          queryGraph{nullptr}, subqueryType{SubqueryType::NONE},
+          correlatedExpressionsCardinality{1} {}
     DELETE_COPY_DEFAULT_MOVE(JoinOrderEnumeratorContext);
 
     void init(const binder::QueryGraph* queryGraph, const binder::expression_vector& predicates);
@@ -33,8 +33,8 @@ public:
         const binder::SubqueryGraph& subqueryGraph) const {
         return subPlansTable->getSubgraphPlans(subqueryGraph);
     }
-    inline void addPlan(
-        const binder::SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan) {
+    inline void addPlan(const binder::SubqueryGraph& subqueryGraph,
+        std::unique_ptr<LogicalPlan> plan) {
         subPlansTable->addPlan(subqueryGraph, std::move(plan));
     }
 

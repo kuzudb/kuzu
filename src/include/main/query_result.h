@@ -23,8 +23,8 @@ public:
     // Used by array only.
     uint64_t fixedNumValues;
 
-    static std::unique_ptr<DataTypeInfo> getInfoForDataType(
-        const common::LogicalType& type, const std::string& name);
+    static std::unique_ptr<DataTypeInfo> getInfoForDataType(const common::LogicalType& type,
+        const std::string& name);
 };
 
 /**
@@ -38,6 +38,8 @@ class QueryResult {
         QueryResult* currentResult;
 
     public:
+        QueryResultIterator() = default;
+
         explicit QueryResultIterator(QueryResult* startResult) : currentResult(startResult) {}
 
         void operator++() {
@@ -46,9 +48,9 @@ class QueryResult {
             }
         }
 
-        bool isEnd() { return currentResult == nullptr; }
+        bool isEnd() const { return currentResult == nullptr; }
 
-        QueryResult* getCurrentResult() { return currentResult; }
+        QueryResult* getCurrentResult() const { return currentResult; }
     };
 
 public:
@@ -97,15 +99,22 @@ public:
      * @return whether there are more tuples to read.
      */
     KUZU_API bool hasNext() const;
-    std::unique_ptr<QueryResult> nextQueryResult;
+    /**
+     * @return whether there are more query results to read.
+     */
+    KUZU_API bool hasNextQueryResult() const;
+    /**
+     * @return get next query result to read (for multiple query statements).
+     */
+    KUZU_API QueryResult* getNextQueryResult();
 
-    std::string toSingleQueryString();
+    std::unique_ptr<QueryResult> nextQueryResult;
     /**
      * @return next flat tuple in the query result.
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
     /**
-     * @return string of query result.
+     * @return string of first query result.
      */
     KUZU_API std::string toString();
 
@@ -158,6 +167,9 @@ private:
 
     // execution statistics
     std::unique_ptr<QuerySummary> querySummary;
+
+    // query iterator
+    QueryResultIterator queryResultIterator;
 };
 
 } // namespace main

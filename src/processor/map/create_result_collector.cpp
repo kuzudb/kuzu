@@ -20,11 +20,16 @@ std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(AccumulateTyp
             columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */,
                 dataPos.dataChunkPos, LogicalTypeUtils::getRowLayoutSize(expression->dataType));
         } else {
-            columnSchema = std::make_unique<ColumnSchema>(
-                true /* isUnFlat */, dataPos.dataChunkPos, (uint32_t)sizeof(overflow_value_t));
+            columnSchema = std::make_unique<ColumnSchema>(true /* isUnFlat */, dataPos.dataChunkPos,
+                (uint32_t)sizeof(overflow_value_t));
         }
         tableSchema->appendColumn(std::move(columnSchema));
         payloadsPos.push_back(dataPos);
+    }
+    if (accumulateType == AccumulateType::OPTIONAL_) {
+        auto columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */,
+            INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(*LogicalType::BOOL()));
+        tableSchema->appendColumn(std::move(columnSchema));
     }
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());

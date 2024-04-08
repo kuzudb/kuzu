@@ -86,11 +86,11 @@ public:
         return make_unique<WALIterator>(fileHandle, mtx);
     }
 
-    common::page_idx_t logPageUpdateRecord(
-        DBFileID dbFileID, common::page_idx_t pageIdxInOriginalFile);
+    common::page_idx_t logPageUpdateRecord(DBFileID dbFileID,
+        common::page_idx_t pageIdxInOriginalFile);
 
-    common::page_idx_t logPageInsertRecord(
-        DBFileID dbFileID, common::page_idx_t pageIdxInOriginalFile);
+    common::page_idx_t logPageInsertRecord(DBFileID dbFileID,
+        common::page_idx_t pageIdxInOriginalFile);
 
     void logCommit(uint64_t transactionID);
 

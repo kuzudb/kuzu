@@ -17,13 +17,13 @@ NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(BMFileHandle* metadataF
     metadataDAHInfos.clear();
     metadataDAHInfos.reserve(entry.getNumProperties());
     for (auto& property : entry.getPropertiesRef()) {
-        metadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
-            *property.getDataType(), *metadataFH, bufferManager, wal));
+        metadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(*property.getDataType(),
+            *metadataFH, bufferManager, wal));
     }
 }
 
-NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(
-    table_id_t tableID, offset_t maxNodeOffset, const std::vector<offset_t>& deletedNodeOffsets)
+NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(table_id_t tableID, offset_t maxNodeOffset,
+    const std::vector<offset_t>& deletedNodeOffsets)
     : NodeTableStatsAndDeletedIDs{tableID, maxNodeOffset, deletedNodeOffsets, {}} {}
 
 NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other)
@@ -105,8 +105,8 @@ void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
 // Note: this function will always be called right after scanNodeID, so we have the guarantee
 // that the nodeOffsetVector is always unselected.
 void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(ValueVector* nodeIDVector) const {
-    auto [morselIdx, _] = StorageUtils::getQuotientRemainder(
-        nodeIDVector->readNodeOffset(0), DEFAULT_VECTOR_CAPACITY);
+    auto [morselIdx, _] = StorageUtils::getQuotientRemainder(nodeIDVector->readNodeOffset(0),
+        DEFAULT_VECTOR_CAPACITY);
     if (hasDeletedNodesPerMorsel[morselIdx]) {
         auto& deletedNodeOffsets = deletedNodeOffsetsPerMorsel.at(morselIdx);
         uint64_t morselBeginOffset = morselIdx * DEFAULT_VECTOR_CAPACITY;

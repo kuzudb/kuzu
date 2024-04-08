@@ -10,8 +10,8 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-RelsStoreStats::RelsStoreStats(
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, VirtualFileSystem* vfs)
+RelsStoreStats::RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    VirtualFileSystem* vfs)
     : TablesStatistics{metadataFH, bufferManager, wal, vfs} {
     readFromFile();
 }
@@ -63,8 +63,8 @@ void RelsStoreStats::removeMetadataDAHInfo(table_id_t tableID, column_id_t colum
     tableStats->removeMetadataDAHInfoForColumn(columnID, RelDataDirection::BWD);
 }
 
-MetadataDAHInfo* RelsStoreStats::getCSROffsetMetadataDAHInfo(
-    Transaction* transaction, table_id_t tableID, RelDataDirection direction) {
+MetadataDAHInfo* RelsStoreStats::getCSROffsetMetadataDAHInfo(Transaction* transaction,
+    table_id_t tableID, RelDataDirection direction) {
     if (transaction->isWriteTransaction()) {
         initTableStatisticsForWriteTrx();
     }
@@ -72,8 +72,8 @@ MetadataDAHInfo* RelsStoreStats::getCSROffsetMetadataDAHInfo(
     return tableStats->getCSROffsetMetadataDAHInfo(direction);
 }
 
-MetadataDAHInfo* RelsStoreStats::getCSRLengthMetadataDAHInfo(
-    Transaction* transaction, table_id_t tableID, RelDataDirection direction) {
+MetadataDAHInfo* RelsStoreStats::getCSRLengthMetadataDAHInfo(Transaction* transaction,
+    table_id_t tableID, RelDataDirection direction) {
     if (transaction->isWriteTransaction()) {
         initTableStatisticsForWriteTrx();
     }

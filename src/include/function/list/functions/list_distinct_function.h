@@ -28,8 +28,8 @@ struct ListDistinct {
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
         auto numBytesPerValue = inputDataVector->getNumBytesPerValue();
         for (auto val : uniqueValues) {
-            resultDataVector->copyFromVectorData(
-                resultValues, inputDataVector, reinterpret_cast<uint8_t*>(&val));
+            resultDataVector->copyFromVectorData(resultValues, inputDataVector,
+                reinterpret_cast<uint8_t*>(&val));
             resultValues += numBytesPerValue;
         }
     }

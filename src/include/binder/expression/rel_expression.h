@@ -49,8 +49,8 @@ struct RdfPredicateInfo {
     std::vector<common::table_id_t> resourceTableIDs;
     std::shared_ptr<Expression> predicateID;
 
-    RdfPredicateInfo(
-        std::vector<common::table_id_t> resourceTableIDs, std::shared_ptr<Expression> predicateID)
+    RdfPredicateInfo(std::vector<common::table_id_t> resourceTableIDs,
+        std::shared_ptr<Expression> predicateID)
         : resourceTableIDs{std::move(resourceTableIDs)}, predicateID{std::move(predicateID)} {}
     DELETE_COPY_DEFAULT_MOVE(RdfPredicateInfo);
 };
@@ -63,8 +63,8 @@ public:
         common::QueryRelType relType)
         : NodeOrRelExpression{std::move(dataType), std::move(uniqueName), std::move(variableName),
               std::move(tableIDs)},
-          srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)},
-          directionType{directionType}, relType{relType} {}
+          srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)}, directionType{directionType},
+          relType{relType} {}
 
     inline bool isRecursive() const {
         return dataType.getLogicalTypeID() == common::LogicalTypeID::RECURSIVE_REL;

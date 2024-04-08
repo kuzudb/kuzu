@@ -3,8 +3,8 @@
 namespace kuzu {
 namespace catalog {
 
-DuckDBTableCatalogEntry::DuckDBTableCatalogEntry(
-    std::string name, common::table_id_t tableID, function::TableFunction scanFunction)
+DuckDBTableCatalogEntry::DuckDBTableCatalogEntry(std::string name, common::table_id_t tableID,
+    function::TableFunction scanFunction)
     : TableCatalogEntry{CatalogEntryType::FOREIGN_TABLE_ENTRY, std::move(name), tableID},
       scanFunction{std::move(scanFunction)} {}
 

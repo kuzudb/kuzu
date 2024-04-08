@@ -20,8 +20,8 @@ public:
           variableName{std::move(variableName)} {}
 
     explicit ParsedVariableExpression(std::string variableName)
-        : ParsedExpression{common::ExpressionType::VARIABLE}, variableName{
-                                                                  std::move(variableName)} {}
+        : ParsedExpression{common::ExpressionType::VARIABLE},
+          variableName{std::move(variableName)} {}
 
     inline std::string getVariableName() const { return variableName; }
 
@@ -29,8 +29,8 @@ public:
         common::Deserializer& deserializer);
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
-        return std::make_unique<ParsedVariableExpression>(
-            alias, rawName, copyChildren(), variableName);
+        return std::make_unique<ParsedVariableExpression>(alias, rawName, copyChildren(),
+            variableName);
     }
 
 private:

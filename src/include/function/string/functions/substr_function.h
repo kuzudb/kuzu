@@ -29,8 +29,8 @@ public:
             copySubstr(src, start, len, result, resultValueVector, true /* isAscii */);
         } else {
             int64_t characterCount = 0, startBytePos = 0, endBytePos = 0;
-            kuzu::utf8proc::utf8proc_grapheme_callback(
-                srcStr.c_str(), srcStr.size(), [&](int64_t gstart, int64_t /*gend*/) {
+            kuzu::utf8proc::utf8proc_grapheme_callback(srcStr.c_str(), srcStr.size(),
+                [&](int64_t gstart, int64_t /*gend*/) {
                     if (characterCount == startPos) {
                         startBytePos = gstart;
                     } else if ((uint64_t)characterCount == endPos) {
@@ -55,12 +55,12 @@ public:
         if (isAscii) {
             // For normal ASCII char case, we get to the proper byte position to copy from by doing
             // a -1 (since it is guaranteed each char is 1 byte).
-            common::StringVector::addString(
-                &resultValueVector, result, (const char*)(src.getData() + start - 1), length);
+            common::StringVector::addString(&resultValueVector, result,
+                (const char*)(src.getData() + start - 1), length);
         } else {
             // For utf8 char copy, the function gets the exact starting byte position to copy from.
-            common::StringVector::addString(
-                &resultValueVector, result, (const char*)(src.getData() + start), length);
+            common::StringVector::addString(&resultValueVector, result,
+                (const char*)(src.getData() + start), length);
         }
     }
 };

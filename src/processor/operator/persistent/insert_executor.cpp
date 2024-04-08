@@ -54,9 +54,17 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
         return;
     }
     // TODO: Move pkVector pos to info.
-    auto nodeInsertState = std::make_unique<storage::NodeTableInsertState>(
-        *nodeIDVector, *columnDataVectors[table->getPKColumnID()], columnDataVectors);
+    auto nodeInsertState = std::make_unique<storage::NodeTableInsertState>(*nodeIDVector,
+        *columnDataVectors[table->getPKColumnID()], columnDataVectors);
     table->insert(tx, *nodeInsertState);
+    writeResult();
+}
+
+void NodeInsertExecutor::skipInsert(ExecutionContext* context) {
+    for (auto& evaluator : columnDataEvaluators) {
+        evaluator->evaluate(context->clientContext);
+    }
+    nodeIDVector->setNull(nodeIDVector->state->selVector->selectedPositions[0], false);
     writeResult();
 }
 
@@ -143,9 +151,16 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* c
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
         columnDataEvaluators[i]->evaluate(context->clientContext);
     }
-    auto insertState = std::make_unique<storage::RelTableInsertState>(
-        *srcNodeIDVector, *dstNodeIDVector, columnDataVectors);
+    auto insertState = std::make_unique<storage::RelTableInsertState>(*srcNodeIDVector,
+        *dstNodeIDVector, columnDataVectors);
     table->insert(tx, *insertState);
+    writeResult();
+}
+
+void RelInsertExecutor::skipInsert(ExecutionContext* context) {
+    for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
+        columnDataEvaluators[i]->evaluate(context->clientContext);
+    }
     writeResult();
 }
 

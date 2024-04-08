@@ -108,8 +108,8 @@ struct StorageInfoBindData final : public CallTableFuncBindData {
           tableEntry{tableEntry}, table{table}, context{context} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<StorageInfoBindData>(
-            columnTypes, columnNames, tableEntry, table, context);
+        return std::make_unique<StorageInfoBindData>(columnTypes, columnNames, tableEntry, table,
+            context);
     }
 };
 
@@ -122,8 +122,8 @@ static std::unique_ptr<TableFuncSharedState> initStorageInfoSharedState(
     TableFunctionInitInput& input) {
     auto storageInfoBindData =
         ku_dynamic_cast<TableFuncBindData*, StorageInfoBindData*>(input.bindData);
-    return std::make_unique<StorageInfoSharedState>(
-        storageInfoBindData->table, storageInfoBindData->maxOffset);
+    return std::make_unique<StorageInfoSharedState>(storageInfoBindData->table,
+        storageInfoBindData->maxOffset);
 }
 
 static void appendColumnChunkStorageInfo(node_group_idx_t nodeGroupIdx,
@@ -198,8 +198,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     }
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(
-    ClientContext* context, TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames = {"node_group_id", "column_name", "data_type",
         "table_type", "start_page_idx", "num_pages", "num_values", "compression"};
     std::vector<LogicalType> columnTypes;
@@ -220,8 +220,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(
     auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
     auto storageManager = context->getStorageManager();
     auto table = storageManager->getTable(tableID);
-    return std::make_unique<StorageInfoBindData>(
-        std::move(columnTypes), std::move(columnNames), tableEntry, table, context);
+    return std::make_unique<StorageInfoBindData>(std::move(columnTypes), std::move(columnNames),
+        tableEntry, table, context);
 }
 
 function_set StorageInfoFunction::getFunctionSet() {

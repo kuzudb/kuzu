@@ -26,8 +26,8 @@ void scanArrowArrayFixedSizePrimitive<bool>(const ArrowArray* array, ValueVector
     auto arrayBuffer = (const uint8_t*)array->buffers[1];
     mask->copyToValueVector(&outputVector, dstOffset, count);
     for (uint64_t i = 0; i < count; i++) {
-        outputVector.setValue<bool>(
-            i + dstOffset, NullMask::isNull((const uint64_t*)arrayBuffer, i + srcOffset));
+        outputVector.setValue<bool>(i + dstOffset,
+            NullMask::isNull((const uint64_t*)arrayBuffer, i + srcOffset));
     }
 }
 
@@ -39,8 +39,8 @@ static void scanArrowArrayDurationScaledUp(const ArrowArray* array, ValueVector&
     for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto curValue = arrayBuffer[i];
-            outputVector.setValue<interval_t>(
-                i + dstOffset, interval_t(0, 0, curValue * scaleFactor));
+            outputVector.setValue<interval_t>(i + dstOffset,
+                interval_t(0, 0, curValue * scaleFactor));
         }
     }
 }
@@ -53,8 +53,8 @@ static void scanArrowArrayDurationScaledDown(const ArrowArray* array, ValueVecto
     for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
             auto curValue = arrayBuffer[i];
-            outputVector.setValue<interval_t>(
-                i + dstOffset, interval_t(0, 0, curValue / scaleFactor));
+            outputVector.setValue<interval_t>(i + dstOffset,
+                interval_t(0, 0, curValue / scaleFactor));
         }
     }
 }
@@ -130,13 +130,13 @@ static void scanArrowArrayBLOBView(const ArrowArray* array, ValueVector& outputV
             // view structures are 16 bytes long
             auto viewLength = curView[0];
             if (viewLength <= 12) {
-                BlobVector::addBlob(
-                    &outputVector, i + dstOffset, (uint8_t*)(curView + 1), viewLength);
+                BlobVector::addBlob(&outputVector, i + dstOffset, (uint8_t*)(curView + 1),
+                    viewLength);
             } else {
                 auto bufIndex = curView[2];
                 auto offset = curView[3];
-                BlobVector::addBlob(
-                    &outputVector, i + dstOffset, valueBuffs[bufIndex] + offset, viewLength);
+                BlobVector::addBlob(&outputVector, i + dstOffset, valueBuffs[bufIndex] + offset,
+                    viewLength);
             }
         }
     }
@@ -325,29 +325,29 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
     if (array->dictionary != nullptr) {
         switch (arrowType[0]) {
         case 'c':
-            return scanArrowArrayDictionaryEncoded<int8_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayDictionaryEncoded<int8_t>(schema, array, outputVector, mask,
+                srcOffset, dstOffset, count);
         case 'C':
-            return scanArrowArrayDictionaryEncoded<uint8_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayDictionaryEncoded<uint8_t>(schema, array, outputVector, mask,
+                srcOffset, dstOffset, count);
         case 's':
-            return scanArrowArrayDictionaryEncoded<int16_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayDictionaryEncoded<int16_t>(schema, array, outputVector, mask,
+                srcOffset, dstOffset, count);
         case 'S':
-            return scanArrowArrayDictionaryEncoded<uint16_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayDictionaryEncoded<uint16_t>(schema, array, outputVector, mask,
+                srcOffset, dstOffset, count);
         case 'i':
-            return scanArrowArrayDictionaryEncoded<int32_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayDictionaryEncoded<int32_t>(schema, array, outputVector, mask,
+                srcOffset, dstOffset, count);
         case 'I':
-            return scanArrowArrayDictionaryEncoded<uint32_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayDictionaryEncoded<uint32_t>(schema, array, outputVector, mask,
+                srcOffset, dstOffset, count);
         case 'l':
-            return scanArrowArrayDictionaryEncoded<int64_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayDictionaryEncoded<int64_t>(schema, array, outputVector, mask,
+                srcOffset, dstOffset, count);
         case 'L':
-            return scanArrowArrayDictionaryEncoded<uint64_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayDictionaryEncoded<uint64_t>(schema, array, outputVector, mask,
+                srcOffset, dstOffset, count);
         default:
             throw RuntimeException("Invalid Index Type: " + std::string(arrowType));
         }
@@ -359,48 +359,48 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
         return;
     case 'b':
         // BOOL
-        return scanArrowArrayFixedSizePrimitive<bool>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<bool>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 'c':
         // INT8
-        return scanArrowArrayFixedSizePrimitive<int8_t>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<int8_t>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 'C':
         // UINT8
-        return scanArrowArrayFixedSizePrimitive<uint8_t>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<uint8_t>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 's':
         // INT16
-        return scanArrowArrayFixedSizePrimitive<int16_t>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<int16_t>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 'S':
         // UINT16
-        return scanArrowArrayFixedSizePrimitive<uint16_t>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<uint16_t>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 'i':
         // INT32
-        return scanArrowArrayFixedSizePrimitive<int32_t>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<int32_t>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 'I':
         // UINT32
-        return scanArrowArrayFixedSizePrimitive<uint32_t>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<uint32_t>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 'l':
         // INT64
-        return scanArrowArrayFixedSizePrimitive<int64_t>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<int64_t>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 'L':
         // UINT64
-        return scanArrowArrayFixedSizePrimitive<uint64_t>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<uint64_t>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 'f':
         // FLOAT
-        return scanArrowArrayFixedSizePrimitive<float>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<float>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 'g':
         // DOUBLE
-        return scanArrowArrayFixedSizePrimitive<double>(
-            array, outputVector, mask, srcOffset, dstOffset, count);
+        return scanArrowArrayFixedSizePrimitive<double>(array, outputVector, mask, srcOffset,
+            dstOffset, count);
     case 'z':
         // BLOB
         return scanArrowArrayBLOB<int32_t>(array, outputVector, mask, srcOffset, dstOffset, count);
@@ -425,44 +425,44 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
         }
     case 'w':
         // FIXED BLOB
-        return scanArrowArrayFixedBLOB(
-            array, outputVector, mask, std::stoi(arrowType + 2), srcOffset, dstOffset, count);
+        return scanArrowArrayFixedBLOB(array, outputVector, mask, std::stoi(arrowType + 2),
+            srcOffset, dstOffset, count);
     case 't':
         switch (arrowType[1]) {
         case 'd':
             // DATE
             if (arrowType[2] == 'D') {
                 // days since unix epoch
-                return scanArrowArrayFixedSizePrimitive<int32_t>(
-                    array, outputVector, mask, srcOffset, dstOffset, count);
+                return scanArrowArrayFixedSizePrimitive<int32_t>(array, outputVector, mask,
+                    srcOffset, dstOffset, count);
             } else {
                 // ms since unix epoch
-                return scanArrowArrayFixedSizePrimitive<int64_t>(
-                    array, outputVector, mask, srcOffset, dstOffset, count);
+                return scanArrowArrayFixedSizePrimitive<int64_t>(array, outputVector, mask,
+                    srcOffset, dstOffset, count);
             }
         case 't':
             // TODO pure time type
             KU_UNREACHABLE;
         case 's':
             // TIMESTAMP
-            return scanArrowArrayFixedSizePrimitive<int64_t>(
-                array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayFixedSizePrimitive<int64_t>(array, outputVector, mask, srcOffset,
+                dstOffset, count);
         case 'D':
             // DURATION (KUZU INTERVAL)
             switch (arrowType[2]) {
             case 's':
                 // consider implement overflow checking here?
-                return scanArrowArrayDurationScaledUp(
-                    array, outputVector, mask, 1000000, srcOffset, dstOffset, count);
+                return scanArrowArrayDurationScaledUp(array, outputVector, mask, 1000000, srcOffset,
+                    dstOffset, count);
             case 'm':
-                return scanArrowArrayDurationScaledUp(
-                    array, outputVector, mask, 1000, srcOffset, dstOffset, count);
+                return scanArrowArrayDurationScaledUp(array, outputVector, mask, 1000, srcOffset,
+                    dstOffset, count);
             case 'u':
-                return scanArrowArrayDurationScaledUp(
-                    array, outputVector, mask, 1, srcOffset, dstOffset, count);
+                return scanArrowArrayDurationScaledUp(array, outputVector, mask, 1, srcOffset,
+                    dstOffset, count);
             case 'n':
-                return scanArrowArrayDurationScaledDown(
-                    array, outputVector, mask, 1000, srcOffset, dstOffset, count);
+                return scanArrowArrayDurationScaledDown(array, outputVector, mask, 1000, srcOffset,
+                    dstOffset, count);
             default:
                 KU_UNREACHABLE;
             }
@@ -470,14 +470,14 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
             // INTERVAL
             switch (arrowType[2]) {
             case 'M':
-                return scanArrowArrayMonthInterval(
-                    array, outputVector, mask, srcOffset, dstOffset, count);
+                return scanArrowArrayMonthInterval(array, outputVector, mask, srcOffset, dstOffset,
+                    count);
             case 'D':
-                return scanArrowArrayDayTimeInterval(
-                    array, outputVector, mask, srcOffset, dstOffset, count);
+                return scanArrowArrayDayTimeInterval(array, outputVector, mask, srcOffset,
+                    dstOffset, count);
             case 'n':
-                return scanArrowArrayMonthDayNanoInterval(
-                    array, outputVector, mask, srcOffset, dstOffset, count);
+                return scanArrowArrayMonthDayNanoInterval(array, outputVector, mask, srcOffset,
+                    dstOffset, count);
             default:
                 KU_UNREACHABLE;
             }
@@ -488,16 +488,16 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
         switch (arrowType[1]) {
         case 'r':
             // RUN END ENCODED
-            return scanArrowArrayRunEndEncoded(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayRunEndEncoded(schema, array, outputVector, mask, srcOffset,
+                dstOffset, count);
         case 'l':
             // LIST
-            return scanArrowArrayList<int32_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayList<int32_t>(schema, array, outputVector, mask, srcOffset,
+                dstOffset, count);
         case 'L':
             // LONG LIST
-            return scanArrowArrayList<int64_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayList<int64_t>(schema, array, outputVector, mask, srcOffset,
+                dstOffset, count);
         case 'w':
             // FIXED_LIST
             // TODO Manh: Array Scanning
@@ -506,30 +506,30 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
             //  schema, array, outputVector, mask, srcOffset, dstOffset, count);
         case 's':
             // STRUCT
-            return scanArrowArrayStruct(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayStruct(schema, array, outputVector, mask, srcOffset, dstOffset,
+                count);
         case 'm':
             // MAP
-            return scanArrowArrayList<int32_t>(
-                schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            return scanArrowArrayList<int32_t>(schema, array, outputVector, mask, srcOffset,
+                dstOffset, count);
         case 'u':
             if (arrowType[2] == 'd') {
                 // DENSE UNION
-                return scanArrowArrayDenseUnion(
-                    schema, array, outputVector, mask, srcOffset, dstOffset, count);
+                return scanArrowArrayDenseUnion(schema, array, outputVector, mask, srcOffset,
+                    dstOffset, count);
             } else {
                 // SPARSE UNION
-                return scanArrowArraySparseUnion(
-                    schema, array, outputVector, mask, srcOffset, dstOffset, count);
+                return scanArrowArraySparseUnion(schema, array, outputVector, mask, srcOffset,
+                    dstOffset, count);
             }
         case 'v':
             switch (arrowType[2]) {
             case 'l':
-                return scanArrowArrayListView<int32_t>(
-                    schema, array, outputVector, mask, srcOffset, dstOffset, count);
+                return scanArrowArrayListView<int32_t>(schema, array, outputVector, mask, srcOffset,
+                    dstOffset, count);
             case 'L':
-                return scanArrowArrayListView<int64_t>(
-                    schema, array, outputVector, mask, srcOffset, dstOffset, count);
+                return scanArrowArrayListView<int64_t>(schema, array, outputVector, mask, srcOffset,
+                    dstOffset, count);
                 // LONG LIST VIEW
             default:
                 KU_UNREACHABLE;
@@ -542,8 +542,8 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
     }
 }
 
-void ArrowConverter::fromArrowArray(
-    const ArrowSchema* schema, const ArrowArray* array, ValueVector& outputVector) {
+void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray* array,
+    ValueVector& outputVector) {
     ArrowNullMaskTree mask(schema, array, array->offset, array->length);
     return fromArrowArray(schema, array, outputVector, &mask, array->offset, 0, array->length);
 }

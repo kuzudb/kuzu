@@ -35,8 +35,8 @@ public:
     explicit PlanMapper(main::ClientContext* clientContext)
         : expressionMapper{}, clientContext{clientContext}, physicalOperatorID{0} {}
 
-    std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
-        planner::LogicalPlan* logicalPlan, const binder::expression_vector& expressionsToCollect);
+    std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(planner::LogicalPlan* logicalPlan,
+        const binder::expression_vector& expressionsToCollect);
 
 private:
     std::unique_ptr<PhysicalOperator> mapOperator(planner::LogicalOperator* logicalOperator);
@@ -69,6 +69,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapOrderBy(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUnionAll(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAccumulate(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapMarkAccumulate(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDummyScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapInsert(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetNodeProperty(planner::LogicalOperator* logicalOperator);
@@ -125,8 +126,8 @@ private:
         uint64_t maxMorselSize, std::unique_ptr<PhysicalOperator> child);
     // Do not scan anything from table. Serves as a control logic of pull model.
     // Scan is the leaf operator of physical plan.
-    std::unique_ptr<PhysicalOperator> createEmptyFTableScan(
-        std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize);
+    std::unique_ptr<PhysicalOperator> createEmptyFTableScan(std::shared_ptr<FactorizedTable> table,
+        uint64_t maxMorselSize);
     // Assume scans all columns of table in the same order as given expressions.
     // Scan fTable with row offset.
     std::unique_ptr<PhysicalOperator> createFTableScanAligned(
@@ -148,24 +149,23 @@ private:
 
     std::unique_ptr<HashJoinBuildInfo> createHashBuildInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
-    std::unique_ptr<PhysicalOperator> createHashAggregate(
-        const binder::expression_vector& keyExpressions,
-        const binder::expression_vector& dependentKeyExpressions,
+    std::unique_ptr<PhysicalOperator> createHashAggregate(const binder::expression_vector& keys,
+        const binder::expression_vector& payloads,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
         std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
         std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema,
         planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
-        const std::string& paramsString);
+        const std::string& paramsString, std::shared_ptr<binder::Expression> markExpression);
 
     std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(
         const planner::LogicalInsertInfo* info, const planner::Schema& inSchema,
         const planner::Schema& outSchema) const;
     std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(const planner::LogicalInsertInfo* info,
         const planner::Schema& inSchema, const planner::Schema& outSchema) const;
-    std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(
-        planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) const;
-    std::unique_ptr<RelSetExecutor> getRelSetExecutor(
-        planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) const;
+    std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(planner::LogicalSetPropertyInfo* info,
+        const planner::Schema& inSchema) const;
+    std::unique_ptr<RelSetExecutor> getRelSetExecutor(planner::LogicalSetPropertyInfo* info,
+        const planner::Schema& inSchema) const;
 
     std::shared_ptr<FactorizedTable> getSingleStringColumnFTable() const;
 
@@ -173,11 +173,11 @@ private:
 
     static void mapSIPJoin(PhysicalOperator* probe);
 
-    static std::vector<DataPos> getExpressionsDataPos(
-        const binder::expression_vector& expressions, const planner::Schema& schema);
+    static std::vector<DataPos> getExpressionsDataPos(const binder::expression_vector& expressions,
+        const planner::Schema& schema);
 
-    static inline DataPos getDataPos(
-        const binder::Expression& expression, const planner::Schema& schema) {
+    static inline DataPos getDataPos(const binder::Expression& expression,
+        const planner::Schema& schema) {
         return DataPos(schema.getExpressionPos(expression));
     }
 

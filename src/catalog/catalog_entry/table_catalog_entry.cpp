@@ -35,14 +35,13 @@ common::column_id_t TableCatalogEntry::getColumnID(const common::property_id_t p
 }
 
 bool TableCatalogEntry::containPropertyType(const common::LogicalType& logicalType) const {
-    return std::any_of(
-        properties.begin(), properties.end(), [&logicalType](const Property& property) {
-            return *property.getDataType() == logicalType;
-        });
+    return std::any_of(properties.begin(), properties.end(),
+        [&logicalType](
+            const Property& property) { return *property.getDataType() == logicalType; });
 }
 
-void TableCatalogEntry::addProperty(
-    std::string propertyName, std::unique_ptr<common::LogicalType> dataType) {
+void TableCatalogEntry::addProperty(std::string propertyName,
+    std::unique_ptr<common::LogicalType> dataType) {
     properties.emplace_back(std::move(propertyName), std::move(dataType), nextPID++, tableID);
 }
 
@@ -54,8 +53,8 @@ void TableCatalogEntry::dropProperty(common::property_id_t propertyID) {
         properties.end());
 }
 
-void TableCatalogEntry::renameProperty(
-    common::property_id_t propertyID, const std::string& newName) {
+void TableCatalogEntry::renameProperty(common::property_id_t propertyID,
+    const std::string& newName) {
     auto it = std::find_if(properties.begin(), properties.end(),
         [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
     KU_ASSERT(it != properties.end());

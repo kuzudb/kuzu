@@ -61,8 +61,8 @@ QueryGraph Binder::bindPatternElement(const PatternElement& patternElement) {
     return queryGraph;
 }
 
-static std::unique_ptr<LogicalType> getRecursiveRelLogicalType(
-    const LogicalType& nodeType, const LogicalType& relType) {
+static std::unique_ptr<LogicalType> getRecursiveRelLogicalType(const LogicalType& nodeType,
+    const LogicalType& relType) {
     auto nodesType = LogicalType::LIST(nodeType.copy());
     auto relsType = LogicalType::LIST(relType.copy());
     std::vector<StructField> recursiveRelFields;
@@ -84,8 +84,8 @@ static void extraFieldFromStructType(const LogicalType& structType,
     }
 }
 
-std::shared_ptr<Expression> Binder::createPath(
-    const std::string& pathName, const expression_vector& children) {
+std::shared_ptr<Expression> Binder::createPath(const std::string& pathName,
+    const expression_vector& children) {
     std::unordered_set<std::string> nodeFieldNameSet;
     std::vector<std::string> nodeFieldNames;
     std::vector<std::unique_ptr<LogicalType>> nodeFieldTypes;
@@ -95,19 +95,19 @@ std::shared_ptr<Expression> Binder::createPath(
     for (auto& child : children) {
         if (ExpressionUtil::isNodePattern(*child)) {
             auto node = ku_dynamic_cast<Expression*, NodeExpression*>(child.get());
-            extraFieldFromStructType(
-                node->getDataType(), nodeFieldNameSet, nodeFieldNames, nodeFieldTypes);
+            extraFieldFromStructType(node->getDataType(), nodeFieldNameSet, nodeFieldNames,
+                nodeFieldTypes);
         } else if (ExpressionUtil::isRelPattern(*child)) {
             auto rel = ku_dynamic_cast<Expression*, RelExpression*>(child.get());
-            extraFieldFromStructType(
-                rel->getDataType(), relFieldNameSet, relFieldNames, relFieldTypes);
+            extraFieldFromStructType(rel->getDataType(), relFieldNameSet, relFieldNames,
+                relFieldTypes);
         } else if (ExpressionUtil::isRecursiveRelPattern(*child)) {
             auto recursiveRel = ku_dynamic_cast<Expression*, RelExpression*>(child.get());
             auto recursiveInfo = recursiveRel->getRecursiveInfo();
             extraFieldFromStructType(recursiveInfo->node->getDataType(), nodeFieldNameSet,
                 nodeFieldNames, nodeFieldTypes);
-            extraFieldFromStructType(
-                recursiveInfo->rel->getDataType(), relFieldNameSet, relFieldNames, relFieldTypes);
+            extraFieldFromStructType(recursiveInfo->rel->getDataType(), relFieldNameSet,
+                relFieldNames, relFieldTypes);
         } else {
             KU_UNREACHABLE;
         }
@@ -212,8 +212,8 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
     if (QueryRelTypeUtils::isRecursive(relPattern.getRelType())) {
         queryRel = createRecursiveQueryRel(relPattern, tableIDs, srcNode, dstNode, directionType);
     } else {
-        queryRel = createNonRecursiveQueryRel(
-            relPattern.getVariableName(), tableIDs, srcNode, dstNode, directionType);
+        queryRel = createNonRecursiveQueryRel(relPattern.getVariableName(), tableIDs, srcNode,
+            dstNode, directionType);
         for (auto& [propertyName, rhs] : relPattern.getPropertyKeyVals()) {
             auto boundLhs =
                 expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, propertyName);
@@ -299,8 +299,8 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     fields.emplace_back(InternalKeyword::DST, LogicalType::INTERNAL_ID());
     // Bind internal expressions.
     queryRel->setLabelExpression(expressionBinder.bindLabelFunction(*queryRel));
-    fields.emplace_back(
-        InternalKeyword::LABEL, queryRel->getLabelExpression()->getDataType().copy());
+    fields.emplace_back(InternalKeyword::LABEL,
+        queryRel->getLabelExpression()->getDataType().copy());
     // Bind properties.
     for (auto& expression : queryRel->getPropertyExprsRef()) {
         auto property = ku_dynamic_cast<Expression*, PropertyExpression*>(expression.get());
@@ -311,12 +311,12 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     return queryRel;
 }
 
-static void bindRecursiveRelProjectionList(
-    const expression_vector& projectionList, std::vector<StructField>& fields) {
+static void bindRecursiveRelProjectionList(const expression_vector& projectionList,
+    std::vector<StructField>& fields) {
     for (auto& expression : projectionList) {
         if (expression->expressionType != common::ExpressionType::PROPERTY) {
-            throw BinderException(stringFormat(
-                "Unsupported projection item {} on recursive rel.", expression->toString()));
+            throw BinderException(stringFormat("Unsupported projection item {} on recursive rel.",
+                expression->toString()));
         }
         auto property = ku_dynamic_cast<Expression*, PropertyExpression*>(expression.get());
         fields.emplace_back(property->getPropertyName(), property->getDataType().copy());
@@ -343,8 +343,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     scope.addExpression(node->toString(), node);
     std::vector<StructField> nodeFields;
     nodeFields.emplace_back(InternalKeyword::ID, node->getInternalID()->getDataType().copy());
-    nodeFields.emplace_back(
-        InternalKeyword::LABEL, node->getLabelExpression()->getDataType().copy());
+    nodeFields.emplace_back(InternalKeyword::LABEL,
+        node->getLabelExpression()->getDataType().copy());
     expression_vector nodeProjectionList;
     if (!recursivePatternInfo->hasProjection) {
         for (auto& expression : node->getPropertyExprsRef()) {
@@ -361,8 +361,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto nodeCopy = createQueryNode(recursivePatternInfo->nodeName,
         std::vector<table_id_t>{nodeTableIDs.begin(), nodeTableIDs.end()});
     // Bind intermediate rel
-    auto rel = createNonRecursiveQueryRel(
-        recursivePatternInfo->relName, tableIDs, nullptr, nullptr, directionType);
+    auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, tableIDs, nullptr, nullptr,
+        directionType);
     scope.addExpression(rel->toString(), rel);
     expression_vector relProjectionList;
     if (!recursivePatternInfo->hasProjection) {
@@ -392,8 +392,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         auto boundRhs = expressionBinder.bindExpression(*rhs);
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         auto predicate = expressionBinder.createEqualityComparisonExpression(boundLhs, boundRhs);
-        relPredicate = expressionBinder.combineBooleanExpressions(
-            ExpressionType::AND, relPredicate, predicate);
+        relPredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND, relPredicate,
+            predicate);
     }
     // Bind predicates in (r, n | WHERE )
     std::shared_ptr<Expression> nodePredicate;
@@ -409,19 +409,19 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
                 throw BinderException(stringFormat("Cannot evaluate {} in recursive pattern {}.",
                     predicate->toString(), relPattern.getVariableName()));
             } else if (dependOnNode) {
-                nodePredicate = expressionBinder.combineBooleanExpressions(
-                    ExpressionType::AND, nodePredicate, predicate);
+                nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
+                    nodePredicate, predicate);
             } else {
-                relPredicate = expressionBinder.combineBooleanExpressions(
-                    ExpressionType::AND, relPredicate, predicate);
+                relPredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
+                    relPredicate, predicate);
             }
         }
     }
     auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(
         LogicalType{LogicalTypeID::BOOL}, std::string(InternalKeyword::ANONYMOUS));
     if (nodePredicate != nullptr) {
-        nodePredicate = expressionBinder.combineBooleanExpressions(
-            ExpressionType::OR, nodePredicate, nodePredicateExecutionFlag);
+        nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::OR,
+            nodePredicate, nodePredicateExecutionFlag);
     }
     // Bind rel
     restoreScope(std::move(prevScope));
@@ -463,8 +463,8 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
             upperBound);
     }
     if (lowerBound > upperBound) {
-        throw BinderException(stringFormat(
-            "Lower bound of rel {} is greater than upperBound.", relPattern.getVariableName()));
+        throw BinderException(stringFormat("Lower bound of rel {} is greater than upperBound.",
+            relPattern.getVariableName()));
     }
     if (upperBound > maxDepth) {
         throw BinderException(stringFormat("Upper bound of rel {} exceeds maximum: {}.",
@@ -487,9 +487,9 @@ void Binder::bindQueryRelProperties(RelExpression& rel) {
     }
     auto propertyNames = getPropertyNames(tableCatalogEntries);
     for (auto& propertyName : propertyNames) {
-        rel.addPropertyExpression(
-            propertyName, createPropertyExpression(propertyName, rel.getUniqueName(),
-                              rel.getVariableName(), tableCatalogEntries));
+        rel.addPropertyExpression(propertyName,
+            createPropertyExpression(propertyName, rel.getUniqueName(), rel.getVariableName(),
+                tableCatalogEntries));
     }
 }
 
@@ -503,8 +503,8 @@ static std::unique_ptr<Expression> createInternalNodeIDExpression(const NodeExpr
         false /* isPrimaryKey */);
 }
 
-std::shared_ptr<NodeExpression> Binder::bindQueryNode(
-    const NodePattern& nodePattern, QueryGraph& queryGraph) {
+std::shared_ptr<NodeExpression> Binder::bindQueryNode(const NodePattern& nodePattern,
+    QueryGraph& queryGraph) {
     auto parsedName = nodePattern.getVariableName();
     std::shared_ptr<NodeExpression> queryNode;
     if (scope.contains(parsedName)) { // bind to node in scope
@@ -546,8 +546,8 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodeP
     return createQueryNode(parsedName, bindTableIDs(nodePattern.getTableNames(), true));
 }
 
-std::shared_ptr<NodeExpression> Binder::createQueryNode(
-    const std::string& parsedName, const std::vector<table_id_t>& tableIDs) {
+std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parsedName,
+    const std::vector<table_id_t>& tableIDs) {
     auto nodeTableIDs = getNodeTableIDs(tableIDs);
     auto queryNode = make_shared<NodeExpression>(LogicalType(LogicalTypeID::NODE),
         getUniqueExpressionName(parsedName), parsedName, nodeTableIDs);
@@ -578,14 +578,14 @@ void Binder::bindQueryNodeProperties(NodeExpression& node) {
         clientContext->getCatalog()->getTableSchemas(clientContext->getTx(), node.getTableIDs());
     auto propertyNames = getPropertyNames(tableSchemas);
     for (auto& propertyName : propertyNames) {
-        auto property = createPropertyExpression(
-            propertyName, node.getUniqueName(), node.getVariableName(), tableSchemas);
+        auto property = createPropertyExpression(propertyName, node.getUniqueName(),
+            node.getVariableName(), tableSchemas);
         node.addPropertyExpression(propertyName, std::move(property));
     }
 }
 
-std::vector<table_id_t> Binder::bindTableIDs(
-    const std::vector<std::string>& tableNames, bool nodePattern) {
+std::vector<table_id_t> Binder::bindTableIDs(const std::vector<std::string>& tableNames,
+    bool nodePattern) {
     auto tx = clientContext->getTx();
     auto catalog = clientContext->getCatalog();
     std::unordered_set<common::table_id_t> tableIDSet;

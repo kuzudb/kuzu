@@ -46,8 +46,8 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
     // ops.
     std::unique_ptr<storage::ChunkedNodeGroup> sharedNodeGroup;
 
-    NodeBatchInsertSharedState(
-        storage::Table* table, std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal)
+    NodeBatchInsertSharedState(storage::Table* table, std::shared_ptr<FactorizedTable> fTable,
+        storage::WAL* wal)
         : BatchInsertSharedState{table, fTable, wal}, readerSharedState{nullptr},
           distinctSharedState{nullptr}, currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {};
 

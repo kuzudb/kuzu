@@ -38,8 +38,8 @@ public:
 
 class StringColumnWriterState : public BasicColumnWriterState {
 public:
-    StringColumnWriterState(
-        kuzu_parquet::format::RowGroup& rowGroup, uint64_t colIdx, storage::MemoryManager* mm)
+    StringColumnWriterState(kuzu_parquet::format::RowGroup& rowGroup, uint64_t colIdx,
+        storage::MemoryManager* mm)
         : BasicColumnWriterState{rowGroup, colIdx},
           overflowBuffer{std::make_unique<common::InMemOverflowBuffer>(mm)} {}
 
@@ -77,8 +77,8 @@ public:
     StringColumnWriter(ParquetWriter& writer, uint64_t schemaIdx,
         std::vector<std::string> schemaPath, uint64_t maxRepeat, uint64_t maxDefine,
         bool canHaveNulls, storage::MemoryManager* mm)
-        : BasicColumnWriter(
-              writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine, canHaveNulls),
+        : BasicColumnWriter(writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine,
+              canHaveNulls),
           mm{mm} {}
 
 public:
@@ -124,14 +124,14 @@ public:
         ColumnWriterPageState* writerPageState, common::ValueVector* vector, uint64_t chunkStart,
         uint64_t chunkEnd) override;
 
-    void flushPageState(
-        common::Serializer& bufferedSerializer, ColumnWriterPageState* writerPageState) override;
+    void flushPageState(common::Serializer& bufferedSerializer,
+        ColumnWriterPageState* writerPageState) override;
 
-    void flushDictionary(
-        BasicColumnWriterState& writerState, ColumnWriterStatistics* writerStats) override;
+    void flushDictionary(BasicColumnWriterState& writerState,
+        ColumnWriterStatistics* writerStats) override;
 
-    uint64_t getRowSize(
-        common::ValueVector* vector, uint64_t index, BasicColumnWriterState& writerState) override;
+    uint64_t getRowSize(common::ValueVector* vector, uint64_t index,
+        BasicColumnWriterState& writerState) override;
 
 private:
     storage::MemoryManager* mm;

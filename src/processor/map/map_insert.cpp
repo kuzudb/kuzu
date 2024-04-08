@@ -15,8 +15,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace processor {
 
-static std::vector<DataPos> populateReturnVectorsPos(
-    const LogicalInsertInfo& info, const Schema& schema) {
+static std::vector<DataPos> populateReturnVectorsPos(const LogicalInsertInfo& info,
+    const Schema& schema) {
     std::vector<DataPos> result;
     for (auto i = 0u; i < info.columnDataExprs.size(); ++i) {
         if (info.isReturnColumnExprs[i]) {
@@ -28,8 +28,8 @@ static std::vector<DataPos> populateReturnVectorsPos(
     return result;
 }
 
-std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
-    const LogicalInsertInfo* info, const Schema& inSchema, const Schema& outSchema) const {
+std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(const LogicalInsertInfo* info,
+    const Schema& inSchema, const Schema& outSchema) const {
     auto storageManager = clientContext->getStorageManager();
     auto node = ku_dynamic_cast<Expression*, NodeExpression*>(info->pattern.get());
     auto nodeTableID = node->getSingleTableID();

@@ -21,8 +21,8 @@ bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
         return false;
     }
     auto numRowsToScan = endOffset - startOffset;
-    sharedState->getFactorizedTable()->scan(
-        groupByKeyVectors, startOffset, numRowsToScan, groupByKeyVectorsColIdxes);
+    sharedState->getFactorizedTable()->scan(groupByKeyVectors, startOffset, numRowsToScan,
+        groupByKeyVectorsColIdxes);
     for (auto pos = 0u; pos < numRowsToScan; ++pos) {
         auto entry = sharedState->getRow(startOffset + pos);
         auto offset = sharedState->getFactorizedTable()->getTableSchema()->getColOffset(
@@ -35,6 +35,16 @@ bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     }
     metrics->numOutputTuple.increase(numRowsToScan);
     return true;
+}
+
+double HashAggregateScan::getProgress(ExecutionContext* /*context*/) const {
+    uint64_t totalNumTuples = sharedState->getFactorizedTable()->getNumTuples();
+    if (totalNumTuples == 0) {
+        return 0.0;
+    } else if (sharedState->getCurrentOffset() == totalNumTuples) {
+        return 1.0;
+    }
+    return static_cast<double>(sharedState->getCurrentOffset()) / totalNumTuples;
 }
 
 } // namespace processor

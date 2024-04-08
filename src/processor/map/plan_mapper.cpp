@@ -8,16 +8,16 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static void setPhysicalPlanIfProfile(
-    planner::LogicalPlan* logicalPlan, PhysicalPlan* physicalPlan) {
+static void setPhysicalPlanIfProfile(planner::LogicalPlan* logicalPlan,
+    PhysicalPlan* physicalPlan) {
     if (logicalPlan->isProfile()) {
         ku_dynamic_cast<PhysicalOperator*, Profile*>(physicalPlan->lastOperator->getChild(0))
             ->setPhysicalPlan(physicalPlan);
     }
 }
 
-std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
-    LogicalPlan* logicalPlan, const binder::expression_vector& expressionsToCollect) {
+std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logicalPlan,
+    const binder::expression_vector& expressionsToCollect) {
     auto lastOperator = mapOperator(logicalPlan->getLastOperator().get());
     lastOperator = createResultCollector(AccumulateType::REGULAR, expressionsToCollect,
         logicalPlan->getSchema(), std::move(lastOperator));
@@ -108,6 +108,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::ACCUMULATE: {
         physicalOperator = mapAccumulate(logicalOperator);
     } break;
+    case LogicalOperatorType::MARK_ACCUMULATE: {
+        physicalOperator = mapMarkAccumulate(logicalOperator);
+    } break;
     case LogicalOperatorType::DUMMY_SCAN: {
         physicalOperator = mapDummyScan(logicalOperator);
     } break;
@@ -187,8 +190,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     return physicalOperator;
 }
 
-std::vector<DataPos> PlanMapper::getExpressionsDataPos(
-    const binder::expression_vector& expressions, const planner::Schema& schema) {
+std::vector<DataPos> PlanMapper::getExpressionsDataPos(const binder::expression_vector& expressions,
+    const planner::Schema& schema) {
     std::vector<DataPos> result;
     for (auto& expression : expressions) {
         result.emplace_back(schema.getExpressionPos(*expression));
@@ -201,8 +204,8 @@ std::shared_ptr<FactorizedTable> PlanMapper::getSingleStringColumnFTable() const
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
             LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
-    return std::make_shared<FactorizedTable>(
-        clientContext->getMemoryManager(), std::move(ftTableSchema));
+    return std::make_shared<FactorizedTable>(clientContext->getMemoryManager(),
+        std::move(ftTableSchema));
 }
 
 } // namespace processor

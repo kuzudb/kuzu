@@ -48,8 +48,8 @@ std::string ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
         offset, tableName, direction);
 }
 
-std::string ExceptionMessage::violateRelMultiplicityConstraint(
-    const std::string& tableName, const std::string& offset, const std::string& direction) {
+std::string ExceptionMessage::violateRelMultiplicityConstraint(const std::string& tableName,
+    const std::string& offset, const std::string& direction) {
     return stringFormat("Node(nodeOffset: {}) has more than one neighbour in table {} in the {} "
                         "direction, which violates the rel multiplicity constraint.",
         offset, tableName, direction);

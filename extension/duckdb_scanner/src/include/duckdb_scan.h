@@ -16,8 +16,8 @@
 namespace kuzu {
 namespace duckdb_scanner {
 
-using duckdb_conversion_func_t = std::function<void(
-    duckdb::Vector& duckDBVector, common::ValueVector& result, uint64_t numValues)>;
+using duckdb_conversion_func_t = std::function<void(duckdb::Vector& duckDBVector,
+    common::ValueVector& result, uint64_t numValues)>;
 using init_duckdb_conn_t = std::function<std::pair<duckdb::DuckDB, duckdb::Connection>()>;
 
 struct DuckDBScanBindData : public function::TableFuncBindData {
@@ -37,8 +37,8 @@ struct DuckDBScanSharedState : public function::TableFuncSharedState {
     std::unique_ptr<duckdb::QueryResult> queryResult;
 };
 
-void getDuckDBVectorConversionFunc(
-    common::PhysicalTypeID physicalTypeID, duckdb_conversion_func_t& conversion_func);
+void getDuckDBVectorConversionFunc(common::PhysicalTypeID physicalTypeID,
+    duckdb_conversion_func_t& conversion_func);
 
 function::TableFunction getScanFunction(DuckDBScanBindData bindData);
 

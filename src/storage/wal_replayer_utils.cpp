@@ -9,8 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void WALReplayerUtils::removeHashIndexFile(
-    common::VirtualFileSystem* vfs, table_id_t tableID, const std::string& directory) {
+void WALReplayerUtils::removeHashIndexFile(common::VirtualFileSystem* vfs, table_id_t tableID,
+    const std::string& directory) {
     vfs->removeFileIfExists(
         StorageUtils::getNodeIndexFName(vfs, directory, tableID, FileVersionType::ORIGINAL));
 }
@@ -21,8 +21,8 @@ void WALReplayerUtils::createEmptyHashIndexFiles(catalog::NodeTableCatalogEntry*
     auto dt = pk->getDataType();
     if (dt->getLogicalTypeID() != LogicalTypeID::SERIAL) {
         auto pkIndex = make_unique<PrimaryKeyIndexBuilder>(
-            StorageUtils::getNodeIndexFName(
-                vfs, directory, nodeTableEntry->getTableID(), FileVersionType::ORIGINAL),
+            StorageUtils::getNodeIndexFName(vfs, directory, nodeTableEntry->getTableID(),
+                FileVersionType::ORIGINAL),
             pk->getDataType()->getPhysicalType(), vfs);
         pkIndex->bulkReserve(0 /* numNodes */);
         pkIndex->flush();

@@ -126,8 +126,8 @@ function_set MapExtractFunctions::getFunctionSet() {
     return functionSet;
 }
 
-static std::unique_ptr<FunctionBindData> MapKeysBindFunc(
-    const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
+static std::unique_ptr<FunctionBindData> MapKeysBindFunc(const binder::expression_vector& arguments,
+    kuzu::function::Function* /*function*/) {
     return std::make_unique<FunctionBindData>(LogicalType::LIST(
         std::make_unique<LogicalType>(*MapType::getKeyType(&arguments[0]->dataType))));
 }

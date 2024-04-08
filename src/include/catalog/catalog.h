@@ -40,15 +40,15 @@ public:
     std::vector<common::table_id_t> getRelTableIDs(transaction::Transaction* tx) const;
 
     std::string getTableName(transaction::Transaction* tx, common::table_id_t tableID) const;
-    TableCatalogEntry* getTableCatalogEntry(
-        transaction::Transaction* tx, common::table_id_t tableID) const;
+    TableCatalogEntry* getTableCatalogEntry(transaction::Transaction* tx,
+        common::table_id_t tableID) const;
     std::vector<NodeTableCatalogEntry*> getNodeTableEntries(transaction::Transaction* tx) const;
     std::vector<RelTableCatalogEntry*> getRelTableEntries(transaction::Transaction* tx) const;
     std::vector<RelGroupCatalogEntry*> getRelTableGroupEntries(transaction::Transaction* tx) const;
     std::vector<RDFGraphCatalogEntry*> getRdfGraphEntries(transaction::Transaction* tx) const;
     std::vector<TableCatalogEntry*> getTableEntries(transaction::Transaction* tx) const;
-    std::vector<TableCatalogEntry*> getTableSchemas(
-        transaction::Transaction* tx, const common::table_id_vector_t& tableIDs) const;
+    std::vector<TableCatalogEntry*> getTableSchemas(transaction::Transaction* tx,
+        const common::table_id_vector_t& tableIDs) const;
 
     common::table_id_t createTableSchema(const binder::BoundCreateTableInfo& info);
     void dropTableSchema(common::table_id_t tableID);
@@ -63,8 +63,8 @@ public:
     CatalogEntry* getFunctionEntry(transaction::Transaction* tx, const std::string& name);
 
     bool containsMacro(transaction::Transaction* tx, const std::string& macroName) const;
-    void addScalarMacroFunction(
-        std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
+    void addScalarMacroFunction(std::string name,
+        std::unique_ptr<function::ScalarMacroFunction> macro);
     // TODO(Ziyi): pass transaction pointer here.
     function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const {
         return readOnlyVersion->getScalarMacroFunction(name);
@@ -82,10 +82,10 @@ public:
         }
     }
 
-    static void saveInitialCatalogToFile(
-        const std::string& directory, common::VirtualFileSystem* vfs) {
-        std::make_unique<Catalog>(vfs)->getReadOnlyVersion()->saveToFile(
-            directory, common::FileVersionType::ORIGINAL);
+    static void saveInitialCatalogToFile(const std::string& directory,
+        common::VirtualFileSystem* vfs) {
+        std::make_unique<Catalog>(vfs)->getReadOnlyVersion()->saveToFile(directory,
+            common::FileVersionType::ORIGINAL);
     }
 
 private:

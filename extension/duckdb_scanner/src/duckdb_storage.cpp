@@ -7,8 +7,8 @@
 namespace kuzu {
 namespace duckdb_scanner {
 
-std::unique_ptr<main::AttachedDatabase> attachDuckDB(
-    std::string dbName, std::string dbPath, main::ClientContext* clientContext) {
+std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::string dbPath,
+    main::ClientContext* clientContext) {
     if (dbName == "") {
         if (dbPath.find('.') != std::string::npos) {
             auto fileNamePos = dbPath.find_last_of('/') + 1;

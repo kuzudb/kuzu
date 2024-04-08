@@ -22,15 +22,15 @@ public:
         std::vector<std::pair<DictionaryChunk::string_index_t, uint64_t>>& offsetsToScan,
         common::ValueVector* resultVector, const ColumnChunkMetadata& indexMeta);
 
-    DictionaryChunk::string_index_t append(
-        common::node_group_idx_t nodeGroupIdx, std::string_view val);
+    DictionaryChunk::string_index_t append(common::node_group_idx_t nodeGroupIdx,
+        std::string_view val);
 
     bool canCommitInPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, uint64_t numNewStrings,
         uint64_t totalStringLengthToAdd);
 
-    uint64_t getNumValuesInOffsets(
-        transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx);
+    uint64_t getNumValuesInOffsets(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx);
 
     void prepareCommit();
     void checkpointInMemory();

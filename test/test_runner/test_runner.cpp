@@ -36,8 +36,8 @@ void replaceEnv(std::string& queryToReplace, const std::string& env) {
     }
 }
 
-bool TestRunner::testStatement(
-    TestStatement* statement, Connection& conn, std::string& databasePath) {
+bool TestRunner::testStatement(TestStatement* statement, Connection& conn,
+    std::string& databasePath) {
     std::unique_ptr<PreparedStatement> preparedStatement;
     StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", databasePath);
     StringUtils::replaceAll(statement->query, "${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY);
@@ -117,8 +117,8 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
         return true;
     } else {
         if (!preparedStatement->success) {
-            spdlog::info(
-                "Query compilation failed with error: {}", preparedStatement->getErrorMessage());
+            spdlog::info("Query compilation failed with error: {}",
+                preparedStatement->getErrorMessage());
             return false;
         }
         auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
@@ -153,8 +153,8 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         if (resultTuples.size() == result->getNumTuples() &&
             resultHash == statement->expectedHashValue &&
             resultTuples.size() == statement->expectedNumTuples) {
-            spdlog::info(
-                "PLAN{} PASSED in {}ms.", planIdx, result->getQuerySummary()->getExecutionTime());
+            spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
+                result->getQuerySummary()->getExecutionTime());
             return true;
         } else {
             spdlog::error("PLAN{} NOT PASSED.", planIdx);
@@ -169,8 +169,8 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     }
     if (resultTuples.size() == result->getNumTuples() &&
         resultTuples == statement->expectedTuples) {
-        spdlog::info(
-            "PLAN{} PASSED in {}ms.", planIdx, result->getQuerySummary()->getExecutionTime());
+        spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
+            result->getQuerySummary()->getExecutionTime());
         return true;
     } else {
         spdlog::error("PLAN{} NOT PASSED.", planIdx);
@@ -183,8 +183,8 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     return false;
 }
 
-std::vector<std::string> TestRunner::convertResultToString(
-    QueryResult& queryResult, bool checkOutputOrder) {
+std::vector<std::string> TestRunner::convertResultToString(QueryResult& queryResult,
+    bool checkOutputOrder) {
     std::vector<std::string> actualOutput;
     while (queryResult.hasNext()) {
         auto tuple = queryResult.getNext();
@@ -210,8 +210,8 @@ std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool ch
     return std::string(hasher.finishMD5());
 }
 
-std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(
-    const std::string& query, kuzu::main::Connection& conn) {
+std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(const std::string& query,
+    kuzu::main::Connection& conn) {
     return std::move(conn.prepare(query)->logicalPlans[0]);
 }
 

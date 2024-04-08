@@ -112,8 +112,8 @@ public:
         main::ClientContext* context = nullptr,
         common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
 
-    std::vector<std::string> glob(
-        main::ClientContext* context, const std::string& path) const override;
+    std::vector<std::string> glob(main::ClientContext* context,
+        const std::string& path) const override;
 
     bool canHandleFile(const std::string& path) const override;
 
@@ -128,8 +128,8 @@ public:
     void writeFile(common::FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
         uint64_t offset) const override;
 
-    std::shared_ptr<S3WriteBuffer> allocateWriteBuffer(
-        uint16_t writeBufferIdx, uint64_t partSize, uint16_t maxThreads);
+    std::shared_ptr<S3WriteBuffer> allocateWriteBuffer(uint16_t writeBufferIdx, uint64_t partSize,
+        uint16_t maxThreads);
 
     void flushAllBuffers(S3FileInfo* fileInfo);
 
@@ -140,8 +140,8 @@ public:
         std::string payloadHash = "", std::string contentType = "");
 
 protected:
-    std::unique_ptr<HTTPResponse> headRequest(
-        common::FileInfo* fileInfo, const std::string& url, HeaderMap headerMap) const override;
+    std::unique_ptr<HTTPResponse> headRequest(common::FileInfo* fileInfo, const std::string& url,
+        HeaderMap headerMap) const override;
 
     std::unique_ptr<HTTPResponse> getRangeRequest(common::FileInfo* fileInfo,
         const std::string& url, HeaderMap headerMap, uint64_t fileOffset, char* buffer,
@@ -179,8 +179,8 @@ struct AWSListObjectV2 {
     static constexpr char OPEN_PREFIX_TAG[] = "<Prefix>";
     static constexpr char CLOSE_PREFIX_TAG[] = "</Prefix>";
 
-    static std::string request(
-        std::string& path, S3AuthParams& authParams, std::string& continuationToken);
+    static std::string request(std::string& path, S3AuthParams& authParams,
+        std::string& continuationToken);
     static void parseKey(std::string& awsResponse, std::vector<std::string>& result);
     static std::vector<std::string> parseCommonPrefix(std::string& awsResponse);
     static std::string parseContinuationToken(std::string& awsResponse);

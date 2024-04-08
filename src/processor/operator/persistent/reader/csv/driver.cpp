@@ -17,8 +17,8 @@ bool ParsingDriver::done(uint64_t rowNum) {
     return rowNum >= DEFAULT_VECTOR_CAPACITY || doneEarly();
 }
 
-void ParsingDriver::addValue(
-    uint64_t rowNum, common::column_id_t columnIdx, std::string_view value) {
+void ParsingDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
+    std::string_view value) {
     uint64_t length = value.length();
     if (length == 0 && columnIdx == 0) {
         rowEmpty = true;
@@ -36,8 +36,8 @@ void ParsingDriver::addValue(
                 reader->fileInfo->path, reader->getLineNumber(), reader->numColumns));
     }
     try {
-        function::CastString::copyStringToVector(
-            chunk.getValueVector(columnIdx).get(), rowNum, value, &reader->option);
+        function::CastString::copyStringToVector(chunk.getValueVector(columnIdx).get(), rowNum,
+            value, &reader->option);
     } catch (ConversionException& e) {
         throw CopyException(stringFormat("Error in file {} on line {}: {}", reader->fileInfo->path,
             reader->getLineNumber(), e.what()));
@@ -113,8 +113,8 @@ bool SniffCSVColumnCountDriver::done(uint64_t) const {
     return !emptyRow;
 }
 
-void SniffCSVColumnCountDriver::addValue(
-    uint64_t, common::column_id_t columnIdx, std::string_view value) {
+void SniffCSVColumnCountDriver::addValue(uint64_t, common::column_id_t columnIdx,
+    std::string_view value) {
     if (value != "" || columnIdx > 0) {
         emptyRow = false;
     }

@@ -13,8 +13,8 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::SKIP, std::move(child), id, paramsString},
           skipNumber{skipNumber}, counter{std::move(counter)},
-          dataChunkToSelectPos{dataChunkToSelectPos}, dataChunksPosInScope{
-                                                          std::move(dataChunksPosInScope)} {}
+          dataChunkToSelectPos{dataChunkToSelectPos},
+          dataChunksPosInScope{std::move(dataChunksPosInScope)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

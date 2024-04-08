@@ -29,9 +29,9 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
         auto regularQuery = exportTableData.getRegularQuery();
         KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
         auto tablePlan = getBestPlan(*regularQuery);
-        auto copyTo = std::make_shared<LogicalCopyTo>(
-            filePath + "/" + exportTableData.tableName + copyToSuffix, fileType,
-            exportTableData.columnNames, exportTableData.getColumnTypesRef(),
+        auto copyTo = std::make_shared<LogicalCopyTo>(filePath + "/" + exportTableData.tableName +
+                                                          copyToSuffix,
+            fileType, exportTableData.columnNames, exportTableData.getColumnTypesRef(),
             boundExportDatabase.getCopyOption(), tablePlan->getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }

@@ -13,8 +13,8 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace main {
 
-std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
-    const LogicalType& type, const std::string& name) {
+std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(const LogicalType& type,
+    const std::string& name) {
     auto columnTypeInfo = std::make_unique<DataTypeInfo>(type.getLogicalTypeID(), name);
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID: {
@@ -55,6 +55,7 @@ QueryResult::QueryResult(const PreparedSummary& preparedSummary) {
     querySummary = std::make_unique<QuerySummary>();
     querySummary->setPreparedSummary(preparedSummary);
     nextQueryResult = nullptr;
+    queryResultIterator = QueryResultIterator{this};
 }
 
 QueryResult::~QueryResult() = default;
@@ -152,6 +153,21 @@ bool QueryResult::hasNext() const {
     return iterator->hasNextFlatTuple();
 }
 
+bool QueryResult::hasNextQueryResult() const {
+    if (!queryResultIterator.isEnd()) {
+        return true;
+    }
+    return false;
+}
+
+QueryResult* QueryResult::getNextQueryResult() {
+    ++queryResultIterator;
+    if (!queryResultIterator.isEnd()) {
+        return queryResultIterator.getCurrentResult();
+    }
+    return nullptr;
+}
+
 std::shared_ptr<FlatTuple> QueryResult::getNext() {
     if (!hasNext()) {
         throw RuntimeException(
@@ -163,16 +179,6 @@ std::shared_ptr<FlatTuple> QueryResult::getNext() {
 }
 
 std::string QueryResult::toString() {
-    std::string result;
-    QueryResultIterator it(this);
-    while (!it.isEnd()) {
-        result += it.getCurrentResult()->toSingleQueryString() + "\n";
-        ++it;
-    }
-    return result;
-}
-
-std::string QueryResult::toSingleQueryString() {
     std::string result;
     if (isSuccess()) {
         // print header

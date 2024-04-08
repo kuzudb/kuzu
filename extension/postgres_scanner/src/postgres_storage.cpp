@@ -18,8 +18,8 @@ std::string extractDBName(const std::string& connectionInfo) {
     throw common::RuntimeException{"Invalid postgresql connection string."};
 }
 
-std::unique_ptr<main::AttachedDatabase> attachPostgres(
-    std::string dbName, std::string dbPath, main::ClientContext* clientContext) {
+std::unique_ptr<main::AttachedDatabase> attachPostgres(std::string dbName, std::string dbPath,
+    main::ClientContext* clientContext) {
     auto catalogName = extractDBName(dbPath);
     if (dbName == "") {
         dbName = catalogName;

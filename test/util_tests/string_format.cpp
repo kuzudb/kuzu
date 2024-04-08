@@ -6,13 +6,13 @@
 using namespace kuzu::common;
 
 TEST(StringFormat, Basic) {
-    ASSERT_EQ(
-        stringFormat("Some formatted data: {} and {}", 'a', 423), "Some formatted data: a and 423");
+    ASSERT_EQ(stringFormat("Some formatted data: {} and {}", 'a', 423),
+        "Some formatted data: a and 423");
 }
 
 TEST(StringFormat, Escape) {
-    ASSERT_EQ(
-        stringFormat("Escape this {{}} but not this {{ }}"), "Escape this {} but not this {{ }}");
+    ASSERT_EQ(stringFormat("Escape this {{}} but not this {{ }}"),
+        "Escape this {} but not this {{ }}");
     ASSERT_EQ(stringFormat("Escape before and after value works: {{}} {} {{}}", 4),
         "Escape before and after value works: {} 4 {}");
 }

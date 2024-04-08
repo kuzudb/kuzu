@@ -44,8 +44,8 @@ private:
 
     binder::expression_vector pruneExpressions(const binder::expression_vector& expressions);
 
-    void preAppendProjection(
-        planner::LogicalOperator* op, uint32_t childIdx, binder::expression_vector expressions);
+    void preAppendProjection(planner::LogicalOperator* op, uint32_t childIdx,
+        binder::expression_vector expressions);
 
 private:
     binder::expression_set propertiesInUse;

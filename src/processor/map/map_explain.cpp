@@ -30,8 +30,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(LogicalOperator* logica
         auto planPrinter =
             std::make_unique<main::PlanPrinter>(physicalPlanToExplain.get(), profiler.get());
         auto explainStr = planPrinter->printPlanToOstream().str();
-        auto factorizedTable = FactorizedTableUtils::getFactorizedTableForOutputMsg(
-            explainStr, clientContext->getMemoryManager());
+        auto factorizedTable = FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr,
+            clientContext->getMemoryManager());
         return createFTableScanAligned(expression_vector{outputExpression}, outSchema,
             factorizedTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
     }

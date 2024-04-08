@@ -44,8 +44,8 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     if (morsel.numTuples == 0) {
         return 0;
     }
-    sharedState->table->scan(
-        output.vectors, morsel.startTupleIdx, morsel.numTuples, bindData->columnIndices);
+    sharedState->table->scan(output.vectors, morsel.startTupleIdx, morsel.numTuples,
+        bindData->columnIndices);
     return morsel.numTuples;
 }
 
@@ -54,8 +54,8 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
     return std::make_unique<FTableScanSharedState>(bindData->table, bindData->morselSize);
 }
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(
-    TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*) {
+static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput&,
+    TableFuncSharedState*, storage::MemoryManager*) {
     return std::make_unique<TableFuncLocalState>();
 }
 

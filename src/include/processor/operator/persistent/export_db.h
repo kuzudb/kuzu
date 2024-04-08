@@ -21,8 +21,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ExportDB>(
-            std::move(boundFileInfo), id, paramsString, std::move(children));
+        return std::make_unique<ExportDB>(std::move(boundFileInfo), id, paramsString,
+            std::move(children));
     }
 
 private:

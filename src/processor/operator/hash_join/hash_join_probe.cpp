@@ -10,8 +10,10 @@ void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (auto& keyDataPos : probeDataInfo.keysDataPos) {
         keyVectors.push_back(resultSet->getValueVector(keyDataPos).get());
     }
-    if (joinType == JoinType::MARK) {
-        markVector = resultSet->getValueVector(probeDataInfo.markDataPos);
+    if (probeDataInfo.markDataPos.isValid()) {
+        markVector = resultSet->getValueVector(probeDataInfo.markDataPos).get();
+    } else {
+        markVector = nullptr;
     }
     for (auto& dataPos : probeDataInfo.payloadsOutPos) {
         vectorsToReadInto.push_back(resultSet->getValueVector(dataPos).get());
@@ -21,13 +23,13 @@ void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     KU_ASSERT(probeDataInfo.keysDataPos.size() + probeDataInfo.getNumPayloads() + 2 ==
               sharedState->getHashTable()->getTableSchema()->getNumColumns());
     columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
-    iota(
-        columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), probeDataInfo.keysDataPos.size());
-    hashVector = std::make_unique<ValueVector>(
-        LogicalTypeID::INT64, context->clientContext->getMemoryManager());
+    iota(columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(),
+        probeDataInfo.keysDataPos.size());
+    hashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64,
+        context->clientContext->getMemoryManager());
     if (keyVectors.size() > 1) {
-        tmpHashVector = std::make_unique<ValueVector>(
-            LogicalTypeID::INT64, context->clientContext->getMemoryManager());
+        tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64,
+            context->clientContext->getMemoryManager());
     }
 }
 
@@ -45,11 +47,11 @@ bool HashJoinProbe::getMatchedTuplesForFlatKey(ExecutionContext* context) {
             return false;
         }
         saveSelVector(keyVectors[0]->state->selVector);
-        sharedState->getHashTable()->probe(
-            keyVectors, hashVector.get(), tmpHashVector.get(), probeState->probedTuples.get());
+        sharedState->getHashTable()->probe(keyVectors, hashVector.get(), tmpHashVector.get(),
+            probeState->probedTuples.get());
     }
-    auto numMatchedTuples = sharedState->getHashTable()->matchFlatKeys(
-        keyVectors, probeState->probedTuples.get(), probeState->matchedTuples.get());
+    auto numMatchedTuples = sharedState->getHashTable()->matchFlatKeys(keyVectors,
+        probeState->probedTuples.get(), probeState->matchedTuples.get());
     probeState->matchedSelVector->selectedSize = numMatchedTuples;
     probeState->nextMatchedTupleIdx = 0;
     return true;
@@ -63,8 +65,8 @@ bool HashJoinProbe::getMatchedTuplesForUnFlatKey(ExecutionContext* context) {
         return false;
     }
     saveSelVector(keyVector->state->selVector);
-    sharedState->getHashTable()->probe(
-        keyVectors, hashVector.get(), tmpHashVector.get(), probeState->probedTuples.get());
+    sharedState->getHashTable()->probe(keyVectors, hashVector.get(), tmpHashVector.get(),
+        probeState->probedTuples.get());
     auto numMatchedTuples =
         sharedState->getHashTable()->matchUnFlatKey(keyVector, probeState->probedTuples.get(),
             probeState->matchedTuples.get(), probeState->matchedSelVector.get());
@@ -104,6 +106,15 @@ uint64_t HashJoinProbe::getInnerJoinResultForUnFlatKey() {
     return numTuplesToRead;
 }
 
+static void writeLeftJoinMarkVector(ValueVector* markVector, bool flag) {
+    if (markVector == nullptr) {
+        return;
+    }
+    KU_ASSERT(markVector->state->selVector->selectedSize == 1);
+    auto pos = markVector->state->selVector->selectedPositions[0];
+    markVector->setValue<bool>(pos, flag);
+}
+
 uint64_t HashJoinProbe::getLeftJoinResult() {
     if (getInnerJoinResult() == 0) {
         for (auto& vector : vectorsToReadInto) {
@@ -117,7 +128,10 @@ uint64_t HashJoinProbe::getLeftJoinResult() {
             vector->state->selVector->selectedSize = 1;
         }
         probeState->probedTuples[0] = nullptr;
+        writeLeftJoinMarkVector(markVector, false);
+        return 1;
     }
+    writeLeftJoinMarkVector(markVector, true);
     return 1;
 }
 

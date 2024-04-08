@@ -14,8 +14,8 @@ InMemPage::InMemPage() {
     data = buffer.get();
 }
 
-uint8_t* InMemPage::write(
-    uint32_t byteOffsetInPage, const uint8_t* elem, uint32_t numBytesForElem) const {
+uint8_t* InMemPage::write(uint32_t byteOffsetInPage, const uint8_t* elem,
+    uint32_t numBytesForElem) const {
     memcpy(data + byteOffsetInPage, elem, numBytesForElem);
     return data + byteOffsetInPage;
 }

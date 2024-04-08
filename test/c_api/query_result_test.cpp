@@ -125,8 +125,8 @@ TEST_F(CApiQueryResultTest, GetQuerySummary) {
 
 TEST_F(CApiQueryResultTest, GetNext) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
+    auto result = kuzu_connection_query(connection,
+        "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
 
     ASSERT_TRUE(kuzu_query_result_has_next(result));
@@ -151,8 +151,8 @@ TEST_F(CApiQueryResultTest, GetNext) {
 
 TEST_F(CApiQueryResultTest, ResetIterator) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(
-        connection, "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
+    auto result = kuzu_connection_query(connection,
+        "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
 
     ASSERT_TRUE(kuzu_query_result_has_next(result));
@@ -173,6 +173,33 @@ TEST_F(CApiQueryResultTest, ResetIterator) {
     ASSERT_EQ(flatTupleCpp->getValue(0)->getValue<std::string>(), "Alice");
     ASSERT_EQ(flatTupleCpp->getValue(1)->getValue<int64_t>(), 35);
     kuzu_flat_tuple_destroy(row);
+
+    kuzu_query_result_destroy(result);
+}
+
+TEST_F(CApiQueryResultTest, MultipleQuery) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(connection, "return 1; return 2; return 3;");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+
+    auto str = kuzu_query_result_to_string(result);
+    ASSERT_EQ(std::string(str), "1\n1\n");
+    kuzu_destroy_string(str);
+
+    ASSERT_TRUE(kuzu_query_result_has_next_query_result(result));
+    auto next_query_result = kuzu_query_result_get_next_query_result(result);
+    ASSERT_TRUE(kuzu_query_result_is_success(next_query_result));
+    str = kuzu_query_result_to_string(next_query_result);
+    ASSERT_EQ(std::string(str), "2\n2\n");
+    kuzu_destroy_string(str);
+    kuzu_query_result_destroy(next_query_result);
+
+    next_query_result = kuzu_query_result_get_next_query_result(result);
+    ASSERT_TRUE(kuzu_query_result_is_success(next_query_result));
+    str = kuzu_query_result_to_string(next_query_result);
+    ASSERT_EQ(std::string(str), "3\n3\n");
+    kuzu_destroy_string(str);
+    kuzu_query_result_destroy(next_query_result);
 
     kuzu_query_result_destroy(result);
 }

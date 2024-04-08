@@ -81,8 +81,8 @@ uint32_t OrderByKeyEncoder::getEncodingSize(const LogicalType& dataType) {
     }
 }
 
-void OrderByKeyEncoder::flipBytesIfNecessary(
-    uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, LogicalType& type) {
+void OrderByKeyEncoder::flipBytesIfNecessary(uint32_t keyColIdx, uint8_t* tuplePtr,
+    uint32_t numEntriesToEncode, LogicalType& type) {
     if (!isAscOrder[keyColIdx]) {
         auto encodingSize = getEncodingSize(type);
         // If the current column is in desc order, flip all bytes.
@@ -95,8 +95,8 @@ void OrderByKeyEncoder::flipBytesIfNecessary(
     }
 }
 
-void OrderByKeyEncoder::encodeFlatVector(
-    ValueVector* vector, uint8_t* tuplePtr, uint32_t keyColIdx) {
+void OrderByKeyEncoder::encodeFlatVector(ValueVector* vector, uint8_t* tuplePtr,
+    uint32_t keyColIdx) {
     auto pos = vector->state->selVector->selectedPositions[0];
     if (vector->isNull(pos)) {
         for (auto j = 0u; j < getEncodingSize(vector->dataType); j++) {
@@ -104,8 +104,8 @@ void OrderByKeyEncoder::encodeFlatVector(
         }
     } else {
         *tuplePtr = 0;
-        encodeFunctions[keyColIdx](
-            vector->getData() + pos * vector->getNumBytesPerValue(), tuplePtr + 1, swapBytes);
+        encodeFunctions[keyColIdx](vector->getData() + pos * vector->getNumBytesPerValue(),
+            tuplePtr + 1, swapBytes);
     }
 }
 
@@ -154,9 +154,9 @@ void OrderByKeyEncoder::encodeUnflatVector(ValueVector* vector, uint8_t* tuplePt
                     }
                 } else {
                     *tuplePtr = 0;
-                    encodeFunctions[keyColIdx](
-                        vector->getData() + pos * vector->getNumBytesPerValue(), tuplePtr + 1,
-                        swapBytes);
+                    encodeFunctions[keyColIdx](vector->getData() +
+                                                   pos * vector->getNumBytesPerValue(),
+                        tuplePtr + 1, swapBytes);
                 }
                 tuplePtr += numBytesPerTuple;
             }
@@ -177,8 +177,8 @@ void OrderByKeyEncoder::encodeVector(ValueVector* vector, uint8_t* tuplePtr, uin
 void OrderByKeyEncoder::encodeFTIdx(uint32_t numEntriesToEncode, uint8_t* tupleInfoPtr) {
     uint32_t numUpdatedFTInfoEntries = 0;
     while (numUpdatedFTInfoEntries < numEntriesToEncode) {
-        auto nextBatchOfEntries = std::min(
-            numEntriesToEncode - numUpdatedFTInfoEntries, numTuplesPerBlockInFT - ftBlockOffset);
+        auto nextBatchOfEntries = std::min(numEntriesToEncode - numUpdatedFTInfoEntries,
+            numTuplesPerBlockInFT - ftBlockOffset);
         for (auto i = 0u; i < nextBatchOfEntries; i++) {
             *(uint32_t*)tupleInfoPtr = ftBlockIdx;
             *(uint32_t*)(tupleInfoPtr + 4) = ftBlockOffset;

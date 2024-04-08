@@ -37,8 +37,8 @@ class StructAuxiliaryBuffer : public AuxiliaryBuffer {
 public:
     StructAuxiliaryBuffer(const LogicalType& type, storage::MemoryManager* memoryManager);
 
-    inline void referenceChildVector(
-        vector_idx_t idx, std::shared_ptr<ValueVector> vectorToReference) {
+    inline void referenceChildVector(vector_idx_t idx,
+        std::shared_ptr<ValueVector> vectorToReference) {
         childrenVectors[idx] = std::move(vectorToReference);
     }
     inline const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors() const {
@@ -94,8 +94,8 @@ private:
 
 class AuxiliaryBufferFactory {
 public:
-    static std::unique_ptr<AuxiliaryBuffer> getAuxiliaryBuffer(
-        LogicalType& type, storage::MemoryManager* memoryManager);
+    static std::unique_ptr<AuxiliaryBuffer> getAuxiliaryBuffer(LogicalType& type,
+        storage::MemoryManager* memoryManager);
 };
 
 } // namespace common

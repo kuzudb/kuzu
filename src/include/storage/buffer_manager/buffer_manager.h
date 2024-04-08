@@ -177,16 +177,16 @@ public:
     // Currently, these functions are specifically used only for WAL files.
     void removeFilePagesFromFrames(BMFileHandle& fileHandle);
     void flushAllDirtyPagesInFrames(BMFileHandle& fileHandle);
-    void updateFrameIfPageIsInFrameWithoutLock(
-        BMFileHandle& fileHandle, uint8_t* newPage, common::page_idx_t pageIdx);
+    void updateFrameIfPageIsInFrameWithoutLock(BMFileHandle& fileHandle, uint8_t* newPage,
+        common::page_idx_t pageIdx);
     void removePageFromFrameIfNecessary(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // For files that are managed by BM, their FileHandles should be created through this function.
     inline std::unique_ptr<BMFileHandle> getBMFileHandle(const std::string& filePath, uint8_t flags,
         BMFileHandle::FileVersionedType fileVersionedType, common::VirtualFileSystem* vfs,
         common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
-        return std::make_unique<BMFileHandle>(
-            filePath, flags, this, pageSizeClass, fileVersionedType, vfs);
+        return std::make_unique<BMFileHandle>(filePath, flags, this, pageSizeClass,
+            fileVersionedType, vfs);
     }
     inline common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
         return vmRegions[pageSizeClass]->addNewFrameGroup();
@@ -196,19 +196,19 @@ public:
 private:
     static void verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize);
 
-    bool claimAFrame(
-        BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy);
+    bool claimAFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+        PageReadPolicy pageReadPolicy);
     // Return number of bytes freed.
     uint64_t tryEvictPage(EvictionCandidate& candidate);
 
-    void cachePageIntoFrame(
-        BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy);
+    void cachePageIntoFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+        PageReadPolicy pageReadPolicy);
     void flushIfDirtyWithoutLock(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
-    void removePageFromFrame(
-        BMFileHandle& fileHandle, common::page_idx_t pageIdx, bool shouldFlush);
+    void removePageFromFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+        bool shouldFlush);
 
-    void addToEvictionQueue(
-        BMFileHandle* fileHandle, common::page_idx_t pageIdx, PageState* pageState);
+    void addToEvictionQueue(BMFileHandle* fileHandle, common::page_idx_t pageIdx,
+        PageState* pageState);
 
     inline uint64_t reserveUsedMemory(uint64_t size) { return usedMemory.fetch_add(size); }
     inline uint64_t freeUsedMemory(uint64_t size) {

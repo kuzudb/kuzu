@@ -54,11 +54,11 @@ public:
         function::scalar_func_compile_exec_t compileFunc, const std::string& uniqueName)
         : FunctionExpression{std::move(functionName), expressionType, std::move(bindData),
               std::move(children), uniqueName},
-          execFunc{std::move(execFunc)}, selectFunc{std::move(selectFunc)}, compileFunc{std::move(
-                                                                                compileFunc)} {}
+          execFunc{std::move(execFunc)}, selectFunc{std::move(selectFunc)},
+          compileFunc{std::move(compileFunc)} {}
 
-    static std::string getUniqueName(
-        const std::string& functionName, const expression_vector& children);
+    static std::string getUniqueName(const std::string& functionName,
+        const expression_vector& children);
 
     std::string toStringInternal() const final;
 
@@ -85,8 +85,8 @@ public:
               std::move(bindData), std::move(children), uniqueName},
           aggregateFunction{std::move(aggregateFunction)} {}
 
-    static std::string getUniqueName(
-        const std::string& functionName, expression_vector& children, bool isDistinct);
+    static std::string getUniqueName(const std::string& functionName, expression_vector& children,
+        bool isDistinct);
 
     inline bool isDistinct() const { return aggregateFunction->isFunctionDistinct(); }
 

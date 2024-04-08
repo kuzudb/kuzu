@@ -69,8 +69,8 @@ void RelTableStats::serializeInternal(Serializer& serializer) {
     serializer.serializeVectorOfPtrs(bwdMetadataDAHInfos);
 }
 
-std::unique_ptr<RelTableStats> RelTableStats::deserialize(
-    uint64_t numRels, table_id_t tableID, Deserializer& deserializer) {
+std::unique_ptr<RelTableStats> RelTableStats::deserialize(uint64_t numRels, table_id_t tableID,
+    Deserializer& deserializer) {
     offset_t nextRelOffset;
     deserializer.deserializeValue(nextRelOffset);
     std::unique_ptr<MetadataDAHInfo> fwdCSROffsetMetadataDAHInfo, bwdCSROffsetMetadataDAHInfo,

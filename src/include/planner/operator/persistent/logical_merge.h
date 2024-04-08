@@ -9,7 +9,8 @@ namespace planner {
 
 class LogicalMerge : public LogicalOperator {
 public:
-    LogicalMerge(std::shared_ptr<binder::Expression> mark,
+    LogicalMerge(std::shared_ptr<binder::Expression> existenceMark,
+        std::shared_ptr<binder::Expression> distinctMark,
         std::vector<LogicalInsertInfo> insertNodeInfos,
         std::vector<LogicalInsertInfo> insertRelInfos,
         std::vector<std::unique_ptr<LogicalSetPropertyInfo>> onCreateSetNodeInfos,
@@ -17,54 +18,52 @@ public:
         std::vector<std::unique_ptr<LogicalSetPropertyInfo>> onMatchSetNodeInfos,
         std::vector<std::unique_ptr<LogicalSetPropertyInfo>> onMatchSetRelInfos,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::MERGE, std::move(child)}, mark{std::move(mark)},
+        : LogicalOperator{LogicalOperatorType::MERGE, std::move(child)},
+          existenceMark{std::move(existenceMark)}, distinctMark{std::move(distinctMark)},
           insertNodeInfos{std::move(insertNodeInfos)}, insertRelInfos{std::move(insertRelInfos)},
           onCreateSetNodeInfos{std::move(onCreateSetNodeInfos)},
           onCreateSetRelInfos(std::move(onCreateSetRelInfos)),
-          onMatchSetNodeInfos{std::move(onMatchSetNodeInfos)}, onMatchSetRelInfos{
-                                                                   std::move(onMatchSetRelInfos)} {}
+          onMatchSetNodeInfos{std::move(onMatchSetNodeInfos)},
+          onMatchSetRelInfos{std::move(onMatchSetRelInfos)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
 
-    inline std::string getExpressionsForPrinting() const final { return std::string(""); }
+    std::string getExpressionsForPrinting() const final { return {}; }
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    inline std::shared_ptr<binder::Expression> getMark() const { return mark; }
-    inline const std::vector<LogicalInsertInfo>& getInsertNodeInfosRef() const {
-        return insertNodeInfos;
-    }
-    inline const std::vector<LogicalInsertInfo>& getInsertRelInfosRef() const {
-        return insertRelInfos;
-    }
-    inline const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>&
-    getOnCreateSetNodeInfosRef() const {
+    std::shared_ptr<binder::Expression> getExistenceMark() const { return existenceMark; }
+    bool hasDistinctMark() const { return distinctMark != nullptr; }
+    std::shared_ptr<binder::Expression> getDistinctMark() const { return distinctMark; }
+
+    const std::vector<LogicalInsertInfo>& getInsertNodeInfosRef() const { return insertNodeInfos; }
+    const std::vector<LogicalInsertInfo>& getInsertRelInfosRef() const { return insertRelInfos; }
+    const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>& getOnCreateSetNodeInfosRef() const {
         return onCreateSetNodeInfos;
     }
-    inline const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>&
-    getOnCreateSetRelInfosRef() const {
+    const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>& getOnCreateSetRelInfosRef() const {
         return onCreateSetRelInfos;
     }
-    inline const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>&
-    getOnMatchSetNodeInfosRef() const {
+    const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>& getOnMatchSetNodeInfosRef() const {
         return onMatchSetNodeInfos;
     }
-    inline const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>&
-    getOnMatchSetRelInfosRef() const {
+    const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>& getOnMatchSetRelInfosRef() const {
         return onMatchSetRelInfos;
     }
 
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalMerge>(mark, copyVector(insertNodeInfos),
-            copyVector(insertRelInfos), LogicalSetPropertyInfo::copy(onCreateSetNodeInfos),
+    std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalMerge>(existenceMark, distinctMark,
+            copyVector(insertNodeInfos), copyVector(insertRelInfos),
+            LogicalSetPropertyInfo::copy(onCreateSetNodeInfos),
             LogicalSetPropertyInfo::copy(onCreateSetRelInfos),
             LogicalSetPropertyInfo::copy(onMatchSetNodeInfos),
             LogicalSetPropertyInfo::copy(onMatchSetRelInfos), children[0]->copy());
     }
 
 private:
-    std::shared_ptr<binder::Expression> mark;
+    std::shared_ptr<binder::Expression> existenceMark;
+    std::shared_ptr<binder::Expression> distinctMark;
     // Create infos
     std::vector<LogicalInsertInfo> insertNodeInfos;
     std::vector<LogicalInsertInfo> insertRelInfos;

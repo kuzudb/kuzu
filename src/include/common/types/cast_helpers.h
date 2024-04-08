@@ -213,8 +213,8 @@ struct IntervalToStringCast {
         length += 2;
     }
 
-    static void FormatIntervalValue(
-        int32_t value, char buffer[], uint64_t& length, const char* name, uint64_t name_len) {
+    static void FormatIntervalValue(int32_t value, char buffer[], uint64_t& length,
+        const char* name, uint64_t name_len) {
         if (value == 0) {
             return;
         }

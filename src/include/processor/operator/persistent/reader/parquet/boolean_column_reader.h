@@ -16,8 +16,8 @@ public:
     BooleanColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
         const kuzu_parquet::format::SchemaElement& schema, uint64_t schemaIdx, uint64_t maxDefine,
         uint64_t maxRepeat)
-        : TemplatedColumnReader<bool, BooleanParquetValueConversion>(
-              reader, std::move(type), schema, schemaIdx, maxDefine, maxRepeat),
+        : TemplatedColumnReader<bool, BooleanParquetValueConversion>(reader, std::move(type),
+              schema, schemaIdx, maxDefine, maxRepeat),
           bytePos(0){};
 
     uint8_t bytePos;

@@ -10,8 +10,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
-    const Schema& buildSchema, const expression_vector& keys, const expression_vector& payloads) {
+std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(const Schema& buildSchema,
+    const expression_vector& keys, const expression_vector& payloads) {
     planner::f_group_pos_set keyGroupPosSet;
     std::vector<DataPos> keysPos;
     std::vector<FStateType> fStateTypes;
@@ -41,8 +41,8 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
             columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, pos.dataChunkPos,
                 LogicalTypeUtils::getRowLayoutSize(payload->dataType));
         } else {
-            columnSchema = std::make_unique<ColumnSchema>(
-                true /* isUnFlat */, pos.dataChunkPos, (uint32_t)sizeof(overflow_value_t));
+            columnSchema = std::make_unique<ColumnSchema>(true /* isUnFlat */, pos.dataChunkPos,
+                (uint32_t)sizeof(overflow_value_t));
         }
         tableSchema->appendColumn(std::move(columnSchema));
         payloadsPos.push_back(pos);
@@ -53,8 +53,8 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
     auto pointerColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
         INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(*LogicalType::INT64()));
     tableSchema->appendColumn(std::move(pointerColumn));
-    return std::make_unique<HashJoinBuildInfo>(
-        std::move(keysPos), std::move(fStateTypes), std::move(payloadsPos), std::move(tableSchema));
+    return std::make_unique<HashJoinBuildInfo>(std::move(keysPos), std::move(fStateTypes),
+        std::move(payloadsPos), std::move(tableSchema));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logicalOperator) {
@@ -99,11 +99,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
         probePayloadsOutPos.emplace_back(outSchema->getExpressionPos(*payload));
     }
     ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsOutPos);
-    if (hashJoin->getJoinType() == JoinType::MARK) {
+    if (hashJoin->hasMark()) {
         auto mark = hashJoin->getMark();
         auto markOutputPos = DataPos(outSchema->getExpressionPos(*mark));
         probeDataInfo.markDataPos = markOutputPos;
+    } else {
+        probeDataInfo.markDataPos = DataPos::getInvalidPos();
     }
+
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
         hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
         std::move(hashJoinBuild), getOperatorID(), paramsString);

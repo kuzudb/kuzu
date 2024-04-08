@@ -33,8 +33,8 @@ std::unique_ptr<LogicalInsertInfo> Planner::createLogicalInsertInfo(const BoundI
     return insertInfo;
 }
 
-void Planner::appendInsertNode(
-    const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
+void Planner::appendInsertNode(const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos,
+    LogicalPlan& plan) {
     std::vector<LogicalInsertInfo> logicalInfos;
     logicalInfos.reserve(boundInsertInfos.size());
     for (auto& boundInfo : boundInsertInfos) {
@@ -48,8 +48,8 @@ void Planner::appendInsertNode(
     plan.setLastOperator(insertNode);
 }
 
-void Planner::appendInsertRel(
-    const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
+void Planner::appendInsertRel(const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos,
+    LogicalPlan& plan) {
     std::vector<LogicalInsertInfo> logicalInfos;
     logicalInfos.reserve(boundInsertInfos.size());
     for (auto& boundInfo : boundInsertInfos) {

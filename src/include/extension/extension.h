@@ -38,8 +38,8 @@ struct ExtensionUtils {
 struct ExtensionOptions {
     std::unordered_map<std::string, main::ExtensionOption> extensionOptions;
 
-    void addExtensionOption(
-        std::string name, common::LogicalTypeID type, common::Value defaultValue);
+    void addExtensionOption(std::string name, common::LogicalTypeID type,
+        common::Value defaultValue);
 
     main::ExtensionOption* getExtensionOption(std::string name);
 };

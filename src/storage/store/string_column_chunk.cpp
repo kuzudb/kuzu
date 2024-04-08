@@ -9,8 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StringColumnChunk::StringColumnChunk(
-    LogicalType dataType, uint64_t capacity, bool enableCompression, bool inMemory)
+StringColumnChunk::StringColumnChunk(LogicalType dataType, uint64_t capacity,
+    bool enableCompression, bool inMemory)
     : ColumnChunk{std::move(dataType), capacity, enableCompression},
       dictionaryChunk{
           std::make_unique<DictionaryChunk>(inMemory ? 0 : capacity, enableCompression)},
@@ -37,8 +37,8 @@ void StringColumnChunk::append(ValueVector* vector, const SelectionVector& selVe
     }
 }
 
-void StringColumnChunk::append(
-    ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
+void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
+    uint32_t numValuesToAppend) {
     auto otherChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(other);
     nullChunk->append(otherChunk->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
     switch (dataType.getLogicalTypeID()) {
@@ -52,8 +52,8 @@ void StringColumnChunk::append(
     }
 }
 
-void StringColumnChunk::lookup(
-    offset_t offsetInChunk, ValueVector& output, sel_t posInOutputVector) const {
+void StringColumnChunk::lookup(offset_t offsetInChunk, ValueVector& output,
+    sel_t posInOutputVector) const {
     KU_ASSERT(offsetInChunk < numValues);
     output.setNull(posInOutputVector, nullChunk->isNull(offsetInChunk));
     if (nullChunk->isNull(offsetInChunk)) {
@@ -63,8 +63,8 @@ void StringColumnChunk::lookup(
     output.setValue<std::string_view>(posInOutputVector, str);
 }
 
-void StringColumnChunk::write(
-    ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+void StringColumnChunk::write(ValueVector* vector, offset_t offsetInVector,
+    offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     if (!needFinalize && offsetInChunk < numValues) [[unlikely]] {
         needFinalize = true;
@@ -79,8 +79,8 @@ void StringColumnChunk::write(
     }
 }
 
-void StringColumnChunk::write(
-    ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity /*multiplicity*/) {
+void StringColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets,
+    RelMultiplicity /*multiplicity*/) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING &&
               dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID &&
               chunk->getNumValues() == dstOffsets->getNumValues());
@@ -132,8 +132,8 @@ void StringColumnChunk::copy(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     append(srcStringChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
-void StringColumnChunk::appendStringColumnChunk(
-    StringColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
+void StringColumnChunk::appendStringColumnChunk(StringColumnChunk* other,
+    offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     auto indices = reinterpret_cast<DictionaryChunk::string_index_t*>(buffer.get());
     for (auto i = 0u; i < numValuesToAppend; i++) {
         auto posInChunk = numValues;

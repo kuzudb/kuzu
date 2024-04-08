@@ -30,8 +30,8 @@ bool Filter::getNextTuplesInternal(ExecutionContext* context) {
     return true;
 }
 
-void NodeLabelFiler::initLocalStateInternal(
-    ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
+void NodeLabelFiler::initLocalStateInternal(ResultSet* /*resultSet_*/,
+    ExecutionContext* /*context*/) {
     nodeIDVector = resultSet->getValueVector(info->nodeVectorPos).get();
 }
 

@@ -12,15 +12,15 @@ public:
         std::vector<DataPos> groupByKeyVectorsPos, std::vector<DataPos> aggregatesPos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : BaseAggregateScan{std::move(aggregatesPos), std::move(child), id, paramsString},
-          groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)}, sharedState{
-                                                                     std::move(sharedState)} {}
+          groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
+          sharedState{std::move(sharedState)} {}
 
     HashAggregateScan(std::shared_ptr<HashAggregateSharedState> sharedState,
         std::vector<DataPos> groupByKeyVectorsPos, std::vector<DataPos> aggregatesPos, uint32_t id,
         const std::string& paramsString)
         : BaseAggregateScan{std::move(aggregatesPos), id, paramsString},
-          groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)}, sharedState{
-                                                                     std::move(sharedState)} {}
+          groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
+          sharedState{std::move(sharedState)} {}
 
     inline std::shared_ptr<HashAggregateSharedState> getSharedState() const { return sharedState; }
 
@@ -29,9 +29,11 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<HashAggregateScan>(
-            sharedState, groupByKeyVectorsPos, aggregatesPos, id, paramsString);
+        return std::make_unique<HashAggregateScan>(sharedState, groupByKeyVectorsPos, aggregatesPos,
+            id, paramsString);
     }
+
+    double getProgress(ExecutionContext* context) const override;
 
 private:
     std::vector<DataPos> groupByKeyVectorsPos;

@@ -25,7 +25,9 @@ kuzu_value* kuzu_flat_tuple_get_value(kuzu_flat_tuple* flat_tuple, uint64_t inde
     Value* _value;
     try {
         _value = (*flat_tuple_shared_ptr)->getValue(index);
-    } catch (Exception& e) { return nullptr; }
+    } catch (Exception& e) {
+        return nullptr;
+    }
     auto* value = (kuzu_value*)malloc(sizeof(kuzu_value));
     value->_value = _value;
     // We set the ownership of the value to C++, so it will not be deleted if the value is destroyed

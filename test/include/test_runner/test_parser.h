@@ -16,8 +16,6 @@ enum class TokenType {
     SKIP_MUSL,
     SKIP_32BIT,
     // body
-    BEGIN_READ_ONLY_TRANSACTION,
-    BEGIN_WRITE_TRANSACTION,
     BUFFER_POOL_SIZE,
     CASE,
     CHECK_ORDER,
@@ -52,13 +50,10 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenTyp
     {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE}, {"-COMMIT", TokenType::COMMIT},
     {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
     {"-LOG", TokenType::LOG}, {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
-    {"-ENUMERATE", TokenType::ENUMERATE},
-    {"-BEGIN_WRITE_TRANSACTION", TokenType::BEGIN_WRITE_TRANSACTION},
-    {"-BEGIN_READ_ONLY_TRANSACTION", TokenType::BEGIN_READ_ONLY_TRANSACTION},
-    {"-PARALLELISM", TokenType::PARALLELISM}, {"-SKIP", TokenType::SKIP},
-    {"-SKIP_MUSL", TokenType::SKIP_MUSL}, {"-SKIP_LINE", TokenType::DEFINE},
-    {"-SKIP_32BIT", TokenType::SKIP_32BIT}, {"-DEFINE", TokenType::DEFINE},
-    {"-STATEMENT", TokenType::STATEMENT},
+    {"-ENUMERATE", TokenType::ENUMERATE}, {"-PARALLELISM", TokenType::PARALLELISM},
+    {"-SKIP", TokenType::SKIP}, {"-SKIP_MUSL", TokenType::SKIP_MUSL},
+    {"-SKIP_LINE", TokenType::DEFINE}, {"-SKIP_32BIT", TokenType::SKIP_32BIT},
+    {"-DEFINE", TokenType::DEFINE}, {"-STATEMENT", TokenType::STATEMENT},
     {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
     {"-ROLLBACK", TokenType::ROLLBACK}, {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},
     {"-CHECKPOINT_WAIT_TIMEOUT", TokenType::CHECKPOINT_WAIT_TIMEOUT},
@@ -130,8 +125,8 @@ private:
 
     inline std::string getParam(int paramIdx) { return currentToken.params[paramIdx]; }
 
-    TestStatement* extractStatement(
-        TestStatement* currentStatement, const std::string& testCaseName);
+    TestStatement* extractStatement(TestStatement* currentStatement,
+        const std::string& testCaseName);
     TestStatement* addNewStatement(std::string& name);
 
     const std::string exportDBPath = TestHelper::appendKuzuRootPath(

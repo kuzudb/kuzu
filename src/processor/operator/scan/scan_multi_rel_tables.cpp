@@ -7,13 +7,13 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace processor {
 
-void RelTableCollectionScanner::init(
-    ValueVector* inVector, const std::vector<ValueVector*>& outputVectors) {
+void RelTableCollectionScanner::init(ValueVector* inVector,
+    const std::vector<ValueVector*>& outputVectors) {
     readStates.resize(scanInfos.size());
     for (auto i = 0u; i < scanInfos.size(); i++) {
         auto scanInfo = scanInfos[i].get();
-        readStates[i] = std::make_unique<RelTableReadState>(
-            *inVector, scanInfo->columnIDs, outputVectors, scanInfo->direction);
+        readStates[i] = std::make_unique<RelTableReadState>(*inVector, scanInfo->columnIDs,
+            outputVectors, scanInfo->direction);
     }
 }
 

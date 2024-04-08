@@ -11,8 +11,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void Planner::planReadingClause(
-    const BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& prevPlans) {
+void Planner::planReadingClause(const BoundReadingClause* readingClause,
+    std::vector<std::unique_ptr<LogicalPlan>>& prevPlans) {
     auto readingClauseType = readingClause->getClauseType();
     switch (readingClauseType) {
     case ClauseType::MATCH: {
@@ -50,7 +50,12 @@ void Planner::planMatchClause(const BoundReadingClause* boundReadingClause,
     } break;
     case MatchClauseType::OPTIONAL_MATCH: {
         for (auto& plan : plans) {
-            planOptionalMatch(*queryGraphCollection, predicates, *plan);
+            expression_vector corrExprs;
+            if (!plan->isEmpty()) {
+                corrExprs =
+                    getCorrelatedExprs(*queryGraphCollection, predicates, plan->getSchema());
+            }
+            planOptionalMatch(*queryGraphCollection, predicates, corrExprs, *plan);
         }
     } break;
     default:
@@ -79,8 +84,8 @@ static bool hasExternalDependency(const std::shared_ptr<Expression>& expression,
     return false;
 }
 
-void Planner::planInQueryCall(
-    const BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+void Planner::planInQueryCall(const BoundReadingClause* readingClause,
+    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     auto inQueryCall =
         ku_dynamic_cast<const BoundReadingClause*, const BoundInQueryCall*>(readingClause);
     std::unordered_set<std::string> columnNameSet;
@@ -116,8 +121,8 @@ void Planner::planInQueryCall(
     }
 }
 
-void Planner::planLoadFrom(
-    const BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+void Planner::planLoadFrom(const BoundReadingClause* readingClause,
+    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     auto loadFrom = ku_dynamic_cast<const BoundReadingClause*, const BoundLoadFrom*>(readingClause);
     std::unordered_set<std::string> columnNameSet;
     for (auto& column : loadFrom->getInfo()->columns) {

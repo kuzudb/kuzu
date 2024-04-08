@@ -198,7 +198,9 @@ std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = Parser::parseQuery(query);
-    } catch (std::exception& exception) { return preparedStatementWithError(exception.what()); }
+    } catch (std::exception& exception) {
+        return preparedStatementWithError(exception.what());
+    }
     if (parsedStatements.size() > 1) {
         return preparedStatementWithError(
             "Connection Exception: We do not support prepare multiple statements.");
@@ -212,7 +214,9 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareTest(std::string_view q
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = Parser::parseQuery(query);
-    } catch (std::exception& exception) { return preparedStatementWithError(exception.what()); }
+    } catch (std::exception& exception) {
+        return preparedStatementWithError(exception.what());
+    }
     if (parsedStatements.size() > 1) {
         return preparedStatementWithError(
             "Connection Exception: We do not support prepare multiple statements.");
@@ -220,16 +224,16 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareTest(std::string_view q
     if (parsedStatements.empty()) {
         return preparedStatementWithError("Connection Exception: Query is empty.");
     }
-    return prepareNoLock(
-        parsedStatements[0], false /* enumerate all plans */, "", false /*requireNewTx*/);
+    return prepareNoLock(parsedStatements[0], false /* enumerate all plans */, "",
+        false /*requireNewTx*/);
 }
 
 std::unique_ptr<QueryResult> ClientContext::query(std::string_view queryStatement) {
     return query(queryStatement, std::string_view() /*encodedJoin*/, false /*enumerateAllPlans */);
 }
 
-std::unique_ptr<QueryResult> ClientContext::query(
-    std::string_view query, std::string_view encodedJoin, bool enumerateAllPlans) {
+std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
+    std::string_view encodedJoin, bool enumerateAllPlans) {
     lock_t lck{mtx};
     if (query.empty()) {
         return queryResultWithError("Connection Exception: Query is empty.");
@@ -237,14 +241,16 @@ std::unique_ptr<QueryResult> ClientContext::query(
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = Parser::parseQuery(query);
-    } catch (std::exception& exception) { return queryResultWithError(exception.what()); }
+    } catch (std::exception& exception) {
+        return queryResultWithError(exception.what());
+    }
     std::unique_ptr<QueryResult> queryResult;
     QueryResult* lastResult = nullptr;
     for (auto& statement : parsedStatements) {
         auto preparedStatement = prepareNoLock(statement,
             enumerateAllPlans /* enumerate all plans */, encodedJoin, false /*requireNewTx*/);
-        auto currentQueryResult = executeAndAutoCommitIfNecessaryNoLock(
-            preparedStatement.get(), 0u, false /*requiredNexTx*/);
+        auto currentQueryResult = executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), 0u,
+            false /*requiredNexTx*/);
         if (!lastResult) {
             // first result of the query
             queryResult = std::move(currentQueryResult);
@@ -262,6 +268,7 @@ std::unique_ptr<QueryResult> ClientContext::queryResultWithError(std::string_vie
     queryResult->success = false;
     queryResult->errMsg = errMsg;
     queryResult->nextQueryResult = nullptr;
+    queryResult->queryResultIterator = QueryResult::QueryResultIterator{queryResult.get()};
     return queryResult;
 }
 
@@ -374,8 +381,8 @@ std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement*
     }
     // rebind
     KU_ASSERT(preparedStatement->parsedStatement != nullptr);
-    auto rebindPreparedStatement = prepareNoLock(
-        preparedStatement->parsedStatement, false, "", false, preparedStatement->parameterMap);
+    auto rebindPreparedStatement = prepareNoLock(preparedStatement->parsedStatement, false, "",
+        false, preparedStatement->parameterMap);
     return executeAndAutoCommitIfNecessaryNoLock(rebindPreparedStatement.get(), 0u, false);
 }
 
@@ -447,8 +454,8 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
     }
     executingTimer.stop();
     queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-    queryResult->initResultTableAndIterator(
-        std::move(resultFT), preparedStatement->statementResult->getColumns());
+    queryResult->initResultTableAndIterator(std::move(resultFT),
+        preparedStatement->statementResult->getColumns());
     return queryResult;
 }
 
@@ -484,7 +491,9 @@ void ClientContext::runQuery(std::string query) {
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = Parser::parseQuery(query);
-    } catch (std::exception& exception) { throw ConnectionException(exception.what()); }
+    } catch (std::exception& exception) {
+        throw ConnectionException(exception.what());
+    }
     if (parsedStatements.empty()) {
         throw ConnectionException("Connection Exception: Query is empty.");
     }
@@ -497,7 +506,9 @@ void ClientContext::runQuery(std::string query) {
                 throw ConnectionException(currentQueryResult->errMsg);
             }
         }
-    } catch (std::exception& exception) { throw ConnectionException(exception.what()); }
+    } catch (std::exception& exception) {
+        throw ConnectionException(exception.what());
+    }
     return;
 }
 } // namespace main

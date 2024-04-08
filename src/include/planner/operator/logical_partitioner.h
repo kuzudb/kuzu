@@ -34,8 +34,8 @@ class LogicalPartitioner : public LogicalOperator {
 public:
     LogicalPartitioner(std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::PARTITIONER, std::move(child)}, infos{std::move(
-                                                                                   infos)} {}
+        : LogicalOperator{LogicalOperatorType::PARTITIONER, std::move(child)},
+          infos{std::move(infos)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
@@ -49,8 +49,8 @@ public:
     }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return make_unique<LogicalPartitioner>(
-            LogicalPartitionerInfo::copy(infos), children[0]->copy());
+        return make_unique<LogicalPartitioner>(LogicalPartitionerInfo::copy(infos),
+            children[0]->copy());
     }
 
 private:

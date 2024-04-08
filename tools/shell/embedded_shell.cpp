@@ -482,11 +482,16 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         uint32_t sumGoal = minTruncatedWidth;
         uint32_t maxWidth = minTruncatedWidth;
         if (colsWidth.size() == 1) {
-            sumGoal = colsWidth[0] + 2;
+            uint32_t minDisplayWidth = minTruncatedWidth + SMALL_TABLE_SEPERATOR_LENGTH;
+            if (maxPrintWidth > minDisplayWidth) {
+				sumGoal = maxPrintWidth - 2;
+            } else {
+                sumGoal = std::max(
+                    (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
+                    minDisplayWidth);
+			}
         } else if (colsWidth.size() > 1) {
-            uint32_t minDisplayWidth = SMALL_TABLE_SEPERATOR_LENGTH;
-            minDisplayWidth += (colsWidth[0] < minTruncatedWidth) ? colsWidth[0] : minTruncatedWidth;
-            minDisplayWidth += (colsWidth.back() < minTruncatedWidth) ? colsWidth.back() : minTruncatedWidth;
+            uint32_t minDisplayWidth = SMALL_TABLE_SEPERATOR_LENGTH + minTruncatedWidth * 2;
             if (maxPrintWidth > minDisplayWidth) {
                 sumGoal = maxPrintWidth - colsWidth.size() - 1;
             } else {

@@ -200,14 +200,14 @@ void HashIndex<T>::insertIntoPersistentIndex(Key key, offset_t value) {
     }
     auto hashValue = HashIndexUtils::hash(key);
     auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
-    auto iter = getSlotIterator(
-        HashIndexUtils::getPrimarySlotIdForHash(header, hashValue), TransactionType::WRITE);
+    auto iter = getSlotIterator(HashIndexUtils::getPrimarySlotIdForHash(header, hashValue),
+        TransactionType::WRITE);
     // Find a slot with free entries
     while (iter.slot.header.numEntries() == getSlotCapacity<T>() &&
            nextChainedSlot(TransactionType::WRITE, iter))
         ;
-    copyKVOrEntryToSlot<Key, false /* insert kv */>(
-        iter.slotInfo, iter.slot, key, value, fingerprint);
+    copyKVOrEntryToSlot<Key, false /* insert kv */>(iter.slotInfo, iter.slot, key, value,
+        fingerprint);
     header.numEntries++;
 }
 
@@ -230,8 +230,8 @@ void HashIndex<T>::deleteFromPersistentIndex(Key key) {
 }
 
 template<>
-inline common::hash_t HashIndex<ku_string_t>::hashStored(
-    transaction::TransactionType /*trxType*/, const ku_string_t& key) const {
+inline common::hash_t HashIndex<ku_string_t>::hashStored(transaction::TransactionType /*trxType*/,
+    const ku_string_t& key) const {
     common::hash_t hash;
     auto str = overflowFileHandle->readString(TransactionType::WRITE, key);
     function::Hash::operation(str, hash);
@@ -239,8 +239,8 @@ inline common::hash_t HashIndex<ku_string_t>::hashStored(
 }
 
 template<typename T>
-entry_pos_t HashIndex<T>::findMatchedEntryInSlot(
-    TransactionType trxType, const Slot<T>& slot, Key key, uint8_t fingerprint) const {
+entry_pos_t HashIndex<T>::findMatchedEntryInSlot(TransactionType trxType, const Slot<T>& slot,
+    Key key, uint8_t fingerprint) const {
     for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
         if (slot.header.isEntryValid(entryPos) &&
             slot.header.fingerprints[entryPos] == fingerprint &&
@@ -257,8 +257,9 @@ void HashIndex<T>::prepareCommit() {
         wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
         localStorage->applyLocalChanges(
             [this](Key key) -> void { this->deleteFromPersistentIndex(key); },
-            [this](
-                Key key, offset_t value) -> void { this->insertIntoPersistentIndex(key, value); });
+            [this](Key key, offset_t value) -> void {
+                this->insertIntoPersistentIndex(key, value);
+            });
         headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, *indexHeaderForWriteTrx);
         headerArray->prepareCommit();
         pSlots->prepareCommit();
@@ -311,8 +312,8 @@ inline bool HashIndex<ku_string_t>::equals(transaction::TransactionType trxType,
 }
 
 template<>
-inline void HashIndex<ku_string_t>::insert(
-    std::string_view key, SlotEntry<ku_string_t>& entry, common::offset_t offset) {
+inline void HashIndex<ku_string_t>::insert(std::string_view key, SlotEntry<ku_string_t>& entry,
+    common::offset_t offset) {
     entry.key = overflowFileHandle->writeString(key);
     entry.value = offset;
 }
@@ -359,8 +360,8 @@ void HashIndex<T>::copyEntryToSlot(slot_id_t slotId, const T& entry, uint8_t fin
             break;
         }
     } while (nextChainedSlot(TransactionType::WRITE, iter));
-    copyKVOrEntryToSlot<const T&, true /* copy entry */>(
-        iter.slotInfo, iter.slot, entry, UINT32_MAX, fingerprint);
+    copyKVOrEntryToSlot<const T&, true /* copy entry */>(iter.slotInfo, iter.slot, entry,
+        UINT32_MAX, fingerprint);
     updateSlot(iter.slotInfo, iter.slot);
 }
 
@@ -399,14 +400,14 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
         keyDataTypeID,
         [&](ku_string_t) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                hashIndices.push_back(std::make_unique<HashIndex<ku_string_t>>(
-                    dbFileIDAndName, fileHandle, overflowFile->addHandle(), i, bufferManager, wal));
+                hashIndices.push_back(std::make_unique<HashIndex<ku_string_t>>(dbFileIDAndName,
+                    fileHandle, overflowFile->addHandle(), i, bufferManager, wal));
             }
         },
         [&]<HashablePrimitive T>(T) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                hashIndices.push_back(std::make_unique<HashIndex<T>>(
-                    dbFileIDAndName, fileHandle, nullptr, i, bufferManager, wal));
+                hashIndices.push_back(std::make_unique<HashIndex<T>>(dbFileIDAndName, fileHandle,
+                    nullptr, i, bufferManager, wal));
             }
         },
         [&](auto) { KU_UNREACHABLE; });
@@ -425,8 +426,8 @@ bool PrimaryKeyIndex::lookup(Transaction* trx, common::ValueVector* keyVector, u
     return retVal;
 }
 
-bool PrimaryKeyIndex::insert(
-    common::ValueVector* keyVector, uint64_t vectorPos, common::offset_t value) {
+bool PrimaryKeyIndex::insert(common::ValueVector* keyVector, uint64_t vectorPos,
+    common::offset_t value) {
     bool result = false;
     TypeUtils::visit(
         keyDataTypeID,

@@ -69,11 +69,11 @@ public:
     // copyFromRowData assumes rowData is non-NULL.
     void copyFromRowData(uint32_t pos, const uint8_t* rowData);
     // copyToRowData assumes srcVectorData is non-NULL.
-    void copyToRowData(
-        uint32_t pos, uint8_t* rowData, InMemOverflowBuffer* rowOverflowBuffer) const;
+    void copyToRowData(uint32_t pos, uint8_t* rowData,
+        InMemOverflowBuffer* rowOverflowBuffer) const;
     // copyFromVectorData assumes srcVectorData is non-NULL.
-    void copyFromVectorData(
-        uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData);
+    void copyFromVectorData(uint8_t* dstData, const ValueVector* srcVector,
+        const uint8_t* srcVectorData);
     void copyFromVectorData(uint64_t dstPos, const ValueVector* srcVector, uint64_t srcPos);
     void copyFromValue(uint64_t pos, const Value& value);
 
@@ -121,18 +121,18 @@ public:
     }
 
     static void addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr);
-    static void addString(
-        ValueVector* vector, uint32_t vectorPos, const char* srcStr, uint64_t length);
+    static void addString(ValueVector* vector, uint32_t vectorPos, const char* srcStr,
+        uint64_t length);
     static void addString(ValueVector* vector, uint32_t vectorPos, const std::string& srcStr);
     // Add empty string with space reserved for the provided size
     // Returned value can be modified to set the string contents
     static ku_string_t& reserveString(ValueVector* vector, uint32_t vectorPos, uint64_t length);
     static void reserveString(ValueVector* vector, ku_string_t& dstStr, uint64_t length);
     static void addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr);
-    static void addString(
-        ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length);
-    static void addString(
-        kuzu::common::ValueVector* vector, ku_string_t& dstStr, const std::string& srcStr);
+    static void addString(ValueVector* vector, ku_string_t& dstStr, const char* srcStr,
+        uint64_t length);
+    static void addString(kuzu::common::ValueVector* vector, ku_string_t& dstStr,
+        const std::string& srcStr);
     static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
         InMemOverflowBuffer* rowOverflowBuffer);
 };
@@ -178,8 +178,8 @@ public:
         auto dataVector = getDataVector(vector);
         return dataVector->getData() + dataVector->getNumBytesPerValue() * listEntry.offset;
     }
-    static uint8_t* getListValuesWithOffset(
-        const ValueVector* vector, const list_entry_t& listEntry, offset_t elementOffsetInList) {
+    static uint8_t* getListValuesWithOffset(const ValueVector* vector,
+        const list_entry_t& listEntry, offset_t elementOffsetInList) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST);
         return getListValues(vector, listEntry) +
                elementOffsetInList * getDataVector(vector)->getNumBytesPerValue();
@@ -200,8 +200,8 @@ public:
         InMemOverflowBuffer* rowOverflowBuffer);
     static void copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
         const ValueVector* srcVector, const uint8_t* srcData);
-    static void appendDataVector(
-        ValueVector* dstVector, ValueVector* srcDataVector, uint64_t numValuesToAppend);
+    static void appendDataVector(ValueVector* dstVector, ValueVector* srcDataVector,
+        uint64_t numValuesToAppend);
     static void sliceDataVector(ValueVector* vectorToSlice, uint64_t offset, uint64_t numValues);
 };
 
@@ -214,8 +214,8 @@ public:
             ->getFieldVectors();
     }
 
-    static inline std::shared_ptr<ValueVector> getFieldVector(
-        const ValueVector* vector, struct_field_idx_t idx) {
+    static inline std::shared_ptr<ValueVector> getFieldVector(const ValueVector* vector,
+        struct_field_idx_t idx) {
         return ku_dynamic_cast<AuxiliaryBuffer*, StructAuxiliaryBuffer*>(
             vector->auxiliaryBuffer.get())
             ->getFieldVectors()[idx];
@@ -255,15 +255,15 @@ public:
 
     static inline void referenceVector(ValueVector* vector, union_field_idx_t fieldIdx,
         std::shared_ptr<ValueVector> vectorToReference) {
-        StructVector::referenceVector(
-            vector, UnionType::getInternalFieldIdx(fieldIdx), std::move(vectorToReference));
+        StructVector::referenceVector(vector, UnionType::getInternalFieldIdx(fieldIdx),
+            std::move(vectorToReference));
     }
 
     static inline void setTagField(ValueVector* vector, union_field_idx_t tag) {
         KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
         for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-            vector->setValue<struct_field_idx_t>(
-                vector->state->selVector->selectedPositions[i], tag);
+            vector->setValue<struct_field_idx_t>(vector->state->selVector->selectedPositions[i],
+                tag);
         }
     }
 };

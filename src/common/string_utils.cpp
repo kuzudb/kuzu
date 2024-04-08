@@ -25,8 +25,8 @@ std::vector<std::string> StringUtils::splitComma(const std::string& input) {
     return result;
 }
 
-std::vector<std::string> StringUtils::split(
-    const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts) {
+std::vector<std::string> StringUtils::split(const std::string& input, const std::string& delimiter,
+    bool ignoreEmptyStringParts) {
     auto result = std::vector<std::string>();
     auto prevPos = 0u;
     auto currentPos = input.find(delimiter, prevPos);
@@ -62,8 +62,8 @@ void StringUtils::removeCStringWhiteSpaces(const char*& input, uint64_t& len) {
     }
 }
 
-void StringUtils::replaceAll(
-    std::string& str, const std::string& search, const std::string& replacement) {
+void StringUtils::replaceAll(std::string& str, const std::string& search,
+    const std::string& replacement) {
     size_t pos = 0;
     while ((pos = str.find(search, pos)) != std::string::npos) {
         str.replace(pos, search.length(), replacement);
@@ -71,8 +71,8 @@ void StringUtils::replaceAll(
     }
 }
 
-std::string StringUtils::extractStringBetween(
-    const std::string& input, char delimiterStart, char delimiterEnd, bool includeDelimiter) {
+std::string StringUtils::extractStringBetween(const std::string& input, char delimiterStart,
+    char delimiterEnd, bool includeDelimiter) {
     std::string::size_type posStart = input.find_first_of(delimiterStart);
     std::string::size_type posEnd = input.find_last_of(delimiterEnd);
     if (posStart == std::string::npos || posEnd == std::string::npos || posStart >= posEnd) {
@@ -127,8 +127,8 @@ bool StringUtils::caseInsensitiveEquals(const std::string& left, const std::stri
 }
 
 std::string StringUtils::join(const std::vector<std::string>& input, const std::string& separator) {
-    return StringUtils::join(
-        input, input.size(), separator, [](const std::string& s) { return s; });
+    return StringUtils::join(input, input.size(), separator,
+        [](const std::string& s) { return s; });
 }
 
 template<typename C, typename S, typename Func>

@@ -87,8 +87,8 @@ void ValueVector::copyFromRowData(uint32_t pos, const uint8_t* rowData) {
     }
 }
 
-void ValueVector::copyToRowData(
-    uint32_t pos, uint8_t* rowData, InMemOverflowBuffer* rowOverflowBuffer) const {
+void ValueVector::copyToRowData(uint32_t pos, uint8_t* rowData,
+    InMemOverflowBuffer* rowOverflowBuffer) const {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         StructVector::copyToRowData(this, pos, rowData, rowOverflowBuffer);
@@ -106,8 +106,8 @@ void ValueVector::copyToRowData(
     }
 }
 
-void ValueVector::copyFromVectorData(
-    uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData) {
+void ValueVector::copyFromVectorData(uint8_t* dstData, const ValueVector* srcVector,
+    const uint8_t* srcVectorData) {
     KU_ASSERT(srcVector->dataType.getPhysicalType() == dataType.getPhysicalType());
     switch (srcVector->dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
@@ -125,8 +125,8 @@ void ValueVector::copyFromVectorData(
     }
 }
 
-void ValueVector::copyFromVectorData(
-    uint64_t dstPos, const ValueVector* srcVector, uint64_t srcPos) {
+void ValueVector::copyFromVectorData(uint64_t dstPos, const ValueVector* srcVector,
+    uint64_t srcPos) {
     setNull(dstPos, srcVector->isNull(srcPos));
     if (!isNull(dstPos)) {
         copyFromVectorData(getData() + dstPos * getNumBytesPerValue(), srcVector,
@@ -182,8 +182,8 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
         memcpy(dstValue, &value.val.intervalVal, numBytesPerValue);
     } break;
     case PhysicalTypeID::STRING: {
-        StringVector::addString(
-            this, *(ku_string_t*)dstValue, value.strVal.data(), value.strVal.length());
+        StringVector::addString(this, *(ku_string_t*)dstValue, value.strVal.data(),
+            value.strVal.length());
     } break;
     case PhysicalTypeID::LIST: {
         auto listEntry = reinterpret_cast<list_entry_t*>(dstValue);
@@ -194,8 +194,8 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
             auto childVal = NestedVal::getChildVal(&value, i);
             dstDataVector->setNull(listEntry->offset + i, childVal->isNull());
             if (!childVal->isNull()) {
-                dstDataVector->copyFromValue(
-                    listEntry->offset + i, *NestedVal::getChildVal(&value, i));
+                dstDataVector->copyFromValue(listEntry->offset + i,
+                    *NestedVal::getChildVal(&value, i));
             }
         }
     } break;
@@ -399,8 +399,8 @@ void StringVector::addString(ValueVector* vector, uint32_t vectorPos, ku_string_
     }
 }
 
-void StringVector::addString(
-    ValueVector* vector, uint32_t vectorPos, const char* srcStr, uint64_t length) {
+void StringVector::addString(ValueVector* vector, uint32_t vectorPos, const char* srcStr,
+    uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =
         ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
@@ -465,8 +465,8 @@ void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, ku_string
     }
 }
 
-void StringVector::addString(
-    ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length) {
+void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, const char* srcStr,
+    uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer =
         ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
@@ -485,8 +485,8 @@ void StringVector::addString(
     }
 }
 
-void StringVector::addString(
-    kuzu::common::ValueVector* vector, ku_string_t& dstStr, const std::string& srcStr) {
+void StringVector::addString(kuzu::common::ValueVector* vector, ku_string_t& dstStr,
+    const std::string& srcStr) {
     addString(vector, dstStr, srcStr.data(), srcStr.length());
 }
 
@@ -541,8 +541,8 @@ void ListVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t*
         if (srcListDataVector->isNull(srcListEntry.offset + i)) {
             NullBuffer::setNull(dstListOverflow, i);
         } else {
-            srcListDataVector->copyToRowData(
-                srcListEntry.offset + i, dstListValues, rowOverflowBuffer);
+            srcListDataVector->copyToRowData(srcListEntry.offset + i, dstListValues,
+                rowOverflowBuffer);
         }
         dstListValues += dataRowLayoutSize;
     }
@@ -634,8 +634,8 @@ void RdfVariantVector::addString(ValueVector* vector, sel_t pos, ku_string_t str
     addString(vector, pos, (const char*)str.getData(), str.len);
 }
 
-void RdfVariantVector::addString(
-    ValueVector* vector, common::sel_t pos, const char* str, uint32_t length) {
+void RdfVariantVector::addString(ValueVector* vector, common::sel_t pos, const char* str,
+    uint32_t length) {
     auto typeVector = StructVector::getFieldVector(vector, 0).get();
     auto valVector = StructVector::getFieldVector(vector, 1).get();
     typeVector->setValue<uint8_t>(pos, static_cast<uint8_t>(LogicalTypeID::STRING));

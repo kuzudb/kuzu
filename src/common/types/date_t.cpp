@@ -115,10 +115,10 @@ date_t date_t::operator-(const int32_t& day) const {
 
 const int32_t Date::NORMAL_DAYS[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const int32_t Date::LEAP_DAYS[] = {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-const int32_t Date::CUMULATIVE_LEAP_DAYS[] = {
-    0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366};
-const int32_t Date::CUMULATIVE_DAYS[] = {
-    0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
+const int32_t Date::CUMULATIVE_LEAP_DAYS[] = {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335,
+    366};
+const int32_t Date::CUMULATIVE_DAYS[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334,
+    365};
 const int8_t Date::MONTH_PER_DAY_OF_YEAR[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
     2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -391,8 +391,8 @@ int32_t Date::monthDays(int32_t year, int32_t month) {
 }
 
 std::string Date::getDayName(date_t& date) {
-    std::string dayNames[] = {
-        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+    std::string dayNames[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+        "Saturday"};
     return dayNames[(date.days < 0 ? 7 - ((-date.days + 3) % 7) : ((date.days + 3) % 7) + 1) % 7];
 }
 
@@ -448,8 +448,8 @@ int32_t Date::getDatePart(DatePartSpecifier specifier, date_t& date) {
 date_t Date::trunc(DatePartSpecifier specifier, date_t& date) {
     switch (specifier) {
     case DatePartSpecifier::YEAR:
-        return Date::fromDate(
-            Date::getDatePart(DatePartSpecifier::YEAR, date), 1 /* month */, 1 /* day */);
+        return Date::fromDate(Date::getDatePart(DatePartSpecifier::YEAR, date), 1 /* month */,
+            1 /* day */);
     case DatePartSpecifier::MONTH:
         return Date::fromDate(Date::getDatePart(DatePartSpecifier::YEAR, date),
             Date::getDatePart(DatePartSpecifier::MONTH, date), 1 /* day */);

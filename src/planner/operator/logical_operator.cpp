@@ -63,6 +63,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "INSERT";
     case LogicalOperatorType::LIMIT:
         return "LIMIT";
+    case LogicalOperatorType::MARK_ACCUMULATE:
+        return "MARK_ACCUMULATE";
     case LogicalOperatorType::MERGE:
         return "MERGE";
     case LogicalOperatorType::MULTIPLICITY_REDUCER:
@@ -126,8 +128,8 @@ bool LogicalOperatorUtils::isUpdate(LogicalOperatorType type) {
     }
 }
 
-LogicalOperator::LogicalOperator(
-    LogicalOperatorType operatorType, std::shared_ptr<LogicalOperator> child)
+LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
+    std::shared_ptr<LogicalOperator> child)
     : operatorType{operatorType} {
     children.push_back(std::move(child));
 }
@@ -139,8 +141,8 @@ LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
     children.push_back(std::move(right));
 }
 
-LogicalOperator::LogicalOperator(
-    LogicalOperatorType operatorType, const logical_op_vector_t& children)
+LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
+    const logical_op_vector_t& children)
     : operatorType{operatorType} {
     for (auto& child : children) {
         this->children.push_back(child);

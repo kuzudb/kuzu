@@ -11,8 +11,8 @@ namespace storage {
 
 class StringColumnChunk final : public ColumnChunk {
 public:
-    StringColumnChunk(
-        common::LogicalType dataType, uint64_t capacity, bool enableCompression, bool inMemory);
+    StringColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
+        bool inMemory);
 
     void resetToEmpty() final;
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) final;
@@ -24,8 +24,8 @@ public:
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(
-        ColumnChunk* chunk, ColumnChunk* dstOffsets, common::RelMultiplicity multiplicity) override;
+    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets,
+        common::RelMultiplicity multiplicity) override;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
     void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,

@@ -90,8 +90,8 @@ void ListColumnWriter::beginWrite(ColumnWriterState& state_p) {
     childWriter->beginWrite(*state.childState);
 }
 
-void ListColumnWriter::write(
-    ColumnWriterState& writerState, common::ValueVector* vector, uint64_t /*count*/) {
+void ListColumnWriter::write(ColumnWriterState& writerState, common::ValueVector* vector,
+    uint64_t /*count*/) {
     auto& state = reinterpret_cast<ListColumnWriterState&>(writerState);
     childWriter->write(*state.childState, common::ListVector::getDataVector(vector),
         common::ListVector::getDataVectorSize(vector));

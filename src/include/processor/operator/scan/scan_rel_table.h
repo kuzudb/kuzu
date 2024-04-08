@@ -31,20 +31,20 @@ public:
               std::move(outVectorsPos), std::move(child), id, paramsString} {}
     ~ScanRelTable() override = default;
 
-    inline void initLocalStateInternal(
-        ResultSet* resultSet, ExecutionContext* executionContext) override {
+    inline void initLocalStateInternal(ResultSet* resultSet,
+        ExecutionContext* executionContext) override {
         ScanTable::initLocalStateInternal(resultSet, executionContext);
         if (info) {
-            scanState = std::make_unique<storage::RelTableReadState>(
-                *inVector, info->columnIDs, outVectors, info->direction);
+            scanState = std::make_unique<storage::RelTableReadState>(*inVector, info->columnIDs,
+                outVectors, info->direction);
         }
     }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ScanRelTable>(
-            info->copy(), inVectorPos, outVectorsPos, children[0]->clone(), id, paramsString);
+        return std::make_unique<ScanRelTable>(info->copy(), inVectorPos, outVectorsPos,
+            children[0]->clone(), id, paramsString);
     }
 
 protected:

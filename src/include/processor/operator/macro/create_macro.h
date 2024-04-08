@@ -27,22 +27,22 @@ class CreateMacro : public PhysicalOperator {
 public:
     CreateMacro(PhysicalOperatorType operatorType, std::unique_ptr<CreateMacroInfo> createMacroInfo,
         uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, createMacroInfo{
-                                                                std::move(createMacroInfo)} {}
+        : PhysicalOperator{operatorType, id, paramsString},
+          createMacroInfo{std::move(createMacroInfo)} {}
 
     inline bool isSource() const override { return true; }
     inline bool canParallel() const final { return false; }
 
-    inline void initLocalStateInternal(
-        ResultSet* resultSet, ExecutionContext* /*context*/) override {
+    inline void initLocalStateInternal(ResultSet* resultSet,
+        ExecutionContext* /*context*/) override {
         outputVector = resultSet->getValueVector(createMacroInfo->outputPos).get();
     }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CreateMacro>(
-            operatorType, createMacroInfo->copy(), id, paramsString);
+        return std::make_unique<CreateMacro>(operatorType, createMacroInfo->copy(), id,
+            paramsString);
     }
 
 private:

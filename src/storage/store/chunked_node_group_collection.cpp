@@ -5,8 +5,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void ChunkedNodeGroupCollection::append(
-    const std::vector<ValueVector*>& vectors, const SelectionVector& selVector) {
+void ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& vectors,
+    const SelectionVector& selVector) {
     if (chunkedGroups.empty()) {
         chunkedGroups.push_back(
             std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/, CHUNK_CAPACITY));
@@ -25,8 +25,8 @@ void ChunkedNodeGroupCollection::append(
         tmpSelVector.setToFiltered(numRowsToAppendInGroup);
         lastChunkedGroup->append(vectors, tmpSelVector, numRowsToAppendInGroup);
         if (lastChunkedGroup->getNumRows() == CHUNK_CAPACITY) {
-            chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(
-                types, false /*enableCompression*/, CHUNK_CAPACITY));
+            chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(types,
+                false /*enableCompression*/, CHUNK_CAPACITY));
         }
         numRowsAppended += numRowsToAppendInGroup;
     }

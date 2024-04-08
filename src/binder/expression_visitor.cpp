@@ -119,8 +119,8 @@ bool ExpressionVisitor::isRandom(const Expression& expression) {
     return false;
 }
 
-bool ExpressionVisitor::satisfyAny(
-    const Expression& expression, const std::function<bool(const Expression&)>& condition) {
+bool ExpressionVisitor::satisfyAny(const Expression& expression,
+    const std::function<bool(const Expression&)>& condition) {
     if (condition(expression)) {
         return true;
     }

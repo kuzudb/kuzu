@@ -1,6 +1,7 @@
 #include "processor/operator/aggregate/hash_aggregate.h"
 
 #include "common/utils.h"
+#include "processor/result/mark_hash_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -43,44 +44,76 @@ std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
         return std::make_pair(currentOffset, currentOffset);
     }
     auto startOffset = currentOffset;
-    auto range = std::min(
-        DEFAULT_VECTOR_CAPACITY, globalAggregateHashTable->getNumEntries() - currentOffset);
+    auto range = std::min(DEFAULT_VECTOR_CAPACITY,
+        globalAggregateHashTable->getNumEntries() - currentOffset);
     currentOffset += range;
     return std::make_pair(startOffset, startOffset + range);
 }
 
-void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    BaseAggregate::initLocalStateInternal(resultSet, context);
+HashAggregateInfo::HashAggregateInfo(std::vector<DataPos> flatKeysPos,
+    std::vector<DataPos> unFlatKeysPos, std::vector<DataPos> dependentKeysPos,
+    std::unique_ptr<FactorizedTableSchema> tableSchema, HashTableType hashTableType)
+    : flatKeysPos{std::move(flatKeysPos)}, unFlatKeysPos{std::move(unFlatKeysPos)},
+      dependentKeysPos{std::move(dependentKeysPos)}, tableSchema{std::move(tableSchema)},
+      hashTableType{hashTableType} {}
+
+HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
+    : flatKeysPos{other.flatKeysPos}, unFlatKeysPos{other.unFlatKeysPos},
+      dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema->copy()},
+      hashTableType{other.hashTableType} {}
+
+void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* context,
+    HashAggregateInfo& info,
+    std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions) {
     std::vector<LogicalType> keyDataTypes;
-    for (auto& pos : flatKeysPos) {
-        auto vector = resultSet->getValueVector(pos).get();
+    for (auto& pos : info.flatKeysPos) {
+        auto vector = resultSet.getValueVector(pos).get();
         flatKeyVectors.push_back(vector);
         keyDataTypes.push_back(vector->dataType);
     }
-    for (auto& pos : unFlatKeysPos) {
-        auto vector = resultSet->getValueVector(pos).get();
+    for (auto& pos : info.unFlatKeysPos) {
+        auto vector = resultSet.getValueVector(pos).get();
         unFlatKeyVectors.push_back(vector);
         keyDataTypes.push_back(vector->dataType);
     }
     std::vector<LogicalType> payloadDataTypes;
-    for (auto& pos : dependentKeysPos) {
-        auto vector = resultSet->getValueVector(pos).get();
+    for (auto& pos : info.dependentKeysPos) {
+        auto vector = resultSet.getValueVector(pos).get();
         dependentKeyVectors.push_back(vector);
         payloadDataTypes.push_back(vector->dataType);
     }
     leadingState = unFlatKeyVectors.empty() ? flatKeyVectors[0]->state.get() :
                                               unFlatKeyVectors[0]->state.get();
-    localAggregateHashTable =
-        make_unique<AggregateHashTable>(*context->clientContext->getMemoryManager(), keyDataTypes,
-            payloadDataTypes, aggregateFunctions, 0);
+    switch (info.hashTableType) {
+    case HashTableType::AGGREGATE_HASH_TABLE:
+        aggregateHashTable = std::make_unique<AggregateHashTable>(*context->getMemoryManager(),
+            keyDataTypes, payloadDataTypes, aggregateFunctions, 0, std::move(info.tableSchema));
+        break;
+    case HashTableType::MARK_HASH_TABLE:
+        aggregateHashTable = std::make_unique<MarkHashTable>(*context->getMemoryManager(),
+            keyDataTypes, payloadDataTypes, aggregateFunctions, 0, std::move(info.tableSchema));
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+void HashAggregateLocalState::append(std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
+    uint64_t multiplicity) const {
+    aggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors, leadingState,
+        aggregateInputs, multiplicity);
+}
+
+void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    BaseAggregate::initLocalStateInternal(resultSet, context);
+    localState.init(*resultSet, context->clientContext, aggregateInfo, aggregateFunctions);
 }
 
 void HashAggregate::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
-        localAggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
-            leadingState, aggregateInputs, resultSet->multiplicity);
+        localState.append(aggregateInputs, resultSet->multiplicity);
     }
-    sharedState->appendAggregateHashTable(std::move(localAggregateHashTable));
+    sharedState->appendAggregateHashTable(std::move(localState.aggregateHashTable));
 }
 
 void HashAggregate::finalize(ExecutionContext* context) {

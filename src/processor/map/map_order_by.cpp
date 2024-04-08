@@ -33,8 +33,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
         std::unique_ptr<ColumnSchema> columnSchema;
         if (!inSchema->getGroup(dataChunkPos)->isFlat() && !mayContainUnFlatKey) {
             // payload is unFlat and not in the same group as keys
-            columnSchema = std::make_unique<ColumnSchema>(
-                true /* isUnFlat */, dataChunkPos, sizeof(overflow_value_t));
+            columnSchema = std::make_unique<ColumnSchema>(true /* isUnFlat */, dataChunkPos,
+                sizeof(overflow_value_t));
         } else {
             columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, dataChunkPos,
                 LogicalTypeUtils::getRowLayoutSize(expression->getDataType()));
@@ -63,8 +63,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
         auto topK = make_unique<TopK>(std::make_unique<ResultSetDescriptor>(inSchema),
             std::move(orderByDataInfo), topKSharedState, logicalOrderBy->getSkipNum(),
             logicalOrderBy->getLimitNum(), std::move(prevOperator), getOperatorID(), paramsString);
-        return make_unique<TopKScan>(
-            outPos, topKSharedState, std::move(topK), getOperatorID(), paramsString);
+        return make_unique<TopKScan>(outPos, topKSharedState, std::move(topK), getOperatorID(),
+            paramsString);
     } else {
         auto orderBySharedState = std::make_shared<SortSharedState>();
         auto orderBy = make_unique<OrderBy>(std::make_unique<ResultSetDescriptor>(inSchema),
@@ -73,8 +73,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
         auto dispatcher = std::make_shared<KeyBlockMergeTaskDispatcher>();
         auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
             std::move(orderBy), getOperatorID(), paramsString);
-        return make_unique<OrderByScan>(
-            outPos, orderBySharedState, std::move(orderByMerge), getOperatorID(), paramsString);
+        return make_unique<OrderByScan>(outPos, orderBySharedState, std::move(orderByMerge),
+            getOperatorID(), paramsString);
     }
 }
 

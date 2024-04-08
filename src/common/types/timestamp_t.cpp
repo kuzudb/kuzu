@@ -177,8 +177,8 @@ timestamp_t Timestamp::fromCString(const char* str, uint64_t len) {
     return result;
 }
 
-bool Timestamp::tryParseUTCOffset(
-    const char* str, uint64_t& pos, uint64_t len, int& hour_offset, int& minute_offset) {
+bool Timestamp::tryParseUTCOffset(const char* str, uint64_t& pos, uint64_t len, int& hour_offset,
+    int& minute_offset) {
     minute_offset = 0;
     uint64_t curpos = pos;
     // parse the next 3 characters
@@ -318,11 +318,11 @@ timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t& timestamp
     case DatePartSpecifier::SECOND:
         return Timestamp::fromDateTime(date, Time::fromTime(hour, min, sec, 0 /* microseconds */));
     case DatePartSpecifier::MINUTE:
-        return Timestamp::fromDateTime(
-            date, Time::fromTime(hour, min, 0 /* seconds */, 0 /* microseconds */));
+        return Timestamp::fromDateTime(date,
+            Time::fromTime(hour, min, 0 /* seconds */, 0 /* microseconds */));
     case DatePartSpecifier::HOUR:
-        return Timestamp::fromDateTime(
-            date, Time::fromTime(hour, 0 /* minutes */, 0 /* seconds */, 0 /* microseconds */));
+        return Timestamp::fromDateTime(date,
+            Time::fromTime(hour, 0 /* minutes */, 0 /* seconds */, 0 /* microseconds */));
     default:
         date_t date = getDate(timestamp);
         return fromDateTime(Date::trunc(specifier, date), dtime_t(0));

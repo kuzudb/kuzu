@@ -76,8 +76,8 @@ std::unique_ptr<LogicalPlan> Planner::createUnionPlan(
         children.push_back(childPlan->getLastOperator());
     }
     // we compute the schema based on first child
-    auto union_ = make_shared<LogicalUnion>(
-        childrenPlans[0]->getSchema()->getExpressionsInScope(), std::move(children));
+    auto union_ = make_shared<LogicalUnion>(childrenPlans[0]->getSchema()->getExpressionsInScope(),
+        std::move(children));
     for (auto i = 0u; i < childrenPlans.size(); ++i) {
         appendFlattens(union_->getGroupsPosToFlatten(i), *childrenPlans[i]);
         union_->setChild(i, childrenPlans[i]->getLastOperator());

@@ -104,8 +104,8 @@ if(MSVC)
     # Enables support for custom hardware exception handling
     add_compile_options("/EHa")
     # Remove the default to avoid warnings
-    STRING(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-    STRING(REPLACE "/EHs" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    STRING(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    STRING(REPLACE "/EHs" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     # Store all libraries and binaries in the same directory so that kuzu_shared.dll is found at runtime
     set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/src")
     set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/src")
@@ -203,6 +203,7 @@ include_directories(src/include)
 include_directories(third_party/antlr4_cypher/include)
 include_directories(third_party/antlr4_runtime/src)
 include_directories(third_party/fast_float/include)
+include_directories(third_party/mbedtls/include)
 include_directories(third_party/miniparquet/src)
 include_directories(third_party/miniz)
 include_directories(third_party/nlohmann_json)

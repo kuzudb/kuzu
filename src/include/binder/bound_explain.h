@@ -8,8 +8,8 @@ namespace binder {
 
 class BoundExplain : public BoundStatement {
 public:
-    explicit BoundExplain(
-        std::unique_ptr<BoundStatement> statementToExplain, common::ExplainType explainType)
+    explicit BoundExplain(std::unique_ptr<BoundStatement> statementToExplain,
+        common::ExplainType explainType)
         : BoundStatement{common::StatementType::EXPLAIN,
               BoundStatementResult::createSingleStringColumnResult(
                   "explain result" /* columnName */)},

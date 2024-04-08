@@ -11,8 +11,8 @@ class Sink : public PhysicalOperator {
 public:
     Sink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         PhysicalOperatorType operatorType, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, resultSetDescriptor{
-                                                                std::move(resultSetDescriptor)} {}
+        : PhysicalOperator{operatorType, id, paramsString},
+          resultSetDescriptor{std::move(resultSetDescriptor)} {}
     Sink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString)
@@ -30,7 +30,7 @@ public:
         metrics->executionTime.stop();
     }
 
-    virtual void finalize(ExecutionContext* /*context*/){};
+    virtual void finalize(ExecutionContext* /*context*/) {};
 
     std::unique_ptr<PhysicalOperator> clone() override = 0;
 
