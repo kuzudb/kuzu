@@ -131,7 +131,8 @@ bool CastFunction::hasImplicitCastStruct(const LogicalType& srcType, const Logic
     return true;
 }
 
-bool CastFunction::hasImplicitCastUnion(const LogicalType& /*srcType*/, const LogicalType& /*dstType*/) {
+bool CastFunction::hasImplicitCastUnion(const LogicalType& /*srcType*/,
+    const LogicalType& /*dstType*/) {
     // todo: implement union casting function
     // currently, there seems to be no casting functionality between union types
     return false;
