@@ -281,9 +281,8 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::LIST>(ArrowVector* v
     // so we don't resize it here
     if (ListType::getChildType(&type)->getLogicalTypeID() != LogicalTypeID::LIST &&
         ListType::getChildType(&type)->getLogicalTypeID() != LogicalTypeID::ARRAY) {
-        vector->childData[0]->data.resize(
-            numChildElements * storage::StorageUtils::getDataTypeSize(
-                *ListType::getChildType(&type)));
+        vector->childData[0]->data.resize(numChildElements * storage::StorageUtils::getDataTypeSize(
+                                                                 *ListType::getChildType(&type)));
     }
     for (auto i = 0u; i < numElements; i++) {
         appendValue(vector->childData[0].get(), *ListType::getChildType(&type),
@@ -312,9 +311,8 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::ARRAY>(ArrowVector* 
     // so we don't resize it here
     if (ArrayType::getChildType(&type)->getLogicalTypeID() != LogicalTypeID::LIST &&
         ArrayType::getChildType(&type)->getLogicalTypeID() != LogicalTypeID::ARRAY) {
-        vector->childData[0]->data.resize(
-            numChildElements * storage::StorageUtils::getDataTypeSize(
-                *ArrayType::getChildType(&type)));
+        vector->childData[0]->data.resize(numChildElements * storage::StorageUtils::getDataTypeSize(
+                                                                 *ArrayType::getChildType(&type)));
     }
     for (auto i = 0u; i < numElements; i++) {
         appendValue(vector->childData[0].get(), *ArrayType::getChildType(&type),
