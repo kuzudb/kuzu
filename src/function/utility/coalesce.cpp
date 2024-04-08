@@ -39,16 +39,19 @@ static LogicalType getResultType(const binder::expression_vector& arguments) {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* /*function*/) {
+    if (arguments.empty()) {
+        throw BinderException("COALESCE() requires at least one argument");
+    }
     auto resultType = getResultType(arguments).copy();
     return std::make_unique<FunctionBindData>(std::move(resultType));
 }
 
 static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/) {
-    KU_ASSERT(parameters.size() > 0);
     for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
          ++selectedPos) {
         auto resultPos = result.state->selVector->selectedPositions[selectedPos];
+        bool isNull = true;
         for (auto i = 0u; i < parameters.size(); ++i) {
             const auto& parameter = parameters[i];
             auto paramPos = parameter->state->isFlat() ?
@@ -56,9 +59,11 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
                                 resultPos;
             if (!parameter->isNull(paramPos)) {
                 result.copyFromVectorData(resultPos, parameter.get(), paramPos);
+                isNull = false;
                 break;
             }
         }
+        result.setNull(resultPos, isNull);
     }
 }
 
