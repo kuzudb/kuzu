@@ -56,11 +56,14 @@ private:
 
     static ArrowArray* convertVectorToArray(ArrowVector& vector, const LogicalType& type);
     static ArrowArray* convertStructVectorToArray(ArrowVector& vector, const LogicalType& type);
+    static ArrowArray* convertInternalIDVectorToArray(ArrowVector& vector, const LogicalType& type);
     static inline void initializeNullBits(ArrowBuffer& validity, std::int64_t capacity) {
         auto numBytesForValidity = getNumBytesForBits(capacity);
         validity.resize(numBytesForValidity, 0xFF);
     }
     static void initializeStructVector(ArrowVector* vector, const LogicalType& type,
+        std::int64_t capacity);
+    static void initializeInternalIDVector(ArrowVector* vector, const LogicalType& type,
         std::int64_t capacity);
     static void copyNonNullValue(ArrowVector* vector, const LogicalType& type, Value* value,
         std::int64_t pos);

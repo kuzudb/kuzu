@@ -85,10 +85,20 @@ void ArrowRowBatch::initializeStructVector(ArrowVector* vector, const LogicalTyp
     }
 }
 
+void ArrowRowBatch::initializeInternalIDVector(ArrowVector* vector, const LogicalType& /*type*/,
+    std::int64_t capacity) {
+    initializeNullBits(vector->validity, capacity);
+    vector->childData.resize(2);
+    auto childVector1 = createVector(*LogicalType::INT64(), capacity);
+    vector->childData[0] = std::move(childVector1);
+    auto childVector2 = createVector(*LogicalType::INT64(), capacity);
+    vector->childData[1] = std::move(childVector2);
+}
+
 template<>
 void ArrowRowBatch::templateInitializeVector<LogicalTypeID::INTERNAL_ID>(ArrowVector* vector,
     const LogicalType& type, std::int64_t capacity) {
-    initializeStructVector(vector, type, capacity);
+    initializeInternalIDVector(vector, type, capacity);
 }
 
 template<>
@@ -335,8 +345,8 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(ArrowVe
     auto nodeID = value->getValue<nodeID_t>();
     Value offsetVal((std::int64_t)nodeID.offset);
     Value tableIDVal((std::int64_t)nodeID.tableID);
-    appendValue(vector->childData[0].get(), *StructType::getFieldTypes(&type)[0], &offsetVal);
-    appendValue(vector->childData[1].get(), *StructType::getFieldTypes(&type)[1], &tableIDVal);
+    appendValue(vector->childData[0].get(), *LogicalType::INT64(), &offsetVal);
+    appendValue(vector->childData[1].get(), *LogicalType::INT64(), &tableIDVal);
 }
 
 template<>
@@ -684,10 +694,25 @@ ArrowArray* ArrowRowBatch::convertStructVectorToArray(ArrowVector& vector,
     return vector.array.get();
 }
 
+ArrowArray* ArrowRowBatch::convertInternalIDVectorToArray(ArrowVector& vector,
+    const LogicalType& type) {
+    auto result = createArrayFromVector(vector);
+    result->n_buffers = 1;
+    vector.childPointers.resize(2);
+    result->children = vector.childPointers.data();
+    result->n_children = 2;
+    for (auto i = 0; i < 2; i++) {
+        auto childType = *LogicalType::INT64();
+        vector.childPointers[i] = convertVectorToArray(*vector.childData[i], childType);
+    }
+    vector.array = std::move(result);
+    return vector.array.get();
+}
+
 template<>
 ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::INTERNAL_ID>(ArrowVector& vector,
     const LogicalType& type) {
-    return convertStructVectorToArray(vector, type);
+    return convertInternalIDVectorToArray(vector, type);
 }
 
 template<>
