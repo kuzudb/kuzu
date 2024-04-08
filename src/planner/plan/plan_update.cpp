@@ -76,8 +76,8 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
         appendMarkAccumulate(corrExprs, distinctMark, plan);
     }
     auto existenceMark = mergeClause->getExistenceMark();
-    planOptionalMatch(
-        *mergeClause->getQueryGraphCollection(), predicates, corrExprs, existenceMark, plan);
+    planOptionalMatch(*mergeClause->getQueryGraphCollection(), predicates, corrExprs, existenceMark,
+        plan);
     std::vector<LogicalInsertInfo> logicalInsertNodeInfos;
     if (mergeClause->hasInsertNodeInfo()) {
         auto boundInsertNodeInfos = mergeClause->getInsertNodeInfos();

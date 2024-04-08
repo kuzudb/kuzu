@@ -14,9 +14,9 @@ public:
         std::shared_ptr<Expression> distinctMark, QueryGraphCollection queryGraphCollection,
         std::shared_ptr<Expression> predicate, std::vector<BoundInsertInfo> insertInfos)
         : BoundUpdatingClause{common::ClauseType::MERGE}, existenceMark{std::move(existenceMark)},
-          distinctMark{std::move(distinctMark)}, queryGraphCollection{std::move(
-                                                     queryGraphCollection)},
-          predicate{std::move(predicate)}, insertInfos{std::move(insertInfos)} {}
+          distinctMark{std::move(distinctMark)},
+          queryGraphCollection{std::move(queryGraphCollection)}, predicate{std::move(predicate)},
+          insertInfos{std::move(insertInfos)} {}
 
     std::shared_ptr<Expression> getExistenceMark() const { return existenceMark; }
     std::shared_ptr<Expression> getDistinctMark() const { return distinctMark; }

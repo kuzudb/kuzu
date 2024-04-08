@@ -14,8 +14,8 @@ void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         payloadAndMarkVectors.push_back(vec);
     }
     if (info->accumulateType == AccumulateType::OPTIONAL_) {
-        markVector = std::make_unique<ValueVector>(
-            *LogicalType::BOOL(), context->clientContext->getMemoryManager());
+        markVector = std::make_unique<ValueVector>(*LogicalType::BOOL(),
+            context->clientContext->getMemoryManager());
         markVector->state = DataChunkState::getSingleValueDataChunkState();
         markVector->setValue<bool>(0, true);
         payloadAndMarkVectors.push_back(markVector.get());

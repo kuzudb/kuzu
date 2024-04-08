@@ -9,9 +9,7 @@
 namespace kuzu {
 namespace processor {
 
-class InsertExecutor {
-
-};
+class InsertExecutor {};
 
 class NodeInsertExecutor {
 public:

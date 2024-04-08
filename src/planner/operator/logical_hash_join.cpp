@@ -65,8 +65,8 @@ void LogicalHashJoin::computeFactorizedSchema() {
                 }
             }
         }
-        SinkOperatorUtil::mergeSchema(
-            *buildSchema, expressionsToMaterializeInNonKeyGroups, *schema);
+        SinkOperatorUtil::mergeSchema(*buildSchema, expressionsToMaterializeInNonKeyGroups,
+            *schema);
         if (mark != nullptr) {
             auto groupPos = schema->getGroupPos(*joinConditions[0].first);
             schema->insertToGroupAndScope(mark, groupPos);

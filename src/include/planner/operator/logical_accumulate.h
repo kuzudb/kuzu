@@ -15,7 +15,6 @@ public:
           accumulateType{accumulateType}, flatExprs{std::move(flatExprs)},
           offset{std::move(offset)}, mark{std::move(mark)} {}
 
-
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
@@ -32,8 +31,8 @@ public:
     std::shared_ptr<binder::Expression> getMark() const { return mark; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalAccumulate>(
-            accumulateType, flatExprs, offset, mark, children[0]->copy());
+        return make_unique<LogicalAccumulate>(accumulateType, flatExprs, offset, mark,
+            children[0]->copy());
     }
 
 private:

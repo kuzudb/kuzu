@@ -1,7 +1,7 @@
 #pragma once
 
-#include "planner/operator/schema.h"
 #include "common/cast.h"
+#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace planner {

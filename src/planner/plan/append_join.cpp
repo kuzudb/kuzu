@@ -21,8 +21,8 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
     }
-    auto hashJoin = make_shared<LogicalHashJoin>(
-        joinConditions, joinType, mark, probePlan.getLastOperator(), buildPlan.getLastOperator());
+    auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, joinType, mark,
+        probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
     auto groupsPosToFlattenOnProbeSide = hashJoin->getGroupsPosToFlattenOnProbeSide();
     appendFlattens(groupsPosToFlattenOnProbeSide, probePlan);
