@@ -20,8 +20,8 @@ SHA256::~SHA256() {
 }
 
 void SHA256::addString(const std::string& str) {
-    if (mbedtls_sha256_update(
-            &shaContext, reinterpret_cast<const unsigned char*>(str.data()), str.size())) {
+    if (mbedtls_sha256_update(&shaContext, reinterpret_cast<const unsigned char*>(str.data()),
+            str.size())) {
         throw RuntimeException{"SHA256 Error"};
     }
 }

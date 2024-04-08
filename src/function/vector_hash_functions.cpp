@@ -30,16 +30,16 @@ void UnaryHashFunctionExecutor::execute(ValueVector& operand, ValueVector& resul
             } else {
                 for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                     auto pos = operand.state->selVector->selectedPositions[i];
-                    Hash::operation(
-                        operand.getValue<OPERAND_TYPE>(pos), resultValues[pos], &operand);
+                    Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
+                        &operand);
                 }
             }
         } else {
             if (operand.state->selVector->isUnfiltered()) {
                 for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                     if (!operand.isNull(i)) {
-                        Hash::operation(
-                            operand.getValue<OPERAND_TYPE>(i), resultValues[i], &operand);
+                        Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i],
+                            &operand);
                     } else {
                         result.setValue(i, NULL_HASH);
                     }
@@ -48,8 +48,8 @@ void UnaryHashFunctionExecutor::execute(ValueVector& operand, ValueVector& resul
                 for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                     auto pos = operand.state->selVector->selectedPositions[i];
                     if (!operand.isNull(pos)) {
-                        Hash::operation(
-                            operand.getValue<OPERAND_TYPE>(pos), resultValues[pos], &operand);
+                        Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
+                            &operand);
                     } else {
                         resultValues[pos] = NULL_HASH;
                     }
