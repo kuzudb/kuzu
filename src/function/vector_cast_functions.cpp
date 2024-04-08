@@ -610,11 +610,11 @@ static std::unique_ptr<ScalarFunction> bindCastToDateFunction(
     case LogicalTypeID::TIMESTAMP:
         func = ScalarFunction::UnaryExecFunction<timestamp_t, DST_TYPE, CastToDate, EXECUTOR>;
         break;
+    // LCOV_EXCL_START
     default:
-        // LCOV_EXCL_START
         throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
             LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(dstTypeID))};
-        // LCOV_EXCL_END
+    // LCOV_EXCL_END
     }
     return std::make_unique<ScalarFunction>(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::DATE, func);
