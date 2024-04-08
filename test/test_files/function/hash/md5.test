@@ -1,0 +1,21 @@
+-GROUP HashFunctionTests
+-DATASET CSV empty
+
+--
+
+-CASE MD5Tests
+-STATEMENT RETURN md5(NULL);
+---- 1
+
+
+-STATEMENT RETURN md5('hello');
+---- 1
+5d41402abc4b2a76b9719d911017c592
+
+-STATEMENT RETURN md5(123);
+---- 1
+202cb962ac59075b964b07152d234b70
+
+-STATEMENT return md5('abc123def456ghi789jkl101112');
+---- 1
+436e6c40874ff499047bc73a53e67897

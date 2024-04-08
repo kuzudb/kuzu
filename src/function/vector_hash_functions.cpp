@@ -1,11 +1,63 @@
 #include "function/hash/vector_hash_functions.h"
 
 #include "function/binary_function_executor.h"
+#include "function/hash/functions/md5_function.h"
+#include "function/hash/functions/sha256_function.h"
+#include "function/hash/hash_functions.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
+
+template<typename OPERAND_TYPE, typename RESULT_TYPE>
+void UnaryHashFunctionExecutor::execute(ValueVector& operand, ValueVector& result) {
+    auto resultValues = (RESULT_TYPE*)result.getData();
+    if (operand.state->isFlat()) {
+        auto pos = operand.state->selVector->selectedPositions[0];
+        if (!operand.isNull(pos)) {
+            Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos], &operand);
+        } else {
+            result.setValue(pos, NULL_HASH);
+        }
+    } else {
+        if (operand.hasNoNullsGuarantee()) {
+            if (operand.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+                    Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i], &operand);
+                }
+            } else {
+                for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+                    auto pos = operand.state->selVector->selectedPositions[i];
+                    Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
+                        &operand);
+                }
+            }
+        } else {
+            if (operand.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+                    if (!operand.isNull(i)) {
+                        Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i],
+                            &operand);
+                    } else {
+                        result.setValue(i, NULL_HASH);
+                    }
+                }
+            } else {
+                for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+                    auto pos = operand.state->selVector->selectedPositions[i];
+                    if (!operand.isNull(pos)) {
+                        Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
+                            &operand);
+                    } else {
+                        resultValues[pos] = NULL_HASH;
+                    }
+                }
+            }
+        }
+    }
+}
 
 static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector* operand) {
     auto hashVector = std::make_unique<ValueVector>(*LogicalType::LIST(LogicalType::HASH()));
@@ -145,6 +197,38 @@ void VectorHashFunction::combineHash(ValueVector* left, ValueVector* right, Valu
     // TODO(Xiyang/Guodong): we should resolve result state of hash vector at compile time.
     result->state = !right->state->isFlat() ? right->state : left->state;
     BinaryFunctionExecutor::execute<hash_t, hash_t, hash_t, CombineHash>(*left, *right, *result);
+}
+
+function_set MD5Function::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
+        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, MD5Operator>,
+        false /* isVarLength */));
+    return functionSet;
+}
+
+function_set SHA256Function::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
+        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, SHA256Operator>,
+        false /* isVarLength */));
+    return functionSet;
+}
+
+static void HashExecFunc(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+    common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+    KU_ASSERT(params.size() == 1);
+    VectorHashFunction::computeHash(params[0].get(), &result);
+}
+
+function_set HashFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(
+        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
+            LogicalTypeID::INT64, HashExecFunc, false /* isVarLength */));
+    return functionSet;
 }
 
 } // namespace function

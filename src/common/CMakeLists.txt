@@ -22,6 +22,7 @@ add_library(kuzu_common
         profiler.cpp
         type_utils.cpp
         utils.cpp
+        sha256.cpp
         string_utils.cpp
         system_message.cpp
         random_engine.cpp

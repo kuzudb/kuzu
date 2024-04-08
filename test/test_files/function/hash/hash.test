@@ -1,0 +1,49 @@
+-GROUP HashFunctionTests
+-DATASET CSV empty
+
+--
+
+-CASE HashFuncTests
+
+-LOG HashBool
+-STATEMENT RETURN hash(true);
+---- 1
+4717996019076358352
+
+-STATEMENT RETURN hash(false);
+---- 1
+0
+
+-LOG HashInteger
+-STATEMENT RETURN hash(123213213);
+---- 1
+5409473644860454233
+
+-STATEMENT RETURN hash(-182812789912);
+---- 1
+6017956686658665710
+
+-LOG HashDouble
+-STATEMENT RETURN hash(3.145454);
+---- 1
+7162734438776005526
+
+-LOG HashString
+-STATEMENT RETURN hash('abc');
+---- 1
+-5315477578366381819
+
+-LOG HashInterval
+-STATEMENT RETURN hash(interval("1 years 2 months 3 hours"));
+---- 1
+-5050076354121952078
+
+-LOG HashStruct
+-STATEMENT RETURN hash({name: 'Bob', age: 25});
+---- 1
+-8624809801234475505
+
+-LOG HashList
+-STATEMENT RETURN hash(list_creation(1,2,3,4,5,56,2));
+---- 1
+5340394995802248375
