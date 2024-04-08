@@ -9,6 +9,7 @@ add_subdirectory(pattern)
 add_subdirectory(struct)
 add_subdirectory(table)
 add_subdirectory(union)
+add_subdirectory(utility)
 
 add_library(kuzu_function
         OBJECT
