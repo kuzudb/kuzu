@@ -1143,7 +1143,7 @@ bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const L
     LogicalTypeID& result) {
     if (left == right || (left == LogicalTypeID::ANY || left == LogicalTypeID::RDF_VARIANT ||
                left == LogicalTypeID::STRING)) {
-        result = left;
+        result = right;
         return true;
     } else if (right == LogicalTypeID::ANY || right == LogicalTypeID::RDF_VARIANT ||
                right == LogicalTypeID::STRING) {
