@@ -63,6 +63,9 @@ void ArrowRowBatch::templateInitializeVector<LogicalTypeID::ARRAY>(
     ArrowVector* vector, const LogicalType& type, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
     auto childType = *ArrayType::getChildType(&type);
+    // Initialize offsets and child buffer.
+    vector->data.reserve((capacity + 1) * sizeof(std::uint32_t));
+    ((std::uint32_t*)vector->data.data())[0] = 0;
     auto childVector = createVector(childType, capacity);
     vector->childData.push_back(std::move(childVector));
 }
@@ -280,8 +283,8 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::LIST>(ArrowVector* v
     if (ListType::getChildType(&type)->getLogicalTypeID() != LogicalTypeID::LIST &&
         ListType::getChildType(&type)->getLogicalTypeID() != LogicalTypeID::ARRAY) {
         vector->childData[0]->data.resize(
-            numChildElements * storage::StorageUtils::getDataTypeSize(LogicalType{
-                                   ListType::getChildType(&type)->getLogicalTypeID()}));
+            numChildElements * storage::StorageUtils::getDataTypeSize(
+                *ListType::getChildType(&type)));
     }
     for (auto i = 0u; i < numElements; i++) {
         appendValue(vector->childData[0].get(), *ListType::getChildType(&type),
@@ -292,10 +295,13 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::LIST>(ArrowVector* v
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::ARRAY>(ArrowVector* vector,
     const LogicalType& type, Value* value, std::int64_t pos) {
-    auto numValuesPerArray = ArrayType::getNumElements(&type);
-    auto numValuesInChild = numValuesPerArray * (pos + 1);
+    vector->data.resize((pos + 2) * sizeof(std::uint32_t));
+    auto offsets = (std::uint32_t*)vector->data.data();
+    auto numElements = value->childrenSize;
+    offsets[pos + 1] = offsets[pos] + numElements;
+    auto numChildElements = offsets[pos + 1] + 1;
     auto currentNumBytesForChildValidity = vector->childData[0]->validity.size();
-    auto numBytesForChildValidity = getNumBytesForBits(numValuesPerArray);
+    auto numBytesForChildValidity = getNumBytesForBits(numChildElements);
     vector->childData[0]->validity.resize(numBytesForChildValidity);
     // Initialize validity mask which is used to mark each value is valid (non-null) or not (null).
     for (auto i = currentNumBytesForChildValidity; i < numBytesForChildValidity; i++) {
@@ -305,13 +311,13 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::ARRAY>(ArrowVector* 
     // value into it
     // If vector->childData[0] is an ARRAY, its data buffer is supposed to be empty,
     // so we don't resize it here
-    if (ListType::getChildType(&type)->getLogicalTypeID() != LogicalTypeID::LIST &&
-        ListType::getChildType(&type)->getLogicalTypeID() != LogicalTypeID::ARRAY) {
+    if (ArrayType::getChildType(&type)->getLogicalTypeID() != LogicalTypeID::LIST &&
+        ArrayType::getChildType(&type)->getLogicalTypeID() != LogicalTypeID::ARRAY) {
         vector->childData[0]->data.resize(
-            numValuesPerArray * storage::StorageUtils::getDataTypeSize(LogicalType{
-                                   ListType::getChildType(&type)->getLogicalTypeID()}));
+            numChildElements * storage::StorageUtils::getDataTypeSize(
+                *ArrayType::getChildType(&type)));
     }
-    for (auto i = 0u; i < numValuesPerArray; i++) {
+    for (auto i = 0u; i < numElements; i++) {
         appendValue(vector->childData[0].get(), *ArrayType::getChildType(&type),
             value->children[i].get());
     }

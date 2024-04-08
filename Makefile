@@ -111,7 +111,7 @@ nodejs:
 	$(call run-cmake-release, -DBUILD_NODEJS=TRUE)
 
 python:
-	$(call run-cmake-release, -DBUILD_PYTHON=TRUE)
+	$(call run-cmake-debug, -DBUILD_PYTHON=TRUE)
 
 rust:
 ifeq ($(OS),Windows_NT)
