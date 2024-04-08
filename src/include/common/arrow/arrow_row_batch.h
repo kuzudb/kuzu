@@ -50,8 +50,8 @@ public:
     ArrowArray append(main::QueryResult& queryResult, std::int64_t chunkSize);
 
 private:
-    static std::unique_ptr<ArrowVector> createVector(
-        const LogicalType& type, std::int64_t capacity);
+    static std::unique_ptr<ArrowVector> createVector(const LogicalType& type,
+        std::int64_t capacity);
     static void appendValue(ArrowVector* vector, const LogicalType& type, Value* value);
 
     static ArrowArray* convertVectorToArray(ArrowVector& vector, const LogicalType& type);
@@ -60,18 +60,18 @@ private:
         auto numBytesForValidity = getNumBytesForBits(capacity);
         validity.resize(numBytesForValidity, 0xFF);
     }
-    static void initializeStructVector(
-        ArrowVector* vector, const LogicalType& type, std::int64_t capacity);
-    static void copyNonNullValue(
-        ArrowVector* vector, const LogicalType& type, Value* value, std::int64_t pos);
+    static void initializeStructVector(ArrowVector* vector, const LogicalType& type,
+        std::int64_t capacity);
+    static void copyNonNullValue(ArrowVector* vector, const LogicalType& type, Value* value,
+        std::int64_t pos);
     static void copyNullValue(ArrowVector* vector, Value* value, std::int64_t pos);
 
     template<LogicalTypeID DT>
-    static void templateInitializeVector(
-        ArrowVector* vector, const LogicalType& type, std::int64_t capacity);
+    static void templateInitializeVector(ArrowVector* vector, const LogicalType& type,
+        std::int64_t capacity);
     template<LogicalTypeID DT>
-    static void templateCopyNonNullValue(
-        ArrowVector* vector, const LogicalType& type, Value* value, std::int64_t pos);
+    static void templateCopyNonNullValue(ArrowVector* vector, const LogicalType& type, Value* value,
+        std::int64_t pos);
     template<LogicalTypeID DT>
     static void templateCopyNullValue(ArrowVector* vector, std::int64_t pos);
     template<LogicalTypeID DT>

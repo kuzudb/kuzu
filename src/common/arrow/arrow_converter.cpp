@@ -41,8 +41,8 @@ void ArrowConverter::initializeChild(ArrowSchema& child, const std::string& name
     child.dictionary = nullptr;
 }
 
-void ArrowConverter::setArrowFormatForStruct(
-    ArrowSchemaHolder& rootHolder, ArrowSchema& child, const LogicalType& dataType) {
+void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
+    const LogicalType& dataType) {
     child.format = "+s";
     // name is set by parent.
     child.n_children = (std::int64_t)StructType::getNumFields(&dataType);
@@ -62,8 +62,8 @@ void ArrowConverter::setArrowFormatForStruct(
     }
 }
 
-void ArrowConverter::setArrowFormat(
-    ArrowSchemaHolder& rootHolder, ArrowSchema& child, const LogicalType& dataType) {
+void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
+    const LogicalType& dataType) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL: {
         child.format = "b";
@@ -140,8 +140,7 @@ void ArrowConverter::setArrowFormat(
         setArrowFormat(rootHolder, **child.children, *ListType::getChildType(&dataType));
     } break;
     case LogicalTypeID::ARRAY: {
-        auto numValuesPerArray =
-            "+w:" + std::to_string(ArrayType::getNumElements(&dataType));
+        auto numValuesPerArray = "+w:" + std::to_string(ArrayType::getNumElements(&dataType));
         child.format = copyName(rootHolder, numValuesPerArray);
         child.n_children = 1;
         rootHolder.nestedChildren.emplace_back();
@@ -196,8 +195,8 @@ std::unique_ptr<ArrowSchema> ArrowConverter::toArrowSchema(
     return outSchema;
 }
 
-void ArrowConverter::toArrowArray(
-    main::QueryResult& queryResult, ArrowArray* outArray, std::int64_t chunkSize) {
+void ArrowConverter::toArrowArray(main::QueryResult& queryResult, ArrowArray* outArray,
+    std::int64_t chunkSize) {
     common::logical_types_t types;
     for (auto type : queryResult.getColumnDataTypes()) {
         types.push_back(std::make_unique<LogicalType>(type));
