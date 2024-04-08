@@ -69,12 +69,18 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
     }
 
     // non-nested types
-    scalar_func_exec_t func = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",
-        inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
-                                  ->execFunc;
-    std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
-    dataPtr->numOfEntries = numOfEntries;
-    func(childParams, *resultVector, (void*)dataPtr);
+    if (inputType->getLogicalTypeID() != resultType->getLogicalTypeID()) {
+        scalar_func_exec_t func = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",
+            inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
+                                      ->execFunc;
+        std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
+        dataPtr->numOfEntries = numOfEntries;
+        func(childParams, *resultVector, (void*)dataPtr);
+    } else {
+        for (auto i = 0u; i < numOfEntries; i++) {
+            resultVector->copyFromVectorData(i, inputVector.get(), i);
+        }
+    }
 }
 
 static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
@@ -587,6 +593,34 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& 
 }
 
 template<typename EXECUTOR = UnaryFunctionExecutor, typename DST_TYPE>
+static std::unique_ptr<ScalarFunction> bindCastToDateFunction(const std::string& functionName,
+    LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
+    scalar_func_exec_t func;
+    switch (sourceTypeID) {
+    case LogicalTypeID::TIMESTAMP_MS:
+        func = ScalarFunction::UnaryExecFunction<timestamp_ms_t, DST_TYPE, CastToDate, EXECUTOR>;
+        break;
+    case LogicalTypeID::TIMESTAMP_NS:
+        func = ScalarFunction::UnaryExecFunction<timestamp_ns_t, DST_TYPE, CastToDate, EXECUTOR>;
+        break;
+    case LogicalTypeID::TIMESTAMP_SEC:
+        func = ScalarFunction::UnaryExecFunction<timestamp_sec_t, DST_TYPE, CastToDate, EXECUTOR>;
+        break;
+    case LogicalTypeID::TIMESTAMP_TZ:
+    case LogicalTypeID::TIMESTAMP:
+        func = ScalarFunction::UnaryExecFunction<timestamp_t, DST_TYPE, CastToDate, EXECUTOR>;
+        break;
+    // LCOV_EXCL_START
+    default:
+        throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
+            LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(dstTypeID))};
+        // LCOV_EXCL_END
+    }
+    return std::make_unique<ScalarFunction>(functionName, std::vector<LogicalTypeID>{sourceTypeID},
+        LogicalTypeID::DATE, func);
+}
+
+template<typename EXECUTOR = UnaryFunctionExecutor, typename DST_TYPE>
 static std::unique_ptr<ScalarFunction> bindCastToTimestampFunction(const std::string& functionName,
     LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
     scalar_func_exec_t func;
@@ -682,6 +716,9 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
     case LogicalTypeID::UINT8: {
         return bindCastToNumericFunction<uint8_t, CastToUInt8, EXECUTOR>(functionName, sourceTypeID,
             targetTypeID);
+    }
+    case LogicalTypeID::DATE: {
+        return bindCastToDateFunction<EXECUTOR, date_t>(functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::TIMESTAMP_NS: {
         return bindCastToTimestampFunction<EXECUTOR, timestamp_ns_t>(functionName, sourceTypeID,

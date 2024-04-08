@@ -1,0 +1,34 @@
+-GROUP ToDateCast
+-DATASET CSV empty
+
+--
+
+-CASE ToDateCastTest
+
+-STATEMENT RETURN CAST(date('2024-04-05'), 'date')
+---- 1
+2024-04-05
+
+-STATEMENT RETURN CAST(timestamp('2024-04-05 23:59:59.999'), 'date')
+---- 1
+2024-04-05
+
+-STATEMENT RETURN CAST(CAST('2024-04-05', 'TIMESTAMP_MS'), 'date')
+---- 1
+2024-04-05
+
+-STATEMENT RETURN CAST(CAST('2024-04-05', 'TIMESTAMP_NS'), 'date')
+---- 1
+2024-04-05
+
+-STATEMENT RETURN CAST(CAST('2024-04-05 01:25:30', 'TIMESTAMP_SEC'), 'date')
+---- 1
+2024-04-05
+
+-STATEMENT CREATE NODE TABLE todatecast(id serial, col1 struct(a date, b int32), primary key(id))
+---- ok
+-STATEMENT CREATE (:todatecast {col1: {a: date('2023-04-05'), b: 1}})
+---- ok
+-STATEMENT MATCH (t:todatecast) RETURN t.col1
+---- 1
+{a: 2023-04-05, b: 1}

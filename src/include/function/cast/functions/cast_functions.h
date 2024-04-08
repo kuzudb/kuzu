@@ -60,6 +60,34 @@ inline void CastDateToTimestamp::operation(common::date_t& input, common::timest
     result.value /= common::Interval::MICROS_PER_SEC;
 }
 
+struct CastToDate {
+    template<typename T>
+    static inline void operation(T& input, common::date_t& result);
+};
+
+template<>
+inline void CastToDate::operation(common::timestamp_t& input, common::date_t& result) {
+    result = common::Timestamp::getDate(input);
+}
+
+template<>
+inline void CastToDate::operation(common::timestamp_ns_t& input, common::date_t& result) {
+    auto tmp = common::Timestamp::fromEpochNanoSeconds(input.value);
+    operation<common::timestamp_t>(tmp, result);
+}
+
+template<>
+inline void CastToDate::operation(common::timestamp_ms_t& input, common::date_t& result) {
+    auto tmp = common::Timestamp::fromEpochMilliSeconds(input.value);
+    operation<common::timestamp_t>(tmp, result);
+}
+
+template<>
+inline void CastToDate::operation(common::timestamp_sec_t& input, common::date_t& result) {
+    auto tmp = common::Timestamp::fromEpochSeconds(input.value);
+    operation<common::timestamp_t>(tmp, result);
+}
+
 struct CastToDouble {
     template<typename T>
     static inline void operation(T& input, double& result) {
