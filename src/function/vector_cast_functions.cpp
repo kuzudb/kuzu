@@ -70,8 +70,8 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
 
     // non-nested types
     if (inputType->getLogicalTypeID() != resultType->getLogicalTypeID()) {
-        scalar_func_exec_t func = CastFunction::bindCastFunction<CastChildFunctionExecutor>(
-            "CAST", inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
+        scalar_func_exec_t func = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",
+            inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
                                       ->execFunc;
         std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
         dataPtr->numOfEntries = numOfEntries;
@@ -593,8 +593,8 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& 
 }
 
 template<typename EXECUTOR = UnaryFunctionExecutor, typename DST_TYPE>
-static std::unique_ptr<ScalarFunction> bindCastToDateFunction(
-    const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
+static std::unique_ptr<ScalarFunction> bindCastToDateFunction(const std::string& functionName,
+    LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
     scalar_func_exec_t func;
     switch (sourceTypeID) {
     case LogicalTypeID::TIMESTAMP_MS:
@@ -614,15 +614,15 @@ static std::unique_ptr<ScalarFunction> bindCastToDateFunction(
     default:
         throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
             LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(dstTypeID))};
-    // LCOV_EXCL_END
+        // LCOV_EXCL_END
     }
-    return std::make_unique<ScalarFunction>(
-        functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::DATE, func);
+    return std::make_unique<ScalarFunction>(functionName, std::vector<LogicalTypeID>{sourceTypeID},
+        LogicalTypeID::DATE, func);
 }
 
 template<typename EXECUTOR = UnaryFunctionExecutor, typename DST_TYPE>
-static std::unique_ptr<ScalarFunction> bindCastToTimestampFunction(
-    const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
+static std::unique_ptr<ScalarFunction> bindCastToTimestampFunction(const std::string& functionName,
+    LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
     scalar_func_exec_t func;
     switch (sourceTypeID) {
     case LogicalTypeID::DATE: {
