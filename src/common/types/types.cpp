@@ -1062,15 +1062,6 @@ static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& ri
     if (leftFields.size() != rightFields.size()) {
         return false;
     }
-    /*
-    auto comp = [](const StructField* const& a, const StructField* const& b) -> bool {
-        return a->getName() < b->getName();
-    };
-    std::sort(leftFields.begin(), leftFields.end(), comp);
-    std::sort(rightFields.begin(), rightFields.end(), comp);
-    // In general, kuzu seems to treat different element orderings as different types alltogether.
-    // This is different from the way some other DBMSs do it.
-    */
     std::vector<StructField> newFields;
     for (auto i = 0u; i < leftFields.size(); i++) {
         if (leftFields[i]->getName() != rightFields[i]->getName()) {
