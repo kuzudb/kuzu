@@ -105,14 +105,16 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
 }
 
 static bool hasImplicitCastList(const LogicalType& srcType, const LogicalType& dstType) {
-    return CastFunction::hasImplicitCast(*ListType::getChildType(&srcType), *ListType::getChildType(&dstType));
+    return CastFunction::hasImplicitCast(*ListType::getChildType(&srcType),
+        *ListType::getChildType(&dstType));
 }
 
 static bool hasImplicitCastArray(const LogicalType& srcType, const LogicalType& dstType) {
     if (ArrayType::getNumElements(&srcType) != ArrayType::getNumElements(&dstType)) {
         return false;
     }
-    return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType), *ArrayType::getChildType(&dstType));
+    return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType),
+        *ArrayType::getChildType(&dstType));
 }
 
 static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType& dstType) {
@@ -131,8 +133,7 @@ static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType&
     return true;
 }
 
-static bool hasImplicitCastUnion(const LogicalType& /*srcType*/,
-    const LogicalType& /*dstType*/) {
+static bool hasImplicitCastUnion(const LogicalType& /*srcType*/, const LogicalType& /*dstType*/) {
     // todo: implement union casting function
     // currently, there seems to be no casting functionality between union types
     return false;
@@ -143,7 +144,8 @@ static bool hasImplicitCastMap(const LogicalType& srcType, const LogicalType& ds
     auto srcValueType = *MapType::getValueType(&srcType);
     auto dstKeyType = *MapType::getKeyType(&dstType);
     auto dstValueType = *MapType::getValueType(&dstType);
-    return CastFunction::hasImplicitCast(srcKeyType, dstKeyType) && CastFunction::hasImplicitCast(srcValueType, dstValueType);
+    return CastFunction::hasImplicitCast(srcKeyType, dstKeyType) &&
+           CastFunction::hasImplicitCast(srcValueType, dstValueType);
 }
 
 bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {

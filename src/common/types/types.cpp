@@ -1135,7 +1135,6 @@ static bool tryCombineUnionTypes(const LogicalType& left, const LogicalType& rig
 }
 */
 
-
 static LogicalTypeID joinToWiderType(const LogicalTypeID& left, const LogicalTypeID& right) {
     KU_ASSERT(LogicalTypeUtils::isIntegral(left));
     KU_ASSERT(LogicalTypeUtils::isIntegral(right));
@@ -1250,7 +1249,7 @@ static uint32_t internalTypeOrder(const LogicalTypeID& type) {
 }
 
 bool canAlwaysCast(const LogicalTypeID& typeID) {
-    switch(typeID) {
+    switch (typeID) {
     case LogicalTypeID::ANY:
     case LogicalTypeID::STRING:
     case LogicalTypeID::RDF_VARIANT:
@@ -1328,7 +1327,7 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
             // return tryCombineUnionTypes(left, right, result);
         default:
             KU_UNREACHABLE;
-        // LCOV_EXCL_END
+            // LCOV_EXCL_END
         }
     }
     LogicalTypeID resultID;
