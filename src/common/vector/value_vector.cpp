@@ -14,7 +14,7 @@ ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryMan
     : dataType{std::move(dataType)} {
     if (this->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
         // LCOV_EXCL_START
-        // Alternatively we can assign
+        // Alternatively we can assign a default type here but I don't think it's a good practice.
         throw RuntimeException("Trying to a create a vector with ANY type. This should not happen. "
                                "Data type is expected to be resolved during binding.");
         // LCOV_EXCL_STOP

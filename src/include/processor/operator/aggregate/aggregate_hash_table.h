@@ -40,19 +40,20 @@ using update_agg_function_t =
 
 class AggregateHashTable : public BaseHashTable {
 public:
-    // Used by distinct aggregate hash table only.
     AggregateHashTable(storage::MemoryManager& memoryManager,
-        const common::logical_type_vec_t& keysDataTypes,
-        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
-        uint64_t numEntriesToAllocate, std::unique_ptr<FactorizedTableSchema> tableSchema)
-        : AggregateHashTable(memoryManager, keysDataTypes, std::vector<common::LogicalType>(),
-              aggregateFunctions, numEntriesToAllocate, std::move(tableSchema)) {}
+        const std::vector<common::LogicalType>& keyTypes,
+        const std::vector<common::LogicalType>& payloadTypes, uint64_t numEntriesToAllocate,
+        std::unique_ptr<FactorizedTableSchema> tableSchema)
+        : AggregateHashTable(memoryManager, keyTypes, payloadTypes,
+              std::vector<std::unique_ptr<function::AggregateFunction>>{} /* empty aggregates */,
+              std::vector<common::LogicalType>{} /* empty distinct agg key*/, numEntriesToAllocate,
+              std::move(tableSchema)) {}
 
     AggregateHashTable(storage::MemoryManager& memoryManager,
-        std::vector<common::LogicalType> keysDataTypes,
-        std::vector<common::LogicalType> payloadsDataTypes,
+        std::vector<common::LogicalType> keyTypes, std::vector<common::LogicalType> payloadTypes,
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
-        uint64_t numEntriesToAllocate, std::unique_ptr<FactorizedTableSchema> tableSchema);
+        const std::vector<common::LogicalType>& distinctAggKeyTypes, uint64_t numEntriesToAllocate,
+        std::unique_ptr<FactorizedTableSchema> tableSchema);
 
     uint8_t* getEntry(uint64_t idx) { return factorizedTable->getTuple(idx); }
 
@@ -62,8 +63,7 @@ public:
 
     void append(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        common::DataChunkState* leadingState,
-        const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
+        common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
         uint64_t resultSetMultiplicity) {
         append(flatKeyVectors, unFlatKeyVectors, std::vector<common::ValueVector*>(), leadingState,
             aggregateInputs, resultSetMultiplicity);
@@ -73,8 +73,7 @@ public:
     void append(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
-        common::DataChunkState* leadingState,
-        const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
+        common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
         uint64_t resultSetMultiplicity);
 
     bool isAggregateValueDistinctForGroupByKeys(
@@ -152,8 +151,7 @@ private:
 
     void updateAggStates(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
-        uint64_t resultSetMultiplicity);
+        const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity);
 
     // ! This function will only be used by distinct aggregate, which assumes that all keyVectors
     // are flat.
@@ -217,7 +215,7 @@ protected:
     std::unique_ptr<HashSlot*[]> hashSlotsToUpdateAggState;
 
 private:
-    std::vector<common::LogicalType> dependentKeyDataTypes;
+    std::vector<common::LogicalType> payloadTypes;
     std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions;
 
     //! special handling of distinct aggregate
@@ -233,13 +231,11 @@ private:
     std::unique_ptr<uint64_t[]> tmpSlotIdxes;
 };
 
-class AggregateHashTableUtils {
-
-public:
-    static std::vector<std::unique_ptr<AggregateHashTable>> createDistinctHashTables(
+struct AggregateHashTableUtils {
+    static std::unique_ptr<AggregateHashTable> createDistinctHashTable(
         storage::MemoryManager& memoryManager,
-        const std::vector<common::LogicalType>& groupByKeyDataTypes,
-        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);
+        const std::vector<common::LogicalType>& groupByKeyTypes,
+        const common::LogicalType& distinctKeyType);
 };
 
 } // namespace processor

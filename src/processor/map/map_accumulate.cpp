@@ -9,7 +9,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* op) {
-    auto acc = op->ptrCast<LogicalAccumulate>();
+    auto acc = op->constPtrCast<LogicalAccumulate>();
     auto outSchema = acc->getSchema();
     auto inSchema = acc->getChild(0)->getSchema();
     auto prevOperator = mapOperator(acc->getChild(0).get());

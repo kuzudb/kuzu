@@ -1,5 +1,4 @@
 #include "planner/operator/logical_distinct.h"
-#include "processor/operator/aggregate/aggregate_input.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;
@@ -9,17 +8,13 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDistinct(LogicalOperator* logicalOperator) {
-    auto& logicalDistinct = (const LogicalDistinct&)*logicalOperator;
-    auto outSchema = logicalDistinct.getSchema();
-    auto inSchema = logicalDistinct.getChild(0)->getSchema();
-    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    std::vector<std::unique_ptr<function::AggregateFunction>> emptyAggFunctions;
-    std::vector<std::unique_ptr<AggregateInputInfo>> emptyAggInputInfos;
-    std::vector<DataPos> emptyAggregatesOutputPos;
-    return createHashAggregate(logicalDistinct.getKeys(), logicalDistinct.getPayloads(),
-        std::move(emptyAggFunctions), std::move(emptyAggInputInfos),
-        std::move(emptyAggregatesOutputPos), inSchema, outSchema, std::move(prevOperator),
-        logicalDistinct.getExpressionsForPrinting(), nullptr /* markExpression */);
+    auto distinct = logicalOperator->constPtrCast<LogicalDistinct>();
+    auto child = distinct->getChild(0).get();
+    auto outSchema = distinct->getSchema();
+    auto inSchema = child->getSchema();
+    auto prevOperator = mapOperator(child);
+    return createDistinctHashAggregate(distinct->getKeys(), distinct->getPayloads(), inSchema,
+        outSchema, std::move(prevOperator), distinct->getExpressionsForPrinting());
 }
 
 } // namespace processor

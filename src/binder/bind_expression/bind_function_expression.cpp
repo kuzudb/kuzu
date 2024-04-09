@@ -129,11 +129,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
-        auto childTypeID = child->dataType.getLogicalTypeID();
-        if (isDistinct &&
-            (childTypeID == LogicalTypeID::NODE || childTypeID == LogicalTypeID::REL)) {
-            throw BinderException{"DISTINCT is not supported for NODE or REL type."};
-        }
         childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
     }

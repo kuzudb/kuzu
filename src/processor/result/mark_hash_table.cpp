@@ -4,12 +4,12 @@ namespace kuzu {
 namespace processor {
 
 MarkHashTable::MarkHashTable(storage::MemoryManager& memoryManager,
-    std::vector<common::LogicalType> keyDataTypes,
-    std::vector<common::LogicalType> dependentKeyDataTypes,
-    const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
+    std::vector<common::LogicalType> keyTypes, std::vector<common::LogicalType> payloadTypes,
     uint64_t numEntriesToAllocate, std::unique_ptr<FactorizedTableSchema> tableSchema)
-    : AggregateHashTable(memoryManager, std::move(keyDataTypes), std::move(dependentKeyDataTypes),
-          std::move(aggregateFunctions), numEntriesToAllocate, std::move(tableSchema)) {
+    : AggregateHashTable(memoryManager, std::move(keyTypes), std::move(payloadTypes),
+          std::vector<std::unique_ptr<function::AggregateFunction>>{} /* empty aggregates */,
+          std::vector<common::LogicalType>{} /* empty distinct agg key*/, numEntriesToAllocate,
+          std::move(tableSchema)) {
     distinctColIdxInFT = hashColIdxInFT - 1;
 }
 

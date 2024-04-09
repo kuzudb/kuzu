@@ -26,21 +26,19 @@ class BaseAggregate : public Sink {
 protected:
     BaseAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
-        std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+        std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::AGGREGATE, std::move(child),
               id, paramsString},
-          aggregateFunctions{std::move(aggregateFunctions)},
-          aggregateInputInfos{std::move(aggregateInputInfos)} {}
+          aggregateFunctions{std::move(aggregateFunctions)}, aggInfos{std::move(aggInfos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    inline bool canParallel() const final { return !containDistinctAggregate(); }
+    bool canParallel() const final { return !containDistinctAggregate(); }
 
     void finalize(ExecutionContext* context) override = 0;
 
     std::vector<std::unique_ptr<function::AggregateFunction>> cloneAggFunctions();
-    std::vector<std::unique_ptr<AggregateInputInfo>> cloneAggInputInfos();
     std::unique_ptr<PhysicalOperator> clone() override = 0;
 
 private:
@@ -48,8 +46,8 @@ private:
 
 protected:
     std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions;
-    std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos;
-    std::vector<std::unique_ptr<AggregateInput>> aggregateInputs;
+    std::vector<AggregateInfo> aggInfos;
+    std::vector<AggregateInput> aggInputs;
 };
 
 } // namespace processor

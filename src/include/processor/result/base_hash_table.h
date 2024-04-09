@@ -38,7 +38,7 @@ protected:
     storage::MemoryManager& memoryManager;
     std::unique_ptr<FactorizedTable> factorizedTable;
     std::vector<compare_function_t> compareEntryFuncs;
-    common::logical_type_vec_t keyTypes;
+    std::vector<common::LogicalType> keyTypes;
     // Temporary arrays to hold intermediate results for appending.
     std::shared_ptr<common::DataChunkState> hashState;
     std::unique_ptr<common::ValueVector> hashVector;
