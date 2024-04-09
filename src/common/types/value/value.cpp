@@ -407,6 +407,7 @@ void Value::copyValueFrom(const Value& other) {
     case PhysicalTypeID::STRING: {
         strVal = other.strVal;
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRUCT: {
         for (auto& child : other.children) {
@@ -624,6 +625,7 @@ void Value::serialize(Serializer& serializer) const {
     case PhysicalTypeID::STRING: {
         serializer.serializeValue(strVal);
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRUCT: {
         for (auto i = 0u; i < childrenSize; ++i) {
@@ -688,6 +690,7 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     case PhysicalTypeID::STRING: {
         deserializer.deserializeValue(val->strVal);
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRUCT: {
         deserializer.deserializeVectorOfPtrs(val->children);

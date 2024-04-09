@@ -92,6 +92,7 @@ static scalar_func_exec_t getBinaryListExecFuncSwitchRight(const LogicalType& ri
         execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, internalID_t,
             RESULT_TYPE, OPERATION>;
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, list_entry_t,
             RESULT_TYPE, OPERATION>;
@@ -400,6 +401,7 @@ static std::unique_ptr<FunctionBindData> ListExtractBindFunc(
         scalarFunction->execFunc =
             BinaryExecListExtractFunction<list_entry_t, int64_t, ku_string_t, ListExtract>;
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         scalarFunction->execFunc =
             BinaryExecListExtractFunction<list_entry_t, int64_t, list_entry_t, ListExtract>;
