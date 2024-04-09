@@ -2,10 +2,14 @@
 
 #include "common/enums/table_type.h"
 #include "common/types/internal_id_t.h"
-#include "common/types/types.h"
 #include "function/hash/hash_functions.h"
 
 namespace kuzu {
+namespace common {
+class Serializer;
+class Deserializer;
+} // namespace common
+
 namespace storage {
 
 struct NodeIndexID {
@@ -23,8 +27,6 @@ enum class DBFileType : uint8_t {
     DATA = 1,
     METADATA = 2,
 };
-
-std::string dbFileTypeToString(DBFileType dbFileType);
 
 // DBFileID start with 1 byte type and 1 byte isOverflow field followed with additional
 // bytes needed by the different log types. We don't need these to be byte aligned because they are
@@ -50,7 +52,6 @@ enum class WALRecordType : uint8_t {
     COMMIT_RECORD = 3,
     CATALOG_RECORD = 4,
     CREATE_TABLE_RECORD = 6,
-    CREATE_REL_TABLE_GROUP_RECORD = 7,
     CREATE_RDF_GRAPH_RECORD = 8,
     COPY_TABLE_RECORD = 19,
     DROP_TABLE_RECORD = 20,
@@ -58,9 +59,18 @@ enum class WALRecordType : uint8_t {
     ADD_PROPERTY_RECORD = 22,
 };
 
-std::string walRecordTypeToString(WALRecordType walRecordType);
+struct WALRecord {
+    WALRecordType type;
 
-struct PageUpdateOrInsertRecord {
+    WALRecord() = default;
+    explicit WALRecord(WALRecordType type) : type{type} {}
+    virtual ~WALRecord() = default;
+
+    virtual void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<WALRecord> deserialize(common::Deserializer& deserializer);
+};
+
+struct PageUpdateOrInsertRecord final : public WALRecord {
     DBFileID dbFileID;
     // PageIdx in the file of updated storage structure, identified by the dbFileID field
     uint64_t pageIdxInOriginalFile;
@@ -68,169 +78,129 @@ struct PageUpdateOrInsertRecord {
     bool isInsert;
 
     PageUpdateOrInsertRecord() = default;
-
     PageUpdateOrInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
         uint64_t pageIdxInWAL, bool isInsert)
-        : dbFileID{dbFileID}, pageIdxInOriginalFile{pageIdxInOriginalFile},
-          pageIdxInWAL{pageIdxInWAL}, isInsert{isInsert} {}
-
-    inline bool operator==(const PageUpdateOrInsertRecord& rhs) const {
-        return dbFileID == rhs.dbFileID && pageIdxInOriginalFile == rhs.pageIdxInOriginalFile &&
-               pageIdxInWAL == rhs.pageIdxInWAL && isInsert == rhs.isInsert;
-    }
+        : WALRecord{WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD}, dbFileID{dbFileID},
+          pageIdxInOriginalFile{pageIdxInOriginalFile}, pageIdxInWAL{pageIdxInWAL},
+          isInsert{isInsert} {}
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<PageUpdateOrInsertRecord> deserialize(
+        common::Deserializer& deserializer);
 };
 
-struct CommitRecord {
+struct CommitRecord final : public WALRecord {
     uint64_t transactionID;
 
     CommitRecord() = default;
+    explicit CommitRecord(uint64_t transactionID)
+        : WALRecord{WALRecordType::COMMIT_RECORD}, transactionID{transactionID} {}
 
-    explicit CommitRecord(uint64_t transactionID) : transactionID{transactionID} {}
-
-    inline bool operator==(const CommitRecord& rhs) const {
-        return transactionID == rhs.transactionID;
-    }
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<CommitRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct CreateTableRecord {
+struct CreateTableRecord final : public WALRecord {
     common::table_id_t tableID;
     common::TableType tableType;
 
     CreateTableRecord() = default;
     explicit CreateTableRecord(common::table_id_t tableID, common::TableType tableType)
-        : tableID{tableID}, tableType{tableType} {}
+        : WALRecord{WALRecordType::CREATE_TABLE_RECORD}, tableID{tableID}, tableType{tableType} {}
 
-    inline bool operator==(const CreateTableRecord& rhs) const {
-        return tableID == rhs.tableID && tableType == rhs.tableType;
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<CreateTableRecord> deserialize(common::Deserializer& deserializer);
+};
+
+struct CatalogRecord final : public WALRecord {
+    CatalogRecord() : WALRecord{WALRecordType::CATALOG_RECORD} {}
+
+    void serialize(common::Serializer& serializer) const override {
+        WALRecord::serialize(serializer);
+    }
+    static std::unique_ptr<CatalogRecord> deserialize(common::Deserializer&) {
+        return std::make_unique<CatalogRecord>();
     }
 };
 
-struct RdfGraphRecord {
+struct RdfGraphRecord final : public WALRecord {
     common::table_id_t tableID;
-    CreateTableRecord resourceTableRecord;
-    CreateTableRecord literalTableRecord;
-    CreateTableRecord resourceTripleTableRecord;
-    CreateTableRecord literalTripleTableRecord;
+    std::unique_ptr<WALRecord> resourceTableRecord;
+    std::unique_ptr<WALRecord> literalTableRecord;
+    std::unique_ptr<WALRecord> resourceTripleTableRecord;
+    std::unique_ptr<WALRecord> literalTripleTableRecord;
 
     RdfGraphRecord() = default;
-    RdfGraphRecord(common::table_id_t tableID, CreateTableRecord resourceTableRecord,
-        CreateTableRecord literalTableRecord, CreateTableRecord resourceTripleTableRecord,
-        CreateTableRecord literalTripleTableRecord)
-        : tableID{tableID}, resourceTableRecord{resourceTableRecord},
-          literalTableRecord{literalTableRecord},
-          resourceTripleTableRecord{resourceTripleTableRecord},
-          literalTripleTableRecord{literalTripleTableRecord} {}
+    RdfGraphRecord(common::table_id_t tableID,
+        std::unique_ptr<CreateTableRecord> resourceTableRecord,
+        std::unique_ptr<CreateTableRecord> literalTableRecord,
+        std::unique_ptr<CreateTableRecord> resourceTripleTableRecord,
+        std::unique_ptr<CreateTableRecord> literalTripleTableRecord)
+        : WALRecord{WALRecordType::CREATE_RDF_GRAPH_RECORD}, tableID{tableID},
+          resourceTableRecord{std::move(resourceTableRecord)},
+          literalTableRecord{std::move(literalTableRecord)},
+          resourceTripleTableRecord{std::move(resourceTripleTableRecord)},
+          literalTripleTableRecord{std::move(literalTripleTableRecord)} {}
 
-    inline bool operator==(const RdfGraphRecord& rhs) const {
-        return tableID == rhs.tableID && resourceTableRecord == rhs.resourceTableRecord &&
-               literalTableRecord == rhs.literalTableRecord &&
-               resourceTripleTableRecord == rhs.resourceTripleTableRecord &&
-               literalTripleTableRecord == rhs.literalTripleTableRecord;
-    }
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<RdfGraphRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct CopyTableRecord {
+struct CopyTableRecord final : public WALRecord {
     common::table_id_t tableID;
 
     CopyTableRecord() = default;
+    explicit CopyTableRecord(common::table_id_t tableID)
+        : WALRecord{WALRecordType::COPY_TABLE_RECORD}, tableID{tableID} {}
 
-    explicit CopyTableRecord(common::table_id_t tableID) : tableID{tableID} {}
-
-    inline bool operator==(const CopyTableRecord& rhs) const { return tableID == rhs.tableID; }
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<CopyTableRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct TableStatisticsRecord {
-    // TODO(Guodong): Better to replace the bool with an enum.
-    bool isNodeTable;
+struct TableStatisticsRecord final : public WALRecord {
+    common::TableType tableType;
 
     TableStatisticsRecord() = default;
+    explicit TableStatisticsRecord(common::TableType tableType)
+        : WALRecord{WALRecordType::TABLE_STATISTICS_RECORD}, tableType{tableType} {}
 
-    explicit TableStatisticsRecord(bool isNodeTable) : isNodeTable{isNodeTable} {}
-
-    inline bool operator==(const TableStatisticsRecord& rhs) const {
-        return isNodeTable == rhs.isNodeTable;
-    }
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<TableStatisticsRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct DropTableRecord {
+struct DropTableRecord final : public WALRecord {
     common::table_id_t tableID;
 
     DropTableRecord() = default;
+    explicit DropTableRecord(common::table_id_t tableID)
+        : WALRecord{WALRecordType::DROP_TABLE_RECORD}, tableID{tableID} {}
 
-    explicit DropTableRecord(common::table_id_t tableID) : tableID{tableID} {}
-
-    inline bool operator==(const DropTableRecord& rhs) const { return tableID == rhs.tableID; }
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<DropTableRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct DropPropertyRecord {
+struct DropPropertyRecord final : public WALRecord {
     common::table_id_t tableID;
     common::property_id_t propertyID;
 
     DropPropertyRecord() = default;
-
     DropPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID)
-        : tableID{tableID}, propertyID{propertyID} {}
-
-    inline bool operator==(const DropPropertyRecord& rhs) const {
-        return tableID == rhs.tableID && propertyID == rhs.propertyID;
+        : WALRecord{WALRecordType::DROP_PROPERTY_RECORD}, tableID{tableID}, propertyID{propertyID} {
     }
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<DropPropertyRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct AddPropertyRecord {
+struct AddPropertyRecord final : public WALRecord {
     common::table_id_t tableID;
     common::property_id_t propertyID;
 
     AddPropertyRecord() = default;
-
     AddPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID)
-        : tableID{tableID}, propertyID{propertyID} {}
+        : WALRecord{WALRecordType::ADD_PROPERTY_RECORD}, tableID{tableID}, propertyID{propertyID} {}
 
-    inline bool operator==(const AddPropertyRecord& rhs) const {
-        return tableID == rhs.tableID && propertyID == rhs.propertyID;
-    }
-};
-
-struct WALRecord {
-    WALRecordType recordType;
-    union {
-        PageUpdateOrInsertRecord pageInsertOrUpdateRecord;
-        CommitRecord commitRecord;
-        CreateTableRecord createTableRecord;
-        RdfGraphRecord rdfGraphRecord;
-        CopyTableRecord copyTableRecord;
-        TableStatisticsRecord tableStatisticsRecord;
-        DropTableRecord dropTableRecord;
-        DropPropertyRecord dropPropertyRecord;
-        AddPropertyRecord addPropertyRecord;
-    };
-
-    bool operator==(const WALRecord& rhs) const;
-
-    static WALRecord newPageUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
-        uint64_t pageIdxInWAL);
-    static WALRecord newPageInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
-        uint64_t pageIdxInWAL);
-    static WALRecord newCommitRecord(uint64_t transactionID);
-    static WALRecord newTableStatisticsRecord(bool isNodeTable);
-    static WALRecord newCatalogRecord();
-    static WALRecord newCreateTableRecord(common::table_id_t tableID, common::TableType tableType);
-    static WALRecord newRdfGraphRecord(common::table_id_t rdfGraphID,
-        common::table_id_t resourceTableID, common::table_id_t literalTableID,
-        common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID);
-    static WALRecord newCopyTableRecord(common::table_id_t tableID);
-    static WALRecord newDropTableRecord(common::table_id_t tableID);
-    static WALRecord newDropPropertyRecord(common::table_id_t tableID,
-        common::property_id_t propertyID);
-    static WALRecord newAddPropertyRecord(common::table_id_t tableID,
-        common::property_id_t propertyID);
-    static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
-    // This functions assumes that the caller ensures there is enough space in the bytes pointer
-    // to write the record. This should be checked by calling numBytesToWrite.
-    void writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset) const;
-
-private:
-    static WALRecord newPageInsertOrUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
-        uint64_t pageIdxInWAL, bool isInsert);
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<AddPropertyRecord> deserialize(common::Deserializer& deserializer);
 };
 
 } // namespace storage

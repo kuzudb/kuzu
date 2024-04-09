@@ -16,6 +16,7 @@ struct KUZU_API FileInfo {
 
     virtual ~FileInfo() = default;
 
+    // TODO: This function should be marked as const.
     uint64_t getFileSize();
 
     void readFromFile(void* buffer, uint64_t numBytes, uint64_t position);

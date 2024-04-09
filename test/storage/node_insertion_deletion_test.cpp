@@ -135,5 +135,5 @@ TEST_F(NodeInsertionDeletionTests, TruncatedWalTest) {
         walFileInfo->truncate(BufferPoolConstants::PAGE_4KB_SIZE);
     }
     // Re-open database
-    database = std::make_unique<Database>(databasePath);
+    EXPECT_THROW(database = std::make_unique<Database>(databasePath), RuntimeException);
 }

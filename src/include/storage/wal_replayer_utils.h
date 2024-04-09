@@ -3,7 +3,6 @@
 #include <string>
 
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "common/types/internal_id_t.h"
 
 namespace kuzu {
 namespace catalog {

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <cstdint>
 #include <memory>
 #include <mutex>
 
@@ -9,9 +8,7 @@
 #include "common/task_system/progress_bar.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
-#include "function/function.h"
 #include "function/table/scan_replacement.h"
-#include "main/kuzu_fwd.h"
 #include "parser/statement.h"
 #include "prepared_statement.h"
 #include "query_result.h"
