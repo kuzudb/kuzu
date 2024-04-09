@@ -76,10 +76,10 @@ void ArrowConverter::setArrowFormatForInternalID(ArrowSchemaHolder& rootHolder, 
     }
     child.children = &rootHolder.nestedChildrenPtr.back()[0];
     initializeChild(*child.children[0]);
-    child.children[0]->name = copyName(rootHolder, "table");
+    child.children[0]->name = copyName(rootHolder, "offset");
     setArrowFormat(rootHolder, *child.children[0], *LogicalType::INT64());
     initializeChild(*child.children[1]);
-    child.children[1]->name = copyName(rootHolder, "offset");
+    child.children[1]->name = copyName(rootHolder, "table");
     setArrowFormat(rootHolder, *child.children[1], *LogicalType::INT64());
 }
 
@@ -142,7 +142,7 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         child.format = "tsu:";
     } break;
     case LogicalTypeID::INTERVAL: {
-        child.format = "tDm";
+        child.format = "tDu";
     } break;
     case LogicalTypeID::UUID:
     case LogicalTypeID::STRING: {

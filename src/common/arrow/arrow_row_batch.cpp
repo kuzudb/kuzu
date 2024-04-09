@@ -240,6 +240,15 @@ void ArrowRowBatch::templateCopyNonNullValue(ArrowVector* vector, const LogicalT
 }
 
 template<>
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERVAL>(ArrowVector* vector,
+    const LogicalType& /*type*/, Value* value, std::int64_t pos) {
+    auto destAddr = (int64_t*)(vector->data.data() + pos * sizeof(std::int64_t));
+    auto intervalVal = value->val.intervalVal;
+    *destAddr = intervalVal.micros + intervalVal.days * Interval::MICROS_PER_DAY +
+                intervalVal.months * Interval::MICROS_PER_MONTH;
+}
+
+template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::BOOL>(ArrowVector* vector,
     const LogicalType& /*type*/, Value* value, std::int64_t pos) {
     if (value->val.booleanVal) {
