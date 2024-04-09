@@ -110,15 +110,15 @@ void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
 void TaskScheduler::runWorkerThread() {
     std::unique_lock<std::mutex> lck{mtx, std::defer_lock};
     while (true) {
+        std::shared_ptr<ScheduledTask> scheduledTask = nullptr;
         lck.lock();
-        cv.wait(lck, [&] { return !taskQueue.empty() || stopThreads; });
+        cv.wait(lck, [&] {
+            scheduledTask = getTaskAndRegister();
+            return scheduledTask != nullptr || stopThreads;
+        });
+        lck.unlock();
         if (stopThreads) {
             return;
-        }
-        auto scheduledTask = getTaskAndRegister();
-        lck.unlock();
-        if (!scheduledTask) {
-            continue;
         }
         try {
             scheduledTask->task->run();
