@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/catalog.h"
+#include "common/null_mask.h"
 #include "storage/stats/metadata_dah_info.h"
 #include "storage/stats/property_statistics.h"
 #include "storage/storage_structure/disk_array.h"
@@ -18,7 +19,7 @@ using write_values_from_vector_func_t = std::function<void(uint8_t* frame, uint1
     common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata)>;
 using write_values_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
     const uint8_t* data, common::offset_t dataOffset, common::offset_t numValues,
-    const CompressionMetadata& metadata)>;
+    const CompressionMetadata& metadata, const common::NullMask*)>;
 
 using read_values_to_page_func_t =
     std::function<void(uint8_t* frame, PageCursor& pageCursor, uint8_t* result,
@@ -110,7 +111,7 @@ public:
 
     // Append values to the end of the node group, resizing it if necessary
     common::offset_t appendValues(common::node_group_idx_t nodeGroupIdx, const uint8_t* data,
-        common::offset_t numValues);
+        const common::NullMask* nullChunkData, common::offset_t numValues);
 
     ReadState getReadState(transaction::TransactionType transactionType,
         common::node_group_idx_t nodeGroupIdx) const;
@@ -140,7 +141,8 @@ protected:
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
     virtual void writeValues(ReadState& state, common::offset_t offsetInChunk, const uint8_t* data,
-        common::offset_t dataOffset = 0, common::offset_t numValues = 1);
+        const common::NullMask* nullChunkData, common::offset_t dataOffset = 0,
+        common::offset_t numValues = 1);
 
     // Produces a page cursor for the offset relative to the given node group
     PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,

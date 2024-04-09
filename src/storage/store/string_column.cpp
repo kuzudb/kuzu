@@ -1,8 +1,10 @@
 #include "storage/store/string_column.h"
 
+#include "common/null_mask.h"
 #include "storage/store/column.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column_chunk.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -52,10 +54,14 @@ void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_i
     offset_t offsetInChunk, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto& kuStr = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
     auto index = dictionary.append(nodeGroupIdx, kuStr.getAsStringView());
+    NullMask nullMask(1);
+    nullMask.setNull(0, vectorToWriteFrom->isNull(posInVectorToWriteFrom));
     // Write index to main column
     auto state = ReadState{chunkMeta,
         chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
-    Column::writeValues(state, offsetInChunk, (uint8_t*)&index);
+    // This function should only be called when the string is non-null, so we don't need to pass
+    // null data
+    Column::writeValues(state, offsetInChunk, (uint8_t*)&index, nullptr /*nullChunkData=*/);
 }
 
 void StringColumn::write(node_group_idx_t nodeGroupIdx, offset_t dstOffset, ColumnChunk* data,
@@ -73,8 +79,11 @@ void StringColumn::write(node_group_idx_t nodeGroupIdx, offset_t dstOffset, Colu
         auto strVal = strChunk->getValue<std::string_view>(i + srcOffset);
         indices[i] = dictionary.append(nodeGroupIdx, strVal);
     }
+    NullMask nullMask(numValues);
+    nullMask.copyFromNullBits(data->getNullChunk()->getNullMask().getData(), srcOffset,
+        0 /*dstOffset=*/, numValues);
     // Write index to main column
-    Column::writeValues(state, dstOffset, reinterpret_cast<const uint8_t*>(&indices[0]),
+    Column::writeValues(state, dstOffset, reinterpret_cast<const uint8_t*>(&indices[0]), &nullMask,
         0 /*srcOffset*/, numValues);
     if (dstOffset + numValues > state.metadata.numValues) {
         state.metadata.numValues = dstOffset + numValues;

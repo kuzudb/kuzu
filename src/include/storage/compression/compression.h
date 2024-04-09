@@ -10,7 +10,8 @@
 namespace kuzu {
 namespace common {
 class ValueVector;
-}
+class NullMask;
+} // namespace common
 
 namespace storage {
 class ColumnChunk;
@@ -58,9 +59,13 @@ public:
 
     // Takes a single uncompressed value from the srcBuffer and compresses it into the dstBuffer
     // Offsets refer to value offsets, not byte offsets
+    //
+    // nullMask may be null if no mask is available (all values are non-null)
+    // Storage of null values is handled by the implementation and decompression of null values
+    // does not have to produce the original value passed to this function.
     virtual void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
-        const CompressionMetadata& metadata) const = 0;
+        const CompressionMetadata& metadata, const common::NullMask* nullMask) const = 0;
 
     // Returns compression metadata, including any relevant parameters specific to this dataset
     // which will need to be passed to compressNextPage. Since this may need to scan the entire
@@ -128,7 +133,8 @@ public:
 
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
-        common::offset_t, const CompressionMetadata&) const override {};
+        common::offset_t, const CompressionMetadata&,
+        const common::NullMask* /*nullMask*/) const override {};
 
 private:
     uint8_t numBytesPerValue;
@@ -146,7 +152,7 @@ public:
 
     inline void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
-        const CompressionMetadata& /*metadata*/) const final {
+        const CompressionMetadata& /*metadata*/, const common::NullMask* /*nullMask*/) const final {
         memcpy(dstBuffer + dstOffset * numBytesPerValue, srcBuffer + srcOffset * numBytesPerValue,
             numBytesPerValue * numValues);
     }
@@ -222,7 +228,7 @@ public:
 
     void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
-        const CompressionMetadata& metadata) const final;
+        const CompressionMetadata& metadata, const common::NullMask* nullMask) const final;
 
     BitpackHeader getBitWidth(const uint8_t* srcBuffer, uint64_t numValues) const;
 
@@ -278,7 +284,7 @@ public:
 
     void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
-        const CompressionMetadata& metadata) const final;
+        const CompressionMetadata& metadata, const common::NullMask* nullMask) const final;
 
     static inline uint64_t numValues(uint64_t dataSize) { return dataSize * 8; }
 
@@ -339,7 +345,7 @@ public:
 
     void operator()(uint8_t* frame, uint16_t posInFrame, const uint8_t* data,
         common::offset_t dataOffset, common::offset_t numValues,
-        const CompressionMetadata& metadata);
+        const CompressionMetadata& metadata, const common::NullMask* nullMask = nullptr);
 
     void operator()(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
         uint32_t posInVector, const CompressionMetadata& metadata);

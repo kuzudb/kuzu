@@ -31,15 +31,12 @@ bool ArrowNullMaskTree::copyFromBuffer(const void* buffer, uint64_t srcOffset, u
     return true;
 }
 
-bool ArrowNullMaskTree::applyParentBitmap(const NullMask* parent, uint64_t count) {
+bool ArrowNullMaskTree::applyParentBitmap(const NullMask* parent) {
     if (parent == nullptr) {
         return false;
     }
-    const uint64_t* buffer = parent->data;
-    if (buffer != nullptr) {
-        for (uint64_t i = 0; i < (count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2); i++) {
-            mask->buffer[i] |= buffer[i];
-        }
+    if (parent->getData() != nullptr) {
+        *mask |= *parent;
         return true;
     }
     return false;
@@ -50,8 +47,7 @@ void ArrowNullMaskTree::scanListPushDown(const ArrowSchema* schema, const ArrowA
     uint64_t srcOffset, uint64_t count) {
     const offsetsT* offsets = ((const offsetsT*)array->buffers[1]) + srcOffset;
     offsetsT auxiliaryLength = offsets[count] - offsets[0];
-    NullMask pushDownMask((auxiliaryLength + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) >>
-                          NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
+    NullMask pushDownMask(auxiliaryLength);
     for (uint64_t i = 0; i < count; i++) {
         pushDownMask.setNullFromRange(offsets[i] - offsets[0], offsets[i + 1] - offsets[i],
             isNull(i));
@@ -70,13 +66,11 @@ void ArrowNullMaskTree::scanStructPushDown(const ArrowSchema* schema, const Arro
 
 ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray* array,
     uint64_t srcOffset, uint64_t count, const NullMask* parentBitmap)
-    : offset{0},
-      mask{std::make_shared<common::NullMask>((count + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) >>
-                                              NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2)},
+    : offset{0}, mask{std::make_shared<common::NullMask>(count)},
       children(std::make_shared<std::vector<ArrowNullMaskTree>>()) {
     if (schema->dictionary != nullptr) {
         copyFromBuffer(array->buffers[0], srcOffset, count);
-        applyParentBitmap(parentBitmap, count);
+        applyParentBitmap(parentBitmap);
         dictionary = std::make_shared<ArrowNullMaskTree>(schema->dictionary, array->dictionary,
             array->dictionary->offset, array->dictionary->length);
         return;
@@ -108,34 +102,34 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
     case 'w':
     case 't':
         copyFromBuffer(array->buffers[0], srcOffset, count);
-        applyParentBitmap(parentBitmap, count);
+        applyParentBitmap(parentBitmap);
         break;
     case '+':
         switch (arrowType[1]) {
         case 'l':
             copyFromBuffer(array->buffers[0], srcOffset, count);
-            applyParentBitmap(parentBitmap, count);
+            applyParentBitmap(parentBitmap);
             scanListPushDown<int32_t>(schema, array, srcOffset, count);
             break;
         case 'L':
             copyFromBuffer(array->buffers[0], srcOffset, count);
-            applyParentBitmap(parentBitmap, count);
+            applyParentBitmap(parentBitmap);
             scanListPushDown<int64_t>(schema, array, srcOffset, count);
             break;
         case 'w':
             // TODO manh: array null resolution
             KU_UNREACHABLE;
             copyFromBuffer(array->buffers[0], srcOffset, count);
-            applyParentBitmap(parentBitmap, count);
+            applyParentBitmap(parentBitmap);
             break;
         case 's':
             copyFromBuffer(array->buffers[0], srcOffset, count);
-            applyParentBitmap(parentBitmap, count);
+            applyParentBitmap(parentBitmap);
             scanStructPushDown(schema, array, srcOffset, count);
             break;
         case 'm':
             copyFromBuffer(array->buffers[0], srcOffset, count);
-            applyParentBitmap(parentBitmap, count);
+            applyParentBitmap(parentBitmap);
             scanListPushDown<int32_t>(schema, array, srcOffset, count);
             break;
         case 'u': {
@@ -176,9 +170,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                 }
             }
             if (parentBitmap != nullptr) {
-                for (uint64_t i = 0; i < count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2; i++) {
-                    mask->buffer[i] |= parentBitmap->buffer[i];
-                }
+                *mask |= *parentBitmap;
             }
         } break;
         case 'v':
@@ -192,9 +184,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                     true);
             }
             if (parentBitmap != nullptr) {
-                for (uint64_t i = 0; i < count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2; i++) {
-                    mask->buffer[i] |= parentBitmap->buffer[i];
-                }
+                *mask |= *parentBitmap;
             }
             break;
         case 'r':

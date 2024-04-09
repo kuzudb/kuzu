@@ -20,7 +20,7 @@ public:
 
 private:
     bool copyFromBuffer(const void* buffer, uint64_t srcOffset, uint64_t count);
-    bool applyParentBitmap(const NullMask* buffer, uint64_t count);
+    bool applyParentBitmap(const NullMask* buffer);
 
     template<typename offsetsT>
     void scanListPushDown(const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset,

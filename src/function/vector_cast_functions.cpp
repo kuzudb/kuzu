@@ -28,7 +28,7 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             // copy data and nullmask from input
             memcpy(resultVector->getData(), inputVector->getData(),
                 numOfEntries * resultVector->getNumBytesPerValue());
-            resultVector->setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfEntries);
+            resultVector->setNullFromBits(inputVector->getNullMask().getData(), 0, 0, numOfEntries);
 
             numOfEntries = ListVector::getDataVectorSize(inputVector.get());
             ListVector::resizeDataVector(resultVector, numOfEntries);
@@ -56,7 +56,7 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             // copy data and nullmask from input
             memcpy(resultVector->getData(), inputVector->getData(),
                 numOfEntries * resultVector->getNumBytesPerValue());
-            resultVector->setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfEntries);
+            resultVector->setNullFromBits(inputVector->getNullMask().getData(), 0, 0, numOfEntries);
 
             auto inputFieldVectors = StructVector::getFieldVectors(inputVector.get());
             auto resultFieldVectors = StructVector::getFieldVectors(resultVector);

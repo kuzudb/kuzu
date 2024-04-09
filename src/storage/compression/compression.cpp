@@ -6,6 +6,8 @@
 #include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
 #include "common/null_mask.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
@@ -397,8 +399,8 @@ void fastpack(const T* in, uint8_t* out, uint8_t bitWidth) {
 
 template<typename T>
 void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, offset_t posInSrc,
-    uint8_t* dstBuffer, offset_t posInDst, offset_t numValues,
-    const CompressionMetadata& metadata) const {
+    uint8_t* dstBuffer, offset_t posInDst, offset_t numValues, const CompressionMetadata& metadata,
+    const NullMask* nullMask) const {
     auto header = BitpackHeader::readHeader(metadata.data);
     // This is a fairly naive implementation which uses fastunpack/fastpack
     // to modify the data by decompressing/compressing a single chunk of values.
@@ -417,7 +419,10 @@ void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, o
     fastunpack(chunkStart, chunk, header.bitWidth);
     for (offset_t i = 0; i < numValues; i++) {
         auto value = ((T*)srcBuffer)[posInSrc + i];
-        KU_ASSERT(canUpdateInPlace(value, header));
+        // Null values will usually be 0, which will not be able to be stored if there is a non-zero
+        // offset However we don't care about the value stored for null values Currently they will
+        // be mangled by storage+recovery (underflow in the subtraction below)
+        KU_ASSERT((nullMask && nullMask->isNull(posInSrc + i)) || canUpdateInPlace(value, header));
         chunk[startPosInChunk] = (U)(value - (T)header.offset);
         if (startPosInChunk + 1 >= CHUNK_SIZE && i + 1 < numValues) {
             fastpack(chunk, chunkStart, header.bitWidth);
@@ -566,7 +571,7 @@ template class IntegerBitpacking<uint64_t>;
 
 void BooleanBitpacking::setValuesFromUncompressed(const uint8_t* srcBuffer, offset_t srcOffset,
     uint8_t* dstBuffer, offset_t dstOffset, offset_t numValues,
-    const CompressionMetadata& /*metadata*/) const {
+    const CompressionMetadata& /*metadata*/, const NullMask* /*nullMask*/) const {
     for (auto i = 0u; i < numValues; i++) {
         NullMask::setNull((uint64_t*)dstBuffer, dstOffset + i, ((bool*)srcBuffer)[srcOffset + i]);
     }
@@ -746,57 +751,34 @@ void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageCursor& 
 
 void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame,
     const uint8_t* data, offset_t dataOffset, offset_t numValues,
-    const CompressionMetadata& metadata) {
+    const CompressionMetadata& metadata, const NullMask* nullMask) {
     switch (metadata.compression) {
     case CompressionType::CONSTANT:
         return constant.setValuesFromUncompressed(data, dataOffset, frame, posInFrame, numValues,
-            metadata);
+            metadata, nullMask);
     case CompressionType::UNCOMPRESSED:
         return uncompressed.setValuesFromUncompressed(data, dataOffset, frame, posInFrame,
-            numValues, metadata);
+            numValues, metadata, nullMask);
     case CompressionType::INTEGER_BITPACKING: {
-        switch (physicalType) {
-        case PhysicalTypeID::INT64: {
-            return IntegerBitpacking<int64_t>().setValuesFromUncompressed(data, dataOffset, frame,
-                posInFrame, numValues, metadata);
-        }
-        case PhysicalTypeID::INT32: {
-            return IntegerBitpacking<int32_t>().setValuesFromUncompressed(data, dataOffset, frame,
-                posInFrame, numValues, metadata);
-        }
-        case PhysicalTypeID::INT16: {
-            return IntegerBitpacking<int16_t>().setValuesFromUncompressed(data, dataOffset, frame,
-                posInFrame, numValues, metadata);
-        }
-        case PhysicalTypeID::INT8: {
-            return IntegerBitpacking<int8_t>().setValuesFromUncompressed(data, dataOffset, frame,
-                posInFrame, numValues, metadata);
-        }
-        case PhysicalTypeID::INTERNAL_ID:
-        case PhysicalTypeID::ARRAY:
-        case PhysicalTypeID::LIST:
-        case PhysicalTypeID::UINT64: {
-            return IntegerBitpacking<uint64_t>().setValuesFromUncompressed(data, dataOffset, frame,
-                posInFrame, numValues, metadata);
-        }
-        case PhysicalTypeID::STRING:
-        case PhysicalTypeID::UINT32: {
-            return IntegerBitpacking<uint32_t>().setValuesFromUncompressed(data, dataOffset, frame,
-                posInFrame, numValues, metadata);
-        }
-        case PhysicalTypeID::UINT16: {
-            return IntegerBitpacking<uint16_t>().setValuesFromUncompressed(data, dataOffset, frame,
-                posInFrame, numValues, metadata);
-        }
-        case PhysicalTypeID::UINT8: {
-            return IntegerBitpacking<uint8_t>().setValuesFromUncompressed(data, dataOffset, frame,
-                posInFrame, numValues, metadata);
-        }
-        default: {
-            throw NotImplementedException("INTEGER_BITPACKING is not implemented for type " +
-                                          PhysicalTypeUtils::physicalTypeToString(physicalType));
-        }
-        }
+        return TypeUtils::visit(physicalType, [&]<typename T>(T) {
+            if constexpr (std::same_as<T, bool>) {
+                throw NotImplementedException(
+                    "INTEGER_BITPACKING is not implemented for type bool");
+            } else if constexpr (std::same_as<T, internalID_t> || std::same_as<T, list_entry_t>) {
+                IntegerBitpacking<uint64_t>().setValuesFromUncompressed(data, dataOffset, frame,
+                    posInFrame, numValues, metadata, nullMask);
+            } else if constexpr (std::integral<T>) {
+                return IntegerBitpacking<T>().setValuesFromUncompressed(data, dataOffset, frame,
+                    posInFrame, numValues, metadata, nullMask);
+            } else if constexpr (std::same_as<T, ku_string_t>) {
+                return IntegerBitpacking<uint32_t>().setValuesFromUncompressed(data, dataOffset,
+                    frame, posInFrame, numValues, metadata, nullMask);
+            } else {
+                throw NotImplementedException(
+                    "INTEGER_BITPACKING is not implemented for type " +
+                    PhysicalTypeUtils::physicalTypeToString(physicalType));
+            }
+        });
     }
     case CompressionType::BOOLEAN_BITPACKING:
         return booleanBitpacking.copyFromPage(data, dataOffset, frame, posInFrame, numValues,
@@ -811,9 +793,10 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
     common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata) {
     if (metadata.compression == CompressionType::BOOLEAN_BITPACKING) {
         booleanBitpacking.setValuesFromUncompressed(vector->getData(), posInVector, frame,
-            posInFrame, 1, metadata);
+            posInFrame, 1, metadata, &vector->getNullMask());
     } else {
-        (*this)(frame, posInFrame, vector->getData(), posInVector, 1, metadata);
+        (*this)(frame, posInFrame, vector->getData(), posInVector, 1, metadata,
+            &vector->getNullMask());
     }
 }
 

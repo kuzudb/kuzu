@@ -1,10 +1,9 @@
 #pragma once
 
-#include <algorithm>
 #include <memory>
 #include <utility>
 
-#include "common/constants.h"
+#include <span>
 
 namespace kuzu {
 namespace common {
@@ -68,35 +67,33 @@ const uint64_t NULL_HIGH_MASKS[65] = {0x0, 0x8000000000000000, 0xc00000000000000
     0xfffffffffffffffe, 0xffffffffffffffff};
 
 class NullMask {
-    friend class ArrowNullMaskTree;
-
 public:
     static constexpr uint64_t NO_NULL_ENTRY = 0;
     static constexpr uint64_t ALL_NULL_ENTRY = ~uint64_t(NO_NULL_ENTRY);
     static constexpr uint64_t NUM_BITS_PER_NULL_ENTRY_LOG2 = 6;
     static constexpr uint64_t NUM_BITS_PER_NULL_ENTRY = (uint64_t)1 << NUM_BITS_PER_NULL_ENTRY_LOG2;
     static constexpr uint64_t NUM_BYTES_PER_NULL_ENTRY = NUM_BITS_PER_NULL_ENTRY >> 3;
-    static constexpr uint64_t DEFAULT_NUM_NULL_ENTRIES =
-        DEFAULT_VECTOR_CAPACITY >> NUM_BITS_PER_NULL_ENTRY_LOG2;
 
-    NullMask() : NullMask{DEFAULT_NUM_NULL_ENTRIES} {}
-
-    explicit NullMask(uint64_t numNullEntries)
-        : mayContainNulls{false}, numNullEntries{numNullEntries} {
+    // For creating a managed null mask
+    explicit NullMask(uint64_t capacity) : mayContainNulls{false} {
+        auto numNullEntries = (capacity + NUM_BITS_PER_NULL_ENTRY - 1) / NUM_BITS_PER_NULL_ENTRY;
         buffer = std::make_unique<uint64_t[]>(numNullEntries);
-        data = buffer.get();
-        std::fill(data, data + numNullEntries, NO_NULL_ENTRY);
+        data = std::span(buffer.get(), numNullEntries);
+        std::fill(data.begin(), data.end(), NO_NULL_ENTRY);
     }
+
+    // For creating a null mask using existing data
+    explicit NullMask(std::span<uint64_t> nullData) : data{nullData}, mayContainNulls{true} {}
 
     inline void setAllNonNull() {
         if (!mayContainNulls) {
             return;
         }
-        std::fill(data, data + numNullEntries, NO_NULL_ENTRY);
+        std::fill(data.begin(), data.end(), NO_NULL_ENTRY);
         mayContainNulls = false;
     }
     inline void setAllNull() {
-        std::fill(data, data + numNullEntries, ALL_NULL_ENTRY);
+        std::fill(data.begin(), data.end(), ALL_NULL_ENTRY);
         mayContainNulls = true;
     }
 
@@ -104,7 +101,7 @@ public:
 
     static void setNull(uint64_t* nullEntries, uint32_t pos, bool isNull);
     inline void setNull(uint32_t pos, bool isNull) {
-        setNull(data, pos, isNull);
+        setNull(data.data(), pos, isNull);
         if (isNull) {
             mayContainNulls = true;
         }
@@ -115,12 +112,12 @@ public:
         return nullEntries[entryPos] & NULL_BITMASKS_WITH_SINGLE_ONE[bitPosInEntry];
     }
 
-    inline bool isNull(uint32_t pos) const { return isNull(data, pos); }
+    inline bool isNull(uint32_t pos) const { return isNull(data.data(), pos); }
 
     // const because updates to the data must set mayContainNulls if any value
     // becomes non-null
     // Modifying the underlying data should be done with setNull or copyFromNullData
-    inline const uint64_t* getData() { return data; }
+    inline const uint64_t* getData() const { return data.data(); }
 
     static inline uint64_t getNumNullEntries(uint64_t numNullBits) {
         return (numNullBits >> NUM_BITS_PER_NULL_ENTRY_LOG2) +
@@ -135,6 +132,16 @@ public:
     static bool copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
         uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert = false);
 
+    inline bool copyFrom(const NullMask& nullMask, uint64_t srcOffset, uint64_t dstOffset,
+        uint64_t numBitsToCopy, bool invert = false) {
+        if (nullMask.hasNoNullsGuarantee()) {
+            setNullFromRange(dstOffset, numBitsToCopy, invert);
+            return invert;
+        } else {
+            return copyFromNullBits(nullMask.getData(), srcOffset, dstOffset, numBitsToCopy,
+                invert);
+        }
+    }
     bool copyFromNullBits(const uint64_t* srcNullEntries, uint64_t srcOffset, uint64_t dstOffset,
         uint64_t numBitsToCopy, bool invert = false);
 
@@ -147,6 +154,8 @@ public:
 
     void resize(uint64_t capacity);
 
+    void operator|=(const NullMask& other);
+
 private:
     static inline std::pair<uint64_t, uint64_t> getNullEntryAndBitPos(uint64_t pos) {
         auto nullEntryPos = pos >> NUM_BITS_PER_NULL_ENTRY_LOG2;
@@ -154,11 +163,13 @@ private:
             pos - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2));
     }
 
+    static bool copyUnaligned(const uint64_t* srcNullEntries, uint64_t srcOffset,
+        uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert = false);
+
 private:
-    uint64_t* data;
+    std::span<uint64_t> data;
     std::unique_ptr<uint64_t[]> buffer;
     bool mayContainNulls;
-    uint64_t numNullEntries;
 };
 
 } // namespace common
