@@ -108,8 +108,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
         replayAddPropertyRecord(walRecord);
     } break;
     default:
-        throw RuntimeException("Unrecognized WAL record type inside WALReplayer::replay. type: " +
-                               walRecordTypeToString(walRecord.type));
+        KU_UNREACHABLE;
     }
 }
 

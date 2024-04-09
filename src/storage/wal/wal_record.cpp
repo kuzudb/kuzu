@@ -179,23 +179,6 @@ std::unique_ptr<AddPropertyRecord> AddPropertyRecord::deserialize(
     return retVal;
 }
 
-std::string dbFileTypeToString(DBFileType dbFileType) {
-    switch (dbFileType) {
-    case DBFileType::DATA: {
-        return "DATA";
-    }
-    case DBFileType::METADATA: {
-        return "METADATA";
-    }
-    case DBFileType::NODE_INDEX: {
-        return "NODE_INDEX";
-    }
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
-}
-
 DBFileID DBFileID::newDataFileID() {
     return DBFileID{DBFileType::DATA};
 }
@@ -208,47 +191,6 @@ DBFileID DBFileID::newPKIndexFileID(common::table_id_t tableID) {
     DBFileID retVal{DBFileType::NODE_INDEX};
     retVal.nodeIndexID = NodeIndexID(tableID);
     return retVal;
-}
-
-std::string walRecordTypeToString(WALRecordType walRecordType) {
-    switch (walRecordType) {
-    case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
-        return "PAGE_UPDATE_OR_INSERT_RECORD";
-    }
-    case WALRecordType::TABLE_STATISTICS_RECORD: {
-        return "TABLE_STATISTICS_RECORD";
-    }
-    case WALRecordType::COMMIT_RECORD: {
-        return "COMMIT_RECORD";
-    }
-    case WALRecordType::CATALOG_RECORD: {
-        return "CATALOG_RECORD";
-    }
-    case WALRecordType::CREATE_TABLE_RECORD: {
-        return "CREATE_TABLE_RECORD";
-    }
-    case WALRecordType::CREATE_REL_TABLE_GROUP_RECORD: {
-        return "REL_TABLE_GROUP_RECORD";
-    }
-    case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
-        return "CREATE_RDF_GRAPH_RECORD";
-    }
-    case WALRecordType::COPY_TABLE_RECORD: {
-        return "COPY_TABLE_RECORD";
-    }
-    case WALRecordType::DROP_TABLE_RECORD: {
-        return "DROP_TABLE_RECORD";
-    }
-    case WALRecordType::ADD_PROPERTY_RECORD: {
-        return "ADD_PROPERTY_RECORD";
-    }
-    case WALRecordType::DROP_PROPERTY_RECORD: {
-        return "DROP_PROPERTY_RECORD";
-    }
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
 }
 
 } // namespace storage

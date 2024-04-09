@@ -28,8 +28,6 @@ enum class DBFileType : uint8_t {
     METADATA = 2,
 };
 
-std::string dbFileTypeToString(DBFileType dbFileType);
-
 // DBFileID start with 1 byte type and 1 byte isOverflow field followed with additional
 // bytes needed by the different log types. We don't need these to be byte aligned because they are
 // not stored in memory. These are used to serialize and deserialize log entries.
@@ -54,15 +52,12 @@ enum class WALRecordType : uint8_t {
     COMMIT_RECORD = 3,
     CATALOG_RECORD = 4,
     CREATE_TABLE_RECORD = 6,
-    CREATE_REL_TABLE_GROUP_RECORD = 7,
     CREATE_RDF_GRAPH_RECORD = 8,
     COPY_TABLE_RECORD = 19,
     DROP_TABLE_RECORD = 20,
     DROP_PROPERTY_RECORD = 21,
     ADD_PROPERTY_RECORD = 22,
 };
-
-std::string walRecordTypeToString(WALRecordType walRecordType);
 
 struct WALRecord {
     WALRecordType type;
