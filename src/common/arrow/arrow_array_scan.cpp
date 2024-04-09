@@ -202,7 +202,7 @@ static void scanArrowArrayFixedList(const ArrowSchema* schema, const ArrowArray*
     ValueVector& outputVector, ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset,
     uint64_t count) {
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    int64_t numValuesInList = FixedListType::getNumValuesInList(&outputVector.dataType);
+    int64_t numValuesInList = ArrayType::getNumValuesInList(&outputVector.dataType);
     ArrowConverter::fromArrowArray(schema->children[0], array->children[0], outputVector,
         mask->getChild(0), srcOffset * numValuesInList, dstOffset * numValuesInList,
         count * numValuesInList);
@@ -499,7 +499,7 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
             return scanArrowArrayList<int64_t>(schema, array, outputVector, mask, srcOffset,
                 dstOffset, count);
         case 'w':
-            // FIXED_LIST
+            // ARRAY
             // TODO Manh: Array Scanning
             KU_UNREACHABLE;
             // return scanArrowArrayFixedList(
