@@ -341,7 +341,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRUCT>(ArrowVector*
 
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(ArrowVector* vector,
-    const LogicalType& type, Value* value, std::int64_t /*pos*/) {
+    const LogicalType& /*type*/, Value* value, std::int64_t /*pos*/) {
     auto nodeID = value->getValue<nodeID_t>();
     Value offsetVal((std::int64_t)nodeID.offset);
     Value tableIDVal((std::int64_t)nodeID.tableID);
@@ -695,7 +695,7 @@ ArrowArray* ArrowRowBatch::convertStructVectorToArray(ArrowVector& vector,
 }
 
 ArrowArray* ArrowRowBatch::convertInternalIDVectorToArray(ArrowVector& vector,
-    const LogicalType& type) {
+    const LogicalType& /*type*/) {
     auto result = createArrayFromVector(vector);
     result->n_buffers = 1;
     vector.childPointers.resize(2);
