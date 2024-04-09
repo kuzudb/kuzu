@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "common/exception/binder.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -699,6 +700,14 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     deserializer.deserializeValue(val->childrenSize);
     val->setNull(isNull);
     return val;
+}
+
+void Value::validateType(LogicalTypeID targetTypeID) const {
+    if (dataType->getLogicalTypeID() == targetTypeID) {
+        return;
+    }
+    throw BinderException(stringFormat("{} has data type {} but {} was expected.", toString(),
+        dataType->toString(), LogicalTypeUtils::toString(targetTypeID)));
 }
 
 std::string Value::rdfVariantToString() const {

@@ -11,9 +11,10 @@ namespace planner {
 class CardinalityEstimator {
 public:
     CardinalityEstimator() = default;
-    CardinalityEstimator(const storage::NodesStoreStatsAndDeletedIDs* nodesStatistics,
+    CardinalityEstimator(main::ClientContext* context,
+        const storage::NodesStoreStatsAndDeletedIDs* nodesStatistics,
         const storage::RelsStoreStats* relsStatistics)
-        : nodesStatistics{nodesStatistics}, relsStatistics{relsStatistics} {}
+        : context{context}, nodesStatistics{nodesStatistics}, relsStatistics{relsStatistics} {}
     DELETE_COPY_DEFAULT_MOVE(CardinalityEstimator);
 
     // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.
@@ -47,6 +48,7 @@ private:
         transaction::Transaction* transaction);
 
 private:
+    main::ClientContext* context;
     const storage::NodesStoreStatsAndDeletedIDs* nodesStatistics;
     const storage::RelsStoreStats* relsStatistics;
     // The domain of nodeID is defined as the number of unique value of nodeID, i.e. num nodes.

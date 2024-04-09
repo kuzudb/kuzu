@@ -47,6 +47,30 @@ void BaseFrontierScanner::resetState(const BaseBFSState& bfsState) {
     }
 }
 
+bool PathScanner::trailSemanticCheck(const std::vector<nodeID_t>&,
+    const std::vector<relID_t>& edgeIDs) {
+    frontier::rel_id_set_t set;
+    for (auto i = 0u; i < edgeIDs.size() - 1; ++i) {
+        if (set.contains(edgeIDs[i])) {
+            return false;
+        }
+        set.insert(edgeIDs[i]);
+    }
+    return true;
+}
+
+bool PathScanner::acyclicSemanticCheck(const std::vector<nodeID_t>& nodeIDs,
+    const std::vector<relID_t>&) {
+    frontier::node_id_set_t set;
+    for (auto i = 0u; i < nodeIDs.size(); ++i) {
+        if (set.contains(nodeIDs[i])) {
+            return false;
+        }
+        set.insert(nodeIDs[i]);
+    }
+    return true;
+}
+
 void PathScanner::scanFromDstOffset(RecursiveJoinVectors* vectors, sel_t& vectorPos,
     sel_t& nodeIDDataVectorPos, sel_t& relIDDataVectorPos) {
     // when bound node is 0
@@ -100,6 +124,9 @@ void PathScanner::initDfs(const frontier::node_rel_id_t& nodeAndRelID, size_t cu
 
 void PathScanner::writePathToVector(RecursiveJoinVectors* vectors, sel_t& vectorPos,
     sel_t& nodeIDDataVectorPos, sel_t& relIDDataVectorPos) {
+    if (semanticCheckFunc && !semanticCheckFunc(nodeIDs, relIDs)) {
+        return;
+    }
     KU_ASSERT(vectorPos < DEFAULT_VECTOR_CAPACITY);
     auto nodeTableEntry = ListVector::addList(vectors->pathNodesVector, k > 0 ? k - 1 : 0);
     auto relTableEntry = ListVector::addList(vectors->pathRelsVector, k);
