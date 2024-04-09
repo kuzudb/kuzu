@@ -22,7 +22,9 @@ DiskArrayHeader::DiskArrayHeader(uint64_t elementSize)
     : alignedElementSizeLog2{(uint64_t)ceil(log2(elementSize))},
       numElementsPerPageLog2{BufferPoolConstants::PAGE_4KB_SIZE_LOG2 - alignedElementSizeLog2},
       elementPageOffsetMask{BitmaskUtils::all1sMaskForLeastSignificantBits(numElementsPerPageLog2)},
-      firstPIPPageIdx{DBFileUtils::NULL_PAGE_IDX}, numElements{0}, numAPs{0} {}
+      firstPIPPageIdx{DBFileUtils::NULL_PAGE_IDX}, numElements{0}, numAPs{0} {
+    KU_ASSERT(elementSize <= BufferPoolConstants::PAGE_4KB_SIZE);
+}
 
 void DiskArrayHeader::saveToDisk(FileHandle& fileHandle, uint64_t headerPageIdx) {
     fileHandle.getFileInfo()->writeFile(reinterpret_cast<uint8_t*>(this), sizeof(DiskArrayHeader),
@@ -158,6 +160,7 @@ void BaseDiskArrayInternal::update(uint64_t idx, std::span<uint8_t> val) {
 }
 
 uint64_t BaseDiskArrayInternal::pushBack(std::span<uint8_t> val) {
+    std::unique_lock xLck{diskArraySharedMtx};
     auto it = iter_mut(val.size());
     auto originalNumElements = getNumElementsNoLock(TransactionType::WRITE);
     it.pushBack(val);
@@ -165,6 +168,7 @@ uint64_t BaseDiskArrayInternal::pushBack(std::span<uint8_t> val) {
 }
 
 uint64_t BaseDiskArrayInternal::resize(uint64_t newNumElements, std::span<uint8_t> defaultVal) {
+    std::unique_lock xLck{diskArraySharedMtx};
     auto it = iter_mut(defaultVal.size());
     auto originalNumElements = getNumElementsNoLock(TransactionType::WRITE);
     while (it.size() < newNumElements) {
@@ -392,8 +396,7 @@ void BaseDiskArrayInternal::WriteIterator::getPage(common::page_idx_t newPageIdx
 }
 
 BaseDiskArrayInternal::WriteIterator BaseDiskArrayInternal::iter_mut(uint64_t valueSize) {
-    std::unique_lock xLck{diskArraySharedMtx};
-    return BaseDiskArrayInternal::WriteIterator(valueSize, *this, std::move(xLck));
+    return BaseDiskArrayInternal::WriteIterator(valueSize, *this);
 }
 
 BaseInMemDiskArray::BaseInMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID,

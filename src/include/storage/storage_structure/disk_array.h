@@ -142,6 +142,10 @@ public:
     // The pages are cached while the elements are stored on the same page
     // Designed for sequential writes, but supports random writes too (at the cost that the page
     // caching is only beneficial when seeking from one element to another on the same page)
+    //
+    // The iterator is not locked, allowing multiple to be used at the same time, but access to
+    // individual pages is locked through the BMFileHandle. It will hang if you seek/pushback on the
+    // same page as another iterator in an overlapping scope.
     struct WriteIterator {
         BaseDiskArrayInternal& diskArray;
         PageCursor apCursor;
@@ -153,15 +157,13 @@ public:
         WALPageIdxAndFrame walPageIdxAndFrame;
         static const transaction::TransactionType TRX_TYPE = transaction::TransactionType::WRITE;
         uint64_t idx;
-        std::unique_lock<std::shared_mutex> lock;
         DEFAULT_MOVE_CONSTRUCT(WriteIterator);
 
         // Constructs WriteIterator in an invalid state. Seek must be called before accessing data
-        WriteIterator(uint32_t valueSize, BaseDiskArrayInternal& diskArray,
-            std::unique_lock<std::shared_mutex>&& lock)
+        WriteIterator(uint32_t valueSize, BaseDiskArrayInternal& diskArray)
             : diskArray(diskArray), apCursor(), valueSize(valueSize),
               walPageIdxAndFrame{common::INVALID_PAGE_IDX, common::INVALID_PAGE_IDX, nullptr},
-              idx(0), lock(std::move(lock)) {
+              idx(0) {
             diskArray.hasTransactionalUpdates = true;
         }
 
@@ -187,6 +189,10 @@ public:
     };
 
     WriteIterator iter_mut(uint64_t valueSize);
+
+    inline common::page_idx_t getAPIdx(uint64_t idx) const {
+        return getAPIdxAndOffsetInAP(idx).pageIdx;
+    }
 
 protected:
     // Updates to new pages (new to this transaction) bypass the wal file.
@@ -272,6 +278,8 @@ inline std::span<uint8_t> getSpan(U& val) {
 
 template<typename U>
 class BaseDiskArray {
+    static_assert(sizeof(U) <= common::BufferPoolConstants::PAGE_4KB_SIZE);
+
 public:
     // Used by copiers.
     BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize)
@@ -332,8 +340,12 @@ public:
         }
 
         inline uint64_t idx() const { return iter.idx; }
+        inline uint64_t getAPIdx() const { return iter.apCursor.pageIdx; }
 
-        inline void pushBack(U val) { return iter.pushBack(getSpan(val)); }
+        inline WriteIterator& pushBack(U val) {
+            iter.pushBack(getSpan(val));
+            return *this;
+        }
 
         inline uint64_t size() const { return iter.size(); }
 
@@ -342,6 +354,8 @@ public:
     };
 
     inline WriteIterator iter_mut() { return WriteIterator{diskArray.iter_mut(sizeof(U))}; }
+    inline uint64_t getAPIdx(uint64_t idx) const { return diskArray.getAPIdx(idx); }
+    uint32_t getAlignedElementSize() const { return 1 << diskArray.header.alignedElementSizeLog2; }
 
 private:
     BaseDiskArrayInternal diskArray;
@@ -436,6 +450,8 @@ public:
     inline uint64_t size() const { return diskArray.getNumElements(); }
 
     inline void saveToDisk() { diskArray.saveToDisk(); }
+
+    uint32_t getAlignedElementSize() const { return 1 << diskArray.header.alignedElementSizeLog2; }
 
 private:
     InMemDiskArrayBuilderInternal diskArray;

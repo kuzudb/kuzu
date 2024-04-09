@@ -4,6 +4,7 @@
 #include <type_traits>
 
 #include "common/assert.h"
+#include "common/constants.h"
 #include "common/string_utils.h"
 #include "common/type_utils.h"
 #include "common/types/int128_t.h"
@@ -224,11 +225,7 @@ bool HashIndex<T>::lookupInPersistentIndex(TransactionType trxType, Key key, off
 template<typename T>
 void HashIndex<T>::insertIntoPersistentIndex(Key key, offset_t value) {
     auto& header = *this->indexHeaderForWriteTrx;
-    slot_id_t numRequiredEntries = HashIndexUtils::getNumRequiredEntries(header.numEntries + 1);
-    while (numRequiredEntries >
-           pSlots->getNumElements(TransactionType::WRITE) * getSlotCapacity<T>()) {
-        this->splitSlot(header);
-    }
+    reserve(1);
     auto hashValue = HashIndexUtils::hash(key);
     auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
     auto iter = getSlotIterator(HashIndexUtils::getPrimarySlotIdForHash(header, hashValue),
@@ -363,30 +360,48 @@ inline void HashIndex<ku_string_t>::insert(std::string_view key, SlotEntry<ku_st
 }
 
 template<typename T>
-void HashIndex<T>::splitSlot(HashIndexHeader& header) {
-    appendPSlot();
-    rehashSlots(header);
-    header.incrementNextSplitSlotId();
-}
+void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit) {
+    auto originalSlotIterator = pSlots->iter_mut();
+    auto newSlotIterator = pSlots->iter_mut();
+    auto overflowSlotIterator = oSlots->iter_mut();
+    // The overflow slot iterators will hang if they access the same page
+    // So instead buffer new overflow slots here and append them at the end
+    std::vector<Slot<T>> newOverflowSlots;
 
-template<typename T>
-void HashIndex<T>::rehashSlots(HashIndexHeader& header) {
-    auto slotsToSplit = getChainedSlots(header.nextSplitSlotId);
-    for (auto& [slotInfo, slot] : slotsToSplit) {
-        auto slotHeader = slot.header;
-        slot.header.reset();
-        updateSlot(slotInfo, slot);
-        for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
-            if (!slotHeader.isEntryValid(entryPos)) {
-                continue; // Skip invalid entries.
+    for (slot_id_t i = 0; i < numSlotsToSplit; i++) {
+        auto* newSlot = &*newSlotIterator.pushBack(Slot<T>());
+        entry_pos_t newEntryPos = 0;
+        Slot<T>* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
+        do {
+            for (entry_pos_t originalEntryPos = 0; originalEntryPos < getSlotCapacity<T>();
+                 originalEntryPos++) {
+                if (!originalSlot->header.isEntryValid(originalEntryPos)) {
+                    continue; // Skip invalid entries.
+                }
+                if (newEntryPos >= getSlotCapacity<T>()) {
+                    newOverflowSlots.emplace_back();
+                    newSlot = &newOverflowSlots.back();
+                    newEntryPos = 0;
+                }
+                // Copy entry from old slot to new slot
+                const auto& key = originalSlot->entries[originalEntryPos].key;
+                hash_t hash = this->hashStored(TransactionType::WRITE, key);
+                auto newSlotId = hash & header.higherLevelHashMask;
+                if (newSlotId != header.nextSplitSlotId) {
+                    KU_ASSERT(newSlotId == newSlotIterator.idx());
+                    copyAndUpdateSlotHeader<const T&, true>(*newSlot, newEntryPos,
+                        originalSlot->entries[originalEntryPos].key, UINT32_MAX,
+                        originalSlot->header.fingerprints[originalEntryPos]);
+                    originalSlot->header.setEntryInvalid(originalEntryPos);
+                    newEntryPos++;
+                }
             }
-            const auto& key = slot.entries[entryPos].key;
-            hash_t hash = this->hashStored(TransactionType::WRITE, key);
-            auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
-            auto newSlotId = hash & header.higherLevelHashMask;
-            KU_ASSERT(newSlotId < pSlots->getNumElements(TransactionType::WRITE));
-            copyEntryToSlot(newSlotId, key, fingerprint);
-        }
+        } while (originalSlot->header.nextOvfSlotId != 0 &&
+                 (originalSlot = &*overflowSlotIterator.seek(originalSlot->header.nextOvfSlotId)));
+        header.incrementNextSplitSlotId();
+    }
+    for (auto&& slot : newOverflowSlots) {
+        overflowSlotIterator.pushBack(std::move(slot));
     }
 }
 
@@ -422,6 +437,12 @@ void HashIndex<T>::reserve(uint64_t newEntries) {
     auto numRequiredSlots =
         std::max((numRequiredEntries + getSlotCapacity<T>() - 1) / getSlotCapacity<T>(),
             static_cast<slot_id_t>(1ul << this->indexHeaderForWriteTrx->currentLevel));
+    // Always start with at least one page worth of slots.
+    // This guarantees that when splitting the source and destination slot are never on the same
+    // page
+    // Which allows safe use of multiple disk array iterators.
+    numRequiredSlots = std::max(numRequiredSlots,
+        BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
     // If there are no entries, we can just re-size the number of primary slots and re-calculate the
     // levels
     if (this->indexHeaderForWriteTrx->numEntries == 0) {
@@ -437,16 +458,8 @@ void HashIndex<T>::reserve(uint64_t newEntries) {
                 numRequiredSlots - numSlotsOfCurrentLevel;
         };
     } else {
-        // Otherwise, split and re-hash until there are enough primary slots
-        // TODO(bmwinger): resize pSlots first, update the levels and then rehash from the original
-        // nextSplitSlotId to the new nextSplitSlotId using the final slot function to avoid
-        // re-hashing a slot multiple times
-        for (auto slots = pSlots->getNumElements(TransactionType::WRITE); slots < numRequiredSlots;
-             slots++) {
-            // TODO: Use diskarray iterator to avoid updating the same page repeatedly
-            // appendPSlot/pushBack
-            splitSlot(*this->indexHeaderForWriteTrx);
-        }
+        splitSlots(*this->indexHeaderForWriteTrx,
+            numRequiredSlots - pSlots->getNumElements(TransactionType::WRITE));
     }
 }
 

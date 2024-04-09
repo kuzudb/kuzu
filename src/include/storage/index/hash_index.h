@@ -116,8 +116,7 @@ private:
 
     inline uint64_t appendOverflowSlot(Slot<T>&& newSlot) { return oSlots->pushBack(newSlot); }
 
-    inline void splitSlot(HashIndexHeader& header);
-    void rehashSlots(HashIndexHeader& header);
+    void splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit);
 
     // Resizes the local storage to support the given number of new entries
     inline void bulkReserve(uint64_t /*newEntries*/) override {
