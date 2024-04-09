@@ -15,8 +15,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "AGGREGATE";
     case LogicalOperatorType::ALTER:
         return "ALTER";
-    case LogicalOperatorType::COMMENT_ON:
-        return "COMMENT_ON";
     case LogicalOperatorType::COPY_FROM:
         return "COPY_FROM";
     case LogicalOperatorType::COPY_TO:

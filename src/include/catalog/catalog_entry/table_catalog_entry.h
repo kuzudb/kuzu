@@ -19,16 +19,14 @@ public:
     TableCatalogEntry(CatalogEntryType catalogType, std::string name, common::table_id_t tableID)
         : CatalogEntry{catalogType, std::move(name)}, tableID{tableID}, nextPID{0} {}
     TableCatalogEntry(const TableCatalogEntry& other)
-        : CatalogEntry{other}, tableID{other.tableID}, comment{other.comment},
-          nextPID{other.nextPID}, properties{copyVector(other.properties)} {}
+        : CatalogEntry{other}, tableID{other.tableID}, nextPID{other.nextPID},
+          properties{copyVector(other.properties)} {}
     TableCatalogEntry& operator=(const TableCatalogEntry&) = delete;
 
     //===--------------------------------------------------------------------===//
     // getter & setter
     //===--------------------------------------------------------------------===//
     common::table_id_t getTableID() const { return tableID; }
-    std::string getComment() const { return comment; }
-    void setComment(std::string newComment) { comment = std::move(newComment); }
     virtual bool isParent(common::table_id_t /*tableID*/) { return false; };
     // TODO(Guodong/Ziyi): This function should be removed. Instead we should use CatalogEntryType.
     virtual common::TableType getTableType() const = 0;
@@ -57,7 +55,6 @@ public:
 
 protected:
     common::table_id_t tableID;
-    std::string comment;
     common::property_id_t nextPID;
     std::vector<Property> properties;
 };

@@ -122,6 +122,12 @@ void WAL::logAddPropertyRecord(table_id_t tableID, property_id_t propertyID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logSetCommentRecord(std::string catalogEntryName, std::string comment, common::CommentType commentType) {
+    lock_t lck{mtx};
+    SetCommentRecord walRecord(catalogEntryName, comment, commentType);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::clearWAL() {
     bufferManager.removeFilePagesFromFrames(*shadowingFH);
     shadowingFH->resetToZeroPagesAndPageCapacity();

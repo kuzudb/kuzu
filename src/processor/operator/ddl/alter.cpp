@@ -40,15 +40,30 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
             relsStats->removeMetadataDAHInfo(info.tableID, columnID);
         }
     } break;
-    default: {
+    case common::AlterType::RENAME_TABLE:
+    case common::AlterType::RENAME_PROPERTY:
+    case common::AlterType::SET_COMMENT: {
         context->clientContext->getCatalog()->alterTableSchema(info);
-        // DO NOTHING.
+    } break;
+    default: {
+        KU_UNREACHABLE;
     }
     }
 }
 
 std::string Alter::getOutputMsg() {
-    return common::stringFormat("Table {} altered.", info.tableName);
+    if (info.alterType != common::AlterType::SET_COMMENT) {
+        return common::stringFormat("Table {} altered.", info.tableName);
+    } else {
+        auto setCommentInfo = common::ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
+            const binder::BoundExtraSetCommentInfo&>(*info.extraInfo);
+        switch (setCommentInfo.commentType) {
+        case common::CommentType::TABLE_ENTRY:
+            return common::stringFormat("Table {} comment updated.", info.tableName);
+        case common::CommentType::SCALAR_MACRO_ENTRY:
+            return common::stringFormat("Macro {} comment updated.", info.tableName);
+        }
+    }
 }
 
 } // namespace processor

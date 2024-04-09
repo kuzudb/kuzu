@@ -9,13 +9,16 @@ namespace catalog {
 void CatalogEntry::serialize(common::Serializer& serializer) const {
     serializer.write(static_cast<uint8_t>(type));
     serializer.write(name);
+    serializer.write(comment);
 }
 
 std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& deserializer) {
     CatalogEntryType type;
     std::string name;
+    std::string comment;
     deserializer.deserializeValue(type);
     deserializer.deserializeValue(name);
+    deserializer.deserializeValue(comment);
     std::unique_ptr<CatalogEntry> entry;
     switch (type) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
@@ -32,6 +35,7 @@ std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& de
     }
     entry->type = type;
     entry->name = std::move(name);
+    entry->comment = std::move(comment);
     return entry;
 }
 

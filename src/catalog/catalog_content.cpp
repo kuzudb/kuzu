@@ -185,6 +185,28 @@ void CatalogContent::alterTable(const BoundAlterInfo& info) {
             ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(getTableCatalogEntry(info.tableID));
         tableEntry->dropProperty(dropPropInfo.propertyID);
     } break;
+    case AlterType::SET_COMMENT: {
+        std::string commentBefore = "";
+        auto setCommentInfo = common::ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
+            const binder::BoundExtraSetCommentInfo&>(*info.extraInfo);
+        auto comment = setCommentInfo.comment;
+        switch (setCommentInfo.commentType) {
+        case common::CommentType::TABLE_ENTRY: {
+            auto tableEntry = getTableCatalogEntry(info.tableID);
+            commentBefore = tableEntry->getComment();
+            tableEntry->setComment(comment);
+        } break;
+        case common::CommentType::SCALAR_MACRO_ENTRY: {
+            auto macroEntry = functions->getEntry(info.tableName);
+            commentBefore = macroEntry->getComment();
+            macroEntry->setComment(comment);
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
+        // set previous comment for rollback
+        setCommentInfo.comment = commentBefore;
+    } break;
     default: {
         KU_UNREACHABLE;
     }

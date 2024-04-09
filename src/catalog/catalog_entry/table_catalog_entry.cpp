@@ -65,7 +65,6 @@ void TableCatalogEntry::serialize(common::Serializer& serializer) const {
     CatalogEntry::serialize(serializer);
     serializer.write(tableID);
     serializer.serializeVector(properties);
-    serializer.write(comment);
     serializer.write(nextPID);
 }
 
@@ -73,11 +72,9 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(
     common::Deserializer& deserializer, CatalogEntryType type) {
     common::table_id_t tableID;
     std::vector<Property> properties;
-    std::string comment;
     common::property_id_t nextPID;
     deserializer.deserializeValue(tableID);
     deserializer.deserializeVector(properties);
-    deserializer.deserializeValue(comment);
     deserializer.deserializeValue(nextPID);
     std::unique_ptr<TableCatalogEntry> result;
     switch (type) {
@@ -98,7 +95,6 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(
     }
     result->tableID = tableID;
     result->properties = std::move(properties);
-    result->comment = std::move(comment);
     result->nextPID = nextPID;
     return result;
 }

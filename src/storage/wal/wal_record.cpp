@@ -47,6 +47,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(common::Deserializer& deserial
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
     } break;
+    case WALRecordType::SET_COMMENT_RECORD: {
+        walRecord = SetCommentRecord::deserialize(deserializer);
+    } break;
     default: {
         KU_UNREACHABLE;
     }
@@ -176,6 +179,22 @@ std::unique_ptr<AddPropertyRecord> AddPropertyRecord::deserialize(
     auto retVal = std::make_unique<AddPropertyRecord>();
     deserializer.deserializeValue(retVal->tableID);
     deserializer.deserializeValue(retVal->propertyID);
+    return retVal;
+}
+
+void SetCommentRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(catalogEntryName);
+    serializer.write(comment);
+    serializer.write(commentType);
+}
+
+std::unique_ptr<SetCommentRecord> SetCommentRecord::deserialize(
+    common::Deserializer& deserializer) {
+    auto retVal = std::make_unique<SetCommentRecord>();
+    deserializer.deserializeValue(retVal->catalogEntryName);
+    deserializer.deserializeValue(retVal->comment);
+    deserializer.deserializeValue(retVal->commentType);
     return retVal;
 }
 

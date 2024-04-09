@@ -107,6 +107,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
     case WALRecordType::ADD_PROPERTY_RECORD: {
         replayAddPropertyRecord(walRecord);
     } break;
+    case WALRecordType::SET_COMMENT_RECORD: {
+        replaySetCommentRecord(walRecord);
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -336,6 +339,25 @@ void WALReplayer::replayAddPropertyRecord(const WALRecord& walRecord) {
     }
 }
 
+void WALReplayer::replaySetCommentRecord(const WALRecord& walRecord) {
+    auto& setCommentRecord = ku_dynamic_cast<const WALRecord&, const SetCommentRecord&>(walRecord);
+    if (!isCheckpoint) {
+        auto catalogEntryName = setCommentRecord.catalogEntryName;
+        auto comment = setCommentRecord.comment;
+        auto catalogType = setCommentRecord.commentType;
+        switch (catalogType) {
+        case common::CommentType::TABLE_ENTRY: {
+            auto tableID = catalog->getTableID(&DUMMY_WRITE_TRANSACTION, catalogEntryName);
+            auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_WRITE_TRANSACTION, tableID);
+            tableEntry->setComment(comment);
+        } break;
+        case common::CommentType::SCALAR_MACRO_ENTRY:
+            auto macroEntry = catalog->getFunctionEntry(&DUMMY_WRITE_TRANSACTION, catalogEntryName);
+            macroEntry->setComment(comment);
+            break;
+        }
+    }
+}
 void WALReplayer::truncateFileIfInsertion(BMFileHandle* fileHandle,
     const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord) {
     if (pageInsertOrUpdateRecord.isInsert) {

@@ -302,7 +302,6 @@ public:
     KU_CopyTOContext *kU_CopyTO();
     KU_StandaloneCallContext *kU_StandaloneCall();
     KU_CreateMacroContext *kU_CreateMacro();
-    KU_CommentOnContext *kU_CommentOn();
     KU_TransactionContext *kU_Transaction();
     KU_ExtensionContext *kU_Extension();
     KU_ExportDatabaseContext *kU_ExportDatabase();
@@ -483,10 +482,11 @@ public:
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     antlr4::tree::TerminalNode *ON();
-    antlr4::tree::TerminalNode *TABLE();
     OC_SchemaNameContext *oC_SchemaName();
     antlr4::tree::TerminalNode *IS();
     antlr4::tree::TerminalNode *StringLiteral();
+    antlr4::tree::TerminalNode *TABLE();
+    antlr4::tree::TerminalNode *MACRO();
 
    
   };
@@ -595,6 +595,7 @@ public:
     KU_CreateRdfGraphContext *kU_CreateRdfGraph();
     KU_DropTableContext *kU_DropTable();
     KU_AlterTableContext *kU_AlterTable();
+    KU_CommentOnContext *kU_CommentOn();
 
    
   };

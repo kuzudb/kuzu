@@ -174,6 +174,12 @@ void Binder::validateTableExist(const std::string& tableName) {
     }
 }
 
+void Binder::validateMacroExist(const std::string& macroName) {
+    if (!clientContext->getCatalog()->containsMacro(clientContext->getTx(), macroName)) {
+        throw BinderException("Macro " + macroName + " does not exist.");
+    }
+}
+
 std::string Binder::getUniqueExpressionName(const std::string& name) {
     return "_" + std::to_string(lastExpressionId++) + "_" + name;
 }

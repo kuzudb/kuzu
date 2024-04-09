@@ -53,7 +53,8 @@ public:
     void logAddPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID);
 
     void logCopyTableRecord(common::table_id_t tableID);
-
+    void logSetCommentRecord(std::string catalogEntryName, std::string comment,
+        common::CommentType commentType);
     // Removes the contents of WAL file.
     void clearWAL();
 

@@ -198,10 +198,10 @@ void Catalog::alterTableSchema(const BoundAlterInfo& info) {
 }
 
 void Catalog::logAlterTableToWAL(const BoundAlterInfo& info) {
-    auto tableSchema = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
-        readWriteVersion->getTableCatalogEntry(info.tableID));
     switch (info.alterType) {
     case AlterType::ADD_PROPERTY: {
+        auto tableSchema = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
+            readWriteVersion->getTableCatalogEntry(info.tableID));
         auto& addPropInfo =
             ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraAddPropertyInfo&>(
                 *info.extraInfo);
@@ -213,6 +213,12 @@ void Catalog::logAlterTableToWAL(const BoundAlterInfo& info) {
             ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraDropPropertyInfo&>(
                 *info.extraInfo);
         wal->logDropPropertyRecord(info.tableID, dropPropInfo.propertyID);
+    } break;
+    case AlterType::SET_COMMENT: {
+        auto setCommentInfo = common::ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
+            const binder::BoundExtraSetCommentInfo&>(*info.extraInfo);
+        wal->logSetCommentRecord(info.tableName, setCommentInfo.comment,
+            setCommentInfo.commentType);
     } break;
     default: {
         // DO NOTHING.
@@ -264,13 +270,6 @@ std::vector<std::string> Catalog::getMacroNames(Transaction* tx) const {
         }
     }
     return macroNames;
-}
-
-void Catalog::setTableComment(table_id_t tableID, const std::string& comment) {
-    KU_ASSERT(readWriteVersion != nullptr);
-    setToUpdated();
-    auto tableEntry = readWriteVersion->getTableCatalogEntry(tableID);
-    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)->setComment(comment);
 }
 
 CatalogContent* Catalog::getVersion(Transaction* tx) const {

@@ -20,8 +20,10 @@ std::unique_ptr<Statement> Transformer::transformDDL(CypherParser::KU_DDLContext
         return transformCreateRdfGraphClause(*ctx.kU_CreateRdfGraph());
     } else if (ctx.kU_DropTable()) {
         return transformDropTable(*ctx.kU_DropTable());
-    } else {
+    } else if (ctx.kU_AlterTable()) {
         return transformAlterTable(*ctx.kU_AlterTable());
+    } else {
+        return transformCommentOn(*ctx.kU_CommentOn());
     }
 }
 
@@ -154,6 +156,16 @@ std::unique_ptr<Statement> Transformer::transformRenameProperty(
         *ctx.kU_AlterOptions()->kU_RenameProperty()->oC_PropertyKeyName()[1]);
     auto extraInfo = std::make_unique<ExtraRenamePropertyInfo>(propertyName, newName);
     auto info = AlterInfo(AlterType::RENAME_PROPERTY, tableName, std::move(extraInfo));
+    return std::make_unique<Alter>(std::move(info));
+}
+
+std::unique_ptr<Statement> Transformer::transformCommentOn(CypherParser::KU_CommentOnContext& ctx) {
+    auto commentType =
+        ctx.TABLE() ? common::CommentType::TABLE_ENTRY : common::CommentType::SCALAR_MACRO_ENTRY;
+    auto catalogEntryName = transformSchemaName(*ctx.oC_SchemaName());
+    auto comment = transformStringLiteral(*ctx.StringLiteral());
+    auto extraInfo = std::make_unique<ExtraSetCommentInfo>(comment, commentType);
+    auto info = AlterInfo(AlterType::SET_COMMENT, catalogEntryName, std::move(extraInfo));
     return std::make_unique<Alter>(std::move(info));
 }
 

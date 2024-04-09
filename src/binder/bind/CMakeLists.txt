@@ -5,7 +5,6 @@ add_library(
         kuzu_binder_bind
         OBJECT
         bind_attach_database.cpp
-        bind_comment_on.cpp
         bind_copy.cpp
         bind_create_macro.cpp
         bind_ddl.cpp

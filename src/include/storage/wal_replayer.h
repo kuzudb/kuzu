@@ -34,6 +34,7 @@ private:
     void replayDropTableRecord(const WALRecord& walRecord);
     void replayDropPropertyRecord(const WALRecord& walRecord);
     void replayAddPropertyRecord(const WALRecord& walRecord);
+    void replaySetCommentRecord(const WALRecord& walRecord);
 
     void checkpointOrRollbackVersionedFileHandleAndBufferManager(const WALRecord& walRecord,
         const DBFileID& dbFileID);

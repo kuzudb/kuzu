@@ -37,3 +37,21 @@ person|NODE|A test comment
 movies|NODE|
 studyAt|REL|
 meets|REL|
+
+-CASE CommentMacro
+-STATEMENT BEGIN TRANSACTION
+-STATEMENT create macro addWithDefault(a,b:=3) as a + b;
+---- ok
+-STATEMENT COMMENT ON MACRO addWithDefault is 'good macro'
+---- 1
+Macro addWithDefault comment updated.
+-STATEMENT COMMIT
+-STATEMENT CALL show_macros() RETURN *
+---- 1
+ADDWITHDEFAULT|good macro
+
+-CASE CommentMacroError
+-STATEMENT BEGIN TRANSACTION
+-STATEMENT COMMENT ON MACRO addWithDefault is 'good macro'
+---- error
+Binder exception: Macro addWithDefault does not exist.

@@ -42,8 +42,6 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformStandaloneCall(*ctx.kU_StandaloneCall());
     } else if (ctx.kU_CreateMacro()) {
         return transformCreateMacro(*ctx.kU_CreateMacro());
-    } else if (ctx.kU_CommentOn()) {
-        return transformCommentOn(*ctx.kU_CommentOn());
     } else if (ctx.kU_Transaction()) {
         return transformTransaction(*ctx.kU_Transaction());
     } else if (ctx.kU_Extension()) {

@@ -4,6 +4,7 @@ add_library(kuzu_table_call
         db_version.cpp
         show_connection.cpp
         show_tables.cpp
+        show_macros.cpp
         storage_info.cpp
         table_info.cpp)
 

@@ -253,6 +253,9 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
 
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
+    if (alter.getInfo()->type == AlterType::SET_COMMENT) {
+        return bindCommentOn(statement);
+    }
     auto catalog = clientContext->getCatalog();
     auto tableID = catalog->getTableID(clientContext->getTx(), alter.getInfo()->tableName);
     for (auto& schema : catalog->getRdfGraphEntries(clientContext->getTx())) {
@@ -279,6 +282,26 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
         KU_UNREACHABLE;
     }
     }
+}
+
+std::unique_ptr<BoundStatement> Binder::bindCommentOn(const parser::Statement& statement) {
+    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
+    auto info = alter.getInfo();
+    auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraSetCommentInfo*>(info->extraInfo.get());
+    auto catalogEntryName = info->tableName;
+    auto comment = extraInfo->comment;
+    auto commentType = extraInfo->commentType;
+    auto tableID = common::INVALID_TABLE_ID;
+    if (commentType == common::CommentType::TABLE_ENTRY) {
+        validateTableExist(catalogEntryName);
+        tableID = clientContext->getCatalog()->getTableID(clientContext->getTx(), catalogEntryName);
+    } else {
+        validateMacroExist(catalogEntryName);
+    }
+    auto boundExtraInfo = std::make_unique<BoundExtraSetCommentInfo>(comment, commentType);
+    auto boundInfo = BoundAlterInfo(common::AlterType::SET_COMMENT, catalogEntryName, tableID,
+        std::move(boundExtraInfo));
+    return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {

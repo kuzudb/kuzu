@@ -54,8 +54,6 @@ public:
     void dropTableSchema(common::table_id_t tableID);
     void alterTableSchema(const binder::BoundAlterInfo& info);
 
-    void setTableComment(common::table_id_t tableID, const std::string& comment);
-
     // ----------------------------- Functions ----------------------------
     void addFunction(std::string name, function::function_set functionSet);
     void addBuiltInFunction(std::string name, function::function_set functionSet);

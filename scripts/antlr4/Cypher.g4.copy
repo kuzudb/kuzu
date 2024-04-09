@@ -27,7 +27,6 @@ oC_Statement
         | kU_CopyTO
         | kU_StandaloneCall
         | kU_CreateMacro
-        | kU_CommentOn
         | kU_Transaction
         | kU_Extension
         | kU_ExportDatabase
@@ -76,7 +75,7 @@ kU_StandaloneCall
 CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 kU_CommentOn
-    : COMMENT_ SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
+    : COMMENT_ SP ON SP (TABLE | MACRO) SP oC_SchemaName SP IS SP StringLiteral ;
 
 COMMENT_ : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
 
@@ -123,6 +122,7 @@ kU_DDL
         | kU_CreateRdfGraph
         | kU_DropTable
         | kU_AlterTable
+        | kU_CommentOn
         ;
 
 kU_CreateNodeTable

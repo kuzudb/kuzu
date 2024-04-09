@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/enums/alter_type.h"
 #include "common/enums/table_type.h"
 #include "common/types/internal_id_t.h"
 #include "function/hash/hash_functions.h"
@@ -57,6 +58,7 @@ enum class WALRecordType : uint8_t {
     DROP_TABLE_RECORD = 20,
     DROP_PROPERTY_RECORD = 21,
     ADD_PROPERTY_RECORD = 22,
+    SET_COMMENT_RECORD = 23,
 };
 
 struct WALRecord {
@@ -201,6 +203,23 @@ struct AddPropertyRecord final : public WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<AddPropertyRecord> deserialize(common::Deserializer& deserializer);
+};
+
+struct SetCommentRecord final : public WALRecord {
+    std::string catalogEntryName;
+    std::string comment;
+    common::CommentType commentType;
+
+    SetCommentRecord() = default;
+
+    SetCommentRecord(std::string catalogEntryName, std::string comment,
+        common::CommentType commentType)
+        : WALRecord{WALRecordType::SET_COMMENT_RECORD},
+          catalogEntryName{std::move(catalogEntryName)}, comment{std::move(comment)},
+          commentType{commentType} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<SetCommentRecord> deserialize(common::Deserializer& deserializer);
 };
 
 } // namespace storage

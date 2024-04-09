@@ -16,6 +16,8 @@ public:
     //===--------------------------------------------------------------------===//
     CatalogEntry() = default;
     CatalogEntry(CatalogEntryType type, std::string name) : type{type}, name{std::move(name)} {}
+    CatalogEntry(const CatalogEntry& other)
+        : type{other.type}, name{std::move(other.name)}, comment{std::move(other.comment)} {}
     virtual ~CatalogEntry() = default;
 
     //===--------------------------------------------------------------------===//
@@ -23,7 +25,9 @@ public:
     //===--------------------------------------------------------------------===//
     CatalogEntryType getType() const { return type; }
     std::string getName() const { return name; }
+    std::string getComment() const { return comment; }
     void rename(std::string newName) { name = std::move(newName); }
+    void setComment(std::string newComment) { comment = std::move(newComment); }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
@@ -36,6 +40,7 @@ public:
 private:
     CatalogEntryType type;
     std::string name;
+    std::string comment;
 };
 
 } // namespace catalog

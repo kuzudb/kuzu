@@ -30,6 +30,20 @@ private:
           extraInfo{other.extraInfo->copy()} {}
 };
 
+struct BoundExtraSetCommentInfo : public BoundExtraAlterInfo {
+    std::string comment;
+    common::CommentType commentType;
+
+    explicit BoundExtraSetCommentInfo(std::string comment, common::CommentType commentType)
+        : comment(std::move(comment)), commentType(commentType) {}
+    BoundExtraSetCommentInfo(const BoundExtraSetCommentInfo& other)
+        : comment(std::move(other.comment)), commentType(other.commentType) {}
+
+    inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+        return std::make_unique<BoundExtraSetCommentInfo>(*this);
+    }
+};
+
 struct BoundExtraRenameTableInfo : public BoundExtraAlterInfo {
     std::string newName;
 

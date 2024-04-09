@@ -253,6 +253,7 @@ private:
 
     void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
+    void validateMacroExist(const std::string& macroName);
 
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);

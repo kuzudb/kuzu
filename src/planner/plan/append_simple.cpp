@@ -1,5 +1,4 @@
 #include "binder/bound_attach_database.h"
-#include "binder/bound_comment_on.h"
 #include "binder/bound_create_macro.h"
 #include "binder/bound_detach_database.h"
 #include "binder/bound_explain.h"
@@ -14,7 +13,6 @@
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_drop_table.h"
 #include "planner/operator/logical_attach_database.h"
-#include "planner/operator/logical_comment_on.h"
 #include "planner/operator/logical_create_macro.h"
 #include "planner/operator/logical_detach_database.h"
 #include "planner/operator/logical_explain.h"
@@ -57,14 +55,6 @@ void Planner::appendStandaloneCall(const BoundStatement& statement, LogicalPlan&
         ku_dynamic_cast<const BoundStatement&, const BoundStandaloneCall&>(statement);
     auto op = make_shared<LogicalStandaloneCall>(standaloneCallClause.getOption(),
         standaloneCallClause.getOptionValue());
-    plan.setLastOperator(std::move(op));
-}
-
-void Planner::appendCommentOn(const BoundStatement& statement, LogicalPlan& plan) {
-    auto& commentOnClause =
-        ku_dynamic_cast<const BoundStatement&, const BoundCommentOn&>(statement);
-    auto op = make_shared<LogicalCommentOn>(statement.getStatementResult()->getSingleColumnExpr(),
-        commentOnClause.getTableID(), commentOnClause.getTableName(), commentOnClause.getComment());
     plan.setLastOperator(std::move(op));
 }
 
