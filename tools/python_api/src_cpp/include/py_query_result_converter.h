@@ -3,21 +3,24 @@
 #include "main/kuzu.h"
 #include "pybind_include.h"
 
+using kuzu::common::LogicalType;
+using kuzu::common::Value;
+
 struct NPArrayWrapper {
 
 public:
-    NPArrayWrapper(const kuzu::common::LogicalType& type, uint64_t numFlatTuple);
+    NPArrayWrapper(const LogicalType& type, uint64_t numFlatTuple);
 
-    void appendElement(kuzu::common::Value* value);
+    void appendElement(Value* value);
 
 private:
-    py::dtype convertToArrayType(const kuzu::common::LogicalType& type);
+    py::dtype convertToArrayType(const LogicalType& type);
 
 public:
     py::array data;
     uint8_t* dataBuffer;
     py::array mask;
-    kuzu::common::LogicalType type;
+    LogicalType type;
     uint64_t numElements;
 };
 

@@ -220,9 +220,9 @@ std::unique_ptr<ArrowSchema> ArrowConverter::toArrowSchema(
 
 void ArrowConverter::toArrowArray(main::QueryResult& queryResult, ArrowArray* outArray,
     std::int64_t chunkSize) {
-    common::logical_types_t types;
+    std::vector<LogicalType> types;
     for (auto type : queryResult.getColumnDataTypes()) {
-        types.push_back(std::make_unique<LogicalType>(type));
+        types.push_back(type);
     }
     auto rowBatch = make_unique<ArrowRowBatch>(std::move(types), chunkSize);
     *outArray = rowBatch->append(queryResult, chunkSize);

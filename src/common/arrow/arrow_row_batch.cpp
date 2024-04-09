@@ -12,12 +12,12 @@
 namespace kuzu {
 namespace common {
 
-ArrowRowBatch::ArrowRowBatch(common::logical_types_t types, std::int64_t capacity)
+ArrowRowBatch::ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity)
     : types{std::move(types)}, numTuples{0} {
     auto numVectors = this->types.size();
     vectors.resize(numVectors);
     for (auto i = 0u; i < numVectors; i++) {
-        vectors[i] = createVector(*this->types[i], capacity);
+        vectors[i] = createVector(this->types[i], capacity);
     }
 }
 
@@ -828,7 +828,7 @@ ArrowArray ArrowRowBatch::toArray() {
     result.dictionary = nullptr;
     rootHolder->childData = std::move(vectors);
     for (auto i = 0u; i < rootHolder->childData.size(); i++) {
-        rootHolder->childPointers[i] = convertVectorToArray(*rootHolder->childData[i], *types[i]);
+        rootHolder->childPointers[i] = convertVectorToArray(*rootHolder->childData[i], types[i]);
     }
     result.private_data = rootHolder.release();
     result.release = releaseArrowVector;
@@ -844,7 +844,7 @@ ArrowArray ArrowRowBatch::append(main::QueryResult& queryResult, std::int64_t ch
         }
         auto tuple = queryResult.getNext();
         for (auto i = 0u; i < numColumns; i++) {
-            appendValue(vectors[i].get(), *types[i], tuple->getValue(i));
+            appendValue(vectors[i].get(), types[i], tuple->getValue(i));
         }
         numTuplesInBatch++;
     }
