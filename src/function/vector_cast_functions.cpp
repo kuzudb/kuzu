@@ -104,18 +104,18 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
         reinterpret_cast<CastFunctionBindData*>(dataPtr));
 }
 
-bool CastFunction::hasImplicitCastList(const LogicalType& srcType, const LogicalType& dstType) {
-    return hasImplicitCast(*ListType::getChildType(&srcType), *ListType::getChildType(&dstType));
+static bool hasImplicitCastList(const LogicalType& srcType, const LogicalType& dstType) {
+    return CastFunction::hasImplicitCast(*ListType::getChildType(&srcType), *ListType::getChildType(&dstType));
 }
 
-bool CastFunction::hasImplicitCastArray(const LogicalType& srcType, const LogicalType& dstType) {
+static bool hasImplicitCastArray(const LogicalType& srcType, const LogicalType& dstType) {
     if (ArrayType::getNumElements(&srcType) != ArrayType::getNumElements(&dstType)) {
         return false;
     }
-    return hasImplicitCast(*ArrayType::getChildType(&srcType), *ArrayType::getChildType(&dstType));
+    return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType), *ArrayType::getChildType(&dstType));
 }
 
-bool CastFunction::hasImplicitCastStruct(const LogicalType& srcType, const LogicalType& dstType) {
+static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType& dstType) {
     auto srcFields = StructType::getFields(&srcType), dstFields = StructType::getFields(&dstType);
     if (srcFields.size() != dstFields.size()) {
         return false;
@@ -124,26 +124,26 @@ bool CastFunction::hasImplicitCastStruct(const LogicalType& srcType, const Logic
         if (srcFields[i]->getName() != dstFields[i]->getName()) {
             return false;
         }
-        if (!hasImplicitCast(*srcFields[i]->getType(), *dstFields[i]->getType())) {
+        if (!CastFunction::hasImplicitCast(*srcFields[i]->getType(), *dstFields[i]->getType())) {
             return false;
         }
     }
     return true;
 }
 
-bool CastFunction::hasImplicitCastUnion(const LogicalType& /*srcType*/,
+static bool hasImplicitCastUnion(const LogicalType& /*srcType*/,
     const LogicalType& /*dstType*/) {
     // todo: implement union casting function
     // currently, there seems to be no casting functionality between union types
     return false;
 }
 
-bool CastFunction::hasImplicitCastMap(const LogicalType& srcType, const LogicalType& dstType) {
+static bool hasImplicitCastMap(const LogicalType& srcType, const LogicalType& dstType) {
     auto srcKeyType = *MapType::getKeyType(&srcType);
     auto srcValueType = *MapType::getValueType(&srcType);
     auto dstKeyType = *MapType::getKeyType(&dstType);
     auto dstValueType = *MapType::getValueType(&dstType);
-    return hasImplicitCast(srcKeyType, dstKeyType) && hasImplicitCast(srcValueType, dstValueType);
+    return CastFunction::hasImplicitCast(srcKeyType, dstKeyType) && CastFunction::hasImplicitCast(srcValueType, dstValueType);
 }
 
 bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {

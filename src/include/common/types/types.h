@@ -603,16 +603,6 @@ public:
     static LogicalType getMaxLogicalType(const LogicalType& left, const LogicalType& right);
 
 private:
-    static bool tryCombineListTypes(const LogicalType& left, const LogicalType& right,
-        LogicalType& result);
-    static bool tryCombineArrayTypes(const LogicalType& left, const LogicalType& right,
-        LogicalType& result);
-    static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& right,
-        LogicalType& result);
-    static bool tryCombineMapTypes(const LogicalType& left, const LogicalType& right,
-        LogicalType& result);
-    static bool tryCombineUnionTypes(const LogicalType& left, const LogicalType& right,
-        LogicalType& result);
     static LogicalTypeID dataTypeIDFromString(const std::string& trimmedStr);
     static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
     static std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr);

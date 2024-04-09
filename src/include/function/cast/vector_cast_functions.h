@@ -19,18 +19,6 @@ struct CastFunction {
     template<typename EXECUTOR = UnaryFunctionExecutor>
     static std::unique_ptr<ScalarFunction> bindCastFunction(const std::string& functionName,
         common::LogicalTypeID sourceTypeID, common::LogicalTypeID targetTypeID);
-
-private:
-    static bool hasImplicitCastList(const common::LogicalType& srcType,
-        const common::LogicalType& dstType);
-    static bool hasImplicitCastArray(const common::LogicalType& srcType,
-        const common::LogicalType& dstType);
-    static bool hasImplicitCastStruct(const common::LogicalType& srcType,
-        const common::LogicalType& dstType);
-    static bool hasImplicitCastUnion(const common::LogicalType& srcType,
-        const common::LogicalType& dstType);
-    static bool hasImplicitCastMap(const common::LogicalType& srcType,
-        const common::LogicalType& dstType);
 };
 
 struct CastToDateFunction {

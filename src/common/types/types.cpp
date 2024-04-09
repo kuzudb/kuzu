@@ -1028,7 +1028,117 @@ std::unique_ptr<LogicalType> LogicalType::ARRAY(std::unique_ptr<LogicalType> chi
         std::make_unique<ArrayTypeInfo>(std::move(childType), numElements)));
 }
 
+// If we can combine the child types, then we can combine the list
+static bool tryCombineListTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    LogicalType childType;
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ListType::getChildType(&left),
+            *ListType::getChildType(&right), childType)) {
+        return false;
+    }
+    result = *LogicalType::LIST(childType);
+    return true;
+}
+
+static bool tryCombineArrayTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    if (ArrayType::getNumElements(&left) != ArrayType::getNumElements(&right)) {
+        return tryCombineListTypes(left, right, result);
+    }
+    LogicalType childType;
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ArrayType::getChildType(&left),
+            *ArrayType::getChildType(&right), childType)) {
+        return false;
+    }
+    result = *LogicalType::ARRAY(childType, ArrayType::getNumElements(&left));
+    return true;
+}
+
+// If we can match child labels and combine their types, then we can combine
+// the struct
+static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    auto leftFields = StructType::getFields(&left), rightFields = StructType::getFields(&right);
+    if (leftFields.size() != rightFields.size()) {
+        return false;
+    }
+    /*
+    auto comp = [](const StructField* const& a, const StructField* const& b) -> bool {
+        return a->getName() < b->getName();
+    };
+    std::sort(leftFields.begin(), leftFields.end(), comp);
+    std::sort(rightFields.begin(), rightFields.end(), comp);
+    // In general, kuzu seems to treat different element orderings as different types alltogether.
+    // This is different from the way some other DBMSs do it.
+    */
+    std::vector<StructField> newFields;
+    for (auto i = 0u; i < leftFields.size(); i++) {
+        if (leftFields[i]->getName() != rightFields[i]->getName()) {
+            return false;
+        }
+        LogicalType combinedType;
+        if (LogicalTypeUtils::tryGetMaxLogicalType(*leftFields[i]->getType(),
+                *rightFields[i]->getType(), combinedType)) {
+            newFields.push_back(
+                StructField(leftFields[i]->getName(), std::make_unique<LogicalType>(combinedType)));
+        } else {
+            return false;
+        }
+    }
+    result = *LogicalType::STRUCT(std::move(newFields));
+    return true;
+}
+
+// If we can combine the key and value, then we cna combine the map
+static bool tryCombineMapTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    auto leftKeyType = *MapType::getKeyType(&left);
+    auto leftValueType = *MapType::getValueType(&left);
+    auto rightKeyType = *MapType::getKeyType(&right);
+    auto rightValueType = *MapType::getValueType(&right);
+    LogicalType resultKeyType, resultValueType;
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(leftKeyType, rightKeyType, resultKeyType) ||
+        !LogicalTypeUtils::tryGetMaxLogicalType(leftValueType, rightValueType, resultValueType)) {
+        return false;
+    }
+    result = *LogicalType::MAP(std::make_unique<LogicalType>(resultKeyType),
+        std::make_unique<LogicalType>(resultValueType));
+    return true;
+}
+
+/*
+// If one of the unions labels is a subset of the other labels, and we can
+// combine corresponding labels, then we can combine the union
+static bool tryCombineUnionTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    auto leftFields = StructType::getFields(&left), rightFields = StructType::getFields(&right);
+    if (leftFields.size() > rightFields.size()) {
+        std::swap(leftFields, rightFields);
+    }
+    std::vector<StructField> newFields;
+    for (auto i = 1u, j = 1u; i < leftFields.size(); i++) {
+        while (j < rightFields.size() && leftFields[i]->getName() != rightFields[j]->getName()) {
+            j++;
+        }
+        if (j == rightFields.size()) {
+            return false;
+        }
+        LogicalType combinedType;
+        if (!LogicalTypeUtils::tryGetMaxLogicalType(*leftFields[i]->getType(),
+                *rightFields[j]->getType(), combinedType)) {
+            newFields.push_back(
+                StructField(leftFields[i]->getName(), std::make_unique<LogicalType>(combinedType)));
+        }
+    }
+    result = *LogicalType::UNION(std::move(newFields));
+    return true;
+}
+*/
+
+
 static LogicalTypeID joinToWiderType(const LogicalTypeID& left, const LogicalTypeID& right) {
+    KU_ASSERT(LogicalTypeUtils::isIntegral(left));
+    KU_ASSERT(LogicalTypeUtils::isIntegral(right));
     if (PhysicalTypeUtils::getFixedTypeSize(LogicalType::getPhysicalType(left)) >
         PhysicalTypeUtils::getFixedTypeSize(LogicalType::getPhysicalType(right))) {
         return left;
@@ -1139,14 +1249,24 @@ static uint32_t internalTypeOrder(const LogicalTypeID& type) {
     }
 }
 
+bool canAlwaysCast(const LogicalTypeID& typeID) {
+    switch(typeID) {
+    case LogicalTypeID::ANY:
+    case LogicalTypeID::STRING:
+    case LogicalTypeID::RDF_VARIANT:
+        return true;
+    default:
+        return false;
+    }
+}
+
 bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right,
     LogicalTypeID& result) {
-    if (left == right || (left == LogicalTypeID::ANY || left == LogicalTypeID::RDF_VARIANT ||
-                             left == LogicalTypeID::STRING)) {
+    if (left == right || canAlwaysCast(left)) {
         result = right;
         return true;
-    } else if (right == LogicalTypeID::ANY || right == LogicalTypeID::RDF_VARIANT ||
-               right == LogicalTypeID::STRING) {
+    }
+    if (canAlwaysCast(right)) {
         result = left;
         return true;
     }
@@ -1174,10 +1294,9 @@ bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const L
     if (leftPlacement > rightPlacement) {
         result = left;
         return true;
-    } else {
-        result = right;
-        return true;
     }
+    result = right;
+    return true;
 }
 
 bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
@@ -1209,16 +1328,15 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
             // return tryCombineUnionTypes(left, right, result);
         default:
             KU_UNREACHABLE;
-            // LCOV_EXCL_END
+        // LCOV_EXCL_END
         }
-    } else {
-        LogicalTypeID resultID;
-        if (!tryGetMaxLogicalTypeID(left.typeID, right.typeID, resultID)) {
-            return false;
-        }
-        result = LogicalType(resultID);
-        return true;
     }
+    LogicalTypeID resultID;
+    if (!tryGetMaxLogicalTypeID(left.typeID, right.typeID, resultID)) {
+        return false;
+    }
+    result = LogicalType(resultID);
+    return true;
 }
 
 LogicalTypeID LogicalTypeUtils::getMaxLogicalTypeID(const LogicalTypeID& left,
@@ -1239,113 +1357,5 @@ LogicalType LogicalTypeUtils::getMaxLogicalType(const LogicalType& left, const L
     }
     return result;
 }
-
-// if we can combine the child types, then we can combine the list
-bool LogicalTypeUtils::tryCombineListTypes(const LogicalType& left, const LogicalType& right,
-    LogicalType& result) {
-    LogicalType childType;
-    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ListType::getChildType(&left),
-            *ListType::getChildType(&right), childType)) {
-        return false;
-    }
-    result = *LogicalType::LIST(childType);
-    return true;
-}
-
-bool LogicalTypeUtils::tryCombineArrayTypes(const LogicalType& left, const LogicalType& right,
-    LogicalType& result) {
-    if (ArrayType::getNumElements(&left) != ArrayType::getNumElements(&right)) {
-        return tryCombineListTypes(left, right, result);
-    }
-    LogicalType childType;
-    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ArrayType::getChildType(&left),
-            *ArrayType::getChildType(&right), childType)) {
-        return false;
-    }
-    result = *LogicalType::ARRAY(childType, ArrayType::getNumElements(&left));
-    return true;
-}
-
-// if we can match child labels and combine their types, then we can combine
-// the struct
-bool LogicalTypeUtils::tryCombineStructTypes(const LogicalType& left, const LogicalType& right,
-    LogicalType& result) {
-    auto leftFields = StructType::getFields(&left), rightFields = StructType::getFields(&right);
-    if (leftFields.size() != rightFields.size()) {
-        return false;
-    }
-    /*
-    auto comp = [](const StructField* const& a, const StructField* const& b) -> bool {
-        return a->getName() < b->getName();
-    };
-    std::sort(leftFields.begin(), leftFields.end(), comp);
-    std::sort(rightFields.begin(), rightFields.end(), comp);
-    // in general, kuzu seems to treat different element orderings as different types alltogether.
-    // this is different from the way some other DBMSs do it.
-    */
-    std::vector<StructField> newFields;
-    for (auto i = 0u; i < leftFields.size(); i++) {
-        if (leftFields[i]->getName() != rightFields[i]->getName()) {
-            return false;
-        }
-        LogicalType combinedType;
-        if (LogicalTypeUtils::tryGetMaxLogicalType(*leftFields[i]->getType(),
-                *rightFields[i]->getType(), combinedType)) {
-            newFields.push_back(
-                StructField(leftFields[i]->getName(), std::make_unique<LogicalType>(combinedType)));
-        } else {
-            return false;
-        }
-    }
-    result = *LogicalType::STRUCT(std::move(newFields));
-    return true;
-}
-
-// if we can combine the key and value, then we cna combine the map
-bool LogicalTypeUtils::tryCombineMapTypes(const LogicalType& left, const LogicalType& right,
-    LogicalType& result) {
-    auto leftKeyType = *MapType::getKeyType(&left);
-    auto leftValueType = *MapType::getValueType(&left);
-    auto rightKeyType = *MapType::getKeyType(&right);
-    auto rightValueType = *MapType::getValueType(&right);
-    LogicalType resultKeyType, resultValueType;
-    if (!LogicalTypeUtils::tryGetMaxLogicalType(leftKeyType, rightKeyType, resultKeyType) ||
-        !LogicalTypeUtils::tryGetMaxLogicalType(leftValueType, rightValueType, resultValueType)) {
-        return false;
-    }
-    result = *LogicalType::MAP(std::make_unique<LogicalType>(resultKeyType),
-        std::make_unique<LogicalType>(resultValueType));
-    return true;
-}
-
-/*
-// if one of the unions labels is a subset of the other labels, and we can
-// combine corresponding labels, then we can combine the union
-bool LogicalTypeUtils::tryCombineUnionTypes(const LogicalType& left, const LogicalType& right,
-    LogicalType& result) {
-    auto leftFields = StructType::getFields(&left), rightFields = StructType::getFields(&right);
-    if (leftFields.size() > rightFields.size()) {
-        std::swap(leftFields, rightFields);
-    }
-    std::vector<StructField> newFields;
-    for (auto i = 1u, j = 1u; i < leftFields.size(); i++) {
-        while (j < rightFields.size() && leftFields[i]->getName() != rightFields[j]->getName()) {
-            j++;
-        }
-        if (j == rightFields.size()) {
-            return false;
-        }
-        LogicalType combinedType;
-        if (!LogicalTypeUtils::tryGetMaxLogicalType(*leftFields[i]->getType(),
-                *rightFields[j]->getType(), combinedType)) {
-            newFields.push_back(
-                StructField(leftFields[i]->getName(), std::make_unique<LogicalType>(combinedType)));
-        }
-    }
-    result = *LogicalType::UNION(std::move(newFields));
-    return true;
-}
-*/
-
 } // namespace common
 } // namespace kuzu

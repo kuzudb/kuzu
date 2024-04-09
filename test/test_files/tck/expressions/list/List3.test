@@ -33,7 +33,7 @@ False
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 ## Context: any graph
--STATEMENT RETURN [1, 2] = [null, 'foo'] AS res;
+-STATEMENT RETURN [1, 2] = [null, '2'] AS res;
 ## Outcome: the result should be, in any order:
 ---- 1
 False
