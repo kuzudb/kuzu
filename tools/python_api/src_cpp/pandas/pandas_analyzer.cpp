@@ -1,7 +1,7 @@
 #include "pandas/pandas_analyzer.h"
 
-#include "function/built_in_function_utils.h"
 #include "cached_import/py_cached_import.h"
+#include "function/built_in_function_utils.h"
 #include "py_conversion.h"
 
 namespace kuzu {
@@ -22,8 +22,8 @@ static bool upgradeType(common::LogicalType& left, const common::LogicalType& ri
                 common::LogicalTypeID::ANY))) {
         return true;
     }
-    auto leftToRightCost =
-        function::BuiltInFunctionsUtils::getCastCost(left.getLogicalTypeID(), right.getLogicalTypeID());
+    auto leftToRightCost = function::BuiltInFunctionsUtils::getCastCost(left.getLogicalTypeID(),
+        right.getLogicalTypeID());
     if (leftToRightCost != common::UNDEFINED_CAST_COST) {
         left = right;
     } else {

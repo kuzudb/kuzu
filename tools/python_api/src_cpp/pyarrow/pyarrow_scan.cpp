@@ -12,8 +12,8 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 
-static std::unique_ptr<function::TableFuncBindData> bindFunc(
-    main::ClientContext* /*context*/, TableFuncBindInput* input) {
+static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+    TableFuncBindInput* input) {
 
     py::gil_scoped_acquire acquire;
     py::object table(py::reinterpret_borrow<py::object>(
@@ -31,13 +31,13 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(
 
     py::list batches = table.attr("to_batches")(DEFAULT_VECTOR_CAPACITY);
     std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches;
-    for (auto& i: batches) {
+    for (auto& i : batches) {
         arrowArrayBatches.push_back(std::make_shared<ArrowArrayWrapper>());
         i.attr("_export_to_c")(reinterpret_cast<uint64_t>(arrowArrayBatches.back().get()));
     }
 
-    return std::make_unique<PyArrowTableScanFunctionData>(
-        std::move(returnTypes), std::move(schema), std::move(names), arrowArrayBatches, numRows);
+    return std::make_unique<PyArrowTableScanFunctionData>(std::move(returnTypes), std::move(schema),
+        std::move(names), arrowArrayBatches, numRows);
 }
 
 ArrowArrayWrapper* PyArrowTableScanSharedState::getNextChunk() {
@@ -55,8 +55,8 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     PyArrowTableScanFunctionData* bindData =
         dynamic_cast<PyArrowTableScanFunctionData*>(input.bindData);
 
-    return std::make_unique<PyArrowTableScanSharedState>(
-        bindData->numRows, bindData->arrowArrayBatches);
+    return std::make_unique<PyArrowTableScanSharedState>(bindData->numRows,
+        bindData->arrowArrayBatches);
 }
 
 static std::unique_ptr<function::TableFuncLocalState> initLocalState(
@@ -68,8 +68,8 @@ static std::unique_ptr<function::TableFuncLocalState> initLocalState(
     return std::make_unique<PyArrowTableScanLocalState>(pyArrowShared->getNextChunk());
 }
 
-static common::offset_t tableFunc(
-    function::TableFuncInput& input, function::TableFuncOutput& output) {
+static common::offset_t tableFunc(function::TableFuncInput& input,
+    function::TableFuncOutput& output) {
 
     auto arrowScanData = dynamic_cast<PyArrowTableScanFunctionData*>(input.bindData);
     auto arrowLocalState = dynamic_cast<PyArrowTableScanLocalState*>(input.localState);
@@ -90,23 +90,23 @@ double progressFunc(function::TableFuncSharedState* sharedState) {
     PyArrowTableScanSharedState* state =
         ku_dynamic_cast<TableFuncSharedState*, PyArrowTableScanSharedState*>(sharedState);
     if (state->chunks.size() == 0) {
-		return 0.0;
-	}
+        return 0.0;
+    }
     return static_cast<double>(state->currentChunk) / state->chunks.size();
-}   
+}
 
 function::function_set PyArrowTableScanFunction::getFunctionSet() {
 
     function_set functionSet;
     functionSet.push_back(
-        std::make_unique<TableFunction>(name, tableFunc, bindFunc,
-            initSharedState, initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER}));
+        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
+            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER}));
     return functionSet;
 }
 
 TableFunction PyArrowTableScanFunction::getFunction() {
-    return TableFunction(name, tableFunc, bindFunc, initSharedState,
-        initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+    return TableFunction(name, tableFunc, bindFunc, initSharedState, initLocalState, progressFunc,
+        std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
 }
 
 } // namespace kuzu

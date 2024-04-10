@@ -3,8 +3,8 @@
 namespace kuzu {
 
 PythonCachedImport::~PythonCachedImport() {
- 	py::gil_scoped_acquire acquire;
-	allObjects.clear();
+    py::gil_scoped_acquire acquire;
+    allObjects.clear();
 }
 
 py::handle PythonCachedImport::addToCache(py::object obj) {

@@ -20,8 +20,8 @@ public:
 
 private:
     void loadBenchmark(const std::string& benchmarkPath);
-    void logQueryInfo(
-        std::ofstream& log, uint32_t runNum, std::vector<std::string>& actualOutput) const;
+    void logQueryInfo(std::ofstream& log, uint32_t runNum,
+        std::vector<std::string>& actualOutput) const;
     void verify(std::vector<std::string>& actualOutput) const;
 
 public:

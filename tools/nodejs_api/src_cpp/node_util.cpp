@@ -303,8 +303,8 @@ Napi::Object Util::ConvertNodeIdToNapiObject(const nodeID_t& nodeId, Napi::Env e
     return napiObject;
 }
 
-Value Util::TransformNapiValue(
-    Napi::Value napiValue, LogicalType* expectedDataType, const std::string& key) {
+Value Util::TransformNapiValue(Napi::Value napiValue, LogicalType* expectedDataType,
+    const std::string& key) {
     auto logicalTypeId = expectedDataType->getLogicalTypeID();
     switch (logicalTypeId) {
     case LogicalTypeID::BOOL: {
@@ -461,8 +461,8 @@ Value Util::TransformNapiValue(
         auto microseconds = napiInterval * Interval::MICROS_PER_MSEC;
         auto intervalVal = interval_t(0, 0, microseconds);
         int64_t normalizedMonths, normalizedDays, normalizedMicros;
-        Interval::normalizeIntervalEntries(
-            intervalVal, normalizedMonths, normalizedDays, normalizedMicros);
+        Interval::normalizeIntervalEntries(intervalVal, normalizedMonths, normalizedDays,
+            normalizedMicros);
         auto normalizedInterval = interval_t(normalizedMonths, normalizedDays, normalizedMicros);
         return Value(normalizedInterval);
     }

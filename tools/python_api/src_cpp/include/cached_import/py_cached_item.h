@@ -13,7 +13,7 @@ public:
         : name(name), parent(parent), loaded(false) {}
     virtual ~PythonCachedItem() = default;
 
-    bool isLoaded() const {return loaded;}
+    bool isLoaded() const { return loaded; }
     py::handle operator()();
 
 private:

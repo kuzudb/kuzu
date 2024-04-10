@@ -2,8 +2,8 @@
 
 #include "numpy/numpy_type.h"
 #include "pandas_column.h"
-#include "pybind_include.h"
 #include "py_object_container.h"
+#include "pybind_include.h"
 
 namespace kuzu {
 
@@ -38,8 +38,7 @@ struct PandasColumnBindData {
 struct Pandas {
     static void bind(py::handle dfToBind,
         std::vector<std::unique_ptr<PandasColumnBindData>>& columnBindData,
-        std::vector<common::LogicalType>& returnTypes,
-        std::vector<std::string>& names);
+        std::vector<common::LogicalType>& returnTypes, std::vector<std::string>& names);
 };
 
 } // namespace kuzu
