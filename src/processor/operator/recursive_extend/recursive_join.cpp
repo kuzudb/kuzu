@@ -16,20 +16,36 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
     vectors->srcNodeIDVector = resultSet->getValueVector(dataInfo->srcNodePos).get();
     vectors->dstNodeIDVector = resultSet->getValueVector(dataInfo->dstNodePos).get();
     vectors->pathLengthVector = resultSet->getValueVector(dataInfo->pathLengthPos).get();
+    auto semantic = context->clientContext->getClientConfig()->recursivePatternSemantic;
+    path_semantic_check_t semanticCheck = nullptr;
     std::vector<std::unique_ptr<BaseFrontierScanner>> scanners;
     switch (queryRelType) {
     case QueryRelType::VARIABLE_LENGTH: {
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
+            switch (semantic) {
+            case PathSemantic::TRIAL: {
+                semanticCheck = PathScanner::trailSemanticCheck;
+            } break;
+            case PathSemantic::ACYCLIC: {
+                semanticCheck = PathScanner::acyclicSemanticCheck;
+            } break;
+            default:
+                semanticCheck = nullptr;
+            }
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
             bfsState = std::make_unique<VariableLengthState<true /* TRACK_PATH */>>(upperBound,
                 targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i,
-                    dataInfo->tableIDToName));
+                    dataInfo->tableIDToName, semanticCheck));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
+            if (semantic != PathSemantic::WALK) {
+                throw RuntimeException("Different path semantics for COUNT(*) optimization is not "
+                                       "implemented. Try WALK semantic.");
+            }
             bfsState = std::make_unique<VariableLengthState<false /* TRACK_PATH */>>(upperBound,
                 targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
@@ -42,6 +58,10 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
         }
     } break;
     case QueryRelType::SHORTEST: {
+        if (semantic != PathSemantic::WALK) {
+            throw RuntimeException("Different path semantics for shortest path is not implemented. "
+                                   "Try WALK semantic.");
+        }
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
@@ -49,7 +69,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
                 targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i,
-                    dataInfo->tableIDToName));
+                    dataInfo->tableIDToName, nullptr));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
@@ -65,6 +85,10 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
         }
     } break;
     case QueryRelType::ALL_SHORTEST: {
+        if (semantic != PathSemantic::WALK) {
+            throw RuntimeException("Different path semantics for all shortest path is not "
+                                   "implemented. Try WALK semantic.");
+        }
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
@@ -72,7 +96,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
                 targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i,
-                    dataInfo->tableIDToName));
+                    dataInfo->tableIDToName, nullptr));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {

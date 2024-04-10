@@ -14,7 +14,7 @@ namespace planner {
 Planner::Planner(main::ClientContext* clientContext) : clientContext{clientContext} {
     auto nStats = clientContext->getStorageManager()->getNodesStatisticsAndDeletedIDs();
     auto rStats = clientContext->getStorageManager()->getRelsStatistics();
-    cardinalityEstimator = CardinalityEstimator(nStats, rStats);
+    cardinalityEstimator = CardinalityEstimator(clientContext, nStats, rStats);
     context = JoinOrderEnumeratorContext();
 }
 
