@@ -174,7 +174,7 @@ void StringColumnChunk::finalize() {
 }
 
 template<>
-common::ku_string_t StringColumnChunk::getValue<common::ku_string_t>(offset_t ) const {
+common::ku_string_t StringColumnChunk::getValue<common::ku_string_t>(offset_t) const {
     KU_UNREACHABLE;
 }
 

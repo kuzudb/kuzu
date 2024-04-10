@@ -178,7 +178,8 @@ bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
     for (auto& [_, rowIdx] : updateInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localUpdateChunk =  ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(localUpdateChunks[chunkIdx]);
+        auto localUpdateChunk =
+            ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(localUpdateChunks[chunkIdx]);
         strLenToAdd += localUpdateChunk->getStringLength(offsetInLocalChunk);
     }
     offset_t maxOffset = 0u;
@@ -188,7 +189,8 @@ bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
         }
         auto [chunkIdx, offsetInLocalChunk] =
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localInsertChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(localInsertChunks[chunkIdx]);
+        auto localInsertChunk =
+            ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(localInsertChunks[chunkIdx]);
         strLenToAdd += localInsertChunk->getStringLength(offsetInLocalChunk);
     }
     auto numStrings = insertInfo.size() + updateInfo.size();
