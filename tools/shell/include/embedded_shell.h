@@ -12,8 +12,8 @@ namespace main {
 class EmbeddedShell {
 
 public:
-    EmbeddedShell(
-        const std::string& databasePath, const SystemConfig& systemConfig, const char* pathToHistory);
+    EmbeddedShell(const std::string& databasePath, const SystemConfig& systemConfig,
+        const char* pathToHistory);
 
     void run();
 

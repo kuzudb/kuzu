@@ -14,8 +14,8 @@ public:
     void registerBenchmarks(const std::string& path);
 
     void runAllBenchmarks();
-    static double computeAverageOfLastRuns(
-        const double* runTimes, const int& len, const int& lastRunsToAverage);
+    static double computeAverageOfLastRuns(const double* runTimes, const int& len,
+        const int& lastRunsToAverage);
 
 private:
     void registerBenchmark(const std::string& path);

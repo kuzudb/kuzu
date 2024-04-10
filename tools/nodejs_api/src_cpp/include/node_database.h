@@ -43,7 +43,9 @@ public:
         try {
             nodeDatabase->InitCppDatabase();
 
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
     }
 
     inline void OnOK() override { Callback().Call({Env().Null()}); }

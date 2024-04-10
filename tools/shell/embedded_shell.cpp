@@ -14,11 +14,10 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/task_system/progress_bar.h"
 #include "transaction/transaction.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
-
-#include "common/task_system/progress_bar.h"
 
 using namespace kuzu::common;
 using namespace kuzu::utf8proc;
@@ -81,8 +80,8 @@ const int defaultMaxRows = 20;
 static Connection* globalConnection;
 
 #ifndef _WIN32
-    struct termios orig_termios;
-    bool noEcho = false;
+struct termios orig_termios;
+bool noEcho = false;
 #endif
 
 void EmbeddedShell::updateTableNames() {
@@ -98,8 +97,8 @@ void EmbeddedShell::updateTableNames() {
     }
 }
 
-void addTableCompletion(
-    const std::string& buf, const std::string& tableName, linenoiseCompletions* lc) {
+void addTableCompletion(const std::string& buf, const std::string& tableName,
+    linenoiseCompletions* lc) {
     std::string prefix, suffix;
     auto prefixPos = buf.rfind(':') + 1;
     prefix = buf.substr(0, prefixPos);
@@ -205,12 +204,12 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
 #ifndef _WIN32
         if (token.find(' ') == std::string::npos) {
             for (const std::string& keyword : keywordList) {
-                if (regex_search(
-                        token, std::regex("^" + keyword + "$", std::regex_constants::icase)) ||
-                    regex_search(
-                        token, std::regex("^" + keyword + "\\(", std::regex_constants::icase)) ||
-                    regex_search(
-                        token, std::regex("\\(" + keyword + "$", std::regex_constants::icase))) {
+                if (regex_search(token,
+                        std::regex("^" + keyword + "$", std::regex_constants::icase)) ||
+                    regex_search(token,
+                        std::regex("^" + keyword + "\\(", std::regex_constants::icase)) ||
+                    regex_search(token,
+                        std::regex("\\(" + keyword + "$", std::regex_constants::icase))) {
                     token = regex_replace(token,
                         std::regex(std::string("(").append(keyword).append(")"),
                             std::regex_constants::icase),
@@ -240,15 +239,15 @@ uint64_t damerauLevenshteinDistance(const std::string& s1, const std::string& s2
     for (uint64_t i = 1; i <= m; i++) {
         for (uint64_t j = 1; j <= n; j++) {
             if (s1[i - 1] == s2[j - 1]) {
-				dp[i][j] = dp[i - 1][j - 1];
+                dp[i][j] = dp[i - 1][j - 1];
                 if (i > 1 && j > 1 && s1[i - 1] == s2[j - 2] && s1[i - 2] == s2[j - 1]) {
-					dp[i][j] = std::min(dp[i][j], dp[i - 2][j - 2]);
-				}
+                    dp[i][j] = std::min(dp[i][j], dp[i - 2][j - 2]);
+                }
             } else {
                 dp[i][j] = 1 + std::min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]});
                 if (i > 1 && j > 1 && s1[i - 1] == s2[j - 2] && s1[i - 2] == s2[j - 1]) {
-					dp[i][j] = std::min(dp[i][j], dp[i - 2][j - 2] + 1);
-				}
+                    dp[i][j] = std::min(dp[i][j], dp[i - 2][j - 2] + 1);
+                }
             }
         }
     }
@@ -286,8 +285,8 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
     return 0;
 }
 
-EmbeddedShell::EmbeddedShell(
-    const std::string& databasePath, const SystemConfig& systemConfig, const char* pathToHistory) {
+EmbeddedShell::EmbeddedShell(const std::string& databasePath, const SystemConfig& systemConfig,
+    const char* pathToHistory) {
     path_to_history = pathToHistory;
     linenoiseHistoryLoad(path_to_history);
     linenoiseSetCompletionCallback(completion);
@@ -360,11 +359,14 @@ void EmbeddedShell::run() {
                     printExecutionResult(*queryResult);
                 } else {
                     std::string lineStrTrimmed = lineStr;
-                    lineStrTrimmed = lineStrTrimmed.erase(0, lineStr.find_first_not_of(" \t\n\r\f\v"));
-                    if (lineStrTrimmed.find_first_of(" \t\n\r\f\v") == std::string::npos && lineStrTrimmed.length() > 1) {
-                        printf("Error: \"%s\" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., \"%s\"?\n", lineStr.c_str(), findClosestCommand(lineStrTrimmed).c_str());
-                    }
-                    else {
+                    lineStrTrimmed =
+                        lineStrTrimmed.erase(0, lineStr.find_first_not_of(" \t\n\r\f\v"));
+                    if (lineStrTrimmed.find_first_of(" \t\n\r\f\v") == std::string::npos &&
+                        lineStrTrimmed.length() > 1) {
+                        printf("Error: \"%s\" is not a valid Cypher query. Did you mean to issue a "
+                               "CLI command, e.g., \"%s\"?\n",
+                            lineStr.c_str(), findClosestCommand(lineStrTrimmed).c_str());
+                    } else {
                         printf("Error: %s\n", queryResult->getErrorMessage().c_str());
                     }
                 }
@@ -414,8 +416,8 @@ void EmbeddedShell::setMaxWidth(const std::string& maxWidthString) {
     try {
         parsedMaxWidth = stoul(maxWidthString);
     } catch (std::exception& e) {
-        printf(
-            "Cannot parse '%s' as number of characters. Expect integer.\n", maxWidthString.c_str());
+        printf("Cannot parse '%s' as number of characters. Expect integer.\n",
+            maxWidthString.c_str());
         return;
     }
     maxPrintWidth = parsedMaxWidth;
@@ -484,12 +486,12 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         if (colsWidth.size() == 1) {
             uint32_t minDisplayWidth = minTruncatedWidth + SMALL_TABLE_SEPERATOR_LENGTH;
             if (maxPrintWidth > minDisplayWidth) {
-				sumGoal = maxPrintWidth - 2;
+                sumGoal = maxPrintWidth - 2;
             } else {
                 sumGoal = std::max(
                     (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
                     minDisplayWidth);
-			}
+            }
         } else if (colsWidth.size() > 1) {
             uint32_t minDisplayWidth = SMALL_TABLE_SEPERATOR_LENGTH + minTruncatedWidth * 2;
             if (maxPrintWidth > minDisplayWidth) {
@@ -497,7 +499,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             } else {
                 // make sure there is space for the first and last column
                 sumGoal = std::max(
-                    (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1), minDisplayWidth);
+                    (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
+                    minDisplayWidth);
             }
         } else if (maxPrintWidth > minTruncatedWidth) {
             sumGoal = maxPrintWidth;

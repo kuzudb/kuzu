@@ -2,13 +2,13 @@
 
 using kuzu::common::ArrayTypeInfo;
 using kuzu::common::Interval;
+using kuzu::common::ListTypeInfo;
 using kuzu::common::LogicalType;
 using kuzu::common::LogicalTypeID;
 using kuzu::common::NodeVal;
 using kuzu::common::RelVal;
 using kuzu::common::StructField;
 using kuzu::common::Value;
-using kuzu::common::ListTypeInfo;
 using kuzu::main::Connection;
 using kuzu::main::Database;
 using kuzu::main::SystemConfig;
@@ -26,8 +26,8 @@ std::unique_ptr<LogicalType> create_logical_type_list(std::unique_ptr<LogicalTyp
     return LogicalType::LIST(std::move(childType));
 }
 
-std::unique_ptr<LogicalType> create_logical_type_array(
-    std::unique_ptr<LogicalType> childType, uint64_t numElements) {
+std::unique_ptr<LogicalType> create_logical_type_array(std::unique_ptr<LogicalType> childType,
+    uint64_t numElements) {
     return LogicalType::ARRAY(std::move(childType), numElements);
 }
 
@@ -175,8 +175,8 @@ rust::String value_to_string(const kuzu::common::Value& val) {
 uint32_t flat_tuple_len(const kuzu::processor::FlatTuple& flatTuple) {
     return flatTuple.len();
 }
-const kuzu::common::Value& flat_tuple_get_value(
-    const kuzu::processor::FlatTuple& flatTuple, uint32_t index) {
+const kuzu::common::Value& flat_tuple_get_value(const kuzu::processor::FlatTuple& flatTuple,
+    uint32_t index) {
     return *flatTuple.getValue(index);
 }
 
@@ -239,10 +239,10 @@ const LogicalType& value_get_data_type(const kuzu::common::Value& value) {
     return *value.getDataType();
 }
 
-std::unique_ptr<kuzu::common::Value> create_value_string(
-    LogicalTypeID typ, const rust::Slice<const unsigned char> value) {
-    return std::make_unique<kuzu::common::Value>(
-        std::make_unique<LogicalType>(typ), std::string((const char*)value.data(), value.size()));
+std::unique_ptr<kuzu::common::Value> create_value_string(LogicalTypeID typ,
+    const rust::Slice<const unsigned char> value) {
+    return std::make_unique<kuzu::common::Value>(std::make_unique<LogicalType>(typ),
+        std::string((const char*)value.data(), value.size()));
 }
 std::unique_ptr<kuzu::common::Value> create_value_timestamp(const int64_t timestamp) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::timestamp_t(timestamp));
@@ -259,8 +259,8 @@ std::unique_ptr<kuzu::common::Value> create_value_timestamp_ms(const int64_t tim
 std::unique_ptr<kuzu::common::Value> create_value_timestamp_sec(const int64_t timestamp) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::timestamp_sec_t(timestamp));
 }
-std::unique_ptr<kuzu::common::Value> create_value_interval(
-    const int32_t months, const int32_t days, const int64_t micros) {
+std::unique_ptr<kuzu::common::Value> create_value_interval(const int32_t months, const int32_t days,
+    const int64_t micros) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::interval_t(months, days, micros));
 }
 std::unique_ptr<kuzu::common::Value> create_value_null(
@@ -275,8 +275,8 @@ std::unique_ptr<kuzu::common::Value> create_value_int128_t(int64_t high, uint64_
     return std::make_unique<kuzu::common::Value>(kuzu::common::int128_t(low, high));
 }
 
-std::unique_ptr<kuzu::common::Value> get_list_value(
-    std::unique_ptr<kuzu::common::LogicalType> typ, std::unique_ptr<ValueListBuilder> value) {
+std::unique_ptr<kuzu::common::Value> get_list_value(std::unique_ptr<kuzu::common::LogicalType> typ,
+    std::unique_ptr<ValueListBuilder> value) {
     return std::make_unique<kuzu::common::Value>(std::move(typ), std::move(value->values));
 }
 

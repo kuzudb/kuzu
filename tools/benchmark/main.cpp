@@ -53,8 +53,8 @@ int main(int argc, char** argv) {
     try {
         runner.registerBenchmarks(benchmarkPath);
     } catch (std::exception& e) {
-        spdlog::error(
-            "Error encountered while registering benchmark in {}: {}.", benchmarkPath, e.what());
+        spdlog::error("Error encountered while registering benchmark in {}: {}.", benchmarkPath,
+            e.what());
     }
     runner.runAllBenchmarks();
     return 0;

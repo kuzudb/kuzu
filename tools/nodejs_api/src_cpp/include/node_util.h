@@ -14,6 +14,6 @@ public:
 
 private:
     static Napi::Object ConvertNodeIdToNapiObject(const nodeID_t& nodeId, Napi::Env env);
-    static Value TransformNapiValue(
-        Napi::Value napiValue, LogicalType* expectedDataType, const std::string& key);
+    static Value TransformNapiValue(Napi::Value napiValue, LogicalType* expectedDataType,
+        const std::string& key);
 };

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "function/scalar_function.h"
-#include "function/table_functions.h"
 #include "function/table/bind_data.h"
 #include "function/table/scan_functions.h"
+#include "function/table_functions.h"
 #include "pandas_bind.h"
 #include "pybind_include.h"
 
@@ -27,7 +27,7 @@ struct PandasScanSharedState : public function::BaseScanSharedState {
 
 struct PandasScanFunction {
     static constexpr const char* name = "READ_PANDAS";
-    
+
     static function::function_set getFunctionSet();
 };
 
@@ -50,8 +50,8 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
     std::vector<std::unique_ptr<PandasColumnBindData>> copyColumnBindData() const;
 
     std::unique_ptr<function::TableFuncBindData> copy() const override {
-        return std::make_unique<PandasScanFunctionData>(
-            columnTypes, columnNames, df, numRows, copyColumnBindData());
+        return std::make_unique<PandasScanFunctionData>(columnTypes, columnNames, df, numRows,
+            copyColumnBindData());
     }
 };
 
