@@ -111,7 +111,15 @@ function_set CoalesceFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
         std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::ANY, execFunc, selectFunc, bindFunc, true /*  isVarLength */));
+            LogicalTypeID::ANY, execFunc, selectFunc, bindFunc, true /* isVarLength */));
+    return functionSet;
+}
+
+function_set IfNullFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::ANY}, LogicalTypeID::ANY,
+        execFunc, selectFunc, bindFunc, false /* isVarLength */));
     return functionSet;
 }
 

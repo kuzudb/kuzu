@@ -78,6 +78,17 @@ default_string
 ---- 1
 
 
+-LOG IfNullError
+-STATEMENT RETURN ifnull(NULL, 1, 2);
+---- error
+Binder exception: Cannot match a built-in function for given function IFNULL(ANY,INT64,INT64). Supported inputs are
+(ANY,ANY) -> ANY
+
+-LOG IfNullTest
+-STATEMENT RETURN ifnull(NULL, 'default_string');
+---- 1
+default_string
+
 -CASE TableTest
 
 -STATEMENT CREATE node table tbl(id INT64, a INT32, b INT32, c STRING, PRIMARY KEY (id));
@@ -140,11 +151,22 @@ Binder exception: Cannot mix values of type STRING and INT32 in COALESCE functio
 -STATEMENT CREATE (t:tbl {id: 4, bool: true});
 ---- ok
 
--STATEMENT MATCH (t:tbl) WHERE coalesce(NULL, t.bool) RETURN t.id;
+-LOG CoalesceTest
+-STATEMENT MATCH (t:tbl) WHERE coalesce(NULL, t.bool, NULL) RETURN t.id;
 ---- 2
 1
 4
 
--STATEMENT MATCH (t:tbl) WHERE NOT coalesce(NULL, t.bool) RETURN t.id;
+-STATEMENT MATCH (t:tbl) WHERE NOT coalesce(NULL, t.bool, NULL) RETURN t.id;
+---- 1
+2
+
+-LOG IfNullTest
+-STATEMENT MATCH (t:tbl) WHERE ifnull(NULL, t.bool) RETURN t.id;
+---- 2
+1
+4
+
+-STATEMENT MATCH (t:tbl) WHERE NOT ifnull(NULL, t.bool) RETURN t.id;
 ---- 1
 2

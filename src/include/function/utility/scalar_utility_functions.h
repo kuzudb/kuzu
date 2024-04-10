@@ -11,5 +11,11 @@ struct CoalesceFunction {
     static function_set getFunctionSet();
 };
 
+struct IfNullFunction {
+    static constexpr const char* name = "IFNULL";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu
