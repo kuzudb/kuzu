@@ -166,6 +166,12 @@
 #ifdef _WIN32
 #include <io.h>
 #include <winsock2.h>
+#ifndef STDIN_FILENO
+#define STDIN_FILENO (_fileno(stdin))
+#endif
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO (_fileno(stdout))
+#endif
 #else
 #include <poll.h>
 #endif
@@ -296,27 +302,20 @@ FILE *lndebug_fp = NULL;
 #endif
 
 #ifdef _WIN32
-#ifndef STDIN_FILENO
-#define STDIN_FILENO (_fileno(stdin))
-#endif
-#ifndef STDOUT_FILENO
-#define STDOUT_FILENO (_fileno(stdout))
-#endif
-
 HANDLE hOut;
 HANDLE hIn;
-DWORD consolemode;
+DWORD consolemodeIn = 0;
 
 /* ======================= Low level terminal handling ====================== */
 
 static int win32read(char* c) {
-
     DWORD foo;
     INPUT_RECORD b;
     KEY_EVENT_RECORD e;
+    BOOL altgr;
 
     while (1) {
-        if (!ReadConsoleInput(hIn, &b, 1, &foo))
+        if (!ReadConsoleInputW(hIn, &b, 1, &foo))
             return 0;
         if (!foo)
             return 0;
@@ -359,12 +358,44 @@ static int win32read(char* c) {
                 *c = BACKSPACE;
                 return 1;
             default:
-                if (*c)
-                    return 1;
+                WCHAR wch = e.uChar.UnicodeChar;
+                if (wch >= 0xD800 && wch <= 0xDBFF) {
+					WCHAR wchHigh = wch;
+                    // read key release event
+                    if (!ReadConsoleInputW(hIn, &b, 1, &foo))
+                        return 0;
+                    if (!foo)
+                        return 0;
+                    // read key down event
+                    if (!ReadConsoleInputW(hIn, &b, 1, &foo))
+                        return 0;
+                    if (!foo)
+                        return 0;
+                    if (b.EventType == KEY_EVENT && b.Event.KeyEvent.bKeyDown) {
+                        wch = b.Event.KeyEvent.uChar.UnicodeChar;
+                        if (wch >= 0xDC00 && wch <= 0xDFFF) {
+                            WCHAR utf16[2] = {wchHigh, wch};
+                            char utf8[5];
+                            int len = WideCharToMultiByte(CP_UTF8, 0, utf16, 2, utf8, sizeof(utf8), NULL,
+                                    								NULL);
+                            for (int i = 0; i < len; i++) {
+                                c[i] = utf8[i];
+                            }
+                            return len;
+                        }
+                    } 
+				} else if (wch) {
+                    char utf8[5];
+                    int len = WideCharToMultiByte(CP_UTF8, 0, &wch, 1, utf8, sizeof(utf8), NULL,
+                        NULL);
+                    for (int i = 0; i < len; i++) {
+                        c[i] = utf8[i];
+                    }
+                    return len;
+                }
             }
         }
     }
-
     return -1; /* Makes compiler happy */
 }
 
@@ -452,31 +483,32 @@ static int enableRawMode(int fd) {
     REDIS_NOTUSED(fd);
 
     if (!atexit_registered) {
+        /* Cleanup them at exit */
+        atexit(linenoiseAtExit);
+        atexit_registered = 1;
+
         /* Init windows console handles only once */
         hOut = GetStdHandle(STD_OUTPUT_HANDLE);
         if (hOut == INVALID_HANDLE_VALUE)
             goto fatal;
-
-        if (!GetConsoleMode(hOut, &consolemode)) {
-            CloseHandle(hOut);
-            errno = ENOTTY;
-            return -1;
-        };
-
-        hIn = GetStdHandle(STD_INPUT_HANDLE);
-        if (hIn == INVALID_HANDLE_VALUE) {
-            CloseHandle(hOut);
-            errno = ENOTTY;
-            return -1;
-        }
-
-        GetConsoleMode(hIn, &consolemode);
-        SetConsoleMode(hIn, ENABLE_PROCESSED_INPUT);
-
-        /* Cleanup them at exit */
-        atexit(linenoiseAtExit);
-        atexit_registered = 1;
     }
+
+    DWORD consolemodeOut;
+    if (!GetConsoleMode(hOut, &consolemodeOut)) {
+        CloseHandle(hOut);
+        errno = ENOTTY;
+        return -1;
+    };
+
+    hIn = GetStdHandle(STD_INPUT_HANDLE);
+    if (hIn == INVALID_HANDLE_VALUE) {
+        CloseHandle(hOut);
+        errno = ENOTTY;
+        return -1;
+    }
+
+    GetConsoleMode(hIn, &consolemodeIn);
+    SetConsoleMode(hIn, consolemodeIn & ~ENABLE_PROCESSED_INPUT);
 
     rawmode = 1;
 #endif
@@ -490,6 +522,10 @@ fatal:
 static void disableRawMode(int fd) {
 #ifdef _WIN32
     REDIS_NOTUSED(fd);
+    if (consolemodeIn) {
+        SetConsoleMode(hIn, consolemodeIn);
+        consolemodeIn = 0;
+    }
     rawmode = 0;
 #else
     /* Don't even check the return value as it's too late. */
@@ -1005,7 +1041,6 @@ static void highlightSearchMatch(char* buffer, char* resultBuf, const char* sear
     std::string buf(buffer);
     std::string underlinedBuf = "";
 
-#ifndef _WIN32
     std::string matchedWord;
     auto searchPhrasePos = 0u;
     bool matching = false;
@@ -1086,7 +1121,6 @@ static void highlightSearchMatch(char* buffer, char* resultBuf, const char* sear
             underlinedBuf += matchedWord;
         }
     }
-#endif
     if (underlinedBuf.empty()) {
         strncpy(resultBuf, buf.c_str(), LINENOISE_MAX_LINE - 1);
     } else {
@@ -1744,6 +1778,9 @@ static int linenoiseEdit(
     l.buf[0] = '\0';
     l.buflen--; /* Make sure there is always space for the nulterm */
 
+    std::string uft8Buf = "";
+    bool readingUTF8 = false;
+
     const char ctrl_c = '\3';
 
     /* The latest history entry is always our current buffer, that
@@ -1758,7 +1795,24 @@ static int linenoiseEdit(
         char seq[5];
 
 #ifdef _WIN32
-        nread = win32read(&c);
+        if (readingUTF8) {
+            c = uft8Buf[0];
+            uft8Buf.erase(0, 1);
+            if (!c) {
+				readingUTF8 = false;
+			}
+        }
+        if (!readingUTF8) {
+			nread = win32read(seq);
+            for (int i = 0; i < nread; i++) {
+				uft8Buf += seq[i];
+			}
+            c = uft8Buf[0];
+            uft8Buf.erase(0, 1);
+            if (nread > 1) {
+				readingUTF8 = true;
+			}
+		}
 #else
         nread = read(l.ifd, &c, 1);
 #endif
@@ -2182,13 +2236,7 @@ static void freeHistory(void) {
 
 /* At exit we'll try to fix the terminal to the initial conditions. */
 static void linenoiseAtExit(void) {
-#ifdef _WIN32
-    SetConsoleMode(hIn, consolemode);
-    CloseHandle(hOut);
-    CloseHandle(hIn);
-#else
     disableRawMode(STDIN_FILENO);
-#endif
     freeHistory();
 }
 
