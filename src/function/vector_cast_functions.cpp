@@ -117,6 +117,11 @@ static bool hasImplicitCastArray(const LogicalType& srcType, const LogicalType& 
         *ArrayType::getChildType(&dstType));
 }
 
+static bool hasImplicitCastArrayToList(const LogicalType& srcType, const LogicalType& dstType) {
+    return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType),
+        *ListType::getChildType(&dstType));
+}
+
 static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType& dstType) {
     auto srcFields = StructType::getFields(&srcType), dstFields = StructType::getFields(&dstType);
     if (srcFields.size() != dstFields.size()) {
@@ -153,6 +158,10 @@ bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType
             srcType.getLogicalTypeID() != LogicalTypeID::RDF_VARIANT) &&
         (LogicalTypeUtils::isNested(dstType) &&
             dstType.getLogicalTypeID() != LogicalTypeID::RDF_VARIANT)) {
+        if (srcType.getLogicalTypeID() == LogicalTypeID::ARRAY &&
+            dstType.getLogicalTypeID() == LogicalTypeID::LIST) {
+            return hasImplicitCastArrayToList(srcType, dstType);
+        }
         if (srcType.getLogicalTypeID() != dstType.getLogicalTypeID()) {
             return false;
         }
