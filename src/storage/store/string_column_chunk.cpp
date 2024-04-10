@@ -173,6 +173,11 @@ void StringColumnChunk::finalize() {
     dictionaryChunk = std::move(newDictionaryChunk);
 }
 
+template<>
+common::ku_string_t StringColumnChunk::getValue<common::ku_string_t>(offset_t) const {
+    KU_UNREACHABLE;
+}
+
 // STRING
 template<>
 std::string_view StringColumnChunk::getValue<std::string_view>(offset_t pos) const {
