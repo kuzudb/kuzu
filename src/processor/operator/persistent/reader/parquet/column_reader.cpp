@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "common/exception/not_implemented.h"
+#include "common/exception/runtime.h"
 #include "common/types/date_t.h"
 #include "miniz_wrapper.hpp"
 #include "processor/operator/persistent/reader/parquet/boolean_column_reader.h"

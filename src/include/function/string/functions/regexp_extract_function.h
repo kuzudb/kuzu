@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/exception/runtime.h"
 #include "common/types/ku_string.h"
 #include "common/vector/value_vector.h"
 #include "function/string/functions/base_regexp_function.h"

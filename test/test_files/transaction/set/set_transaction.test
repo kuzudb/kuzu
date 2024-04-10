@@ -1,4 +1,4 @@
--GROUP Set_Transaction
+-GROUP SetTransaction
 -DATASET CSV tinysnb
 
 --
@@ -53,10 +53,3 @@ Timeout waiting for read transactions to leave the system before committing and 
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName;
 ---- 1
 Alice
--CASE VeryLongStringErrorsTest
--LOG Set Very Long String Errors Test
--STATEMENT BEGIN TRANSACTION;
----- ok
--DEFINE test_long_string REPEAT 262144 "a"
--STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName='${test_long_string}';
----- ok

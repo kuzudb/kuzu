@@ -2,6 +2,7 @@
 
 #include "common/cast.h"
 #include "common/exception/io.h"
+#include "common/exception/runtime.h"
 #include "common/types/timestamp_t.h"
 #include "crypto.h"
 #include "main/client_context.h"

@@ -203,9 +203,10 @@ std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool ch
     queryResult.resetIterator();
     MD5 hasher;
     std::vector<std::string> stringRep = convertResultToString(queryResult, checkOutputOrder);
+    std::string lineBreaker = "\n";
     for (std::string line : stringRep) {
-        hasher.addToMD5(line.c_str());
-        hasher.addToMD5("\n");
+        hasher.addToMD5(line.c_str(), line.size());
+        hasher.addToMD5(lineBreaker.c_str(), lineBreaker.size());
     }
     return std::string(hasher.finishMD5());
 }

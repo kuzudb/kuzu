@@ -5,6 +5,7 @@
 #include <mutex>
 #include <stack>
 
+#include "common/constants.h"
 #include "common/types/types.h"
 
 namespace kuzu {
@@ -20,13 +21,15 @@ class BufferManager;
 
 class MemoryBuffer {
 public:
-    MemoryBuffer(MemoryAllocator* allocator, common::page_idx_t blockIdx, uint8_t* buffer);
+    MemoryBuffer(MemoryAllocator* allocator, common::page_idx_t blockIdx, uint8_t* buffer,
+        uint64_t size = common::BufferPoolConstants::PAGE_256KB_SIZE);
     ~MemoryBuffer();
 
 public:
     uint8_t* buffer;
     common::page_idx_t pageIdx;
     MemoryAllocator* allocator;
+    uint64_t size;
 };
 
 class MemoryAllocator {
@@ -36,11 +39,11 @@ public:
     explicit MemoryAllocator(BufferManager* bm, common::VirtualFileSystem* vfs);
     ~MemoryAllocator();
 
-    std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false);
+    std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero, uint64_t size);
     inline common::page_offset_t getPageSize() const { return pageSize; }
 
 private:
-    void freeBlock(common::page_idx_t pageIdx);
+    void freeBlock(common::page_idx_t pageIdx, uint8_t* buffer);
 
 private:
     std::unique_ptr<BMFileHandle> fh;
@@ -71,8 +74,9 @@ public:
         allocator = std::make_unique<MemoryAllocator>(bm, vfs);
     }
 
-    inline std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false) {
-        return allocator->allocateBuffer(initializeToZero);
+    inline std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
+        uint64_t size = common::BufferPoolConstants::PAGE_256KB_SIZE) {
+        return allocator->allocateBuffer(initializeToZero, size);
     }
     inline BufferManager* getBufferManager() const { return bm; }
 

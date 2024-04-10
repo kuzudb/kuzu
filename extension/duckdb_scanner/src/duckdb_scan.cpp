@@ -1,5 +1,6 @@
 #include "duckdb_scan.h"
 
+#include "common/exception/runtime.h"
 #include "common/types/types.h"
 #include "function/table/bind_input.h"
 

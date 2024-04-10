@@ -2,6 +2,7 @@
 
 #include "binder/expression/function_expression.h"
 #include "cached_import/py_cached_import.h"
+#include "common/exception/runtime.h"
 #include "function/table/bind_input.h"
 #include "numpy/numpy_scan.h"
 #include "py_connection.h"

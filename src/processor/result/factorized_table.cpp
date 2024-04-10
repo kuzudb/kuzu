@@ -335,6 +335,7 @@ uint64_t FactorizedTable::computeNumTuplesToAppend(
 std::vector<BlockAppendingInfo> FactorizedTable::allocateFlatTupleBlocks(
     uint64_t numTuplesToAppend) {
     auto numBytesPerTuple = tableSchema->getNumBytesPerTuple();
+    // TODO(Guodong): Remove this restriction.
     KU_ASSERT(numBytesPerTuple < BufferPoolConstants::PAGE_256KB_SIZE);
     std::vector<BlockAppendingInfo> appendingInfos;
     while (numTuplesToAppend > 0) {

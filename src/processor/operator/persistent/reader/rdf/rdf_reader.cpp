@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "common/constants.h"
+#include "common/exception/runtime.h"
 #include "common/vector/value_vector.h"
 #include "processor/operator/persistent/reader/rdf/rdf_utils.h"
 #include "serd.h"

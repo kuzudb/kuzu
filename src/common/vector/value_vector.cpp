@@ -1,6 +1,6 @@
 #include "common/vector/value_vector.h"
 
-#include "common/exception/message.h"
+#include "common/exception/runtime.h"
 #include "common/null_buffer.h"
 #include "common/types/blob.h"
 #include "common/types/value/nested.h"
@@ -394,13 +394,6 @@ void StringVector::addString(ValueVector* vector, uint32_t vectorPos, ku_string_
     if (ku_string_t::isShortString(srcStr.len)) {
         dstStr.setShortString(srcStr);
     } else {
-        if (srcStr.len > BufferPoolConstants::PAGE_256KB_SIZE) {
-            if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
-                srcStr.len = BufferPoolConstants::PAGE_256KB_SIZE;
-            } else {
-                throw RuntimeException(ExceptionMessage::overLargeStringValueException(srcStr.len));
-            }
-        }
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(srcStr.len));
         dstStr.setLongString(srcStr);
     }
@@ -415,13 +408,6 @@ void StringVector::addString(ValueVector* vector, uint32_t vectorPos, const char
     if (ku_string_t::isShortString(length)) {
         dstStr.setShortString(srcStr, length);
     } else {
-        if (length > BufferPoolConstants::PAGE_256KB_SIZE) {
-            if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
-                length = BufferPoolConstants::PAGE_256KB_SIZE;
-            } else {
-                throw RuntimeException(ExceptionMessage::overLargeStringValueException(length));
-            }
-        }
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(length));
         dstStr.setLongString(srcStr, length);
     }
@@ -460,13 +446,6 @@ void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, ku_string
     if (ku_string_t::isShortString(srcStr.len)) {
         dstStr.setShortString(srcStr);
     } else {
-        if (srcStr.len > BufferPoolConstants::PAGE_256KB_SIZE) {
-            if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
-                srcStr.len = BufferPoolConstants::PAGE_256KB_SIZE;
-            } else {
-                throw RuntimeException(ExceptionMessage::overLargeStringValueException(srcStr.len));
-            }
-        }
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(srcStr.len));
         dstStr.setLongString(srcStr);
     }
@@ -480,13 +459,6 @@ void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, const cha
     if (ku_string_t::isShortString(length)) {
         dstStr.setShortString(srcStr, length);
     } else {
-        if (length > BufferPoolConstants::PAGE_256KB_SIZE) {
-            if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
-                length = BufferPoolConstants::PAGE_256KB_SIZE;
-            } else {
-                throw RuntimeException(ExceptionMessage::overLargeStringValueException(length));
-            }
-        }
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(length));
         dstStr.setLongString(srcStr, length);
     }
