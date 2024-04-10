@@ -36,8 +36,8 @@ enum GetColumnMetadataType { DATA_TYPE, NAME };
 
 class NodeQueryResultGetColumnMetadataAsyncWorker : public Napi::AsyncWorker {
 public:
-    NodeQueryResultGetColumnMetadataAsyncWorker(
-        Napi::Function& callback, NodeQueryResult* nodeQueryResult, GetColumnMetadataType type)
+    NodeQueryResultGetColumnMetadataAsyncWorker(Napi::Function& callback,
+        NodeQueryResult* nodeQueryResult, GetColumnMetadataType type)
         : AsyncWorker(callback), nodeQueryResult(nodeQueryResult), type(type) {}
 
     ~NodeQueryResultGetColumnMetadataAsyncWorker() override = default;
@@ -53,7 +53,9 @@ public:
             } else {
                 result = nodeQueryResult->queryResult->getColumnNames();
             }
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
     }
 
     inline void OnOK() override {
@@ -86,7 +88,9 @@ public:
                 cppTuple.reset();
             }
             cppTuple = nodeQueryResult->queryResult->getNext();
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
     }
 
     inline void OnOK() override {

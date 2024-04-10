@@ -16,8 +16,8 @@ public:
 
     void setQueryTimeout(uint64_t timeoutInMS);
 
-    std::unique_ptr<PyQueryResult> execute(
-        PyPreparedStatement* preparedStatement, const py::dict& params);
+    std::unique_ptr<PyQueryResult> execute(PyPreparedStatement* preparedStatement,
+        const py::dict& params);
 
     void setMaxNumThreadForExec(uint64_t numThreads);
 

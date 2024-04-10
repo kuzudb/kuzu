@@ -1,13 +1,11 @@
 #include "include/py_database.h"
 
-#include "include/cached_import/py_cached_import.h"
-#include "pandas/pandas_scan.h"
-#include "pyarrow/pyarrow_scan.h"
-
 #include <memory>
 
+#include "include/cached_import/py_cached_import.h"
 #include "main/version.h"
 #include "pandas/pandas_scan.h"
+#include "pyarrow/pyarrow_scan.h"
 
 using namespace kuzu::common;
 
@@ -50,7 +48,8 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
     auto systemConfig =
         SystemConfig(bufferPoolSize, maxNumThreads, compression, readOnly, maxDBSize);
     database = std::make_unique<Database>(databasePath, systemConfig);
-    database->addBuiltInFunction(kuzu::PandasScanFunction::name, kuzu::PandasScanFunction::getFunctionSet());
+    database->addBuiltInFunction(kuzu::PandasScanFunction::name,
+        kuzu::PandasScanFunction::getFunctionSet());
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(database.get());
     py::gil_scoped_acquire acquire;
     if (kuzu::importCache.get() == nullptr) {

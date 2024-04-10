@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "common/assert.h"
 
+#include "common/assert.h"
 #include "pybind_include.h"
 
 namespace kuzu {

@@ -2,8 +2,8 @@
 
 #include <utility>
 
-#include "common/constants.h"
 #include "cached_import/py_cached_import.h"
+#include "common/constants.h"
 #include "common/string_format.h"
 #include "common/types/uuid.h"
 #include "datetime.h" // from Python
@@ -48,8 +48,8 @@ void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
 static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
     const py::dict& params, Connection* conn);
 
-std::unique_ptr<PyQueryResult> PyConnection::execute(
-    PyPreparedStatement* preparedStatement, const py::dict& params) {
+std::unique_ptr<PyQueryResult> PyConnection::execute(PyPreparedStatement* preparedStatement,
+    const py::dict& params) {
     auto parameters = transformPythonParameters(params, conn.get());
     py::gil_scoped_release release;
     auto queryResult =
@@ -189,20 +189,18 @@ static bool canCastPyLogicalType(const LogicalType& from, const LogicalType& to)
         }
         auto fromKeyType = MapType::getKeyType(&from), fromValueType = MapType::getValueType(&to);
         auto toKeyType = MapType::getKeyType(&to), toValueType = MapType::getValueType(&to);
-        return
-            (canCastPyLogicalType(*fromKeyType, *toKeyType) ||
-            canCastPyLogicalType(*toKeyType, *fromKeyType)) &&
-            (canCastPyLogicalType(*fromValueType, *toValueType) ||
-            canCastPyLogicalType(*toValueType, *fromValueType));
+        return (canCastPyLogicalType(*fromKeyType, *toKeyType) ||
+                   canCastPyLogicalType(*toKeyType, *fromKeyType)) &&
+               (canCastPyLogicalType(*fromValueType, *toValueType) ||
+                   canCastPyLogicalType(*toValueType, *fromValueType));
     } else if (from.getLogicalTypeID() == LogicalTypeID::LIST) {
         if (to.getLogicalTypeID() != LogicalTypeID::LIST) {
             return false;
         }
-        return canCastPyLogicalType(
-            *ListType::getChildType(&from), *ListType::getChildType(&to));
+        return canCastPyLogicalType(*ListType::getChildType(&from), *ListType::getChildType(&to));
     } else {
-        auto castCost = function::BuiltInFunctionsUtils::getCastCost(
-            from.getLogicalTypeID(), to.getLogicalTypeID());
+        auto castCost = function::BuiltInFunctionsUtils::getCastCost(from.getLogicalTypeID(),
+            to.getLogicalTypeID());
         return castCost != UNDEFINED_CAST_COST;
     }
     return false;
@@ -210,15 +208,18 @@ static bool canCastPyLogicalType(const LogicalType& from, const LogicalType& to)
 
 static void tryConvertPyLogicalType(LogicalType& from, LogicalType& to);
 
-static std::unique_ptr<LogicalType> castPyLogicalType(const LogicalType& from, const LogicalType& to) {
+static std::unique_ptr<LogicalType> castPyLogicalType(const LogicalType& from,
+    const LogicalType& to) {
     // assumes from can cast to to
     if (from.getLogicalTypeID() == LogicalTypeID::MAP) {
         auto fromKeyType = MapType::getKeyType(&from), fromValueType = MapType::getValueType(&from);
         auto toKeyType = MapType::getKeyType(&to), toValueType = MapType::getValueType(&to);
         auto outputKeyType = canCastPyLogicalType(*fromKeyType, *toKeyType) ?
-            castPyLogicalType(*fromKeyType, *toKeyType) : castPyLogicalType(*toKeyType, *fromKeyType);
+                                 castPyLogicalType(*fromKeyType, *toKeyType) :
+                                 castPyLogicalType(*toKeyType, *fromKeyType);
         auto outputValueType = canCastPyLogicalType(*fromValueType, *toValueType) ?
-            castPyLogicalType(*fromValueType, *toValueType) : castPyLogicalType(*toValueType, *fromValueType);
+                                   castPyLogicalType(*fromValueType, *toValueType) :
+                                   castPyLogicalType(*toValueType, *fromValueType);
         return LogicalType::MAP(std::move(outputKeyType), std::move(outputValueType));
     }
     return std::make_unique<LogicalType>(to);
@@ -230,9 +231,9 @@ void tryConvertPyLogicalType(LogicalType& from, LogicalType& to) {
     } else if (canCastPyLogicalType(to, from)) {
         to = *castPyLogicalType(to, from);
     } else {
-        throw RuntimeException(stringFormat(
-            "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
-            from.toString(), to.toString()));
+        throw RuntimeException(
+            stringFormat("Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
+                from.toString(), to.toString()));
     }
 }
 
@@ -272,7 +273,7 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
         auto childKeyType = LogicalType::ANY(), childValueType = LogicalType::ANY();
         for (auto child : dict) {
             auto curChildKeyType = pyLogicalType(child.first),
-                curChildValueType = pyLogicalType(child.second);
+                 curChildValueType = pyLogicalType(child.second);
             tryConvertPyLogicalType(*childKeyType, *curChildKeyType);
             tryConvertPyLogicalType(*childValueType, *curChildValueType);
         }
@@ -355,21 +356,21 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
     case LogicalTypeID::MAP: {
         py::dict dict = py::reinterpret_borrow<py::dict>(val);
         std::vector<std::unique_ptr<Value>> children;
-        auto childKeyType = MapType::getKeyType(type),
-            childValueType = MapType::getValueType(type);
+        auto childKeyType = MapType::getKeyType(type), childValueType = MapType::getValueType(type);
         for (auto child : dict) {
             // type construction is inefficient, we have to create duplicates because it asks for
             // a unique ptr
             std::vector<StructField> fields;
-            fields.emplace_back(
-                InternalKeyword::MAP_KEY, std::make_unique<LogicalType>(*childKeyType));
-            fields.emplace_back(
-                InternalKeyword::MAP_VALUE, std::make_unique<LogicalType>(*childValueType));
+            fields.emplace_back(InternalKeyword::MAP_KEY,
+                std::make_unique<LogicalType>(*childKeyType));
+            fields.emplace_back(InternalKeyword::MAP_VALUE,
+                std::make_unique<LogicalType>(*childValueType));
             std::vector<std::unique_ptr<Value>> structValues;
-            structValues.push_back(std::make_unique<Value>(transformPythonValueAs(child.first, childKeyType)));
-            structValues.push_back(std::make_unique<Value>(transformPythonValueAs(child.second, childValueType)));
-            children.push_back(std::make_unique<Value>(
-                LogicalType::STRUCT(std::move(fields)),
+            structValues.push_back(
+                std::make_unique<Value>(transformPythonValueAs(child.first, childKeyType)));
+            structValues.push_back(
+                std::make_unique<Value>(transformPythonValueAs(child.second, childValueType)));
+            children.push_back(std::make_unique<Value>(LogicalType::STRUCT(std::move(fields)),
                 std::move(structValues)));
         }
         return Value(std::make_unique<LogicalType>(*type), std::move(children));
@@ -377,7 +378,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
     // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-    // LCOV_EXCL_STOP
+        // LCOV_EXCL_STOP
     }
 }
 

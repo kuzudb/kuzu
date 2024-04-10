@@ -29,8 +29,8 @@ private:
 
 class PreparedStatementInitAsyncWorker : public Napi::AsyncWorker {
 public:
-    PreparedStatementInitAsyncWorker(
-        Napi::Function& callback, NodePreparedStatement* nodePreparedStatement)
+    PreparedStatementInitAsyncWorker(Napi::Function& callback,
+        NodePreparedStatement* nodePreparedStatement)
         : AsyncWorker(callback), nodePreparedStatement(nodePreparedStatement) {}
 
     ~PreparedStatementInitAsyncWorker() override = default;
@@ -38,7 +38,9 @@ public:
     inline void Execute() override {
         try {
             nodePreparedStatement->InitCppPreparedStatement();
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
     }
 
     inline void OnOK() override { Callback().Call({Env().Null()}); }

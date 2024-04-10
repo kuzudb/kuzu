@@ -330,6 +330,9 @@ jobs:
       - name: Check and fix test format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r test/
 
+      - name: Check and fix tools format
+        run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r tools/
+
       - name: Check and fix extension format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r extension/
 

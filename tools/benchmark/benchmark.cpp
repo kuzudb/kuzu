@@ -36,8 +36,8 @@ std::unique_ptr<QueryResult> Benchmark::runWithProfile() const {
     return conn->query("PROFILE " + query, encodedJoin);
 }
 
-void Benchmark::logQueryInfo(
-    std::ofstream& log, uint32_t runNum, std::vector<std::string>& actualOutput) const {
+void Benchmark::logQueryInfo(std::ofstream& log, uint32_t runNum,
+    std::vector<std::string>& actualOutput) const {
     log << "Run Num: " << runNum << '\n';
     log << "Status: " << (actualOutput == expectedOutput ? "pass" : "error") << '\n';
     log << "Query: " << query << '\n';
