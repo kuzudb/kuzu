@@ -7,17 +7,21 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static LogicalType getValidLogicalType(const binder::expression_vector& expressions) {
-    for (auto& expression : expressions) {
-        if (expression->dataType.getLogicalTypeID() != LogicalTypeID::ANY) {
-            return expression->dataType;
+static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
+    Function* /*function*/) {
+    if (arguments.empty()) {
+        throw BinderException("COALESCE requires at least one argument");
+    }
+    // TODO (Manh): Use maxLogicalTypeID to obtain resultType and enable implicit casting for
+    // parameters
+    auto resultType = LogicalType(LogicalTypeID::ANY);
+    for (auto& argument : arguments) {
+        auto& parameterType = argument->getDataTypeReference();
+        if (parameterType.getLogicalTypeID() != LogicalTypeID::ANY) {
+            resultType = parameterType;
+            break;
         }
     }
-    return LogicalType(LogicalTypeID::ANY);
-}
-
-static LogicalType getResultType(const binder::expression_vector& arguments) {
-    auto resultType = getValidLogicalType(arguments);
     if (resultType.getLogicalTypeID() == LogicalTypeID::ANY) {
         resultType = LogicalType(LogicalTypeID::STRING);
     }
@@ -25,7 +29,7 @@ static LogicalType getResultType(const binder::expression_vector& arguments) {
         auto& parameterType = argument->getDataTypeReference();
         if (parameterType != resultType) {
             if (parameterType.getLogicalTypeID() == LogicalTypeID::ANY) {
-                argument->cast(LogicalType(LogicalTypeID::STRING));
+                argument->cast(resultType);
             } else {
                 throw BinderException(
                     stringFormat("Cannot mix values of type {} and {} in COALESCE function - an "
@@ -34,26 +38,16 @@ static LogicalType getResultType(const binder::expression_vector& arguments) {
             }
         }
     }
-    return resultType;
+    return std::make_unique<FunctionBindData>(resultType.copy());
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
-    if (arguments.empty()) {
-        throw BinderException("COALESCE() requires at least one argument");
-    }
-    auto resultType = getResultType(arguments).copy();
-    return std::make_unique<FunctionBindData>(std::move(resultType));
-}
-
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
-    for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
-         ++selectedPos) {
-        auto resultPos = result.state->selVector->selectedPositions[selectedPos];
-        bool isNull = true;
-        for (auto i = 0u; i < parameters.size(); ++i) {
-            const auto& parameter = parameters[i];
+static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
+    void* /*dataPtr*/) {
+    for (auto i = 0u; i < result.state->selVector->selectedSize; ++i) {
+        auto resultPos = result.state->selVector->selectedPositions[i];
+        auto isNull = true;
+        for (auto j = 0u; j < params.size(); ++j) {
+            const auto& parameter = params[j];
             auto paramPos = parameter->state->isFlat() ?
                                 parameter->state->selVector->selectedPositions[0] :
                                 resultPos;
@@ -67,11 +61,57 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
     }
 }
 
+static bool selectFunc(const std::vector<std::shared_ptr<ValueVector>>& params,
+    SelectionVector& selVector) {
+    KU_ASSERT(!params.empty());
+    auto allFlat = true;
+    auto unFlatVectorPos = 0u;
+    for (auto i = 0u; i < params.size(); ++i) {
+        KU_ASSERT(params[i]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
+        if (!params[i]->state->isFlat()) {
+            unFlatVectorPos = i;
+            allFlat = false;
+        }
+    }
+    if (allFlat) {
+        auto resultValue = false;
+        for (auto i = 0u; i < params.size(); ++i) {
+            auto pos = params[i]->state->selVector->selectedPositions[0];
+            if (!params[i]->isNull(pos)) {
+                resultValue = params[i]->getValue<bool>(pos);
+                break;
+            }
+        }
+        return resultValue == true;
+    } else {
+        auto numSelectedValues = 0u;
+        auto selectedPositionsBuffer = selVector.getMultableBuffer();
+        for (auto i = 0u; i < params[unFlatVectorPos]->state->selVector->selectedSize; ++i) {
+            auto resultPos = params[unFlatVectorPos]->state->selVector->selectedPositions[i];
+            auto resultValue = false;
+            for (auto j = 0u; j < params.size(); ++j) {
+                const auto& parameter = params[j];
+                auto paramPos = parameter->state->isFlat() ?
+                                    parameter->state->selVector->selectedPositions[0] :
+                                    resultPos;
+                if (!parameter->isNull(paramPos)) {
+                    resultValue = parameter->getValue<bool>(paramPos);
+                    break;
+                }
+            }
+            selectedPositionsBuffer[numSelectedValues] = resultPos;
+            numSelectedValues += (resultValue == true);
+        }
+        selVector.selectedSize = numSelectedValues;
+        return numSelectedValues > 0;
+    }
+}
+
 function_set CoalesceFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
         std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::ANY, execFunc, nullptr, bindFunc, true /*  isVarLength */));
+            LogicalTypeID::ANY, execFunc, selectFunc, bindFunc, true /*  isVarLength */));
     return functionSet;
 }
 

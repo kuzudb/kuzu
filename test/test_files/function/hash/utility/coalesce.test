@@ -3,14 +3,14 @@
 
 --
 
--CASE ErrorTests
+-CASE ConstantTests
 
--LOG NoArgument
+-LOG NoArgumentError
 -STATEMENT RETURN coalesce();
 ---- error
-Binder exception: COALESCE() requires at least one argument
+Binder exception: COALESCE requires at least one argument
 
--LOG DifferentParameterTypes
+-LOG DifferentParameterTypesError
 -STATEMENT RETURN coalesce(1, "hello");
 ---- error
 Binder exception: Cannot mix values of type STRING and INT64 in COALESCE function - an explicit cast is required
@@ -23,8 +23,6 @@ Conversion exception: Cast failed. Could not convert "hello" to INT64.
 -STATEMENT RETURN coalesce(NULL, cast("hello", "INT64"));
 ---- error
 Conversion exception: Cast failed. Could not convert "hello" to INT64.
-
--CASE DifferentTypesTests
 
 -LOG NullTest
 -STATEMENT RETURN coalesce(NULL);
@@ -128,3 +126,25 @@ Binder exception: Cannot mix values of type STRING and INT32 in COALESCE functio
 22
 3333
 44
+
+-CASE PredicateTest
+
+-STATEMENT CREATE node table tbl(id INT64, bool BOOLEAN, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE (t:tbl {id: 1, bool: true});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 2, bool: false});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 3, bool: NULL});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 4, bool: true});
+---- ok
+
+-STATEMENT MATCH (t:tbl) WHERE coalesce(NULL, t.bool) RETURN t.id;
+---- 2
+1
+4
+
+-STATEMENT MATCH (t:tbl) WHERE NOT coalesce(NULL, t.bool) RETURN t.id;
+---- 1
+2
