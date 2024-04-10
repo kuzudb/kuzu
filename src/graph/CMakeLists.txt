@@ -1,6 +1,8 @@
+add_subdirectory(algorithm)
+
 add_library(kuzu_graph
         OBJECT
-        function.cpp
+        graph_function.cpp
         graph.cpp
         on_disk_graph.cpp)
 

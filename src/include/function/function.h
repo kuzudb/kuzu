@@ -24,7 +24,8 @@ enum class FunctionType : uint8_t {
     SCALAR = 1,
     REWRITE = 2,
     AGGREGATE = 3,
-    TABLE = 4
+    TABLE = 4,
+    ALGORITHM = 5,
 };
 
 struct Function {

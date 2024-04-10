@@ -1,4 +1,4 @@
-#include "graph/function.h"
+#include "graph/graph_function.h"
 
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"

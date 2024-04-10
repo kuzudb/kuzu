@@ -8,22 +8,22 @@ namespace parser {
 
 class InQueryCallClause final : public ReadingClause {
 public:
-    explicit InQueryCallClause(std::unique_ptr<ParsedExpression> functionExpression)
+    explicit InQueryCallClause(std::unique_ptr<ParsedExpression> functionExpr)
         : ReadingClause{common::ClauseType::IN_QUERY_CALL},
-          functionExpression{std::move(functionExpression)} {}
+          functionExpr{std::move(functionExpr)} {}
 
-    inline const ParsedExpression* getFunctionExpression() const {
-        return functionExpression.get();
+    const ParsedExpression* getFunctionExpr() const {
+        return functionExpr.get();
     }
 
-    inline void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
+    void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
         wherePredicate = std::move(expression);
     }
-    inline bool hasWherePredicate() const { return wherePredicate != nullptr; }
-    inline const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
+    bool hasWherePredicate() const { return wherePredicate != nullptr; }
+    const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
 
 private:
-    std::unique_ptr<ParsedExpression> functionExpression;
+    std::unique_ptr<ParsedExpression> functionExpr;
     std::unique_ptr<ParsedExpression> wherePredicate;
 };
 

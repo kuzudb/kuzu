@@ -7,6 +7,7 @@ add_subdirectory(table)
 add_library(kuzu_function
         OBJECT
         aggregate_function.cpp
+        algorithm_function.cpp
         base_lower_upper_operation.cpp
         built_in_function_utils.cpp
         cast_string_non_nested_functions.cpp

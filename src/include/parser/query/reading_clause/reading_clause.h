@@ -10,7 +10,7 @@ public:
     explicit ReadingClause(common::ClauseType clauseType) : clauseType{clauseType} {};
     virtual ~ReadingClause() = default;
 
-    inline common::ClauseType getClauseType() const { return clauseType; }
+    common::ClauseType getClauseType() const { return clauseType; }
 
 private:
     common::ClauseType clauseType;
