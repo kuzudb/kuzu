@@ -4,8 +4,8 @@ namespace kuzu {
 namespace planner {
 namespace factorization {
 
-f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(
-    const f_group_pos_set& groupsPos, Schema* schema) {
+f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(const f_group_pos_set& groupsPos,
+    Schema* schema) {
     std::vector<f_group_pos> unFlatGroupsPos;
     for (auto groupPos : groupsPos) {
         if (!schema->getGroup(groupPos)->isFlat()) {
@@ -20,8 +20,8 @@ f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(
     return result;
 }
 
-f_group_pos_set FlattenAll::getGroupsPosToFlatten(
-    const f_group_pos_set& groupsPos, Schema* schema) {
+f_group_pos_set FlattenAll::getGroupsPosToFlatten(const f_group_pos_set& groupsPos,
+    Schema* schema) {
     f_group_pos_set result;
     for (auto groupPos : groupsPos) {
         if (!schema->getGroup(groupPos)->isFlat()) {

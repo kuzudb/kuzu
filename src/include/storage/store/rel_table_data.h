@@ -48,14 +48,14 @@ struct CSRHeaderColumns {
         offset->scan(transaction, nodeGroupIdx, chunks.offset.get());
         length->scan(transaction, nodeGroupIdx, chunks.length.get());
     }
-    inline void append(
-        const ChunkedCSRHeader& headerChunks, common::node_group_idx_t nodeGroupIdx) const {
+    inline void append(const ChunkedCSRHeader& headerChunks,
+        common::node_group_idx_t nodeGroupIdx) const {
         offset->append(headerChunks.offset.get(), nodeGroupIdx);
         length->append(headerChunks.length.get(), nodeGroupIdx);
     }
 
-    common::offset_t getNumNodes(
-        transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx) const;
+    common::offset_t getNumNodes(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx) const;
 };
 
 // TODO(Guodong): Serialize the info to disk. This should be a config per node group.
@@ -146,21 +146,21 @@ public:
     bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* relIDVector);
 
-    void checkRelMultiplicityConstraint(
-        transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector) const;
-    bool checkIfNodeHasRels(
-        transaction::Transaction* transaction, common::offset_t nodeOffset) const;
+    void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
+        common::ValueVector* srcNodeIDVector) const;
+    bool checkIfNodeHasRels(transaction::Transaction* transaction,
+        common::offset_t nodeOffset) const;
     void append(ChunkedNodeGroup* nodeGroup) override;
 
     inline Column* getNbrIDColumn() const { return columns[NBR_ID_COLUMN_ID].get(); }
     inline Column* getCSROffsetColumn() const { return csrHeaderColumns.offset.get(); }
     inline Column* getCSRLengthColumn() const { return csrHeaderColumns.length.get(); }
 
-    bool isNewNodeGroup(
-        transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx) const;
+    bool isNewNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx) const;
 
-    void prepareLocalTableToCommit(
-        transaction::Transaction* transaction, LocalTableData* localTable) override;
+    void prepareLocalTableToCommit(transaction::Transaction* transaction,
+        LocalTableData* localTable) override;
 
     void prepareCommitNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalRelNG* localRelNG);
@@ -175,11 +175,11 @@ public:
     }
 
 private:
-    static common::offset_t getMaxNumNodesInRegion(
-        const ChunkedCSRHeader& header, const PackedCSRRegion& region, const LocalRelNG* localNG);
+    static common::offset_t getMaxNumNodesInRegion(const ChunkedCSRHeader& header,
+        const PackedCSRRegion& region, const LocalRelNG* localNG);
 
-    std::vector<PackedCSRRegion> findRegions(
-        const ChunkedCSRHeader& headerChunks, LocalState& localState);
+    std::vector<PackedCSRRegion> findRegions(const ChunkedCSRHeader& headerChunks,
+        LocalState& localState);
     common::length_t getNewRegionSize(const ChunkedCSRHeader& header,
         const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region);
     bool isWithinDensityBound(const ChunkedCSRHeader& headerChunks,
@@ -200,10 +200,10 @@ private:
         common::node_group_idx_t nodeGroupIdx, common::column_id_t columnID,
         const PersistentState& persistentState, LocalState& localState);
 
-    void findPositionsForInsertions(
-        common::offset_t nodeOffset, common::length_t numInsertions, LocalState& localState);
-    void slideForInsertions(
-        common::offset_t nodeOffset, common::length_t numInsertions, LocalState& localState);
+    void findPositionsForInsertions(common::offset_t nodeOffset, common::length_t numInsertions,
+        LocalState& localState);
+    void slideForInsertions(common::offset_t nodeOffset, common::length_t numInsertions,
+        LocalState& localState);
     void slideLeftForInsertions(common::offset_t nodeOffset, common::offset_t leftBoundary,
         LocalState& localState, uint64_t numValuesToInsert);
     void slideRightForInsertions(common::offset_t nodeOffset, common::offset_t rightBoundary,
@@ -213,8 +213,8 @@ private:
         const ChunkCollection& localChunk, ColumnChunk* chunk, common::column_id_t columnID);
     void applyInsertionsToChunk(const PersistentState& persistentState,
         const LocalState& localState, const ChunkCollection& localChunk, ColumnChunk* chunk);
-    void applyDeletionsToChunk(
-        const PersistentState& persistentState, const LocalState& localState, ColumnChunk* chunk);
+    void applyDeletionsToChunk(const PersistentState& persistentState, const LocalState& localState,
+        ColumnChunk* chunk);
 
     void applyUpdatesToColumn(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::column_id_t columnID,
@@ -231,8 +231,8 @@ private:
     std::vector<std::pair<common::offset_t, common::offset_t>> getSlidesForDeletions(
         const PersistentState& persistentState, const LocalState& localState);
 
-    LocalRelNG* getLocalNodeGroup(
-        transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx);
+    LocalRelNG* getLocalNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx);
 
     template<typename T1, typename T2>
     static double divideNoRoundUp(T1 v1, T2 v2) {

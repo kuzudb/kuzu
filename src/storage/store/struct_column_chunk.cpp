@@ -12,14 +12,14 @@ namespace storage {
 
 // TODO: need to handle this case, when the whole struct entry is null, should set all fields to
 // null too.
-StructColumnChunk::StructColumnChunk(
-    LogicalType dataType, uint64_t capacity, bool enableCompression, bool inMemory)
+StructColumnChunk::StructColumnChunk(LogicalType dataType, uint64_t capacity,
+    bool enableCompression, bool inMemory)
     : ColumnChunk{std::move(dataType), capacity} {
     auto fieldTypes = StructType::getFieldTypes(&this->dataType);
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childChunks[i] = ColumnChunkFactory::createColumnChunk(
-            *fieldTypes[i]->copy(), enableCompression, capacity, inMemory);
+        childChunks[i] = ColumnChunkFactory::createColumnChunk(*fieldTypes[i]->copy(),
+            enableCompression, capacity, inMemory);
     }
 }
 
@@ -29,15 +29,15 @@ void StructColumnChunk::finalize() {
     }
 }
 
-void StructColumnChunk::append(
-    ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
+void StructColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
+    uint32_t numValuesToAppend) {
     KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto otherStructChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(other);
     KU_ASSERT(childChunks.size() == otherStructChunk->childChunks.size());
     nullChunk->append(other->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
     for (auto i = 0u; i < childChunks.size(); i++) {
-        childChunks[i]->append(
-            otherStructChunk->childChunks[i].get(), startPosInOtherChunk, numValuesToAppend);
+        childChunks[i]->append(otherStructChunk->childChunks[i].get(), startPosInOtherChunk,
+            numValuesToAppend);
     }
     numValues += numValuesToAppend;
 }
@@ -53,14 +53,14 @@ void StructColumnChunk::append(ValueVector* vector, const SelectionVector& selVe
     numValues += selVector.selectedSize;
 }
 
-void StructColumnChunk::lookup(
-    offset_t offsetInChunk, ValueVector& output, sel_t posInOutputVector) const {
+void StructColumnChunk::lookup(offset_t offsetInChunk, ValueVector& output,
+    sel_t posInOutputVector) const {
     KU_ASSERT(offsetInChunk < numValues);
     auto numFields = StructType::getNumFields(&dataType);
     output.setNull(posInOutputVector, nullChunk->isNull(offsetInChunk));
     for (auto i = 0u; i < numFields; i++) {
-        childChunks[i]->lookup(
-            offsetInChunk, *StructVector::getFieldVector(&output, i).get(), posInOutputVector);
+        childChunks[i]->lookup(offsetInChunk, *StructVector::getFieldVector(&output, i).get(),
+            posInOutputVector);
     }
 }
 
@@ -79,8 +79,8 @@ void StructColumnChunk::resetToEmpty() {
     }
 }
 
-void StructColumnChunk::write(
-    ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+void StructColumnChunk::write(ValueVector* vector, offset_t offsetInVector,
+    offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
     auto fields = StructVector::getFieldVectors(vector);
@@ -92,8 +92,8 @@ void StructColumnChunk::write(
     }
 }
 
-void StructColumnChunk::write(
-    ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultiplicity multiplicity) {
+void StructColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets,
+    RelMultiplicity multiplicity) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT &&
               dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {

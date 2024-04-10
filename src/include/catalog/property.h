@@ -18,8 +18,8 @@ public:
               common::INVALID_TABLE_ID} {}
     Property(std::string name, std::unique_ptr<common::LogicalType> dataType,
         common::property_id_t propertyID, common::table_id_t tableID)
-        : name{std::move(name)}, dataType{std::move(dataType)},
-          propertyID{propertyID}, tableID{tableID} {}
+        : name{std::move(name)}, dataType{std::move(dataType)}, propertyID{propertyID},
+          tableID{tableID} {}
     EXPLICIT_COPY_DEFAULT_MOVE(Property);
 
     std::string getName() const { return name; }
@@ -39,8 +39,8 @@ public:
 
 private:
     Property(const Property& other)
-        : name{other.name}, dataType{other.dataType->copy()},
-          propertyID{other.propertyID}, tableID{other.tableID} {}
+        : name{other.name}, dataType{other.dataType->copy()}, propertyID{other.propertyID},
+          tableID{other.tableID} {}
 
 private:
     std::string name;

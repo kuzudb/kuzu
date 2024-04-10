@@ -13,8 +13,8 @@ public:
         std::unique_ptr<evaluator::ExpressionEvaluator> expressionEvaluator,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::UNWIND, std::move(child), id, paramsString},
-          outDataPos{outDataPos},
-          idPos(idPos), expressionEvaluator{std::move(expressionEvaluator)}, startIndex{0u} {}
+          outDataPos{outDataPos}, idPos(idPos), expressionEvaluator{std::move(expressionEvaluator)},
+          startIndex{0u} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 

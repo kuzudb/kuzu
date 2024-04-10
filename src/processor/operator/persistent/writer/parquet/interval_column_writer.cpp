@@ -28,8 +28,8 @@ void IntervalColumnWriter::writeVector(common::Serializer& bufferedSerializer,
         auto pos = getVectorPos(vector, r);
         if (!vector->isNull(pos)) {
             writeParquetInterval(vector->getValue<common::interval_t>(pos), tmpIntervalBuf);
-            bufferedSerializer.write(
-                tmpIntervalBuf, common::ParquetConstants::PARQUET_INTERVAL_SIZE);
+            bufferedSerializer.write(tmpIntervalBuf,
+                common::ParquetConstants::PARQUET_INTERVAL_SIZE);
         }
     }
 }

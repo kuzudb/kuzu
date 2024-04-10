@@ -1,5 +1,6 @@
-#include <iostream>
 #include <fcntl.h>
+
+#include <iostream>
 
 #include "args.hxx"
 #include "common/file_system/virtual_file_system.h"
@@ -10,20 +11,19 @@ using namespace kuzu::common;
 
 int main(int argc, char* argv[]) {
     args::ArgumentParser parser("KuzuDB Shell");
-    args::Positional<std::string> inputDirFlag(
-        parser, "databasePath", "Database path.", args::Options::Required);
+    args::Positional<std::string> inputDirFlag(parser, "databasePath", "Database path.",
+        args::Options::Required);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<uint64_t> bpSizeInMBFlag(parser, "",
         "Size of buffer pool for default and large page sizes in megabytes", {'d', "defaultBPSize"},
         -1u);
-    args::Flag disableCompression(
-        parser, "nocompression", "Disable compression", {"nocompression"});
-    args::Flag readOnlyMode(
-        parser, "readOnly", "Open database at read-only mode.", {'r', "readOnly"});
-    args::ValueFlag<std::string> historyPathFlag(
-        parser, "", "Path to directory for shell history", {'p'});
-    args::Flag version(
-        parser, "version", "Display current database version", {'v', "version"});
+    args::Flag disableCompression(parser, "nocompression", "Disable compression",
+        {"nocompression"});
+    args::Flag readOnlyMode(parser, "readOnly", "Open database at read-only mode.",
+        {'r', "readOnly"});
+    args::ValueFlag<std::string> historyPathFlag(parser, "", "Path to directory for shell history",
+        {'p'});
+    args::Flag version(parser, "version", "Display current database version", {'v', "version"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (std::exception& e) {

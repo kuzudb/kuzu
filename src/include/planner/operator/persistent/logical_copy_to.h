@@ -30,8 +30,8 @@ public:
     inline const common::CSVOption* getCopyOption() const { return &copyToOption; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyTo>(
-            filePath, fileType, columnNames, columnTypes, copyToOption.copy(), children[0]->copy());
+        return make_unique<LogicalCopyTo>(filePath, fileType, columnNames, columnTypes,
+            copyToOption.copy(), children[0]->copy());
     }
 
 private:

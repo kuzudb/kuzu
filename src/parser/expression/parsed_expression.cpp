@@ -15,8 +15,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace parser {
 
-ParsedExpression::ParsedExpression(
-    ExpressionType type, std::unique_ptr<ParsedExpression> child, std::string rawName)
+ParsedExpression::ParsedExpression(ExpressionType type, std::unique_ptr<ParsedExpression> child,
+    std::string rawName)
     : type{type}, rawName{std::move(rawName)} {
     children.push_back(std::move(child));
 }

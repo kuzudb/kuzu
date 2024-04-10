@@ -357,8 +357,8 @@ int mbedtls_ccm_starts(mbedtls_ccm_context* ctx, int mode, const unsigned char* 
  *                  \p ctx is in an invalid state,
  *                  \p total_ad_len is greater than \c 0xFF00.
  */
-int mbedtls_ccm_set_lengths(
-    mbedtls_ccm_context* ctx, size_t total_ad_len, size_t plaintext_len, size_t tag_len);
+int mbedtls_ccm_set_lengths(mbedtls_ccm_context* ctx, size_t total_ad_len, size_t plaintext_len,
+    size_t tag_len);
 
 /**
  * \brief           This function feeds an input buffer as associated data

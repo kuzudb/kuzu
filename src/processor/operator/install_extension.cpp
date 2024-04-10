@@ -43,8 +43,8 @@ std::string InstallExtension::tryDownloadExtension() {
     return res->body;
 }
 
-void InstallExtension::saveExtensionToLocalFile(
-    const std::string& extensionData, main::ClientContext* context) {
+void InstallExtension::saveExtensionToLocalFile(const std::string& extensionData,
+    main::ClientContext* context) {
     auto extensionDir = context->getExtensionDir();
     auto extensionPath = ExtensionUtils::getExtensionPath(extensionDir, name);
     auto vfs = context->getVFSUnsafe();

@@ -43,8 +43,8 @@ struct ListConcatFunction {
     static constexpr const char* alias = "LIST_CAT";
 
     static function_set getFunctionSet();
-    static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, Function* function);
+    static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
+        Function* function);
 };
 
 struct ListAppendFunction {

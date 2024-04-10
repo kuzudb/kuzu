@@ -8,8 +8,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-void Planner::appendDeleteNode(
-    const std::vector<const BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
+void Planner::appendDeleteNode(const std::vector<const BoundDeleteInfo*>& boundInfos,
+    LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos;
     infos.reserve(boundInfos.size());
     for (auto& boundInfo : boundInfos) {
@@ -27,8 +27,8 @@ void Planner::appendDeleteNode(
     plan.setLastOperator(std::move(deleteNode));
 }
 
-void Planner::appendDeleteRel(
-    const std::vector<const BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
+void Planner::appendDeleteRel(const std::vector<const BoundDeleteInfo*>& boundInfos,
+    LogicalPlan& plan) {
     std::vector<std::shared_ptr<RelExpression>> rels;
     for (auto& info : boundInfos) {
         auto rel = std::static_pointer_cast<RelExpression>(info->nodeOrRel);

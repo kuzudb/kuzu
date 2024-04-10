@@ -11,8 +11,8 @@ struct LogicalDeleteNodeInfo {
     std::shared_ptr<binder::NodeExpression> node;
     common::DeleteNodeType deleteType;
 
-    LogicalDeleteNodeInfo(
-        std::shared_ptr<binder::NodeExpression> node, common::DeleteNodeType deleteType)
+    LogicalDeleteNodeInfo(std::shared_ptr<binder::NodeExpression> node,
+        common::DeleteNodeType deleteType)
         : node{std::move(node)}, deleteType{deleteType} {}
 
     inline std::unique_ptr<LogicalDeleteNodeInfo> copy() const {
@@ -27,8 +27,8 @@ class LogicalDeleteNode : public LogicalOperator {
 public:
     LogicalDeleteNode(std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::DELETE_NODE, std::move(child)}, infos{std::move(
-                                                                                   infos)} {}
+        : LogicalOperator{LogicalOperatorType::DELETE_NODE, std::move(child)},
+          infos{std::move(infos)} {}
 
     inline void computeFactorizedSchema() final { copyChildSchema(0); }
     inline void computeFlatSchema() final { copyChildSchema(0); }
@@ -47,8 +47,8 @@ public:
     f_group_pos_set getGroupsPosToFlatten();
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalDeleteNode>(
-            LogicalDeleteNodeInfo::copy(infos), children[0]->copy());
+        return std::make_unique<LogicalDeleteNode>(LogicalDeleteNodeInfo::copy(infos),
+            children[0]->copy());
     }
 
 private:
@@ -59,8 +59,8 @@ class LogicalDeleteRel : public LogicalOperator {
 public:
     LogicalDeleteRel(std::vector<std::shared_ptr<binder::RelExpression>> rels,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::DELETE_REL, std::move(child)}, rels{std::move(
-                                                                                  rels)} {}
+        : LogicalOperator{LogicalOperatorType::DELETE_REL, std::move(child)},
+          rels{std::move(rels)} {}
 
     inline void computeFactorizedSchema() final { copyChildSchema(0); }
     inline void computeFlatSchema() final { copyChildSchema(0); }

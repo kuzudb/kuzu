@@ -19,8 +19,8 @@ struct RelBatchInsertInfo final : public BatchInsertInfo {
         common::RelDataDirection direction, uint64_t partitioningIdx,
         common::column_id_t offsetColumnID, std::vector<common::LogicalType> columnTypes)
         : BatchInsertInfo{tableEntry, compressionEnabled}, direction{direction},
-          partitioningIdx{partitioningIdx}, offsetColumnID{offsetColumnID}, columnTypes{std::move(
-                                                                                columnTypes)} {}
+          partitioningIdx{partitioningIdx}, offsetColumnID{offsetColumnID},
+          columnTypes{std::move(columnTypes)} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled}, direction{other.direction},
           partitioningIdx{other.partitioningIdx}, offsetColumnID{other.offsetColumnID},
@@ -75,12 +75,12 @@ private:
     static std::vector<common::offset_t> populateStartCSROffsetsAndLengths(
         storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
         const storage::ChunkedNodeGroupCollection& partition, common::column_id_t offsetColumnID);
-    static void populateEndCSROffsets(
-        storage::ChunkedCSRHeader& csrHeader, std::vector<common::offset_t>& gaps);
-    static void setOffsetToWithinNodeGroup(
-        storage::ColumnChunk& chunk, common::offset_t startOffset);
-    static void setOffsetFromCSROffsets(
-        storage::ColumnChunk& nodeOffsetChunk, storage::ColumnChunk& csrOffsetChunk);
+    static void populateEndCSROffsets(storage::ChunkedCSRHeader& csrHeader,
+        std::vector<common::offset_t>& gaps);
+    static void setOffsetToWithinNodeGroup(storage::ColumnChunk& chunk,
+        common::offset_t startOffset);
+    static void setOffsetFromCSROffsets(storage::ColumnChunk& nodeOffsetChunk,
+        storage::ColumnChunk& csrOffsetChunk);
 
     static std::optional<common::offset_t> checkRelMultiplicityConstraint(
         const storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo);

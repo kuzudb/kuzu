@@ -63,8 +63,8 @@ table_id_t CatalogContent::createTable(const BoundCreateTableInfo& info) {
     return tableID;
 }
 
-std::unique_ptr<CatalogEntry> CatalogContent::createNodeTableEntry(
-    table_id_t tableID, const BoundCreateTableInfo& info) const {
+std::unique_ptr<CatalogEntry> CatalogContent::createNodeTableEntry(table_id_t tableID,
+    const BoundCreateTableInfo& info) const {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateNodeTableInfo*>(
             info.extraInfo.get());
@@ -76,8 +76,8 @@ std::unique_ptr<CatalogEntry> CatalogContent::createNodeTableEntry(
     return nodeTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> CatalogContent::createRelTableEntry(
-    table_id_t tableID, const BoundCreateTableInfo& info) const {
+std::unique_ptr<CatalogEntry> CatalogContent::createRelTableEntry(table_id_t tableID,
+    const BoundCreateTableInfo& info) const {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
             info.extraInfo.get());
@@ -96,8 +96,8 @@ std::unique_ptr<CatalogEntry> CatalogContent::createRelTableEntry(
     return relTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> CatalogContent::createRelTableGroupEntry(
-    table_id_t tableID, const BoundCreateTableInfo& info) {
+std::unique_ptr<CatalogEntry> CatalogContent::createRelTableGroupEntry(table_id_t tableID,
+    const BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableGroupInfo*>(
             info.extraInfo.get());
@@ -109,8 +109,8 @@ std::unique_ptr<CatalogEntry> CatalogContent::createRelTableGroupEntry(
     return std::make_unique<RelGroupCatalogEntry>(info.tableName, tableID, std::move(relTableIDs));
 }
 
-std::unique_ptr<CatalogEntry> CatalogContent::createRdfGraphEntry(
-    table_id_t tableID, const BoundCreateTableInfo& info) {
+std::unique_ptr<CatalogEntry> CatalogContent::createRdfGraphEntry(table_id_t tableID,
+    const BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRdfGraphInfo*>(
             info.extraInfo.get());
@@ -198,8 +198,8 @@ void CatalogContent::renameTable(table_id_t tableID, const std::string& newName)
         auto rdfGraphEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
         renameTable(rdfGraphEntry->getResourceTableID(),
             RDFGraphCatalogEntry::getResourceTableName(newName));
-        renameTable(
-            rdfGraphEntry->getLiteralTableID(), RDFGraphCatalogEntry::getLiteralTableName(newName));
+        renameTable(rdfGraphEntry->getLiteralTableID(),
+            RDFGraphCatalogEntry::getLiteralTableName(newName));
         renameTable(rdfGraphEntry->getResourceTripleTableID(),
             RDFGraphCatalogEntry::getResourceTripleTableName(newName));
         renameTable(rdfGraphEntry->getLiteralTripleTableID(),

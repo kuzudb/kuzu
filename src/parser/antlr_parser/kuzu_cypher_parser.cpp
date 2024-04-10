@@ -10,8 +10,8 @@ void KuzuCypherParser::notifyQueryNotConcludeWithReturn(antlr4::Token* startToke
     notifyErrorListeners(startToken, errorMsg, nullptr);
 }
 
-void KuzuCypherParser::notifyNodePatternWithoutParentheses(
-    std::string nodeName, antlr4::Token* startToken) {
+void KuzuCypherParser::notifyNodePatternWithoutParentheses(std::string nodeName,
+    antlr4::Token* startToken) {
     auto errorMsg =
         "Parentheses are required to identify nodes in patterns, i.e. (" + nodeName + ")";
     notifyErrorListeners(startToken, errorMsg, nullptr);

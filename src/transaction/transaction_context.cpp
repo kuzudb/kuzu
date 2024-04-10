@@ -40,8 +40,8 @@ void TransactionContext::beginAutoTransaction(bool readOnlyStatement) {
         readOnlyStatement ? TransactionType::READ_ONLY : TransactionType::WRITE);
 }
 
-void TransactionContext::validateManualTransaction(
-    bool allowActiveTransaction, bool readOnlyStatement) {
+void TransactionContext::validateManualTransaction(bool allowActiveTransaction,
+    bool readOnlyStatement) {
     KU_ASSERT(hasActiveTransaction());
     if (activeTransaction->isReadOnly() && !readOnlyStatement) {
         throw ConnectionException("Can't execute a write query inside a read-only transaction.");

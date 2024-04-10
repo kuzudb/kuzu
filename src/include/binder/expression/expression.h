@@ -46,10 +46,10 @@ public:
         : Expression{expressionType, std::move(dataType), expression_vector{child},
               std::move(uniqueName)} {}
     // Create leaf expression
-    Expression(
-        common::ExpressionType expressionType, common::LogicalType dataType, std::string uniqueName)
-        : Expression{
-              expressionType, std::move(dataType), expression_vector{}, std::move(uniqueName)} {}
+    Expression(common::ExpressionType expressionType, common::LogicalType dataType,
+        std::string uniqueName)
+        : Expression{expressionType, std::move(dataType), expression_vector{},
+              std::move(uniqueName)} {}
     DELETE_COPY_DEFAULT_MOVE(Expression);
     virtual ~Expression() = default;
 
@@ -108,8 +108,8 @@ struct ExpressionHasher {
 };
 
 struct ExpressionEquality {
-    bool operator()(
-        const std::shared_ptr<Expression>& left, const std::shared_ptr<Expression>& right) const {
+    bool operator()(const std::shared_ptr<Expression>& left,
+        const std::shared_ptr<Expression>& right) const {
         return left->getUniqueName() == right->getUniqueName();
     }
 };

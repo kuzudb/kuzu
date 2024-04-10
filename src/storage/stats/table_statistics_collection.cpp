@@ -71,8 +71,8 @@ PropertyStatistics& TablesStatistics::getPropertyStatisticsForTable(
     }
 }
 
-void TablesStatistics::setPropertyStatisticsForTable(
-    table_id_t tableID, property_id_t propertyID, PropertyStatistics stats) {
+void TablesStatistics::setPropertyStatisticsForTable(table_id_t tableID, property_id_t propertyID,
+    PropertyStatistics stats) {
     initTableStatisticsForWriteTrx();
     KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
     setToUpdated();

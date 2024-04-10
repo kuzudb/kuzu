@@ -125,8 +125,8 @@ private:
 
     inline std::string getParam(int paramIdx) { return currentToken.params[paramIdx]; }
 
-    TestStatement* extractStatement(
-        TestStatement* currentStatement, const std::string& testCaseName);
+    TestStatement* extractStatement(TestStatement* currentStatement,
+        const std::string& testCaseName);
     TestStatement* addNewStatement(std::string& name);
 
     const std::string exportDBPath = TestHelper::appendKuzuRootPath(

@@ -32,13 +32,13 @@ public:
         if (!resultVector.isNull(resPos)) {
             auto listValues =
                 common::ListVector::getListValuesWithOffset(&listVector, listEntry, upos - 1);
-            resultVector.copyFromVectorData(
-                reinterpret_cast<uint8_t*>(&result), listDataVector, listValues);
+            resultVector.copyFromVectorData(reinterpret_cast<uint8_t*>(&result), listDataVector,
+                listValues);
         }
     }
 
-    static inline void operation(
-        common::ku_string_t& str, int64_t& idx, common::ku_string_t& result) {
+    static inline void operation(common::ku_string_t& str, int64_t& idx,
+        common::ku_string_t& result) {
         if (str.len < idx) {
             result.set("", 0);
         } else {

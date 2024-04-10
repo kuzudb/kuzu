@@ -394,8 +394,8 @@ int mbedtls_rsa_export_raw(const mbedtls_rsa_context* ctx, unsigned char* N, siz
  * \return         A non-zero error code on failure.
  *
  */
-int mbedtls_rsa_export_crt(
-    const mbedtls_rsa_context* ctx, mbedtls_mpi* DP, mbedtls_mpi* DQ, mbedtls_mpi* QP);
+int mbedtls_rsa_export_crt(const mbedtls_rsa_context* ctx, mbedtls_mpi* DP, mbedtls_mpi* DQ,
+    mbedtls_mpi* QP);
 
 /**
  * \brief          This function retrieves the length of RSA modulus in Bytes.

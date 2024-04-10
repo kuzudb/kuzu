@@ -34,8 +34,8 @@ public:
     }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalExplain>(
-            children[0], outputExpression, explainType, outputExpressionsToExplain);
+        return std::make_unique<LogicalExplain>(children[0], outputExpression, explainType,
+            outputExpressionsToExplain);
     }
 
 private:

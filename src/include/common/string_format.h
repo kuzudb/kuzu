@@ -11,7 +11,9 @@ namespace common {
 
 namespace string_format_detail {
 #define MAP_STD_TO_STRING(typ)                                                                     \
-    inline std::string map(typ v) { return std::to_string(v); }
+    inline std::string map(typ v) {                                                                \
+        return std::to_string(v);                                                                  \
+    }
 
 MAP_STD_TO_STRING(short)
 MAP_STD_TO_STRING(unsigned short)
@@ -26,7 +28,9 @@ MAP_STD_TO_STRING(double)
 #undef MAP_STD_TO_STRING
 
 #define MAP_SELF(typ)                                                                              \
-    inline typ map(typ v) { return v; }
+    inline typ map(typ v) {                                                                        \
+        return v;                                                                                  \
+    }
 MAP_SELF(const char*);
 // Also covers std::string
 MAP_SELF(std::string_view)
@@ -65,8 +69,8 @@ inline void stringFormatHelper(std::string& ret, std::string_view format, Args&&
 }
 
 template<typename Arg, typename... Args>
-inline void stringFormatHelper(
-    std::string& ret, std::string_view format, Arg&& arg, Args&&... args) {
+inline void stringFormatHelper(std::string& ret, std::string_view format, Arg&& arg,
+    Args&&... args) {
     size_t bracket = format.find('{');
     if (bracket == std::string_view::npos) {
         throw InternalException("Too many values for string_format.");
@@ -75,8 +79,8 @@ inline void stringFormatHelper(
     if (format.substr(bracket, 4) == "{{}}") {
         // Escaped {}.
         ret += "{}";
-        return stringFormatHelper(
-            ret, format.substr(bracket + 4), std::forward<Arg>(arg), std::forward<Args>(args)...);
+        return stringFormatHelper(ret, format.substr(bracket + 4), std::forward<Arg>(arg),
+            std::forward<Args>(args)...);
     } else if (format.substr(bracket, 2) == "{}") {
         // Formatted {}.
         ret += map(arg);
@@ -84,8 +88,8 @@ inline void stringFormatHelper(
     }
     // Something else.
     ret.push_back('{');
-    return stringFormatHelper(
-        ret, format.substr(bracket + 1), std::forward<Arg>(arg), std::forward<Args>(args)...);
+    return stringFormatHelper(ret, format.substr(bracket + 1), std::forward<Arg>(arg),
+        std::forward<Args>(args)...);
 }
 } // namespace string_format_detail
 

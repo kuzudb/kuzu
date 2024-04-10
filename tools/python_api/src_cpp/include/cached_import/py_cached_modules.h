@@ -7,8 +7,9 @@ namespace kuzu {
 class DateTimeCachedItem : public PythonCachedItem {
 
 public:
-    DateTimeCachedItem() : PythonCachedItem("datetime"), date("date", this),
-        datetime("datetime", this), timedelta("timedelta", this) {}
+    DateTimeCachedItem()
+        : PythonCachedItem("datetime"), date("date", this), datetime("datetime", this),
+          timedelta("timedelta", this) {}
 
     PythonCachedItem date;
     PythonCachedItem datetime;
@@ -35,7 +36,7 @@ class NumpyMaCachedItem : public PythonCachedItem {
 
 public:
     NumpyMaCachedItem() : PythonCachedItem("numpy.ma"), masked_array("masked_array", this) {}
-    
+
     PythonCachedItem masked_array;
 };
 
@@ -43,31 +44,32 @@ class PandasCachedItem : public PythonCachedItem {
 
     class SeriesCachedItem : public PythonCachedItem {
     public:
-        explicit SeriesCachedItem(PythonCachedItem* parent): PythonCachedItem("series", parent),
-            Series("Series", this) {}
+        explicit SeriesCachedItem(PythonCachedItem* parent)
+            : PythonCachedItem("series", parent), Series("Series", this) {}
 
         PythonCachedItem Series;
     };
 
     class CoreCachedItem : public PythonCachedItem {
     public:
-        explicit CoreCachedItem(PythonCachedItem* parent): PythonCachedItem("core", parent),
-            series(this) {}
+        explicit CoreCachedItem(PythonCachedItem* parent)
+            : PythonCachedItem("core", parent), series(this) {}
 
         SeriesCachedItem series;
     };
 
     class DataFrameCachedItem : public PythonCachedItem {
     public:
-        explicit DataFrameCachedItem(PythonCachedItem* parent): PythonCachedItem("DataFrame", parent),
-            from_dict("from_dict", this) {}
-        
+        explicit DataFrameCachedItem(PythonCachedItem* parent)
+            : PythonCachedItem("DataFrame", parent), from_dict("from_dict", this) {}
+
         PythonCachedItem from_dict;
     };
 
 public:
-    PandasCachedItem() : PythonCachedItem("pandas"), ArrowDtype("ArrowDtype", this), core(this), DataFrame(this),
-        NA("NA", this), NaT("NaT", this) {}
+    PandasCachedItem()
+        : PythonCachedItem("pandas"), ArrowDtype("ArrowDtype", this), core(this), DataFrame(this),
+          NA("NA", this), NaT("NaT", this) {}
 
     PythonCachedItem ArrowDtype;
     CoreCachedItem core;
@@ -80,24 +82,25 @@ class PyarrowCachedItem : public PythonCachedItem {
 
     class RecordBatchCachedItem : public PythonCachedItem {
     public:
-        explicit RecordBatchCachedItem(PythonCachedItem* parent): PythonCachedItem("RecordBatch", parent),
-            _import_from_c("_import_from_c", this) {}
+        explicit RecordBatchCachedItem(PythonCachedItem* parent)
+            : PythonCachedItem("RecordBatch", parent), _import_from_c("_import_from_c", this) {}
 
         PythonCachedItem _import_from_c;
     };
 
     class SchemaCachedItem : public PythonCachedItem {
     public:
-        explicit SchemaCachedItem(PythonCachedItem* parent): PythonCachedItem("Schema", parent),
-            _import_from_c("_import_from_c", this) {}
+        explicit SchemaCachedItem(PythonCachedItem* parent)
+            : PythonCachedItem("Schema", parent), _import_from_c("_import_from_c", this) {}
 
         PythonCachedItem _import_from_c;
     };
 
     class TableCachedItem : public PythonCachedItem {
     public:
-        explicit TableCachedItem(PythonCachedItem* parent): PythonCachedItem("Table", parent),
-            from_batches("from_batches", this), from_pandas("from_pandas", this) {}
+        explicit TableCachedItem(PythonCachedItem* parent)
+            : PythonCachedItem("Table", parent), from_batches("from_batches", this),
+              from_pandas("from_pandas", this) {}
 
         PythonCachedItem from_batches;
         PythonCachedItem from_pandas;
@@ -105,8 +108,8 @@ class PyarrowCachedItem : public PythonCachedItem {
 
     class LibCachedItem : public PythonCachedItem {
     public:
-        explicit LibCachedItem(PythonCachedItem* parent): PythonCachedItem("lib", parent),
-            RecordBatch(this), Schema(this), Table(this) {}
+        explicit LibCachedItem(PythonCachedItem* parent)
+            : PythonCachedItem("lib", parent), RecordBatch(this), Schema(this), Table(this) {}
 
         RecordBatchCachedItem RecordBatch;
         SchemaCachedItem Schema;
@@ -114,7 +117,7 @@ class PyarrowCachedItem : public PythonCachedItem {
     };
 
 public:
-    PyarrowCachedItem(): PythonCachedItem("pyarrow"), lib(this) {}
+    PyarrowCachedItem() : PythonCachedItem("pyarrow"), lib(this) {}
 
     LibCachedItem lib;
 };

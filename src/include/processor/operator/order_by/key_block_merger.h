@@ -28,8 +28,8 @@ struct StrKeyColInfo {
 
 class MergedKeyBlocks {
 public:
-    MergedKeyBlocks(
-        uint32_t numBytesPerTuple, uint64_t numTuples, storage::MemoryManager* memoryManager);
+    MergedKeyBlocks(uint32_t numBytesPerTuple, uint64_t numTuples,
+        storage::MemoryManager* memoryManager);
 
     // This constructor is used to convert a dataBlock to a MergedKeyBlocks.
     MergedKeyBlocks(uint32_t numBytesPerTuple, std::shared_ptr<DataBlock> keyBlock);
@@ -51,8 +51,8 @@ public:
         return keyBlocks[idx]->getData();
     }
 
-    uint8_t* getBlockEndTuplePtr(
-        uint32_t blockIdx, uint64_t endTupleIdx, uint32_t endTupleBlockIdx) const;
+    uint8_t* getBlockEndTuplePtr(uint32_t blockIdx, uint64_t endTupleIdx,
+        uint32_t endTupleBlockIdx) const;
 
 private:
     uint32_t numBytesPerTuple;

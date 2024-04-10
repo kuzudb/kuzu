@@ -14,8 +14,8 @@ void Planner::appendHashJoin(const binder::expression_vector& joinNodeIDs, JoinT
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
     }
-    auto hashJoin = make_shared<LogicalHashJoin>(
-        joinConditions, joinType, probePlan.getLastOperator(), buildPlan.getLastOperator());
+    auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, joinType,
+        probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
     auto groupsPosToFlattenOnProbeSide = hashJoin->getGroupsPosToFlattenOnProbeSide();
     appendFlattens(groupsPosToFlattenOnProbeSide, probePlan);
@@ -46,8 +46,8 @@ void Planner::appendMarkJoin(const binder::expression_vector& joinNodeIDs,
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
     }
-    auto hashJoin = make_shared<LogicalHashJoin>(
-        joinConditions, mark, probePlan.getLastOperator(), buildPlan.getLastOperator());
+    auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, mark, probePlan.getLastOperator(),
+        buildPlan.getLastOperator());
     // Apply flattening to probe side
     appendFlattens(hashJoin->getGroupsPosToFlattenOnProbeSide(), probePlan);
     hashJoin->setChild(0, probePlan.getLastOperator());

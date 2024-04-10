@@ -25,8 +25,8 @@ inline void ListLen::operation(common::ku_string_t& input, int64_t& result) {
             int64_t length = 0;
             // Use grapheme iterator to identify bytes of utf8 char and increment once for each
             // char.
-            utf8proc::utf8proc_grapheme_callback(
-                inputString.c_str(), totalByteLength, [&](size_t /*start*/, size_t /*end*/) {
+            utf8proc::utf8proc_grapheme_callback(inputString.c_str(), totalByteLength,
+                [&](size_t /*start*/, size_t /*end*/) {
                     length++;
                     return true;
                 });

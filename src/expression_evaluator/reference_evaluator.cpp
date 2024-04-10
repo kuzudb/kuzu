@@ -11,8 +11,8 @@ inline static bool isTrue(ValueVector& vector, uint64_t pos) {
     return !vector.isNull(pos) && vector.getValue<bool>(pos);
 }
 
-bool ReferenceExpressionEvaluator::select(
-    SelectionVector& selVector, ClientContext* /*clientContext*/) {
+bool ReferenceExpressionEvaluator::select(SelectionVector& selVector,
+    ClientContext* /*clientContext*/) {
     uint64_t numSelectedValues = 0;
     auto selectedBuffer = resultVector->state->selVector->getMultableBuffer();
     if (resultVector->state->selVector->isUnfiltered()) {

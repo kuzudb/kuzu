@@ -38,8 +38,8 @@ void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,
     }
 }
 
-static void copyParameterValueToStructFieldVector(
-    const ValueVector* parameter, ValueVector* structField, DataChunkState* structVectorState) {
+static void copyParameterValueToStructFieldVector(const ValueVector* parameter,
+    ValueVector* structField, DataChunkState* structVectorState) {
     // If the parameter is unFlat, then its state must be consistent with the result's state.
     // Thus, we don't need to copy values to structFieldVector.
     KU_ASSERT(parameter->state->isFlat());
@@ -64,8 +64,8 @@ void StructPackFunctions::execFunc(const std::vector<std::shared_ptr<ValueVector
         }
         // If the parameter's state is inconsistent with the result's state, we need to copy the
         // parameter's value to the corresponding child vector.
-        copyParameterValueToStructFieldVector(
-            parameter.get(), StructVector::getFieldVector(&result, i).get(), result.state.get());
+        copyParameterValueToStructFieldVector(parameter.get(),
+            StructVector::getFieldVector(&result, i).get(), result.state.get());
     }
 }
 

@@ -11,8 +11,8 @@ public:
     LogicalAccumulate(common::AccumulateType accumulateType, binder::expression_vector flatExprs,
         std::shared_ptr<binder::Expression> offset, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::ACCUMULATE, std::move(child)},
-          accumulateType{accumulateType}, flatExprs{std::move(flatExprs)}, offset{
-                                                                               std::move(offset)} {}
+          accumulateType{accumulateType}, flatExprs{std::move(flatExprs)},
+          offset{std::move(offset)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -28,8 +28,8 @@ public:
     std::shared_ptr<binder::Expression> getOffset() const { return offset; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalAccumulate>(
-            accumulateType, flatExprs, offset, children[0]->copy());
+        return make_unique<LogicalAccumulate>(accumulateType, flatExprs, offset,
+            children[0]->copy());
     }
 
 private:

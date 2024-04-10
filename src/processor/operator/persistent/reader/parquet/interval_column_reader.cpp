@@ -12,8 +12,8 @@ common::interval_t IntervalValueConversion::readParquetInterval(const char* inpu
     return result;
 }
 
-common::interval_t IntervalValueConversion::plainRead(
-    ByteBuffer& plainData, ColumnReader& /*reader*/) {
+common::interval_t IntervalValueConversion::plainRead(ByteBuffer& plainData,
+    ColumnReader& /*reader*/) {
     auto intervalLen = common::ParquetConstants::PARQUET_INTERVAL_SIZE;
     plainData.available(intervalLen);
     auto res = readParquetInterval(reinterpret_cast<const char*>(plainData.ptr));
@@ -21,8 +21,8 @@ common::interval_t IntervalValueConversion::plainRead(
     return res;
 }
 
-void IntervalColumnReader::dictionary(
-    const std::shared_ptr<ResizeableBuffer>& dictionary_data, uint64_t num_entries) {
+void IntervalColumnReader::dictionary(const std::shared_ptr<ResizeableBuffer>& dictionary_data,
+    uint64_t num_entries) {
     allocateDict(num_entries * sizeof(common::interval_t));
     auto dict_ptr = reinterpret_cast<common::interval_t*>(this->dict->ptr);
     for (auto i = 0u; i < num_entries; i++) {

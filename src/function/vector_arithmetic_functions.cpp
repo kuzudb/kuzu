@@ -107,25 +107,25 @@ static void getBinaryExecFunc(LogicalTypeID operandTypeID, scalar_func_exec_t& f
 }
 
 template<typename FUNC>
-static std::unique_ptr<ScalarFunction> getUnaryFunction(
-    std::string name, LogicalTypeID operandTypeID) {
+static std::unique_ptr<ScalarFunction> getUnaryFunction(std::string name,
+    LogicalTypeID operandTypeID) {
     function::scalar_func_exec_t execFunc;
     getUnaryExecFunc<FUNC>(operandTypeID, execFunc);
-    return std::make_unique<ScalarFunction>(
-        std::move(name), std::vector<LogicalTypeID>{operandTypeID}, operandTypeID, execFunc);
+    return std::make_unique<ScalarFunction>(std::move(name),
+        std::vector<LogicalTypeID>{operandTypeID}, operandTypeID, execFunc);
 }
 
 template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
-static std::unique_ptr<ScalarFunction> getUnaryFunction(
-    std::string name, LogicalTypeID operandTypeID, LogicalTypeID resultTypeID) {
+static std::unique_ptr<ScalarFunction> getUnaryFunction(std::string name,
+    LogicalTypeID operandTypeID, LogicalTypeID resultTypeID) {
     return std::make_unique<ScalarFunction>(std::move(name),
         std::vector<LogicalTypeID>{operandTypeID}, resultTypeID,
         ScalarFunction::UnaryExecFunction<OPERAND_TYPE, RETURN_TYPE, FUNC>);
 }
 
 template<typename FUNC>
-static inline std::unique_ptr<ScalarFunction> getBinaryFunction(
-    std::string name, LogicalTypeID operandTypeID) {
+static inline std::unique_ptr<ScalarFunction> getBinaryFunction(std::string name,
+    LogicalTypeID operandTypeID) {
     function::scalar_func_exec_t execFunc;
     getBinaryExecFunc<FUNC>(operandTypeID, execFunc);
     return std::make_unique<ScalarFunction>(std::move(name),
@@ -133,8 +133,8 @@ static inline std::unique_ptr<ScalarFunction> getBinaryFunction(
 }
 
 template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
-static inline std::unique_ptr<ScalarFunction> getBinaryFunction(
-    std::string name, LogicalTypeID operandTypeID, LogicalTypeID resultTypeID) {
+static inline std::unique_ptr<ScalarFunction> getBinaryFunction(std::string name,
+    LogicalTypeID operandTypeID, LogicalTypeID resultTypeID) {
     return std::make_unique<ScalarFunction>(std::move(name),
         std::vector<LogicalTypeID>{operandTypeID, operandTypeID}, resultTypeID,
         ScalarFunction::BinaryExecFunction<OPERAND_TYPE, OPERAND_TYPE, RETURN_TYPE, FUNC>);
@@ -156,8 +156,8 @@ function_set AddFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::STRING, ConcatFunction::execFunc));
     // interval + interval → interval
-    result.push_back(getBinaryFunction<Add, interval_t, interval_t>(
-        name, LogicalTypeID::INTERVAL, LogicalTypeID::INTERVAL));
+    result.push_back(getBinaryFunction<Add, interval_t, interval_t>(name, LogicalTypeID::INTERVAL,
+        LogicalTypeID::INTERVAL));
     // date + int → date
     result.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::DATE, LogicalTypeID::INT64}, LogicalTypeID::DATE,
@@ -193,8 +193,8 @@ function_set SubtractFunction::getFunctionSet() {
         result.push_back(getBinaryFunction<Subtract>(name, typeID));
     }
     // date - date → int64
-    result.push_back(getBinaryFunction<Subtract, date_t, int64_t>(
-        name, LogicalTypeID::DATE, LogicalTypeID::INT64));
+    result.push_back(getBinaryFunction<Subtract, date_t, int64_t>(name, LogicalTypeID::DATE,
+        LogicalTypeID::INT64));
     // date - integer → date
     result.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::DATE, LogicalTypeID::INT64}, LogicalTypeID::DATE,
@@ -205,16 +205,16 @@ function_set SubtractFunction::getFunctionSet() {
         LogicalTypeID::DATE,
         ScalarFunction::BinaryExecFunction<date_t, interval_t, date_t, Subtract>));
     // timestamp - timestamp → interval
-    result.push_back(getBinaryFunction<Subtract, timestamp_t, interval_t>(
-        name, LogicalTypeID::TIMESTAMP, LogicalTypeID::INTERVAL));
+    result.push_back(getBinaryFunction<Subtract, timestamp_t, interval_t>(name,
+        LogicalTypeID::TIMESTAMP, LogicalTypeID::INTERVAL));
     // timestamp - interval → timestamp
     result.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::TIMESTAMP, LogicalTypeID::INTERVAL},
         LogicalTypeID::TIMESTAMP,
         ScalarFunction::BinaryExecFunction<timestamp_t, interval_t, timestamp_t, Subtract>));
     // interval - interval → interval
-    result.push_back(getBinaryFunction<Subtract, interval_t, interval_t>(
-        name, LogicalTypeID::INTERVAL, LogicalTypeID::INTERVAL));
+    result.push_back(getBinaryFunction<Subtract, interval_t, interval_t>(name,
+        LogicalTypeID::INTERVAL, LogicalTypeID::INTERVAL));
     return result;
 }
 
@@ -470,8 +470,8 @@ function_set BitShiftLeftFunction::getFunctionSet() {
 
 function_set BitShiftRightFunction::getFunctionSet() {
     function_set result;
-    result.push_back(getBinaryFunction<BitShiftRight, int64_t>(
-        name, LogicalTypeID::INT64, LogicalTypeID::INT64));
+    result.push_back(getBinaryFunction<BitShiftRight, int64_t>(name, LogicalTypeID::INT64,
+        LogicalTypeID::INT64));
     return result;
 }
 

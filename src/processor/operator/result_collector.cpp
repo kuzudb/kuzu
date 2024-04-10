@@ -11,8 +11,8 @@ void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     for (auto& pos : info->payloadPositions) {
         payloadVectors.push_back(resultSet->getValueVector(pos).get());
     }
-    localTable = std::make_unique<FactorizedTable>(
-        context->clientContext->getMemoryManager(), info->tableSchema->copy());
+    localTable = std::make_unique<FactorizedTable>(context->clientContext->getMemoryManager(),
+        info->tableSchema->copy());
 }
 
 void ResultCollector::executeInternal(ExecutionContext* context) {

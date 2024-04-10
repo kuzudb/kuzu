@@ -7,10 +7,10 @@ namespace planner {
 
 class LogicalScanInternalID : public LogicalOperator {
 public:
-    explicit LogicalScanInternalID(
-        std::shared_ptr<binder::Expression> internalID, std::vector<common::table_id_t> tableIDs)
-        : LogicalOperator{LogicalOperatorType::SCAN_INTERNAL_ID},
-          internalID{std::move(internalID)}, tableIDs{std::move(tableIDs)} {}
+    explicit LogicalScanInternalID(std::shared_ptr<binder::Expression> internalID,
+        std::vector<common::table_id_t> tableIDs)
+        : LogicalOperator{LogicalOperatorType::SCAN_INTERNAL_ID}, internalID{std::move(internalID)},
+          tableIDs{std::move(tableIDs)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;

@@ -111,12 +111,12 @@ int mbedtls_internal_sha1_process(mbedtls_sha1_context* ctx, const unsigned char
     local.W[14] = MBEDTLS_GET_UINT32_BE(data, 56);
     local.W[15] = MBEDTLS_GET_UINT32_BE(data, 60);
 
-#define S(x, n) (((x) << (n)) | (((x)&0xFFFFFFFF) >> (32 - (n))))
+#define S(x, n) (((x) << (n)) | (((x) & 0xFFFFFFFF) >> (32 - (n))))
 
 #define R(t)                                                                                       \
-    (local.temp = local.W[((t)-3) & 0x0F] ^ local.W[((t)-8) & 0x0F] ^ local.W[((t)-14) & 0x0F] ^   \
-                  local.W[(t)&0x0F],                                                               \
-        (local.W[(t)&0x0F] = S(local.temp, 1)))
+    (local.temp = local.W[((t) - 3) & 0x0F] ^ local.W[((t) - 8) & 0x0F] ^                          \
+                  local.W[((t) - 14) & 0x0F] ^ local.W[(t) & 0x0F],                                \
+        (local.W[(t) & 0x0F] = S(local.temp, 1)))
 
 #define P(a, b, c, d, e, x)                                                                        \
     do {                                                                                           \
@@ -388,14 +388,14 @@ exit:
 /*
  * FIPS-180-1 test vectors
  */
-static const unsigned char sha1_test_buf[3][57] = {
-    {"abc"}, {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"}, {""}};
+static const unsigned char sha1_test_buf[3][57] = {{"abc"},
+    {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"}, {""}};
 
 static const size_t sha1_test_buflen[3] = {3, 56, 1000};
 
-static const unsigned char sha1_test_sum[3][20] = {
-    {0xA9, 0x99, 0x3E, 0x36, 0x47, 0x06, 0x81, 0x6A, 0xBA, 0x3E, 0x25, 0x71, 0x78, 0x50, 0xC2, 0x6C,
-        0x9C, 0xD0, 0xD8, 0x9D},
+static const unsigned char sha1_test_sum[3][20] = {{0xA9, 0x99, 0x3E, 0x36, 0x47, 0x06, 0x81, 0x6A,
+                                                       0xBA, 0x3E, 0x25, 0x71, 0x78, 0x50, 0xC2,
+                                                       0x6C, 0x9C, 0xD0, 0xD8, 0x9D},
     {0x84, 0x98, 0x3E, 0x44, 0x1C, 0x3B, 0xD2, 0x6E, 0xBA, 0xAE, 0x4A, 0xA1, 0xF9, 0x51, 0x29, 0xE5,
         0xE5, 0x46, 0x70, 0xF1},
     {0x34, 0xAA, 0x97, 0x3C, 0xD4, 0xC4, 0xDA, 0xA4, 0xF6, 0x1E, 0xEB, 0x2B, 0xDB, 0xAD, 0x27, 0x31,

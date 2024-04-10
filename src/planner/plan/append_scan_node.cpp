@@ -9,8 +9,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-void Planner::appendScanInternalID(
-    std::shared_ptr<Expression> internalID, std::vector<table_id_t> tableIDs, LogicalPlan& plan) {
+void Planner::appendScanInternalID(std::shared_ptr<Expression> internalID,
+    std::vector<table_id_t> tableIDs, LogicalPlan& plan) {
     KU_ASSERT(plan.isEmpty());
     auto scan = make_shared<LogicalScanInternalID>(std::move(internalID), std::move(tableIDs));
     scan->computeFactorizedSchema();
@@ -33,8 +33,8 @@ void Planner::appendScanNodeProperties(std::shared_ptr<Expression> nodeID,
     if (propertiesToScan_.empty()) {
         return;
     }
-    auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(
-        std::move(nodeID), std::move(tableIDs), propertiesToScan_, plan.getLastOperator());
+    auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(std::move(nodeID),
+        std::move(tableIDs), propertiesToScan_, plan.getLastOperator());
     scanNodeProperty->computeFactorizedSchema();
     plan.setLastOperator(std::move(scanNodeProperty));
 }

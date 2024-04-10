@@ -33,8 +33,8 @@ struct ScanTableFuncBindInput final : public TableFuncBindInput {
     ScanTableFuncBindInput(common::ReaderConfig config,
         std::vector<std::string> expectedColumnNames,
         std::vector<common::LogicalType> expectedColumnTypes, main::ClientContext* context)
-        : TableFuncBindInput{}, config{std::move(config)}, expectedColumnNames{std::move(
-                                                               expectedColumnNames)},
+        : TableFuncBindInput{}, config{std::move(config)},
+          expectedColumnNames{std::move(expectedColumnNames)},
           expectedColumnTypes{std::move(expectedColumnTypes)}, context{context} {
         inputs.push_back(common::Value::createValue(this->config.filePaths[0]));
     }

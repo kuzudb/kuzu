@@ -23,11 +23,11 @@ HashIndexBuilder<T>::HashIndexBuilder(const std::shared_ptr<FileHandle>& fileHan
     this->indexHeader = std::make_unique<HashIndexHeader>(keyDataType);
     headerArray = std::make_unique<InMemDiskArrayBuilder<HashIndexHeader>>(*fileHandle,
         NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, 0 /* numElements */);
-    pSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(
-        *fileHandle, NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, 0 /* numElements */);
+    pSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(*fileHandle,
+        NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, 0 /* numElements */);
     // Reserve a slot for oSlots, which is always skipped, as we treat slot idx 0 as NULL.
-    oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(
-        *fileHandle, NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, 1 /* numElements */);
+    oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(*fileHandle,
+        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, 1 /* numElements */);
     allocatePSlots(1u << this->indexHeader->currentLevel);
 }
 
@@ -212,8 +212,8 @@ void HashIndexBuilder<T>::flush() {
 }
 
 template<typename T>
-inline void HashIndexBuilder<T>::insertToNewOvfSlot(
-    Key key, Slot<T>* previousSlot, common::offset_t offset, uint8_t fingerprint) {
+inline void HashIndexBuilder<T>::insertToNewOvfSlot(Key key, Slot<T>* previousSlot,
+    common::offset_t offset, uint8_t fingerprint) {
     auto newSlotId = allocateAOSlot();
     previousSlot->header.nextOvfSlotId = newSlotId;
     auto newSlot = getSlot(SlotInfo{newSlotId, SlotType::OVF});
@@ -243,8 +243,8 @@ common::hash_t HashIndexBuilder<ku_string_t>::hashStored(const ku_string_t& key)
 }
 
 template<>
-bool HashIndexBuilder<ku_string_t>::equals(
-    std::string_view keyToLookup, const ku_string_t& keyInEntry) const {
+bool HashIndexBuilder<ku_string_t>::equals(std::string_view keyToLookup,
+    const ku_string_t& keyInEntry) const {
     // Checks if prefix and len matches first.
     if (!HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
         return false;
@@ -258,8 +258,8 @@ bool HashIndexBuilder<ku_string_t>::equals(
         return memcmp(keyToLookup.data(), keyInEntry.prefix, keyInEntry.len) == 0;
     } else {
         // For long strings, compare with overflow data
-        return overflowFileHandle->equals(
-            transaction::TransactionType::WRITE, keyToLookup, keyInEntry);
+        return overflowFileHandle->equals(transaction::TransactionType::WRITE, keyToLookup,
+            keyInEntry);
     }
 }
 
@@ -276,8 +276,8 @@ template class HashIndexBuilder<float>;
 template class HashIndexBuilder<int128_t>;
 template class HashIndexBuilder<ku_string_t>;
 
-PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
-    const std::string& fName, PhysicalTypeID keyDataType, VirtualFileSystem* vfs)
+PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(const std::string& fName, PhysicalTypeID keyDataType,
+    VirtualFileSystem* vfs)
     : keyDataTypeID{keyDataType} {
     auto fileHandle =
         std::make_shared<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);

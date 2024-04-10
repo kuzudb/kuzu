@@ -3,8 +3,8 @@
 namespace kuzu {
 namespace parser {
 
-void ParserErrorStrategy::reportNoViableAlternative(
-    antlr4::Parser* recognizer, const antlr4::NoViableAltException& e) {
+void ParserErrorStrategy::reportNoViableAlternative(antlr4::Parser* recognizer,
+    const antlr4::NoViableAltException& e) {
     auto tokens = recognizer->getTokenStream();
     auto errorMsg =
         tokens ?

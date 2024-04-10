@@ -14,11 +14,11 @@ class FunctionExpressionEvaluator : public ExpressionEvaluator {
 public:
     FunctionExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
         std::vector<std::unique_ptr<ExpressionEvaluator>> children)
-        : ExpressionEvaluator{std::move(children)},
-          expression{std::move(expression)}, execFunc{nullptr}, selectFunc{nullptr} {}
+        : ExpressionEvaluator{std::move(children)}, expression{std::move(expression)},
+          execFunc{nullptr}, selectFunc{nullptr} {}
 
-    void init(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
+    void init(const processor::ResultSet& resultSet,
+        storage::MemoryManager* memoryManager) override;
 
     void evaluate(main::ClientContext* clientContext) override;
 
@@ -27,8 +27,8 @@ public:
     std::unique_ptr<ExpressionEvaluator> clone() override;
 
 protected:
-    void resolveResultVector(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
+    void resolveResultVector(const processor::ResultSet& resultSet,
+        storage::MemoryManager* memoryManager) override;
 
 private:
     std::shared_ptr<binder::Expression> expression;

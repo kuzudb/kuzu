@@ -42,8 +42,8 @@ std::string FlatTuple::toString() {
     return result;
 }
 
-std::string FlatTuple::toString(
-    const std::vector<uint32_t>& colsWidth, const std::string& delimiter, const uint32_t maxWidth) {
+std::string FlatTuple::toString(const std::vector<uint32_t>& colsWidth,
+    const std::string& delimiter, const uint32_t maxWidth) {
     std::ostringstream result;
     for (auto i = 0ul; i < values.size(); i++) {
         std::string value = values[i]->toString();

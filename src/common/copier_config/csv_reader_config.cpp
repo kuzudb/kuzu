@@ -16,8 +16,8 @@ static char bindParsingOptionValue(std::string value) {
     return value[value.length() - 1];
 }
 
-static void bindBoolParsingOption(
-    CSVReaderConfig& config, const std::string& optionName, bool optionValue) {
+static void bindBoolParsingOption(CSVReaderConfig& config, const std::string& optionName,
+    bool optionValue) {
     if (optionName == "HEADER") {
         config.option.hasHeader = optionValue;
     } else if (optionName == "PARALLEL") {
@@ -25,8 +25,8 @@ static void bindBoolParsingOption(
     }
 }
 
-static void bindStringParsingOption(
-    CSVReaderConfig& config, const std::string& optionName, const std::string& optionValue) {
+static void bindStringParsingOption(CSVReaderConfig& config, const std::string& optionName,
+    const std::string& optionValue) {
     auto parsingOptionValue = bindParsingOptionValue(optionValue);
     if (optionName == "ESCAPE") {
         config.option.escapeChar = parsingOptionValue;

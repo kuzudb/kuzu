@@ -316,14 +316,14 @@ int mbedtls_md_clone(mbedtls_md_context_t* dst, const mbedtls_md_context_t* src)
 #endif
 #if defined(MBEDTLS_SHA224_C)
     case MBEDTLS_MD_SHA224:
-        mbedtls_sha256_clone(
-            (mbedtls_sha256_context*)dst->md_ctx, (mbedtls_sha256_context*)src->md_ctx);
+        mbedtls_sha256_clone((mbedtls_sha256_context*)dst->md_ctx,
+            (mbedtls_sha256_context*)src->md_ctx);
         break;
 #endif
 #if defined(MBEDTLS_SHA256_C)
     case MBEDTLS_MD_SHA256:
-        mbedtls_sha256_clone(
-            (mbedtls_sha256_context*)dst->md_ctx, (mbedtls_sha256_context*)src->md_ctx);
+        mbedtls_sha256_clone((mbedtls_sha256_context*)dst->md_ctx,
+            (mbedtls_sha256_context*)src->md_ctx);
         break;
 #endif
 #if defined(MBEDTLS_SHA384_C)
@@ -511,8 +511,8 @@ int mbedtls_md_finish(mbedtls_md_context_t* ctx, unsigned char* output) {
 #endif
 #if defined(MBEDTLS_SHA256_C)
     case MBEDTLS_MD_SHA256:
-        return (mbedtls_sha256_finish(
-            (mbedtls_sha256_context*)(mbedtls_sha256_context*)ctx->md_ctx, output));
+        return (mbedtls_sha256_finish((mbedtls_sha256_context*)(mbedtls_sha256_context*)ctx->md_ctx,
+            output));
 #endif
 #if defined(MBEDTLS_SHA384_C)
     case MBEDTLS_MD_SHA384:

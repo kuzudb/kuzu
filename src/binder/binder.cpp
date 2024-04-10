@@ -96,18 +96,18 @@ common::table_id_t Binder::bindTableID(const std::string& tableName) const {
     return catalog->getTableID(clientContext->getTx(), tableName);
 }
 
-std::shared_ptr<Expression> Binder::createVariable(
-    std::string_view name, common::LogicalTypeID typeID) {
+std::shared_ptr<Expression> Binder::createVariable(std::string_view name,
+    common::LogicalTypeID typeID) {
     return createVariable(std::string(name), LogicalType{typeID});
 }
 
-std::shared_ptr<Expression> Binder::createVariable(
-    const std::string& name, LogicalTypeID logicalTypeID) {
+std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
+    LogicalTypeID logicalTypeID) {
     return createVariable(name, LogicalType{logicalTypeID});
 }
 
-std::shared_ptr<Expression> Binder::createVariable(
-    const std::string& name, const LogicalType& dataType) {
+std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
+    const LogicalType& dataType) {
     if (scope.contains(name)) {
         throw BinderException("Variable " + name + " already exists.");
     }
@@ -205,12 +205,12 @@ function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderC
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     switch (fileType) {
     case FileType::PARQUET: {
-        func = function::BuiltInFunctionsUtils::matchFunction(
-            ParquetScanFunction::name, inputTypes, functions);
+        func = function::BuiltInFunctionsUtils::matchFunction(ParquetScanFunction::name, inputTypes,
+            functions);
     } break;
     case FileType::NPY: {
-        func = function::BuiltInFunctionsUtils::matchFunction(
-            NpyScanFunction::name, inputTypes, functions);
+        func = function::BuiltInFunctionsUtils::matchFunction(NpyScanFunction::name, inputTypes,
+            functions);
     } break;
     case FileType::CSV: {
         auto csvConfig = CSVReaderConfig::construct(config.options);

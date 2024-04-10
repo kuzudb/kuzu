@@ -143,8 +143,8 @@ extern void mbedtls_free(void* ptr);
  *
  * \return              \c 0.
  */
-int mbedtls_platform_set_calloc_free(
-    void* (*calloc_func)(size_t, size_t), void (*free_func)(void*));
+int mbedtls_platform_set_calloc_free(void* (*calloc_func)(size_t, size_t),
+    void (*free_func)(void*));
 #endif /* MBEDTLS_PLATFORM_FREE_MACRO && MBEDTLS_PLATFORM_CALLOC_MACRO */
 #else  /* !MBEDTLS_PLATFORM_MEMORY */
 #define mbedtls_free free

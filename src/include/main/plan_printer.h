@@ -13,8 +13,8 @@ namespace main {
 
 class OpProfileBox {
 public:
-    OpProfileBox(
-        std::string opName, const std::string& paramsName, std::vector<std::string> attributes);
+    OpProfileBox(std::string opName, const std::string& paramsName,
+        std::vector<std::string> attributes);
 
     inline std::string getOpName() const { return opName; }
 
@@ -41,8 +41,8 @@ public:
     std::ostringstream printPlanToOstream() const;
 
 private:
-    static void calculateNumRowsAndColsForOp(
-        processor::PhysicalOperator* op, uint32_t& numRows, uint32_t& numCols);
+    static void calculateNumRowsAndColsForOp(processor::PhysicalOperator* op, uint32_t& numRows,
+        uint32_t& numCols);
 
     uint32_t fillOpProfileBoxes(processor::PhysicalOperator* op, uint32_t rowIdx, uint32_t colIdx,
         uint32_t& maxFieldWidth, common::Profiler& profiler);
@@ -64,8 +64,8 @@ private:
         (void)colIdx;
     }
 
-    void insertOpProfileBox(
-        uint32_t rowIdx, uint32_t colIdx, std::unique_ptr<OpProfileBox> opProfileBox);
+    void insertOpProfileBox(uint32_t rowIdx, uint32_t colIdx,
+        std::unique_ptr<OpProfileBox> opProfileBox);
 
     OpProfileBox* getOpProfileBox(uint32_t rowIdx, uint32_t colIdx) const;
 
@@ -102,8 +102,8 @@ public:
     static inline std::string getOperatorParams(processor::PhysicalOperator* physicalOperator);
 
 private:
-    nlohmann::json toJson(
-        processor::PhysicalOperator* physicalOperator, common::Profiler& profiler);
+    nlohmann::json toJson(processor::PhysicalOperator* physicalOperator,
+        common::Profiler& profiler);
 
 private:
     processor::PhysicalPlan* physicalPlan;

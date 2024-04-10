@@ -19,8 +19,8 @@ struct CopyToParquetInfo final : public CopyToInfo {
         std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> names,
         std::vector<DataPos> dataPoses, std::string fileName, DataPos countingVecPos)
         : CopyToInfo{std::move(names), std::move(dataPoses), std::move(fileName)},
-          tableSchema{std::move(tableSchema)}, types{std::move(types)}, countingVecPos{std::move(
-                                                                            countingVecPos)} {}
+          tableSchema{std::move(tableSchema)}, types{std::move(types)},
+          countingVecPos{std::move(countingVecPos)} {}
 
     std::unique_ptr<CopyToInfo> copy() override {
         return std::make_unique<CopyToParquetInfo>(tableSchema->copy(),

@@ -14,8 +14,8 @@ public:
         std::unique_ptr<function::TableFuncBindData> bindData, expression_vector outExprs,
         std::shared_ptr<Expression> rowIdxExpr)
         : BoundReadingClause{common::ClauseType::IN_QUERY_CALL}, tableFunc{tableFunc},
-          bindData{std::move(bindData)}, outExprs{std::move(outExprs)}, rowIdxExpr{std::move(
-                                                                            rowIdxExpr)} {}
+          bindData{std::move(bindData)}, outExprs{std::move(outExprs)},
+          rowIdxExpr{std::move(rowIdxExpr)} {}
 
     function::TableFunction getTableFunc() const { return tableFunc; }
 

@@ -5,8 +5,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-ResultSet::ResultSet(
-    ResultSetDescriptor* resultSetDescriptor, storage::MemoryManager* memoryManager)
+ResultSet::ResultSet(ResultSetDescriptor* resultSetDescriptor,
+    storage::MemoryManager* memoryManager)
     : multiplicity{1} {
     auto numDataChunks = resultSetDescriptor->dataChunkDescriptors.size();
     dataChunks.resize(numDataChunks);

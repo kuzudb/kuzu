@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "cached_import/py_cached_import.h"
 #include "common/arrow/arrow_converter.h"
 #include "common/exception/not_implemented.h"
 #include "common/types/uuid.h"
@@ -9,15 +10,14 @@
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
 #include "datetime.h" // python lib
-#include "cached_import/py_cached_import.h"
 #include "include/py_query_result_converter.h"
 
 using namespace kuzu::common;
 using kuzu::importCache;
 
 #define PyDateTimeTZ_FromDateAndTime(year, month, day, hour, min, sec, usec, timezone)             \
-    PyDateTimeAPI->DateTime_FromDateAndTime(                                                       \
-        year, month, day, hour, min, sec, usec, timezone, PyDateTimeAPI->DateTimeType)
+    PyDateTimeAPI->DateTime_FromDateAndTime(year, month, day, hour, min, sec, usec, timezone,      \
+        PyDateTimeAPI->DateTimeType)
 
 void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
@@ -128,7 +128,7 @@ py::object convertRdfVariantToPyObject(const Value& value) {
         auto intervalVal = RdfVariant::getValue<interval_t>(&value);
         auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
         return py::cast<py::object>(importCache->datetime.timedelta()(py::arg("days") = days,
-                                            py::arg("microseconds") = intervalVal.micros));
+            py::arg("microseconds") = intervalVal.micros));
     }
     default: {
         KU_UNREACHABLE;
@@ -173,7 +173,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::INT128: {
         kuzu::common::int128_t result = value.getValue<kuzu::common::int128_t>();
         std::string int128_string = kuzu::common::Int128_t::ToString(result);
-        
+
         auto Decimal = importCache->decimal.Decimal();
         py::object largeInt = Decimal(int128_string);
         return largeInt;
@@ -217,8 +217,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         Date::convert(date, year, month, day);
         Time::convert(time, hour, min, sec, micros);
 
-        return py::cast<py::object>(PyDateTimeTZ_FromDateAndTime(
-            year, month, day, hour, min, sec, micros, PyDateTime_TimeZone_UTC));
+        return py::cast<py::object>(PyDateTimeTZ_FromDateAndTime(year, month, day, hour, min, sec,
+            micros, PyDateTime_TimeZone_UTC));
     }
     case LogicalTypeID::TIMESTAMP_NS: {
         timestamp_t timestampVal =
@@ -238,9 +238,9 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::INTERVAL: {
         auto intervalVal = value.getValue<interval_t>();
         auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
-        
+
         return py::cast<py::object>(importCache->datetime.timedelta()(py::arg("days") = days,
-                                            py::arg("microseconds") = intervalVal.micros));
+            py::arg("microseconds") = intervalVal.micros));
     }
     case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY: {
@@ -333,7 +333,6 @@ bool PyQueryResult::getNextArrowChunk(const std::vector<std::unique_ptr<DataType
     ArrowArray data;
     ArrowConverter::toArrowArray(*queryResult, &data, chunkSize);
 
-    
     auto batchImportFunc = importCache->pyarrow.lib.RecordBatch._import_from_c();
 
     auto schema = ArrowConverter::toArrowSchema(typesInfo);

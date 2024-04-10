@@ -41,8 +41,8 @@ private:
     py::object getter;
 };
 
-static common::LogicalType bindColumn(
-    PandasBindColumn& bindColumn, PandasColumnBindData* bindData) {
+static common::LogicalType bindColumn(PandasBindColumn& bindColumn,
+    PandasColumnBindData* bindData) {
     common::LogicalType columnType;
     auto& column = bindColumn.handle;
 

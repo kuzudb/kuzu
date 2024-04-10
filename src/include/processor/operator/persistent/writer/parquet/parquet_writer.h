@@ -60,8 +60,8 @@ public:
     void flush(FactorizedTable& ft);
     void finalize();
     static kuzu_parquet::format::Type::type convertToParquetType(common::LogicalType* type);
-    static void setSchemaProperties(
-        common::LogicalType* type, kuzu_parquet::format::SchemaElement& schemaElement);
+    static void setSchemaProperties(common::LogicalType* type,
+        kuzu_parquet::format::SchemaElement& schemaElement);
 
 private:
     void prepareRowGroup(FactorizedTable& ft, PreparedRowGroup& result);

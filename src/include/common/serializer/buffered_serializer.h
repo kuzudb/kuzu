@@ -35,8 +35,8 @@ public:
 
     template<class T>
     void write(T element) {
-        static_assert(
-            std::is_trivially_destructible<T>(), "Write element must be trivially destructible");
+        static_assert(std::is_trivially_destructible<T>(),
+            "Write element must be trivially destructible");
         write(reinterpret_cast<const uint8_t*>(&element), sizeof(T));
     }
 

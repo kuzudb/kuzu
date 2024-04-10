@@ -6,11 +6,11 @@
 namespace kuzu {
 namespace common {
 
-[[noreturn]] inline void kuAssertFailureInternal(
-    const char* condition_name, const char* file, int linenr) {
+[[noreturn]] inline void kuAssertFailureInternal(const char* condition_name, const char* file,
+    int linenr) {
     // LCOV_EXCL_START
-    throw InternalException(stringFormat(
-        "Assertion failed in file \"{}\" on line {}: {}", file, linenr, condition_name));
+    throw InternalException(stringFormat("Assertion failed in file \"{}\" on line {}: {}", file,
+        linenr, condition_name));
     // LCOV_EXCL_STOP
 }
 

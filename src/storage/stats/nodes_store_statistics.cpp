@@ -6,8 +6,8 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-offset_t NodesStoreStatsAndDeletedIDs::getMaxNodeOffset(
-    transaction::Transaction* transaction, table_id_t tableID) {
+offset_t NodesStoreStatsAndDeletedIDs::getMaxNodeOffset(transaction::Transaction* transaction,
+    table_id_t tableID) {
     KU_ASSERT(transaction);
     if (transaction->getType() == transaction::TransactionType::READ_ONLY) {
         return getNodeStatisticsAndDeletedIDs(transaction, tableID)->getMaxNodeOffset();
@@ -28,8 +28,8 @@ void NodesStoreStatsAndDeletedIDs::updateNumTuplesByValue(table_id_t tableID, in
     tableStats->setNumTuples(tableStats->getNumTuples() + value);
 }
 
-void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
-    transaction::Transaction* tx, ValueVector* nodeIDVector, table_id_t tableID) {
+void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(transaction::Transaction* tx,
+    ValueVector* nodeIDVector, table_id_t tableID) {
     // NOTE: We can remove the lock under the following assumptions, that should currently hold:
     // 1) During the phases when nodeStatisticsAndDeletedIDsPerTableForReadOnlyTrx change, which
     // is during checkpointing, this function, which is called during scans, cannot be called.
@@ -60,8 +60,8 @@ void NodesStoreStatsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(
         constructTableStatistic(nodeTableEntry);
 }
 
-void NodesStoreStatsAndDeletedIDs::addMetadataDAHInfo(
-    table_id_t tableID, const LogicalType& dataType) {
+void NodesStoreStatsAndDeletedIDs::addMetadataDAHInfo(table_id_t tableID,
+    const LogicalType& dataType) {
     initTableStatisticsForWriteTrx();
     KU_ASSERT(readWriteVersion);
     setToUpdated();

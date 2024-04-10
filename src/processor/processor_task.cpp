@@ -35,8 +35,8 @@ void ProcessorTask::finalizeIfNecessary() {
     sink->finalize(executionContext);
 }
 
-std::unique_ptr<ResultSet> ProcessorTask::populateResultSet(
-    Sink* op, storage::MemoryManager* memoryManager) {
+std::unique_ptr<ResultSet> ProcessorTask::populateResultSet(Sink* op,
+    storage::MemoryManager* memoryManager) {
     auto resultSetDescriptor = op->getResultSetDescriptor();
     if (resultSetDescriptor == nullptr) {
         // Some pipeline does not need a resultSet, e.g. OrderByMerge

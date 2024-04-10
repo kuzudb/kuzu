@@ -62,8 +62,8 @@ uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/
             // see if we have read enough if we have not read enough, we read another vector if we
             // have read enough, we leave any unhandled elements in the overflow vector for a
             // subsequent read
-            auto childReqNumValues = std::min<uint64_t>(
-                common::DEFAULT_VECTOR_CAPACITY, childColumnReader->getGroupRowsAvailable());
+            auto childReqNumValues = std::min<uint64_t>(common::DEFAULT_VECTOR_CAPACITY,
+                childColumnReader->getGroupRowsAvailable());
             childActualNumValues = childColumnReader->read(childReqNumValues, childFilter,
                 childDefinesPtr, childRepeatsPtr, vectorToRead.get());
         } else {

@@ -14,12 +14,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* log
     auto inSchema = acc->getChild(0)->getSchema();
     auto prevOperator = mapOperator(acc->getChild(0).get());
     auto expressions = acc->getPayloads();
-    auto resultCollector = createResultCollector(
-        acc->getAccumulateType(), expressions, inSchema, std::move(prevOperator));
+    auto resultCollector = createResultCollector(acc->getAccumulateType(), expressions, inSchema,
+        std::move(prevOperator));
     auto table = resultCollector->getResultFactorizedTable();
     auto maxMorselSize = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
-    return createFTableScanAligned(
-        expressions, outSchema, acc->getOffset(), table, maxMorselSize, std::move(resultCollector));
+    return createFTableScanAligned(expressions, outSchema, acc->getOffset(), table, maxMorselSize,
+        std::move(resultCollector));
 }
 
 } // namespace processor

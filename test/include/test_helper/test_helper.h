@@ -27,11 +27,11 @@ public:
     static constexpr char TEST_STATEMENTS_PATH[] = "test/statements";
     static constexpr char DEFAULT_CONN_NAME[] = "conn_default";
 
-    static std::vector<std::unique_ptr<TestQueryConfig>> parseTestFile(
-        const std::string& path, bool checkOutputOrder = false);
+    static std::vector<std::unique_ptr<TestQueryConfig>> parseTestFile(const std::string& path,
+        bool checkOutputOrder = false);
 
-    static std::vector<std::string> convertResultToString(
-        main::QueryResult& queryResult, bool checkOutputOrder = false);
+    static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,
+        bool checkOutputOrder = false);
 
     static void executeScript(const std::string& path, main::Connection& conn);
 

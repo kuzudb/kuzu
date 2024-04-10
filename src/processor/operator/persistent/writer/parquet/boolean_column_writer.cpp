@@ -31,8 +31,8 @@ void BooleanColumnWriter::writeVector(common::Serializer& temp_writer,
     }
 }
 
-void BooleanColumnWriter::flushPageState(
-    common::Serializer& temp_writer, ColumnWriterPageState* writerPageState) {
+void BooleanColumnWriter::flushPageState(common::Serializer& temp_writer,
+    ColumnWriterPageState* writerPageState) {
     auto state = reinterpret_cast<BooleanWriterPageState*>(writerPageState);
     if (state->bytePos > 0) {
         temp_writer.write<uint8_t>(state->byte);

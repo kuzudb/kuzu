@@ -21,8 +21,8 @@ bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
         return false;
     }
     auto numRowsToScan = endOffset - startOffset;
-    sharedState->getFactorizedTable()->scan(
-        groupByKeyVectors, startOffset, numRowsToScan, groupByKeyVectorsColIdxes);
+    sharedState->getFactorizedTable()->scan(groupByKeyVectors, startOffset, numRowsToScan,
+        groupByKeyVectorsColIdxes);
     for (auto pos = 0u; pos < numRowsToScan; ++pos) {
         auto entry = sharedState->getRow(startOffset + pos);
         auto offset = sharedState->getFactorizedTable()->getTableSchema()->getColOffset(

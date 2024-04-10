@@ -428,8 +428,8 @@ const mbedtls_cipher_info_t* mbedtls_cipher_info_from_type(const mbedtls_cipher_
  *                      given \p cipher_id.
  * \return              \c NULL if the associated cipher information is not found.
  */
-const mbedtls_cipher_info_t* mbedtls_cipher_info_from_values(
-    const mbedtls_cipher_id_t cipher_id, int key_bitlen, const mbedtls_cipher_mode_t mode);
+const mbedtls_cipher_info_t* mbedtls_cipher_info_from_values(const mbedtls_cipher_id_t cipher_id,
+    int key_bitlen, const mbedtls_cipher_mode_t mode);
 
 /**
  * \brief               Retrieve the identifier for a cipher info structure.
@@ -649,8 +649,8 @@ int mbedtls_cipher_setup(mbedtls_cipher_context_t* ctx, const mbedtls_cipher_inf
  * \return              #MBEDTLS_ERR_CIPHER_ALLOC_FAILED if allocation of the
  *                      cipher-specific context fails.
  */
-int mbedtls_cipher_setup_psa(
-    mbedtls_cipher_context_t* ctx, const mbedtls_cipher_info_t* cipher_info, size_t taglen);
+int mbedtls_cipher_setup_psa(mbedtls_cipher_context_t* ctx,
+    const mbedtls_cipher_info_t* cipher_info, size_t taglen);
 #endif /* MBEDTLS_USE_PSA_CRYPTO */
 
 /**
@@ -987,8 +987,8 @@ int mbedtls_cipher_write_tag(mbedtls_cipher_context_t* ctx, unsigned char* tag, 
  * \return              \c 0 on success.
  * \return              A specific error code on failure.
  */
-int mbedtls_cipher_check_tag(
-    mbedtls_cipher_context_t* ctx, const unsigned char* tag, size_t tag_len);
+int mbedtls_cipher_check_tag(mbedtls_cipher_context_t* ctx, const unsigned char* tag,
+    size_t tag_len);
 #endif /* MBEDTLS_GCM_C || MBEDTLS_CHACHAPOLY_C */
 
 /**

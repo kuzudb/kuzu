@@ -26,8 +26,8 @@ public:
     BasicColumnWriter(ParquetWriter& writer, uint64_t schemaIdx,
         std::vector<std::string> schemaPath, uint64_t maxRepeat, uint64_t maxDefine,
         bool canHaveNulls)
-        : ColumnWriter(
-              writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine, canHaveNulls) {}
+        : ColumnWriter(writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine,
+              canHaveNulls) {}
 
 public:
     std::unique_ptr<ColumnWriterState> initializeWriteState(
@@ -61,12 +61,12 @@ protected:
     }
 
     // Flushes the writer for a specific page. Only used for scalar types.
-    virtual void flushPageState(
-        common::Serializer& /*bufferedSerializer*/, ColumnWriterPageState* /*state*/) {}
+    virtual void flushPageState(common::Serializer& /*bufferedSerializer*/,
+        ColumnWriterPageState* /*state*/) {}
 
     // Retrieves the row size of a vector at the specified location. Only used for scalar types.
-    virtual uint64_t getRowSize(
-        common::ValueVector* /*vector*/, uint64_t /*index*/, BasicColumnWriterState& /*state*/) {
+    virtual uint64_t getRowSize(common::ValueVector* /*vector*/, uint64_t /*index*/,
+        BasicColumnWriterState& /*state*/) {
         KU_UNREACHABLE;
     }
     // Writes a (subset of a) vector to the specified serializer. Only used for scalar types.
@@ -79,13 +79,13 @@ protected:
     virtual uint64_t dictionarySize(BasicColumnWriterState& /*writerState*/) { KU_UNREACHABLE; }
     void writeDictionary(BasicColumnWriterState& state,
         std::unique_ptr<common::BufferedSerializer> bufferedSerializer, uint64_t rowCount);
-    virtual void flushDictionary(
-        BasicColumnWriterState& /*state*/, ColumnWriterStatistics* /*stats*/) {
+    virtual void flushDictionary(BasicColumnWriterState& /*state*/,
+        ColumnWriterStatistics* /*stats*/) {
         KU_UNREACHABLE;
     }
 
-    void setParquetStatistics(
-        BasicColumnWriterState& state, kuzu_parquet::format::ColumnChunk& column);
+    void setParquetStatistics(BasicColumnWriterState& state,
+        kuzu_parquet::format::ColumnChunk& column);
     void registerToRowGroup(kuzu_parquet::format::RowGroup& rowGroup);
 };
 

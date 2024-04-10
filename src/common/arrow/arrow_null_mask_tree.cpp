@@ -46,33 +46,33 @@ bool ArrowNullMaskTree::applyParentBitmap(const NullMask* parent, uint64_t count
 }
 
 template<typename offsetsT>
-void ArrowNullMaskTree::scanListPushDown(
-    const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset, uint64_t count) {
+void ArrowNullMaskTree::scanListPushDown(const ArrowSchema* schema, const ArrowArray* array,
+    uint64_t srcOffset, uint64_t count) {
     const offsetsT* offsets = ((const offsetsT*)array->buffers[1]) + srcOffset;
     offsetsT auxiliaryLength = offsets[count] - offsets[0];
     NullMask pushDownMask((auxiliaryLength + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) >>
                           NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
     for (uint64_t i = 0; i < count; i++) {
-        pushDownMask.setNullFromRange(
-            offsets[i] - offsets[0], offsets[i + 1] - offsets[i], isNull(i));
+        pushDownMask.setNullFromRange(offsets[i] - offsets[0], offsets[i + 1] - offsets[i],
+            isNull(i));
     }
-    children->push_back(ArrowNullMaskTree(
-        schema->children[0], array->children[0], offsets[0], auxiliaryLength, &pushDownMask));
+    children->push_back(ArrowNullMaskTree(schema->children[0], array->children[0], offsets[0],
+        auxiliaryLength, &pushDownMask));
 }
 
-void ArrowNullMaskTree::scanStructPushDown(
-    const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset, uint64_t count) {
+void ArrowNullMaskTree::scanStructPushDown(const ArrowSchema* schema, const ArrowArray* array,
+    uint64_t srcOffset, uint64_t count) {
     for (int64_t i = 0; i < array->n_children; i++) {
-        children->push_back(ArrowNullMaskTree(
-            schema->children[i], array->children[i], srcOffset, count, mask.get()));
+        children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i], srcOffset,
+            count, mask.get()));
     }
 }
 
 ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray* array,
     uint64_t srcOffset, uint64_t count, const NullMask* parentBitmap)
-    : offset{0}, mask{std::make_shared<common::NullMask>(
-                     (count + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) >>
-                     NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2)},
+    : offset{0},
+      mask{std::make_shared<common::NullMask>((count + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) >>
+                                              NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2)},
       children(std::make_shared<std::vector<ArrowNullMaskTree>>()) {
     if (schema->dictionary != nullptr) {
         copyFromBuffer(array->buffers[0], srcOffset, count);
@@ -165,8 +165,8 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                 }
             } else {
                 for (int64_t i = 0; i < array->n_children; i++) {
-                    children->push_back(ArrowNullMaskTree(
-                        schema->children[i], array->children[i], srcOffset, count));
+                    children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
+                        srcOffset, count));
                 }
                 for (auto i = 0u; i < count; i++) {
                     int8_t curType = types[i + srcOffset];
@@ -188,8 +188,8 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
             if (array->buffers[0] == nullptr) {
                 mask->setAllNonNull();
             } else {
-                mask->copyFromNullBits(
-                    (const uint64_t*)array->buffers[0], srcOffset, 0, count, true);
+                mask->copyFromNullBits((const uint64_t*)array->buffers[0], srcOffset, 0, count,
+                    true);
             }
             if (parentBitmap != nullptr) {
                 for (uint64_t i = 0; i < count >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2; i++) {

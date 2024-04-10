@@ -12,8 +12,8 @@ struct RegexpReplace : BaseRegexpOperation {
         common::ku_string_t& replacement, common::ku_string_t& result,
         common::ValueVector& resultValueVector) {
         std::string resultStr = value.getAsString();
-        RE2::Replace(
-            &resultStr, parseCypherPatten(pattern.getAsString()), replacement.getAsString());
+        RE2::Replace(&resultStr, parseCypherPatten(pattern.getAsString()),
+            replacement.getAsString());
         copyToKuzuString(resultStr, result, resultValueVector);
     }
 };

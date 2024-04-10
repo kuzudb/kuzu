@@ -25,8 +25,8 @@ public:
     }
 
 protected:
-    void resolveResultVector(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
+    void resolveResultVector(const processor::ResultSet& resultSet,
+        storage::MemoryManager* memoryManager) override;
 
 private:
     std::shared_ptr<common::Value> value;

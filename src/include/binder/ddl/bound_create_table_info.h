@@ -60,12 +60,12 @@ struct BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {
 struct BoundExtraCreateNodeTableInfo final : public BoundExtraCreateTableInfo {
     common::property_id_t primaryKeyIdx;
 
-    BoundExtraCreateNodeTableInfo(
-        common::property_id_t primaryKeyIdx, std::vector<PropertyInfo> propertyInfos)
+    BoundExtraCreateNodeTableInfo(common::property_id_t primaryKeyIdx,
+        std::vector<PropertyInfo> propertyInfos)
         : BoundExtraCreateTableInfo{std::move(propertyInfos)}, primaryKeyIdx{primaryKeyIdx} {}
     BoundExtraCreateNodeTableInfo(const BoundExtraCreateNodeTableInfo& other)
-        : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)}, primaryKeyIdx{
-                                                                          other.primaryKeyIdx} {}
+        : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)},
+          primaryKeyIdx{other.primaryKeyIdx} {}
 
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateNodeTableInfo>(*this);
@@ -116,8 +116,8 @@ struct BoundExtraCreateRdfGraphInfo final : public BoundExtraCreateCatalogEntryI
         BoundCreateTableInfo literalInfo, BoundCreateTableInfo resourceTripleInfo,
         BoundCreateTableInfo literalTripleInfo)
         : resourceInfo{std::move(resourceInfo)}, literalInfo{std::move(literalInfo)},
-          resourceTripleInfo{std::move(resourceTripleInfo)}, literalTripleInfo{
-                                                                 std::move(literalTripleInfo)} {}
+          resourceTripleInfo{std::move(resourceTripleInfo)},
+          literalTripleInfo{std::move(literalTripleInfo)} {}
     BoundExtraCreateRdfGraphInfo(const BoundExtraCreateRdfGraphInfo& other)
         : resourceInfo{other.resourceInfo.copy()}, literalInfo{other.literalInfo.copy()},
           resourceTripleInfo{other.resourceTripleInfo.copy()},

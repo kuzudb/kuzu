@@ -44,8 +44,8 @@ struct CompressionMetadata {
     uint64_t numValues(uint64_t dataSize, const common::LogicalType& dataType) const;
     // Returns true if and only if the provided value within the vector can be updated
     // in this chunk in-place.
-    bool canUpdateInPlace(
-        const uint8_t* data, uint32_t pos, common::PhysicalTypeID physicalType) const;
+    bool canUpdateInPlace(const uint8_t* data, uint32_t pos,
+        common::PhysicalTypeID physicalType) const;
     bool canAlwaysUpdateInPlace() const;
     inline bool isConstant() const { return compression == CompressionType::CONSTANT; }
 
@@ -65,8 +65,8 @@ public:
     // Returns compression metadata, including any relevant parameters specific to this dataset
     // which will need to be passed to compressNextPage. Since this may need to scan the entire
     // buffer, which is slow, it should only be called once for each set of data to compress.
-    virtual CompressionMetadata getCompressionMetadata(
-        const uint8_t* srcBuffer, uint64_t numValues) const = 0;
+    virtual CompressionMetadata getCompressionMetadata(const uint8_t* srcBuffer,
+        uint64_t numValues) const = 0;
 
     // Takes uncompressed data from the srcBuffer and compresses it into the dstBuffer
     //
@@ -121,14 +121,14 @@ public:
         uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const;
 
     // Shouldn't be used. No type exclusively uses constant compression
-    CompressionMetadata getCompressionMetadata(
-        const uint8_t* /*srcBuffer*/, uint64_t /*numValues*/) const override {
+    CompressionMetadata getCompressionMetadata(const uint8_t* /*srcBuffer*/,
+        uint64_t /*numValues*/) const override {
         KU_UNREACHABLE;
     }
 
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
-        common::offset_t, const CompressionMetadata&) const override{};
+        common::offset_t, const CompressionMetadata&) const override {};
 
 private:
     uint8_t numBytesPerValue;
@@ -156,8 +156,8 @@ public:
         return numBytesPerValue == 0 ? UINT64_MAX : dataSize / numBytesPerValue;
     }
 
-    inline CompressionMetadata getCompressionMetadata(
-        const uint8_t* /*srcBuffer*/, uint64_t /*numValues*/) const override {
+    inline CompressionMetadata getCompressionMetadata(const uint8_t* /*srcBuffer*/,
+        uint64_t /*numValues*/) const override {
         return CompressionMetadata();
     }
 
@@ -239,8 +239,8 @@ public:
         return numValues;
     }
 
-    CompressionMetadata getCompressionMetadata(
-        const uint8_t* srcBuffer, uint64_t numValues) const override {
+    CompressionMetadata getCompressionMetadata(const uint8_t* srcBuffer,
+        uint64_t numValues) const override {
         auto header = getBitWidth(srcBuffer, numValues);
         // Use uncompressed if the bitwidth is equal to the size of the type in bits
         if (header.bitWidth >= sizeof(T) * 8) {
@@ -264,8 +264,8 @@ protected:
     void getValues(const uint8_t* chunkStart, uint8_t pos, uint8_t* dst, uint8_t numValuesToRead,
         const BitpackHeader& header) const;
 
-    inline const uint8_t* getChunkStart(
-        const uint8_t* buffer, uint64_t pos, uint8_t bitWidth) const {
+    inline const uint8_t* getChunkStart(const uint8_t* buffer, uint64_t pos,
+        uint8_t bitWidth) const {
         // Order of operations is important so that pos is rounded down to a multiple of CHUNK_SIZE
         return buffer + (pos / CHUNK_SIZE) * bitWidth * CHUNK_SIZE / 8;
     }
@@ -282,8 +282,8 @@ public:
 
     static inline uint64_t numValues(uint64_t dataSize) { return dataSize * 8; }
 
-    inline CompressionMetadata getCompressionMetadata(
-        const uint8_t* /*srcBuffer*/, uint64_t /*numValues*/) const override {
+    inline CompressionMetadata getCompressionMetadata(const uint8_t* /*srcBuffer*/,
+        uint64_t /*numValues*/) const override {
         return CompressionMetadata{CompressionType::BOOLEAN_BITPACKING};
     }
     uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
@@ -303,8 +303,8 @@ public:
 
 protected:
     explicit CompressedFunctor(const common::LogicalType& logicalType)
-        : constant{logicalType}, uncompressed{logicalType}, physicalType{
-                                                                logicalType.getPhysicalType()} {}
+        : constant{logicalType}, uncompressed{logicalType},
+          physicalType{logicalType.getPhysicalType()} {}
     const ConstantCompression constant;
     const Uncompressed uncompressed;
     const BooleanBitpacking booleanBitpacking;

@@ -101,8 +101,8 @@ protected:
     static inline main::ClientContext* getClientContext(main::Connection& connection) {
         return connection.clientContext.get();
     }
-    static inline void sortAndCheckTestResults(
-        std::vector<std::string>& actualResult, std::vector<std::string>& expectedResult) {
+    static inline void sortAndCheckTestResults(std::vector<std::string>& actualResult,
+        std::vector<std::string>& expectedResult) {
         sort(expectedResult.begin(), expectedResult.end());
         ASSERT_EQ(actualResult, expectedResult);
     }
@@ -110,8 +110,8 @@ protected:
         return typeID == common::LogicalTypeID::STRING || typeID == common::LogicalTypeID::LIST;
     }
 
-    void commitOrRollbackConnectionAndInitDBIfNecessary(
-        bool isCommit, TransactionTestType transactionTestType);
+    void commitOrRollbackConnectionAndInitDBIfNecessary(bool isCommit,
+        TransactionTestType transactionTestType);
 
     inline std::string getTestGroupAndName() {
         const ::testing::TestInfo* const testInfo =

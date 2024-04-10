@@ -12,11 +12,11 @@ namespace benchmark {
 
 const char* BENCHMARK_SUFFIX = ".benchmark";
 
-BenchmarkRunner::BenchmarkRunner(
-    const std::string& datasetPath, std::unique_ptr<BenchmarkConfig> config)
+BenchmarkRunner::BenchmarkRunner(const std::string& datasetPath,
+    std::unique_ptr<BenchmarkConfig> config)
     : config{std::move(config)} {
-    database = std::make_unique<Database>(
-        datasetPath, SystemConfig(this->config->bufferPoolSize, this->config->numThreads));
+    database = std::make_unique<Database>(datasetPath,
+        SystemConfig(this->config->bufferPoolSize, this->config->numThreads));
     spdlog::set_level(spdlog::level::debug);
 }
 
@@ -37,8 +37,8 @@ void BenchmarkRunner::runAllBenchmarks() {
                           // an unitialized object.
                 benchmark.get());
         } catch (std::exception& e) {
-            spdlog::error(
-                "Error encountered while running benchmark {}: {}.", benchmark->name, e.what());
+            spdlog::error("Error encountered while running benchmark {}: {}.", benchmark->name,
+                e.what());
         }
     }
 }
@@ -51,8 +51,8 @@ void BenchmarkRunner::registerBenchmark(const std::string& path) {
     }
 }
 
-double BenchmarkRunner::computeAverageOfLastRuns(
-    const double* runTimes, const int& len, const int& lastRunsToAverage) {
+double BenchmarkRunner::computeAverageOfLastRuns(const double* runTimes, const int& len,
+    const int& lastRunsToAverage) {
     double sum = 0;
     for (int i = len - lastRunsToAverage; i < len; ++i) {
         sum += runTimes[i];
@@ -77,15 +77,15 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
         runTimes[i] = queryResult->getQuerySummary()->getExecutionTime();
     }
     spdlog::info("Time Taken (Average of Last {} runs) (ms): {}", config->numRuns,
-        computeAverageOfLastRuns(
-            &runTimes[0], config->numRuns, config->numRuns /* numRunsToAverage */));
+        computeAverageOfLastRuns(&runTimes[0], config->numRuns,
+            config->numRuns /* numRunsToAverage */));
 }
 
 void BenchmarkRunner::profileQueryIfEnabled(Benchmark* benchmark) const {
     if (config->enableProfile && !config->outputPath.empty()) {
         auto profileInfo = benchmark->runWithProfile();
-        std::ofstream profileFile(
-            config->outputPath + "/" + benchmark->name + "_profile.txt", std::ios_base::app);
+        std::ofstream profileFile(config->outputPath + "/" + benchmark->name + "_profile.txt",
+            std::ios_base::app);
         profileFile << profileInfo->getNext()->toString() << '\n';
         profileFile.flush();
         profileFile.close();

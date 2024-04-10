@@ -29,8 +29,8 @@ class DuckDBCatalogContent : public catalog::CatalogContent {
 public:
     DuckDBCatalogContent() : catalog::CatalogContent{nullptr /* vfs */} {}
 
-    virtual void init(
-        const std::string& dbPath, const std::string& catalogName, main::ClientContext* context);
+    virtual void init(const std::string& dbPath, const std::string& catalogName,
+        main::ClientContext* context);
 
 protected:
     bool bindPropertyInfos(duckdb::Connection& con, const std::string& tableName,

@@ -48,8 +48,8 @@ struct AvgFunction {
         updateSingleValue(reinterpret_cast<AvgState*>(state_), input, pos, multiplicity);
     }
 
-    static void updateSingleValue(
-        AvgState* state, common::ValueVector* input, uint32_t pos, uint64_t multiplicity) {
+    static void updateSingleValue(AvgState* state, common::ValueVector* input, uint32_t pos,
+        uint64_t multiplicity) {
         T val = input->getValue<T>(pos);
         for (auto i = 0u; i < multiplicity; ++i) {
             if (state->isNull) {
@@ -62,8 +62,8 @@ struct AvgFunction {
         state->count += multiplicity;
     }
 
-    static void combine(
-        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* /*memoryManager*/) {
+    static void combine(uint8_t* state_, uint8_t* otherState_,
+        storage::MemoryManager* /*memoryManager*/) {
         auto* otherState = reinterpret_cast<AvgState*>(otherState_);
         if (otherState->isNull) {
             return;

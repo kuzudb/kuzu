@@ -219,7 +219,7 @@ interval_parse_number:
     }
     goto interval_parse_identifier;
 
-interval_parse_time : {
+interval_parse_time: {
     // parse the remainder of the time as a Time type
     dtime_t time;
     uint64_t tmpPos;
@@ -336,8 +336,8 @@ std::string Interval::toString(interval_t interval) {
 }
 
 // helper function of interval comparison
-void Interval::normalizeIntervalEntries(
-    interval_t input, int64_t& months, int64_t& days, int64_t& micros) {
+void Interval::normalizeIntervalEntries(interval_t input, int64_t& months, int64_t& days,
+    int64_t& micros) {
     int64_t extra_months_d = input.days / Interval::DAYS_PER_MONTH;
     int64_t extra_months_micros = input.micros / Interval::MICROS_PER_MONTH;
     input.days -= extra_months_d * Interval::DAYS_PER_MONTH;

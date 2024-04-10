@@ -85,10 +85,10 @@ template<typename T>
 concept HashablePrimitive = ((std::integral<T> && !std::is_same_v<T, bool>) ||
                              std::floating_point<T> || std::is_same_v<T, common::int128_t>);
 template<typename T>
-concept IndexHashable = ((std::integral<T> && !std::is_same_v<T, bool>) || std::floating_point<T> ||
-                         std::is_same_v<T, common::int128_t> ||
-                         std::is_same_v<T, common::ku_string_t> ||
-                         std::is_same_v<T, std::string_view> || std::same_as<T, std::string>);
+concept IndexHashable =
+    ((std::integral<T> && !std::is_same_v<T, bool>) || std::floating_point<T> ||
+        std::is_same_v<T, common::int128_t> || std::is_same_v<T, common::ku_string_t> ||
+        std::is_same_v<T, std::string_view> || std::same_as<T, std::string>);
 
 template<typename T>
 concept HashableTypes = (std::integral<T> || std::floating_point<T> ||
@@ -411,20 +411,20 @@ public:
         return LogicalType::LIST(std::make_unique<LogicalType>(std::forward<T>(childType)));
     }
 
-    static KUZU_API std::unique_ptr<LogicalType> MAP(
-        std::unique_ptr<LogicalType> keyType, std::unique_ptr<LogicalType> valueType);
+    static KUZU_API std::unique_ptr<LogicalType> MAP(std::unique_ptr<LogicalType> keyType,
+        std::unique_ptr<LogicalType> valueType);
     template<class T>
     static inline std::unique_ptr<LogicalType> MAP(T&& keyType, T&& valueType) {
         return LogicalType::MAP(std::make_unique<LogicalType>(std::forward<T>(keyType)),
             std::make_unique<LogicalType>(std::forward<T>(valueType)));
     }
 
-    static KUZU_API std::unique_ptr<LogicalType> ARRAY(
-        std::unique_ptr<LogicalType> childType, uint64_t numElements);
+    static KUZU_API std::unique_ptr<LogicalType> ARRAY(std::unique_ptr<LogicalType> childType,
+        uint64_t numElements);
     template<class T>
     static inline std::unique_ptr<LogicalType> ARRAY(T&& childType, uint64_t numElements) {
-        return LogicalType::ARRAY(
-            std::make_unique<LogicalType>(std::forward<T>(childType)), numElements);
+        return LogicalType::ARRAY(std::make_unique<LogicalType>(std::forward<T>(childType)),
+            numElements);
     }
 
 private:
@@ -466,16 +466,16 @@ struct ArrayType {
 };
 
 struct NodeType {
-    static inline void setExtraTypeInfo(
-        LogicalType& type, std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
+    static inline void setExtraTypeInfo(LogicalType& type,
+        std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
         KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::NODE);
         type.setExtraTypeInfo(std::move(extraTypeInfo));
     }
 };
 
 struct RelType {
-    static inline void setExtraTypeInfo(
-        LogicalType& type, std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
+    static inline void setExtraTypeInfo(LogicalType& type,
+        std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
         KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::REL);
         type.setExtraTypeInfo(std::move(extraTypeInfo));
     }

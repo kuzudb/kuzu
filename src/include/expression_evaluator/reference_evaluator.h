@@ -23,8 +23,8 @@ public:
     }
 
 protected:
-    inline void resolveResultVector(
-        const processor::ResultSet& resultSet, storage::MemoryManager* /*memoryManager*/) override {
+    inline void resolveResultVector(const processor::ResultSet& resultSet,
+        storage::MemoryManager* /*memoryManager*/) override {
         resultVector =
             resultSet.dataChunks[vectorPos.dataChunkPos]->valueVectors[vectorPos.valueVectorPos];
     }

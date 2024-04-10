@@ -301,8 +301,8 @@ binder::expression_vector ProjectionPushDownOptimizer::pruneExpressions(
     return expression_vector{expressionsAfterPruning.begin(), expressionsAfterPruning.end()};
 }
 
-void ProjectionPushDownOptimizer::preAppendProjection(
-    planner::LogicalOperator* op, uint32_t childIdx, binder::expression_vector expressions) {
+void ProjectionPushDownOptimizer::preAppendProjection(planner::LogicalOperator* op,
+    uint32_t childIdx, binder::expression_vector expressions) {
     auto projection =
         std::make_shared<LogicalProjection>(std::move(expressions), op->getChild(childIdx));
     projection->computeFlatSchema();

@@ -29,8 +29,8 @@ enum class FunctionType : uint8_t {
 
 struct Function {
     Function() : type{FunctionType::UNKNOWN} {};
-    Function(
-        FunctionType type, std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs)
+    Function(FunctionType type, std::string name,
+        std::vector<common::LogicalTypeID> parameterTypeIDs)
         : type{type}, name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)} {}
 
     virtual ~Function() = default;
@@ -51,8 +51,8 @@ struct BaseScalarFunction : public Function {
     BaseScalarFunction(FunctionType type, std::string name,
         std::vector<common::LogicalTypeID> parameterTypeIDs, common::LogicalTypeID returnTypeID,
         scalar_bind_func bindFunc)
-        : Function{type, std::move(name), std::move(parameterTypeIDs)},
-          returnTypeID{returnTypeID}, bindFunc{std::move(bindFunc)} {}
+        : Function{type, std::move(name), std::move(parameterTypeIDs)}, returnTypeID{returnTypeID},
+          bindFunc{std::move(bindFunc)} {}
 
     std::string signatureToString() const override {
         auto result = Function::signatureToString();

@@ -53,8 +53,8 @@ public:
 
 private:
     uint8_t* addANewPage();
-    void setStringOverflow(
-        const char* inMemSrcStr, uint64_t len, common::ku_string_t& diskDstString);
+    void setStringOverflow(const char* inMemSrcStr, uint64_t len,
+        common::ku_string_t& diskDstString);
 
     inline void read(transaction::TransactionType trxType, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func) const;
@@ -93,8 +93,8 @@ public:
 
     // For creating an overflow file from scratch
     OverflowFile(const std::string& fName, common::VirtualFileSystem* vfs)
-        : numPagesOnDisk{0}, fileHandle{std::make_unique<FileHandle>(
-                                 fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs)},
+        : numPagesOnDisk{0}, fileHandle{std::make_unique<FileHandle>(fName,
+                                 FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs)},
           bufferManager{nullptr}, wal{nullptr}, pageCounter{0}, headerChanged{true} {
         // Reserve a page for the header
         getNewPageIdx();

@@ -23,8 +23,8 @@ public:
     inline binder::expression_vector getProperties() const { return properties; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalExtend>(
-            boundNode, nbrNode, rel, direction, properties, hasAtMostOneNbr, children[0]->copy());
+        return make_unique<LogicalExtend>(boundNode, nbrNode, rel, direction, properties,
+            hasAtMostOneNbr, children[0]->copy());
     }
 
 private:

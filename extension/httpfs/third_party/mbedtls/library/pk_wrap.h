@@ -68,8 +68,8 @@ struct mbedtls_pk_info_t {
         size_t* olen, size_t osize, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng);
 
     /** Check public-private key pair */
-    int (*check_pair_func)(
-        const void* pub, const void* prv, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng);
+    int (*check_pair_func)(const void* pub, const void* prv,
+        int (*f_rng)(void*, unsigned char*, size_t), void* p_rng);
 
     /** Allocate a new context */
     void* (*ctx_alloc_func)(void);

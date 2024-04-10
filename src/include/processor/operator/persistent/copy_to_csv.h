@@ -21,8 +21,8 @@ struct CopyToCSVInfo final : public CopyToInfo {
     uint64_t getNumFlatVectors();
 
     inline std::unique_ptr<CopyToInfo> copy() override {
-        return std::make_unique<CopyToCSVInfo>(
-            names, dataPoses, fileName, isFlat, copyToOption.copy());
+        return std::make_unique<CopyToCSVInfo>(names, dataPoses, fileName, isFlat,
+            copyToOption.copy());
     }
 };
 

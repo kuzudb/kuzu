@@ -26,10 +26,10 @@ void hmac256(const std::string& message, const char* secret, size_t secretLen, h
     }
 
     if (mbedtls_md_setup(&hmacCtx, mdType, 1) ||
-        mbedtls_md_hmac_starts(
-            &hmacCtx, reinterpret_cast<const unsigned char*>(secret), secretLen) ||
-        mbedtls_md_hmac_update(
-            &hmacCtx, reinterpret_cast<const unsigned char*>(message.c_str()), message.length()) ||
+        mbedtls_md_hmac_starts(&hmacCtx, reinterpret_cast<const unsigned char*>(secret),
+            secretLen) ||
+        mbedtls_md_hmac_update(&hmacCtx, reinterpret_cast<const unsigned char*>(message.c_str()),
+            message.length()) ||
         mbedtls_md_hmac_finish(&hmacCtx, reinterpret_cast<unsigned char*>(out))) {
         throw common::RuntimeException("HMAC256 Error");
     }

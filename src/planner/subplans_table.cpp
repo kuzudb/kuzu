@@ -59,8 +59,8 @@ std::vector<SubqueryGraph> DPLevel::getSubqueryGraphs() {
     return result;
 }
 
-void DPLevel::addPlan(
-    const kuzu::binder::SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan) {
+void DPLevel::addPlan(const kuzu::binder::SubqueryGraph& subqueryGraph,
+    std::unique_ptr<LogicalPlan> plan) {
     if (subgraph2Plans.size() > MAX_NUM_SUBGRAPH) {
         return;
     }

@@ -17,9 +17,9 @@ public:
         std::vector<DataPos> columnVectorsPos,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators,
         common::ConflictAction conflictAction)
-        : table{table}, fwdRelTables{std::move(fwdRelTables)}, bwdRelTables{std::move(
-                                                                   bwdRelTables)},
-          nodeIDVectorPos{nodeIDVectorPos}, columnVectorsPos{std::move(columnVectorsPos)},
+        : table{table}, fwdRelTables{std::move(fwdRelTables)},
+          bwdRelTables{std::move(bwdRelTables)}, nodeIDVectorPos{nodeIDVectorPos},
+          columnVectorsPos{std::move(columnVectorsPos)},
           columnDataEvaluators{std::move(columnDataEvaluators)}, conflictAction{conflictAction},
           nodeIDVector{nullptr} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeInsertExecutor);

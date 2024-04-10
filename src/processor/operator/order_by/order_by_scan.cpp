@@ -5,13 +5,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void OrderByScanLocalState::init(
-    std::vector<DataPos>& outVectorPos, SortSharedState& sharedState, ResultSet& resultSet) {
+void OrderByScanLocalState::init(std::vector<DataPos>& outVectorPos, SortSharedState& sharedState,
+    ResultSet& resultSet) {
     for (auto& dataPos : outVectorPos) {
         vectorsToRead.push_back(resultSet.getValueVector(dataPos).get());
     }
-    payloadScanner = std::make_unique<PayloadScanner>(
-        sharedState.getMergedKeyBlock(), sharedState.getPayloadTables());
+    payloadScanner = std::make_unique<PayloadScanner>(sharedState.getMergedKeyBlock(),
+        sharedState.getPayloadTables());
     numTuples = 0;
     for (auto& table : sharedState.getPayloadTables()) {
         numTuples += table->getNumTuples();

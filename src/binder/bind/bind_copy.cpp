@@ -44,8 +44,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     }
     auto csvConfig =
         CSVReaderConfig::construct(bindParsingOptions(copyToStatement.getParsingOptionsRef()));
-    return std::make_unique<BoundCopyTo>(
-        boundFilePath, fileType, std::move(query), csvConfig.option.copy());
+    return std::make_unique<BoundCopyTo>(boundFilePath, fileType, std::move(query),
+        csvConfig.option.copy());
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {
@@ -91,14 +91,14 @@ static void bindExpectedRelColumns(RelTableCatalogEntry* relTableEntry,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
     std::vector<LogicalType>& columnTypes, main::ClientContext* context);
 
-std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(
-    const Statement& statement, NodeTableCatalogEntry* nodeTableEntry) {
+std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
+    NodeTableCatalogEntry* nodeTableEntry) {
     auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
     // Bind expected columns based on catalog information.
     std::vector<std::string> expectedColumnNames;
     std::vector<LogicalType> expectedColumnTypes;
-    bindExpectedNodeColumns(
-        nodeTableEntry, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
+    bindExpectedNodeColumns(nodeTableEntry, copyStatement.getColumnNames(), expectedColumnNames,
+        expectedColumnTypes);
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
     if (boundSource->type == ScanSourceType::FILE) {
@@ -111,15 +111,15 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(
                 FileTypeUtils::toString(bindData->config.fileType)));
         }
     }
-    auto offset = expressionBinder.createVariableExpression(
-        *LogicalType::INT64(), std::string(InternalKeyword::ANONYMOUS));
+    auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+        std::string(InternalKeyword::ANONYMOUS));
     auto boundCopyFromInfo =
         BoundCopyFromInfo(nodeTableEntry, std::move(boundSource), offset, nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
-    const parser::Statement& statement, RelTableCatalogEntry* relTableEntry) {
+std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement& statement,
+    RelTableCatalogEntry* relTableEntry) {
     auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
     if (copyStatement.byColumn()) {
         throw BinderException(
@@ -133,8 +133,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
     auto columns = boundSource->getColumns();
-    auto offset = expressionBinder.createVariableExpression(
-        *LogicalType::INT64(), std::string(InternalKeyword::ROW_OFFSET));
+    auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+        std::string(InternalKeyword::ROW_OFFSET));
     auto srcTableID = relTableEntry->getSrcTableID();
     auto dstTableID = relTableEntry->getDstTableID();
     auto catalog = clientContext->getCatalog();
@@ -190,8 +190,8 @@ static void bindExpectedColumns(TableCatalogEntry* tableEntry,
         // Search column data type for each input column.
         for (auto& columnName : inputColumnNames) {
             if (!tableEntry->containProperty(columnName)) {
-                throw BinderException(stringFormat(
-                    "Table {} does not contain column {}.", tableEntry->getName(), columnName));
+                throw BinderException(stringFormat("Table {} does not contain column {}.",
+                    tableEntry->getName(), columnName));
             }
             auto propertyID = tableEntry->getPropertyID(columnName);
             auto property = tableEntry->getProperty(propertyID);

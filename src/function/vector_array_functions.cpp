@@ -13,8 +13,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-std::unique_ptr<FunctionBindData> ArrayValueBindFunc(
-    const binder::expression_vector& arguments, Function* /*function*/) {
+std::unique_ptr<FunctionBindData> ArrayValueBindFunc(const binder::expression_vector& arguments,
+    Function* /*function*/) {
     auto resultType =
         LogicalType::ARRAY(ListCreationFunction::getChildType(arguments).copy(), arguments.size());
     return std::make_unique<FunctionBindData>(std::move(resultType));
@@ -73,8 +73,8 @@ std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
                 ArrayCrossProductFunction::name)};
     }
     ku_dynamic_cast<Function*, ScalarFunction*>(function)->execFunc = execFunc;
-    auto resultType = LogicalType::ARRAY(
-        *ArrayType::getChildType(&leftType), ArrayType::getNumElements(&leftType));
+    auto resultType = LogicalType::ARRAY(*ArrayType::getChildType(&leftType),
+        ArrayType::getNumElements(&leftType));
     return std::make_unique<FunctionBindData>(std::move(resultType));
 }
 
@@ -90,8 +90,8 @@ function_set ArrayCrossProductFunction::getFunctionSet() {
     return result;
 }
 
-static void validateArrayFunctionParameters(
-    const LogicalType& leftType, const LogicalType& rightType, const std::string& functionName) {
+static void validateArrayFunctionParameters(const LogicalType& leftType,
+    const LogicalType& rightType, const std::string& functionName) {
     if (leftType != rightType) {
         throw BinderException(
             stringFormat("{} requires both arrays to have the same element type", functionName));
@@ -127,8 +127,8 @@ scalar_func_exec_t getScalarExecFunc(LogicalType type) {
 }
 
 template<typename OPERATION>
-std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(
-    std::string functionName, const binder::expression_vector& arguments, Function* function) {
+std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName,
+    const binder::expression_vector& arguments, Function* function) {
     auto leftType = arguments[0]->dataType;
     auto rightType = arguments[1]->dataType;
     validateArrayFunctionParameters(leftType, rightType, functionName);

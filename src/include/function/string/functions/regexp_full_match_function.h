@@ -8,8 +8,8 @@ namespace kuzu {
 namespace function {
 
 struct RegexpFullMatch : BaseRegexpOperation {
-    static inline void operation(
-        common::ku_string_t& left, common::ku_string_t& right, uint8_t& result) {
+    static inline void operation(common::ku_string_t& left, common::ku_string_t& right,
+        uint8_t& result) {
         result = RE2::FullMatch(left.getAsString(), parseCypherPatten(right.getAsString()));
     }
 };

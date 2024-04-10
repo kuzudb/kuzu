@@ -96,8 +96,8 @@ extern "C" {
  * \return          0 if no critical failures occurred,
  *                  MBEDTLS_ERR_ENTROPY_SOURCE_FAILED otherwise
  */
-typedef int (*mbedtls_entropy_f_source_ptr)(
-    void* data, unsigned char* output, size_t len, size_t* olen);
+typedef int (
+    *mbedtls_entropy_f_source_ptr)(void* data, unsigned char* output, size_t len, size_t* olen);
 
 /**
  * \brief           Entropy source state
@@ -206,8 +206,8 @@ int mbedtls_entropy_func(void* data, unsigned char* output, size_t len);
  *
  * \return          0 if successful
  */
-int mbedtls_entropy_update_manual(
-    mbedtls_entropy_context* ctx, const unsigned char* data, size_t len);
+int mbedtls_entropy_update_manual(mbedtls_entropy_context* ctx, const unsigned char* data,
+    size_t len);
 
 #if defined(MBEDTLS_ENTROPY_NV_SEED)
 /**

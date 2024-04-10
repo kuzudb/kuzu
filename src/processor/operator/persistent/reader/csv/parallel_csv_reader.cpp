@@ -153,8 +153,8 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     } while (true);
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(
-    main::ClientContext* /*context*/, TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+    TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;

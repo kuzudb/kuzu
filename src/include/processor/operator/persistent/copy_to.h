@@ -48,8 +48,8 @@ public:
         std::shared_ptr<CopyToSharedState> sharedState, PhysicalOperatorType opType,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), opType, std::move(child), id, paramsString},
-          info{std::move(info)}, localState{std::move(localState)}, sharedState{
-                                                                        std::move(sharedState)} {}
+          info{std::move(info)}, localState{std::move(localState)},
+          sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 

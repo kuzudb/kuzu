@@ -38,8 +38,8 @@ static SerdSyntax getSerdSyntax(FileType fileType) {
 void RdfReader::initInternal(SerdStatementSink statementSink) {
     KU_ASSERT(reader == nullptr);
     fp = fopen(this->filePath.c_str(), "rb");
-    reader = serd_reader_new(
-        getSerdSyntax(fileType), this, nullptr, baseHandle, prefixHandle, statementSink, nullptr);
+    reader = serd_reader_new(getSerdSyntax(fileType), this, nullptr, baseHandle, prefixHandle,
+        statementSink, nullptr);
     serd_reader_set_error_sink(reader, errorHandle, this);
     auto fileName = this->filePath.substr(this->filePath.find_last_of("/\\") + 1);
     serd_reader_start_stream(reader, fp, reinterpret_cast<const uint8_t*>(fileName.c_str()), true);
@@ -62,8 +62,8 @@ SerdStatus RdfReader::baseHandle(void* handle, const SerdNode* baseNode) {
     return SERD_SUCCESS;
 }
 
-SerdStatus RdfReader::prefixHandle(
-    void* handle, const SerdNode* nameNode, const SerdNode* uriNode) {
+SerdStatus RdfReader::prefixHandle(void* handle, const SerdNode* nameNode,
+    const SerdNode* uriNode) {
     auto reader = reinterpret_cast<RdfReader*>(handle);
     serd_env_set_prefix(reader->env, nameNode, uriNode);
     return SERD_SUCCESS;
@@ -142,8 +142,8 @@ std::string RdfReader::getAsString(const SerdNode* node) {
             return std::string((const char*)prefix.buf, prefix.len) +
                    std::string((const char*)suffix.buf, suffix.len);
         } else if (rdfConfig.strict) {
-            throw RuntimeException(stringFormat(
-                "Cannot expand {}.", std::string((const char*)node->buf, node->n_bytes)));
+            throw RuntimeException(stringFormat("Cannot expand {}.",
+                std::string((const char*)node->buf, node->n_bytes)));
         }
         return std::string(); // expand fail return empty string.
     }

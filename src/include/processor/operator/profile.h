@@ -30,8 +30,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<Profile>(
-            outputPos, info, localState, id, paramsString, children[0]->clone());
+        return std::make_unique<Profile>(outputPos, info, localState, id, paramsString,
+            children[0]->clone());
     }
 
 private:

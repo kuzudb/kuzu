@@ -23,8 +23,8 @@ bool FileSystem::fileOrPathExists(const std::string& /*path*/) const {
     KU_UNREACHABLE;
 }
 
-std::string FileSystem::expandPath(
-    main::ClientContext* /*context*/, const std::string& path) const {
+std::string FileSystem::expandPath(main::ClientContext* /*context*/,
+    const std::string& path) const {
     return path;
 }
 

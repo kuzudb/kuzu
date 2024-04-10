@@ -96,8 +96,8 @@ void Partitioner::initGlobalStateInternal(ExecutionContext* /*context*/) {
 
 void Partitioner::initLocalStateInternal(ResultSet* /*resultSet*/, ExecutionContext* /*context*/) {
     localState = std::make_unique<PartitionerLocalState>();
-    initializePartitioningStates(
-        infos, localState->partitioningBuffers, sharedState->numPartitions);
+    initializePartitioningStates(infos, localState->partitioningBuffers,
+        sharedState->numPartitions);
 }
 
 DataChunk Partitioner::constructDataChunk(const std::vector<DataPos>& columnPositions,
@@ -140,8 +140,8 @@ void Partitioner::executeInternal(ExecutionContext* context) {
             auto keyVector = resultSet->getValueVector(info->keyDataPos);
             partitionIdxes->state = resultSet->getValueVector(info->keyDataPos)->state;
             info->partitionerFunc(keyVector.get(), partitionIdxes.get());
-            auto chunkToCopyFrom = constructDataChunk(
-                info->columnDataPositions, info->columnTypes, *resultSet, keyVector->state);
+            auto chunkToCopyFrom = constructDataChunk(info->columnDataPositions, info->columnTypes,
+                *resultSet, keyVector->state);
             copyDataToPartitions(partitioningIdx, std::move(chunkToCopyFrom));
         }
     }

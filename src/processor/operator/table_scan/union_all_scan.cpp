@@ -31,8 +31,8 @@ std::unique_ptr<UnionAllScanMorsel> UnionAllScanSharedState::getMorselNoLock(
     return morsel;
 }
 
-void UnionAllScan::initLocalStateInternal(
-    ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
+void UnionAllScan::initLocalStateInternal(ResultSet* /*resultSet_*/,
+    ExecutionContext* /*context*/) {
     for (auto& dataPos : info->outputPositions) {
         vectors.push_back(resultSet->getValueVector(dataPos).get());
     }

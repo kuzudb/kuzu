@@ -30,8 +30,8 @@ void DictionaryColumn::append(node_group_idx_t nodeGroupIdx, const DictionaryChu
     offsetColumn->append(dictChunk.getOffsetChunk(), nodeGroupIdx);
 }
 
-void DictionaryColumn::scan(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx, DictionaryChunk& dictChunk) {
+void DictionaryColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    DictionaryChunk& dictChunk) {
     auto dataMetadata = dataColumn->getMetadata(nodeGroupIdx, transaction->getType());
     // Make sure that the chunk is large enough
     auto stringDataChunk = dictChunk.getStringDataChunk();
@@ -100,10 +100,10 @@ void DictionaryColumn::scan(Transaction* transaction, node_group_idx_t nodeGroup
 }
 
 string_index_t DictionaryColumn::append(node_group_idx_t nodeGroupIdx, std::string_view val) {
-    auto startOffset = dataColumn->appendValues(
-        nodeGroupIdx, reinterpret_cast<const uint8_t*>(val.data()), val.size());
-    return offsetColumn->appendValues(
-        nodeGroupIdx, reinterpret_cast<const uint8_t*>(&startOffset), 1 /*numValues*/);
+    auto startOffset = dataColumn->appendValues(nodeGroupIdx,
+        reinterpret_cast<const uint8_t*>(val.data()), val.size());
+    return offsetColumn->appendValues(nodeGroupIdx, reinterpret_cast<const uint8_t*>(&startOffset),
+        1 /*numValues*/);
 }
 
 void DictionaryColumn::prepareCommit() {
@@ -159,8 +159,8 @@ bool DictionaryColumn::canCommitInPlace(Transaction* transaction, node_group_idx
     return true;
 }
 
-bool DictionaryColumn::canDataCommitInPlace(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx, uint64_t totalStringLengthToAdd) {
+bool DictionaryColumn::canDataCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    uint64_t totalStringLengthToAdd) {
     // Make sure there is sufficient space in the data chunk (not currently compressed)
     auto dataColumnMetadata = dataColumn->getMetadata(nodeGroupIdx, transaction->getType());
     auto totalStringDataAfterUpdate = dataColumnMetadata.numValues + totalStringLengthToAdd;
@@ -207,8 +207,8 @@ bool DictionaryColumn::canOffsetCommitInPlace(Transaction* transaction,
     return true;
 }
 
-uint64_t DictionaryColumn::getNumValuesInOffsets(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx) {
+uint64_t DictionaryColumn::getNumValuesInOffsets(Transaction* transaction,
+    node_group_idx_t nodeGroupIdx) {
     return offsetColumn->getMetadata(nodeGroupIdx, transaction->getType()).numValues;
 }
 

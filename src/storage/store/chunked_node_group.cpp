@@ -46,8 +46,8 @@ void ChunkedCSRHeader::fillDefaultValues(offset_t newNumValues) const {
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
 }
 
-ChunkedNodeGroup::ChunkedNodeGroup(
-    const std::vector<common::LogicalType>& columnTypes, bool enableCompression, uint64_t capacity)
+ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes,
+    bool enableCompression, uint64_t capacity)
     : nodeGroupIdx{UINT64_MAX}, numRows{0} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
@@ -56,8 +56,8 @@ ChunkedNodeGroup::ChunkedNodeGroup(
     }
 }
 
-ChunkedNodeGroup::ChunkedNodeGroup(
-    const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression)
+ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<std::unique_ptr<Column>>& columns,
+    bool enableCompression)
     : nodeGroupIdx{UINT64_MAX}, numRows{0} {
     chunks.reserve(columns.size());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
@@ -118,8 +118,8 @@ uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors
 
 offset_t ChunkedNodeGroup::append(ChunkedNodeGroup* other, offset_t offsetInOtherNodeGroup) {
     KU_ASSERT(other->chunks.size() == chunks.size());
-    auto numNodesToAppend = std::min(
-        other->numRows - offsetInOtherNodeGroup, StorageConstants::NODE_GROUP_SIZE - numRows);
+    auto numNodesToAppend = std::min(other->numRows - offsetInOtherNodeGroup,
+        StorageConstants::NODE_GROUP_SIZE - numRows);
     for (auto i = 0u; i < chunks.size(); i++) {
         chunks[i]->append(other->chunks[i].get(), offsetInOtherNodeGroup, numNodesToAppend);
     }
@@ -127,8 +127,8 @@ offset_t ChunkedNodeGroup::append(ChunkedNodeGroup* other, offset_t offsetInOthe
     return numNodesToAppend;
 }
 
-void ChunkedNodeGroup::write(
-    const std::vector<std::unique_ptr<ColumnChunk>>& data, column_id_t offsetColumnID) {
+void ChunkedNodeGroup::write(const std::vector<std::unique_ptr<ColumnChunk>>& data,
+    column_id_t offsetColumnID) {
     KU_ASSERT(data.size() == chunks.size() + 1);
     auto& offsetChunk = data[offsetColumnID];
     column_id_t columnID = 0, chunkIdx = 0;
@@ -183,8 +183,8 @@ length_t ChunkedCSRHeader::getCSRLength(offset_t nodeOffset) const {
     return nodeOffset >= length->getNumValues() ? 0 : length->getValue<length_t>(nodeOffset);
 }
 
-ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(
-    const std::vector<LogicalType>& columnTypes, bool enableCompression)
+ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(const std::vector<LogicalType>& columnTypes,
+    bool enableCompression)
     // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
     // should be resized after csr offset calculation (e.g., during RelBatchInsert).
     : ChunkedNodeGroup{columnTypes, enableCompression, 0 /* capacity */} {

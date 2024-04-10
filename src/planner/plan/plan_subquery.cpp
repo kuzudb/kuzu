@@ -81,8 +81,8 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
             predicatesToPullUp.push_back(predicate);
         }
     }
-    auto joinNodeIDs = ExpressionUtil::getExpressionsWithDataType(
-        correlatedExpressions, LogicalTypeID::INTERNAL_ID);
+    auto joinNodeIDs = ExpressionUtil::getExpressionsWithDataType(correlatedExpressions,
+        LogicalTypeID::INTERNAL_ID);
     if (joinNodeIDs.empty()) {
         auto rightPlan =
             planQueryGraphCollectionInNewContext(SubqueryType::NONE, correlatedExpressions,
@@ -120,13 +120,13 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
             outerPlan.getCardinality(), *subquery->getQueryGraphCollection(), predicates);
         switch (subquery->getSubqueryType()) {
         case common::SubqueryType::EXISTS: {
-            appendAggregate(
-                expression_vector{}, expression_vector{subquery->getCountStarExpr()}, *innerPlan);
+            appendAggregate(expression_vector{}, expression_vector{subquery->getCountStarExpr()},
+                *innerPlan);
             appendProjection(expression_vector{subquery->getProjectionExpr()}, *innerPlan);
         } break;
         case common::SubqueryType::COUNT: {
-            appendAggregate(
-                expression_vector{}, expression_vector{subquery->getProjectionExpr()}, *innerPlan);
+            appendAggregate(expression_vector{}, expression_vector{subquery->getProjectionExpr()},
+                *innerPlan);
         } break;
         default:
             KU_UNREACHABLE;
@@ -150,10 +150,10 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
             appendMarkJoin(correlatedExprs, expression, outerPlan, *innerPlan);
         } break;
         case common::SubqueryType::COUNT: {
-            appendAggregate(
-                correlatedExprs, expression_vector{subquery->getProjectionExpr()}, *innerPlan);
-            appendHashJoin(
-                correlatedExprs, common::JoinType::COUNT, outerPlan, *innerPlan, outerPlan);
+            appendAggregate(correlatedExprs, expression_vector{subquery->getProjectionExpr()},
+                *innerPlan);
+            appendHashJoin(correlatedExprs, common::JoinType::COUNT, outerPlan, *innerPlan,
+                outerPlan);
         } break;
         default:
             KU_UNREACHABLE;
@@ -161,8 +161,8 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
     }
 }
 
-void Planner::planSubqueryIfNecessary(
-    const std::shared_ptr<Expression>& expression, LogicalPlan& plan) {
+void Planner::planSubqueryIfNecessary(const std::shared_ptr<Expression>& expression,
+    LogicalPlan& plan) {
     if (ExpressionVisitor::hasSubquery(*expression)) {
         auto expressionCollector = std::make_unique<ExpressionCollector>();
         for (auto& expr : expressionCollector->collectTopLevelSubqueryExpressions(expression)) {

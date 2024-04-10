@@ -7,7 +7,7 @@ namespace kuzu {
 using namespace kuzu::common;
 
 static bool isDateTime(NumpyNullableType type) {
-    switch(type) {
+    switch (type) {
     case NumpyNullableType::DATETIME_US:
     case NumpyNullableType::DATETIME_S:
     case NumpyNullableType::DATETIME_NS:

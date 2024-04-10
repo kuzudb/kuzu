@@ -72,8 +72,8 @@ public:
     inline BMFileHandle* getFileHandle() const { return fileHandle.get(); }
 
 private:
-    bool lookupInPersistentIndex(
-        transaction::TransactionType trxType, Key key, common::offset_t& result);
+    bool lookupInPersistentIndex(transaction::TransactionType trxType, Key key,
+        common::offset_t& result);
     // The following two functions are only used in prepareCommit, and are not thread-safe.
     void insertIntoPersistentIndex(Key key, common::offset_t value);
     void deleteFromPersistentIndex(Key key);
@@ -102,13 +102,13 @@ private:
     }
     void rehashSlots(HashIndexHeader& header);
 
-    inline bool equals(
-        transaction::TransactionType /*trxType*/, Key keyToLookup, const T& keyInEntry) const {
+    inline bool equals(transaction::TransactionType /*trxType*/, Key keyToLookup,
+        const T& keyInEntry) const {
         return keyToLookup == keyInEntry;
     }
     template<typename K, bool isCopyEntry>
-    void copyAndUpdateSlotHeader(
-        Slot<T>& slot, entry_pos_t entryPos, K key, common::offset_t value, uint8_t fingerprint) {
+    void copyAndUpdateSlotHeader(Slot<T>& slot, entry_pos_t entryPos, K key, common::offset_t value,
+        uint8_t fingerprint) {
         if constexpr (isCopyEntry) {
             slot.entries[entryPos].copyFrom((uint8_t*)&key);
         } else {
@@ -160,8 +160,8 @@ private:
         } else {
             for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
                 if (!slot.header.isEntryValid(entryPos)) {
-                    copyAndUpdateSlotHeader<K, isCopyEntry>(
-                        slot, entryPos, key, value, fingerprint);
+                    copyAndUpdateSlotHeader<K, isCopyEntry>(slot, entryPos, key, value,
+                        fingerprint);
                     break;
                 }
             }
@@ -190,8 +190,8 @@ private:
 };
 
 template<>
-common::hash_t HashIndex<common::ku_string_t>::hashStored(
-    transaction::TransactionType trxType, const common::ku_string_t& key) const;
+common::hash_t HashIndex<common::ku_string_t>::hashStored(transaction::TransactionType trxType,
+    const common::ku_string_t& key) const;
 
 template<>
 inline bool HashIndex<common::ku_string_t>::equals(transaction::TransactionType trxType,
@@ -215,8 +215,8 @@ public:
             hashIndices[HashIndexUtils::getHashIndexPosition(key)].get());
     }
 
-    inline bool lookup(
-        transaction::Transaction* trx, common::ku_string_t key, common::offset_t& result) {
+    inline bool lookup(transaction::Transaction* trx, common::ku_string_t key,
+        common::offset_t& result) {
         return lookup(trx, key.getAsStringView(), result);
     }
     template<common::IndexHashable T>

@@ -12,15 +12,15 @@ namespace kuzu {
 using namespace kuzu::common;
 
 template<class T>
-void ScanNumpyColumn(
-    py::array& npArray, uint64_t offset, ValueVector* outputVector, uint64_t count) {
+void ScanNumpyColumn(py::array& npArray, uint64_t offset, ValueVector* outputVector,
+    uint64_t count) {
     auto srcData = (T*)npArray.data();
     memcpy(outputVector->getData(), srcData + offset, count * sizeof(T));
 }
 
 template<class T>
-void scanNumpyMasked(
-    PandasColumnBindData* bindData, uint64_t count, uint64_t offset, ValueVector* outputVector) {
+void scanNumpyMasked(PandasColumnBindData* bindData, uint64_t count, uint64_t offset,
+    ValueVector* outputVector) {
     KU_ASSERT(bindData->pandasCol->getBackEnd() == PandasColumnBackend::NUMPY);
     auto& npColumn = reinterpret_cast<PandasNumpyColumn&>(*bindData->pandasCol);
     ScanNumpyColumn<T>(npColumn.array, offset, outputVector, count);
@@ -37,8 +37,8 @@ void setNullIfNan(T value, uint64_t pos, ValueVector* outputVector) {
 }
 
 template<class T>
-void ScanNumpyFpColumn(
-    const T* srcData, uint64_t count, uint64_t offset, ValueVector* outputVector) {
+void ScanNumpyFpColumn(const T* srcData, uint64_t count, uint64_t offset,
+    ValueVector* outputVector) {
     memcpy(outputVector->getData(), srcData + offset, count * sizeof(T));
     for (auto i = 0u; i < count; i++) {
         setNullIfNan(outputVector->getValue<T>(i), i, outputVector);
@@ -46,8 +46,8 @@ void ScanNumpyFpColumn(
 }
 
 template<class T>
-static void appendPythonUnicode(
-    T* codepoints, uint64_t codepointLength, ValueVector* vectorToAppend, uint64_t pos) {
+static void appendPythonUnicode(T* codepoints, uint64_t codepointLength,
+    ValueVector* vectorToAppend, uint64_t pos) {
     uint64_t utf8StrLen = 0;
     for (auto i = 0u; i < codepointLength; i++) {
         auto len = utf8proc::Utf8Proc::codepointLength(int(codepoints[i]));
@@ -102,12 +102,12 @@ void NumpyScan::scan(PandasColumnBindData* bindData, uint64_t count, uint64_t of
         scanNumpyMasked<int64_t>(bindData, count, offset, outputVector);
         break;
     case NumpyNullableType::FLOAT_32:
-        ScanNumpyFpColumn<float>(
-            reinterpret_cast<const float*>(array.data()), count, offset, outputVector);
+        ScanNumpyFpColumn<float>(reinterpret_cast<const float*>(array.data()), count, offset,
+            outputVector);
         break;
     case NumpyNullableType::FLOAT_64:
-        ScanNumpyFpColumn<double>(
-            reinterpret_cast<const double*>(array.data()), count, offset, outputVector);
+        ScanNumpyFpColumn<double>(reinterpret_cast<const double*>(array.data()), count, offset,
+            outputVector);
         break;
     case NumpyNullableType::DATETIME_S:
     case NumpyNullableType::DATETIME_MS:
@@ -177,8 +177,8 @@ void NumpyScan::scan(PandasColumnBindData* bindData, uint64_t count, uint64_t of
             } else {
                 auto unicodeObj = reinterpret_cast<PyCompactUnicodeObject*>(val);
                 if (unicodeObj->utf8) {
-                    dstData[i] = ku_string_t(
-                        reinterpret_cast<const char*>(unicodeObj->utf8), unicodeObj->utf8_length);
+                    dstData[i] = ku_string_t(reinterpret_cast<const char*>(unicodeObj->utf8),
+                        unicodeObj->utf8_length);
                 } else if (PyStrUtil::isPyUnicodeCompact(unicodeObj) &&
                            !PyStrUtil::isPyUnicodeASCII(unicodeObj)) {
                     auto kind = PyStrUtil::getPyUnicodeKind(strHandle);
@@ -221,8 +221,8 @@ void scanNumpyObject(PyObject* object, uint64_t offset, common::ValueVector* out
     transformPythonValue(outputVector, offset, object);
 }
 
-void NumpyScan::scanObjectColumn(
-    PyObject** col, uint64_t count, uint64_t offset, common::ValueVector* outputVector) {
+void NumpyScan::scanObjectColumn(PyObject** col, uint64_t count, uint64_t offset,
+    common::ValueVector* outputVector) {
     py::gil_scoped_acquire gil;
     auto srcPtr = col + offset;
     for (auto i = 0u; i < count; i++) {

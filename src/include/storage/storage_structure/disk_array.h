@@ -102,8 +102,8 @@ struct PIPUpdates {
 class BaseDiskArrayInternal {
 public:
     // Used by copiers.
-    BaseDiskArrayInternal(
-        FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
+    BaseDiskArrayInternal(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
+        uint64_t elementSize);
     // Used when loading from file
     BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
         common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
@@ -256,8 +256,8 @@ private:
 
 class BaseInMemDiskArray : public BaseDiskArrayInternal {
 protected:
-    BaseInMemDiskArray(
-        FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
+    BaseInMemDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
+        uint64_t elementSize);
     BaseInMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction);
 
@@ -293,8 +293,8 @@ public:
     InMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction)
         : BaseDiskArray<U>(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction) {}
-    static inline common::page_idx_t addDAHPageToFile(
-        BMFileHandle& fileHandle, BufferManager* bufferManager, WAL* wal) {
+    static inline common::page_idx_t addDAHPageToFile(BMFileHandle& fileHandle,
+        BufferManager* bufferManager, WAL* wal) {
         DiskArrayHeader daHeader(sizeof(U));
         return DBFileUtils::insertNewPage(fileHandle, DBFileID{DBFileType::METADATA},
             *bufferManager, *wal,

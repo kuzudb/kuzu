@@ -199,10 +199,10 @@ static const signed char transposes[2][20] = {
 
 #define SHIFT_AND_PLACE(INDEX, OFFSET)                                                             \
     {                                                                                              \
-        TK[0] = KC[(OFFSET)*4 + 0];                                                                \
-        TK[1] = KC[(OFFSET)*4 + 1];                                                                \
-        TK[2] = KC[(OFFSET)*4 + 2];                                                                \
-        TK[3] = KC[(OFFSET)*4 + 3];                                                                \
+        TK[0] = KC[(OFFSET) * 4 + 0];                                                              \
+        TK[1] = KC[(OFFSET) * 4 + 1];                                                              \
+        TK[2] = KC[(OFFSET) * 4 + 2];                                                              \
+        TK[3] = KC[(OFFSET) * 4 + 3];                                                              \
                                                                                                    \
         for (i = 1; i <= 4; i++)                                                                   \
             if (shifts[(INDEX)][(OFFSET)][i - 1])                                                  \
@@ -248,8 +248,8 @@ void mbedtls_camellia_free(mbedtls_camellia_context* ctx) {
 /*
  * Camellia key schedule (encryption)
  */
-int mbedtls_camellia_setkey_enc(
-    mbedtls_camellia_context* ctx, const unsigned char* key, unsigned int keybits) {
+int mbedtls_camellia_setkey_enc(mbedtls_camellia_context* ctx, const unsigned char* key,
+    unsigned int keybits) {
     int idx;
     size_t i;
     uint32_t* RK;
@@ -361,8 +361,8 @@ int mbedtls_camellia_setkey_enc(
 /*
  * Camellia key schedule (decryption)
  */
-int mbedtls_camellia_setkey_dec(
-    mbedtls_camellia_context* ctx, const unsigned char* key, unsigned int keybits) {
+int mbedtls_camellia_setkey_dec(mbedtls_camellia_context* ctx, const unsigned char* key,
+    unsigned int keybits) {
     int idx, ret;
     size_t i;
     mbedtls_camellia_context cty;
@@ -658,9 +658,9 @@ static const unsigned char camellia_test_ecb_cipher[3][CAMELLIA_TESTS_ECB][16] =
 #if defined(MBEDTLS_CIPHER_MODE_CBC)
 #define CAMELLIA_TESTS_CBC 3
 
-static const unsigned char camellia_test_cbc_key[3][32] = {
-    {0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F,
-        0x3C},
+static const unsigned char camellia_test_cbc_key[3][32] = {{0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE,
+                                                               0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88,
+                                                               0x09, 0xCF, 0x4F, 0x3C},
     {0x8E, 0x73, 0xB0, 0xF7, 0xDA, 0x0E, 0x64, 0x52, 0xC8, 0x10, 0xF3, 0x2B, 0x80, 0x90, 0x79, 0xE5,
         0x62, 0xF8, 0xEA, 0xD2, 0x52, 0x2C, 0x6B, 0x7B},
     {0x60, 0x3D, 0xEB, 0x10, 0x15, 0xCA, 0x71, 0xBE, 0x2B, 0x73, 0xAE, 0xF0, 0x85, 0x7D, 0x77, 0x81,
@@ -709,9 +709,9 @@ static const unsigned char camellia_test_cbc_cipher[3][CAMELLIA_TESTS_CBC][16] =
  * http://www.faqs.org/rfcs/rfc5528.html
  */
 
-static const unsigned char camellia_test_ctr_key[3][16] = {
-    {0xAE, 0x68, 0x52, 0xF8, 0x12, 0x10, 0x67, 0xCC, 0x4B, 0xF7, 0xA5, 0x76, 0x55, 0x77, 0xF3,
-        0x9E},
+static const unsigned char camellia_test_ctr_key[3][16] = {{0xAE, 0x68, 0x52, 0xF8, 0x12, 0x10,
+                                                               0x67, 0xCC, 0x4B, 0xF7, 0xA5, 0x76,
+                                                               0x55, 0x77, 0xF3, 0x9E},
     {0x7E, 0x24, 0x06, 0x78, 0x17, 0xFA, 0xE0, 0xD7, 0x43, 0xD6, 0xCE, 0x1F, 0x32, 0x53, 0x91,
         0x63},
     {0x76, 0x91, 0xBE, 0x03, 0x5E, 0x50, 0x20, 0xA8, 0xAC, 0x6E, 0x61, 0x85, 0x29, 0xF9, 0xA0,
@@ -725,9 +725,9 @@ static const unsigned char camellia_test_ctr_nonce_counter[3][16] = {
     {0x00, 0xE0, 0x01, 0x7B, 0x27, 0x77, 0x7F, 0x3F, 0x4A, 0x17, 0x86, 0xF0, 0x00, 0x00, 0x00,
         0x01}};
 
-static const unsigned char camellia_test_ctr_pt[3][48] = {
-    {0x53, 0x69, 0x6E, 0x67, 0x6C, 0x65, 0x20, 0x62, 0x6C, 0x6F, 0x63, 0x6B, 0x20, 0x6D, 0x73,
-        0x67},
+static const unsigned char camellia_test_ctr_pt[3][48] = {{0x53, 0x69, 0x6E, 0x67, 0x6C, 0x65, 0x20,
+                                                              0x62, 0x6C, 0x6F, 0x63, 0x6B, 0x20,
+                                                              0x6D, 0x73, 0x67},
 
     {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E,
@@ -737,9 +737,9 @@ static const unsigned char camellia_test_ctr_pt[3][48] = {
         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E,
         0x1F, 0x20, 0x21, 0x22, 0x23}};
 
-static const unsigned char camellia_test_ctr_ct[3][48] = {
-    {0xD0, 0x9D, 0xC2, 0x9A, 0x82, 0x14, 0x61, 0x9A, 0x20, 0x87, 0x7C, 0x76, 0xDB, 0x1F, 0x0B,
-        0x3F},
+static const unsigned char camellia_test_ctr_ct[3][48] = {{0xD0, 0x9D, 0xC2, 0x9A, 0x82, 0x14, 0x61,
+                                                              0x9A, 0x20, 0x87, 0x7C, 0x76, 0xDB,
+                                                              0x1F, 0x0B, 0x3F},
     {0xDB, 0xF3, 0xC7, 0x8D, 0xC0, 0x83, 0x96, 0xD4, 0xDA, 0x7C, 0x90, 0x77, 0x65, 0xBB, 0xCB, 0x44,
         0x2B, 0x8E, 0x8E, 0x0F, 0x31, 0xF0, 0xDC, 0xA7, 0x2C, 0x74, 0x17, 0xE3, 0x53, 0x60, 0xE0,
         0x48},
@@ -871,8 +871,8 @@ int mbedtls_camellia_self_test(int verbose) {
         v = i & 1;
 
         if (verbose != 0)
-            mbedtls_printf(
-                "  CAMELLIA-CTR-128 (%s): ", (v == MBEDTLS_CAMELLIA_DECRYPT) ? "dec" : "enc");
+            mbedtls_printf("  CAMELLIA-CTR-128 (%s): ",
+                (v == MBEDTLS_CAMELLIA_DECRYPT) ? "dec" : "enc");
 
         memcpy(nonce_counter, camellia_test_ctr_nonce_counter[u], 16);
         memcpy(key, camellia_test_ctr_key[u], 16);

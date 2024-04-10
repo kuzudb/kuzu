@@ -45,14 +45,14 @@ static std::vector<std::unique_ptr<AggregateInputInfo>> getAggregateInputInfos(
                 multiplicityChunksPos.push_back(groupPos);
             }
         }
-        result.emplace_back(std::make_unique<AggregateInputInfo>(
-            aggregateVectorPos, std::move(multiplicityChunksPos)));
+        result.emplace_back(std::make_unique<AggregateInputInfo>(aggregateVectorPos,
+            std::move(multiplicityChunksPos)));
     }
     return result;
 }
 
-static binder::expression_vector getKeyExpressions(
-    const binder::expression_vector& expressions, const Schema& schema, bool isFlat) {
+static binder::expression_vector getKeyExpressions(const binder::expression_vector& expressions,
+    const Schema& schema, bool isFlat) {
     binder::expression_vector result;
     for (auto& expression : expressions) {
         if (schema.getGroup(schema.getGroupPos(*expression))->isFlat() == isFlat) {
@@ -88,8 +88,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
             make_unique<SimpleAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
                 sharedState, std::move(aggregateFunctions), std::move(aggregateInputInfos),
                 std::move(prevOperator), getOperatorID(), paramsString);
-        return make_unique<SimpleAggregateScan>(
-            sharedState, aggregatesOutputPos, std::move(aggregate), getOperatorID(), paramsString);
+        return make_unique<SimpleAggregateScan>(sharedState, aggregatesOutputPos,
+            std::move(aggregate), getOperatorID(), paramsString);
     }
 }
 
@@ -114,12 +114,12 @@ static std::unique_ptr<FactorizedTableSchema> getFactorizedTableSchema(
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
     }
     for (auto& aggregateFunc : aggregateFunctions) {
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            isUnflat, dataChunkPos, aggregateFunc->getAggregateStateSize()));
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos,
+            aggregateFunc->getAggregateStateSize()));
     }
     if (markExpression != nullptr) {
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            isUnflat, dataChunkPos, LogicalTypeUtils::getRowLayoutSize(markExpression->dataType)));
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos,
+            LogicalTypeUtils::getRowLayoutSize(markExpression->dataType)));
     }
     tableSchema->appendColumn(
         std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, sizeof(hash_t)));
@@ -136,8 +136,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
     auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
     auto flatKeys = getKeyExpressions(keys, *inSchema, true /* isFlat */);
     auto unFlatKeys = getKeyExpressions(keys, *inSchema, false /* isFlat */);
-    auto tableSchema = getFactorizedTableSchema(
-        flatKeys, unFlatKeys, payloads, aggregateFunctions, markExpression);
+    auto tableSchema = getFactorizedTableSchema(flatKeys, unFlatKeys, payloads, aggregateFunctions,
+        markExpression);
     HashAggregateInfo aggregateInfo{getExpressionsDataPos(flatKeys, *inSchema),
         getExpressionsDataPos(unFlatKeys, *inSchema), getExpressionsDataPos(payloads, *inSchema),
         std::move(tableSchema),

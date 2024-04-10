@@ -1,12 +1,12 @@
 #include "pandas/pandas_scan.h"
 
-#include "pyarrow/pyarrow_scan.h"
-#include "function/table/bind_input.h"
+#include "binder/expression/function_expression.h"
 #include "cached_import/py_cached_import.h"
+#include "function/table/bind_input.h"
 #include "numpy/numpy_scan.h"
 #include "py_connection.h"
+#include "pyarrow/pyarrow_scan.h"
 #include "pybind11/pytypes.h"
-#include "binder/expression/function_expression.h"
 
 using namespace kuzu::function;
 using namespace kuzu::common;
@@ -14,8 +14,8 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 
-std::unique_ptr<function::TableFuncBindData> bindFunc(
-    main::ClientContext* /*context*/, TableFuncBindInput* input) {
+std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+    TableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
     py::handle df(reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>()));
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
@@ -29,13 +29,14 @@ std::unique_ptr<function::TableFuncBindData> bindFunc(
     auto columns = py::list(df.attr("keys")());
     auto getFunc = df.attr("__getitem__");
     auto numRows = py::len(getFunc(columns[0]));
-    return std::make_unique<PandasScanFunctionData>(
-        std::move(returnTypes), std::move(names), df, numRows, std::move(columnBindData));
+    return std::make_unique<PandasScanFunctionData>(std::move(returnTypes), std::move(names), df,
+        numRows, std::move(columnBindData));
 }
 
-bool sharedStateNext(const TableFuncBindData* /*bindData*/,
-    PandasScanLocalState* localState, TableFuncSharedState* sharedState) {
-    auto pandasSharedState = ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(sharedState);
+bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState* localState,
+    TableFuncSharedState* sharedState) {
+    auto pandasSharedState =
+        ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(sharedState);
     std::lock_guard<std::mutex> lck{pandasSharedState->lock};
     if (pandasSharedState->position >= pandasSharedState->numRows) {
         return false;
@@ -63,12 +64,13 @@ std::unique_ptr<function::TableFuncSharedState> initSharedState(
         throw RuntimeException("PandasScan called but GIL was already held!");
     }
     // LCOV_EXCL_STOP
-    auto scanBindData = ku_dynamic_cast<TableFuncBindData*, PandasScanFunctionData*>(input.bindData);
+    auto scanBindData =
+        ku_dynamic_cast<TableFuncBindData*, PandasScanFunctionData*>(input.bindData);
     return std::make_unique<PandasScanSharedState>(scanBindData->numRows);
 }
 
-void pandasBackendScanSwitch(
-    PandasColumnBindData* bindData, uint64_t count, uint64_t offset, ValueVector* outputVector) {
+void pandasBackendScanSwitch(PandasColumnBindData* bindData, uint64_t count, uint64_t offset,
+    ValueVector* outputVector) {
     auto backend = bindData->pandasCol->getBackEnd();
     switch (backend) {
     case PandasColumnBackend::NUMPY: {
@@ -79,11 +81,13 @@ void pandasBackendScanSwitch(
     }
 }
 
-offset_t tableFunc(
-    TableFuncInput& input, TableFuncOutput& output) {
-    auto pandasScanData = ku_dynamic_cast<TableFuncBindData*, PandasScanFunctionData*>(input.bindData);
-    auto pandasLocalState = ku_dynamic_cast<TableFuncLocalState*, PandasScanLocalState*>(input.localState);
-    auto pandasSharedState = ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(input.sharedState);
+offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+    auto pandasScanData =
+        ku_dynamic_cast<TableFuncBindData*, PandasScanFunctionData*>(input.bindData);
+    auto pandasLocalState =
+        ku_dynamic_cast<TableFuncLocalState*, PandasScanLocalState*>(input.localState);
+    auto pandasSharedState =
+        ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(input.sharedState);
 
     if (pandasLocalState->start >= pandasLocalState->end) {
         if (!sharedStateNext(input.bindData, pandasLocalState, input.sharedState)) {
@@ -102,7 +106,8 @@ offset_t tableFunc(
     return numValuesToOutput;
 }
 
-std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyColumnBindData() const {
+std::vector<std::unique_ptr<PandasColumnBindData>>
+PandasScanFunctionData::copyColumnBindData() const {
     std::vector<std::unique_ptr<PandasColumnBindData>> result;
     result.reserve(columnBindData.size());
     for (auto& bindData : columnBindData) {
@@ -112,12 +117,12 @@ std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyC
 }
 
 static double progressFunc(TableFuncSharedState* sharedState) {
-    auto pandasSharedState = ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(sharedState);
+    auto pandasSharedState =
+        ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(sharedState);
     if (pandasSharedState->numRows == 0) {
-		return 0.0;
-	}
-    return static_cast<double>(pandasSharedState->numReadRows) /
-           pandasSharedState->numRows;
+        return 0.0;
+    }
+    return static_cast<double>(pandasSharedState->numReadRows) / pandasSharedState->numRows;
 }
 
 static TableFunction getFunction() {
@@ -131,19 +136,19 @@ function_set PandasScanFunction::getFunctionSet() {
     return functionSet;
 }
 
-static bool isPyArrowBacked(const py::handle &df) {
-	py::list dtypes = df.attr("dtypes");
-	if (dtypes.empty()) {
-		return false;
-	}
+static bool isPyArrowBacked(const py::handle& df) {
+    py::list dtypes = df.attr("dtypes");
+    if (dtypes.empty()) {
+        return false;
+    }
 
-	auto arrow_dtype = importCache->pandas.ArrowDtype();
-	for (auto &dtype : dtypes) {
-		if (py::isinstance(dtype, arrow_dtype)) {
-			return true;
-		}
-	}
-	return false;
+    auto arrow_dtype = importCache->pandas.ArrowDtype();
+    for (auto& dtype : dtypes) {
+        if (py::isinstance(dtype, arrow_dtype)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objectName) {

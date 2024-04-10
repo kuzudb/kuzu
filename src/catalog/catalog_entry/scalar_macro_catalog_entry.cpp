@@ -3,10 +3,10 @@
 namespace kuzu {
 namespace catalog {
 
-ScalarMacroCatalogEntry::ScalarMacroCatalogEntry(
-    std::string name, std::unique_ptr<function::ScalarMacroFunction> macroFunction)
-    : CatalogEntry{CatalogEntryType::SCALAR_MACRO_ENTRY, std::move(name)}, macroFunction{std::move(
-                                                                               macroFunction)} {}
+ScalarMacroCatalogEntry::ScalarMacroCatalogEntry(std::string name,
+    std::unique_ptr<function::ScalarMacroFunction> macroFunction)
+    : CatalogEntry{CatalogEntryType::SCALAR_MACRO_ENTRY, std::move(name)},
+      macroFunction{std::move(macroFunction)} {}
 
 void ScalarMacroCatalogEntry::serialize(common::Serializer& serializer) const {
     CatalogEntry::serialize(serializer);

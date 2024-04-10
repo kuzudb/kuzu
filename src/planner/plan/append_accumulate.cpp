@@ -11,8 +11,8 @@ void Planner::appendAccumulate(AccumulateType accumulateType, LogicalPlan& plan)
     appendAccumulate(accumulateType, expression_vector{}, plan);
 }
 
-void Planner::appendAccumulate(
-    AccumulateType accumulateType, const expression_vector& flatExprs, LogicalPlan& plan) {
+void Planner::appendAccumulate(AccumulateType accumulateType, const expression_vector& flatExprs,
+    LogicalPlan& plan) {
     appendAccumulate(accumulateType, flatExprs, nullptr, plan);
 }
 

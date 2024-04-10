@@ -24,16 +24,16 @@ struct CommentOnInfo {
 
 class CommentOn : public PhysicalOperator {
 public:
-    CommentOn(
-        std::unique_ptr<CommentOnInfo> localState, uint32_t id, const std::string& paramsString)
+    CommentOn(std::unique_ptr<CommentOnInfo> localState, uint32_t id,
+        const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::COMMENT_ON, id, paramsString},
           commentOnInfo{std::move(localState)} {}
 
     inline bool isSource() const override { return true; }
     inline bool canParallel() const final { return false; }
 
-    inline void initLocalStateInternal(
-        ResultSet* resultSet, ExecutionContext* /*context*/) override {
+    inline void initLocalStateInternal(ResultSet* resultSet,
+        ExecutionContext* /*context*/) override {
         outputVector = resultSet->getValueVector(commentOnInfo->outputPos).get();
     }
 

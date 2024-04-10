@@ -66,8 +66,8 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
         createTableInfo.propertyNameDataTypes =
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
-    createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableInfo>(
-        relMultiplicity, std::move(srcTableName), std::move(dstTableName));
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
+        std::move(srcTableName), std::move(dstTableName));
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
@@ -91,8 +91,8 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
         createTableInfo.propertyNameDataTypes =
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
-    createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(
-        relMultiplicity, std::move(srcDstTablePairs));
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,
+        std::move(srcDstTablePairs));
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
@@ -129,8 +129,8 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     } else {
         defaultValue = std::make_unique<ParsedLiteralExpression>(Value::createNullValue(), "NULL");
     }
-    auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(
-        std::move(propertyName), std::move(dataType), std::move(defaultValue));
+    auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(std::move(propertyName),
+        std::move(dataType), std::move(defaultValue));
     auto info = AlterInfo(AlterType::ADD_PROPERTY, tableName, std::move(extraInfo));
     return std::make_unique<Alter>(std::move(info));
 }

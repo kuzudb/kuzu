@@ -115,17 +115,17 @@ private:
 
     // ! This function will only be used by distinct aggregate, which assumes that all groupByKeys
     // are flat.
-    uint8_t* findEntryInDistinctHT(
-        const std::vector<common::ValueVector*>& groupByKeyVectors, common::hash_t hash);
+    uint8_t* findEntryInDistinctHT(const std::vector<common::ValueVector*>& groupByKeyVectors,
+        common::hash_t hash);
 
-    void initializeFTEntryWithFlatVec(
-        common::ValueVector* flatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
+    void initializeFTEntryWithFlatVec(common::ValueVector* flatVector,
+        uint64_t numEntriesToInitialize, uint32_t colIdx);
 
-    void initializeFTEntryWithUnFlatVec(
-        common::ValueVector* unFlatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
+    void initializeFTEntryWithUnFlatVec(common::ValueVector* unFlatVector,
+        uint64_t numEntriesToInitialize, uint32_t colIdx);
 
-    uint8_t* createEntryInDistinctHT(
-        const std::vector<common::ValueVector*>& groupByHashKeyVectors, common::hash_t hash);
+    uint8_t* createEntryInDistinctHT(const std::vector<common::ValueVector*>& groupByHashKeyVectors,
+        common::hash_t hash);
 
     void increaseSlotIdx(uint64_t& slotIdx) const;
 

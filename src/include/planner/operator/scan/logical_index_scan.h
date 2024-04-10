@@ -8,10 +8,10 @@ namespace planner {
 
 class LogicalIndexScanNode : public LogicalOperator {
 public:
-    LogicalIndexScanNode(
-        std::vector<binder::IndexLookupInfo> infos, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::INDEX_SCAN_NODE, std::move(child)}, infos{std::move(
-                                                                                       infos)} {}
+    LogicalIndexScanNode(std::vector<binder::IndexLookupInfo> infos,
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::INDEX_SCAN_NODE, std::move(child)},
+          infos{std::move(infos)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;

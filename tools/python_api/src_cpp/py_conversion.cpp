@@ -1,7 +1,7 @@
 #include "py_conversion.h"
 
-#include "common/type_utils.h"
 #include "cached_import/py_cached_import.h"
+#include "common/type_utils.h"
 
 namespace kuzu {
 

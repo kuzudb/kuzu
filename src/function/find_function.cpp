@@ -92,8 +92,8 @@ int64_t Find::genericFind(const uint8_t* haystack, uint32_t haystackLen, const u
 
 // Returns the position of the first occurrence of needle in the haystack. If haystack doesn't
 // contain needle, it returns -1.
-int64_t Find::find(
-    const uint8_t* haystack, uint32_t haystackLen, const uint8_t* needle, uint32_t needleLen) {
+int64_t Find::find(const uint8_t* haystack, uint32_t haystackLen, const uint8_t* needle,
+    uint32_t needleLen) {
     auto firstMatchCharPos = (uint8_t*)memchr(haystack, needle[0], haystackLen);
     if (firstMatchCharPos == nullptr) {
         return -1;
@@ -104,25 +104,25 @@ int64_t Find::find(
     case 1:
         return firstMatchCharOffset;
     case 2:
-        return alignedNeedleSizeFind<uint16_t>(
-            firstMatchCharPos, numCharsToMatch, needle, firstMatchCharOffset);
+        return alignedNeedleSizeFind<uint16_t>(firstMatchCharPos, numCharsToMatch, needle,
+            firstMatchCharOffset);
     case 3:
-        return unalignedNeedleSizeFind<uint32_t>(
-            firstMatchCharPos, numCharsToMatch, needle, 3, firstMatchCharOffset);
+        return unalignedNeedleSizeFind<uint32_t>(firstMatchCharPos, numCharsToMatch, needle, 3,
+            firstMatchCharOffset);
     case 4:
-        return alignedNeedleSizeFind<uint32_t>(
-            firstMatchCharPos, numCharsToMatch, needle, firstMatchCharOffset);
+        return alignedNeedleSizeFind<uint32_t>(firstMatchCharPos, numCharsToMatch, needle,
+            firstMatchCharOffset);
     case 5:
     case 6:
     case 7:
-        return unalignedNeedleSizeFind<uint64_t>(
-            firstMatchCharPos, numCharsToMatch, needle, needleLen, firstMatchCharOffset);
+        return unalignedNeedleSizeFind<uint64_t>(firstMatchCharPos, numCharsToMatch, needle,
+            needleLen, firstMatchCharOffset);
     case 8:
-        return alignedNeedleSizeFind<uint64_t>(
-            firstMatchCharPos, numCharsToMatch, needle, firstMatchCharOffset);
+        return alignedNeedleSizeFind<uint64_t>(firstMatchCharPos, numCharsToMatch, needle,
+            firstMatchCharOffset);
     default:
-        return genericFind(
-            firstMatchCharPos, numCharsToMatch, needle, needleLen, firstMatchCharOffset);
+        return genericFind(firstMatchCharPos, numCharsToMatch, needle, needleLen,
+            firstMatchCharOffset);
     }
 }
 

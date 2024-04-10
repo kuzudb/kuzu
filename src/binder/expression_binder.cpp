@@ -58,8 +58,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::foldExpression(
     const std::shared_ptr<Expression>& expression) {
-    auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(
-        expression, context->getMemoryManager());
+    auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expression,
+        context->getMemoryManager());
     auto result = createLiteralExpression(std::move(value));
     // Fold result should preserve the alias original expression. E.g.
     // RETURN 2, 1 + 1 AS x
@@ -73,8 +73,8 @@ std::shared_ptr<Expression> ExpressionBinder::foldExpression(
     return result;
 }
 
-static std::string unsupportedImplicitCastException(
-    const Expression& expression, const std::string& targetTypeStr) {
+static std::string unsupportedImplicitCastException(const Expression& expression,
+    const std::string& targetTypeStr) {
     return stringFormat(
         "Expression {} has data type {} but expected {}. Implicit cast is not supported.",
         expression.toString(), expression.dataType.toString(), targetTypeStr);
@@ -89,8 +89,8 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         }
         // We don't support casting to nested data type. So instead we validate type match.
         if (expression->getDataType().getLogicalTypeID() != targetTypeID) {
-            throw BinderException(unsupportedImplicitCastException(
-                *expression, LogicalTypeUtils::toString(targetTypeID)));
+            throw BinderException(unsupportedImplicitCastException(*expression,
+                LogicalTypeUtils::toString(targetTypeID)));
         }
         return expression;
     }
@@ -115,8 +115,8 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
         auto functionName = stringFormat("CAST_TO({})", targetType.toString());
         auto children = expression_vector{expression};
         auto bindData = std::make_unique<FunctionBindData>(targetType.copy());
-        auto scalarFunction = CastFunction::bindCastFunction(
-            functionName, expression->dataType.getLogicalTypeID(), targetType.getLogicalTypeID());
+        auto scalarFunction = CastFunction::bindCastFunction(functionName,
+            expression->dataType.getLogicalTypeID(), targetType.getLogicalTypeID());
         auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
         return std::make_shared<ScalarFunctionExpression>(functionName, ExpressionType::FUNCTION,
             std::move(bindData), std::move(children), scalarFunction->execFunc,
@@ -126,8 +126,8 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     }
 }
 
-void ExpressionBinder::validateExpectedDataType(
-    const Expression& expression, const std::vector<LogicalTypeID>& targets) {
+void ExpressionBinder::validateExpectedDataType(const Expression& expression,
+    const std::vector<LogicalTypeID>& targets) {
     auto dataType = expression.dataType;
     auto targetsSet = std::unordered_set<LogicalTypeID>{targets.begin(), targets.end()};
     if (!targetsSet.contains(dataType.getLogicalTypeID())) {

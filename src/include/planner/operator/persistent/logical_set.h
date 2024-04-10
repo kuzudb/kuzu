@@ -9,8 +9,8 @@ struct LogicalSetPropertyInfo {
     std::shared_ptr<binder::Expression> nodeOrRel;
     binder::expression_pair setItem;
 
-    LogicalSetPropertyInfo(
-        std::shared_ptr<binder::Expression> nodeOrRel, binder::expression_pair setItem)
+    LogicalSetPropertyInfo(std::shared_ptr<binder::Expression> nodeOrRel,
+        binder::expression_pair setItem)
         : nodeOrRel{std::move(nodeOrRel)}, setItem{std::move(setItem)} {}
     LogicalSetPropertyInfo(const LogicalSetPropertyInfo& other)
         : nodeOrRel{other.nodeOrRel}, setItem{other.setItem} {}
@@ -42,8 +42,8 @@ public:
     std::string getExpressionsForPrinting() const final;
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalSetNodeProperty>(
-            LogicalSetPropertyInfo::copy(infos), children[0]->copy());
+        return std::make_unique<LogicalSetNodeProperty>(LogicalSetPropertyInfo::copy(infos),
+            children[0]->copy());
     }
 
 private:
@@ -54,8 +54,8 @@ class LogicalSetRelProperty : public LogicalOperator {
 public:
     LogicalSetRelProperty(std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infos,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::SET_REL_PROPERTY, std::move(child)}, infos{std::move(
-                                                                                        infos)} {}
+        : LogicalOperator{LogicalOperatorType::SET_REL_PROPERTY, std::move(child)},
+          infos{std::move(infos)} {}
 
     inline void computeFactorizedSchema() final { copyChildSchema(0); }
     inline void computeFlatSchema() final { copyChildSchema(0); }
@@ -69,8 +69,8 @@ public:
     std::string getExpressionsForPrinting() const final;
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalSetRelProperty>(
-            LogicalSetPropertyInfo::copy(infos), children[0]->copy());
+        return std::make_unique<LogicalSetRelProperty>(LogicalSetPropertyInfo::copy(infos),
+            children[0]->copy());
     }
 
 private:

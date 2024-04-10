@@ -99,8 +99,8 @@ TEST_F(ApiTest, PrepareString) {
 TEST_F(ApiTest, PrepareDate) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.birthdate = $n RETURN COUNT(*)");
-    auto result = conn->execute(
-        preparedStatement.get(), std::make_pair(std::string("n"), Date::fromDate(1900, 1, 1)));
+    auto result = conn->execute(preparedStatement.get(),
+        std::make_pair(std::string("n"), Date::fromDate(1900, 1, 1)));
     ASSERT_TRUE(result->hasNext());
     checkTuple(result->getNext().get(), "2\n");
     ASSERT_FALSE(result->hasNext());
@@ -123,8 +123,8 @@ TEST_F(ApiTest, PrepareInterval) {
         conn->prepare("MATCH (a:person) WHERE a.lastJobDuration = $n RETURN COUNT(*)");
     std::string intervalStr = "3 years 2 days 13 hours 2 minutes";
     auto result = conn->execute(preparedStatement.get(),
-        std::make_pair(
-            std::string("n"), Interval::fromCString(intervalStr.c_str(), intervalStr.length())));
+        std::make_pair(std::string("n"),
+            Interval::fromCString(intervalStr.c_str(), intervalStr.length())));
     ASSERT_TRUE(result->hasNext());
     checkTuple(result->getNext().get(), "2\n");
     ASSERT_FALSE(result->hasNext());
@@ -228,8 +228,8 @@ TEST_F(ApiTest, MultipleExecutionOfPreparedStatement) {
 
 TEST_F(ApiTest, issueTest4) {
     auto preparedStatement = conn->prepare("RETURN CAST($1, 'STRING')");
-    auto result = conn->execute(
-        preparedStatement.get(), std::make_pair(std::string("1"), int128_t(-123456789)));
+    auto result = conn->execute(preparedStatement.get(),
+        std::make_pair(std::string("1"), int128_t(-123456789)));
     ASSERT_TRUE(result->hasNext());
     checkTuple(result->getNext().get(), "-123456789\n");
     ASSERT_FALSE(result->hasNext());

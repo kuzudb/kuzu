@@ -12,8 +12,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-void Planner::planUpdatingClause(
-    const BoundUpdatingClause* updatingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+void Planner::planUpdatingClause(const BoundUpdatingClause* updatingClause,
+    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
         planUpdatingClause(updatingClause, *plan);
     }
@@ -69,8 +69,8 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
     expression_vector corrExprs;
     if (!plan.isEmpty()) {
         distinctMark = mergeClause->getDistinctMark();
-        corrExprs = getCorrelatedExprs(
-            *mergeClause->getQueryGraphCollection(), predicates, plan.getSchema());
+        corrExprs = getCorrelatedExprs(*mergeClause->getQueryGraphCollection(), predicates,
+            plan.getSchema());
         if (corrExprs.size() == 0) {
             throw RuntimeException{"Constant key in merge clause is not supported yet."};
         }

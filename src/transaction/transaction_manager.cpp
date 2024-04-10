@@ -32,8 +32,8 @@ std::unique_ptr<Transaction> TransactionManager::beginReadOnlyTransaction(
     // ensures calls to other public functions is not restricted.
     lock_t newTransactionLck{mtxForStartingNewTransactions};
     lock_t publicFunctionLck{mtxForSerializingPublicFunctionCalls};
-    auto transaction = std::make_unique<Transaction>(
-        clientContext, TransactionType::READ_ONLY, ++lastTransactionID);
+    auto transaction = std::make_unique<Transaction>(clientContext, TransactionType::READ_ONLY,
+        ++lastTransactionID);
     activeReadOnlyTransactionIDs.insert(transaction->getID());
     return transaction;
 }

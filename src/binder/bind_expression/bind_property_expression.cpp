@@ -66,8 +66,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     const ParsedExpression& parsedExpression) {
     auto& propertyExpression = (ParsedPropertyExpression&)parsedExpression;
     if (propertyExpression.isStar()) {
-        throw BinderException(stringFormat(
-            "Cannot bind {} as a single property expression.", parsedExpression.toString()));
+        throw BinderException(stringFormat("Cannot bind {} as a single property expression.",
+            parsedExpression.toString()));
     }
     auto propertyName = propertyExpression.getPropertyName();
     auto child = bindExpression(*parsedExpression.getChild(0));

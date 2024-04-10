@@ -272,8 +272,8 @@ int mbedtls_pk_verify_restartable(mbedtls_pk_context* ctx, mbedtls_md_type_t md_
         if ((ret = pk_restart_setup(rs_ctx, ctx->pk_info)) != 0)
             return (ret);
 
-        ret = ctx->pk_info->verify_rs_func(
-            ctx->pk_ctx, md_alg, hash, hash_len, sig, sig_len, rs_ctx->rs_ctx);
+        ret = ctx->pk_info->verify_rs_func(ctx->pk_ctx, md_alg, hash, hash_len, sig, sig_len,
+            rs_ctx->rs_ctx);
 
         if (ret != MBEDTLS_ERR_ECP_IN_PROGRESS)
             mbedtls_pk_restart_free(rs_ctx);
@@ -390,8 +390,8 @@ int mbedtls_pk_sign_restartable(mbedtls_pk_context* ctx, mbedtls_md_type_t md_al
     if (ctx->pk_info->sign_func == NULL)
         return (MBEDTLS_ERR_PK_TYPE_MISMATCH);
 
-    return (ctx->pk_info->sign_func(
-        ctx->pk_ctx, md_alg, hash, hash_len, sig, sig_size, sig_len, f_rng, p_rng));
+    return (ctx->pk_info->sign_func(ctx->pk_ctx, md_alg, hash, hash_len, sig, sig_size, sig_len,
+        f_rng, p_rng));
 }
 
 /*
@@ -400,8 +400,8 @@ int mbedtls_pk_sign_restartable(mbedtls_pk_context* ctx, mbedtls_md_type_t md_al
 int mbedtls_pk_sign(mbedtls_pk_context* ctx, mbedtls_md_type_t md_alg, const unsigned char* hash,
     size_t hash_len, unsigned char* sig, size_t sig_size, size_t* sig_len,
     int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
-    return (mbedtls_pk_sign_restartable(
-        ctx, md_alg, hash, hash_len, sig, sig_size, sig_len, f_rng, p_rng, NULL));
+    return (mbedtls_pk_sign_restartable(ctx, md_alg, hash, hash_len, sig, sig_size, sig_len, f_rng,
+        p_rng, NULL));
 }
 
 /*

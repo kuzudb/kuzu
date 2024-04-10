@@ -28,8 +28,8 @@ struct ListDataColumnChunk {
 class ListColumnChunk final : public ColumnChunk {
 
 public:
-    ListColumnChunk(
-        common::LogicalType dataType, uint64_t capacity, bool enableCompression, bool inMemory);
+    ListColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
+        bool inMemory);
 
     inline ColumnChunk* getDataColumnChunk() const {
         return listDataColumnChunk->dataColumnChunk.get();
@@ -52,8 +52,8 @@ public:
     // Note: `write` assumes that no `append` will be called afterward.
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(
-        ColumnChunk* chunk, ColumnChunk* dstOffsets, common::RelMultiplicity multiplicity) override;
+    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets,
+        common::RelMultiplicity multiplicity) override;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
     void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,

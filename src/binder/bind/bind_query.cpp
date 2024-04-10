@@ -23,8 +23,8 @@ void validateUnionColumnsOfTheSameType(
         // Check whether the dataTypes in union expressions are exactly the same in each single
         // query.
         for (auto j = 0u; j < columns.size(); j++) {
-            ExpressionBinder::validateExpectedDataType(
-                *otherColumns[j], columns[j]->dataType.getLogicalTypeID());
+            ExpressionBinder::validateExpectedDataType(*otherColumns[j],
+                columns[j]->dataType.getLogicalTypeID());
         }
     }
 }
@@ -50,8 +50,8 @@ std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regular
     }
     validateUnionColumnsOfTheSameType(normalizedSingleQueries);
     KU_ASSERT(!normalizedSingleQueries.empty());
-    auto boundRegularQuery = std::make_unique<BoundRegularQuery>(
-        regularQuery.getIsUnionAll(), normalizedSingleQueries[0].getStatementResult()->copy());
+    auto boundRegularQuery = std::make_unique<BoundRegularQuery>(regularQuery.getIsUnionAll(),
+        normalizedSingleQueries[0].getStatementResult()->copy());
     for (auto& normalizedSingleQuery : normalizedSingleQueries) {
         boundRegularQuery->addSingleQuery(std::move(normalizedSingleQuery));
     }

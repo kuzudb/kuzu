@@ -71,8 +71,8 @@ void FactorizationRewriter::visitIntersect(planner::LogicalOperator* op) {
     for (auto i = 0u; i < intersect->getNumBuilds(); ++i) {
         auto groupPosToFlatten = intersect->getGroupsPosToFlattenOnBuildSide(i);
         auto childIdx = i + 1; // skip probe
-        intersect->setChild(
-            childIdx, appendFlattens(intersect->getChild(childIdx), groupPosToFlatten));
+        intersect->setChild(childIdx,
+            appendFlattens(intersect->getChild(childIdx), groupPosToFlatten));
     }
 }
 
@@ -87,8 +87,8 @@ void FactorizationRewriter::visitProjection(planner::LogicalOperator* op) {
     if (hasRandomFunction) {
         // Fall back to tuple-at-a-time evaluation.
         auto groupsPos = op->getChild(0)->getSchema()->getGroupsPosInScope();
-        auto groupsPosToFlatten = factorization::FlattenAll::getGroupsPosToFlatten(
-            groupsPos, op->getChild(0)->getSchema());
+        auto groupsPosToFlatten = factorization::FlattenAll::getGroupsPosToFlatten(groupsPos,
+            op->getChild(0)->getSchema());
         projection->setChild(0, appendFlattens(projection->getChild(0), groupsPosToFlatten));
     } else {
         for (auto& expression : projection->getExpressionsToProject()) {
@@ -163,8 +163,8 @@ void FactorizationRewriter::visitSetNodeProperty(planner::LogicalOperator* op) {
     auto setNodeProperty = (LogicalSetNodeProperty*)op;
     for (auto i = 0u; i < setNodeProperty->getInfosRef().size(); ++i) {
         auto groupsPosToFlatten = setNodeProperty->getGroupsPosToFlatten(i);
-        setNodeProperty->setChild(
-            0, appendFlattens(setNodeProperty->getChild(0), groupsPosToFlatten));
+        setNodeProperty->setChild(0,
+            appendFlattens(setNodeProperty->getChild(0), groupsPosToFlatten));
     }
 }
 
@@ -172,8 +172,8 @@ void FactorizationRewriter::visitSetRelProperty(planner::LogicalOperator* op) {
     auto setRelProperty = (LogicalSetRelProperty*)op;
     for (auto i = 0u; i < setRelProperty->getInfosRef().size(); ++i) {
         auto groupsPosToFlatten = setRelProperty->getGroupsPosToFlatten(i);
-        setRelProperty->setChild(
-            0, appendFlattens(setRelProperty->getChild(0), groupsPosToFlatten));
+        setRelProperty->setChild(0,
+            appendFlattens(setRelProperty->getChild(0), groupsPosToFlatten));
     }
 }
 

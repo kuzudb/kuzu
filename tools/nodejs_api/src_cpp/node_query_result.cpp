@@ -76,8 +76,8 @@ Napi::Value NodeQueryResult::GetColumnDataTypesAsync(const Napi::CallbackInfo& i
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
     auto callback = info[0].As<Napi::Function>();
-    auto* asyncWorker = new NodeQueryResultGetColumnMetadataAsyncWorker(
-        callback, this, GetColumnMetadataType::DATA_TYPE);
+    auto* asyncWorker = new NodeQueryResultGetColumnMetadataAsyncWorker(callback, this,
+        GetColumnMetadataType::DATA_TYPE);
     asyncWorker->Queue();
     return info.Env().Undefined();
 }
@@ -86,8 +86,8 @@ Napi::Value NodeQueryResult::GetColumnNamesAsync(const Napi::CallbackInfo& info)
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
     auto callback = info[0].As<Napi::Function>();
-    auto* asyncWorker = new NodeQueryResultGetColumnMetadataAsyncWorker(
-        callback, this, GetColumnMetadataType::NAME);
+    auto* asyncWorker = new NodeQueryResultGetColumnMetadataAsyncWorker(callback, this,
+        GetColumnMetadataType::NAME);
     asyncWorker->Queue();
     return info.Env().Undefined();
 }

@@ -36,10 +36,10 @@ struct ConfigurationOption : public Option {
 struct ExtensionOption : public Option {
     common::Value defaultValue;
 
-    ExtensionOption(
-        std::string name, common::LogicalTypeID parameterType, common::Value defaultValue)
-        : Option{std::move(name), parameterType, OptionType::EXTENSION}, defaultValue{std::move(
-                                                                             defaultValue)} {}
+    ExtensionOption(std::string name, common::LogicalTypeID parameterType,
+        common::Value defaultValue)
+        : Option{std::move(name), parameterType, OptionType::EXTENSION},
+          defaultValue{std::move(defaultValue)} {}
 };
 
 class DBConfig {

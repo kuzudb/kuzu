@@ -15,39 +15,39 @@ f_group_pos Schema::createGroup() {
     return pos;
 }
 
-void Schema::insertToScope(
-    const std::shared_ptr<binder::Expression>& expression, f_group_pos groupPos) {
+void Schema::insertToScope(const std::shared_ptr<binder::Expression>& expression,
+    f_group_pos groupPos) {
     KU_ASSERT(!expressionNameToGroupPos.contains(expression->getUniqueName()));
     expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
     expressionsInScope.push_back(expression);
 }
 
-void Schema::insertToGroupAndScope(
-    const std::shared_ptr<binder::Expression>& expression, f_group_pos groupPos) {
+void Schema::insertToGroupAndScope(const std::shared_ptr<binder::Expression>& expression,
+    f_group_pos groupPos) {
     KU_ASSERT(!expressionNameToGroupPos.contains(expression->getUniqueName()));
     expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
     groups[groupPos]->insertExpression(expression);
     expressionsInScope.push_back(expression);
 }
 
-void Schema::insertToScopeMayRepeat(
-    const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos) {
+void Schema::insertToScopeMayRepeat(const std::shared_ptr<binder::Expression>& expression,
+    uint32_t groupPos) {
     if (expressionNameToGroupPos.contains(expression->getUniqueName())) {
         return;
     }
     insertToScope(expression, groupPos);
 }
 
-void Schema::insertToGroupAndScopeMayRepeat(
-    const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos) {
+void Schema::insertToGroupAndScopeMayRepeat(const std::shared_ptr<binder::Expression>& expression,
+    uint32_t groupPos) {
     if (expressionNameToGroupPos.contains(expression->getUniqueName())) {
         return;
     }
     insertToGroupAndScope(expression, groupPos);
 }
 
-void Schema::insertToGroupAndScope(
-    const binder::expression_vector& expressions, f_group_pos groupPos) {
+void Schema::insertToGroupAndScope(const binder::expression_vector& expressions,
+    f_group_pos groupPos) {
     for (auto& expression : expressions) {
         insertToGroupAndScope(expression, groupPos);
     }
@@ -132,8 +132,8 @@ size_t Schema::getNumGroups(bool isFlat) const {
     return result;
 }
 
-f_group_pos SchemaUtils::getLeadingGroupPos(
-    const std::unordered_set<f_group_pos>& groupPositions, const Schema& schema) {
+f_group_pos SchemaUtils::getLeadingGroupPos(const std::unordered_set<f_group_pos>& groupPositions,
+    const Schema& schema) {
     auto leadingGroupPos = INVALID_F_GROUP_POS;
     for (auto groupPos : groupPositions) {
         if (!schema.getGroup(groupPos)->isFlat()) {
@@ -157,8 +157,8 @@ void SchemaUtils::validateAtMostOneUnFlatGroup(
     }
 }
 
-void SchemaUtils::validateNoUnFlatGroup(
-    const std::unordered_set<f_group_pos>& groupPositions, const Schema& schema) {
+void SchemaUtils::validateNoUnFlatGroup(const std::unordered_set<f_group_pos>& groupPositions,
+    const Schema& schema) {
     for (auto groupPos : groupPositions) {
         if (!schema.getGroup(groupPos)->isFlat()) {
             throw InternalException("Unexpected unFlat factorization group found.");

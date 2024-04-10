@@ -5,8 +5,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace evaluator {
 
-void ExpressionEvaluator::init(
-    const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) {
+void ExpressionEvaluator::init(const processor::ResultSet& resultSet,
+    storage::MemoryManager* memoryManager) {
     for (auto& child : children) {
         child->init(resultSet, memoryManager);
     }

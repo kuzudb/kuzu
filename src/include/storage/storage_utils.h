@@ -79,8 +79,8 @@ public:
         return std::ceil((double)v1 / (double)v2);
     }
 
-    static std::string getColumnName(
-        const std::string& propertyName, ColumnType type, const std::string& prefix);
+    static std::string getColumnName(const std::string& propertyName, ColumnType type,
+        const std::string& prefix);
 
     static inline common::offset_t getStartOffsetOfNodeGroup(
         common::node_group_idx_t nodeGroupIdx) {
@@ -100,42 +100,42 @@ public:
         const std::string& directory, const common::table_id_t& tableID,
         common::FileVersionType dbFileType);
 
-    static inline std::string getDataFName(
-        common::VirtualFileSystem* vfs, const std::string& directory) {
+    static inline std::string getDataFName(common::VirtualFileSystem* vfs,
+        const std::string& directory) {
         return vfs->joinPath(directory, common::StorageConstants::DATA_FILE_NAME);
     }
 
-    static inline std::string getMetadataFName(
-        common::VirtualFileSystem* vfs, const std::string& directory) {
+    static inline std::string getMetadataFName(common::VirtualFileSystem* vfs,
+        const std::string& directory) {
         return vfs->joinPath(directory, common::StorageConstants::METADATA_FILE_NAME);
     }
 
-    static inline DBFileIDAndName getNodeIndexIDAndFName(
-        common::VirtualFileSystem* vfs, const std::string& directory, common::table_id_t tableID) {
+    static inline DBFileIDAndName getNodeIndexIDAndFName(common::VirtualFileSystem* vfs,
+        const std::string& directory, common::table_id_t tableID) {
         auto fName = getNodeIndexFName(vfs, directory, tableID, common::FileVersionType::ORIGINAL);
         return {DBFileID::newPKIndexFileID(tableID), fName};
     }
 
     static inline std::string getOverflowFileName(const std::string& fName) {
-        return appendSuffixOrInsertBeforeWALSuffix(
-            fName, common::StorageConstants::OVERFLOW_FILE_SUFFIX);
+        return appendSuffixOrInsertBeforeWALSuffix(fName,
+            common::StorageConstants::OVERFLOW_FILE_SUFFIX);
     }
 
     static inline std::string getNodesStatisticsAndDeletedIDsFilePath(
         common::VirtualFileSystem* vfs, const std::string& directory,
         common::FileVersionType dbFileType) {
-        return vfs->joinPath(
-            directory, dbFileType == common::FileVersionType::ORIGINAL ?
-                           common::StorageConstants::NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME :
-                           common::StorageConstants::NODES_STATISTICS_FILE_NAME_FOR_WAL);
+        return vfs->joinPath(directory,
+            dbFileType == common::FileVersionType::ORIGINAL ?
+                common::StorageConstants::NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME :
+                common::StorageConstants::NODES_STATISTICS_FILE_NAME_FOR_WAL);
     }
 
     static inline std::string getRelsStatisticsFilePath(common::VirtualFileSystem* vfs,
         const std::string& directory, common::FileVersionType dbFileType) {
-        return vfs->joinPath(
-            directory, dbFileType == common::FileVersionType::ORIGINAL ?
-                           common::StorageConstants::RELS_METADATA_FILE_NAME :
-                           common::StorageConstants::RELS_METADATA_FILE_NAME_FOR_WAL);
+        return vfs->joinPath(directory,
+            dbFileType == common::FileVersionType::ORIGINAL ?
+                common::StorageConstants::RELS_METADATA_FILE_NAME :
+                common::StorageConstants::RELS_METADATA_FILE_NAME_FOR_WAL);
     }
 
     static inline std::string getCatalogFilePath(common::VirtualFileSystem* vfs,
@@ -145,8 +145,8 @@ public:
                                             common::StorageConstants::CATALOG_FILE_NAME_FOR_WAL);
     }
 
-    static inline std::string getLockFilePath(
-        common::VirtualFileSystem* vfs, const std::string& directory) {
+    static inline std::string getLockFilePath(common::VirtualFileSystem* vfs,
+        const std::string& directory) {
         return vfs->joinPath(directory, common::StorageConstants::LOCK_FILE_NAME);
     }
 
@@ -164,8 +164,8 @@ public:
         }
     }
 
-    static inline std::string appendWALFileSuffixIfNecessary(
-        const std::string& fileName, common::FileVersionType fileVersionType) {
+    static inline std::string appendWALFileSuffixIfNecessary(const std::string& fileName,
+        common::FileVersionType fileVersionType) {
         return fileVersionType == common::FileVersionType::WAL_VERSION ?
                    appendWALFileSuffix(fileName) :
                    fileName;
@@ -176,15 +176,15 @@ public:
         return fileName + common::StorageConstants::WAL_FILE_SUFFIX;
     }
 
-    static std::unique_ptr<common::FileInfo> getFileInfoForReadWrite(
-        const std::string& directory, DBFileID dbFileID, common::VirtualFileSystem* vfs);
+    static std::unique_ptr<common::FileInfo> getFileInfoForReadWrite(const std::string& directory,
+        DBFileID dbFileID, common::VirtualFileSystem* vfs);
 
     static uint32_t getDataTypeSize(const common::LogicalType& type);
     static uint32_t getDataTypeSize(common::PhysicalTypeID type);
 
 private:
-    static std::string appendSuffixOrInsertBeforeWALSuffix(
-        const std::string& fileName, const std::string& suffix);
+    static std::string appendSuffixOrInsertBeforeWALSuffix(const std::string& fileName,
+        const std::string& suffix);
 };
 
 } // namespace storage

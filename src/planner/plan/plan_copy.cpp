@@ -53,8 +53,8 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
     plan.setLastOperator(std::move(partitioner));
 }
 
-static void appendCopyFrom(
-    const BoundCopyFromInfo& info, expression_vector outExprs, LogicalPlan& plan) {
+static void appendCopyFrom(const BoundCopyFromInfo& info, expression_vector outExprs,
+    LogicalPlan& plan) {
     auto op =
         make_shared<LogicalCopyFrom>(info.copy(), std::move(outExprs), plan.getLastOperator());
     op->computeFactorizedSchema();
@@ -81,8 +81,8 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
     }
 }
 
-std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(
-    const BoundCopyFromInfo* info, binder::expression_vector results) {
+std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(const BoundCopyFromInfo* info,
+    binder::expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
     switch (info->source->type) {
     case ScanSourceType::FILE: {
@@ -104,8 +104,8 @@ std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(
     return plan;
 }
 
-std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(
-    const BoundCopyFromInfo* info, binder::expression_vector results) {
+std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(const BoundCopyFromInfo* info,
+    binder::expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
     KU_ASSERT(info->source->type == ScanSourceType::FILE);
     auto fileSource =
@@ -116,8 +116,8 @@ std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(
     return plan;
 }
 
-std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(
-    const BoundCopyFromInfo* info, binder::expression_vector results) {
+std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* info,
+    binder::expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
     switch (info->source->type) {
     case ScanSourceType::FILE: {
@@ -143,8 +143,8 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(
     return plan;
 }
 
-std::unique_ptr<LogicalPlan> Planner::planCopyRdfFrom(
-    const BoundCopyFromInfo* info, binder::expression_vector results) {
+std::unique_ptr<LogicalPlan> Planner::planCopyRdfFrom(const BoundCopyFromInfo* info,
+    binder::expression_vector results) {
     auto extraRdfInfo =
         ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRdfInfo*>(info->extraInfo.get());
     auto rPlan = planCopyResourceFrom(&extraRdfInfo->rInfo, results);

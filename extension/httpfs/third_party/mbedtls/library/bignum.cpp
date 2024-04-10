@@ -63,7 +63,7 @@
 #define biL (ciL << 3)                 /* bits  in limb  */
 #define biH (ciL << 2)                 /* half limb size */
 
-#define MPI_SIZE_T_MAX ((size_t)-1) /* SIZE_T_MAX is not standard */
+#define MPI_SIZE_T_MAX ((size_t) - 1) /* SIZE_T_MAX is not standard */
 
 /*
  * Convert between bits/chars and number of limbs
@@ -482,8 +482,8 @@ cleanup:
 /*
  * Export into an ASCII string
  */
-int mbedtls_mpi_write_string(
-    const mbedtls_mpi* X, int radix, char* buf, size_t buflen, size_t* olen) {
+int mbedtls_mpi_write_string(const mbedtls_mpi* X, int radix, char* buf, size_t buflen,
+    size_t* olen) {
     int ret = 0;
     size_t n;
     char* p;
@@ -1113,8 +1113,8 @@ cleanup:
  * \return              1 if `l < r`.
  *                      0 if `l >= r`.
  */
-static mbedtls_mpi_uint mpi_sub_hlp(
-    size_t n, mbedtls_mpi_uint* d, const mbedtls_mpi_uint* l, const mbedtls_mpi_uint* r) {
+static mbedtls_mpi_uint mpi_sub_hlp(size_t n, mbedtls_mpi_uint* d, const mbedtls_mpi_uint* l,
+    const mbedtls_mpi_uint* r) {
     size_t i;
     mbedtls_mpi_uint c = 0, t, z;
 
@@ -1439,8 +1439,8 @@ cleanup:
  * Unsigned integer divide - double mbedtls_mpi_uint dividend, u1/u0, and
  * mbedtls_mpi_uint divisor, d
  */
-static mbedtls_mpi_uint mbedtls_int_div_int(
-    mbedtls_mpi_uint u1, mbedtls_mpi_uint u0, mbedtls_mpi_uint d, mbedtls_mpi_uint* r) {
+static mbedtls_mpi_uint mbedtls_int_div_int(mbedtls_mpi_uint u1, mbedtls_mpi_uint u0,
+    mbedtls_mpi_uint d, mbedtls_mpi_uint* r) {
 #if defined(MBEDTLS_HAVE_UDBL)
     mbedtls_t_udbl dividend, quotient;
 #else
@@ -1533,8 +1533,8 @@ static mbedtls_mpi_uint mbedtls_int_div_int(
 /*
  * Division by mbedtls_mpi: A = Q * B + R  (HAC 14.20)
  */
-int mbedtls_mpi_div_mpi(
-    mbedtls_mpi* Q, mbedtls_mpi* R, const mbedtls_mpi* A, const mbedtls_mpi* B) {
+int mbedtls_mpi_div_mpi(mbedtls_mpi* Q, mbedtls_mpi* R, const mbedtls_mpi* A,
+    const mbedtls_mpi* B) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t i, n, t, k;
     mbedtls_mpi X, Y, Z, T1, T2;
@@ -1837,8 +1837,8 @@ static void mpi_montmul(mbedtls_mpi* A, const mbedtls_mpi* B, const mbedtls_mpi*
  *
  * See mpi_montmul() regarding constraints and guarantees on the parameters.
  */
-static void mpi_montred(
-    mbedtls_mpi* A, const mbedtls_mpi* N, mbedtls_mpi_uint mm, const mbedtls_mpi* T) {
+static void mpi_montred(mbedtls_mpi* A, const mbedtls_mpi* N, mbedtls_mpi_uint mm,
+    const mbedtls_mpi* T) {
     mbedtls_mpi_uint z = 1;
     mbedtls_mpi U;
 
@@ -2216,8 +2216,8 @@ cleanup:
  * The size and sign of X are unchanged.
  * n_bytes must not be 0.
  */
-static int mpi_fill_random_internal(
-    mbedtls_mpi* X, size_t n_bytes, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
+static int mpi_fill_random_internal(mbedtls_mpi* X, size_t n_bytes,
+    int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     const size_t limbs = CHARS_TO_LIMBS(n_bytes);
     const size_t overhead = (limbs * ciL) - n_bytes;
@@ -2241,8 +2241,8 @@ cleanup:
  * regardless of the platform endianness (useful when f_rng is actually
  * deterministic, eg for tests).
  */
-int mbedtls_mpi_fill_random(
-    mbedtls_mpi* X, size_t size, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
+int mbedtls_mpi_fill_random(mbedtls_mpi* X, size_t size,
+    int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t const limbs = CHARS_TO_LIMBS(size);
 
@@ -2473,8 +2473,8 @@ cleanup:
 /*
  * Miller-Rabin pseudo-primality test  (HAC 4.24)
  */
-static int mpi_miller_rabin(
-    const mbedtls_mpi* X, size_t rounds, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
+static int mpi_miller_rabin(const mbedtls_mpi* X, size_t rounds,
+    int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
     int ret, count;
     size_t i, j, k, s;
     mbedtls_mpi W, R, T, A, RR;
@@ -2562,8 +2562,8 @@ cleanup:
 /*
  * Pseudo-primality test: small factors, then Miller-Rabin
  */
-int mbedtls_mpi_is_prime_ext(
-    const mbedtls_mpi* X, int rounds, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
+int mbedtls_mpi_is_prime_ext(const mbedtls_mpi* X, int rounds,
+    int (*f_rng)(void*, unsigned char*, size_t), void* p_rng) {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     mbedtls_mpi XX;
     MPI_VALIDATE_RET(X != NULL);
@@ -2722,8 +2722,8 @@ cleanup:
 
 #define GCD_PAIR_COUNT 3
 
-static const int gcd_pairs[GCD_PAIR_COUNT][3] = {
-    {693, 609, 21}, {1764, 868, 28}, {768454923, 542167814, 1}};
+static const int gcd_pairs[GCD_PAIR_COUNT][3] = {{693, 609, 21}, {1764, 868, 28},
+    {768454923, 542167814, 1}};
 
 /*
  * Checkup routine

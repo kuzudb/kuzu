@@ -10,8 +10,8 @@ struct MapKeys : public BaseMapExtract {
         common::ValueVector& listVector, common::ValueVector& resultVector) {
         auto mapKeyVector = common::MapVector::getKeyVector(&listVector);
         auto mapKeyValues = common::MapVector::getMapKeys(&listVector, listEntry);
-        BaseMapExtract::operation(
-            resultEntry, resultVector, mapKeyValues, mapKeyVector, listEntry.size);
+        BaseMapExtract::operation(resultEntry, resultVector, mapKeyValues, mapKeyVector,
+            listEntry.size);
     }
 };
 

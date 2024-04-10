@@ -8,10 +8,10 @@ namespace planner {
 
 class LogicalFilter : public LogicalOperator {
 public:
-    LogicalFilter(
-        std::shared_ptr<binder::Expression> expression, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)}, expression{std::move(
-                                                                              expression)} {}
+    LogicalFilter(std::shared_ptr<binder::Expression> expression,
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)},
+          expression{std::move(expression)} {}
 
     inline void computeFactorizedSchema() override { copyChildSchema(0); }
     inline void computeFlatSchema() override { copyChildSchema(0); }
