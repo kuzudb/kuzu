@@ -126,32 +126,6 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     }
 }
 
-void ExpressionBinder::validateExpectedDataType(const Expression& expression,
-    const std::vector<LogicalTypeID>& targets) {
-    auto dataType = expression.dataType;
-    auto targetsSet = std::unordered_set<LogicalTypeID>{targets.begin(), targets.end()};
-    if (!targetsSet.contains(dataType.getLogicalTypeID())) {
-        throw BinderException(stringFormat("{} has data type {} but {} was expected.",
-            expression.toString(), LogicalTypeUtils::toString(dataType.getLogicalTypeID()),
-            LogicalTypeUtils::toString(targets)));
-    }
-}
-
-void ExpressionBinder::validateDataType(const Expression& expr, const LogicalType& expectedType) {
-    if (expr.getDataType() != expectedType) {
-        throw BinderException(stringFormat("{} has data type {} but {} was expected.",
-            expr.toString(), expr.getDataType().toString(), expectedType.toString()));
-    }
-}
-
-void ExpressionBinder::validateDataType(const Expression& expr, LogicalTypeID expectedTypeID) {
-    if (expr.getDataType().getLogicalTypeID() != expectedTypeID) {
-        throw BinderException(
-            stringFormat("{} has data type {} but {} was expected.", expr.toString(),
-                expr.getDataType().toString(), LogicalTypeUtils::toString(expectedTypeID)));
-    }
-}
-
 void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression& expression) {
     if (expression.getNumChildren() == 0) {
         return;

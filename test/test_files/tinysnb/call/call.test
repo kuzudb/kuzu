@@ -83,9 +83,7 @@ False
 ---- ok
 -STATEMENT CALL var_length_extend_max_depth=10
 ---- error
-Can't execute a write query inside a read-only transaction.
-
--CASE CallFunctionTable
+Can not execute a write query inside a read-only transaction.
 
 -LOG NodeTableInfo
 -STATEMENT CALL table_info('person') RETURN *
@@ -162,6 +160,20 @@ height
 2:2|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))
 2:2|UNION(firstmet DATE, type INT16, comment STRING)
 
+-LOG StorageInfo
+-STATEMENT MATCH (p:person) RETURN COUNT(p)
+---- 1
+8
+-STATEMENT CALL storage_info('person') RETURN COUNT(*)
+---- 1
+38
+-STATEMENT CALL storage_info('knows') RETURN COUNT(*)
+---- 1
+80
+-STATEMENT CALL storage_info('workAt') RETURN COUNT(*)
+---- 1
+22
+
 -CASE CallNodeTableWith300ColumnsInfo
 -DEFINE COLS REPEAT 2400 "col${count} INT64,"
 
@@ -210,19 +222,4 @@ Binder exception: Show connection can only bind to String!
 Binder exception: Show connection can only be called on a rel table!
 -STATEMENT MATCH (a:person) CALL show_connection(a.fName) RETURN *
 ---- error
-Binder exception: Cannot evaluate a.fName as a literal.
-
--CASE StorageInfo
--PARALLELISM 1
--STATEMENT MATCH (p:person) RETURN COUNT(p)
----- 1
-8
--STATEMENT CALL storage_info('person') RETURN COUNT(*)
----- 1
-38
--STATEMENT CALL storage_info('knows') RETURN COUNT(*)
----- 1
-80
--STATEMENT CALL storage_info('workAt') RETURN COUNT(*)
----- 1
-22
+Binder exception: a.fName has type PROPERTY but LITERAL was expected.

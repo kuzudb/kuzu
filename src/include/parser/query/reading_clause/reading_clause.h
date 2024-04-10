@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/cast.h"
 #include "common/enums/clause_type.h"
 
 namespace kuzu {
@@ -10,7 +11,12 @@ public:
     explicit ReadingClause(common::ClauseType clauseType) : clauseType{clauseType} {};
     virtual ~ReadingClause() = default;
 
-    inline common::ClauseType getClauseType() const { return clauseType; }
+    common::ClauseType getClauseType() const { return clauseType; }
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const ReadingClause&, const TARGET&>(*this);
+    }
 
 private:
     common::ClauseType clauseType;

@@ -160,7 +160,7 @@ Binder exception: Bind relationship r to relationship with same name is not supp
             MATCH (first)-[rs*]->(second)
             RETURN first, second;
 ---- error
-Binder exception: rs has data type LIST but (RECURSIVE_REL) was expected.
+Binder exception: rs has data type REL[] but RECURSIVE_REL was expected.
 
 # Fail when asterisk operator is missing
 # Fail on negative bound

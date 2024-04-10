@@ -197,7 +197,7 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
     const parser::ParsedExpression& parsedExpression, const std::string& functionName) {
     if (functionName == LabelFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
-        validateExpectedDataType(*child,
+        ExpressionUtil::validateDataType(*child,
             std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL});
         return bindLabelFunction(*child);
     } else if (functionName == LengthFunction::name) {
@@ -205,11 +205,11 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
         return bindRecursiveJoinLengthFunction(*child);
     } else if (functionName == StartNodeFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
-        validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
+        ExpressionUtil::validateDataType(*child, LogicalTypeID::REL);
         return bindStartNodeExpression(*child);
     } else if (functionName == EndNodeFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
-        validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
+        ExpressionUtil::validateDataType(*child, LogicalTypeID::REL);
         return bindEndNodeExpression(*child);
     }
     return nullptr;

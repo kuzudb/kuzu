@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/cast.h"
 #include "common/copy_constructors.h"
 #include "common/enums/expression_type.h"
 
@@ -69,6 +70,11 @@ public:
     void serialize(common::Serializer& serializer) const;
 
     static std::unique_ptr<ParsedExpression> deserialize(common::Deserializer& deserializer);
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const ParsedExpression*, const TARGET*>(this);
+    }
 
 protected:
     parsed_expr_vector copyChildren() const;

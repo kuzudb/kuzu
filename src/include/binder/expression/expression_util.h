@@ -32,6 +32,15 @@ struct ExpressionUtil {
     static bool isNodePattern(const Expression& expression);
     static bool isRelPattern(const Expression& expression);
     static bool isRecursiveRelPattern(const Expression& expression);
+
+    static void validateExpressionType(const Expression& expr, common::ExpressionType expectedType);
+
+    // Validate data type.
+    static void validateDataType(const Expression& expr, const common::LogicalType& expectedType);
+    // Validate recursive data type top level (used when child type is unknown).
+    static void validateDataType(const Expression& expr, common::LogicalTypeID expectedTypeID);
+    static void validateDataType(const Expression& expr,
+        const std::vector<common::LogicalTypeID>& expectedTypeIDs);
 };
 
 } // namespace binder

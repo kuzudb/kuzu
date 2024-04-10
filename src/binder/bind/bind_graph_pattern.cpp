@@ -177,7 +177,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
         auto expectedDataType = QueryRelTypeUtils::isRecursive(relPattern.getRelType()) ?
                                     LogicalTypeID::RECURSIVE_REL :
                                     LogicalTypeID::REL;
-        ExpressionBinder::validateExpectedDataType(*prevVariable, expectedDataType);
+        ExpressionUtil::validateDataType(*prevVariable, expectedDataType);
         throw BinderException("Bind relationship " + parsedName +
                               " to relationship with same name is not supported.");
     }
