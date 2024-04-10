@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression.h"
 #include "common/arrow/arrow_converter.h"
+#include "common/exception/runtime.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
 #include "processor/result/factorized_table.h"

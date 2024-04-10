@@ -3,7 +3,7 @@
 #include <regex>
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "duckdb_type_converter.h"
+#include "common/exception/runtime.h"
 #include "postgres_catalog.h"
 
 namespace kuzu {

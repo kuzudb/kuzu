@@ -112,8 +112,6 @@ struct StorageConstants {
     // The number of CSR lists in a segment.
     static constexpr uint64_t CSR_SEGMENT_SIZE_LOG2 = 10;
     static constexpr uint64_t CSR_SEGMENT_SIZE = (uint64_t)1 << CSR_SEGMENT_SIZE_LOG2;
-
-    static constexpr bool TRUNCATE_OVER_LARGE_STRINGS = true;
 };
 
 // Hash Index Configurations

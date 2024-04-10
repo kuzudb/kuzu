@@ -5,17 +5,16 @@ namespace common {
 
 uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
     if (requireNewBlock(size)) {
-        allocateNewBlock();
+        allocateNewBlock(size);
     }
-    KU_ASSERT(size <= BufferPoolConstants::PAGE_256KB_SIZE);
     auto data = currentBlock->block->buffer + currentBlock->currentOffset;
     currentBlock->currentOffset += size;
     return data;
 }
 
-void InMemOverflowBuffer::allocateNewBlock() {
+void InMemOverflowBuffer::allocateNewBlock(uint64_t size) {
     auto newBlock = make_unique<BufferBlock>(
-        memoryManager->allocateBuffer(false /* do not initialize to zero */));
+        memoryManager->allocateBuffer(false /* do not initialize to zero */, size));
     currentBlock = newBlock.get();
     blocks.push_back(std::move(newBlock));
 }

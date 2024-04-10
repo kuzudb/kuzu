@@ -4,6 +4,7 @@
 
 #include "cached_import/py_cached_import.h"
 #include "common/constants.h"
+#include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "common/types/uuid.h"
 #include "datetime.h" // from Python

@@ -20,7 +20,10 @@
  * needed on buffers full of bytes, and then call MD5Final, which
  * will fill a supplied 16-byte array with the digest.
  */
+
 #include "common/md5.h"
+
+#include <cstring>
 
 namespace kuzu {
 namespace common {

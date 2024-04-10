@@ -1,3 +1,4 @@
+#include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "planner/operator/persistent/logical_export_db.h"
 #include "planner/operator/persistent/logical_import_db.h"

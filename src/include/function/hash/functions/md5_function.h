@@ -11,7 +11,7 @@ namespace function {
 struct MD5Operator {
     static void operation(ku_string_t& operand, ku_string_t& result, ValueVector& resultVector) {
         MD5 hasher;
-        hasher.addToMD5(reinterpret_cast<const char*>(operand.getData()));
+        hasher.addToMD5(reinterpret_cast<const char*>(operand.getData()), operand.len);
         StringVector::addString(&resultVector, result, std::string(hasher.finishMD5()));
     }
 };

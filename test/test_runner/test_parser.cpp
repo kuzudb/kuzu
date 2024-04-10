@@ -78,7 +78,7 @@ void TestParser::parseHeader() {
         }
         case TokenType::BUFFER_POOL_SIZE: {
             checkMinimumParams(1);
-            testGroup->bufferPoolSize = stoi(currentToken.params[1]);
+            testGroup->bufferPoolSize = stoll(currentToken.params[1]);
             break;
         }
         case TokenType::SKIP: {
