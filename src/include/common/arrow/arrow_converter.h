@@ -38,6 +38,8 @@ private:
     static void initializeChild(ArrowSchema& child, const std::string& name = "");
     static void setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
         const LogicalType& dataType);
+    static void setArrowFormatForUnion(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
+        const LogicalType& dataType);
     static void setArrowFormatForInternalID(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
         const LogicalType& dataType);
     static void setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& child,

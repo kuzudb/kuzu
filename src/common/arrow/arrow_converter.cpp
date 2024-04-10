@@ -62,6 +62,25 @@ void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, Arro
     }
 }
 
+void ArrowConverter::setArrowFormatForUnion(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
+    const LogicalType& dataType) {
+    std::string formatStr = "+us";
+    child.n_children = (std::int64_t)UnionType::getNumFields(&dataType);
+    rootHolder.nestedChildren.emplace_back();
+    rootHolder.nestedChildren.back().resize(child.n_children);
+    rootHolder.nestedChildrenPtr.emplace_back();
+    rootHolder.nestedChildrenPtr.back().resize(child.n_children);
+    for (auto i = 0u; i < child.n_children; i++) {
+        initializeChild(*child.children[i]);
+        auto unionFieldType = UnionType::getFieldType(&dataType, i);
+        auto unionFieldName = UnionType::getFieldName(&dataType, i);
+        child.children[i]->name = copyName(rootHolder, unionFieldName);
+        setArrowFormat(rootHolder, *child.children[i], *unionFieldType);
+        formatStr += std::string(child.children[i]->format);
+    }
+    child.format = copyName(rootHolder, formatStr);
+}
+
 void ArrowConverter::setArrowFormatForInternalID(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
     const LogicalType& /*dataType*/) {
     child.format = "+s";
@@ -181,6 +200,9 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
     case LogicalTypeID::INTERNAL_ID:
         setArrowFormatForInternalID(rootHolder, child, dataType);
         break;
+    case LogicalTypeID::UNION:
+        setArrowFormatForUnion(rootHolder, child, dataType);
+    break;
     default:
         KU_UNREACHABLE;
     }

@@ -111,7 +111,7 @@ nodejs:
 	$(call run-cmake-release, -DBUILD_NODEJS=TRUE)
 
 python:
-	$(call run-cmake-release, -DBUILD_PYTHON=TRUE)
+	$(call run-cmake-debug, -DBUILD_PYTHON=TRUE)
 
 rust:
 ifeq ($(OS),Windows_NT)
@@ -142,7 +142,7 @@ nodejstest: nodejs
 	cd tools/nodejs_api && npm test
 
 pytest: python
-	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -v tools/python_api/test
+	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -vv tools/python_api/test
 
 rusttest: rust
 	cd tools/rust_api && cargo test --locked --all-features -- --test-threads=1

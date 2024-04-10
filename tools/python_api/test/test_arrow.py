@@ -560,7 +560,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
         assert used_addr_col.to_pylist() == [None, "long long long string", "short str"]
 
     _test_node(conn)
-    # _test_node_rel(conn)
+    _test_node_rel(conn)
     # _test_marries_table(conn)
 
     def test_to_arrow1(conn: kuzu.Connection) -> None:
