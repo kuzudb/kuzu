@@ -578,4 +578,3 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
         res = conn.execute(query)
         arrow_tbl = conn.execute(query).get_as_arrow(-1) # what is a chunk size of -1 even supposed to mean?
         assert arrow_tbl == []
-    
