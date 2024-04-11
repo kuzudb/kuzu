@@ -84,7 +84,7 @@ static Connection* globalConnection;
 #ifndef _WIN32
 struct termios orig_termios;
 bool noEcho = false;
-#else 
+#else
 DWORD oldOutputCP;
 #endif
 
