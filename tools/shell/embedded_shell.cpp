@@ -84,9 +84,9 @@ static Connection* globalConnection;
 #ifndef _WIN32
 struct termios orig_termios;
 bool noEcho = false;
-#endif
-
+#else 
 DWORD oldOutputCP;
+#endif
 
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();

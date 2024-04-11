@@ -1780,8 +1780,10 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen,
     l.buf[0] = '\0';
     l.buflen--; /* Make sure there is always space for the nulterm */
 
+#ifdef _WIN32
     std::string uft8Buf = "";
     bool readingUTF8 = false;
+#endif
 
     const char ctrl_c = '\3';
 
@@ -1899,14 +1901,8 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen,
 #ifdef _WIN32
             /* delete in _WIN32*/
             /* win32read() will send 127 for DEL and 8 for BS and Ctrl-H */
-            if (l.pos < l.len && l.len > 0) {
-                memmove(buf + l.pos, buf + l.pos + 1, l.len - l.pos);
-                l.len--;
-                buf[l.len] = '\0';
-                refreshLine(&l);
-            }
+            linenoiseEditDelete(&l);
             break;
-
 #endif
         case 8: /* ctrl-h */
             linenoiseEditBackspace(&l);
