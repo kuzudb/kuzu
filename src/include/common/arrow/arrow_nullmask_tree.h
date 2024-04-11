@@ -26,6 +26,9 @@ private:
     void scanListPushDown(const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset,
         uint64_t count);
 
+    void scanArrayPushDown(const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset,
+        uint64_t count);
+
     void scanStructPushDown(const ArrowSchema* schema, const ArrowArray* array, uint64_t srcOffset,
         uint64_t count);
 
