@@ -7,18 +7,25 @@ namespace kuzu {
 namespace catalog {
 
 enum class CatalogEntryType : uint8_t {
+    // Table entries
     NODE_TABLE_ENTRY = 0,
     REL_TABLE_ENTRY = 1,
     REL_GROUP_ENTRY = 2,
     RDF_GRAPH_ENTRY = 3,
-    SCALAR_MACRO_ENTRY = 4,
-    AGGREGATE_FUNCTION_ENTRY = 5,
-    SCALAR_FUNCTION_ENTRY = 6,
-    REWRITE_FUNCTION_ENTRY = 7,
-    TABLE_FUNCTION_ENTRY = 8,
-    FOREIGN_TABLE_ENTRY = 9,
-    DUMMY_ENTRY = 10,
-    SEQUENCE_ENTRY = 11,
+    FOREIGN_TABLE_ENTRY = 4,
+    // Macro entries
+    SCALAR_MACRO_ENTRY = 10,
+    // Function entries
+    AGGREGATE_FUNCTION_ENTRY = 20,
+    SCALAR_FUNCTION_ENTRY = 21,
+    REWRITE_FUNCTION_ENTRY = 22,
+    TABLE_FUNCTION_ENTRY = 23,
+    GDS_FUNCTION_ENTRY = 24,
+    // Sequence entries
+    SEQUENCE_ENTRY = 40,
+    // Dummy entry
+    DUMMY_ENTRY = 100,
+
 };
 
 struct CatalogEntryTypeUtils {

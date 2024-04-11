@@ -80,7 +80,7 @@ public:
         return std::make_unique<InQueryCall>(info.copy(), sharedState, id, paramsString);
     }
 
-protected:
+private:
     InQueryCallInfo info;
     std::shared_ptr<InQueryCallSharedState> sharedState;
     InQueryCallLocalState localState;

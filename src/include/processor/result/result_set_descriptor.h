@@ -25,6 +25,7 @@ struct DataChunkDescriptor {
 struct ResultSetDescriptor {
     std::vector<std::unique_ptr<DataChunkDescriptor>> dataChunkDescriptors;
 
+    ResultSetDescriptor() = default;
     explicit ResultSetDescriptor(
         std::vector<std::unique_ptr<DataChunkDescriptor>> dataChunkDescriptors)
         : dataChunkDescriptors{std::move(dataChunkDescriptors)} {}

@@ -1,20 +1,12 @@
 #pragma once
 
-#include <unordered_map>
-
-#include "function/hash/hash_functions.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/internal_id_util.h"
 
 namespace kuzu {
 namespace processor {
 
-namespace frontier {
 using node_rel_id_t = std::pair<common::nodeID_t, common::relID_t>;
-
-using node_id_set_t = std::unordered_set<common::nodeID_t, function::InternalIDHasher>;
-using rel_id_set_t = std::unordered_set<common::relID_t, function::InternalIDHasher>;
-template<typename T>
-using node_id_map_t = std::unordered_map<common::nodeID_t, T, function::InternalIDHasher>;
-} // namespace frontier
 
 /*
  * A Frontier can stores dst node offsets, its multiplicity and its bwd edges. Note that we don't
@@ -44,8 +36,8 @@ public:
 
 public:
     std::vector<common::nodeID_t> nodeIDs;
-    frontier::node_id_map_t<std::vector<frontier::node_rel_id_t>> bwdEdges;
-    frontier::node_id_map_t<uint64_t> nodeIDToMultiplicity;
+    common::node_id_map_t<std::vector<node_rel_id_t>> bwdEdges;
+    common::node_id_map_t<uint64_t> nodeIDToMultiplicity;
 };
 
 } // namespace processor

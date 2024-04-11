@@ -11,25 +11,22 @@ namespace binder {
 class BoundInQueryCall : public BoundReadingClause {
 public:
     BoundInQueryCall(function::TableFunction tableFunc,
-        std::unique_ptr<function::TableFuncBindData> bindData, expression_vector outExprs,
-        std::shared_ptr<Expression> rowIdxExpr)
-        : BoundReadingClause{common::ClauseType::IN_QUERY_CALL}, tableFunc{tableFunc},
-          bindData{std::move(bindData)}, outExprs{std::move(outExprs)},
-          rowIdxExpr{std::move(rowIdxExpr)} {}
+        std::unique_ptr<function::TableFuncBindData> bindData,
+        std::shared_ptr<Expression> rowIdxExpr, expression_vector outExprs)
+        : BoundReadingClause{common::ClauseType::IN_QUERY_CALL}, tableFunc{std::move(tableFunc)},
+          bindData{std::move(bindData)}, rowIdxExpr{std::move(rowIdxExpr)},
+          outExprs{std::move(outExprs)} {}
 
     function::TableFunction getTableFunc() const { return tableFunc; }
-
     const function::TableFuncBindData* getBindData() const { return bindData.get(); }
-
-    expression_vector getOutExprs() const { return outExprs; }
-
     std::shared_ptr<Expression> getRowIdxExpr() const { return rowIdxExpr; }
+    expression_vector getOutExprs() const { return outExprs; }
 
 private:
     function::TableFunction tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
-    expression_vector outExprs;
     std::shared_ptr<Expression> rowIdxExpr;
+    expression_vector outExprs;
 };
 
 } // namespace binder

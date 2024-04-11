@@ -56,6 +56,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "FILTER";
     case LogicalOperatorType::FLATTEN:
         return "FLATTEN";
+    case LogicalOperatorType::GDS_CALL:
+        return "GDS_CALL";
     case LogicalOperatorType::HASH_JOIN:
         return "HASH_JOIN";
     case LogicalOperatorType::IN_QUERY_CALL:

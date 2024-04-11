@@ -12,7 +12,7 @@ namespace processor {
 // not visit all target dst nodes because they may simply not connect to src.
 class TargetDstNodes {
 public:
-    TargetDstNodes(uint64_t numNodes, frontier::node_id_set_t nodeIDs)
+    TargetDstNodes(uint64_t numNodes, common::node_id_set_t nodeIDs)
         : numNodes{numNodes}, nodeIDs{std::move(nodeIDs)} {}
 
     inline void setTableIDFilter(std::unordered_set<common::table_id_t> filter) {
@@ -33,7 +33,7 @@ public:
 
 private:
     uint64_t numNodes;
-    frontier::node_id_set_t nodeIDs;
+    common::node_id_set_t nodeIDs;
     std::unordered_set<common::table_id_t> tableIDFilter;
 };
 

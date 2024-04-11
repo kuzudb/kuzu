@@ -90,6 +90,12 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planInQueryCall(const binder::BoundReadingClause* readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
+    void planGDSCall(const binder::BoundReadingClause* readingClause,
+        std::vector<std::unique_ptr<LogicalPlan>>& plans);
+    void planReadOp(std::shared_ptr<LogicalOperator> op,
+        const binder::expression_vector& predicates,
+        const binder::expression_vector& joinConditions, LogicalPlan& plan);
+
     void planLoadFrom(const binder::BoundReadingClause* readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
 
@@ -271,8 +277,6 @@ private:
 
     void appendUnwind(const binder::BoundReadingClause& boundReadingClause, LogicalPlan& plan);
 
-    void appendInQueryCall(const binder::BoundReadingClause& boundReadingClause, LogicalPlan& plan);
-
     void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan);
     void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan);
 
@@ -286,6 +290,11 @@ private:
         std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
 
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
+
+    // Get operators
+    std::shared_ptr<LogicalOperator> getScanFile(const binder::BoundFileScanInfo* info);
+    std::shared_ptr<LogicalOperator> getCall(const binder::BoundReadingClause& readingClause);
+    std::shared_ptr<LogicalOperator> getAlgorithm(const binder::BoundReadingClause& readingClause);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);

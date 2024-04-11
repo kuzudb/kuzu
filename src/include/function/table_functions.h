@@ -94,7 +94,7 @@ struct KUZU_API TableFunction : public Function {
           bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
           initLocalStateFunc{initLocalFunc}, progressFunc{progressFunc} {}
 
-    inline std::string signatureToString() const override {
+    std::string signatureToString() const override {
         return common::LogicalTypeUtils::toString(parameterTypeIDs);
     }
 

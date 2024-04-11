@@ -49,7 +49,7 @@ void BaseFrontierScanner::resetState(const BaseBFSState& bfsState) {
 
 bool PathScanner::trailSemanticCheck(const std::vector<nodeID_t>&,
     const std::vector<relID_t>& edgeIDs) {
-    frontier::rel_id_set_t set;
+    common::rel_id_set_t set;
     for (auto i = 0u; i < edgeIDs.size() - 1; ++i) {
         if (set.contains(edgeIDs[i])) {
             return false;
@@ -61,7 +61,7 @@ bool PathScanner::trailSemanticCheck(const std::vector<nodeID_t>&,
 
 bool PathScanner::acyclicSemanticCheck(const std::vector<nodeID_t>& nodeIDs,
     const std::vector<relID_t>&) {
-    frontier::node_id_set_t set;
+    common::node_id_set_t set;
     for (auto i = 0u; i < nodeIDs.size(); ++i) {
         if (set.contains(nodeIDs[i])) {
             return false;
@@ -106,7 +106,7 @@ void PathScanner::scanFromDstOffset(RecursiveJoinVectors* vectors, sel_t& vector
     }
 }
 
-void PathScanner::initDfs(const frontier::node_rel_id_t& nodeAndRelID, size_t currentDepth) {
+void PathScanner::initDfs(const node_rel_id_t& nodeAndRelID, size_t currentDepth) {
     nodeIDs[currentDepth] = nodeAndRelID.first;
     relIDs[currentDepth] = nodeAndRelID.second;
     if (k == 0) {

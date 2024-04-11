@@ -25,6 +25,15 @@ public:
     TARGET& cast() {
         return common::ku_dynamic_cast<BoundReadingClause&, TARGET&>(*this);
     }
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const BoundReadingClause&, const TARGET&>(*this);
+
+    }
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const BoundReadingClause*, const TARGET*>(this);
+    }
 
 private:
     common::ClauseType clauseType;

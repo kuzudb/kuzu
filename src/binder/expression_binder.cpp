@@ -8,6 +8,7 @@
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/cast/vector_cast_functions.h"
 #include "main/client_context.h"
+#include "binder/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -119,6 +120,10 @@ void validateAggregationExpressionIsNotNested(const Expression& expression) {
         throw BinderException(
             stringFormat("Expression {} contains nested aggregation.", expression.toString()));
     }
+}
+
+std::string ExpressionBinder::getUniqueName(const std::string& name) const {
+    return binder->getUniqueExpressionName(name);
 }
 
 } // namespace binder
