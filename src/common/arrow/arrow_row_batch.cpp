@@ -71,6 +71,12 @@ void ArrowRowBatch::templateInitializeVector<LogicalTypeID::ARRAY>(ArrowVector* 
 }
 
 template<>
+void ArrowRowBatch::templateInitializeVector<LogicalTypeID::MAP>(ArrowVector* vector,
+    const LogicalType& type, std::int64_t capacity) {
+    return templateInitializeVector<LogicalTypeID::LIST>(vector, type, capacity);
+}
+
+template<>
 void ArrowRowBatch::templateInitializeVector<LogicalTypeID::STRUCT>(ArrowVector* vector,
     const LogicalType& type, std::int64_t capacity) {
     initializeStructVector(vector, type, capacity);
@@ -198,6 +204,9 @@ std::unique_ptr<ArrowVector> ArrowRowBatch::createVector(const LogicalType& type
     } break;
     case LogicalTypeID::ARRAY: {
         templateInitializeVector<LogicalTypeID::ARRAY>(result.get(), type, capacity);
+    } break;
+    case LogicalTypeID::MAP: {
+        templateInitializeVector<LogicalTypeID::MAP>(result.get(), type, capacity);
     } break;
     case LogicalTypeID::STRUCT: {
         templateInitializeVector<LogicalTypeID::STRUCT>(result.get(), type, capacity);
@@ -358,6 +367,12 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::ARRAY>(ArrowVector* 
 }
 
 template<>
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::MAP>(ArrowVector* vector,
+    const LogicalType& type, Value* value, std::int64_t pos) {
+    return templateCopyNonNullValue<LogicalTypeID::LIST>(vector, type, value, pos);
+}
+
+template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRUCT>(ArrowVector* vector,
     const LogicalType& type, Value* value, std::int64_t /*pos*/) {
     for (auto i = 0u; i < value->childrenSize; i++) {
@@ -502,6 +517,9 @@ void ArrowRowBatch::copyNonNullValue(ArrowVector* vector, const LogicalType& typ
     case LogicalTypeID::ARRAY: {
         templateCopyNonNullValue<LogicalTypeID::ARRAY>(vector, type, value, pos);
     } break;
+    case LogicalTypeID::MAP: {
+        templateCopyNonNullValue<LogicalTypeID::MAP>(vector, type, value, pos);
+    } break;
     case LogicalTypeID::STRUCT: {
         templateCopyNonNullValue<LogicalTypeID::STRUCT>(vector, type, value, pos);
     } break;
@@ -553,6 +571,12 @@ void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::ARRAY>(ArrowVector* vec
     std::int64_t pos) {
     setBitToZero(vector->validity.data(), pos);
     vector->numNulls++;
+}
+
+template<>
+void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::MAP>(ArrowVector* vector,
+    std::int64_t pos) {
+    return templateCopyNullValue<LogicalTypeID::LIST>(vector, pos);
 }
 
 template<>
@@ -639,6 +663,9 @@ void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_
     } break;
     case LogicalTypeID::ARRAY: {
         templateCopyNullValue<LogicalTypeID::ARRAY>(vector, pos);
+    } break;
+    case LogicalTypeID::MAP: {
+        templateCopyNullValue<LogicalTypeID::MAP>(vector, pos);
     } break;
     case LogicalTypeID::INTERNAL_ID: {
         templateCopyNullValue<LogicalTypeID::INTERNAL_ID>(vector, pos);
@@ -731,6 +758,12 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::ARRAY>(ArrowVector
         convertVectorToArray(*vector.childData[0], *ArrayType::getChildType(&type));
     vector.array = std::move(result);
     return vector.array.get();
+}
+
+template<>
+ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::MAP>(ArrowVector& vector,
+    const LogicalType& type) {
+    return templateCreateArray<LogicalTypeID::LIST>(vector, type);
 }
 
 template<>
@@ -882,6 +915,9 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(ArrowVector& vector, const Logic
     }
     case LogicalTypeID::ARRAY: {
         return templateCreateArray<LogicalTypeID::ARRAY>(vector, type);
+    }
+    case LogicalTypeID::MAP: {
+        return templateCreateArray<LogicalTypeID::MAP>(vector, type);
     }
     case LogicalTypeID::STRUCT: {
         return templateCreateArray<LogicalTypeID::STRUCT>(vector, type);

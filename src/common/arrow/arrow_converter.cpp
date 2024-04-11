@@ -196,6 +196,18 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         child.children[0]->name = "l";
         setArrowFormat(rootHolder, **child.children, *ArrayType::getChildType(&dataType));
     } break;
+    case LogicalTypeID::MAP: {
+        child.format = "+m";
+        child.n_children = 1;
+        rootHolder.nestedChildren.emplace_back();
+        rootHolder.nestedChildren.back().resize(1);
+        rootHolder.nestedChildrenPtr.emplace_back();
+        rootHolder.nestedChildrenPtr.back().push_back(&rootHolder.nestedChildren.back()[0]);
+        initializeChild(rootHolder.nestedChildren.back()[0]);
+        child.children = &rootHolder.nestedChildrenPtr.back()[0];
+        child.children[0]->name = "l";
+        setArrowFormat(rootHolder, **child.children, *ListType::getChildType(&dataType));
+    } break;
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:

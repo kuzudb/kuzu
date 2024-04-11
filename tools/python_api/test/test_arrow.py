@@ -467,6 +467,10 @@ def test_to_arrow(conn_db_readonly: ConnDB) -> None:
     _test_with_nulls(conn, "arrow", 12)
     _test_with_nulls(conn, "pl")
 
+def test_to_arrow_map(conn_db_readonly: ConnDB) -> None:
+    conn = conn_db_readonly[0]
+    results = conn.execute("RETURN map([1, 2, 3], [{a: 1, b: 2, c: '3'}, {a: 2, b: 3, c: '4'}, {a: 3, b: 4, c: '5'}])").get_as_arrow(8)[0].to_pylist()
+    assert results == [[(1, {'a': 1, 'b': 2, 'c': '3'}), (2, {'a': 2, 'b': 3, 'c': '4'}), (3, {'a': 3, 'b': 4, 'c': '5'})]]
 
 def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
