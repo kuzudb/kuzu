@@ -29,14 +29,14 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace catalog {
 
-CatalogContent::CatalogContent(VirtualFileSystem* vfs) : nextTableID{0}, vfs{vfs} {
+CatalogContent::CatalogContent() : nextTableID{0} {
     tables = std::make_unique<CatalogSet>();
     functions = std::make_unique<CatalogSet>();
     registerBuiltInFunctions();
 }
 
-CatalogContent::CatalogContent(const std::string& directory, VirtualFileSystem* vfs) : vfs{vfs} {
-    readFromFile(directory, FileVersionType::ORIGINAL);
+CatalogContent::CatalogContent(const std::string& directory, VirtualFileSystem* fs) {
+    readFromFile(directory, FileVersionType::ORIGINAL, fs);
     registerBuiltInFunctions();
 }
 
@@ -239,10 +239,11 @@ static void writeMagicBytes(Serializer& serializer) {
     }
 }
 
-void CatalogContent::saveToFile(const std::string& directory, FileVersionType dbFileType) {
-    auto catalogPath = StorageUtils::getCatalogFilePath(vfs, directory, dbFileType);
+void CatalogContent::saveToFile(const std::string& directory, FileVersionType dbFileType,
+    VirtualFileSystem* fs) {
+    auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, dbFileType);
     Serializer serializer(
-        std::make_unique<BufferedFileWriter>(vfs->openFile(catalogPath, O_WRONLY | O_CREAT)));
+        std::make_unique<BufferedFileWriter>(fs->openFile(catalogPath, O_WRONLY | O_CREAT)));
     writeMagicBytes(serializer);
     serializer.serializeValue(StorageVersionInfo::getStorageVersion());
     tables->serialize(serializer);
@@ -250,10 +251,11 @@ void CatalogContent::saveToFile(const std::string& directory, FileVersionType db
     functions->serialize(serializer);
 }
 
-void CatalogContent::readFromFile(const std::string& directory, FileVersionType dbFileType) {
-    auto catalogPath = StorageUtils::getCatalogFilePath(vfs, directory, dbFileType);
+void CatalogContent::readFromFile(const std::string& directory, FileVersionType dbFileType,
+    VirtualFileSystem* fs) {
+    auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, dbFileType);
     Deserializer deserializer(
-        std::make_unique<BufferedFileReader>(vfs->openFile(catalogPath, O_RDONLY)));
+        std::make_unique<BufferedFileReader>(fs->openFile(catalogPath, O_RDONLY)));
     validateMagicBytes(deserializer);
     storage_version_t savedStorageVersion;
     deserializer.deserializeValue(savedStorageVersion);
@@ -278,8 +280,7 @@ function::ScalarMacroFunction* CatalogContent::getScalarMacroFunction(
 }
 
 std::unique_ptr<CatalogContent> CatalogContent::copy() const {
-    std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macrosToCopy;
-    return std::make_unique<CatalogContent>(tables->copy(), nextTableID, functions->copy(), vfs);
+    return std::make_unique<CatalogContent>(tables->copy(), nextTableID, functions->copy());
 }
 
 void CatalogContent::registerBuiltInFunctions() {

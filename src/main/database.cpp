@@ -207,8 +207,8 @@ void Database::commit(Transaction* transaction, bool skipCheckpointForTestingRec
         return;
     }
     KU_ASSERT(transaction->isWriteTransaction());
-    catalog->prepareCommitOrRollback(TransactionAction::COMMIT);
-    storageManager->prepareCommit(transaction);
+    catalog->prepareCommitOrRollback(TransactionAction::COMMIT, vfs.get());
+    storageManager->prepareCommit(transaction, vfs.get());
     // Note: It is enough to stop and wait transactions to leave the system instead of
     // for example checking on the query processor's task scheduler. This is because the
     // first and last steps that a connection performs when executing a query is to
@@ -237,7 +237,7 @@ void Database::rollback(transaction::Transaction* transaction,
         return;
     }
     KU_ASSERT(transaction->isWriteTransaction());
-    catalog->prepareCommitOrRollback(TransactionAction::ROLLBACK);
+    catalog->prepareCommitOrRollback(TransactionAction::ROLLBACK, vfs.get());
     storageManager->prepareRollback(transaction);
     if (skipCheckpointForTestingRecovery) {
         wal->flushAllPages();
