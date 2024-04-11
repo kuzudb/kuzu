@@ -473,7 +473,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
 
     def _test_node_helper(srcStruct, dstStruct):
         assert set(srcStruct.keys()) == set(dstStruct.keys())
-        for key in srcStruct.keys():
+        for key in srcStruct:
             if type(srcStruct[key]) is float:
                 assert math.fabs(srcStruct[key] - dstStruct[key]) < 1e-5
             else:
