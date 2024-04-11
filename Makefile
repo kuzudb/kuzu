@@ -111,6 +111,9 @@ nodejs:
 	$(call run-cmake-release, -DBUILD_NODEJS=TRUE)
 
 python:
+	$(call run-cmake-release, -DBUILD_PYTHON=TRUE)
+
+python-debug:
 	$(call run-cmake-debug, -DBUILD_PYTHON=TRUE)
 
 rust:
@@ -142,6 +145,9 @@ nodejstest: nodejs
 	cd tools/nodejs_api && npm test
 
 pytest: python
+	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -vv tools/python_api/test
+
+pytest-debug: python-debug
 	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -vv tools/python_api/test
 
 rusttest: rust
