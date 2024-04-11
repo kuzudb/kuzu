@@ -350,7 +350,6 @@ std::unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
 std::unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpression(
     CypherParser::OC_PropertyOrLabelsExpressionContext& ctx) {
     auto atom = transformAtom(*ctx.oC_Atom());
-    auto raw = ctx.oC_Atom()->getText();
     if (!ctx.oC_PropertyLookup().empty()) {
         auto lookUpCtx = ctx.oC_PropertyLookup(0);
         auto result = createPropertyExpression(*lookUpCtx, std::move(atom));
