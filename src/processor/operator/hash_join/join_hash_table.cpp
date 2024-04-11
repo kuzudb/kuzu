@@ -117,7 +117,7 @@ void JoinHashTable::buildHashSlots() {
         for (auto i = 0u; i < tupleBlock->numTuples; i++) {
             auto lastSlotEntryInHT = insertEntry(tuple);
             auto prevPtr = getPrevTuple(tuple);
-            memcpy((void*) prevPtr, (const void*) &lastSlotEntryInHT, sizeof(uint8_t*));
+            memcpy(prevPtr, reinterpret_cast<void*>(&lastSlotEntryInHT), sizeof(uint8_t*));
             tuple += factorizedTable->getTableSchema()->getNumBytesPerTuple();
         }
     }
