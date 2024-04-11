@@ -82,6 +82,8 @@ void ArrowRowBatch::templateInitializeVector<LogicalTypeID::UNION>(ArrowVector* 
     // Interestingly, unions don't have their own validity bitmap
     // Initialize type buffer
     vector->data.reserve((capacity) * sizeof(std::uint8_t));
+    // Initialize offsets buffer
+    vector->overflow.reserve((capacity) * sizeof(std::int32_t));
     // Initialize children
     for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
         auto childVector = createVector(*UnionType::getFieldType(&type, i), capacity);
@@ -367,11 +369,17 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRUCT>(ArrowVector*
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::UNION>(ArrowVector* vector,
     const LogicalType& type, Value* value, std::int64_t pos) {
-    auto childType = value->children[0]->val.uint8Val;
     auto typeBuffer = (std::uint8_t*)vector->data.data();
-    typeBuffer[pos] = childType;
-    appendValue(vector->childData[childType].get(), *UnionType::getFieldType(&type, childType),
-        value->children[childType + 1].get());
+    auto offsetsBuffer = (std::int32_t*)vector->overflow.data();
+    for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
+        if (*UnionType::getFieldType(&type, i) == *value->children[0]->dataType) {
+            typeBuffer[pos] = i;
+            offsetsBuffer[pos] = vector->childData[i]->numValues;
+            return appendValue(vector->childData[i].get(), *UnionType::getFieldType(&type, i),
+                value->children[0].get());
+        }
+    }
+    KU_UNREACHABLE; // We should always be able to find a matching type
 }
 
 template<>
@@ -558,7 +566,9 @@ void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::STRUCT>(ArrowVector* ve
 void ArrowRowBatch::copyNullValueUnion(ArrowVector* vector, Value* value,
     std::int64_t pos) {
     auto typeBuffer = (std::uint8_t*)vector->data.data();
+    auto offsetsBuffer = (std::int32_t*)vector->overflow.data();
     typeBuffer[pos] = 0;
+    offsetsBuffer[pos] = vector->childData[0]->numValues;
     copyNullValue(vector->childData[0].get(), value->children[0].get(), pos);
     vector->numNulls++;
 }
@@ -770,15 +780,16 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::UNION>(ArrowVector
     vector.array->private_data = nullptr;
     vector.array->release = releaseArrowVector;
     vector.array->n_children = nChildren;
+    vector.childPointers.resize(nChildren);
     vector.array->children = vector.childPointers.data();
     vector.array->offset = 0;
     vector.array->dictionary = nullptr;
     vector.array->buffers = vector.buffers.data();
     vector.array->null_count = vector.numNulls;
     vector.array->length = vector.numValues;
-    vector.array->n_buffers = 1;
+    vector.array->n_buffers = 2;
     vector.array->buffers[0] = vector.data.data();
-    vector.childPointers.resize(nChildren);
+    vector.array->buffers[1] = vector.overflow.data();
     for (auto i = 0u; i < nChildren; i++) {
         auto childType = UnionType::getFieldType(&type, i);
         vector.childPointers[i] = convertVectorToArray(*vector.childData[i], *childType);

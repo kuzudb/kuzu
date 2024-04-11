@@ -472,7 +472,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
 
     def _test_node_helper(srcStruct, dstStruct):
-        assert srcStruct.keys() == dstStruct.keys()
+        assert set(srcStruct.keys()) == set(dstStruct.keys())
         for key in srcStruct.keys():
             if type(srcStruct[key]) is float:
                 assert math.fabs(srcStruct[key] - dstStruct[key]) < 1e-5
@@ -500,43 +500,53 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     def _test_node_rel(_conn: kuzu.Connection) -> None:
         query = "MATCH (a:person)-[e:workAt]->(b:organisation) RETURN a, e, b;"
         query_result = _conn.execute(query)
-        arrow_tbl = query_result.get_as_arrow(0)
+        arrow_tbl = query_result.get_as_arrow(3)
         assert arrow_tbl.num_columns == 3
         a_col = arrow_tbl.column(0)
         assert len(a_col) == 3
         e_col = arrow_tbl.column(1)
-        assert len(a_col) == 3
+        assert len(e_col) == 3
         b_col = arrow_tbl.column(2)
-        assert len(a_col) == 3
-        for a, b in zip(p_col.to_pylist(), [
+        assert len(b_col) == 3
+        for a, b in zip(a_col.to_pylist(), [
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[3],
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[5],
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[7]]):
             _test_node_helper(a, b)
-        assert e_col.to_pylist() == [
+        for a, b in zip(e_col.to_pylist(), [
             {
-                "_src": {"offset": 2, "tableID": 0},
-                "_dst": {"offset": 1, "tableID": 2},
-                "_id": {"offset": 0, "tableID": 4},
+                "_SRC": {"offset": 2, "table": 0},
+                "_DST": {"offset": 1, "table": 1},
+                "_ID": {"offset": 0, "table": 5},
+                "_LABEL": "workAt",
+                "grading": [3.8, 2.5],
+                "rating": 8.2,
                 "year": 2015,
             },
             {
-                "_src": {"offset": 3, "tableID": 0},
-                "_dst": {"offset": 2, "tableID": 2},
-                "_id": {"offset": 1, "tableID": 4},
+                "_SRC": {"offset": 3, "table": 0},
+                "_DST": {"offset": 2, "table": 1},
+                "_ID": {"offset": 1, "table": 5},
+                "_LABEL": "workAt",
+                "grading": [2.1, 4.4],
+                "rating": 7.6,
                 "year": 2010,
             },
             {
-                "_src": {"offset": 4, "tableID": 0},
-                "_dst": {"offset": 2, "tableID": 2},
-                "_id": {"offset": 2, "tableID": 4},
+                "_SRC": {"offset": 4, "table": 0},
+                "_DST": {"offset": 2, "table": 1},
+                "_ID": {"offset": 2, "table": 5},
+                "_LABEL": "workAt",
+                "grading": [9.2, 3.1],
+                "rating": 9.2,
                 "year": 2015,
-            },
-        ]
+            }]):
+            _test_node_helper(a, b)
+        
         for a, b in zip(b_col.to_pylist(), [
-            ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[4],
-            ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[6],
-            ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[6]]):
+            ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[4],
+            ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[6],
+            ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[6]]):
             _test_node_helper(a, b)
 
     def _test_marries_table(_conn: kuzu.Connection) -> None:
@@ -549,22 +559,23 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
         assert len(used_addr_col) == 3
         assert used_addr_col.to_pylist() == [["toronto"], None, []]
 
-        arrow_tbl.column(1)
-        assert used_addr_col.type == pa.list_(pa.int16(), 2)
-        assert len(used_addr_col) == 3
-        assert used_addr_col.to_pylist() == [[4, 5], [2, 5], [3, 9]]
+        addr_col = arrow_tbl.column(1)
+        assert addr_col.type == pa.list_(pa.int16(), 2)
+        assert len(addr_col) == 3
+        assert addr_col.to_pylist() == [[4, 5], [2, 5], [3, 9]]
 
-        arrow_tbl.column(2)
-        assert used_addr_col.type == pa.string()
-        assert len(used_addr_col) == 3
-        assert used_addr_col.to_pylist() == [None, "long long long string", "short str"]
+        note_col = arrow_tbl.column(2)
+        assert note_col.type == pa.string()
+        assert len(note_col) == 3
+        assert note_col.to_pylist() == [None, "long long long string", "short str"]
 
     _test_node(conn)
     _test_node_rel(conn)
-    # _test_marries_table(conn)
+    _test_marries_table(conn)
 
     def test_to_arrow1(conn: kuzu.Connection) -> None:
         query = "MATCH (a:person)-[e:knows]->(:person) RETURN e.summary"
         res = conn.execute(query)
-        arrow_tbl = conn.execute(query).get_as_arrow(-1)
+        arrow_tbl = conn.execute(query).get_as_arrow(-1) # what is a chunk size of -1 even supposed to mean?
         assert arrow_tbl == []
+    

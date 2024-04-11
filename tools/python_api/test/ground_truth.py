@@ -173,8 +173,10 @@ TINY_SNB_ORGANISATIONS_GROUND_TRUTH = {
         "history": "10 years 5 months 13 hours 24 us",
         "licenseValidInterval": timedelta(days=1085),
         "rating": 1.0,
+        "state": {'revenue': 138, 'location': ['toronto', 'montr,eal'], 'stock': {'price': [96, 56], 'volume': 1000}},
+        "info": 3.12,
         "_LABEL": "organisation",
-        "_ID": {"offset": 0, "table": 2},
+        "_ID": {"offset": 0, "table": 1},
     },
     4: {
         "ID": 4,
@@ -185,8 +187,10 @@ TINY_SNB_ORGANISATIONS_GROUND_TRUTH = {
         "history": "2 years 4 days 10 hours",
         "licenseValidInterval": timedelta(days=9414),
         "rating": 0.78,
+        "state": {'revenue': 152, 'location': ['\"vanco,uver north area\"'], 'stock': {'price': [15, 78, 671], 'volume': 432}},
+        "info": "abcd",
         "_LABEL": "organisation",
-        "_ID": {"offset": 1, "table": 2},
+        "_ID": {"offset": 1, "table": 1},
     },
     6: {
         "ID": 6,
@@ -197,8 +201,10 @@ TINY_SNB_ORGANISATIONS_GROUND_TRUTH = {
         "history": "2 years 4 hours 22 us 34 minutes",
         "licenseValidInterval": timedelta(days=3, seconds=36000, microseconds=100000),
         "rating": 0.52,
+        "state": {'revenue': 558, 'location': ['\'very long city name\'', '\'new york\''], 'stock': {'price': [22], 'volume': 99}},
+        "info": date(2023, 12, 15),
         "_LABEL": "organisation",
-        "_ID": {"offset": 2, "table": 2},
+        "_ID": {"offset": 2, "table": 1},
     },
 }
 
