@@ -3,7 +3,6 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "catalog/catalog.h"
-#include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
