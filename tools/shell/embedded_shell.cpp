@@ -3,6 +3,8 @@
 #ifndef _WIN32
 #include <termios.h>
 #include <unistd.h>
+#else
+#include <windows.h>
 #endif
 #include <algorithm>
 #include <array>
@@ -83,6 +85,8 @@ static Connection* globalConnection;
 struct termios orig_termios;
 bool noEcho = false;
 #endif
+
+DWORD oldOutputCP;
 
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
@@ -201,7 +205,6 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
     }
     tokenList.emplace_back(word);
     for (std::string& token : tokenList) {
-#ifndef _WIN32
         if (token.find(' ') == std::string::npos) {
             for (const std::string& keyword : keywordList) {
                 if (regex_search(token,
@@ -218,7 +221,6 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
                 }
             }
         }
-#endif
         highlightBuffer << token;
     }
     // Linenoise allocates a fixed size buffer for the current line's contents, and doesn't export
@@ -323,6 +325,9 @@ void EmbeddedShell::run() {
         }
         noEcho = true;
     }
+#else
+    oldOutputCP = GetConsoleOutputCP();
+    SetConsoleOutputCP(CP_UTF8);
 #endif
 
     while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT)) != nullptr) {
@@ -387,6 +392,8 @@ void EmbeddedShell::run() {
     /* Don't even check the return value as it's too late. */
     if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1)
         noEcho = false;
+#else
+    SetConsoleOutputCP(oldOutputCP);
 #endif
 }
 
@@ -396,6 +403,8 @@ void EmbeddedShell::interruptHandler(int /*signal*/) {
     /* Don't even check the return value as it's too late. */
     if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1)
         noEcho = false;
+#else
+    SetConsoleOutputCP(oldOutputCP);
 #endif
 }
 
