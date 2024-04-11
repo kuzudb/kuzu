@@ -17,6 +17,11 @@ struct BaseScanSource {
     explicit BaseScanSource(common::ScanSourceType type) : type{type} {}
     virtual ~BaseScanSource() = default;
     DELETE_COPY_AND_MOVE(BaseScanSource);
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const BaseScanSource*, const TARGET*>(this);
+    }
 };
 
 struct FileScanSource : public BaseScanSource {

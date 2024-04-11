@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/bound_scan_source.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
@@ -102,7 +103,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* sour
                     columns.size(), expectedColumnNames.size()));
         }
         for (auto i = 0u; i < columns.size(); ++i) {
-            expressionBinder.validateDataType(*columns[i], expectedColumnTypes[i]);
+            ExpressionUtil::validateDataType(*columns[i], expectedColumnTypes[i]);
             columns[i]->setAlias(expectedColumnNames[i]);
         }
         return std::make_unique<BoundQueryScanSource>(std::move(boundStatement));

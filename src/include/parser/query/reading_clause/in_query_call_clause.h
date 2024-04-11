@@ -12,15 +12,13 @@ public:
         : ReadingClause{common::ClauseType::IN_QUERY_CALL},
           functionExpression{std::move(functionExpression)} {}
 
-    inline const ParsedExpression* getFunctionExpression() const {
-        return functionExpression.get();
-    }
+    const ParsedExpression* getFunctionExpression() const { return functionExpression.get(); }
 
-    inline void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
+    void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
         wherePredicate = std::move(expression);
     }
-    inline bool hasWherePredicate() const { return wherePredicate != nullptr; }
-    inline const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
+    bool hasWherePredicate() const { return wherePredicate != nullptr; }
+    const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
 
 private:
     std::unique_ptr<ParsedExpression> functionExpression;

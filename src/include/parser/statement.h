@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/cast.h"
 #include "common/enums/statement_type.h"
 
 namespace kuzu {
@@ -11,15 +12,24 @@ public:
 
     virtual ~Statement() = default;
 
-    inline common::StatementType getStatementType() const { return statementType; }
+    common::StatementType getStatementType() const { return statementType; }
 
-    inline bool requireTx() {
+    bool requireTx() {
         switch (statementType) {
         case common::StatementType::TRANSACTION:
             return false;
         default:
             return true;
         }
+    }
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const Statement&, const TARGET&>(*this);
+    }
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const Statement*, const TARGET*>(this);
     }
 
 private:

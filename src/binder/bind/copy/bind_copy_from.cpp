@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_from.h"
-#include "binder/copy/bound_copy_to.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
@@ -20,33 +19,6 @@ using namespace kuzu::function;
 
 namespace kuzu {
 namespace binder {
-
-std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statement) {
-    auto& copyToStatement = ku_dynamic_cast<const Statement&, const CopyTo&>(statement);
-    auto boundFilePath = copyToStatement.getFilePath();
-    auto fileType = bindFileType(boundFilePath);
-    std::vector<std::string> columnNames;
-    std::vector<LogicalType> columnTypes;
-    auto parsedQuery =
-        ku_dynamic_cast<const Statement*, const RegularQuery*>(copyToStatement.getStatement());
-    auto query = bindQuery(*parsedQuery);
-    auto columns = query->getStatementResult()->getColumns();
-    for (auto& column : columns) {
-        auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
-        columnNames.push_back(columnName);
-        columnTypes.push_back(column->getDataType());
-    }
-    if (fileType != FileType::CSV && fileType != FileType::PARQUET) {
-        throw BinderException("COPY TO currently only supports csv and parquet files.");
-    }
-    if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
-        throw BinderException{"Only copy to csv can have options."};
-    }
-    auto csvConfig =
-        CSVReaderConfig::construct(bindParsingOptions(copyToStatement.getParsingOptionsRef()));
-    return std::make_unique<BoundCopyTo>(boundFilePath, fileType, std::move(query),
-        csvConfig.option.copy());
-}
 
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {
     auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);

@@ -1,5 +1,7 @@
 #include "binder/expression/expression_util.h"
 
+#include "common/exception/binder.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -87,8 +89,7 @@ expression_vector ExpressionUtil::excludeExpressions(const expression_vector& ex
     return result;
 }
 
-logical_type_vec_t ExpressionUtil::getDataTypes(
-    const kuzu::binder::expression_vector& expressions) {
+logical_type_vec_t ExpressionUtil::getDataTypes(const expression_vector& expressions) {
     std::vector<LogicalType> result;
     result.reserve(expressions.size());
     for (auto& expression : expressions) {
@@ -120,9 +121,45 @@ bool ExpressionUtil::isRelPattern(const Expression& expression) {
            expression.dataType.getLogicalTypeID() == LogicalTypeID::REL;
 }
 
-bool ExpressionUtil::isRecursiveRelPattern(const kuzu::binder::Expression& expression) {
+bool ExpressionUtil::isRecursiveRelPattern(const Expression& expression) {
     return expression.expressionType == ExpressionType::PATTERN &&
            expression.dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL;
+}
+
+void ExpressionUtil::validateExpressionType(const Expression& expr,
+    common::ExpressionType expectedType) {
+    if (expr.expressionType == expectedType) {
+        return;
+    }
+    throw BinderException(stringFormat("{} has type {} but {} was expected.", expr.toString(),
+        expressionTypeToString(expr.expressionType), expressionTypeToString(expectedType)));
+}
+
+void ExpressionUtil::validateDataType(const Expression& expr, const LogicalType& expectedType) {
+    if (expr.getDataType() == expectedType) {
+        return;
+    }
+    throw BinderException(stringFormat("{} has data type {} but {} was expected.", expr.toString(),
+        expr.getDataType().toString(), expectedType.toString()));
+}
+
+void ExpressionUtil::validateDataType(const Expression& expr, LogicalTypeID expectedTypeID) {
+    if (expr.getDataType().getLogicalTypeID() == expectedTypeID) {
+        return;
+    }
+    throw BinderException(stringFormat("{} has data type {} but {} was expected.", expr.toString(),
+        expr.getDataType().toString(), LogicalTypeUtils::toString(expectedTypeID)));
+}
+
+void ExpressionUtil::validateDataType(const Expression& expr,
+    const std::vector<LogicalTypeID>& expectedTypeIDs) {
+    auto targetsSet =
+        std::unordered_set<LogicalTypeID>{expectedTypeIDs.begin(), expectedTypeIDs.end()};
+    if (targetsSet.contains(expr.getDataType().getLogicalTypeID())) {
+        return;
+    }
+    throw BinderException(stringFormat("{} has data type {} but {} was expected.", expr.toString(),
+        expr.getDataType().toString(), LogicalTypeUtils::toString(expectedTypeIDs)));
 }
 
 } // namespace binder
