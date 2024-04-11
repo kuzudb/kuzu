@@ -269,30 +269,6 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make javatest
 
-  tidy-and-diagnostics:
-    name: clang tidy & clangd diagnostics check
-    needs: [clang-format, sanity-checks]
-    runs-on: kuzu-self-hosted-testing
-    env:
-      NUM_THREADS: 32
-
-    steps:
-      - uses: actions/checkout@v3
-
-      # For `napi.h` header.
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
-      - name: Check for clangd diagnostics
-        run: make clangd-diagnostics
-
-      - name: Run clang-tidy
-        run: make tidy
-
-      - name: Run clang-tidy analyzer
-        run: make tidy-analyzer
-
   sanity-checks:
     name: sanity checks
     runs-on: ubuntu-22.04
@@ -382,16 +358,29 @@ jobs:
     needs: [gcc-build-test, clang-build-test]
     uses: ./.github/workflows/benchmark-workflow.yml
 
-  macos-clang-tidy:
-    name: macos clang tidy & clangd diagnostics check
+  clang-tidy:
+    name: clang tidy & clangd diagnostics check
     needs: [clang-format, sanity-checks]
-    runs-on: self-hosted-mac-x64
+    runs-on: macos-14
     env:
-      NUM_THREADS: 32
       GEN: ninja
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          brew install llvm ninja cmake
+          export PATH="$(brew --prefix llvm)/bin:$PATH"
+          echo PATH=$PATH >> $GITHUB_ENV
+          echo NUM_THREADS=$(sysctl -n hw.ncpu) >> $GITHUB_ENV
+      
+      - name: Check clang
+        run: |
+          which clang
+          which clang-tidy
+          which clangd
+          clang --version
 
       # For `napi.h` header.
       - name: Ensure Node.js dependencies
