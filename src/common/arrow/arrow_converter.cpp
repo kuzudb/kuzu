@@ -80,7 +80,7 @@ void ArrowConverter::setArrowFormatForUnion(ArrowSchemaHolder& rootHolder, Arrow
         auto unionFieldName = UnionType::getFieldName(&dataType, i);
         child.children[i]->name = copyName(rootHolder, unionFieldName);
         setArrowFormat(rootHolder, *child.children[i], *unionFieldType);
-        formatStr += (i == 0u? ":" : ",") + std::to_string(i);
+        formatStr += (i == 0u ? ":" : ",") + std::to_string(i);
     }
     child.format = copyName(rootHolder, formatStr);
 }
@@ -206,7 +206,7 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         break;
     case LogicalTypeID::UNION:
         setArrowFormatForUnion(rootHolder, child, dataType);
-    break;
+        break;
     default:
         KU_UNREACHABLE;
     }

@@ -48,7 +48,7 @@ public:
     KUZU_API static Value* getDstNodeIDVal(const Value* val);
     /**
      * @return the internal ID value of the RelVal in Value.
-    */
+     */
     KUZU_API static Value* getIDVal(const Value* val);
     /**
      * @return the label value of the RelVal.
