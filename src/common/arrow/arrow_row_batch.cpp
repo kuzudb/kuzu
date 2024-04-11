@@ -563,8 +563,7 @@ void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::STRUCT>(ArrowVector* ve
     vector->numNulls++;
 }
 
-void ArrowRowBatch::copyNullValueUnion(ArrowVector* vector, Value* value,
-    std::int64_t pos) {
+void ArrowRowBatch::copyNullValueUnion(ArrowVector* vector, Value* value, std::int64_t pos) {
     auto typeBuffer = (std::uint8_t*)vector->data.data();
     auto offsetsBuffer = (std::int32_t*)vector->overflow.data();
     typeBuffer[pos] = 0;
@@ -774,7 +773,8 @@ ArrowArray* ArrowRowBatch::convertInternalIDVectorToArray(ArrowVector& vector,
 template<>
 ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::UNION>(ArrowVector& vector,
     const LogicalType& type) {
-    //since union is a special case, we make the ArrowArray ourselves instead of using createArrayFromVector
+    // since union is a special case, we make the ArrowArray ourselves instead of using
+    // createArrayFromVector
     auto nChildren = UnionType::getNumFields(&type);
     vector.array = std::make_unique<ArrowArray>();
     vector.array->private_data = nullptr;
