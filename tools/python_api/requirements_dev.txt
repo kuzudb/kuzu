@@ -3,7 +3,7 @@ networkx~=3.0
 numpy
 pandas
 polars
-pyarrow>=14
+pyarrow>=15
 pybind11>=2.6.0
 pytest
 torch
