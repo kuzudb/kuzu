@@ -187,11 +187,11 @@ shell-test:
 # parallelism.
 tidy: | allconfig java_native_header
 	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \
-		"^$(realpath src)|$(realpath extension)|$(realpath tools)/(?!shell/linenoise.cpp)"
+		"^$(realpath src)|$(realpath extension/[a-zA-Z]*/src)|$(realpath tools)/(?!shell/linenoise.cpp)"
 
 tidy-analyzer: | allconfig java_native_header
 	run-clang-tidy -config-file .clang-tidy-analyzer -p build/release -quiet -j $(NUM_THREADS) \
-		"^$(realpath src)|$(realpath extension)|$(realpath tools)/(?!shell/linenoise.cpp)"
+		"^$(realpath src)|$(realpath extension/[a-zA-Z]*/src)|$(realpath tools)/(?!shell/linenoise.cpp)"
 
 clangd-diagnostics: | allconfig java_native_header
 	find src -name *.h -or -name *.cpp | xargs \
