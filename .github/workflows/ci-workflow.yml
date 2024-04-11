@@ -361,21 +361,15 @@ jobs:
   clang-tidy:
     name: clang tidy & clangd diagnostics check
     needs: [clang-format, sanity-checks]
-    runs-on: macos-14
+    runs-on: kuzu-self-hosted-testing
     env:
       GEN: ninja
+      NUM_THREADS: 32
+      CC: clang
+      CXX: clang++
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install dependencies
-        run: |
-          brew install llvm ninja duckdb
-          export PATH="$(brew --prefix llvm)/bin:$PATH"
-          echo PATH=$PATH >> $GITHUB_ENV
-          echo NUM_THREADS=$(sysctl -n hw.ncpu) >> $GITHUB_ENV
-          echo CC="$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
-          echo CXX="$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
     
       # For `napi.h` header.
       - name: Ensure Node.js dependencies
