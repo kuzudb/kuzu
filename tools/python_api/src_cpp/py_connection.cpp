@@ -67,16 +67,6 @@ std::unique_ptr<PyQueryResult> PyConnection::query(const std::string& statement)
     return checkAndWrapQueryResult(queryResult);
 }
 
-std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(
-    std::unique_ptr<QueryResult>& queryResult) {
-    if (!queryResult->isSuccess()) {
-        throw std::runtime_error(queryResult->getErrorMessage());
-    }
-    auto pyQueryResult = std::make_unique<PyQueryResult>();
-    pyQueryResult->queryResult = std::move(queryResult);
-    return pyQueryResult;
-}
-
 void PyConnection::setMaxNumThreadForExec(uint64_t numThreads) {
     conn->setMaxNumThreadForExec(numThreads);
 }
@@ -399,4 +389,14 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
 Value transformPythonValue(py::handle val) {
     auto type = pyLogicalType(val);
     return transformPythonValueAs(val, type.get());
+}
+
+std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(
+    std::unique_ptr<QueryResult>& queryResult) {
+    if (!queryResult->isSuccess()) {
+        throw std::runtime_error(queryResult->getErrorMessage());
+    }
+    auto pyQueryResult = std::make_unique<PyQueryResult>();
+    pyQueryResult->queryResult = std::move(queryResult);
+    return pyQueryResult;
 }
