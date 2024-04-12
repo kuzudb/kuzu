@@ -415,3 +415,29 @@ def test_pyarrow_map(conn_db_readonly : ConnDB) -> None:
 
 def test_pyarrow_map_offset(conn_db_readonly : ConnDB) -> None:
     conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 50
+    maplength = 5
+    index = pa.array(range(datalength))
+    offsets = sorted([random.randint(0, datalength * maplength + 1) for _ in range(datalength + 1)])
+    offsets[25] = None
+    offsets = pa.array(offsets, type=pa.int32())
+    keys = pa.array([random.randint(0, (1<<31)-1) for _ in range(datalength * maplength + 1)])
+    values = pa.array([generate_primitive('int64[pyarrow]') for _ in range(datalength * maplength + 1)])
+    _col1 = pa.MapArray.from_arrays(offsets, keys.slice(1, datalength * maplength), values.slice(1, datalength * maplength))
+    col1 = _col1.slice(2, 48)
+    df = pd.DataFrame({
+        'index': arrowtopd(index.slice(0, 48)),
+        'col1': arrowtopd(col1),
+    })
+    result = conn.execute('LOAD FROM df RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        expected = [idx, None if col1[idx].as_py() is None else dict(col1[idx].as_py())]
+        assert expected == nxt
+        idx += 1
+    
+    assert idx == 48
+    
