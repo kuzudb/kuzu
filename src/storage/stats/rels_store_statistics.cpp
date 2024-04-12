@@ -11,9 +11,9 @@ namespace kuzu {
 namespace storage {
 
 RelsStoreStats::RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    VirtualFileSystem* vfs)
-    : TablesStatistics{metadataFH, bufferManager, wal, vfs} {
-    readFromFile();
+    VirtualFileSystem* fs)
+    : TablesStatistics{metadataFH, bufferManager, wal} {
+    readFromFile(fs);
 }
 
 void RelsStoreStats::updateNumTuplesByValue(table_id_t relTableID, int64_t value) {

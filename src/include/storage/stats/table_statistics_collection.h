@@ -21,47 +21,45 @@ struct TablesStatisticsContent {
 class WAL;
 class TablesStatistics {
 public:
-    TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        common::VirtualFileSystem* vfs);
+    TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal);
 
     virtual ~TablesStatistics() = default;
 
     // Return the num of tuples before update.
     virtual void updateNumTuplesByValue(common::table_id_t tableID, int64_t value) = 0;
 
-    inline void writeTablesStatisticsFileForWALRecord(const std::string& directory) {
+    void writeTablesStatisticsFileForWALRecord(const std::string& directory,
+        common::VirtualFileSystem* fs) {
         saveToFile(directory, common::FileVersionType::WAL_VERSION,
-            transaction::TransactionType::WRITE);
+            transaction::TransactionType::WRITE, fs);
     }
 
-    inline bool hasUpdates() const { return isUpdated; }
+    bool hasUpdates() const { return isUpdated; }
 
-    inline void checkpointInMemoryIfNecessary() {
+    void checkpointInMemoryIfNecessary() {
         std::unique_lock lck{mtx};
         KU_ASSERT(readWriteVersion);
         readOnlyVersion = std::move(readWriteVersion);
         resetToNotUpdated();
     }
-    inline void rollbackInMemoryIfNecessary() {
+    void rollbackInMemoryIfNecessary() {
         std::unique_lock lck{mtx};
         readWriteVersion.reset();
         resetToNotUpdated();
     }
 
-    inline TablesStatisticsContent* getReadOnlyVersion() const { return readOnlyVersion.get(); }
-
-    inline void addTableStatistic(catalog::TableCatalogEntry* tableEntry) {
+    void addTableStatistic(catalog::TableCatalogEntry* tableEntry) {
         setToUpdated();
         initTableStatisticsForWriteTrx();
         readWriteVersion->tableStatisticPerTable[tableEntry->getTableID()] =
             constructTableStatistic(tableEntry);
     }
-    inline void removeTableStatistic(common::table_id_t tableID) {
+    void removeTableStatistic(common::table_id_t tableID) {
         setToUpdated();
         readOnlyVersion->tableStatisticPerTable.erase(tableID);
     }
 
-    inline uint64_t getNumTuplesForTable(transaction::Transaction* transaction,
+    uint64_t getNumTuplesForTable(transaction::Transaction* transaction,
         common::table_id_t tableID) {
         if (transaction->isWriteTransaction()) {
             initTableStatisticsForWriteTrx();
@@ -87,32 +85,28 @@ protected:
     virtual std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableCatalogEntry* tableEntry) = 0;
 
-    virtual std::unique_ptr<TableStatistics> constructTableStatistic(
-        TableStatistics* tableStatistics) = 0;
-
     virtual std::string getTableStatisticsFilePath(const std::string& directory,
-        common::FileVersionType dbFileType) = 0;
+        common::FileVersionType dbFileType, common::VirtualFileSystem* fs) = 0;
 
     const TablesStatisticsContent* getVersion(transaction::TransactionType type) const {
         return type == transaction::TransactionType::READ_ONLY ? readOnlyVersion.get() :
                                                                  readWriteVersion.get();
     }
 
-    void readFromFile();
-    void readFromFile(common::FileVersionType dbFileType);
+    void readFromFile(common::VirtualFileSystem* fs);
+    void readFromFile(common::FileVersionType dbFileType, common::VirtualFileSystem* fs);
 
     void saveToFile(const std::string& directory, common::FileVersionType dbFileType,
-        transaction::TransactionType transactionType);
+        transaction::TransactionType transactionType, common::VirtualFileSystem* fs);
 
     void initTableStatisticsForWriteTrxNoLock();
 
-    inline void setToUpdated() { isUpdated = true; }
-    inline void resetToNotUpdated() { isUpdated = false; }
+    void setToUpdated() { isUpdated = true; }
+    void resetToNotUpdated() { isUpdated = false; }
 
 protected:
     BMFileHandle* metadataFH;
     BufferManager* bufferManager;
-    common::VirtualFileSystem* vfs;
     WAL* wal;
     bool isUpdated;
     std::unique_ptr<TablesStatisticsContent> readOnlyVersion;

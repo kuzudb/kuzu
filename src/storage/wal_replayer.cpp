@@ -398,8 +398,9 @@ std::unique_ptr<Catalog> WALReplayer::getCatalogForRecovery(FileVersionType file
     // When we are recovering our database, the catalog field of walReplayer has not been
     // initialized and recovered yet. We need to create a new catalog to get node/rel tableEntries
     // for recovering.
-    auto catalogForRecovery = std::make_unique<Catalog>(vfs);
-    catalogForRecovery->getReadOnlyVersion()->readFromFile(wal->getDirectory(), fileVersionType);
+    auto catalogForRecovery = std::make_unique<Catalog>();
+    catalogForRecovery->getReadOnlyVersion()->readFromFile(wal->getDirectory(), fileVersionType,
+        vfs);
     return catalogForRecovery;
 }
 

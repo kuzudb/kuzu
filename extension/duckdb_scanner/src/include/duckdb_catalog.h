@@ -27,7 +27,7 @@ struct BoundExtraCreateDuckDBTableInfo : public binder::BoundExtraCreateTableInf
 
 class DuckDBCatalogContent : public catalog::CatalogContent {
 public:
-    DuckDBCatalogContent() : catalog::CatalogContent{nullptr /* vfs */} {}
+    DuckDBCatalogContent() : catalog::CatalogContent{} {}
 
     virtual void init(const std::string& dbPath, const std::string& catalogName,
         main::ClientContext* context);

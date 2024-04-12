@@ -20,8 +20,8 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace catalog {
 
-Catalog::Catalog(VirtualFileSystem* vfs) : isUpdated{false}, wal{nullptr} {
-    readOnlyVersion = std::make_unique<CatalogContent>(vfs);
+Catalog::Catalog() : isUpdated{false}, wal{nullptr} {
+    readOnlyVersion = std::make_unique<CatalogContent>();
 }
 
 Catalog::Catalog(WAL* wal, VirtualFileSystem* vfs) : isUpdated{false}, wal{wal} {
@@ -103,11 +103,11 @@ std::vector<TableCatalogEntry*> Catalog::getTableSchemas(Transaction* tx,
     return result;
 }
 
-void Catalog::prepareCommitOrRollback(TransactionAction action) {
+void Catalog::prepareCommitOrRollback(TransactionAction action, VirtualFileSystem* fs) {
     if (hasUpdates()) {
         wal->logCatalogRecord();
         if (action == TransactionAction::COMMIT) {
-            readWriteVersion->saveToFile(wal->getDirectory(), FileVersionType::WAL_VERSION);
+            readWriteVersion->saveToFile(wal->getDirectory(), FileVersionType::WAL_VERSION, fs);
         }
     }
 }

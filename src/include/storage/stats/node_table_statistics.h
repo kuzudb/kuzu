@@ -28,9 +28,7 @@ public:
             propertyStatistics);
     NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other);
 
-    inline common::offset_t getMaxNodeOffset() {
-        return getMaxNodeOffsetFromNumTuples(getNumTuples());
-    }
+    common::offset_t getMaxNodeOffset() { return getMaxNodeOffsetFromNumTuples(getNumTuples()); }
 
     common::offset_t addNode();
 
@@ -43,21 +41,21 @@ public:
 
     std::vector<common::offset_t> getDeletedNodeOffsets() const;
 
-    static inline uint64_t getNumTuplesFromMaxNodeOffset(common::offset_t maxNodeOffset) {
+    static uint64_t getNumTuplesFromMaxNodeOffset(common::offset_t maxNodeOffset) {
         return (maxNodeOffset == UINT64_MAX) ? 0ull : maxNodeOffset + 1ull;
     }
-    static inline uint64_t getMaxNodeOffsetFromNumTuples(uint64_t numTuples) {
+    static uint64_t getMaxNodeOffsetFromNumTuples(uint64_t numTuples) {
         return numTuples == 0 ? UINT64_MAX : numTuples - 1;
     }
 
-    inline void addMetadataDAHInfoForColumn(std::unique_ptr<MetadataDAHInfo> metadataDAHInfo) {
+    void addMetadataDAHInfoForColumn(std::unique_ptr<MetadataDAHInfo> metadataDAHInfo) {
         metadataDAHInfos.push_back(std::move(metadataDAHInfo));
     }
-    inline void removeMetadataDAHInfoForColumn(common::column_id_t columnID) {
+    void removeMetadataDAHInfoForColumn(common::column_id_t columnID) {
         KU_ASSERT(columnID < metadataDAHInfos.size());
         metadataDAHInfos.erase(metadataDAHInfos.begin() + columnID);
     }
-    inline MetadataDAHInfo* getMetadataDAHInfo(common::column_id_t columnID) {
+    MetadataDAHInfo* getMetadataDAHInfo(common::column_id_t columnID) {
         KU_ASSERT(columnID < metadataDAHInfos.size());
         return metadataDAHInfos[columnID].get();
     }

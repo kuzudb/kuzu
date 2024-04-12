@@ -23,22 +23,23 @@ class CatalogContent {
     friend class Catalog;
 
 public:
-    KUZU_API explicit CatalogContent(common::VirtualFileSystem* vfs);
+    KUZU_API CatalogContent();
 
     virtual ~CatalogContent() = default;
 
     CatalogContent(const std::string& directory, common::VirtualFileSystem* vfs);
 
     CatalogContent(std::unique_ptr<CatalogSet> tables, common::table_id_t nextTableID,
-        std::unique_ptr<CatalogSet> functions, common::VirtualFileSystem* vfs)
-        : tables{std::move(tables)}, nextTableID{nextTableID}, vfs{vfs},
-          functions{std::move(functions)} {}
+        std::unique_ptr<CatalogSet> functions)
+        : tables{std::move(tables)}, nextTableID{nextTableID}, functions{std::move(functions)} {}
 
     common::table_id_t getTableID(const std::string& tableName) const;
     CatalogEntry* getTableCatalogEntry(common::table_id_t tableID) const;
 
-    void saveToFile(const std::string& directory, common::FileVersionType dbFileType);
-    void readFromFile(const std::string& directory, common::FileVersionType dbFileType);
+    void saveToFile(const std::string& directory, common::FileVersionType dbFileType,
+        common::VirtualFileSystem* fs);
+    void readFromFile(const std::string& directory, common::FileVersionType dbFileType,
+        common::VirtualFileSystem* fs);
 
     std::unique_ptr<CatalogContent> copy() const;
 
@@ -97,7 +98,6 @@ protected:
 
 private:
     common::table_id_t nextTableID;
-    common::VirtualFileSystem* vfs;
     std::unique_ptr<CatalogSet> functions;
 };
 
