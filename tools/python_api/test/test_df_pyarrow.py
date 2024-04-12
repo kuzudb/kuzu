@@ -233,6 +233,27 @@ def test_pyarrow_dict(conn_db_readonly : ConnDB) -> None:
         for expected, actual in zip(df[colname], result[colname]):
             assert expected == actual
 
+def test_pyarrow_dict_offset(conn_db_readonly : ConnDB) -> None:
+    random.seed(100)
+    datalength = 4000
+    index = pa.array(range(datalength), type=pa.int64())
+    indices = pa.array([random.randint(0, 2) for _ in range(datalength)])
+    dictionary = pa.array([1, 2, 3, 4])
+    mask = pa.array([random.choice([True, False]) for _ in range(datalength)])
+    col1 = pa.DictionaryArray.from_arrays(indices, dictionary.slice(1, 3), mask=mask)
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1)
+    })
+    result = conn.execute("LOAD FROM df RETURN * ORDER BY index")
+    idx = 0
+    while result.has_next()
+        assert idx < len(index)
+        nxt = result.get_next()
+        proc = [idx, col1[idx].as_py()]
+        assert proc == nxt
+        idx += 1
+
 def test_pyarrow_list(conn_db_readonly : ConnDB) -> None:
     conn, db = conn_db_readonly
     random.seed(100)
@@ -258,6 +279,9 @@ def test_pyarrow_list(conn_db_readonly : ConnDB) -> None:
         idx += 1
     
     assert idx == len(index)
+
+def test_pyarrow_list_offset(conn_db_readonly : ConnDB) -> None:
+    pass
 
 def test_pyarrow_struct(conn_db_readonly : ConnDB) -> None:
     conn, db = conn_db_readonly
@@ -286,6 +310,9 @@ def test_pyarrow_struct(conn_db_readonly : ConnDB) -> None:
         idx += 1
     
     assert idx == len(index)
+
+def test_pyarrow_struct_offset(conn_db_readonly : ConnDB) -> None:
+    pass
 
 def test_pyarrow_union(conn_db_readonly : ConnDB) -> None:
     pytest.skip("unions are not very well supported by kuzu in general")
@@ -338,3 +365,6 @@ def test_pyarrow_map(conn_db_readonly : ConnDB) -> None:
         idx += 1
 
     assert idx == len(index)
+
+def test_pyarrow_map_offset(conn_db_readonly : ConnDB) -> None:
+    pass
