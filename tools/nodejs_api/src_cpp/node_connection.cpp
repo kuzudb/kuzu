@@ -93,7 +93,8 @@ Napi::Value NodeConnection::QueryAsync(const Napi::CallbackInfo& info) {
     auto statement = info[0].As<Napi::String>().Utf8Value();
     auto nodeQueryResult = Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[1].As<Napi::Object>());
     auto callback = info[2].As<Napi::Function>();
-    auto asyncWorker = new ConnectionQueryAsyncWorker(callback, connection, statement, nodeQueryResult);
+    auto asyncWorker =
+        new ConnectionQueryAsyncWorker(callback, connection, statement, nodeQueryResult);
     asyncWorker->Queue();
     return info.Env().Undefined();
 }

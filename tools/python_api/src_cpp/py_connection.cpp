@@ -67,7 +67,8 @@ std::unique_ptr<PyQueryResult> PyConnection::query(const std::string& statement)
     return checkAndWrapQueryResult(queryResult);
 }
 
-std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult( std::unique_ptr<QueryResult>& queryResult) {
+std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(
+    std::unique_ptr<QueryResult>& queryResult) {
     if (!queryResult->isSuccess()) {
         throw std::runtime_error(queryResult->getErrorMessage());
     }

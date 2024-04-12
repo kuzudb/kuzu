@@ -39,5 +39,6 @@ private:
     std::unique_ptr<StorageDriver> storageDriver;
     std::unique_ptr<Connection> conn;
 
-    static std::unique_ptr<PyQueryResult> checkAndWrapQueryResult( std::unique_ptr<QueryResult>& queryResult);
+    static std::unique_ptr<PyQueryResult> checkAndWrapQueryResult(
+        std::unique_ptr<QueryResult>& queryResult);
 };

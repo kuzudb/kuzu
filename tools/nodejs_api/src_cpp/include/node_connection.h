@@ -42,15 +42,17 @@ public:
 
     ~ConnectionInitAsyncWorker() override = default;
 
-     void Execute() override {
+    void Execute() override {
         try {
             nodeConnection->InitCppConnection();
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
     }
 
-     void OnOK() override { Callback().Call({Env().Null()}); }
+    void OnOK() override { Callback().Call({Env().Null()}); }
 
-     void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
+    void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
 
 private:
     NodeConnection* nodeConnection;
@@ -66,7 +68,7 @@ public:
           params(std::move(params)) {}
     ~ConnectionExecuteAsyncWorker() override = default;
 
-     void Execute() override {
+    void Execute() override {
         try {
             std::shared_ptr<QueryResult> result =
                 connection->executeWithParams(preparedStatement.get(), std::move(params));
@@ -75,12 +77,14 @@ public:
                 SetError(result->getErrorMessage());
                 return;
             }
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
     }
 
-     void OnOK() override { Callback().Call({Env().Null()}); }
+    void OnOK() override { Callback().Call({Env().Null()}); }
 
-     void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
+    void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
 
 private:
     std::shared_ptr<Connection> connection;
@@ -98,7 +102,7 @@ public:
 
     ~ConnectionQueryAsyncWorker() override = default;
 
-     void Execute() override {
+    void Execute() override {
         try {
             std::shared_ptr<QueryResult> result = connection->query(statement);
             nodeQueryResult->SetQueryResult(result);
@@ -106,12 +110,14 @@ public:
                 SetError(result->getErrorMessage());
                 return;
             }
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
     }
 
-     void OnOK() override { Callback().Call({Env().Null()}); }
+    void OnOK() override { Callback().Call({Env().Null()}); }
 
-     void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
+    void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
 
 private:
     std::shared_ptr<Connection> connection;
