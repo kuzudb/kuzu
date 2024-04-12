@@ -504,7 +504,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
             _test_node_helper(a, b)
 
     def _test_node_rel(_conn: kuzu.Connection) -> None:
-        query = "MATCH (a:person)-[e:workAt]->(b:organisation) RETURN a, e, b;"
+        query = "MATCH (a:person)-[e:workAt]->(b:organisation) RETURN a, e, b ORDER BY a.ID, b.ID"
         query_result = _conn.execute(query)
         arrow_tbl = query_result.get_as_arrow(3)
         assert arrow_tbl.num_columns == 3
@@ -556,7 +556,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
             _test_node_helper(a, b)
 
     def _test_marries_table(_conn: kuzu.Connection) -> None:
-        query = "MATCH (:person)-[e:marries]->(:person) RETURN e.*"
+        query = "MATCH (a:person)-[e:marries]->(b:person) RETURN e.* ORDER BY a.ID, b.ID"
         arrow_tbl = _conn.execute(query).get_as_arrow(0)
         assert arrow_tbl.num_columns == 3
 
