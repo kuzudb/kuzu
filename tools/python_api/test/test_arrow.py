@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
+import math
 
 import ground_truth
 import kuzu
@@ -29,7 +30,7 @@ _expected_dtypes = {
     "a.eyeSight": {"arrow": pa.float64(), "pl": pl.Float64},
     "a.birthdate": {"arrow": pa.date32(), "pl": pl.Date},
     "a.registerTime": {"arrow": pa.timestamp("us"), "pl": pl.Datetime("us")},
-    "a.lastJobDuration": {"arrow": pa.duration("ms"), "pl": pl.Duration("ms")},
+    "a.lastJobDuration": {"arrow": pa.duration("us"), "pl": pl.Duration("us")},
     "a.workedHours": {"arrow": pa.list_(pa.int64()), "pl": pl.List(pl.Int64)},
     "a.usedNames": {"arrow": pa.list_(pa.string()), "pl": pl.List(pl.String)},
     "a.courseScoresPerTerm": {"arrow": pa.list_(pa.list_(pa.int64())), "pl": pl.List(pl.List(pl.Int64))},
@@ -209,14 +210,14 @@ def test_to_arrow(conn_db_readonly: ConnDB) -> None:
             col_name="a.lastJobDuration",
             return_type=return_type,
             expected_values=[
-                timedelta(days=99, seconds=36334, microseconds=628000),
-                timedelta(days=543, seconds=4800),
-                timedelta(microseconds=125000),
-                timedelta(days=541, seconds=57600, microseconds=24000),
-                timedelta(0),
-                timedelta(days=2016, seconds=68600),
-                timedelta(microseconds=125000),
-                timedelta(days=541, seconds=57600, microseconds=24000),
+                timedelta(days=1082, seconds=46920),
+                timedelta(days=3750, seconds=46800, microseconds=24),
+                timedelta(days=2, seconds=1451),
+                timedelta(days=3750, seconds=46800, microseconds=24),
+                timedelta(days=2, seconds=1451),
+                timedelta(seconds=1080, microseconds=24000),
+                timedelta(days=3750, seconds=46800, microseconds=24),
+                timedelta(days=1082, seconds=46920),
             ],
         )
 
@@ -466,9 +467,24 @@ def test_to_arrow(conn_db_readonly: ConnDB) -> None:
     _test_with_nulls(conn, "arrow", 12)
     _test_with_nulls(conn, "pl")
 
+def test_to_arrow_map(conn_db_readonly: ConnDB) -> None:
+    conn = conn_db_readonly[0]
+    results = conn.execute("RETURN map([1, 2, 3], [{a: 1, b: 2, c: '3'}, {a: 2, b: 3, c: '4'}, {a: 3, b: 4, c: '5'}])").get_as_arrow(8)[0].to_pylist()
+    assert results == [[(1, {'a': 1, 'b': 2, 'c': '3'}), (2, {'a': 2, 'b': 3, 'c': '4'}), (3, {'a': 3, 'b': 4, 'c': '5'})]]
 
 def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
+
+    def _test_node_helper(srcStruct, dstStruct):
+        assert set(srcStruct.keys()) == set(dstStruct.keys())
+        for key in srcStruct:
+            if key == "_ID": # there isn't any guarantee on the value of _ID, so ignore it
+                continue
+            if type(srcStruct[key]) is float:
+                assert math.fabs(srcStruct[key] - dstStruct[key]) < 1e-5
+            else:
+                assert srcStruct[key] == dstStruct[key]
+    
 
     def _test_node(_conn: kuzu.Connection) -> None:
         query = "MATCH (p:person) RETURN p ORDER BY p.ID"
@@ -476,7 +492,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
         arrow_tbl = query_result.get_as_arrow()
         p_col = arrow_tbl.column(0)
 
-        assert p_col.to_pylist() == [
+        for a, b in zip(p_col.to_pylist(), [
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[0],
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[2],
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[3],
@@ -484,53 +500,63 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[7],
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[8],
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[9],
-            ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[10],
-        ]
+            ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[10]]):
+            _test_node_helper(a, b)
 
     def _test_node_rel(_conn: kuzu.Connection) -> None:
-        query = "MATCH (a:person)-[e:workAt]->(b:organisation) RETURN a, e, b;"
+        query = "MATCH (a:person)-[e:workAt]->(b:organisation) RETURN a, e, b ORDER BY a.ID, b.ID"
         query_result = _conn.execute(query)
-        arrow_tbl = query_result.get_as_arrow(0)
+        arrow_tbl = query_result.get_as_arrow(3)
         assert arrow_tbl.num_columns == 3
         a_col = arrow_tbl.column(0)
         assert len(a_col) == 3
         e_col = arrow_tbl.column(1)
-        assert len(a_col) == 3
+        assert len(e_col) == 3
         b_col = arrow_tbl.column(2)
-        assert len(a_col) == 3
-        assert a_col.to_pylist() == [
+        assert len(b_col) == 3
+        for a, b in zip(a_col.to_pylist(), [
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[3],
             ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[5],
-            ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[7],
-        ]
-        assert e_col.to_pylist() == [
+            ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[7]]):
+            _test_node_helper(a, b)
+        for a, b in zip(e_col.to_pylist(), [
             {
-                "_src": {"offset": 2, "tableID": 0},
-                "_dst": {"offset": 1, "tableID": 2},
-                "_id": {"offset": 0, "tableID": 4},
+                "_SRC": {"offset": 2, "table": 0},
+                "_DST": {"offset": 1, "table": 1},
+                "_ID": {"offset": 0, "table": 5},
+                "_LABEL": "workAt",
+                "grading": [3.8, 2.5],
+                "rating": 8.2,
                 "year": 2015,
             },
             {
-                "_src": {"offset": 3, "tableID": 0},
-                "_dst": {"offset": 2, "tableID": 2},
-                "_id": {"offset": 1, "tableID": 4},
+                "_SRC": {"offset": 3, "table": 0},
+                "_DST": {"offset": 2, "table": 1},
+                "_ID": {"offset": 1, "table": 5},
+                "_LABEL": "workAt",
+                "grading": [2.1, 4.4],
+                "rating": 7.6,
                 "year": 2010,
             },
             {
-                "_src": {"offset": 4, "tableID": 0},
-                "_dst": {"offset": 2, "tableID": 2},
-                "_id": {"offset": 2, "tableID": 4},
+                "_SRC": {"offset": 4, "table": 0},
+                "_DST": {"offset": 2, "table": 1},
+                "_ID": {"offset": 2, "table": 5},
+                "_LABEL": "workAt",
+                "grading": [9.2, 3.1],
+                "rating": 9.2,
                 "year": 2015,
-            },
-        ]
-        assert b_col.to_pylist() == [
+            }]):
+            _test_node_helper(a, b)
+        
+        for a, b in zip(b_col.to_pylist(), [
             ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[4],
             ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[6],
-            ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[6],
-        ]
+            ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[6]]):
+            _test_node_helper(a, b)
 
     def _test_marries_table(_conn: kuzu.Connection) -> None:
-        query = "MATCH (:person)-[e:marries]->(:person) RETURN e.*"
+        query = "MATCH (a:person)-[e:marries]->(b:person) RETURN e.* ORDER BY a.ID, b.ID"
         arrow_tbl = _conn.execute(query).get_as_arrow(0)
         assert arrow_tbl.num_columns == 3
 
@@ -539,22 +565,22 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
         assert len(used_addr_col) == 3
         assert used_addr_col.to_pylist() == [["toronto"], None, []]
 
-        arrow_tbl.column(1)
-        assert used_addr_col.type == pa.list_(pa.int16(), 2)
-        assert len(used_addr_col) == 3
-        assert used_addr_col.to_pylist() == [[4, 5], [2, 5], [3, 9]]
+        addr_col = arrow_tbl.column(1)
+        assert addr_col.type == pa.list_(pa.int16(), 2)
+        assert len(addr_col) == 3
+        assert addr_col.to_pylist() == [[4, 5], [2, 5], [3, 9]]
 
-        arrow_tbl.column(2)
-        assert used_addr_col.type == pa.string()
-        assert len(used_addr_col) == 3
-        assert used_addr_col.to_pylist() == [None, "long long long string", "short str"]
+        note_col = arrow_tbl.column(2)
+        assert note_col.type == pa.string()
+        assert len(note_col) == 3
+        assert note_col.to_pylist() == [None, "long long long string", "short str"]
 
-    # _test_node(conn)
-    # _test_node_rel(conn)
-    # _test_marries_table(conn)
+    _test_node(conn)
+    _test_node_rel(conn)
+    _test_marries_table(conn)
 
-    def test_to_arrow1(conn_db_readonly: ConnDB) -> None:
-        conn, db = conn_db_readonly
+    def test_to_arrow1(conn: kuzu.Connection) -> None:
         query = "MATCH (a:person)-[e:knows]->(:person) RETURN e.summary"
-        arrow_tbl = conn.execute(query).get_as_arrow(-1)
+        res = conn.execute(query)
+        arrow_tbl = conn.execute(query).get_as_arrow(-1) # what is a chunk size of -1 even supposed to mean?
         assert arrow_tbl == []

@@ -77,6 +77,7 @@ private:
         std::int64_t pos);
     template<LogicalTypeID DT>
     static void templateCopyNullValue(ArrowVector* vector, std::int64_t pos);
+    static void copyNullValueUnion(ArrowVector* vector, Value* value, std::int64_t pos);
     template<LogicalTypeID DT>
     static ArrowArray* templateCreateArray(ArrowVector& vector, const LogicalType& type);
 

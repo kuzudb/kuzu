@@ -48,6 +48,11 @@ Value* RelVal::getPropertyVal(const Value* val, uint64_t index) {
     return val->children[index + OFFSET].get();
 }
 
+Value* RelVal::getIDVal(const Value* val) {
+    auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::ID);
+    return val->children[fieldIdx].get();
+}
+
 Value* RelVal::getSrcNodeIDVal(const Value* val) {
     auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::SRC);
     return val->children[fieldIdx].get();

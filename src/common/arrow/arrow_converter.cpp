@@ -62,6 +62,29 @@ void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, Arro
     }
 }
 
+void ArrowConverter::setArrowFormatForUnion(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
+    const LogicalType& dataType) {
+    std::string formatStr = "+ud";
+    child.n_children = (std::int64_t)UnionType::getNumFields(&dataType);
+    rootHolder.nestedChildren.emplace_back();
+    rootHolder.nestedChildren.back().resize(child.n_children);
+    rootHolder.nestedChildrenPtr.emplace_back();
+    rootHolder.nestedChildrenPtr.back().resize(child.n_children);
+    for (auto i = 0u; i < child.n_children; i++) {
+        rootHolder.nestedChildrenPtr.back()[i] = &rootHolder.nestedChildren.back()[i];
+    }
+    child.children = &rootHolder.nestedChildrenPtr.back()[0];
+    for (auto i = 0u; i < child.n_children; i++) {
+        initializeChild(*child.children[i]);
+        auto unionFieldType = UnionType::getFieldType(&dataType, i);
+        auto unionFieldName = UnionType::getFieldName(&dataType, i);
+        child.children[i]->name = copyName(rootHolder, unionFieldName);
+        setArrowFormat(rootHolder, *child.children[i], *unionFieldType);
+        formatStr += (i == 0u ? ":" : ",") + std::to_string(i);
+    }
+    child.format = copyName(rootHolder, formatStr);
+}
+
 void ArrowConverter::setArrowFormatForInternalID(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
     const LogicalType& /*dataType*/) {
     child.format = "+s";
@@ -76,10 +99,10 @@ void ArrowConverter::setArrowFormatForInternalID(ArrowSchemaHolder& rootHolder, 
     }
     child.children = &rootHolder.nestedChildrenPtr.back()[0];
     initializeChild(*child.children[0]);
-    child.children[0]->name = copyName(rootHolder, "table");
+    child.children[0]->name = copyName(rootHolder, "offset");
     setArrowFormat(rootHolder, *child.children[0], *LogicalType::INT64());
     initializeChild(*child.children[1]);
-    child.children[1]->name = copyName(rootHolder, "offset");
+    child.children[1]->name = copyName(rootHolder, "table");
     setArrowFormat(rootHolder, *child.children[1], *LogicalType::INT64());
 }
 
@@ -142,7 +165,7 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         child.format = "tsu:";
     } break;
     case LogicalTypeID::INTERVAL: {
-        child.format = "tDm";
+        child.format = "tDu";
     } break;
     case LogicalTypeID::UUID:
     case LogicalTypeID::STRING: {
@@ -173,6 +196,18 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         child.children[0]->name = "l";
         setArrowFormat(rootHolder, **child.children, *ArrayType::getChildType(&dataType));
     } break;
+    case LogicalTypeID::MAP: {
+        child.format = "+m";
+        child.n_children = 1;
+        rootHolder.nestedChildren.emplace_back();
+        rootHolder.nestedChildren.back().resize(1);
+        rootHolder.nestedChildrenPtr.emplace_back();
+        rootHolder.nestedChildrenPtr.back().push_back(&rootHolder.nestedChildren.back()[0]);
+        initializeChild(rootHolder.nestedChildren.back()[0]);
+        child.children = &rootHolder.nestedChildrenPtr.back()[0];
+        child.children[0]->name = "l";
+        setArrowFormat(rootHolder, **child.children, *ListType::getChildType(&dataType));
+    } break;
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
@@ -180,6 +215,9 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         break;
     case LogicalTypeID::INTERNAL_ID:
         setArrowFormatForInternalID(rootHolder, child, dataType);
+        break;
+    case LogicalTypeID::UNION:
+        setArrowFormatForUnion(rootHolder, child, dataType);
         break;
     default:
         KU_UNREACHABLE;
