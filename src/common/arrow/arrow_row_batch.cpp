@@ -86,6 +86,7 @@ template<>
 void ArrowRowBatch::templateInitializeVector<LogicalTypeID::UNION>(ArrowVector* vector,
     const LogicalType& type, std::int64_t capacity) {
     // Interestingly, unions don't have their own validity bitmap
+    // https://arrow.apache.org/docs/format/Columnar.html#union-layout
     // Initialize type buffer
     vector->data.reserve((capacity) * sizeof(std::uint8_t));
     // Initialize offsets buffer
