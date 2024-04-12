@@ -233,6 +233,29 @@ def test_pyarrow_dict(conn_db_readonly : ConnDB) -> None:
         for expected, actual in zip(df[colname], result[colname]):
             assert expected == actual
 
+def test_pyarrow_dict_offset(conn_db_readonly : ConnDB) -> None:
+    conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 4000
+    index = pa.array(range(datalength), type=pa.int64())
+    indices = pa.array([random.randint(0, 2) for _ in range(datalength)])
+    dictionary = pa.array([1, 2, 3, 4])
+    col1 = pa.DictionaryArray.from_arrays(indices, dictionary.slice(1, 3))
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1)
+    })
+    result = conn.execute("LOAD FROM df RETURN * ORDER BY index")
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        proc = [idx, col1[idx].as_py()]
+        assert proc == nxt
+        idx += 1
+    
+    assert idx == len(index)
+
 def test_pyarrow_list(conn_db_readonly : ConnDB) -> None:
     conn, db = conn_db_readonly
     random.seed(100)
@@ -257,6 +280,31 @@ def test_pyarrow_list(conn_db_readonly : ConnDB) -> None:
         assert proc == nxt
         idx += 1
     
+    assert idx == len(index)
+
+def test_pyarrow_list_offset(conn_db_readonly : ConnDB) -> None:
+    conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 50
+    childlength = 5
+    index = pa.array(range(datalength))
+    values = pa.array([generate_primitive('int32[pyarrow]') for _ in range(datalength * childlength + 2)])
+    offsets = pa.array(sorted([random.randint(0, datalength * childlength + 1) for _ in range(datalength + 1)]))
+    mask = pa.array([random.choice([True, False]) for _ in range(datalength)])
+    col1 = pa.ListArray.from_arrays(values=values.slice(2, datalength * childlength), offsets=offsets, mask=mask)
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1),
+    })
+    result = conn.execute('LOAD FROM df RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        proc = [idx, col1[idx].as_py()]
+        assert proc == nxt
+        idx += 1
+
     assert idx == len(index)
 
 def test_pyarrow_struct(conn_db_readonly : ConnDB) -> None:
@@ -286,6 +334,32 @@ def test_pyarrow_struct(conn_db_readonly : ConnDB) -> None:
         idx += 1
     
     assert idx == len(index)
+
+def test_pyarrow_struct_offset(conn_db_readonly : ConnDB) -> None:
+    conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 4096
+    index = pa.array(range(datalength))
+    val1 = pa.array([generate_primitive('int32[pyarrow]') for _ in range(datalength+1)])
+    val2 = pa.array([generate_primitive('bool[pyarrow]') for _ in range(datalength+2)])
+    val3 = pa.array([generate_string(random.randint(5, 10)) for _ in range(datalength+3)])
+    mask = pa.array([random.choice([True, False]) for _ in range(datalength)])
+    col1 = pa.StructArray.from_arrays([val1.slice(1, datalength), val2.slice(2, datalength), val3.slice(3, datalength)], names=['a', 'b', 'c'], mask=mask)
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1)
+    })
+    result = conn.execute('LOAD FROM df RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        expected = [idx, col1[idx].as_py()]
+        assert expected == nxt
+        idx += 1
+    
+    assert idx == len(index)
+
 
 def test_pyarrow_union(conn_db_readonly : ConnDB) -> None:
     pytest.skip("unions are not very well supported by kuzu in general")
@@ -338,3 +412,32 @@ def test_pyarrow_map(conn_db_readonly : ConnDB) -> None:
         idx += 1
 
     assert idx == len(index)
+
+def test_pyarrow_map_offset(conn_db_readonly : ConnDB) -> None:
+    conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 50
+    maplength = 5
+    index = pa.array(range(datalength))
+    offsets = sorted([random.randint(0, datalength * maplength + 1) for _ in range(datalength + 1)])
+    offsets[25] = None
+    offsets = pa.array(offsets, type=pa.int32())
+    keys = pa.array([random.randint(0, (1<<31)-1) for _ in range(datalength * maplength + 1)])
+    values = pa.array([generate_primitive('int64[pyarrow]') for _ in range(datalength * maplength + 1)])
+    _col1 = pa.MapArray.from_arrays(offsets, keys.slice(1, datalength * maplength), values.slice(1, datalength * maplength))
+    col1 = _col1.slice(2, 48)
+    df = pd.DataFrame({
+        'index': arrowtopd(index.slice(0, 48)),
+        'col1': arrowtopd(col1),
+    })
+    result = conn.execute('LOAD FROM df RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        expected = [idx, None if col1[idx].as_py() is None else dict(col1[idx].as_py())]
+        assert expected == nxt
+        idx += 1
+    
+    assert idx == 48
+    
