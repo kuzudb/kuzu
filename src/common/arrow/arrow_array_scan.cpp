@@ -164,12 +164,11 @@ static void scanArrowArrayList(const ArrowSchema* schema, const ArrowArray* arra
     uint64_t auxDstPosition = 0;
     for (uint64_t i = 0; i < count; i++) {
         auto curOffset = offsets[i], nextOffset = offsets[i + 1];
-        if (!mask->isNull(i)) {
-            auto newEntry = ListVector::addList(&outputVector, nextOffset - curOffset);
-            outputVector.setValue<list_entry_t>(i + dstOffset, newEntry);
-            if (i == 0) {
-                auxDstPosition = newEntry.offset;
-            }
+        // don't check for validity, since we still need to update the offsets
+        auto newEntry = ListVector::addList(&outputVector, nextOffset - curOffset);
+        outputVector.setValue<list_entry_t>(i + dstOffset, newEntry);
+        if (i == 0) {
+            auxDstPosition = newEntry.offset;
         }
     }
     ValueVector* auxiliaryBuffer = ListVector::getDataVector(&outputVector);
