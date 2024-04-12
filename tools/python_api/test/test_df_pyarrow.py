@@ -336,6 +336,34 @@ def test_pyarrow_fixed_list(conn_db_readonly : ConnDB) -> None:
     
     assert idx == len(index)
 
+def test_pyarrow_fixed_list_offset(conn_db_readonly : ConnDB) -> None:
+    conn, db = conn_db_readonly
+    random.seed(100)
+    data_len = 50
+    child_len = 5
+    values = pa.array([generate_primitive('int32[pyarrow]') for _ in range(data_len * child_len + 2)])
+    mask = pa.array([random.choice([True, False]) for _ in range(data_len)])
+    index = pa.array(range(data_len))
+    _col1 = pa.FixedSizeListArray.from_arrays(values.slice(2, data_len*child_len), list_size=child_len)
+    col1 = _col1.slice(1, 49)
+    _col2 = pa.FixedSizeListArray.from_arrays(values.slice(1, data_len*child_len), list_size=child_len, mask=mask)
+    col2 = _col2.slice(1, 49)
+    df = pd.DataFrame({
+        'index': arrowtopd(index.slice(0, 49)),
+        'col1': arrowtopd(col1),
+        'col2': arrowtopd(col2)
+    })
+    result = conn.execute('LOAD FROM df RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        proc = [idx, col1[idx].as_py(), col2[idx].as_py()]
+        assert proc == nxt
+        idx += 1
+    
+    assert idx == 49
+
 
 def test_pyarrow_struct(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly

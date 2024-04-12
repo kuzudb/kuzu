@@ -211,7 +211,7 @@ static void scanArrowArrayFixedList(const ArrowSchema* schema, const ArrowArray*
     }
     auto auxiliaryBuffer = ListVector::getDataVector(&outputVector);
     ArrowConverter::fromArrowArray(schema->children[0], array->children[0], *auxiliaryBuffer,
-        mask->getChild(0), srcOffset * numElements, dstOffset * numElements, count * numElements);
+        mask->getChild(0), srcOffset * numElements + array->children[0]->offset, dstOffset * numElements, count * numElements);
 }
 
 static void scanArrowArrayStruct(const ArrowSchema* schema, const ArrowArray* array,
