@@ -57,18 +57,17 @@ std::unique_ptr<PyQueryResult> PyConnection::execute(PyPreparedStatement* prepar
     auto queryResult =
         conn->executeWithParams(preparedStatement->preparedStatement.get(), std::move(parameters));
     py::gil_scoped_acquire acquire;
-    if (!queryResult->isSuccess()) {
-        throw std::runtime_error(queryResult->getErrorMessage());
-    }
-    auto pyQueryResult = std::make_unique<PyQueryResult>();
-    pyQueryResult->queryResult = std::move(queryResult);
-    return pyQueryResult;
+    return checkAndWrapQueryResult(queryResult);
 }
 
 std::unique_ptr<PyQueryResult> PyConnection::query(const std::string& statement) {
     py::gil_scoped_release release;
     auto queryResult = conn->query(statement);
     py::gil_scoped_acquire acquire;
+    return checkAndWrapQueryResult(queryResult);
+}
+
+std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult( std::unique_ptr<QueryResult>& queryResult) {
     if (!queryResult->isSuccess()) {
         throw std::runtime_error(queryResult->getErrorMessage());
     }

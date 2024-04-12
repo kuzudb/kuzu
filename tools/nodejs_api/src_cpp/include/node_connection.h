@@ -42,15 +42,15 @@ public:
 
     ~ConnectionInitAsyncWorker() override = default;
 
-    inline void Execute() override {
+     void Execute() override {
         try {
             nodeConnection->InitCppConnection();
         } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
     }
 
-    inline void OnOK() override { Callback().Call({Env().Null()}); }
+     void OnOK() override { Callback().Call({Env().Null()}); }
 
-    inline void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
+     void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
 
 private:
     NodeConnection* nodeConnection;
@@ -66,7 +66,7 @@ public:
           params(std::move(params)) {}
     ~ConnectionExecuteAsyncWorker() override = default;
 
-    inline void Execute() override {
+     void Execute() override {
         try {
             std::shared_ptr<QueryResult> result =
                 connection->executeWithParams(preparedStatement.get(), std::move(params));
@@ -78,9 +78,9 @@ public:
         } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
     }
 
-    inline void OnOK() override { Callback().Call({Env().Null()}); }
+     void OnOK() override { Callback().Call({Env().Null()}); }
 
-    inline void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
+     void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
 
 private:
     std::shared_ptr<Connection> connection;
@@ -98,7 +98,7 @@ public:
 
     ~ConnectionQueryAsyncWorker() override = default;
 
-    inline void Execute() override {
+     void Execute() override {
         try {
             std::shared_ptr<QueryResult> result = connection->query(statement);
             nodeQueryResult->SetQueryResult(result);
@@ -109,9 +109,9 @@ public:
         } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
     }
 
-    inline void OnOK() override { Callback().Call({Env().Null()}); }
+     void OnOK() override { Callback().Call({Env().Null()}); }
 
-    inline void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
+     void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
 
 private:
     std::shared_ptr<Connection> connection;
