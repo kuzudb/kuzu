@@ -14,6 +14,7 @@ using namespace kuzu::common;
 class NodeConnection : public Napi::ObjectWrap<NodeConnection> {
     friend class ConnectionInitAsyncWorker;
     friend class ConnectionExecuteAsyncWorker;
+    friend class ConnectionQueryAsyncWorker;
     friend class NodePreparedStatement;
 
 public:
@@ -27,6 +28,7 @@ private:
     void SetMaxNumThreadForExec(const Napi::CallbackInfo& info);
     void SetQueryTimeout(const Napi::CallbackInfo& info);
     Napi::Value ExecuteAsync(const Napi::CallbackInfo& info);
+    Napi::Value QueryAsync(const Napi::CallbackInfo& info);
 
 private:
     std::shared_ptr<Database> database;
@@ -43,9 +45,7 @@ public:
     inline void Execute() override {
         try {
             nodeConnection->InitCppConnection();
-        } catch (const std::exception& exc) {
-            SetError(std::string(exc.what()));
-        }
+        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
     }
 
     inline void OnOK() override { Callback().Call({Env().Null()}); }
@@ -54,13 +54,6 @@ public:
 
 private:
     NodeConnection* nodeConnection;
-};
-
-enum GetTableMetadataType {
-    NODE_TABLE_NAME,
-    REL_TABLE_NAME,
-    NODE_PROPERTY_NAME,
-    REL_PROPERTY_NAME
 };
 
 class ConnectionExecuteAsyncWorker : public Napi::AsyncWorker {
@@ -82,9 +75,7 @@ public:
                 SetError(result->getErrorMessage());
                 return;
             }
-        } catch (const std::exception& exc) {
-            SetError(std::string(exc.what()));
-        }
+        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
     }
 
     inline void OnOK() override { Callback().Call({Env().Null()}); }
@@ -96,4 +87,34 @@ private:
     std::shared_ptr<PreparedStatement> preparedStatement;
     NodeQueryResult* nodeQueryResult;
     std::unordered_map<std::string, std::unique_ptr<Value>> params;
+};
+
+class ConnectionQueryAsyncWorker : public Napi::AsyncWorker {
+public:
+    ConnectionQueryAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
+        std::string statement, NodeQueryResult* nodeQueryResult)
+        : Napi::AsyncWorker(callback), connection(connection), statement(std::move(statement)),
+          nodeQueryResult(nodeQueryResult) {}
+
+    ~ConnectionQueryAsyncWorker() override = default;
+
+    inline void Execute() override {
+        try {
+            std::shared_ptr<QueryResult> result = connection->query(statement);
+            nodeQueryResult->SetQueryResult(result);
+            if (!result->isSuccess()) {
+                SetError(result->getErrorMessage());
+                return;
+            }
+        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+    }
+
+    inline void OnOK() override { Callback().Call({Env().Null()}); }
+
+    inline void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
+
+private:
+    std::shared_ptr<Connection> connection;
+    std::string statement;
+    NodeQueryResult* nodeQueryResult;
 };
