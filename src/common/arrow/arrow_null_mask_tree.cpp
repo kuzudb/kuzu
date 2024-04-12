@@ -56,8 +56,8 @@ void ArrowNullMaskTree::scanListPushDown(const ArrowSchema* schema, const ArrowA
         pushDownMask.setNullFromRange(offsets[i] - offsets[0], offsets[i + 1] - offsets[i],
             isNull(i));
     }
-    children->push_back(ArrowNullMaskTree(schema->children[0], array->children[0], offsets[0],
-        auxiliaryLength, &pushDownMask));
+    children->push_back(ArrowNullMaskTree(schema->children[0], array->children[0],
+        offsets[0] + array->children[0]->offset, auxiliaryLength, &pushDownMask));
 }
 
 void ArrowNullMaskTree::scanStructPushDown(const ArrowSchema* schema, const ArrowArray* array,

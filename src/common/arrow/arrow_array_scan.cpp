@@ -174,7 +174,8 @@ static void scanArrowArrayList(const ArrowSchema* schema, const ArrowArray* arra
     }
     ValueVector* auxiliaryBuffer = ListVector::getDataVector(&outputVector);
     ArrowConverter::fromArrowArray(schema->children[0], array->children[0], *auxiliaryBuffer,
-        mask->getChild(0), offsets[0], auxDstPosition, offsets[count] - offsets[0]);
+        mask->getChild(0), offsets[0] + array->children[0]->offset, auxDstPosition,
+        offsets[count] - offsets[0]);
 }
 
 template<typename offsetsT>
