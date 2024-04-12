@@ -19,6 +19,8 @@ public:
     std::unique_ptr<PyQueryResult> execute(PyPreparedStatement* preparedStatement,
         const py::dict& params);
 
+    std::unique_ptr<PyQueryResult> query(const std::string& statement);
+
     void setMaxNumThreadForExec(uint64_t numThreads);
 
     PyPreparedStatement prepare(const std::string& query);

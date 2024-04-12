@@ -21,6 +21,7 @@ void PyConnection::initialize(py::handle& m) {
         .def(py::init<PyDatabase*, uint64_t>(), py::arg("database"), py::arg("num_threads") = 0)
         .def("execute", &PyConnection::execute, py::arg("prepared_statement"),
             py::arg("parameters") = py::dict())
+        .def("query", &PyConnection::query, py::arg("statement"))
         .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
             py::arg("num_threads"))
         .def("prepare", &PyConnection::prepare, py::arg("query"))
@@ -55,6 +56,18 @@ std::unique_ptr<PyQueryResult> PyConnection::execute(PyPreparedStatement* prepar
     py::gil_scoped_release release;
     auto queryResult =
         conn->executeWithParams(preparedStatement->preparedStatement.get(), std::move(parameters));
+    py::gil_scoped_acquire acquire;
+    if (!queryResult->isSuccess()) {
+        throw std::runtime_error(queryResult->getErrorMessage());
+    }
+    auto pyQueryResult = std::make_unique<PyQueryResult>();
+    pyQueryResult->queryResult = std::move(queryResult);
+    return pyQueryResult;
+}
+
+std::unique_ptr<PyQueryResult> PyConnection::query(const std::string& statement) {
+    py::gil_scoped_release release;
+    auto queryResult = conn->query(statement);
     py::gil_scoped_acquire acquire;
     if (!queryResult->isSuccess()) {
         throw std::runtime_error(queryResult->getErrorMessage());
