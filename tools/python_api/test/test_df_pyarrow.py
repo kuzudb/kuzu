@@ -337,6 +337,29 @@ def test_pyarrow_struct(conn_db_readonly : ConnDB) -> None:
 
 def test_pyarrow_struct_offset(conn_db_readonly : ConnDB) -> None:
     conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 4096
+    index = pa.array(range(datalength))
+    val1 = pa.array([generate_primitive('int32[pyarrow]') for _ in range(datalength+1)])
+    val2 = pa.array([generate_primitive('bool[pyarrow]') for _ in range(datalength+2)])
+    val3 = pa.array([generate_string(random.randint(5, 10)) for _ in range(datalength+3)])
+    mask = pa.array([random.choice([True, False]) for _ in range(datalength)])
+    col1 = pa.StructArray.from_arrays([val1.slice(1, datalength), val2.slice(2, datalength), val3.slice(3, datalength)], names=['a', 'b', 'c'], mask=mask)
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1)
+    })
+    result = conn.execute('LOAD FROM df RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        expected = [idx, col1[idx].as_py()]
+        assert expected == nxt
+        idx += 1
+    
+    assert idx == len(index)
+
 
 def test_pyarrow_union(conn_db_readonly : ConnDB) -> None:
     pytest.skip("unions are not very well supported by kuzu in general")

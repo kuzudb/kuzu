@@ -222,8 +222,8 @@ static void scanArrowArrayStruct(const ArrowSchema* schema, const ArrowArray* ar
     }
     for (int64_t j = 0; j < schema->n_children; j++) {
         ArrowConverter::fromArrowArray(schema->children[j], array->children[j],
-            *StructVector::getFieldVector(&outputVector, j).get(), mask->getChild(j), srcOffset,
-            dstOffset, count);
+            *StructVector::getFieldVector(&outputVector, j).get(), mask->getChild(j),
+            srcOffset + array->children[j]->offset, dstOffset, count);
     }
 }
 

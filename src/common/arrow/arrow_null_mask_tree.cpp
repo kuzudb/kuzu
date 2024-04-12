@@ -63,8 +63,8 @@ void ArrowNullMaskTree::scanListPushDown(const ArrowSchema* schema, const ArrowA
 void ArrowNullMaskTree::scanStructPushDown(const ArrowSchema* schema, const ArrowArray* array,
     uint64_t srcOffset, uint64_t count) {
     for (int64_t i = 0; i < array->n_children; i++) {
-        children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i], srcOffset,
-            count, mask.get()));
+        children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
+            srcOffset + array->children[i]->offset, count, mask.get()));
     }
 }
 
