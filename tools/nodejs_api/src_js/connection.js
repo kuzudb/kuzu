@@ -179,13 +179,25 @@ class Connection {
    * @param {String} statement the statement to execute.
    * @returns {Promise<kuzu.QueryResult>} a promise that resolves to the query result. The promise is rejected if there is an error.
    */
-  async query(statement) {
-    if (typeof statement !== "string") {
-      throw new Error("statement must be a string.");
-    }
-    const preparedStatement = await this.prepare(statement);
-    const queryResult = await this.execute(preparedStatement);
-    return queryResult;
+  query(statement) {
+    return new Promise((resolve, reject) => {
+      if (typeof statement !== "string") {
+        return reject(new Error("statement must be a string."));
+      }
+      this._getConnection().then((connection) => {
+        const nodeQueryResult = new KuzuNative.NodeQueryResult();
+        try {
+          connection.queryAsync(statement, nodeQueryResult, (err) => {
+            if (err) {
+              return reject(err);
+            }
+            return resolve(new QueryResult(this, nodeQueryResult));
+          });
+        } catch (e) {
+          return reject(e);
+        }
+      });
+    });
   }
 
   /**
