@@ -99,3 +99,11 @@ Mahinda|Perera|19891203|119.235.7.103|Firefox|1353|male|20100214153210447
 962072971896|roflol|20120530065348878|24189255811663|Chris|Hall|True
 962072971898|About D. H. Lawrence, d his moral serAbout George Washington, States from |20120530061825353|1274|Roberto|Fernandez|True
 962072971901|good|20120531013527759|1274|Roberto|Fernandez|True
+
+
+-LOG TestLargeFTableEntry
+-STATEMENT MATCH (n) RETURN n;
+---- ok
+-STATEMENT RETURN 1;
+---- 1
+1

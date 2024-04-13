@@ -13,7 +13,7 @@ namespace processor {
 JoinHashTable::JoinHashTable(MemoryManager& memoryManager, logical_type_vec_t keyTypes,
     std::unique_ptr<FactorizedTableSchema> tableSchema)
     : BaseHashTable{memoryManager, std::move(keyTypes)} {
-    auto numSlotsPerBlock = BufferPoolConstants::PAGE_256KB_SIZE / sizeof(uint8_t*);
+    auto numSlotsPerBlock = HASH_BLOCK_SIZE / sizeof(uint8_t*);
     initSlotConstant(numSlotsPerBlock);
     // Prev pointer is always the last column in the table.
     prevPtrColOffset = tableSchema->getColOffset(tableSchema->getNumColumns() - PREV_PTR_COL_IDX);
@@ -107,7 +107,7 @@ void JoinHashTable::allocateHashSlots(uint64_t numTuples) {
     auto numSlotsPerBlock = (uint64_t)1 << numSlotsPerBlockLog2;
     auto numBlocksNeeded = (maxNumHashSlots + numSlotsPerBlock - 1) / numSlotsPerBlock;
     while (hashSlotsBlocks.size() < numBlocksNeeded) {
-        hashSlotsBlocks.emplace_back(std::make_unique<DataBlock>(&memoryManager));
+        hashSlotsBlocks.emplace_back(std::make_unique<DataBlock>(&memoryManager, HASH_BLOCK_SIZE));
     }
 }
 

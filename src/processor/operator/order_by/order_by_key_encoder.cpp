@@ -23,13 +23,13 @@ OrderByKeyEncoder::OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo,
         throw RuntimeException(
             "The number of tuples per block of factorizedTable exceeds the maximum blockOffset!");
     }
-    keyBlocks.emplace_back(std::make_unique<DataBlock>(memoryManager));
+    keyBlocks.emplace_back(std::make_unique<DataBlock>(memoryManager, DATA_BLOCK_SIZE));
     KU_ASSERT(this->numBytesPerTuple == getNumBytesPerTuple());
-    maxNumTuplesPerBlock = BufferPoolConstants::PAGE_256KB_SIZE / numBytesPerTuple;
+    maxNumTuplesPerBlock = DATA_BLOCK_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
         throw RuntimeException(
             stringFormat("TupleSize({} bytes) is larger than the LARGE_PAGE_SIZE({} bytes)",
-                numBytesPerTuple, BufferPoolConstants::PAGE_256KB_SIZE));
+                numBytesPerTuple, DATA_BLOCK_SIZE));
     }
     encodeFunctions.reserve(orderByDataInfo.keysPos.size());
     for (auto& type : orderByDataInfo.keyTypes) {
@@ -196,7 +196,7 @@ void OrderByKeyEncoder::encodeFTIdx(uint32_t numEntriesToEncode, uint8_t* tupleI
 
 void OrderByKeyEncoder::allocateMemoryIfFull() {
     if (getNumTuplesInCurBlock() == maxNumTuplesPerBlock) {
-        keyBlocks.emplace_back(std::make_shared<DataBlock>(memoryManager));
+        keyBlocks.emplace_back(std::make_shared<DataBlock>(memoryManager, DATA_BLOCK_SIZE));
     }
 }
 
