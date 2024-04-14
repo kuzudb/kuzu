@@ -421,3 +421,12 @@ bar
 ---- 2
 8fffffff-ffff-ffff-ffff-ffffffffffff
 a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+
+-CASE CreateBatch
+-STATEMENT CREATE NODE TABLE test(id INT64, age INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT UNWIND RANGE(1,100) AS id CREATE (t:test {id:id});
+---- ok
+-STATEMENT MATCH (t:test) WHERE t.age IS NOT NULL RETURN COUNT(*);
+---- 1
+0
