@@ -128,18 +128,17 @@ void NullMask::setNullRange(uint64_t* nullEntries, uint64_t offset, uint64_t num
     } else {
         if (isNull) {
             // Set bits including and after the first bit pos to true
-            nullEntries[firstEntryPos] |= ~NULL_HIGH_MASKS[firstBitPos];
+            nullEntries[firstEntryPos] |= ~NULL_LOWER_MASKS[firstBitPos];
             if (lastBitPos > 0) {
                 // Set bits before the last bit pos to true
-                nullEntries[lastEntryPos] |=
-                    ~NULL_LOWER_MASKS[NUM_BITS_PER_NULL_ENTRY - lastBitPos];
+                nullEntries[lastEntryPos] |= NULL_LOWER_MASKS[lastBitPos];
             }
         } else {
             // Set bits including and after the first bit pos to false
             nullEntries[firstEntryPos] &= NULL_LOWER_MASKS[firstBitPos];
             if (lastBitPos > 0) {
                 // Set bits before the last bit pos to false
-                nullEntries[lastEntryPos] &= NULL_HIGH_MASKS[NUM_BITS_PER_NULL_ENTRY - lastBitPos];
+                nullEntries[lastEntryPos] &= ~NULL_LOWER_MASKS[lastBitPos];
             }
         }
     }

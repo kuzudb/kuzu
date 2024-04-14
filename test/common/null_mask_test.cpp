@@ -15,14 +15,27 @@ TEST(NullMaskTests, TestRangeSingleEntry) {
     ASSERT_EQ(data[0], ~0b1111100000);
 }
 
-TEST(NullMaskTests, TestRangeMultipleEntries) {
+TEST(NullMaskTests, TestRangeMultipleEntries1) {
     std::vector<uint64_t> data{NullMask::ALL_NULL_ENTRY, NullMask::ALL_NULL_ENTRY,
         NullMask::ALL_NULL_ENTRY};
     NullMask::setNullRange(data.data(), 5, 150, false);
     ASSERT_EQ(data[0], 0b11111);
     ASSERT_EQ(data[1], 0);
+    ASSERT_NE(data[2], 0);
+    ASSERT_TRUE(NullMask::isNull(data.data(), 4));
+    ASSERT_FALSE(NullMask::isNull(data.data(), 5));
     ASSERT_FALSE(NullMask::isNull(data.data(), 154));
     ASSERT_TRUE(NullMask::isNull(data.data(), 155));
+}
+
+TEST(NullMaskTests, TestRangeMultipleEntries2) {
+    std::vector<uint64_t> data{NullMask::NO_NULL_ENTRY, NullMask::NO_NULL_ENTRY,
+        NullMask::NO_NULL_ENTRY};
+    NullMask::setNullRange(data.data(), 5, 150, true);
+    ASSERT_FALSE(NullMask::isNull(data.data(), 4));
+    ASSERT_TRUE(NullMask::isNull(data.data(), 5));
+    ASSERT_TRUE(NullMask::isNull(data.data(), 154));
+    ASSERT_FALSE(NullMask::isNull(data.data(), 155));
 }
 
 TEST(NullMaskTests, CopyNullMaskAll) {
