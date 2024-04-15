@@ -7,15 +7,12 @@
 namespace kuzu {
 namespace processor {
 
-bool AttachDatabase::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
-    for (auto& [name, storageExtension] :
-        context->clientContext->getDatabase()->getStorageExtensions()) {
+bool AttachDatabase::getNextTuplesInternal(ExecutionContext* context) {
+    auto client = context->clientContext;
+    for (auto& [name, storageExtension] : client->getDatabase()->getStorageExtensions()) {
         if (storageExtension->canHandleDB(attachInfo.dbType)) {
-            auto db = storageExtension->attach(attachInfo.dbAlias, attachInfo.dbPath,
-                context->clientContext);
-            context->clientContext->getDatabase()
-                ->getDatabaseManagerUnsafe()
-                ->registerAttachedDatabase(std::move(db));
+            auto db = storageExtension->attach(attachInfo.dbAlias, attachInfo.dbPath, client);
+            client->getDatabaseManager()->registerAttachedDatabase(std::move(db));
         }
     }
     return false;

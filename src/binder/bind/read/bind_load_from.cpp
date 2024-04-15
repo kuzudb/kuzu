@@ -24,31 +24,38 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     switch (source->type) {
     case ScanSourceType::OBJECT: {
         auto objectSource = source->constPtrCast<ObjectScanSource>();
-        auto objectName = objectSource->objectName;
-        if (objectName.find("_") == std::string::npos) {
-            // Bind table
+        KU_ASSERT(!objectSource->objectNames.empty());
+        if (objectSource->objectNames.size() == 1) {
+            // Bind external object as table
+            auto objectName = objectSource->objectNames[0];
             auto replacementData = clientContext->tryReplace(objectName);
             if (replacementData == nullptr) {
                 throw BinderException(ExceptionMessage::variableNotInScope(objectName));
             }
             scanFunction = replacementData->func;
             bindData = scanFunction.bindFunc(clientContext, &replacementData->bindInput);
-        } else {
-            auto dbName = common::StringUtils::split(objectName, "_")[0];
-            auto attachedDB =
-                clientContext->getDatabase()->getDatabaseManagerUnsafe()->getAttachedDatabase(
-                    dbName);
+        } else if (objectSource->objectNames.size() == 2) {
+            // Bind external database table
+            auto dbName = objectSource->objectNames[0];
+            auto attachedDB = clientContext->getDatabaseManager()->getAttachedDatabase(dbName);
             if (attachedDB == nullptr) {
                 throw BinderException{
-                    common::stringFormat("No database named {} has been attached.", dbName)};
+                    stringFormat("No database named {} has been attached.", dbName)};
             }
-            auto tableName = common::StringUtils::split(objectName, "_")[1];
-            auto tableID = attachedDB->getCatalogContent()->getTableID(tableName);
-            auto tableCatalogEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
-                attachedDB->getCatalogContent()->getTableCatalogEntry(tableID));
-            scanFunction = tableCatalogEntry->getScanFunction();
+            auto tableName = objectSource->objectNames[1];
+            auto attachedCatalog = attachedDB->getCatalogContent();
+            auto tableID = attachedCatalog->getTableID(tableName);
+            auto entry = attachedCatalog->getTableCatalogEntry(tableID);
+            auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
+            scanFunction = tableEntry->getScanFunction();
             auto bindInput = function::TableFuncBindInput();
             bindData = scanFunction.bindFunc(clientContext, &bindInput);
+        } else {
+            // LCOV_EXCL_START
+            // The following should never happen.
+            auto objectStr = StringUtils::join(objectSource->objectNames, ",");
+            throw BinderException(stringFormat("Cannot find object {}.", objectStr));
+            // LCOV_EXCL_STOP
         }
     } break;
     case ScanSourceType::FILE: {

@@ -30,8 +30,18 @@ std::vector<std::shared_ptr<Statement>> Transformer::transform() {
 std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_StatementContext& ctx) {
     if (ctx.oC_Query()) {
         return transformQuery(*ctx.oC_Query());
-    } else if (ctx.kU_DDL()) {
-        return transformDDL(*ctx.kU_DDL());
+    } else if (ctx.kU_CreateNodeTable()) {
+        return transformCreateNodeTable(*ctx.kU_CreateNodeTable());
+    } else if (ctx.kU_CreateRelTable()) {
+        return transformCreateRelTable(*ctx.kU_CreateRelTable());
+    } else if (ctx.kU_CreateRelTableGroup()) {
+        return transformCreateRelTableGroup(*ctx.kU_CreateRelTableGroup());
+    } else if (ctx.kU_CreateRdfGraph()) {
+        return transformCreateRdfGraphClause(*ctx.kU_CreateRdfGraph());
+    } else if (ctx.kU_DropTable()) {
+        return transformDropTable(*ctx.kU_DropTable());
+    } else if (ctx.kU_AlterTable()) {
+        return transformAlterTable(*ctx.kU_AlterTable());
     } else if (ctx.kU_CopyFromByColumn()) {
         return transformCopyFromByColumn(*ctx.kU_CopyFromByColumn());
     } else if (ctx.kU_CopyFrom()) {

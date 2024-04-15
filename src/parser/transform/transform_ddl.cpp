@@ -9,22 +9,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace parser {
 
-std::unique_ptr<Statement> Transformer::transformDDL(CypherParser::KU_DDLContext& ctx) {
-    if (ctx.kU_CreateNodeTable()) {
-        return transformCreateNodeTable(*ctx.kU_CreateNodeTable());
-    } else if (ctx.kU_CreateRelTable()) {
-        return transformCreateRelTable(*ctx.kU_CreateRelTable());
-    } else if (ctx.kU_CreateRelTableGroup()) {
-        return transformCreateRelTableGroup(*ctx.kU_CreateRelTableGroup());
-    } else if (ctx.kU_CreateRdfGraph()) {
-        return transformCreateRdfGraphClause(*ctx.kU_CreateRdfGraph());
-    } else if (ctx.kU_DropTable()) {
-        return transformDropTable(*ctx.kU_DropTable());
-    } else {
-        return transformAlterTable(*ctx.kU_AlterTable());
-    }
-}
-
 std::unique_ptr<Statement> Transformer::transformAlterTable(
     CypherParser::KU_AlterTableContext& ctx) {
     if (ctx.kU_AlterOptions()->kU_AddProperty()) {

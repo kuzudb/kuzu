@@ -68,11 +68,14 @@ std::unique_ptr<BaseScanSource> Transformer::transformScanSource(
         auto query = transformQuery(*ctx.oC_Query());
         return std::make_unique<QueryScanSource>(std::move(query));
     } else if (ctx.oC_Variable()) {
-        auto variable = transformVariable(*ctx.oC_Variable());
-        return std::make_unique<ObjectScanSource>(std::move(variable));
-    } else {
-        KU_UNREACHABLE;
+        std::vector<std::string> objectNames;
+        objectNames.push_back(transformVariable(*ctx.oC_Variable()));
+        if (ctx.oC_SchemaName()) {
+            objectNames.push_back(transformSchemaName(*ctx.oC_SchemaName()));
+        }
+        return std::make_unique<ObjectScanSource>(std::move(objectNames));
     }
+    KU_UNREACHABLE;
 }
 
 parsing_option_t Transformer::transformParsingOptions(CypherParser::KU_ParsingOptionsContext& ctx) {

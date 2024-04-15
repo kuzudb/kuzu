@@ -109,9 +109,10 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* sour
         return std::make_unique<BoundQueryScanSource>(std::move(boundStatement));
     }
     case ScanSourceType::OBJECT: {
-        auto objectSource = ku_dynamic_cast<BaseScanSource*, ObjectScanSource*>(source);
-        throw BinderException(stringFormat("Scan from external object {} is not supported.",
-            objectSource->objectName));
+        auto objectSource = source->constPtrCast<ObjectScanSource>();
+        auto objectStr = StringUtils::join(objectSource->objectNames, ",");
+        throw BinderException(
+            stringFormat("Scan from external object {} is not supported.", objectStr));
     }
     default:
         KU_UNREACHABLE;

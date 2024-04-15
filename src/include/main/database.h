@@ -117,8 +117,6 @@ public:
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
     getStorageExtensions();
 
-    DatabaseManager* getDatabaseManagerUnsafe() const;
-
 private:
     void openLockFile();
     void initDBDirAndCoreFilesIfNecessary();

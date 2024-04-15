@@ -31,6 +31,7 @@ struct ExtensionOptions;
 
 namespace main {
 class Database;
+class DatabaseManager;
 
 struct ActiveQuery {
     explicit ActiveQuery();
@@ -90,6 +91,7 @@ public:
 
     // Database component getters.
     KUZU_API Database* getDatabase() const { return database; }
+    DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
     KUZU_API storage::MemoryManager* getMemoryManager();
     catalog::Catalog* getCatalog() const;
