@@ -194,12 +194,6 @@ if (MSVC AND (NOT BUILD_EXTENSIONS EQUAL ""))
     set(BUILD_KUZU TRUE)
 endif ()
 
-if(${BUILD_KUZU})
-add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
-add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.2.5")
-
-include_directories(src/include)
 include_directories(third_party/antlr4_cypher/include)
 include_directories(third_party/antlr4_runtime/src)
 include_directories(third_party/fast_float/include)
@@ -218,6 +212,14 @@ include_directories(third_party/httplib)
 include_directories(third_party/pcg)
 
 add_subdirectory(third_party)
+
+if(${BUILD_KUZU})
+add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
+add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.2.5")
+
+include_directories(src/include)
+
 add_subdirectory(src)
 if (${BUILD_TESTS})
     add_definitions(-DTEST_FILES_DIR="test/test_files")
