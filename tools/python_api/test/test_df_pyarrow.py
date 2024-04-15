@@ -314,23 +314,88 @@ def test_pyarrow_fixed_list(conn_db_readonly : ConnDB) -> None:
     conn, db = conn_db_readonly
     random.seed(100)
     data_len = 50
-    child_len = 5
-    values = [generate_primitive('int32[pyarrow]') for _ in range(data_len * child_len)]
+    child_len = 3
+
     mask = pa.array([random.choice([True, False]) for _ in range(data_len)])
     index = pa.array(range(data_len))
-    col1 = pa.FixedSizeListArray.from_arrays(values, list_size=child_len)
-    col2 = pa.FixedSizeListArray.from_arrays(values, list_size=child_len, mask=mask)
+
+    # fixed list of primitive
+    primitive_values = pa.array([generate_primitive('int32[pyarrow]') for _ in range(data_len * child_len)])
+    primitive_col = pa.FixedSizeListArray.from_arrays(primitive_values, list_size=child_len, mask=mask)
+
+    # fixed list of datetime
+    datetime_values = pa.array([datetime(random.randint(1900, 2023), random.randint(1, 12), random.randint(1, 28)) for _ in range(data_len * child_len)], type=pa.date32())
+    datetime_col = pa.FixedSizeListArray.from_arrays(datetime_values, list_size=child_len, mask=mask)
+
+    # fixed list of blob
+    blob_values = pa.array([generate_blob(random.randint(10, 100)) for _ in range(data_len * child_len)], type=pa.binary())
+    blob_col = pa.FixedSizeListArray.from_arrays(blob_values, list_size=child_len, mask=mask)
+
+    # fixed list of string
+    string_values = pa.array([generate_string(random.randint(10, 100)) for _ in range(data_len * child_len)], type=pa.string())
+    string_col = pa.FixedSizeListArray.from_arrays(string_values, list_size=child_len, mask=mask)
+
+    # fixed list of dict
+    dict_values = pa.array([random.randint(0, 1) for _ in range(data_len * child_len)], type=pa.int32()).dictionary_encode()
+    dict_col = pa.FixedSizeListArray.from_arrays(dict_values, list_size=child_len, mask=mask)
+
+    # fixed list of list
+    list_values = pa.array(
+        [[generate_primitive('int32[pyarrow]') for _ in range(random.randint(1, 5))] if random.randint(0, 5) != 0 else None for x in range(data_len * child_len)])
+    list_col = pa.FixedSizeListArray.from_arrays(list_values, list_size=child_len, mask=mask)
+
+    # fixed list of fixed list
+    fixed_list_col = pa.FixedSizeListArray.from_arrays(primitive_col, list_size=1, mask=mask)
+
+    # fixed lisr of struct
+    struct_plaindata = [{
+            'a': generate_primitive('int32[pyarrow]'),
+            'b': { 'c': generate_string(10) } if random.randint(0, 5) != 0 else None
+        } if random.randint(0, 5) != 0 else None for _ in range(data_len * child_len)]
+    struct_values = pa.array(struct_plaindata, pa.struct([
+        ('a', pa.int32()),
+        ('b', pa.struct([('c', pa.string())]))
+    ]))
+    struct_col = pa.FixedSizeListArray.from_arrays(struct_values, list_size=child_len, mask=mask)
+
+    # fixed list of map
+    keySet = range(10)
+    valueSet = 'abcdefghijklmnopqrstuvwxyz'
+    map_values = pa.array([
+        {str(key) : ''.join(random.sample(valueSet, random.randint(0, len(valueSet))))
+            for key in random.sample(keySet, random.randint(1, len(keySet)))}
+        if random.randint(0, 5) != 0 else None for i in range(data_len * child_len)],
+        type=pa.map_(pa.string(), pa.string()))
+    map_col = pa.FixedSizeListArray.from_arrays(map_values, list_size=child_len, mask=mask)
+
     df = pd.DataFrame({
         'index': arrowtopd(index),
-        'col1': arrowtopd(col1),
-        'col2': arrowtopd(col2)
+        'primitive_col': arrowtopd(primitive_col),
+        'datetime_col': arrowtopd(datetime_col),
+        'blob_col': arrowtopd(blob_col),
+        'string_col': arrowtopd(string_col),
+        'dict_col': arrowtopd(dict_col),
+        'list_col': arrowtopd(list_col),
+        'fixed_list_col': arrowtopd(fixed_list_col),
+        'struct_col': arrowtopd(struct_col),
+        'map_col': arrowtopd(map_col)
     })
     result = conn.execute('LOAD FROM df RETURN * ORDER BY index')
+
     idx = 0
     while result.has_next():
         assert idx < len(index)
         nxt = result.get_next()
-        proc = [idx, col1[idx].as_py(), col2[idx].as_py()]
+        proc = [idx, 
+            primitive_col[idx].as_py(), 
+            datetime_col[idx].as_py(),
+            blob_col[idx].as_py(),
+            string_col[idx].as_py(),
+            dict_col[idx].as_py(),
+            list_col[idx].as_py(),
+            fixed_list_col[idx].as_py(),
+            struct_col[idx].as_py(),
+            None if map_col[idx].as_py() is None else [None if map_col[idx][i].as_py() is None else dict(map_col[idx][i].as_py()) for i in range(child_len)]]
         assert proc == nxt
         idx += 1
     

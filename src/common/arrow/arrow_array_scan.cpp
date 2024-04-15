@@ -205,9 +205,7 @@ static void scanArrowArrayFixedList(const ArrowSchema* schema, const ArrowArray*
     auto numElements = ArrayType::getNumElements(&outputVector.dataType);
     for (auto i = 0u; i < count; ++i) {
         auto newEntry = ListVector::addList(&outputVector, numElements);
-        if (!mask->isNull(i)) {
-            outputVector.setValue<list_entry_t>(i + dstOffset, newEntry);
-        }
+        outputVector.setValue<list_entry_t>(i + dstOffset, newEntry);
     }
     auto auxiliaryBuffer = ListVector::getDataVector(&outputVector);
     ArrowConverter::fromArrowArray(schema->children[0], array->children[0], *auxiliaryBuffer,
