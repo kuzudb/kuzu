@@ -9,7 +9,6 @@ add_compile_definitions(CPPHTTPLIB_OPENSSL_SUPPORT)
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
         ${PROJECT_SOURCE_DIR}/third_party/httplib
-        ${PROJECT_SOURCE_DIR}/third_party/mbedtls/include
         src/include)
 
 add_library(httpfs
