@@ -1,9 +1,10 @@
-use crate::error::Error;
-use crate::ffi::ffi;
 use cxx::{let_cxx_string, UniquePtr};
 use std::cell::UnsafeCell;
 use std::fmt;
 use std::path::Path;
+
+use crate::error::Error;
+use crate::ffi::ffi;
 
 /// The Database class is the main class of KuzuDB. It manages all database components.
 pub struct Database {
@@ -127,10 +128,12 @@ impl fmt::Debug for Database {
 
 #[cfg(test)]
 mod tests {
+    use anyhow::{Error, Result};
+
     use crate::connection::Connection;
     use crate::database::{Database, LoggingLevel, SystemConfig};
-    use anyhow::{Error, Result};
-    // Note: Cargo runs tests in parallel by default, however kuzu does not support
+
+// Note: Cargo runs tests in parallel by default, however kuzu does not support
     // working with multiple databases in parallel.
     // Tests can be run serially with `cargo test -- --test-threads=1` to work around this.
 
@@ -159,7 +162,7 @@ mod tests {
     #[test]
     fn create_database_failure() {
         let result: Error = Database::new("", SystemConfig::default())
-            .expect_err("An empty string should not be a valid database path!")
+            .expect_err("IO exception: An empty string should not be a valid database path!")
             .into();
     }
 
