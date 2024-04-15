@@ -76,6 +76,14 @@ common::LogicalType DuckDBTypeConverter::convertDuckDBType(std::string typeStr) 
         auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
         return *LogicalType::MAP(convertDuckDBType(keyValueTypes[0]),
             convertDuckDBType(keyValueTypes[1]));
+    } else if (typeStr.ends_with(']')) {
+        auto leftBracketPos = typeStr.find('[');
+        auto rightBracketPos = typeStr.find(']');
+        auto numValuesInList = std::strtoll(
+            typeStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
+            nullptr, 0);
+        auto innerType = convertDuckDBType(typeStr.substr(0, leftBracketPos));
+        return *LogicalType::ARRAY(innerType.copy(), numValuesInList);
     }
     throw BinderException{stringFormat("Unsupported duckdb type: {}.", typeStr)};
 }

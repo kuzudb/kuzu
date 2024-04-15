@@ -159,17 +159,33 @@ void getDuckDBVectorConversionFunc(PhysicalTypeID physicalTypeID,
 template<>
 void convertDuckDBVectorToVector<list_entry_t>(duckdb::Vector& duckDBVector, ValueVector& result,
     uint64_t numValuesToCopy) {
-    memcpy(result.getData(), duckDBVector.GetData(),
-        numValuesToCopy * result.getNumBytesPerValue());
-    auto numValuesInDataVec = 0;
-    auto listEntries = reinterpret_cast<duckdb::list_entry_t*>(duckDBVector.GetData());
+    auto numValuesInDataVec = 0u;
     auto validityMasks = duckdb::FlatVector::Validity(duckDBVector);
-    for (auto i = 0u; i < numValuesToCopy; i++) {
-        result.setNull(i, !validityMasks.RowIsValid(i));
-        if (!result.isNull(i)) {
-            numValuesInDataVec += listEntries[i].length;
+    switch (duckDBVector.GetType().id()) {
+    case duckdb::LogicalTypeId::ARRAY: {
+        auto numValuesPerList = duckdb::ArrayType::GetSize(duckDBVector.GetType());
+        numValuesInDataVec = numValuesPerList * numValuesToCopy;
+        for (auto i = 0u; i < numValuesToCopy; i++) {
+            result.setNull(i, !validityMasks.RowIsValid(i));
+            result.setValue(i, list_entry_t{numValuesPerList * i, (list_size_t)numValuesPerList});
         }
+    } break;
+    case duckdb::LogicalTypeId::MAP:
+    case duckdb::LogicalTypeId::LIST: {
+        memcpy(result.getData(), duckDBVector.GetData(),
+            numValuesToCopy * result.getNumBytesPerValue());
+        auto listEntries = reinterpret_cast<duckdb::list_entry_t*>(duckDBVector.GetData());
+        for (auto i = 0u; i < numValuesToCopy; i++) {
+            result.setNull(i, !validityMasks.RowIsValid(i));
+            if (!result.isNull(i)) {
+                numValuesInDataVec += listEntries[i].length;
+            }
+        }
+    } break;
+    default:
+        KU_UNREACHABLE;
     }
+
     ListVector::resizeDataVector(&result, numValuesInDataVec);
     auto dataVec = ListVector::getDataVector(&result);
     duckdb_conversion_func_t conversion_func;
