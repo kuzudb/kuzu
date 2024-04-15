@@ -78,11 +78,20 @@ default_string
 ---- 1
 
 
+-LOG MapTest
+-STATEMENT RETURN coalesce(NULL, map([1, 2], ['a', 'b']), NULL, map([1, 2, 3], ['a', 'b', 'c']));
+---- 1
+{1=a, 2=b}
+
 -LOG IfNullError
 -STATEMENT RETURN ifnull(NULL, 1, 2);
 ---- error
 Binder exception: Cannot match a built-in function for given function IFNULL(ANY,INT64,INT64). Supported inputs are
 (ANY,ANY) -> ANY
+
+-STATEMENT RETURN ifNULL;
+---- error
+Binder exception: Variable ifNULL is not in scope.
 
 -LOG IfNullTest
 -STATEMENT RETURN ifnull(NULL, 'default_string');
