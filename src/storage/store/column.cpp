@@ -898,54 +898,44 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
     RWPropertyStats propertyStatistics, bool enableCompression) {
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL:
-    case LogicalTypeID::INT64:
-    case LogicalTypeID::INT32:
-    case LogicalTypeID::INT16:
-    case LogicalTypeID::INT8:
-    case LogicalTypeID::UINT64:
-    case LogicalTypeID::UINT32:
-    case LogicalTypeID::UINT16:
-    case LogicalTypeID::UINT8:
-    case LogicalTypeID::INT128:
-    case LogicalTypeID::UUID:
-    case LogicalTypeID::DOUBLE:
-    case LogicalTypeID::FLOAT:
-    case LogicalTypeID::DATE:
-    case LogicalTypeID::TIMESTAMP:
-    case LogicalTypeID::TIMESTAMP_MS:
-    case LogicalTypeID::TIMESTAMP_NS:
-    case LogicalTypeID::TIMESTAMP_SEC:
-    case LogicalTypeID::TIMESTAMP_TZ:
-    case LogicalTypeID::INTERVAL: {
-        return std::make_unique<Column>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
-            metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::BOOL:
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT32:
+    case PhysicalTypeID::INT16:
+    case PhysicalTypeID::INT8:
+    case PhysicalTypeID::UINT64:
+    case PhysicalTypeID::UINT32:
+    case PhysicalTypeID::UINT16:
+    case PhysicalTypeID::UINT8:
+    case PhysicalTypeID::INT128:
+    case PhysicalTypeID::DOUBLE:
+    case PhysicalTypeID::FLOAT:
+    case PhysicalTypeID::INTERVAL: {
+        if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            return std::make_unique<SerialColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
+                bufferManager, wal, transaction);
+        } else {
+            return std::make_unique<Column>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
+                metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
+        }
     }
-    case LogicalTypeID::INTERNAL_ID: {
+    case PhysicalTypeID::INTERNAL_ID: {
         return std::make_unique<InternalIDColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
             bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
-    case LogicalTypeID::BLOB:
-    case LogicalTypeID::STRING: {
+    case PhysicalTypeID::STRING: {
         return std::make_unique<StringColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
-    case LogicalTypeID::ARRAY:
-    case LogicalTypeID::MAP:
-    case LogicalTypeID::LIST: {
+    case PhysicalTypeID::ARRAY:
+    case PhysicalTypeID::LIST: {
         return std::make_unique<ListColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
-    case LogicalTypeID::UNION:
-    case LogicalTypeID::STRUCT:
-    case LogicalTypeID::RDF_VARIANT: {
+    case PhysicalTypeID::STRUCT: {
         return std::make_unique<StructColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
-    }
-    case LogicalTypeID::SERIAL: {
-        return std::make_unique<SerialColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
-            bufferManager, wal, transaction);
     }
     default: {
         KU_UNREACHABLE;

@@ -7,8 +7,6 @@
 namespace kuzu {
 namespace storage {
 
-using density_range_t = std::pair<double, double>;
-
 class LocalRelNG;
 struct RelDataReadState : public TableDataReadState {
     common::RelDataDirection direction;
@@ -253,10 +251,6 @@ private:
 
     common::offset_t findCSROffsetInRegion(const PersistentState& persistentState,
         common::offset_t nodeOffset, common::offset_t relOffset) const;
-
-    static inline common::vector_idx_t getDataIdxFromDirection(common::RelDataDirection direction) {
-        return direction == common::RelDataDirection::FWD ? 0 : 1;
-    }
 
 private:
     PackedCSRInfo packedCSRInfo;

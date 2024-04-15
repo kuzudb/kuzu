@@ -16,14 +16,15 @@ struct KUZU_API FileInfo {
 
     virtual ~FileInfo() = default;
 
-    // TODO: This function should be marked as const.
-    uint64_t getFileSize();
+    uint64_t getFileSize() const;
 
     void readFromFile(void* buffer, uint64_t numBytes, uint64_t position);
 
     int64_t readFile(void* buf, size_t nbyte);
 
     void writeFile(const uint8_t* buffer, uint64_t numBytes, uint64_t offset);
+
+    void syncFile() const;
 
     int64_t seek(uint64_t offset, int whence);
 

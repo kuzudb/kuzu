@@ -2,6 +2,7 @@
 
 #include "common/cast.h"
 #include "common/exception/io.h"
+#include "common/exception/not_implemented.h"
 
 namespace kuzu {
 namespace httpfs {
@@ -126,81 +127,85 @@ bool HTTPFileSystem::canHandleFile(const std::string& path) const {
     return path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0;
 }
 
-void HTTPFileSystem::readFromFile(common::FileInfo* fileInfo, void* buffer, uint64_t numBytes,
+void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,
     uint64_t position) const {
-    auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
+    auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);
     auto numBytesToRead = numBytes;
     auto bufferOffset = 0;
-    if (position >= httpFileInfo->bufferStartPos && position < httpFileInfo->bufferEndPos) {
-        httpFileInfo->fileOffset = position;
-        httpFileInfo->bufferIdx = position - httpFileInfo->bufferStartPos;
-        httpFileInfo->availableBuffer =
-            (httpFileInfo->bufferEndPos - httpFileInfo->bufferStartPos) - httpFileInfo->bufferIdx;
+    if (position >= httpFileInfo.bufferStartPos && position < httpFileInfo.bufferEndPos) {
+        httpFileInfo.fileOffset = position;
+        httpFileInfo.bufferIdx = position - httpFileInfo.bufferStartPos;
+        httpFileInfo.availableBuffer =
+            (httpFileInfo.bufferEndPos - httpFileInfo.bufferStartPos) - httpFileInfo.bufferIdx;
     } else {
-        httpFileInfo->availableBuffer = 0;
-        httpFileInfo->bufferIdx = 0;
-        httpFileInfo->fileOffset = position;
+        httpFileInfo.availableBuffer = 0;
+        httpFileInfo.bufferIdx = 0;
+        httpFileInfo.fileOffset = position;
     }
     while (numBytesToRead > 0) {
-        auto buffer_read_len = std::min<uint64_t>(httpFileInfo->availableBuffer, numBytesToRead);
+        auto buffer_read_len = std::min<uint64_t>(httpFileInfo.availableBuffer, numBytesToRead);
         if (buffer_read_len > 0) {
-            KU_ASSERT(httpFileInfo->bufferStartPos + httpFileInfo->bufferIdx + buffer_read_len <=
-                      httpFileInfo->bufferEndPos);
+            KU_ASSERT(httpFileInfo.bufferStartPos + httpFileInfo.bufferIdx + buffer_read_len <=
+                      httpFileInfo.bufferEndPos);
             memcpy((char*)buffer + bufferOffset,
-                httpFileInfo->readBuffer.get() + httpFileInfo->bufferIdx, buffer_read_len);
+                httpFileInfo.readBuffer.get() + httpFileInfo.bufferIdx, buffer_read_len);
 
             bufferOffset += buffer_read_len;
             numBytesToRead -= buffer_read_len;
 
-            httpFileInfo->bufferIdx += buffer_read_len;
-            httpFileInfo->availableBuffer -= buffer_read_len;
-            httpFileInfo->fileOffset += buffer_read_len;
+            httpFileInfo.bufferIdx += buffer_read_len;
+            httpFileInfo.availableBuffer -= buffer_read_len;
+            httpFileInfo.fileOffset += buffer_read_len;
         }
 
-        if (numBytesToRead > 0 && httpFileInfo->availableBuffer == 0) {
-            auto newBufferAvailableSize = std::min<uint64_t>(httpFileInfo->READ_BUFFER_LEN,
-                httpFileInfo->length - httpFileInfo->fileOffset);
+        if (numBytesToRead > 0 && httpFileInfo.availableBuffer == 0) {
+            auto newBufferAvailableSize = std::min<uint64_t>(httpFileInfo.READ_BUFFER_LEN,
+                httpFileInfo.length - httpFileInfo.fileOffset);
 
             // Bypass buffer if we read more than buffer size.
             if (numBytesToRead > newBufferAvailableSize) {
-                getRangeRequest(httpFileInfo, httpFileInfo->path, {}, position + bufferOffset,
+                getRangeRequest(&httpFileInfo, httpFileInfo.path, {}, position + bufferOffset,
                     (char*)buffer + bufferOffset, numBytesToRead);
-                httpFileInfo->availableBuffer = 0;
-                httpFileInfo->bufferIdx = 0;
-                httpFileInfo->fileOffset += numBytesToRead;
+                httpFileInfo.availableBuffer = 0;
+                httpFileInfo.bufferIdx = 0;
+                httpFileInfo.fileOffset += numBytesToRead;
                 break;
             } else {
-                getRangeRequest(httpFileInfo, httpFileInfo->path, {}, httpFileInfo->fileOffset,
-                    (char*)httpFileInfo->readBuffer.get(), newBufferAvailableSize);
-                httpFileInfo->availableBuffer = newBufferAvailableSize;
-                httpFileInfo->bufferIdx = 0;
-                httpFileInfo->bufferStartPos = httpFileInfo->fileOffset;
-                httpFileInfo->bufferEndPos = httpFileInfo->bufferStartPos + newBufferAvailableSize;
+                getRangeRequest(&httpFileInfo, httpFileInfo.path, {}, httpFileInfo.fileOffset,
+                    (char*)httpFileInfo.readBuffer.get(), newBufferAvailableSize);
+                httpFileInfo.availableBuffer = newBufferAvailableSize;
+                httpFileInfo.bufferIdx = 0;
+                httpFileInfo.bufferStartPos = httpFileInfo.fileOffset;
+                httpFileInfo.bufferEndPos = httpFileInfo.bufferStartPos + newBufferAvailableSize;
             }
         }
     }
 }
 
-int64_t HTTPFileSystem::readFile(common::FileInfo* fileInfo, void* buf, size_t numBytes) const {
-    auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
-    auto maxNumBytesToRead = httpFileInfo->length - httpFileInfo->fileOffset;
+int64_t HTTPFileSystem::readFile(common::FileInfo& fileInfo, void* buf, size_t numBytes) const {
+    auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);
+    auto maxNumBytesToRead = httpFileInfo.length - httpFileInfo.fileOffset;
     numBytes = std::min<uint64_t>(maxNumBytesToRead, numBytes);
-    if (httpFileInfo->fileOffset > httpFileInfo->getFileSize()) {
+    if (httpFileInfo.fileOffset > httpFileInfo.getFileSize()) {
         return 0;
     }
-    readFromFile(fileInfo, buf, numBytes, httpFileInfo->fileOffset);
+    readFromFile(fileInfo, buf, numBytes, httpFileInfo.fileOffset);
     return numBytes;
 }
 
-int64_t HTTPFileSystem::seek(common::FileInfo* fileInfo, uint64_t offset, int /*whence*/) const {
-    auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
-    httpFileInfo->fileOffset = offset;
+void HTTPFileSystem::syncFile(const common::FileInfo&) const {
+    throw NotImplementedException("syncFile is not supported in HTTPFileSystem");
+}
+
+int64_t HTTPFileSystem::seek(common::FileInfo& fileInfo, uint64_t offset, int /*whence*/) const {
+    auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);
+    httpFileInfo.fileOffset = offset;
     return offset;
 }
 
-uint64_t HTTPFileSystem::getFileSize(common::FileInfo* fileInfo) const {
-    auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
-    return httpFileInfo->length;
+uint64_t HTTPFileSystem::getFileSize(const common::FileInfo& fileInfo) const {
+    auto& httpFileInfo = ku_dynamic_cast<const FileInfo&, const HTTPFileInfo&>(fileInfo);
+    return httpFileInfo.length;
 }
 
 std::unique_ptr<httplib::Client> HTTPFileSystem::getClient(const std::string& host) {

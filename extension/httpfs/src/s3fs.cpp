@@ -456,10 +456,10 @@ std::string S3FileSystem::initializeMultiPartUpload(S3FileInfo* fileInfo) const 
     return getUploadID(result);
 }
 
-void S3FileSystem::writeFile(common::FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+void S3FileSystem::writeFile(common::FileInfo& fileInfo, const uint8_t* buffer, uint64_t numBytes,
     uint64_t offset) const {
-    auto s3FileInfo = ku_dynamic_cast<FileInfo*, S3FileInfo*>(fileInfo);
-    if (!((s3FileInfo->flags & O_ACCMODE) & O_WRONLY)) {
+    auto& s3FileInfo = ku_dynamic_cast<FileInfo&, S3FileInfo&>(fileInfo);
+    if (!((s3FileInfo.flags & O_ACCMODE) & O_WRONLY)) {
         throw IOException("Write called on a file which is not open in write mode.");
     }
     uint64_t numBytesWritten = 0;
@@ -468,20 +468,20 @@ void S3FileSystem::writeFile(common::FileInfo* fileInfo, const uint8_t* buffer, 
         // We use amazon multipart upload API which segments an object into a set of parts. Since we
         // don't track the usage of individual part, determining whether we can upload a part is
         // challenging if we allow non-sequential write.
-        if (currOffset != s3FileInfo->fileOffset) {
+        if (currOffset != s3FileInfo.fileOffset) {
             throw InternalException("Non-sequential write not supported.");
         }
-        auto writeBufferIdx = currOffset / s3FileInfo->partSize;
-        auto writeBuffer = s3FileInfo->getBuffer(writeBufferIdx);
+        auto writeBufferIdx = currOffset / s3FileInfo.partSize;
+        auto writeBuffer = s3FileInfo.getBuffer(writeBufferIdx);
         auto offsetToWrite = currOffset - writeBuffer->startOffset;
         auto numBytesToWrite =
-            std::min<uint64_t>(numBytes - numBytesWritten, s3FileInfo->partSize - offsetToWrite);
+            std::min<uint64_t>(numBytes - numBytesWritten, s3FileInfo.partSize - offsetToWrite);
         memcpy(writeBuffer->getData() + offsetToWrite, buffer + numBytesWritten, numBytesToWrite);
         writeBuffer->numBytesWritten += numBytesToWrite;
-        if (writeBuffer->numBytesWritten >= s3FileInfo->partSize) {
-            flushBuffer(s3FileInfo, writeBuffer);
+        if (writeBuffer->numBytesWritten >= s3FileInfo.partSize) {
+            flushBuffer(&s3FileInfo, writeBuffer);
         }
-        s3FileInfo->fileOffset += numBytesToWrite;
+        s3FileInfo.fileOffset += numBytesToWrite;
         numBytesWritten += numBytesToWrite;
     }
 }

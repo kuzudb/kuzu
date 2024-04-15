@@ -5,7 +5,6 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
-#include "storage/storage_utils.h"
 #include "storage/store/list_column_chunk.h"
 #include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column_chunk.h"
@@ -341,16 +340,6 @@ void ColumnChunk::populateWithDefaultVal(ValueVector* defaultValueVector) {
     }
 }
 
-offset_t ColumnChunk::getOffsetInBuffer(offset_t pos) const {
-    auto numElementsInAPage =
-        PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
-    auto posCursor = PageUtils::getPageCursorForPos(pos, numElementsInAPage);
-    auto offsetInBuffer = posCursor.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE +
-                          posCursor.elemPosInPage * numBytesPerValue;
-    KU_ASSERT(offsetInBuffer + numBytesPerValue <= bufferSize);
-    return offsetInBuffer;
-}
-
 void ColumnChunk::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
     const SelectionVector& selVector) {
     auto bufferToWrite = buffer.get() + startPosInChunk * numBytesPerValue;
@@ -613,7 +602,6 @@ private:
     common::table_id_t commonTableID;
 };
 
-// TODO(Guodong): Change the input param `dataType` to PhysicalType.
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(LogicalType dataType,
     bool enableCompression, uint64_t capacity, bool inMemory) {
     switch (dataType.getPhysicalType()) {

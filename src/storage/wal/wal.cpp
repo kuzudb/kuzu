@@ -136,7 +136,7 @@ void WAL::clearWAL() {
 void WAL::flushAllPages() {
     bufferedWriter->flush();
     bufferManager.flushAllDirtyPagesInFrames(*shadowingFH);
-    // TODO: Should sync as well.
+    bufferedWriter->getFileInfo().syncFile();
 }
 
 bool WAL::isEmptyWAL() const {
