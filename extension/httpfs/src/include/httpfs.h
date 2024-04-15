@@ -72,15 +72,17 @@ public:
 
     static std::unique_ptr<httplib::Headers> getHTTPHeaders(HeaderMap& headerMap);
 
+    void syncFile(const common::FileInfo& fileInfo) const override;
+
 protected:
-    void readFromFile(common::FileInfo* fileInfo, void* buffer, uint64_t numBytes,
+    void readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const override;
 
-    int64_t readFile(common::FileInfo* fileInfo, void* buf, size_t numBytes) const override;
+    int64_t readFile(common::FileInfo& fileInfo, void* buf, size_t numBytes) const override;
 
-    int64_t seek(common::FileInfo* fileInfo, uint64_t offset, int whence) const override;
+    int64_t seek(common::FileInfo& fileInfo, uint64_t offset, int whence) const override;
 
-    uint64_t getFileSize(common::FileInfo* fileInfo) const override;
+    uint64_t getFileSize(const common::FileInfo& fileInfo) const override;
 
     static std::pair<std::string, std::string> parseUrl(const std::string& url);
 

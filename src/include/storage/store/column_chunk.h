@@ -117,8 +117,6 @@ protected:
     void initializeBuffer(common::offset_t capacity);
     void initializeFunction();
 
-    common::offset_t getOffsetInBuffer(common::offset_t pos) const;
-
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
         const common::SelectionVector& selVector);
 
