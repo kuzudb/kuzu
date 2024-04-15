@@ -41,6 +41,8 @@ namespace processor {
 using encode_function_t = std::function<void(const uint8_t*, uint8_t*, bool)>;
 
 class OrderByKeyEncoder {
+private:
+    static constexpr uint64_t DATA_BLOCK_SIZE = common::BufferPoolConstants::PAGE_256KB_SIZE;
 
 public:
     OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo, storage::MemoryManager* memoryManager,
@@ -49,8 +51,6 @@ public:
     inline std::vector<std::shared_ptr<DataBlock>>& getKeyBlocks() { return keyBlocks; }
 
     inline uint32_t getNumBytesPerTuple() const { return numBytesPerTuple; }
-
-    inline uint32_t getMaxNumTuplesPerBlock() const { return maxNumTuplesPerBlock; }
 
     inline uint32_t getNumTuplesInCurBlock() const { return keyBlocks.back()->numTuples; }
 
@@ -77,9 +77,6 @@ public:
     static inline bool isLongStr(const uint8_t* strBuffer, bool isAsc) {
         return *(strBuffer + 13) == (isAsc ? UINT8_MAX : 0);
     }
-
-    static uint32_t getNumBytesPerTuple(
-        const std::vector<std::shared_ptr<common::ValueVector>>& keyVectors);
 
     static uint32_t getEncodingSize(const common::LogicalType& dataType);
 

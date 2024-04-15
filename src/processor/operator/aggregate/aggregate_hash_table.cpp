@@ -160,14 +160,13 @@ void AggregateHashTable::initializeFT(
 }
 
 void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
-    setMaxNumHashSlots(nextPowerOfTwo(
-        std::max(BufferPoolConstants::PAGE_256KB_SIZE / sizeof(HashSlot), numEntriesToAllocate)));
-    auto numHashSlotsPerBlock = BufferPoolConstants::PAGE_256KB_SIZE / sizeof(HashSlot);
+    auto numHashSlotsPerBlock = HASH_BLOCK_SIZE / sizeof(HashSlot);
+    setMaxNumHashSlots(nextPowerOfTwo(std::max(numHashSlotsPerBlock, numEntriesToAllocate)));
     initSlotConstant(numHashSlotsPerBlock);
     auto numDataBlocks =
         maxNumHashSlots / numHashSlotsPerBlock + (maxNumHashSlots % numHashSlotsPerBlock != 0);
     for (auto i = 0u; i < numDataBlocks; i++) {
-        hashSlotsBlocks.emplace_back(std::make_unique<DataBlock>(&memoryManager));
+        hashSlotsBlocks.emplace_back(std::make_unique<DataBlock>(&memoryManager, HASH_BLOCK_SIZE));
     }
 }
 
@@ -577,7 +576,7 @@ void AggregateHashTable::addDataBlocksIfNecessary(uint64_t maxNumHashSlots) {
     auto numHashSlotsBlocksNeeded =
         (maxNumHashSlots + numHashSlotsPerBlock - 1) / numHashSlotsPerBlock;
     while (hashSlotsBlocks.size() < numHashSlotsBlocksNeeded) {
-        hashSlotsBlocks.emplace_back(std::make_unique<DataBlock>(&memoryManager));
+        hashSlotsBlocks.emplace_back(std::make_unique<DataBlock>(&memoryManager, HASH_BLOCK_SIZE));
     }
 }
 

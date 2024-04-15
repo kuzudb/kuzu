@@ -74,11 +74,11 @@ public:
         allocator = std::make_unique<MemoryAllocator>(bm, vfs);
     }
 
-    inline std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
+    std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
         uint64_t size = common::BufferPoolConstants::PAGE_256KB_SIZE) {
         return allocator->allocateBuffer(initializeToZero, size);
     }
-    inline BufferManager* getBufferManager() const { return bm; }
+    BufferManager* getBufferManager() const { return bm; }
 
 private:
     BufferManager* bm;
