@@ -1,7 +1,6 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
-#include "function/cast/vector_cast_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -23,14 +22,11 @@ void FunctionExpressionEvaluator::evaluate(ClientContext* clientContext) {
     for (auto& child : children) {
         child->evaluate(clientContext);
     }
-    auto expr =
-        ku_dynamic_cast<binder::Expression*, binder::ScalarFunctionExpression*>(expression.get());
-    if (expr->getFunctionName() == function::CastAnyFunction::name) {
-        execFunc(parameters, *resultVector, expr->getBindData());
-        return;
-    }
+    auto expr = expression->constPtrCast<binder::ScalarFunctionExpression>();
     if (execFunc != nullptr) {
-        execFunc(parameters, *resultVector, clientContext);
+        auto bindData = expr->getBindData();
+        bindData->clientContext = clientContext;
+        execFunc(parameters, *resultVector, bindData);
     }
 }
 
