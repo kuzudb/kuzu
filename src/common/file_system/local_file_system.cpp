@@ -292,7 +292,9 @@ void LocalFileSystem::syncFile(const FileInfo& fileInfo) const {
 #if defined(_WIN32)
     // Note that `FlushFileBuffers` returns 0 when fail, while `fsync` returns 0 when succeed.
     if (FlushFileBuffers((HANDLE)localFileInfo.handle) == 0) {
-        throw IOException(stringFormat("Failed to sync file {}.", fileInfo.path));
+        auto error = GetLastError();
+        throw IOException(stringFormat("Failed to sync file {}. Error {}: {}", fileInfo.path, error,
+            std::system_category().message(error)));
     }
 #else
     if (fsync(localFileInfo.fd) != 0) {

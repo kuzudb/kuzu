@@ -158,9 +158,8 @@ mod tests {
 
     #[test]
     fn create_database_failure() {
-        let result: Error = Database::new("", SystemConfig::default())
-            .expect_err("An empty string should not be a valid database path!")
-            .into();
+        Database::new("", SystemConfig::default())
+            .expect_err("An empty string should not be a valid database path!");
     }
 
     #[test]
