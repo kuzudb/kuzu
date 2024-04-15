@@ -289,7 +289,7 @@ class QueryResult:
                         nodes[(_id["table"], _id["offset"])] = node
                         table_to_label_dict[_id["table"]] = node["_label"]
                     for rel in row[i]["_rels"]:
-                        for key in rel:
+                        for key in list(rel.keys()):
                             if rel[key] is None:
                                 del rel[key]
                         _src = rel["_src"]
