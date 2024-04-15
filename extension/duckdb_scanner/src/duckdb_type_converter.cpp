@@ -65,8 +65,8 @@ common::LogicalType DuckDBTypeConverter::convertDuckDBType(std::string typeStr) 
         return *LogicalType::STRUCT(parseStructTypeInfo(typeStr));
     } else if (typeStr.starts_with("UNION")) {
         auto unionFields = parseStructTypeInfo(typeStr);
-        auto unionTagField = StructField(
-            UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
+        auto unionTagField = StructField(UnionType::TAG_FIELD_NAME,
+            std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
         unionFields.insert(unionFields.begin(), std::move(unionTagField));
         return *LogicalType::UNION(std::move(unionFields));
     } else if (typeStr.starts_with("MAP")) {
@@ -74,8 +74,8 @@ common::LogicalType DuckDBTypeConverter::convertDuckDBType(std::string typeStr) 
         auto rightBracketPos = typeStr.find_last_of(')');
         auto mapTypeStr = typeStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
         auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
-        return *LogicalType::MAP(
-            convertDuckDBType(keyValueTypes[0]), convertDuckDBType(keyValueTypes[1]));
+        return *LogicalType::MAP(convertDuckDBType(keyValueTypes[0]),
+            convertDuckDBType(keyValueTypes[1]));
     } else if (typeStr.ends_with(']')) {
         auto leftBracketPos = typeStr.find('[');
         auto rightBracketPos = typeStr.find(']');

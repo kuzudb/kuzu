@@ -10,8 +10,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace duckdb_scanner {
 
-void getDuckDBVectorConversionFunc(
-    PhysicalTypeID physicalTypeID, duckdb_conversion_func_t& conversion_func);
+void getDuckDBVectorConversionFunc(PhysicalTypeID physicalTypeID,
+    duckdb_conversion_func_t& conversion_func);
 
 DuckDBScanBindData::DuckDBScanBindData(std::string query,
     std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
@@ -20,8 +20,8 @@ DuckDBScanBindData::DuckDBScanBindData(std::string query,
       initDuckDBConn{std::move(initDuckDBConn)} {
     conversionFunctions.resize(this->columnTypes.size());
     for (auto i = 0u; i < this->columnTypes.size(); i++) {
-        getDuckDBVectorConversionFunc(
-            this->columnTypes[i].getPhysicalType(), conversionFunctions[i]);
+        getDuckDBVectorConversionFunc(this->columnTypes[i].getPhysicalType(),
+            conversionFunctions[i]);
     }
 }
 
@@ -35,8 +35,8 @@ DuckDBScanSharedState::DuckDBScanSharedState(std::unique_ptr<duckdb::QueryResult
 struct DuckDBScanFunction {
     static constexpr char DUCKDB_SCAN_FUNC_NAME[] = "duckdb_scan";
 
-    static common::offset_t tableFunc(
-        function::TableFuncInput& input, function::TableFuncOutput& output);
+    static common::offset_t tableFunc(function::TableFuncInput& input,
+        function::TableFuncOutput& output);
 
     static std::unique_ptr<function::TableFuncBindData> bindFunc(DuckDBScanBindData bindData,
         main::ClientContext* /*context*/, function::TableFuncBindInput* input);
@@ -69,8 +69,8 @@ std::unique_ptr<function::TableFuncLocalState> DuckDBScanFunction::initLocalStat
 }
 
 template<typename T>
-void convertDuckDBVectorToVector(
-    duckdb::Vector& duckDBVector, ValueVector& result, uint64_t numValuesToCopy) {
+void convertDuckDBVectorToVector(duckdb::Vector& duckDBVector, ValueVector& result,
+    uint64_t numValuesToCopy) {
     auto duckDBData = (T*)duckDBVector.GetData();
     auto validityMasks = duckdb::FlatVector::Validity(duckDBVector);
     memcpy(result.getData(), duckDBData, numValuesToCopy * result.getNumBytesPerValue());
@@ -80,15 +80,15 @@ void convertDuckDBVectorToVector(
 }
 
 template<>
-void convertDuckDBVectorToVector<struct_entry_t>(
-    duckdb::Vector& duckDBVector, ValueVector& result, uint64_t numValuesToCopy);
+void convertDuckDBVectorToVector<struct_entry_t>(duckdb::Vector& duckDBVector, ValueVector& result,
+    uint64_t numValuesToCopy);
 template<>
-void convertDuckDBVectorToVector<list_entry_t>(
-    duckdb::Vector& duckDBVector, ValueVector& result, uint64_t numValuesToCopy);
+void convertDuckDBVectorToVector<list_entry_t>(duckdb::Vector& duckDBVector, ValueVector& result,
+    uint64_t numValuesToCopy);
 
 template<>
-void convertDuckDBVectorToVector<ku_string_t>(
-    duckdb::Vector& duckDBVector, ValueVector& result, uint64_t numValuesToCopy) {
+void convertDuckDBVectorToVector<ku_string_t>(duckdb::Vector& duckDBVector, ValueVector& result,
+    uint64_t numValuesToCopy) {
     auto strs = reinterpret_cast<duckdb::string_t*>(duckDBVector.GetData());
     auto validityMasks = duckdb::FlatVector::Validity(duckDBVector);
     for (auto i = 0u; i < numValuesToCopy; i++) {
@@ -99,8 +99,8 @@ void convertDuckDBVectorToVector<ku_string_t>(
     }
 }
 
-void getDuckDBVectorConversionFunc(
-    PhysicalTypeID physicalTypeID, duckdb_conversion_func_t& conversion_func) {
+void getDuckDBVectorConversionFunc(PhysicalTypeID physicalTypeID,
+    duckdb_conversion_func_t& conversion_func) {
     switch (physicalTypeID) {
     case PhysicalTypeID::BOOL: {
         conversion_func = convertDuckDBVectorToVector<bool>;
@@ -157,8 +157,8 @@ void getDuckDBVectorConversionFunc(
 }
 
 template<>
-void convertDuckDBVectorToVector<list_entry_t>(
-    duckdb::Vector& duckDBVector, ValueVector& result, uint64_t numValuesToCopy) {
+void convertDuckDBVectorToVector<list_entry_t>(duckdb::Vector& duckDBVector, ValueVector& result,
+    uint64_t numValuesToCopy) {
     auto numValuesInDataVec = 0u;
     auto validityMasks = duckdb::FlatVector::Validity(duckDBVector);
     switch (duckDBVector.GetType().id()) {
@@ -194,8 +194,8 @@ void convertDuckDBVectorToVector<list_entry_t>(
 }
 
 template<>
-void convertDuckDBVectorToVector<struct_entry_t>(
-    duckdb::Vector& duckDBVector, ValueVector& result, uint64_t numValuesToCopy) {
+void convertDuckDBVectorToVector<struct_entry_t>(duckdb::Vector& duckDBVector, ValueVector& result,
+    uint64_t numValuesToCopy) {
     auto& duckdbChildrenVectors = duckdb::StructVector::GetEntries(duckDBVector);
     for (auto i = 0u; i < duckdbChildrenVectors.size(); i++) {
         duckdb_conversion_func_t conversionFunc;
@@ -211,19 +211,21 @@ static void convertDuckDBResultToVector(duckdb::DataChunk& duckDBResult, DataChu
     for (auto i = 0u; i < conversionFuncs.size(); i++) {
         result.state->selVector->selectedSize = duckDBResult.size();
         assert(duckDBResult.data[i].GetVectorType() == duckdb::VectorType::FLAT_VECTOR);
-        conversionFuncs[i](
-            duckDBResult.data[i], *result.getValueVector(i), result.state->selVector->selectedSize);
+        conversionFuncs[i](duckDBResult.data[i], *result.getValueVector(i),
+            result.state->selVector->selectedSize);
     }
 }
 
-common::offset_t DuckDBScanFunction::tableFunc(
-    function::TableFuncInput& input, function::TableFuncOutput& output) {
+common::offset_t DuckDBScanFunction::tableFunc(function::TableFuncInput& input,
+    function::TableFuncOutput& output) {
     auto duckdbScanSharedState = reinterpret_cast<DuckDBScanSharedState*>(input.sharedState);
     auto duckdbScanBindData = reinterpret_cast<DuckDBScanBindData*>(input.bindData);
     std::unique_ptr<duckdb::DataChunk> result;
     try {
         result = duckdbScanSharedState->queryResult->Fetch();
-    } catch (std::exception& e) { return 0; }
+    } catch (std::exception& e) {
+        return 0;
+    }
     if (result == nullptr) {
         return 0;
     }
