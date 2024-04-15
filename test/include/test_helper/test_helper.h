@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "main/kuzu.h"
 
 namespace kuzu {
@@ -21,8 +23,6 @@ public:
     static constexpr char E2E_TEST_FILES_DIRECTORY[] = TEST_FILES_DIR;
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
-    static constexpr char PARQUET_TEMP_DATASET_PATH[] = "dataset/parquet_temp_";
-    static constexpr char TMP_TEST_DIR[] = "test/unittest_temp_";
     static constexpr char TEST_ANSWERS_PATH[] = "test/answers";
     static constexpr char TEST_STATEMENTS_PATH[] = "test/statements";
     static constexpr char DEFAULT_CONN_NAME[] = "conn_default";
@@ -40,10 +40,29 @@ public:
     }
 
     static std::string appendKuzuRootPath(const std::string& path) {
-        return KUZU_ROOT_DIRECTORY + std::string("/") + path;
+        if (std::filesystem::path(path).is_relative()) {
+            return KUZU_ROOT_DIRECTORY + std::string("/") + path;
+        } else {
+            return path;
+        }
     }
 
     static std::string getMillisecondsSuffix();
+
+    inline static std::filesystem::path getTempDir() {
+        return std::filesystem::temp_directory_path() / "kuzu";
+    }
+
+    inline static std::string getTempDir(const std::string& name) {
+        auto path = getTempDir() / (name + TestHelper::getMillisecondsSuffix());
+        std::filesystem::create_directories(path);
+        auto pathStr = path.string();
+#ifdef _WIN32
+        // kuzu still doesn't support backslashes in paths on windows
+        std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
+#endif
+        return pathStr;
+    }
 
 private:
     static void initializeConnection(TestQueryConfig* config, main::Connection& conn);

@@ -120,10 +120,7 @@ protected:
     }
 
 private:
-    void setDatabasePath() {
-        databasePath = TestHelper::appendKuzuRootPath(
-            TestHelper::TMP_TEST_DIR + getTestGroupAndName() + TestHelper::getMillisecondsSuffix());
-    }
+    void setDatabasePath() { databasePath = TestHelper::getTempDir(getTestGroupAndName()); }
 
 public:
     std::string databasePath;

@@ -132,10 +132,8 @@ void CSVToParquetConverter::createCopyFile() {
         throw TestException(
             stringFormat("Error opening file: {}, errno: {}.", parquetCopyFile, errno));
     }
-    std::string kuzuRootPath = KUZU_ROOT_DIRECTORY + std::string("/");
     for (auto table : tables) {
-        auto cmd = stringFormat("COPY {} FROM \"{}\";", table->name,
-            table->parquetFilePath.substr(kuzuRootPath.length()));
+        auto cmd = stringFormat("COPY {} FROM \"{}\";", table->name, table->parquetFilePath);
         outfile << cmd << '\n';
     }
 }
@@ -168,9 +166,7 @@ void CSVToParquetConverter::convertCSVDatasetToParquet() {
     createCopyFile();
 
     systemConfig = std::make_unique<main::SystemConfig>(bufferPoolSize);
-    std::string tempDatabasePath = TestHelper::appendKuzuRootPath(
-        std::string(TestHelper::TMP_TEST_DIR) + "csv_to_parquet_converter_" +
-        TestHelper::getMillisecondsSuffix());
+    std::string tempDatabasePath = TestHelper::getTempDir("csv_to_parquet_converter");
     tempDb = std::make_unique<main::Database>(tempDatabasePath, *systemConfig);
     tempConn = std::make_unique<main::Connection>(tempDb.get());
 
