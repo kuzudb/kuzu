@@ -118,7 +118,7 @@ std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
 }
 
 std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
-    auto boundType = LogicalTypeUtils::dataTypeFromString(dataType);
+    auto boundType = LogicalType::fromString(dataType);
     if (boundType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
         auto numElementsInArray = ArrayType::getNumElements(&boundType);
         if (numElementsInArray == 0) {

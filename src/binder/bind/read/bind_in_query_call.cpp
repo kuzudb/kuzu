@@ -3,6 +3,7 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "catalog/catalog.h"
+#include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
@@ -10,6 +11,7 @@
 using namespace kuzu::common;
 using namespace kuzu::parser;
 using namespace kuzu::function;
+using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace binder {
@@ -18,6 +20,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto& call = readingClause.constCast<InQueryCallClause>();
     auto expr = call.getFunctionExpression();
     auto functionExpr = expr->constPtrCast<ParsedFunctionExpression>();
+    auto functionName = functionExpr->getFunctionName();
     expression_vector params;
     for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
         auto child = functionExpr->getChild(i);
@@ -32,10 +35,14 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         inputTypes.push_back(literalExpr->getDataType());
         inputValues.push_back(*literalExpr->getValue());
     }
-    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
+    auto catalogSet = clientContext->getCatalog()->getFunctions(clientContext->getTx());
+    auto functionEntry = BuiltInFunctionsUtils::getFunctionCatalogEntry(functionName, catalogSet);
+    if (functionEntry->getType() != CatalogEntryType::TABLE_FUNCTION_ENTRY) {
+        throw BinderException(stringFormat("{} is not a table function.", functionName));
+    }
     auto func = BuiltInFunctionsUtils::matchFunction(functionExpr->getFunctionName(), inputTypes,
-        functions);
-    tableFunction = *ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
+        functionEntry);
+    tableFunction = *func->constPtrCast<TableFunction>();
     auto bindInput = function::TableFuncBindInput();
     bindInput.inputs = std::move(inputValues);
     auto bindData = tableFunction.bindFunc(clientContext, &bindInput);

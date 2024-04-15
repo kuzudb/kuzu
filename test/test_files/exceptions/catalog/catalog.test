@@ -15,3 +15,12 @@ Catalog exception: function DUMMY does not exist.
 -STATEMENT CREATE REL TABLE knows_post ( FROM person TO person, MANY_LOT)
 ---- error
 Binder exception: Cannot bind MANY_LOT as relationship multiplicity.
+
+-LOG InvalidFunctionCall
+-STATEMENT RETURN db_version();
+---- error
+Binder exception: DB_VERSION is a TABLE_FUNCTION_ENTRY. Scalar function, aggregate function or macro was expected.
+-STATEMENT CALL lower('AAA') RETURN *;
+---- error
+Binder exception: lower is not a table function.
+

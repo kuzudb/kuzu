@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace kuzu {
 namespace catalog {
@@ -16,6 +17,10 @@ enum class CatalogEntryType : uint8_t {
     REWRITE_FUNCTION_ENTRY = 7,
     TABLE_FUNCTION_ENTRY = 8,
     FOREIGN_TABLE_ENTRY = 9,
+};
+
+struct CatalogEntryTypeUtils {
+    static std::string toString(CatalogEntryType type);
 };
 
 } // namespace catalog

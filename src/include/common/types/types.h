@@ -270,7 +270,7 @@ private:
 };
 
 class LogicalType {
-    friend class LogicalTypeUtils;
+    friend struct LogicalTypeUtils;
     friend struct StructType;
     friend struct ListType;
     friend struct ArrayType;
@@ -284,22 +284,19 @@ public:
     KUZU_API LogicalType(LogicalType&& other) = default;
 
     KUZU_API LogicalType& operator=(const LogicalType& other);
-
     KUZU_API bool operator==(const LogicalType& other) const;
-
     KUZU_API bool operator!=(const LogicalType& other) const;
-
     KUZU_API LogicalType& operator=(LogicalType&& other) = default;
 
     KUZU_API std::string toString() const;
+    static LogicalType fromString(const std::string& str);
 
-    KUZU_API inline LogicalTypeID getLogicalTypeID() const { return typeID; }
+    KUZU_API LogicalTypeID getLogicalTypeID() const { return typeID; }
 
-    inline PhysicalTypeID getPhysicalType() const { return physicalType; }
+    PhysicalTypeID getPhysicalType() const { return physicalType; }
     static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType);
 
-    inline bool hasExtraTypeInfo() const { return extraTypeInfo != nullptr; }
-    inline void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
+    void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
         extraTypeInfo = std::move(typeInfo);
     }
 
@@ -442,8 +439,6 @@ private:
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
 };
 
-// TODO: Should remove `logical_types_t`.
-using logical_types_t = std::vector<std::unique_ptr<LogicalType>>;
 using logical_type_vec_t = std::vector<LogicalType>;
 
 struct ListType {
@@ -576,12 +571,10 @@ struct PhysicalTypeUtils {
     static uint32_t getFixedTypeSize(PhysicalTypeID physicalType);
 };
 
-class LogicalTypeUtils {
-public:
+struct LogicalTypeUtils {
     KUZU_API static std::string toString(LogicalTypeID dataTypeID);
     KUZU_API static std::string toString(const std::vector<LogicalType>& dataTypes);
     KUZU_API static std::string toString(const std::vector<LogicalTypeID>& dataTypeIDs);
-    KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isNumerical(const LogicalType& dataType);
     static bool isNested(const LogicalType& dataType);
@@ -590,16 +583,6 @@ public:
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
     static std::vector<LogicalTypeID> getIntegerLogicalTypeIDs();
     static std::vector<LogicalTypeID> getAllValidLogicTypes();
-
-private:
-    static LogicalTypeID dataTypeIDFromString(const std::string& trimmedStr);
-    static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
-    static std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr);
-    static std::unique_ptr<LogicalType> parseArrayType(const std::string& trimmedStr);
-    static std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr);
-    static std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr);
-    static std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr);
-    static std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr);
 };
 
 enum class FileVersionType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };

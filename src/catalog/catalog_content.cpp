@@ -265,12 +265,13 @@ void CatalogContent::readFromFile(const std::string& directory, FileVersionType 
     functions = CatalogSet::deserialize(deserializer);
 }
 
-void CatalogContent::addFunction(std::string name, function::function_set definitions) {
+void CatalogContent::addFunction(CatalogEntryType entryType, std::string name,
+    function::function_set definitions) {
     if (functions->containsEntry(name)) {
         throw CatalogException{stringFormat("function {} already exists.", name)};
     }
-    functions->createEntry(std::make_unique<FunctionCatalogEntry>(
-        CatalogEntryType::SCALAR_FUNCTION_ENTRY, std::move(name), std::move(definitions)));
+    functions->createEntry(
+        std::make_unique<FunctionCatalogEntry>(entryType, std::move(name), std::move(definitions)));
 }
 
 function::ScalarMacroFunction* CatalogContent::getScalarMacroFunction(

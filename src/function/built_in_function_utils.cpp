@@ -17,11 +17,11 @@ namespace kuzu {
 namespace function {
 
 static void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candidateFunctions,
-    const std::string& name, const std::vector<common::LogicalType>& inputTypes, bool isDistinct,
-    function::function_set& set);
+    const std::string& name, const std::vector<LogicalType>& inputTypes, bool isDistinct,
+    const function::function_set& set);
 static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctions,
-    const std::string& name, const std::vector<common::LogicalType>& inputTypes,
-    function::function_set& set);
+    const std::string& name, const std::vector<LogicalType>& inputTypes,
+    const function::function_set& set);
 
 void BuiltInFunctionsUtils::createFunctions(CatalogSet* catalogSet) {
     auto functions = FunctionCollection::getFunctions();
@@ -32,17 +32,28 @@ void BuiltInFunctionsUtils::createFunctions(CatalogSet* catalogSet) {
     }
 }
 
-Function* BuiltInFunctionsUtils::matchFunction(const std::string& name, CatalogSet* catalogSet) {
-    return matchFunction(name, std::vector<common::LogicalType>{}, catalogSet);
-}
-
-Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
-    const std::vector<common::LogicalType>& inputTypes, CatalogSet* catalogSet) {
+catalog::CatalogEntry* BuiltInFunctionsUtils::getFunctionCatalogEntry(const std::string& name,
+    CatalogSet* catalogSet) {
     if (!catalogSet->containsEntry(name)) {
         throw CatalogException(stringFormat("{} function does not exist.", name));
     }
-    auto& functionSet =
-        reinterpret_cast<FunctionCatalogEntry*>(catalogSet->getEntry(name))->getFunctionSet();
+    return catalogSet->getEntry(name);
+}
+
+Function* BuiltInFunctionsUtils::matchFunction(const std::string& name, CatalogSet* catalogSet) {
+    return matchFunction(name, std::vector<LogicalType>{}, catalogSet);
+}
+
+Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
+    const std::vector<LogicalType>& inputTypes, CatalogSet* catalogSet) {
+    auto entry = getFunctionCatalogEntry(name, catalogSet);
+    return matchFunction(name, inputTypes, entry);
+}
+
+Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
+    const std::vector<LogicalType>& inputTypes, const catalog::CatalogEntry* catalogEntry) {
+    auto functionEntry = catalogEntry->constPtrCast<FunctionCatalogEntry>();
+    auto& functionSet = functionEntry->getFunctionSet();
     bool isOverload = functionSet.size() > 1;
     std::vector<Function*> candidateFunctions;
     uint32_t minCost = UINT32_MAX;
@@ -69,7 +80,7 @@ Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
 }
 
 AggregateFunction* BuiltInFunctionsUtils::matchAggregateFunction(const std::string& name,
-    const std::vector<common::LogicalType>& inputTypes, bool isDistinct, CatalogSet* catalogSet) {
+    const std::vector<LogicalType>& inputTypes, bool isDistinct, CatalogSet* catalogSet) {
     auto& functionSet =
         reinterpret_cast<FunctionCatalogEntry*>(catalogSet->getEntry(name))->getFunctionSet();
     std::vector<AggregateFunction*> candidateFunctions;
@@ -461,7 +472,7 @@ uint32_t BuiltInFunctionsUtils::matchVarLengthParameters(const std::vector<Logic
 
 void BuiltInFunctionsUtils::validateSpecialCases(std::vector<Function*>& candidateFunctions,
     const std::string& name, const std::vector<LogicalType>& inputTypes,
-    function::function_set& set) {
+    const function::function_set& set) {
     // special case for add func
     if (name == AddFunction::name) {
         auto targetType0 = candidateFunctions[0]->parameterTypeIDs[0];
@@ -500,7 +511,7 @@ static std::string getFunctionMatchFailureMsg(const std::string name,
 
 void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candidateFunctions,
     const std::string& name, const std::vector<LogicalType>& inputTypes, bool isDistinct,
-    function::function_set& set) {
+    const function::function_set& set) {
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
         for (auto& function : set) {
@@ -517,7 +528,7 @@ void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candida
 
 void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctions,
     const std::string& name, const std::vector<LogicalType>& inputTypes,
-    function::function_set& set) {
+    const function::function_set& set) {
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
         for (auto& function : set) {
