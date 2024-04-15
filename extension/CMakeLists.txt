@@ -11,7 +11,11 @@ if ("duckdb_scanner" IN_LIST BUILD_EXTENSIONS)
 endif()
 
 if ("postgres_scanner" IN_LIST BUILD_EXTENSIONS)
-    add_subdirectory(postgres_scanner)
+    if(NOT __32BIT__)
+        # DuckDB does not officially support 32-bit builds, so we disable the
+        # extension for 32-bit builds
+        add_subdirectory(postgres_scanner)
+    endif()
 endif()
 
 if (${BUILD_EXTENSION_TESTS})
