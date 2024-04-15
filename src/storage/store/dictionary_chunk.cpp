@@ -1,7 +1,5 @@
 #include "storage/store/dictionary_chunk.h"
 
-#include <cstdint>
-
 #include <bit>
 
 using namespace kuzu::common;

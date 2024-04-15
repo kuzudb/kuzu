@@ -75,7 +75,7 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos,
         case PhysicalTypeID::BOOL: {
             return NullMask::isNull(reinterpret_cast<const uint64_t*>(data), pos) ==
                    *reinterpret_cast<const bool*>(this->data.data());
-        } break;
+        }
         default: {
             auto size = getDataTypeSizeInChunk(physicalType);
             return memcmp(data + pos * size, this->data.data(), size) == 0;
