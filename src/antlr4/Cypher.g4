@@ -21,7 +21,12 @@ oC_Cypher
 
 oC_Statement
     : oC_Query
-        | kU_DDL
+        | kU_CreateNodeTable
+        | kU_CreateRelTable
+        | kU_CreateRelTableGroup
+        | kU_CreateRdfGraph
+        | kU_DropTable
+        | kU_AlterTable
         | kU_CopyFrom
         | kU_CopyFromByColumn
         | kU_CopyTO
@@ -44,7 +49,8 @@ kU_ColumnNames
 kU_ScanSource
     : kU_FilePaths
         | '(' SP? oC_Query SP? ')'
-        | oC_Variable ;
+        | oC_Variable
+        | oC_Variable '.' SP? oC_SchemaName ;
 
 kU_CopyFromByColumn
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
@@ -115,15 +121,6 @@ EXPORT: ( 'E' | 'e') ( 'X' | 'x') ( 'P' | 'p') ( 'O' | 'o') ( 'R' | 'r') ( 'T' |
 IMPORT: ( 'I' | 'i') ( 'M' | 'm') ( 'P' | 'p') ( 'O' | 'o') ( 'R' | 'r') ( 'T' | 't');
 
 DATABASE: ( 'D' | 'd') ( 'A' | 'a') ( 'T' | 't') ( 'A' | 'a') ( 'B' | 'b') ( 'A' | 'a') ( 'S' | 's')( 'E' | 'e');
-
-kU_DDL
-    : kU_CreateNodeTable
-        | kU_CreateRelTable
-        | kU_CreateRelTableGroup
-        | kU_CreateRdfGraph
-        | kU_DropTable
-        | kU_AlterTable
-        ;
 
 kU_CreateNodeTable
     : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;

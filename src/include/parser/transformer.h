@@ -184,7 +184,6 @@ private:
         CypherParser::OC_DoubleLiteralContext& ctx);
 
     // Transform ddl.
-    std::unique_ptr<Statement> transformDDL(CypherParser::KU_DDLContext& ctx);
     std::unique_ptr<Statement> transformAlterTable(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformCreateNodeTable(
         CypherParser::KU_CreateNodeTableContext& ctx);

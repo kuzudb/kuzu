@@ -32,10 +32,12 @@ struct FileScanSource : public BaseScanSource {
 };
 
 struct ObjectScanSource : public BaseScanSource {
-    std::string objectName;
+    // If multiple object presents, assuming they have a nested structure.
+    // E.g. for postgres.person, objectNames should be [postgres, person]
+    std::vector<std::string> objectNames;
 
-    explicit ObjectScanSource(std::string objectName)
-        : BaseScanSource{common::ScanSourceType::OBJECT}, objectName{std::move(objectName)} {}
+    explicit ObjectScanSource(std::vector<std::string> objectNames)
+        : BaseScanSource{common::ScanSourceType::OBJECT}, objectNames{std::move(objectNames)} {}
 };
 
 struct QueryScanSource : public BaseScanSource {

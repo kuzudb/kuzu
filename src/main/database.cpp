@@ -137,10 +137,6 @@ Database::getStorageExtensions() {
     return storageExtensions;
 }
 
-DatabaseManager* Database::getDatabaseManagerUnsafe() const {
-    return databaseManager.get();
-}
-
 void Database::openLockFile() {
     int flags;
     FileLockType lock;

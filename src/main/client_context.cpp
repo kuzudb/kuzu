@@ -154,6 +154,10 @@ std::string ClientContext::getExtensionDir() const {
     return common::stringFormat("{}/.kuzu/extension", config.homeDirectory);
 }
 
+DatabaseManager* ClientContext::getDatabaseManager() const {
+    return database->databaseManager.get();
+}
+
 storage::StorageManager* ClientContext::getStorageManager() const {
     return database->storageManager.get();
 }
