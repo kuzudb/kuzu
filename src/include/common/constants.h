@@ -31,6 +31,7 @@ struct InternalKeyword {
     static constexpr char LABEL[] = "_LABEL";
     static constexpr char SRC[] = "_SRC";
     static constexpr char DST[] = "_DST";
+    static constexpr char DIRECTION[] = "_DIRECTION";
     static constexpr char LENGTH[] = "_LENGTH";
     static constexpr char NODES[] = "_NODES";
     static constexpr char RELS[] = "_RELS";

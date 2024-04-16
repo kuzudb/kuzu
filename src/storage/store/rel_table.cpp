@@ -134,6 +134,21 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
     return numRelsDeleted;
 }
 
+//=======
+//void RelTable::scan(Transaction* transaction, RelTableReadState& scanState) {
+//    auto tableData = getDirectedTableData(scanState.direction);
+//    tableData->scan(transaction, *scanState.dataReadState, *scanState.nodeIDVector,
+//        scanState.outputVectors);
+//    if (scanState.directionVector != nullptr) {
+//        auto& selVector = scanState.outputVectors[0]->state->getSelVector();
+//        KU_ASSERT(selVector.isUnfiltered());
+//        for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+//            scanState.directionVector->setValue<bool>(i, scanState.flipSrcDst);
+//        }
+//    }
+//}
+//
+//>>>>>>> 5cbfe998f (Fix issue-3166)
 void RelTable::addColumn(Transaction* transaction, const Property& property,
     ValueVector* defaultValueVector) {
     const auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);

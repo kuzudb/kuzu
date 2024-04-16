@@ -13,7 +13,13 @@ struct StructPackFunctions {
 
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr);
+    static void undirectedRelPackExecFunc(
+        const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr);
     static void compileFunc(FunctionBindData* bindData,
+        const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        std::shared_ptr<common::ValueVector>& result);
+    static void undirectedRelCompileFunc(FunctionBindData* bindData,
         const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         std::shared_ptr<common::ValueVector>& result);
 };

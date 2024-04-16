@@ -33,6 +33,17 @@ void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,
     }
 }
 
+void StructPackFunctions::undirectedRelCompileFunc(FunctionBindData*,
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    std::shared_ptr<common::ValueVector>& result) {
+    // Skip src and dst reference because we may change their state
+    for (auto i = 2u; i < parameters.size(); i++) {
+        if (parameters[i]->state == result->state) {
+            StructVector::referenceVector(result.get(), i, parameters[i]);
+        }
+    }
+}
+
 static void copyParameterValueToStructFieldVector(const ValueVector* parameter,
     ValueVector* structField, DataChunkState* structVectorState) {
     // If the parameter is unFlat, then its state must be consistent with the result's state.
@@ -53,6 +64,36 @@ static void copyParameterValueToStructFieldVector(const ValueVector* parameter,
 void StructPackFunctions::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/) {
     for (auto i = 0u; i < parameters.size(); i++) {
+        auto& parameter = parameters[i];
+        if (parameter->state == result.state) {
+            continue;
+        }
+        // If the parameter's state is inconsistent with the result's state, we need to copy the
+        // parameter's value to the corresponding child vector.
+        StructVector::getFieldVector(&result, i)->resetAuxiliaryBuffer();
+        copyParameterValueToStructFieldVector(parameter.get(),
+            StructVector::getFieldVector(&result, i).get(), result.state.get());
+    }
+}
+
+void StructPackFunctions::undirectedRelPackExecFunc(
+    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result, void*) {
+    KU_ASSERT(parameters.size() > 1);
+    // Force copy of the src and internal id child vectors because we might modify them later.
+    for (auto i = 0u; i < 2; i++) {
+        auto& parameter = parameters[i];
+        auto fieldVector = StructVector::getFieldVector(&result, i).get();
+        fieldVector->resetAuxiliaryBuffer();
+        if (parameter->state->isFlat()) {
+            copyParameterValueToStructFieldVector(parameter.get(), fieldVector, result.state.get());
+        } else {
+            for (auto j = 0u; j < result.state->getSelVector().getSelSize(); j++) {
+                auto pos = result.state->getSelVector()[j];
+                fieldVector->copyFromVectorData(pos, parameter.get(), pos);
+            }
+        }
+    }
+    for (auto i = 2u; i < parameters.size(); i++) {
         auto& parameter = parameters[i];
         if (parameter->state == result.state) {
             continue;

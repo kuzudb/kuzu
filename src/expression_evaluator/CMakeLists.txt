@@ -5,7 +5,7 @@ add_library(kuzu_expression_evaluator
         expression_evaluator_utils.cpp
         function_evaluator.cpp
         literal_evaluator.cpp
-        node_rel_evaluator.cpp
+        pattern_evaluator.cpp
         path_evaluator.cpp
         reference_evaluator.cpp)
 

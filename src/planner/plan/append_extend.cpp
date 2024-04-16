@@ -35,7 +35,7 @@ static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& b
     if (direction == ExtendDirection::BOTH) {
         return false;
     }
-    auto relDirection = ExtendDirectionUtils::getRelDataDirection(direction);
+    auto relDirection = ExtendDirectionUtil::getRelDataDirection(direction);
     auto catalog = clientContext.getCatalog();
     auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
         catalog->getTableCatalogEntry(clientContext.getTx(), rel.getSingleTableID()));

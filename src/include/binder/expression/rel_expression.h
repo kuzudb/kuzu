@@ -66,51 +66,62 @@ public:
           srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)}, directionType{directionType},
           relType{relType} {}
 
-    inline bool isRecursive() const {
+    bool isRecursive() const {
         return dataType.getLogicalTypeID() == common::LogicalTypeID::RECURSIVE_REL;
     }
 
-    inline bool isBoundByMultiLabeledNode() const {
+    bool isBoundByMultiLabeledNode() const {
         return srcNode->isMultiLabeled() || dstNode->isMultiLabeled();
     }
 
-    inline std::shared_ptr<NodeExpression> getSrcNode() const { return srcNode; }
-    inline std::string getSrcNodeName() const { return srcNode->getUniqueName(); }
-    inline void setDstNode(std::shared_ptr<NodeExpression> node) { dstNode = std::move(node); }
-    inline std::shared_ptr<NodeExpression> getDstNode() const { return dstNode; }
-    inline std::string getDstNodeName() const { return dstNode->getUniqueName(); }
+    std::shared_ptr<NodeExpression> getSrcNode() const { return srcNode; }
+    std::string getSrcNodeName() const { return srcNode->getUniqueName(); }
+    void setDstNode(std::shared_ptr<NodeExpression> node) { dstNode = std::move(node); }
+    std::shared_ptr<NodeExpression> getDstNode() const { return dstNode; }
+    std::string getDstNodeName() const { return dstNode->getUniqueName(); }
 
-    inline common::QueryRelType getRelType() const { return relType; }
+    common::QueryRelType getRelType() const { return relType; }
 
-    inline RelDirectionType getDirectionType() const { return directionType; }
+    void setDirectionExpr(std::shared_ptr<Expression> expr) { directionExpr = std::move(expr); }
+    bool hasDirectionExpr() const { return directionExpr != nullptr; }
+    std::shared_ptr<Expression> getDirectionExpr() const { return directionExpr; }
+    RelDirectionType getDirectionType() const { return directionType; }
 
-    inline std::shared_ptr<Expression> getInternalIDProperty() const {
+    std::shared_ptr<Expression> getInternalIDProperty() const {
         return getPropertyExpression(common::InternalKeyword::ID);
     }
 
-    inline void setRecursiveInfo(std::unique_ptr<RecursiveInfo> recursiveInfo_) {
+    void setRecursiveInfo(std::unique_ptr<RecursiveInfo> recursiveInfo_) {
         recursiveInfo = std::move(recursiveInfo_);
     }
-    inline RecursiveInfo* getRecursiveInfo() const { return recursiveInfo.get(); }
-    inline size_t getLowerBound() const { return recursiveInfo->lowerBound; }
-    inline size_t getUpperBound() const { return recursiveInfo->upperBound; }
-    inline std::shared_ptr<Expression> getLengthExpression() const {
+    const RecursiveInfo* getRecursiveInfo() const { return recursiveInfo.get(); }
+    size_t getLowerBound() const { return recursiveInfo->lowerBound; }
+    size_t getUpperBound() const { return recursiveInfo->upperBound; }
+    std::shared_ptr<Expression> getLengthExpression() const {
         return recursiveInfo->lengthExpression;
     }
 
-    inline void setRdfPredicateInfo(std::unique_ptr<RdfPredicateInfo> info) {
+    void setRdfPredicateInfo(std::unique_ptr<RdfPredicateInfo> info) {
         rdfPredicateInfo = std::move(info);
     }
-    inline RdfPredicateInfo* getRdfPredicateInfo() const { return rdfPredicateInfo.get(); }
+    RdfPredicateInfo* getRdfPredicateInfo() const { return rdfPredicateInfo.get(); }
 
-    inline bool isSelfLoop() const { return *srcNode == *dstNode; }
+    bool isSelfLoop() const { return *srcNode == *dstNode; }
 
 private:
+    // Start node if a directed arrow is given. Left node otherwise.
     std::shared_ptr<NodeExpression> srcNode;
+    // End node if a directed arrow is given. Right node otherwise.
     std::shared_ptr<NodeExpression> dstNode;
+    // Whether relationship is directed.
     RelDirectionType directionType;
+    // Direction expr is nullptr when direction type is SINGLE
+    std::shared_ptr<Expression> directionExpr;
+    // Whether relationship type is recursive.
     common::QueryRelType relType;
+    // Null if relationship type is non-recursive.
     std::unique_ptr<RecursiveInfo> recursiveInfo;
+    // Null if relationship does not map to an RDF resource triple table.
     std::unique_ptr<RdfPredicateInfo> rdfPredicateInfo;
 };
 

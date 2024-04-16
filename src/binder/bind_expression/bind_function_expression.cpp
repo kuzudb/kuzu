@@ -1,7 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/function_expression.h"
-#include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
@@ -201,7 +200,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
 // that it becomes read-only or the function involves catalog information. Currently we write
 // Before             |        After
 // LABEL(a)           |        LIST_EXTRACT(offset(a), [table names from catalog])
-// LENGTH(e)          |        e._length
 // STARTNODE(a)       |        a._src
 // ENDNODE(a)         |        a._dst
 std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
@@ -295,17 +293,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         ScalarFunctionExpression::getUniqueName(LabelFunction::name, children);
     return std::make_shared<ScalarFunctionExpression>(LabelFunction::name, ExpressionType::FUNCTION,
         std::move(bindData), std::move(children), execFunc, nullptr, uniqueExpressionName);
-}
-
-std::unique_ptr<Expression> ExpressionBinder::createInternalLengthExpression(
-    const Expression& expression) {
-    auto& rel = (RelExpression&)expression;
-    common::table_id_map_t<SingleLabelPropertyInfo> infos;
-    for (auto tableID : rel.getTableIDs()) {
-        infos.insert({tableID, SingleLabelPropertyInfo{false, INVALID_PROPERTY_ID}});
-    }
-    return std::make_unique<PropertyExpression>(LogicalType(LogicalTypeID::INT64),
-        InternalKeyword::LENGTH, rel.getUniqueName(), rel.getVariableName(), std::move(infos));
 }
 
 } // namespace binder

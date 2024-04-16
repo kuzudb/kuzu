@@ -44,7 +44,7 @@
 -STATEMENT MATCH (a)-[r]-(b) RETURN a, r, b;
 ---- 2
 {_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: LOOP, _ID: 2:0}->(1:0)|{_ID: 1:0, _LABEL: B, ID: 0}
-{_ID: 1:0, _LABEL: B, ID: 0}|(1:0)-{_LABEL: LOOP, _ID: 2:0}->(0:0)|{_ID: 0:0, _LABEL: A, ID: 0}
+{_ID: 1:0, _LABEL: B, ID: 0}|(0:0)-{_LABEL: LOOP, _ID: 2:0}->(1:0)|{_ID: 0:0, _LABEL: A, ID: 0}
 
 # Get two related nodes
 #-CASE Scenario4 

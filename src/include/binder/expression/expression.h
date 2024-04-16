@@ -92,12 +92,12 @@ public:
     }
 
     template<class TARGET>
-    const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const Expression*, const TARGET*>(this);
-    }
-    template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const Expression&, const TARGET&>(*this);
+    }
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const Expression*, const TARGET*>(this);
     }
 
 protected:

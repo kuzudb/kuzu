@@ -297,6 +297,18 @@ getBoundAndNbrNodes(const RelExpression& rel, ExtendDirection direction) {
     return make_pair(boundNode, dstNode);
 }
 
+static ExtendDirection getExtendDirection(const binder::RelExpression& relExpression,
+    const binder::NodeExpression& boundNode) {
+    if (relExpression.getDirectionType() == binder::RelDirectionType::BOTH) {
+        return ExtendDirection::BOTH;
+    }
+    if (relExpression.getSrcNodeName() == boundNode.getUniqueName()) {
+        return ExtendDirection::FWD;
+    } else {
+        return ExtendDirection::BWD;
+    }
+}
+
 void Planner::planRelScan(uint32_t relPos) {
     const auto rel = context.queryGraph->getQueryRel(relPos);
     auto newSubgraph = context.getEmptySubqueryGraph();
@@ -308,7 +320,7 @@ void Planner::planRelScan(uint32_t relPos) {
     for (const auto direction : {ExtendDirection::FWD, ExtendDirection::BWD}) {
         auto plan = std::make_unique<LogicalPlan>();
         auto [boundNode, nbrNode] = getBoundAndNbrNodes(*rel, direction);
-        const auto extendDirection = ExtendDirectionUtils::getExtendDirection(*rel, *boundNode);
+        const auto extendDirection = getExtendDirection(*rel, *boundNode);
         appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, *plan);
         appendExtendAndFilter(boundNode, nbrNode, rel, extendDirection, predicates, *plan);
         context.addPlan(newSubgraph, std::move(plan));
@@ -528,7 +540,7 @@ bool Planner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph&
     const auto& boundNode = joinNodes[0];
     auto nbrNode =
         boundNode->getUniqueName() == rel->getSrcNodeName() ? rel->getDstNode() : rel->getSrcNode();
-    auto extendDirection = ExtendDirectionUtils::getExtendDirection(*rel, *boundNode);
+    auto extendDirection = getExtendDirection(*rel, *boundNode);
     auto newSubgraph = subgraph;
     newSubgraph.addQueryRel(relPos);
     auto predicates =

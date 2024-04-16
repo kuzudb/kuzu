@@ -2,17 +2,13 @@
 
 #include "binder/bound_statement.h"
 #include "binder/query/query_graph.h"
+#include "common/enums/extend_direction.h"
 #include "common/enums/join_type.h"
 #include "planner/join_order/cardinality_estimator.h"
 #include "planner/join_order_enumerator_context.h"
-#include "planner/operator/extend/extend_direction.h"
 #include "planner/operator/logical_plan.h"
 
 namespace kuzu {
-namespace catalog {
-class Catalog;
-}
-
 namespace binder {
 struct BoundFileScanInfo;
 struct BoundCopyFromInfo;
@@ -158,7 +154,7 @@ private:
     void planRelScan(uint32_t relPos);
     void appendExtendAndFilter(const std::shared_ptr<binder::NodeExpression>& boundNode,
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
-        const std::shared_ptr<binder::RelExpression>& rel, ExtendDirection direction,
+        const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
         const binder::expression_vector& predicates, LogicalPlan& plan);
 
     // Plan dp level
@@ -217,20 +213,21 @@ private:
     // Append extend operators
     void appendNonRecursiveExtend(const std::shared_ptr<binder::NodeExpression>& boundNode,
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
-        const std::shared_ptr<binder::RelExpression>& rel, ExtendDirection direction,
+        const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
         const binder::expression_vector& properties, LogicalPlan& plan);
     void appendRecursiveExtend(const std::shared_ptr<binder::NodeExpression>& boundNode,
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
-        const std::shared_ptr<binder::RelExpression>& rel, ExtendDirection direction,
+        const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
         LogicalPlan& plan);
-    void createRecursivePlan(const binder::RecursiveInfo& recursiveInfo, ExtendDirection direction,
-        LogicalPlan& plan);
+    void createRecursivePlan(const binder::RecursiveInfo& recursiveInfo,
+        common::ExtendDirection direction, LogicalPlan& plan);
     void createPathNodePropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& node,
         const binder::expression_vector& properties, LogicalPlan& plan);
     void createPathRelPropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& boundNode,
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
-        const std::shared_ptr<binder::RelExpression>& recursiveRel, ExtendDirection direction,
-        const binder::expression_vector& properties, LogicalPlan& plan);
+        const std::shared_ptr<binder::RelExpression>& recursiveRel,
+        common::ExtendDirection direction, const binder::expression_vector& properties,
+        LogicalPlan& plan);
     void appendNodeLabelFilter(std::shared_ptr<binder::Expression> nodeID,
         std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan);
 

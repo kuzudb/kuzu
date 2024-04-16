@@ -176,7 +176,7 @@ void PathScanner::writePathToVector(RecursiveJoinVectors* vectors, sel_t& vector
 }
 
 void DstNodeWithMultiplicityScanner::scanFromDstOffset(RecursiveJoinVectors* vectors,
-    sel_t& vectorPos, sel_t& /*nodeIDDataVectorPos*/, sel_t& /*relIDDataVectorPos*/) {
+    sel_t& vectorPos, sel_t&, sel_t&) {
     auto& multiplicity = frontiers[k]->nodeIDToMultiplicity.at(currentDstNodeID);
     while (multiplicity > 0 && vectorPos < DEFAULT_VECTOR_CAPACITY) {
         writeDstNodeOffsetAndLength(vectors->dstNodeIDVector, vectors->pathLengthVector, vectorPos);

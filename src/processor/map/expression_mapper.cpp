@@ -12,8 +12,8 @@
 #include "expression_evaluator/case_evaluator.h"
 #include "expression_evaluator/function_evaluator.h"
 #include "expression_evaluator/literal_evaluator.h"
-#include "expression_evaluator/node_rel_evaluator.h"
 #include "expression_evaluator/path_evaluator.h"
+#include "expression_evaluator/pattern_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
 #include "planner/operator/schema.h"
 
@@ -139,7 +139,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getFunctionEvaluator(
 
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getNodeEvaluator(
     std::shared_ptr<Expression> expression, const Schema* schema) {
-    auto node = (NodeExpression*)expression.get();
+    auto node = expression->constPtrCast<NodeExpression>();
     expression_vector children;
     children.push_back(node->getInternalID());
     children.push_back(node->getLabelExpression());
@@ -147,13 +147,13 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getNodeEvaluator(
         children.push_back(property);
     }
     auto childrenEvaluators = getEvaluators(children, schema);
-    return std::make_unique<NodeRelExpressionEvaluator>(std::move(expression),
+    return std::make_unique<PatternExpressionEvaluator>(std::move(expression),
         std::move(childrenEvaluators));
 }
 
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getRelEvaluator(
     std::shared_ptr<Expression> expression, const Schema* schema) {
-    auto rel = (RelExpression*)expression.get();
+    auto rel = expression->constPtrCast<RelExpression>();
     expression_vector children;
     children.push_back(rel->getSrcNode()->getInternalID());
     children.push_back(rel->getDstNode()->getInternalID());
@@ -162,7 +162,12 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getRelEvaluator(
         children.push_back(property);
     }
     auto childrenEvaluators = getEvaluators(children, schema);
-    return std::make_unique<NodeRelExpressionEvaluator>(std::move(expression),
+    if (rel->hasDirectionExpr()) {
+        auto directionEvaluator = getEvaluator(rel->getDirectionExpr(), schema);
+        return std::make_unique<UndirectedRelExpressionEvaluator>(std::move(expression),
+            std::move(childrenEvaluators), std::move(directionEvaluator));
+    }
+    return std::make_unique<PatternExpressionEvaluator>(std::move(expression),
         std::move(childrenEvaluators));
 }
 
