@@ -98,10 +98,10 @@ False
 ---- 1
 False
 
--STATEMENT RETURN ['a'] = [1] AS result;
+-STATEMENT RETURN ['1.0'] = [1.0] AS result;
 ## Outcome: the result should be, in any order:
 ---- 1
-False
+True
 
 #  Comparing maps to maps
 -CASE Scenario7
@@ -135,19 +135,16 @@ True
 True
 
 -STATEMENT RETURN {k: 1} = {k: 1, l: null} AS result;
-## Outcome: the result should be, in any order:
----- 1
-False
+---- error
+Binder exception: Type Mismatch: Cannot compare types STRUCT(k INT64) and STRUCT(k INT64, l STRING)
 
 -STATEMENT RETURN {k: null, l: 1} = {l: 1} AS result;
-## Outcome: the result should be, in any order:
----- 1
-False
+---- error
+Binder exception: Type Mismatch: Cannot compare types STRUCT(k STRING, l INT64) and STRUCT(l INT64)
 
 -STATEMENT RETURN {k: null} = {k: null, l: null} AS result;
-## Outcome: the result should be, in any order:
----- 1
-False
+---- error
+Binder exception: Type Mismatch: Cannot compare types STRUCT(k STRING) and STRUCT(k STRING, l STRING)
 
 -STATEMENT RETURN {k: null} = {k: null} AS result;
 ## Outcome: the result should be, in any order:

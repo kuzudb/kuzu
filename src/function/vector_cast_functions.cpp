@@ -106,11 +106,83 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
         reinterpret_cast<CastFunctionBindData*>(dataPtr));
 }
 
-bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {
-    // TODO(Jiamin): should remove after support list implicit cast
-    if (srcType.getLogicalTypeID() == LogicalTypeID::LIST &&
-        dstType.getLogicalTypeID() == LogicalTypeID::LIST) {
+static bool hasImplicitCastList(const LogicalType& srcType, const LogicalType& dstType) {
+    return CastFunction::hasImplicitCast(*ListType::getChildType(&srcType),
+        *ListType::getChildType(&dstType));
+}
+
+static bool hasImplicitCastArray(const LogicalType& srcType, const LogicalType& dstType) {
+    if (ArrayType::getNumElements(&srcType) != ArrayType::getNumElements(&dstType)) {
         return false;
+    }
+    return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType),
+        *ArrayType::getChildType(&dstType));
+}
+
+static bool hasImplicitCastArrayToList(const LogicalType& srcType, const LogicalType& dstType) {
+    return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType),
+        *ListType::getChildType(&dstType));
+}
+
+static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType& dstType) {
+    auto srcFields = StructType::getFields(&srcType), dstFields = StructType::getFields(&dstType);
+    if (srcFields.size() != dstFields.size()) {
+        return false;
+    }
+    for (auto i = 0u; i < srcFields.size(); i++) {
+        if (srcFields[i]->getName() != dstFields[i]->getName()) {
+            return false;
+        }
+        if (!CastFunction::hasImplicitCast(*srcFields[i]->getType(), *dstFields[i]->getType())) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool hasImplicitCastUnion(const LogicalType& /*srcType*/, const LogicalType& /*dstType*/) {
+    // todo: implement union casting function
+    // currently, there seems to be no casting functionality between union types
+    return false;
+}
+
+static bool hasImplicitCastMap(const LogicalType& srcType, const LogicalType& dstType) {
+    auto srcKeyType = *MapType::getKeyType(&srcType);
+    auto srcValueType = *MapType::getValueType(&srcType);
+    auto dstKeyType = *MapType::getKeyType(&dstType);
+    auto dstValueType = *MapType::getValueType(&dstType);
+    return CastFunction::hasImplicitCast(srcKeyType, dstKeyType) &&
+           CastFunction::hasImplicitCast(srcValueType, dstValueType);
+}
+
+bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {
+    if ((LogicalTypeUtils::isNested(srcType) &&
+            srcType.getLogicalTypeID() != LogicalTypeID::RDF_VARIANT) &&
+        (LogicalTypeUtils::isNested(dstType) &&
+            dstType.getLogicalTypeID() != LogicalTypeID::RDF_VARIANT)) {
+        if (srcType.getLogicalTypeID() == LogicalTypeID::ARRAY &&
+            dstType.getLogicalTypeID() == LogicalTypeID::LIST) {
+            return hasImplicitCastArrayToList(srcType, dstType);
+        }
+        if (srcType.getLogicalTypeID() != dstType.getLogicalTypeID()) {
+            return false;
+        }
+        switch (srcType.getLogicalTypeID()) {
+        case LogicalTypeID::LIST:
+            return hasImplicitCastList(srcType, dstType);
+        case LogicalTypeID::ARRAY:
+            return hasImplicitCastArray(srcType, dstType);
+        case LogicalTypeID::STRUCT:
+            return hasImplicitCastStruct(srcType, dstType);
+        case LogicalTypeID::UNION:
+            return hasImplicitCastUnion(srcType, dstType);
+        case LogicalTypeID::MAP:
+            return hasImplicitCastMap(srcType, dstType);
+        default:
+            // LCOV_EXCL_START
+            KU_UNREACHABLE;
+            // LCOV_EXCL_END
+        }
     }
     if (BuiltInFunctionsUtils::getCastCost(srcType.getLogicalTypeID(),
             dstType.getLogicalTypeID()) != UNDEFINED_CAST_COST) {
@@ -960,8 +1032,7 @@ static std::unique_ptr<FunctionBindData> castBindFunc(const binder::expression_v
     KU_ASSERT(arguments.size() == 2);
     // Bind target type.
     if (arguments[1]->expressionType != ExpressionType::LITERAL) {
-        throw BinderException(
-            stringFormat("Second parameter of CAST function must be an literal."));
+        throw BinderException(stringFormat("Second parameter of CAST function must be a literal."));
     }
     auto literalExpr = ku_dynamic_cast<Expression*, LiteralExpression*>(arguments[1].get());
     auto targetTypeStr = literalExpr->getValue()->getValue<std::string>();

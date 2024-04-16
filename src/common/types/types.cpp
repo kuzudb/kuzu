@@ -3,6 +3,7 @@
 #include "common/cast.h"
 #include "common/constants.h"
 #include "common/exception/binder.h"
+#include "common/exception/conversion.h"
 #include "common/exception/not_implemented.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
@@ -12,6 +13,9 @@
 #include "common/types/interval_t.h"
 #include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
+#include "function/built_in_function_utils.h"
+
+using kuzu::function::BuiltInFunctionsUtils;
 
 namespace kuzu {
 namespace common {
@@ -755,8 +759,74 @@ uint32_t LogicalTypeUtils::getRowLayoutSize(const LogicalType& type) {
     }
 }
 
+bool LogicalTypeUtils::isDate(const LogicalType& dataType) {
+    return isDate(dataType.typeID);
+}
+
+bool LogicalTypeUtils::isDate(const LogicalTypeID& dataType) {
+    return dataType == LogicalTypeID::DATE;
+}
+
+bool LogicalTypeUtils::isTimestamp(const LogicalType& dataType) {
+    return isTimestamp(dataType.typeID);
+}
+
+bool LogicalTypeUtils::isTimestamp(const LogicalTypeID& dataType) {
+    switch (dataType) {
+    case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::TIMESTAMP_SEC:
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_NS:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool LogicalTypeUtils::isUnsigned(const LogicalType& dataType) {
+    return isUnsigned(dataType.typeID);
+}
+
+bool LogicalTypeUtils::isUnsigned(const LogicalTypeID& dataType) {
+    switch (dataType) {
+    case LogicalTypeID::UINT64:
+    case LogicalTypeID::UINT32:
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::UINT8:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool LogicalTypeUtils::isIntegral(const LogicalType& dataType) {
+    return isIntegral(dataType.typeID);
+}
+
+bool LogicalTypeUtils::isIntegral(const LogicalTypeID& dataType) {
+    switch (dataType) {
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::INT32:
+    case LogicalTypeID::INT16:
+    case LogicalTypeID::INT8:
+    case LogicalTypeID::UINT64:
+    case LogicalTypeID::UINT32:
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::UINT8:
+    case LogicalTypeID::INT128:
+    case LogicalTypeID::SERIAL:
+        return true;
+    default:
+        return false;
+    }
+}
+
 bool LogicalTypeUtils::isNumerical(const LogicalType& dataType) {
-    switch (dataType.typeID) {
+    return isNumerical(dataType.typeID);
+}
+
+bool LogicalTypeUtils::isNumerical(const LogicalTypeID& dataType) {
+    switch (dataType) {
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT16:
@@ -975,5 +1045,325 @@ std::unique_ptr<LogicalType> LogicalType::ARRAY(std::unique_ptr<LogicalType> chi
         std::make_unique<ArrayTypeInfo>(std::move(childType), numElements)));
 }
 
+// If we can combine the child types, then we can combine the list
+static bool tryCombineListTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    LogicalType childType;
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ListType::getChildType(&left),
+            *ListType::getChildType(&right), childType)) {
+        return false;
+    }
+    result = *LogicalType::LIST(childType);
+    return true;
+}
+
+static bool tryCombineArrayTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    if (ArrayType::getNumElements(&left) != ArrayType::getNumElements(&right)) {
+        return tryCombineListTypes(left, right, result);
+    }
+    LogicalType childType;
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ArrayType::getChildType(&left),
+            *ArrayType::getChildType(&right), childType)) {
+        return false;
+    }
+    result = *LogicalType::ARRAY(childType, ArrayType::getNumElements(&left));
+    return true;
+}
+
+// If we can match child labels and combine their types, then we can combine
+// the struct
+static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    auto leftFields = StructType::getFields(&left), rightFields = StructType::getFields(&right);
+    if (leftFields.size() != rightFields.size()) {
+        return false;
+    }
+    std::vector<StructField> newFields;
+    for (auto i = 0u; i < leftFields.size(); i++) {
+        if (leftFields[i]->getName() != rightFields[i]->getName()) {
+            return false;
+        }
+        LogicalType combinedType;
+        if (LogicalTypeUtils::tryGetMaxLogicalType(*leftFields[i]->getType(),
+                *rightFields[i]->getType(), combinedType)) {
+            newFields.push_back(
+                StructField(leftFields[i]->getName(), std::make_unique<LogicalType>(combinedType)));
+        } else {
+            return false;
+        }
+    }
+    result = *LogicalType::STRUCT(std::move(newFields));
+    return true;
+}
+
+// If we can combine the key and value, then we cna combine the map
+static bool tryCombineMapTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    auto leftKeyType = *MapType::getKeyType(&left);
+    auto leftValueType = *MapType::getValueType(&left);
+    auto rightKeyType = *MapType::getKeyType(&right);
+    auto rightValueType = *MapType::getValueType(&right);
+    LogicalType resultKeyType, resultValueType;
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(leftKeyType, rightKeyType, resultKeyType) ||
+        !LogicalTypeUtils::tryGetMaxLogicalType(leftValueType, rightValueType, resultValueType)) {
+        return false;
+    }
+    result = *LogicalType::MAP(std::make_unique<LogicalType>(resultKeyType),
+        std::make_unique<LogicalType>(resultValueType));
+    return true;
+}
+
+/*
+// If one of the unions labels is a subset of the other labels, and we can
+// combine corresponding labels, then we can combine the union
+static bool tryCombineUnionTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    auto leftFields = StructType::getFields(&left), rightFields = StructType::getFields(&right);
+    if (leftFields.size() > rightFields.size()) {
+        std::swap(leftFields, rightFields);
+    }
+    std::vector<StructField> newFields;
+    for (auto i = 1u, j = 1u; i < leftFields.size(); i++) {
+        while (j < rightFields.size() && leftFields[i]->getName() != rightFields[j]->getName()) {
+            j++;
+        }
+        if (j == rightFields.size()) {
+            return false;
+        }
+        LogicalType combinedType;
+        if (!LogicalTypeUtils::tryGetMaxLogicalType(*leftFields[i]->getType(),
+                *rightFields[j]->getType(), combinedType)) {
+            newFields.push_back(
+                StructField(leftFields[i]->getName(), std::make_unique<LogicalType>(combinedType)));
+        }
+    }
+    result = *LogicalType::UNION(std::move(newFields));
+    return true;
+}
+*/
+
+static LogicalTypeID joinToWiderType(const LogicalTypeID& left, const LogicalTypeID& right) {
+    KU_ASSERT(LogicalTypeUtils::isIntegral(left));
+    KU_ASSERT(LogicalTypeUtils::isIntegral(right));
+    if (PhysicalTypeUtils::getFixedTypeSize(LogicalType::getPhysicalType(left)) >
+        PhysicalTypeUtils::getFixedTypeSize(LogicalType::getPhysicalType(right))) {
+        return left;
+    } else {
+        return right;
+    }
+}
+
+static bool tryUnsignedToSigned(const LogicalTypeID& input, LogicalTypeID& result) {
+    switch (input) {
+    case LogicalTypeID::UINT8:
+        result = LogicalTypeID::INT16;
+        break;
+    case LogicalTypeID::UINT16:
+        result = LogicalTypeID::INT32;
+        break;
+    case LogicalTypeID::UINT32:
+        result = LogicalTypeID::INT64;
+        break;
+    case LogicalTypeID::UINT64:
+        result = LogicalTypeID::INT128;
+        break;
+    default:
+        return false;
+    }
+    return true;
+}
+
+static LogicalTypeID joinDifferentSignIntegrals(const LogicalTypeID& signedType,
+    const LogicalTypeID& unsignedType) {
+    LogicalTypeID unsignedToSigned;
+    if (!tryUnsignedToSigned(unsignedType, unsignedToSigned)) {
+        return LogicalTypeID::DOUBLE;
+    } else {
+        return joinToWiderType(signedType, unsignedToSigned);
+    }
+}
+
+static uint32_t internalTypeOrder(const LogicalTypeID& type) {
+    switch (type) {
+    case LogicalTypeID::ANY:
+    case LogicalTypeID::RDF_VARIANT:
+        return 0;
+    case LogicalTypeID::BOOL:
+        return 10;
+    case LogicalTypeID::UINT8:
+        return 11;
+    case LogicalTypeID::INT8:
+        return 12;
+    case LogicalTypeID::UINT16:
+        return 13;
+    case LogicalTypeID::INT16:
+        return 14;
+    case LogicalTypeID::UINT32:
+        return 15;
+    case LogicalTypeID::INT32:
+        return 16;
+    case LogicalTypeID::UINT64:
+        return 17;
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::SERIAL:
+        return 18;
+    case LogicalTypeID::INT128:
+        return 20;
+    case LogicalTypeID::FLOAT:
+        return 22;
+    case LogicalTypeID::DOUBLE:
+        return 23;
+    case LogicalTypeID::DATE:
+        return 50;
+    case LogicalTypeID::TIMESTAMP_SEC:
+        return 51;
+    case LogicalTypeID::TIMESTAMP_MS:
+        return 52;
+    case LogicalTypeID::TIMESTAMP:
+        return 53;
+    case LogicalTypeID::TIMESTAMP_TZ:
+        return 54;
+    case LogicalTypeID::TIMESTAMP_NS:
+        return 55;
+    case LogicalTypeID::INTERVAL:
+        return 56;
+    case LogicalTypeID::STRING:
+        return 77;
+    case LogicalTypeID::BLOB:
+        return 101;
+    case LogicalTypeID::UUID:
+        return 102;
+    case LogicalTypeID::STRUCT:
+        return 125;
+    case LogicalTypeID::LIST:
+    case LogicalTypeID::ARRAY:
+        return 126;
+    case LogicalTypeID::MAP:
+        return 130;
+    case LogicalTypeID::UNION:
+        return 150;
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::POINTER:
+    case LogicalTypeID::INTERNAL_ID:
+        return 1000;
+    default:
+        // LCOV_EXCL_START
+        KU_UNREACHABLE;
+        // LCOV_EXCL_END
+    }
+}
+
+bool canAlwaysCast(const LogicalTypeID& typeID) {
+    switch (typeID) {
+    case LogicalTypeID::ANY:
+    case LogicalTypeID::STRING:
+    case LogicalTypeID::RDF_VARIANT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right,
+    LogicalTypeID& result) {
+    if (left == right || canAlwaysCast(left)) {
+        result = right;
+        return true;
+    }
+    if (canAlwaysCast(right)) {
+        result = left;
+        return true;
+    }
+    auto leftToRight = BuiltInFunctionsUtils::getCastCost(left, right);
+    auto rightToLeft = BuiltInFunctionsUtils::getCastCost(right, left);
+    if (leftToRight != UNDEFINED_CAST_COST || rightToLeft != UNDEFINED_CAST_COST) {
+        if (leftToRight < rightToLeft) {
+            result = right;
+        } else {
+            result = left;
+        }
+        return true;
+    }
+    if (isIntegral(left) && isIntegral(right)) {
+        if (isUnsigned(left) && !isUnsigned(right)) {
+            result = joinDifferentSignIntegrals(right, left);
+            return true;
+        } else if (isUnsigned(right) && !isUnsigned(left)) {
+            result = joinDifferentSignIntegrals(left, right);
+            return true;
+        }
+    }
+    auto leftPlacement = internalTypeOrder(left);
+    auto rightPlacement = internalTypeOrder(right);
+    if (leftPlacement > rightPlacement) {
+        result = left;
+        return true;
+    }
+    result = right;
+    return true;
+}
+
+bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    if (left == right || canAlwaysCast(left.typeID)) {
+        result = right;
+        return true;
+    }
+    if (canAlwaysCast(right.typeID)) {
+        result = left;
+        return true;
+    }
+    if ((isNested(left) && left.typeID != LogicalTypeID::RDF_VARIANT) &&
+        (isNested(right) && right.typeID != LogicalTypeID::RDF_VARIANT)) {
+        if (left.typeID != right.typeID) {
+            return false;
+        }
+        switch (left.typeID) {
+        case LogicalTypeID::LIST:
+            return tryCombineListTypes(left, right, result);
+        case LogicalTypeID::ARRAY:
+            return tryCombineArrayTypes(left, right, result);
+        case LogicalTypeID::STRUCT:
+            return tryCombineStructTypes(left, right, result);
+        case LogicalTypeID::MAP:
+            return tryCombineMapTypes(left, right, result);
+        // LCOV_EXCL_START
+        case LogicalTypeID::UNION:
+            throw ConversionException("Union casting is not supported");
+            // return tryCombineUnionTypes(left, right, result);
+        default:
+            KU_UNREACHABLE;
+            // LCOV_EXCL_END
+        }
+    }
+    LogicalTypeID resultID;
+    if (!tryGetMaxLogicalTypeID(left.typeID, right.typeID, resultID)) {
+        return false;
+    }
+    result = LogicalType(resultID);
+    return true;
+}
+
+LogicalTypeID LogicalTypeUtils::getMaxLogicalTypeID(const LogicalTypeID& left,
+    const LogicalTypeID& right) {
+    LogicalTypeID result;
+    if (!tryGetMaxLogicalTypeID(left, right, result)) {
+        throw common::BinderException(stringFormat("Cannot combine logical types {} and {}",
+            toString(left), toString(right)));
+    }
+    return result;
+}
+
+LogicalType LogicalTypeUtils::getMaxLogicalType(const LogicalType& left, const LogicalType& right) {
+    LogicalType result;
+    if (!tryGetMaxLogicalType(left, right, result)) {
+        throw common::BinderException(stringFormat("Cannot combine logical types {} and {}",
+            left.toString(), right.toString()));
+    }
+    return result;
+}
 } // namespace common
 } // namespace kuzu
