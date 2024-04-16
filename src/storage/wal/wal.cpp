@@ -2,11 +2,13 @@
 
 #include <fcntl.h>
 
+#include "common/exception/io.h"
 #include "common/file_system/file_info.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "spdlog/spdlog.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
@@ -31,7 +33,11 @@ WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManag
 }
 
 WAL::~WAL() {
-    flushAllPages();
+    try {
+        flushAllPages();
+    } catch (IOException& e) {
+        spdlog::error("Failed to flush WAL: {}", e.what());
+    }
 }
 
 page_idx_t WAL::logPageUpdateRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
