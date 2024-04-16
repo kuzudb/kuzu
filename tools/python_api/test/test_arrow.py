@@ -581,10 +581,10 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
         print(arrow_tbl)
         
 
-    #_test_node(conn)
-    #_test_node_rel(conn)
+    _test_node(conn)
+    _test_node_rel(conn)
     _test_marries_table(conn)
-    #_test_recursive_rel(conn)
+    _test_recursive_rel(conn)
 
     def test_to_arrow1(conn: kuzu.Connection) -> None:
         query = "MATCH (a:person)-[e:knows]->(:person) RETURN e.summary"

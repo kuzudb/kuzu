@@ -12,7 +12,7 @@
 namespace kuzu {
 namespace common {
 
-static void reserveVector(ArrowVector* vector, const LogicalType& type, int64_t capacity);
+static void resizeVector(ArrowVector* vector, const LogicalType& type, int64_t capacity);
 
 ArrowRowBatch::ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity)
     : types{std::move(types)}, numTuples{0} {
@@ -20,7 +20,7 @@ ArrowRowBatch::ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capaci
     vectors.resize(numVectors);
     for (auto i = 0u; i < numVectors; i++) {
         vectors[i] = std::make_unique<ArrowVector>();
-        reserveVector(vectors[i].get(), this->types[i], capacity);
+        resizeVector(vectors[i].get(), this->types[i], capacity);
     }
 }
 
@@ -73,33 +73,33 @@ static uint64_t getArrowMainBufferSize(LogicalTypeID type, uint64_t capacity) {
     }
 }
 
-static void reserveValidityBuffer(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+static void resizeValidityBuffer(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
     vector->validity.resize(getNumBytesForBits(capacity), 0xFF);
 }
 
-static void reserveMainBuffer(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
-    vector->data.reserve(getArrowMainBufferSize(type.getLogicalTypeID(), capacity));
+static void resizeMainBuffer(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+    vector->data.resize(getArrowMainBufferSize(type.getLogicalTypeID(), capacity));
 }
 
-static void reserveBLOBOverflow(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
-    vector->overflow.reserve(capacity);
+static void resizeBLOBOverflow(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+    vector->overflow.resize(capacity);
 }
 
-static void reserveUnionOverflow(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
-    vector->overflow.reserve(capacity * sizeof(int32_t));
+static void resizeUnionOverflow(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+    vector->overflow.resize(capacity * sizeof(int32_t));
 }
 
-static void reserveChildVectors(ArrowVector* vector, const std::vector<LogicalType*> childTypes,
+static void resizeChildVectors(ArrowVector* vector, const std::vector<LogicalType*> childTypes,
     int64_t childCapacity) {
     for (auto i = 0u; i < childTypes.size(); i++) {
         if (i >= vector->childData.size()) {
             vector->childData.push_back(std::make_unique<ArrowVector>());
         }
-        reserveVector(vector->childData[i].get(), *childTypes[i], childCapacity);
+        resizeVector(vector->childData[i].get(), *childTypes[i], childCapacity);
     }
 }
 
-static void reserveGeneric(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+static void resizeGeneric(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
     if (vector->capacity >= capacity) {
         return;
     }
@@ -110,34 +110,34 @@ static void reserveGeneric(ArrowVector* vector, const LogicalType& type, int64_t
             vector->capacity *= 2;
         }
     }
-    reserveValidityBuffer(vector, type, vector->capacity);
-    reserveMainBuffer(vector, type, vector->capacity);
+    resizeValidityBuffer(vector, type, vector->capacity);
+    resizeMainBuffer(vector, type, vector->capacity);
 }
 
-static void reserveBLOBVector(ArrowVector* vector, const LogicalType& type,
+static void resizeBLOBVector(ArrowVector* vector, const LogicalType& type,
     int64_t capacity, int64_t overflowCapacity) {
-    reserveGeneric(vector, type, capacity);
-    reserveBLOBOverflow(vector, type, overflowCapacity);
+    resizeGeneric(vector, type, capacity);
+    resizeBLOBOverflow(vector, type, overflowCapacity);
 }
 
-static void reserveFixedListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
-    reserveGeneric(vector, type, capacity);
-    reserveChildVectors(vector, {ArrayType::getChildType(&type)}, 
+static void resizeFixedListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+    resizeGeneric(vector, type, capacity);
+    resizeChildVectors(vector, {ArrayType::getChildType(&type)}, 
         vector->capacity * ArrayType::getNumElements(&type));
 }
 
-static void reserveListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
+static void resizeListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
     int64_t childCapacity) {
-    reserveGeneric(vector, type, capacity);
-    reserveChildVectors(vector, {ListType::getChildType(&type)}, childCapacity);
+    resizeGeneric(vector, type, capacity);
+    resizeChildVectors(vector, {ListType::getChildType(&type)}, childCapacity);
 }
 
-static void reserveStructVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
-    reserveGeneric(vector, type, capacity);   
-    reserveChildVectors(vector, StructType::getFieldTypes(&type), vector->capacity);
+static void resizeStructVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+    resizeGeneric(vector, type, capacity);   
+    resizeChildVectors(vector, StructType::getFieldTypes(&type), vector->capacity);
 }
 
-static void reserveUnionVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
     if (vector->capacity < capacity) {
         while (vector->capacity < capacity) {
             if (vector->capacity == 0) {
@@ -146,23 +146,23 @@ static void reserveUnionVector(ArrowVector* vector, const LogicalType& type, int
                 vector->capacity *= 2;
             }
         }
-        reserveMainBuffer(vector, type, vector->capacity);
+        resizeMainBuffer(vector, type, vector->capacity);
     }
-    reserveUnionOverflow(vector, type, vector->capacity);
+    resizeUnionOverflow(vector, type, vector->capacity);
     std::vector<LogicalType*> childTypes;
     for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
         childTypes.push_back(UnionType::getFieldType(&type, i));
     }
-    reserveChildVectors(vector, childTypes, vector->capacity);
+    resizeChildVectors(vector, childTypes, vector->capacity);
 }
 
-static void reserveInternalIDVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
-    reserveGeneric(vector, type, capacity);
+static void resizeInternalIDVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+    resizeGeneric(vector, type, capacity);
     auto childType = LogicalType::INT64();
-    reserveChildVectors(vector, {childType.get(), childType.get()}, vector->capacity);
+    resizeChildVectors(vector, {childType.get(), childType.get()}, vector->capacity);
 }
 
-static void reserveVector(ArrowVector* vector, const LogicalType& type, std::int64_t capacity) {
+static void resizeVector(ArrowVector* vector, const LogicalType& type, std::int64_t capacity) {
     auto result = std::make_unique<ArrowVector>();
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
@@ -185,25 +185,25 @@ static void reserveVector(ArrowVector* vector, const LogicalType& type, std::int
     case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::INTERVAL:
-        return reserveGeneric(vector, type, capacity);
+        return resizeGeneric(vector, type, capacity);
     case LogicalTypeID::BLOB:
     case LogicalTypeID::UUID:
     case LogicalTypeID::STRING:
-        return reserveBLOBVector(vector, type, capacity, capacity);
+        return resizeBLOBVector(vector, type, capacity, capacity);
     case LogicalTypeID::LIST:
     case LogicalTypeID::MAP:
-        return reserveListVector(vector, type, capacity, capacity);
+        return resizeListVector(vector, type, capacity, capacity);
     case LogicalTypeID::ARRAY:
-        return reserveFixedListVector(vector, type, capacity);
+        return resizeFixedListVector(vector, type, capacity);
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::STRUCT:
-        return reserveStructVector(vector, type, capacity);
+        return resizeStructVector(vector, type, capacity);
     case LogicalTypeID::UNION:
-        return reserveUnionVector(vector, type, capacity);
+        return resizeUnionVector(vector, type, capacity);
     case LogicalTypeID::INTERNAL_ID:
-        return reserveInternalIDVector(vector, type, capacity);
+        return resizeInternalIDVector(vector, type, capacity);
     default: {
         // LCOV_EXCL_START
         throw common::RuntimeException{
@@ -274,7 +274,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRING>(ArrowVector*
         offsets[pos] = 0;
     }
     offsets[pos + 1] = offsets[pos] + strLength;
-    vector->overflow.resize(offsets[pos + 1]);
+    vector->overflow.resize(offsets[pos + 1] + 1);
     std::memcpy(vector->overflow.data() + offsets[pos], value->strVal.data(), strLength);
 }
 
@@ -301,7 +301,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::LIST>(ArrowVector* v
         offsets[pos] = 0;
     }
     offsets[pos + 1] = offsets[pos] + numElements;
-    reserveChildVectors(vector, {ListType::getChildType(&type)}, offsets[pos+1]+1);
+    resizeChildVectors(vector, {ListType::getChildType(&type)}, offsets[pos+1]+1);
     for (auto i = 0u; i < numElements; i++) {
         appendValue(vector->childData[0].get(), *ListType::getChildType(&type),
             value->children[i].get());
@@ -507,6 +507,9 @@ template<>
 void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::STRING>(ArrowVector* vector,
     std::int64_t pos) {
     auto offsets = (std::uint32_t*)vector->data.data();
+    if (pos == 0) {
+        offsets[pos] = 0;
+    }
     offsets[pos + 1] = offsets[pos];
     setBitToZero(vector->validity.data(), pos);
     vector->numNulls++;
@@ -516,6 +519,9 @@ template<>
 void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::LIST>(ArrowVector* vector,
     std::int64_t pos) {
     auto offsets = (std::uint32_t*)vector->data.data();
+    if (pos == 0) {
+        offsets[pos] = 0;
+    }
     offsets[pos + 1] = offsets[pos];
     setBitToZero(vector->validity.data(), pos);
     vector->numNulls++;
