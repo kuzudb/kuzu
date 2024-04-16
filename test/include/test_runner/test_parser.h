@@ -90,6 +90,7 @@ private:
 
     void openFile();
     void tokenize();
+    std::vector<std::string> splitString();
     void parseHeader();
     void parseBody();
     void extractExpectedResult(TestStatement* statement);

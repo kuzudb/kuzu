@@ -1,0 +1,172 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE StringFunctionUTF8
+-LOG StrAddOperation
+-STATEMENT MATCH (a:movies) RETURN a.name + "suffix"
+---- 3
+Sóló cón tu párejâsuffix
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 moviesuffix
+Romasuffix
+
+-LOG StrAdd
+-STATEMENT return string("The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movies") + string("成績評価の甘い授業が高く評価");
+---- 1
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movies成績評価の甘い授業が高く評価
+
+-LOG StrConcat
+-STATEMENT return concat(string("The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movies"),string("成績評価の甘い授業が高く評価"));
+---- 1
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movies成績評価の甘い授業が高く評価
+
+-LOG StrEndsWith
+-STATEMENT return ends_with(string("The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movies"),string("🍞🚗 movies"));
+---- 1
+True
+-STATEMENT return ends_with(string("The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movies"),string("成績評価の甘い授業が高く評価"));
+---- 1
+False
+
+-LOG StrLower
+-STATEMENT MATCH (m:movies) RETURN lower(m.name)
+---- 3
+sóló cón tu párejâ
+the 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+roma
+
+-LOG StrLcase
+-STATEMENT MATCH (m:movies) RETURN lcase(m.name)
+---- 3
+sóló cón tu párejâ
+the 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+roma
+
+-LOG StrLeft
+-STATEMENT MATCH (m:movies) RETURN left(m.name, 6)
+---- 3
+Sóló c
+The 😂😃
+Roma
+
+-LOG StrLevenshtein
+-STATEMENT return levenshtein('成績評価の甘い授業が高く評価', '成績評価の甘い授業が高く‍');
+---- 1
+6
+
+-LOG StrSize
+-STATEMENT return size('abc');
+---- 1
+3
+-STATEMENT return size('成績評価の甘い授業が高く評価');
+---- 1
+14
+
+-LOG StrLpad
+-STATEMENT RETURN lpad(string('成績評価'), 10, "<")
+---- 1
+<<<<<<成績評価
+
+-LOG strReverse
+-STATEMENT RETURN reverse('成績評価の甘い授業が高く評価')
+---- 1
+価評く高が業授い甘の価評績成
+
+-LOG strltrim
+-STATEMENT RETURN ltrim('    😃🧘🏻‍♂️🌍🌦️🍞🚗')
+---- 1
+😃🧘🏻‍♂️🌍🌦️🍞🚗
+
+-LOG strprefix
+-STATEMENT RETURN prefix('😃🧘🏻‍♂️🌍🌦️🍞🚗','😃🧘🏻‍')
+---- 1
+True
+
+-LOG strrepeat
+-STATEMENT RETURN repeat('😃🧘🏻‍♂️🌍🌦️🍞🚗',3)
+---- 1
+😃🧘🏻‍♂️🌍🌦️🍞🚗😃🧘🏻‍♂️🌍🌦️🍞🚗😃🧘🏻‍♂️🌍🌦️🍞🚗
+
+-LOG strRight
+-STATEMENT RETURN right('😃🧘🏻‍♂️🌍🌦️🍞🚗', 3)
+---- 1
+🌦️🍞🚗
+
+-LOG strRpad
+-STATEMENT RETURN rpad('😃🌍♂', 5,'<')
+---- 1
+😃🌍♂<<
+-STATEMENT RETURN rpad('😃🌍♂🍞🚗', 7,'<')
+---- 1
+😃🌍♂🍞🚗<<
+-STATEMENT RETURN rpad('😃🌍♂🌦🍞🚗', 7,'<')
+---- 1
+😃🌍♂🌦🍞🚗<
+
+-LOG strstartwith
+-STATEMENT RETURN starts_with('😃🧘🏻‍♂️🌍🌦️🍞🚗', '😃🧘🏻‍')
+---- 1
+True
+-STATEMENT RETURN starts_with('成績評価の甘い授業が高く評価', '成績')
+---- 1
+True
+
+-LOG strsubstring
+-STATEMENT RETURN substring('😃🌍🌦️🍞🚗', 1,3)
+---- 1
+😃🌍🌦️
+-STATEMENT RETURN substring('成績評価の甘い授業が高く評価', 1,3)
+---- 1
+成績評
+-STATEMENT RETURN substring('😃🧘♂🌍', 1,3)
+---- 1
+😃🧘♂
+
+-LOG strsubstr
+-STATEMENT RETURN substr('成績評価の甘い授業が高く評価', 1,3)
+---- 1
+成績評
+
+-LOG strsuffix
+-STATEMENT RETURN suffix('成績評価の甘い授業が高く評価', '高く評価')
+---- 1
+True
+
+-LOG strtrim
+-STATEMENT RETURN trim('        成績評価の甘い授業が高く評価')
+---- 1
+成績評価の甘い授業が高く評価
+-STATEMENT RETURN trim('        成 績      評価の甘い授業が高く評価')
+---- 1
+成 績      評価の甘い授業が高く評価
+
+
+-LOG strupper
+-STATEMENT MATCH (m:movies) RETURN upper(m.name)
+---- 3
+SÓLÓ CÓN TU PÁREJÂ
+THE 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 MOVIE
+ROMA
+
+-LOG strlower
+-STATEMENT MATCH (m:movies) RETURN lower(m.name)
+---- 3
+sóló cón tu párejâ
+the 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+roma
+
+
+-LOG listfunc
+-STATEMENT RETURN list_element("成績評価の甘い授業が高く評価", 3)
+---- 1
+評
+-STATEMENT RETURN list_extract("成績評価の甘い授業が高く評価", 4)
+---- 1
+価
+-STATEMENT RETURN array_slice("成績評価の甘い授業が高く評価", 1, 3)
+---- 1
+成績評
+-STATEMENT RETURN array_extract("成績評価の甘い授業が高く評価", 4)
+---- 1
+価
