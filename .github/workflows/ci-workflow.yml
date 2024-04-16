@@ -370,7 +370,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-    
+
       # For `napi.h` header.
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
