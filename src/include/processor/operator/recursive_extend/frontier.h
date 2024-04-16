@@ -11,6 +11,7 @@ namespace frontier {
 using node_rel_id_t = std::pair<common::nodeID_t, common::relID_t>;
 
 using node_id_set_t = std::unordered_set<common::nodeID_t, function::InternalIDHasher>;
+using rel_id_set_t = std::unordered_set<common::relID_t, function::InternalIDHasher>;
 template<typename T>
 using node_id_map_t = std::unordered_map<common::nodeID_t, T, function::InternalIDHasher>;
 } // namespace frontier

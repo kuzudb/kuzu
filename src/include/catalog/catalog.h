@@ -21,7 +21,7 @@ class RDFGraphCatalogEntry;
 
 class Catalog {
 public:
-    explicit Catalog(common::VirtualFileSystem* vfs);
+    Catalog();
 
     Catalog(storage::WAL* wal, common::VirtualFileSystem* vfs);
 
@@ -57,8 +57,10 @@ public:
     void setTableComment(common::table_id_t tableID, const std::string& comment);
 
     // ----------------------------- Functions ----------------------------
-    void addFunction(std::string name, function::function_set functionSet);
-    void addBuiltInFunction(std::string name, function::function_set functionSet);
+    void addFunction(CatalogEntryType entryType, std::string name,
+        function::function_set functionSet);
+    void addBuiltInFunction(CatalogEntryType entryType, std::string name,
+        function::function_set functionSet);
     CatalogSet* getFunctions(transaction::Transaction* tx) const;
     CatalogEntry* getFunctionEntry(transaction::Transaction* tx, const std::string& name);
 
@@ -73,7 +75,8 @@ public:
     std::vector<std::string> getMacroNames(transaction::Transaction* tx) const;
 
     // ----------------------------- Tx ----------------------------
-    void prepareCommitOrRollback(transaction::TransactionAction action);
+    void prepareCommitOrRollback(transaction::TransactionAction action,
+        common::VirtualFileSystem* fs);
     void checkpointInMemory();
 
     void initCatalogContentForWriteTrxIfNecessary() {
@@ -83,9 +86,9 @@ public:
     }
 
     static void saveInitialCatalogToFile(const std::string& directory,
-        common::VirtualFileSystem* vfs) {
-        std::make_unique<Catalog>(vfs)->getReadOnlyVersion()->saveToFile(directory,
-            common::FileVersionType::ORIGINAL);
+        common::VirtualFileSystem* fs) {
+        auto catalog = Catalog();
+        catalog.getReadOnlyVersion()->saveToFile(directory, common::FileVersionType::ORIGINAL, fs);
     }
 
 private:

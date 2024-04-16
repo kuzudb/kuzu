@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/exception/runtime.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
 #include "comparison_functions.h"
@@ -112,6 +113,7 @@ private:
             func =
                 BinaryComparisonExecFunction<common::interval_t, common::interval_t, uint8_t, FUNC>;
         } break;
+        case common::PhysicalTypeID::ARRAY:
         case common::PhysicalTypeID::LIST: {
             func = BinaryComparisonExecFunction<common::list_entry_t, common::list_entry_t, uint8_t,
                 FUNC>;
@@ -178,6 +180,7 @@ private:
         case common::PhysicalTypeID::INTERVAL: {
             func = BinaryComparisonSelectFunction<common::interval_t, common::interval_t, FUNC>;
         } break;
+        case common::PhysicalTypeID::ARRAY:
         case common::PhysicalTypeID::LIST: {
             func = BinaryComparisonSelectFunction<common::list_entry_t, common::list_entry_t, FUNC>;
         } break;

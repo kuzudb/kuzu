@@ -84,6 +84,7 @@ struct BufferPoolConstants {
 struct StorageConstants {
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
+    static constexpr char SHADOWING_SUFFIX[] = ".shadow";
     static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
     static constexpr char NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME[] =
         "nodes.statistics_and_deleted.ids";
@@ -111,8 +112,6 @@ struct StorageConstants {
     // The number of CSR lists in a segment.
     static constexpr uint64_t CSR_SEGMENT_SIZE_LOG2 = 10;
     static constexpr uint64_t CSR_SEGMENT_SIZE = (uint64_t)1 << CSR_SEGMENT_SIZE_LOG2;
-
-    static constexpr bool TRUNCATE_OVER_LARGE_STRINGS = true;
 };
 
 // Hash Index Configurations

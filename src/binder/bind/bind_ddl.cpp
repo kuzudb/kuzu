@@ -302,7 +302,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
 static void validatePropertyExist(TableCatalogEntry* tableEntry, const std::string& propertyName) {
     if (!tableEntry->containProperty(propertyName)) {
         throw BinderException(
-            tableEntry->getName() + " table doesn't have property " + propertyName + ".");
+            tableEntry->getName() + " table does not have property " + propertyName + ".");
     }
 }
 

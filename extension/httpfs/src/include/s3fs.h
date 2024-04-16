@@ -125,7 +125,7 @@ public:
 
     std::string initializeMultiPartUpload(S3FileInfo* fileInfo) const;
 
-    void writeFile(common::FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+    void writeFile(common::FileInfo& fileInfo, const uint8_t* buffer, uint64_t numBytes,
         uint64_t offset) const override;
 
     std::shared_ptr<S3WriteBuffer> allocateWriteBuffer(uint16_t writeBufferIdx, uint64_t partSize,

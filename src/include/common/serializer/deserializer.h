@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -15,6 +14,8 @@ namespace common {
 class Deserializer {
 public:
     explicit Deserializer(std::unique_ptr<Reader> reader) : reader(std::move(reader)) {}
+
+    bool finished() { return reader->finished(); }
 
     template<typename T>
         requires std::is_trivially_destructible<T>::value || std::is_same<std::string, T>::value

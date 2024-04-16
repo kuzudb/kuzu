@@ -1,4 +1,5 @@
 #pragma once
+
 /*
 ** This code taken from the SQLite test library (can be found at
 ** https://www.sqlite.org/sqllogictest/doc/trunk/about.wiki).
@@ -23,7 +24,6 @@
  */
 
 #include <cstdint>
-#include <cstring>
 
 namespace kuzu {
 namespace common {
@@ -71,12 +71,12 @@ class MD5 {
 public:
     // Add additional text to the current MD5 hash.
     // note: original name changed from md5_add
-    void addToMD5(const char* z) {
+    void addToMD5(const char* z, uint32_t len) {
         if (!isInit) {
             MD5Init();
             isInit = 1;
         }
-        MD5Update((unsigned char*)z, (unsigned)std::strlen(z));
+        MD5Update((unsigned char*)z, len);
     }
 
     // Compute the final signature.  Reset the hash generator in preparation

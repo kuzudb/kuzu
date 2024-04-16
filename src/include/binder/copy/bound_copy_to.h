@@ -15,11 +15,11 @@ public:
           filePath{std::move(filePath)}, fileType{fileType}, query{std::move(query)},
           csvOption{std::move(csvOption)} {}
 
-    inline std::string getFilePath() const { return filePath; }
-    inline common::FileType getFileType() const { return fileType; }
+    std::string getFilePath() const { return filePath; }
+    common::FileType getFileType() const { return fileType; }
 
-    inline const BoundStatement* getRegularQuery() const { return query.get(); }
-    inline const common::CSVOption* getCopyOption() const { return &csvOption; }
+    const BoundStatement* getRegularQuery() const { return query.get(); }
+    const common::CSVOption* getCopyOption() const { return &csvOption; }
 
 private:
     std::string filePath;

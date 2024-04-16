@@ -98,7 +98,6 @@ Binder exception: Delete undirected rel is not supported.
 Binder exception: Detach delete on rel tables is not supported.
 
 -CASE MixedDeleteInsertAndSetOneToOneRel
--SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID = 5 DELETE e

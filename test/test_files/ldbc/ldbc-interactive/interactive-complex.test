@@ -165,7 +165,6 @@ Euripides|1
 # IC12 should be changed to use Kleene Star relationship once that is implemented
 -LOG IC12
 -CHECK_ORDER
--PARALLELISM 10
 -STATEMENT MATCH (tag:Tag)-[:hasType|:isSubclassOf*1..20]->(baseTagClass:TagClass)
        WHERE tag.name = "Monarch" OR baseTagClass.name = "Monarch"
        WITH collect(tag.id) as tags
@@ -174,16 +173,14 @@ Euripides|1
        RETURN friend.id AS personId, friend.firstName AS personFirstName, friend.lastName AS personLastName, list_sort(collect(DISTINCT tag.name)) AS tagNames, count(DISTINCT comment) AS replyCount
        ORDER BY replyCount DESC, personId ASC
        LIMIT 20;
----- error
-Binder exception: DISTINCT is not supported for NODE or REL type.
-
-#8796093022764|Zheng|Xu|[Mahmud_of_Ghazni,Ashoka,Tiberius,Marcus_Aurelius,Genghis_Khan,Justinian_I,Hadrian,Timur]|13
-#10995116278353|Otto|Muller|[Tiberius,Genghis_Khan,Justinian_I,Constantine_the_Great,Trajan]|11
-#17592186044994|Jie|Wang|[Genghis_Khan,David]|7
-#13194139534548|Bing|Zheng|[Genghis_Khan,Hadrian,Solomon]|6
-#13194139533500|Otto|Becker|[Tiberius,Genghis_Khan,Julius_Caesar,David,Alexander_the_Great]|5
-#28587302322537|Anh|Nguyen|[Mahmud_of_Ghazni,Trajan]|3
-#30786325578932|Alexander|Hleb|[Mahmud_of_Ghazni,David]|3
+---- 7
+8796093022764|Zheng|Xu|[Ashoka,Genghis_Khan,Hadrian,Justinian_I,Mahmud_of_Ghazni,Marcus_Aurelius,Tiberius,Timur]|13
+10995116278353|Otto|Muller|[Constantine_the_Great,Genghis_Khan,Justinian_I,Tiberius,Trajan]|11
+17592186044994|Jie|Wang|[David,Genghis_Khan]|7
+13194139534548|Bing|Zheng|[Genghis_Khan,Hadrian,Solomon]|6
+13194139533500|Otto|Becker|[Alexander_the_Great,David,Genghis_Khan,Julius_Caesar,Tiberius]|5
+28587302322537|Anh|Nguyen|[Mahmud_of_Ghazni,Trajan]|3
+30786325578932|Alexander|Hleb|[David,Mahmud_of_Ghazni]|3
 
 # To be completely correct, this query needs to have
 # (i) Unbounded shortest path

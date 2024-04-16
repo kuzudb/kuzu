@@ -1,5 +1,6 @@
 #include "function/cast/functions/cast_rdf_variant.h"
 
+#include "common/exception/runtime.h"
 #include "common/types/blob.h"
 #include "function/cast/functions/cast_functions.h"
 #include "function/cast/functions/numeric_cast.h"

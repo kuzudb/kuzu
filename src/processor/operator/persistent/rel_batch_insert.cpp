@@ -71,6 +71,7 @@ void RelBatchInsert::prepareCSRNodeGroup(const ChunkedNodeGroupCollection& parti
     offset_t csrChunkCapacity =
         csrHeader.getEndCSROffset(numNodes - 1) + csrHeader.getCSRLength(numNodes - 1);
     localState.nodeGroup->resizeChunks(csrChunkCapacity);
+    localState.nodeGroup->setAllNull();
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunkUnsafe(relInfo.offsetColumnID);
         setOffsetFromCSROffsets(offsetChunk, *csrHeader.offset);

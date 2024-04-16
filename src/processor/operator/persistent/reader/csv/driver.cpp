@@ -94,7 +94,7 @@ void SniffCSVNameAndTypeDriver::addValue(uint64_t, common::column_id_t, std::str
     auto it = value.rfind(':');
     if (it != std::string_view::npos) {
         try {
-            columnType = LogicalTypeUtils::dataTypeFromString(std::string(value.substr(it + 1)));
+            columnType = LogicalType::fromString(std::string(value.substr(it + 1)));
             columnName = std::string(value.substr(0, it));
         } catch (const Exception&) { // NOLINT(bugprone-empty-catch):
                                      // This is how we check for a suitable

@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/bound_standalone_call.h"
+#include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "extension/extension.h"
 #include "main/db_config.h"
@@ -23,7 +24,7 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCall(const parser::Stateme
     }
     auto optionValue = expressionBinder.bindLiteralExpression(*callStatement.getOptionValue());
     // TODO(Ziyi): add casting rule for option value.
-    ExpressionBinder::validateExpectedDataType(*optionValue, option->parameterType);
+    ExpressionUtil::validateDataType(*optionValue, option->parameterType);
     return std::make_unique<BoundStandaloneCall>(option, std::move(optionValue));
 }
 

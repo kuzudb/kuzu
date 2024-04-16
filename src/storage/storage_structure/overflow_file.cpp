@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "common/constants.h"
-#include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
@@ -88,13 +87,6 @@ void OverflowFileHandle::setStringOverflow(const char* srcRawString, uint64_t le
     ku_string_t& diskDstString) {
     if (len <= ku_string_t::SHORT_STR_LENGTH) {
         return;
-    } else if (len > BufferPoolConstants::PAGE_256KB_SIZE) {
-        if constexpr (StorageConstants::TRUNCATE_OVER_LARGE_STRINGS) {
-            len = BufferPoolConstants::PAGE_256KB_SIZE;
-            diskDstString.len = len;
-        } else {
-            throw RuntimeException(ExceptionMessage::overLargeStringPKValueException(len));
-        }
     }
     overflowFile.headerChanged = true;
     uint8_t* pageToWrite = nullptr;

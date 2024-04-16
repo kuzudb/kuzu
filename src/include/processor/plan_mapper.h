@@ -2,7 +2,6 @@
 
 #include "common/enums/rel_direction.h"
 #include "expression_mapper.h"
-#include "function/aggregate_function.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
@@ -21,7 +20,7 @@ class LogicalCopyFrom;
 namespace processor {
 
 class HashJoinBuildInfo;
-struct AggregateInputInfo;
+struct AggregateInfo;
 class NodeInsertExecutor;
 class RelInsertExecutor;
 class NodeSetExecutor;
@@ -149,13 +148,21 @@ private:
 
     std::unique_ptr<HashJoinBuildInfo> createHashBuildInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
-    std::unique_ptr<PhysicalOperator> createHashAggregate(const binder::expression_vector& keys,
-        const binder::expression_vector& payloads,
-        std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
-        std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
-        std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema,
+
+    std::unique_ptr<PhysicalOperator> createDistinctHashAggregate(
+        const binder::expression_vector& keys, const binder::expression_vector& payloads,
+        planner::Schema* inSchema, planner::Schema* outSchema,
+        std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString);
+    std::unique_ptr<PhysicalOperator> createMarkDistinctHashAggregate(
+        const binder::expression_vector& keys, const binder::expression_vector& payloads,
+        std::shared_ptr<binder::Expression> mark, planner::Schema* inSchema,
         planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
-        const std::string& paramsString, std::shared_ptr<binder::Expression> markExpression);
+        const std::string& paramsString);
+    std::unique_ptr<PhysicalOperator> createHashAggregate(const binder::expression_vector& keys,
+        const binder::expression_vector& payloads, const binder::expression_vector& aggregates,
+        std::shared_ptr<binder::Expression> mark, planner::Schema* inSchema,
+        planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
+        const std::string& paramsString);
 
     std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(
         const planner::LogicalInsertInfo* info, const planner::Schema& inSchema,
@@ -173,11 +180,10 @@ private:
 
     static void mapSIPJoin(PhysicalOperator* probe);
 
-    static std::vector<DataPos> getExpressionsDataPos(const binder::expression_vector& expressions,
+    static std::vector<DataPos> getDataPos(const binder::expression_vector& expressions,
         const planner::Schema& schema);
 
-    static inline DataPos getDataPos(const binder::Expression& expression,
-        const planner::Schema& schema) {
+    static DataPos getDataPos(const binder::Expression& expression, const planner::Schema& schema) {
         return DataPos(schema.getExpressionPos(expression));
     }
 

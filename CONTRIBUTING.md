@@ -17,7 +17,7 @@ When you contribute code, you affirm that the contribution is your original work
 Whether or not you state this explicitly, by submitting any copyrighted material via pull request, email, or other means you affirm that you agree to the [CLA](CLA.md) and warrant that you have the legal authority to do so.
 
 ## General Steps and Guidelines to Contribute
-* Discuss your intended changes with the core team on Github or Slack, so we can assign appropriate issue(s) for you to work on.
+* Discuss your intended changes with the core team on Github or Discord, so we can assign appropriate issue(s) for you to work on.
 * Do not commit/push directly to the master branch. Instead, create a fork and open a pull request.
 * While you're working on the issue, please merge frequently with the master branch.
 * All pull requests with new features and bug fixes should be covered by proper tests.

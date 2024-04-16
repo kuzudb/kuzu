@@ -6,23 +6,33 @@
 namespace kuzu {
 namespace processor {
 
-struct AggregateInputInfo {
-    DataPos aggregateVectorPos;
+struct AggregateInfo {
+    DataPos aggVectorPos;
     std::vector<data_chunk_pos_t> multiplicityChunksPos;
+    common::LogicalType distinctAggKeyType;
 
-    AggregateInputInfo(const DataPos& vectorPos,
-        std::vector<data_chunk_pos_t> multiplicityChunksPos)
-        : aggregateVectorPos{vectorPos}, multiplicityChunksPos{std::move(multiplicityChunksPos)} {}
-    AggregateInputInfo(const AggregateInputInfo& other)
-        : AggregateInputInfo(other.aggregateVectorPos, other.multiplicityChunksPos) {}
-    inline std::unique_ptr<AggregateInputInfo> copy() {
-        return std::make_unique<AggregateInputInfo>(*this);
-    }
+    AggregateInfo(const DataPos& aggVectorPos, std::vector<data_chunk_pos_t> multiplicityChunksPos,
+        common::LogicalType distinctAggKeyType)
+        : aggVectorPos{aggVectorPos}, multiplicityChunksPos{std::move(multiplicityChunksPos)},
+          distinctAggKeyType{std::move(distinctAggKeyType)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(AggregateInfo);
+
+private:
+    AggregateInfo(const AggregateInfo& other)
+        : aggVectorPos{other.aggVectorPos}, multiplicityChunksPos{other.multiplicityChunksPos},
+          distinctAggKeyType{other.distinctAggKeyType} {}
 };
 
 struct AggregateInput {
     common::ValueVector* aggregateVector;
     std::vector<common::DataChunk*> multiplicityChunks;
+
+    AggregateInput() = default;
+    EXPLICIT_COPY_DEFAULT_MOVE(AggregateInput);
+
+private:
+    AggregateInput(const AggregateInput& other)
+        : aggregateVector{other.aggregateVector}, multiplicityChunks{other.multiplicityChunks} {}
 };
 
 } // namespace processor

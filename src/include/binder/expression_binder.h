@@ -26,18 +26,6 @@ public:
 
     std::shared_ptr<Expression> bindExpression(const parser::ParsedExpression& parsedExpression);
 
-    /****** validation *****/
-    static void validateExpectedDataType(const Expression& expression,
-        common::LogicalTypeID target) {
-        validateExpectedDataType(expression, std::vector<common::LogicalTypeID>{target});
-    }
-    static void validateExpectedDataType(const Expression& expression,
-        const std::vector<common::LogicalTypeID>& targets);
-    // Validate data type.
-    static void validateDataType(const Expression& expr, const common::LogicalType& expectedType);
-    // Validate recursive data type top level (used when child type is unknown).
-    static void validateDataType(const Expression& expr, common::LogicalTypeID expectedTypeID);
-
     // TODO(Xiyang): move to an expression rewriter
     std::shared_ptr<Expression> foldExpression(const std::shared_ptr<Expression>& expression);
 

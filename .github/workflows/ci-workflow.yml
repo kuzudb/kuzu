@@ -269,30 +269,6 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make javatest
 
-  tidy-and-diagnostics:
-    name: clang tidy & clangd diagnostics check
-    needs: [clang-format, sanity-checks]
-    runs-on: kuzu-self-hosted-testing
-    env:
-      NUM_THREADS: 32
-
-    steps:
-      - uses: actions/checkout@v3
-
-      # For `napi.h` header.
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
-      - name: Check for clangd diagnostics
-        run: make clangd-diagnostics
-
-      - name: Run clang-tidy
-        run: make tidy
-
-      - name: Run clang-tidy analyzer
-        run: make tidy-analyzer
-
   sanity-checks:
     name: sanity checks
     runs-on: ubuntu-22.04
@@ -329,6 +305,9 @@ jobs:
 
       - name: Check and fix test format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r test/
+
+      - name: Check and fix tools format
+        run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r tools/
 
       - name: Check and fix extension format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r extension/
@@ -379,17 +358,19 @@ jobs:
     needs: [gcc-build-test, clang-build-test]
     uses: ./.github/workflows/benchmark-workflow.yml
 
-  macos-clang-tidy:
-    name: macos clang tidy & clangd diagnostics check
+  clang-tidy:
+    name: clang tidy & clangd diagnostics check
     needs: [clang-format, sanity-checks]
-    runs-on: self-hosted-mac-x64
+    runs-on: kuzu-self-hosted-testing
     env:
-      NUM_THREADS: 32
       GEN: ninja
+      NUM_THREADS: 32
+      CC: clang
+      CXX: clang++
 
     steps:
       - uses: actions/checkout@v3
-
+    
       # For `napi.h` header.
       - name: Ensure Node.js dependencies
         run: npm install --include=dev

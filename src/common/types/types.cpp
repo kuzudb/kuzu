@@ -57,6 +57,8 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "STRUCT";
     case PhysicalTypeID::LIST:
         return "LIST";
+    case PhysicalTypeID::ARRAY:
+        return "ARRAY";
     case PhysicalTypeID::POINTER:
         return "POINTER";
     default:
@@ -100,8 +102,12 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
     }
 }
 
-bool ListTypeInfo::operator==(const ListTypeInfo& other) const {
-    return *childType == *other.childType;
+bool ListTypeInfo::operator==(const ExtraTypeInfo& other) const {
+    auto otherListTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const ListTypeInfo*>(&other);
+    if (otherListTypeInfo) {
+        return *childType == *otherListTypeInfo->childType;
+    }
+    return false;
 }
 
 std::unique_ptr<ExtraTypeInfo> ListTypeInfo::copy() const {
@@ -116,8 +122,13 @@ void ListTypeInfo::serializeInternal(Serializer& serializer) const {
     childType->serialize(serializer);
 }
 
-bool ArrayTypeInfo::operator==(const ArrayTypeInfo& other) const {
-    return *childType == *other.childType && numElements == other.numElements;
+bool ArrayTypeInfo::operator==(const ExtraTypeInfo& other) const {
+    auto otherArrayTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const ArrayTypeInfo*>(&other);
+    if (otherArrayTypeInfo) {
+        return *childType == *otherArrayTypeInfo->childType &&
+               numElements == otherArrayTypeInfo->numElements;
+    }
+    return false;
 }
 
 std::unique_ptr<ExtraTypeInfo> ArrayTypeInfo::deserialize(Deserializer& deserializer) {
@@ -227,16 +238,20 @@ std::vector<const StructField*> StructTypeInfo::getStructFields() const {
     return structFields;
 }
 
-bool StructTypeInfo::operator==(const StructTypeInfo& other) const {
-    if (fields.size() != other.fields.size()) {
-        return false;
-    }
-    for (auto i = 0u; i < fields.size(); ++i) {
-        if (fields[i] != other.fields[i]) {
+bool StructTypeInfo::operator==(const ExtraTypeInfo& other) const {
+    auto otherStructTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const StructTypeInfo*>(&other);
+    if (otherStructTypeInfo) {
+        if (fields.size() != otherStructTypeInfo->fields.size()) {
             return false;
         }
+        for (auto i = 0u; i < fields.size(); ++i) {
+            if (fields[i] != otherStructTypeInfo->fields[i]) {
+                return false;
+            }
+        }
+        return true;
     }
-    return true;
+    return false;
 }
 
 std::unique_ptr<ExtraTypeInfo> StructTypeInfo::deserialize(Deserializer& deserializer) {
@@ -261,6 +276,7 @@ LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{n
     physicalType = getPhysicalType(typeID);
     // Complex types should not use this constructor as they need extra type information
     KU_ASSERT(physicalType != PhysicalTypeID::LIST);
+    KU_ASSERT(physicalType != PhysicalTypeID::ARRAY);
     // Node/Rel types are exempted due to some complex code in bind_graph_pattern.cpp
     KU_ASSERT(physicalType != PhysicalTypeID::STRUCT || typeID == LogicalTypeID::NODE ||
               typeID == LogicalTypeID::REL || typeID == LogicalTypeID::RECURSIVE_REL);
@@ -289,21 +305,10 @@ bool LogicalType::operator==(const LogicalType& other) const {
     if (typeID != other.typeID) {
         return false;
     }
-    switch (other.getPhysicalType()) {
-    case PhysicalTypeID::LIST:
-        if (typeID == LogicalTypeID::ARRAY) {
-            return *ku_dynamic_cast<ExtraTypeInfo*, ArrayTypeInfo*>(extraTypeInfo.get()) ==
-                   *ku_dynamic_cast<ExtraTypeInfo*, ArrayTypeInfo*>(other.extraTypeInfo.get());
-        } else {
-            return *ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get()) ==
-                   *ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(other.extraTypeInfo.get());
-        }
-    case PhysicalTypeID::STRUCT:
-        return *ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(extraTypeInfo.get()) ==
-               *ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(other.extraTypeInfo.get());
-    default:
-        return true;
+    if (extraTypeInfo) {
+        return *extraTypeInfo == *other.extraTypeInfo;
     }
+    return true;
 }
 
 bool LogicalType::operator!=(const LogicalType& other) const {
@@ -388,11 +393,42 @@ std::string LogicalType::toString() const {
     }
 }
 
+static LogicalTypeID strToLogicalTypeID(const std::string& trimmedStr);
+static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
+static std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr);
+static std::unique_ptr<LogicalType> parseArrayType(const std::string& trimmedStr);
+static std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr);
+static std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr);
+static std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr);
+static std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr);
+
+LogicalType LogicalType::fromString(const std::string& str) {
+    LogicalType dataType;
+    auto trimmedStr = StringUtils::ltrim(StringUtils::rtrim(str));
+    auto upperDataTypeString = StringUtils::getUpper(trimmedStr);
+    if (upperDataTypeString.ends_with("[]")) {
+        dataType = *parseListType(trimmedStr);
+    } else if (upperDataTypeString.ends_with("]")) {
+        dataType = *parseArrayType(trimmedStr);
+    } else if (upperDataTypeString.starts_with("STRUCT")) {
+        dataType = *parseStructType(trimmedStr);
+    } else if (upperDataTypeString.starts_with("MAP")) {
+        dataType = *parseMapType(trimmedStr);
+    } else if (upperDataTypeString.starts_with("UNION")) {
+        dataType = *parseUnionType(trimmedStr);
+    } else {
+        dataType.typeID = strToLogicalTypeID(upperDataTypeString);
+    }
+    dataType.physicalType = LogicalType::getPhysicalType(dataType.typeID);
+    return dataType;
+}
+
 void LogicalType::serialize(Serializer& serializer) const {
     serializer.serializeValue(typeID);
     serializer.serializeValue(physicalType);
     switch (physicalType) {
     case PhysicalTypeID::LIST:
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::STRUCT:
         extraTypeInfo->serialize(serializer);
     default:
@@ -408,11 +444,10 @@ std::unique_ptr<LogicalType> LogicalType::deserialize(Deserializer& deserializer
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
     switch (physicalType) {
     case PhysicalTypeID::LIST: {
-        if (typeID == LogicalTypeID::ARRAY) {
-            extraTypeInfo = ArrayTypeInfo::deserialize(deserializer);
-        } else {
-            extraTypeInfo = ListTypeInfo::deserialize(deserializer);
-        }
+        extraTypeInfo = ListTypeInfo::deserialize(deserializer);
+    } break;
+    case PhysicalTypeID::ARRAY: {
+        extraTypeInfo = ArrayTypeInfo::deserialize(deserializer);
     } break;
     case PhysicalTypeID::STRUCT: {
         extraTypeInfo = StructTypeInfo::deserialize(deserializer);
@@ -520,10 +555,12 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
     case LogicalTypeID::STRING: {
         return PhysicalTypeID::STRING;
     } break;
-    case LogicalTypeID::ARRAY:
     case LogicalTypeID::MAP:
     case LogicalTypeID::LIST: {
         return PhysicalTypeID::LIST;
+    } break;
+    case LogicalTypeID::ARRAY: {
+        return PhysicalTypeID::ARRAY;
     } break;
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
@@ -541,79 +578,58 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
     }
 }
 
-LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeString) {
-    LogicalType dataType;
-    auto trimmedStr = StringUtils::ltrim(StringUtils::rtrim(dataTypeString));
-    auto upperDataTypeString = StringUtils::getUpper(trimmedStr);
-    if (upperDataTypeString.ends_with("[]")) {
-        dataType = *parseListType(trimmedStr);
-    } else if (upperDataTypeString.ends_with("]")) {
-        dataType = *parseArrayType(trimmedStr);
-    } else if (upperDataTypeString.starts_with("STRUCT")) {
-        dataType = *parseStructType(trimmedStr);
-    } else if (upperDataTypeString.starts_with("MAP")) {
-        dataType = *parseMapType(trimmedStr);
-    } else if (upperDataTypeString.starts_with("UNION")) {
-        dataType = *parseUnionType(trimmedStr);
-    } else {
-        dataType.typeID = dataTypeIDFromString(upperDataTypeString);
-    }
-    dataType.physicalType = LogicalType::getPhysicalType(dataType.typeID);
-    return dataType;
-}
-
-LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataTypeIDString) {
-    auto upperDataTypeIDString = StringUtils::getUpper(dataTypeIDString);
-    if ("INTERNAL_ID" == upperDataTypeIDString) {
+LogicalTypeID strToLogicalTypeID(const std::string& str) {
+    auto upperStr = StringUtils::getUpper(str);
+    if ("INTERNAL_ID" == upperStr) {
         return LogicalTypeID::INTERNAL_ID;
-    } else if ("INT64" == upperDataTypeIDString) {
+    } else if ("INT64" == upperStr) {
         return LogicalTypeID::INT64;
-    } else if ("INT32" == upperDataTypeIDString || "INT" == upperDataTypeIDString) {
+    } else if ("INT32" == upperStr || "INT" == upperStr) {
         return LogicalTypeID::INT32;
-    } else if ("INT16" == upperDataTypeIDString) {
+    } else if ("INT16" == upperStr) {
         return LogicalTypeID::INT16;
-    } else if ("INT8" == upperDataTypeIDString) {
+    } else if ("INT8" == upperStr) {
         return LogicalTypeID::INT8;
-    } else if ("UINT64" == upperDataTypeIDString) {
+    } else if ("UINT64" == upperStr) {
         return LogicalTypeID::UINT64;
-    } else if ("UINT32" == upperDataTypeIDString) {
+    } else if ("UINT32" == upperStr) {
         return LogicalTypeID::UINT32;
-    } else if ("UINT16" == upperDataTypeIDString) {
+    } else if ("UINT16" == upperStr) {
         return LogicalTypeID::UINT16;
-    } else if ("UINT8" == upperDataTypeIDString) {
+    } else if ("UINT8" == upperStr) {
         return LogicalTypeID::UINT8;
-    } else if ("INT128" == upperDataTypeIDString) {
+    } else if ("INT128" == upperStr) {
         return LogicalTypeID::INT128;
-    } else if ("DOUBLE" == upperDataTypeIDString) {
+    } else if ("DOUBLE" == upperStr || "FLOAT8" == upperStr) {
         return LogicalTypeID::DOUBLE;
-    } else if ("FLOAT" == upperDataTypeIDString) {
+    } else if ("FLOAT" == upperStr || "FLOAT4" == upperStr || "REAL" == upperStr) {
         return LogicalTypeID::FLOAT;
-    } else if ("BOOLEAN" == upperDataTypeIDString || "BOOL" == upperDataTypeIDString) {
+    } else if ("BOOLEAN" == upperStr || "BOOL" == upperStr) {
         return LogicalTypeID::BOOL;
-    } else if ("BYTEA" == upperDataTypeIDString || "BLOB" == upperDataTypeIDString) {
+    } else if ("BYTEA" == upperStr || "BLOB" == upperStr) {
         return LogicalTypeID::BLOB;
-    } else if ("UUID" == upperDataTypeIDString) {
+    } else if ("UUID" == upperStr) {
         return LogicalTypeID::UUID;
-    } else if ("STRING" == upperDataTypeIDString) {
+    } else if ("STRING" == upperStr) {
         return LogicalTypeID::STRING;
-    } else if ("DATE" == upperDataTypeIDString) {
+    } else if ("DATE" == upperStr) {
         return LogicalTypeID::DATE;
-    } else if ("TIMESTAMP" == upperDataTypeIDString) {
+    } else if ("TIMESTAMP" == upperStr) {
         return LogicalTypeID::TIMESTAMP;
-    } else if ("TIMESTAMP_NS" == upperDataTypeIDString) {
+    } else if ("TIMESTAMP_NS" == upperStr) {
         return LogicalTypeID::TIMESTAMP_NS;
-    } else if ("TIMESTAMP_MS" == upperDataTypeIDString) {
+    } else if ("TIMESTAMP_MS" == upperStr) {
         return LogicalTypeID::TIMESTAMP_MS;
-    } else if ("TIMESTAMP_SEC" == upperDataTypeIDString || "TIMESTAMP_S" == upperDataTypeIDString) {
+    } else if ("TIMESTAMP_SEC" == upperStr || "TIMESTAMP_S" == upperStr) {
         return LogicalTypeID::TIMESTAMP_SEC;
-    } else if ("TIMESTAMP_TZ" == upperDataTypeIDString) {
+    } else if ("TIMESTAMP_TZ" == upperStr) {
         return LogicalTypeID::TIMESTAMP_TZ;
-    } else if ("INTERVAL" == upperDataTypeIDString) {
+    } else if ("INTERVAL" == upperStr || "DURATION" == upperStr) {
         return LogicalTypeID::INTERVAL;
-    } else if ("SERIAL" == upperDataTypeIDString) {
+    } else if ("SERIAL" == upperStr) {
         return LogicalTypeID::SERIAL;
     } else {
-        throw NotImplementedException("Cannot parse dataTypeID: " + dataTypeIDString);
+        throw NotImplementedException("Cannot parse dataTypeID: " + str);
     }
 }
 
@@ -725,6 +741,7 @@ uint32_t LogicalTypeUtils::getRowLayoutSize(const LogicalType& type) {
     case PhysicalTypeID::STRING: {
         return sizeof(ku_string_t);
     }
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         return sizeof(ku_list_t);
     }
@@ -884,7 +901,7 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypes() {
         LogicalTypeID::RDF_VARIANT};
 }
 
-std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& structTypeStr) {
+std::vector<std::string> parseStructFields(const std::string& structTypeStr) {
     std::vector<std::string> structFieldsStr;
     auto startPos = 0u;
     auto curPos = 0u;
@@ -915,22 +932,22 @@ std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& 
     return structFieldsStr;
 }
 
-std::unique_ptr<LogicalType> LogicalTypeUtils::parseListType(const std::string& trimmedStr) {
-    return LogicalType::LIST(dataTypeFromString(trimmedStr.substr(0, trimmedStr.size() - 2)));
+std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr) {
+    return LogicalType::LIST(LogicalType::fromString(trimmedStr.substr(0, trimmedStr.size() - 2)));
 }
 
-std::unique_ptr<LogicalType> LogicalTypeUtils::parseArrayType(const std::string& trimmedStr) {
+std::unique_ptr<LogicalType> parseArrayType(const std::string& trimmedStr) {
     auto leftBracketPos = trimmedStr.find_last_of('[');
     auto rightBracketPos = trimmedStr.find_last_of(']');
-    auto childType =
-        std::make_unique<LogicalType>(dataTypeFromString(trimmedStr.substr(0, leftBracketPos)));
+    auto childType = std::make_unique<LogicalType>(
+        LogicalType::fromString(trimmedStr.substr(0, leftBracketPos)));
     auto numElements = std::strtoll(
         trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
         nullptr, 0 /* base */);
     return LogicalType::ARRAY(std::move(childType), numElements);
 }
 
-std::vector<StructField> LogicalTypeUtils::parseStructTypeInfo(const std::string& structTypeStr) {
+std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr) {
     auto leftBracketPos = structTypeStr.find('(');
     auto rightBracketPos = structTypeStr.find_last_of(')');
     if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
@@ -946,16 +963,16 @@ std::vector<StructField> LogicalTypeUtils::parseStructTypeInfo(const std::string
         auto fieldName = structFieldStr.substr(0, pos);
         auto fieldTypeString = structFieldStr.substr(pos + 1);
         structFields.emplace_back(fieldName,
-            std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString)));
+            std::make_unique<LogicalType>(LogicalType::fromString(fieldTypeString)));
     }
     return structFields;
 }
 
-std::unique_ptr<LogicalType> LogicalTypeUtils::parseStructType(const std::string& trimmedStr) {
+std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr) {
     return LogicalType::STRUCT(parseStructTypeInfo(trimmedStr));
 }
 
-std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& trimmedStr) {
+std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr) {
     auto leftBracketPos = trimmedStr.find('(');
     auto rightBracketPos = trimmedStr.find_last_of(')');
     if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
@@ -963,11 +980,11 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& t
     }
     auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
     auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
-    return LogicalType::MAP(dataTypeFromString(keyValueTypes[0]),
-        dataTypeFromString(keyValueTypes[1]));
+    return LogicalType::MAP(LogicalType::fromString(keyValueTypes[0]),
+        LogicalType::fromString(keyValueTypes[1]));
 }
 
-std::unique_ptr<LogicalType> LogicalTypeUtils::parseUnionType(const std::string& trimmedStr) {
+std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr) {
     auto unionFields = parseStructTypeInfo(trimmedStr);
     auto unionTagField = StructField(UnionType::TAG_FIELD_NAME,
         std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));

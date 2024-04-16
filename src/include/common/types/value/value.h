@@ -232,6 +232,8 @@ public:
 
     static std::unique_ptr<Value> deserialize(Deserializer& deserializer);
 
+    void validateType(common::LogicalTypeID targetTypeID) const;
+
 private:
     Value();
     explicit Value(const LogicalType& dataType);

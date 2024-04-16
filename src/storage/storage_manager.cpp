@@ -169,7 +169,7 @@ void StorageManager::dropTable(table_id_t tableID) {
     tables.erase(tableID);
 }
 
-void StorageManager::prepareCommit(Transaction* transaction) {
+void StorageManager::prepareCommit(Transaction* transaction, common::VirtualFileSystem* fs) {
     transaction->getLocalStorage()->prepareCommit();
     // Tables which are created but not inserted into may have pending writes
     // which need to be flushed (specifically, the metadata disk array header)
@@ -180,21 +180,22 @@ void StorageManager::prepareCommit(Transaction* transaction) {
         }
     }
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
-        wal->logTableStatisticsRecord(true /* isNodeTable */);
-        nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(wal->getDirectory());
+        wal->logTableStatisticsRecord(TableType::NODE);
+        nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(wal->getDirectory(),
+            fs);
     }
     if (relsStatistics->hasUpdates()) {
-        wal->logTableStatisticsRecord(false /* isNodeTable */);
-        relsStatistics->writeTablesStatisticsFileForWALRecord(wal->getDirectory());
+        wal->logTableStatisticsRecord(TableType::REL);
+        relsStatistics->writeTablesStatisticsFileForWALRecord(wal->getDirectory(), fs);
     }
 }
 
 void StorageManager::prepareRollback(Transaction* transaction) {
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
-        wal->logTableStatisticsRecord(true /* isNodeTable */);
+        wal->logTableStatisticsRecord(TableType::NODE);
     }
     if (relsStatistics->hasUpdates()) {
-        wal->logTableStatisticsRecord(false /* isNodeTable */);
+        wal->logTableStatisticsRecord(TableType::REL);
     }
     transaction->getLocalStorage()->prepareRollback();
 }

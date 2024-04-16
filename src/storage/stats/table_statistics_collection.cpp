@@ -14,28 +14,27 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-TablesStatistics::TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    common::VirtualFileSystem* vfs)
-    : metadataFH{metadataFH}, bufferManager{bufferManager}, vfs{vfs}, wal{wal}, isUpdated{false} {
+TablesStatistics::TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
+    : metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal}, isUpdated{false} {
     readOnlyVersion = std::make_unique<TablesStatisticsContent>();
 }
 
-void TablesStatistics::readFromFile() {
-    readFromFile(FileVersionType::ORIGINAL);
+void TablesStatistics::readFromFile(VirtualFileSystem* fs) {
+    readFromFile(FileVersionType::ORIGINAL, fs);
 }
 
-void TablesStatistics::readFromFile(FileVersionType fileVersionType) {
-    auto filePath = getTableStatisticsFilePath(wal->getDirectory(), fileVersionType);
+void TablesStatistics::readFromFile(FileVersionType fileVersionType, VirtualFileSystem* fs) {
+    auto filePath = getTableStatisticsFilePath(wal->getDirectory(), fileVersionType, fs);
     auto deser =
-        Deserializer(std::make_unique<BufferedFileReader>(vfs->openFile(filePath, O_RDONLY)));
+        Deserializer(std::make_unique<BufferedFileReader>(fs->openFile(filePath, O_RDONLY)));
     deser.deserializeUnorderedMap(readOnlyVersion->tableStatisticPerTable);
 }
 
 void TablesStatistics::saveToFile(const std::string& directory, FileVersionType fileVersionType,
-    transaction::TransactionType transactionType) {
-    auto filePath = getTableStatisticsFilePath(directory, fileVersionType);
+    transaction::TransactionType transactionType, VirtualFileSystem* fs) {
+    auto filePath = getTableStatisticsFilePath(directory, fileVersionType, fs);
     auto ser = Serializer(
-        std::make_unique<BufferedFileWriter>(vfs->openFile(filePath, O_WRONLY | O_CREAT)));
+        std::make_unique<BufferedFileWriter>(fs->openFile(filePath, O_WRONLY | O_CREAT)));
     auto& tablesStatisticsContent = (transactionType == transaction::TransactionType::READ_ONLY ||
                                         readWriteVersion == nullptr) ?
                                         readOnlyVersion :
@@ -51,6 +50,7 @@ void TablesStatistics::initTableStatisticsForWriteTrx() {
 void TablesStatistics::initTableStatisticsForWriteTrxNoLock() {
     if (readWriteVersion == nullptr) {
         readWriteVersion = std::make_unique<TablesStatisticsContent>();
+        KU_ASSERT(readOnlyVersion);
         for (auto& [tableID, tableStatistic] : readOnlyVersion->tableStatisticPerTable) {
             readWriteVersion->tableStatisticPerTable[tableID] = tableStatistic->copy();
         }
@@ -101,6 +101,12 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
             createMetadataDAHInfo(*LogicalType::UINT32(), metadataFH, bm, wal));
         metadataDAHInfo->childrenInfos.push_back(
             createMetadataDAHInfo(*ListType::getChildType(&dataType), metadataFH, bm, wal));
+    } break;
+    case PhysicalTypeID::ARRAY: {
+        metadataDAHInfo->childrenInfos.push_back(
+            createMetadataDAHInfo(*LogicalType::UINT32(), metadataFH, bm, wal));
+        metadataDAHInfo->childrenInfos.push_back(
+            createMetadataDAHInfo(*ArrayType::getChildType(&dataType), metadataFH, bm, wal));
     } break;
     case PhysicalTypeID::STRING: {
         auto dataMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();

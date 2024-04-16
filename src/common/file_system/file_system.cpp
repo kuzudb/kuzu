@@ -36,12 +36,12 @@ std::string FileSystem::getFileExtension(const std::filesystem::path& path) {
     return path.extension().string();
 }
 
-void FileSystem::writeFile(FileInfo* /*fileInfo*/, const uint8_t* /*buffer*/, uint64_t /*numBytes*/,
+void FileSystem::writeFile(FileInfo& /*fileInfo*/, const uint8_t* /*buffer*/, uint64_t /*numBytes*/,
     uint64_t /*offset*/) const {
     KU_UNREACHABLE;
 }
 
-void FileSystem::truncate(FileInfo* /*fileInfo*/, uint64_t /*size*/) const {
+void FileSystem::truncate(FileInfo& /*fileInfo*/, uint64_t /*size*/) const {
     KU_UNREACHABLE;
 }
 

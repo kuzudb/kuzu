@@ -27,9 +27,8 @@ namespace kuzu {
 namespace binder {
 
 std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(const ParsedExpression& expr) {
-    auto& funcExpr =
-        ku_dynamic_cast<const ParsedExpression&, const ParsedFunctionExpression&>(expr);
-    auto functionName = funcExpr.getNormalizedFunctionName();
+    auto funcExpr = expr.constPtrCast<ParsedFunctionExpression>();
+    auto functionName = funcExpr->getNormalizedFunctionName();
     auto result = rewriteFunctionExpression(expr, functionName);
     if (result != nullptr) {
         return result;
@@ -41,11 +40,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(const Parse
     case CatalogEntryType::REWRITE_FUNCTION_ENTRY:
         return bindRewriteFunctionExpression(expr);
     case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
-        return bindAggregateFunctionExpression(expr, functionName, funcExpr.getIsDistinct());
+        return bindAggregateFunctionExpression(expr, functionName, funcExpr->getIsDistinct());
     case CatalogEntryType::SCALAR_MACRO_ENTRY:
         return bindMacroExpression(expr, functionName);
     default:
-        KU_UNREACHABLE;
+        throw BinderException(
+            stringFormat("{} is a {}. Scalar function, aggregate function or macro was expected. ",
+                functionName, CatalogEntryTypeUtils::toString(entry->getType())));
     }
 }
 
@@ -129,11 +130,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
-        auto childTypeID = child->dataType.getLogicalTypeID();
-        if (isDistinct &&
-            (childTypeID == LogicalTypeID::NODE || childTypeID == LogicalTypeID::REL)) {
-            throw BinderException{"DISTINCT is not supported for NODE or REL type."};
-        }
         childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
     }
@@ -202,7 +198,7 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
     const parser::ParsedExpression& parsedExpression, const std::string& functionName) {
     if (functionName == LabelFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
-        validateExpectedDataType(*child,
+        ExpressionUtil::validateDataType(*child,
             std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL});
         return bindLabelFunction(*child);
     } else if (functionName == LengthFunction::name) {
@@ -210,11 +206,11 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
         return bindRecursiveJoinLengthFunction(*child);
     } else if (functionName == StartNodeFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
-        validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
+        ExpressionUtil::validateDataType(*child, LogicalTypeID::REL);
         return bindStartNodeExpression(*child);
     } else if (functionName == EndNodeFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
-        validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::REL});
+        ExpressionUtil::validateDataType(*child, LogicalTypeID::REL);
         return bindEndNodeExpression(*child);
     }
     return nullptr;

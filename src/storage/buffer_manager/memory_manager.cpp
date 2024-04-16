@@ -9,12 +9,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-MemoryBuffer::MemoryBuffer(MemoryAllocator* allocator, page_idx_t pageIdx, uint8_t* buffer)
-    : buffer{buffer}, pageIdx{pageIdx}, allocator{allocator} {}
+MemoryBuffer::MemoryBuffer(MemoryAllocator* allocator, page_idx_t pageIdx, uint8_t* buffer,
+    uint64_t size)
+    : buffer{buffer}, pageIdx{pageIdx}, allocator{allocator}, size{size} {}
 
 MemoryBuffer::~MemoryBuffer() {
     if (buffer != nullptr) {
-        allocator->freeBlock(pageIdx);
+        allocator->freeBlock(pageIdx, buffer);
     }
 }
 
@@ -26,8 +27,17 @@ MemoryAllocator::MemoryAllocator(BufferManager* bm, VirtualFileSystem* vfs) : bm
 
 MemoryAllocator::~MemoryAllocator() = default;
 
-std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZero) {
+std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZero,
+    uint64_t size) {
     std::unique_lock<std::mutex> lock(allocatorLock);
+    if (size > BufferPoolConstants::PAGE_256KB_SIZE) [[unlikely]] {
+        auto buffer = malloc(size);
+        if (initializeToZero) {
+            memset(buffer, 0, size);
+        }
+        return std::make_unique<MemoryBuffer>(this, INVALID_PAGE_IDX,
+            reinterpret_cast<uint8_t*>(buffer), size);
+    }
     page_idx_t pageIdx;
     if (freePages.empty()) {
         pageIdx = fh->addNewPage();
@@ -43,10 +53,15 @@ std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZ
     return memoryBuffer;
 }
 
-void MemoryAllocator::freeBlock(page_idx_t pageIdx) {
+void MemoryAllocator::freeBlock(page_idx_t pageIdx, uint8_t* buffer) {
     std::unique_lock<std::mutex> lock(allocatorLock);
-    bm->unpin(*fh, pageIdx);
-    freePages.push(pageIdx);
+    if (pageIdx == INVALID_PAGE_IDX) {
+        std::free(buffer);
+        return;
+    } else {
+        bm->unpin(*fh, pageIdx);
+        freePages.push(pageIdx);
+    }
 }
 
 } // namespace storage

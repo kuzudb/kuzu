@@ -45,6 +45,11 @@ struct Function {
     FunctionType type;
     std::string name;
     std::vector<common::LogicalTypeID> parameterTypeIDs;
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const Function*, const TARGET*>(this);
+    }
 };
 
 struct BaseScalarFunction : public Function {

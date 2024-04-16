@@ -102,6 +102,7 @@ static std::unique_ptr<FunctionBindData> MapExtractBindFunc(
         scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t,
             internalID_t, list_entry_t, MapExtract>;
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t,
             list_entry_t, list_entry_t, MapExtract>;

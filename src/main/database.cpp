@@ -107,8 +107,9 @@ void Database::setLoggingLevel(std::string loggingLevel) {
     spdlog::set_level(LoggingLevelUtils::convertStrToLevelEnum(std::move(loggingLevel)));
 }
 
-void Database::addBuiltInFunction(std::string name, function::function_set functionSet) {
-    catalog->addBuiltInFunction(std::move(name), std::move(functionSet));
+void Database::addTableFunction(std::string name, function::function_set functionSet) {
+    catalog->addBuiltInFunction(CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name),
+        std::move(functionSet));
 }
 
 void Database::registerFileSystem(std::unique_ptr<common::FileSystem> fs) {
@@ -135,10 +136,6 @@ ExtensionOption* Database::getExtensionOption(std::string name) {
 common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
 Database::getStorageExtensions() {
     return storageExtensions;
-}
-
-DatabaseManager* Database::getDatabaseManagerUnsafe() const {
-    return databaseManager.get();
 }
 
 void Database::openLockFile() {
@@ -207,8 +204,8 @@ void Database::commit(Transaction* transaction, bool skipCheckpointForTestingRec
         return;
     }
     KU_ASSERT(transaction->isWriteTransaction());
-    catalog->prepareCommitOrRollback(TransactionAction::COMMIT);
-    storageManager->prepareCommit(transaction);
+    catalog->prepareCommitOrRollback(TransactionAction::COMMIT, vfs.get());
+    storageManager->prepareCommit(transaction, vfs.get());
     // Note: It is enough to stop and wait transactions to leave the system instead of
     // for example checking on the query processor's task scheduler. This is because the
     // first and last steps that a connection performs when executing a query is to
@@ -237,7 +234,7 @@ void Database::rollback(transaction::Transaction* transaction,
         return;
     }
     KU_ASSERT(transaction->isWriteTransaction());
-    catalog->prepareCommitOrRollback(TransactionAction::ROLLBACK);
+    catalog->prepareCommitOrRollback(TransactionAction::ROLLBACK, vfs.get());
     storageManager->prepareRollback(transaction);
     if (skipCheckpointForTestingRecovery) {
         wal->flushAllPages();

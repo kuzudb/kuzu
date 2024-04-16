@@ -44,7 +44,6 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
 std::unique_ptr<LogicalPlan> Planner::planImportDatabase(const BoundStatement& statement) {
     auto& boundImportDatabase =
         ku_dynamic_cast<const BoundStatement&, const BoundImportDatabase&>(statement);
-    auto filePath = boundImportDatabase.getFilePath();
     auto query = boundImportDatabase.getQuery();
     auto plan = std::make_unique<LogicalPlan>();
     auto importDatabase = make_shared<LogicalImportDatabase>(query);

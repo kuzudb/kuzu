@@ -44,7 +44,7 @@ void TransactionContext::validateManualTransaction(bool allowActiveTransaction,
     bool readOnlyStatement) {
     KU_ASSERT(hasActiveTransaction());
     if (activeTransaction->isReadOnly() && !readOnlyStatement) {
-        throw ConnectionException("Can't execute a write query inside a read-only transaction.");
+        throw ConnectionException("Can not execute a write query inside a read-only transaction.");
     }
     if (!allowActiveTransaction) {
         throw ConnectionException(

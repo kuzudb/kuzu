@@ -71,7 +71,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     }
     auto propertyName = propertyExpression.getPropertyName();
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child,
+    ExpressionUtil::validateDataType(*child,
         std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT});
     if (isNodeOrRelPattern(*child)) {
         if (Binder::isReservedPropertyName(propertyName)) {

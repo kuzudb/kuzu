@@ -32,20 +32,22 @@ public:
 
     std::string expandPath(main::ClientContext* context, const std::string& path) const override;
 
+    void syncFile(const FileInfo& fileInfo) const override;
+
 protected:
-    void readFromFile(FileInfo* fileInfo, void* buffer, uint64_t numBytes,
+    void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const override;
 
-    int64_t readFile(FileInfo* fileInfo, void* buf, size_t nbyte) const override;
+    int64_t readFile(FileInfo& fileInfo, void* buf, size_t nbyte) const override;
 
-    void writeFile(FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes,
+    void writeFile(FileInfo& fileInfo, const uint8_t* buffer, uint64_t numBytes,
         uint64_t offset) const override;
 
-    int64_t seek(FileInfo* fileInfo, uint64_t offset, int whence) const override;
+    int64_t seek(FileInfo& fileInfo, uint64_t offset, int whence) const override;
 
-    void truncate(FileInfo* fileInfo, uint64_t size) const override;
+    void truncate(FileInfo& fileInfo, uint64_t size) const override;
 
-    uint64_t getFileSize(FileInfo* fileInfo) const override;
+    uint64_t getFileSize(const FileInfo& fileInfo) const override;
 
 private:
     FileSystem* findFileSystem(const std::string& path) const;

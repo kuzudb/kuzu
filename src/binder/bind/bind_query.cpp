@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/query/return_with_clause/bound_return_clause.h"
 #include "binder/query/return_with_clause/bound_with_clause.h"
 #include "common/exception/binder.h"
@@ -23,8 +24,7 @@ void validateUnionColumnsOfTheSameType(
         // Check whether the dataTypes in union expressions are exactly the same in each single
         // query.
         for (auto j = 0u; j < columns.size(); j++) {
-            ExpressionBinder::validateExpectedDataType(*otherColumns[j],
-                columns[j]->dataType.getLogicalTypeID());
+            ExpressionUtil::validateDataType(*otherColumns[j], columns[j]->getDataType());
         }
     }
 }

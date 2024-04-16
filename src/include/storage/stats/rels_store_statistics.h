@@ -12,20 +12,21 @@ class RelsStoreStats : public TablesStatistics {
 public:
     // Should only be used by saveInitialRelsStatisticsToFile to start a database from an empty
     // directory.
-    explicit RelsStoreStats(common::VirtualFileSystem* vfs)
-        : TablesStatistics{nullptr /* metadataFH */, nullptr /* bufferManager */, nullptr /* wal */,
-              vfs} {};
+    RelsStoreStats()
+        : TablesStatistics{nullptr /* metadataFH */, nullptr /* bufferManager */,
+              nullptr /* wal */} {};
     // Should be used when an already loaded database is started from a directory.
     RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         common::VirtualFileSystem* vfs);
 
-    static inline void saveInitialRelsStatisticsToFile(common::VirtualFileSystem* vfs,
+    static void saveInitialRelsStatisticsToFile(common::VirtualFileSystem* fs,
         const std::string& directory) {
-        std::make_unique<RelsStoreStats>(vfs)->saveToFile(directory,
-            common::FileVersionType::ORIGINAL, transaction::TransactionType::READ_ONLY);
+        auto stats = RelsStoreStats();
+        stats.saveToFile(directory, common::FileVersionType::ORIGINAL,
+            transaction::TransactionType::READ_ONLY, fs);
     }
 
-    inline RelTableStats* getRelStatistics(common::table_id_t tableID,
+    RelTableStats* getRelStatistics(common::table_id_t tableID,
         transaction::Transaction* transaction) const {
         auto& tableStatisticPerTable =
             transaction->getType() == transaction::TransactionType::READ_ONLY ?
@@ -51,22 +52,17 @@ public:
         common::RelDataDirection direction);
 
 protected:
-    inline std::unique_ptr<TableStatistics> constructTableStatistic(
+    std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableCatalogEntry* tableEntry) override {
         return std::make_unique<RelTableStats>(metadataFH, *tableEntry, bufferManager, wal);
     }
 
-    inline std::unique_ptr<TableStatistics> constructTableStatistic(
-        TableStatistics* tableStatistics) override {
-        return std::make_unique<RelTableStats>(*(RelTableStats*)tableStatistics);
+    std::string getTableStatisticsFilePath(const std::string& directory,
+        common::FileVersionType dbFileType, common::VirtualFileSystem* fs) override {
+        return StorageUtils::getRelsStatisticsFilePath(fs, directory, dbFileType);
     }
 
-    inline std::string getTableStatisticsFilePath(const std::string& directory,
-        common::FileVersionType dbFileType) override {
-        return StorageUtils::getRelsStatisticsFilePath(vfs, directory, dbFileType);
-    }
-
-    inline void increaseNextRelOffset(common::table_id_t relTableID, uint64_t numTuples) {
+    void increaseNextRelOffset(common::table_id_t relTableID, uint64_t numTuples) {
         ((RelTableStats*)readWriteVersion->tableStatisticPerTable.at(relTableID).get())
             ->incrementNextRelOffset(numTuples);
     }

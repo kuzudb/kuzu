@@ -85,6 +85,7 @@ private:
             result.push_back(dictionary.getDataColumn());
             result.push_back(dictionary.getOffsetColumn());
         } break;
+        case PhysicalTypeID::ARRAY:
         case PhysicalTypeID::LIST: {
             auto listColumn = ku_dynamic_cast<Column*, ListColumn*>(column);
             result.push_back(listColumn->getDataColumn());

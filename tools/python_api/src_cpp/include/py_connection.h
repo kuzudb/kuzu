@@ -19,6 +19,8 @@ public:
     std::unique_ptr<PyQueryResult> execute(PyPreparedStatement* preparedStatement,
         const py::dict& params);
 
+    std::unique_ptr<PyQueryResult> query(const std::string& statement);
+
     void setMaxNumThreadForExec(uint64_t numThreads);
 
     PyPreparedStatement prepare(const std::string& query);
@@ -36,4 +38,7 @@ public:
 private:
     std::unique_ptr<StorageDriver> storageDriver;
     std::unique_ptr<Connection> conn;
+
+    static std::unique_ptr<PyQueryResult> checkAndWrapQueryResult(
+        std::unique_ptr<QueryResult>& queryResult);
 };

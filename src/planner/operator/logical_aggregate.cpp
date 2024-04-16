@@ -22,7 +22,7 @@ void LogicalAggregate::computeFlatSchema() {
 
 f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForGroupBy() {
     f_group_pos_set dependentGroupsPos;
-    for (auto& expression : getAllKeyExpressions()) {
+    for (auto& expression : getAllKeys()) {
         for (auto groupPos : children[0]->getSchema()->getDependentGroupsPos(expression)) {
             dependentGroupsPos.insert(groupPos);
         }
@@ -38,7 +38,7 @@ f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForGroupBy() {
 f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForAggregate() {
     if (hasDistinctAggregate()) {
         f_group_pos_set dependentGroupsPos;
-        for (auto& expression : aggregateExpressions) {
+        for (auto& expression : aggregates) {
             for (auto groupPos : children[0]->getSchema()->getDependentGroupsPos(expression)) {
                 dependentGroupsPos.insert(groupPos);
             }
@@ -50,14 +50,14 @@ f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForAggregate() {
 
 std::string LogicalAggregate::getExpressionsForPrinting() const {
     std::string result = "Group By [";
-    for (auto& expression : keyExpressions) {
+    for (auto& expression : keys) {
         result += expression->toString() + ", ";
     }
-    for (auto& expression : dependentKeyExpressions) {
+    for (auto& expression : dependentKeys) {
         result += expression->toString() + ", ";
     }
     result += "], Aggregate [";
-    for (auto& expression : aggregateExpressions) {
+    for (auto& expression : aggregates) {
         result += expression->toString() + ", ";
     }
     result += "]";
@@ -65,9 +65,9 @@ std::string LogicalAggregate::getExpressionsForPrinting() const {
 }
 
 bool LogicalAggregate::hasDistinctAggregate() {
-    for (auto& expression : aggregateExpressions) {
-        auto& functionExpression = (binder::AggregateFunctionExpression&)*expression;
-        if (functionExpression.isDistinct()) {
+    for (auto& expression : aggregates) {
+        auto funcExpr = expression->constPtrCast<binder::AggregateFunctionExpression>();
+        if (funcExpr->isDistinct()) {
             return true;
         }
     }
@@ -75,13 +75,13 @@ bool LogicalAggregate::hasDistinctAggregate() {
 }
 
 void LogicalAggregate::insertAllExpressionsToGroupAndScope(f_group_pos groupPos) {
-    for (auto& expression : keyExpressions) {
+    for (auto& expression : keys) {
         schema->insertToGroupAndScopeMayRepeat(expression, groupPos);
     }
-    for (auto& expression : dependentKeyExpressions) {
+    for (auto& expression : dependentKeys) {
         schema->insertToGroupAndScopeMayRepeat(expression, groupPos);
     }
-    for (auto& expression : aggregateExpressions) {
+    for (auto& expression : aggregates) {
         schema->insertToGroupAndScopeMayRepeat(expression, groupPos);
     }
 }

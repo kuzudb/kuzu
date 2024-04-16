@@ -1,5 +1,6 @@
 #include "function/boolean/vector_boolean_functions.h"
 
+#include "common/exception/runtime.h"
 #include "function/boolean/boolean_functions.h"
 
 using namespace kuzu::common;

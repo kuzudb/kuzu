@@ -32,7 +32,11 @@ class Connection:
         self.init_connection()
 
     def __getstate__(self) -> dict[str, Any]:
-        state = {"database": self.database, "num_threads": self.num_threads, "_connection": None}
+        state = {
+            "database": self.database,
+            "num_threads": self.num_threads,
+            "_connection": None,
+        }
         return state
 
     def init_connection(self) -> None:
@@ -88,8 +92,11 @@ class Connection:
             msg = f"Parameters must be a dict; found {type(parameters)}."
             raise RuntimeError(msg)  # noqa: TRY004
 
-        prepared_statement = self.prepare(query) if isinstance(query, str) else query
-        _query_result = self._connection.execute(prepared_statement._prepared_statement, parameters)
+        if len(parameters) == 0:
+            _query_result = self._connection.query(query)
+        else:
+            prepared_statement = self.prepare(query) if isinstance(query, str) else query
+            _query_result = self._connection.execute(prepared_statement._prepared_statement, parameters)
         if not _query_result.isSuccess():
             raise RuntimeError(_query_result.getErrorMessage())
         return QueryResult(self, _query_result)
@@ -132,7 +139,11 @@ class Connection:
                 if s != "":
                     shape.append(int(s))
             prop_type = splitted[0]
-            results[prop_name] = {"type": prop_type, "dimension": dimension, "is_primary_key": is_primary_key}
+            results[prop_name] = {
+                "type": prop_type,
+                "dimension": dimension,
+                "is_primary_key": is_primary_key,
+            }
             if len(shape) > 0:
                 results[prop_name]["shape"] = tuple(shape)
         return results

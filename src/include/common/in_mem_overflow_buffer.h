@@ -3,8 +3,6 @@
 #include <iterator>
 #include <vector>
 
-#include "common/constants.h"
-#include "common/exception/runtime.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -13,7 +11,7 @@ namespace common {
 struct BufferBlock {
 public:
     explicit BufferBlock(std::unique_ptr<storage::MemoryBuffer> block)
-        : size{block->allocator->getPageSize()}, currentOffset{0}, block{std::move(block)} {}
+        : size{block->size}, currentOffset{0}, block{std::move(block)} {}
 
 public:
     uint64_t size;
@@ -58,16 +56,11 @@ public:
 
 private:
     inline bool requireNewBlock(uint64_t sizeToAllocate) {
-        if (sizeToAllocate > BufferPoolConstants::PAGE_256KB_SIZE) {
-            throw RuntimeException("Required size " + std::to_string(sizeToAllocate) +
-                                   " is greater than the single block size of " +
-                                   std::to_string(BufferPoolConstants::PAGE_256KB_SIZE) + ".");
-        }
         return currentBlock == nullptr ||
                (currentBlock->currentOffset + sizeToAllocate) > currentBlock->size;
     }
 
-    void allocateNewBlock();
+    void allocateNewBlock(uint64_t size);
 
 private:
     std::vector<std::unique_ptr<BufferBlock>> blocks;

@@ -1,0 +1,733 @@
+-GROUP TinySnbDDLTest
+-DATASET CSV tinysnb
+--
+
+
+-CASE CreateNodeTableCommitRecovery
+-STATEMENT CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY (STUDENT_ID))
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n:EXAM_PAPER) RETURN n
+---- ok
+
+-CASE CreateNodeTableCommit
+-STATEMENT CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY (STUDENT_ID))
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (n:EXAM_PAPER) RETURN n
+---- ok
+
+
+-CASE CreateRelTableCommitRecovery
+-STATEMENT CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH ()-[r:likes]->() RETURN r
+---- ok
+
+-CASE CreateRelTableCommit
+-STATEMENT CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH ()-[r:likes]->() RETURN r
+---- ok
+
+
+-CASE DropNodeTableCommitRecovery
+-STATEMENT DROP TABLE movies
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n:movies) RETURN n
+---- error
+Binder exception: Table movies does not exist.
+
+-CASE DropNodeTableCommit
+-STATEMENT DROP TABLE movies
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (n:movies) RETURN n
+---- error
+Binder exception: Table movies does not exist.
+
+
+-CASE DropRelTableCommitRecovery
+-STATEMENT DROP TABLE knows
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n)-[:knows]->(r) RETURN n
+---- error
+Binder exception: Table knows does not exist.
+
+-CASE DropRelTableCommit
+-STATEMENT DROP TABLE knows
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (n)-[:knows]->(r) RETURN n
+---- error
+Binder exception: Table knows does not exist.
+
+
+-CASE DropNodeTablePropertyRecovery
+-STATEMENT ALTER TABLE person DROP gender
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1
+---- 1
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
+
+-CASE DropNodeTablePropertyCommit
+-STATEMENT ALTER TABLE person DROP gender
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1
+---- 1
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
+
+
+-CASE DropRelTablePropertyRecovery
+-STATEMENT ALTER TABLE studyAt DROP places
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE DropRelTablePropertyCommit
+-STATEMENT ALTER TABLE studyAt DROP places
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+
+-CASE AddInt64PropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT ALTER TABLE person ADD random INT64
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return Count(p.random)
+---- 1
+0
+
+
+-CASE AddInt64PropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT ALTER TABLE person ADD random INT64
+---- ok
+-STATEMENT COMMIT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return Count(p.random)
+---- 1
+0
+
+-CASE AddArrayPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT ALTER TABLE person ADD random DOUBLE[5]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return Count(p.random)
+---- 1
+0
+
+-CASE AddArrayPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT ALTER TABLE person ADD random DOUBLE[5]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return Count(p.random)
+---- 1
+0
+
+-CASE AddStringPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT ALTER TABLE person ADD random STRING
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddStringPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT ALTER TABLE person ADD random STRING
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddListPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT ALTER TABLE person ADD random INT64[]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddListPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT ALTER TABLE person ADD random INT64[]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+
+-CASE AddListOfStringPropertyToPersonTableWithoutDefaultValueRecovery
+-STATEMENT ALTER TABLE person ADD random STRING[]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddListOfStringPropertyToPersonTableWithoutDefaultValueCommit
+-STATEMENT ALTER TABLE person ADD random STRING[]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+
+-CASE AddListOfStructPropertyToPersonTableWithoutDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddListOfStructPropertyToPersonTableWithoutDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+
+-CASE AddMapPropertyToPersonTableWithoutDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64)
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddMapPropertyToPersonTableWithoutDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64)
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+
+-CASE AddStructPropertyToPersonTableWithoutDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64)
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+-CASE AddStructPropertyToPersonTableWithoutDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64)
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random
+---- ok
+
+
+-CASE AddInt64PropertyToPersonTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random INT64 default 21
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+21
+
+-CASE AddInt64PropertyToPersonTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random INT64 default 21
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+21
+
+
+-CASE AddStringPropertyToPersonTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random String default 'long long string'
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+long long string
+
+-CASE AddStringPropertyToPersonTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random String default 'long long string'
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+long long string
+
+
+-CASE AddListOfInt64PropertyToPersonTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random INT64[] default [142,123,789]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[142,123,789]
+
+-CASE AddListOfInt64PropertyToPersonTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random INT64[] default [142,123,789]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[142,123,789]
+
+
+-CASE AddListOfStringPropertyToPersonTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random STRING[] default ['142','short','long long long string']
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[142,short,long long long string]
+
+-CASE AddListOfStringPropertyToPersonTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random STRING[] default ['142','short','long long long string']
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[142,short,long long long string]
+
+
+-CASE AddListOfListOfStringPropertyToPersonTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random STRING[][] default [['142','51'],['short','long','123'],['long long long string','short short short short','short']]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random LIMIT 1
+---- 1
+[[142,51],[short,long,123],[long long long string,short short short short,short]]
+
+-CASE AddListOfListOfStringPropertyToPersonTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random STRING[][] default [['142','51'],['short','long','123'],['long long long string','short short short short','short']]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random LIMIT 1
+---- 1
+[[142,51],[short,long,123],[long long long string,short short short short,short]]
+
+
+-CASE AddListOfStructPropertyToPersonTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[] default [{revenue: 144, ages: [3.200000,7.200000]}]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[{revenue: 144, ages: [3.200000,7.200000]}]
+
+-CASE AddListOfStructPropertyToPersonTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random STRUCT(revenue int64, ages double[])[] default [{revenue: 144, ages: [3.200000,7.200000]}]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+[{revenue: 144, ages: [3.200000,7.200000]}]
+
+
+-CASE AddMapPropertyToPersonTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64[]) default map(['key3'],[[3,2,1]])
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+{key3=[3,2,1]}
+
+-CASE AddMapPropertyToPersonTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random MAP(STRING, INT64[]) default map(['key3'],[[3,2,1]])
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+{key3=[3,2,1]}
+
+
+-CASE AddStructPropertyToPersonTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64) default {price: [5,3,2], volume: 24}
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+{price: [5,3,2], volume: 24}
+
+-CASE AddStructPropertyToPersonTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE person ADD random STRUCT(price INT64[], volume INT64) default {price: [5,3,2], volume: 24}
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) return p.random limit 1
+---- 1
+{price: [5,3,2], volume: 24}
+
+
+-CASE AddInt64PropertyToStudyAtTableWithoutDefaultValueRecovery
+
+-STATEMENT ALTER TABLE studyAt ADD random INT64
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddInt64PropertyToStudyAtTableWithoutDefaultValueCommit
+
+-STATEMENT ALTER TABLE studyAt ADD random INT64
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+
+-CASE AddSTRINGPropertyToStudyAtTableWithoutDefaultValueRecovery
+
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddSTRINGPropertyToStudyAtTableWithoutDefaultValueCommit
+
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+
+-CASE AddStringPropertyToStudyAtTableWithoutDefaultValueRecovery
+
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddStringPropertyToStudyAtTableWithoutDefaultValueCommit
+
+-STATEMENT ALTER TABLE studyAt ADD random STRING
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+
+-CASE AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueRecovery
+
+-STATEMENT ALTER TABLE studyAt ADD random INT64[]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueCommit
+
+-STATEMENT ALTER TABLE studyAt ADD random INT64[]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+
+-CASE AddListOfStringPropertyToStudyAtTableWithoutDefaultValueRecovery
+
+-STATEMENT ALTER TABLE studyAt ADD random STRING[]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+-CASE AddListOfStringPropertyToStudyAtTableWithoutDefaultValueCommit
+
+-STATEMENT ALTER TABLE studyAt ADD random STRING[]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- ok
+
+
+-CASE AddInt64PropertyToStudyAtTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE studyAt ADD random INT64 default 42
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+42
+42
+42
+
+-CASE AddInt64PropertyToStudyAtTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE studyAt ADD random INT64 default 42
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+42
+42
+42
+
+
+-CASE AddStringPropertyToStudyAtTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE studyAt ADD random String default 'VERY SHORT STRING!!'
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+VERY SHORT STRING!!
+VERY SHORT STRING!!
+VERY SHORT STRING!!
+
+
+-CASE AddStringPropertyToStudyAtTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE studyAt ADD random String default 'VERY SHORT STRING!!'
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+VERY SHORT STRING!!
+VERY SHORT STRING!!
+VERY SHORT STRING!!
+
+
+-CASE AddListOfINT64PropertyToStudyAtTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE studyAt ADD random INT64[] default [5,6,7,1,3]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[5,6,7,1,3]
+[5,6,7,1,3]
+[5,6,7,1,3]
+
+-CASE AddListOfINT64PropertyToStudyAtTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE studyAt ADD random INT64[] default [5,6,7,1,3]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[5,6,7,1,3]
+[5,6,7,1,3]
+[5,6,7,1,3]
+
+
+-CASE AddListOfStringPropertyToStudyAtTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE studyAt ADD random STRING[] default ['2','SHORT','SUPER LONG STRINGS']
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[2,SHORT,SUPER LONG STRINGS]
+[2,SHORT,SUPER LONG STRINGS]
+[2,SHORT,SUPER LONG STRINGS]
+
+
+-CASE AddListOfStringPropertyToStudyAtTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE studyAt ADD random STRING[] default ['2','SHORT','SUPER LONG STRINGS']
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[2,SHORT,SUPER LONG STRINGS]
+[2,SHORT,SUPER LONG STRINGS]
+[2,SHORT,SUPER LONG STRINGS]
+
+
+-CASE AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueRecovery
+
+-STATEMENT ALTER TABLE studyAt ADD random STRING[][] default [['hello','good','long long string test'],['6'],['very very long string']]
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[[hello,good,long long string test],[6],[very very long string]]
+[[hello,good,long long string test],[6],[very very long string]]
+[[hello,good,long long string test],[6],[very very long string]]
+
+-CASE AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueCommit
+
+-STATEMENT ALTER TABLE studyAt ADD random STRING[][] default [['hello','good','long long string test'],['6'],['very very long string']]
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return e.random
+---- 3
+[[hello,good,long long string test],[6],[very very long string]]
+[[hello,good,long long string test],[6],[very very long string]]
+[[hello,good,long long string test],[6],[very very long string]]
+
+
+-CASE RenameTableRecovery
+
+-STATEMENT ALTER TABLE person RENAME TO student
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n:student) RETURN n
+---- ok
+-STATEMENT MATCH (n:person) RETURN n
+---- error
+Binder exception: Table person does not exist.
+
+-CASE RenameTableCommit
+
+-STATEMENT ALTER TABLE person RENAME TO student
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (n:student) RETURN n
+---- ok
+-STATEMENT MATCH (n:person) RETURN n
+---- error
+Binder exception: Table person does not exist.
+
+
+-CASE RenamePropertyRecovery
+
+-STATEMENT ALTER TABLE person RENAME fName TO name
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n:person) RETURN n.name
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.fName
+---- error
+Binder exception: Cannot find property fName for n.
+
+
+-CASE RenamePropertyCommit
+
+-STATEMENT ALTER TABLE person RENAME fName TO name
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.name
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.fName
+---- error
+Binder exception: Cannot find property fName for n.

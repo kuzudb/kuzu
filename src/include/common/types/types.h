@@ -162,8 +162,9 @@ enum class PhysicalTypeID : uint8_t {
     // Variable size types.
     STRING = 20,
     LIST = 22,
-    STRUCT = 23,
-    POINTER = 24,
+    ARRAY = 23,
+    STRUCT = 24,
+    POINTER = 25,
 };
 
 class LogicalType;
@@ -173,6 +174,8 @@ public:
     virtual ~ExtraTypeInfo() = default;
 
     inline void serialize(Serializer& serializer) const { serializeInternal(serializer); }
+
+    virtual bool operator==(const ExtraTypeInfo& other) const = 0;
 
     virtual std::unique_ptr<ExtraTypeInfo> copy() const = 0;
 
@@ -186,7 +189,7 @@ public:
     explicit ListTypeInfo(std::unique_ptr<LogicalType> childType)
         : childType{std::move(childType)} {}
     inline LogicalType* getChildType() const { return childType.get(); }
-    bool operator==(const ListTypeInfo& other) const;
+    bool operator==(const ExtraTypeInfo& other) const override;
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
     static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
@@ -204,7 +207,7 @@ public:
     explicit ArrayTypeInfo(std::unique_ptr<LogicalType> childType, uint64_t numElements)
         : ListTypeInfo{std::move(childType)}, numElements{numElements} {}
     inline uint64_t getNumElements() const { return numElements; }
-    bool operator==(const ArrayTypeInfo& other) const;
+    bool operator==(const ExtraTypeInfo& other) const override;
     static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
@@ -253,7 +256,7 @@ public:
     std::vector<LogicalType*> getChildrenTypes() const;
     std::vector<std::string> getChildrenNames() const;
     std::vector<const StructField*> getStructFields() const;
-    bool operator==(const kuzu::common::StructTypeInfo& other) const;
+    bool operator==(const ExtraTypeInfo& other) const override;
 
     static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
     std::unique_ptr<ExtraTypeInfo> copy() const override;
@@ -267,7 +270,7 @@ private:
 };
 
 class LogicalType {
-    friend class LogicalTypeUtils;
+    friend struct LogicalTypeUtils;
     friend struct StructType;
     friend struct ListType;
     friend struct ArrayType;
@@ -281,22 +284,19 @@ public:
     KUZU_API LogicalType(LogicalType&& other) = default;
 
     KUZU_API LogicalType& operator=(const LogicalType& other);
-
     KUZU_API bool operator==(const LogicalType& other) const;
-
     KUZU_API bool operator!=(const LogicalType& other) const;
-
     KUZU_API LogicalType& operator=(LogicalType&& other) = default;
 
     KUZU_API std::string toString() const;
+    static LogicalType fromString(const std::string& str);
 
-    KUZU_API inline LogicalTypeID getLogicalTypeID() const { return typeID; }
+    KUZU_API LogicalTypeID getLogicalTypeID() const { return typeID; }
 
-    inline PhysicalTypeID getPhysicalType() const { return physicalType; }
+    PhysicalTypeID getPhysicalType() const { return physicalType; }
     static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType);
 
-    inline bool hasExtraTypeInfo() const { return extraTypeInfo != nullptr; }
-    inline void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
+    void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
         extraTypeInfo = std::move(typeInfo);
     }
 
@@ -439,13 +439,12 @@ private:
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
 };
 
-// TODO: Should remove `logical_types_t`.
-using logical_types_t = std::vector<std::unique_ptr<LogicalType>>;
 using logical_type_vec_t = std::vector<LogicalType>;
 
 struct ListType {
     static inline LogicalType* getChildType(const LogicalType* type) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::LIST);
+        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::LIST ||
+                  type->getPhysicalType() == PhysicalTypeID::ARRAY);
         auto listTypeInfo = reinterpret_cast<ListTypeInfo*>(type->extraTypeInfo.get());
         return listTypeInfo->getChildType();
     }
@@ -453,13 +452,13 @@ struct ListType {
 
 struct ArrayType {
     static inline LogicalType* getChildType(const LogicalType* type) {
-        KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::ARRAY);
+        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::ARRAY);
         auto arrayTypeInfo = reinterpret_cast<ArrayTypeInfo*>(type->extraTypeInfo.get());
         return arrayTypeInfo->getChildType();
     }
 
     static inline uint64_t getNumElements(const LogicalType* type) {
-        KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::ARRAY);
+        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::ARRAY);
         auto arrayTypeInfo = reinterpret_cast<ArrayTypeInfo*>(type->extraTypeInfo.get());
         return arrayTypeInfo->getNumElements();
     }
@@ -572,12 +571,10 @@ struct PhysicalTypeUtils {
     static uint32_t getFixedTypeSize(PhysicalTypeID physicalType);
 };
 
-class LogicalTypeUtils {
-public:
+struct LogicalTypeUtils {
     KUZU_API static std::string toString(LogicalTypeID dataTypeID);
     KUZU_API static std::string toString(const std::vector<LogicalType>& dataTypes);
     KUZU_API static std::string toString(const std::vector<LogicalTypeID>& dataTypeIDs);
-    KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isDate(const LogicalType& dataType);
     static bool isDate(const LogicalTypeID& dataType);

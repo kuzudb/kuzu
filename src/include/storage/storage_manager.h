@@ -19,7 +19,7 @@ public:
         transaction::Transaction* transaction);
     void dropTable(common::table_id_t tableID);
 
-    void prepareCommit(transaction::Transaction* transaction);
+    void prepareCommit(transaction::Transaction* transaction, common::VirtualFileSystem* fs);
     void prepareRollback(transaction::Transaction* transaction);
     void checkpointInMemory();
     void rollbackInMemory();

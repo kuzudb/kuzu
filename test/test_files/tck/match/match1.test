@@ -180,13 +180,13 @@ Binder exception: Cannot bind r as node pattern.
 ---- ok
 -STATEMENT MATCH ()-[r]-(r) RETURN r;
 ---- error
-Binder exception: r has data type NODE but (REL) was expected.
+Binder exception: r has data type NODE but REL was expected.
 -STATEMENT MATCH ()-[r]->(r) RETURN r;
 ---- error
-Binder exception: r has data type NODE but (REL) was expected.
+Binder exception: r has data type NODE but REL was expected.
 -STATEMENT MATCH ()<-[r]-(r) RETURN r;
 ---- error
-Binder exception: r has data type NODE but (REL) was expected.
+Binder exception: r has data type NODE but REL was expected.
 -STATEMENT MATCH ()-[r]-()-[]-(r) RETURN r;
 ---- error
 Binder exception: Cannot bind r as node pattern.

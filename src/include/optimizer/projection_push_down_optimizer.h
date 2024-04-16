@@ -4,6 +4,10 @@
 #include "planner/operator/logical_plan.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace planner {
 struct LogicalInsertInfo;
 }

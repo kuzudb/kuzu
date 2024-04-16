@@ -26,12 +26,13 @@ public:
 class RadixSort {
 private:
     static constexpr uint16_t COUNTING_ARRAY_SIZE = 256;
+    static constexpr uint64_t DATA_BLOCK_SIZE = common::BufferPoolConstants::PAGE_256KB_SIZE;
 
 public:
     RadixSort(storage::MemoryManager* memoryManager, FactorizedTable& factorizedTable,
         OrderByKeyEncoder& orderByKeyEncoder, std::vector<StrKeyColInfo> strKeyColsInfo)
-        : tmpSortingResultBlock{std::make_unique<DataBlock>(memoryManager)},
-          tmpTuplePtrSortingBlock{std::make_unique<DataBlock>(memoryManager)},
+        : tmpSortingResultBlock{std::make_unique<DataBlock>(memoryManager, DATA_BLOCK_SIZE)},
+          tmpTuplePtrSortingBlock{std::make_unique<DataBlock>(memoryManager, DATA_BLOCK_SIZE)},
           factorizedTable{factorizedTable}, strKeyColsInfo{std::move(strKeyColsInfo)},
           numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()},
           numBytesToRadixSort{numBytesPerTuple - 8} {}

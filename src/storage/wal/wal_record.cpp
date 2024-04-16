@@ -1,25 +1,182 @@
 #include "storage/wal/wal_record.h"
 
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-std::string dbFileTypeToString(DBFileType dbFileType) {
-    switch (dbFileType) {
-    case DBFileType::DATA: {
-        return "DATA";
-    }
-    case DBFileType::METADATA: {
-        return "METADATA";
-    }
-    case DBFileType::NODE_INDEX: {
-        return "NODE_INDEX";
-    }
+void WALRecord::serialize(common::Serializer& serializer) const {
+    serializer.write(type);
+}
+
+std::unique_ptr<WALRecord> WALRecord::deserialize(common::Deserializer& deserializer) {
+    WALRecordType type;
+    deserializer.deserializeValue(type);
+    std::unique_ptr<WALRecord> walRecord;
+    switch (type) {
+    case WALRecordType::CREATE_TABLE_RECORD: {
+        walRecord = CreateTableRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
+        walRecord = RdfGraphRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::DROP_TABLE_RECORD: {
+        walRecord = DropTableRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::DROP_PROPERTY_RECORD: {
+        walRecord = DropPropertyRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::ADD_PROPERTY_RECORD: {
+        walRecord = AddPropertyRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::CATALOG_RECORD: {
+        walRecord = CatalogRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::TABLE_STATISTICS_RECORD: {
+        walRecord = TableStatisticsRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::COPY_TABLE_RECORD: {
+        walRecord = CopyTableRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
+        walRecord = PageUpdateOrInsertRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::COMMIT_RECORD: {
+        walRecord = CommitRecord::deserialize(deserializer);
+    } break;
     default: {
         KU_UNREACHABLE;
     }
     }
+    walRecord->type = type;
+    return walRecord;
+}
+
+void PageUpdateOrInsertRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(dbFileID);
+    serializer.write(pageIdxInOriginalFile);
+    serializer.write(pageIdxInWAL);
+    serializer.write(isInsert);
+}
+
+std::unique_ptr<PageUpdateOrInsertRecord> PageUpdateOrInsertRecord::deserialize(
+    common::Deserializer& deserializer) {
+    auto retVal = std::make_unique<PageUpdateOrInsertRecord>();
+    deserializer.deserializeValue(retVal->dbFileID);
+    deserializer.deserializeValue(retVal->pageIdxInOriginalFile);
+    deserializer.deserializeValue(retVal->pageIdxInWAL);
+    deserializer.deserializeValue(retVal->isInsert);
+    return retVal;
+}
+
+void CommitRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(transactionID);
+}
+
+std::unique_ptr<CommitRecord> CommitRecord::deserialize(common::Deserializer& deserializer) {
+    auto retVal = std::make_unique<CommitRecord>();
+    deserializer.deserializeValue(retVal->transactionID);
+    return retVal;
+}
+
+void CreateTableRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(tableID);
+    serializer.write(tableType);
+}
+
+std::unique_ptr<CreateTableRecord> CreateTableRecord::deserialize(
+    common::Deserializer& deserializer) {
+    auto retVal = std::make_unique<CreateTableRecord>();
+    deserializer.deserializeValue(retVal->tableID);
+    deserializer.deserializeValue(retVal->tableType);
+    return retVal;
+}
+
+void RdfGraphRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(tableID);
+    resourceTableRecord->serialize(serializer);
+    literalTableRecord->serialize(serializer);
+    resourceTripleTableRecord->serialize(serializer);
+    literalTripleTableRecord->serialize(serializer);
+}
+
+std::unique_ptr<RdfGraphRecord> RdfGraphRecord::deserialize(common::Deserializer& deserializer) {
+    auto retVal = std::make_unique<RdfGraphRecord>();
+    deserializer.deserializeValue(retVal->tableID);
+    retVal->resourceTableRecord = WALRecord::deserialize(deserializer);
+    retVal->literalTableRecord = WALRecord::deserialize(deserializer);
+    retVal->resourceTripleTableRecord = WALRecord::deserialize(deserializer);
+    retVal->literalTripleTableRecord = WALRecord::deserialize(deserializer);
+    return retVal;
+}
+
+void CopyTableRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(tableID);
+}
+
+std::unique_ptr<CopyTableRecord> CopyTableRecord::deserialize(common::Deserializer& deserializer) {
+    auto retVal = std::make_unique<CopyTableRecord>();
+    deserializer.deserializeValue(retVal->tableID);
+    return retVal;
+}
+
+void TableStatisticsRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(tableType);
+}
+
+std::unique_ptr<TableStatisticsRecord> TableStatisticsRecord::deserialize(
+    common::Deserializer& deserializer) {
+    auto retVal = std::make_unique<TableStatisticsRecord>();
+    deserializer.deserializeValue(retVal->tableType);
+    return retVal;
+}
+
+void DropTableRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(tableID);
+}
+
+std::unique_ptr<DropTableRecord> DropTableRecord::deserialize(common::Deserializer& deserializer) {
+    auto retVal = std::make_unique<DropTableRecord>();
+    deserializer.deserializeValue(retVal->tableID);
+    return retVal;
+}
+
+void DropPropertyRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(tableID);
+    serializer.write(propertyID);
+}
+
+std::unique_ptr<DropPropertyRecord> DropPropertyRecord::deserialize(
+    common::Deserializer& deserializer) {
+    auto retVal = std::make_unique<DropPropertyRecord>();
+    deserializer.deserializeValue(retVal->tableID);
+    deserializer.deserializeValue(retVal->propertyID);
+    return retVal;
+}
+
+void AddPropertyRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(tableID);
+    serializer.write(propertyID);
+}
+
+std::unique_ptr<AddPropertyRecord> AddPropertyRecord::deserialize(
+    common::Deserializer& deserializer) {
+    auto retVal = std::make_unique<AddPropertyRecord>();
+    deserializer.deserializeValue(retVal->tableID);
+    deserializer.deserializeValue(retVal->propertyID);
+    return retVal;
 }
 
 DBFileID DBFileID::newDataFileID() {
@@ -34,187 +191,6 @@ DBFileID DBFileID::newPKIndexFileID(common::table_id_t tableID) {
     DBFileID retVal{DBFileType::NODE_INDEX};
     retVal.nodeIndexID = NodeIndexID(tableID);
     return retVal;
-}
-
-bool WALRecord::operator==(const WALRecord& rhs) const {
-    if (recordType != rhs.recordType) {
-        return false;
-    }
-    switch (recordType) {
-    case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
-        return pageInsertOrUpdateRecord == rhs.pageInsertOrUpdateRecord;
-    }
-    case WALRecordType::TABLE_STATISTICS_RECORD: {
-        return tableStatisticsRecord == rhs.tableStatisticsRecord;
-    }
-    case WALRecordType::COMMIT_RECORD: {
-        return commitRecord == rhs.commitRecord;
-    }
-    case WALRecordType::CATALOG_RECORD: {
-        // CatalogRecords are empty so are always equal
-        return true;
-    }
-    case WALRecordType::CREATE_TABLE_RECORD: {
-        return createTableRecord == rhs.createTableRecord;
-    }
-    case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
-        return rdfGraphRecord == rhs.rdfGraphRecord;
-    }
-    case WALRecordType::COPY_TABLE_RECORD: {
-        return copyTableRecord == rhs.copyTableRecord;
-    }
-    case WALRecordType::DROP_TABLE_RECORD: {
-        return dropTableRecord == rhs.dropTableRecord;
-    }
-    case WALRecordType::DROP_PROPERTY_RECORD: {
-        return dropPropertyRecord == rhs.dropPropertyRecord;
-    }
-    case WALRecordType::ADD_PROPERTY_RECORD: {
-        return addPropertyRecord == rhs.addPropertyRecord;
-    }
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
-}
-
-std::string walRecordTypeToString(WALRecordType walRecordType) {
-    switch (walRecordType) {
-    case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
-        return "PAGE_UPDATE_OR_INSERT_RECORD";
-    }
-    case WALRecordType::TABLE_STATISTICS_RECORD: {
-        return "TABLE_STATISTICS_RECORD";
-    }
-    case WALRecordType::COMMIT_RECORD: {
-        return "COMMIT_RECORD";
-    }
-    case WALRecordType::CATALOG_RECORD: {
-        return "CATALOG_RECORD";
-    }
-    case WALRecordType::CREATE_TABLE_RECORD: {
-        return "CREATE_TABLE_RECORD";
-    }
-    case WALRecordType::CREATE_REL_TABLE_GROUP_RECORD: {
-        return "REL_TABLE_GROUP_RECORD";
-    }
-    case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
-        return "CREATE_RDF_GRAPH_RECORD";
-    }
-    case WALRecordType::COPY_TABLE_RECORD: {
-        return "COPY_TABLE_RECORD";
-    }
-    case WALRecordType::DROP_TABLE_RECORD: {
-        return "DROP_TABLE_RECORD";
-    }
-    case WALRecordType::ADD_PROPERTY_RECORD: {
-        return "ADD_PROPERTY_RECORD";
-    }
-    case WALRecordType::DROP_PROPERTY_RECORD: {
-        return "DROP_PROPERTY_RECORD";
-    }
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
-}
-
-WALRecord WALRecord::newPageInsertOrUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
-    uint64_t pageIdxInWAL, bool isInsert) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD;
-    retVal.pageInsertOrUpdateRecord =
-        PageUpdateOrInsertRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL, isInsert);
-    return retVal;
-}
-
-WALRecord WALRecord::newPageUpdateRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
-    uint64_t pageIdxInWAL) {
-    return WALRecord::newPageInsertOrUpdateRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
-        false /* is update */);
-}
-
-WALRecord WALRecord::newPageInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
-    uint64_t pageIdxInWAL) {
-    return WALRecord::newPageInsertOrUpdateRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
-        true /* is insert */);
-}
-
-WALRecord WALRecord::newCommitRecord(uint64_t transactionID) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::COMMIT_RECORD;
-    retVal.commitRecord = CommitRecord(transactionID);
-    return retVal;
-}
-
-WALRecord WALRecord::newTableStatisticsRecord(bool isNodeTable) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::TABLE_STATISTICS_RECORD;
-    retVal.tableStatisticsRecord = TableStatisticsRecord(isNodeTable);
-    return retVal;
-}
-
-WALRecord WALRecord::newCatalogRecord() {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::CATALOG_RECORD;
-    return retVal;
-}
-
-WALRecord WALRecord::newCreateTableRecord(table_id_t tableID, TableType tableType) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::CREATE_TABLE_RECORD;
-    retVal.createTableRecord = CreateTableRecord(tableID, tableType);
-    return retVal;
-}
-
-WALRecord WALRecord::newRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourceTableID,
-    table_id_t literalTableID, table_id_t resourceTripleTableID, table_id_t literalTripleTableID) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::CREATE_RDF_GRAPH_RECORD;
-    retVal.rdfGraphRecord =
-        RdfGraphRecord(rdfGraphID, CreateTableRecord(resourceTableID, TableType::NODE),
-            CreateTableRecord(literalTableID, TableType::NODE),
-            CreateTableRecord(resourceTripleTableID, TableType::REL),
-            CreateTableRecord(literalTripleTableID, TableType::REL));
-    return retVal;
-}
-
-WALRecord WALRecord::newCopyTableRecord(table_id_t tableID) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::COPY_TABLE_RECORD;
-    retVal.copyTableRecord = CopyTableRecord(tableID);
-    return retVal;
-}
-
-WALRecord WALRecord::newDropTableRecord(table_id_t tableID) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::DROP_TABLE_RECORD;
-    retVal.dropTableRecord = DropTableRecord(tableID);
-    return retVal;
-}
-
-WALRecord WALRecord::newDropPropertyRecord(table_id_t tableID, property_id_t propertyID) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::DROP_PROPERTY_RECORD;
-    retVal.dropPropertyRecord = DropPropertyRecord(tableID, propertyID);
-    return retVal;
-}
-
-WALRecord WALRecord::newAddPropertyRecord(table_id_t tableID, property_id_t propertyID) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::ADD_PROPERTY_RECORD;
-    retVal.addPropertyRecord = AddPropertyRecord(tableID, propertyID);
-    return retVal;
-}
-
-void WALRecord::constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset) {
-    ((WALRecord*)&retVal)[0] = ((WALRecord*)(bytes + offset))[0];
-    offset += sizeof(WALRecord);
-}
-
-void WALRecord::writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset) const {
-    ((WALRecord*)(bytes + offset))[0] = *this;
-    offset += sizeof(WALRecord);
 }
 
 } // namespace storage

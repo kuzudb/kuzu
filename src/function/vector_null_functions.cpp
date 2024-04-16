@@ -1,5 +1,6 @@
 #include "function/null/vector_null_functions.h"
 
+#include "common/exception/runtime.h"
 #include "function/null/null_functions.h"
 
 using namespace kuzu::common;

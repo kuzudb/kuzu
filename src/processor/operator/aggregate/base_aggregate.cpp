@@ -23,19 +23,18 @@ bool BaseAggregate::containDistinctAggregate() const {
 }
 
 void BaseAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
-    for (auto& inputInfo : aggregateInputInfos) {
-        auto aggregateInput = std::make_unique<AggregateInput>();
-        if (inputInfo->aggregateVectorPos.dataChunkPos == INVALID_DATA_CHUNK_POS) {
-            aggregateInput->aggregateVector = nullptr;
+    for (auto& info : aggInfos) {
+        auto aggregateInput = AggregateInput();
+        if (info.aggVectorPos.dataChunkPos == INVALID_DATA_CHUNK_POS) {
+            aggregateInput.aggregateVector = nullptr;
         } else {
-            aggregateInput->aggregateVector =
-                resultSet->getValueVector(inputInfo->aggregateVectorPos).get();
+            aggregateInput.aggregateVector = resultSet->getValueVector(info.aggVectorPos).get();
         }
-        for (auto dataChunkPos : inputInfo->multiplicityChunksPos) {
-            aggregateInput->multiplicityChunks.push_back(
+        for (auto dataChunkPos : info.multiplicityChunksPos) {
+            aggregateInput.multiplicityChunks.push_back(
                 resultSet->getDataChunk(dataChunkPos).get());
         }
-        aggregateInputs.push_back(std::move(aggregateInput));
+        aggInputs.push_back(std::move(aggregateInput));
     }
 }
 
@@ -44,15 +43,6 @@ std::vector<std::unique_ptr<function::AggregateFunction>> BaseAggregate::cloneAg
     result.reserve(aggregateFunctions.size());
     for (auto& function : aggregateFunctions) {
         result.push_back(function->clone());
-    }
-    return result;
-}
-
-std::vector<std::unique_ptr<AggregateInputInfo>> BaseAggregate::cloneAggInputInfos() {
-    std::vector<std::unique_ptr<AggregateInputInfo>> result;
-    result.reserve(aggregateInputInfos.size());
-    for (auto& info : aggregateInputInfos) {
-        result.push_back(info->copy());
     }
     return result;
 }

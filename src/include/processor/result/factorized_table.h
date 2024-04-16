@@ -32,31 +32,27 @@ struct BlockAppendingInfo {
 // released when this struct goes out of scope.
 class DataBlock {
 public:
-    explicit DataBlock(storage::MemoryManager* memoryManager)
-        : numTuples{0}, memoryManager{memoryManager} {
-        block = memoryManager->allocateBuffer(true /* initializeToZero */);
-        freeSize = block->allocator->getPageSize();
+    DataBlock(storage::MemoryManager* mm, uint64_t size)
+        : numTuples{0}, totalSize{size}, freeSize{size} {
+        block = mm->allocateBuffer(true /* initializeToZero */, size);
     }
 
-    DataBlock(DataBlock&& other) = default;
-
-    inline uint8_t* getData() const { return block->buffer; }
-    inline void resetNumTuplesAndFreeSize() {
-        freeSize = common::BufferPoolConstants::PAGE_256KB_SIZE;
+    uint8_t* getData() const { return block->buffer; }
+    uint8_t* getWritableData() const { return block->buffer + totalSize - freeSize; }
+    void resetNumTuplesAndFreeSize() {
+        freeSize = totalSize;
         numTuples = 0;
     }
-    inline void resetToZero() {
-        memset(block->buffer, 0, common::BufferPoolConstants::PAGE_256KB_SIZE);
-    }
+    void resetToZero() { memset(block->buffer, 0, totalSize); }
 
     static void copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
         DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,
         uint32_t numBytesPerTuple);
 
 public:
-    uint64_t freeSize;
     uint32_t numTuples;
-    storage::MemoryManager* memoryManager;
+    uint64_t totalSize;
+    uint64_t freeSize;
 
 private:
     std::unique_ptr<storage::MemoryBuffer> block;
@@ -64,24 +60,23 @@ private:
 
 class DataBlockCollection {
 public:
-    // This interface is used for unflat tuple blocks, for which numBytesPerTuple and
+    // This interface is used for unFlat tuple blocks, for which numBytesPerTuple and
     // numTuplesPerBlock are useless.
     DataBlockCollection() : numBytesPerTuple{UINT32_MAX}, numTuplesPerBlock{UINT32_MAX} {}
     DataBlockCollection(uint32_t numBytesPerTuple, uint32_t numTuplesPerBlock)
         : numBytesPerTuple{numBytesPerTuple}, numTuplesPerBlock{numTuplesPerBlock} {}
 
-    inline void append(std::unique_ptr<DataBlock> otherBlock) {
-        blocks.push_back(std::move(otherBlock));
-    }
-    inline void append(std::vector<std::unique_ptr<DataBlock>> otherBlocks) {
+    void append(std::unique_ptr<DataBlock> otherBlock) { blocks.push_back(std::move(otherBlock)); }
+    void append(std::vector<std::unique_ptr<DataBlock>> otherBlocks) {
         std::move(begin(otherBlocks), end(otherBlocks), back_inserter(blocks));
     }
-    inline void append(std::unique_ptr<DataBlockCollection> other) {
-        append(std::move(other->blocks));
-    }
-    inline bool isEmpty() { return blocks.empty(); }
-    inline std::vector<std::unique_ptr<DataBlock>>& getBlocks() { return blocks; }
-    inline DataBlock* getBlock(ft_block_idx_t blockIdx) { return blocks[blockIdx].get(); }
+    void append(std::unique_ptr<DataBlockCollection> other) { append(std::move(other->blocks)); }
+    bool needAllocation(uint64_t size) const { return isEmpty() || blocks.back()->freeSize < size; }
+
+    bool isEmpty() const { return blocks.empty(); }
+    const std::vector<std::unique_ptr<DataBlock>>& getBlocks() const { return blocks; }
+    DataBlock* getBlock(ft_block_idx_t blockIdx) { return blocks[blockIdx].get(); }
+    DataBlock* getLastBlock() { return blocks.back().get(); }
 
     void merge(DataBlockCollection& other);
 
@@ -226,7 +221,7 @@ public:
     uint64_t getTotalNumFlatTuples() const;
     uint64_t getNumFlatTuples(ft_tuple_idx_t tupleIdx) const;
 
-    inline std::vector<std::unique_ptr<DataBlock>>& getTupleDataBlocks() {
+    inline const std::vector<std::unique_ptr<DataBlock>>& getTupleDataBlocks() {
         return flatTupleBlockCollection->getBlocks();
     }
     inline const FactorizedTableSchema* getTableSchema() const { return tableSchema.get(); }
@@ -246,7 +241,7 @@ public:
             tableSchema->getColumn(colIdx)->getNumBytes());
     }
 
-    inline uint64_t getNumTuplesPerBlock() const { return numTuplesPerBlock; }
+    inline uint64_t getNumTuplesPerBlock() const { return numFlatTuplesPerBlock; }
 
     inline bool hasNoNullGuarantee(ft_col_idx_t colIdx) const {
         return tableSchema->getColumn(colIdx)->hasNoNullGuarantee();
@@ -271,7 +266,7 @@ private:
     }
     inline std::pair<ft_block_idx_t, ft_block_offset_t> getBlockIdxAndTupleIdxInBlock(
         uint64_t tupleIdx) const {
-        return std::make_pair(tupleIdx / numTuplesPerBlock, tupleIdx % numTuplesPerBlock);
+        return std::make_pair(tupleIdx / numFlatTuplesPerBlock, tupleIdx % numFlatTuplesPerBlock);
     }
 
     std::vector<BlockAppendingInfo> allocateFlatTupleBlocks(uint64_t numTuplesToAppend);
@@ -308,11 +303,18 @@ private:
 
 private:
     storage::MemoryManager* memoryManager;
+    // Table Schema. Keeping track of factorization structure.
     std::unique_ptr<FactorizedTableSchema> tableSchema;
+    // Number of rows in table.
     uint64_t numTuples;
-    uint32_t numTuplesPerBlock;
+    // Radix sort requires there is a fixed number of tuple in a block.
+    uint64_t flatTupleBlockSize;
+    uint32_t numFlatTuplesPerBlock;
+    // Data blocks for flat tuples.
     std::unique_ptr<DataBlockCollection> flatTupleBlockCollection;
-    std::unique_ptr<DataBlockCollection> unflatTupleBlockCollection;
+    // Data blocks for unFlat tuples.
+    std::unique_ptr<DataBlockCollection> unFlatTupleBlockCollection;
+    // Overflow buffer storing variable size part of an entry.
     std::unique_ptr<common::InMemOverflowBuffer> inMemOverflowBuffer;
 };
 

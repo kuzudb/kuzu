@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/interval_column_writer.h"
 
+#include "common/exception/runtime.h"
 #include "common/serializer/serializer.h"
 
 namespace kuzu {

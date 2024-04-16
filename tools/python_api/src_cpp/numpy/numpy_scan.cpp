@@ -1,5 +1,6 @@
 #include "numpy/numpy_scan.h"
 
+#include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/types/timestamp_t.h"
 #include "pandas/pandas_bind.h"

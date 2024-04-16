@@ -64,6 +64,7 @@ void StructPackFunctions::execFunc(const std::vector<std::shared_ptr<ValueVector
         }
         // If the parameter's state is inconsistent with the result's state, we need to copy the
         // parameter's value to the corresponding child vector.
+        StructVector::getFieldVector(&result, i)->resetAuxiliaryBuffer();
         copyParameterValueToStructFieldVector(parameter.get(),
             StructVector::getFieldVector(&result, i).get(), result.state.get());
     }

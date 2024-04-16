@@ -59,6 +59,8 @@ ClientContext::ClientContext(Database* database) : database{database} {
     config.enableProgressBar = ClientConfigDefault::ENABLE_PROGRESS_BAR;
     config.showProgressAfter = ClientConfigDefault::SHOW_PROGRESS_AFTER;
     config.enableMultiCopy = ClientConfigDefault::ENABLE_MULTI_COPY;
+    config.recursivePatternSemantic = ClientConfigDefault::RECURSIVE_PATTERN_SEMANTIC;
+    config.recursivePatternCardinalityScaleFactor = ClientConfigDefault::RECURSIVE_PATTERN_FACTOR;
 }
 
 uint64_t ClientContext::getTimeoutRemainingInMS() const {
@@ -150,6 +152,10 @@ extension::ExtensionOptions* ClientContext::getExtensionOptions() const {
 
 std::string ClientContext::getExtensionDir() const {
     return common::stringFormat("{}/.kuzu/extension", config.homeDirectory);
+}
+
+DatabaseManager* ClientContext::getDatabaseManager() const {
+    return database->databaseManager.get();
 }
 
 storage::StorageManager* ClientContext::getStorageManager() const {
@@ -460,7 +466,8 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
 }
 
 void ClientContext::addScalarFunction(std::string name, function::function_set definitions) {
-    database->catalog->addFunction(std::move(name), std::move(definitions));
+    database->catalog->addFunction(CatalogEntryType::SCALAR_FUNCTION_ENTRY, std::move(name),
+        std::move(definitions));
 }
 
 bool ClientContext::startUDFAutoTrx(transaction::TransactionContext* trx) {

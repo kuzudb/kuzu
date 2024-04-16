@@ -6,6 +6,7 @@
 #include <unordered_set>
 
 #include "common/assert.h"
+#include "common/cast.h"
 #include "common/copy_constructors.h"
 #include "common/enums/expression_type.h"
 #include "common/exception/internal.h"
@@ -65,26 +66,33 @@ public:
     common::LogicalType getDataType() const { return dataType; }
     common::LogicalType& getDataTypeReference() { return dataType; }
 
-    inline bool hasAlias() const { return !alias.empty(); }
-    inline std::string getAlias() const { return alias; }
+    bool hasAlias() const { return !alias.empty(); }
+    std::string getAlias() const { return alias; }
 
-    inline uint32_t getNumChildren() const { return children.size(); }
-    inline std::shared_ptr<Expression> getChild(common::vector_idx_t idx) const {
+    uint32_t getNumChildren() const { return children.size(); }
+    std::shared_ptr<Expression> getChild(common::idx_t idx) const {
+        KU_ASSERT(idx < children.size());
         return children[idx];
     }
-    inline expression_vector getChildren() const { return children; }
-    inline void setChild(common::vector_idx_t idx, std::shared_ptr<Expression> child) {
+    expression_vector getChildren() const { return children; }
+    void setChild(common::idx_t idx, std::shared_ptr<Expression> child) {
+        KU_ASSERT(idx < children.size());
         children[idx] = std::move(child);
     }
 
     expression_vector splitOnAND();
 
-    inline bool operator==(const Expression& rhs) const { return uniqueName == rhs.uniqueName; }
+    bool operator==(const Expression& rhs) const { return uniqueName == rhs.uniqueName; }
 
     std::string toString() const { return hasAlias() ? alias : toStringInternal(); }
 
     virtual std::unique_ptr<Expression> copy() const {
         throw common::InternalException("Unimplemented expression copy().");
+    }
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const Expression*, const TARGET*>(this);
     }
 
 protected:

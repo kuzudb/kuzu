@@ -7,7 +7,7 @@ namespace kuzu {
 namespace processor {
 
 bool DetachDatabase::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
-    auto dbManager = context->clientContext->getDatabase()->getDatabaseManagerUnsafe();
+    auto dbManager = context->clientContext->getDatabaseManager();
     dbManager->detachDatabase(dbName);
     return false;
 }

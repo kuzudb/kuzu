@@ -5,7 +5,6 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
-#include "storage/storage_utils.h"
 #include "storage/store/list_column_chunk.h"
 #include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column_chunk.h"
@@ -126,6 +125,7 @@ static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataTyp
         return std::make_shared<IntegerBitpacking<int8_t>>();
     }
     case PhysicalTypeID::INTERNAL_ID:
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
     case PhysicalTypeID::UINT64: {
         return std::make_shared<IntegerBitpacking<uint64_t>>();
@@ -182,6 +182,7 @@ void ColumnChunk::initializeFunction() {
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::INT8:
     case PhysicalTypeID::INTERNAL_ID:
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
     case PhysicalTypeID::UINT64:
     case PhysicalTypeID::UINT32:
@@ -266,7 +267,8 @@ void ColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets, RelMultipli
 // Thus, an assertion is added at the first line.
 void ColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
     KU_ASSERT(dataType.getPhysicalType() != PhysicalTypeID::BOOL &&
-              dataType.getPhysicalType() != PhysicalTypeID::LIST);
+              dataType.getPhysicalType() != PhysicalTypeID::LIST &&
+              dataType.getPhysicalType() != PhysicalTypeID::ARRAY);
     nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
     if (offsetInChunk >= numValues) {
         numValues = offsetInChunk + 1;
@@ -336,16 +338,6 @@ void ColumnChunk::populateWithDefaultVal(ValueVector* defaultValueVector) {
         append(defaultValueVector, *defaultValueVector->state->selVector);
         numValuesAppended += numValuesToAppend;
     }
-}
-
-offset_t ColumnChunk::getOffsetInBuffer(offset_t pos) const {
-    auto numElementsInAPage =
-        PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
-    auto posCursor = PageUtils::getPageCursorForPos(pos, numElementsInAPage);
-    auto offsetInBuffer = posCursor.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE +
-                          posCursor.elemPosInPage * numBytesPerValue;
-    KU_ASSERT(offsetInBuffer + numBytesPerValue <= bufferSize);
-    return offsetInBuffer;
 }
 
 void ColumnChunk::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
@@ -610,7 +602,6 @@ private:
     common::table_id_t commonTableID;
 };
 
-// TODO(Guodong): Change the input param `dataType` to PhysicalType.
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(LogicalType dataType,
     bool enableCompression, uint64_t capacity, bool inMemory) {
     switch (dataType.getPhysicalType()) {
@@ -641,6 +632,7 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(LogicalType d
         return std::make_unique<StringColumnChunk>(std::move(dataType), capacity, enableCompression,
             inMemory);
     }
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         return std::make_unique<ListColumnChunk>(std::move(dataType), capacity, enableCompression,
             inMemory);

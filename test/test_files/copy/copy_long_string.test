@@ -20,8 +20,8 @@
 -STATEMENT copy person1 from '${KUZU_ROOT_DIRECTORY}/test/answers/long_string_invalid.csv';
 ---- ok
 -STATEMENT match (p:person1) return p.fName;
----- hash
-2 5b1ba5eec17db160642514682e72e2ed
+---- 1
+<FILE>:long_string_invalid.csv
 
 -CASE LongStringPKError
 
@@ -40,5 +40,5 @@
 -STATEMENT copy person1 from '${KUZU_ROOT_DIRECTORY}/test/answers/long_string_invalid.csv';
 ---- ok
 -STATEMENT match (p:person1) return p.ID;
----- hash
-2 5b1ba5eec17db160642514682e72e2ed
+---- 1
+<FILE>:long_string_invalid.csv

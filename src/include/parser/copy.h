@@ -13,8 +13,8 @@ class Copy : public Statement {
 public:
     explicit Copy(common::StatementType type) : Statement{type} {}
 
-    inline void setParsingOption(parsing_option_t options) { parsingOptions = std::move(options); }
-    inline const parsing_option_t& getParsingOptionsRef() const { return parsingOptions; }
+    void setParsingOption(parsing_option_t options) { parsingOptions = std::move(options); }
+    const parsing_option_t& getParsingOptionsRef() const { return parsingOptions; }
 
 protected:
     parsing_option_t parsingOptions;
@@ -26,15 +26,15 @@ public:
         : Copy{common::StatementType::COPY_FROM}, byColumn_{false}, source{std::move(source)},
           tableName{std::move(tableName)} {}
 
-    inline void setByColumn() { byColumn_ = true; }
-    inline bool byColumn() const { return byColumn_; }
+    void setByColumn() { byColumn_ = true; }
+    bool byColumn() const { return byColumn_; }
 
-    inline BaseScanSource* getSource() const { return source.get(); }
+    BaseScanSource* getSource() const { return source.get(); }
 
-    inline std::string getTableName() const { return tableName; }
+    std::string getTableName() const { return tableName; }
 
-    inline void setColumnNames(std::vector<std::string> names) { columnNames = std::move(names); }
-    inline std::vector<std::string> getColumnNames() const { return columnNames; }
+    void setColumnNames(std::vector<std::string> names) { columnNames = std::move(names); }
+    std::vector<std::string> getColumnNames() const { return columnNames; }
 
 private:
     bool byColumn_;
@@ -49,8 +49,8 @@ public:
         : Copy{common::StatementType::COPY_TO}, filePath{std::move(filePath)},
           statement{std::move(statement)} {}
 
-    inline std::string getFilePath() const { return filePath; }
-    inline const Statement* getStatement() const { return statement.get(); }
+    std::string getFilePath() const { return filePath; }
+    const Statement* getStatement() const { return statement.get(); }
 
 private:
     std::string filePath;

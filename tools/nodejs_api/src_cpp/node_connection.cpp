@@ -14,6 +14,7 @@ Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
         {
             InstanceMethod("initAsync", &NodeConnection::InitAsync),
             InstanceMethod("executeAsync", &NodeConnection::ExecuteAsync),
+            InstanceMethod("queryAsync", &NodeConnection::QueryAsync),
             InstanceMethod("setMaxNumThreadForExec", &NodeConnection::SetMaxNumThreadForExec),
             InstanceMethod("setQueryTimeout", &NodeConnection::SetQueryTimeout),
         });
@@ -83,5 +84,17 @@ Napi::Value NodeConnection::ExecuteAsync(const Napi::CallbackInfo& info) {
     } catch (const std::exception& exc) {
         Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
     }
+    return info.Env().Undefined();
+}
+
+Napi::Value NodeConnection::QueryAsync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    auto statement = info[0].As<Napi::String>().Utf8Value();
+    auto nodeQueryResult = Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[1].As<Napi::Object>());
+    auto callback = info[2].As<Napi::Function>();
+    auto asyncWorker =
+        new ConnectionQueryAsyncWorker(callback, connection, statement, nodeQueryResult);
+    asyncWorker->Queue();
     return info.Env().Undefined();
 }

@@ -2,7 +2,6 @@
 
 #include "catalog/catalog.h"
 #include "common/file_system/virtual_file_system.h"
-#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal.h"
 #include "storage/wal/wal_record.h"
 
@@ -10,7 +9,7 @@ namespace kuzu {
 namespace storage {
 
 class StorageManager;
-
+class BufferManager;
 enum class WALReplayMode : uint8_t { COMMIT_CHECKPOINT, ROLLBACK, RECOVERY_CHECKPOINT };
 
 // Note: This class is not thread-safe.
@@ -51,7 +50,6 @@ private:
     StorageManager* storageManager;
     BufferManager* bufferManager;
     common::VirtualFileSystem* vfs;
-    std::shared_ptr<BMFileHandle> walFileHandle;
     std::unique_ptr<uint8_t[]> pageBuffer;
     WAL* wal;
     catalog::Catalog* catalog;
