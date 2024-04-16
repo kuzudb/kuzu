@@ -30,8 +30,9 @@ struct ArrowVector {
     ArrowBuffer validity;
     ArrowBuffer overflow;
 
-    std::int64_t numValues = 0;
-    std::int64_t numNulls = 0;
+    int64_t numValues = 0;
+    int64_t capacity = 0;
+    int64_t numNulls = 0;
 
     std::vector<std::unique_ptr<ArrowVector>> childData;
 
@@ -57,21 +58,11 @@ private:
     static ArrowArray* convertVectorToArray(ArrowVector& vector, const LogicalType& type);
     static ArrowArray* convertStructVectorToArray(ArrowVector& vector, const LogicalType& type);
     static ArrowArray* convertInternalIDVectorToArray(ArrowVector& vector, const LogicalType& type);
-    static inline void initializeNullBits(ArrowBuffer& validity, std::int64_t capacity) {
-        auto numBytesForValidity = getNumBytesForBits(capacity);
-        validity.resize(numBytesForValidity, 0xFF);
-    }
-    static void initializeStructVector(ArrowVector* vector, const LogicalType& type,
-        std::int64_t capacity);
-    static void initializeInternalIDVector(ArrowVector* vector, const LogicalType& type,
-        std::int64_t capacity);
+
     static void copyNonNullValue(ArrowVector* vector, const LogicalType& type, Value* value,
         std::int64_t pos);
     static void copyNullValue(ArrowVector* vector, Value* value, std::int64_t pos);
 
-    template<LogicalTypeID DT>
-    static void templateInitializeVector(ArrowVector* vector, const LogicalType& type,
-        std::int64_t capacity);
     template<LogicalTypeID DT>
     static void templateCopyNonNullValue(ArrowVector* vector, const LogicalType& type, Value* value,
         std::int64_t pos);
