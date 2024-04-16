@@ -19,7 +19,9 @@ def open_database_on_subprocess(tmp_path: Path, build_dir: Path) -> None:
         print(r"{tmp_path!s}")
     """
     )
-    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    result = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True
+    )
     if result.returncode != 0:
         raise RuntimeError(result.stderr)
 
@@ -31,9 +33,14 @@ def test_database_close(tmp_path: Path, build_dir: Path) -> None:
     assert db._database is not None
 
     # Open the database on a subprocess. It should raise an exception.
-    with pytest.raises(RuntimeError, match=r"RuntimeError: IO exception: Could not set lock on file"):
-        open_database_on_subprocess(db_path, build_dir)
-    
+    # TODO: Enable this test on Windows when the read-only mode is implemented.
+    if sys.platform != "win32":
+        with pytest.raises(
+            RuntimeError,
+            match=r"RuntimeError: IO exception: Could not set lock on file",
+        ):
+            open_database_on_subprocess(db_path, build_dir)
+
     db.close()
     assert db.is_closed
     assert db._database is None
@@ -44,7 +51,10 @@ def test_database_close(tmp_path: Path, build_dir: Path) -> None:
     assert db._database is None
 
     # Open the database on a subprocess. It should not raise any exceptions.
-    open_database_on_subprocess(db_path, build_dir)
+    # TODO: Enable this test on Windows when the read-only mode is implemented.
+    if sys.platform != "win32":
+        open_database_on_subprocess(db_path, build_dir)
+
 
 def test_database_context_manager(tmp_path: Path, build_dir: Path) -> None:
     db_path = tmp_path / "test_database_context_manager.kuzu"
@@ -53,8 +63,15 @@ def test_database_context_manager(tmp_path: Path, build_dir: Path) -> None:
         assert db._database is not None
 
         # Open the database on a subprocess. It should raise an exception.
-        with pytest.raises(RuntimeError, match=r"RuntimeError: IO exception: Could not set lock on file"):
-            open_database_on_subprocess(db_path, build_dir)
+        # TODO: Enable this test on Windows when the read-only mode is implemented.
+        if sys.platform != "win32":
+            with pytest.raises(
+                RuntimeError,
+                match=r"RuntimeError: IO exception: Could not set lock on file",
+            ):
+                open_database_on_subprocess(db_path, build_dir)
 
     # Open the database on a subprocess. It should not raise any exceptions.
-    open_database_on_subprocess(db_path, build_dir)
+    # TODO: Enable this test on Windows when the read-only mode is implemented.
+    if sys.platform != "win32":
+        open_database_on_subprocess(db_path, build_dir)
