@@ -64,9 +64,7 @@ private:
     std::string generateParquetTempDatasetPath() {
         std::string datasetName = dataset;
         std::replace(datasetName.begin(), datasetName.end(), '/', '_');
-        return TestHelper::appendKuzuRootPath(TestHelper::PARQUET_TEMP_DATASET_PATH + datasetName +
-                                              "_" + getTestGroupAndName() + "_" +
-                                              TestHelper::getMillisecondsSuffix());
+        return TestHelper::getTempDir(datasetName + "_parquet_" + getTestGroupAndName());
     }
 };
 
