@@ -24,6 +24,7 @@ void NPArrayWrapper::appendElement(Value* value) {
         case LogicalTypeID::INT128: {
             Int128_t::tryCast(value->getValue<int128_t>(), ((double*)dataBuffer)[numElements]);
         } break;
+        case LogicalTypeID::SERIAL:
         case LogicalTypeID::INT64: {
             ((int64_t*)dataBuffer)[numElements] = value->getValue<int64_t>();
         } break;
@@ -117,6 +118,7 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     case LogicalTypeID::INT128: {
         dtype = "float64";
     } break;
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
         dtype = "int64";
     } break;

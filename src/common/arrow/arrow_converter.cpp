@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "common/arrow/arrow_row_batch.h"
+#include "common/exception/runtime.h"
 
 namespace kuzu {
 namespace common {
@@ -115,6 +116,7 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
     case LogicalTypeID::INT128: {
         child.format = "d:38,0";
     } break;
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
         child.format = "l";
     } break;
@@ -171,6 +173,9 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
     case LogicalTypeID::STRING: {
         child.format = "u";
     } break;
+    case LogicalTypeID::BLOB: {
+        child.format = "z";
+    } break;
     case LogicalTypeID::LIST: {
         child.format = "+l";
         child.n_children = 1;
@@ -211,6 +216,7 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
         setArrowFormatForStruct(rootHolder, child, dataType);
         break;
     case LogicalTypeID::INTERNAL_ID:
@@ -220,7 +226,8 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         setArrowFormatForUnion(rootHolder, child, dataType);
         break;
     default:
-        KU_UNREACHABLE;
+        throw RuntimeException(
+            stringFormat("{} cannot be exported to arrow.", dataType.toString()));
     }
 }
 

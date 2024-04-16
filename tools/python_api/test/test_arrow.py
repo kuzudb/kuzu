@@ -574,10 +574,44 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
         assert note_col.type == pa.string()
         assert len(note_col) == 3
         assert note_col.to_pylist() == [None, "long long long string", "short str"]
+    
+    def _test_recursive_rel(_conn: kuzu.Connection) -> None:
+        query = "MATCH path=(a:person)-[e:knows*2..2]->(b:person) return path order by (nodes(path)[1]).ID, (nodes(path)[2]).ID, (nodes(path)[3]).ID"
+        arrow_tbl = _conn.execute(query).get_as_arrow(0)
+        # paths should be:
+        expected_nodes = [[0, 2, 0], [0, 2, 3], [0, 2, 5], [0, 3, 0], [0, 3, 2],
+                          [0, 3, 5], [0, 5, 0], [0, 5, 2], [0, 5, 3], [2, 0, 2],
+                          [2, 0, 3], [2, 0, 5], [2, 3, 0], [2, 3, 2], [2, 3, 5],
+                          [2, 5, 0], [2, 5, 2], [2, 5, 3], [3, 0, 2], [3, 0, 3],
+                          [3, 0, 5], [3, 2, 0], [3, 2, 3], [3, 2, 5], [3, 5, 0],
+                          [3, 5, 2], [3, 5, 3], [5, 0, 2], [5, 0, 3], [5, 0, 5],
+                          [5, 2, 0], [5, 2, 3], [5, 2, 5], [5, 3, 0], [5, 3, 2],
+                          [5, 3, 5]]
+        for row, expected in zip(arrow_tbl['path'], expected_nodes):
+            cur_ids = []
+            rel_ids = []
+            for node in row['_NODES']:
+                cur_ids += [node['ID'].as_py()]
+            assert expected== cur_ids
+    
+    def _test_serial(_conn: kuzu.Connection) -> None:
+        arrow_tbl = _conn.execute("MATCH (a:moviesSerial) RETURN a.ID AS id").get_as_arrow(0)
+        assert arrow_tbl.num_columns == 1
+        assert len(arrow_tbl) == 3
+        assert arrow_tbl['id'].to_pylist() == [0, 1, 2]
+        
+    def _test_blob(_conn: kuzu.Connection) -> None:
+        arrow_tbl = _conn.execute("RETURN BLOB('\\\\xBC\\\\xBD\\\\xBA\\\\xAA') as result").get_as_arrow(1)
+        assert arrow_tbl.num_columns == 1
+        assert len(arrow_tbl) == 1
+        assert arrow_tbl['result'][0].as_py() == b'\xBC\xBD\xBA\xAA'
 
     _test_node(conn)
     _test_node_rel(conn)
     _test_marries_table(conn)
+    _test_recursive_rel(conn)
+    _test_serial(conn)
+    _test_blob(conn)
 
     def test_to_arrow1(conn: kuzu.Connection) -> None:
         query = "MATCH (a:person)-[e:knows]->(:person) RETURN e.summary"
