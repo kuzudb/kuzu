@@ -11,3 +11,12 @@
 137438958893
 137439023070
 137439023073
+
+-CASE 3274
+-STATEMENT CREATE REL TABLE knows_with_null (FROM Person TO Person, __EXTRAID string, creationDate int64);
+---- ok
+-STATEMENT COPY knows_with_null FROM '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Person_knows_Person_with_null_column.csv' (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT MATCH (a:Person)-[r:knows_with_null]->(b:Person) WHERE r.__EXTRAID IS NOT NULL RETURN COUNT(*)
+---- 1
+0
