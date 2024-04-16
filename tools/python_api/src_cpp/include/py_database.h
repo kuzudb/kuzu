@@ -26,6 +26,8 @@ public:
 
     ~PyDatabase();
 
+    void close();
+
     template<class T>
     void scanNodeTable(const std::string& tableName, const std::string& propName,
         const py::array_t<uint64_t>& indices, py::array_t<T>& result, int numThreads);

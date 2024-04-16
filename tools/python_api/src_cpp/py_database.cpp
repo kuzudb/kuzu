@@ -31,6 +31,7 @@ void PyDatabase::initialize(py::handle& m) {
             py::arg("prop_name"), py::arg("indices"), py::arg("np_array"), py::arg("num_threads"))
         .def("scan_node_table_as_bool", &PyDatabase::scanNodeTable<bool>, py::arg("table_name"),
             py::arg("prop_name"), py::arg("indices"), py::arg("np_array"), py::arg("num_threads"))
+        .def("close", &PyDatabase::close)
         .def_static("get_version", &PyDatabase::getVersion)
         .def_static("get_storage_version", &PyDatabase::getStorageVersion);
 }
@@ -58,6 +59,10 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
 }
 
 PyDatabase::~PyDatabase() {}
+
+void PyDatabase::close() {
+    database.reset();
+}
 
 template<class T>
 void PyDatabase::scanNodeTable(const std::string& tableName, const std::string& propName,
