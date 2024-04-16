@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "common/constants.h"
+#include "common/copy_constructors.h"
 #include "common/types/types.h"
 #include "db_file_utils.h"
 #include "storage/buffer_manager/bm_file_handle.h"
@@ -52,6 +53,7 @@ struct PIP {
     common::page_idx_t nextPipPageIdx;
     common::page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP];
 };
+static_assert(sizeof(PIP) == common::BufferPoolConstants::PAGE_4KB_SIZE);
 
 struct PIPWrapper {
     PIPWrapper(FileHandle& fileHandle, common::page_idx_t pipPageIdx);
@@ -63,15 +65,14 @@ struct PIPWrapper {
 };
 
 struct PIPUpdates {
-    // updatedPipIdxs stores the idx's of existing PIPWrappers (not the physical pageIdx of those
-    // PIPs), which are stored in the pipPageIdx field of PIPWrapper. These are used to replace the
-    // PIPWrappers quickly during in-memory checkpointing.
-    std::unordered_set<uint64_t> updatedPipIdxs;
-    std::vector<common::page_idx_t> pipPageIdxsOfInsertedPIPs;
+    // Since PIPs are only appended to, the only existing PIP which may be modified is the last one
+    // This gets tracked separately to make indexing into newPIPs simpler.
+    std::optional<PIPWrapper> updatedLastPIP;
+    std::vector<PIPWrapper> newPIPs;
 
     inline void clear() {
-        updatedPipIdxs.clear();
-        pipPageIdxsOfInsertedPIPs.clear();
+        updatedLastPIP.reset();
+        newPIPs.clear();
     }
 };
 
@@ -107,7 +108,7 @@ public:
     // Used when loading from file
     BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
         common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction);
+        transaction::Transaction* transaction, bool bypassWAL = false);
 
     virtual ~BaseDiskArrayInternal() = default;
 
@@ -137,7 +138,62 @@ public:
 
     virtual void prepareCommit();
 
+    // Write WriteIterator for making fast bulk changes to the disk array
+    // The pages are cached while the elements are stored on the same page
+    // Designed for sequential writes, but supports random writes too (at the cost that the page
+    // caching is only beneficial when seeking from one element to another on the same page)
+    struct WriteIterator {
+        BaseDiskArrayInternal& diskArray;
+        PageCursor apCursor;
+        uint32_t valueSize;
+        // TODO(bmwinger): Instead of pinning the page and updating in-place, it might be better to
+        // read and cache the page, then write the page to the WAL if it's ever modified. However
+        // when doing bulk hashindex inserts, there's a high likelihood that every page accessed
+        // will be modified, so it may be faster this way.
+        WALPageIdxAndFrame walPageIdxAndFrame;
+        static const transaction::TransactionType TRX_TYPE = transaction::TransactionType::WRITE;
+        uint64_t idx;
+        std::unique_lock<std::shared_mutex> lock;
+        DEFAULT_MOVE_CONSTRUCT(WriteIterator);
+
+        // Constructs WriteIterator in an invalid state. Seek must be called before accessing data
+        WriteIterator(uint32_t valueSize, BaseDiskArrayInternal& diskArray,
+            std::unique_lock<std::shared_mutex>&& lock)
+            : diskArray(diskArray), apCursor(), valueSize(valueSize),
+              walPageIdxAndFrame{common::INVALID_PAGE_IDX, common::INVALID_PAGE_IDX, nullptr},
+              idx(0), lock(std::move(lock)) {
+            diskArray.hasTransactionalUpdates = true;
+        }
+
+        WriteIterator& seek(size_t newIdx);
+        // Adds a new element to the disk array and seeks to the new element
+        void pushBack(std::span<uint8_t> val);
+
+        inline WriteIterator& operator+=(size_t increment) { return seek(idx + increment); }
+
+        ~WriteIterator() { unpin(); }
+
+        std::span<uint8_t> operator*() const {
+            KU_ASSERT(idx < diskArray.headerForWriteTrx.numElements);
+            KU_ASSERT(walPageIdxAndFrame.originalPageIdx != common::INVALID_PAGE_IDX);
+            return std::span(walPageIdxAndFrame.frame + apCursor.elemPosInPage, valueSize);
+        }
+
+        inline uint64_t size() const { return diskArray.headerForWriteTrx.numElements; }
+
+    private:
+        void unpin();
+        void getPage(common::page_idx_t newPageIdx, bool isNewlyAdded);
+    };
+
+    WriteIterator iter_mut(uint64_t valueSize);
+
 protected:
+    // Updates to new pages (new to this transaction) bypass the wal file.
+    void updatePage(uint64_t pageIdx, bool isNewPage, std::function<void(uint8_t*)> updateOp);
+
+    void updateLastPageOnDisk();
+
     uint64_t pushBackNoLock(std::span<uint8_t> val);
 
     inline uint64_t getNumElementsNoLock(transaction::TransactionType trxType) {
@@ -204,6 +260,9 @@ protected:
     std::vector<PIPWrapper> pips;
     PIPUpdates pipUpdates;
     std::shared_mutex diskArraySharedMtx;
+    // For write transactions only
+    common::page_idx_t lastAPPageIdx;
+    common::page_idx_t lastPageOnDisk;
 };
 
 template<typename U>
@@ -218,9 +277,14 @@ public:
     BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize)
         : diskArray(fileHandle, headerPageIdx, elementSize) {}
     // Used when loading from file
+    // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
+    // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
+    // should be called on this file handle exactly once during prepare commit.
     BaseDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
-        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction)
-        : diskArray(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction) {}
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+        bool bypassWAL = false)
+        : diskArray(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction,
+              bypassWAL) {}
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
@@ -249,6 +313,35 @@ public:
     inline void checkpointInMemoryIfNecessary() { diskArray.checkpointInMemoryIfNecessary(); }
     inline void rollbackInMemoryIfNecessary() { diskArray.rollbackInMemoryIfNecessary(); }
     inline void prepareCommit() { diskArray.prepareCommit(); }
+
+    class WriteIterator {
+    public:
+        explicit WriteIterator(BaseDiskArrayInternal::WriteIterator&& iter)
+            : iter(std::move(iter)) {}
+        inline U& operator*() { return *reinterpret_cast<U*>((*iter).data()); }
+        DELETE_COPY_DEFAULT_MOVE(WriteIterator);
+
+        inline WriteIterator& operator+=(size_t dist) {
+            iter += dist;
+            return *this;
+        }
+
+        inline WriteIterator& seek(size_t idx) {
+            iter.seek(idx);
+            return *this;
+        }
+
+        inline uint64_t idx() const { return iter.idx; }
+
+        inline void pushBack(U val) { return iter.pushBack(getSpan(val)); }
+
+        inline uint64_t size() const { return iter.size(); }
+
+    private:
+        BaseDiskArrayInternal::WriteIterator iter;
+    };
+
+    inline WriteIterator iter_mut() { return WriteIterator{diskArray.iter_mut(sizeof(U))}; }
 
 private:
     BaseDiskArrayInternal diskArray;
@@ -314,7 +407,7 @@ public:
 
     void saveToDisk();
 
-    inline uint64_t getNumElements() { return header.numElements; }
+    inline uint64_t getNumElements() const { return header.numElements; }
 
 private:
     inline uint64_t getNumArrayPagesNeededForElements(uint64_t numElements) {
@@ -339,7 +432,8 @@ public:
         diskArray.resize(newNumElements, setToZero);
     }
 
-    inline uint64_t getNumElements() { return diskArray.getNumElements(); }
+    inline uint64_t getNumElements() const { return diskArray.getNumElements(); }
+    inline uint64_t size() const { return diskArray.getNumElements(); }
 
     inline void saveToDisk() { diskArray.saveToDisk(); }
 

@@ -12,12 +12,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void NodeBatchInsertSharedState::initPKIndex(kuzu::processor::ExecutionContext* context) {
+void NodeBatchInsertSharedState::initPKIndex(kuzu::processor::ExecutionContext* /*context*/) {
     KU_ASSERT(pkType.getLogicalTypeID() != LogicalTypeID::SERIAL);
-    auto indexFName = StorageUtils::getNodeIndexFName(context->clientContext->getVFSUnsafe(),
-        wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
-    pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(indexFName, pkType.getPhysicalType(),
-        context->clientContext->getVFSUnsafe());
     uint64_t numRows;
     if (readerSharedState != nullptr) {
         KU_ASSERT(distinctSharedState == nullptr);
@@ -28,7 +24,7 @@ void NodeBatchInsertSharedState::initPKIndex(kuzu::processor::ExecutionContext* 
         numRows = distinctSharedState->getFactorizedTable()->getNumTuples();
     }
     pkIndex->bulkReserve(numRows);
-    globalIndexBuilder = IndexBuilder(std::make_shared<IndexBuilderSharedState>(pkIndex.get()));
+    globalIndexBuilder = IndexBuilder(std::make_shared<IndexBuilderSharedState>(pkIndex));
 }
 
 void NodeBatchInsertSharedState::appendIncompleteNodeGroup(
@@ -53,7 +49,6 @@ void NodeBatchInsertSharedState::appendIncompleteNodeGroup(
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     checkIfTableIsEmpty();
-    sharedState->logBatchInsertWALRecord();
     auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     if (nodeSharedState->pkType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
@@ -186,6 +181,9 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     if (nodeSharedState->globalIndexBuilder) {
         nodeSharedState->globalIndexBuilder->finalize(context);
     }
+    // Batch Insert wal record needs to be logged after PrimaryKeyIndex::prepareCommit
+    // so that the wal pages get flushed before the index is re-initialized.
+    sharedState->logBatchInsertWALRecord();
     auto outputMsg = stringFormat("{} number of tuples has been copied to table: {}.",
         sharedState->getNumRows(), info->tableEntry->getName());
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,

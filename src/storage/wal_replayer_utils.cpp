@@ -1,7 +1,7 @@
 #include "storage/wal_replayer_utils.h"
 
 #include "common/file_system/virtual_file_system.h"
-#include "storage/index/hash_index_builder.h"
+#include "storage/index/hash_index.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -20,12 +20,10 @@ void WALReplayerUtils::createEmptyHashIndexFiles(catalog::NodeTableCatalogEntry*
     auto pk = nodeTableEntry->getPrimaryKey();
     auto dt = pk->getDataType();
     if (dt->getLogicalTypeID() != LogicalTypeID::SERIAL) {
-        auto pkIndex = make_unique<PrimaryKeyIndexBuilder>(
+        PrimaryKeyIndex::createEmptyHashIndexFiles(pk->getDataType()->getPhysicalType(),
             StorageUtils::getNodeIndexFName(vfs, directory, nodeTableEntry->getTableID(),
                 FileVersionType::ORIGINAL),
-            pk->getDataType()->getPhysicalType(), vfs);
-        pkIndex->bulkReserve(0 /* numNodes */);
-        pkIndex->flush();
+            vfs);
     }
 }
 

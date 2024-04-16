@@ -177,6 +177,15 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
     }
 }
 
+void OverflowFile::createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs) {
+    FileHandle fileHandle(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);
+    uint8_t page[common::BufferPoolConstants::PAGE_4KB_SIZE];
+    StringOverflowFileHeader header;
+    memcpy(page, &header, sizeof(StringOverflowFileHeader));
+    fileHandle.addNewPage();
+    fileHandle.writePage(page, HEADER_PAGE_IDX);
+}
+
 void OverflowFile::readFromDisk(transaction::TransactionType trxType, common::page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
     auto [fileHandleToPin, pageIdxToPin] =

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/cast.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/persistent/batch_insert.h"
@@ -33,7 +34,7 @@ struct NodeBatchInsertInfo final : public BatchInsertInfo {
 
 struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
     // Primary key info
-    std::shared_ptr<storage::PrimaryKeyIndexBuilder> pkIndex;
+    storage::PrimaryKeyIndex* pkIndex;
     common::vector_idx_t pkColumnIdx;
     common::LogicalType pkType;
     std::optional<IndexBuilder> globalIndexBuilder = std::nullopt;
@@ -49,7 +50,10 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
     NodeBatchInsertSharedState(storage::Table* table, std::shared_ptr<FactorizedTable> fTable,
         storage::WAL* wal)
         : BatchInsertSharedState{table, fTable, wal}, readerSharedState{nullptr},
-          distinctSharedState{nullptr}, currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {};
+          distinctSharedState{nullptr}, currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {
+        pkIndex =
+            common::ku_dynamic_cast<storage::Table*, storage::NodeTable*>(table)->getPKIndex();
+    }
 
     void initPKIndex(ExecutionContext* context);
 

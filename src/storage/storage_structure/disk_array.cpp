@@ -1,11 +1,16 @@
 #include "storage/storage_structure/disk_array.h"
 
 #include "common/cast.h"
+#include "common/constants.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
 #include "common/utils.h"
 #include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
 #include "storage/storage_structure/db_file_utils.h"
+#include "storage/storage_utils.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -37,13 +42,14 @@ BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, page_idx_t 
     uint64_t elementSize)
     : header{elementSize}, fileHandle{fileHandle}, headerPageIdx{headerPageIdx},
       headerForWriteTrx{header}, hasTransactionalUpdates{false}, bufferManager{nullptr},
-      wal{nullptr} {}
+      wal{nullptr}, lastAPPageIdx{INVALID_PAGE_IDX} {}
 
 BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
     page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction)
+    transaction::Transaction* transaction, bool bypassWAL)
     : fileHandle{fileHandle}, dbFileID{dbFileID}, headerPageIdx{headerPageIdx},
-      hasTransactionalUpdates{false}, bufferManager{bufferManager}, wal{wal} {
+      hasTransactionalUpdates{false}, bufferManager{bufferManager}, wal{wal},
+      lastAPPageIdx{INVALID_PAGE_IDX}, lastPageOnDisk{INVALID_PAGE_IDX} {
     auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
         ku_dynamic_cast<FileHandle&, BMFileHandle&>(fileHandle), headerPageIdx, *wal,
         transaction->getType());
@@ -55,6 +61,21 @@ BaseDiskArrayInternal::BaseDiskArrayInternal(FileHandle& fileHandle, DBFileID db
         while (pips[pips.size() - 1].pipContents.nextPipPageIdx != DBFileUtils::NULL_PAGE_IDX) {
             pips.emplace_back(fileHandle, pips[pips.size() - 1].pipContents.nextPipPageIdx);
         }
+    }
+    // If bypassing the WAL is disabled, just leave the lastPageOnDisk as invalid, as then all pages
+    // will be treated as updates to existing ones
+    if (bypassWAL) {
+        updateLastPageOnDisk();
+    }
+}
+
+void BaseDiskArrayInternal::updateLastPageOnDisk() {
+    auto numElements = getNumElementsNoLock(TransactionType::READ_ONLY);
+    if (numElements > 0) {
+        auto apCursor = getAPIdxAndOffsetInAP(numElements - 1);
+        lastPageOnDisk = getAPPageIdxNoLock(apCursor.pageIdx, TransactionType::READ_ONLY);
+    } else {
+        lastPageOnDisk = 0;
     }
 }
 
@@ -82,7 +103,7 @@ void BaseDiskArrayInternal::get(uint64_t idx, TransactionType trxType, std::span
     page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, trxType);
     auto& bmFileHandle = (BMFileHandle&)fileHandle;
     if (trxType == TransactionType::READ_ONLY || !hasTransactionalUpdates ||
-        !bmFileHandle.hasWALPageVersionNoWALPageIdxLock(apPageIdx)) {
+        apPageIdx > lastPageOnDisk || !bmFileHandle.hasWALPageVersionNoWALPageIdxLock(apPageIdx)) {
         bufferManager->optimisticRead(bmFileHandle, apPageIdx, [&](const uint8_t* frame) -> void {
             memcpy(val.data(), frame + apCursor.elemPosInPage, val.size());
         });
@@ -92,6 +113,27 @@ void BaseDiskArrayInternal::get(uint64_t idx, TransactionType trxType, std::span
             [&val, &apCursor](const uint8_t* frame) -> void {
                 memcpy(val.data(), frame + apCursor.elemPosInPage, val.size());
             });
+    }
+}
+
+void BaseDiskArrayInternal::updatePage(uint64_t pageIdx, bool isNewPage,
+    std::function<void(uint8_t*)> updateOp) {
+    auto& bmFileHandle = (BMFileHandle&)fileHandle;
+    // Pages which are new to this transaction are written directly to the file
+    // Pages which previously existed are written to the WAL file
+    if (pageIdx <= lastPageOnDisk) {
+        // This may still be used to create new pages since bypassing the WAL is currently optional
+        // and if disabled lastPageOnDisk will be INVALID_PAGE_IDX (and the above comparison will
+        // always be true)
+        DBFileUtils::updatePage(bmFileHandle, dbFileID, pageIdx, isNewPage, *bufferManager, *wal,
+            updateOp);
+    } else {
+        auto frame = bufferManager->pin(bmFileHandle, pageIdx,
+            isNewPage ? BufferManager::PageReadPolicy::DONT_READ_PAGE :
+                        BufferManager::PageReadPolicy::READ_PAGE);
+        updateOp(frame);
+        bmFileHandle.setLockedPageDirty(pageIdx);
+        bufferManager->unpin(bmFileHandle, pageIdx);
     }
 }
 
@@ -110,11 +152,9 @@ void BaseDiskArrayInternal::update(uint64_t idx, std::span<uint8_t> val) {
     // getAPPageIdxNoLock logic needs to change to give the same guarantee (e.g., an apIdx = 0, may
     // no longer to be guaranteed to be in pips[0].)
     page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, TransactionType::WRITE);
-    DBFileUtils::updatePage((BMFileHandle&)fileHandle, dbFileID, apPageIdx,
-        false /* not inserting a new page */, *bufferManager, *wal,
-        [&apCursor, &val](uint8_t* frame) -> void {
-            memcpy(frame + apCursor.elemPosInPage, val.data(), val.size());
-        });
+    updatePage(apPageIdx, false /*isNewPage=*/, [&apCursor, &val](uint8_t* frame) -> void {
+        memcpy(frame + apCursor.elemPosInPage, val.data(), val.size());
+    });
 }
 
 uint64_t BaseDiskArrayInternal::pushBack(std::span<uint8_t> val) {
@@ -124,14 +164,13 @@ uint64_t BaseDiskArrayInternal::pushBack(std::span<uint8_t> val) {
 }
 
 uint64_t BaseDiskArrayInternal::resize(uint64_t newNumElements, std::span<uint8_t> defaultVal) {
-    std::unique_lock xLck{diskArraySharedMtx};
+    auto it = iter_mut(defaultVal.size());
+    auto originalNumElements = getNumElementsNoLock(TransactionType::WRITE);
     hasTransactionalUpdates = true;
-    auto currentNumElements = getNumElementsNoLock(TransactionType::WRITE);
-    while (currentNumElements < newNumElements) {
-        pushBackNoLock(defaultVal);
-        currentNumElements++;
+    while (it.size() < newNumElements) {
+        it.pushBack(defaultVal);
     }
-    return currentNumElements;
+    return originalNumElements;
 }
 
 uint64_t BaseDiskArrayInternal::pushBackNoLock(std::span<uint8_t> val) {
@@ -140,10 +179,10 @@ uint64_t BaseDiskArrayInternal::pushBackNoLock(std::span<uint8_t> val) {
     auto [apPageIdx, isNewlyAdded] =
         getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(&headerForWriteTrx, apCursor.pageIdx);
     // Now do the push back.
-    DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, apPageIdx, isNewlyAdded,
-        *bufferManager, *wal, [&apCursor, &val](uint8_t* frame) -> void {
-            memcpy(frame + apCursor.elemPosInPage, val.data(), val.size());
-        });
+    lastAPPageIdx = apPageIdx;
+    updatePage(apPageIdx, isNewlyAdded, [&apCursor, &val](uint8_t* frame) -> void {
+        memcpy(frame + apCursor.elemPosInPage, val.data(), val.size());
+    });
     headerForWriteTrx.numElements++;
     return elementIdx;
 }
@@ -153,27 +192,13 @@ void BaseDiskArrayInternal::setNextPIPPageIDxOfPIPNoLock(DiskArrayHeader* update
     // This happens if the first pip is being inserted, in which case we need to change the header.
     if (pipIdxOfPreviousPIP == UINT64_MAX) {
         updatedDiskArrayHeader->firstPIPPageIdx = nextPIPPageIdx;
+    } else if (pips.empty()) {
+        pipUpdates.newPIPs[pipIdxOfPreviousPIP].pipContents.nextPipPageIdx = nextPIPPageIdx;
     } else {
-        page_idx_t pipPageIdxOfPreviousPIP = getUpdatedPageIdxOfPipNoLock(pipIdxOfPreviousPIP);
-        /*
-         * Note that we can safely pass insertingNewPage argument here. There are two cases;
-         * 1) if pipPageIdxOfPreviousPIP is a new PIP: in that case the previous caller
-         * would have already created the WAL page for it, so this function is not creating
-         * pipPageIdxOfPreviousPIP. 2) if pipPageIdxOfPreviousPIP is an existing PIP, in which
-         * case again this function is not creating pipPageIdxOfPreviousPIP.
-         */
-        DBFileUtils::updatePage((BMFileHandle&)fileHandle, dbFileID, pipPageIdxOfPreviousPIP,
-            false /* not inserting a new page */, *bufferManager, *wal,
-            [&nextPIPPageIdx](
-                const uint8_t* frame) -> void { ((PIP*)frame)->nextPipPageIdx = nextPIPPageIdx; });
-        // The above updatePage operation changes the "previousPIP" identified by
-        // pipIdxOfPreviousPIP, so we put it to updatedPIPIdxs if it was a pip that already existed
-        // before this transaction started. If pipIdxOfPreviousPIP >= pips.size() then it must
-        // already be in pipUpdates.pipPageIdxsOfInsertedPIPs, so we do not need to insert it to
-        // pipUpdates.pipPageIdxsOfInsertedPIPs (and hence there is no else to the below if).
-        if (pipIdxOfPreviousPIP < pips.size()) {
-            pipUpdates.updatedPipIdxs.insert(pipIdxOfPreviousPIP);
+        if (!pipUpdates.updatedLastPIP.has_value()) {
+            pipUpdates.updatedLastPIP = std::make_optional(pips[pipIdxOfPreviousPIP]);
         }
+        pipUpdates.updatedLastPIP->pipContents.nextPipPageIdx = nextPIPPageIdx;
     }
 }
 
@@ -183,23 +208,11 @@ page_idx_t BaseDiskArrayInternal::getAPPageIdxNoLock(page_idx_t apIdx, Transacti
     uint64_t offsetInPIP = pipIdxAndOffset.second;
     if ((trxType == TransactionType::READ_ONLY) || !hasPIPUpdatesNoLock(pipIdx)) {
         return pips[pipIdx].pipContents.pageIdxs[offsetInPIP];
+    } else if (pipIdx == pips.size() - 1 && pipUpdates.updatedLastPIP) {
+        return pipUpdates.updatedLastPIP->pipContents.pageIdxs[offsetInPIP];
     } else {
-        page_idx_t retVal;
-        page_idx_t pageIdxOfUpdatedPip = getUpdatedPageIdxOfPipNoLock(pipIdx);
-        if (ku_dynamic_cast<FileHandle&, BMFileHandle&>(fileHandle)
-                .hasWALPageVersionNoWALPageIdxLock(pageIdxOfUpdatedPip)) {
-            ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(pageIdxOfUpdatedPip);
-            DBFileUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
-                *bufferManager, *wal, [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
-                    retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
-                });
-        } else {
-            bufferManager->optimisticRead((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
-                [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
-                    retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
-                });
-        }
-        return retVal;
+        KU_ASSERT(pipIdx >= pips.size());
+        return pipUpdates.newPIPs[pipIdx - pips.size()].pipContents.pageIdxs[offsetInPIP];
     }
 }
 
@@ -207,7 +220,7 @@ page_idx_t BaseDiskArrayInternal::getUpdatedPageIdxOfPipNoLock(uint64_t pipIdx) 
     if (pipIdx < pips.size()) {
         return pips[pipIdx].pipPageIdx;
     }
-    return pipUpdates.pipPageIdxsOfInsertedPIPs[pipIdx - pips.size()];
+    return pipUpdates.newPIPs[pipIdx - pips.size()].pipPageIdx;
 }
 
 void BaseDiskArrayInternal::clearWALPageVersionAndRemovePageFromFrameIfNecessary(
@@ -226,39 +239,52 @@ void BaseDiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool i
         headerForWriteTrx = header;
     }
     clearWALPageVersionAndRemovePageFromFrameIfNecessary(headerPageIdx);
-    for (uint64_t pipIdxOfUpdatedPIP : pipUpdates.updatedPipIdxs) {
+    if (pipUpdates.updatedLastPIP.has_value()) {
         // Note: This should not cause a memory leak because PIPWrapper is a struct. So we
         // should overwrite the previous PIPWrapper's memory.
         if (isCheckpoint) {
-            pips[pipIdxOfUpdatedPIP] = PIPWrapper(fileHandle, pips[pipIdxOfUpdatedPIP].pipPageIdx);
+            pips.back() = *pipUpdates.updatedLastPIP;
         }
-        clearWALPageVersionAndRemovePageFromFrameIfNecessary(pips[pipIdxOfUpdatedPIP].pipPageIdx);
+        clearWALPageVersionAndRemovePageFromFrameIfNecessary(pips.back().pipPageIdx);
     }
 
-    for (page_idx_t pipPageIdxOfNewPIP : pipUpdates.pipPageIdxsOfInsertedPIPs) {
+    for (auto& newPIP : pipUpdates.newPIPs) {
+        clearWALPageVersionAndRemovePageFromFrameIfNecessary(newPIP.pipPageIdx);
         if (isCheckpoint) {
-            pips.emplace_back(fileHandle, pipPageIdxOfNewPIP);
-        }
-        clearWALPageVersionAndRemovePageFromFrameIfNecessary(pipPageIdxOfNewPIP);
-        if (!isCheckpoint) {
+            pips.emplace_back(std::move(newPIP));
+        } else {
             // These are newly inserted pages, so we can truncate the file handle.
             ((BMFileHandle&)this->fileHandle)
-                .removePageIdxAndTruncateIfNecessary(pipPageIdxOfNewPIP);
+                .removePageIdxAndTruncateIfNecessary(newPIP.pipPageIdx);
         }
     }
     // Note that we already updated the header to its correct state above.
     pipUpdates.clear();
     hasTransactionalUpdates = false;
+    if (isCheckpoint && lastPageOnDisk != INVALID_PAGE_IDX) {
+        updateLastPageOnDisk();
+    }
 }
 
 void BaseDiskArrayInternal::prepareCommit() {
+    auto& bmFileHandle = ku_dynamic_cast<FileHandle&, BMFileHandle&>(fileHandle);
     // Update header if it has changed
     if (headerForWriteTrx != header) {
-        DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, headerPageIdx,
+        DBFileUtils::updatePage(bmFileHandle, dbFileID, headerPageIdx,
             false /* not inserting a new page */, *bufferManager, *wal,
             [&](uint8_t* frame) -> void {
                 memcpy(frame, &headerForWriteTrx, sizeof(headerForWriteTrx));
             });
+    }
+    if (pipUpdates.updatedLastPIP.has_value()) {
+        DBFileUtils::updatePage(bmFileHandle, dbFileID, pipUpdates.updatedLastPIP->pipPageIdx, true,
+            *bufferManager, *wal, [&](auto* frame) {
+                memcpy(frame, &pipUpdates.updatedLastPIP->pipContents, sizeof(PIP));
+            });
+    }
+    for (auto& newPIP : pipUpdates.newPIPs) {
+        DBFileUtils::updatePage(bmFileHandle, dbFileID, newPIP.pipPageIdx, true, *bufferManager,
+            *wal, [&](auto* frame) { memcpy(frame, &newPIP.pipContents, sizeof(PIP)); });
     }
 }
 
@@ -269,13 +295,15 @@ bool BaseDiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) {
     if (pipIdx >= pips.size()) {
         return true;
     }
-    return pipUpdates.updatedPipIdxs.contains(pipIdx);
+    return (pipIdx == pips.size() - 1) && pipUpdates.updatedLastPIP;
 }
 
 std::pair<page_idx_t, bool>
 BaseDiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
     DiskArrayHeader* updatedDiskArrayHeader, page_idx_t apIdx) {
-    if (apIdx < updatedDiskArrayHeader->numAPs) {
+    if (apIdx == updatedDiskArrayHeader->numAPs - 1 && lastAPPageIdx != INVALID_PAGE_IDX) {
+        return std::make_pair(lastAPPageIdx, false /*not a new page*/);
+    } else if (apIdx < updatedDiskArrayHeader->numAPs) {
         // If the apIdx of the array page is < updatedDiskArrayHeader->numAPs, we do not have to
         // add a new array page, so directly return the pageIdx of the apIdx.
         return std::make_pair(getAPPageIdxNoLock(apIdx, TransactionType::WRITE),
@@ -293,37 +321,93 @@ BaseDiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
         uint64_t pipIdx = pipIdxAndOffsetOfNewAP.first;
         uint64_t offsetOfNewAPInPIP = pipIdxAndOffsetOfNewAP.second;
         updatedDiskArrayHeader->numAPs++;
-        page_idx_t pipPageIdx = DBFileUtils::NULL_PAGE_IDX;
-        bool isInsertingANewPIPPage = false;
         if (pipIdx < pips.size()) {
+            KU_ASSERT(pipIdx == pips.size() - 1);
             // We do not need to insert a new pip and we need to add newAPPageIdx to a PIP that
             // existed before this transaction started.
-            pipUpdates.updatedPipIdxs.insert(pipIdx);
-            pipPageIdx = pips[pipIdx].pipPageIdx;
-        } else if ((pipIdx - pips.size()) < pipUpdates.pipPageIdxsOfInsertedPIPs.size()) {
+            if (!pipUpdates.updatedLastPIP.has_value()) {
+                pipUpdates.updatedLastPIP = std::make_optional(pips[pipIdx]);
+            }
+            pipUpdates.updatedLastPIP->pipContents.pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
+        } else if ((pipIdx - pips.size()) < pipUpdates.newPIPs.size()) {
             // We do not need to insert a new PIP and we need to add newAPPageIdx to a new PIP that
             // already got created after this transaction started.
-            pipPageIdx = pipUpdates.pipPageIdxsOfInsertedPIPs[pipIdx - pips.size()];
+            auto& pip = pipUpdates.newPIPs[pipIdx - pips.size()];
+            pip.pipContents.pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
         } else {
             // We need to create a new PIP and make the previous PIP (or the header) point to it.
-            isInsertingANewPIPPage = true;
-            pipPageIdx = fileHandle.addNewPage();
-            pipUpdates.pipPageIdxsOfInsertedPIPs.push_back(pipPageIdx);
+            auto pipPageIdx = fileHandle.addNewPage();
+            pipUpdates.newPIPs.emplace_back(pipPageIdx);
             uint64_t pipIdxOfPreviousPIP = pipIdx - 1;
             setNextPIPPageIDxOfPIPNoLock(updatedDiskArrayHeader, pipIdxOfPreviousPIP, pipPageIdx);
+            pipUpdates.newPIPs.back().pipContents.pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
         }
-        // Finally we update the PIP page (possibly newly created) and add newAPPageIdx into it.
-        DBFileUtils::updatePage((BMFileHandle&)fileHandle, dbFileID, pipPageIdx,
-            isInsertingANewPIPPage, *bufferManager, *wal,
-            [&isInsertingANewPIPPage, &newAPPageIdx, &offsetOfNewAPInPIP](
-                const uint8_t* frame) -> void {
-                if (isInsertingANewPIPPage) {
-                    ((PIP*)frame)->nextPipPageIdx = DBFileUtils::NULL_PAGE_IDX;
-                }
-                ((PIP*)frame)->pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
-            });
         return std::make_pair(newAPPageIdx, true /* inserting a new ap page */);
     }
+}
+
+BaseDiskArrayInternal::WriteIterator& BaseDiskArrayInternal::WriteIterator::seek(size_t newIdx) {
+    KU_ASSERT(newIdx < diskArray.headerForWriteTrx.numElements);
+    auto oldPageIdx = apCursor.pageIdx;
+    idx = newIdx;
+    apCursor = diskArray.getAPIdxAndOffsetInAP(idx);
+    if (oldPageIdx != apCursor.pageIdx) {
+        common::page_idx_t apPageIdx = diskArray.getAPPageIdxNoLock(apCursor.pageIdx, TRX_TYPE);
+        getPage(apPageIdx, false /*isNewlyAdded*/);
+    }
+    return *this;
+}
+
+void BaseDiskArrayInternal::WriteIterator::pushBack(std::span<uint8_t> val) {
+    idx = diskArray.headerForWriteTrx.numElements++;
+    auto oldPageIdx = apCursor.pageIdx;
+    apCursor = diskArray.getAPIdxAndOffsetInAP(idx);
+    // If this would add a new page, pin new page and update PIP
+    auto [apPageIdx, isNewlyAdded] =
+        diskArray.getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
+            &diskArray.headerForWriteTrx, apCursor.pageIdx);
+    diskArray.lastAPPageIdx = apPageIdx;
+    if (isNewlyAdded || walPageIdxAndFrame.originalPageIdx == common::INVALID_PAGE_IDX ||
+        apCursor.pageIdx != oldPageIdx) {
+        getPage(apPageIdx, isNewlyAdded);
+    }
+    memcpy(operator*().data(), val.data(), val.size());
+}
+
+void BaseDiskArrayInternal::WriteIterator::unpin() {
+    auto& bmFileHandle = common::ku_dynamic_cast<FileHandle&, BMFileHandle&>(diskArray.fileHandle);
+    if (walPageIdxAndFrame.pageIdxInWAL != common::INVALID_PAGE_IDX) {
+        // unpin current page
+        diskArray.bufferManager->unpin(diskArray.wal->getShadowingFH(),
+            walPageIdxAndFrame.pageIdxInWAL);
+        bmFileHandle.releaseWALPageIdxLock(walPageIdxAndFrame.originalPageIdx);
+    } else if (walPageIdxAndFrame.originalPageIdx != common::INVALID_PAGE_IDX) {
+        bmFileHandle.setLockedPageDirty(walPageIdxAndFrame.originalPageIdx);
+        diskArray.bufferManager->unpin(bmFileHandle, walPageIdxAndFrame.originalPageIdx);
+    }
+}
+
+void BaseDiskArrayInternal::WriteIterator::getPage(common::page_idx_t newPageIdx,
+    bool isNewlyAdded) {
+    auto& bmFileHandle = common::ku_dynamic_cast<FileHandle&, BMFileHandle&>(diskArray.fileHandle);
+    unpin();
+    if (newPageIdx <= diskArray.lastPageOnDisk) {
+        // Pin new page
+        walPageIdxAndFrame =
+            DBFileUtils::createWALVersionIfNecessaryAndPinPage(newPageIdx, isNewlyAdded,
+                bmFileHandle, diskArray.dbFileID, *diskArray.bufferManager, *diskArray.wal);
+    } else {
+        walPageIdxAndFrame.frame = diskArray.bufferManager->pin(bmFileHandle, newPageIdx,
+            isNewlyAdded ? BufferManager::PageReadPolicy::DONT_READ_PAGE :
+                           BufferManager::PageReadPolicy::READ_PAGE);
+        walPageIdxAndFrame.originalPageIdx = newPageIdx;
+        walPageIdxAndFrame.pageIdxInWAL = common::INVALID_PAGE_IDX;
+    }
+}
+
+BaseDiskArrayInternal::WriteIterator BaseDiskArrayInternal::iter_mut(uint64_t valueSize) {
+    std::unique_lock xLck{diskArraySharedMtx};
+    return BaseDiskArrayInternal::WriteIterator(valueSize, *this, std::move(xLck));
 }
 
 BaseInMemDiskArray::BaseInMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID,
