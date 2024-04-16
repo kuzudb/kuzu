@@ -116,13 +116,14 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
             return *LogicalType::MAP(
                 std::make_unique<LogicalType>(fromArrowSchema(schema->children[0]->children[0])),
                 std::make_unique<LogicalType>(fromArrowSchema(schema->children[0]->children[1])));
-        case 'u':
-            throw RuntimeException("Unions are currently WIP.");
+        case 'u': {
+            structFields.emplace_back(UnionType::TAG_FIELD_NAME, LogicalType::INT8());
             for (int64_t i = 0; i < schema->n_children; i++) {
-                structFields.emplace_back(std::string(schema->children[i]->name),
+                structFields.emplace_back(std::to_string(i),
                     std::make_unique<LogicalType>(fromArrowSchema(schema->children[i])));
             }
             return *LogicalType::UNION(std::move(structFields));
+        }
         case 'v':
             switch (arrowType[2]) {
             case 'l':

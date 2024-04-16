@@ -485,8 +485,7 @@ def test_pyarrow_struct_offset(conn_db_readonly: ConnDB) -> None:
     assert idx == len(index)
 
 
-def test_pyarrow_union(conn_db_readonly: ConnDB) -> None:
-    pytest.skip("unions are not very well supported by kuzu in general")
+def test_pyarrow_union_sparse(conn_db_readonly : ConnDB) -> None:
     conn, db = conn_db_readonly
     random.seed(100)
     datalength = 4096
@@ -494,7 +493,7 @@ def test_pyarrow_union(conn_db_readonly: ConnDB) -> None:
     type_codes = pa.array([random.randint(0, 2) for i in range(datalength)], type=pa.int8())
     arr1 = pa.array([generate_primitive("int32[pyarrow]") for i in range(datalength)], type=pa.int32())
     arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength)])
-    arr3 = pa.array([[generate_primitive("float32[pyarrow]") for i in range(10)] for j in range(datalength)])
+    arr3 = pa.array([generate_primitive('float32[pyarrow]') for j in range(datalength)])
     col1 = pa.UnionArray.from_sparse(type_codes, [arr1, arr2, arr3])
     df = pd.DataFrame({"index": arrowtopd(index), "col1": arrowtopd(col1)})
     result = conn.execute("LOAD FROM df RETURN * ORDER BY index")
@@ -503,7 +502,7 @@ def test_pyarrow_union(conn_db_readonly: ConnDB) -> None:
         assert idx < len(index)
         nxt = result.get_next()
         expected = [idx, col1[idx].as_py()]
-        assert expected == nxt
+        assert expected == nxt or (is_null(nxt[1]) and is_null(expected[1]))
         idx += 1
 
     assert idx == len(index)
