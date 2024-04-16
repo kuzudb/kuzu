@@ -1373,7 +1373,7 @@ void initGlobalFieldRef(JNIEnv* env) {
     J_C_KuzuDatabase_db_ref = env->GetFieldID(J_C_KuzuDatabase, "db_ref", "J");
 }
 
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*  /*reserved*/) {
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
     JNIEnv* env;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION) != JNI_OK) {
         return JNI_ERR;
@@ -1384,7 +1384,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*  /*reserved*/) {
     return JNI_VERSION;
 }
 
-JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void*  /*reserved*/) {
+JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* /*reserved*/) {
     JNIEnv* env;
     vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION);
 
