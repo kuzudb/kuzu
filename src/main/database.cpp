@@ -107,8 +107,9 @@ void Database::setLoggingLevel(std::string loggingLevel) {
     spdlog::set_level(LoggingLevelUtils::convertStrToLevelEnum(std::move(loggingLevel)));
 }
 
-void Database::addBuiltInFunction(std::string name, function::function_set functionSet) {
-    catalog->addBuiltInFunction(std::move(name), std::move(functionSet));
+void Database::addTableFunction(std::string name, function::function_set functionSet) {
+    catalog->addBuiltInFunction(CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name),
+        std::move(functionSet));
 }
 
 void Database::registerFileSystem(std::unique_ptr<common::FileSystem> fs) {

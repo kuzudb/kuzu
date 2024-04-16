@@ -6,6 +6,7 @@
 namespace kuzu {
 namespace catalog {
 class CatalogSet;
+class CatalogEntry;
 } // namespace catalog
 
 namespace function {
@@ -14,11 +15,16 @@ class BuiltInFunctionsUtils {
 public:
     static void createFunctions(catalog::CatalogSet* catalogSet);
 
+    static catalog::CatalogEntry* getFunctionCatalogEntry(const std::string& name,
+        catalog::CatalogSet* catalogSet);
     static Function* matchFunction(const std::string& name, catalog::CatalogSet* catalogSet);
     // TODO(Ziyi): We should have a unified interface for matching table, aggregate and scalar
     // functions.
     static Function* matchFunction(const std::string& name,
         const std::vector<common::LogicalType>& inputTypes, catalog::CatalogSet* catalogSet);
+    static Function* matchFunction(const std::string& name,
+        const std::vector<common::LogicalType>& inputTypes,
+        const catalog::CatalogEntry* catalogEntry);
 
     static AggregateFunction* matchAggregateFunction(const std::string& name,
         const std::vector<common::LogicalType>& inputTypes, bool isDistinct,
@@ -78,7 +84,7 @@ private:
 
     static void validateSpecialCases(std::vector<Function*>& candidateFunctions,
         const std::string& name, const std::vector<common::LogicalType>& inputTypes,
-        function::function_set& set);
+        const function::function_set& set);
 };
 
 } // namespace function

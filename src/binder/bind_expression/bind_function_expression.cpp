@@ -27,9 +27,8 @@ namespace kuzu {
 namespace binder {
 
 std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(const ParsedExpression& expr) {
-    auto& funcExpr =
-        ku_dynamic_cast<const ParsedExpression&, const ParsedFunctionExpression&>(expr);
-    auto functionName = funcExpr.getNormalizedFunctionName();
+    auto funcExpr = expr.constPtrCast<ParsedFunctionExpression>();
+    auto functionName = funcExpr->getNormalizedFunctionName();
     auto result = rewriteFunctionExpression(expr, functionName);
     if (result != nullptr) {
         return result;
@@ -41,11 +40,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(const Parse
     case CatalogEntryType::REWRITE_FUNCTION_ENTRY:
         return bindRewriteFunctionExpression(expr);
     case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
-        return bindAggregateFunctionExpression(expr, functionName, funcExpr.getIsDistinct());
+        return bindAggregateFunctionExpression(expr, functionName, funcExpr->getIsDistinct());
     case CatalogEntryType::SCALAR_MACRO_ENTRY:
         return bindMacroExpression(expr, functionName);
     default:
-        KU_UNREACHABLE;
+        throw BinderException(
+            stringFormat("{} is a {}. Scalar function, aggregate function or macro was expected. ",
+                functionName, CatalogEntryTypeUtils::toString(entry->getType())));
     }
 }
 

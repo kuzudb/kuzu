@@ -220,15 +220,17 @@ void Catalog::logAlterTableToWAL(const BoundAlterInfo& info) {
     }
 }
 
-void Catalog::addFunction(std::string name, function::function_set functionSet) {
+void Catalog::addFunction(CatalogEntryType entryType, std::string name,
+    function::function_set functionSet) {
     initCatalogContentForWriteTrxIfNecessary();
     KU_ASSERT(readWriteVersion != nullptr);
     setToUpdated();
-    readWriteVersion->addFunction(std::move(name), std::move(functionSet));
+    readWriteVersion->addFunction(entryType, std::move(name), std::move(functionSet));
 }
 
-void Catalog::addBuiltInFunction(std::string name, function::function_set functionSet) {
-    readOnlyVersion->addFunction(std::move(name), std::move(functionSet));
+void Catalog::addBuiltInFunction(CatalogEntryType entryType, std::string name,
+    function::function_set functionSet) {
+    readOnlyVersion->addFunction(entryType, std::move(name), std::move(functionSet));
 }
 
 CatalogSet* Catalog::getFunctions(Transaction* tx) const {

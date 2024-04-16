@@ -33,6 +33,11 @@ public:
     virtual std::unique_ptr<CatalogEntry> copy() const = 0;
     virtual std::string toCypher(main::ClientContext* /*clientContext*/) const { KU_UNREACHABLE; }
 
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const CatalogEntry*, const TARGET*>(this);
+    }
+
 private:
     CatalogEntryType type;
     std::string name;

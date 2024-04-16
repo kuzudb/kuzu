@@ -57,8 +57,10 @@ public:
     void setTableComment(common::table_id_t tableID, const std::string& comment);
 
     // ----------------------------- Functions ----------------------------
-    void addFunction(std::string name, function::function_set functionSet);
-    void addBuiltInFunction(std::string name, function::function_set functionSet);
+    void addFunction(CatalogEntryType entryType, std::string name,
+        function::function_set functionSet);
+    void addBuiltInFunction(CatalogEntryType entryType, std::string name,
+        function::function_set functionSet);
     CatalogSet* getFunctions(transaction::Transaction* tx) const;
     CatalogEntry* getFunctionEntry(transaction::Transaction* tx, const std::string& name);
 

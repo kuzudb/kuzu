@@ -53,7 +53,8 @@ private:
     bool containMacro(const std::string& macroName) const {
         return functions->containsEntry(macroName);
     }
-    void addFunction(std::string name, function::function_set definitions);
+    void addFunction(CatalogEntryType entryType, std::string name,
+        function::function_set definitions);
 
     function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const;
 

@@ -18,7 +18,7 @@ public:
     //===--------------------------------------------------------------------===//
     // getters & setters
     //===--------------------------------------------------------------------===//
-    function::function_set& getFunctionSet() { return functionSet; }
+    const function::function_set& getFunctionSet() const { return functionSet; }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization

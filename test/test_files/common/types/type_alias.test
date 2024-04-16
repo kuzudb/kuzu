@@ -1,0 +1,23 @@
+-GROUP Types
+-DATASET CSV EMPTY
+
+--
+
+-CASE TypeAlias
+
+-STATEMENT CREATE NODE TABLE durationTest (ID INT, a FLOAT8, b FLOAT4, c REAL, d BOOLEAN, e BYTEA, f TIMESTAMP_S, g DURATION, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE (a:durationTest {
+                                ID: 1,
+                                a: cast(2.1, "INT"),
+                                b: cast(1.1, "FLOAT8"),
+                                c: cast(1.1, "FLOAT4"),
+                                d: cast(true, "BOOLEAN"),
+                                e: encode('ü'),
+                                f: cast("2020-01-01T00:00:00Z", "TIMESTAMP_S"),
+                                g: cast("1s", "DURATION")
+                                });
+---- ok
+-STATEMENT MATCH (a:durationTest) RETURN a.*;
+---- 1
+1|2.000000|1.100000|1.100000|True|\xC3\xBC|2020-01-01 00:00:00|00:00:01
