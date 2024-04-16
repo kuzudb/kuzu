@@ -587,14 +587,12 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
                           [3, 5, 2], [3, 5, 3], [5, 0, 2], [5, 0, 3], [5, 0, 5],
                           [5, 2, 0], [5, 2, 3], [5, 2, 5], [5, 3, 0], [5, 3, 2],
                           [5, 3, 5]]
-        idx = 0
-        for row in arrow_tbl['path']:
+        for row, expected in zip(arrow_tbl['path'], expected_nodes):
             cur_ids = []
             rel_ids = []
             for node in row['_NODES']:
                 cur_ids += [node['ID'].as_py()]
-            assert expected_nodes[idx] == cur_ids
-            idx += 1
+            assert expected== cur_ids
     
     def _test_serial(_conn: kuzu.Connection) -> None:
         arrow_tbl = _conn.execute("MATCH (a:moviesSerial) RETURN a.ID AS id").get_as_arrow(0)
