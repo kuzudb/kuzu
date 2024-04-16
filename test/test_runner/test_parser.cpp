@@ -422,8 +422,20 @@ void TestParser::openFile() {
     fileStream.open(path);
 }
 
+static std::vector<std::string> extractToken(std::string& line) {
+    std::vector<std::string> matches;
+    std::regex re(R"((?:[^'"\s\\]+|'[^'\\]*(?:\\.[^'\\]*)*'|"[^"\\]*(?:\\.[^"\\]*)*"|\S+)+)");
+    auto wordsBegin = std::sregex_iterator(line.begin(), line.end(), re);
+    auto wordsEnd = std::sregex_iterator();
+    for (std::sregex_iterator i = wordsBegin; i != wordsEnd; ++i) {
+        std::smatch match = *i;
+        matches.push_back(match.str());
+    }
+    return matches;
+}
+
 void TestParser::tokenize() {
-    currentToken.params = StringUtils::splitBySpace(line);
+    currentToken.params = extractToken(line);
     if ((currentToken.params.size() == 0) || (currentToken.params[0][0] == '#')) {
         currentToken.type = TokenType::EMPTY;
     } else {

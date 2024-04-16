@@ -1,0 +1,121 @@
+-GROUP TinySnbReadTest2
+-DATASET CSV empty
+
+--
+
+-CASE ListOfStringFunctionUTF8
+-STATEMENT RETURN list_extract(["成績評価","の甘","業が"], 2)
+---- 1
+の甘
+
+-STATEMENT RETURN list_element(["成績評価","の甘","業が"], 1)
+---- 1
+成績評価
+
+-STATEMENT RETURN list_concat(["成績評価","の甘","業が"], ["这是中文","的语句"])
+---- 1
+[成績評価,の甘,業が,这是中文,的语句]
+
+-STATEMENT RETURN list_cat(["成績評価","の甘","業が"], ["这是中文","的语句"])
+---- 1
+[成績評価,の甘,業が,这是中文,的语句]
+
+-STATEMENT RETURN array_cat(["成績評価","の甘","業が"], ["这是中文","的语句"])
+---- 1
+[成績評価,の甘,業が,这是中文,的语句]
+
+-STATEMENT RETURN array_concat(["成績評価","の甘","業が"], ["这是中文","的语句"])
+---- 1
+[成績評価,の甘,業が,这是中文,的语句]
+
+-STATEMENT RETURN list_append(["成績評価","の甘","業が", "这是中文"], "的语句")
+---- 1
+[成績評価,の甘,業が,这是中文,的语句]
+
+-STATEMENT RETURN array_append(["成績評価","の甘","業が", "这是中文"], "的语句")
+---- 1
+[成績評価,の甘,業が,这是中文,的语句]
+
+-STATEMENT RETURN array_push_back(["成績評価","の甘","業が", "这是中文"], "的语句")
+---- 1
+[成績評価,の甘,業が,这是中文,的语句]
+
+-STATEMENT RETURN list_prepend(["成績評価","の甘","業が", "这是中文"], "的语句")
+---- 1
+[的语句,成績評価,の甘,業が,这是中文]
+
+-STATEMENT RETURN array_prepend(["成績評価","の甘","業が", "这是中文"], "的语句")
+---- 1
+[的语句,成績評価,の甘,業が,这是中文]
+
+-STATEMENT RETURN array_push_front(["成績評価","の甘","業が", "这是中文"], "的语句")
+---- 1
+[的语句,成績評価,の甘,業が,这是中文]
+
+-STATEMENT RETURN list_position(["成績評価","の甘","業が", "这是中文"], "这是中文")
+---- 1
+4
+-STATEMENT RETURN list_indexof(["成績評価","の甘","業が", "这是中文"], "这是中文")
+---- 1
+4
+
+-STATEMENT RETURN array_position(["成績評価","の甘","業が", "这是中文"], "这是中文")
+---- 1
+4
+-STATEMENT RETURN array_indexof(["成績評価","の甘","業が", "这是中文"], "这是中文")
+---- 1
+4
+
+-STATEMENT RETURN list_contains(["成績評価","の甘","業が", "这是中文"], "这是中文")
+---- 1
+True
+
+-STATEMENT RETURN array_has(["成績評価","の甘","業が", "这是中文"], "这是中文吗")
+---- 1
+False
+
+-STATEMENT RETURN list_slice(["成績評価","の甘","業が", "这是中文"], 1, 2)
+---- 1
+[成績評価]
+
+-STATEMENT RETURN array_slice(["成績評価","の甘","業が", "这是中文"], 1, 4)
+---- 1
+[成績評価,の甘,業が]
+
+-STATEMENT RETURN list_reverse(["成績評価","の甘","業が", "这是中文"])
+---- 1
+[这是中文,業が,の甘,成績評価]
+
+-STATEMENT RETURN list_sort(["成績評価","の甘","業が", "这是中文"])
+---- 1
+[の甘,成績評価,業が,这是中文]
+
+-STATEMENT RETURN list_reverse_sort(["成績評価","の甘","業が", "这是中文"])
+---- 1
+[这是中文,業が,成績評価,の甘]
+
+
+-STATEMENT RETURN list_sum(["成績評価","の甘","業が", "这是中文"])
+---- error
+Binder exception: Unsupported inner data type for LIST_SUM: STRING
+
+
+-STATEMENT RETURN list_sum(["toronto","waterloo"])
+---- error
+Binder exception: Unsupported inner data type for LIST_SUM: STRING
+
+-STATEMENT RETURN list_product(["成績評価","の甘","業が", "这是中文"])
+---- error
+Binder exception: Unsupported inner data type for LIST_PRODUCT: STRING
+
+-STATEMENT RETURN list_distinct(["成績評価","成績評価","成績評価", "这是中文"])
+---- 1
+[成績評価,这是中文]
+
+-STATEMENT RETURN list_unique(["成績評価","成績評価","成績評価", "这是中文"])
+---- 1
+2
+
+-STATEMENT RETURN list_any_value([null, "成績評価","成績評価","成績評価", "这是中文"])
+---- 1
+成績評価
