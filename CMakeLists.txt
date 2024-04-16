@@ -196,6 +196,7 @@ endif ()
 
 include_directories(third_party/antlr4_cypher/include)
 include_directories(third_party/antlr4_runtime/src)
+include_directories(third_party/brotli/c/include)
 include_directories(third_party/fast_float/include)
 include_directories(third_party/mbedtls/include)
 include_directories(third_party/miniparquet/src)
