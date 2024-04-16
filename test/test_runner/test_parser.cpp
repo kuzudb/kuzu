@@ -422,7 +422,7 @@ void TestParser::openFile() {
     fileStream.open(path);
 }
 
-std::vector<std::string> TestParser::splitString(){
+std::vector<std::string> TestParser::splitString() {
     std::vector<std::string> matches;
     std::regex re(R"((?:[^'"\s\\]+|'[^'\\]*(?:\\.[^'\\]*)*'|"[^"\\]*(?:\\.[^"\\]*)*"|\S+)+)");
     auto wordsBegin = std::sregex_iterator(line.begin(), line.end(), re);
