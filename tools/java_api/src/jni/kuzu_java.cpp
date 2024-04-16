@@ -1226,119 +1226,68 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1get_1storage_1version(J
     return static_cast<jlong>(Version::getStorageVersion());
 }
 
+void createGlobalClassRef(JNIEnv* env, jclass& globalClassRef, const char* className) {
+    jclass tempLocalClassRef = env->FindClass(className);
+    globalClassRef = (jclass)env->NewGlobalRef(tempLocalClassRef);
+    env->DeleteLocalRef(tempLocalClassRef);
+}
+
 void initGlobalClassRef(JNIEnv* env) {
-    jclass tempLocalClassRef;
-    tempLocalClassRef = env->FindClass("java/util/Map");
-    J_C_Map = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Map, "java/util/Map");
 
-    tempLocalClassRef = env->FindClass("java/util/Set");
-    J_C_Set = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Set, "java/util/Set");
 
-    tempLocalClassRef = env->FindClass("java/util/Iterator");
-    J_C_Iterator = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Iterator, "java/util/Iterator");
 
-    tempLocalClassRef = env->FindClass("java/util/Map$Entry");
-    J_C_Map$Entry = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Map$Entry, "java/util/Map$Entry");
 
-    tempLocalClassRef = env->FindClass("java/lang/Exception");
-    J_C_Exception = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Exception, "java/lang/Exception");
 
-    tempLocalClassRef = env->FindClass("com/kuzudb/KuzuQueryResult");
-    J_C_KuzuQueryResult = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_KuzuQueryResult, "com/kuzudb/KuzuQueryResult");
 
-    tempLocalClassRef = env->FindClass("com/kuzudb/KuzuPreparedStatement");
-    J_C_KuzuPreparedStatement = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_KuzuPreparedStatement, "com/kuzudb/KuzuPreparedStatement");
 
-    tempLocalClassRef = env->FindClass("com/kuzudb/KuzuDataType");
-    J_C_KuzuDataType = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_KuzuDataType, "com/kuzudb/KuzuDataType");
 
-    tempLocalClassRef = env->FindClass("com/kuzudb/KuzuQuerySummary");
-    J_C_KuzuQuerySummary = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_KuzuQuerySummary, "com/kuzudb/KuzuQuerySummary");
 
-    tempLocalClassRef = env->FindClass("com/kuzudb/KuzuFlatTuple");
-    J_C_KuzuFlatTuple = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_KuzuFlatTuple, "com/kuzudb/KuzuFlatTuple");
 
-    tempLocalClassRef = env->FindClass("com/kuzudb/KuzuValue");
-    J_C_KuzuValue = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_KuzuValue, "com/kuzudb/KuzuValue");
 
-    tempLocalClassRef = env->FindClass("com/kuzudb/KuzuDataTypeID");
-    J_C_KuzuDataTypeID = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_KuzuDataTypeID, "com/kuzudb/KuzuDataTypeID");
 
-    tempLocalClassRef = env->FindClass("java/lang/Boolean");
-    J_C_Boolean = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Boolean, "java/lang/Boolean");
 
-    tempLocalClassRef = env->FindClass("java/lang/Long");
-    J_C_Long = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Long, "java/lang/Long");
 
-    tempLocalClassRef = env->FindClass("java/lang/Integer");
-    J_C_Integer = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Integer, "java/lang/Integer");
 
-    tempLocalClassRef = env->FindClass("com/kuzudb/KuzuInternalID");
-    J_C_KuzuInternalID = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_KuzuInternalID, "com/kuzudb/KuzuInternalID");
 
-    tempLocalClassRef = env->FindClass("java/lang/Double");
-    J_C_Double = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Double, "java/lang/Double");
 
-    tempLocalClassRef = env->FindClass("java/time/LocalDate");
-    J_C_LocalDate = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_LocalDate, "java/time/LocalDate");
 
-    tempLocalClassRef = env->FindClass("java/time/Instant");
-    J_C_Instant = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Instant, "java/time/Instant");
 
-    tempLocalClassRef = env->FindClass("java/lang/Short");
-    J_C_Short = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Short, "java/lang/Short");
 
-    tempLocalClassRef = env->FindClass("java/lang/Byte");
-    J_C_Byte = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Byte, "java/lang/Byte");
 
-    tempLocalClassRef = env->FindClass("java/math/BigInteger");
-    J_C_BigInteger = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_BigInteger, "java/math/BigInteger");
 
-    tempLocalClassRef = env->FindClass("java/lang/Float");
-    J_C_Float = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Float, "java/lang/Float");
 
-    tempLocalClassRef = env->FindClass("java/time/Duration");
-    J_C_Duration = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_Duration, "java/time/Duration");
 
-    tempLocalClassRef = env->FindClass("java/util/UUID");
-    J_C_UUID = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_UUID, "java/util/UUID");
 
-    tempLocalClassRef = env->FindClass("com/kuzudb/KuzuConnection");
-    J_C_KuzuConnection = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_KuzuConnection, "com/kuzudb/KuzuConnection");
 
-    tempLocalClassRef = env->FindClass("com/kuzudb/KuzuDatabase");
-    J_C_KuzuDatabase = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_KuzuDatabase, "com/kuzudb/KuzuDatabase");
 
-    tempLocalClassRef = env->FindClass("java/lang/String");
-    J_C_String = (jclass)env->NewGlobalRef(tempLocalClassRef);
-    env->DeleteLocalRef(tempLocalClassRef);
+    createGlobalClassRef(env, J_C_String, "java/lang/String");
 }
 
 void initGlobalMethodRef(JNIEnv* env) {
