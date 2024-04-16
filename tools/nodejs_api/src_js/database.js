@@ -45,6 +45,7 @@ class Database {
     );
     this._isInitialized = false;
     this._initPromise = null;
+    this._isClosed = false;
   }
 
   /**
@@ -99,6 +100,9 @@ class Database {
    * @returns {KuzuNative.NodeDatabase} the underlying native database.
    */
   async _getDatabase() {
+    if (this._isClosed) {
+      throw new Error("Database is closed.");
+    }
     await this.init();
     return this._database;
   }
@@ -125,6 +129,31 @@ class Database {
       return;
     }
     this._loggingLevel = loggingLevel;
+  }
+
+  /**
+   * Close the database.
+   */
+  async close() {
+    if (this._isClosed) {
+      return;
+    }
+    if (!this._isInitialized) {
+      if (this._initPromise) {
+        // Database is initializing, wait for it to finish first.
+        await this._initPromise;
+      } else {
+        // Database is not initialized, simply mark it as closed and initialized.
+        this._isInitialized = true;
+        this._isClosed = true;
+        delete this._database;
+        return;
+      }
+    }
+    // Database is initialized, close it.
+    this._database.close();
+    delete this._database;
+    this._isClosed = true;
   }
 }
 

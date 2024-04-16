@@ -6,11 +6,13 @@ chai.config.includeStack = true;
 
 const TEST_INSTALLED = process.env.TEST_INSTALLED || false;
 if (TEST_INSTALLED) {
-  console.log("Testing installed package...");
   global.kuzu = require("kuzu");
+  global.kuzuPath = require.resolve("kuzu");
+  console.log("Testing installed version @", kuzuPath);
 } else {
-  console.log("Testing locally built version...");
   global.kuzu = require("../build/");
+  global.kuzuPath = require.resolve("../build/");
+  console.log("Testing locally built version @", kuzuPath);
 }
 
 const tmp = require("tmp");

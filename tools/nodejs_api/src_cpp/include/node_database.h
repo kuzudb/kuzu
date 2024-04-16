@@ -19,7 +19,8 @@ public:
 private:
     Napi::Value InitAsync(const Napi::CallbackInfo& info);
     void InitCppDatabase();
-    void setLoggingLevel(const Napi::CallbackInfo& info);
+    void SetLoggingLevel(const Napi::CallbackInfo& info);
+    void Close(const Napi::CallbackInfo& info);
     static Napi::Value GetVersion(const Napi::CallbackInfo& info);
     static Napi::Value GetStorageVersion(const Napi::CallbackInfo& info);
 
