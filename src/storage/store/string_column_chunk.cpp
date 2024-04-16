@@ -84,17 +84,18 @@ void StringColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets,
     KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING &&
               dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID &&
               chunk->getNumValues() == dstOffsets->getNumValues());
+    auto stringChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(chunk);
     for (auto i = 0u; i < chunk->getNumValues(); i++) {
         auto offsetInChunk = dstOffsets->getValue<offset_t>(i);
         if (!needFinalize && offsetInChunk < numValues) [[unlikely]] {
             needFinalize = true;
         }
-        nullChunk->setNull(offsetInChunk, chunk->getNullChunk()->isNull(i));
+        bool isNull = chunk->getNullChunk()->isNull(i);
+        nullChunk->setNull(offsetInChunk, isNull);
         if (offsetInChunk >= numValues) {
             numValues = offsetInChunk + 1;
         }
-        if (!chunk->getNullChunk()->isNull(i)) {
-            auto stringChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(chunk);
+        if (!isNull) {
             setValueFromString(stringChunk->getValue<std::string_view>(i), offsetInChunk);
         }
     }
@@ -106,14 +107,15 @@ void StringColumnChunk::write(ColumnChunk* srcChunk, offset_t srcOffsetInChunk,
     if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
         numValues = dstOffsetInChunk + numValuesToCopy;
     }
+    auto srcStringChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(srcChunk);
     for (auto i = 0u; i < numValuesToCopy; i++) {
         auto srcPos = srcOffsetInChunk + i;
         auto dstPos = dstOffsetInChunk + i;
-        nullChunk->setNull(dstPos, srcChunk->getNullChunk()->isNull(srcPos));
-        if (srcChunk->getNullChunk()->isNull(srcPos)) {
+        bool isNull = srcChunk->getNullChunk()->isNull(srcPos);
+        nullChunk->setNull(dstPos, isNull);
+        if (isNull) {
             continue;
         }
-        auto srcStringChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(srcChunk);
         setValueFromString(srcStringChunk->getValue<std::string_view>(srcPos), dstPos);
     }
 }
