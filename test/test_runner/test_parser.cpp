@@ -422,7 +422,7 @@ void TestParser::openFile() {
     fileStream.open(path);
 }
 
-std::vector<std::string> TestParser::splitString() {
+static std::vector<std::string> extractToken(std::string& line) {
     std::vector<std::string> matches;
     std::regex re(R"((?:[^'"\s\\]+|'[^'\\]*(?:\\.[^'\\]*)*'|"[^"\\]*(?:\\.[^"\\]*)*"|\S+)+)");
     auto wordsBegin = std::sregex_iterator(line.begin(), line.end(), re);
@@ -435,7 +435,7 @@ std::vector<std::string> TestParser::splitString() {
 }
 
 void TestParser::tokenize() {
-    currentToken.params = splitString();
+    currentToken.params = extractToken(line);
     if ((currentToken.params.size() == 0) || (currentToken.params[0][0] == '#')) {
         currentToken.type = TokenType::EMPTY;
     } else {

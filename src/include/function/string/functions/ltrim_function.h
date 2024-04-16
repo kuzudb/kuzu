@@ -21,7 +21,9 @@ struct Ltrim {
                 break;
             }
         }
-        memmove(data, data + counter, len - counter);
+        for (uint32_t i = 0; i < len - counter; i++) {
+            data[i] = data[i + counter];
+        }
         return len - counter;
     }
 };
