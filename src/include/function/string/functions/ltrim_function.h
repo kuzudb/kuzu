@@ -21,7 +21,7 @@ struct Ltrim {
                 break;
             }
         }
-        memcpy(data, data + counter, len - counter);
+        memmove(data, data + counter, len - counter);
         return len - counter;
     }
 };
