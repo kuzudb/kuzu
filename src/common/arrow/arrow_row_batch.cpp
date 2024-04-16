@@ -73,7 +73,7 @@ static uint64_t getArrowMainBufferSize(LogicalTypeID type, uint64_t capacity) {
     }
 }
 
-static void resizeValidityBuffer(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+static void resizeValidityBuffer(ArrowVector* vector, int64_t capacity) {
     vector->validity.resize(getNumBytesForBits(capacity), 0xFF);
 }
 
@@ -81,11 +81,11 @@ static void resizeMainBuffer(ArrowVector* vector, const LogicalType& type, int64
     vector->data.resize(getArrowMainBufferSize(type.getLogicalTypeID(), capacity));
 }
 
-static void resizeBLOBOverflow(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+static void resizeBLOBOverflow(ArrowVector* vector, int64_t capacity) {
     vector->overflow.resize(capacity);
 }
 
-static void resizeUnionOverflow(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
+static void resizeUnionOverflow(ArrowVector* vector, int64_t capacity) {
     vector->overflow.resize(capacity * sizeof(int32_t));
 }
 
@@ -110,14 +110,14 @@ static void resizeGeneric(ArrowVector* vector, const LogicalType& type, int64_t 
             vector->capacity *= 2;
         }
     }
-    resizeValidityBuffer(vector, type, vector->capacity);
+    resizeValidityBuffer(vector, vector->capacity);
     resizeMainBuffer(vector, type, vector->capacity);
 }
 
 static void resizeBLOBVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
     int64_t overflowCapacity) {
     resizeGeneric(vector, type, capacity);
-    resizeBLOBOverflow(vector, type, overflowCapacity);
+    resizeBLOBOverflow(vector, overflowCapacity);
 }
 
 static void resizeFixedListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
@@ -148,7 +148,7 @@ static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int6
         }
         resizeMainBuffer(vector, type, vector->capacity);
     }
-    resizeUnionOverflow(vector, type, vector->capacity);
+    resizeUnionOverflow(vector, vector->capacity);
     std::vector<LogicalType*> childTypes;
     for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
         childTypes.push_back(UnionType::getFieldType(&type, i));
@@ -310,7 +310,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::LIST>(ArrowVector* v
 
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::ARRAY>(ArrowVector* vector,
-    const LogicalType& type, Value* value, std::int64_t pos) {
+    const LogicalType& type, Value* value, std::int64_t /*pos*/) {
     auto numElements = value->childrenSize;
     for (auto i = 0u; i < numElements; i++) {
         appendValue(vector->childData[0].get(), *ArrayType::getChildType(&type),
