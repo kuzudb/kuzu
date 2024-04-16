@@ -26,50 +26,50 @@ ArrowRowBatch::ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capaci
 
 static uint64_t getArrowMainBufferSize(LogicalTypeID type, uint64_t capacity) {
     switch (type) {
-        case LogicalTypeID::BOOL:
-            return getNumBytesForBits(capacity);
-        case LogicalTypeID::SERIAL:
-        case LogicalTypeID::TIMESTAMP:
-        case LogicalTypeID::TIMESTAMP_SEC:
-        case LogicalTypeID::TIMESTAMP_MS:
-        case LogicalTypeID::TIMESTAMP_NS:
-        case LogicalTypeID::TIMESTAMP_TZ:
-        case LogicalTypeID::INTERVAL:
-        case LogicalTypeID::UINT64:
-        case LogicalTypeID::INT64:
-            return sizeof(int64_t) * capacity;
-        case LogicalTypeID::DATE:
-        case LogicalTypeID::UINT32:
-        case LogicalTypeID::INT32:
-            return sizeof(int32_t) * capacity;
-        case LogicalTypeID::UINT16:
-        case LogicalTypeID::INT16:
-            return sizeof(int16_t) * capacity;
-        case LogicalTypeID::UNION:
-        case LogicalTypeID::UINT8:
-        case LogicalTypeID::INT8:
-            return sizeof(int8_t) * capacity;
-        case LogicalTypeID::INT128:
-            return sizeof(int128_t) * capacity;
-        case LogicalTypeID::DOUBLE:
-            return sizeof(double) * capacity;
-        case LogicalTypeID::FLOAT:
-            return sizeof(float) * capacity;
-        case LogicalTypeID::UUID:
-        case LogicalTypeID::STRING:
-        case LogicalTypeID::BLOB:
-        case LogicalTypeID::LIST:
-        case LogicalTypeID::MAP:
-            return sizeof(int32_t) * (capacity + 1);
-        case LogicalTypeID::ARRAY:
-        case LogicalTypeID::STRUCT:
-        case LogicalTypeID::INTERNAL_ID:
-        case LogicalTypeID::RECURSIVE_REL:
-        case LogicalTypeID::NODE:
-        case LogicalTypeID::REL:
-            return 0; // no main buffer
-        default:
-            KU_UNREACHABLE; // should enumerate all types.
+    case LogicalTypeID::BOOL:
+        return getNumBytesForBits(capacity);
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::TIMESTAMP_SEC:
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_TZ:
+    case LogicalTypeID::INTERVAL:
+    case LogicalTypeID::UINT64:
+    case LogicalTypeID::INT64:
+        return sizeof(int64_t) * capacity;
+    case LogicalTypeID::DATE:
+    case LogicalTypeID::UINT32:
+    case LogicalTypeID::INT32:
+        return sizeof(int32_t) * capacity;
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::INT16:
+        return sizeof(int16_t) * capacity;
+    case LogicalTypeID::UNION:
+    case LogicalTypeID::UINT8:
+    case LogicalTypeID::INT8:
+        return sizeof(int8_t) * capacity;
+    case LogicalTypeID::INT128:
+        return sizeof(int128_t) * capacity;
+    case LogicalTypeID::DOUBLE:
+        return sizeof(double) * capacity;
+    case LogicalTypeID::FLOAT:
+        return sizeof(float) * capacity;
+    case LogicalTypeID::UUID:
+    case LogicalTypeID::STRING:
+    case LogicalTypeID::BLOB:
+    case LogicalTypeID::LIST:
+    case LogicalTypeID::MAP:
+        return sizeof(int32_t) * (capacity + 1);
+    case LogicalTypeID::ARRAY:
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::INTERNAL_ID:
+    case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+        return 0; // no main buffer
+    default:
+        KU_UNREACHABLE; // should enumerate all types.
     }
 }
 
@@ -114,15 +114,15 @@ static void resizeGeneric(ArrowVector* vector, const LogicalType& type, int64_t 
     resizeMainBuffer(vector, type, vector->capacity);
 }
 
-static void resizeBLOBVector(ArrowVector* vector, const LogicalType& type,
-    int64_t capacity, int64_t overflowCapacity) {
+static void resizeBLOBVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
+    int64_t overflowCapacity) {
     resizeGeneric(vector, type, capacity);
     resizeBLOBOverflow(vector, type, overflowCapacity);
 }
 
 static void resizeFixedListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
     resizeGeneric(vector, type, capacity);
-    resizeChildVectors(vector, {ArrayType::getChildType(&type)}, 
+    resizeChildVectors(vector, {ArrayType::getChildType(&type)},
         vector->capacity * ArrayType::getNumElements(&type));
 }
 
@@ -133,7 +133,7 @@ static void resizeListVector(ArrowVector* vector, const LogicalType& type, int64
 }
 
 static void resizeStructVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
-    resizeGeneric(vector, type, capacity);   
+    resizeGeneric(vector, type, capacity);
     resizeChildVectors(vector, StructType::getFieldTypes(&type), vector->capacity);
 }
 
@@ -301,7 +301,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::LIST>(ArrowVector* v
         offsets[pos] = 0;
     }
     offsets[pos + 1] = offsets[pos] + numElements;
-    resizeChildVectors(vector, {ListType::getChildType(&type)}, offsets[pos+1]+1);
+    resizeChildVectors(vector, {ListType::getChildType(&type)}, offsets[pos + 1] + 1);
     for (auto i = 0u; i < numElements; i++) {
         appendValue(vector->childData[0].get(), *ListType::getChildType(&type),
             value->children[i].get());

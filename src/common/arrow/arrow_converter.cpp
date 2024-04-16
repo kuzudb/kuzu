@@ -1,9 +1,9 @@
 #include "common/arrow/arrow_converter.h"
-#include "common/exception/runtime.h"
 
 #include <cstring>
 
 #include "common/arrow/arrow_row_batch.h"
+#include "common/exception/runtime.h"
 
 namespace kuzu {
 namespace common {
@@ -226,7 +226,8 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         setArrowFormatForUnion(rootHolder, child, dataType);
         break;
     default:
-        throw RuntimeException(stringFormat("{} cannot be exported to arrow.", dataType.toString()));
+        throw RuntimeException(
+            stringFormat("{} cannot be exported to arrow.", dataType.toString()));
     }
 }
 
