@@ -7,11 +7,19 @@ from . import _kuzu
 from .types import Type
 
 if TYPE_CHECKING:
+    import sys
+    from types import TracebackType
+
     from numpy.typing import NDArray
     from torch_geometric.data.feature_store import IndexType
 
     from .torch_geometric_feature_store import KuzuFeatureStore
     from .torch_geometric_graph_store import KuzuGraphStore
+
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self
 
 
 class Database:
@@ -89,7 +97,7 @@ class Database:
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        self.close()    
+        self.close()
 
     @staticmethod
     def get_version() -> str:

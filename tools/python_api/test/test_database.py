@@ -1,11 +1,15 @@
 from __future__ import annotations
+
 import subprocess
 import sys
-from pathlib import Path
 from textwrap import dedent
-from test_helper import KUZU_ROOT
-import pytest
+from typing import TYPE_CHECKING
+
 import kuzu
+import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def open_database_on_subprocess(tmp_path: Path, build_dir: Path) -> None:
@@ -19,9 +23,7 @@ def open_database_on_subprocess(tmp_path: Path, build_dir: Path) -> None:
         print(r"{tmp_path!s}")
     """
     )
-    result = subprocess.run(
-        [sys.executable, "-c", code], capture_output=True, text=True
-    )
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(result.stderr)
 
