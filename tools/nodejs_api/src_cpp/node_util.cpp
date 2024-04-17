@@ -310,7 +310,8 @@ Value Util::TransformNapiValue(Napi::Value napiValue) {
         bigInt.ToWords(&signBit, &wordsCount, words);
         kuzu::common::int128_t val;
         val.low = words[0];
-        val.high = words[1];
+        if (wordsCount > 1){
+        val.high = words[1];}
         // Ignore words[2] and beyond as we only support 128-bit integers but BigInt can be larger.
         if (signBit) {
             kuzu::common::Int128_t::negateInPlace(val);
