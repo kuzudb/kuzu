@@ -335,4 +335,5 @@ Value Util::TransformNapiValue(Napi::Value napiValue) {
         auto dateVal = Timestamp::getDate(timestamp);
         return Value(dateVal);
     }
+    return Value::createNullValue();
 }
