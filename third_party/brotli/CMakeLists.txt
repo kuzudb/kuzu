@@ -11,7 +11,7 @@ cmake_policy(SET CMP0048 NEW)
 project(brotli C)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-set(BROTLI_BUILD_TOOLS ON CACHE BOOL "Build/install CLI tools")
+set(BROTLI_BUILD_TOOLS OFF CACHE BOOL "Build/install CLI tools")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to Release as none was specified.")

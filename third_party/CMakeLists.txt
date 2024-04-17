@@ -4,6 +4,7 @@ endif()
 
 add_subdirectory(antlr4_cypher)
 add_subdirectory(antlr4_runtime)
+set(BROTLI_BUNDLED_MODE ON)
 add_subdirectory(brotli)
 add_subdirectory(fast_float)
 add_subdirectory(fastpfor)
