@@ -11,7 +11,7 @@ cmake_policy(SET CMP0048 NEW)
 project(brotli C)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-set(BROTLI_BUILD_TOOLS ON CACHE BOOL "Build/install CLI tools")
+set(BROTLI_BUILD_TOOLS OFF CACHE BOOL "Build/install CLI tools")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to Release as none was specified.")
@@ -349,9 +349,6 @@ if (BROTLI_BUILD_TOOLS)
   install(FILES "docs/brotli.1"
     DESTINATION "${CMAKE_INSTALL_FULL_MANDIR}/man1")
 endif()
-
-install(FILES docs/constants.h.3 docs/decode.h.3 docs/encode.h.3 docs/types.h.3
-  DESTINATION "${CMAKE_INSTALL_FULL_MANDIR}/man3")
 
 if (ENABLE_COVERAGE STREQUAL "yes")
   setup_target_for_coverage(coverage test coverage)
