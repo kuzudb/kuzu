@@ -319,8 +319,11 @@ Value Util::TransformNapiValue(Napi::Value napiValue) {
     }
     if (napiValue.IsNumber()) {
         auto num = napiValue.ToNumber();
-        auto intVal = num.Int64Value();
         auto doubleVal = num.DoubleValue();
+        if (doubleVal > JS_MAX_SAFE_INTEGER || doubleVal < JS_MIN_SAFE_INTEGER) {
+            return Value(doubleVal);
+        }
+        auto intVal = num.Int64Value();
         return intVal == doubleVal ? Value(intVal) : Value(doubleVal);
     }
     if (napiValue.IsString()) {
