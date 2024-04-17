@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/bound_detach_database.h"
-#include "common/cast.h"
 #include "parser/detach_database.h"
 
 namespace kuzu {

@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/bound_attach_database.h"
-#include "common/cast.h"
 #include "parser/attach_database.h"
 
 namespace kuzu {
