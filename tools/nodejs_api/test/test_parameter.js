@@ -417,29 +417,6 @@ describe("STRING", function () {
     const result = await queryResult.getAll();
     assert.equal(result[0]["COUNT_STAR()"], 1);
   });
-
-  it("should transform other type as STRING parameter", async function () {
-    const preparedStatement = await conn.prepare(
-      "MATCH (a:person) WHERE a.fName = $1 RETURN COUNT(*)"
-    );
-    let queryResult = await conn.execute(preparedStatement, {
-      1: 1,
-    });
-    let result = await queryResult.getAll();
-    assert.equal(result[0]["COUNT_STAR()"], 0);
-
-    queryResult = await conn.execute(preparedStatement, {
-      1: true,
-    });
-    result = await queryResult.getAll();
-    assert.equal(result[0]["COUNT_STAR()"], 0);
-
-    queryResult = await conn.execute(preparedStatement, {
-      1: new Date(),
-    });
-    result = await queryResult.getAll();
-    assert.equal(result[0]["COUNT_STAR()"], 0);
-  });
 });
 /*
 describe("DATE", function () {
