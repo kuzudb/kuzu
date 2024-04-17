@@ -285,7 +285,7 @@ std::unordered_map<std::string, std::unique_ptr<Value>> Util::TransformParameter
         KU_ASSERT(param.Get(uint32_t(0)).IsString());
         auto key = param.Get(uint32_t(0)).ToString().Utf8Value();
         auto napiValue = param.Get(uint32_t(1));
-        auto transformedVal = TransformNapiValue(napiValue, key);
+        auto transformedVal = TransformNapiValue(napiValue);
         result[key] = std::make_unique<Value>(transformedVal);
     }
     return result;
@@ -298,7 +298,7 @@ Napi::Object Util::ConvertNodeIdToNapiObject(const nodeID_t& nodeId, Napi::Env e
     return napiObject;
 }
 
-Value Util::TransformNapiValue(Napi::Value napiValue, const std::string& key) {
+Value Util::TransformNapiValue(Napi::Value napiValue) {
     if (napiValue.IsBoolean()) {
         return Value(napiValue.ToBoolean().Value());
     }
