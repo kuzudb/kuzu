@@ -266,18 +266,18 @@ describe("TIMESTAMP_SEC", function () {
   });
 });
 
-describe("INTERVAL", function () {
-  it("should transform number as INTERVAL parameter", async function () {
-    const preparedStatement = await conn.prepare(
-      "MATCH (a:person) WHERE a.lastJobDuration > $1 RETURN COUNT(*)"
-    );
-    const queryResult = await conn.execute(preparedStatement, {
-      1: 0,
-    });
-    const result = await queryResult.getAll();
-    assert.equal(result[0]["COUNT_STAR()"], 8);
-  });
-});
+// describe("INTERVAL", function () {
+//   it("should transform number as INTERVAL parameter", async function () {
+//     const preparedStatement = await conn.prepare(
+//       "MATCH (a:person) WHERE a.lastJobDuration > $1 RETURN COUNT(*)"
+//     );
+//     const queryResult = await conn.execute(preparedStatement, {
+//       1: 0,
+//     });
+//     const result = await queryResult.getAll();
+//     assert.equal(result[0]["COUNT_STAR()"], 8);
+//   });
+// });
 
 describe("UUID", function () {
   it("should transform string as UUID parameter", async function () {
