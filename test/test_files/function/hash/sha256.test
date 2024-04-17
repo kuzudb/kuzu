@@ -4,9 +4,9 @@
 --
 
 -CASE SHA256Tests
+
 -STATEMENT RETURN sha256(NULL);
 ---- 1
-
 
 -STATEMENT RETURN sha256('hello');
 ---- 1

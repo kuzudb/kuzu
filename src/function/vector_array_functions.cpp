@@ -1,5 +1,6 @@
 #include "function/array/vector_array_functions.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "function/array/functions/array_cosine_similarity.h"
 #include "function/array/functions/array_cross_product.h"
@@ -14,17 +15,28 @@ namespace kuzu {
 namespace function {
 
 std::unique_ptr<FunctionBindData> ArrayValueBindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
-    auto resultType =
-        LogicalType::ARRAY(ListCreationFunction::getChildType(arguments).copy(), arguments.size());
-    return std::make_unique<FunctionBindData>(std::move(resultType));
+    Function*) {
+    LogicalType combinedType(LogicalTypeID::ANY);
+    binder::ExpressionUtil::tryCombineDataType(arguments, combinedType);
+    if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {
+        combinedType = *LogicalType::STRING();
+    }
+    auto resultType = LogicalType::ARRAY(combinedType.copy(), arguments.size());
+    auto bindData = std::make_unique<FunctionBindData>(std::move(resultType));
+    for (auto& _ : arguments) {
+        (void)_;
+        bindData->paramTypes.push_back(combinedType);
+    }
+    return bindData;
 }
 
 function_set ArrayValueFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
+    auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::ARRAY,
-        ListCreationFunction::execFunc, nullptr, ArrayValueBindFunc, true /*  isVarLength */));
+        ListCreationFunction::execFunc, nullptr /* selectFunc */, ArrayValueBindFunc);
+    function->varLength = true;
+    result.push_back(std::move(function));
     return result;
 }
 
@@ -85,8 +97,7 @@ function_set ArrayCrossProductFunction::getFunctionSet() {
             LogicalTypeID::ARRAY,
             LogicalTypeID::ARRAY,
         },
-        LogicalTypeID::ARRAY, nullptr, nullptr, ArrayCrossProductBindFunc,
-        false /*  isVarLength */));
+        LogicalTypeID::ARRAY, nullptr, nullptr, ArrayCrossProductBindFunc));
     return result;
 }
 
@@ -147,8 +158,7 @@ function_set templateGetFunctionSet(const std::string& functionName) {
         },
         LogicalTypeID::ANY, nullptr, nullptr,
         std::bind(arrayTemplateBindFunc<OPERATION>, functionName, std::placeholders::_1,
-            std::placeholders::_2),
-        false /*  isVarLength */));
+            std::placeholders::_2)));
     return result;
 }
 

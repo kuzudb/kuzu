@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/function_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/catalog.h"
@@ -27,13 +28,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     auto functions = context->getCatalog()->getFunctions(binder->clientContext->getTx());
     auto functionName = expressionTypeToString(expressionType);
     LogicalType combinedType(LogicalTypeID::ANY);
-    bool canCombine = true;
-    for (auto& child : children) {
-        if (!LogicalTypeUtils::tryGetMaxLogicalType(combinedType, child->dataType, combinedType)) {
-            canCombine = false;
-        }
-    }
-    if (!canCombine) {
+    if (!ExpressionUtil::tryCombineDataType(children, combinedType)) {
         throw BinderException(stringFormat("Type Mismatch: Cannot compare types {} and {}",
             children[0]->dataType.toString(), children[1]->dataType.toString()));
     }

@@ -12,7 +12,8 @@ namespace kuzu {
 namespace function {
 
 static std::unique_ptr<FunctionBindData> StructPackBindFunc(
-    const binder::expression_vector& arguments, Function* /*function*/) {
+    const binder::expression_vector& arguments, Function*) {
+    std::vector<LogicalType> fieldTypes;
     std::vector<StructField> fields;
     for (auto& argument : arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
@@ -24,11 +25,11 @@ static std::unique_ptr<FunctionBindData> StructPackBindFunc(
     return std::make_unique<FunctionBindData>(std::move(resultType));
 }
 
-void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,
+void StructPackFunctions::compileFunc(FunctionBindData*,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     // Our goal is to make the state of the resultVector consistent with its children vectors.
-    // If the resultVector and inputVector are in different dataChunks, we should create a new
+    // If the resultVector and inputVector are in different dataChunks, we should create  a new
     // child valueVector, which shares the state with the resultVector, instead of reusing the
     // inputVector.
     for (auto i = 0u; i < parameters.size(); i++) {
@@ -72,9 +73,11 @@ void StructPackFunctions::execFunc(const std::vector<std::shared_ptr<ValueVector
 
 function_set StructPackFunctions::getFunctionSet() {
     function_set functions;
-    functions.push_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRUCT, execFunc, nullptr,
-        compileFunc, StructPackBindFunc, true /* isVarLength */));
+    auto function =
+        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
+            LogicalTypeID::STRUCT, execFunc, nullptr, compileFunc, StructPackBindFunc);
+    function->varLength = true;
+    functions.push_back(std::move(function));
     return functions;
 }
 
@@ -105,8 +108,7 @@ void StructExtractFunctions::compileFunc(FunctionBindData* bindData,
 static std::unique_ptr<ScalarFunction> getStructExtractFunction(LogicalTypeID logicalTypeID) {
     return std::make_unique<ScalarFunction>(StructExtractFunctions::name,
         std::vector<LogicalTypeID>{logicalTypeID, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-        nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc,
-        false /* isVarLength */);
+        nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc);
 }
 
 function_set StructExtractFunctions::getFunctionSet() {

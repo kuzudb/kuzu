@@ -120,11 +120,6 @@ public:
     // E.g. SUM(SUM(a.age)) is not allowed
     static void validateAggregationExpressionIsNotNested(const Expression& expression);
 
-    void validateExpectedDataType(const Expression& expression,
-        const std::vector<common::LogicalTypeID>& targets);
-    void validateDataType(const Expression& expr, const common::LogicalType& expectedType);
-    void validateDataType(const Expression& expr, common::LogicalTypeID expectedTypeID);
-
 private:
     Binder* binder;
     main::ClientContext* context;

@@ -88,16 +88,40 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         }
         childrenAfterCast.push_back(std::move(childAfterCast));
     } else {
-        for (auto i = 0u; i < children.size(); ++i) {
-            auto targetType = function->isVarLength ? function->parameterTypeIDs[0] :
-                                                      function->parameterTypeIDs[i];
-            childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
+        // Once we obtain a function, we perform the first round of casting based on function
+        // signature. This may not always succeed because function signature for nested functions
+        // are incomplete.
+        // E.g. for list_creation, we don't know what children types are we expecting.
+        expression_vector tmpChildren;
+        if (function->parameterTypeIDs.size() == children.size()) {
+            for (auto i = 0u; i < children.size(); ++i) {
+                tmpChildren.push_back(
+                    implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
+            }
+        } else {
+            for (auto i = 0u; i < children.size(); ++i) {
+                tmpChildren.push_back(
+                    implicitCastIfNecessary(children[i], function->parameterTypeIDs[0]));
+            }
         }
+        // Perform binding. Each function should resolve its parameter types and result type here.
         if (function->bindFunc) {
-            bindData = function->bindFunc(childrenAfterCast, function);
+            bindData = function->bindFunc(tmpChildren, function);
         } else {
             bindData = std::make_unique<function::FunctionBindData>(
                 std::make_unique<LogicalType>(function->returnTypeID));
+        }
+        // Perform second round of casting. Specifically this is needed for nested type parameters.
+        // E.g. list_creation(1, 2.0)
+        // We need to cast 1 to 1.0 after seeing at least one child is DOUBLE type.
+        if (!bindData->paramTypes.empty()) {
+            KU_ASSERT(bindData->paramTypes.size() == children.size());
+            for (auto i = 0u; i < tmpChildren.size(); ++i) {
+                childrenAfterCast.push_back(
+                    implicitCastIfNecessary(tmpChildren[i], bindData->paramTypes[i]));
+            }
+        } else {
+            childrenAfterCast = tmpChildren;
         }
     }
     auto uniqueExpressionName =

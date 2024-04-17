@@ -6,6 +6,7 @@ namespace kuzu {
 namespace function {
 
 struct FunctionBindData {
+    std::vector<common::LogicalType> paramTypes;
     std::unique_ptr<common::LogicalType> resultType;
 
     explicit FunctionBindData(std::unique_ptr<common::LogicalType> dataType)
@@ -28,10 +29,14 @@ enum class FunctionType : uint8_t {
 };
 
 struct Function {
-    Function() : type{FunctionType::UNKNOWN} {};
+    Function() : type{FunctionType::UNKNOWN}, varLength{false} {};
     Function(FunctionType type, std::string name,
         std::vector<common::LogicalTypeID> parameterTypeIDs)
-        : type{type}, name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)} {}
+        : type{type}, name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)},
+          varLength{false} {}
+    Function(const Function& other)
+        : type{other.type}, name{other.name}, parameterTypeIDs{other.parameterTypeIDs},
+          varLength{other.varLength} {}
 
     virtual ~Function() = default;
 
@@ -44,7 +49,11 @@ struct Function {
     // TODO(Ziyi): Move to catalog entry once we have implemented the catalog entry.
     FunctionType type;
     std::string name;
+    // We do NOT store logical type because we cannot register a nested type parameter without
+    // seeing children expressions.
     std::vector<common::LogicalTypeID> parameterTypeIDs;
+    // Whether function can have arbitrary number of parameters.
+    bool varLength;
 
     template<class TARGET>
     const TARGET* constPtrCast() const {
@@ -58,6 +67,8 @@ struct BaseScalarFunction : public Function {
         scalar_bind_func bindFunc)
         : Function{type, std::move(name), std::move(parameterTypeIDs)}, returnTypeID{returnTypeID},
           bindFunc{std::move(bindFunc)} {}
+    BaseScalarFunction(const BaseScalarFunction& other)
+        : Function{other}, returnTypeID{other.returnTypeID}, bindFunc{other.bindFunc} {}
 
     std::string signatureToString() const override {
         auto result = Function::signatureToString();

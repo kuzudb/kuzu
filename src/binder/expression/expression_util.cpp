@@ -162,5 +162,13 @@ void ExpressionUtil::validateDataType(const Expression& expr,
         expr.getDataType().toString(), LogicalTypeUtils::toString(expectedTypeIDs)));
 }
 
+bool ExpressionUtil::tryCombineDataType(const expression_vector& expressions, LogicalType& result) {
+    std::vector<common::LogicalType> inputTypes;
+    for (auto& expr : expressions) {
+        inputTypes.push_back(expr->getDataType());
+    }
+    return LogicalTypeUtils::tryGetMaxLogicalType(inputTypes, result);
+}
+
 } // namespace binder
 } // namespace kuzu

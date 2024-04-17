@@ -25,7 +25,7 @@ function_set NodesFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL}, LogicalTypeID::ANY, nullptr,
-        nullptr, StructExtractFunctions::compileFunc, NodesBindFunc, false /* isVarLength */));
+        nullptr, StructExtractFunctions::compileFunc, NodesBindFunc));
     return functionSet;
 }
 
@@ -41,7 +41,7 @@ function_set RelsFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL}, LogicalTypeID::ANY, nullptr,
-        nullptr, StructExtractFunctions::compileFunc, RelsBindFunc, false /* isVarLength */));
+        nullptr, StructExtractFunctions::compileFunc, RelsBindFunc));
     return functionSet;
 }
 
@@ -112,8 +112,7 @@ function_set PropertiesFunction::getFunctionSet() {
     function_set functions;
     functions.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-        PropertiesExecFunc, nullptr, PropertiesCompileFunc, PropertiesBindFunc,
-        false /* isVarLength */));
+        PropertiesExecFunc, nullptr, PropertiesCompileFunc, PropertiesBindFunc));
     return functions;
 }
 
@@ -129,9 +128,9 @@ static bool IsTrailSelectFunc(const std::vector<std::shared_ptr<ValueVector>>& p
 
 function_set IsTrailFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL}, LogicalTypeID::BOOL,
-        IsTrailExecFunc, IsTrailSelectFunc, nullptr, nullptr, false /* isVarLength */));
+    functionSet.push_back(
+        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL},
+            LogicalTypeID::BOOL, IsTrailExecFunc, IsTrailSelectFunc, nullptr, nullptr));
     return functionSet;
 }
 
@@ -147,9 +146,9 @@ static bool IsACyclicSelectFunc(const std::vector<std::shared_ptr<ValueVector>>&
 
 function_set IsACyclicFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL}, LogicalTypeID::BOOL,
-        IsACyclicExecFunc, IsACyclicSelectFunc, nullptr, nullptr, false /* isVarLength */));
+    functionSet.push_back(
+        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL},
+            LogicalTypeID::BOOL, IsACyclicExecFunc, IsACyclicSelectFunc, nullptr, nullptr));
     return functionSet;
 }
 

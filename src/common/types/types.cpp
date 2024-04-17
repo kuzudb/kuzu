@@ -759,16 +759,8 @@ uint32_t LogicalTypeUtils::getRowLayoutSize(const LogicalType& type) {
     }
 }
 
-bool LogicalTypeUtils::isDate(const LogicalType& dataType) {
-    return isDate(dataType.typeID);
-}
-
 bool LogicalTypeUtils::isDate(const LogicalTypeID& dataType) {
     return dataType == LogicalTypeID::DATE;
-}
-
-bool LogicalTypeUtils::isTimestamp(const LogicalType& dataType) {
-    return isTimestamp(dataType.typeID);
 }
 
 bool LogicalTypeUtils::isTimestamp(const LogicalTypeID& dataType) {
@@ -783,10 +775,6 @@ bool LogicalTypeUtils::isTimestamp(const LogicalTypeID& dataType) {
     }
 }
 
-bool LogicalTypeUtils::isUnsigned(const LogicalType& dataType) {
-    return isUnsigned(dataType.typeID);
-}
-
 bool LogicalTypeUtils::isUnsigned(const LogicalTypeID& dataType) {
     switch (dataType) {
     case LogicalTypeID::UINT64:
@@ -797,10 +785,6 @@ bool LogicalTypeUtils::isUnsigned(const LogicalTypeID& dataType) {
     default:
         return false;
     }
-}
-
-bool LogicalTypeUtils::isIntegral(const LogicalType& dataType) {
-    return isIntegral(dataType.typeID);
 }
 
 bool LogicalTypeUtils::isIntegral(const LogicalTypeID& dataType) {
@@ -1347,23 +1331,17 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
     return true;
 }
 
-LogicalTypeID LogicalTypeUtils::getMaxLogicalTypeID(const LogicalTypeID& left,
-    const LogicalTypeID& right) {
-    LogicalTypeID result;
-    if (!tryGetMaxLogicalTypeID(left, right, result)) {
-        throw common::BinderException(stringFormat("Cannot combine logical types {} and {}",
-            toString(left), toString(right)));
+bool LogicalTypeUtils::tryGetMaxLogicalType(const std::vector<LogicalType>& types,
+    LogicalType& result) {
+    LogicalType combinedType(LogicalTypeID::ANY);
+    for (auto& type : types) {
+        if (!tryGetMaxLogicalType(combinedType, type, combinedType)) {
+            return false;
+        }
     }
-    return result;
+    result = combinedType;
+    return true;
 }
 
-LogicalType LogicalTypeUtils::getMaxLogicalType(const LogicalType& left, const LogicalType& right) {
-    LogicalType result;
-    if (!tryGetMaxLogicalType(left, right, result)) {
-        throw common::BinderException(stringFormat("Cannot combine logical types {} and {}",
-            left.toString(), right.toString()));
-    }
-    return result;
-}
 } // namespace common
 } // namespace kuzu

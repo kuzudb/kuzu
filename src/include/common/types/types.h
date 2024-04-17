@@ -576,13 +576,9 @@ struct LogicalTypeUtils {
     KUZU_API static std::string toString(const std::vector<LogicalType>& dataTypes);
     KUZU_API static std::string toString(const std::vector<LogicalTypeID>& dataTypeIDs);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
-    static bool isDate(const LogicalType& dataType);
     static bool isDate(const LogicalTypeID& dataType);
-    static bool isTimestamp(const LogicalType& dataType);
     static bool isTimestamp(const LogicalTypeID& dataType);
-    static bool isUnsigned(const LogicalType& dataType);
     static bool isUnsigned(const LogicalTypeID& dataType);
-    static bool isIntegral(const LogicalType& dataType);
     static bool isIntegral(const LogicalTypeID& dataType);
     static bool isNumerical(const LogicalType& dataType);
     static bool isNumerical(const LogicalTypeID& dataType);
@@ -596,18 +592,7 @@ struct LogicalTypeUtils {
         LogicalTypeID& result);
     static bool tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
         LogicalType& result);
-    static LogicalTypeID getMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right);
-    static LogicalType getMaxLogicalType(const LogicalType& left, const LogicalType& right);
-
-private:
-    static LogicalTypeID dataTypeIDFromString(const std::string& trimmedStr);
-    static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
-    static std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr);
-    static std::unique_ptr<LogicalType> parseArrayType(const std::string& trimmedStr);
-    static std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr);
-    static std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr);
-    static std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr);
-    static std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr);
+    static bool tryGetMaxLogicalType(const std::vector<LogicalType>& types, LogicalType& result);
 };
 
 enum class FileVersionType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };

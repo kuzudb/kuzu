@@ -7,7 +7,6 @@
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/function_collection.h"
-#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -54,12 +53,11 @@ Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
     const std::vector<LogicalType>& inputTypes, const catalog::CatalogEntry* catalogEntry) {
     auto functionEntry = catalogEntry->constPtrCast<FunctionCatalogEntry>();
     auto& functionSet = functionEntry->getFunctionSet();
-    bool isOverload = functionSet.size() > 1;
     std::vector<Function*> candidateFunctions;
     uint32_t minCost = UINT32_MAX;
     for (auto& function : functionSet) {
         auto func = reinterpret_cast<Function*>(function.get());
-        auto cost = getFunctionCost(inputTypes, func, isOverload);
+        auto cost = getFunctionCost(inputTypes, func);
         if (cost == UINT32_MAX) {
             continue;
         }
@@ -409,20 +407,12 @@ Function* BuiltInFunctionsUtils::getBestMatch(std::vector<Function*>& functionsT
 }
 
 uint32_t BuiltInFunctionsUtils::getFunctionCost(const std::vector<LogicalType>& inputTypes,
-    Function* function, bool isOverload) {
-    switch (function->type) {
-    case FunctionType::SCALAR: {
-        auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
-        if (scalarFunction->isVarLength) {
-            KU_ASSERT(function->parameterTypeIDs.size() == 1);
-            return matchVarLengthParameters(inputTypes, function->parameterTypeIDs[0], isOverload);
-        } else {
-            return matchParameters(inputTypes, function->parameterTypeIDs, isOverload);
-        }
+    Function* function) {
+    if (function->varLength) {
+        KU_ASSERT(!function->parameterTypeIDs.empty());
+        return matchVarLengthParameters(inputTypes, function->parameterTypeIDs[0]);
     }
-    default:
-        return matchParameters(inputTypes, function->parameterTypeIDs, isOverload);
-    }
+    return matchParameters(inputTypes, function->parameterTypeIDs);
 }
 
 uint32_t BuiltInFunctionsUtils::getAggregateFunctionCost(const std::vector<LogicalType>& inputTypes,
@@ -442,7 +432,7 @@ uint32_t BuiltInFunctionsUtils::getAggregateFunctionCost(const std::vector<Logic
 }
 
 uint32_t BuiltInFunctionsUtils::matchParameters(const std::vector<LogicalType>& inputTypes,
-    const std::vector<LogicalTypeID>& targetTypeIDs, bool /*isOverload*/) {
+    const std::vector<LogicalTypeID>& targetTypeIDs) {
     if (inputTypes.size() != targetTypeIDs.size()) {
         return UINT32_MAX;
     }
@@ -458,7 +448,7 @@ uint32_t BuiltInFunctionsUtils::matchParameters(const std::vector<LogicalType>& 
 }
 
 uint32_t BuiltInFunctionsUtils::matchVarLengthParameters(const std::vector<LogicalType>& inputTypes,
-    LogicalTypeID targetTypeID, bool /*isOverload*/) {
+    LogicalTypeID targetTypeID) {
     auto cost = 0u;
     for (auto inputType : inputTypes) {
         auto castCost = getCastCost(inputType.getLogicalTypeID(), targetTypeID);
