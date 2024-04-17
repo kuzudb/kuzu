@@ -1,7 +1,5 @@
 #pragma once
 
-#include <functional>
-
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/enums/rel_multiplicity.h"
