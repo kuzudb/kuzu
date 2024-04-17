@@ -197,18 +197,21 @@ static void scanArrowArrayListView(const ArrowSchema* schema, const ArrowArray* 
         }
     }
 }
-/*
-TODO manh: scan arrow fixed list
+
 static void scanArrowArrayFixedList(const ArrowSchema* schema, const ArrowArray* array,
     ValueVector& outputVector, ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset,
     uint64_t count) {
     mask->copyToValueVector(&outputVector, dstOffset, count);
-    int64_t numValuesInList = ArrayType::getNumValuesInList(&outputVector.dataType);
-    ArrowConverter::fromArrowArray(schema->children[0], array->children[0], outputVector,
-        mask->getChild(0), srcOffset * numValuesInList, dstOffset * numValuesInList,
-        count * numValuesInList);
+    auto numElements = ArrayType::getNumElements(&outputVector.dataType);
+    for (auto i = 0u; i < count; ++i) {
+        auto newEntry = ListVector::addList(&outputVector, numElements);
+        outputVector.setValue<list_entry_t>(i + dstOffset, newEntry);
+    }
+    auto auxiliaryBuffer = ListVector::getDataVector(&outputVector);
+    ArrowConverter::fromArrowArray(schema->children[0], array->children[0], *auxiliaryBuffer,
+        mask->getChild(0), srcOffset * numElements + array->children[0]->offset,
+        dstOffset * numElements, count * numElements);
 }
-*/
 
 static void scanArrowArrayStruct(const ArrowSchema* schema, const ArrowArray* array,
     ValueVector& outputVector, ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset,
@@ -499,12 +502,14 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
             // LONG LIST
             return scanArrowArrayList<int64_t>(schema, array, outputVector, mask, srcOffset,
                 dstOffset, count);
-        case 'w':
+        case 'w': {
             // ARRAY
-            // TODO Manh: Array Scanning
-            KU_UNREACHABLE;
-            // return scanArrowArrayFixedList(
-            //  schema, array, outputVector, mask, srcOffset, dstOffset, count);
+            auto arrowNumElements = std::stoul(arrowType + 3);
+            auto outputNumElements = ArrayType::getNumElements(&outputVector.dataType);
+            KU_ASSERT(arrowNumElements == outputNumElements);
+            return scanArrowArrayFixedList(schema, array, outputVector, mask, srcOffset, dstOffset,
+                count);
+        }
         case 's':
             // STRUCT
             return scanArrowArrayStruct(schema, array, outputVector, mask, srcOffset, dstOffset,

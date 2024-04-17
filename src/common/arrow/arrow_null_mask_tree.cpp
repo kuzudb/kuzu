@@ -56,6 +56,18 @@ void ArrowNullMaskTree::scanListPushDown(const ArrowSchema* schema, const ArrowA
         offsets[0] + array->children[0]->offset, auxiliaryLength, &pushDownMask));
 }
 
+void ArrowNullMaskTree::scanArrayPushDown(const ArrowSchema* schema, const ArrowArray* array,
+    uint64_t srcOffset, uint64_t count) {
+    auto numElements = std::stoul(schema->format + 3);
+    auto auxiliaryLength = count * numElements;
+    NullMask pushDownMask(auxiliaryLength);
+    for (auto i = 0u; i < count; ++i) {
+        pushDownMask.setNullFromRange(i * numElements, numElements, isNull(i));
+    }
+    children->push_back(ArrowNullMaskTree(schema->children[0], array->children[0],
+        srcOffset * numElements + array->children[0]->offset, auxiliaryLength, &pushDownMask));
+}
+
 void ArrowNullMaskTree::scanStructPushDown(const ArrowSchema* schema, const ArrowArray* array,
     uint64_t srcOffset, uint64_t count) {
     for (int64_t i = 0; i < array->n_children; i++) {
@@ -117,10 +129,9 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
             scanListPushDown<int64_t>(schema, array, srcOffset, count);
             break;
         case 'w':
-            // TODO manh: array null resolution
-            KU_UNREACHABLE;
             copyFromBuffer(array->buffers[0], srcOffset, count);
             applyParentBitmap(parentBitmap);
+            scanArrayPushDown(schema, array, srcOffset, count);
             break;
         case 's':
             copyFromBuffer(array->buffers[0], srcOffset, count);
