@@ -1,0 +1,77 @@
+-GROUP CreateRelBatchTest
+-DATASET CSV empty
+--
+
+-CASE CreateRelBatch1
+-STATEMENT CREATE NODE TABLE Person(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE knows(FROM Person TO Person);
+---- ok
+-STATEMENT UNWIND range(0, 10000) AS i
+           CREATE (n:Person {id: i});
+---- ok
+-STATEMENT MATCH (p:Person) RETURN COUNT(*)
+---- 1
+10001
+-STATEMENT UNWIND range(0, 9999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person)-[r:knows]->(p2:Person) RETURN COUNT(*)
+---- 1
+10000
+-STATEMENT UNWIND range(10001, 100000) AS i
+           CREATE (n:Person {id: i});
+---- ok
+-STATEMENT MATCH (p:Person) RETURN COUNT(*)
+---- 1
+100001
+-STATEMENT UNWIND range(10000, 19999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT UNWIND range(20000, 29999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT UNWIND range(30000, 39999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT UNWIND range(40000, 49999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT UNWIND range(50000, 59999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT UNWIND range(60000, 69999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT UNWIND range(70000, 79999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT UNWIND range(80000, 89999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT UNWIND range(90000, 99999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person)-[r:knows]->(p2:Person) RETURN COUNT(*)
+---- 1
+100000

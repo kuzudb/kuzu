@@ -1,4 +1,4 @@
--GROUP EmptyCreateRelTest
+-GROUP CreateRelSmallTest
 -DATASET CSV empty
 --
 
