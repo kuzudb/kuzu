@@ -277,20 +277,15 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
 }
 
 std::unordered_map<std::string, std::unique_ptr<Value>> Util::TransformParametersForExec(
-    Napi::Array params,
-    const std::unordered_map<std::string, std::shared_ptr<Value>>& parameterMap) {
+    Napi::Array params) {
     std::unordered_map<std::string, std::unique_ptr<Value>> result;
     for (size_t i = 0; i < params.Length(); i++) {
         auto param = params.Get(i).As<Napi::Array>();
         KU_ASSERT(param.Length() == 2);
         KU_ASSERT(param.Get(uint32_t(0)).IsString());
         auto key = param.Get(uint32_t(0)).ToString().Utf8Value();
-        if (!parameterMap.count(key)) {
-            throw Exception("Parameter " + key + " is not defined in the prepared statement");
-        }
         auto napiValue = param.Get(uint32_t(1));
-        auto expectedDataType = parameterMap.at(key)->getDataType();
-        auto transformedVal = TransformNapiValue(napiValue, expectedDataType, key);
+        auto transformedVal = TransformNapiValue(napiValue);
         result[key] = std::make_unique<Value>(transformedVal);
     }
     return result;
@@ -303,180 +298,42 @@ Napi::Object Util::ConvertNodeIdToNapiObject(const nodeID_t& nodeId, Napi::Env e
     return napiObject;
 }
 
-Value Util::TransformNapiValue(Napi::Value napiValue, LogicalType* expectedDataType,
-    const std::string& key) {
-    auto logicalTypeId = expectedDataType->getLogicalTypeID();
-    switch (logicalTypeId) {
-    case LogicalTypeID::BOOL: {
+Value Util::TransformNapiValue(Napi::Value napiValue) {
+    if (napiValue.IsBoolean()) {
         return Value(napiValue.ToBoolean().Value());
     }
-    case LogicalTypeID::INT64: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
-        }
-        int64_t val = napiValue.ToNumber().Int64Value();
-        return Value(val);
-    }
-    case LogicalTypeID::INT32: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
-        }
-        int32_t val = napiValue.ToNumber().Int32Value();
-        return Value(val);
-    }
-    case LogicalTypeID::INT16: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
-        }
-        int16_t val = napiValue.ToNumber().Int32Value();
-        return Value(val);
-    }
-    case LogicalTypeID::INT8: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
-        }
-        int8_t val = napiValue.ToNumber().Int32Value();
-        return Value(val);
-    }
-    case LogicalTypeID::UINT64: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
-        }
-        auto valStr = napiValue.ToNumber().ToString();
-        uint64_t val = std::stoull(valStr);
-        return Value(val);
-    }
-    case LogicalTypeID::UINT32: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
-        }
-        uint32_t val = napiValue.ToNumber().Uint32Value();
-        return Value(val);
-    }
-    case LogicalTypeID::UINT16: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
-        }
-        uint16_t val = napiValue.ToNumber().Uint32Value();
-        return Value(val);
-    }
-    case LogicalTypeID::UINT8: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
-        }
-        uint8_t val = napiValue.ToNumber().Uint32Value();
-        return Value(val);
-    }
-    case LogicalTypeID::INT128: {
-        if (!napiValue.IsBigInt()) {
-            throw Exception("Expected a BigInt for parameter " + key + ".");
-        }
+    if (napiValue.IsBigInt()) {
         auto bigInt = napiValue.As<Napi::BigInt>();
         size_t wordsCount = bigInt.WordCount();
-        std::unique_ptr<uint64_t[]> words(new uint64_t[wordsCount]);
-        int signBit;
+        std::unique_ptr<uint64_t[]> words(new uint64_t[wordsCount]());
+        int signBit = 0;
         bigInt.ToWords(&signBit, &wordsCount, words.get());
         kuzu::common::int128_t val;
         val.low = words[0];
-        val.high = words[1];
+        val.high = wordsCount > 1 ? words[1] : 0;
         // Ignore words[2] and beyond as we only support 128-bit integers but BigInt can be larger.
         if (signBit) {
             kuzu::common::Int128_t::negateInPlace(val);
         }
         return Value(val);
     }
-    case LogicalTypeID::DOUBLE: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
+    if (napiValue.IsNumber()) {
+        auto num = napiValue.ToNumber();
+        auto doubleVal = num.DoubleValue();
+        if (doubleVal > JS_MAX_SAFE_INTEGER || doubleVal < JS_MIN_SAFE_INTEGER) {
+            return Value(doubleVal);
         }
-        double val = napiValue.ToNumber().DoubleValue();
-        return Value(val);
+        auto intVal = num.Int64Value();
+        return intVal == doubleVal ? Value(intVal) : Value(doubleVal);
     }
-    case LogicalTypeID::FLOAT: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
-        }
-        float val = napiValue.ToNumber().FloatValue();
-        return Value(val);
+    if (napiValue.IsString()) {
+        return Value(napiValue.ToString().Utf8Value());
     }
-    case LogicalTypeID::DATE: {
-        if (!napiValue.IsDate()) {
-            throw Exception("Expected a date for parameter " + key + ".");
-        }
+    if (napiValue.IsDate()) {
         auto napiDate = napiValue.As<Napi::Date>();
         timestamp_t timestamp = Timestamp::fromEpochMilliSeconds(napiDate.ValueOf());
         auto dateVal = Timestamp::getDate(timestamp);
         return Value(dateVal);
     }
-    case LogicalTypeID::TIMESTAMP: {
-        if (!napiValue.IsDate()) {
-            throw Exception("Expected a date for parameter " + key + ".");
-        }
-        auto napiDate = napiValue.As<Napi::Date>();
-        timestamp_t timestamp = Timestamp::fromEpochMilliSeconds(napiDate.ValueOf());
-        return Value(timestamp);
-    }
-    case LogicalTypeID::TIMESTAMP_TZ: {
-        if (!napiValue.IsDate()) {
-            throw Exception("Expected a date for parameter " + key + ".");
-        }
-        auto napiDate = napiValue.As<Napi::Date>();
-        timestamp_tz_t timestamp;
-        timestamp.value = Timestamp::fromEpochMilliSeconds(napiDate.ValueOf()).value;
-        return Value(timestamp);
-    }
-    case LogicalTypeID::TIMESTAMP_NS: {
-        if (!napiValue.IsDate()) {
-            throw Exception("Expected a date for parameter " + key + ".");
-        }
-        auto napiDate = napiValue.As<Napi::Date>();
-        timestamp_ns_t timestamp;
-        timestamp.value =
-            Timestamp::getEpochNanoSeconds(Timestamp::fromEpochMilliSeconds(napiDate.ValueOf()));
-        return Value(timestamp);
-    }
-    case LogicalTypeID::TIMESTAMP_MS: {
-        if (!napiValue.IsDate()) {
-            throw Exception("Expected a date for parameter " + key + ".");
-        }
-        auto napiDate = napiValue.As<Napi::Date>();
-        timestamp_ms_t timestamp{static_cast<int64_t>(napiDate.ValueOf())};
-        return Value(timestamp);
-    }
-    case LogicalTypeID::TIMESTAMP_SEC: {
-        if (!napiValue.IsDate()) {
-            throw Exception("Expected a date for parameter " + key + ".");
-        }
-        auto napiDate = napiValue.As<Napi::Date>();
-        timestamp_sec_t timestamp;
-        timestamp.value =
-            Timestamp::getEpochSeconds(Timestamp::fromEpochMilliSeconds(napiDate.ValueOf()));
-        return Value(timestamp);
-    }
-    case LogicalTypeID::INTERVAL: {
-        if (!napiValue.IsNumber()) {
-            throw Exception("Expected a number for parameter " + key + ".");
-        }
-        auto napiInterval = napiValue.ToNumber().Int64Value();
-        auto microseconds = napiInterval * Interval::MICROS_PER_MSEC;
-        auto intervalVal = interval_t(0, 0, microseconds);
-        int64_t normalizedMonths, normalizedDays, normalizedMicros;
-        Interval::normalizeIntervalEntries(intervalVal, normalizedMonths, normalizedDays,
-            normalizedMicros);
-        auto normalizedInterval = interval_t(normalizedMonths, normalizedDays, normalizedMicros);
-        return Value(normalizedInterval);
-    }
-    case LogicalTypeID::STRING: {
-        std::string val = napiValue.ToString().Utf8Value();
-        return Value(LogicalType::STRING(), val);
-    }
-    case LogicalTypeID::UUID: {
-        std::string stringVal = napiValue.ToString().Utf8Value();
-        auto val = UUID::fromString(stringVal);
-        return Value(val);
-    }
-    default:
-        throw Exception(
-            "Unsupported type " + expectedDataType->toString() + " for parameter: " + key);
-    }
+    return Value::createNullValue();
 }
