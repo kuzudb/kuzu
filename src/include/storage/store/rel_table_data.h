@@ -91,6 +91,7 @@ struct PackedCSRRegion {
         return nodeOffset < leftBoundary || nodeOffset > rightBoundary;
     }
 
+    // Check if the other region's segments are all within the range of this region.
     bool isWithin(const PackedCSRRegion& other) const;
 
     void setSizeChange(const std::vector<int64_t>& sizeChangesPerSegment);

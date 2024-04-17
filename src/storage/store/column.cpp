@@ -330,6 +330,7 @@ void Column::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx, Colum
         auto cursor = PageUtils::getPageCursorForPos(startOffset, numValuesPerPage);
         cursor.pageIdx += chunkMetadata.pageIdx;
         uint64_t numValuesScanned = 0u;
+        startOffset = std::min(startOffset, chunkMetadata.numValues);
         endOffset = std::min(endOffset, chunkMetadata.numValues);
         KU_ASSERT(endOffset >= startOffset);
         auto numValuesToScan = endOffset - startOffset;

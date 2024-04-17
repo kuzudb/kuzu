@@ -103,8 +103,6 @@ bool PackedCSRRegion::isWithin(const PackedCSRRegion& other) const {
     }
     auto [left, right] = getSegmentBoundaries();
     auto [otherLeft, otherRight] = other.getSegmentBoundaries();
-    KU_ASSERT(
-        (left < otherLeft && right > otherRight) || (left >= otherLeft && right <= otherRight));
     return left >= otherLeft && right <= otherRight;
 }
 
@@ -924,10 +922,25 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(newHeader.offset->getNumValues() - localState.region.leftBoundary);
     fillSequence(dstOffsets, localState.region.leftBoundary);
-    csrHeaderColumns.offset->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets,
-        newHeader.offset.get(), localState.region.leftBoundary);
-    csrHeaderColumns.length->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets,
-        newHeader.length.get(), localState.region.leftBoundary);
+    auto isNewNodeGroup = nodeGroupIdx >= csrHeaderColumns.offset->getNumNodeGroups(transaction);
+    if (!isNewNodeGroup &&
+        csrHeaderColumns.offset->canCommitInPlace(transaction, nodeGroupIdx, dstOffsets,
+            newHeader.offset.get(), localState.region.leftBoundary)) {
+        csrHeaderColumns.offset->write(nodeGroupIdx, dstOffsets[0], newHeader.offset.get(),
+            localState.region.leftBoundary, dstOffsets.size());
+    } else {
+        csrHeaderColumns.offset->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx,
+            isNewNodeGroup, dstOffsets, newHeader.offset.get(), localState.region.leftBoundary);
+    }
+    if (!isNewNodeGroup &&
+        csrHeaderColumns.length->canCommitInPlace(transaction, nodeGroupIdx, dstOffsets,
+            newHeader.length.get(), localState.region.leftBoundary)) {
+        csrHeaderColumns.length->write(nodeGroupIdx, dstOffsets[0], newHeader.length.get(),
+            localState.region.leftBoundary, dstOffsets.size());
+    } else {
+        csrHeaderColumns.length->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx,
+            isNewNodeGroup, dstOffsets, newHeader.length.get(), localState.region.leftBoundary);
+    }
 }
 
 void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState& localState,
