@@ -350,9 +350,6 @@ if (BROTLI_BUILD_TOOLS)
     DESTINATION "${CMAKE_INSTALL_FULL_MANDIR}/man1")
 endif()
 
-install(FILES docs/constants.h.3 docs/decode.h.3 docs/encode.h.3 docs/types.h.3
-  DESTINATION "${CMAKE_INSTALL_FULL_MANDIR}/man3")
-
 if (ENABLE_COVERAGE STREQUAL "yes")
   setup_target_for_coverage(coverage test coverage)
 endif()
