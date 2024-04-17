@@ -38,7 +38,8 @@ oC_Statement
         | kU_ExportDatabase
         | kU_ImportDatabase
         | kU_AttachDatabase
-        | kU_DetachDatabase;
+        | kU_DetachDatabase
+        | kU_UseDatabase;
 
 kU_CopyFrom
     : COPY SP oC_SchemaName ( ( SP? kU_ColumnNames SP? ) | SP ) FROM SP kU_ScanSource ( SP? kU_ParsingOptions )? ;
@@ -75,6 +76,12 @@ DBTYPE:
 
 kU_DetachDatabase
     : DETACH SP oC_SchemaName;
+
+kU_UseDatabase
+    : USE SP oC_SchemaName;
+
+USE:
+    ( 'U' | 'u') ( 'S' | 's') ( 'E' | 'e');
 
 kU_StandaloneCall
     : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;

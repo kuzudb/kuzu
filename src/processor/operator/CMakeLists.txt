@@ -35,7 +35,8 @@ add_library(kuzu_processor_operator
         semi_masker.cpp
         skip.cpp
         transaction.cpp
-        unwind.cpp)
+        unwind.cpp
+        use_database.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator>

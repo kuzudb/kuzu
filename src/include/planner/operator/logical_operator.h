@@ -55,6 +55,7 @@ enum class LogicalOperatorType : uint8_t {
     TRANSACTION,
     UNION_ALL,
     UNWIND,
+    USE_DATABASE,
     EXTENSION,
     EXPORT_DATABASE,
     IMPORT_DATABASE,

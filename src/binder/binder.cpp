@@ -74,6 +74,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::DETACH_DATABASE: {
         boundStatement = bindDetachDatabase(statement);
     } break;
+    case StatementType::USE_DATABASE: {
+        boundStatement = bindUseDatabase(statement);
+    } break;
     default: {
         KU_UNREACHABLE;
     }

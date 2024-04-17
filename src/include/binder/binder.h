@@ -119,6 +119,7 @@ private:
 
     std::unique_ptr<BoundStatement> bindAttachDatabase(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDetachDatabase(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindUseDatabase(const parser::Statement& statement);
 
     /*** bind scan source ***/
     std::unique_ptr<BoundBaseScanSource> bindScanSource(parser::BaseScanSource* scanSource,

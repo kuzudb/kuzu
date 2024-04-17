@@ -5,7 +5,12 @@
 namespace kuzu {
 namespace main {
 
+DatabaseManager::DatabaseManager() : defaultDatabase{""} {}
+
 void DatabaseManager::registerAttachedDatabase(std::unique_ptr<AttachedDatabase> attachedDatabase) {
+    if (defaultDatabase == "") {
+        defaultDatabase = attachedDatabase->getDBName();
+    }
     attachedDatabases.push_back(std::move(attachedDatabase));
 }
 

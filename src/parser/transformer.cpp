@@ -66,6 +66,8 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformAttachDatabase(*ctx.kU_AttachDatabase());
     } else if (ctx.kU_DetachDatabase()) {
         return transformDetachDatabase(*ctx.kU_DetachDatabase());
+    } else if (ctx.kU_UseDatabase()) {
+        return transformUseDatabase(*ctx.kU_UseDatabase());
     } else {
         KU_UNREACHABLE;
     }

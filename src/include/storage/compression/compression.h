@@ -128,7 +128,7 @@ public:
 
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
-        common::offset_t, const CompressionMetadata&) const override {};
+        common::offset_t, const CompressionMetadata&) const override{};
 
 private:
     uint8_t numBytesPerValue;

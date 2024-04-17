@@ -6,6 +6,7 @@
 #include "binder/bound_extension_statement.h"
 #include "binder/bound_standalone_call.h"
 #include "binder/bound_transaction_statement.h"
+#include "binder/bound_use_database.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_table.h"
@@ -21,6 +22,7 @@
 #include "planner/operator/logical_extension.h"
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_transaction.h"
+#include "planner/operator/logical_use_database.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -115,6 +117,14 @@ void Planner::appendDetachDatabase(const BoundStatement& statement, LogicalPlan&
             statement);
     auto detachDatabase = std::make_shared<LogicalDetachDatabase>(boundDetachDatabase.getDBName());
     plan.setLastOperator(std::move(detachDatabase));
+}
+
+void Planner::appendUseDatabase(const BoundStatement& statement, LogicalPlan& plan) {
+    auto& boundUseDatabase =
+        common::ku_dynamic_cast<const binder::BoundStatement&, const binder::BoundUseDatabase&>(
+            statement);
+    auto useDatabase = std::make_shared<LogicalUseDatabase>(boundUseDatabase.getDBName());
+    plan.setLastOperator(std::move(useDatabase));
 }
 
 } // namespace planner

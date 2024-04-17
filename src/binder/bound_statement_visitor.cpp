@@ -61,6 +61,9 @@ void BoundStatementVisitor::visit(const BoundStatement& statement) {
     case StatementType::DETACH_DATABASE: {
         visitDetachDatabase(statement);
     } break;
+    case StatementType::USE_DATABASE: {
+        visitUseDatabase(statement);
+    } break;
     default:
         KU_UNREACHABLE;
     }
