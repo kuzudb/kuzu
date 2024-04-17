@@ -139,7 +139,11 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         RWPropertyStats::empty(), enableCompression, false /* requireNUllColumn */);
     // Columns (nbrID + properties).
     auto& properties = tableEntry->getPropertiesRef();
-    columns.reserve(properties.size() + 1);
+    auto maxColumnID = std::max_element(properties.begin(), properties.end(), [](auto& a, auto& b) {
+        return a.getColumnID() < b.getColumnID();
+    })->getColumnID();
+    // The first column is reserved for NBR_ID, which is not a property.
+    columns.resize(maxColumnID + 2);
     auto nbrIDMetadataDAHInfo = relsStoreStats->getColumnMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION,
         tableID, NBR_ID_COLUMN_ID, direction);
     auto nbrIDColName = StorageUtils::getColumnName("NBR_ID", StorageUtils::ColumnType::DEFAULT,
@@ -147,19 +151,19 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, *nbrIDMetadataDAHInfo,
         dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION, RWPropertyStats::empty(),
         enableCompression);
-    columns.push_back(std::move(nbrIDColumn));
+    columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
     // Property columns.
     for (auto i = 0u; i < properties.size(); i++) {
         auto& property = properties[i];
-        auto columnID = tableEntry->getColumnID(property.getPropertyID());
+        auto columnID = property.getColumnID() + 1; // Skip NBR_ID column.
         auto metadataDAHInfo = relsStoreStats->getColumnMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION,
             tableID, columnID, direction);
         auto colName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT,
                 RelDataDirectionUtils::relDirectionToString(direction));
-        columns.push_back(ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
+        columns[columnID] = ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
             *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
-            RWPropertyStats(relsStoreStats, tableID, property.getPropertyID()), enableCompression));
+            RWPropertyStats(relsStoreStats, tableID, property.getPropertyID()), enableCompression);
     }
     // Set common tableID for nbrIDColumn and relIDColumn.
     auto nbrTableID = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(tableEntry)

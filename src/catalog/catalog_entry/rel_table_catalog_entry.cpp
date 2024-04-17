@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog.h"
 
 using namespace kuzu::common;
@@ -9,20 +10,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace catalog {
 
-RelTableCatalogEntry::RelTableCatalogEntry(std::string name, table_id_t tableID,
+RelTableCatalogEntry::RelTableCatalogEntry(CatalogSet* set, std::string name, table_id_t tableID,
     RelMultiplicity srcMultiplicity, RelMultiplicity dstMultiplicity, table_id_t srcTableID,
     table_id_t dstTableID)
-    : TableCatalogEntry{CatalogEntryType::REL_TABLE_ENTRY, std::move(name), tableID},
+    : TableCatalogEntry{set, CatalogEntryType::REL_TABLE_ENTRY, std::move(name), tableID},
       srcMultiplicity{srcMultiplicity}, dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID},
       dstTableID{dstTableID} {}
-
-RelTableCatalogEntry::RelTableCatalogEntry(const RelTableCatalogEntry& other)
-    : TableCatalogEntry{other} {
-    srcMultiplicity = other.srcMultiplicity;
-    dstMultiplicity = other.dstMultiplicity;
-    srcTableID = other.srcTableID;
-    dstTableID = other.dstTableID;
-}
 
 bool RelTableCatalogEntry::isParent(table_id_t tableID) {
     return srcTableID == tableID || dstTableID == tableID;
@@ -32,7 +25,7 @@ column_id_t RelTableCatalogEntry::getColumnID(property_id_t propertyID) const {
     auto it = std::find_if(properties.begin(), properties.end(),
         [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
     // Skip the first column in the rel table, which is reserved for nbrID.
-    return it == properties.end() ? INVALID_COLUMN_ID : std::distance(properties.begin(), it) + 1;
+    return it == properties.end() ? INVALID_COLUMN_ID : it->getColumnID() + 1;
 }
 
 bool RelTableCatalogEntry::isSingleMultiplicity(RelDataDirection direction) const {
@@ -74,8 +67,14 @@ std::unique_ptr<RelTableCatalogEntry> RelTableCatalogEntry::deserialize(
     return relTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> RelTableCatalogEntry::copy() const {
-    return std::make_unique<RelTableCatalogEntry>(*this);
+std::unique_ptr<TableCatalogEntry> RelTableCatalogEntry::copy() const {
+    auto other = std::make_unique<RelTableCatalogEntry>();
+    other->srcMultiplicity = srcMultiplicity;
+    other->dstMultiplicity = dstMultiplicity;
+    other->srcTableID = srcTableID;
+    other->dstTableID = dstTableID;
+    other->copyFrom(*this);
+    return other;
 }
 
 std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) const {
@@ -90,6 +89,17 @@ std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) c
     ss << tableInfo << Property::toCypher(getPropertiesRef()) << srcMultiStr << "_" << dstMultiStr
        << ");";
     return ss.str();
+}
+
+std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo>
+RelTableCatalogEntry::getBoundExtraCreateInfo(transaction::Transaction*) const {
+    std::vector<binder::PropertyInfo> propertyInfos;
+    for (const auto& property : properties) {
+        propertyInfos.emplace_back(property.getName(), *property.getDataType());
+    }
+    auto boundExtraCreateInfo = std::make_unique<binder::BoundExtraCreateRelTableInfo>(
+        srcMultiplicity, dstMultiplicity, srcTableID, dstTableID, std::move(propertyInfos));
+    return boundExtraCreateInfo;
 }
 
 } // namespace catalog

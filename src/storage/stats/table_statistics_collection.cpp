@@ -19,12 +19,9 @@ TablesStatistics::TablesStatistics(BMFileHandle* metadataFH, BufferManager* buff
     readOnlyVersion = std::make_unique<TablesStatisticsContent>();
 }
 
-void TablesStatistics::readFromFile(VirtualFileSystem* fs) {
-    readFromFile(FileVersionType::ORIGINAL, fs);
-}
-
-void TablesStatistics::readFromFile(FileVersionType fileVersionType, VirtualFileSystem* fs) {
-    auto filePath = getTableStatisticsFilePath(wal->getDirectory(), fileVersionType, fs);
+void TablesStatistics::readFromFile(const std::string& dbPath, FileVersionType fileVersionType,
+    VirtualFileSystem* fs) {
+    auto filePath = getTableStatisticsFilePath(dbPath, fileVersionType, fs);
     auto deser =
         Deserializer(std::make_unique<BufferedFileReader>(fs->openFile(filePath, O_RDONLY)));
     deser.deserializeUnorderedMap(readOnlyVersion->tableStatisticPerTable);

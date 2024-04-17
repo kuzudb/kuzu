@@ -1,5 +1,6 @@
 add_library(kuzu_transaction
         OBJECT
+        transaction.cpp
         transaction_context.cpp
         transaction_manager.cpp)
 

@@ -43,3 +43,5 @@
 6
 9
 10
+-STATEMENT COMMIT;
+---- ok

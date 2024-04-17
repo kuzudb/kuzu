@@ -4,11 +4,11 @@
 #include <memory>
 #include <mutex>
 
-#include "client_config.h"
 #include "common/task_system/progress_bar.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/table/scan_replacement.h"
+#include "main/client_config.h"
 #include "parser/statement.h"
 #include "prepared_statement.h"
 #include "query_result.h"
@@ -30,6 +30,7 @@ struct ExtensionOptions;
 }
 
 namespace main {
+class DBConfig;
 class Database;
 class DatabaseManager;
 
@@ -54,13 +55,15 @@ public:
     explicit ClientContext(Database* database);
 
     // Client config
-    const ClientConfig* getClientConfig() const { return &config; }
-    ClientConfig* getClientConfigUnsafe() { return &config; }
+    const ClientConfig* getClientConfig() const { return &clientConfig; }
+    ClientConfig* getClientConfigUnsafe() { return &clientConfig; }
+    const DBConfig* getDBConfig() const { return &dbConfig; }
+    DBConfig* getDBConfigUnsafe() { return &dbConfig; }
     KUZU_API common::Value getCurrentSetting(const std::string& optionName);
     // Timer and timeout
     void interrupt() { activeQuery.interrupted = true; }
     bool interrupted() const { return activeQuery.interrupted; }
-    bool hasTimeout() const { return config.timeoutInMS != 0; }
+    bool hasTimeout() const { return clientConfig.timeoutInMS != 0; }
     void setQueryTimeOut(uint64_t timeoutInMS);
     uint64_t getQueryTimeOut() const;
     void startTimer();
@@ -90,11 +93,13 @@ public:
     KUZU_API std::string getEnvVariable(const std::string& name);
 
     // Database component getters.
+    std::string getDatabasePath() const;
     KUZU_API Database* getDatabase() const { return database; }
     KUZU_API DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
     KUZU_API storage::MemoryManager* getMemoryManager();
     catalog::Catalog* getCatalog() const;
+    transaction::TransactionManager* getTransactionManagerUnsafe() const;
     common::VirtualFileSystem* getVFSUnsafe() const;
     common::RandomEngine* getRandomEngine();
 
@@ -151,7 +156,9 @@ private:
     void commitUDFTrx(bool isAutoCommitTrx);
 
     // Client side configurable settings.
-    ClientConfig config;
+    ClientConfig clientConfig;
+    // Database configurable settings.
+    DBConfig& dbConfig;
     // Current query.
     ActiveQuery activeQuery;
     // Transaction context.

@@ -26,6 +26,10 @@
 ---- 2
 
 
+-STATEMENT COMMIT
+---- ok
+
+
 -CASE deleteRelsFromUpdateStoreCommitRecovery
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -39,6 +43,10 @@
 ---- 2
 
 
+-STATEMENT COMMIT
+---- ok
+
+
 -CASE deleteRelsFromUpdateStoreRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -49,6 +57,8 @@
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID > 10 return e.length
 ---- 0
+-STATEMENT COMMIT
+---- ok
 
 
 -CASE deleteRelsFromUpdateStoreRollbackRecovery
@@ -62,3 +72,5 @@
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID > 10 return e.length
 ---- 0
+-STATEMENT COMMIT
+---- ok

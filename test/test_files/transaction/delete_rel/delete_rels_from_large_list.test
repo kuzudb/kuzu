@@ -13,6 +13,8 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID  = 0 RETURN e.length
 ---- 2199
 <FILE>:delete_rels_from_large_list_commit.txt
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE deleteRelsFromLargeListCommitRecovery
@@ -28,6 +30,9 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID  = 0 RETURN e.length
 ---- 2199
 <FILE>:delete_rels_from_large_list_commit.txt
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteRelsFromLargeListRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -41,6 +46,9 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID  = 0 RETURN e.length
 ---- 2300
 <FILE>:delete_rels.txt
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteRelsFromLargeListRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -55,3 +63,5 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID  = 0 RETURN e.length
 ---- 2300
 <FILE>:delete_rels.txt
+-STATEMENT COMMIT;
+---- ok

@@ -63,7 +63,7 @@ TEST_F(CApiPreparedStatementTest, AllowActiveTransaction) {
     ASSERT_NE(preparedStatement, nullptr);
     ASSERT_NE(preparedStatement->_prepared_statement, nullptr);
     ASSERT_TRUE(kuzu_prepared_statement_is_success(preparedStatement));
-    ASSERT_FALSE(kuzu_prepared_statement_allow_active_transaction(preparedStatement));
+    ASSERT_TRUE(kuzu_prepared_statement_allow_active_transaction(preparedStatement));
     kuzu_prepared_statement_destroy(preparedStatement);
 }
 

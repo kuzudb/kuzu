@@ -11,7 +11,7 @@ namespace processor {
 
 void CreateTable::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
-    auto newTableID = catalog->createTableSchema(info);
+    auto newTableID = catalog->createTableSchema(context->clientContext->getTx(), info);
     auto storageManager = context->clientContext->getStorageManager();
     storageManager->createTable(newTableID, catalog, context->clientContext->getTx());
 }

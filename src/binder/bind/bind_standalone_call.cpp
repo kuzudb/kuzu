@@ -2,6 +2,7 @@
 #include "binder/bound_standalone_call.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression_visitor.h"
+#include "common/cast.h"
 #include "common/exception/binder.h"
 #include "extension/extension.h"
 #include "main/db_config.h"

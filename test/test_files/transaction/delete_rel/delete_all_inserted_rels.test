@@ -65,6 +65,9 @@
 48
 49
 50
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteAllInsertedRelsCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -88,6 +91,9 @@
 48
 49
 50
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteAllInsertedRelsRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -110,6 +116,9 @@
 48
 49
 50
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteAllInsertedRelsRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -133,3 +142,5 @@
 48
 49
 50
+-STATEMENT COMMIT;
+---- ok

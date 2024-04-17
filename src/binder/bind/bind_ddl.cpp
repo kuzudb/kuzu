@@ -11,7 +11,6 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
-#include "main/client_context.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_table_info.h"

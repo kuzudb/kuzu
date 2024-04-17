@@ -11,14 +11,13 @@ class BufferedFileWriter;
 class VirtualFileSystem;
 } // namespace common
 
+namespace catalog {
+class CatalogEntry;
+} // namespace catalog
+
 namespace storage {
 
 using lock_t = std::unique_lock<std::mutex>;
-constexpr uint64_t WAL_HEADER_PAGE_SIZE = common::BufferPoolConstants::PAGE_4KB_SIZE;
-constexpr uint64_t WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE = sizeof(uint64_t);
-constexpr uint64_t WAL_HEADER_PAGE_NEXT_HEADER_PAGE_IDX_FIELD_SIZE = sizeof(common::page_idx_t);
-constexpr uint64_t WAL_HEADER_PAGE_PREFIX_FIELD_SIZES =
-    WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE + WAL_HEADER_PAGE_NEXT_HEADER_PAGE_IDX_FIELD_SIZE;
 
 class WALReplayer;
 class WAL {
@@ -39,37 +38,21 @@ public:
     common::page_idx_t logPageInsertRecord(DBFileID dbFileID,
         common::page_idx_t pageIdxInOriginalFile);
 
-    void logCommit(uint64_t transactionID);
-
-    void logTableStatisticsRecord(common::TableType tableType);
-
-    void logCatalogRecord();
-    void logCreateTableRecord(common::table_id_t tableID, common::TableType tableType);
-    void logCreateRdfGraphRecord(common::table_id_t rdfGraphID, common::table_id_t resourceTableID,
-        common::table_id_t literalTableID, common::table_id_t resourceTripleTableID,
-        common::table_id_t literalTripleTableID);
+    void logCreateTableRecord(catalog::CatalogEntry* catalogEntry);
     void logDropTableRecord(common::table_id_t tableID);
-    void logDropPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID);
-    void logAddPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID);
 
     void logCopyTableRecord(common::table_id_t tableID);
+
+    void logCatalogRecord();
+    void logTableStatisticsRecord(common::TableType tableType);
+    void logCommit(uint64_t transactionID);
 
     // Removes the contents of WAL file.
     void clearWAL();
 
-    // We might need another way to check that the last record is commit for recovery and then
-    // we might remove this for now to reduce our code size.
-    inline bool isLastLoggedRecordCommit() {
-        lock_t lck{mtx};
-        return isLastRecordCommit;
-    }
-
     void flushAllPages();
 
     bool isEmptyWAL() const;
-
-    // TODO(Guodong): I feel this interface is used in a abused way. Should revisit and clean up.
-    inline std::string getDirectory() const { return directory; }
 
     inline void addToUpdatedTables(common::table_id_t nodeTableID) {
         updatedTables.insert(nodeTableID);
@@ -78,7 +61,6 @@ public:
     BMFileHandle& getShadowingFH() { return *shadowingFH; }
 
 private:
-    void initialize();
     void addNewWALRecordNoLock(WALRecord& walRecord);
 
 private:
@@ -92,8 +74,6 @@ private:
     std::mutex mtx;
     BufferManager& bufferManager;
     common::VirtualFileSystem* vfs;
-    bool isEmpty;
-    bool isLastRecordCommit;
 };
 
 } // namespace storage

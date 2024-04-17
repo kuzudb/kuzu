@@ -13,6 +13,9 @@
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 1 RETURN e.length, e.place, e.tag
 ---- 1501
 <FILE>:small_list_becomes_large_list_after_insertion_commit.txt
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE smallListBecomesLargeListAfterInsertionCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -27,6 +30,9 @@
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 1 RETURN e.length, e.place, e.tag
 ---- 1501
 <FILE>:small_list_becomes_large_list_after_insertion_commit.txt
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE smallListBecomesLargeListAfterInsertionRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -40,6 +46,9 @@
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 1 RETURN e.length, e.place, e.tag
 ---- 51
 <FILE>:small_list_becomes_large_list_after_insertion_rollback.txt
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE smallListBecomesLargeListAfterInsertionRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -54,3 +63,5 @@
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 1 RETURN e.length, e.place, e.tag
 ---- 51
 <FILE>:small_list_becomes_large_list_after_insertion_rollback.txt
+-STATEMENT COMMIT;
+---- ok

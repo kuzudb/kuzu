@@ -6,6 +6,7 @@
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/local_storage/local_node_table.h"
+#include "storage/storage_manager.h"
 #include "storage/store/node_table_data.h"
 #include "transaction/transaction.h"
 
@@ -16,23 +17,25 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    NodeTableCatalogEntry* nodeTableEntry,
-    NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, MemoryManager* memoryManager,
-    WAL* wal, bool readOnly, bool enableCompression, VirtualFileSystem* vfs)
-    : Table{nodeTableEntry, nodesStatisticsAndDeletedIDs, memoryManager, wal},
+NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* nodeTableEntry,
+    MemoryManager* memoryManager, VirtualFileSystem* vfs)
+    : Table{nodeTableEntry, storageManager->getNodesStatisticsAndDeletedIDs(), memoryManager,
+          &storageManager->getWAL()},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyPID())} {
-    tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, nodeTableEntry, bufferManager,
-        wal, nodeTableEntry->getPropertiesRef(), nodesStatisticsAndDeletedIDs, enableCompression);
-    initializePKIndex(nodeTableEntry, readOnly, vfs);
+    tableData = std::make_unique<NodeTableData>(storageManager->getDataFH(),
+        storageManager->getMetadataFH(), nodeTableEntry, bufferManager, wal,
+        nodeTableEntry->getPropertiesRef(), storageManager->getNodesStatisticsAndDeletedIDs(),
+        storageManager->compressionEnabled());
+    initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
+        storageManager->isReadOnly(), vfs);
 }
 
-void NodeTable::initializePKIndex(NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
-    VirtualFileSystem* vfs) {
+void NodeTable::initializePKIndex(const std::string& databasePath,
+    NodeTableCatalogEntry* nodeTableEntry, bool readOnly, VirtualFileSystem* vfs) {
     if (nodeTableEntry->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
         LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
-            StorageUtils::getNodeIndexIDAndFName(vfs, wal->getDirectory(), tableID), readOnly,
+            StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
             nodeTableEntry->getPrimaryKey()->getDataType()->getPhysicalType(), *bufferManager, wal,
             vfs);
     }

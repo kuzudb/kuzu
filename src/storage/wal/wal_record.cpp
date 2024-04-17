@@ -1,5 +1,6 @@
 #include "storage/wal/wal_record.h"
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 
@@ -20,17 +21,8 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(common::Deserializer& deserial
     case WALRecordType::CREATE_TABLE_RECORD: {
         walRecord = CreateTableRecord::deserialize(deserializer);
     } break;
-    case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
-        walRecord = RdfGraphRecord::deserialize(deserializer);
-    } break;
     case WALRecordType::DROP_TABLE_RECORD: {
         walRecord = DropTableRecord::deserialize(deserializer);
-    } break;
-    case WALRecordType::DROP_PROPERTY_RECORD: {
-        walRecord = DropPropertyRecord::deserialize(deserializer);
-    } break;
-    case WALRecordType::ADD_PROPERTY_RECORD: {
-        walRecord = AddPropertyRecord::deserialize(deserializer);
     } break;
     case WALRecordType::CATALOG_RECORD: {
         walRecord = CatalogRecord::deserialize(deserializer);
@@ -47,6 +39,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(common::Deserializer& deserial
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
     } break;
+    case WALRecordType::INVALID_RECORD: {
+        throw RuntimeException("Corrupted wal file. Read out invalid WAL record type.");
+    }
     default: {
         KU_UNREACHABLE;
     }
@@ -84,36 +79,26 @@ std::unique_ptr<CommitRecord> CommitRecord::deserialize(common::Deserializer& de
     return retVal;
 }
 
+CreateTableRecord::CreateTableRecord() = default;
+
+CreateTableRecord::CreateTableRecord(catalog::CatalogEntry* catalogEntry)
+    : WALRecord{WALRecordType::CREATE_TABLE_RECORD}, catalogEntry{catalogEntry} {}
+
+std::string CreateTableRecord::toString() {
+    return common::stringFormat("[CREATE_TABLE_RECORD] {}",
+        ownedCatalogEntry ? ownedCatalogEntry->getName() : catalogEntry->getName());
+}
+
 void CreateTableRecord::serialize(common::Serializer& serializer) const {
     WALRecord::serialize(serializer);
-    serializer.write(tableID);
-    serializer.write(tableType);
+    catalogEntry->serialize(serializer);
 }
 
 std::unique_ptr<CreateTableRecord> CreateTableRecord::deserialize(
     common::Deserializer& deserializer) {
+    auto catalogEntry = catalog::CatalogEntry::deserialize(deserializer);
     auto retVal = std::make_unique<CreateTableRecord>();
-    deserializer.deserializeValue(retVal->tableID);
-    deserializer.deserializeValue(retVal->tableType);
-    return retVal;
-}
-
-void RdfGraphRecord::serialize(common::Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-    serializer.write(tableID);
-    resourceTableRecord->serialize(serializer);
-    literalTableRecord->serialize(serializer);
-    resourceTripleTableRecord->serialize(serializer);
-    literalTripleTableRecord->serialize(serializer);
-}
-
-std::unique_ptr<RdfGraphRecord> RdfGraphRecord::deserialize(common::Deserializer& deserializer) {
-    auto retVal = std::make_unique<RdfGraphRecord>();
-    deserializer.deserializeValue(retVal->tableID);
-    retVal->resourceTableRecord = WALRecord::deserialize(deserializer);
-    retVal->literalTableRecord = WALRecord::deserialize(deserializer);
-    retVal->resourceTripleTableRecord = WALRecord::deserialize(deserializer);
-    retVal->literalTripleTableRecord = WALRecord::deserialize(deserializer);
+    retVal->ownedCatalogEntry = std::move(catalogEntry);
     return retVal;
 }
 
@@ -128,6 +113,19 @@ std::unique_ptr<CopyTableRecord> CopyTableRecord::deserialize(common::Deserializ
     return retVal;
 }
 
+void CatalogRecord::serialize(common::Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+}
+
+std::unique_ptr<CatalogRecord> CatalogRecord::deserialize(common::Deserializer&) {
+    return std::make_unique<CatalogRecord>();
+}
+
+std::string TableStatisticsRecord::toString() {
+    return common::stringFormat("[TABLE_STATISTICS_RECORD] {}",
+        TableTypeUtils::toString(tableType));
+}
+
 void TableStatisticsRecord::serialize(common::Serializer& serializer) const {
     WALRecord::serialize(serializer);
     serializer.write(tableType);
@@ -140,6 +138,10 @@ std::unique_ptr<TableStatisticsRecord> TableStatisticsRecord::deserialize(
     return retVal;
 }
 
+std::string DropTableRecord::toString() {
+    return common::stringFormat("[DROP_TABLE_RECORD] {}", tableID);
+}
+
 void DropTableRecord::serialize(common::Serializer& serializer) const {
     WALRecord::serialize(serializer);
     serializer.write(tableID);
@@ -148,34 +150,6 @@ void DropTableRecord::serialize(common::Serializer& serializer) const {
 std::unique_ptr<DropTableRecord> DropTableRecord::deserialize(common::Deserializer& deserializer) {
     auto retVal = std::make_unique<DropTableRecord>();
     deserializer.deserializeValue(retVal->tableID);
-    return retVal;
-}
-
-void DropPropertyRecord::serialize(common::Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-    serializer.write(tableID);
-    serializer.write(propertyID);
-}
-
-std::unique_ptr<DropPropertyRecord> DropPropertyRecord::deserialize(
-    common::Deserializer& deserializer) {
-    auto retVal = std::make_unique<DropPropertyRecord>();
-    deserializer.deserializeValue(retVal->tableID);
-    deserializer.deserializeValue(retVal->propertyID);
-    return retVal;
-}
-
-void AddPropertyRecord::serialize(common::Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-    serializer.write(tableID);
-    serializer.write(propertyID);
-}
-
-std::unique_ptr<AddPropertyRecord> AddPropertyRecord::deserialize(
-    common::Deserializer& deserializer) {
-    auto retVal = std::make_unique<AddPropertyRecord>();
-    deserializer.deserializeValue(retVal->tableID);
-    deserializer.deserializeValue(retVal->propertyID);
     return retVal;
 }
 

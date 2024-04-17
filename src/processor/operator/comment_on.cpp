@@ -9,11 +9,12 @@ namespace kuzu {
 namespace processor {
 
 // TODO(Xiyang/Ziyi): Should move this operator into Alter.
-bool CommentOn::getNextTuplesInternal(kuzu::processor::ExecutionContext* /*context*/) {
+bool CommentOn::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
     if (commentOnInfo->hasExecuted) {
         return false;
     }
-    commentOnInfo->catalog->setTableComment(commentOnInfo->tableID, commentOnInfo->comment);
+    commentOnInfo->catalog->setTableComment(context->clientContext->getTx(), commentOnInfo->tableID,
+        commentOnInfo->comment);
     commentOnInfo->hasExecuted = true;
     outputVector->setValue<std::string>(outputVector->state->getSelVector()[0],
         stringFormat("Table {} comment updated.", commentOnInfo->tableName));

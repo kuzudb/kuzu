@@ -29,6 +29,7 @@ void NodeBatchInsertSharedState::initPKIndex(kuzu::processor::ExecutionContext* 
             readerSharedState->funcState->ptrCast<function::BaseScanSharedState>();
         numRows = scanSharedState->getNumRows();
     } else {
+        KU_ASSERT(distinctSharedState);
         numRows = distinctSharedState->getFactorizedTable()->getNumTuples();
     }
     pkIndex->bulkReserve(numRows);

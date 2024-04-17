@@ -41,6 +41,10 @@ void BufferedFileWriter::flush() {
     memset(buffer.get(), 0, BUFFER_SIZE);
 }
 
+uint64_t BufferedFileWriter::getFileSize() const {
+    return fileInfo->getFileSize() + bufferOffset;
+}
+
 BufferedFileReader::BufferedFileReader(std::unique_ptr<FileInfo> fileInfo)
     : buffer(std::make_unique<uint8_t[]>(BUFFER_SIZE)), fileOffset(0), bufferOffset(0),
       fileInfo(std::move(fileInfo)), bufferSize{0} {

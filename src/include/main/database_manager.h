@@ -16,7 +16,7 @@ public:
     bool hasDefaultDatabase() const { return defaultDatabase != ""; }
     void setDefaultDatabase(const std::string& databaseName);
     std::vector<AttachedDatabase*> getAttachedDatabases() const;
-    void KUZU_API invalidateCache();
+    KUZU_API void invalidateCache();
 
 private:
     std::vector<std::unique_ptr<AttachedDatabase>> attachedDatabases;

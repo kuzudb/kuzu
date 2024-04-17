@@ -1,5 +1,4 @@
 #include "graph_test/base_graph_test.h"
-#include "main/kuzu.h"
 #include "test_runner/test_runner.h"
 #include "transaction/transaction_context.h"
 
@@ -45,8 +44,7 @@ public:
     void createNewDB();
 
     inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
-        uint64_t checkpointWaitTimeout =
-            common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS,
+        uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS,
         std::set<std::string> connNames = std::set<std::string>()) {
         for (auto& statement : statements) {
             // special for testing import and export test cases

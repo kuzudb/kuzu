@@ -50,6 +50,9 @@ constexpr partition_idx_t INVALID_PARTITION_IDX = UINT64_MAX;
 using length_t = uint64_t;
 using list_size_t = uint32_t;
 
+using transaction_t = uint64_t;
+constexpr transaction_t INVALID_TRANSACTION = UINT64_MAX;
+
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
     // the size of the overflow buffer can be calculated as:
