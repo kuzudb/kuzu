@@ -298,12 +298,11 @@ Napi::Object Util::ConvertNodeIdToNapiObject(const nodeID_t& nodeId, Napi::Env e
     return napiObject;
 }
 
-Value Util::TransformNapiValue(Napi::Value napiValue, 
-    const std::string& key) {
-    if(napiValue.IsBoolean()){
+Value Util::TransformNapiValue(Napi::Value napiValue, const std::string& key) {
+    if (napiValue.IsBoolean()) {
         return Value(napiValue.ToBoolean().Value());
     }
-    if(napiValue.IsBigInt()){
+    if (napiValue.IsBigInt()) {
         auto bigInt = napiValue.As<Napi::BigInt>();
         size_t wordsCount = bigInt.WordCount();
         std::unique_ptr<uint64_t[]> words(new uint64_t[wordsCount]);
@@ -318,16 +317,16 @@ Value Util::TransformNapiValue(Napi::Value napiValue,
         }
         return Value(val);
     }
-    if(napiValue.IsNumber()){
+    if (napiValue.IsNumber()) {
         auto num = napiValue.ToNumber();
         auto intVal = num.Int64Value();
         auto doubleVal = num.DoubleValue();
         return intVal == doubleVal ? Value(intVal) : Value(doubleVal);
     }
-    if(napiValue.IsString()){
+    if (napiValue.IsString()) {
         return Value(napiValue.ToString().Utf8Value());
     }
-    if(napiValue.IsDate()){
+    if (napiValue.IsDate()) {
         auto napiDate = napiValue.As<Napi::Date>();
         timestamp_t timestamp = Timestamp::fromEpochMilliSeconds(napiDate.ValueOf());
         auto dateVal = Timestamp::getDate(timestamp);
