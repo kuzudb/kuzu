@@ -63,6 +63,9 @@ template<typename T>
 void InMemHashIndex<T>::reserve(uint32_t numEntries_) {
     slot_id_t numRequiredEntries = HashIndexUtils::getNumRequiredEntries(numEntries_);
     auto numRequiredSlots = (numRequiredEntries + getSlotCapacity<T>() - 1) / getSlotCapacity<T>();
+    if (numRequiredSlots <= pSlots->size()) {
+        return;
+    }
     if (indexHeader.numEntries == 0) {
         allocateSlots(numRequiredSlots);
     } else {
@@ -137,11 +140,7 @@ void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
 
 template<typename T>
 size_t InMemHashIndex<T>::append(const IndexBuffer<BufferKeyType>& buffer) {
-    slot_id_t numRequiredEntries =
-        HashIndexUtils::getNumRequiredEntries(this->indexHeader.numEntries + buffer.size());
-    while (numRequiredEntries > pSlots->size() * getSlotCapacity<T>()) {
-        this->splitSlot(this->indexHeader);
-    }
+    reserve(indexHeader.numEntries + buffer.size());
     // Do both searches after splitting. Returning early if the key already exists isn't a
     // particular concern and doing both after splitting allows the slotID to be reused
     common::hash_t hashes[BUFFER_SIZE];

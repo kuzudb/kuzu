@@ -119,12 +119,8 @@ private:
     void splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit);
 
     // Resizes the local storage to support the given number of new entries
-    inline void bulkReserve(uint64_t /*newEntries*/) override {
-        // FIXME: Don't bulk reserve for now. because of the way things are split up, we may reserve
-        // more than we actually need, and then when flushing the number of primary slots won't
-        // match Another reason it may be better to start smaller and split slots when merging to
-        // persistent storage bulkInsertLocalStorage.bulkReserve(indexHeaderForWriteTrx->numEntries
-        // + newEntries);
+    inline void bulkReserve(uint64_t newEntries) override {
+        bulkInsertLocalStorage.reserve(newEntries);
     }
     // Resizes the on-disk index to support the given number of new entries
     void reserve(uint64_t newEntries);
