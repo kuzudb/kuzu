@@ -7,8 +7,6 @@ add_library(kuzu_processor_mapper
         map_accumulate.cpp
         map_aggregate.cpp
         map_acc_hash_join.cpp
-        map_attach_database.cpp
-        map_detach_database.cpp
         map_standalone_call.cpp
         map_in_query_call.cpp
         map_comment_on.cpp
@@ -46,11 +44,10 @@ add_library(kuzu_processor_mapper
         map_scan_node_property.cpp
         map_semi_masker.cpp
         map_set.cpp
+        map_simple.cpp
         map_transaction.cpp
         map_union.cpp
         map_unwind.cpp
-        map_use_database.cpp
-        map_port_db.cpp
         plan_mapper.cpp)
 
 set(ALL_OBJECT_FILES

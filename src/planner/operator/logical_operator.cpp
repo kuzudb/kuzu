@@ -33,6 +33,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "DELETE_REL";
     case LogicalOperatorType::DETACH_DATABASE:
         return "DETACH_DATABASE";
+    case LogicalOperatorType::USE_DATABASE:
+        return "USE_DATABASE";
     case LogicalOperatorType::DISTINCT:
         return "DISTINCT";
     case LogicalOperatorType::DROP_TABLE:

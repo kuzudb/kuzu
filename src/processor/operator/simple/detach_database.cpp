@@ -1,4 +1,4 @@
-#include "processor/operator/detach_database.h"
+#include "processor/operator/simple/detach_database.h"
 
 #include "main/database.h"
 #include "main/database_manager.h"
@@ -6,10 +6,13 @@
 namespace kuzu {
 namespace processor {
 
-bool DetachDatabase::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
+void DetachDatabase::executeInternal(kuzu::processor::ExecutionContext* context) {
     auto dbManager = context->clientContext->getDatabaseManager();
     dbManager->detachDatabase(dbName);
-    return false;
+}
+
+std::string DetachDatabase::getOutputMsg() {
+    return "Detach database successfully.";
 }
 
 } // namespace processor

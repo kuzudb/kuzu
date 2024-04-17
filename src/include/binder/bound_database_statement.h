@@ -8,7 +8,7 @@ namespace binder {
 class BoundDatabaseStatement : public BoundStatement {
 public:
     explicit BoundDatabaseStatement(common::StatementType statementType, std::string dbName)
-        : BoundStatement{statementType, BoundStatementResult::createEmptyResult()},
+        : BoundStatement{statementType, BoundStatementResult::createSingleStringColumnResult()},
           dbName{std::move(dbName)} {}
 
     std::string getDBName() const { return dbName; }

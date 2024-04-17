@@ -1,7 +1,7 @@
 #include <fcntl.h>
 
 #include "binder/binder.h"
-#include "binder/copy/bound_import_database.h"
+#include "binder/bound_import_database.h"
 #include "common/cast.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"

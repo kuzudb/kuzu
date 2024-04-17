@@ -1,4 +1,4 @@
-#include "processor/operator/persistent/import_db.h"
+#include "processor/operator/simple/import_db.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -9,9 +9,13 @@ namespace processor {
 
 using std::stringstream;
 
-bool ImportDB::getNextTuplesInternal(ExecutionContext* context) {
+void ImportDB::executeInternal(ExecutionContext* context) {
     context->clientContext->runQuery(query);
-    return false;
 }
+
+std::string ImportDB::getOutputMsg() {
+    return "Import database successfully.";
+}
+
 } // namespace processor
 } // namespace kuzu

@@ -10,7 +10,7 @@ class BoundAttachDatabase final : public BoundStatement {
 public:
     explicit BoundAttachDatabase(parser::AttachInfo attachInfo)
         : BoundStatement{common::StatementType::ATTACH_DATABASE,
-              BoundStatementResult::createEmptyResult()},
+              BoundStatementResult::createSingleStringColumnResult()},
           attachInfo{std::move(attachInfo)} {}
 
     parser::AttachInfo getAttachInfo() const { return attachInfo; }

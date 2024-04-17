@@ -6,8 +6,7 @@ add_library(kuzu_planner_persistent
         logical_delete.cpp
         logical_merge.cpp
         logical_set.cpp
-        logical_export_db.cpp
-        logical_import_db.cpp)
+)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_planner_persistent>
