@@ -105,3 +105,12 @@ TEST(NullMaskTests, CopyNullMaskReturnValue) {
     ASSERT_EQ(NullMask::copyNullMask(emptySource.data(), 0, dest.data(), 0, 64, true /*invert*/),
         true);
 }
+
+TEST(NullMaskTests, ResizeNullMask) {
+    NullMask mask(64);
+    ASSERT_TRUE(!mask.isNull(63));
+    mask.setNull(63, true);
+    mask.resize(128);
+    ASSERT_TRUE(mask.isNull(63));
+    mask.setNull(127, true);
+}

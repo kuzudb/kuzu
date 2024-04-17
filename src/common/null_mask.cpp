@@ -1,6 +1,9 @@
 #include "common/null_mask.h"
 
+#include <algorithm>
 #include <cstring>
+
+#include "common/assert.h"
 
 namespace kuzu {
 namespace common {
@@ -17,10 +20,41 @@ void NullMask::setNull(uint64_t* nullEntries, uint32_t pos, bool isNull) {
 
 bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
     uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
-    auto [srcNullEntryPos, srcNullBitPos] = getNullEntryAndBitPos(srcOffset);
-    auto [dstNullEntryPos, dstNullBitPos] = getNullEntryAndBitPos(dstOffset);
+    // If both offsets are aligned relative to each other then copy up to the first byte using the
+    // non-aligned method, then copy aligned, then copy the end unaligned again.
+    if (!invert && (srcOffset % 8 == dstOffset % 8) && numBitsToCopy >= 8 &&
+        numBitsToCopy - (srcOffset % 8) >= 8) {
+        auto numBitsInFirstByte = 8 - (srcOffset % 8);
+        bool hasNullInSrcNullMask = false;
+        if (copyUnaligned(srcNullEntries, srcOffset, dstNullEntries, dstOffset, numBitsInFirstByte,
+                false)) {
+            hasNullInSrcNullMask = true;
+        }
+        auto* src =
+            reinterpret_cast<const uint8_t*>(srcNullEntries) + (srcOffset + numBitsInFirstByte) / 8;
+        auto* dst =
+            reinterpret_cast<uint8_t*>(dstNullEntries) + (dstOffset + numBitsInFirstByte) / 8;
+        auto numBytesForAlignedCopy = (numBitsToCopy - numBitsInFirstByte) / 8;
+        memcpy(dst, src, numBytesForAlignedCopy);
+        if (std::any_of(src, src + numBytesForAlignedCopy, [&](uint8_t val) { return val != 0; })) {
+            hasNullInSrcNullMask = true;
+        }
+        auto lastByteStart = numBitsInFirstByte + numBytesForAlignedCopy * 8;
+        auto numBitsInLastByte = numBitsToCopy - numBitsInFirstByte - numBytesForAlignedCopy * 8;
+        return copyUnaligned(srcNullEntries, srcOffset + lastByteStart, dstNullEntries,
+                   dstOffset + lastByteStart, numBitsInLastByte, false) ||
+               hasNullInSrcNullMask;
+    } else {
+        return copyUnaligned(srcNullEntries, srcOffset, dstNullEntries, dstOffset, numBitsToCopy,
+            invert);
+    }
+}
+bool NullMask::copyUnaligned(const uint64_t* srcNullEntries, uint64_t srcOffset,
+    uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
     uint64_t bitPos = 0;
     bool hasNullInSrcNullMask = false;
+    auto [srcNullEntryPos, srcNullBitPos] = getNullEntryAndBitPos(srcOffset + bitPos);
+    auto [dstNullEntryPos, dstNullBitPos] = getNullEntryAndBitPos(dstOffset + bitPos);
     while (bitPos < numBitsToCopy) {
         auto curDstNullEntryPos = dstNullEntryPos;
         auto curDstNullBitPos = dstNullBitPos;
@@ -80,16 +114,17 @@ bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
 }
 
 void NullMask::resize(uint64_t capacity) {
-    auto resizedBuffer = std::make_unique<uint64_t[]>(capacity);
-    memcpy(resizedBuffer.get(), buffer.get(), numNullEntries);
+    auto numNullEntries = (capacity + NUM_BITS_PER_NULL_ENTRY - 1) / NUM_BITS_PER_NULL_ENTRY;
+    auto resizedBuffer = std::make_unique<uint64_t[]>(numNullEntries);
+    memcpy(resizedBuffer.get(), data.data(), data.size_bytes());
     buffer = std::move(resizedBuffer);
-    data = buffer.get();
-    numNullEntries = capacity;
+    data = std::span(buffer.get(), numNullEntries);
 }
 
 bool NullMask::copyFromNullBits(const uint64_t* srcNullEntries, uint64_t srcOffset,
     uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
-    if (copyNullMask(srcNullEntries, srcOffset, this->data, dstOffset, numBitsToCopy, invert)) {
+    if (copyNullMask(srcNullEntries, srcOffset, this->data.data(), dstOffset, numBitsToCopy,
+            invert)) {
         this->mayContainNulls = true;
         return true;
     }
@@ -100,7 +135,7 @@ void NullMask::setNullFromRange(uint64_t offset, uint64_t numBitsToSet, bool isN
     if (isNull) {
         this->mayContainNulls = true;
     }
-    setNullRange(data, offset, numBitsToSet, isNull);
+    setNullRange(data.data(), offset, numBitsToSet, isNull);
 }
 
 void NullMask::setNullRange(uint64_t* nullEntries, uint64_t offset, uint64_t numBitsToSet,
@@ -141,6 +176,13 @@ void NullMask::setNullRange(uint64_t* nullEntries, uint64_t offset, uint64_t num
                 nullEntries[lastEntryPos] &= ~NULL_LOWER_MASKS[lastBitPos];
             }
         }
+    }
+}
+
+void NullMask::operator|=(const NullMask& other) {
+    KU_ASSERT(other.data.size() == data.size());
+    for (size_t i = 0; i < data.size(); i++) {
+        data[i] |= other.getData()[i];
     }
 }
 

@@ -5,6 +5,7 @@
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/enums/rel_multiplicity.h"
+#include "common/null_mask.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/bm_file_handle.h"
@@ -213,6 +214,10 @@ public:
         common::offset_t offsetInChunk) override;
     void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
+
+    common::NullMask getNullMask() const {
+        return common::NullMask(std::span(reinterpret_cast<uint64_t*>(getData()), capacity / 64));
+    }
 
 protected:
     bool mayHaveNullValue;

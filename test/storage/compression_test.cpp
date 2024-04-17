@@ -25,7 +25,7 @@ void test_compression(CompressionAlg& alg, std::vector<T> src) {
     // works with all bit widths (but not all offsets)
     T value = 0;
     alg.setValuesFromUncompressed((uint8_t*)&value, 0 /*srcOffset*/, (uint8_t*)dest.data(),
-        1 /*dstOffset*/, 1 /*numValues*/, metadata);
+        1 /*dstOffset*/, 1 /*numValues*/, metadata, nullptr /*nullMask*/);
     alg.decompressFromPage(dest.data(), 0 /*srcOffset*/, (uint8_t*)decompressed.data(),
         0 /*dstOffset*/, src.size(), metadata);
     src[1] = value;

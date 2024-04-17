@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "common/assert.h"
+#include "common/null_mask.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "storage/stats/property_statistics.h"
@@ -48,8 +49,8 @@ private:
 struct WriteInternalIDValuesToPage {
     WriteInternalIDValuesToPage() : compressedWriter{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
     void operator()(uint8_t* frame, uint16_t posInFrame, const uint8_t* data, uint32_t dataOffset,
-        offset_t numValues, const CompressionMetadata& metadata) {
-        compressedWriter(frame, posInFrame, data, dataOffset, numValues, metadata);
+        offset_t numValues, const CompressionMetadata& metadata, const NullMask* nullMask) {
+        compressedWriter(frame, posInFrame, data, dataOffset, numValues, metadata, nullMask);
     }
     void operator()(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
         uint32_t offsetInVector, const CompressionMetadata& metadata) {
@@ -517,7 +518,13 @@ void Column::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_idx_t n
 void Column::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, ColumnChunk* data,
     offset_t dataOffset, length_t numValues) {
     auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
-    writeValues(state, offsetInChunk, data->getData(), dataOffset, numValues);
+    NullMask nullMask{std::span<uint64_t>()};
+    NullMask* nullMaskPtr = nullptr;
+    if (data->getNullChunk()) {
+        nullMask = data->getNullChunk()->getNullMask();
+        nullMaskPtr = &nullMask;
+    }
+    writeValues(state, offsetInChunk, data->getData(), nullMaskPtr, dataOffset, numValues);
     if (offsetInChunk + numValues > state.metadata.numValues) {
         state.metadata.numValues = offsetInChunk + numValues;
         KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
@@ -526,7 +533,7 @@ void Column::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, Column
 }
 
 void Column::writeValues(ReadState& state, common::offset_t dstOffset, const uint8_t* data,
-    common::offset_t srcOffset, common::offset_t numValues) {
+    const common::NullMask* nullChunkData, common::offset_t srcOffset, common::offset_t numValues) {
     auto numValuesWritten = 0u;
     auto cursor = getPageCursorForOffsetInGroup(dstOffset, state);
     while (numValuesWritten < numValues) {
@@ -534,7 +541,7 @@ void Column::writeValues(ReadState& state, common::offset_t dstOffset, const uin
             std::min(numValues - numValuesWritten, state.numValuesPerPage - cursor.elemPosInPage);
         updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
             writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
-                numValuesToWriteInPage, state.metadata.compMeta);
+                numValuesToWriteInPage, state.metadata.compMeta, nullChunkData);
         });
 
         numValuesWritten += numValuesToWriteInPage;
@@ -543,11 +550,11 @@ void Column::writeValues(ReadState& state, common::offset_t dstOffset, const uin
 }
 
 offset_t Column::appendValues(node_group_idx_t nodeGroupIdx, const uint8_t* data,
-    offset_t numValues) {
+    const common::NullMask* nullChunkData, offset_t numValues) {
     auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     auto startOffset = state.metadata.numValues;
     auto numPages = dataFH->getNumPages();
-    writeValues(state, state.metadata.numValues, data, 0 /*dataOffset*/, numValues);
+    writeValues(state, state.metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
     auto newNumPages = dataFH->getNumPages();
     state.metadata.numValues += numValues;
     state.metadata.numPages += (newNumPages - numPages);

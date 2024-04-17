@@ -35,16 +35,16 @@ public:
 
     void setState(const std::shared_ptr<DataChunkState>& state_);
 
-    void setAllNull() { nullMask->setAllNull(); }
-    void setAllNonNull() { nullMask->setAllNonNull(); }
+    void setAllNull() { nullMask.setAllNull(); }
+    void setAllNonNull() { nullMask.setAllNonNull(); }
     // On return true, there are no null. On return false, there may or may not be nulls.
-    bool hasNoNullsGuarantee() const { return nullMask->hasNoNullsGuarantee(); }
+    bool hasNoNullsGuarantee() const { return nullMask.hasNoNullsGuarantee(); }
     void setNullRange(uint32_t startPos, uint32_t len, bool value) {
-        nullMask->setNullFromRange(startPos, len, value);
+        nullMask.setNullFromRange(startPos, len, value);
     }
-    const uint64_t* getNullMaskData() { return nullMask->getData(); }
+    const NullMask& getNullMask() const { return nullMask; }
     void setNull(uint32_t pos, bool isNull);
-    uint8_t isNull(uint32_t pos) const { return nullMask->isNull(pos); }
+    uint8_t isNull(uint32_t pos) const { return nullMask.isNull(pos); }
     void setAsSingleNullEntry() {
         state->selVector->selectedSize = 1;
         setNull(state->selVector->selectedPositions[0], true);
@@ -106,7 +106,7 @@ public:
 private:
     bool _isSequential = false;
     std::unique_ptr<uint8_t[]> valueBuffer;
-    std::unique_ptr<NullMask> nullMask;
+    NullMask nullMask;
     uint32_t numBytesPerValue;
     std::unique_ptr<AuxiliaryBuffer> auxiliaryBuffer;
 };

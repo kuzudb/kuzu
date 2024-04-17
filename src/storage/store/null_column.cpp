@@ -127,7 +127,8 @@ void NullColumn::setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, 
     // Must be aligned to an 8-byte chunk for NullMask read to not overflow
     auto state = ReadState{chunkMeta,
         chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
-    writeValues(state, offsetInChunk, reinterpret_cast<const uint8_t*>(&value));
+    writeValues(state, offsetInChunk, reinterpret_cast<const uint8_t*>(&value),
+        nullptr /*nullChunkData=*/);
     if (offsetInChunk >= chunkMeta.numValues) {
         chunkMeta.numValues = offsetInChunk + 1;
         metadataDA->update(nodeGroupIdx, chunkMeta);
@@ -150,7 +151,8 @@ void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
 void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, ColumnChunk* data,
     offset_t dataOffset, length_t numValues) {
     auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
-    writeValues(state, offsetInChunk, data->getData(), dataOffset, numValues);
+    writeValues(state, offsetInChunk, data->getData(), nullptr /*nullChunkData=*/, dataOffset,
+        numValues);
     auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(data);
     for (auto i = 0u; i < numValues; i++) {
         if (nullChunk->isNull(dataOffset + i)) {

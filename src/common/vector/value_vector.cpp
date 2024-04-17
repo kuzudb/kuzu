@@ -1,5 +1,6 @@
 #include "common/vector/value_vector.h"
 
+#include "common/constants.h"
 #include "common/exception/runtime.h"
 #include "common/null_buffer.h"
 #include "common/types/blob.h"
@@ -11,7 +12,7 @@ namespace kuzu {
 namespace common {
 
 ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager)
-    : dataType{std::move(dataType)} {
+    : dataType{std::move(dataType)}, nullMask{DEFAULT_VECTOR_CAPACITY} {
     if (this->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
         // LCOV_EXCL_START
         // Alternatively we can assign a default type here but I don't think it's a good practice.
@@ -21,7 +22,6 @@ ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryMan
     }
     numBytesPerValue = getDataTypeSize(this->dataType);
     initializeValueBuffer();
-    nullMask = std::make_unique<NullMask>();
     auxiliaryBuffer = AuxiliaryBufferFactory::getAuxiliaryBuffer(this->dataType, memoryManager);
 }
 
@@ -61,7 +61,7 @@ bool ValueVector::discardNull(ValueVector& vector) {
 
 bool ValueVector::setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOffset,
     uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
-    return nullMask->copyFromNullBits(srcNullEntries, srcOffset, dstOffset, numBitsToCopy, invert);
+    return nullMask.copyFromNullBits(srcNullEntries, srcOffset, dstOffset, numBitsToCopy, invert);
 }
 
 template<typename T>
@@ -383,7 +383,7 @@ void ValueVector::setValue(uint32_t pos, std::string_view val) {
 }
 
 void ValueVector::setNull(uint32_t pos, bool isNull) {
-    nullMask->setNull(pos, isNull);
+    nullMask.setNull(pos, isNull);
 }
 
 void StringVector::addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr) {

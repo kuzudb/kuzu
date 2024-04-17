@@ -101,9 +101,9 @@ void DictionaryColumn::scan(Transaction* transaction, node_group_idx_t nodeGroup
 
 string_index_t DictionaryColumn::append(node_group_idx_t nodeGroupIdx, std::string_view val) {
     auto startOffset = dataColumn->appendValues(nodeGroupIdx,
-        reinterpret_cast<const uint8_t*>(val.data()), val.size());
+        reinterpret_cast<const uint8_t*>(val.data()), nullptr /*nullChunkData*/, val.size());
     return offsetColumn->appendValues(nodeGroupIdx, reinterpret_cast<const uint8_t*>(&startOffset),
-        1 /*numValues*/);
+        nullptr /*nullChunkData*/, 1 /*numValues*/);
 }
 
 void DictionaryColumn::prepareCommit() {
