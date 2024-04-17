@@ -237,16 +237,20 @@ static void scanArrowArrayDenseUnion(const ArrowSchema* schema, const ArrowArray
     auto dstTypes = UnionVector::getTagVector(&outputVector)->getData();
     auto offsets = ((const int32_t*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
+    std::vector<int32_t> firstIncident(array->n_children, INT32_MAX);
     for (uint64_t i = 0; i < count; i++) {
+        auto curType = types[i];
+        auto curOffset = offsets[i];
+        if (curOffset < firstIncident[curType]) {
+            firstIncident[curType] = curOffset;
+        }
         if (!mask->isNull(i)) {
-            auto curType = types[i];
-            auto curOffset = offsets[i];
             dstTypes[i] = curType;
+            auto childOffset = mask->getChild(curType)->offsetBy(curOffset - firstIncident[curType]);
             ArrowConverter::fromArrowArray(schema->children[curType], array->children[curType],
                 *UnionVector::getValVector(&outputVector, curType),
-                mask->getChild(curType), curOffset + srcOffset, i + dstOffset, 1);
+                &childOffset, curOffset + array->children[curType]->offset, i + dstOffset, 1);
             // may be inefficient, since we're only scanning a single value
-            // should probably ask if we support dense unions (ie. is it okay to pack them)
         }
     }
 }
@@ -268,8 +272,8 @@ static void scanArrowArraySparseUnion(const ArrowSchema* schema, const ArrowArra
     // eg. nulling out unselected children
     for (int8_t i = 0; i < array->n_children; i++) {
         ArrowConverter::fromArrowArray(schema->children[i], array->children[i],
-            *UnionVector::getValVector(&outputVector, i), mask->getChild(i), srcOffset,
-            dstOffset, count);
+            *UnionVector::getValVector(&outputVector, i), mask->getChild(i),
+            srcOffset + array->children[i]->offset, dstOffset, count);
     }
 }
 
@@ -282,7 +286,7 @@ static void scanArrowArrayDictionaryEncoded(const ArrowSchema* schema, const Arr
     mask->copyToValueVector(&outputVector, dstOffset, count);
     for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
-            auto dictOffseted = (*mask->getDictionary()) + values[i];
+            auto dictOffseted = mask->getDictionary()->offsetBy(values[i]);
             ArrowConverter::fromArrowArray(schema->dictionary, array->dictionary, outputVector,
                 &dictOffseted, values[i] + array->dictionary->offset, i + dstOffset,
                 1); // possibly inefficient?
@@ -316,7 +320,7 @@ static void scanArrowArrayRunEndEncoded(const ArrowSchema* schema, const ArrowAr
         while (i + srcOffset >= runEndBuffer[runEndIdx + 1]) {
             runEndIdx++;
         }
-        auto valuesOffseted = (*mask->getChild(1)) + runEndIdx;
+        auto valuesOffseted = mask->getChild(1)->offsetBy(runEndIdx);
         ArrowConverter::fromArrowArray(schema->children[1], array->children[1], outputVector,
             &valuesOffseted, runEndIdx, i + dstOffset,
             1); // there is optimization to be made here...

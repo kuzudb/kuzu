@@ -16,7 +16,7 @@ public:
     bool isNull(int64_t idx) { return mask->isNull(idx + offset); }
     ArrowNullMaskTree* getChild(int idx) { return &(*children)[idx]; }
     ArrowNullMaskTree* getDictionary() { return dictionary.get(); }
-    ArrowNullMaskTree operator+(int64_t offset);
+    ArrowNullMaskTree offsetBy(int64_t offset);
 
 private:
     bool copyFromBuffer(const void* buffer, uint64_t srcOffset, uint64_t count);
