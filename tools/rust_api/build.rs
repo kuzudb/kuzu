@@ -44,6 +44,8 @@ fn link_libraries() {
         println!("cargo:rustc-link-lib=static=zstd");
         println!("cargo:rustc-link-lib=static=miniz");
         println!("cargo:rustc-link-lib=static=mbedtls");
+        println!("cargo:rustc-link-lib=static=brotlidec");
+        println!("cargo:rustc-link-lib=static=brotlicommon");
     }
 }
 
@@ -79,6 +81,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         "antlr4_cypher",
         "antlr4_runtime",
         "re2",
+        "brotli",
         "serd",
         "fastpfor",
         "miniparquet",

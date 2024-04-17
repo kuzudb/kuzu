@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "brotli/decode.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "common/types/date_t.h"
@@ -297,6 +298,17 @@ void ColumnReader::allocateCompressed(uint64_t size) {
     compressedBuffer.resize(size);
 }
 
+static void brotliDecompress(uint8_t* dst, size_t dstSize, const uint8_t* src, size_t srcSize) {
+    auto instance = BrotliDecoderCreateInstance(nullptr /* alloc_func */, nullptr /* free_func */,
+        nullptr /* opaque */);
+    BrotliDecoderResult oneshotResult;
+    do {
+        oneshotResult =
+            BrotliDecoderDecompressStream(instance, &srcSize, &src, &dstSize, &dst, nullptr);
+    } while (srcSize != 0 || oneshotResult != BROTLI_DECODER_RESULT_SUCCESS);
+    BrotliDecoderDestroyInstance(instance);
+}
+
 void ColumnReader::decompressInternal(kuzu_parquet::format::CompressionCodec::type codec,
     const uint8_t* src, uint64_t srcSize, uint8_t* dst, uint64_t dstSize) {
     switch (codec) {
@@ -306,8 +318,7 @@ void ColumnReader::decompressInternal(kuzu_parquet::format::CompressionCodec::ty
         MiniZStream s;
         s.Decompress(reinterpret_cast<const char*>(src), srcSize, reinterpret_cast<char*>(dst),
             dstSize);
-        break;
-    }
+    } break;
     case CompressionCodec::SNAPPY: {
         {
             size_t uncompressedSize = 0;
@@ -330,8 +341,7 @@ void ColumnReader::decompressInternal(kuzu_parquet::format::CompressionCodec::ty
             throw common::RuntimeException{"Snappy decompression failure"};
         }
         // LCOV_EXCL_STOP
-        break;
-    }
+    } break;
     case CompressionCodec::ZSTD: {
         auto res = duckdb_zstd::ZSTD_decompress(dst, dstSize, src, srcSize);
         // LCOV_EXCL_START
@@ -339,8 +349,10 @@ void ColumnReader::decompressInternal(kuzu_parquet::format::CompressionCodec::ty
             throw common::RuntimeException{"ZSTD Decompression failure"};
         }
         // LCOV_EXCL_STOP
-        break;
-    }
+    } break;
+    case CompressionCodec::BROTLI: {
+        brotliDecompress(dst, dstSize, src, srcSize);
+    } break;
     default: {
         // LCOV_EXCL_START
         std::stringstream codec_name;
