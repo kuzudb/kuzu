@@ -57,6 +57,23 @@ Binder exception: No database named tinysnb has been attached.
 -STATEMENT LOAD FROM tinysnb.person RETURN count(*);
 ---- 1
 8
+-LOG UseDatabaseStatement
+-STATEMENT USE other;
+---- ok
+-STATEMENT LOAD FROM person RETURN *;
+---- 4
+1
+2
+3
+5
+-STATEMENT USE tinysnb;
+---- ok
+-STATEMENT LOAD FROM person RETURN count(*);
+---- 1
+8
+-STATEMENT LOAD FROM other.person RETURN count(*);
+---- 1
+4
 
 -CASE InvalidDuckDBDatabase
 -STATEMENT LOAD FROM tinysnb1.person RETURN *;
@@ -65,3 +82,8 @@ Binder exception: No database named tinysnb1 has been attached.
 -STATEMENT LOAD FROM tinysnb1_person RETURN *;
 ---- error
 Binder exception: Variable tinysnb1_person is not in scope.
+
+-CASE InvalidUseDatabaseName
+-STATEMENT USE NONEXIST;
+---- error
+Runtime exception: No database named NONEXIST.

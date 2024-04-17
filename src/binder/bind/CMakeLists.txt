@@ -21,7 +21,8 @@ add_library(
         bind_updating_clause.cpp
         bind_extension.cpp
         bind_export_database.cpp
-        bind_import_database.cpp)
+        bind_import_database.cpp
+        bind_use_database.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_binder_bind>

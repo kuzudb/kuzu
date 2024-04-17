@@ -69,6 +69,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     case StatementType::DETACH_DATABASE: {
         appendDetachDatabase(statement, *plan);
     } break;
+    case StatementType::USE_DATABASE: {
+        appendUseDatabase(statement, *plan);
+    } break;
     default:
         KU_UNREACHABLE;
     }

@@ -22,6 +22,7 @@ enum class StatementType : uint8_t {
     IMPORT_DATABASE = 33,
     ATTACH_DATABASE = 34,
     DETACH_DATABASE = 35,
+    USE_DATABASE = 36,
 };
 
 struct StatementTypeUtils {

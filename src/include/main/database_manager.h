@@ -7,12 +7,18 @@ namespace main {
 
 class DatabaseManager {
 public:
+    DatabaseManager();
+
     void registerAttachedDatabase(std::unique_ptr<AttachedDatabase> attachedDatabase);
     AttachedDatabase* getAttachedDatabase(const std::string& name);
     void detachDatabase(const std::string& databaseName);
+    std::string getDefaultDatabase() const { return defaultDatabase; }
+    bool hasDefaultDatabase() const { return defaultDatabase != ""; }
+    void setDefaultDatabase(const std::string& databaseName);
 
 private:
     std::vector<std::unique_ptr<AttachedDatabase>> attachedDatabases;
+    std::string defaultDatabase;
 };
 
 } // namespace main

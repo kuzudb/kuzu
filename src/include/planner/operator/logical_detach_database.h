@@ -1,28 +1,18 @@
 #pragma once
 
-#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_database.h"
 
 namespace kuzu {
 namespace planner {
 
-class LogicalDetachDatabase final : public LogicalOperator {
+class LogicalDetachDatabase final : public LogicalDatabase {
 public:
     explicit LogicalDetachDatabase(std::string dbName)
-        : LogicalOperator{LogicalOperatorType::DETACH_DATABASE}, dbName{std::move(dbName)} {}
-
-    std::string getDBName() const { return dbName; }
-
-    std::string getExpressionsForPrinting() const override { return dbName; }
-
-    void computeFactorizedSchema() override { createEmptySchema(); }
-    void computeFlatSchema() override { createEmptySchema(); }
+        : LogicalDatabase{LogicalOperatorType::DETACH_DATABASE, std::move(dbName)} {}
 
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalDetachDatabase>(dbName);
     }
-
-private:
-    std::string dbName;
 };
 
 } // namespace planner

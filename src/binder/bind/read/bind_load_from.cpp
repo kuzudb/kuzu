@@ -16,6 +16,22 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
+static TableFunction getObjectScanFunc(const ObjectScanSource* objectSource,
+    main::ClientContext* clientContext) {
+    // Bind external database table
+    auto dbName = objectSource->objectNames[0];
+    auto attachedDB = clientContext->getDatabaseManager()->getAttachedDatabase(dbName);
+    if (attachedDB == nullptr) {
+        throw BinderException{stringFormat("No database named {} has been attached.", dbName)};
+    }
+    auto tableName = objectSource->objectNames[1];
+    auto attachedCatalog = attachedDB->getCatalogContent();
+    auto tableID = attachedCatalog->getTableID(tableName);
+    auto entry = attachedCatalog->getTableCatalogEntry(tableID);
+    auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
+    return tableEntry->getScanFunction();
+}
+
 std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& readingClause) {
     auto& loadFrom = readingClause.constCast<LoadFrom>();
     TableFunction scanFunction;
@@ -23,31 +39,26 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     auto source = loadFrom.getSource();
     switch (source->type) {
     case ScanSourceType::OBJECT: {
-        auto objectSource = source->constPtrCast<ObjectScanSource>();
+        auto objectSource = reinterpret_cast<ObjectScanSource*>(source);
         KU_ASSERT(!objectSource->objectNames.empty());
         if (objectSource->objectNames.size() == 1) {
             // Bind external object as table
             auto objectName = objectSource->objectNames[0];
             auto replacementData = clientContext->tryReplace(objectName);
-            if (replacementData == nullptr) {
+            if (replacementData != nullptr) {
+                scanFunction = replacementData->func;
+                bindData = scanFunction.bindFunc(clientContext, &replacementData->bindInput);
+            } else if (clientContext->getDatabaseManager()->hasDefaultDatabase()) {
+                objectSource->objectNames.insert(objectSource->objectNames.begin(),
+                    clientContext->getDatabaseManager()->getDefaultDatabase());
+                scanFunction = getObjectScanFunc(objectSource, clientContext);
+                auto bindInput = function::TableFuncBindInput();
+                bindData = scanFunction.bindFunc(clientContext, &bindInput);
+            } else {
                 throw BinderException(ExceptionMessage::variableNotInScope(objectName));
             }
-            scanFunction = replacementData->func;
-            bindData = scanFunction.bindFunc(clientContext, &replacementData->bindInput);
         } else if (objectSource->objectNames.size() == 2) {
-            // Bind external database table
-            auto dbName = objectSource->objectNames[0];
-            auto attachedDB = clientContext->getDatabaseManager()->getAttachedDatabase(dbName);
-            if (attachedDB == nullptr) {
-                throw BinderException{
-                    stringFormat("No database named {} has been attached.", dbName)};
-            }
-            auto tableName = objectSource->objectNames[1];
-            auto attachedCatalog = attachedDB->getCatalogContent();
-            auto tableID = attachedCatalog->getTableID(tableName);
-            auto entry = attachedCatalog->getTableCatalogEntry(tableID);
-            auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
-            scanFunction = tableEntry->getScanFunction();
+            scanFunction = getObjectScanFunc(objectSource, clientContext);
             auto bindInput = function::TableFuncBindInput();
             bindData = scanFunction.bindFunc(clientContext, &bindInput);
         } else {

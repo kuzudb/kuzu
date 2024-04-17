@@ -2,20 +2,15 @@
 
 #include <string>
 
-#include "parser/statement.h"
+#include "parser/database_statement.h"
 
 namespace kuzu {
 namespace parser {
 
-class DetachDatabase final : public Statement {
+class DetachDatabase final : public DatabaseStatement {
 public:
     explicit DetachDatabase(std::string dbName)
-        : Statement{common::StatementType::DETACH_DATABASE}, dbName{std::move(dbName)} {}
-
-    std::string getDBName() const { return dbName; }
-
-private:
-    std::string dbName;
+        : DatabaseStatement{common::StatementType::DETACH_DATABASE, std::move(dbName)} {}
 };
 
 } // namespace parser
