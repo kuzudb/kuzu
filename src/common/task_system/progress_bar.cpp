@@ -64,10 +64,8 @@ void ProgressBar::printProgressBar(double curPipelineProgress) {
         pipelineProgress = (float)numPipelinesFinished / (float)numPipelines;
     }
     setGreenFont();
-    std::cout << "Pipelines Finished: " << int(pipelineProgress * 100.0) << "%"
-              << "\n";
-    std::cout << "Current Pipeline Progress: " << int(curPipelineProgress * 100.0) << "%"
-              << "\n";
+    std::cout << "Pipelines Finished: " << int(pipelineProgress * 100.0) << "%" << "\n";
+    std::cout << "Current Pipeline Progress: " << int(curPipelineProgress * 100.0) << "%" << "\n";
     std::cout.flush();
     setDefaultFont();
 }
