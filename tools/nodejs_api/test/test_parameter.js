@@ -110,44 +110,43 @@ describe("UINT8", function () {
   });
 });
 
-//TODO(Chang): fix me
-// describe("INT128", function () {
-//   it("should transform single-word positive BigInt as INT128 parameter", async function () {
-//     const preparedStatement = await conn.prepare("RETURN CAST($1, 'STRING')");
-//     const queryResult = await conn.execute(preparedStatement, {
-//       1: BigInt("123456789"),
-//     });
-//     const result = await queryResult.getAll();
-//     assert.equal(result[0]["CAST($1, STRING)"], "123456789");
-//   });
-//
-//   it("should transform single-word negative BigInt as INT128 parameter", async function () {
-//     const preparedStatement = await conn.prepare("RETURN CAST($1, 'STRING')");
-//     const queryResult = await conn.execute(preparedStatement, {
-//       1: BigInt("-123456789"),
-//     });
-//     const result = await queryResult.getAll();
-//     assert.equal(result[0]["CAST($1, STRING)"], "-123456789");
-//   });
-//
-//   it("should transform two-word positive BigInt as INT128 parameter", async function () {
-//     const preparedStatement = await conn.prepare("RETURN CAST($1, 'STRING')");
-//     const queryResult = await conn.execute(preparedStatement, {
-//       1: BigInt("18446744073709551610"),
-//     });
-//     const result = await queryResult.getAll();
-//     assert.equal(result[0]["CAST($1, STRING)"], "18446744073709551610");
-//   });
-//
-//   it("should transform two-word negative BigInt as INT128 parameter", async function () {
-//     const preparedStatement = await conn.prepare("RETURN CAST($1, 'STRING')");
-//     const queryResult = await conn.execute(preparedStatement, {
-//       1: BigInt("-18446744073709551610"),
-//     });
-//     const result = await queryResult.getAll();
-//     assert.equal(result[0]["CAST($1, STRING)"], "-18446744073709551610");
-//   });
-// });
+describe("INT128", function () {
+  it("should transform single-word positive BigInt as INT128 parameter", async function () {
+    const preparedStatement = await conn.prepare("RETURN CAST($1, 'STRING')");
+    const queryResult = await conn.execute(preparedStatement, {
+      1: BigInt("123456789"),
+    });
+    const result = await queryResult.getAll();
+    assert.equal(result[0]["CAST($1, STRING)"], "123456789");
+  });
+
+  it("should transform single-word negative BigInt as INT128 parameter", async function () {
+    const preparedStatement = await conn.prepare("RETURN CAST($1, 'STRING')");
+    const queryResult = await conn.execute(preparedStatement, {
+      1: BigInt("-123456789"),
+    });
+    const result = await queryResult.getAll();
+    assert.equal(result[0]["CAST($1, STRING)"], "-123456789");
+  });
+
+  it("should transform two-word positive BigInt as INT128 parameter", async function () {
+    const preparedStatement = await conn.prepare("RETURN CAST($1, 'STRING')");
+    const queryResult = await conn.execute(preparedStatement, {
+      1: BigInt("18446744073709551610"),
+    });
+    const result = await queryResult.getAll();
+    assert.equal(result[0]["CAST($1, STRING)"], "18446744073709551610");
+  });
+
+  it("should transform two-word negative BigInt as INT128 parameter", async function () {
+    const preparedStatement = await conn.prepare("RETURN CAST($1, 'STRING')");
+    const queryResult = await conn.execute(preparedStatement, {
+      1: BigInt("-18446744073709551610"),
+    });
+    const result = await queryResult.getAll();
+    assert.equal(result[0]["CAST($1, STRING)"], "-18446744073709551610");
+  });
+});
 
 describe("DOUBLE", function () {
   it("should transform number as DOUBLE parameter", async function () {
