@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.15)
 cmake_policy(SET CMP0048 NEW)
 project(brotli C)
 
-option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 set(BROTLI_BUILD_TOOLS ON CACHE BOOL "Build/install CLI tools")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)

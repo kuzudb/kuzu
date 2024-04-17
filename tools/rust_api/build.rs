@@ -44,7 +44,8 @@ fn link_libraries() {
         println!("cargo:rustc-link-lib=static=zstd");
         println!("cargo:rustc-link-lib=static=miniz");
         println!("cargo:rustc-link-lib=static=mbedtls");
-        println!("cargo:rustc-link-lib=static=brotli");
+        println!("cargo:rustc-link-lib=static=brotlidec");
+        println!("cargo:rustc-link-lib=static=brotlicommon");
     }
 }
 
