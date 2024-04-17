@@ -305,7 +305,7 @@ Value Util::TransformNapiValue(Napi::Value napiValue) {
     if (napiValue.IsBigInt()) {
         auto bigInt = napiValue.As<Napi::BigInt>();
         size_t wordsCount = bigInt.WordCount();
-        auto* words = new uint64_t[wordsCount];
+        auto* words = new uint64_t[wordsCount]();
         int signBit;
         bigInt.ToWords(&signBit, &wordsCount, words);
         kuzu::common::int128_t val;
