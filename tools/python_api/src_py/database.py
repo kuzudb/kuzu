@@ -270,7 +270,7 @@ class Database:
         Raises
         ------
         Exception
-            If the query result is closed.
+            If the database is closed.
 
         """
         if not self.is_closed:
