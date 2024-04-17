@@ -35,18 +35,17 @@ public:
     inline const DictionaryColumn& getDictionary() const { return dictionary; }
 
 protected:
-    void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override;
-    void scanUnfiltered(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInGroup,
-        common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
-        common::sel_t startPosInVector = 0);
-    void scanFiltered(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        common::offset_t startOffsetInGroup, common::ValueVector* nodeIDVector,
+    void scanInternal(transaction::Transaction* transaction, ReadState& readState,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
+    void scanUnfiltered(transaction::Transaction* transaction, ReadState& readState,
+        common::offset_t startOffsetInChunk, common::offset_t numValuesToRead,
+        common::ValueVector* resultVector, common::sel_t startPosInVector = 0);
+    void scanFiltered(transaction::Transaction* transaction, ReadState& readState,
+        common::offset_t startOffsetInChunk, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
-    void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override;
+    void lookupInternal(transaction::Transaction* transaction, ReadState& readState,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:
     bool canCommitInPlace(transaction::Transaction* transaction,

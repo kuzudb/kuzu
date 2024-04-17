@@ -23,6 +23,8 @@ struct RelDataReadState : public TableDataReadState {
     LocalRelNG* localNodeGroup;
 
     explicit RelDataReadState();
+    DELETE_COPY_DEFAULT_MOVE(RelDataReadState);
+
     inline bool isOutOfRange(common::offset_t nodeOffset) const {
         return nodeOffset < startNodeOffset || nodeOffset >= (startNodeOffset + numNodes);
     }

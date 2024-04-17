@@ -12,7 +12,9 @@ class Property;
 namespace storage {
 
 struct TableDataReadState {
+    TableDataReadState() = default;
     virtual ~TableDataReadState() = default;
+    DELETE_COPY_DEFAULT_MOVE(TableDataReadState);
 
     std::vector<common::column_id_t> columnIDs;
 };

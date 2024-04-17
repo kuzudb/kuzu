@@ -1,7 +1,5 @@
 #pragma once
 
-#include <functional>
-
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/enums/rel_multiplicity.h"
@@ -23,6 +21,7 @@ struct ColumnChunkMetadata {
     uint64_t numValues;
     CompressionMetadata compMeta;
 
+    // TODO: Delete copy.
     ColumnChunkMetadata() : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{0} {}
     ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages,
         uint64_t numNodesInChunk, const CompressionMetadata& compMeta)

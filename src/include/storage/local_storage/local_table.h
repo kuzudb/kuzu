@@ -57,6 +57,9 @@ public:
     bool isEmpty() const { return offsetToRowIdx.empty() && srcNodeOffsetToRelOffsets.empty(); }
     void readValueAtRowIdx(common::row_idx_t rowIdx, common::column_id_t columnID,
         common::ValueVector* outputVector, common::sel_t posInOutputVector) const;
+    bool read(common::offset_t offset, const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVector,
+        common::offset_t offsetInOutputVector);
     bool read(common::offset_t offset, common::column_id_t columnID,
         common::ValueVector* outputVector, common::sel_t posInOutputVector);
 
@@ -199,7 +202,6 @@ protected:
 struct TableInsertState;
 struct TableUpdateState;
 struct TableDeleteState;
-struct TableReadState;
 class Table;
 class LocalTable {
 public:
@@ -208,9 +210,6 @@ public:
     virtual bool insert(TableInsertState& insertState) = 0;
     virtual bool update(TableUpdateState& updateState) = 0;
     virtual bool delete_(TableDeleteState& deleteState) = 0;
-
-    virtual void scan(TableReadState& state) = 0;
-    virtual void lookup(TableReadState& state) = 0;
 
     inline void clear() { localTableDataCollection.clear(); }
 

@@ -66,9 +66,6 @@ public:
     bool update(TableUpdateState& updateState) override;
     bool delete_(TableDeleteState& deleteState) override;
 
-    void scan(TableReadState& state) override;
-    void lookup(TableReadState& state) override;
-
     LocalRelTableData* getTableData(common::RelDataDirection direction) {
         KU_ASSERT(localTableDataCollection.size() == 2);
         return common::ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(

@@ -152,26 +152,25 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     }
 }
 
-void ListColumn::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void ListColumn::scanInternal(Transaction* transaction, ReadState& readState,
+    ValueVector* nodeIDVector, ValueVector* resultVector) {
     resultVector->resetAuxiliaryBuffer();
-    auto startNodeOffset = nodeIDVector->readNodeOffset(0);
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
-    auto startNodeOffsetInGroup =
-        startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     KU_ASSERT(resultVector->state);
-    auto listOffsetSizeInfo = getListOffsetSizeInfo(transaction, nodeGroupIdx,
-        startNodeOffsetInGroup, startNodeOffsetInGroup + nodeIDVector->state->getOriginalSize());
+    auto [nodeGroupIdx, startOffsetInChunk] =
+        StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeIDVector->readNodeOffset(0));
+    auto listOffsetSizeInfo = getListOffsetSizeInfo(transaction, readState.nodeGroupIdx,
+        startOffsetInChunk, startOffsetInChunk + nodeIDVector->state->getOriginalSize());
     if (resultVector->state->selVector->isUnfiltered()) {
-        scanUnfiltered(transaction, nodeGroupIdx, resultVector, listOffsetSizeInfo);
+        scanUnfiltered(transaction, readState.nodeGroupIdx, resultVector, listOffsetSizeInfo);
     } else {
-        scanFiltered(transaction, nodeGroupIdx, resultVector, listOffsetSizeInfo);
+        scanFiltered(transaction, readState.nodeGroupIdx, resultVector, listOffsetSizeInfo);
     }
 }
 
-void ListColumn::lookupValue(Transaction* transaction, offset_t nodeOffset,
+void ListColumn::lookupValue(Transaction* transaction, ReadState& readState, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) {
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    KU_ASSERT(readState.nodeGroupIdx == nodeGroupIdx);
     auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto listEndOffset = readOffset(transaction, nodeGroupIdx, nodeOffsetInGroup);
     auto size = readSize(transaction, nodeGroupIdx, nodeOffsetInGroup);

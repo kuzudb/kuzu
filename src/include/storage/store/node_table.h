@@ -13,6 +13,15 @@
 namespace kuzu {
 namespace storage {
 
+struct NodeTableReadState : public TableReadState {
+    NodeTableReadState(const common::ValueVector& nodeIDVector,
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVectors)
+        : TableReadState{nodeIDVector, columnIDs, outputVectors} {
+        dataReadState = std::make_unique<NodeDataReadState>();
+    }
+};
+
 struct NodeTableInsertState : public TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
@@ -50,7 +59,7 @@ public:
     void initializePKIndex(catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
         common::VirtualFileSystem* vfs);
 
-    inline common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
+    common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
         auto nodesStats = common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
             tablesStatistics);
         return nodesStats->getMaxNodeOffset(transaction, tableID);
@@ -64,9 +73,10 @@ public:
         nodeStateCollection->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
     }
 
-    inline void initializeReadState(transaction::Transaction* transaction,
+    void initializeReadState(transaction::Transaction* transaction,
         std::vector<common::column_id_t> columnIDs, const common::ValueVector& inNodeIDVector,
         TableReadState& readState) {
+        readState.dataReadState = std::make_unique<NodeDataReadState>();
         tableData->initializeReadState(transaction, std::move(columnIDs), inNodeIDVector,
             *readState.dataReadState);
     }
@@ -82,22 +92,18 @@ public:
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
         common::ValueVector* defaultValueVector) override;
-    inline void dropColumn(common::column_id_t columnID) override {
-        tableData->dropColumn(columnID);
-    }
+    void dropColumn(common::column_id_t columnID) override { tableData->dropColumn(columnID); }
 
-    inline common::column_id_t getPKColumnID() const { return pkColumnID; }
-    inline PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
-    inline NodesStoreStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
+    common::column_id_t getPKColumnID() const { return pkColumnID; }
+    PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
+    NodesStoreStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
         return common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
             tablesStatistics);
     }
-    inline common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
-    inline Column* getColumn(common::column_id_t columnID) {
-        return tableData->getColumn(columnID);
-    }
+    common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
+    Column* getColumn(common::column_id_t columnID) { return tableData->getColumn(columnID); }
 
-    inline void append(ChunkedNodeGroup* nodeGroup) { tableData->append(nodeGroup); }
+    void append(ChunkedNodeGroup* nodeGroup) { tableData->append(nodeGroup); }
 
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;
@@ -110,9 +116,6 @@ private:
         const common::ValueVector& nodeIDVector, const common::ValueVector& pkVector);
     void insertPK(const common::ValueVector& nodeIDVector,
         const common::ValueVector& primaryKeyVector);
-
-    void scan(transaction::Transaction* transaction, TableReadState& readState);
-    void lookup(transaction::Transaction* transaction, TableReadState& readState);
 
 private:
     std::unique_ptr<NodeTableData> tableData;
