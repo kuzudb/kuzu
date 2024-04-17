@@ -1,5 +1,7 @@
+#include "binder/bound_attach_database.h"
 #include "binder/bound_comment_on.h"
 #include "binder/bound_create_macro.h"
+#include "binder/bound_detach_database.h"
 #include "binder/bound_explain.h"
 #include "binder/bound_extension_statement.h"
 #include "binder/bound_standalone_call.h"
@@ -8,8 +10,6 @@
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_table.h"
-#include "binder/bound_attach_database.h"
-#include "binder/bound_detach_database.h"
 #include "common/cast.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_table.h"
@@ -20,9 +20,9 @@
 #include "planner/operator/logical_extension.h"
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_transaction.h"
-#include "planner/operator/simple/logical_use_database.h"
 #include "planner/operator/simple/logical_attach_database.h"
 #include "planner/operator/simple/logical_detach_database.h"
+#include "planner/operator/simple/logical_use_database.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -124,7 +124,8 @@ void Planner::appendUseDatabase(const BoundStatement& statement, LogicalPlan& pl
     auto& boundUseDatabase =
         common::ku_dynamic_cast<const binder::BoundStatement&, const binder::BoundUseDatabase&>(
             statement);
-    auto useDatabase = std::make_shared<LogicalUseDatabase>(boundUseDatabase.getDBName(), statement.getStatementResult()->getSingleColumnExpr());
+    auto useDatabase = std::make_shared<LogicalUseDatabase>(boundUseDatabase.getDBName(),
+        statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(useDatabase));
 }
 

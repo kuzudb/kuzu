@@ -7,7 +7,8 @@ namespace processor {
 
 class DetachDatabase final : public DatabaseOperator {
 public:
-    DetachDatabase(std::string dbName, const DataPos& outputPos, uint32_t id, const std::string& paramsString)
+    DetachDatabase(std::string dbName, const DataPos& outputPos, uint32_t id,
+        const std::string& paramsString)
         : DatabaseOperator{PhysicalOperatorType::DETACH_DATABASE, std::move(dbName), outputPos, id,
               paramsString} {}
 

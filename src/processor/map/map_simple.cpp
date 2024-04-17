@@ -1,17 +1,16 @@
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
-#include "planner/operator/simple/logical_use_database.h"
 #include "planner/operator/simple/logical_attach_database.h"
 #include "planner/operator/simple/logical_detach_database.h"
 #include "planner/operator/simple/logical_export_db.h"
 #include "planner/operator/simple/logical_import_db.h"
-#include "processor/operator/simple/use_database.h"
+#include "planner/operator/simple/logical_use_database.h"
 #include "processor/operator/simple/attach_database.h"
 #include "processor/operator/simple/detach_database.h"
 #include "processor/operator/simple/export_db.h"
 #include "processor/operator/simple/import_db.h"
+#include "processor/operator/simple/use_database.h"
 #include "processor/plan_mapper.h"
-
 
 namespace kuzu {
 namespace processor {
@@ -27,30 +26,30 @@ static DataPos getOutputPos(const LogicalSimple* logicalSimple) {
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapUseDatabase(
-        planner::LogicalOperator* logicalOperator) {
+    planner::LogicalOperator* logicalOperator) {
     auto useDatabase = logicalOperator->constPtrCast<LogicalUseDatabase>();
-    return std::make_unique<UseDatabase>(useDatabase->getDBName(), getOutputPos(useDatabase), getOperatorID(),
-                                         useDatabase->getExpressionsForPrinting());
+    return std::make_unique<UseDatabase>(useDatabase->getDBName(), getOutputPos(useDatabase),
+        getOperatorID(), useDatabase->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAttachDatabase(
-        planner::LogicalOperator* logicalOperator) {
+    planner::LogicalOperator* logicalOperator) {
     auto attachDatabase = logicalOperator->constPtrCast<LogicalAttachDatabase>();
     return std::make_unique<AttachDatabase>(attachDatabase->getAttachInfo(),
-                                            getOutputPos(attachDatabase), getOperatorID(), attachDatabase->getExpressionsForPrinting());
+        getOutputPos(attachDatabase), getOperatorID(), attachDatabase->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
-        planner::LogicalOperator* logicalOperator) {
+    planner::LogicalOperator* logicalOperator) {
     auto detachDatabase = logicalOperator->constPtrCast<LogicalDetachDatabase>();
     return std::make_unique<DetachDatabase>(detachDatabase->getDBName(),
-                                            getOutputPos(detachDatabase), getOperatorID(), detachDatabase->getExpressionsForPrinting());
+        getOutputPos(detachDatabase), getOperatorID(), detachDatabase->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
-        planner::LogicalOperator* logicalOperator) {
+    planner::LogicalOperator* logicalOperator) {
     auto exportDatabase =
-            ku_dynamic_cast<LogicalOperator*, LogicalExportDatabase*>(logicalOperator);
+        ku_dynamic_cast<LogicalOperator*, LogicalExportDatabase*>(logicalOperator);
     std::vector<std::unique_ptr<PhysicalOperator>> children;
     for (auto childCopyTo : exportDatabase->getChildren()) {
         auto childPhysicalOperator = mapOperator(childCopyTo.get());
@@ -68,16 +67,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
         throw RuntimeException(stringFormat("Directory {} already exists.", filePath));
     }
     return std::make_unique<ExportDB>(exportDatabase->getBoundFileInfo()->copy(),
-                                      getOutputPos(exportDatabase), getOperatorID(), exportDatabase->getExpressionsForPrinting(),
-                                      std::move(children));
+        getOutputPos(exportDatabase), getOperatorID(), exportDatabase->getExpressionsForPrinting(),
+        std::move(children));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(
-        planner::LogicalOperator* logicalOperator) {
+    planner::LogicalOperator* logicalOperator) {
     auto importDatabase =
-            ku_dynamic_cast<LogicalOperator*, LogicalImportDatabase*>(logicalOperator);
+        ku_dynamic_cast<LogicalOperator*, LogicalImportDatabase*>(logicalOperator);
     return std::make_unique<ImportDB>(importDatabase->getQuery(), getOutputPos(importDatabase),
-                                      getOperatorID(), importDatabase->getExpressionsForPrinting());
+        getOperatorID(), importDatabase->getExpressionsForPrinting());
 }
 
 } // namespace processor

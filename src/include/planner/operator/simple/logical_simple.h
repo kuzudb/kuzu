@@ -20,9 +20,7 @@ public:
 
     void computeFlatSchema() override;
 
-    std::shared_ptr<binder::Expression> getOutputExpression() const {
-        return outputExpression;
-    }
+    std::shared_ptr<binder::Expression> getOutputExpression() const { return outputExpression; }
 
 protected:
     std::shared_ptr<binder::Expression> outputExpression;

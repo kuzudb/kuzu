@@ -37,7 +37,8 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
         logicalOperators.push_back(std::move(copyTo));
     }
     auto exportDatabase =
-        make_shared<LogicalExportDatabase>(boundExportDatabase.getBoundFileInfo()->copy(), statement.getStatementResult()->getSingleColumnExpr(), std::move(logicalOperators));
+        make_shared<LogicalExportDatabase>(boundExportDatabase.getBoundFileInfo()->copy(),
+            statement.getStatementResult()->getSingleColumnExpr(), std::move(logicalOperators));
     plan->setLastOperator(std::move(exportDatabase));
     return plan;
 }

@@ -9,7 +9,9 @@ namespace planner {
 
 class LogicalExportDatabase : public LogicalSimple {
 public:
-    explicit LogicalExportDatabase(common::ReaderConfig boundFileInfo, std::shared_ptr<binder::Expression> outputExpression, std::vector<std::shared_ptr<LogicalOperator>> plans)
+    explicit LogicalExportDatabase(common::ReaderConfig boundFileInfo,
+        std::shared_ptr<binder::Expression> outputExpression,
+        std::vector<std::shared_ptr<LogicalOperator>> plans)
         : LogicalSimple{LogicalOperatorType::EXPORT_DATABASE, std::move(plans), outputExpression},
           boundFileInfo{std::move(boundFileInfo)} {}
 
@@ -23,7 +25,8 @@ public:
     std::string getExpressionsForPrinting() const override { return std::string{}; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalExportDatabase>(std::move(boundFileInfo), std::move(outputExpression), std::move(children));
+        return make_unique<LogicalExportDatabase>(std::move(boundFileInfo),
+            std::move(outputExpression), std::move(children));
     }
 
 private:

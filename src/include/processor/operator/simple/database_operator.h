@@ -7,8 +7,8 @@ namespace processor {
 
 class DatabaseOperator : public Simple {
 public:
-    DatabaseOperator(PhysicalOperatorType physicalOperator, std::string dbName, const DataPos& outputPos, uint32_t id,
-        const std::string& paramsString)
+    DatabaseOperator(PhysicalOperatorType physicalOperator, std::string dbName,
+        const DataPos& outputPos, uint32_t id, const std::string& paramsString)
         : Simple{physicalOperator, outputPos, id, paramsString}, dbName{std::move(dbName)} {}
 
 protected:

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "parser/parsed_data/attach_info.h"
 #include "logical_simple.h"
+#include "parser/parsed_data/attach_info.h"
 
 namespace kuzu {
 namespace planner {

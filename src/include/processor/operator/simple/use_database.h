@@ -7,7 +7,8 @@ namespace processor {
 
 class UseDatabase final : public DatabaseOperator {
 public:
-    UseDatabase(std::string dbName, const DataPos& outputPos, uint32_t id, const std::string& paramsString)
+    UseDatabase(std::string dbName, const DataPos& outputPos, uint32_t id,
+        const std::string& paramsString)
         : DatabaseOperator{PhysicalOperatorType::USE_DATABASE, std::move(dbName), outputPos, id,
               paramsString} {}
 
