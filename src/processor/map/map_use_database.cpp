@@ -9,8 +9,7 @@ using namespace kuzu::planner;
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapUseDatabase(
     planner::LogicalOperator* logicalOperator) {
-    auto useDatabase =
-        common::ku_dynamic_cast<LogicalOperator*, LogicalUseDatabase*>(logicalOperator);
+    auto useDatabase = logicalOperator->constPtrCast<LogicalUseDatabase>();
     return std::make_unique<UseDatabase>(useDatabase->getDBName(), getOperatorID(),
         useDatabase->getExpressionsForPrinting());
 }

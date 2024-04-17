@@ -786,6 +786,7 @@ kU_NonReservedKeywords
         | IMPORT
         | EXPORT
         | DATABASE
+        | USE
         ;
 
 UnescapedSymbolicName

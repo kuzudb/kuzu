@@ -7,8 +7,7 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindUseDatabase(const parser::Statement& statement) {
-    auto& useDatabase =
-        common::ku_dynamic_cast<const parser::Statement&, const parser::UseDatabase&>(statement);
+    auto useDatabase = statement.constCast<parser::UseDatabase>();
     return std::make_unique<BoundUseDatabase>(useDatabase.getDBName());
 }
 

@@ -1,5 +1,6 @@
 #include "main/database_manager.h"
 
+#include "common/exception/runtime.h"
 #include "common/string_utils.h"
 
 namespace kuzu {
@@ -37,6 +38,13 @@ void DatabaseManager::detachDatabase(const std::string& databaseName) {
         }
     }
     KU_UNREACHABLE;
+}
+
+void DatabaseManager::setDefaultDatabase(const std::string& databaseName) {
+    if (getAttachedDatabase(databaseName) == nullptr) {
+        throw common::RuntimeException{common::stringFormat("No database named {}.", databaseName)};
+    }
+    defaultDatabase = databaseName;
 }
 
 } // namespace main

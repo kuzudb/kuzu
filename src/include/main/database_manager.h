@@ -14,7 +14,7 @@ public:
     void detachDatabase(const std::string& databaseName);
     std::string getDefaultDatabase() const { return defaultDatabase; }
     bool hasDefaultDatabase() const { return defaultDatabase != ""; }
-    void setDefaultDatabase(const std::string& databaseName) { defaultDatabase = databaseName; }
+    void setDefaultDatabase(const std::string& databaseName);
 
 private:
     std::vector<std::unique_ptr<AttachedDatabase>> attachedDatabases;

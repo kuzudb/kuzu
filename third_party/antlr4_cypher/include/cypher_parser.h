@@ -2403,6 +2403,7 @@ public:
     antlr4::tree::TerminalNode *IMPORT();
     antlr4::tree::TerminalNode *EXPORT();
     antlr4::tree::TerminalNode *DATABASE();
+    antlr4::tree::TerminalNode *USE();
 
    
   };

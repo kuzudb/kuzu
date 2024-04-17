@@ -9,8 +9,7 @@ using namespace kuzu::planner;
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
     planner::LogicalOperator* logicalOperator) {
-    auto detachDatabase =
-        common::ku_dynamic_cast<LogicalOperator*, LogicalDetachDatabase*>(logicalOperator);
+    auto detachDatabase = logicalOperator->constPtrCast<LogicalDetachDatabase>();
     return std::make_unique<DetachDatabase>(detachDatabase->getDBName(), getOperatorID(),
         detachDatabase->getExpressionsForPrinting());
 }

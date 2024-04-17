@@ -82,3 +82,8 @@ Binder exception: No database named tinysnb1 has been attached.
 -STATEMENT LOAD FROM tinysnb1_person RETURN *;
 ---- error
 Binder exception: Variable tinysnb1_person is not in scope.
+
+-CASE InvalidUseDatabaseName
+-STATEMENT USE NONEXIST;
+---- error
+Runtime exception: No database named NONEXIST.

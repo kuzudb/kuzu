@@ -9,8 +9,7 @@ using namespace kuzu::planner;
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAttachDatabase(
     planner::LogicalOperator* logicalOperator) {
-    auto attachDatabase =
-        common::ku_dynamic_cast<LogicalOperator*, LogicalAttachDatabase*>(logicalOperator);
+    auto attachDatabase = logicalOperator->constPtrCast<LogicalAttachDatabase>();
     return std::make_unique<AttachDatabase>(attachDatabase->getAttachInfo(), getOperatorID(),
         attachDatabase->getExpressionsForPrinting());
 }
