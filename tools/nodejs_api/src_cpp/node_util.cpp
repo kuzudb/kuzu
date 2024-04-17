@@ -305,9 +305,9 @@ Value Util::TransformNapiValue(Napi::Value napiValue) {
     if (napiValue.IsBigInt()) {
         auto bigInt = napiValue.As<Napi::BigInt>();
         size_t wordsCount = bigInt.WordCount();
-        auto* words = new uint64_t[wordsCount]();
+        std::unique_ptr<uint64_t[]> words(new uint64_t[wordsCount]());
         int signBit = 0;
-        bigInt.ToWords(&signBit, &wordsCount, words);
+        bigInt.ToWords(&signBit, &wordsCount, words.get());
         kuzu::common::int128_t val;
         val.low = words[0];
         val.high = wordsCount > 1 ? words[1] : 0;
@@ -315,7 +315,6 @@ Value Util::TransformNapiValue(Napi::Value napiValue) {
         if (signBit) {
             kuzu::common::Int128_t::negateInPlace(val);
         }
-        delete[] words;
         return Value(val);
     }
     if (napiValue.IsNumber()) {
