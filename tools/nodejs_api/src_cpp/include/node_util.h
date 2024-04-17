@@ -15,5 +15,5 @@ private:
     static Napi::Object ConvertNodeIdToNapiObject(const nodeID_t& nodeId, Napi::Env env);
     static Value TransformNapiValue(Napi::Value napiValue);
     const static int64_t JS_MAX_SAFE_INTEGER = 9007199254740991;
-    const static int64_t JS_MIN_SAFE_INTEGER = -9007199254740991; 
+    const static int64_t JS_MIN_SAFE_INTEGER = -9007199254740991;
 };
