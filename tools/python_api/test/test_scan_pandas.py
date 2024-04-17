@@ -305,9 +305,7 @@ def test_pandas_scan_demo(tmp_path: Path) -> None:
     assert result["s"][1] == {"ID": 4, "_id": {"offset": 2, "table": 0}, "_label": "student", "height": 67}
 
     conn.execute("CREATE NODE TABLE person(ID INT64, age UINT16, height UINT32, is_student BOOLean, PRIMARY KEY(ID))")
-    conn.execute(
-        "LOAD FROM person CREATE (p:person {ID: id, age: age, height: height, is_student: is_student})"
-    )
+    conn.execute("LOAD FROM person CREATE (p:person {ID: id, age: age, height: height, is_student: is_student})")
     result = conn.execute("MATCH (p:person) return p.*").get_as_df()
     assert np.all(result["p.ID"].to_list() == id)
     assert np.all(result["p.age"].to_list() == age)

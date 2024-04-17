@@ -7,11 +7,19 @@ from . import _kuzu
 from .types import Type
 
 if TYPE_CHECKING:
+    import sys
+    from types import TracebackType
+
     from numpy.typing import NDArray
     from torch_geometric.data.feature_store import IndexType
 
     from .torch_geometric_feature_store import KuzuFeatureStore
     from .torch_geometric_graph_store import KuzuGraphStore
+
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self
 
 
 class Database:
@@ -74,10 +82,22 @@ class Database:
         self.compression = compression
         self.read_only = read_only
         self.max_db_size = max_db_size
+        self.is_closed = False
 
         self._database: Any = None  # (type: _kuzu.Database from pybind11)
         if not lazy_init:
             self.init_database()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ) -> None:
+        self.close()
 
     @staticmethod
     def get_version() -> str:
@@ -115,6 +135,7 @@ class Database:
 
     def init_database(self) -> None:
         """Initialize the database."""
+        self.check_for_database_close()
         if self._database is None:
             self._database = _kuzu.Database(  # type: ignore[union-attr]
                 self.database_path,
@@ -135,6 +156,7 @@ class Database:
             Logging level. One of "debug", "info", "err".
 
         """
+        self.check_for_database_close()
         self._database.set_logging_level(level)
 
     def get_torch_geometric_remote_backend(
@@ -181,6 +203,7 @@ class Database:
         graph_store : KuzuGraphStore
             Graph store compatible with torch_geometric.
         """
+        self.check_for_database_close()
         from .torch_geometric_feature_store import KuzuFeatureStore
         from .torch_geometric_graph_store import KuzuGraphStore
 
@@ -198,6 +221,7 @@ class Database:
         indices: IndexType,
         num_threads: int,
     ) -> NDArray[Any]:
+        self.check_for_database_close()
         import numpy as np
 
         """
@@ -229,3 +253,27 @@ class Database:
 
         msg = f"Unsupported property type: {prop_type}"
         raise ValueError(msg)
+
+    def close(self) -> None:
+        """Close the database."""
+        if self.is_closed:
+            return
+        self.is_closed = True
+        if self._database is not None:
+            self._database.close()
+            self._database: Any = None  # (type: _kuzu.Database from pybind11)
+
+    def check_for_database_close(self) -> None:
+        """
+        Check if the database is closed and raise an exception if it is.
+
+        Raises
+        ------
+        Exception
+            If the database is closed.
+
+        """
+        if not self.is_closed:
+            return
+        msg = "Query result is closed"
+        raise RuntimeError(msg)
