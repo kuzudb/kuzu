@@ -60,8 +60,7 @@ void ArrowNullMaskTree::scanArrayPushDown(const ArrowSchema* schema, const Arrow
     uint64_t srcOffset, uint64_t count) {
     auto numElements = std::stoul(schema->format + 3);
     auto auxiliaryLength = count * numElements;
-    NullMask pushDownMask((auxiliaryLength + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) >>
-                          NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
+    NullMask pushDownMask(auxiliaryLength);
     for (auto i = 0u; i < count; ++i) {
         pushDownMask.setNullFromRange(i * numElements, numElements, isNull(i));
     }
