@@ -50,7 +50,12 @@ public:
     static std::string getMillisecondsSuffix();
 
     inline static std::filesystem::path getTempDir() {
-        return std::filesystem::temp_directory_path() / "kuzu";
+        auto tempDir = std::getenv("RUNNER_TEMP");
+        if (tempDir != nullptr) {
+            return std::filesystem::path(tempDir) / "kuzu";
+        } else {
+            return std::filesystem::temp_directory_path() / "kuzu";
+        }
     }
 
     inline static std::string getTempDir(const std::string& name) {
