@@ -462,6 +462,9 @@ void Value::copyFromColLayout(const uint8_t* value, ValueVector* vector) {
     case PhysicalTypeID::STRUCT: {
         copyFromColLayoutStruct(*(struct_entry_t*)value, vector);
     } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        val.internalIDVal = *((nodeID_t*)value);
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -912,6 +915,7 @@ uint64_t Value::computeHash() const {
         for (auto i = 1u; i < childrenSize; i++) {
             hashValue = function::combineHashScalar(hashValue, children[i]->computeHash());
         }
+        auto d = 5;
     } break;
     default: {
         KU_UNREACHABLE;
