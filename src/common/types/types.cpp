@@ -1328,7 +1328,7 @@ bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const L
             return true;
         }
     }
-    
+
     // check timestamp combination
     // note: this will become obsolete if implicit casting
     // between timestamps is allowed
@@ -1342,7 +1342,7 @@ bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const L
         }
         return true;
     }
-    
+
     return false;
 }
 
