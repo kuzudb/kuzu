@@ -119,6 +119,9 @@ public:
 
 private:
     void openLockFile();
+    void recordLockInfo();
+    void checkLockInfoInSameProcess();
+    void clearLockInfo();
     void initDBDirAndCoreFilesIfNecessary();
     static void initLoggers();
     static void dropLoggers();

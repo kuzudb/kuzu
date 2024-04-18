@@ -13,6 +13,7 @@ void assertQuery(QueryResult& result) {
 }
 
 TEST_F(SystemConfigTest, testAccessMode) {
+    database.reset();
     systemConfig->readOnly = false;
     auto db = std::make_unique<Database>(databasePath, *systemConfig);
     auto con = std::make_unique<Connection>(db.get());
@@ -31,32 +32,38 @@ TEST_F(SystemConfigTest, testAccessMode) {
 }
 
 TEST_F(SystemConfigTest, testMaxDBSize) {
+    database.reset();
     systemConfig->maxDBSize = 1024;
+    std::unique_ptr<Database> db;
     try {
-        auto db = std::make_unique<Database>(databasePath, *systemConfig);
+        db = std::make_unique<Database>(databasePath, *systemConfig);
     } catch (BufferManagerException e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: The given max db size should be at least 4194304 bytes.");
     }
+    db.reset();
     systemConfig->maxDBSize = 4194305;
     try {
-        auto db = std::make_unique<Database>(databasePath, *systemConfig);
+        db = std::make_unique<Database>(databasePath, *systemConfig);
     } catch (BufferManagerException e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: The given max db size should be a power of 2.");
     }
     systemConfig->maxDBSize = 4194304;
+    db.reset();
     try {
-        auto db = std::make_unique<Database>(databasePath, *systemConfig);
+        db = std::make_unique<Database>(databasePath, *systemConfig);
     } catch (BufferManagerException e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: No more frame groups can be added to the allocator.");
     }
+    db.reset();
     systemConfig->maxDBSize = 1ull << 30;
-    EXPECT_NO_THROW(auto db = std::make_unique<Database>(databasePath, *systemConfig));
+    EXPECT_NO_THROW(db = std::make_unique<Database>(databasePath, *systemConfig));
 }
 
 TEST_F(SystemConfigTest, testBufferPoolSize) {
+    database.reset();
     systemConfig->bufferPoolSize = 1024;
     try {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);

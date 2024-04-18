@@ -129,3 +129,84 @@ TEST_F(DBLockingTest, testReadOnly) {
     ASSERT_FALSE(conn->query("MATCH (p:Person) WHERE p.name='Alice' SET p.age=26;")->isSuccess());
     ASSERT_FALSE(conn->query("MATCH (p:Person) WHERE name='Alice' DELETE p;")->isSuccess());
 }
+
+TEST_F(DBLockingTest, testReadReadInSameProcess) {
+    // create the database file and initialize it with data
+    pid_t create_pid = fork();
+    if (create_pid == 0) {
+        systemConfig->readOnly = false;
+        EXPECT_NO_THROW(createDBAndConn());
+        ASSERT_TRUE(
+            conn->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
+                ->isSuccess());
+        ASSERT_TRUE(conn->query("CREATE (:Person {name: 'Alice', age: 25});")->isSuccess());
+        exit(0);
+    }
+    waitpid(create_pid, NULL, 0);
+
+    // now connect in read-only mode
+    systemConfig->readOnly = true;
+    EXPECT_NO_THROW(createDBAndConn());
+
+    EXPECT_NO_THROW(auto database2 = std::make_unique<Database>(databasePath, *systemConfig););
+}
+
+TEST_F(DBLockingTest, testReadWriteInSameProcess) {
+    pid_t create_pid = fork();
+    if (create_pid == 0) {
+        systemConfig->readOnly = false;
+        EXPECT_NO_THROW(createDBAndConn());
+        ASSERT_TRUE(
+            conn->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
+                ->isSuccess());
+        ASSERT_TRUE(conn->query("CREATE (:Person {name: 'Alice', age: 25});")->isSuccess());
+        exit(0);
+    }
+    waitpid(create_pid, NULL, 0);
+
+    systemConfig->readOnly = true;
+    EXPECT_NO_THROW(createDBAndConn());
+
+    systemConfig->readOnly = false;
+    EXPECT_ANY_THROW(auto database2 = std::make_unique<Database>(databasePath, *systemConfig););
+}
+
+TEST_F(DBLockingTest, testWriteReadInSameProcess) {
+    pid_t create_pid = fork();
+    if (create_pid == 0) {
+        systemConfig->readOnly = false;
+        EXPECT_NO_THROW(createDBAndConn());
+        ASSERT_TRUE(
+            conn->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
+                ->isSuccess());
+        ASSERT_TRUE(conn->query("CREATE (:Person {name: 'Alice', age: 25});")->isSuccess());
+        exit(0);
+    }
+    waitpid(create_pid, NULL, 0);
+
+    systemConfig->readOnly = false;
+    EXPECT_NO_THROW(createDBAndConn());
+
+    systemConfig->readOnly = true;
+    EXPECT_ANY_THROW(auto database2 = std::make_unique<Database>(databasePath, *systemConfig););
+}
+
+TEST_F(DBLockingTest, testWriteWriteInSameProcess) {
+    pid_t create_pid = fork();
+    if (create_pid == 0) {
+        systemConfig->readOnly = false;
+        EXPECT_NO_THROW(createDBAndConn());
+        ASSERT_TRUE(
+            conn->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
+                ->isSuccess());
+        ASSERT_TRUE(conn->query("CREATE (:Person {name: 'Alice', age: 25});")->isSuccess());
+        exit(0);
+    }
+    waitpid(create_pid, NULL, 0);
+
+    systemConfig->readOnly = false;
+    EXPECT_NO_THROW(createDBAndConn());
+
+    systemConfig->readOnly = false;
+    EXPECT_ANY_THROW(auto database2 = std::make_unique<Database>(databasePath, *systemConfig););
+}

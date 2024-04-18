@@ -150,6 +150,11 @@ public:
         return vfs->joinPath(directory, common::StorageConstants::LOCK_FILE_NAME);
     }
 
+    static inline std::string getLockInfoFilePath(common::VirtualFileSystem* vfs,
+        const std::string& directory) {
+        return vfs->joinPath(directory, common::StorageConstants::LOCK_FILE_INFO_NAME);
+    }
+
     // Note: This is a relatively slow function because of division and mod and making std::pair.
     // It is not meant to be used in performance critical code path.
     static inline std::pair<uint64_t, uint64_t> getQuotientRemainder(uint64_t i, uint64_t divisor) {

@@ -87,8 +87,8 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     initDBDirAndCoreFilesIfNecessary();
-    wal =
-        std::make_unique<WAL>(this->databasePath, systemConfig.readOnly, *bufferManager, vfs.get());
+    wal = std::make_unique<WAL>(this->databasePath, systemConfig.readOnly, *bufferManager,
+        vfs.get());
     recoverIfNecessary();
     catalog = std::make_unique<catalog::Catalog>(wal.get(), vfs.get());
     storageManager = std::make_unique<storage::StorageManager>(systemConfig.readOnly, *catalog,
@@ -96,9 +96,13 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     transactionManager = std::make_unique<transaction::TransactionManager>(*wal);
     extensionOptions = std::make_unique<extension::ExtensionOptions>();
     databaseManager = std::make_unique<DatabaseManager>();
+    //record file lock info until we can open a database successfully
+    recordLockInfo();
 }
 
 Database::~Database() {
+    // clear lock info
+    clearLockInfo();
     dropLoggers();
     bufferManager->clearEvictionQueue();
 }
@@ -150,6 +154,27 @@ void Database::openLockFile() {
     lockFile = vfs->openFile(lockFilePath, flags, nullptr /* clientContext */, lock);
 }
 
+void Database::recordLockInfo(){
+    auto lockFilePath = StorageUtils::getLockInfoFilePath(vfs.get(), databasePath);
+    int flags = O_RDWR;
+    if(!vfs->fileOrPathExists(lockFilePath)) flags |= O_CREAT;
+    auto lock = systemConfig.readOnly ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;
+    vfs->recordLockInfo(lockFilePath, flags, lock);
+}
+
+void Database::checkLockInfoInSameProcess(){
+    auto lockFilePath = StorageUtils::getLockInfoFilePath(vfs.get(), databasePath);
+    if(!vfs->fileOrPathExists(lockFilePath)) return;
+    auto lock = systemConfig.readOnly ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;
+    vfs->checkLockInfoInSameProcess(lockFilePath, O_RDONLY, lock);
+}
+
+void Database::clearLockInfo(){
+    auto lockFilePath = StorageUtils::getLockInfoFilePath(vfs.get(), databasePath);
+    if(!vfs->fileOrPathExists(lockFilePath)) return;
+    vfs->deleteCurrentPidLockInfo(lockFilePath,O_RDWR);
+}
+
 void Database::initDBDirAndCoreFilesIfNecessary() {
     if (!vfs->fileOrPathExists(databasePath)) {
         if (systemConfig.readOnly) {
@@ -158,6 +183,7 @@ void Database::initDBDirAndCoreFilesIfNecessary() {
         vfs->createDir(databasePath);
     }
     openLockFile();
+    checkLockInfoInSameProcess();
     if (!vfs->fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs.get(),
             databasePath, FileVersionType::ORIGINAL))) {
         NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(vfs.get(),

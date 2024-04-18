@@ -34,6 +34,13 @@ public:
 
     void syncFile(const FileInfo& fileInfo) const override;
 
+    void recordLockInfo(const std::string & path, int flags, FileLockType lockType);
+
+    void checkLockInfoInSameProcess(std::string& fullPath, int flags,
+        FileLockType tryLockType);
+
+    void deleteCurrentPidLockInfo(std::string& path, int flags);
+
 protected:
     void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const override;
