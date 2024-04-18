@@ -69,7 +69,7 @@ public:
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
 
     // Scan from [startOffsetInGroup, endOffsetInGroup).
-    virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    virtual void scan(transaction::Transaction* transaction, ReadState& readState,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector);
     // Scan from [startOffsetInGroup, endOffsetInGroup).
@@ -249,10 +249,10 @@ public:
         populateCommonTableID(resultVector);
     }
 
-    inline void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    inline void scan(transaction::Transaction* transaction, ReadState& readState,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) override {
-        Column::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
+        Column::scan(transaction, readState, startOffsetInGroup, endOffsetInGroup, resultVector,
             offsetInVector);
         populateCommonTableID(resultVector);
     }

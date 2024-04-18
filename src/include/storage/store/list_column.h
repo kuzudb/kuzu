@@ -44,13 +44,18 @@ struct ListOffsetSizeInfo {
 class ListColumn final : public Column {
     friend class ListLocalColumn;
 
+    static constexpr common::vector_idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
+    static constexpr common::vector_idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
+
 public:
     ListColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);
 
-    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    void initReadState(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        common::offset_t startOffsetInChunk, ReadState& columnReadState) override;
+    void scan(transaction::Transaction* transaction, ReadState& readState,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
 
@@ -71,21 +76,19 @@ protected:
     void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
 
 private:
-    void scanUnfiltered(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::ValueVector* resultVector,
-        const ListOffsetSizeInfo& listOffsetInfoInStorage);
-    void scanFiltered(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    void scanUnfiltered(transaction::Transaction* transaction, ReadState& readState,
+        common::ValueVector* resultVector, const ListOffsetSizeInfo& listOffsetInfoInStorage);
+    void scanFiltered(transaction::Transaction* transaction, ReadState& readState,
         common::ValueVector* offsetVector, const ListOffsetSizeInfo& listOffsetInfoInStorage);
 
     void prepareCommit() override;
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
-    common::offset_t readOffset(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup);
-
-    common::list_size_t readSize(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup);
+    common::offset_t readOffset(transaction::Transaction* transaction, const ReadState& readState,
+        common::offset_t offsetInNodeGroup);
+    common::list_size_t readSize(transaction::Transaction* transaction, const ReadState& readState,
+        common::offset_t offsetInNodeGroup);
 
     ListOffsetSizeInfo getListOffsetSizeInfo(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInNodeGroup,

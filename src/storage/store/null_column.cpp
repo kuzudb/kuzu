@@ -54,11 +54,11 @@ void NullColumn::scan(Transaction* transaction, ReadState& readState, ValueVecto
     }
 }
 
-void NullColumn::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void NullColumn::scan(transaction::Transaction* transaction, ReadState& readState,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
     if (propertyStatistics.mayHaveNull(*transaction)) {
-        Column::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
+        Column::scan(transaction, readState, startOffsetInGroup, endOffsetInGroup, resultVector,
             offsetInVector);
     } else {
         resultVector->setNullRange(offsetInVector, endOffsetInGroup - startOffsetInGroup,

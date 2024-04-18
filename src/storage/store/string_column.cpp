@@ -25,13 +25,10 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
       dictionary{name, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction, stats,
           enableCompression} {}
 
-void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) {
-    nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
-        offsetInVector);
-    auto readState = getReadState(transaction->getType(), nodeGroupIdx);
-    readState.nodeGroupIdx = nodeGroupIdx;
+void StringColumn::scan(Transaction* transaction, ReadState& readState, offset_t startOffsetInGroup,
+    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) {
+    nullColumn->scan(transaction, *readState.nullState, startOffsetInGroup, endOffsetInGroup,
+        resultVector, offsetInVector);
     scanUnfiltered(transaction, readState, startOffsetInGroup,
         endOffsetInGroup - startOffsetInGroup, resultVector, offsetInVector);
 }
