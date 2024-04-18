@@ -36,6 +36,8 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
         return LogicalType(LogicalTypeID::INT64);
     case 'L':
         return LogicalType(LogicalTypeID::UINT64);
+    case 'e':
+        throw NotImplementedException("16 bit floats are not supported");
     case 'f':
         return LogicalType(LogicalTypeID::FLOAT);
     case 'g':
