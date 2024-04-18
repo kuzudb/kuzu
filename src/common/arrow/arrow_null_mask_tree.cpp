@@ -167,8 +167,8 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                 for (auto i = 0u; i < count; i++) {
                     int32_t curOffset = offsets[i + srcOffset];
                     int8_t curType = types[i + srcOffset];
-                    mask->setNull(i, children->operator[](curType).isNull(
-                        curOffset - lowestOffsets[curType]));
+                    mask->setNull(i,
+                        children->operator[](curType).isNull(curOffset - lowestOffsets[curType]));
                 }
             } else {
                 for (int64_t i = 0; i < array->n_children; i++) {

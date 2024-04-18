@@ -246,10 +246,11 @@ static void scanArrowArrayDenseUnion(const ArrowSchema* schema, const ArrowArray
         }
         if (!mask->isNull(i)) {
             dstTypes[i] = curType;
-            auto childOffset = mask->getChild(curType)->offsetBy(curOffset - firstIncident[curType]);
+            auto childOffset =
+                mask->getChild(curType)->offsetBy(curOffset - firstIncident[curType]);
             ArrowConverter::fromArrowArray(schema->children[curType], array->children[curType],
-                *UnionVector::getValVector(&outputVector, curType),
-                &childOffset, curOffset + array->children[curType]->offset, i + dstOffset, 1);
+                *UnionVector::getValVector(&outputVector, curType), &childOffset,
+                curOffset + array->children[curType]->offset, i + dstOffset, 1);
             // may be inefficient, since we're only scanning a single value
         }
     }
