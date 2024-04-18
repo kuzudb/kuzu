@@ -21,10 +21,10 @@ namespace processor {
 
 using std::stringstream;
 
-static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ss_string,
+static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString,
     const std::string& path) {
     auto fileInfo = vfs->openFile(path, O_WRONLY | O_CREAT);
-    fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ss_string.c_str()), ss_string.size(),
+    fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ssString.c_str()), ssString.size(),
         0 /* offset */);
 }
 
