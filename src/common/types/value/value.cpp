@@ -10,10 +10,66 @@
 #include "common/types/blob.h"
 #include "common/types/ku_string.h"
 #include "common/types/uuid.h"
+#include "function/hash/hash_functions.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace common {
+
+bool Value::operator==(const Value& rhs) const {
+    if (*dataType != *rhs.dataType || isNull_ != rhs.isNull_) {
+        return false;
+    }
+    switch (dataType->getPhysicalType()) {
+    case PhysicalTypeID::BOOL:
+        return val.booleanVal == rhs.val.booleanVal;
+    case PhysicalTypeID::INT128:
+        return val.int128Val == rhs.val.int128Val;
+    case PhysicalTypeID::INT64:
+        return val.int64Val == rhs.val.int64Val;
+    case PhysicalTypeID::INT32:
+        return val.int32Val == rhs.val.int32Val;
+    case PhysicalTypeID::INT16:
+        return val.int16Val == rhs.val.int16Val;
+    case PhysicalTypeID::INT8:
+        return val.int8Val == rhs.val.int8Val;
+    case PhysicalTypeID::UINT64:
+        return val.uint64Val == rhs.val.uint64Val;
+    case PhysicalTypeID::UINT32:
+        return val.uint32Val == rhs.val.uint32Val;
+    case PhysicalTypeID::UINT16:
+        return val.uint16Val == rhs.val.uint16Val;
+    case PhysicalTypeID::UINT8:
+        return val.uint8Val == rhs.val.uint8Val;
+    case PhysicalTypeID::DOUBLE:
+        return val.doubleVal == rhs.val.doubleVal;
+    case PhysicalTypeID::FLOAT:
+        return val.floatVal == rhs.val.floatVal;
+    case PhysicalTypeID::POINTER:
+        return val.pointer == rhs.val.pointer;
+    case PhysicalTypeID::INTERVAL:
+        return val.intervalVal == rhs.val.intervalVal;
+    case PhysicalTypeID::INTERNAL_ID:
+        return val.internalIDVal == rhs.val.internalIDVal;
+    case PhysicalTypeID::STRING:
+        return strVal == rhs.strVal;
+    case PhysicalTypeID::ARRAY:
+    case PhysicalTypeID::LIST:
+    case PhysicalTypeID::STRUCT: {
+        if (childrenSize != rhs.childrenSize) {
+            return false;
+        }
+        for (auto i = 0u; i < childrenSize; ++i) {
+            if (*children[i] != *rhs.children[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    default:
+        KU_UNREACHABLE;
+    }
+}
 
 void Value::setDataType(const LogicalType& dataType_) {
     KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::ANY);
@@ -269,7 +325,7 @@ Value::Value(const Value& other) : isNull_{other.isNull_} {
     childrenSize = other.childrenSize;
 }
 
-void Value::copyValueFrom(const uint8_t* value) {
+void Value::copyFromRowLayout(const uint8_t* value) {
     switch (dataType->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::TIMESTAMP_NS:
@@ -332,10 +388,10 @@ void Value::copyValueFrom(const uint8_t* value) {
     } break;
     case LogicalTypeID::MAP:
     case LogicalTypeID::LIST: {
-        copyFromList(*(ku_list_t*)value, *ListType::getChildType(dataType.get()));
+        copyFromRowLayoutList(*(ku_list_t*)value, *ListType::getChildType(dataType.get()));
     } break;
     case LogicalTypeID::ARRAY: {
-        copyFromList(*(ku_list_t*)value, *ArrayType::getChildType(dataType.get()));
+        copyFromRowLayoutList(*(ku_list_t*)value, *ArrayType::getChildType(dataType.get()));
     } break;
     case LogicalTypeID::UNION: {
         copyFromUnion(value);
@@ -345,10 +401,66 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::RDF_VARIANT: {
-        copyFromStruct(value);
+        copyFromRowLayoutStruct(value);
     } break;
     case LogicalTypeID::POINTER: {
         val.pointer = *((uint8_t**)value);
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+void Value::copyFromColLayout(const uint8_t* value, ValueVector* vector) {
+    switch (dataType->getPhysicalType()) {
+    case PhysicalTypeID::INT64: {
+        val.int64Val = *((int64_t*)value);
+    } break;
+    case PhysicalTypeID::INT32: {
+        val.int32Val = *((int32_t*)value);
+    } break;
+    case PhysicalTypeID::INT16: {
+        val.int16Val = *((int16_t*)value);
+    } break;
+    case PhysicalTypeID::INT8: {
+        val.int8Val = *((int8_t*)value);
+    } break;
+    case PhysicalTypeID::UINT64: {
+        val.uint64Val = *((uint64_t*)value);
+    } break;
+    case PhysicalTypeID::UINT32: {
+        val.uint32Val = *((uint32_t*)value);
+    } break;
+    case PhysicalTypeID::UINT16: {
+        val.uint16Val = *((uint16_t*)value);
+    } break;
+    case PhysicalTypeID::UINT8: {
+        val.uint8Val = *((uint8_t*)value);
+    } break;
+    case PhysicalTypeID::INT128: {
+        val.int128Val = *((int128_t*)value);
+    } break;
+    case PhysicalTypeID::BOOL: {
+        val.booleanVal = *((bool*)value);
+    } break;
+    case PhysicalTypeID::DOUBLE: {
+        val.doubleVal = *((double*)value);
+    } break;
+    case PhysicalTypeID::FLOAT: {
+        val.floatVal = *((float*)value);
+    } break;
+    case PhysicalTypeID::INTERVAL: {
+        val.intervalVal = *((interval_t*)value);
+    } break;
+    case PhysicalTypeID::STRING: {
+        strVal = ((ku_string_t*)value)->getAsString();
+    } break;
+    case PhysicalTypeID::ARRAY:
+    case PhysicalTypeID::LIST: {
+        copyFromColLayoutList(*(list_entry_t*)value, vector);
+    } break;
+    case PhysicalTypeID::STRUCT: {
+        copyFromColLayoutStruct(*(struct_entry_t*)value, vector);
     } break;
     default:
         KU_UNREACHABLE;
@@ -514,14 +626,18 @@ Value::Value(const LogicalType& dataType_) : isNull_{true} {
     dataType = dataType_.copy();
 }
 
-void Value::copyFromList(ku_list_t& list, const LogicalType& childType) {
-    if (list.size > children.size()) {
-        children.reserve(list.size);
-        for (auto i = children.size(); i < list.size; ++i) {
+void Value::resizeChildrenVector(uint64_t size, const LogicalType& childType) {
+    if (size > children.size()) {
+        children.reserve(size);
+        for (auto i = children.size(); i < size; ++i) {
             children.push_back(std::make_unique<Value>(createDefaultValue(childType)));
         }
     }
-    childrenSize = list.size;
+    childrenSize = size;
+}
+
+void Value::copyFromRowLayoutList(const ku_list_t& list, const LogicalType& childType) {
+    resizeChildrenVector(list.size, childType);
     auto numBytesPerElement = storage::StorageUtils::getDataTypeSize(childType);
     auto listNullBytes = reinterpret_cast<uint8_t*>(list.overflowPtr);
     auto numBytesForNullValues = NullBuffer::getNumBytesForNullValues(list.size);
@@ -532,13 +648,26 @@ void Value::copyFromList(ku_list_t& list, const LogicalType& childType) {
             childValue->setNull(true);
         } else {
             childValue->setNull(false);
-            childValue->copyValueFrom(listValues);
+            childValue->copyFromRowLayout(listValues);
         }
         listValues += numBytesPerElement;
     }
 }
 
-void Value::copyFromStruct(const uint8_t* kuStruct) {
+void Value::copyFromColLayoutList(const list_entry_t& listEntry, ValueVector* vec) {
+    auto dataVec = ListVector::getDataVector(vec);
+    resizeChildrenVector(listEntry.size, dataVec->dataType);
+    for (auto i = 0u; i < listEntry.size; i++) {
+        auto childValue = children[i].get();
+        childValue->setNull(dataVec->isNull(listEntry.offset + i));
+        if (!childValue->isNull()) {
+            childValue->copyFromColLayout(ListVector::getListValuesWithOffset(vec, listEntry, i),
+                dataVec);
+        }
+    }
+}
+
+void Value::copyFromRowLayoutStruct(const uint8_t* kuStruct) {
     auto numFields = childrenSize;
     auto structNullValues = kuStruct;
     auto structValues = structNullValues + NullBuffer::getNumBytesForNullValues(numFields);
@@ -548,9 +677,21 @@ void Value::copyFromStruct(const uint8_t* kuStruct) {
             childValue->setNull(true);
         } else {
             childValue->setNull(false);
-            childValue->copyValueFrom(structValues);
+            childValue->copyFromRowLayout(structValues);
         }
         structValues += storage::StorageUtils::getDataTypeSize(*childValue->dataType);
+    }
+}
+
+void Value::copyFromColLayoutStruct(const struct_entry_t& structEntry, ValueVector* vec) {
+    for (auto i = 0u; i < childrenSize; i++) {
+        children[i]->setNull(StructVector::getFieldVector(vec, i)->isNull(structEntry.pos));
+        if (!children[i]->isNull()) {
+            auto fieldVector = StructVector::getFieldVector(vec, i);
+            children[i]->copyFromColLayout(fieldVector->getData() +
+                                               fieldVector->getNumBytesPerValue() * structEntry.pos,
+                fieldVector.get());
+        }
     }
 }
 
@@ -573,7 +714,7 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
         childValue->setNull(true);
     } else {
         childValue->setNull(false);
-        childValue->copyValueFrom(unionValues);
+        childValue->copyFromRowLayout(unionValues);
     }
 }
 
@@ -711,6 +852,72 @@ void Value::validateType(LogicalTypeID targetTypeID) const {
     }
     throw BinderException(stringFormat("{} has data type {} but {} was expected.", toString(),
         dataType->toString(), LogicalTypeUtils::toString(targetTypeID)));
+}
+
+uint64_t Value::computeHash() const {
+    if (isNull_) {
+        return function::NULL_HASH;
+    }
+    hash_t hashValue;
+    switch (dataType->getPhysicalType()) {
+    case PhysicalTypeID::BOOL: {
+        function::Hash::operation(val.booleanVal, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::INT128: {
+        function::Hash::operation(val.int128Val, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::INT64: {
+        function::Hash::operation(val.int64Val, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::INT32: {
+        function::Hash::operation(val.int32Val, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::INT16: {
+        function::Hash::operation(val.int16Val, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::INT8: {
+        function::Hash::operation(val.int8Val, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::UINT64: {
+        function::Hash::operation(val.uint64Val, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::UINT32: {
+        function::Hash::operation(val.uint32Val, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::UINT16: {
+        function::Hash::operation(val.uint16Val, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::UINT8: {
+        function::Hash::operation(val.uint8Val, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::DOUBLE: {
+        function::Hash::operation(val.doubleVal, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::FLOAT: {
+        function::Hash::operation(val.floatVal, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::INTERVAL: {
+        function::Hash::operation(val.intervalVal, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        function::Hash::operation(val.internalIDVal, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::STRING: {
+        function::Hash::operation(strVal, hashValue, nullptr);
+    } break;
+    case PhysicalTypeID::ARRAY:
+    case PhysicalTypeID::LIST:
+    case PhysicalTypeID::STRUCT: {
+        hashValue = children[0]->computeHash();
+        for (auto i = 1u; i < childrenSize; i++) {
+            hashValue = function::combineHashScalar(hashValue, children[i]->computeHash());
+        }
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+    return hashValue;
 }
 
 std::string Value::rdfVariantToString() const {

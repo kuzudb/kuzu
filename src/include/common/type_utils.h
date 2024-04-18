@@ -25,6 +25,9 @@ struct overload : Funcs... {
 
 class TypeUtils {
 public:
+    static std::string entryToString(const LogicalType& dataType, const uint8_t* value,
+        ValueVector* vector);
+
     template<typename T>
     static inline std::string toString(const T& val, void* /*valueVector*/ = nullptr) {
         static_assert(std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value ||

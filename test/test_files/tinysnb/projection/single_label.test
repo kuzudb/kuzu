@@ -577,6 +577,96 @@ Dan|Carol
 ---- 1
 {Alice=20, Bob=34, Carol=50, Dan=22}
 
+-LOG DuplicateMapBoolKey
+-STATEMENT RETURN map([true, false, true], [20, 34, 50]);
+---- error
+Runtime exception: Found duplicate key: True in map.
+
+-LOG DuplicateMapInt128Key
+-STATEMENT RETURN map([cast(5, 'int128'), cast(32, 'int128'), cast(5, 'int128')], [20, 34, 50]);
+---- error
+Runtime exception: Found duplicate key: 5 in map.
+
+-LOG DuplicateMapInt64Key
+-STATEMENT RETURN map([cast(5, 'int64'), cast(32, 'int64'), cast(8, 'int64'), cast(32, 'int64')], [20, 34, 50, 70]);
+---- error
+Runtime exception: Found duplicate key: 32 in map.
+
+-LOG DuplicateMapInt32Key
+-STATEMENT RETURN map([cast(5, 'int32'), cast(32, 'int32'), cast(5, 'int32')], [20, 34, 50]);
+---- error
+Runtime exception: Found duplicate key: 5 in map.
+
+-LOG DuplicateMapInt16Key
+-STATEMENT RETURN map([cast(21, 'int16'), cast(4, 'int16'), cast(4, 'int16')], [20, 34, 50]);
+---- error
+Runtime exception: Found duplicate key: 4 in map.
+
+-LOG DuplicateMapInt8Key
+-STATEMENT RETURN map([cast(3, 'int8'), cast(3, 'int8'), cast(2, 'int8')], [20, 34, 50]);
+---- error
+Runtime exception: Found duplicate key: 3 in map.
+
+-LOG DuplicateMapUint64Key
+-STATEMENT RETURN map([cast(100, 'uint64'), cast(100, 'uint64')], [20, 20]);
+---- error
+Runtime exception: Found duplicate key: 100 in map.
+
+-LOG DuplicateMapUint32Key
+-STATEMENT RETURN map([cast(29, 'uint32'), cast(29, 'uint32')], [70, 90]);
+---- error
+Runtime exception: Found duplicate key: 29 in map.
+
+-LOG DuplicateMapUint16Key
+-STATEMENT RETURN map([cast(22, 'uint16'), cast(22, 'uint16'), cast(22, 'uint16')], [20, 34, 50]);
+---- error
+Runtime exception: Found duplicate key: 22 in map.
+
+-LOG DuplicateMapUint8Key
+-STATEMENT RETURN map([cast(3, 'uint8'), cast(3, 'uint8'), cast(2, 'uint8')], [20, 34, 50]);
+---- error
+Runtime exception: Found duplicate key: 3 in map.
+
+-LOG DuplicateMapDoubleKey
+-STATEMENT RETURN map([cast(2.75, 'double'), cast(3.2, 'double'), cast(3.2, 'double')], [20, 34, 50]);
+---- error
+Runtime exception: Found duplicate key: 3.200000 in map.
+
+-LOG DuplicateMapFloatKey
+-STATEMENT RETURN map([cast(3.67, 'float'), cast(3.67, 'float'), cast(2, 'float')], [20, 34, 50]);
+---- error
+Runtime exception: Found duplicate key: 3.670000 in map.
+
+-LOG DuplicateMapIntervalKey
+-STATEMENT RETURN map([cast('2 hours 5 minutes', 'interval'), cast('3 hours 20 hours', 'interval'), cast('3 hours 20 hours', 'interval')], [20, 34, 23]);
+---- error
+Runtime exception: Found duplicate key: 23:00:00 in map.
+
+-LOG DuplicateMapStringKey
+-STATEMENT RETURN map(['kuzu', 'kuzuinc', 'kuzucorp', 'kuzu'], [20, 34, 50, 32]);
+---- error
+Runtime exception: Found duplicate key: kuzu in map.
+
+-LOG DuplicateMapArrayKey
+-STATEMENT RETURN map([cast([3,2,1], 'int64[3]'), cast([3,2,1], 'int64[3]')], [20, 34]);
+---- error
+Runtime exception: Found duplicate key: [3,2,1] in map.
+
+-LOG DuplicateMapListKey
+-STATEMENT RETURN map([[7,8,25,1], [7,8,25], [8,25,1], [7,8,25,1]], [20, 34, 24, 77]);
+---- error
+Runtime exception: Found duplicate key: [7,8,25,1] in map.
+
+-LOG DuplicateMapStructKey
+-STATEMENT RETURN map([{a: 5, b: 3}, {a: 5, b: 4}, {a: 5, b: 3}], [20, 34, 24]);
+---- error
+Runtime exception: Found duplicate key: {a: 5, b: 3} in map.
+
+-LOG DuplicateMapKeyProperty
+-STATEMENT MATCH (p:person) RETURN map([p.ID, p.ID], [p.age, p.age]);
+---- error
+Runtime exception: Found duplicate key: 0 in map.
+
 -LOG ReturnMapLiteralWithProp
 -STATEMENT MATCH (p:person) RETURN map([p.ID, p.age], [p.fName, p.fName]);
 ---- 8

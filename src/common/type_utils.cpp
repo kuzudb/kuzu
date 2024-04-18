@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace common {
 
-static std::string entryToString(const LogicalType& dataType, const uint8_t* value,
+std::string TypeUtils::entryToString(const LogicalType& dataType, const uint8_t* value,
     ValueVector* vector) {
     auto valueVector = reinterpret_cast<ValueVector*>(vector);
     switch (dataType.getLogicalTypeID()) {
@@ -72,12 +72,12 @@ static std::string entryToString(const LogicalType& dataType, const uint8_t* val
     }
 }
 
-static std::string entryToString(sel_t pos, ValueVector* vector) {
+static std::string entryToStringWithPos(sel_t pos, ValueVector* vector) {
     if (vector->isNull(pos)) {
         return "";
     }
-    return entryToString(vector->dataType, vector->getData() + vector->getNumBytesPerValue() * pos,
-        vector);
+    return TypeUtils::entryToString(vector->dataType,
+        vector->getData() + vector->getNumBytesPerValue() * pos, vector);
 }
 
 template<>
@@ -154,10 +154,10 @@ std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {
     std::string result = "[";
     auto dataVector = ListVector::getDataVector(listVector);
     for (auto i = 0u; i < val.size - 1; ++i) {
-        result += entryToString(val.offset + i, dataVector);
+        result += entryToStringWithPos(val.offset + i, dataVector);
         result += ",";
     }
-    result += entryToString(val.offset + val.size - 1, dataVector);
+    result += entryToStringWithPos(val.offset + val.size - 1, dataVector);
     result += "]";
     return result;
 }
@@ -167,7 +167,7 @@ static std::string getMapEntryStr(sel_t pos, ValueVector* dataVector, ValueVecto
     if (dataVector->isNull(pos)) {
         return "";
     }
-    return entryToString(pos, keyVector) + "=" + entryToString(pos, valVector);
+    return entryToStringWithPos(pos, keyVector) + "=" + entryToStringWithPos(pos, valVector);
 }
 
 template<>
@@ -211,7 +211,7 @@ static std::string structToString(const struct_entry_t& val, ValueVector* vector
         }
         result += StructType::getField(&vector->dataType, i)->getName();
         result += ": ";
-        result += entryToString(val.pos, fieldVector.get());
+        result += entryToStringWithPos(val.pos, fieldVector.get());
     }
     auto fieldVector = StructVector::getFieldVector(vector, i);
     if constexpr (SKIP_NULL_ENTRY) {
@@ -225,7 +225,7 @@ static std::string structToString(const struct_entry_t& val, ValueVector* vector
     }
     result += StructType::getField(&vector->dataType, i)->getName();
     result += ": ";
-    result += entryToString(val.pos, fieldVector.get());
+    result += entryToStringWithPos(val.pos, fieldVector.get());
     result += "}";
     return result;
 }
@@ -257,7 +257,7 @@ std::string TypeUtils::toString(const union_entry_t& val, void* valVector) {
     auto unionFieldIdx =
         UnionVector::getTagVector(structVector)->getValue<union_field_idx_t>(val.entry.pos);
     auto unionFieldVector = UnionVector::getValVector(structVector, unionFieldIdx);
-    return entryToString(val.entry.pos, unionFieldVector);
+    return entryToStringWithPos(val.entry.pos, unionFieldVector);
 }
 
 } // namespace common

@@ -164,6 +164,7 @@ public:
      */
     KUZU_API Value(Value&& other) = default;
     KUZU_API Value& operator=(Value&& other) = default;
+    KUZU_API bool operator==(const Value& rhs) const;
 
     /**
      * @brief Sets the data type of the Value.
@@ -188,10 +189,15 @@ public:
      */
     KUZU_API bool isNull() const;
     /**
-     * @brief Copies from the value.
+     * @brief Copies from the row layout value.
      * @param value value to copy from.
      */
-    KUZU_API void copyValueFrom(const uint8_t* value);
+    KUZU_API void copyFromRowLayout(const uint8_t* value);
+    /**
+     * @brief Copies from the col layout value.
+     * @param value value to copy from.
+     */
+    KUZU_API void copyFromColLayout(const uint8_t* value, ValueVector* vec = nullptr);
     /**
      * @brief Copies from the other.
      * @param other value to copy from.
@@ -234,12 +240,17 @@ public:
 
     void validateType(common::LogicalTypeID targetTypeID) const;
 
+    uint64_t computeHash() const;
+
 private:
     Value();
     explicit Value(const LogicalType& dataType);
 
-    void copyFromList(ku_list_t& list, const LogicalType& childType);
-    void copyFromStruct(const uint8_t* kuStruct);
+    void resizeChildrenVector(uint64_t size, const LogicalType& childType);
+    void copyFromRowLayoutList(const ku_list_t& list, const LogicalType& childType);
+    void copyFromColLayoutList(const list_entry_t& list, ValueVector* vec);
+    void copyFromRowLayoutStruct(const uint8_t* kuStruct);
+    void copyFromColLayoutStruct(const struct_entry_t& structEntry, ValueVector* vec);
     void copyFromUnion(const uint8_t* kuUnion);
 
     std::string rdfVariantToString() const;
@@ -275,8 +286,9 @@ private:
     std::unique_ptr<LogicalType> dataType;
     bool isNull_;
 
-    // Note: ALWAYS use childrenSize over children.size(). We do NOT resize children when iterating
-    // with nested value. So children.size() reflects the capacity() rather the actual size.
+    // Note: ALWAYS use childrenSize over children.size(). We do NOT resize children when
+    // iterating with nested value. So children.size() reflects the capacity() rather the actual
+    // size.
     std::vector<std::unique_ptr<Value>> children;
     uint32_t childrenSize;
 };
