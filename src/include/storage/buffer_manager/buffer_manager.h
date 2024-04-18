@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <vector>
 
 #include "storage/buffer_manager/bm_file_handle.h"
