@@ -1,6 +1,5 @@
 #include "common/arrow/arrow_converter.h"
 #include "common/exception/not_implemented.h"
-#include "common/exception/runtime.h"
 
 namespace kuzu {
 namespace common {
