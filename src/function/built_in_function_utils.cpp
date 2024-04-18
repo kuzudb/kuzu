@@ -148,6 +148,7 @@ uint32_t BuiltInFunctionsUtils::getCastCost(LogicalTypeID inputTypeID, LogicalTy
     case LogicalTypeID::TIMESTAMP_NS:
     case LogicalTypeID::TIMESTAMP_TZ:
         // currently don't allow timestamp to other timestamp types
+        // When we implement this in the future, revise tryGetMaxLogicalTypeID
         return castTimestamp(targetTypeID);
     default:
         return UNDEFINED_CAST_COST;
@@ -156,6 +157,7 @@ uint32_t BuiltInFunctionsUtils::getCastCost(LogicalTypeID inputTypeID, LogicalTy
 
 uint32_t BuiltInFunctionsUtils::getTargetTypeCost(LogicalTypeID typeID) {
     switch (typeID) {
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
         return 101;
     case LogicalTypeID::INT32:
@@ -187,6 +189,8 @@ uint32_t BuiltInFunctionsUtils::castInt64(LogicalTypeID targetTypeID) {
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
+    case LogicalTypeID::SERIAL:
+        return 0;
     default:
         return UNDEFINED_CAST_COST;
     }
@@ -194,6 +198,7 @@ uint32_t BuiltInFunctionsUtils::castInt64(LogicalTypeID targetTypeID) {
 
 uint32_t BuiltInFunctionsUtils::castInt32(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT128:
     case LogicalTypeID::FLOAT:
@@ -206,6 +211,7 @@ uint32_t BuiltInFunctionsUtils::castInt32(LogicalTypeID targetTypeID) {
 
 uint32_t BuiltInFunctionsUtils::castInt16(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT128:
@@ -219,6 +225,7 @@ uint32_t BuiltInFunctionsUtils::castInt16(LogicalTypeID targetTypeID) {
 
 uint32_t BuiltInFunctionsUtils::castInt8(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT16:
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT64:
@@ -244,6 +251,7 @@ uint32_t BuiltInFunctionsUtils::castUInt64(LogicalTypeID targetTypeID) {
 
 uint32_t BuiltInFunctionsUtils::castUInt32(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT128:
     case LogicalTypeID::UINT64:
@@ -258,6 +266,7 @@ uint32_t BuiltInFunctionsUtils::castUInt32(LogicalTypeID targetTypeID) {
 uint32_t BuiltInFunctionsUtils::castUInt16(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     case LogicalTypeID::INT32:
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT128:
     case LogicalTypeID::UINT32:
@@ -274,6 +283,7 @@ uint32_t BuiltInFunctionsUtils::castUInt8(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     case LogicalTypeID::INT16:
     case LogicalTypeID::INT32:
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT128:
     case LogicalTypeID::UINT16:
