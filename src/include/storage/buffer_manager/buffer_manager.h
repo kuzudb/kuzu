@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <vector>
 
 #include "storage/buffer_manager/bm_file_handle.h"
@@ -212,7 +211,7 @@ private:
 
     inline uint64_t reserveUsedMemory(uint64_t size) { return usedMemory.fetch_add(size); }
     inline uint64_t freeUsedMemory(uint64_t size) {
-        //        KU_ASSERT(usedMemory.load() >= size);
+        KU_ASSERT(usedMemory.load() >= size);
         return usedMemory.fetch_sub(size);
     }
 

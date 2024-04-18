@@ -226,6 +226,9 @@ template<typename T>
 void HashIndex<T>::deleteFromPersistentIndex(Key key) {
     auto trxType = TransactionType::WRITE;
     auto header = *this->indexHeaderForWriteTrx;
+    if (header.numEntries == 0) {
+        return;
+    }
     auto hashValue = HashIndexUtils::hash(key);
     auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
     auto iter =
@@ -615,10 +618,7 @@ void PrimaryKeyIndex::delete_(ValueVector* keyVector) {
                     continue;
                 }
                 auto key = keyVector->getValue<T>(pos);
-                common::offset_t result;
-                if (lookup(Transaction::getDummyReadOnlyTrx().get(), keyVector, pos, result)) {
-                    delete_(key);
-                }
+                delete_(key);
             }
         },
         [](auto) { KU_UNREACHABLE; });
