@@ -1752,6 +1752,18 @@ True
 [{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}},{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}]
 [{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}},{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}]
 
+-LOG ListDistinctWithUUID
+-STATEMENT MATCH (p:person) RETURN list_distinct([p.u, p.u, cast('a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14', "uuid")])
+---- 8
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+
 -LOG ListDistinctWithInt8
 -STATEMENT Return list_unique([to_int8(1), to_int8(1), NULL, to_int8(-3), to_int8(1), to_int8(5)]);
 ---- 1
@@ -1910,6 +1922,18 @@ True
 2|1
 2|4
 1|6
+
+-LOG ListUniqueWithUUID
+-STATEMENT MATCH (p:person) RETURN list_unique([p.u, p.u, cast('A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11', 'uuid')]), p.ID;
+---- 8
+1|0
+2|10
+2|2
+2|3
+2|5
+2|7
+2|8
+2|9
 
 -LOG ListAnyValueWithInt8
 -STATEMENT Return list_any_value([NULL, to_int8(1), to_int8(1), NULL, to_int8(-3), to_int8(1), to_int8(5)]);
