@@ -38,14 +38,15 @@ std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZ
             reinterpret_cast<uint8_t*>(buffer), size);
     }
     page_idx_t pageIdx;
-    std::unique_lock<std::mutex> lock(allocatorLock);
-    if (freePages.empty()) {
-        pageIdx = fh->addNewPage();
-    } else {
-        pageIdx = freePages.top();
-        freePages.pop();
+    {
+        std::scoped_lock<std::mutex> lock(allocatorLock);
+        if (freePages.empty()) {
+            pageIdx = fh->addNewPage();
+        } else {
+            pageIdx = freePages.top();
+            freePages.pop();
+        }
     }
-    lock.unlock();
     auto buffer = bm->pin(*fh, pageIdx, BufferManager::PageReadPolicy::DONT_READ_PAGE);
     auto memoryBuffer = std::make_unique<MemoryBuffer>(this, pageIdx, buffer);
     if (initializeToZero) {
