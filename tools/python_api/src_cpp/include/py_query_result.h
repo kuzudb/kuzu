@@ -24,6 +24,10 @@ public:
 
     py::list getNext();
 
+    bool hasNextQueryResult();
+
+    std::unique_ptr<PyQueryResult> getNextQueryResult();
+
     void close();
 
     static py::object convertValueToPyObject(const kuzu::common::Value& value);

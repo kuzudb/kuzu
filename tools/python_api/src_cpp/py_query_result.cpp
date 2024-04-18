@@ -16,13 +16,15 @@ using namespace kuzu::common;
 using kuzu::importCache;
 
 #define PyDateTimeTZ_FromDateAndTime(year, month, day, hour, min, sec, usec, timezone)             \
-    PyDateTimeAPI->DateTime_FromDateAndTime(year, month, day, hour, min, sec, usec, timezone,      \
-        PyDateTimeAPI->DateTimeType)
+    PyDateTimeAPI->DateTime_FromDateAndTime(                                                       \
+        year, month, day, hour, min, sec, usec, timezone, PyDateTimeAPI->DateTimeType)
 
 void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
         .def("hasNext", &PyQueryResult::hasNext)
         .def("getNext", &PyQueryResult::getNext)
+        .def("hasNextQueryResult", &PyQueryResult::hasNextQueryResult)
+        .def("getNextQueryResult", &PyQueryResult::getNextQueryResult)
         .def("close", &PyQueryResult::close)
         .def("getAsDF", &PyQueryResult::getAsDF)
         .def("getAsArrow", &PyQueryResult::getAsArrow)
@@ -51,6 +53,17 @@ py::list PyQueryResult::getNext() {
         result[i] = convertValueToPyObject(*tuple->getValue(i));
     }
     return result;
+}
+
+bool PyQueryResult::hasNextQueryResult() {
+    return queryResult->hasNextQueryResult();
+}
+
+std::unique_ptr<PyQueryResult> PyQueryResult::getNextQueryResult() {
+    auto nextQueryResult = queryResult->getNextQueryResult();
+    auto pyQueryResult = std::make_unique<PyQueryResult>();
+    pyQueryResult->queryResult.reset(nextQueryResult);
+    return pyQueryResult;
 }
 
 void PyQueryResult::close() {
@@ -127,8 +140,8 @@ py::object convertRdfVariantToPyObject(const Value& value) {
     case LogicalTypeID::INTERVAL: {
         auto intervalVal = RdfVariant::getValue<interval_t>(&value);
         auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
-        return py::cast<py::object>(importCache->datetime.timedelta()(py::arg("days") = days,
-            py::arg("microseconds") = intervalVal.micros));
+        return py::cast<py::object>(importCache->datetime.timedelta()(
+            py::arg("days") = days, py::arg("microseconds") = intervalVal.micros));
     }
     default: {
         KU_UNREACHABLE;
@@ -217,8 +230,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         Date::convert(date, year, month, day);
         Time::convert(time, hour, min, sec, micros);
 
-        return py::cast<py::object>(PyDateTimeTZ_FromDateAndTime(year, month, day, hour, min, sec,
-            micros, PyDateTime_TimeZone_UTC));
+        return py::cast<py::object>(PyDateTimeTZ_FromDateAndTime(
+            year, month, day, hour, min, sec, micros, PyDateTime_TimeZone_UTC));
     }
     case LogicalTypeID::TIMESTAMP_NS: {
         timestamp_t timestampVal =
@@ -239,8 +252,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         auto intervalVal = value.getValue<interval_t>();
         auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
 
-        return py::cast<py::object>(importCache->datetime.timedelta()(py::arg("days") = days,
-            py::arg("microseconds") = intervalVal.micros));
+        return py::cast<py::object>(importCache->datetime.timedelta()(
+            py::arg("days") = days, py::arg("microseconds") = intervalVal.micros));
     }
     case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY: {
