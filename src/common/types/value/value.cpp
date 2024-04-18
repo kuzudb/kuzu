@@ -661,8 +661,8 @@ void Value::copyFromColLayoutList(const list_entry_t& listEntry, ValueVector* ve
         auto childValue = children[i].get();
         childValue->setNull(dataVec->isNull(listEntry.offset + i));
         if (!childValue->isNull()) {
-            childValue->copyFromColLayout(
-                ListVector::getListValuesWithOffset(vec, listEntry, i), dataVec);
+            childValue->copyFromColLayout(ListVector::getListValuesWithOffset(vec, listEntry, i),
+                dataVec);
         }
     }
 }
@@ -688,8 +688,8 @@ void Value::copyFromColLayoutStruct(const struct_entry_t& structEntry, ValueVect
         children[i]->setNull(StructVector::getFieldVector(vec, i)->isNull(structEntry.pos));
         if (!children[i]->isNull()) {
             auto fieldVector = StructVector::getFieldVector(vec, i);
-            children[i]->copyFromColLayout(
-                fieldVector->getData() + fieldVector->getNumBytesPerValue() * structEntry.pos,
+            children[i]->copyFromColLayout(fieldVector->getData() +
+                                               fieldVector->getNumBytesPerValue() * structEntry.pos,
                 fieldVector.get());
         }
     }
