@@ -162,7 +162,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                 for (int64_t i = 0; i < array->n_children; i++) {
                     children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
                         lowestOffsets[i] + array->children[i]->offset,
-                        highestOffsets[i] - lowestOffsets[i]));
+                        highestOffsets[i] - lowestOffsets[i] + 1));
                 }
                 for (auto i = 0u; i < count; i++) {
                     int32_t curOffset = offsets[i + srcOffset];

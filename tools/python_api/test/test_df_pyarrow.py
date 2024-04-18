@@ -491,12 +491,16 @@ def test_pyarrow_union_sparse(conn_db_readonly : ConnDB) -> None:
     datalength = 4096
     index = pa.array(range(datalength))
     type_codes = pa.array([random.randint(0, 2) for i in range(datalength)], type=pa.int8())
-    arr1 = pa.array([generate_primitive("int32[pyarrow]") for i in range(datalength)], type=pa.int32())
-    arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength)])
-    arr3 = pa.array([generate_primitive('float32[pyarrow]') for j in range(datalength)])
-    col1 = pa.UnionArray.from_sparse(type_codes, [arr1, arr2, arr3])
-    df = pd.DataFrame({"index": arrowtopd(index), "col1": arrowtopd(col1)})
-    result = conn.execute("LOAD FROM df RETURN * ORDER BY index")
+    arr1 = pa.array([generate_primitive('int32[pyarrow]') for i in range(datalength + 1)], type=pa.int32())
+    arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength + 2)])
+    arr3 = pa.array([generate_primitive('float32[pyarrow]') for j in range(datalength + 3)])
+    col1 = pa.UnionArray.from_sparse(type_codes, [
+        arr1.slice(1, datalength), arr2.slice(2, datalength), arr3.slice(3, datalength)])
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1)
+    })
+    result = conn.execute('LOAD FROM df RETURN * ORDER BY index')
     idx = 0
     while result.has_next():
         assert idx < len(index)
@@ -520,10 +524,11 @@ def test_pyarrow_union_dense(conn_db_readonly : ConnDB) -> None:
         _offsets[i] = _cnt[_type_codes[i]]
         _cnt[_type_codes[i]] += 1
     offsets = pa.array(_offsets, type=pa.int32())
-    arr1 = pa.array([generate_primitive('int32[pyarrow]') for i in range(datalength)], type=pa.int32())
-    arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength)])
-    arr3 = pa.array([generate_primitive('float32[pyarrow]') for j in range(datalength)])
-    col1 = pa.UnionArray.from_dense(type_codes, offsets, [arr1, arr2, arr3])
+    arr1 = pa.array([generate_primitive('int32[pyarrow]') for i in range(datalength + 1)], type=pa.int32())
+    arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength + 2)])
+    arr3 = pa.array([generate_primitive('float32[pyarrow]') for j in range(datalength + 3)])
+    col1 = pa.UnionArray.from_dense(type_codes, offsets, [
+        arr1.slice(1, datalength), arr2.slice(2, datalength), arr3.slice(3, datalength)])
     df = pd.DataFrame({
         'index': arrowtopd(index),
         'col1': arrowtopd(col1)
