@@ -87,7 +87,7 @@ bool QueryResult::hasNextQueryResult() const {
 }
 
 QueryResult* QueryResult::getNextQueryResult() {
-    if(hasNextQueryResult()){
+    if (hasNextQueryResult()) {
         ++queryResultIterator;
         return queryResultIterator.getCurrentResult();
     }
