@@ -1071,6 +1071,17 @@ static bool tryCombineArrayTypes(const LogicalType& left, const LogicalType& rig
     return true;
 }
 
+static bool tryCombineListArrayTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    LogicalType childType;
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ListType::getChildType(&left),
+            *ArrayType::getChildType(&right), childType)) {
+        return false;
+    }
+    result = *LogicalType::LIST(childType);
+    return true;
+}
+
 // If we can match child labels and combine their types, then we can combine
 // the struct
 static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& right,
@@ -1301,6 +1312,10 @@ bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const L
     return false;
 }
 
+static inline bool isSemanticallyNested(LogicalTypeID ID) {
+    return LogicalTypeUtils::isNested(ID) && ID != LogicalTypeID::RDF_VARIANT;
+}
+
 bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
     LogicalType& result) {
     if (left == right || canAlwaysCast(left.typeID)) {
@@ -1311,9 +1326,12 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
         result = left;
         return true;
     }
-    if ((isNested(left) && left.typeID != LogicalTypeID::RDF_VARIANT) &&
-        (isNested(right) && right.typeID != LogicalTypeID::RDF_VARIANT)) {
-        if (left.typeID != right.typeID) {
+    if (isSemanticallyNested(left.typeID) || isSemanticallyNested(right.typeID)) {
+        if (left.typeID == LogicalTypeID::LIST && right.typeID == LogicalTypeID::ARRAY) {
+            return tryCombineListArrayTypes(left, right, result);
+        } else if (left.typeID == LogicalTypeID::ARRAY && right.typeID == LogicalTypeID::LIST) {
+            return tryCombineListArrayTypes(right, left, result);
+        } else if (left.typeID != right.typeID) {
             return false;
         }
         switch (left.typeID) {
