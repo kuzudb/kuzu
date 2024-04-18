@@ -1269,6 +1269,25 @@ static uint32_t internalTypeOrder(const LogicalTypeID& type) {
 }
 */
 
+static uint32_t internalTimeOrder(const LogicalTypeID& type) {
+    switch (type) {
+    case LogicalTypeID::DATE:
+        return 50;
+    case LogicalTypeID::TIMESTAMP_SEC:
+        return 51;
+    case LogicalTypeID::TIMESTAMP_MS:
+        return 52;
+    case LogicalTypeID::TIMESTAMP:
+        return 53;
+    case LogicalTypeID::TIMESTAMP_TZ:
+        return 54;
+    case LogicalTypeID::TIMESTAMP_NS:
+        return 55;
+    default:
+        return 0; // return 0 if not timestamp
+    }
+}
+
 bool canAlwaysCast(const LogicalTypeID& typeID) {
     switch (typeID) {
     case LogicalTypeID::ANY:
@@ -1309,6 +1328,21 @@ bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const L
             return true;
         }
     }
+    
+    // check timestamp combination
+    // note: this will become obsolete if implicit casting
+    // between timestamps is allowed
+    auto leftOrder = internalTimeOrder(left);
+    auto rightOrder = internalTimeOrder(right);
+    if (leftOrder && rightOrder) {
+        if (leftOrder > rightOrder) {
+            result = left;
+        } else {
+            result = right;
+        }
+        return true;
+    }
+    
     return false;
 }
 
