@@ -19,6 +19,7 @@ struct RelDataReadState : public TableDataReadState {
     ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/);
     std::vector<Column::ReadState> columnStates;
 
+    bool readFromPersistentStorage;
     // Following fields are used for local storage.
     bool readFromLocalStorage;
     LocalRelNG* localNodeGroup;

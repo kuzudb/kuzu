@@ -15,7 +15,7 @@ namespace storage {
 
 RelDataReadState::RelDataReadState()
     : startNodeOffset{0}, numNodes{0}, currentNodeOffset{0}, posInCurrentCSR{0},
-      readFromLocalStorage{false}, localNodeGroup{nullptr} {
+      readFromPersistentStorage{false}, readFromLocalStorage{false}, localNodeGroup{nullptr} {
     csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
 }
 
@@ -198,7 +198,11 @@ void RelTableData::initializeReadState(Transaction* transaction, std::vector<col
                   readState.csrHeaderChunks.length->getNumValues());
         readState.numNodes = readState.csrHeaderChunks.offset->getNumValues();
         readState.populateCSRListEntries();
-        initializeColumnReadStates(transaction, startNodeOffset, readState, nodeGroupIdx);
+        readState.readFromPersistentStorage =
+            nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumNodeGroups(transaction);
+        if (readState.readFromPersistentStorage) {
+            initializeColumnReadStates(transaction, startNodeOffset, readState, nodeGroupIdx);
+        }
         if (transaction->isWriteTransaction()) {
             readState.localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
         }
@@ -230,6 +234,9 @@ void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
         auto numValuesRead = relReadState.localNodeGroup->scanCSR(offsetInChunk,
             relReadState.posInCurrentCSR, relReadState.columnIDs, outputVectors);
         relReadState.posInCurrentCSR += numValuesRead;
+        return;
+    }
+    if (!relReadState.readFromPersistentStorage) {
         return;
     }
     auto [startOffset, endOffset] = relReadState.getStartAndEndOffset();
