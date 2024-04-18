@@ -351,7 +351,7 @@ private:
         return flatTuplePositionsInDataChunk[dataChunkPos].first != UINT64_MAX;
     }
     inline void readValueBufferToValue(uint64_t colIdx, const uint8_t* valueBuffer) {
-        values[colIdx]->copyValueFrom(valueBuffer);
+        values[colIdx]->copyFromRowLayout(valueBuffer);
     }
 
     void readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer);

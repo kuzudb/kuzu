@@ -65,21 +65,3 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     ASSERT_NE(database, nullptr);
     kuzu_database_destroy(database);
 }
-
-TEST_F(CApiDatabaseTest, CreationHomeDir1) {
-    createDBAndConn();
-    conn->query("load extension "
-                "\"/Users/z473chen/Desktop/code/kuzu/extension/duckdb_scanner/build/"
-                "libduckdb_scanner.kuzu_extension\"");
-    conn->query("ATTACH "
-                "'/Users/z473chen/Desktop/code/kuzu/extension/duckdb_scanner/test/duckdb_database/"
-                "tinysnb.db' "
-                "as tinysnb (dbtype 'duckdb');");
-    conn->query("ATTACH "
-                "'/Users/z473chen/Desktop/code/kuzu/extension/duckdb_scanner/test/duckdb_database/"
-                "other.db' "
-                "as other (dbtype 'duckdb');");
-    printf("%s", conn->query("load from person return *;")->toString().c_str());
-    printf("%s", conn->query("use other")->toString().c_str());
-    printf("%s", conn->query("load from person return *;")->toString().c_str());
-}
