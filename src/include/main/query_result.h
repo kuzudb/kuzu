@@ -35,6 +35,8 @@ class QueryResult {
 
         bool isEnd() const { return currentResult == nullptr; }
 
+        bool hasNextQueryResult() const { return currentResult->nextQueryResult != nullptr; }
+
         QueryResult* getCurrentResult() const { return currentResult; }
     };
 
