@@ -42,12 +42,6 @@ public:
     explicit LocalNodeTableData(std::vector<common::LogicalType> dataTypes)
         : LocalTableData{std::move(dataTypes)} {}
 
-    void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-    void lookup(common::ValueVector* nodeIDVector,
-        const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-
 private:
     LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) override;
 };
@@ -61,17 +55,11 @@ public:
     bool update(TableUpdateState& updateState) override;
     bool delete_(TableDeleteState& deleteState) override;
 
-    void read(TableReadState& state);
-
     LocalNodeTableData* getTableData() {
         KU_ASSERT(localTableDataCollection.size() == 1);
         return common::ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
             localTableDataCollection[0].get());
     }
-
-private:
-    void scan(TableReadState& state);
-    void lookup(TableReadState& state);
 };
 
 } // namespace storage

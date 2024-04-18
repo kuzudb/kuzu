@@ -65,38 +65,51 @@ void NodeTableData::initializeReadState(Transaction* transaction,
     KU_ASSERT((dataReadState.readFromPersistent && transaction->isReadOnly()) ||
               transaction->isWriteTransaction());
     if (dataReadState.readFromPersistent) {
-        auto startOffsetInChunk =
-            startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        for (auto i = 0u; i < columnIDs.size(); i++) {
-            if (columnIDs[i] != INVALID_COLUMN_ID) {
-                getColumn(columnIDs[i])
-                    ->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
-                        dataReadState.columnReadStates[i]);
-            }
-        }
-#if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
-        if (nodeGroupIdx != dataReadState.nodeGroupIdx) {
-            // Sanity check on that all valid columns should have the same numValues in the node
-            // group.
-            auto validColumn = std::find_if(columnIDs.begin(), columnIDs.end(),
-                [](column_id_t columnID) { return columnID != INVALID_COLUMN_ID; });
-            if (validColumn != columnIDs.end()) {
-                auto numValues = dataReadState.columnReadStates[validColumn - columnIDs.begin()]
-                                     .metadata.numValues;
-                for (auto i = 0u; i < columnIDs.size(); i++) {
-                    if (columnIDs[i] == INVALID_COLUMN_ID) {
-                        continue;
-                    }
-                    KU_ASSERT(dataReadState.columnReadStates[i].metadata.numValues == numValues);
-                }
-            }
-        }
-#endif
+        initializeColumnReadStates(transaction, startNodeOffset, dataReadState, nodeGroupIdx);
     }
     if (transaction->isWriteTransaction()) {
         initializeLocalNodeReadState(transaction, dataReadState, nodeGroupIdx);
     }
     dataReadState.nodeGroupIdx = nodeGroupIdx;
+}
+
+void NodeTableData::initializeColumnReadStates(Transaction* transaction, offset_t startNodeOffset,
+    NodeDataReadState& readState, node_group_idx_t nodeGroupIdx) {
+    auto startOffsetInChunk =
+        startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    auto& dataReadState = ku_dynamic_cast<TableDataReadState&, NodeDataReadState&>(readState);
+    for (auto i = 0u; i < readState.columnIDs.size(); i++) {
+        if (readState.columnIDs[i] != INVALID_COLUMN_ID) {
+            getColumn(readState.columnIDs[i])
+                ->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+                    dataReadState.columnReadStates[i]);
+        }
+    }
+    if (nodeGroupIdx != dataReadState.nodeGroupIdx) {
+        KU_ASSERT(sanityCheckOnColumnNumValues(dataReadState));
+    }
+}
+
+bool NodeTableData::sanityCheckOnColumnNumValues(
+    const kuzu::storage::NodeDataReadState& readState) {
+    // Sanity check on that all valid columns should have the same numValues in the node
+    // group.
+    auto validColumn = std::find_if(readState.columnIDs.begin(), readState.columnIDs.end(),
+        [](column_id_t columnID) { return columnID != INVALID_COLUMN_ID; });
+    if (validColumn != readState.columnIDs.end()) {
+        auto numValues = readState.columnReadStates[validColumn - readState.columnIDs.begin()]
+                             .metadata.numValues;
+        for (auto i = 0u; i < readState.columnIDs.size(); i++) {
+            if (readState.columnIDs[i] == INVALID_COLUMN_ID) {
+                continue;
+            }
+            if (readState.columnReadStates[i].metadata.numValues != numValues) {
+                KU_ASSERT(false);
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 void NodeTableData::initializeLocalNodeReadState(transaction::Transaction* transaction,

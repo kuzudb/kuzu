@@ -94,31 +94,6 @@ bool LocalNodeNG::delete_(common::ValueVector* nodeIDVector, common::ValueVector
     return true;
 }
 
-void LocalNodeTableData::scan(ValueVector* nodeIDVector, const std::vector<column_id_t>& columnIDs,
-    const std::vector<ValueVector*>& outputVectors) {
-    auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
-    auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    if (!nodeGroups.contains(nodeGroupIdx)) {
-        return;
-    }
-    auto localNodeGroup =
-        ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(nodeGroups.at(nodeGroupIdx).get());
-    KU_ASSERT(localNodeGroup);
-    localNodeGroup->scan(*nodeIDVector, columnIDs, outputVectors);
-}
-
-void LocalNodeTableData::lookup(ValueVector* nodeIDVector,
-    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
-    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
-        // TODO: Why getOrCreateLocalNodeGroup here? should not create when NG doesn't exist.
-        auto localNodeGroup =
-            ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(getOrCreateLocalNodeGroup(nodeIDVector));
-        KU_ASSERT(localNodeGroup);
-        localNodeGroup->lookup(*nodeIDVector, i, columnIDs, outputVectors);
-    }
-}
-
 LocalNodeGroup* LocalNodeTableData::getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) {
     auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
@@ -157,28 +132,6 @@ bool LocalNodeTable::delete_(TableDeleteState& deleteState) {
     auto& deleteState_ = ku_dynamic_cast<TableDeleteState&, NodeTableDeleteState&>(deleteState);
     return localTableDataCollection[0]->delete_(
         const_cast<ValueVector*>(&deleteState_.nodeIDVector), nullptr);
-}
-
-void LocalNodeTable::read(TableReadState& state) {
-    if (state.nodeIDVector.isSequential()) {
-        scan(state);
-    } else {
-        lookup(state);
-    }
-}
-
-void LocalNodeTable::scan(TableReadState& state) {
-    auto localTableData =
-        ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableDataCollection[0].get());
-    localTableData->scan(const_cast<ValueVector*>(&state.nodeIDVector), state.columnIDs,
-        state.outputVectors);
-}
-
-void LocalNodeTable::lookup(TableReadState& state) {
-    auto localTableData =
-        ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableDataCollection[0].get());
-    localTableData->lookup(const_cast<ValueVector*>(&state.nodeIDVector), state.columnIDs,
-        state.outputVectors);
 }
 
 } // namespace storage
