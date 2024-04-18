@@ -1,6 +1,5 @@
 #include "storage/store/null_column.h"
 
-#include "common/constants.h"
 #include "transaction/transaction.h"
 
 namespace kuzu {
