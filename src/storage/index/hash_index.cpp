@@ -618,10 +618,7 @@ void PrimaryKeyIndex::delete_(ValueVector* keyVector) {
                     continue;
                 }
                 auto key = keyVector->getValue<T>(pos);
-                common::offset_t result;
-                if (lookup(Transaction::getDummyReadOnlyTrx().get(), keyVector, pos, result)) {
-                    delete_(key);
-                }
+                delete_(key);
             }
         },
         [](auto) { KU_UNREACHABLE; });
