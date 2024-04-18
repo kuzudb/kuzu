@@ -1184,6 +1184,7 @@ static LogicalTypeID joinDifferentSignIntegrals(const LogicalTypeID& signedType,
     }
 }
 
+/*
 static uint32_t internalTypeOrder(const LogicalTypeID& type) {
     switch (type) {
     case LogicalTypeID::ANY:
@@ -1255,6 +1256,7 @@ static uint32_t internalTypeOrder(const LogicalTypeID& type) {
         // LCOV_EXCL_END
     }
 }
+*/
 
 bool canAlwaysCast(const LogicalTypeID& typeID) {
     switch (typeID) {
@@ -1296,14 +1298,7 @@ bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const L
             return true;
         }
     }
-    auto leftPlacement = internalTypeOrder(left);
-    auto rightPlacement = internalTypeOrder(right);
-    if (leftPlacement > rightPlacement) {
-        result = left;
-        return true;
-    }
-    result = right;
-    return true;
+    return false;
 }
 
 bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
