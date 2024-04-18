@@ -83,15 +83,12 @@ bool QueryResult::hasNext() const {
 }
 
 bool QueryResult::hasNextQueryResult() const {
-    if (!queryResultIterator.isEnd()) {
-        return true;
-    }
-    return false;
+    return queryResultIterator.hasNextQueryResult();
 }
 
 QueryResult* QueryResult::getNextQueryResult() {
-    ++queryResultIterator;
-    if (!queryResultIterator.isEnd()) {
+    if (hasNextQueryResult()) {
+        ++queryResultIterator;
         return queryResultIterator.getCurrentResult();
     }
     return nullptr;

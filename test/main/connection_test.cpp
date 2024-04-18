@@ -128,6 +128,12 @@ TEST_F(ApiTest, MultipleQuery) {
     ASSERT_EQ(result->getNextQueryResult()->toString(), "3\n3\n");
 }
 
+TEST_F(ApiTest, SingleQueryHasNextQueryResult) {
+    auto result = conn->query("MATCH (a:person) RETURN a.fName;");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_FALSE(result->hasNextQueryResult());
+}
+
 TEST_F(ApiTest, Prepare) {
     auto result = conn->prepare("");
     ASSERT_EQ(result->getErrorMessage(), "Connection Exception: Query is empty.");
