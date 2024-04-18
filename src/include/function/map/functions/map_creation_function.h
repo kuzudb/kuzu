@@ -1,7 +1,5 @@
 #pragma once
 
-#include "unordered_set"
-
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/types/value/value.h"

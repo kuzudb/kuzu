@@ -1,7 +1,5 @@
 #pragma once
 
-#include <set>
-
 #include "common/type_utils.h"
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
