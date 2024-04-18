@@ -915,7 +915,6 @@ uint64_t Value::computeHash() const {
         for (auto i = 1u; i < childrenSize; i++) {
             hashValue = function::combineHashScalar(hashValue, children[i]->computeHash());
         }
-        auto d = 5;
     } break;
     default: {
         KU_UNREACHABLE;
