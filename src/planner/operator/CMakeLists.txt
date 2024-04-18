@@ -3,6 +3,7 @@ add_subdirectory(extend)
 add_subdirectory(factorization)
 add_subdirectory(persistent)
 add_subdirectory(scan)
+add_subdirectory(simple)
 
 add_library(kuzu_planner_operator
         OBJECT

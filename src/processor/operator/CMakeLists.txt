@@ -5,6 +5,7 @@ add_subdirectory(intersect)
 add_subdirectory(order_by)
 add_subdirectory(persistent)
 add_subdirectory(scan)
+add_subdirectory(simple)
 add_subdirectory(table_scan)
 add_subdirectory(recursive_extend)
 add_subdirectory(call)
@@ -12,8 +13,6 @@ add_subdirectory(macro)
 
 add_library(kuzu_processor_operator
         OBJECT
-        attach_database.cpp
-        detach_database.cpp
         comment_on.cpp
         cross_product.cpp
         empty_result.cpp
@@ -35,8 +34,7 @@ add_library(kuzu_processor_operator
         semi_masker.cpp
         skip.cpp
         transaction.cpp
-        unwind.cpp
-        use_database.cpp)
+        unwind.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator>

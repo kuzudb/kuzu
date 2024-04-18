@@ -1,4 +1,4 @@
-#include "processor/operator/persistent/export_db.h"
+#include "processor/operator/simple/export_db.h"
 
 #include <fcntl.h>
 
@@ -21,10 +21,10 @@ namespace processor {
 
 using std::stringstream;
 
-static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ss_string,
+static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString,
     const std::string& path) {
     auto fileInfo = vfs->openFile(path, O_WRONLY | O_CREAT);
-    fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ss_string.c_str()), ss_string.size(),
+    fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ssString.c_str()), ssString.size(),
         0 /* offset */);
 }
 
@@ -71,7 +71,7 @@ std::string getCopyCypher(catalog::Catalog* catalog, transaction::Transaction* t
     return ss.str();
 }
 
-bool ExportDB::getNextTuplesInternal(ExecutionContext* context) {
+void ExportDB::executeInternal(ExecutionContext* context) {
     // write the schema.cypher file
     writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
         getSchemaCypher(context->clientContext, context->clientContext->getTx()),
@@ -86,7 +86,11 @@ bool ExportDB::getNextTuplesInternal(ExecutionContext* context) {
         getCopyCypher(context->clientContext->getCatalog(), context->clientContext->getTx(),
             &boundFileInfo),
         boundFileInfo.filePaths[0] + "/copy.cypher");
-    return false;
 }
+
+std::string ExportDB::getOutputMsg() {
+    return "Export database successfully.";
+}
+
 } // namespace processor
 } // namespace kuzu

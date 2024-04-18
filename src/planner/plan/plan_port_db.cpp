@@ -1,10 +1,11 @@
-#include "binder/copy/bound_export_database.h"
-#include "binder/copy/bound_import_database.h"
+#include "binder/bound_export_database.h"
+#include "binder/bound_import_database.h"
 #include "common/string_utils.h"
 #include "planner/operator/persistent/logical_copy_to.h"
-#include "planner/operator/persistent/logical_export_db.h"
-#include "planner/operator/persistent/logical_import_db.h"
+#include "planner/operator/simple/logical_export_db.h"
+#include "planner/operator/simple/logical_import_db.h"
 #include "planner/planner.h"
+
 using namespace kuzu::binder;
 using namespace kuzu::storage;
 using namespace kuzu::catalog;
@@ -35,8 +36,9 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
             boundExportDatabase.getCopyOption(), tablePlan->getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }
-    auto exportDatabase = make_shared<LogicalExportDatabase>(
-        boundExportDatabase.getBoundFileInfo()->copy(), std::move(logicalOperators));
+    auto exportDatabase =
+        make_shared<LogicalExportDatabase>(boundExportDatabase.getBoundFileInfo()->copy(),
+            statement.getStatementResult()->getSingleColumnExpr(), std::move(logicalOperators));
     plan->setLastOperator(std::move(exportDatabase));
     return plan;
 }
@@ -46,7 +48,8 @@ std::unique_ptr<LogicalPlan> Planner::planImportDatabase(const BoundStatement& s
         ku_dynamic_cast<const BoundStatement&, const BoundImportDatabase&>(statement);
     auto query = boundImportDatabase.getQuery();
     auto plan = std::make_unique<LogicalPlan>();
-    auto importDatabase = make_shared<LogicalImportDatabase>(query);
+    auto importDatabase = make_shared<LogicalImportDatabase>(query,
+        statement.getStatementResult()->getSingleColumnExpr());
     plan->setLastOperator(std::move(importDatabase));
     return plan;
 }

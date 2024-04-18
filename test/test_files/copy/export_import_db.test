@@ -13,10 +13,12 @@
 ---- 1
 {key1=400, key2=250}
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
----- ok
+---- 1
+Export database successfully.
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
----- ok
+---- 1
+Import database successfully.
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
 -LOG ReturnAge
@@ -29,10 +31,12 @@
 
 -CASE ExportImportDatabaseWithCSVOption
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2" (format="csv", header=true)
----- ok
+---- 1
+Export database successfully.
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2"
----- ok
+---- 1
+Import database successfully.
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
 -LOG ReturnAge

@@ -1,14 +1,17 @@
-#include "processor/operator/use_database.h"
+#include "processor/operator/simple/use_database.h"
 
 #include "main/database_manager.h"
 
 namespace kuzu {
 namespace processor {
 
-bool UseDatabase::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
+void UseDatabase::executeInternal(kuzu::processor::ExecutionContext* context) {
     auto dbManager = context->clientContext->getDatabaseManager();
     dbManager->setDefaultDatabase(dbName);
-    return false;
+}
+
+std::string UseDatabase::getOutputMsg() {
+    return "Use database successfully.";
 }
 
 } // namespace processor

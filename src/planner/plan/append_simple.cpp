@@ -14,15 +14,15 @@
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_drop_table.h"
-#include "planner/operator/logical_attach_database.h"
 #include "planner/operator/logical_comment_on.h"
 #include "planner/operator/logical_create_macro.h"
-#include "planner/operator/logical_detach_database.h"
 #include "planner/operator/logical_explain.h"
 #include "planner/operator/logical_extension.h"
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_transaction.h"
-#include "planner/operator/logical_use_database.h"
+#include "planner/operator/simple/logical_attach_database.h"
+#include "planner/operator/simple/logical_detach_database.h"
+#include "planner/operator/simple/logical_use_database.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -106,8 +106,8 @@ void Planner::appendAttachDatabase(const BoundStatement& statement, LogicalPlan&
     auto& boundAttachDatabase =
         common::ku_dynamic_cast<const binder::BoundStatement&, const binder::BoundAttachDatabase&>(
             statement);
-    auto attachDatabase =
-        std::make_shared<LogicalAttachDatabase>(boundAttachDatabase.getAttachInfo());
+    auto attachDatabase = std::make_shared<LogicalAttachDatabase>(
+        boundAttachDatabase.getAttachInfo(), statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(attachDatabase));
 }
 
@@ -115,7 +115,8 @@ void Planner::appendDetachDatabase(const BoundStatement& statement, LogicalPlan&
     auto& boundDetachDatabase =
         common::ku_dynamic_cast<const binder::BoundStatement&, const binder::BoundDetachDatabase&>(
             statement);
-    auto detachDatabase = std::make_shared<LogicalDetachDatabase>(boundDetachDatabase.getDBName());
+    auto detachDatabase = std::make_shared<LogicalDetachDatabase>(boundDetachDatabase.getDBName(),
+        statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(detachDatabase));
 }
 
@@ -123,7 +124,8 @@ void Planner::appendUseDatabase(const BoundStatement& statement, LogicalPlan& pl
     auto& boundUseDatabase =
         common::ku_dynamic_cast<const binder::BoundStatement&, const binder::BoundUseDatabase&>(
             statement);
-    auto useDatabase = std::make_shared<LogicalUseDatabase>(boundUseDatabase.getDBName());
+    auto useDatabase = std::make_shared<LogicalUseDatabase>(boundUseDatabase.getDBName(),
+        statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(useDatabase));
 }
 

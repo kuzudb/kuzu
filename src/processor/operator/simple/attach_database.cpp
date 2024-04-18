@@ -1,4 +1,4 @@
-#include "processor/operator/attach_database.h"
+#include "processor/operator/simple/attach_database.h"
 
 #include "main/database.h"
 #include "main/database_manager.h"
@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace processor {
 
-bool AttachDatabase::getNextTuplesInternal(ExecutionContext* context) {
+void AttachDatabase::executeInternal(ExecutionContext* context) {
     auto client = context->clientContext;
     for (auto& [name, storageExtension] : client->getDatabase()->getStorageExtensions()) {
         if (storageExtension->canHandleDB(attachInfo.dbType)) {
@@ -15,7 +15,10 @@ bool AttachDatabase::getNextTuplesInternal(ExecutionContext* context) {
             client->getDatabaseManager()->registerAttachedDatabase(std::move(db));
         }
     }
-    return false;
+}
+
+std::string AttachDatabase::getOutputMsg() {
+    return "Attach database successfully.";
 }
 
 } // namespace processor

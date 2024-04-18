@@ -24,7 +24,7 @@ public:
         std::vector<ExportedTableData> exportData,
         std::unordered_map<std::string, common::Value> csvOption)
         : BoundStatement{common::StatementType::EXPORT_DATABASE,
-              BoundStatementResult::createEmptyResult()},
+              BoundStatementResult::createSingleStringColumnResult()},
           exportData(std::move(exportData)),
           boundFileInfo(fileType, std::vector{std::move(filePath)}) {
         boundFileInfo.options = std::move(csvOption);
