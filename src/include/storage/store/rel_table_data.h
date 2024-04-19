@@ -196,6 +196,10 @@ private:
     void updateCSRHeader(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, PersistentState& persistentState,
         LocalState& localState);
+    void commitCSRHeaderChunk(transaction::Transaction* transaction, bool isNewNodeGroup,
+        common::node_group_idx_t nodeGroupIdx, Column* column, ColumnChunk* columnChunk,
+        LocalState& localState, const std::vector<common::offset_t>& dstOffsets);
+
     void distributeOffsets(const ChunkedCSRHeader& header, LocalState& localState,
         common::offset_t leftBoundary, common::offset_t rightBoundary);
     void updateRegion(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,

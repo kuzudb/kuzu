@@ -923,23 +923,22 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
     dstOffsets.resize(newHeader.offset->getNumValues() - localState.region.leftBoundary);
     fillSequence(dstOffsets, localState.region.leftBoundary);
     auto isNewNodeGroup = nodeGroupIdx >= csrHeaderColumns.offset->getNumNodeGroups(transaction);
-    if (!isNewNodeGroup &&
-        csrHeaderColumns.offset->canCommitInPlace(transaction, nodeGroupIdx, dstOffsets,
-            newHeader.offset.get(), localState.region.leftBoundary)) {
-        csrHeaderColumns.offset->write(nodeGroupIdx, dstOffsets[0], newHeader.offset.get(),
-            localState.region.leftBoundary, dstOffsets.size());
+    commitCSRHeaderChunk(transaction, isNewNodeGroup, nodeGroupIdx, csrHeaderColumns.offset.get(),
+        newHeader.offset.get(), localState, dstOffsets);
+    commitCSRHeaderChunk(transaction, isNewNodeGroup, nodeGroupIdx, csrHeaderColumns.length.get(),
+        newHeader.length.get(), localState, dstOffsets);
+}
+
+void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNodeGroup,
+    node_group_idx_t nodeGroupIdx, Column* column, ColumnChunk* chunk, LocalState& localState,
+    const std::vector<common::offset_t>& dstOffsets) {
+    if (!isNewNodeGroup && column->canCommitInPlace(transaction, nodeGroupIdx, dstOffsets, chunk,
+                               localState.region.leftBoundary)) {
+        column->write(nodeGroupIdx, dstOffsets[0], chunk, localState.region.leftBoundary,
+            dstOffsets.size());
     } else {
-        csrHeaderColumns.offset->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx,
-            isNewNodeGroup, dstOffsets, newHeader.offset.get(), localState.region.leftBoundary);
-    }
-    if (!isNewNodeGroup &&
-        csrHeaderColumns.length->canCommitInPlace(transaction, nodeGroupIdx, dstOffsets,
-            newHeader.length.get(), localState.region.leftBoundary)) {
-        csrHeaderColumns.length->write(nodeGroupIdx, dstOffsets[0], newHeader.length.get(),
-            localState.region.leftBoundary, dstOffsets.size());
-    } else {
-        csrHeaderColumns.length->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx,
-            isNewNodeGroup, dstOffsets, newHeader.length.get(), localState.region.leftBoundary);
+        column->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
+            chunk, localState.region.leftBoundary);
     }
 }
 
