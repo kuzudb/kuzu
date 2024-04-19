@@ -181,6 +181,25 @@ bool HashIndex<T>::insertInternal(Key key, offset_t value) {
 }
 
 template<typename T>
+size_t HashIndex<T>::append(const IndexBuffer<BufferKeyType>& buffer) {
+    // Check if values already exist in persistent storage
+    if (indexHeaderForWriteTrx->numEntries > 0) {
+        common::offset_t result;
+        for (size_t i = 0; i < buffer.size(); i++) {
+            const auto& [key, value] = buffer[i];
+            if (lookupInPersistentIndex(transaction::TransactionType::WRITE, key, result)) {
+                return i;
+            }
+        }
+    }
+    // Keep the same number of primary slots in the builder as we will eventually need when
+    // flushing to disk, so that we know each slot to write to
+    bulkInsertLocalStorage.reserve(
+        indexHeaderForWriteTrx->numEntries + bulkInsertLocalStorage.size() + buffer.size());
+    return bulkInsertLocalStorage.append(buffer);
+}
+
+template<typename T>
 bool HashIndex<T>::lookupInPersistentIndex(TransactionType trxType, Key key, offset_t& result) {
     auto& header = trxType == TransactionType::READ_ONLY ? *this->indexHeaderForReadTrx :
                                                            *this->indexHeaderForWriteTrx;

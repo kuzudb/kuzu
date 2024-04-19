@@ -35,8 +35,10 @@ WALPageIdxAndFrame DBFileUtils::createWALVersionIfNecessaryAndPinPage(page_idx_t
             }
             fileHandle.setWALPageIdxNoLock(originalPageIdx /* pageIdxInOriginalFile */,
                 pageIdxInWAL);
-            wal.getShadowingFH().setLockedPageDirty(pageIdxInWAL);
         }
+        // The wal page existing already does not mean that it's already dirty
+        // It may have been flushed to disk to free memory and then read again
+        wal.getShadowingFH().setLockedPageDirty(pageIdxInWAL);
     } catch (Exception& e) {
         fileHandle.releaseWALPageIdxLock(originalPageIdx);
         throw;

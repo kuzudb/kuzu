@@ -13,8 +13,6 @@ struct ExceptionMessage {
     static std::string nonExistentPKException(const std::string& pkString);
     static std::string invalidPKType(const std::string& type);
     static std::string nullPKException();
-    // Bulk insertion.
-    static std::string notAllowCopyOnNonEmptyTableException();
     // Long string.
     static std::string overLargeStringPKValueException(uint64_t length);
     static std::string overLargeStringValueException(uint64_t length);

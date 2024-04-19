@@ -2,7 +2,9 @@
 
 #include <unordered_map>
 
+#include "common/types/internal_id_t.h"
 #include "common/vector/value_vector.h"
+#include "storage/store/chunked_node_group.h"
 #include "storage/store/chunked_node_group_collection.h"
 
 namespace kuzu {
@@ -63,9 +65,11 @@ public:
     bool read(common::offset_t offset, common::column_id_t columnID,
         common::ValueVector* outputVector, common::sel_t posInOutputVector);
 
+    ChunkedNodeGroup* getLastChunkedGroupAndAddNewGroupIfNecessary();
     inline void append(common::offset_t offset, std::vector<common::ValueVector*> vectors) {
         offsetToRowIdx[offset] = append(vectors);
     }
+    void append(common::offset_t offset, ChunkedNodeGroup* nodeGroup, common::offset_t numValues);
     // Only used for rel tables. Should be moved out later.
     inline void append(common::offset_t nodeOffset, common::offset_t relOffset,
         std::vector<common::ValueVector*> vectors) {
@@ -162,7 +166,7 @@ public:
         KU_ASSERT(columnID < updateChunks.size());
         return updateChunks[columnID];
     }
-    LocalChunkedGroupCollection& getInsesrtChunks() { return insertChunks; }
+    LocalChunkedGroupCollection& getInsertChunks() { return insertChunks; }
 
     bool hasUpdatesOrDeletions() const;
 

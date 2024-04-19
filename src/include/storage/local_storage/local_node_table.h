@@ -8,6 +8,8 @@
 namespace kuzu {
 namespace storage {
 
+class ChunkedNodeGroup;
+
 class LocalNodeNG final : public LocalNodeGroup {
 public:
     LocalNodeNG(common::offset_t nodeGroupStartOffset,
@@ -24,6 +26,8 @@ public:
 
     bool insert(std::vector<common::ValueVector*> nodeIDVectors,
         std::vector<common::ValueVector*> propertyVectors) override;
+    bool insert(common::offset_t startNodeOffset, ChunkedNodeGroup* nodeGroup,
+        common::offset_t numValues);
     bool update(std::vector<common::ValueVector*> nodeIDVectors, common::column_id_t columnID,
         common::ValueVector* propertyVector) override;
     bool delete_(common::ValueVector* nodeIDVector,

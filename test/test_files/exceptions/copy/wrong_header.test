@@ -97,15 +97,6 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsWrongColumnName.csv" (HEADER=true)
 ---- ok
 
--CASE CopyToNonEmptyTableErrors
--STATEMENT create node table person (ID INT64, fName STRING, PRIMARY KEY (ID));
----- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonWrongColumnName.csv" (HEADER=true)
----- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonWrongColumnName.csv" (HEADER=true)
----- error
-Copy exception: COPY commands can only be executed once on a table.
-
 -CASE MissingColumnErrors
 -STATEMENT create node table person (ID INT64, fName STRING, PRIMARY KEY (ID))
 ---- ok

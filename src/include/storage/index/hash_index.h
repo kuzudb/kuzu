@@ -82,15 +82,9 @@ public:
 
     using BufferKeyType =
         typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
-    // Appends the buffer to the index. Returns the number of values successfully inserted.
-    // I.e. if a key fails to insert, its index will be the return value
-    size_t append(const IndexBuffer<BufferKeyType>& buffer) {
-        // Keep the same number of primary slots in the builder as we will eventually need when
-        // flushing to disk, so that we know each slot to write to
-        bulkInsertLocalStorage.reserve(
-            indexHeaderForWriteTrx->numEntries + bulkInsertLocalStorage.size() + buffer.size());
-        return bulkInsertLocalStorage.append(buffer);
-    }
+    // Appends the buffer to the index. Returns the number of values successfully inserted,
+    // or the index of the first value which cannot be inserted.
+    size_t append(const IndexBuffer<BufferKeyType>& buffer);
 
     void prepareCommit() override;
     void prepareRollback() override;

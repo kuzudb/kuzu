@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common/cast.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/persistent/batch_insert.h"
@@ -9,7 +11,11 @@
 #include "storage/store/node_table.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+};
 namespace processor {
+struct ExecutionContext;
 
 struct NodeBatchInsertInfo final : public BatchInsertInfo {
     std::vector<DataPos> columnPositions;
@@ -64,9 +70,6 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
 
     inline uint64_t getCurNodeGroupIdx() const { return currentNodeGroupIdx; }
 
-    void appendIncompleteNodeGroup(std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
-        std::optional<IndexBuilder>& indexBuilder);
-
     inline common::offset_t getNextNodeGroupIdxWithoutLock() { return currentNodeGroupIdx++; }
 
     void calculateNumTuples();
@@ -109,12 +112,29 @@ public:
             resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
     }
 
-    static void writeAndResetNodeGroup(common::node_group_idx_t nodeGroupIdx,
+    static void writeAndResetNewNodeGroup(common::node_group_idx_t nodeGroupIdx,
         std::optional<IndexBuilder>& indexBuilder, common::column_id_t pkColumnID,
         storage::NodeTable* table, storage::ChunkedNodeGroup* nodeGroup);
 
+    // The node group will be reset so that the only values remaining are the ones which were not
+    // written
+    void writeAndResetNodeGroup(common::node_group_idx_t nodeGroupIdx, ExecutionContext* context,
+        std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
+        std::optional<IndexBuilder>& indexBuilder);
+
 private:
-    void copyToNodeGroup();
+    // Returns the number of nodes written from the group
+    uint64_t writeToExistingNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, std::optional<IndexBuilder>& indexBuilder,
+        common::column_id_t pkColumnID, storage::NodeTable* table,
+        storage::ChunkedNodeGroup* nodeGroup);
+
+    void appendIncompleteNodeGroup(std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
+        std::optional<IndexBuilder>& indexBuilder, ExecutionContext* context);
+    void clearToIndex(std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
+        common::offset_t startIndexInGroup);
+
+    void copyToNodeGroup(ExecutionContext* context);
 };
 
 } // namespace processor

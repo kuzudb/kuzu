@@ -1,9 +1,11 @@
 #include "storage/store/node_table_data.h"
 
 #include "common/cast.h"
+#include "common/types/types.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/stats/nodes_store_statistics.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -190,21 +192,26 @@ void NodeTableData::append(ChunkedNodeGroup* nodeGroup) {
     }
 }
 
+void NodeTableData::prepareLocalNodeGroupToCommit(node_group_idx_t nodeGroupIdx,
+    Transaction* transaction, LocalNodeNG* localNodeGroup) {
+    for (auto columnID = 0u; columnID < columns.size(); columnID++) {
+        auto column = columns[columnID].get();
+        auto localInsertChunk = localNodeGroup->getInsertChunks().getLocalChunk(columnID);
+        auto localUpdateChunk = localNodeGroup->getUpdateChunks(columnID).getLocalChunk(0);
+        if (localInsertChunk.empty() && localUpdateChunk.empty()) {
+            continue;
+        }
+        column->prepareCommitForChunk(transaction, nodeGroupIdx, localInsertChunk,
+            localNodeGroup->getInsertInfoRef(), localUpdateChunk,
+            localNodeGroup->getUpdateInfoRef(columnID), {} /* deleteInfo */);
+    }
+}
+
 void NodeTableData::prepareLocalTableToCommit(Transaction* transaction,
     LocalTableData* localTable) {
     for (auto& [nodeGroupIdx, localNodeGroup] : localTable->nodeGroups) {
-        for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-            auto column = columns[columnID].get();
-            auto localInsertChunk = localNodeGroup->getInsesrtChunks().getLocalChunk(columnID);
-            auto localUpdateChunk = localNodeGroup->getUpdateChunks(columnID).getLocalChunk(0);
-            if (localInsertChunk.empty() && localUpdateChunk.empty()) {
-                continue;
-            }
-            auto localNodeNG = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(localNodeGroup.get());
-            column->prepareCommitForChunk(transaction, nodeGroupIdx, localInsertChunk,
-                localNodeNG->getInsertInfoRef(), localUpdateChunk,
-                localNodeNG->getUpdateInfoRef(columnID), {} /* deleteInfo */);
-        }
+        prepareLocalNodeGroupToCommit(nodeGroupIdx, transaction,
+            ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(localNodeGroup.get()));
     }
 }
 

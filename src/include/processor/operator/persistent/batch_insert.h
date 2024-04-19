@@ -74,9 +74,6 @@ public:
     inline std::shared_ptr<BatchInsertSharedState> getSharedState() const { return sharedState; }
 
 protected:
-    void checkIfTableIsEmpty();
-
-protected:
     std::unique_ptr<BatchInsertInfo> info;
     std::shared_ptr<BatchInsertSharedState> sharedState;
     std::unique_ptr<BatchInsertLocalState> localState;

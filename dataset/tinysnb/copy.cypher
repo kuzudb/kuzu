@@ -1,5 +1,5 @@
-CALL ENABLE_MULTI_COPY=true
 COPY person FROM "dataset/tinysnb/vPerson.csv" (HeaDER=true, deLim=',');
+COPY person FROM "dataset/tinysnb/vPerson2.csv" (deLim=',');
 COPY organisation FROM "dataset/tinysnb/vOrganisation.csv";
 COPY movies FROM "dataset/tinysnb/vMovies.csv";
 COPY knows FROM "dataset/tinysnb/eKnows.csv";

@@ -4,6 +4,7 @@
 
 #include "common/assert.h"
 #include "common/cast.h"
+#include "common/types/types.h"
 #include "storage/index/hash_index.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/chunked_node_group.h"
@@ -11,7 +12,11 @@
 #include "storage/store/table.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+};
 namespace storage {
+class LocalNodeTable;
 
 struct NodeTableReadState : public TableReadState {
     NodeTableReadState(const common::ValueVector& nodeIDVector,
@@ -105,11 +110,22 @@ public:
 
     void append(ChunkedNodeGroup* nodeGroup) { tableData->append(nodeGroup); }
 
+    void prepareCommitNodeGroup(common::node_group_idx_t nodeGroupIdx,
+        transaction::Transaction* transaction, storage::LocalNodeNG* localNodeGroup);
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;
     void prepareRollback(LocalTable* localTable) override;
     void checkpointInMemory() override;
     void rollbackInMemory() override;
+
+    inline common::node_group_idx_t getNumNodeGroups(transaction::Transaction* transaction) {
+        return tableData->getNumNodeGroups(transaction);
+    }
+
+    inline common::offset_t getNumTuplesInNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx) {
+        return tableData->getNumTuplesInNodeGroup(transaction, nodeGroupIdx);
+    }
 
 private:
     void updatePK(transaction::Transaction* transaction, common::column_id_t columnID,

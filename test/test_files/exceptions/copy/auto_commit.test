@@ -17,9 +17,12 @@ DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please c
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=TRUE, DELIM=',')
 ---- 1
-8 number of tuples has been copied to table: person.
+5 tuples have been copied to the person table.
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" (HEADER=FALSE, DELIM=',')
+---- 1
+3 tuples have been copied to the person table.
 -STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MANY)
 ---- ok
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv"
 ---- 1
-6 number of tuples has been copied to table knows.
+6 tuples have been copied to the knows table.

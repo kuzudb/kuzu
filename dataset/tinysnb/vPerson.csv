@@ -4,6 +4,3 @@ id,fname,Gender,ISStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDu
 3,Carol,1,false,true,45,5.0,1940-06-22,1911-08-20 02:32:21,48 hours 24 minutes 11 seconds,"[4,5]","[Carmen,Fred]","[[8,10]]","[91,75,21,95]",1.00,a0eebc999c0b4ef8bb6d6bb9bd380a13
 5,Dan,2,false,true,20,4.8,1950-7-23,2031-11-30 12:25:30Z,10 years 5 months 13 hours 24 us,"[1,9]","[Wolfeschlegelstein,Daniel]","[[7,4],[8,8],[9]]","[76,88,99,89]",1.30,a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14
 7,Elizabeth,1,false,true,20,4.7,1980-10-26,1976-12-23 11:21:42,48 hours 24 minutes 11 seconds,"[2]","[Ein]","[[6],[7],[8]]","[96,59,65,88]",1.463,{a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15}
-8,Farooq,2,true,false,25,4.5,1980-10-26,1972-07-31 13:22:30.678559,18 minutes 24 milliseconds,"[3,4,5,6,7]","[Fesdwe]","[[8]]","[80,78,34,83]",1.51,A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A16
-9,Greg,2,false,false,40,4.9,1980-10-26,1976-12-23 11:21:42Z+06:40,10 years 5 months 13 hours 24 us,"[1]","[Grad]","[[10]]","[43,83,67,43]",1.6,A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A17
-10,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,2,false,true,83,4.9,1990-11-27,2023-02-21 13:25:30,3 years 2 days 13 hours 2 minutes,"[10,11,12,3,4,5,6,7]","[Ad,De,Hi,Kye,Orlan]","[[7],[10],[6,7]]","[77,64,100,54]",1.323,A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A18

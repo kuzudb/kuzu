@@ -59,9 +59,3 @@ Guelph|0
 ---- 2
 1999
 1999
-
--CASE CopyRelToNonEmptyTableErrorTest
-
--STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
----- error
-Copy exception: COPY commands can only be executed once on a table.

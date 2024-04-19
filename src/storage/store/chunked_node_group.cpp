@@ -2,6 +2,7 @@
 
 #include "common/assert.h"
 #include "common/constants.h"
+#include "common/types/internal_id_t.h"
 #include "storage/store/column.h"
 
 using namespace kuzu::common;
@@ -116,10 +117,11 @@ uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors
     return numValuesToAppendInChunk;
 }
 
-offset_t ChunkedNodeGroup::append(ChunkedNodeGroup* other, offset_t offsetInOtherNodeGroup) {
+offset_t ChunkedNodeGroup::append(ChunkedNodeGroup* other, offset_t offsetInOtherNodeGroup,
+    offset_t numValues) {
     KU_ASSERT(other->chunks.size() == chunks.size());
-    auto numNodesToAppend = std::min(other->numRows - offsetInOtherNodeGroup,
-        StorageConstants::NODE_GROUP_SIZE - numRows);
+    auto numNodesToAppend = std::min(std::min(numValues, other->numRows - offsetInOtherNodeGroup),
+        chunks[0]->getCapacity() - numRows);
     for (auto i = 0u; i < chunks.size(); i++) {
         chunks[i]->append(other->chunks[i].get(), offsetInOtherNodeGroup, numNodesToAppend);
     }

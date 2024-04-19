@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/column_data_format.h"
+#include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "storage/store/column_chunk.h"
 
@@ -40,7 +41,10 @@ public:
 
     uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
         common::SelectionVector& selVector, uint64_t numValuesToAppend);
-    common::offset_t append(ChunkedNodeGroup* other, common::offset_t offsetInOtherNodeGroup);
+    // Appends up to numValuesToAppend from the other chunked node group, returning the actual
+    // number of values appended
+    common::offset_t append(ChunkedNodeGroup* other, common::offset_t offsetInOtherNodeGroup,
+        common::offset_t numValuesToAppend = common::StorageConstants::NODE_GROUP_SIZE);
     void write(const std::vector<std::unique_ptr<ColumnChunk>>& data,
         common::column_id_t offsetColumnID);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);

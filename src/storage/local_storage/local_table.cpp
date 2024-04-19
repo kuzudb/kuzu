@@ -1,5 +1,8 @@
 #include "storage/local_storage/local_table.h"
 
+#include "common/types/internal_id_t.h"
+#include "storage/store/chunked_node_group.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -99,22 +102,39 @@ void LocalChunkedGroupCollection::remove(offset_t srcNodeOffset, offset_t relOff
     }
 }
 
-row_idx_t LocalChunkedGroupCollection::append(std::vector<ValueVector*> vectors) {
-    KU_ASSERT(vectors.size() == dataTypes.size());
+ChunkedNodeGroup* LocalChunkedGroupCollection::getLastChunkedGroupAndAddNewGroupIfNecessary() {
     if (chunkedGroups.getNumChunkedGroups() == 0 ||
         chunkedGroups.getChunkedGroup(chunkedGroups.getNumChunkedGroups() - 1)->getNumRows() ==
             ChunkedNodeGroupCollection::CHUNK_CAPACITY) {
         chunkedGroups.merge(std::make_unique<ChunkedNodeGroup>(dataTypes,
             false /*enableCompression*/, ChunkedNodeGroupCollection::CHUNK_CAPACITY));
     }
-    auto lastChunkGroup =
-        chunkedGroups.getChunkedGroupUnsafe(chunkedGroups.getNumChunkedGroups() - 1);
+    return chunkedGroups.getChunkedGroupUnsafe(chunkedGroups.getNumChunkedGroups() - 1);
+}
+
+row_idx_t LocalChunkedGroupCollection::append(std::vector<ValueVector*> vectors) {
+    KU_ASSERT(vectors.size() == dataTypes.size());
+    auto lastChunkGroup = getLastChunkedGroupAndAddNewGroupIfNecessary();
     for (auto i = 0u; i < vectors.size(); i++) {
         KU_ASSERT(vectors[i]->state->selVector->selectedSize == 1);
         lastChunkGroup->getColumnChunkUnsafe(i).append(vectors[i], *vectors[i]->state->selVector);
     }
     lastChunkGroup->setNumRows(lastChunkGroup->getNumRows() + 1);
     return numRows++;
+}
+
+void LocalChunkedGroupCollection::append(offset_t offset, ChunkedNodeGroup* nodeGroup,
+    offset_t numValues) {
+    KU_ASSERT(nodeGroup->getNumColumns() == dataTypes.size());
+    offset_t appended = 0;
+    do {
+        auto lastChunkGroup = getLastChunkedGroupAndAddNewGroupIfNecessary();
+        auto appendedInChunk = lastChunkGroup->append(nodeGroup, appended, numValues - appended);
+        for (size_t i = 0; i < appendedInChunk; i++) {
+            offsetToRowIdx[offset + appended + i] = numRows++;
+        }
+        appended += appendedInChunk;
+    } while (appended < numValues);
 }
 
 bool LocalTableData::insert(std::vector<ValueVector*> nodeIDVectors,

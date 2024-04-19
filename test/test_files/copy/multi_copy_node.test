@@ -1,0 +1,20 @@
+-GROUP MultiCopyNode
+-DATASET CSV empty
+--
+
+-CASE CopyLargeInt
+-STATEMENT create node table test(id int64, primary key(id));
+---- ok
+-STATEMENT COPY test from "${KUZU_ROOT_DIRECTORY}/dataset/large-serial/serialtable0.csv";
+---- ok
+-STATEMENT COPY test from "${KUZU_ROOT_DIRECTORY}/dataset/large-serial/serialtable1.csv";
+---- ok
+-STATEMENT COPY test from "${KUZU_ROOT_DIRECTORY}/dataset/large-serial/serialtable2.csv";
+---- ok
+-STATEMENT COPY test from "${KUZU_ROOT_DIRECTORY}/dataset/large-serial/serialtable3.csv";
+---- ok
+-STATEMENT COPY test from "${KUZU_ROOT_DIRECTORY}/dataset/large-serial/serialtable4.csv";
+---- ok
+-STATEMENT match (t:test) return count(*);
+---- 1
+200000

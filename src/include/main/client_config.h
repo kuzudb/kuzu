@@ -25,8 +25,6 @@ struct ClientConfig {
     bool enableProgressBar;
     // time before displaying progress bar
     uint64_t showProgressAfter;
-    // If multi copy is enabled.
-    bool enableMultiCopy;
     // Semantic for recursive pattern, can be either WALK, TRAIL, ACYCLIC
     common::PathSemantic recursivePatternSemantic;
     // Scale factor for recursive pattern cardinality estimation.
@@ -40,7 +38,6 @@ struct ClientConfigDefault {
     static constexpr bool ENABLE_SEMI_MASK = true;
     static constexpr bool ENABLE_PROGRESS_BAR = true;
     static constexpr uint64_t SHOW_PROGRESS_AFTER = 1000;
-    static constexpr bool ENABLE_MULTI_COPY = false;
     static constexpr common::PathSemantic RECURSIVE_PATTERN_SEMANTIC = common::PathSemantic::WALK;
     static constexpr uint32_t RECURSIVE_PATTERN_FACTOR = 1;
 };
