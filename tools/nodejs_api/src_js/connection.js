@@ -139,7 +139,7 @@ class Connection {
               if (err) {
                 return reject(err);
               }
-              return resolve(new QueryResult(this, nodeQueryResult));
+              return resolve(this._unwrapMultipleQueryResults(nodeQueryResult));
             }
           );
         } catch (e) {
@@ -191,13 +191,49 @@ class Connection {
             if (err) {
               return reject(err);
             }
-            return resolve(new QueryResult(this, nodeQueryResult));
+            return this._unwrapMultipleQueryResults(nodeQueryResult);
           });
         } catch (e) {
           return reject(e);
         }
       });
     });
+  }
+
+  /**
+   * Internal function to get the next query result for multiple query results.
+   * @param {KuzuNative.NodeQueryResult} nodeQueryResult the current node query result.
+   * @returns {Promise<kuzu.QueryResult>} a promise that resolves to the next query result. The promise is rejected if there is an error.
+   */
+  _getNextQueryResult(nodeQueryResult) {
+    return new Promise((resolve, reject) => {
+      const nextNodeQueryResult = new KuzuNative.NodeQueryResult();
+      nodeQueryResult.getNextQueryResultAsync(nextNodeQueryResult, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(new QueryResult(this, nextNodeQueryResult));
+      });
+    });
+  }
+
+  /**
+   * Internal function to unwrap multiple query results into an array of query results.
+   * @param {KuzuNative.NodeQueryResult} nodeQueryResult the node query result.
+   * @returns {Promise<Array<kuzu.QueryResult>> | kuzu.QueryResult} a promise that resolves to an array of query results. The promise is rejected if there is an error.
+   */
+  async _unwrapMultipleQueryResults(nodeQueryResult) {
+    const wrappedQueryResult = new QueryResult(this, nodeQueryResult);
+    if (!nodeQueryResult.hasNextQueryResult()) {
+      return wrappedQueryResult;
+    }
+    const queryResults = [wrappedQueryResult];
+    let currentQueryResult = nodeQueryResult;
+    while (currentQueryResult.hasNextQueryResult()) {
+      currentQueryResult = await this._getNextQueryResult(currentQueryResult);
+      queryResults.push(currentQueryResult);
+    }
+    return queryResults;
   }
 
   /**

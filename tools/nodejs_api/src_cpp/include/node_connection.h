@@ -45,9 +45,7 @@ public:
     void Execute() override {
         try {
             nodeConnection->InitCppConnection();
-        } catch (const std::exception& exc) {
-            SetError(std::string(exc.what()));
-        }
+        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
     }
 
     void OnOK() override { Callback().Call({Env().Null()}); }
@@ -70,16 +68,14 @@ public:
 
     void Execute() override {
         try {
-            std::shared_ptr<QueryResult> result =
-                connection->executeWithParams(preparedStatement.get(), std::move(params));
-            nodeQueryResult->SetQueryResult(result);
+            auto result =
+                connection->executeWithParams(preparedStatement.get(), std::move(params)).release();
+            nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
                 return;
             }
-        } catch (const std::exception& exc) {
-            SetError(std::string(exc.what()));
-        }
+        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
     }
 
     void OnOK() override { Callback().Call({Env().Null()}); }
@@ -104,15 +100,13 @@ public:
 
     void Execute() override {
         try {
-            std::shared_ptr<QueryResult> result = connection->query(statement);
-            nodeQueryResult->SetQueryResult(result);
+            auto result = connection->query(statement).release();
+            nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
                 return;
             }
-        } catch (const std::exception& exc) {
-            SetError(std::string(exc.what()));
-        }
+        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
     }
 
     void OnOK() override { Callback().Call({Env().Null()}); }
