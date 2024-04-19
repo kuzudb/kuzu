@@ -4,7 +4,6 @@
 #include "common/exception/runtime.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
-#include "function/list/functions/array_to_string_function.h"
 #include "function/list/functions/list_any_value_function.h"
 #include "function/list/functions/list_append_function.h"
 #include "function/list/functions/list_concat_function.h"
@@ -21,6 +20,7 @@
 #include "function/list/functions/list_slice_function.h"
 #include "function/list/functions/list_sort_function.h"
 #include "function/list/functions/list_sum_function.h"
+#include "function/list/functions/list_to_string_function.h"
 #include "function/list/functions/list_unique_function.h"
 #include "function/scalar_function.h"
 
