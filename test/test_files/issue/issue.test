@@ -405,3 +405,24 @@ v3|v2
 -STATEMENT MATCH (n:MyTask) RETURN n.*;
 ---- 1
 myid|[{input1=value1}]
+
+-CASE 2890
+-STATEMENT create node table SpotTableNode(model_key STRING, technical_name STRING, name STRING, row_count INT64, PRIMARY KEY (model_key))
+---- ok
+-STATEMENT create node table SpotColumnNode(model_key STRING, technical_name STRING, name STRING, p_unique DOUBLE, p_distinct DOUBLE, p_missing DOUBLE, common_values STRING[], PRIMARY KEY (model_key))
+---- ok
+-STATEMENT CREATE REL TABLE SpotTableToCol(FROM SpotTableNode TO SpotColumnNode)
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE(t:SpotTableNode { model_key : 'tableSchema::tpcds_1.tpcds.store_returns',technical_name : 'tpcds.store_returns',name : 'Store Returns',row_count : 288279 })
+---- ok
+-STATEMENT CREATE(t:SpotColumnNode { model_key : 'columnSchema::tpcds_1.tpcds.store_returns.sr_return_time_sk',technical_name : 'sr_return_time_sk',name : 'Return Time',p_unique : 0.055061,p_distinct : 0.318826,p_missing : 0.000000,common_values : ['33413', '31810', '54900', '54638', '45302'] })
+---- ok
+-STATEMENT MATCH (l:SpotTableNode), (r:SpotColumnNode)
+                         WHERE l.model_key = 'tableSchema::tpcds_1.tpcds.store_returns' and
+                               r.model_key = 'columnSchema::tpcds_1.tpcds.store_returns.sr_return_time_sk'
+           CREATE (l)-[:SpotTableToCol {  }]->(r)
+---- ok
+-STATEMENT COMMIT
+---- ok

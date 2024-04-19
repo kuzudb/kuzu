@@ -12,6 +12,8 @@ public:
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);
 
+    void initReadState(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        common::offset_t startOffsetInChunk, ReadState& columnReadState) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         ColumnChunk* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
@@ -43,10 +45,10 @@ public:
         ColumnChunk* chunk, common::offset_t startSrcOffset) override;
 
 protected:
-    void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override;
-    void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override;
+    void scanInternal(transaction::Transaction* transaction, ReadState& readState,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
+    void lookupInternal(transaction::Transaction* transaction, ReadState& readState,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
     bool canCommitInPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunk,

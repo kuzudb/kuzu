@@ -30,8 +30,10 @@ void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     uint64_t offsetInVector) {
     nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
-    scanUnfiltered(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
-        offsetInVector);
+    auto readState = getReadState(transaction->getType(), nodeGroupIdx);
+    readState.nodeGroupIdx = nodeGroupIdx;
+    scanUnfiltered(transaction, readState, startOffsetInGroup,
+        endOffsetInGroup - startOffsetInGroup, resultVector, offsetInVector);
 }
 
 void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -61,7 +63,7 @@ void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_i
         chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
     // This function should only be called when the string is non-null, so we don't need to pass
     // null data
-    Column::writeValues(state, offsetInChunk, (uint8_t*)&index, nullptr /*nullChunkData=*/);
+    Column::writeValues(state, offsetInChunk, (uint8_t*)&index, nullptr /*nullChunkData*/);
 }
 
 void StringColumn::write(node_group_idx_t nodeGroupIdx, offset_t dstOffset, ColumnChunk* data,
@@ -91,29 +93,25 @@ void StringColumn::write(node_group_idx_t nodeGroupIdx, offset_t dstOffset, Colu
     }
 }
 
-void StringColumn::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void StringColumn::scanInternal(Transaction* transaction, ReadState& readState,
+    ValueVector* nodeIDVector, ValueVector* resultVector) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    auto startNodeOffset = nodeIDVector->readNodeOffset(0);
-    KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
-    auto startOffsetInGroup =
-        startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    auto [nodeGroupIdx, startOffsetInChunk] =
+        StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeIDVector->readNodeOffset(0));
     if (nodeIDVector->state->selVector->isUnfiltered()) {
-        scanUnfiltered(transaction, nodeGroupIdx, startOffsetInGroup,
-            startOffsetInGroup + nodeIDVector->state->selVector->selectedSize, resultVector);
+        scanUnfiltered(transaction, readState, startOffsetInChunk,
+            nodeIDVector->state->selVector->selectedSize, resultVector);
     } else {
-        scanFiltered(transaction, nodeGroupIdx, startOffsetInGroup, nodeIDVector, resultVector);
+        scanFiltered(transaction, readState, startOffsetInChunk, nodeIDVector, resultVector);
     }
 }
 
-void StringColumn::scanUnfiltered(transaction::Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, offset_t startOffsetInGroup, offset_t endOffsetInGroup,
-    ValueVector* resultVector, sel_t startPosInVector) {
-    auto numValuesToRead = endOffsetInGroup - startOffsetInGroup;
+void StringColumn::scanUnfiltered(transaction::Transaction* transaction, ReadState& readState,
+    offset_t startOffsetInChunk, offset_t numValuesToRead, ValueVector* resultVector,
+    sel_t startPosInVector) {
+    // TODO: Replace indices with ValueVector to avoid maintaining `scan` interface from uint8_t*.
     auto indices = std::make_unique<string_index_t[]>(numValuesToRead);
-    auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
-    Column::scan(transaction, indexState, startOffsetInGroup, endOffsetInGroup,
+    Column::scan(transaction, readState, startOffsetInChunk, startOffsetInChunk + numValuesToRead,
         (uint8_t*)indices.get());
 
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
@@ -126,22 +124,20 @@ void StringColumn::scanUnfiltered(transaction::Transaction* transaction,
         // All scanned values are null
         return;
     }
-    dictionary.scan(transaction, nodeGroupIdx, offsetsToScan, resultVector, indexState.metadata);
+    dictionary.scan(transaction, readState.nodeGroupIdx, offsetsToScan, resultVector,
+        readState.metadata);
 }
 
-void StringColumn::scanFiltered(transaction::Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, offset_t startOffsetInGroup, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
-    auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
-
+void StringColumn::scanFiltered(transaction::Transaction* transaction, ReadState& readState,
+    common::offset_t startOffsetInChunk, ValueVector* nodeIDVector, ValueVector* resultVector) {
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (!resultVector->isNull(pos)) {
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
-            auto offsetInGroup = startOffsetInGroup + pos;
+            auto offsetInGroup = startOffsetInChunk + pos;
             string_index_t index;
-            Column::scan(transaction, indexState, offsetInGroup, offsetInGroup + 1,
+            Column::scan(transaction, readState, offsetInGroup, offsetInGroup + 1,
                 (uint8_t*)&index);
             offsetsToScan.emplace_back(index, pos);
         }
@@ -150,24 +146,21 @@ void StringColumn::scanFiltered(transaction::Transaction* transaction,
         // All scanned values are null
         return;
     }
-    dictionary.scan(transaction, nodeGroupIdx, offsetsToScan, resultVector, indexState.metadata);
+    dictionary.scan(transaction, readState.nodeGroupIdx, offsetsToScan, resultVector,
+        readState.metadata);
 }
 
-void StringColumn::lookupInternal(Transaction* transaction, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void StringColumn::lookupInternal(Transaction* transaction, ReadState& readState,
+    ValueVector* nodeIDVector, ValueVector* resultVector) {
     KU_ASSERT(dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    auto startNodeOffset = nodeIDVector->readNodeOffset(0);
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
-
-    auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (!nodeIDVector->isNull(pos)) {
             auto offsetInGroup = nodeIDVector->readNodeOffset(pos) -
-                                 StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+                                 StorageUtils::getStartOffsetOfNodeGroup(readState.nodeGroupIdx);
             string_index_t index;
-            Column::scan(transaction, indexState, offsetInGroup, offsetInGroup + 1,
+            Column::scan(transaction, readState, offsetInGroup, offsetInGroup + 1,
                 (uint8_t*)&index);
             offsetsToScan.emplace_back(index, pos);
         }
@@ -176,7 +169,8 @@ void StringColumn::lookupInternal(Transaction* transaction, ValueVector* nodeIDV
         // All scanned values are null
         return;
     }
-    dictionary.scan(transaction, nodeGroupIdx, offsetsToScan, resultVector, indexState.metadata);
+    dictionary.scan(transaction, readState.nodeGroupIdx, offsetsToScan, resultVector,
+        readState.metadata);
 }
 
 bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,

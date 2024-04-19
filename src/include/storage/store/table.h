@@ -17,9 +17,7 @@ struct TableReadState {
         const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors)
         : nodeIDVector{nodeIDVector}, columnIDs{std::move(columnIDs)},
-          outputVectors{outputVectors} {
-        dataReadState = std::make_unique<TableDataReadState>();
-    }
+          outputVectors{outputVectors} {}
     virtual ~TableReadState() = default;
 };
 

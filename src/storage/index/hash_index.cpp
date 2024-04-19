@@ -226,6 +226,9 @@ template<typename T>
 void HashIndex<T>::deleteFromPersistentIndex(Key key) {
     auto trxType = TransactionType::WRITE;
     auto header = *this->indexHeaderForWriteTrx;
+    if (header.numEntries == 0) {
+        return;
+    }
     auto hashValue = HashIndexUtils::hash(key);
     auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
     auto iter =

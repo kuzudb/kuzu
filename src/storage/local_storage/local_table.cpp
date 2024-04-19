@@ -54,6 +54,20 @@ void LocalChunkedGroupCollection::readValueAtRowIdx(row_idx_t rowIdx, column_id_
     chunk.lookup(offsetInChunk, *outputVector, posInOutputVector);
 }
 
+bool LocalChunkedGroupCollection::read(offset_t offset, const std::vector<column_id_t>& columnIDs,
+    const std::vector<ValueVector*>& outputVectors, offset_t offsetInOutputVector) {
+    if (!offsetToRowIdx.contains(offset)) {
+        return false;
+    }
+    auto rowIdx = offsetToRowIdx.at(offset);
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        auto posInOutputVector =
+            outputVectors[i]->state->selVector->selectedPositions[offsetInOutputVector];
+        readValueAtRowIdx(rowIdx, columnIDs[i], outputVectors[i], posInOutputVector);
+    }
+    return true;
+}
+
 bool LocalChunkedGroupCollection::read(offset_t offset, column_id_t columnID,
     ValueVector* outputVector, sel_t posInOutputVector) {
     if (!offsetToRowIdx.contains(offset)) {

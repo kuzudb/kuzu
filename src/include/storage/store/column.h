@@ -37,8 +37,16 @@ class Column {
 
 public:
     struct ReadState {
+        explicit ReadState() = default;
+        ReadState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
+            : metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {}
+
         ColumnChunkMetadata metadata;
-        uint64_t numValuesPerPage;
+        uint64_t numValuesPerPage = UINT64_MAX;
+        common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+        std::unique_ptr<ReadState> nullState = nullptr;
+        // Used for struct columns.
+        std::vector<ReadState> childrenStates;
     };
 
     Column(std::string name, common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
@@ -51,8 +59,15 @@ public:
     virtual void batchLookup(transaction::Transaction* transaction,
         const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
 
-    virtual void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector);
+    virtual void initReadState(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInChunk,
+        ReadState& columnReadState);
+
+    virtual void scan(transaction::Transaction* transaction, ReadState& readState,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+    virtual void lookup(transaction::Transaction* transaction, ReadState& readState,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+
     // Scan from [startOffsetInGroup, endOffsetInGroup).
     virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
@@ -61,8 +76,6 @@ public:
     virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         ColumnChunk* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET);
-    virtual void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector);
 
     // Append column chunk in a new node group.
     virtual void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx);
@@ -121,7 +134,7 @@ public:
         ColumnChunk* columnChunk, const offset_to_row_idx_t& info);
 
 protected:
-    virtual void scanInternal(transaction::Transaction* transaction,
+    virtual void scanInternal(transaction::Transaction* transaction, ReadState& readState,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     void scanUnfiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
         uint64_t numValuesToScan, common::ValueVector* resultVector,
@@ -129,10 +142,10 @@ protected:
     void scanFiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector,
         const ColumnChunkMetadata& chunkMeta);
-    virtual void lookupInternal(transaction::Transaction* transaction,
+    virtual void lookupInternal(transaction::Transaction* transaction, ReadState& readState,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
-    virtual void lookupValue(transaction::Transaction* transaction, common::offset_t nodeOffset,
-        common::ValueVector* resultVector, uint32_t posInVector);
+    virtual void lookupValue(transaction::Transaction* transaction, ReadState& readState,
+        common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
 
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
@@ -230,9 +243,9 @@ public:
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats stats, bool enableCompression);
 
-    inline void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override {
-        Column::scan(transaction, nodeIDVector, resultVector);
+    inline void scan(transaction::Transaction* transaction, ReadState& readState,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
+        Column::scan(transaction, readState, nodeIDVector, resultVector);
         populateCommonTableID(resultVector);
     }
 
@@ -244,9 +257,9 @@ public:
         populateCommonTableID(resultVector);
     }
 
-    inline void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override {
-        Column::lookup(transaction, nodeIDVector, resultVector);
+    inline void lookup(transaction::Transaction* transaction, ReadState& readState,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
+        Column::lookup(transaction, readState, nodeIDVector, resultVector);
         populateCommonTableID(resultVector);
     }
 

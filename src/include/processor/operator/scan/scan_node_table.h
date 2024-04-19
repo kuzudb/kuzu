@@ -34,7 +34,7 @@ public:
         ExecutionContext* executionContext) final {
         ScanTable::initLocalStateInternal(resultSet, executionContext);
         readState =
-            std::make_unique<storage::TableReadState>(*inVector, info->columnIDs, outVectors);
+            std::make_unique<storage::NodeTableReadState>(*inVector, info->columnIDs, outVectors);
     }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;

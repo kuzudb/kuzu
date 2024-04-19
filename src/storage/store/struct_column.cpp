@@ -62,19 +62,30 @@ void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     }
 }
 
-void StructColumn::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void StructColumn::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    offset_t startOffsetInChunk, ReadState& readState) {
+    Column::initReadState(transaction, nodeGroupIdx, startOffsetInChunk, readState);
+    readState.childrenStates.resize(childColumns.size());
     for (auto i = 0u; i < childColumns.size(); i++) {
-        auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->scan(transaction, nodeIDVector, fieldVector);
+        childColumns[i]->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+            readState.childrenStates[i]);
     }
 }
 
-void StructColumn::lookupInternal(Transaction* transaction, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void StructColumn::scanInternal(Transaction* transaction, ReadState& readState,
+    ValueVector* nodeIDVector, ValueVector* resultVector) {
     for (auto i = 0u; i < childColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->lookup(transaction, nodeIDVector, fieldVector);
+        childColumns[i]->scan(transaction, readState.childrenStates[i], nodeIDVector, fieldVector);
+    }
+}
+
+void StructColumn::lookupInternal(Transaction* transaction, ReadState& readState,
+    ValueVector* nodeIDVector, ValueVector* resultVector) {
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
+        childColumns[i]->lookup(transaction, readState.childrenStates[i], nodeIDVector,
+            fieldVector);
     }
 }
 

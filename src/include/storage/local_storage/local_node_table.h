@@ -15,10 +15,12 @@ public:
         : LocalNodeGroup{nodeGroupStartOffset, dataTypes} {}
     DELETE_COPY_DEFAULT_MOVE(LocalNodeNG);
 
-    void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
+    void scan(const common::ValueVector& nodeIDVector,
+        const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
-    void lookup(common::offset_t nodeOffset, common::column_id_t columnID,
-        common::ValueVector* outputVector, common::sel_t posInOutputVector);
+    void lookup(const common::ValueVector& nodeIDVector, common::offset_t offsetInVectorToLookup,
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVectors);
 
     bool insert(std::vector<common::ValueVector*> nodeIDVectors,
         std::vector<common::ValueVector*> propertyVectors) override;
@@ -40,16 +42,11 @@ public:
     explicit LocalNodeTableData(std::vector<common::LogicalType> dataTypes)
         : LocalTableData{std::move(dataTypes)} {}
 
-    void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-    void lookup(common::ValueVector* nodeIDVector,
-        const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-
 private:
     LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) override;
 };
 
+struct TableReadState;
 class LocalNodeTable final : public LocalTable {
 public:
     explicit LocalNodeTable(Table& table);
@@ -57,9 +54,6 @@ public:
     bool insert(TableInsertState& insertState) override;
     bool update(TableUpdateState& updateState) override;
     bool delete_(TableDeleteState& deleteState) override;
-
-    void scan(TableReadState& state) override;
-    void lookup(TableReadState& state) override;
 
     LocalNodeTableData* getTableData() {
         KU_ASSERT(localTableDataCollection.size() == 1);
