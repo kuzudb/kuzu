@@ -1,7 +1,7 @@
 #pragma once
 
+#include "common/types/types.h"
 #include "common/vector/value_vector.h"
-#include "function/scalar_function.h"
 #include "function/table/bind_data.h"
 #include "function/table_functions.h"
 
@@ -9,7 +9,6 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 // Supress warnings from duckdb.hpp
 #undef ARROW_FLAG_DICTIONARY_ORDERED
-#include "common/types/types.h"
 #include "duckdb.hpp"
 #pragma GCC diagnostic pop
 

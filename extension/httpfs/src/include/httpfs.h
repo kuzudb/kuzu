@@ -2,7 +2,6 @@
 
 #include "common/case_insensitive_map.h"
 #include "common/file_system/file_system.h"
-#include "common/string_utils.h"
 #include "httplib.h"
 #include "main/client_context.h"
 

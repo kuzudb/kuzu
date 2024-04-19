@@ -1,8 +1,6 @@
 #include "postgres_catalog.h"
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
-#include "postgres_storage.h"
 
 namespace kuzu {
 namespace postgres_scanner {

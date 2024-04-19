@@ -1,7 +1,7 @@
 #include "duckdb_scanner_extension.h"
 
-#include "duckdb_scan.h"
 #include "duckdb_storage.h"
+#include "main/database.h"
 
 namespace kuzu {
 namespace duckdb_scanner {

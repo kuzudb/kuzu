@@ -164,6 +164,7 @@ extension-test:
 	$(call run-cmake-release, \
 		-DBUILD_EXTENSIONS="httpfs;duckdb_scanner;postgres_scanner" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
+		-DENABLE_ADDRESS_SANITIZER=TRUE \
 	)
 	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS}
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
@@ -193,11 +194,11 @@ shell-test:
 # parallelism.
 tidy: | allconfig java_native_header
 	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \
-		"^$(realpath src)|$(realpath tools)/(?!shell/linenoise.cpp)"
+		"^$(realpath src)|$(realpath extension)|$(realpath tools)/(?!shell/linenoise.cpp)"
 
 tidy-analyzer: | allconfig java_native_header
 	run-clang-tidy -config-file .clang-tidy-analyzer -p build/release -quiet -j $(NUM_THREADS) \
-		"^$(realpath src)|$(realpath tools)/(?!shell/linenoise.cpp)"
+		"^$(realpath src)|(realpath extension)|$(realpath tools)/(?!shell/linenoise.cpp)"
 
 clangd-diagnostics: | allconfig java_native_header
 	find src -name *.h -or -name *.cpp | xargs \
