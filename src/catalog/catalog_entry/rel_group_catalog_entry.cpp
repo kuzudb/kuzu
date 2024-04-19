@@ -2,8 +2,8 @@
 
 #include <sstream>
 
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -48,17 +48,20 @@ std::unique_ptr<CatalogEntry> RelGroupCatalogEntry::copy() const {
 std::string RelGroupCatalogEntry::toCypher(ClientContext* clientContext) const {
     std::stringstream ss;
     auto catalog = clientContext->getCatalog();
-    ss <<  stringFormat("CREATE REL TABLE GROUP {} ( ", getName());
+    ss << stringFormat("CREATE REL TABLE GROUP {} ( ", getName());
     RelTableCatalogEntry* relTableEntry;
     for (auto relTableID : relTableIDs) {
         relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
             catalog->getTableCatalogEntry(clientContext->getTx(), relTableID));
-        auto srcTableName = catalog->getTableName(clientContext->getTx(), relTableEntry->getSrcTableID());
-        auto dstTableName = catalog->getTableName(clientContext->getTx(), relTableEntry->getDstTableID());
+        auto srcTableName =
+            catalog->getTableName(clientContext->getTx(), relTableEntry->getSrcTableID());
+        auto dstTableName =
+            catalog->getTableName(clientContext->getTx(), relTableEntry->getDstTableID());
         ss << stringFormat("FROM {} TO {}, ", srcTableName, dstTableName);
     }
-    auto prop=Property::toCypher(relTableEntry->getPropertiesRef());
-    if(prop.size()>1) prop.resize(prop.size() - 1);
+    auto prop = Property::toCypher(relTableEntry->getPropertiesRef());
+    if (prop.size() > 1)
+        prop.resize(prop.size() - 1);
     ss << prop << ");";
     return ss.str();
 }

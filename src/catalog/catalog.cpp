@@ -80,11 +80,12 @@ std::vector<RelGroupCatalogEntry*> Catalog::getRelTableGroupEntries(Transaction*
         CatalogEntryType::REL_GROUP_ENTRY);
 }
 
-bool Catalog::relTableExistInRelTableGroup(transaction::Transaction* tx, common::table_id_t tableID) const{
-    auto relGroupEntries= getRelTableGroupEntries(tx);
-    for(auto relGroupEntry: relGroupEntries){
-        auto tableIDs=relGroupEntry->getRelTableIDs();
-        if(std::find(tableIDs.begin(),tableIDs.end(),tableID)!=tableIDs.end()){
+bool Catalog::relTableExistInRelTableGroup(transaction::Transaction* tx,
+    common::table_id_t tableID) const {
+    auto relGroupEntries = getRelTableGroupEntries(tx);
+    for (auto relGroupEntry : relGroupEntries) {
+        auto tableIDs = relGroupEntry->getRelTableIDs();
+        if (std::find(tableIDs.begin(), tableIDs.end(), tableID) != tableIDs.end()) {
             return true;
         }
     }
