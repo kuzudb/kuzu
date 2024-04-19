@@ -549,8 +549,8 @@ public:
             commonTableID = relIDsInVector[selVector.selectedPositions[0]].tableID;
         }
         for (auto i = 0u; i < selVector.selectedSize; i++) {
-            KU_ASSERT(relIDsInVector[i].tableID == commonTableID);
             auto pos = selVector.selectedPositions[i];
+            KU_ASSERT(relIDsInVector[pos].tableID == commonTableID);
             nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
             memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
                 &relIDsInVector[pos].offset, numBytesPerValue);

@@ -21,9 +21,7 @@
 ---- 1
 {age: 10, isTrue: True, name: A}
 
-#FIX-ME: This case is due to the bug of reading under write transaction. #2647
 -CASE CreateStructWithWriteTransaction
--SKIP
 -STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
 ---- ok
 -STATEMENT BEGIN TRANSACTION

@@ -39,32 +39,14 @@ void NodeTable::initializePKIndex(NodeTableCatalogEntry* nodeTableEntry, bool re
 }
 
 void NodeTable::read(Transaction* transaction, TableReadState& readState) {
-    if (readState.nodeIDVector.isSequential()) {
-        scan(transaction, readState);
-    } else {
-        lookup(transaction, readState);
-    }
-}
-
-void NodeTable::scan(Transaction* transaction, TableReadState& readState) {
-    tableData->scan(transaction, *readState.dataReadState, readState.nodeIDVector,
+    tableData->read(transaction, *readState.dataReadState, readState.nodeIDVector,
         readState.outputVectors);
-    if (transaction->isWriteTransaction()) {
-        auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
-        if (localTable) {
-            localTable->scan(readState);
-        }
-    }
-}
-
-void NodeTable::lookup(Transaction* transaction, TableReadState& readState) {
-    tableData->lookup(transaction, *readState.dataReadState, readState.nodeIDVector,
-        readState.outputVectors);
-    if (transaction->isWriteTransaction()) {
-        auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
-        if (localTable) {
-            localTable->lookup(readState);
-        }
+    auto& dataReadState = ku_dynamic_cast<const TableDataReadState&, const NodeDataReadState&>(
+        *readState.dataReadState);
+    if (dataReadState.localNodeGroup) {
+        KU_ASSERT(transaction->isWriteTransaction());
+        dataReadState.localNodeGroup->scan(readState.nodeIDVector, readState.columnIDs,
+            readState.outputVectors);
     }
 }
 

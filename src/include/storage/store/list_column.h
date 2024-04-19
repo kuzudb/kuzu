@@ -41,7 +41,7 @@ struct ListOffsetSizeInfo {
     bool isOffsetSortedAscending(uint64_t startPos, uint64_t endPos) const;
 };
 
-class ListColumn : public Column {
+class ListColumn final : public Column {
     friend class ListLocalColumn;
 
 public:
@@ -52,20 +52,21 @@ public:
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector = 0) final;
+        common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         ColumnChunk* columnChunk, common::offset_t startOffset = 0,
-        common::offset_t endOffset = common::INVALID_OFFSET) final;
+        common::offset_t endOffset = common::INVALID_OFFSET) override;
 
     inline Column* getDataColumn() { return dataColumn.get(); }
 
 protected:
-    void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) final;
+    void scanInternal(transaction::Transaction* transaction, ReadState& readState,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
-    void lookupValue(transaction::Transaction* transaction, common::offset_t nodeOffset,
-        common::ValueVector* resultVector, uint32_t posInVector) final;
+    void lookupValue(transaction::Transaction* transaction, ReadState& readState,
+        common::offset_t nodeOffset, common::ValueVector* resultVector,
+        uint32_t posInVector) override;
 
     void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
 
@@ -76,9 +77,9 @@ private:
     void scanFiltered(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::ValueVector* offsetVector, const ListOffsetSizeInfo& listOffsetInfoInStorage);
 
-    void prepareCommit() final;
-    void checkpointInMemory() final;
-    void rollbackInMemory() final;
+    void prepareCommit() override;
+    void checkpointInMemory() override;
+    void rollbackInMemory() override;
 
     common::offset_t readOffset(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup);

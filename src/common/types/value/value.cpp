@@ -462,6 +462,9 @@ void Value::copyFromColLayout(const uint8_t* value, ValueVector* vector) {
     case PhysicalTypeID::STRUCT: {
         copyFromColLayoutStruct(*(struct_entry_t*)value, vector);
     } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        val.internalIDVal = *((nodeID_t*)value);
+    } break;
     default:
         KU_UNREACHABLE;
     }

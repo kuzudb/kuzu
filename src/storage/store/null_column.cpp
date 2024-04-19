@@ -1,6 +1,5 @@
 #include "storage/store/null_column.h"
 
-#include "common/constants.h"
 #include "transaction/transaction.h"
 
 namespace kuzu {
@@ -46,10 +45,10 @@ NullColumn::NullColumn(std::string name, page_idx_t metaDAHPageIdx, BMFileHandle
     batchLookupFunc = nullptr;
 }
 
-void NullColumn::scan(Transaction* transaction, ValueVector* nodeIDVector,
+void NullColumn::scan(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
     if (propertyStatistics.mayHaveNull(*transaction)) {
-        scanInternal(transaction, nodeIDVector, resultVector);
+        scanInternal(transaction, readState, nodeIDVector, resultVector);
     } else {
         resultVector->setAllNonNull();
     }
@@ -85,10 +84,10 @@ void NullColumn::scan(transaction::Transaction* transaction, node_group_idx_t no
     }
 }
 
-void NullColumn::lookup(Transaction* transaction, ValueVector* nodeIDVector,
+void NullColumn::lookup(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
     if (propertyStatistics.mayHaveNull(*transaction)) {
-        lookupInternal(transaction, nodeIDVector, resultVector);
+        lookupInternal(transaction, readState, nodeIDVector, resultVector);
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
@@ -122,16 +121,14 @@ bool NullColumn::isNull(transaction::Transaction* transaction, node_group_idx_t 
 }
 
 void NullColumn::setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, uint64_t value) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
     propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
     // Must be aligned to an 8-byte chunk for NullMask read to not overflow
-    auto state = ReadState{chunkMeta,
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     writeValues(state, offsetInChunk, reinterpret_cast<const uint8_t*>(&value),
         nullptr /*nullChunkData=*/);
-    if (offsetInChunk >= chunkMeta.numValues) {
-        chunkMeta.numValues = offsetInChunk + 1;
-        metadataDA->update(nodeGroupIdx, chunkMeta);
+    if (offsetInChunk >= state.metadata.numValues) {
+        state.metadata.numValues = offsetInChunk + 1;
+        metadataDA->update(nodeGroupIdx, state.metadata);
     }
 }
 

@@ -101,7 +101,7 @@ public:
               bufferManager, wal, transaction, RWPropertyStats::empty(),
               false /* enableCompression */, false /*requireNullColumn*/} {}
 
-    void scan(Transaction* /*transaction*/, ValueVector* nodeIDVector,
+    void scan(Transaction*, ReadState&, ValueVector* nodeIDVector,
         ValueVector* resultVector) override {
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
@@ -112,7 +112,7 @@ public:
         }
     }
 
-    void lookup(Transaction* /*transaction*/, ValueVector* nodeIDVector,
+    void lookup(Transaction*, ReadState&, ValueVector* nodeIDVector,
         ValueVector* resultVector) override {
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
@@ -268,11 +268,34 @@ void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, 
     }
 }
 
-void Column::scan(Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void Column::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    common::offset_t startOffsetInChunk, ReadState& readState) {
     if (nullColumn) {
-        nullColumn->scan(transaction, nodeIDVector, resultVector);
+        if (!readState.nullState) {
+            readState.nullState = std::make_unique<ReadState>();
+        }
+        nullColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+            *readState.nullState);
     }
-    scanInternal(transaction, nodeIDVector, resultVector);
+    KU_ASSERT(nodeGroupIdx < metadataDA->getNumElements(transaction->getType()));
+    if (nodeGroupIdx != readState.nodeGroupIdx) {
+        // Only update metadata and numValuesPerPage if we're reading a different node group.
+        // This is an optimization to reduce accesses to metadataDA, which can lead to contention
+        // due to lock acquiring in DiskArray.
+        readState.nodeGroupIdx = nodeGroupIdx;
+        readState.metadata = metadataDA->get(nodeGroupIdx, transaction->getType());
+        readState.numValuesPerPage =
+            readState.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+    }
+}
+
+void Column::scan(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
+    if (nullColumn) {
+        KU_ASSERT(readState.nullState);
+        nullColumn->scan(transaction, *readState.nullState, nodeIDVector, resultVector);
+    }
+    scanInternal(transaction, readState, nodeIDVector, resultVector);
 }
 
 void Column::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -349,20 +372,17 @@ void Column::scan(Transaction* transaction, const ReadState& state, offset_t sta
     }
 }
 
-void Column::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
+void Column::scanInternal(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
-    auto startNodeOffset = nodeIDVector->readNodeOffset(0);
-    KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
-    // TODO: replace with state
-    auto [nodeGroupIdx, offsetInChunk] =
-        StorageUtils::getNodeGroupIdxAndOffsetInChunk(startNodeOffset);
-    auto cursor = getPageCursorForOffset(transaction->getType(), nodeGroupIdx, offsetInChunk);
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+    auto [nodeGroupIdx, startOffsetInChunk] =
+        StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeIDVector->readNodeOffset(0));
+    KU_ASSERT(nodeGroupIdx == readState.nodeGroupIdx);
+    auto cursor = getPageCursorForOffsetInGroup(startOffsetInChunk, readState);
     if (nodeIDVector->state->selVector->isUnfiltered()) {
         scanUnfiltered(transaction, cursor, nodeIDVector->state->selVector->selectedSize,
-            resultVector, chunkMeta);
+            resultVector, readState.metadata);
     } else {
-        scanFiltered(transaction, cursor, nodeIDVector, resultVector, chunkMeta);
+        scanFiltered(transaction, cursor, nodeIDVector, resultVector, readState.metadata);
     }
 }
 
@@ -415,35 +435,35 @@ void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
     }
 }
 
-void Column::lookup(Transaction* transaction, ValueVector* nodeIDVector,
+void Column::lookup(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
     if (nullColumn) {
-        nullColumn->lookup(transaction, nodeIDVector, resultVector);
+        KU_ASSERT(readState.nullState);
+        nullColumn->lookup(transaction, *readState.nullState, nodeIDVector, resultVector);
     }
-    lookupInternal(transaction, nodeIDVector, resultVector);
+    lookupInternal(transaction, readState, nodeIDVector, resultVector);
 }
 
-void Column::lookupInternal(transaction::Transaction* transaction, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void Column::lookupInternal(transaction::Transaction* transaction, ReadState& readState,
+    ValueVector* nodeIDVector, ValueVector* resultVector) {
     for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (nodeIDVector->isNull(pos)) {
             continue;
         }
         auto nodeOffset = nodeIDVector->readNodeOffset(pos);
-        lookupValue(transaction, nodeOffset, resultVector, pos);
+        lookupValue(transaction, readState, nodeOffset, resultVector, pos);
     }
 }
 
-void Column::lookupValue(transaction::Transaction* transaction, offset_t nodeOffset,
-    ValueVector* resultVector, uint32_t posInVector) {
+void Column::lookupValue(transaction::Transaction* transaction, ReadState& readState,
+    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-    auto cursor = getPageCursorForOffset(transaction->getType(), nodeGroupIdx, offsetInChunk);
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
-    KU_ASSERT(isPageIdxValid(cursor.pageIdx, chunkMeta));
+    auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, readState);
+    KU_ASSERT(isPageIdxValid(cursor.pageIdx, readState.metadata));
     readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
         readToVectorFunc(frame, cursor, resultVector, posInVector, 1 /* numValuesToRead */,
-            chunkMeta.compMeta);
+            readState.metadata.compMeta);
     });
 }
 

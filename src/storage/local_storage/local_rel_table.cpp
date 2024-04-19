@@ -261,13 +261,5 @@ bool LocalRelTable::delete_(TableDeleteState& deleteState) {
     return fwdDeleted && bwdDeleted;
 }
 
-void LocalRelTable::scan(TableReadState&) {
-    KU_UNREACHABLE;
-}
-
-void LocalRelTable::lookup(TableReadState&) {
-    KU_UNREACHABLE;
-}
-
 } // namespace storage
 } // namespace kuzu

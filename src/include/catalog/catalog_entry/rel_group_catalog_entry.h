@@ -28,6 +28,7 @@ public:
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelGroupCatalogEntry> deserialize(common::Deserializer& deserializer);
     std::unique_ptr<CatalogEntry> copy() const override;
+    std::string toCypher(main::ClientContext* clientContext) const override;
 
 private:
     std::vector<common::table_id_t> relTableIDs;
