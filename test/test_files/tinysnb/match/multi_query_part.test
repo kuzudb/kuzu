@@ -47,3 +47,24 @@
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WITH c MATCH (c)-[e3:knows]->(d:person)-[e4:knows]->(e:person) RETURN COUNT(*)
 ---- 1
 324
+
+-LOG FilterPushDown
+-STATEMENT match (a:person) match (b:person) where a.age=b.age and a.fName <> b.fName and a.fName = 'Dan' return a.fName, b.fName;
+---- 1
+Dan|Elizabeth
+-STATEMENT MATCH (a:person) WITH a.age AS s, a.fName as n MATCH (b:person) WHERE s=b.age and n='Dan' RETURN n,b.fName,s
+-ENUMERATE
+---- 2
+Dan|Dan|20
+Dan|Elizabeth|20
+-STATEMENT MATCH (a:person) WITH a.age AS s, a.fName as n MATCH (b:person) WHERE s=b.age and n=b.fName RETURN n,b.fName,s
+-ENUMERATE
+---- 8
+Alice|Alice|35
+Bob|Bob|30
+Carol|Carol|45
+Dan|Dan|20
+Elizabeth|Elizabeth|20
+Farooq|Farooq|25
+Greg|Greg|40
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|83
