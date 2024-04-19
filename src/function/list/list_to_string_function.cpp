@@ -1,6 +1,6 @@
-#include "common/type_utils.h"
-#include "common/vector/value_vector.h"
 #include "function/list/functions/list_to_string_function.h"
+
+#include "common/type_utils.h"
 
 namespace kuzu {
 namespace function {
