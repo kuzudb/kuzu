@@ -78,7 +78,8 @@ Napi::Value NodeQueryResult::GetNextQueryResultAsync(const Napi::CallbackInfo& i
     Napi::HandleScope scope(env);
     auto newQueryResult = Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[0].As<Napi::Object>());
     auto callback = info[1].As<Napi::Function>();
-    auto* asyncWorker = new NodeQueryResultGetNextQueryResultAsyncWorker(callback, this, newQueryResult);
+    auto* asyncWorker =
+        new NodeQueryResultGetNextQueryResultAsyncWorker(callback, this, newQueryResult);
     asyncWorker->Queue();
     return info.Env().Undefined();
 }

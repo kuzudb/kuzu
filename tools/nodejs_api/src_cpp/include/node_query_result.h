@@ -133,7 +133,7 @@ public:
 
     ~NodeQueryResultGetNextQueryResultAsyncWorker() override = default;
 
-     void Execute() override {
+    void Execute() override {
         try {
             auto nextResult = currQueryResult->queryResult->getNextQueryResult();
             nextQueryResult->SetQueryResult(nextResult, false);
@@ -144,7 +144,7 @@ public:
 
     void OnOK() override { Callback().Call({Env().Null()}); }
 
-     void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
+    void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
 
 private:
     NodeQueryResult* currQueryResult;

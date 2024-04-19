@@ -45,7 +45,9 @@ public:
     void Execute() override {
         try {
             nodeConnection->InitCppConnection();
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
     }
 
     void OnOK() override { Callback().Call({Env().Null()}); }
@@ -75,7 +77,9 @@ public:
                 SetError(result->getErrorMessage());
                 return;
             }
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
     }
 
     void OnOK() override { Callback().Call({Env().Null()}); }
@@ -106,7 +110,9 @@ public:
                 SetError(result->getErrorMessage());
                 return;
             }
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
     }
 
     void OnOK() override { Callback().Call({Env().Null()}); }
