@@ -25,7 +25,7 @@ function_set MapCreationFunctions::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::MAP,
-        execFunc, nullptr, MapCreationBindFunc, false /* isVarLength */));
+        execFunc, nullptr, MapCreationBindFunc));
     return functionSet;
 }
 
@@ -123,7 +123,7 @@ function_set MapExtractFunctions::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::MAP, LogicalTypeID::ANY}, LogicalTypeID::LIST,
-        nullptr, nullptr, MapExtractBindFunc, false /* isVarLength */));
+        nullptr, nullptr, MapExtractBindFunc));
     return functionSet;
 }
 
@@ -139,7 +139,7 @@ function_set MapKeysFunctions::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
         make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::MAP},
-            LogicalTypeID::LIST, execFunc, nullptr, MapKeysBindFunc, false /* isVarLength */));
+            LogicalTypeID::LIST, execFunc, nullptr, MapKeysBindFunc));
     return functionSet;
 }
 
@@ -155,7 +155,7 @@ function_set MapValuesFunctions::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
         make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::MAP},
-            LogicalTypeID::LIST, execFunc, nullptr, MapValuesBindFunc, false /* isVarLength */));
+            LogicalTypeID::LIST, execFunc, nullptr, MapValuesBindFunc));
     return functionSet;
 }
 

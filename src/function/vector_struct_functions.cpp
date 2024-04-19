@@ -72,9 +72,11 @@ void StructPackFunctions::execFunc(const std::vector<std::shared_ptr<ValueVector
 
 function_set StructPackFunctions::getFunctionSet() {
     function_set functions;
-    functions.push_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRUCT, execFunc, nullptr,
-        compileFunc, StructPackBindFunc, true /* isVarLength */));
+    auto function =
+        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
+            LogicalTypeID::STRUCT, execFunc, nullptr, compileFunc, StructPackBindFunc);
+    function->isVarLength = true;
+    functions.push_back(std::move(function));
     return functions;
 }
 
@@ -105,8 +107,7 @@ void StructExtractFunctions::compileFunc(FunctionBindData* bindData,
 static std::unique_ptr<ScalarFunction> getStructExtractFunction(LogicalTypeID logicalTypeID) {
     return std::make_unique<ScalarFunction>(StructExtractFunctions::name,
         std::vector<LogicalTypeID>{logicalTypeID, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-        nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc,
-        false /* isVarLength */);
+        nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc);
 }
 
 function_set StructExtractFunctions::getFunctionSet() {

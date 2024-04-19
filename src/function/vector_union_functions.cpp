@@ -42,7 +42,7 @@ function_set UnionValueFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::UNION, UnionValueExecFunc,
-        nullptr, UnionValueCompileFunc, UnionValueBindFunc, false /* isVarLength */));
+        nullptr, UnionValueCompileFunc, UnionValueBindFunc));
     return functionSet;
 }
 
@@ -51,7 +51,7 @@ function_set UnionTagFunction::getFunctionSet() {
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::UNION}, LogicalTypeID::STRING,
         ScalarFunction::UnaryExecNestedTypeFunction<union_entry_t, ku_string_t, UnionTag>, nullptr,
-        nullptr, false /* isVarLength */));
+        nullptr));
     return functionSet;
 }
 
@@ -59,8 +59,7 @@ function_set UnionExtractFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::UNION, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-        nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc,
-        false /* isVarLength */));
+        nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc));
     return functionSet;
 }
 

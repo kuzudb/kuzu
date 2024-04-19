@@ -100,8 +100,7 @@ function_set ArrayExtractFunction::getFunctionSet() {
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
-        ScalarFunction::BinaryExecFunction<ku_string_t, int64_t, ku_string_t, ArrayExtract>,
-        false /* isVarLength */));
+        ScalarFunction::BinaryExecFunction<ku_string_t, int64_t, ku_string_t, ArrayExtract>));
     return functionSet;
 }
 
@@ -141,9 +140,10 @@ void ConcatFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& p
 
 function_set ConcatFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING},
-            LogicalTypeID::STRING, execFunc, true /* isVarLength */));
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING, execFunc);
+    function->isVarLength = true;
+    functionSet.emplace_back(std::move(function));
     return functionSet;
 }
 
@@ -153,8 +153,7 @@ function_set ContainsFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, Contains>,
-        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, Contains>,
-        false /* isVarLength */));
+        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, Contains>));
     return functionSet;
 }
 
@@ -164,8 +163,7 @@ function_set EndsWithFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, EndsWith>,
-        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, EndsWith>,
-        false /* isVarLength */));
+        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, EndsWith>));
     return functionSet;
 }
 
@@ -174,8 +172,7 @@ function_set LeftFunction::getFunctionSet() {
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
-        ScalarFunction::BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, Left>,
-        false /* isVarLength */));
+        ScalarFunction::BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, Left>));
     return functionSet;
 }
 
@@ -186,8 +183,7 @@ function_set LpadFunction::getFunctionSet() {
             LogicalTypeID::STRING},
         LogicalTypeID::STRING,
         ScalarFunction::TernaryStringExecFunction<ku_string_t, int64_t, ku_string_t, ku_string_t,
-            Lpad>,
-        false /* isVarLength */));
+            Lpad>));
     return functionSet;
 }
 
@@ -196,8 +192,7 @@ function_set RepeatFunction::getFunctionSet() {
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
-        ScalarFunction::BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, Repeat>,
-        false /* isVarLength */));
+        ScalarFunction::BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, Repeat>));
     return functionSet;
 }
 
@@ -206,8 +201,7 @@ function_set RightFunction::getFunctionSet() {
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
-        ScalarFunction::BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, Right>,
-        false /* isVarLength */));
+        ScalarFunction::BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, Right>));
     return functionSet;
 }
 
@@ -218,8 +212,7 @@ function_set RpadFunction::getFunctionSet() {
             LogicalTypeID::STRING},
         LogicalTypeID::STRING,
         ScalarFunction::TernaryStringExecFunction<ku_string_t, int64_t, ku_string_t, ku_string_t,
-            Rpad>,
-        false /* isVarLength */));
+            Rpad>));
     return functionSet;
 }
 
@@ -229,8 +222,7 @@ function_set StartsWithFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, StartsWith>,
-        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, StartsWith>,
-        false /* isVarLength */));
+        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, StartsWith>));
     return functionSet;
 }
 
@@ -241,8 +233,7 @@ function_set SubStrFunction::getFunctionSet() {
             LogicalTypeID::INT64},
         LogicalTypeID::STRING,
         ScalarFunction::TernaryStringExecFunction<ku_string_t, int64_t, int64_t, ku_string_t,
-            SubStr>,
-        false /* isVarLength */));
+            SubStr>));
     return functionSet;
 }
 
@@ -252,8 +243,7 @@ function_set RegexpFullMatchFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, RegexpFullMatch>,
-        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, RegexpFullMatch>,
-        false /* isVarLength */));
+        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, RegexpFullMatch>));
     return functionSet;
 }
 
@@ -263,8 +253,7 @@ function_set RegexpMatchesFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, RegexpMatches>,
-        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, RegexpMatches>,
-        false /* isVarLength */));
+        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, RegexpMatches>));
     return functionSet;
 }
 
@@ -277,8 +266,7 @@ function_set RegexpReplaceFunction::getFunctionSet() {
             LogicalTypeID::STRING},
         LogicalTypeID::STRING,
         ScalarFunction::TernaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t,
-            ku_string_t, RegexpReplace>,
-        false /* isVarLength */));
+            ku_string_t, RegexpReplace>));
     return functionSet;
 }
 
@@ -288,15 +276,13 @@ function_set RegexpExtractFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::STRING,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t,
-            RegexpExtract>,
-        false /* isVarLength */));
+            RegexpExtract>));
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::INT64},
         LogicalTypeID::STRING,
         ScalarFunction::TernaryStringExecFunction<ku_string_t, ku_string_t, int64_t, ku_string_t,
-            RegexpExtract>,
-        false /* isVarLength */));
+            RegexpExtract>));
     return functionSet;
 }
 
@@ -307,14 +293,14 @@ function_set RegexpExtractAllFunction::getFunctionSet() {
         LogicalTypeID::LIST,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t,
             RegexpExtractAll>,
-        nullptr, bindFunc, false /* isVarLength */));
+        nullptr, bindFunc));
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::INT64},
         LogicalTypeID::LIST,
         ScalarFunction::TernaryStringExecFunction<ku_string_t, ku_string_t, int64_t, list_entry_t,
             RegexpExtractAll>,
-        nullptr, bindFunc, false /* isVarLength */));
+        nullptr, bindFunc));
     return functionSet;
 }
 
@@ -329,7 +315,7 @@ function_set LevenshteinFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::INT64,
         ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, int64_t, Levenshtein>, nullptr,
-        nullptr, false /* isVarLength */));
+        nullptr));
     return functionSet;
 }
 
@@ -338,7 +324,7 @@ function_set InitcapFunction::getFunctionSet() {
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
         ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, Initcap>, nullptr,
-        nullptr, false /* isVarLength */));
+        nullptr));
     return functionSet;
 }
 

@@ -22,9 +22,11 @@ std::unique_ptr<FunctionBindData> ArrayValueBindFunc(const binder::expression_ve
 
 function_set ArrayValueFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::ARRAY,
-        ListCreationFunction::execFunc, nullptr, ArrayValueBindFunc, true /*  isVarLength */));
+    auto function =
+        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
+            LogicalTypeID::ARRAY, ListCreationFunction::execFunc, nullptr, ArrayValueBindFunc);
+    function->isVarLength = true;
+    result.push_back(std::move(function));
     return result;
 }
 
@@ -85,8 +87,7 @@ function_set ArrayCrossProductFunction::getFunctionSet() {
             LogicalTypeID::ARRAY,
             LogicalTypeID::ARRAY,
         },
-        LogicalTypeID::ARRAY, nullptr, nullptr, ArrayCrossProductBindFunc,
-        false /*  isVarLength */));
+        LogicalTypeID::ARRAY, nullptr, nullptr, ArrayCrossProductBindFunc));
     return result;
 }
 
@@ -147,8 +148,7 @@ function_set templateGetFunctionSet(const std::string& functionName) {
         },
         LogicalTypeID::ANY, nullptr, nullptr,
         std::bind(arrayTemplateBindFunc<OPERATION>, functionName, std::placeholders::_1,
-            std::placeholders::_2),
-        false /*  isVarLength */));
+            std::placeholders::_2)));
     return result;
 }
 

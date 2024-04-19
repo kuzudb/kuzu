@@ -150,7 +150,7 @@ function_set AddFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::LIST,
         ScalarFunction::BinaryExecListStructFunction<list_entry_t, list_entry_t, list_entry_t,
             ListConcat>,
-        nullptr, ListConcatFunction::bindFunc, false /* isVarlength*/));
+        nullptr, ListConcatFunction::bindFunc));
     // string + string -> string
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},

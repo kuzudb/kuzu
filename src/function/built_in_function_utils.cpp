@@ -7,7 +7,6 @@
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/function_collection.h"
-#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -420,19 +419,11 @@ Function* BuiltInFunctionsUtils::getBestMatch(std::vector<Function*>& functionsT
 
 uint32_t BuiltInFunctionsUtils::getFunctionCost(const std::vector<LogicalType>& inputTypes,
     Function* function, bool isOverload) {
-    switch (function->type) {
-    case FunctionType::SCALAR: {
-        auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
-        if (scalarFunction->isVarLength) {
-            KU_ASSERT(function->parameterTypeIDs.size() == 1);
-            return matchVarLengthParameters(inputTypes, function->parameterTypeIDs[0], isOverload);
-        } else {
-            return matchParameters(inputTypes, function->parameterTypeIDs, isOverload);
-        }
+    if (function->isVarLength) {
+        KU_ASSERT(function->parameterTypeIDs.size() == 1);
+        return matchVarLengthParameters(inputTypes, function->parameterTypeIDs[0], isOverload);
     }
-    default:
-        return matchParameters(inputTypes, function->parameterTypeIDs, isOverload);
-    }
+    return matchParameters(inputTypes, function->parameterTypeIDs, isOverload);
 }
 
 uint32_t BuiltInFunctionsUtils::getAggregateFunctionCost(const std::vector<LogicalType>& inputTypes,
