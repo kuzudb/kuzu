@@ -1,5 +1,7 @@
 #include "duckdb_storage.h"
 
+#include <filesystem>
+
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "duckdb_catalog.h"
@@ -7,18 +9,19 @@
 namespace kuzu {
 namespace duckdb_scanner {
 
+static std::string getCatalogNameFromPath(const std::string& dbPath) {
+    std::filesystem::path path(dbPath);
+    return path.stem().string();
+}
+
 std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::string dbPath,
     main::ClientContext* clientContext) {
+    auto catalogName = getCatalogNameFromPath(dbPath);
     if (dbName == "") {
-        if (dbPath.find('.') != std::string::npos) {
-            auto fileNamePos = dbPath.find_last_of('/') + 1;
-            dbName = dbPath.substr(fileNamePos, dbPath.find_last_of('.') - fileNamePos);
-        } else {
-            dbName = dbPath;
-        }
+        dbName = catalogName;
     }
     auto duckdbCatalog = std::make_unique<DuckDBCatalogContent>();
-    duckdbCatalog->init(dbPath, dbName, clientContext);
+    duckdbCatalog->init(dbPath, catalogName, clientContext);
     return std::make_unique<main::AttachedDatabase>(dbName, std::move(duckdbCatalog));
 }
 
