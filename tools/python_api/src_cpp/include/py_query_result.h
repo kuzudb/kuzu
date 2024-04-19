@@ -18,7 +18,8 @@ public:
     static void initialize(py::handle& m);
 
     PyQueryResult() = default;
-    ~PyQueryResult() = default;
+
+    ~PyQueryResult();
 
     bool hasNext();
 
@@ -61,5 +62,6 @@ private:
         const std::vector<std::string>& names, std::int64_t chunkSize);
 
 private:
-    std::unique_ptr<QueryResult> queryResult;
+    QueryResult* queryResult = nullptr;
+    bool isOwned = false;
 };

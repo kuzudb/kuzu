@@ -397,6 +397,7 @@ std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(
         throw std::runtime_error(queryResult->getErrorMessage());
     }
     auto pyQueryResult = std::make_unique<PyQueryResult>();
-    pyQueryResult->queryResult = std::move(queryResult);
+    pyQueryResult->queryResult = queryResult.release();
+    pyQueryResult->isOwned = true;
     return pyQueryResult;
 }
