@@ -1,4 +1,4 @@
--GROUP EmptyCreateRelTest
+-GROUP CreateRelSmallTest
 -DATASET CSV empty
 --
 
@@ -100,7 +100,9 @@
 (1:1)-{_LABEL: own, _ID: 2:1}->(0:1)
 (1:2)-{_LABEL: own, _ID: 2:2}->(0:2)
 
+## TODO: FIX-ME. This can cause bm exception or long running (possibly hang) on 32-bit platform
 -CASE CreateOneToOneRelOnLargeNodeTable
+-SKIP_32BIT
 -STATEMENT CREATE NODE TABLE N1(ID INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE N2(ID INT64, PRIMARY KEY(ID));

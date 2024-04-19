@@ -1,0 +1,23 @@
+-GROUP CreateRelBatchTest
+-DATASET CSV empty
+--
+
+-CASE CreateRelBatch1
+-STATEMENT CREATE NODE TABLE Person(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE knows(FROM Person TO Person);
+---- ok
+-STATEMENT UNWIND range(0, 10000) AS i
+           CREATE (n:Person {id: i});
+---- ok
+-STATEMENT MATCH (p:Person) RETURN COUNT(*)
+---- 1
+10001
+-STATEMENT UNWIND range(0, 9999) AS i
+           MATCH (p1:Person {id: i})
+           MATCH (p2:Person {id: i + 1})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person)-[r:knows]->(p2:Person) RETURN COUNT(*)
+---- 1
+10000

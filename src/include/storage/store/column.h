@@ -29,11 +29,13 @@ using batch_lookup_func_t = read_values_to_page_func_t;
 
 class NullColumn;
 class StructColumn;
+class RelTableData;
 class Column {
     friend class StringColumn;
     friend class ListLocalColumn;
     friend class StructColumn;
     friend class ListColumn;
+    friend class RelTableData;
 
 public:
     struct ReadState {
