@@ -29,7 +29,9 @@ InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
       pSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true)},
       oSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 1, true)},
       indexHeader{TypeUtils::getPhysicalTypeIDForType<T>()} {
-    allocatePSlots(1u << this->indexHeader.currentLevel);
+    // Match HashIndex in allocating at least one page of slots so that we don't split within the
+    // same page
+    allocateSlots(BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
 }
 
 template<typename T>
