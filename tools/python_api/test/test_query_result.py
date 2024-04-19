@@ -40,3 +40,15 @@ def test_context_manager(conn_db_readonly: ConnDB) -> None:
     # context exit guarantees immediately 'close' of the underlying QueryResult
     # (don't have to wait for __del__, which may not ever actually get called)
     assert result.is_closed
+
+
+def test_multiple_query_results(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
+    results = conn.execute("RETURN 1; RETURN 2; RETURN 3;")
+    assert len(results) == 3
+    i = 1
+    for result in results:
+        assert result.get_num_tuples() == 1
+        assert result.has_next()
+        assert result.get_next() == [i]
+        i += 1

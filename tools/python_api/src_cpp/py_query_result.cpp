@@ -23,6 +23,8 @@ void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
         .def("hasNext", &PyQueryResult::hasNext)
         .def("getNext", &PyQueryResult::getNext)
+        .def("hasNextQueryResult", &PyQueryResult::hasNextQueryResult)
+        .def("getNextQueryResult", &PyQueryResult::getNextQueryResult)
         .def("close", &PyQueryResult::close)
         .def("getAsDF", &PyQueryResult::getAsDF)
         .def("getAsArrow", &PyQueryResult::getAsArrow)
@@ -40,6 +42,10 @@ void PyQueryResult::initialize(py::handle& m) {
     PyDateTime_IMPORT;
 }
 
+PyQueryResult::~PyQueryResult() {
+    close();
+}
+
 bool PyQueryResult::hasNext() {
     return queryResult->hasNext();
 }
@@ -53,11 +59,28 @@ py::list PyQueryResult::getNext() {
     return result;
 }
 
+bool PyQueryResult::hasNextQueryResult() {
+    return queryResult->hasNextQueryResult();
+}
+
+std::unique_ptr<PyQueryResult> PyQueryResult::getNextQueryResult() {
+    py::gil_scoped_release release;
+    auto nextQueryResult = queryResult->getNextQueryResult();
+    py::gil_scoped_acquire acquire;
+    auto pyQueryResult = std::make_unique<PyQueryResult>();
+    pyQueryResult->queryResult = nextQueryResult;
+    pyQueryResult->isOwned = false;
+    return pyQueryResult;
+}
+
 void PyQueryResult::close() {
     // Note: Python does not guarantee objects to be deleted in the reverse order. Therefore, we
     // expose close() interface so that users can explicitly call close() and ensure that
     // QueryResult is destroyed before Database.
-    queryResult.reset();
+    if (isOwned) {
+        delete queryResult;
+        queryResult = nullptr;
+    }
 }
 
 static py::object converTimestampToPyObject(timestamp_t& timestamp) {
@@ -322,7 +345,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
 }
 
 py::object PyQueryResult::getAsDF() {
-    return QueryResultConverter(queryResult.get()).toDF();
+    return QueryResultConverter(queryResult).toDF();
 }
 
 bool PyQueryResult::getNextArrowChunk(const std::vector<kuzu::common::LogicalType>& types,

@@ -62,7 +62,7 @@ class Connection:
         self,
         query: str | PreparedStatement,
         parameters: dict[str, Any] | None = None,
-    ) -> QueryResult:
+    ) -> QueryResult | [QueryResult]:
         """
         Execute a query.
 
@@ -99,7 +99,16 @@ class Connection:
             _query_result = self._connection.execute(prepared_statement._prepared_statement, parameters)
         if not _query_result.isSuccess():
             raise RuntimeError(_query_result.getErrorMessage())
-        return QueryResult(self, _query_result)
+        current_query_result = QueryResult(self, _query_result)
+        if not _query_result.hasNextQueryResult():
+            return current_query_result
+        all_query_results = [current_query_result]
+        while _query_result.hasNextQueryResult():
+            _query_result = _query_result.getNextQueryResult()
+            if not _query_result.isSuccess():
+                raise RuntimeError(_query_result.getErrorMessage())
+            all_query_results.append(QueryResult(self, _query_result))
+        return all_query_results
 
     def prepare(self, query: str) -> PreparedStatement:
         """

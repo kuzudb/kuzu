@@ -70,9 +70,9 @@ public:
 
     void Execute() override {
         try {
-            std::shared_ptr<QueryResult> result =
-                connection->executeWithParams(preparedStatement.get(), std::move(params));
-            nodeQueryResult->SetQueryResult(result);
+            auto result =
+                connection->executeWithParams(preparedStatement.get(), std::move(params)).release();
+            nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
                 return;
@@ -104,8 +104,8 @@ public:
 
     void Execute() override {
         try {
-            std::shared_ptr<QueryResult> result = connection->query(statement);
-            nodeQueryResult->SetQueryResult(result);
+            auto result = connection->query(statement).release();
+            nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
                 return;

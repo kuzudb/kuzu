@@ -4,11 +4,6 @@ const KuzuNative = require("./kuzu_native.js");
 const QueryResult = require("./query_result.js");
 const PreparedStatement = require("./prepared_statement.js");
 
-const PRIMARY_KEY_TEXT = "(PRIMARY KEY)";
-const SRC_NODE_TEXT = "src node:";
-const DST_NODE_TEXT = "dst node:";
-const PROPERTIES_TEXT = "properties:";
-
 class Connection {
   /**
    * Initialize a new Connection object. Note that the initialization is done
@@ -139,7 +134,13 @@ class Connection {
               if (err) {
                 return reject(err);
               }
-              return resolve(new QueryResult(this, nodeQueryResult));
+              this._unwrapMultipleQueryResults(nodeQueryResult)
+                .then((queryResults) => {
+                  return resolve(queryResults);
+                })
+                .catch((err) => {
+                  return reject(err);
+                });
             }
           );
         } catch (e) {
@@ -191,13 +192,56 @@ class Connection {
             if (err) {
               return reject(err);
             }
-            return resolve(new QueryResult(this, nodeQueryResult));
+            this._unwrapMultipleQueryResults(nodeQueryResult)
+              .then((queryResults) => {
+                return resolve(queryResults);
+              })
+              .catch((err) => {
+                return reject(err);
+              });
           });
         } catch (e) {
           return reject(e);
         }
       });
     });
+  }
+
+  /**
+   * Internal function to get the next query result for multiple query results.
+   * @param {KuzuNative.NodeQueryResult} nodeQueryResult the current node query result.
+   * @returns {Promise<kuzu.QueryResult>} a promise that resolves to the next query result. The promise is rejected if there is an error.
+   */
+  _getNextQueryResult(nodeQueryResult) {
+    return new Promise((resolve, reject) => {
+      const nextNodeQueryResult = new KuzuNative.NodeQueryResult();
+      nodeQueryResult.getNextQueryResultAsync(nextNodeQueryResult, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(new QueryResult(this, nextNodeQueryResult));
+      });
+    });
+  }
+
+  /**
+   * Internal function to unwrap multiple query results into an array of query results.
+   * @param {KuzuNative.NodeQueryResult} nodeQueryResult the node query result.
+   * @returns {Promise<Array<kuzu.QueryResult>> | kuzu.QueryResult} a promise that resolves to an array of query results. The promise is rejected if there is an error.
+   */
+  async _unwrapMultipleQueryResults(nodeQueryResult) {
+    const wrappedQueryResult = new QueryResult(this, nodeQueryResult);
+    if (!nodeQueryResult.hasNextQueryResult()) {
+      return wrappedQueryResult;
+    }
+    const queryResults = [wrappedQueryResult];
+    let currentQueryResult = nodeQueryResult;
+    while (currentQueryResult.hasNextQueryResult()) {
+      queryResults.push(await this._getNextQueryResult(currentQueryResult));
+      currentQueryResult =
+        queryResults[queryResults.length - 1]._queryResult;
+    }
+    return queryResults;
   }
 
   /**

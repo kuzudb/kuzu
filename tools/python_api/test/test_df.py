@@ -241,11 +241,11 @@ def test_to_df(conn_db_readonly: ConnDB) -> None:
         assert str(pd["m.audience"].dtype) == "object"
         assert pd["m.grade"].tolist() == [True, 254.0, 8.989]
         assert str(pd["m.grade"].dtype) == "object"
-    
+
     def _test_serial_to_df(conn: kuzu.Connection) -> None:
         df = conn.execute("MATCH (a:moviesSerial) RETURN a.ID AS id").get_as_df()
         assert len(df) == 3
-        assert df['id'].tolist() == [0, 1, 2]
+        assert df["id"].tolist() == [0, 1, 2]
 
     _test_person_to_df(conn)
     conn.set_max_threads_for_exec(2)
