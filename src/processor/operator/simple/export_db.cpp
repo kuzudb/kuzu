@@ -7,6 +7,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
@@ -37,14 +38,23 @@ static void writeCopyStatement(stringstream& ss, std::string tableName,
         csvConfig.option.toCypher());
 }
 
-std::string getSchemaCypher(main::ClientContext* clientContext, transaction::Transaction* tx) {
+std::string getSchemaCypher(main::ClientContext* clientContext, transaction::Transaction* tx, std::string& extraMsg) {
     stringstream ss;
     auto catalog = clientContext->getCatalog();
     for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
         ss << nodeTableEntry->toCypher(clientContext) << std::endl;
     }
     for (auto& relTableEntry : catalog->getRelTableEntries(tx)) {
+        if(catalog->relTableExistInRelTableGroup(tx,relTableEntry->getTableID())){
+            continue;
+        }
         ss << relTableEntry->toCypher(clientContext) << std::endl;
+    }
+    for (auto &relGroupEntry : catalog->getRelTableGroupEntries(tx)){
+        ss<<relGroupEntry->toCypher(clientContext)<<std::endl;
+    }
+    if(catalog->getRdfGraphEntries(tx).size()!=0){
+        extraMsg = " But we skip exporting RDF graphs.";
     }
     return ss.str();
 }
@@ -74,7 +84,7 @@ std::string getCopyCypher(catalog::Catalog* catalog, transaction::Transaction* t
 void ExportDB::executeInternal(ExecutionContext* context) {
     // write the schema.cypher file
     writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
-        getSchemaCypher(context->clientContext, context->clientContext->getTx()),
+        getSchemaCypher(context->clientContext, context->clientContext->getTx(), extraMsg),
         boundFileInfo.filePaths[0] + "/schema.cypher");
     // write macro.cypher file
     writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
@@ -89,7 +99,7 @@ void ExportDB::executeInternal(ExecutionContext* context) {
 }
 
 std::string ExportDB::getOutputMsg() {
-    return "Export database successfully.";
+    return "Export database successfully."+extraMsg;
 }
 
 } // namespace processor
