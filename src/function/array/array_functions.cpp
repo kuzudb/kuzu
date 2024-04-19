@@ -1,44 +1,15 @@
-#include "function/array/vector_array_functions.h"
-
-#include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "function/array/functions/array_cosine_similarity.h"
 #include "function/array/functions/array_cross_product.h"
 #include "function/array/functions/array_distance.h"
 #include "function/array/functions/array_inner_product.h"
-#include "function/list/vector_list_functions.h"
+#include "function/array/vector_array_functions.h"
 #include "function/scalar_function.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
-
-std::unique_ptr<FunctionBindData> ArrayValueBindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
-    LogicalType combinedType(LogicalTypeID::ANY);
-    binder::ExpressionUtil::tryCombineDataType(arguments, combinedType);
-    if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {
-        combinedType = *LogicalType::STRING();
-    }
-    auto resultType = LogicalType::ARRAY(combinedType.copy(), arguments.size());
-    auto bindData = std::make_unique<FunctionBindData>(std::move(resultType));
-    for (auto& _ : arguments) {
-        (void)_;
-        bindData->paramTypes.push_back(combinedType);
-    }
-    return bindData;
-}
-
-function_set ArrayValueFunction::getFunctionSet() {
-    function_set result;
-    auto function =
-        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::ARRAY, ListCreationFunction::execFunc, nullptr, ArrayValueBindFunc);
-    function->isVarLength = true;
-    result.push_back(std::move(function));
-    return result;
-}
 
 std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
     const binder::expression_vector& arguments, Function* function) {
@@ -87,7 +58,7 @@ std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
     ku_dynamic_cast<Function*, ScalarFunction*>(function)->execFunc = execFunc;
     auto resultType = LogicalType::ARRAY(*ArrayType::getChildType(&leftType),
         ArrayType::getNumElements(&leftType));
-    return std::make_unique<FunctionBindData>(std::move(resultType));
+    return FunctionBindData::getSimpleBindData(arguments, *resultType);
 }
 
 function_set ArrayCrossProductFunction::getFunctionSet() {
@@ -143,9 +114,8 @@ std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName
     auto leftType = arguments[0]->dataType;
     auto rightType = arguments[1]->dataType;
     validateArrayFunctionParameters(leftType, rightType, functionName);
-    ku_dynamic_cast<Function*, ScalarFunction*>(function)->execFunc =
-        getScalarExecFunc<OPERATION>(leftType);
-    return std::make_unique<FunctionBindData>(ArrayType::getChildType(&leftType)->copy());
+    function->ptrCast<ScalarFunction>()->execFunc = getScalarExecFunc<OPERATION>(leftType);
+    return FunctionBindData::getSimpleBindData(arguments, *ArrayType::getChildType(&leftType));
 }
 
 template<typename OPERATION>

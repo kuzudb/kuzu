@@ -78,13 +78,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CastAnyFunction::name) {
         bindData = function->bindFunc(children, function);
-        if (bindData == nullptr) {
+        if (bindData == nullptr) { // No need to cast.
             return children[0];
         }
         auto childAfterCast = children[0];
         // See castBindFunc for explanation.
         if (children[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
-            childAfterCast = implicitCastIfNecessary(children[0], LogicalTypeID::STRING);
+            childAfterCast = implicitCastIfNecessary(children[0], *LogicalType::STRING());
         }
         childrenAfterCast.push_back(std::move(childAfterCast));
     } else {
@@ -101,9 +101,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
             }
         } else {
             for (auto i = 0u; i < children.size(); ++i) {
-                auto targetType = function->isVarLength ? function->parameterTypeIDs[0] :
-                                                          function->parameterTypeIDs[i];
-                childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
+                auto id = function->isVarLength ? function->parameterTypeIDs[0] :
+                                                  function->parameterTypeIDs[i];
+                auto type = id == LogicalTypeID::RDF_VARIANT ? *LogicalType::RDF_VARIANT() :
+                                                               LogicalType(id);
+                childrenAfterCast.push_back(implicitCastIfNecessary(children[i], type));
             }
         }
     }

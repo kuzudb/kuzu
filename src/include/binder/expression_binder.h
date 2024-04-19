@@ -105,8 +105,6 @@ public:
 
     /****** cast *****/
     std::shared_ptr<Expression> implicitCastIfNecessary(
-        const std::shared_ptr<Expression>& expression, common::LogicalTypeID targetTypeID);
-    std::shared_ptr<Expression> implicitCastIfNecessary(
         const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType);
     // Use implicitCast to cast to types you have obtained through known implicit casting rules.
     // Use forceCast to cast to types you have obtained through other means, for example,
