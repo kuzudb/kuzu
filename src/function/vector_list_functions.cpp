@@ -776,210 +776,25 @@ function_set ListProductFunction::getFunctionSet() {
 }
 
 static std::unique_ptr<FunctionBindData> ListDistinctBindFunc(
-    const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
-    switch (ListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<int64_t>>;
-    } break;
-    case LogicalTypeID::INT32: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<int32_t>>;
-    } break;
-    case LogicalTypeID::INT16: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<int16_t>>;
-    } break;
-    case LogicalTypeID::INT8: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<int8_t>>;
-    } break;
-    case LogicalTypeID::UINT64: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<uint64_t>>;
-    } break;
-    case LogicalTypeID::UINT32: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<uint32_t>>;
-    } break;
-    case LogicalTypeID::UINT16: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<uint16_t>>;
-    } break;
-    case LogicalTypeID::UINT8: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<uint8_t>>;
-    } break;
-    case LogicalTypeID::INT128: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<int128_t>>;
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<double>>;
-    } break;
-    case LogicalTypeID::FLOAT: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<float>>;
-    } break;
-    case LogicalTypeID::BOOL: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<uint8_t>>;
-    } break;
-    case LogicalTypeID::STRING: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<ku_string_t>>;
-    } break;
-    case LogicalTypeID::DATE: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<date_t>>;
-    } break;
-    case LogicalTypeID::TIMESTAMP_MS: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<timestamp_ms_t>>;
-    } break;
-    case LogicalTypeID::TIMESTAMP_NS: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<timestamp_ns_t>>;
-    } break;
-    case LogicalTypeID::TIMESTAMP_SEC: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<timestamp_sec_t>>;
-    } break;
-    case LogicalTypeID::TIMESTAMP_TZ: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<timestamp_tz_t>>;
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<timestamp_t>>;
-    } break;
-    case LogicalTypeID::INTERVAL: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<interval_t>>;
-    } break;
-    case LogicalTypeID::INTERNAL_ID: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            list_entry_t, ListDistinct<internalID_t>>;
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
+    const binder::expression_vector& arguments, Function* /*function*/) {
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType().copy());
 }
 
 function_set ListDistinctFunction::getFunctionSet() {
     function_set result;
-    result.push_back(
-        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
-            LogicalTypeID::LIST, nullptr, nullptr, ListDistinctBindFunc, false /* isVarlength*/));
+    result.push_back(std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::LIST,
+        ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, ListDistinct>,
+        nullptr, ListDistinctBindFunc, false /* isVarlength*/));
     return result;
-}
-
-static std::unique_ptr<FunctionBindData> ListUniqueBindFunc(
-    const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
-    switch (ListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
-        scalarFunction->execFunc =
-            ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique<int64_t>>;
-    } break;
-    case LogicalTypeID::INT32: {
-        scalarFunction->execFunc =
-            ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique<int32_t>>;
-    } break;
-    case LogicalTypeID::INT16: {
-        scalarFunction->execFunc =
-            ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique<int16_t>>;
-    } break;
-    case LogicalTypeID::INT8: {
-        scalarFunction->execFunc =
-            ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique<int8_t>>;
-    } break;
-    case LogicalTypeID::UINT64: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<uint64_t>>;
-    } break;
-    case LogicalTypeID::UINT32: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<uint32_t>>;
-    } break;
-    case LogicalTypeID::UINT16: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<uint16_t>>;
-    } break;
-    case LogicalTypeID::UINT8: {
-        scalarFunction->execFunc =
-            ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique<uint8_t>>;
-    } break;
-    case LogicalTypeID::INT128: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<int128_t>>;
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        scalarFunction->execFunc =
-            ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique<double>>;
-    } break;
-    case LogicalTypeID::FLOAT: {
-        scalarFunction->execFunc =
-            ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique<float>>;
-    } break;
-    case LogicalTypeID::BOOL: {
-        scalarFunction->execFunc =
-            ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique<uint8_t>>;
-    } break;
-    case LogicalTypeID::STRING: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<ku_string_t>>;
-    } break;
-    case LogicalTypeID::DATE: {
-        scalarFunction->execFunc =
-            ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique<date_t>>;
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<timestamp_t>>;
-    } break;
-    case LogicalTypeID::TIMESTAMP_MS: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<timestamp_ms_t>>;
-    } break;
-    case LogicalTypeID::TIMESTAMP_NS: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<timestamp_ns_t>>;
-    } break;
-    case LogicalTypeID::TIMESTAMP_SEC: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<timestamp_sec_t>>;
-    } break;
-    case LogicalTypeID::TIMESTAMP_TZ: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<timestamp_tz_t>>;
-    } break;
-    case LogicalTypeID::INTERVAL: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<interval_t>>;
-    } break;
-    case LogicalTypeID::INTERNAL_ID: {
-        scalarFunction->execFunc = ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t,
-            int64_t, ListUnique<internalID_t>>;
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
-    return std::make_unique<FunctionBindData>(LogicalType::INT64());
 }
 
 function_set ListUniqueFunction::getFunctionSet() {
     function_set result;
-    result.push_back(
-        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
-            LogicalTypeID::INT64, nullptr, nullptr, ListUniqueBindFunc, false /* isVarlength*/));
+    result.push_back(std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::INT64,
+        ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique>,
+        false /* isVarlength*/));
     return result;
 }
 

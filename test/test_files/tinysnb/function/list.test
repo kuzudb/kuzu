@@ -1608,22 +1608,22 @@ True
 -LOG ListDistinctWithInt8
 -STATEMENT Return list_distinct([to_int8(1), to_int8(1), NULL, to_int8(-3), to_int8(1), to_int8(5)]);
 ---- 1
-[-3,1,5]
+[1,-3,5]
 
 -LOG ListDistinctWithInt16
 -STATEMENT Return list_distinct([to_int16(1), to_int16(1), NULL, to_int16(-3), to_int16(1), to_int16(5)]);
 ---- 1
-[-3,1,5]
+[1,-3,5]
 
 -LOG ListDistinctWithInt32
 -STATEMENT Return list_distinct([to_int32(1), to_int32(1), NULL, to_int32(-3), to_int32(1), to_int32(5)]);
 ---- 1
-[-3,1,5]
+[1,-3,5]
 
 -LOG ListDistinctWithInt64
 -STATEMENT Return list_distinct([1, 1, NULL, -3, 1, 5]);
 ---- 1
-[-3,1,5]
+[1,-3,5]
 
 -LOG ListDistinctWithUInt8
 -STATEMENT Return list_distinct([to_uint8(1), to_uint8(1), NULL, to_uint8(3), to_uint8(1), to_uint8(5)]);
@@ -1648,27 +1648,27 @@ True
 -LOG ListDistinctWithInt128
 -STATEMENT Return list_distinct([to_int128(1), to_int128(1), NULL, to_int128(-3), to_int128(1), to_int128(5)]);
 ---- 1
-[-3,1,5]
+[1,-3,5]
 
 -LOG ListDistinctWithFloat
 -STATEMENT Return list_distinct([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)]);
 ---- 1
-[1.100000,1.200000,3.400000,5.100000]
+[1.100000,3.400000,1.200000,5.100000]
 
 -LOG ListDistinctWithDouble
 -STATEMENT Return list_distinct([1.1, 1.1, NULL, -3.4, 1.2, 5.1]);
 ---- 1
-[-3.400000,1.100000,1.200000,5.100000]
+[1.100000,-3.400000,1.200000,5.100000]
 
 -LOG ListDistinctBoolean
 -STATEMENT Return list_distinct([true, true, NULL, false, false]);
 ---- 1
-[False,True]
+[True,False]
 
 -LOG ListDistinctWithStringSeq1
 -STATEMENT Return list_distinct(['this is a long string', 'this is a long string', NULL, 'bbb', 'ccc', 'ccc']);
 ---- 1
-[bbb,ccc,this is a long string]
+[this is a long string,bbb,ccc]
 
 -LOG ListDistinctWithStringSeq2
 -STATEMENT  MATCH (a:person) RETURN list_distinct([NULL, a.usedNames[1], a.usedNames[1], NULL])
@@ -1690,16 +1690,16 @@ True
 -LOG ListDistinctWithTimestamp
 -STATEMENT Return list_distinct([timestamp('1992-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
 ---- 1
-[1992-05-03 11:13:25,1993-05-03 11:13:25,1994-05-03 11:13:25]
+[1992-05-03 11:13:25,1994-05-03 11:13:25,1993-05-03 11:13:25]
 -STATEMENT Return list_distinct([cast('1993-05-03 11:13:25.012343', "TIMESTAMP_TZ"), cast('1993-05-03 11:13:25.000343', "TIMESTAMP_TZ"), cast('1994-05-03 11:13:25', "TIMESTAMP_TZ"), cast('1993-05-03 11:13:25', "TIMESTAMP_TZ"), cast('1994-05-03 11:13:25', "TIMESTAMP_TZ"), NULL]);
 ---- 1
-[1993-05-03 11:13:25+00,1993-05-03 11:13:25.000343+00,1993-05-03 11:13:25.012343+00,1994-05-03 11:13:25+00]
+[1993-05-03 11:13:25.012343+00,1993-05-03 11:13:25.000343+00,1994-05-03 11:13:25+00,1993-05-03 11:13:25+00]
 -STATEMENT Return list_distinct([cast('1993-05-03 11:13:25.012343', "TIMESTAMP_NS"), cast('1993-05-03 11:13:25.000343', "TIMESTAMP_NS"), cast('1994-05-03 11:13:25', "TIMESTAMP_NS"), cast('1993-05-03 11:13:25', "TIMESTAMP_NS"), cast('1994-05-03 11:13:25', "TIMESTAMP_NS"), NULL]);
 ---- 1
-[1993-05-03 11:13:25,1993-05-03 11:13:25.000343,1993-05-03 11:13:25.012343,1994-05-03 11:13:25]
+[1993-05-03 11:13:25.012343,1993-05-03 11:13:25.000343,1994-05-03 11:13:25,1993-05-03 11:13:25]
 -STATEMENT Return list_distinct([cast('1993-05-03 11:13:25.012343', "TIMESTAMP_MS"), cast('1993-05-03 11:13:25.000343', "TIMESTAMP_MS"), cast('1994-05-03 11:13:25', "TIMESTAMP_MS"), cast('1993-05-03 11:13:25', "TIMESTAMP_MS"), cast('1994-05-03 11:13:25', "TIMESTAMP_MS"), NULL]);
 ---- 1
-[1993-05-03 11:13:25,1993-05-03 11:13:25.012,1994-05-03 11:13:25]
+[1993-05-03 11:13:25.012,1993-05-03 11:13:25,1994-05-03 11:13:25]
 -STATEMENT Return list_distinct([cast('1993-05-03 11:13:25.012343', "TIMESTAMP_SEC"), cast('1993-05-03 11:13:25.000343', "TIMESTAMP_SEC"), cast('1994-05-03 11:13:25', "TIMESTAMP_SEC"), cast('1993-05-03 11:13:25', "TIMESTAMP_SEC"), cast('1994-05-03 11:13:25', "TIMESTAMP_SEC"), NULL]);
 ---- 1
 [1993-05-03 11:13:25,1994-05-03 11:13:25]
@@ -1720,6 +1720,49 @@ True
 [0:5]
 [0:6]
 [0:7]
+
+-LOG ListDistinctWithList
+-STATEMENT MATCH (p:person) RETURN list_distinct([p.usedNames, p.usedNames, ['Carmen','Fred']])
+---- 8
+[[Ad,De,Hi,Kye,Orlan],[Carmen,Fred]]
+[[Aida],[Carmen,Fred]]
+[[Bobby],[Carmen,Fred]]
+[[Carmen,Fred]]
+[[Ein],[Carmen,Fred]]
+[[Fesdwe],[Carmen,Fred]]
+[[Grad],[Carmen,Fred]]
+[[Wolfeschlegelstein,Daniel],[Carmen,Fred]]
+
+-LOG ListDistinctWithArray
+-STATEMENT MATCH (p:person) RETURN list_distinct([p.grades, p.grades, cast([80,78,34,83], "int64[4]")])
+---- 8
+[[43,83,67,43],[80,78,34,83]]
+[[76,88,99,89],[80,78,34,83]]
+[[77,64,100,54],[80,78,34,83]]
+[[80,78,34,83]]
+[[91,75,21,95],[80,78,34,83]]
+[[96,54,86,92],[80,78,34,83]]
+[[96,59,65,88],[80,78,34,83]]
+[[98,42,93,88],[80,78,34,83]]
+
+-LOG ListDistinctWithStruct
+-STATEMENT MATCH (o:organisation) RETURN list_distinct([o.state, o.state, {'revenue': cast(138, 'int16'), location: ["'toronto'", "'montr,eal'"], stock: {price: [96, 56], volume: 1000}}])
+---- 3
+[{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}]
+[{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}},{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}]
+[{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}},{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}]
+
+-LOG ListDistinctWithUUID
+-STATEMENT MATCH (p:person) RETURN list_distinct([p.u, p.u, cast('a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14', "uuid")])
+---- 8
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
+[a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14]
 
 -LOG ListDistinctWithInt8
 -STATEMENT Return list_unique([to_int8(1), to_int8(1), NULL, to_int8(-3), to_int8(1), to_int8(5)]);
@@ -1836,6 +1879,61 @@ True
 1
 1
 1
+
+-LOG ListUniqueWithUUID
+-STATEMENT MATCH (p:person) RETURN list_unique([p.u, p.u, cast('A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11', 'uuid')]);
+---- 8
+1
+2
+2
+2
+2
+2
+2
+2
+
+-LOG ListUniqueWithList
+-STATEMENT MATCH (p:person) RETURN list_unique([p.courseScoresPerTerm, p.courseScoresPerTerm, [[8,9],[9,10]]]), p.ID;
+---- 8
+1|2
+2|0
+2|3
+2|5
+2|7
+2|8
+2|9
+2|10
+
+-LOG ListUniqueWithArray
+-STATEMENT MATCH (p:person) RETURN list_unique([p.grades, p.grades, cast([96,59,65,88], "int64[4]")]), p.ID;
+---- 8
+2|0
+2|2
+2|3
+2|5
+1|7
+2|8
+2|9
+2|10
+
+-LOG ListUniqueWithStruct
+-STATEMENT MATCH (o:organisation) RETURN list_unique([o.state, o.state, {revenue: cast(558, "int16"), location: ["'very long city name'", "'new york'"], stock: {price: [22], volume: 99}}]), o.ID;
+---- 3
+2|1
+2|4
+1|6
+
+-LOG ListUniqueWithUUID
+-STATEMENT MATCH (p:person) RETURN list_unique([p.u, p.u, cast('A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11', 'uuid')]), p.ID;
+---- 8
+1|0
+2|10
+2|2
+2|3
+2|5
+2|7
+2|8
+2|9
 
 -LOG ListAnyValueWithInt8
 -STATEMENT Return list_any_value([NULL, to_int8(1), to_int8(1), NULL, to_int8(-3), to_int8(1), to_int8(5)]);

@@ -1,36 +1,19 @@
 #pragma once
 
-#include "unordered_set"
-
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
+#include "function/list/functions/list_unique_function.h"
 
 namespace kuzu {
 namespace function {
 
-struct ValueHashFunction {
-    uint64_t operator()(const common::Value& value) const { return (uint64_t)value.computeHash(); }
-};
-
-struct ValueEquality {
-    bool operator()(const common::Value& a, const common::Value& b) const { return a == b; }
-};
-
 static void validateKeys(common::list_entry_t& keyEntry, common::ValueVector& keyVector) {
-    std::unordered_set<common::Value, ValueHashFunction, ValueEquality> uniqueKeys;
-    auto dataVector = common::ListVector::getDataVector(&keyVector);
-    auto val = common::Value::createDefaultValue(dataVector->dataType);
-    for (auto i = 0u; i < keyEntry.size; i++) {
-        auto entryVal = common::ListVector::getListValuesWithOffset(&keyVector, keyEntry, i);
-        val.copyFromColLayout(entryVal, dataVector);
-        auto unique = uniqueKeys.insert(val).second;
-        if (!unique) {
-            throw common::RuntimeException{common::stringFormat("Found duplicate key: {} in map.",
-                common::TypeUtils::entryToString(dataVector->dataType, entryVal, dataVector))};
-        }
-    }
+    ListUnique::appendListElementsToValueSet(keyEntry, keyVector, [](const std::string& key) {
+        throw common::RuntimeException{
+            common::stringFormat("Found duplicate key: {} in map.", key)};
+    });
 }
 
 struct MapCreation {

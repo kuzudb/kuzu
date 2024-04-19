@@ -1,28 +1,53 @@
 #pragma once
 
-#include <set>
-
+#include "common/type_utils.h"
+#include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace function {
 
-template<typename T>
-struct ListUnique {
-    static inline void operation(common::list_entry_t& input, int64_t& result,
-        common::ValueVector& inputVector, common::ValueVector& /*resultVector*/) {
-        std::set<T> uniqueValues;
-        auto inputValues =
-            reinterpret_cast<T*>(common::ListVector::getListValues(&inputVector, input));
-        auto inputDataVector = common::ListVector::getDataVector(&inputVector);
+struct ValueHashFunction {
+    uint64_t operator()(const common::Value& value) const { return (uint64_t)value.computeHash(); }
+};
 
+struct ValueEquality {
+    bool operator()(const common::Value& a, const common::Value& b) const { return a == b; }
+};
+
+using ValueSet = std::unordered_set<common::Value, ValueHashFunction, ValueEquality>;
+
+using duplicateValueHandler = std::function<void(const std::string&)>;
+using uniqueValueHandler = std::function<void(common::ValueVector& dataVector, uint64_t pos)>;
+
+struct ListUnique {
+    static uint64_t appendListElementsToValueSet(common::list_entry_t& input,
+        common::ValueVector& inputVector, duplicateValueHandler duplicateValHandler = nullptr,
+        uniqueValueHandler uniqueValueHandler = nullptr) {
+        ValueSet uniqueKeys;
+        auto dataVector = common::ListVector::getDataVector(&inputVector);
+        auto val = common::Value::createDefaultValue(dataVector->dataType);
         for (auto i = 0u; i < input.size; i++) {
-            if (inputDataVector->isNull(input.offset + i)) {
+            if (dataVector->isNull(input.offset + i)) {
                 continue;
             }
-            uniqueValues.insert(inputValues[i]);
+            auto entryVal = common::ListVector::getListValuesWithOffset(&inputVector, input, i);
+            val.copyFromColLayout(entryVal, dataVector);
+            auto uniqueKey = uniqueKeys.insert(val).second;
+            if (duplicateValHandler != nullptr && !uniqueKey) {
+                duplicateValHandler(
+                    common::TypeUtils::entryToString(dataVector->dataType, entryVal, dataVector));
+            }
+            if (uniqueValueHandler != nullptr && uniqueKey) {
+                uniqueValueHandler(*dataVector, input.offset + i);
+            }
         }
-        result = uniqueValues.size();
+        return uniqueKeys.size();
+    }
+
+    static void operation(common::list_entry_t& input, int64_t& result,
+        common::ValueVector& inputVector, common::ValueVector& /*resultVector*/) {
+        result = appendListElementsToValueSet(input, inputVector);
     }
 };
 
