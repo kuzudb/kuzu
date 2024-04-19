@@ -9,11 +9,17 @@
 namespace kuzu {
 namespace function {
 
+static void duplicateValueHandler(const std::string& key) {
+    throw common::RuntimeException{common::stringFormat("Found duplicate key: {} in map.", key)};
+}
+
+static void nullValueHandler() {
+    throw common::RuntimeException("Null value key is not allowed in map.");
+}
+
 static void validateKeys(common::list_entry_t& keyEntry, common::ValueVector& keyVector) {
-    ListUnique::appendListElementsToValueSet(keyEntry, keyVector, [](const std::string& key) {
-        throw common::RuntimeException{
-            common::stringFormat("Found duplicate key: {} in map.", key)};
-    });
+    ListUnique::appendListElementsToValueSet(keyEntry, keyVector, duplicateValueHandler,
+        nullptr /* uniqueValueHandler */, nullValueHandler);
 }
 
 struct MapCreation {

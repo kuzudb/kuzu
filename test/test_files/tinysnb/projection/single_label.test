@@ -667,6 +667,11 @@ Runtime exception: Found duplicate key: {a: 5, b: 3} in map.
 ---- error
 Runtime exception: Found duplicate key: 0 in map.
 
+-LOG MapWithNullKey
+-STATEMENT RETURN map([cast(5, 'int128'), NULL, cast(5, 'int128')], [20, 34, 50]);
+---- error
+Runtime exception: Null value key is not allowed in map.
+
 -LOG ReturnMapLiteralWithProp
 -STATEMENT MATCH (p:person) RETURN map([p.ID, p.age], [p.fName, p.fName]);
 ---- 8
