@@ -41,6 +41,7 @@ def test_context_manager(conn_db_readonly: ConnDB) -> None:
     # (don't have to wait for __del__, which may not ever actually get called)
     assert result.is_closed
 
+
 def test_multiple_query_results(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
     results = conn.execute("RETURN 1; RETURN 2; RETURN 3;")
