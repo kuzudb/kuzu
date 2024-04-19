@@ -49,10 +49,10 @@ Binder exception: No database named tinysnb has been attached.
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/tinysnb.db' (dbtype 'duckdb');
 ---- 1
 Attach database successfully.
--STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/other.db' as other (dbtype 'duckdb');
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/other.db' as other1 (dbtype 'duckdb');
 ---- 1
 Attach database successfully.
--STATEMENT LOAD FROM other.person RETURN *;
+-STATEMENT LOAD FROM other1.person RETURN *;
 ---- 4
 1
 2
@@ -62,7 +62,7 @@ Attach database successfully.
 ---- 1
 8
 -LOG UseDatabaseStatement
--STATEMENT USE other;
+-STATEMENT USE other1;
 ---- 1
 Use database successfully.
 -STATEMENT LOAD FROM person RETURN *;
@@ -77,7 +77,7 @@ Use database successfully.
 -STATEMENT LOAD FROM person RETURN count(*);
 ---- 1
 8
--STATEMENT LOAD FROM other.person RETURN count(*);
+-STATEMENT LOAD FROM other1.person RETURN count(*);
 ---- 1
 4
 
@@ -93,3 +93,13 @@ Binder exception: Variable tinysnb1_person is not in scope.
 -STATEMENT USE NONEXIST;
 ---- error
 Runtime exception: No database named NONEXIST.
+
+-CASE ScanDuckdbDatabaseWithoutExt
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/build/libduckdb_scanner.kuzu_extension"
+---- ok
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/dbfilewithoutext' (dbtype 'duckdb');
+---- ok
+-STATEMENT LOAD FROM dbfilewithoutext.persons RETURN *
+---- 2
+Jeff|32
+Wendy|28
