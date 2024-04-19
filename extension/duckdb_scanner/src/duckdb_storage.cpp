@@ -11,7 +11,7 @@ namespace duckdb_scanner {
 
 static std::string getCatalogNameFromPath(const std::string& dbPath) {
     std::filesystem::path path(dbPath);
-    return path.stem();
+    return path.stem().string();
 }
 
 std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::string dbPath,
