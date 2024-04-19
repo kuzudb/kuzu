@@ -51,4 +51,3 @@ def test_multiple_query_results(conn_db_readonly: ConnDB) -> None:
         assert result.has_next()
         assert result.get_next() == [i]
         i += 1
-  
