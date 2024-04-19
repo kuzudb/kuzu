@@ -67,6 +67,37 @@ bool Schema::isExpressionInScope(const binder::Expression& expression) const {
     return false;
 }
 
+void Schema::findInputRefExpression(std::set<std::string>& expressionUniqueName,
+    const binder::Expression& expression) const {
+    if (expression.getNumChildren() == 0) {
+        switch (expression.expressionType) {
+        case common::ExpressionType::LITERAL:
+            break;
+        default:
+            expressionUniqueName.insert(expression.getUniqueName());
+        }
+    } else {
+        for (auto& child : expression.getChildren()) {
+            findInputRefExpression(expressionUniqueName, *child);
+        }
+    }
+}
+
+bool Schema::isExpressionInputRefInScope(const binder::Expression& expression) const {
+    std::set<std::string> expressionUniqueNames;
+    findInputRefExpression(expressionUniqueNames, expression);
+    if (expressionUniqueNames.empty()) {
+        return true;
+    }
+    for (auto& expressionInScope : expressionsInScope) {
+        std::string name = expressionInScope->getUniqueName();
+        if (expressionUniqueNames.contains(name)) {
+            expressionUniqueNames.erase(name);
+        }
+    }
+    return expressionUniqueNames.empty();
+}
+
 binder::expression_vector Schema::getExpressionsInScope(f_group_pos pos) const {
     binder::expression_vector result;
     for (auto& expression : expressionsInScope) {

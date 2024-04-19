@@ -9,6 +9,11 @@ class FilterPushDownOptimizer {
 public:
     FilterPushDownOptimizer() { predicateSet = std::make_unique<PredicateSet>(); }
 
+    explicit FilterPushDownOptimizer(binder::expression_vector equalityPredicates,
+        binder::expression_vector nonEqualityPredicates) {
+        predicateSet = std::make_unique<PredicateSet>(equalityPredicates, nonEqualityPredicates);
+    }
+
     void rewrite(planner::LogicalPlan* plan);
 
 private:
@@ -52,6 +57,12 @@ private:
         std::shared_ptr<planner::LogicalOperator> child);
 
     struct PredicateSet {
+        PredicateSet() {}
+        PredicateSet(binder::expression_vector equalityPredicates,
+            binder::expression_vector nonEqualityPredicates)
+            : equalityPredicates(std::move(equalityPredicates)),
+              nonEqualityPredicates(std::move(nonEqualityPredicates)) {}
+
         binder::expression_vector equalityPredicates;
         binder::expression_vector nonEqualityPredicates;
 

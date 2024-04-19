@@ -1,5 +1,6 @@
 #include "graph_test/graph_test.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_plan_util.h"
 #include "planner/operator/scan/logical_scan_node_property.h"
 #include "test_runner/test_runner.h"
@@ -21,6 +22,28 @@ public:
         return TestRunner::getLogicalPlan(query, *conn)->getLastOperator();
     }
 };
+
+TEST_F(OptimizerTest, CrossJoinWithFilterWithoutPushDownTest) {
+    auto op = getRoot("MATCH (a:person) MATCH (b:person) where a.fName=b.fName and a.gender <> b.gender RETURN a.gender;");
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::HASH_JOIN);
+}
+
+TEST_F(OptimizerTest, CrossJoinWithFilterPushDownTest) {
+    auto op = getRoot("MATCH (a:person) , (b:person) where a.fName=b.fName and a.fName is null RETURN a.gender;");
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::HASH_JOIN);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FLATTEN);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
+}
 
 TEST_F(OptimizerTest, WithClauseProjectionListRewriterTest) {
     auto op = getRoot("MATCH (a:person) WITH a RETURN a.gender;");
