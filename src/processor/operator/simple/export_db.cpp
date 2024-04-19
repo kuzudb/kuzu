@@ -39,8 +39,7 @@ static void writeCopyStatement(stringstream& ss, std::string tableName,
         csvConfig.option.toCypher());
 }
 
-std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx,
-    std::string& extraMsg) {
+std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::string& extraMsg) {
     stringstream ss;
     auto catalog = clientContext->getCatalog();
     for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
@@ -69,8 +68,7 @@ std::string getMacroCypher(Catalog* catalog, Transaction* tx) {
     return ss.str();
 }
 
-std::string getCopyCypher(Catalog* catalog, Transaction* tx,
-    ReaderConfig* boundFileInfo) {
+std::string getCopyCypher(Catalog* catalog, Transaction* tx, ReaderConfig* boundFileInfo) {
     stringstream ss;
     for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
         auto tableName = nodeTableEntry->getName();

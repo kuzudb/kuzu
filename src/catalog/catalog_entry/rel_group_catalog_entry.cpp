@@ -51,7 +51,8 @@ std::string RelGroupCatalogEntry::toCypher(ClientContext* clientContext) const {
     ss << stringFormat("CREATE REL TABLE GROUP {} ( ", getName());
     std::string prop;
     for (auto relTableID : relTableIDs) {
-        auto relTableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), relTableID)->constPtrCast<RelTableCatalogEntry>();
+        auto relTableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), relTableID)
+                                 ->constPtrCast<RelTableCatalogEntry>();
         if (prop.empty())
             prop = Property::toCypher(relTableEntry->getPropertiesRef());
         auto srcTableName =
