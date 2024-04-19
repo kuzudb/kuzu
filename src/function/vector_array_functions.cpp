@@ -1,5 +1,6 @@
 #include "function/array/vector_array_functions.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "function/array/functions/array_cosine_similarity.h"
 #include "function/array/functions/array_cross_product.h"
@@ -15,9 +16,18 @@ namespace function {
 
 std::unique_ptr<FunctionBindData> ArrayValueBindFunc(const binder::expression_vector& arguments,
     Function* /*function*/) {
-    auto resultType =
-        LogicalType::ARRAY(ListCreationFunction::getChildType(arguments).copy(), arguments.size());
-    return std::make_unique<FunctionBindData>(std::move(resultType));
+    LogicalType combinedType(LogicalTypeID::ANY);
+    binder::ExpressionUtil::tryCombineDataType(arguments, combinedType);
+    if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {
+        combinedType = *LogicalType::STRING();
+    }
+    auto resultType = LogicalType::ARRAY(combinedType.copy(), arguments.size());
+    auto bindData = std::make_unique<FunctionBindData>(std::move(resultType));
+    for (auto& _ : arguments) {
+        (void)_;
+        bindData->paramTypes.push_back(combinedType);
+    }
+    return bindData;
 }
 
 function_set ArrayValueFunction::getFunctionSet() {

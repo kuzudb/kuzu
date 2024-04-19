@@ -1,5 +1,6 @@
 #include "function/list/vector_list_functions.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/types/int128_t.h"
@@ -248,42 +249,20 @@ void ListCreationFunction::execFunc(const std::vector<std::shared_ptr<ValueVecto
     }
 }
 
-static LogicalType getValidLogicalType(const binder::expression_vector& expressions) {
-    for (auto& expression : expressions) {
-        if (expression->dataType.getLogicalTypeID() != LogicalTypeID::ANY) {
-            return expression->dataType;
-        }
-    }
-    return LogicalType(LogicalTypeID::ANY);
-}
-
 static std::unique_ptr<FunctionBindData> ListCreationBindFunc(
     const binder::expression_vector& arguments, Function* /*function*/) {
-    auto resultType = LogicalType::LIST(ListCreationFunction::getChildType(arguments).copy());
-    return std::make_unique<FunctionBindData>(std::move(resultType));
-}
-
-LogicalType ListCreationFunction::getChildType(const binder::expression_vector& arguments) {
-    // ListCreation requires all parameters to have the same type or be ANY type. The result type of
-    // listCreation can be determined by the first non-ANY type parameter. If all parameters have
-    // dataType ANY, then the resultType will be INT64[] (default type).
-    auto childType = getValidLogicalType(arguments);
-    if (childType.getLogicalTypeID() == LogicalTypeID::ANY) {
-        childType = LogicalType(LogicalTypeID::STRING);
+    LogicalType combinedType(LogicalTypeID::ANY);
+    binder::ExpressionUtil::tryCombineDataType(arguments, combinedType);
+    if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {
+        combinedType = *LogicalType::STRING();
     }
-    // Cast parameters with ANY dataType to resultChildType.
-    for (auto& argument : arguments) {
-        auto& parameterType = argument->getDataTypeReference();
-        if (parameterType != childType) {
-            if (parameterType.getLogicalTypeID() == LogicalTypeID::ANY) {
-                argument->cast(childType);
-            } else {
-                throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(name,
-                    arguments[0]->getDataType(), argument->getDataType()));
-            }
-        }
+    auto resultType = LogicalType::LIST(combinedType.copy());
+    auto bindData = std::make_unique<FunctionBindData>(std::move(resultType));
+    for (auto& _ : arguments) {
+        (void)_;
+        bindData->paramTypes.push_back(combinedType);
     }
-    return childType;
+    return bindData;
 }
 
 function_set ListCreationFunction::getFunctionSet() {
@@ -296,11 +275,10 @@ function_set ListCreationFunction::getFunctionSet() {
     return result;
 }
 
-static std::unique_ptr<FunctionBindData> ListRangeBindFunc(
-    const binder::expression_vector& arguments, Function* /*function*/) {
-    KU_ASSERT(arguments[0]->dataType == arguments[1]->dataType);
+static std::unique_ptr<FunctionBindData> ListRangeBindFunc(const binder::expression_vector&,
+    Function* function) {
     auto resultType =
-        LogicalType::LIST(std::make_unique<LogicalType>(arguments[0]->dataType.getLogicalTypeID()));
+        LogicalType::LIST(std::make_unique<LogicalType>(function->parameterTypeIDs[0]));
     return std::make_unique<FunctionBindData>(std::move(resultType));
 }
 
@@ -577,6 +555,10 @@ static void getListSortExecFunction(const binder::expression_vector& arguments,
 static std::unique_ptr<FunctionBindData> ListSortBindFunc(
     const binder::expression_vector& arguments, Function* function) {
     auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
+    if (arguments[0]->dataType.getLogicalTypeID() == common::LogicalTypeID::ANY) {
+        throw BinderException(stringFormat("Cannot resolve recursive data type for expression {}",
+            arguments[0]->toString()));
+    }
     switch (ListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {

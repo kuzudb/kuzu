@@ -39,6 +39,8 @@ struct UnaryCastStringFunctionWrapper {
         uint64_t resultPos, void* dataPtr) {
         auto& inputVector_ = *(common::ValueVector*)inputVector;
         auto resultVector_ = (common::ValueVector*)resultVector;
+        // TODO(Ziyi): the reinterpret_cast is not safe since we don't always pass
+        // CastFunctionBindData
         FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
             resultVector_->getValue<RESULT_TYPE>(resultPos), resultVector_, inputPos,
             &reinterpret_cast<CastFunctionBindData*>(dataPtr)->option);
@@ -87,21 +89,6 @@ struct UnaryUDFFunctionWrapper {
         auto& resultVector_ = *(common::ValueVector*)resultVector;
         FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
             resultVector_.getValue<RESULT_TYPE>(resultPos), dataPtr);
-    }
-};
-
-struct CastChildFunctionExecutor {
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
-    static void executeSwitch(common::ValueVector& operand, common::ValueVector& result,
-        void* dataPtr) {
-        auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
-        for (auto i = 0u; i < numOfEntries; i++) {
-            result.setNull(i, operand.isNull(i));
-            if (!result.isNull(i)) {
-                OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>((void*)(&operand),
-                    i, (void*)(&result), i, dataPtr);
-            }
-        }
     }
 };
 

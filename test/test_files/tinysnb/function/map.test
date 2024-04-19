@@ -77,7 +77,7 @@
 -LOG MapKeys
 -STATEMENT RETURN map_keys(map([[5], [28, 75, 32], [], [33, 11, 66, 33]], ['a', 'b', 'd', 'e']));
 ---- error
-Binder exception: Cannot bind LIST_CREATION with parameter type INT64[] and STRING[].
+Binder exception: Expression LIST_CREATION() has data type STRING[] but expected INT64[]. Implicit cast is not supported.
 -STATEMENT RETURN map_keys(map([[5], [28, 75, 32], [1], [33, 11, 66, 33]], ['a', 'b', 'd', 'e']));
 ---- 1
 [[5],[28,75,32],[1],[33,11,66,33]]
@@ -88,7 +88,7 @@ Binder exception: Cannot bind LIST_CREATION with parameter type INT64[] and STRI
 []
 
 -LOG MapValues
--STATEMENT RETURN map_values(map([23, 57, 1444], [{a: 5, c: [3, 4, 13]}, {d: 7, e: [1, 2, 3]}, {f: 9, g: [1, 2, 3, 4]}]));
+-STATEMENT RETURN map_values(map([23, 57, 1444], [{a: 5, c: [3, 4, 13]}, {a: 7, c: [1, 2, 3]}, {a: 9, c: [1, 2, 3, 4]}]));
 ---- 1
 [{a: 5, c: [3,4,13]},{a: 7, c: [1,2,3]},{a: 9, c: [1,2,3,4]}]
 

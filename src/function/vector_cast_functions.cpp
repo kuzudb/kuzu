@@ -16,6 +16,21 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
+struct CastChildFunctionExecutor {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
+    static void executeSwitch(common::ValueVector& operand, common::ValueVector& result,
+        void* dataPtr) {
+        auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
+        for (auto i = 0u; i < numOfEntries; i++) {
+            result.setNull(i, operand.isNull(i));
+            if (!result.isNull(i)) {
+                OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>((void*)(&operand),
+                    i, (void*)(&result), i, dataPtr);
+            }
+        }
+    }
+};
+
 static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector,
     uint64_t numOfEntries, CastFunctionBindData* dataPtr) {
     auto inputType = &inputVector->dataType;
@@ -72,9 +87,9 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
 
     // non-nested types
     if (inputType->getLogicalTypeID() != resultType->getLogicalTypeID()) {
-        scalar_func_exec_t func = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",
+        auto func = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",
             inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
-                                      ->execFunc;
+                        ->execFunc;
         std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
         dataPtr->numOfEntries = numOfEntries;
         func(childParams, *resultVector, (void*)dataPtr);
@@ -86,7 +101,7 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
 }
 
 static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
-    ValueVector& result, void* dataPtr) {
+    ValueVector& result, void*) {
     KU_ASSERT(params.size() == 1);
     result.resetAuxiliaryBuffer();
     const auto& inputVector = params[0];
@@ -99,11 +114,10 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
         }
     };
 
-    auto numOfEntries = inputVector->state->selVector
-                            ->selectedPositions[inputVector->state->selVector->selectedSize - 1] +
-                        1;
-    resolveNestedVector(inputVector, &result, numOfEntries,
-        reinterpret_cast<CastFunctionBindData*>(dataPtr));
+    auto selVector = inputVector->state->selVector;
+    auto bindData = CastFunctionBindData(result.dataType.copy());
+    auto numOfEntries = selVector->selectedPositions[selVector->selectedSize - 1] + 1;
+    resolveNestedVector(inputVector, &result, numOfEntries, &bindData);
 }
 
 static bool hasImplicitCastList(const LogicalType& srcType, const LogicalType& dstType) {

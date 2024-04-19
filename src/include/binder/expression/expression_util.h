@@ -41,6 +41,9 @@ struct ExpressionUtil {
     static void validateDataType(const Expression& expr, common::LogicalTypeID expectedTypeID);
     static void validateDataType(const Expression& expr,
         const std::vector<common::LogicalTypeID>& expectedTypeIDs);
+
+    static bool tryCombineDataType(const expression_vector& expressions,
+        common::LogicalType& result);
 };
 
 } // namespace binder
