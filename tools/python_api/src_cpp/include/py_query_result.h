@@ -19,7 +19,7 @@ public:
 
     PyQueryResult() = default;
 
-    ~PyQueryResult() override;
+    ~PyQueryResult();
 
     bool hasNext();
 
