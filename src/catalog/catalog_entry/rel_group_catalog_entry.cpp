@@ -49,18 +49,18 @@ std::string RelGroupCatalogEntry::toCypher(ClientContext* clientContext) const {
     std::stringstream ss;
     auto catalog = clientContext->getCatalog();
     ss << stringFormat("CREATE REL TABLE GROUP {} ( ", getName());
-    RelTableCatalogEntry* relTableEntry;
+    std::string prop;
     for (auto relTableID : relTableIDs) {
-        relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
-            catalog->getTableCatalogEntry(clientContext->getTx(), relTableID));
+        auto relTableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), relTableID)->constPtrCast<RelTableCatalogEntry>();
+        if (prop.empty())
+            prop = Property::toCypher(relTableEntry->getPropertiesRef());
         auto srcTableName =
             catalog->getTableName(clientContext->getTx(), relTableEntry->getSrcTableID());
         auto dstTableName =
             catalog->getTableName(clientContext->getTx(), relTableEntry->getDstTableID());
         ss << stringFormat("FROM {} TO {}, ", srcTableName, dstTableName);
     }
-    auto prop = Property::toCypher(relTableEntry->getPropertiesRef());
-    if (prop.size() > 1)
+    if (!prop.empty())
         prop.resize(prop.size() - 1);
     ss << prop << ");";
     return ss.str();

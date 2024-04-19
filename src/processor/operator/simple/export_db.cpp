@@ -16,6 +16,7 @@
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 using namespace kuzu::catalog;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace processor {
@@ -38,7 +39,7 @@ static void writeCopyStatement(stringstream& ss, std::string tableName,
         csvConfig.option.toCypher());
 }
 
-std::string getSchemaCypher(main::ClientContext* clientContext, transaction::Transaction* tx,
+std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx,
     std::string& extraMsg) {
     stringstream ss;
     auto catalog = clientContext->getCatalog();
@@ -60,7 +61,7 @@ std::string getSchemaCypher(main::ClientContext* clientContext, transaction::Tra
     return ss.str();
 }
 
-std::string getMacroCypher(catalog::Catalog* catalog, transaction::Transaction* tx) {
+std::string getMacroCypher(Catalog* catalog, Transaction* tx) {
     stringstream ss;
     for (auto macroName : catalog->getMacroNames(tx)) {
         ss << catalog->getScalarMacroFunction(macroName)->toCypher(macroName) << std::endl;
@@ -68,7 +69,7 @@ std::string getMacroCypher(catalog::Catalog* catalog, transaction::Transaction* 
     return ss.str();
 }
 
-std::string getCopyCypher(catalog::Catalog* catalog, transaction::Transaction* tx,
+std::string getCopyCypher(Catalog* catalog, Transaction* tx,
     ReaderConfig* boundFileInfo) {
     stringstream ss;
     for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {

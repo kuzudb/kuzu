@@ -95,5 +95,6 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     return std::make_unique<BoundExportDatabase>(boundFilePath, fileType, std::move(exportData),
         std::move(parsedOptions));
 }
+
 } // namespace binder
 } // namespace kuzu
