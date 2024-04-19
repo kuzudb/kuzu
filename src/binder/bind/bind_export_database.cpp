@@ -31,7 +31,7 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog, Tran
     std::vector<ExportedTableData> exportData;
     for (auto& nodeTableEntry : catalog.getNodeTableEntries(tx)) {
         auto tableName = nodeTableEntry->getName();
-        std::string selQuery = "match (a:" + tableName + ") return a.*";
+        std::string selQuery = stringFormat("match (a:{}) return a.*", tableName);
         exportData.push_back(binder->extractExportData(selQuery, tableName));
     }
     for (auto& relTableEntry : catalog.getRelTableEntries(tx)) {
@@ -40,9 +40,8 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog, Tran
         auto srcName = catalog.getTableName(tx, relTableEntry->getSrcTableID());
         auto dstName = catalog.getTableName(tx, relTableEntry->getDstTableID());
         auto relName = relTableEntry->getName();
-        std::string selQuery = "match (a:" + srcName + ")-[r:" + relName + "]->(b:" + dstName +
-                               ") return a." + srcPrimaryKeyName + ",b." + dstPrimaryKeyName +
-                               ",r.*";
+        std::string selQuery = stringFormat("match (a:{})-[r:{}]->(b:{}) return a.{},b.{},r.*;",
+            srcName, relName, dstName, srcPrimaryKeyName, dstPrimaryKeyName);
         exportData.push_back(binder->extractExportData(selQuery, relName));
     }
     return exportData;
@@ -96,5 +95,6 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     return std::make_unique<BoundExportDatabase>(boundFilePath, fileType, std::move(exportData),
         std::move(parsedOptions));
 }
+
 } // namespace binder
 } // namespace kuzu

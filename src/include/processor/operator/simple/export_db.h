@@ -23,6 +23,7 @@ public:
 
 private:
     common::ReaderConfig boundFileInfo;
+    std::string extraMsg;
 };
 } // namespace processor
 } // namespace kuzu

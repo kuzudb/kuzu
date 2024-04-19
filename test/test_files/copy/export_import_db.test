@@ -48,10 +48,10 @@ Import database successfully.
 Runtime exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2 already exists.
 
 -CASE ExportImportDatabaseWithPARQUET
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db3" (format='parquet')
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db3" (format='parquet')
 ---- ok
--IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db3"
--STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db3"
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db3"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db3"
 ---- ok
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
@@ -61,32 +61,74 @@ Runtime exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2 already 
 50
 
 -CASE ExportImportDatabaseError
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4" (format='TURTLE')
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format='TURTLE')
 ---- error
 Binder exception: Unsupported file type: TURTLE.
 
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4" (format='npy')
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format='npy')
 ---- error
 Binder exception: Export database currently only supports csv and parquet files.
 
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4" (format=false)
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format=false)
 ---- error
 Binder exception: The type of format option must be a string.
 
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4" (format='PARQUET', header=true)
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format='PARQUET', header=true)
 ---- error
 Binder exception: Only export to csv can have options.
 
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4" (header=true)
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (header=true)
 ---- ok
 
--IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db5"
--STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db5"
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db5"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db5"
 ---- error
-Binder exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db5 does not exist.
+Binder exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db5 does not exist.
 
--REMOVE_FILE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4/schema.cypher"
--IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4"
--STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4"
+-REMOVE_FILE "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4/schema.cypher"
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4"
 ---- error(regex)
 Binder exception: File ${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4/schema.cypher does not exist.
+
+
+-CASE ExportImportDatabaseRelGroup
+-STATEMENT CREATE NODE TABLE A(ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE End(ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP REL2(FROM A TO B, FROM B TO End, num INT64);
+---- ok
+-STATEMENT CREATE (a:A{ID:0})-[:REL2_A_B {num: 1}]->(b:B{ID:1})-[:REL2_B_End {num: 2}]->(e:End{ID:2});
+---- ok
+-STATEMENT MATCH (a)-[r:REL2_A_B]->(b:B)
+           RETURN a.ID;
+---- 1
+0
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case5/demo-db"
+---- 1
+Export database successfully.
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case5/demo-db"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case5/demo-db"
+---- 1
+Import database successfully.
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+---- ok
+-LOG ReturnAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+---- 1
+50
+-STATEMENT MATCH (a)-[r:REL2_A_B]->(b:B)
+           RETURN a.ID;
+---- 1
+0
+
+-CASE ExportImportDatabaseRDFGraph
+
+-STATEMENT CREATE RDFGraph UniKG;
+---- ok
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case6/demo-db"
+---- 1
+Export database successfully. But we skip exporting RDF graphs.

@@ -80,6 +80,17 @@ std::vector<RelGroupCatalogEntry*> Catalog::getRelTableGroupEntries(Transaction*
         CatalogEntryType::REL_GROUP_ENTRY);
 }
 
+bool Catalog::relTableExistInRelTableGroup(Transaction* tx, table_id_t tableID) const {
+    auto relGroupEntries = getRelTableGroupEntries(tx);
+    for (auto relGroupEntry : relGroupEntries) {
+        auto tableIDs = relGroupEntry->getRelTableIDs();
+        if (std::find(tableIDs.begin(), tableIDs.end(), tableID) != tableIDs.end()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<RDFGraphCatalogEntry*> Catalog::getRdfGraphEntries(Transaction* tx) const {
     return getVersion(tx)->getTableCatalogEntries<RDFGraphCatalogEntry*>(
         CatalogEntryType::RDF_GRAPH_ENTRY);
