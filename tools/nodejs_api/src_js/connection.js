@@ -4,11 +4,6 @@ const KuzuNative = require("./kuzu_native.js");
 const QueryResult = require("./query_result.js");
 const PreparedStatement = require("./prepared_statement.js");
 
-const PRIMARY_KEY_TEXT = "(PRIMARY KEY)";
-const SRC_NODE_TEXT = "src node:";
-const DST_NODE_TEXT = "dst node:";
-const PROPERTIES_TEXT = "properties:";
-
 class Connection {
   /**
    * Initialize a new Connection object. Note that the initialization is done
@@ -139,7 +134,13 @@ class Connection {
               if (err) {
                 return reject(err);
               }
-              return resolve(this._unwrapMultipleQueryResults(nodeQueryResult));
+              this._unwrapMultipleQueryResults(nodeQueryResult)
+                .then((queryResults) => {
+                  return resolve(queryResults);
+                })
+                .catch((err) => {
+                  return reject(err);
+                });
             }
           );
         } catch (e) {
@@ -191,7 +192,13 @@ class Connection {
             if (err) {
               return reject(err);
             }
-            return this._unwrapMultipleQueryResults(nodeQueryResult);
+            this._unwrapMultipleQueryResults(nodeQueryResult)
+              .then((queryResults) => {
+                return resolve(queryResults);
+              })
+              .catch((err) => {
+                return reject(err);
+              });
           });
         } catch (e) {
           return reject(e);
@@ -230,8 +237,9 @@ class Connection {
     const queryResults = [wrappedQueryResult];
     let currentQueryResult = nodeQueryResult;
     while (currentQueryResult.hasNextQueryResult()) {
-      currentQueryResult = await this._getNextQueryResult(currentQueryResult);
-      queryResults.push(currentQueryResult);
+      queryResults.push(await this._getNextQueryResult(currentQueryResult));
+      currentQueryResult =
+        queryResults[queryResults.length - 1]._queryResult;
     }
     return queryResults;
   }

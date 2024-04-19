@@ -194,6 +194,22 @@ describe("Query", function () {
       assert.equal(e.message, "statement must be a string.");
     }
   });
+
+  it("should be able to run multiple queries", async function () {
+    const queryResults = await conn.query(`
+      RETURN 1;
+      RETURN 2;
+      RETURN 3;
+    `);
+    assert.exists(queryResults);
+    assert.equal(queryResults.length, 3);
+    const results = await Promise.all([
+      queryResults[0].getAll(),
+      queryResults[1].getAll(),
+      queryResults[2].getAll(),
+    ]);
+    assert.deepEqual(results, [[{ 1: 1 }], [{ 2: 2 }], [{ 3: 3 }]]);
+  });
 });
 
 describe("Timeout", function () {
