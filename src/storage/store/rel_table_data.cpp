@@ -15,7 +15,7 @@ namespace storage {
 
 RelDataReadState::RelDataReadState()
     : startNodeOffset{0}, numNodes{0}, currentNodeOffset{0}, posInCurrentCSR{0},
-      readFromLocalStorage{false}, localNodeGroup{nullptr} {
+      readFromPersistentStorage{false}, readFromLocalStorage{false}, localNodeGroup{nullptr} {
     csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
 }
 
@@ -173,6 +173,9 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     packedCSRInfo = PackedCSRInfo();
 }
 
+// TODO: Two optimizations:
+//       1. avoid scan the whole group of the csr header. just scan the vector.
+//       2. cache column chunk metadata.
 void RelTableData::initializeReadState(Transaction* transaction, std::vector<column_id_t> columnIDs,
     const ValueVector& inNodeIDVector, RelDataReadState& readState) {
     readState.direction = direction;
@@ -195,12 +198,30 @@ void RelTableData::initializeReadState(Transaction* transaction, std::vector<col
                   readState.csrHeaderChunks.length->getNumValues());
         readState.numNodes = readState.csrHeaderChunks.offset->getNumValues();
         readState.populateCSRListEntries();
+        readState.readFromPersistentStorage =
+            nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumNodeGroups(transaction);
+        if (readState.readFromPersistentStorage) {
+            initializeColumnReadStates(transaction, startNodeOffset, readState, nodeGroupIdx);
+        }
         if (transaction->isWriteTransaction()) {
             readState.localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
         }
     }
     if (nodeOffset != readState.currentNodeOffset) {
         readState.currentNodeOffset = nodeOffset;
+    }
+}
+
+void RelTableData::initializeColumnReadStates(Transaction* transaction, offset_t startNodeOffset,
+    RelDataReadState& readState, node_group_idx_t nodeGroupIdx) {
+    readState.columnStates.resize(readState.columnIDs.size());
+    for (auto i = 0u; i < readState.columnIDs.size(); i++) {
+        auto columnID = readState.columnIDs[i];
+        if (columnID == INVALID_COLUMN_ID) {
+            continue;
+        }
+        getColumn(columnID)->initReadState(transaction, nodeGroupIdx, startNodeOffset,
+            readState.columnStates[i]);
     }
 }
 
@@ -215,11 +236,13 @@ void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
         relReadState.posInCurrentCSR += numValuesRead;
         return;
     }
+    if (!relReadState.readFromPersistentStorage) {
+        return;
+    }
     auto [startOffset, endOffset] = relReadState.getStartAndEndOffset();
     auto numRowsToRead = endOffset - startOffset;
     outputVectors[0]->state->selVector->setToUnfiltered(numRowsToRead);
     outputVectors[0]->state->setOriginalSize(numRowsToRead);
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relReadState.currentNodeOffset);
     auto relIDVectorIdx = INVALID_VECTOR_IDX;
     for (auto i = 0u; i < relReadState.columnIDs.size(); i++) {
         auto columnID = relReadState.columnIDs[i];
@@ -231,7 +254,7 @@ void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
         if (columnID == REL_ID_COLUMN_ID) {
             relIDVectorIdx = outputVectorId;
         }
-        getColumn(columnID)->scan(transaction, nodeGroupIdx, startOffset, endOffset,
+        getColumn(columnID)->scan(transaction, relReadState.columnStates[i], startOffset, endOffset,
             outputVectors[outputVectorId], 0 /* offsetInVector */);
     }
     if (transaction->isWriteTransaction() && relReadState.localNodeGroup) {

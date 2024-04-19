@@ -22,7 +22,7 @@ public:
 
     void scan(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
         ValueVector* resultVector) override;
-    void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    void scan(transaction::Transaction* transaction, ReadState& readState,
         offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
         uint64_t offsetInVector) override;
     void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,

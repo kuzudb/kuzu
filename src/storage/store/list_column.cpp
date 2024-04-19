@@ -62,13 +62,23 @@ ListColumn::ListColumn(std::string name, LogicalType dataType,
         dataFH, metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
 }
 
-void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) {
-    nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
-        offsetInVector);
-    auto listOffsetInfoInStorage =
-        getListOffsetSizeInfo(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup);
+void ListColumn::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    offset_t startOffsetInChunk, ReadState& readState) {
+    Column::initReadState(transaction, nodeGroupIdx, startOffsetInChunk, readState);
+    // We put states for size and data column into childrenStates.
+    readState.childrenStates.resize(2);
+    sizeColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+        readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
+    dataColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+        readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+}
+
+void ListColumn::scan(Transaction* transaction, ReadState& readState, offset_t startOffsetInGroup,
+    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) {
+    nullColumn->scan(transaction, *readState.nullState, startOffsetInGroup, endOffsetInGroup,
+        resultVector, offsetInVector);
+    auto listOffsetInfoInStorage = getListOffsetSizeInfo(transaction, readState.nodeGroupIdx,
+        startOffsetInGroup, endOffsetInGroup);
     offset_t listOffsetInVector =
         offsetInVector == 0 ? 0 :
                               resultVector->getValue<list_entry_t>(offsetInVector - 1).offset +
@@ -86,7 +96,8 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     auto dataVector = ListVector::getDataVector(resultVector);
     bool isOffsetSortedAscending = listOffsetInfoInStorage.isOffsetSortedAscending(0, numValues);
     if (isOffsetSortedAscending) {
-        dataColumn->scan(transaction, nodeGroupIdx, listOffsetInfoInStorage.getListStartOffset(0),
+        dataColumn->scan(transaction, readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+            listOffsetInfoInStorage.getListStartOffset(0),
             listOffsetInfoInStorage.getListStartOffset(numValues), dataVector,
             offsetToWriteListData);
     } else {
@@ -94,21 +105,23 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
             offset_t startOffset = listOffsetInfoInStorage.getListStartOffset(i);
             offset_t appendSize = listOffsetInfoInStorage.getListSize(i);
             KU_ASSERT(appendSize >= 0);
-            dataColumn->scan(transaction, nodeGroupIdx, startOffset, startOffset + appendSize,
-                dataVector, offsetToWriteListData);
+            dataColumn->scan(transaction,
+                readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX], startOffset,
+                startOffset + appendSize, dataVector, offsetToWriteListData);
             offsetToWriteListData += appendSize;
         }
     }
 }
 
 void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    kuzu::storage::ColumnChunk* columnChunk, offset_t startOffset, offset_t endOffset) {
+    ColumnChunk* columnChunk, offset_t startOffset, offset_t endOffset) {
     if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
         columnChunk->setNumValues(0);
     } else {
         auto listColumnChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(columnChunk);
         Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
         auto sizeColumnChunk = listColumnChunk->getSizeColumnChunk();
+        // TODO: Should use readState here too.
         sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk, startOffset, endOffset);
         auto resizeNumValues = listColumnChunk->getDataColumnChunk()->getNumValues();
         bool isOffsetSortedAscending = true;
@@ -127,6 +140,7 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
             offset_t startListOffset = listColumnChunk->getListStartOffset(0);
             offset_t endListOffset =
                 listColumnChunk->getListStartOffset(columnChunk->getNumValues());
+            // TODO: Should use readState here too.
             dataColumn->scan(transaction, nodeGroupIdx, listColumnChunk->getDataColumnChunk(),
                 startListOffset, endListOffset);
             listColumnChunk->resetOffset();
@@ -140,6 +154,7 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
             for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
                 offset_t startListOffset = listColumnChunk->getListStartOffset(i);
                 offset_t endListOffset = listColumnChunk->getListEndOffset(i);
+                // TODO: Should use readState here too.
                 dataColumn->scan(transaction, nodeGroupIdx,
                     tmpDataColumnChunk->dataColumnChunk.get(), startListOffset, endListOffset);
                 KU_ASSERT(endListOffset - startListOffset ==
@@ -161,9 +176,9 @@ void ListColumn::scanInternal(Transaction* transaction, ReadState& readState,
     auto listOffsetSizeInfo = getListOffsetSizeInfo(transaction, readState.nodeGroupIdx,
         startOffsetInChunk, startOffsetInChunk + nodeIDVector->state->getOriginalSize());
     if (resultVector->state->selVector->isUnfiltered()) {
-        scanUnfiltered(transaction, readState.nodeGroupIdx, resultVector, listOffsetSizeInfo);
+        scanUnfiltered(transaction, readState, resultVector, listOffsetSizeInfo);
     } else {
-        scanFiltered(transaction, readState.nodeGroupIdx, resultVector, listOffsetSizeInfo);
+        scanFiltered(transaction, readState, resultVector, listOffsetSizeInfo);
     }
 }
 
@@ -172,15 +187,16 @@ void ListColumn::lookupValue(Transaction* transaction, ReadState& readState, off
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     KU_ASSERT(readState.nodeGroupIdx == nodeGroupIdx);
     auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto listEndOffset = readOffset(transaction, nodeGroupIdx, nodeOffsetInGroup);
-    auto size = readSize(transaction, nodeGroupIdx, nodeOffsetInGroup);
+    auto listEndOffset = readOffset(transaction, readState, nodeOffsetInGroup);
+    auto size = readSize(transaction, readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
+        nodeOffsetInGroup);
     auto listStartOffset = listEndOffset - size;
     auto offsetInVector = posInVector == 0 ? 0 : resultVector->getValue<offset_t>(posInVector - 1);
     resultVector->setValue(posInVector, list_entry_t{offsetInVector, size});
     ListVector::resizeDataVector(resultVector, offsetInVector + size);
     auto dataVector = ListVector::getDataVector(resultVector);
-    dataColumn->scan(transaction, StorageUtils::getNodeGroupIdx(nodeOffset), listStartOffset,
-        listEndOffset, dataVector, offsetInVector);
+    dataColumn->scan(transaction, readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+        listStartOffset, listEndOffset, dataVector, offsetInVector);
 }
 
 void ListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
@@ -193,7 +209,7 @@ void ListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     dataColumn->append(dataColumnChunk, nodeGroupIdx);
 }
 
-void ListColumn::scanUnfiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void ListColumn::scanUnfiltered(Transaction* transaction, ReadState& readState,
     ValueVector* resultVector, const ListOffsetSizeInfo& listOffsetInfoInStorage) {
     auto numValuesToScan = resultVector->state->selVector->selectedSize;
     numValuesToScan = std::min(numValuesToScan, listOffsetInfoInStorage.numTotal);
@@ -211,20 +227,22 @@ void ListColumn::scanUnfiltered(Transaction* transaction, node_group_idx_t nodeG
         auto startListOffsetInStorage = listOffsetInfoInStorage.getListStartOffset(0);
         numValuesToScan = numValuesToScan == 0 ? 0 : numValuesToScan - 1;
         auto endListOffsetInStorage = listOffsetInfoInStorage.getListEndOffset(numValuesToScan);
-        dataColumn->scan(transaction, nodeGroupIdx, startListOffsetInStorage,
-            endListOffsetInStorage, dataVector, 0 /* offsetInVector */);
+        dataColumn->scan(transaction, readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+            startListOffsetInStorage, endListOffsetInStorage, dataVector, 0 /* offsetInVector */);
     } else {
         for (auto i = 0u; i < numValuesToScan; i++) {
             auto startListOffsetInStorage = listOffsetInfoInStorage.getListStartOffset(i);
             auto appendSize = listOffsetInfoInStorage.getListSize(i);
-            dataColumn->scan(transaction, nodeGroupIdx, startListOffsetInStorage,
-                startListOffsetInStorage + appendSize, dataVector, offsetInVector);
+            dataColumn->scan(transaction,
+                readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+                startListOffsetInStorage, startListOffsetInStorage + appendSize, dataVector,
+                offsetInVector);
             offsetInVector += appendSize;
         }
     }
 }
 
-void ListColumn::scanFiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void ListColumn::scanFiltered(Transaction* transaction, ReadState& readState,
     ValueVector* resultVector, const ListOffsetSizeInfo& listOffsetSizeInfo) {
     offset_t listOffset = 0;
     for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
@@ -240,8 +258,9 @@ void ListColumn::scanFiltered(Transaction* transaction, node_group_idx_t nodeGro
         auto startOffsetInStorageToScan = listOffsetSizeInfo.getListStartOffset(pos);
         auto appendSize = listOffsetSizeInfo.getListSize(pos);
         auto dataVector = ListVector::getDataVector(resultVector);
-        dataColumn->scan(transaction, nodeGroupIdx, startOffsetInStorageToScan,
-            startOffsetInStorageToScan + appendSize, dataVector, listOffset);
+        dataColumn->scan(transaction, readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+            startOffsetInStorageToScan, startOffsetInStorageToScan + appendSize, dataVector,
+            listOffset);
         listOffset += resultVector->getValue<list_entry_t>(pos).size;
     }
 }
@@ -264,30 +283,24 @@ void ListColumn::rollbackInMemory() {
     dataColumn->rollbackInMemory();
 }
 
-offset_t ListColumn::readOffset(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+offset_t ListColumn::readOffset(Transaction* transaction, const ReadState& readState,
     offset_t offsetInNodeGroup) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
-    auto pageCursor = PageUtils::getPageCursorForPos(offsetInNodeGroup,
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
-    pageCursor.pageIdx += chunkMeta.pageIdx;
+    auto pageCursor = getPageCursorForOffsetInGroup(offsetInNodeGroup, readState);
     offset_t value;
     readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
         readToPageFunc(frame, pageCursor, (uint8_t*)&value, 0 /* posInVector */,
-            1 /* numValuesToRead */, chunkMeta.compMeta);
+            1 /* numValuesToRead */, readState.metadata.compMeta);
     });
     return value;
 }
 
-list_size_t ListColumn::readSize(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+list_size_t ListColumn::readSize(Transaction* transaction, const ReadState& readState,
     offset_t offsetInNodeGroup) {
-    auto chunkMeta = sizeColumn->getMetadataDA()->get(nodeGroupIdx, transaction->getType());
-    auto pageCursor = PageUtils::getPageCursorForPos(offsetInNodeGroup,
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
-    pageCursor.pageIdx += chunkMeta.pageIdx;
+    auto pageCursor = getPageCursorForOffsetInGroup(offsetInNodeGroup, readState);
     offset_t value;
     readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
         readToPageFunc(frame, pageCursor, (uint8_t*)&value, 0 /* posInVector */,
-            1 /* numValuesToRead */, chunkMeta.compMeta);
+            1 /* numValuesToRead */, readState.metadata.compMeta);
     });
     return value;
 }
@@ -299,6 +312,7 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
         enableCompression, numOffsetsToRead);
     auto sizeColumnChunk = ColumnChunkFactory::createColumnChunk(*common::LogicalType::UINT32(),
         enableCompression, numOffsetsToRead);
+    // TODO: Should use readState here too.
     Column::scan(transaction, nodeGroupIdx, offsetColumnChunk.get(), startOffsetInNodeGroup,
         endOffsetInNodeGroup);
     sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk.get(), startOffsetInNodeGroup,

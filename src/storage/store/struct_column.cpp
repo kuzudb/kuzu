@@ -50,18 +50,6 @@ void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     }
 }
 
-void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) {
-    nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
-        offsetInVector);
-    for (auto i = 0u; i < childColumns.size(); i++) {
-        auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
-            fieldVector, offsetInVector);
-    }
-}
-
 void StructColumn::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t startOffsetInChunk, ReadState& readState) {
     Column::initReadState(transaction, nodeGroupIdx, startOffsetInChunk, readState);
@@ -69,6 +57,17 @@ void StructColumn::initReadState(Transaction* transaction, node_group_idx_t node
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
             readState.childrenStates[i]);
+    }
+}
+
+void StructColumn::scan(Transaction* transaction, ReadState& readState, offset_t startOffsetInGroup,
+    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) {
+    nullColumn->scan(transaction, *readState.nullState, startOffsetInGroup, endOffsetInGroup,
+        resultVector, offsetInVector);
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
+        childColumns[i]->scan(transaction, readState.childrenStates[i], startOffsetInGroup,
+            endOffsetInGroup, fieldVector, offsetInVector);
     }
 }
 

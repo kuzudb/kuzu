@@ -12,7 +12,7 @@ public:
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);
 
-    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    void scan(transaction::Transaction* transaction, ReadState& readState,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,

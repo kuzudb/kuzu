@@ -23,7 +23,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-static inline bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
+static bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) { // NOLINT
     return (metadata.pageIdx <= pageIdx && pageIdx < metadata.pageIdx + metadata.numPages) ||
            (pageIdx == INVALID_PAGE_IDX && metadata.compMeta.isConstant());
 }
@@ -298,17 +298,16 @@ void Column::scan(Transaction* transaction, ReadState& readState, ValueVector* n
     scanInternal(transaction, readState, nodeIDVector, resultVector);
 }
 
-void Column::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) {
+void Column::scan(Transaction* transaction, ReadState& readState, offset_t startOffsetInGroup,
+    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) {
     if (nullColumn) {
-        nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
+        KU_ASSERT(readState.nullState);
+        nullColumn->scan(transaction, *readState.nullState, startOffsetInGroup, endOffsetInGroup,
             resultVector, offsetInVector);
     }
-    auto state = getReadState(transaction->getType(), nodeGroupIdx);
-    auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, state);
+    auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, readState);
     auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
-    scanUnfiltered(transaction, pageCursor, numValuesToScan, resultVector, state.metadata,
+    scanUnfiltered(transaction, pageCursor, numValuesToScan, resultVector, readState.metadata,
         offsetInVector);
 }
 
@@ -479,7 +478,8 @@ void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
 }
 
-static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const LogicalType& dataType) {
+static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata,
+    const LogicalType& dataType) { // NOLINT
     if (metadata.compMeta.compression == CompressionType::CONSTANT) {
         return metadata.numPages == 0;
     } else {
