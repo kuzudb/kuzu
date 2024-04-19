@@ -85,7 +85,7 @@ std::shared_ptr<S3WriteBuffer> S3FileInfo::getBuffer(uint16_t writeBufferIdx) {
     return writeBuffers.at(writeBufferIdx);
 }
 
-void S3FileInfo::rethrowIOError() {
+void S3FileInfo::rethrowIOError() const {
     if (uploaderHasException) {
         std::rethrow_exception(uploadException);
     }
