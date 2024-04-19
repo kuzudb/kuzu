@@ -188,20 +188,25 @@ void BaseDiskArrayInternal::setNextPIPPageIDxOfPIPNoLock(DiskArrayHeader* update
         if (!pipUpdates.updatedLastPIP.has_value()) {
             pipUpdates.updatedLastPIP = std::make_optional(pips[pipIdxOfPreviousPIP]);
         }
-        pipUpdates.updatedLastPIP->pipContents.nextPipPageIdx = nextPIPPageIdx;
+        if (pipIdxOfPreviousPIP == pips.size() - 1) {
+            pipUpdates.updatedLastPIP->pipContents.nextPipPageIdx = nextPIPPageIdx;
+        } else {
+            KU_ASSERT(pipIdxOfPreviousPIP >= pips.size() &&
+                      pipUpdates.newPIPs.size() > pipIdxOfPreviousPIP - pips.size());
+            pipUpdates.newPIPs[pipIdxOfPreviousPIP - pips.size()].pipContents.nextPipPageIdx =
+                nextPIPPageIdx;
+        }
     }
 }
 
 page_idx_t BaseDiskArrayInternal::getAPPageIdxNoLock(page_idx_t apIdx, TransactionType trxType) {
-    auto pipIdxAndOffset = StorageUtils::getQuotientRemainder(apIdx, NUM_PAGE_IDXS_PER_PIP);
-    uint64_t pipIdx = pipIdxAndOffset.first;
-    uint64_t offsetInPIP = pipIdxAndOffset.second;
+    auto [pipIdx, offsetInPIP] = StorageUtils::getQuotientRemainder(apIdx, NUM_PAGE_IDXS_PER_PIP);
     if ((trxType == TransactionType::READ_ONLY) || !hasPIPUpdatesNoLock(pipIdx)) {
         return pips[pipIdx].pipContents.pageIdxs[offsetInPIP];
     } else if (pipIdx == pips.size() - 1 && pipUpdates.updatedLastPIP) {
         return pipUpdates.updatedLastPIP->pipContents.pageIdxs[offsetInPIP];
     } else {
-        KU_ASSERT(pipIdx >= pips.size());
+        KU_ASSERT(pipIdx >= pips.size() && pipIdx - pips.size() < pipUpdates.newPIPs.size());
         return pipUpdates.newPIPs[pipIdx - pips.size()].pipContents.pageIdxs[offsetInPIP];
     }
 }
