@@ -204,8 +204,7 @@ function_set MD5Function::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
-        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, MD5Operator>,
-        false /* isVarLength */));
+        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, MD5Operator>));
     return functionSet;
 }
 
@@ -213,8 +212,7 @@ function_set SHA256Function::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
-        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, SHA256Operator>,
-        false /* isVarLength */));
+        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, SHA256Operator>));
     return functionSet;
 }
 
@@ -226,9 +224,8 @@ static void HashExecFunc(const std::vector<std::shared_ptr<common::ValueVector>>
 
 function_set HashFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::INT64, HashExecFunc, false /* isVarLength */));
+    functionSet.push_back(std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::INT64, HashExecFunc));
     return functionSet;
 }
 

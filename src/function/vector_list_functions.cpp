@@ -288,9 +288,11 @@ LogicalType ListCreationFunction::getChildType(const binder::expression_vector& 
 
 function_set ListCreationFunction::getFunctionSet() {
     function_set result;
-    result.push_back(
+    auto function =
         std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::LIST, execFunc, nullptr, ListCreationBindFunc, true /*  isVarLength */));
+            LogicalTypeID::LIST, execFunc, nullptr, ListCreationBindFunc);
+    function->isVarLength = true;
+    result.push_back(std::move(function));
     return result;
 }
 
@@ -309,12 +311,12 @@ function_set ListRangeFunction::getFunctionSet() {
         result.push_back(std::make_unique<ScalarFunction>(name,
             std::vector<LogicalTypeID>{typeID, typeID}, LogicalTypeID::LIST,
             getBinaryListExecFuncSwitchAll<Range, list_entry_t>(LogicalType{typeID}), nullptr,
-            ListRangeBindFunc, false));
+            ListRangeBindFunc));
         // start, end, step
         result.push_back(std::make_unique<ScalarFunction>(name,
             std::vector<LogicalTypeID>{typeID, typeID, typeID}, LogicalTypeID::LIST,
             getTernaryListExecFuncSwitchAll<Range, list_entry_t>(LogicalType{typeID}), nullptr,
-            ListRangeBindFunc, false));
+            ListRangeBindFunc));
     }
     return result;
 }
@@ -323,13 +325,13 @@ function_set SizeFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::INT64,
-        ScalarFunction::UnaryExecFunction<list_entry_t, int64_t, ListLen>, true /* isVarlength*/));
+        ScalarFunction::UnaryExecFunction<list_entry_t, int64_t, ListLen>));
     result.push_back(std::make_unique<ScalarFunction>(alias,
         std::vector<LogicalTypeID>{LogicalTypeID::MAP}, LogicalTypeID::INT64,
-        ScalarFunction::UnaryExecFunction<list_entry_t, int64_t, ListLen>, true /* isVarlength*/));
+        ScalarFunction::UnaryExecFunction<list_entry_t, int64_t, ListLen>));
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INT64,
-        ScalarFunction::UnaryExecFunction<ku_string_t, int64_t, ListLen>, true /* isVarlength*/));
+        ScalarFunction::UnaryExecFunction<ku_string_t, int64_t, ListLen>));
     return result;
 }
 
@@ -426,15 +428,14 @@ function_set ListExtractFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::INT64}, LogicalTypeID::ANY,
-        nullptr, nullptr, ListExtractBindFunc, false /* isVarlength*/));
+        nullptr, nullptr, ListExtractBindFunc));
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
-        ScalarFunction::BinaryExecFunction<ku_string_t, int64_t, ku_string_t, ListExtract>,
-        false /* isVarlength */));
+        ScalarFunction::BinaryExecFunction<ku_string_t, int64_t, ku_string_t, ListExtract>));
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::ARRAY, LogicalTypeID::INT64}, LogicalTypeID::ANY,
-        nullptr, nullptr, ListExtractBindFunc, false /* isVarlength*/));
+        nullptr, nullptr, ListExtractBindFunc));
     return result;
 }
 
@@ -453,7 +454,7 @@ function_set ListConcatFunction::getFunctionSet() {
         list_entry_t, ListConcat>;
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::LIST,
-        execFunc, nullptr, bindFunc, false /* isVarlength*/));
+        execFunc, nullptr, bindFunc));
     return result;
 }
 
@@ -474,7 +475,7 @@ function_set ListAppendFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::LIST,
-        nullptr, nullptr, ListAppendBindFunc, false /* isVarlength*/));
+        nullptr, nullptr, ListAppendBindFunc));
     return result;
 }
 
@@ -496,7 +497,7 @@ function_set ListPrependFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::LIST,
-        nullptr, nullptr, ListPrependBindFunc, false /* isVarlength */));
+        nullptr, nullptr, ListPrependBindFunc));
     return result;
 }
 
@@ -512,7 +513,7 @@ function_set ListPositionFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::INT64,
-        nullptr, nullptr, ListPositionBindFunc, false /* isVarlength */));
+        nullptr, nullptr, ListPositionBindFunc));
     return result;
 }
 
@@ -528,12 +529,12 @@ function_set ListContainsFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::BOOL,
-        nullptr, nullptr, ListContainsBindFunc, false /* isVarlength */));
+        nullptr, nullptr, ListContainsBindFunc));
     return result;
 }
 
 static std::unique_ptr<FunctionBindData> ListSliceBindFunc(
-    const binder::expression_vector& arguments, Function* /*function*/) {
+    const binder::expression_vector& arguments, Function*) {
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType().copy());
 }
 
@@ -544,14 +545,13 @@ function_set ListSliceFunction::getFunctionSet() {
         LogicalTypeID::LIST,
         ScalarFunction::TernaryExecListStructFunction<list_entry_t, int64_t, int64_t, list_entry_t,
             ListSlice>,
-        nullptr, ListSliceBindFunc, false /* isVarlength*/));
+        nullptr, ListSliceBindFunc));
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64,
             LogicalTypeID::INT64},
         LogicalTypeID::STRING,
         ScalarFunction::TernaryExecListStructFunction<ku_string_t, int64_t, int64_t, ku_string_t,
-            ListSlice>,
-        false /* isVarlength */));
+            ListSlice>));
     return result;
 }
 
@@ -650,14 +650,14 @@ function_set ListSortFunction::getFunctionSet() {
     function_set result;
     result.push_back(
         std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
-            LogicalTypeID::LIST, nullptr, nullptr, ListSortBindFunc, false /* isVarlength*/));
+            LogicalTypeID::LIST, nullptr, nullptr, ListSortBindFunc));
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING}, LogicalTypeID::LIST,
-        nullptr, nullptr, ListSortBindFunc, false /* isVarlength*/));
+        nullptr, nullptr, ListSortBindFunc));
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING,
             LogicalTypeID::STRING},
-        LogicalTypeID::LIST, nullptr, nullptr, ListSortBindFunc, false /* isVarlength*/));
+        LogicalTypeID::LIST, nullptr, nullptr, ListSortBindFunc));
     return result;
 }
 
@@ -751,28 +751,28 @@ static std::unique_ptr<FunctionBindData> ListReverseSortBindFunc(
 
 function_set ListReverseSortFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::LIST, nullptr, nullptr,
-        ListReverseSortBindFunc, false /* isVarlength*/));
+    result.push_back(
+        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
+            LogicalTypeID::LIST, nullptr, nullptr, ListReverseSortBindFunc));
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING}, LogicalTypeID::LIST,
-        nullptr, nullptr, ListReverseSortBindFunc, false /* isVarlength*/));
+        nullptr, nullptr, ListReverseSortBindFunc));
     return result;
 }
 
 function_set ListSumFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::INT64, nullptr, nullptr,
-        bindFuncListAggr<ListSum>, false /* isVarlength*/));
+    result.push_back(
+        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
+            LogicalTypeID::INT64, nullptr, nullptr, bindFuncListAggr<ListSum>));
     return result;
 }
 
 function_set ListProductFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::INT64, nullptr, nullptr,
-        bindFuncListAggr<ListProduct>, false /* isVarlength*/));
+    result.push_back(
+        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
+            LogicalTypeID::INT64, nullptr, nullptr, bindFuncListAggr<ListProduct>));
     return result;
 }
 
@@ -786,7 +786,7 @@ function_set ListDistinctFunction::getFunctionSet() {
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::LIST,
         ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, ListDistinct>,
-        nullptr, ListDistinctBindFunc, false /* isVarlength*/));
+        nullptr, ListDistinctBindFunc));
     return result;
 }
 
@@ -794,8 +794,7 @@ function_set ListUniqueFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::INT64,
-        ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique>,
-        false /* isVarlength*/));
+        ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, int64_t, ListUnique>));
     return result;
 }
 
@@ -904,7 +903,7 @@ function_set ListAnyValueFunction::getFunctionSet() {
     function_set result;
     result.push_back(
         std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
-            LogicalTypeID::ANY, nullptr, nullptr, ListAnyValueBindFunc, false /* isVarlength*/));
+            LogicalTypeID::ANY, nullptr, nullptr, ListAnyValueBindFunc));
     return result;
 }
 
@@ -921,7 +920,7 @@ function_set ListReverseFunction::getFunctionSet() {
     function_set result;
     result.push_back(
         std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
-            LogicalTypeID::ANY, nullptr, nullptr, ListReverseBindFunc, false /* isVarlength*/));
+            LogicalTypeID::ANY, nullptr, nullptr, ListReverseBindFunc));
     return result;
 }
 
