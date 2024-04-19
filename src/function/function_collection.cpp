@@ -110,7 +110,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(ListSumFunction), SCALAR_FUNCTION(ListProductFunction),
         SCALAR_FUNCTION(ListDistinctFunction), SCALAR_FUNCTION(ListUniqueFunction),
         SCALAR_FUNCTION(ListAnyValueFunction), SCALAR_FUNCTION(ListReverseFunction),
-        SCALAR_FUNCTION(SizeFunction),
+        SCALAR_FUNCTION(SizeFunction), SCALAR_FUNCTION(ListToStringFunction),
 
         // Cast functions
         SCALAR_FUNCTION(CastToDateFunction), SCALAR_FUNCTION_ALIAS(CastToDateFunction),

@@ -17,18 +17,23 @@ struct ValueEquality {
 
 using ValueSet = std::unordered_set<common::Value, ValueHashFunction, ValueEquality>;
 
-using duplicateValueHandler = std::function<void(const std::string&)>;
-using uniqueValueHandler = std::function<void(common::ValueVector& dataVector, uint64_t pos)>;
+using duplicate_value_handler = std::function<void(const std::string&)>;
+using unique_value_handler = std::function<void(common::ValueVector& dataVector, uint64_t pos)>;
+using null_value_handler = std::function<void()>;
 
 struct ListUnique {
     static uint64_t appendListElementsToValueSet(common::list_entry_t& input,
-        common::ValueVector& inputVector, duplicateValueHandler duplicateValHandler = nullptr,
-        uniqueValueHandler uniqueValueHandler = nullptr) {
+        common::ValueVector& inputVector, duplicate_value_handler duplicateValHandler = nullptr,
+        unique_value_handler uniqueValueHandler = nullptr,
+        null_value_handler nullValueHandler = nullptr) {
         ValueSet uniqueKeys;
         auto dataVector = common::ListVector::getDataVector(&inputVector);
         auto val = common::Value::createDefaultValue(dataVector->dataType);
         for (auto i = 0u; i < input.size; i++) {
             if (dataVector->isNull(input.offset + i)) {
+                if (nullValueHandler != nullptr) {
+                    nullValueHandler();
+                }
                 continue;
             }
             auto entryVal = common::ListVector::getListValuesWithOffset(&inputVector, input, i);

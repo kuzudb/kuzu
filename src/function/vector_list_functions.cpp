@@ -20,6 +20,7 @@
 #include "function/list/functions/list_slice_function.h"
 #include "function/list/functions/list_sort_function.h"
 #include "function/list/functions/list_sum_function.h"
+#include "function/list/functions/list_to_string_function.h"
 #include "function/list/functions/list_unique_function.h"
 #include "function/scalar_function.h"
 
@@ -921,6 +922,16 @@ function_set ListReverseFunction::getFunctionSet() {
     result.push_back(
         std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
             LogicalTypeID::ANY, nullptr, nullptr, ListReverseBindFunc, false /* isVarlength*/));
+    return result;
+}
+
+function_set ListToStringFunction::getFunctionSet() {
+    function_set result;
+    result.push_back(std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING},
+        LogicalTypeID::STRING,
+        ScalarFunction::BinaryExecListStructFunction<list_entry_t, ku_string_t, ku_string_t,
+            ListToString>));
     return result;
 }
 

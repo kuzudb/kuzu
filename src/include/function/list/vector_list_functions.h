@@ -129,5 +129,11 @@ struct ListReverseFunction {
     static function_set getFunctionSet();
 };
 
+struct ListToStringFunction {
+    static constexpr const char* name = "LIST_TO_STRING";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

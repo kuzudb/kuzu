@@ -3,6 +3,7 @@ add_subdirectory(arithmetic)
 add_subdirectory(cast)
 add_subdirectory(pattern)
 add_subdirectory(table)
+add_subdirectory(list)
 
 add_library(kuzu_function
         OBJECT
