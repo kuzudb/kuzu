@@ -43,6 +43,9 @@ private:
     // And heuristically reorder equality predicates first in the filter.
     std::shared_ptr<planner::LogicalOperator> finishPushDown(
         std::shared_ptr<planner::LogicalOperator> op);
+    std::shared_ptr<planner::LogicalOperator> appendFilters(
+        const binder::expression_vector& predicates,
+        std::shared_ptr<planner::LogicalOperator> child);
 
     std::shared_ptr<planner::LogicalOperator> appendScanNodeProperty(
         std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> nodeTableIDs,
@@ -55,10 +58,8 @@ private:
         binder::expression_vector equalityPredicates;
         binder::expression_vector nonEqualityPredicates;
 
-        inline bool isEmpty() const {
-            return equalityPredicates.empty() && nonEqualityPredicates.empty();
-        }
-        inline void clear() {
+        bool isEmpty() const { return equalityPredicates.empty() && nonEqualityPredicates.empty(); }
+        void clear() {
             equalityPredicates.clear();
             nonEqualityPredicates.clear();
         }
@@ -66,6 +67,7 @@ private:
         void addPredicate(std::shared_ptr<binder::Expression> predicate);
         std::shared_ptr<binder::Expression> popNodePKEqualityComparison(
             const binder::Expression& nodeID);
+        binder::expression_vector getAllPredicates();
     };
 
 private:

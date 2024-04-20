@@ -45,3 +45,21 @@ Elizabeth|Elizabeth|20
 Farooq|Farooq|25
 Greg|Greg|40
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|83
+
+-LOG CrossProductWithFilterPushDownTest
+-STATEMENT MATCH (a:person) WITH a.age AS s, a.fName as n MATCH (b:person) WHERE s=b.age and n='Dan' RETURN n,b.fName,s
+-ENUMERATE
+---- 2
+Dan|Dan|20
+Dan|Elizabeth|20
+-STATEMENT MATCH (a:person) WITH a.age AS s, a.fName as n MATCH (b:person) WHERE s=b.age and n=b.fName RETURN n,b.fName,s
+-ENUMERATE
+---- 8
+Alice|Alice|35
+Bob|Bob|30
+Carol|Carol|45
+Dan|Dan|20
+Elizabeth|Elizabeth|20
+Farooq|Farooq|25
+Greg|Greg|40
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|83
