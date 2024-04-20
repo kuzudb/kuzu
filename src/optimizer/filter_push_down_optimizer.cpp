@@ -64,93 +64,43 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitFilterReplace(
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductReplace(
     const std::shared_ptr<LogicalOperator>& op) {
+    for (auto i = 0u; i < op->getNumChildren(); ++i) {
+        auto optimizer = FilterPushDownOptimizer();
+        op->setChild(i, optimizer.visitOperator(op->getChild(i)));
+    }
     auto probeSchema = op->getChild(0)->getSchema();
     auto buildSchema = op->getChild(1)->getSchema();
+    expression_vector predicates;
     std::vector<join_condition_t> joinConditions;
-    expression_vector probeEqualityFilters;
-    expression_vector buildEqualityFilters;
-    expression_vector probeNonEqualityFilters;
-    expression_vector buildNonEqualityFilters;
-    auto& equalityPredicates = predicateSet->equalityPredicates;
-    for (auto it = equalityPredicates.begin(); it != equalityPredicates.end();) {
-        auto predicate = *it;
+    for (auto& predicate : predicateSet->equalityPredicates) {
         auto left = predicate->getChild(0);
         auto right = predicate->getChild(1);
         // TODO(Xiyang): this can only rewrite left = right, we should also be able to do
         // expr(left), expr(right)
-        if (probeSchema->isExpressionInputRefInScope(*left)) {
-            if (buildSchema->isExpressionInputRefInScope(*right)) {
-                if (left->expressionType != ExpressionType::PROPERTY ||
-                    right->expressionType != ExpressionType::PROPERTY) {
-                    ++it;
-                } else {
-                    joinConditions.emplace_back(left, right);
-                    it = equalityPredicates.erase(it);
-                }
-            } else {
-                probeEqualityFilters.emplace_back(predicate);
-                it = equalityPredicates.erase(it);
-            }
-        } else if (probeSchema->isExpressionInputRefInScope(*right)) {
-            if (buildSchema->isExpressionInputRefInScope(*left)) {
-                if (left->expressionType != ExpressionType::PROPERTY ||
-                    right->expressionType != ExpressionType::PROPERTY) {
-                    ++it;
-                } else {
-                    joinConditions.emplace_back(right, left);
-                    it = equalityPredicates.erase(it);
-                }
-            } else {
-                buildEqualityFilters.emplace_back(predicate);
-                it = equalityPredicates.erase(it);
-            }
-
+        if (probeSchema->isExpressionInScope(*left) && buildSchema->isExpressionInScope(*right)) {
+            joinConditions.emplace_back(left, right);
+        } else if (probeSchema->isExpressionInScope(*right) &&
+                   buildSchema->isExpressionInScope(*left)) {
+            joinConditions.emplace_back(right, left);
         } else {
-            ++it;
+            // Collect predicates that cannot be rewritten as join conditions.
+            predicates.push_back(predicate);
         }
     }
-    auto& nonEqualityPredicates = predicateSet->nonEqualityPredicates;
-    for (auto it = nonEqualityPredicates.begin(); it != nonEqualityPredicates.end();) {
-        auto predicate = *it;
-        auto left = predicate->getChild(0);
-        auto right = predicate->getChild(1);
-        if (probeSchema->isExpressionInputRefInScope(*left)) {
-            if (buildSchema->isExpressionInputRefInScope(*right)) {
-                ++it;
-            } else {
-                probeNonEqualityFilters.emplace_back(predicate);
-                it = nonEqualityPredicates.erase(it);
-            }
-        } else if (probeSchema->isExpressionInputRefInScope(*right)) {
-            if (buildSchema->isExpressionInputRefInScope(*left)) {
-                ++it;
-            } else {
-                buildNonEqualityFilters.emplace_back(predicate);
-                it = nonEqualityPredicates.erase(it);
-            }
-        } else {
-            ++it;
-        }
-    }
-    {
-        auto optimizer = FilterPushDownOptimizer(std::move(probeEqualityFilters),
-            std::move(probeNonEqualityFilters));
-        op->setChild(0, optimizer.visitOperator(op->getChild(0)));
-    }
-    {
-        auto optimizer = FilterPushDownOptimizer(std::move(buildEqualityFilters),
-            std::move(buildNonEqualityFilters));
-        op->setChild(1, optimizer.visitOperator(op->getChild(1)));
-    }
-    if (joinConditions.empty()) {
+    if (joinConditions.empty()) { // Nothing to push down. Terminate.
         return finishPushDown(op);
-    } else {
-        auto hashJoin = std::make_shared<LogicalHashJoin>(joinConditions, JoinType::INNER,
-            nullptr /* mark */, op->getChild(0), op->getChild(1));
-        hashJoin->setSIP(planner::SidewaysInfoPassing::PROHIBIT);
-        hashJoin->computeFlatSchema();
-        return finishPushDown(hashJoin);
     }
+    auto hashJoin = std::make_shared<LogicalHashJoin>(joinConditions, JoinType::INNER,
+        nullptr /* mark */, op->getChild(0), op->getChild(1));
+    hashJoin->setSIP(SidewaysInfoPassing::PROHIBIT);
+    hashJoin->computeFlatSchema();
+    // Apply remaining predicates.
+    predicates.insert(predicates.end(), predicateSet->nonEqualityPredicates.begin(),
+        predicateSet->nonEqualityPredicates.end());
+    if (predicates.empty()) {
+        return hashJoin;
+    }
+    return appendFilters(predicates, hashJoin);
 }
 
 std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNodePropertyReplace(
@@ -225,15 +175,10 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::finishPushDow
     if (predicateSet->isEmpty()) {
         return op;
     }
-    auto currentRoot = op;
-    for (auto& predicate : predicateSet->equalityPredicates) {
-        currentRoot = appendFilter(predicate, currentRoot);
-    }
-    for (auto& predicate : predicateSet->nonEqualityPredicates) {
-        currentRoot = appendFilter(predicate, currentRoot);
-    }
+    auto predicates = predicateSet->getAllPredicates();
+    auto root = appendFilters(predicates, op);
     predicateSet->clear();
-    return currentRoot;
+    return root;
 }
 
 std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::appendScanNodeProperty(
@@ -246,6 +191,18 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::appendScanNod
         std::move(nodeTableIDs), std::move(properties), std::move(child));
     scanNodeProperty->computeFlatSchema();
     return scanNodeProperty;
+}
+
+std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendFilters(
+    const expression_vector& predicates, std::shared_ptr<LogicalOperator> child) {
+    if (predicates.empty()) {
+        return child;
+    }
+    auto root = child;
+    for (auto& p : predicates) {
+        root = appendFilter(p, root);
+    }
+    return root;
 }
 
 std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::appendFilter(
@@ -304,6 +261,13 @@ FilterPushDownOptimizer::PredicateSet::popNodePKEqualityComparison(
         return result;
     }
     return nullptr;
+}
+
+binder::expression_vector FilterPushDownOptimizer::PredicateSet::getAllPredicates() {
+    expression_vector result;
+    result.insert(result.end(), equalityPredicates.begin(), equalityPredicates.end());
+    result.insert(result.end(), nonEqualityPredicates.begin(), nonEqualityPredicates.end());
+    return result;
 }
 
 } // namespace optimizer

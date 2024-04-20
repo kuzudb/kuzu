@@ -1,6 +1,5 @@
 #pragma once
 
-#include <set>
 #include <unordered_map>
 
 #include "binder/expression/expression.h"
@@ -104,7 +103,6 @@ public:
     inline void setGroupAsSingleState(f_group_pos pos) { groups[pos]->setSingleState(); }
 
     bool isExpressionInScope(const binder::Expression& expression) const;
-    bool isExpressionInputRefInScope(const binder::Expression& expression) const;
 
     inline binder::expression_vector getExpressionsInScope() const { return expressionsInScope; }
 
@@ -130,8 +128,6 @@ public:
 
 private:
     size_t getNumGroups(bool isFlat) const;
-    void findInputRefExpression(std::set<std::string>& expressionUniqueName,
-        const binder::Expression& expression) const;
 
 private:
     std::vector<std::unique_ptr<FactorizationGroup>> groups;
