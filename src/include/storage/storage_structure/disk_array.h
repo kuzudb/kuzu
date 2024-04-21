@@ -48,7 +48,7 @@ struct DiskArrayHeader {
 };
 
 struct PIP {
-    PIP() : nextPipPageIdx{DBFileUtils::NULL_PAGE_IDX} {}
+    PIP() : nextPipPageIdx{DBFileUtils::NULL_PAGE_IDX}, pageIdxs{} {}
 
     common::page_idx_t nextPipPageIdx;
     common::page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP];
