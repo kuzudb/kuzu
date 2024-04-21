@@ -158,7 +158,7 @@ void ListColumnChunk::lookup(offset_t offsetInChunk, ValueVector& output,
     if (output.isNull(posInOutputVector)) {
         return;
     }
-    auto startOffset = offsetInChunk == 0 ? 0 : getValue<offset_t>(offsetInChunk - 1);
+    auto startOffset = getListStartOffset(offsetInChunk);
     auto listSize = getListSize(offsetInChunk);
     output.setValue<list_entry_t>(posInOutputVector, list_entry_t{startOffset, listSize});
     auto dataVector = ListVector::getDataVector(&output);

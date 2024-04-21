@@ -66,6 +66,10 @@ bool LocalChunkedGroupCollection::read(offset_t offset, const std::vector<column
     for (auto i = 0u; i < columnIDs.size(); i++) {
         auto posInOutputVector =
             outputVectors[i]->state->selVector->selectedPositions[offsetInOutputVector];
+        if (columnIDs[i] == INVALID_COLUMN_ID) {
+            outputVectors[i]->setNull(posInOutputVector, true);
+            continue;
+        }
         readValueAtRowIdx(rowIdx, columnIDs[i], outputVectors[i], posInOutputVector);
     }
     return true;
