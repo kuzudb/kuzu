@@ -33,6 +33,10 @@ void LocalNodeNG::lookup(const common::ValueVector& nodeIDVector,
     for (auto i = 0u; i < columnIDs.size(); i++) {
         auto posInOutputVector =
             outputVectors[i]->state->selVector->selectedPositions[offsetInVectorToLookup];
+        if (columnIDs[i] == INVALID_COLUMN_ID) {
+            outputVectors[i]->setNull(posInOutputVector, true);
+            continue;
+        }
         getUpdateChunks(columnIDs[i])
             .read(nodeOffset, 0 /*columnID*/, outputVectors[i], posInOutputVector);
     }
