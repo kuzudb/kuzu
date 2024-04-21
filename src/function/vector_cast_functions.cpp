@@ -116,7 +116,7 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
 
     auto selVector = inputVector->state->selVector;
     auto bindData = CastFunctionBindData(result.dataType.copy());
-    auto numOfEntries= selVector->selectedPositions[selVector->selectedSize - 1] + 1;
+    auto numOfEntries = selVector->selectedPositions[selVector->selectedSize - 1] + 1;
     resolveNestedVector(inputVector, &result, numOfEntries, &bindData);
 }
 

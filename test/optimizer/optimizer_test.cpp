@@ -24,7 +24,8 @@ public:
 };
 
 TEST_F(OptimizerTest, CrossJoinWithFilterWithoutPushDownTest) {
-    auto op = getRoot("MATCH (a:person) MATCH (b:person) where a.fName=b.fName and a.gender <> b.gender RETURN a.gender;");
+    auto op = getRoot("MATCH (a:person) MATCH (b:person) where a.fName=b.fName and a.gender <> "
+                      "b.gender RETURN a.gender;");
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
     op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
@@ -33,7 +34,8 @@ TEST_F(OptimizerTest, CrossJoinWithFilterWithoutPushDownTest) {
 }
 
 TEST_F(OptimizerTest, CrossJoinWithFilterPushDownTest) {
-    auto op = getRoot("MATCH (a:person) , (b:person) where a.fName=b.fName and a.fName is null RETURN a.gender;");
+    auto op = getRoot(
+        "MATCH (a:person) , (b:person) where a.fName=b.fName and a.fName is null RETURN a.gender;");
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
     op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::HASH_JOIN);
