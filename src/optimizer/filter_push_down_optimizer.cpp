@@ -57,22 +57,40 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitFilterReplace(
             return std::make_shared<LogicalEmptyResult>(*op->getSchema());
         }
     } else {
-        predicateSet->addPredicate(predicate);
+        predicateSet.addPredicate(predicate);
     }
     return visitOperator(filter->getChild(0));
 }
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductReplace(
     const std::shared_ptr<LogicalOperator>& op) {
-    for (auto i = 0u; i < op->getNumChildren(); ++i) {
-        auto optimizer = FilterPushDownOptimizer();
-        op->setChild(i, optimizer.visitOperator(op->getChild(i)));
+    auto remainingPSet = PredicateSet();
+    auto probePSet = PredicateSet();
+    auto buildPSet = PredicateSet();
+    for (auto& p : predicateSet.getAllPredicates()) {
+        auto inProbe = op->getChild(0)->getSchema()->evaluable(*p);
+        auto inBuild = op->getChild(1)->getSchema()->evaluable(*p);
+        if (inProbe && !inBuild) {
+            probePSet.addPredicate(p);
+        } else if (!inProbe && inBuild) {
+            buildPSet.addPredicate(p);
+        } else {
+            remainingPSet.addPredicate(p);
+        }
     }
+    KU_ASSERT(op->getNumChildren() == 2);
+    // Push probe side
+    auto probeOptimizer = FilterPushDownOptimizer(std::move(probePSet));
+    op->setChild(0, probeOptimizer.visitOperator(op->getChild(0)));
+    // Push build side
+    auto buildOptimizer = FilterPushDownOptimizer(std::move(buildPSet));
+    op->setChild(1, buildOptimizer.visitOperator(op->getChild(1)));
+
     auto probeSchema = op->getChild(0)->getSchema();
     auto buildSchema = op->getChild(1)->getSchema();
     expression_vector predicates;
     std::vector<join_condition_t> joinConditions;
-    for (auto& predicate : predicateSet->equalityPredicates) {
+    for (auto& predicate : remainingPSet.equalityPredicates) {
         auto left = predicate->getChild(0);
         auto right = predicate->getChild(1);
         // TODO(Xiyang): this can only rewrite left = right, we should also be able to do
@@ -95,8 +113,8 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     hashJoin->setSIP(SidewaysInfoPassing::PROHIBIT);
     hashJoin->computeFlatSchema();
     // Apply remaining predicates.
-    predicates.insert(predicates.end(), predicateSet->nonEqualityPredicates.begin(),
-        predicateSet->nonEqualityPredicates.end());
+    predicates.insert(predicates.end(), remainingPSet.nonEqualityPredicates.begin(),
+        remainingPSet.nonEqualityPredicates.end());
     if (predicates.empty()) {
         return hashJoin;
     }
@@ -110,7 +128,7 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
     auto tableIDs = scan->getTableIDs();
     std::shared_ptr<Expression> primaryKeyEqualityComparison = nullptr;
     if (tableIDs.size() == 1) {
-        primaryKeyEqualityComparison = predicateSet->popNodePKEqualityComparison(*nodeID);
+        primaryKeyEqualityComparison = predicateSet.popNodePKEqualityComparison(*nodeID);
     }
     if (primaryKeyEqualityComparison != nullptr) { // Try rewrite index scan
         auto rhs = primaryKeyEqualityComparison->getChild(1);
@@ -127,15 +145,15 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
             op->setChild(0, std::move(indexScan));
         } else {
             // Cannot rewrite and add predicate back.
-            predicateSet->addPredicate(primaryKeyEqualityComparison);
+            predicateSet.addPredicate(primaryKeyEqualityComparison);
         }
     }
     // Perform filter push down.
     auto currentRoot = scan->getChild(0);
-    for (auto& predicate : predicateSet->equalityPredicates) {
+    for (auto& predicate : predicateSet.equalityPredicates) {
         currentRoot = pushDownToScanNode(nodeID, tableIDs, predicate, currentRoot);
     }
-    for (auto& predicate : predicateSet->nonEqualityPredicates) {
+    for (auto& predicate : predicateSet.nonEqualityPredicates) {
         currentRoot = pushDownToScanNode(nodeID, tableIDs, predicate, currentRoot);
     }
     // Scan remaining properties.
@@ -172,12 +190,12 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::pushDownToSca
 
 std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::finishPushDown(
     std::shared_ptr<planner::LogicalOperator> op) {
-    if (predicateSet->isEmpty()) {
+    if (predicateSet.isEmpty()) {
         return op;
     }
-    auto predicates = predicateSet->getAllPredicates();
+    auto predicates = predicateSet.getAllPredicates();
     auto root = appendFilters(predicates, op);
-    predicateSet->clear();
+    predicateSet.clear();
     return root;
 }
 
@@ -213,8 +231,7 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::appendFilter(
     return filter;
 }
 
-void FilterPushDownOptimizer::PredicateSet::addPredicate(
-    std::shared_ptr<binder::Expression> predicate) {
+void PredicateSet::addPredicate(std::shared_ptr<binder::Expression> predicate) {
     if (predicate->expressionType == ExpressionType::EQUALS) {
         equalityPredicates.push_back(std::move(predicate));
     } else {
@@ -235,8 +252,7 @@ static bool isNodePrimaryKey(const Expression& expression, const Expression& nod
     return propertyExpression.isPrimaryKey();
 }
 
-std::shared_ptr<binder::Expression>
-FilterPushDownOptimizer::PredicateSet::popNodePKEqualityComparison(
+std::shared_ptr<binder::Expression> PredicateSet::popNodePKEqualityComparison(
     const binder::Expression& nodeID) {
     // We pop when the first primary key equality comparison is found.
     auto resultPredicateIdx = INVALID_VECTOR_IDX;
@@ -263,7 +279,7 @@ FilterPushDownOptimizer::PredicateSet::popNodePKEqualityComparison(
     return nullptr;
 }
 
-binder::expression_vector FilterPushDownOptimizer::PredicateSet::getAllPredicates() {
+binder::expression_vector PredicateSet::getAllPredicates() {
     expression_vector result;
     result.insert(result.end(), equalityPredicates.begin(), equalityPredicates.end());
     result.insert(result.end(), nonEqualityPredicates.begin(), nonEqualityPredicates.end());

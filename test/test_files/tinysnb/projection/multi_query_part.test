@@ -4,7 +4,6 @@
 --
 
 -CASE ProjectionMultiQuery
-
 -LOG PersonNodesWithTest
 -STATEMENT MATCH (a:person) WITH a RETURN a.age
 ---- 8

@@ -5,9 +5,35 @@
 namespace kuzu {
 namespace optimizer {
 
+struct PredicateSet {
+    binder::expression_vector equalityPredicates;
+    binder::expression_vector nonEqualityPredicates;
+
+    PredicateSet() = default;
+    EXPLICIT_COPY_DEFAULT_MOVE(PredicateSet);
+
+    bool isEmpty() const { return equalityPredicates.empty() && nonEqualityPredicates.empty(); }
+    void clear() {
+        equalityPredicates.clear();
+        nonEqualityPredicates.clear();
+    }
+
+    void addPredicate(std::shared_ptr<binder::Expression> predicate);
+    std::shared_ptr<binder::Expression> popNodePKEqualityComparison(
+        const binder::Expression& nodeID);
+    binder::expression_vector getAllPredicates();
+
+private:
+    PredicateSet(const PredicateSet& other)
+        : equalityPredicates{other.equalityPredicates},
+          nonEqualityPredicates{other.nonEqualityPredicates} {}
+};
+
 class FilterPushDownOptimizer {
 public:
-    FilterPushDownOptimizer() { predicateSet = std::make_unique<PredicateSet>(); }
+    FilterPushDownOptimizer() { predicateSet = PredicateSet(); }
+    explicit FilterPushDownOptimizer(PredicateSet predicateSet)
+        : predicateSet{std::move(predicateSet)} {}
 
     void rewrite(planner::LogicalPlan* plan);
 
@@ -54,24 +80,8 @@ private:
         std::shared_ptr<binder::Expression> predicate,
         std::shared_ptr<planner::LogicalOperator> child);
 
-    struct PredicateSet {
-        binder::expression_vector equalityPredicates;
-        binder::expression_vector nonEqualityPredicates;
-
-        bool isEmpty() const { return equalityPredicates.empty() && nonEqualityPredicates.empty(); }
-        void clear() {
-            equalityPredicates.clear();
-            nonEqualityPredicates.clear();
-        }
-
-        void addPredicate(std::shared_ptr<binder::Expression> predicate);
-        std::shared_ptr<binder::Expression> popNodePKEqualityComparison(
-            const binder::Expression& nodeID);
-        binder::expression_vector getAllPredicates();
-    };
-
 private:
-    std::unique_ptr<PredicateSet> predicateSet;
+    PredicateSet predicateSet;
 };
 
 } // namespace optimizer

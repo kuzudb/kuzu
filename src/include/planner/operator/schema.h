@@ -110,6 +110,7 @@ public:
 
     binder::expression_vector getSubExpressionsInScope(
         const std::shared_ptr<binder::Expression>& expression);
+    bool evaluable(const binder::Expression& expression) const;
 
     std::unordered_set<f_group_pos> getDependentGroupsPos(
         const std::shared_ptr<binder::Expression>& expression);
