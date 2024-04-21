@@ -90,21 +90,6 @@ struct UnaryUDFFunctionWrapper {
     }
 };
 
-struct CastChildFunctionExecutor {
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
-    static void executeSwitch(common::ValueVector& operand, common::ValueVector& result,
-        void* dataPtr) {
-        auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
-        for (auto i = 0u; i < numOfEntries; i++) {
-            result.setNull(i, operand.isNull(i));
-            if (!result.isNull(i)) {
-                OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>((void*)(&operand),
-                    i, (void*)(&result), i, dataPtr);
-            }
-        }
-    }
-};
-
 struct UnaryFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeOnValue(common::ValueVector& inputVector, uint64_t inputPos,
