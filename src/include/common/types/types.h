@@ -598,6 +598,7 @@ struct LogicalTypeUtils {
         LogicalType& result);
     static LogicalTypeID getMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right);
     static LogicalType getMaxLogicalType(const LogicalType& left, const LogicalType& right);
+    static bool tryGetMaxLogicalType(const std::vector<LogicalType>& types, LogicalType& result);
 
 private:
     static LogicalTypeID dataTypeIDFromString(const std::string& trimmedStr);

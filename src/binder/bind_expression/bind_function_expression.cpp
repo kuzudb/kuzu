@@ -88,16 +88,23 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         }
         childrenAfterCast.push_back(std::move(childAfterCast));
     } else {
-        for (auto i = 0u; i < children.size(); ++i) {
-            auto targetType = function->isVarLength ? function->parameterTypeIDs[0] :
-                                                      function->parameterTypeIDs[i];
-            childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
-        }
         if (function->bindFunc) {
-            bindData = function->bindFunc(childrenAfterCast, function);
+            bindData = function->bindFunc(children, function);
         } else {
             bindData = std::make_unique<function::FunctionBindData>(
                 std::make_unique<LogicalType>(function->returnTypeID));
+        }
+        if (!bindData->paramTypes.empty()) {
+            for (auto i = 0u; i < children.size(); ++i) {
+                childrenAfterCast.push_back(
+                    implicitCastIfNecessary(children[i], bindData->paramTypes[i]));
+            }
+        } else {
+            for (auto i = 0u; i < children.size(); ++i) {
+                auto targetType = function->isVarLength ? function->parameterTypeIDs[0] :
+                                                          function->parameterTypeIDs[i];
+                childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
+            }
         }
     }
     auto uniqueExpressionName =

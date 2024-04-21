@@ -1412,5 +1412,18 @@ LogicalType LogicalTypeUtils::getMaxLogicalType(const LogicalType& left, const L
     }
     return result;
 }
+
+bool LogicalTypeUtils::tryGetMaxLogicalType(const std::vector<LogicalType>& types,
+    LogicalType& result) {
+    LogicalType combinedType(LogicalTypeID::ANY);
+    for (auto& type : types) {
+        if (!tryGetMaxLogicalType(combinedType, type, combinedType)) {
+            return false;
+        }
+    }
+    result = combinedType;
+    return true;
+}
+
 } // namespace common
 } // namespace kuzu

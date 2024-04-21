@@ -12,7 +12,6 @@ struct ListCreationFunction {
     static function_set getFunctionSet();
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr);
-    static common::LogicalType getChildType(const binder::expression_vector& arguments);
 };
 
 struct ListRangeFunction {

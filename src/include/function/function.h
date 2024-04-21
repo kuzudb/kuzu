@@ -6,10 +6,12 @@ namespace kuzu {
 namespace function {
 
 struct FunctionBindData {
+    std::vector<common::LogicalType> paramTypes;
     std::unique_ptr<common::LogicalType> resultType;
 
     explicit FunctionBindData(std::unique_ptr<common::LogicalType> dataType)
         : resultType{std::move(dataType)} {}
+    DELETE_COPY_AND_MOVE(FunctionBindData);
 
     virtual ~FunctionBindData() = default;
 };
