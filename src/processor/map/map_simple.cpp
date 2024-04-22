@@ -51,8 +51,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     planner::LogicalOperator* logicalOperator) {
-    auto exportDatabase =
-        ku_dynamic_cast<LogicalOperator*, LogicalExportDatabase*>(logicalOperator);
+    auto exportDatabase = logicalOperator->constPtrCast<LogicalExportDatabase>();
     std::vector<std::unique_ptr<PhysicalOperator>> children;
     for (auto childCopyTo : exportDatabase->getChildren()) {
         auto childPhysicalOperator = mapOperator(childCopyTo.get());
@@ -76,16 +75,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(
     planner::LogicalOperator* logicalOperator) {
-    auto importDatabase =
-        ku_dynamic_cast<LogicalOperator*, LogicalImportDatabase*>(logicalOperator);
+    auto importDatabase = logicalOperator->constPtrCast<LogicalImportDatabase>();
     return std::make_unique<ImportDB>(importDatabase->getQuery(), getOutputPos(importDatabase),
         getOperatorID(), importDatabase->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExtension(
     planner::LogicalOperator* logicalOperator) {
-    auto logicalExtension =
-        common::ku_dynamic_cast<LogicalOperator*, LogicalExtension*>(logicalOperator);
+    auto logicalExtension = logicalOperator->constPtrCast<LogicalExtension>();
     auto outputPos = getOutputPos(logicalExtension);
     switch (logicalExtension->getAction()) {
     case ExtensionAction::INSTALL:
