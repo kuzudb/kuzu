@@ -340,3 +340,41 @@ False
 -STATEMENT RETURN {a: 2, b: null} <> {a: 2, b: null}
 ---- 1
 False
+
+-LOG InternalIDEqual
+-STATEMENT MATCH (a:person), (b:person) WHERE a.fName = "Alice" AND b.fName = "Alice" RETURN ID(a) = ID(b);
+---- 1
+True
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.fName = "Alice" AND b.fName = "Alice" RETURN ID(a) <> ID(b);
+---- 1
+False
+
+-LOG InternalIDNotEqual
+-STATEMENT MATCH (a:person), (b:person) WHERE a.fName = "Alice" AND b.fName = "Bob" RETURN ID(a) = ID(b);
+---- 1
+False
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.fName = "Alice" AND b.fName = "Bob" RETURN ID(a) <> ID(b);
+---- 1
+True
+
+-LOG InternalIDLessThan
+-STATEMENT MATCH (a:person), (b:person) WHERE a.fName = "Alice" AND b.fName = "Bob" RETURN ID(a) < ID(b);
+---- 1
+True
+
+-LOG InternalIDLessThanEqual
+-STATEMENT MATCH (a:person), (b:person) WHERE a.fName = "Alice" AND b.fName = "Alice" RETURN ID(a) <= ID(b);
+---- 1
+True
+
+-LOG InternalIDGreaterThan
+-STATEMENT MATCH (a:person), (b:person) WHERE a.fName = "Alice" AND b.fName = "Alice" RETURN ID(a) > ID(b);
+---- 1
+False
+
+-LOG InternalIDLessThanEqual
+-STATEMENT MATCH (a:person), (b:person) WHERE a.fName = "Alice" AND b.fName = "Bob" RETURN ID(a) >= ID(b);
+---- 1
+False
