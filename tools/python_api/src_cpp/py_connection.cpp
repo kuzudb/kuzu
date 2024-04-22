@@ -226,9 +226,9 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
             auto curChildType = pyLogicalType(child);
             LogicalType result;
             if (!LogicalTypeUtils::tryGetMaxLogicalType(*childType, *curChildType, result)) {
-                throw RuntimeException(
-                    stringFormat("Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
-                        childType->toString(), curChildType->toString()));
+                throw RuntimeException(stringFormat(
+                    "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
+                    childType->toString(), curChildType->toString()));
             }
             childType = std::make_unique<LogicalType>(result);
         }
@@ -240,15 +240,17 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
             auto curChildKeyType = pyLogicalType(child.first),
                  curChildValueType = pyLogicalType(child.second);
             LogicalType resultKey, resultValue;
-            if (!LogicalTypeUtils::tryGetMaxLogicalType(*childKeyType, *curChildKeyType, resultKey)) {
-                throw RuntimeException(
-                    stringFormat("Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
-                        childKeyType->toString(), curChildKeyType->toString()));
+            if (!LogicalTypeUtils::tryGetMaxLogicalType(*childKeyType, *curChildKeyType,
+                    resultKey)) {
+                throw RuntimeException(stringFormat(
+                    "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
+                    childKeyType->toString(), curChildKeyType->toString()));
             }
-            if (!LogicalTypeUtils::tryGetMaxLogicalType(*childValueType, *curChildValueType, resultValue)) {
-                throw RuntimeException(
-                    stringFormat("Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
-                        childValueType->toString(), curChildValueType->toString()));
+            if (!LogicalTypeUtils::tryGetMaxLogicalType(*childValueType, *curChildValueType,
+                    resultValue)) {
+                throw RuntimeException(stringFormat(
+                    "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
+                    childValueType->toString(), curChildValueType->toString()));
             }
             childKeyType = std::make_unique<LogicalType>(resultKey);
             childValueType = std::make_unique<LogicalType>(resultValue);
@@ -301,8 +303,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
     case LogicalTypeID::TIMESTAMP: {
         // LCOV_EXCL_START
         if (!py::isinstance(val, datetime_datetime)) {
-            throw RuntimeException(
-                "Error: parameter is not of type datetime.datetime, \
+            throw RuntimeException("Error: parameter is not of type datetime.datetime, \
                 but was resolved to type datetime.datetime");
         }
         // LCOV_EXCL_STOP
@@ -321,8 +322,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
     case LogicalTypeID::DATE: {
         // LCOV_EXCL_START
         if (!py::isinstance(val, datetime_date)) {
-            throw RuntimeException(
-                "Error: parameter is not of type datetime.date, \
+            throw RuntimeException("Error: parameter is not of type datetime.date, \
                 but was resolved to type datetime.date");
         }
         // LCOV_EXCL_STOP
@@ -335,8 +335,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
     case LogicalTypeID::INTERVAL: {
         // LCOV_EXCL_START
         if (!py::isinstance(val, time_delta)) {
-            throw RuntimeException(
-                "Error: parameter is not of type datetime.timedelta, \
+            throw RuntimeException("Error: parameter is not of type datetime.timedelta, \
                 but was resolved to type datetime.timedelta");
         }
         // LCOV_EXCL_STOP

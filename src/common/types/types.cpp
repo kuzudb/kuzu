@@ -1310,13 +1310,13 @@ static uint32_t internalTimeOrder(const LogicalTypeID& type) {
 }
 
 static int alwaysCastOrder(const LogicalTypeID& typeID) {
-    switch(typeID) {
-        case LogicalTypeID::ANY:
-            return 0;
-        case LogicalTypeID::RDF_VARIANT:
-            return 1;
-        case LogicalTypeID::STRING:
-            return 2;
+    switch (typeID) {
+    case LogicalTypeID::ANY:
+        return 0;
+    case LogicalTypeID::RDF_VARIANT:
+        return 1;
+    case LogicalTypeID::STRING:
+        return 2;
     }
 }
 
