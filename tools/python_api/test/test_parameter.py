@@ -139,8 +139,8 @@ def test_general_list_param(tmp_path: Path) -> None:
     lst3 = [datetime.datetime(2019, 11, 12, 11, 25, 30), datetime.datetime(1987, 2, 15, 3, 0, 2)]
     lst4 = [datetime.date(2019, 11, 12), datetime.date(1987, 2, 15)]
     lst5 = [lst3[0] - lst3[1]]
-    lst6 = [1, "a", "b"]
-    lst6ToString = ["1", "a", "b"]
+    lst6 = [1, "2", "3"]
+    lst6ToString = ["1", "2", "3"]
     result = conn.execute(
         "MERGE (t:tab {id: 0, lst1: $1, lst2: $2, lst3: $3, lst4: $4, lst5: $5, lst6: $6}) RETURN t.*",
         {"1": lst1, "2": lst2, "3": lst3, "4": lst4, "5": lst5, "6": lst6},
@@ -159,10 +159,10 @@ def test_null_resolution(tmp_path: Path) -> None:
     )
     lst1 = [1, 2, 3, None]
     mp1 = {"a": "x", "b": "y", "c": "z", "o": None}
-    nest = [{"a": {"foo": 1, "bar": 2}}, {1: {}}]
+    nest = [{"2": {"foo": 1, "bar": 2}}, {1: {}}]
     result = conn.execute("MERGE (t:tab {lst1: $1, mp1: $2, nest: $3}) RETURN t.*", {"1": lst1, "2": mp1, "3": nest})
     assert result.has_next()
-    assert result.get_next() == [0, lst1, mp1, [{"a": {"foo": 1, "bar": 2}}, {"1": {}}]]
+    assert result.get_next() == [0, lst1, mp1, [{"2": {"foo": 1, "bar": 2}}, {"1": {}}]]
     assert not result.has_next()
     result.close()
 
@@ -227,7 +227,7 @@ def test_param_error4(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
     with pytest.raises(
         RuntimeError,
-        match="Runtime exception: Cannot convert Python object to Kuzu value : INT64  is incompatible with TIMESTAMP",
+        match="Runtime exception: Cannot convert Python object to Kuzu value : INT8  is incompatible with TIMESTAMP",
     ):
         conn.execute(
             "MATCH (a:person {workedHours: $1}) RETURN COUNT(*);", {"1": [1, 2, datetime.datetime(2023, 3, 25)]}

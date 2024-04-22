@@ -39,6 +39,9 @@ uint64_t nextPowerOfTwo(uint64_t v);
 bool isLittleEndian();
 
 template<typename T>
+bool integerFitsIn(int64_t val);
+
+template<typename T>
 std::vector<T> copyVector(const std::vector<T>& objects) {
     std::vector<T> result;
     result.reserve(objects.size());
