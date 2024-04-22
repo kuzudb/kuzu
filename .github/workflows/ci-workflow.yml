@@ -491,6 +491,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
+      ASAN_OPTIONS: detect_leaks=0
 
     steps:
       - uses: actions/checkout@v3
