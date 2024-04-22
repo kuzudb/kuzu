@@ -267,7 +267,6 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
     auto datetime_datetime = importCache->datetime.datetime();
     auto time_delta = importCache->datetime.timedelta();
     auto datetime_date = importCache->datetime.date();
-    auto uuid = importCache->uuid.UUID();
     if (val.is_none()) {
         return Value::createNullValue(*type);
     }
