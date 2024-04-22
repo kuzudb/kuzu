@@ -87,7 +87,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
 
 std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
-    ExpressionBinder::implicitCastIfNecessary(whereExpression, LogicalTypeID::BOOL);
+    expressionBinder.implicitCastIfNecessary(whereExpression, LogicalTypeID::BOOL);
     return whereExpression;
 }
 

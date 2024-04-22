@@ -263,7 +263,7 @@ expression_vector Binder::bindInsertColumnDataExprs(
         } else {
             rhs = expressionBinder.createNullLiteralExpression();
         }
-        rhs = ExpressionBinder::implicitCastIfNecessary(rhs, *property.getDataType());
+        rhs = expressionBinder.implicitCastIfNecessary(rhs, *property.getDataType());
         result.push_back(std::move(rhs));
     }
     return result;
@@ -309,7 +309,7 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* lhs,
 expression_pair Binder::bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs) {
     auto boundLhs = expressionBinder.bindExpression(*lhs);
     auto boundRhs = expressionBinder.bindExpression(*rhs);
-    boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
+    boundRhs = expressionBinder.implicitCastIfNecessary(boundRhs, boundLhs->dataType);
     return make_pair(std::move(boundLhs), std::move(boundRhs));
 }
 

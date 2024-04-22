@@ -272,14 +272,33 @@ void StructTypeInfo::serializeInternal(Serializer& serializer) const {
     serializer.serializeVector(fields);
 }
 
+static std::string getIncompleteTypeErrMsg(LogicalTypeID id) {
+    return "Trying to create nested type " + LogicalTypeUtils::toString(id) +
+           " without child information.";
+}
+
 LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {
     physicalType = getPhysicalType(typeID);
-    // Complex types should not use this constructor as they need extra type information
-    KU_ASSERT(physicalType != PhysicalTypeID::LIST);
-    KU_ASSERT(physicalType != PhysicalTypeID::ARRAY);
-    // Node/Rel types are exempted due to some complex code in bind_graph_pattern.cpp
-    KU_ASSERT(physicalType != PhysicalTypeID::STRUCT || typeID == LogicalTypeID::NODE ||
-              typeID == LogicalTypeID::REL || typeID == LogicalTypeID::RECURSIVE_REL);
+    // LCOV_EXCL_START
+    switch (physicalType) {
+    case PhysicalTypeID::LIST:
+    case PhysicalTypeID::ARRAY:
+        throw BinderException(getIncompleteTypeErrMsg(typeID));
+    case PhysicalTypeID::STRUCT: {
+        switch (typeID) {
+        // Node/Rel types are exempted due to some complex code in bind_graph_pattern.cpp
+        case LogicalTypeID::NODE:
+        case LogicalTypeID::REL:
+        case LogicalTypeID::RECURSIVE_REL:
+            return;
+        default:
+            throw BinderException(getIncompleteTypeErrMsg(typeID));
+        }
+    }
+    default:
+        return;
+    }
+    // LCOV_EXCL_STOP
 }
 
 LogicalType::LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo)
@@ -416,6 +435,8 @@ LogicalType LogicalType::fromString(const std::string& str) {
         dataType = *parseMapType(trimmedStr);
     } else if (upperDataTypeString.starts_with("UNION")) {
         dataType = *parseUnionType(trimmedStr);
+    } else if (upperDataTypeString == "RDF_VARIANT") {
+        dataType = *LogicalType::RDF_VARIANT();
     } else {
         dataType.typeID = strToLogicalTypeID(upperDataTypeString);
     }
@@ -1392,25 +1413,6 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
     }
     result = LogicalType(resultID);
     return true;
-}
-
-LogicalTypeID LogicalTypeUtils::getMaxLogicalTypeID(const LogicalTypeID& left,
-    const LogicalTypeID& right) {
-    LogicalTypeID result;
-    if (!tryGetMaxLogicalTypeID(left, right, result)) {
-        throw common::BinderException(stringFormat("Cannot combine logical types {} and {}",
-            toString(left), toString(right)));
-    }
-    return result;
-}
-
-LogicalType LogicalTypeUtils::getMaxLogicalType(const LogicalType& left, const LogicalType& right) {
-    LogicalType result;
-    if (!tryGetMaxLogicalType(left, right, result)) {
-        throw common::BinderException(stringFormat("Cannot combine logical types {} and {}",
-            left.toString(), right.toString()));
-    }
-    return result;
 }
 
 bool LogicalTypeUtils::tryGetMaxLogicalType(const std::vector<LogicalType>& types,

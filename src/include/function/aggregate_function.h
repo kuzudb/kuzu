@@ -28,13 +28,23 @@ using aggr_combine_function_t =
 using aggr_finalize_function_t = std::function<void(uint8_t* state)>;
 
 struct AggregateFunction final : public BaseScalarFunction {
+    bool isDistinct;
+    aggr_initialize_function_t initializeFunc;
+    aggr_update_all_function_t updateAllFunc;
+    aggr_update_pos_function_t updatePosFunc;
+    aggr_combine_function_t combineFunc;
+    aggr_finalize_function_t finalizeFunc;
+    std::unique_ptr<AggregateState> initialNullAggregateState;
+    // Rewrite aggregate on NODE/REL, e.g. COUNT(a) -> COUNT(a._id)
+    param_rewrite_function_t paramRewriteFunc;
+
     AggregateFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, aggr_initialize_function_t initializeFunc,
         aggr_update_all_function_t updateAllFunc, aggr_update_pos_function_t updatePosFunc,
         aggr_combine_function_t combineFunc, aggr_finalize_function_t finalizeFunc, bool isDistinct,
         scalar_bind_func bindFunc = nullptr, param_rewrite_function_t paramRewriteFunc = nullptr)
-        : BaseScalarFunction{FunctionType::AGGREGATE, std::move(name), std::move(parameterTypeIDs),
-              returnTypeID, std::move(bindFunc)},
+        : BaseScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+              std::move(bindFunc)},
           isDistinct{isDistinct}, initializeFunc{std::move(initializeFunc)},
           updateAllFunc{std::move(updateAllFunc)}, updatePosFunc{std::move(updatePosFunc)},
           combineFunc{std::move(combineFunc)}, finalizeFunc{std::move(finalizeFunc)},
@@ -91,16 +101,6 @@ struct AggregateFunction final : public BaseScalarFunction {
             initializeFunc, updateAllFunc, updatePosFunc, combineFunc, finalizeFunc, isDistinct,
             bindFunc, paramRewriteFunc);
     }
-
-    bool isDistinct;
-    aggr_initialize_function_t initializeFunc;
-    aggr_update_all_function_t updateAllFunc;
-    aggr_update_pos_function_t updatePosFunc;
-    aggr_combine_function_t combineFunc;
-    aggr_finalize_function_t finalizeFunc;
-    std::unique_ptr<AggregateState> initialNullAggregateState;
-    // Rewrite aggregate on NODE/REL, e.g. COUNT(a) -> COUNT(a._id)
-    param_rewrite_function_t paramRewriteFunc;
 };
 
 class AggregateFunctionUtil {

@@ -23,6 +23,9 @@ using scalar_func_select_t = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
 
 struct ScalarFunction final : public BaseScalarFunction {
+    scalar_func_exec_t execFunc;
+    scalar_func_select_t selectFunc;
+    scalar_func_compile_exec_t compileFunc;
 
     ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc)
@@ -45,8 +48,8 @@ struct ScalarFunction final : public BaseScalarFunction {
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc,
         scalar_func_select_t selectFunc, scalar_func_compile_exec_t compileFunc,
         scalar_bind_func bindFunc)
-        : BaseScalarFunction{FunctionType::SCALAR, std::move(name), std::move(parameterTypeIDs),
-              returnTypeID, std::move(bindFunc)},
+        : BaseScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+              std::move(bindFunc)},
           execFunc{std::move(execFunc)}, selectFunc(std::move(selectFunc)),
           compileFunc{std::move(compileFunc)} {}
 
@@ -187,10 +190,6 @@ struct ScalarFunction final : public BaseScalarFunction {
     std::unique_ptr<Function> copy() const override {
         return std::make_unique<ScalarFunction>(*this);
     }
-
-    scalar_func_exec_t execFunc;
-    scalar_func_select_t selectFunc;
-    scalar_func_compile_exec_t compileFunc;
 };
 
 } // namespace function
