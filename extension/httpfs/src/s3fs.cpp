@@ -3,6 +3,7 @@
 #include "common/cast.h"
 #include "common/exception/io.h"
 #include "common/exception/runtime.h"
+#include "common/string_utils.h"
 #include "common/types/timestamp_t.h"
 #include "crypto.h"
 #include "main/client_context.h"
@@ -35,7 +36,7 @@ S3WriteBuffer::S3WriteBuffer(uint16_t partID, uint64_t startOffset, uint64_t siz
     : partID{partID}, numBytesWritten{0}, startOffset{startOffset}, uploading{false} {
     data = std::make_unique<uint8_t[]>(size);
     endOffset = startOffset + size;
-    partID = startOffset / size;
+    this->partID = startOffset / size;
 }
 
 S3FileInfo::S3FileInfo(std::string path, common::FileSystem* fileSystem, int flags,
@@ -84,7 +85,7 @@ std::shared_ptr<S3WriteBuffer> S3FileInfo::getBuffer(uint16_t writeBufferIdx) {
     return writeBuffers.at(writeBufferIdx);
 }
 
-void S3FileInfo::rethrowIOError() {
+void S3FileInfo::rethrowIOError() const {
     if (uploaderHasException) {
         std::rethrow_exception(uploadException);
     }
@@ -375,8 +376,7 @@ std::string S3FileSystem::decodeURL(std::string input) {
     replace(input.begin(), input.end(), '+', ' ');
     for (auto i = 0u; i < input.length(); i++) {
         if (int(input[i]) == 37 /* % */) {
-            unsigned int ii;
-            sscanf(input.substr(i + 1, 2).c_str(), "%x", &ii);
+            unsigned long ii = std::strtoul(input.substr(i + 1, 2).c_str(), nullptr, 16 /* base */);
             ch = static_cast<char>(ii);
             result += ch;
             i += 2;
@@ -399,7 +399,7 @@ static std::string getPrefix(std::string url) {
 }
 
 ParsedS3URL S3FileSystem::parseS3URL(std::string url, S3AuthParams& params) {
-    std::string httpProto, prefix, host, bucket, path, queryParameters, trimmedS3URL;
+    std::string prefix, host, bucket, path, queryParameters, trimmedS3URL;
 
     prefix = getPrefix(url);
     auto prefixEndPos = url.find("//") + 2;

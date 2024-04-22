@@ -2,6 +2,7 @@
 
 #include "common/types/types.h"
 #include "common/types/value/value.h"
+#include "main/database.h"
 #include "s3fs.h"
 
 namespace kuzu {

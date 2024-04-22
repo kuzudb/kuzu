@@ -55,7 +55,7 @@ struct S3FileInfo final : public HTTPFileInfo {
 
     std::shared_ptr<S3WriteBuffer> getBuffer(uint16_t writeBufferIdx);
 
-    void rethrowIOError();
+    void rethrowIOError() const;
 
     S3AuthParams authParams;
     S3UploadParams uploadParams;

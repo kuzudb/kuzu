@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/string_utils.h"
 #include "storage/storage_extension.h"
 
 namespace kuzu {

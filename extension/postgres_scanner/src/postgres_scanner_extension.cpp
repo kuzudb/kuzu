@@ -1,5 +1,6 @@
 #include "postgres_scanner_extension.h"
 
+#include "main/database.h"
 #include "postgres_storage.h"
 
 namespace kuzu {

@@ -2,8 +2,7 @@
 
 #include <filesystem>
 
-#include "catalog/catalog_entry/table_catalog_entry.h"
-#include "common/exception/binder.h"
+#include "common/string_utils.h"
 #include "duckdb_catalog.h"
 
 namespace kuzu {

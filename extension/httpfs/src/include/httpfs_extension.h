@@ -1,7 +1,6 @@
 #pragma once
 
 #include "extension/extension.h"
-#include "main/database.h"
 
 namespace kuzu {
 namespace httpfs {

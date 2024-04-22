@@ -2,7 +2,13 @@
 
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_content.h"
-#include "duckdb_scan.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+// Supress warnings from duckdb.hpp
+#undef ARROW_FLAG_DICTIONARY_ORDERED
+#include "duckdb.hpp"
+#pragma GCC diagnostic pop
 
 namespace kuzu {
 namespace duckdb_scanner {

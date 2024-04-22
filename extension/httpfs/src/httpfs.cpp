@@ -396,9 +396,7 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::postRequest(common::FileInfo* file
     uint64_t& outputBufferLen, const uint8_t* inputBuffer, uint64_t inputBufferLen,
     std::string /*params*/) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
-    auto parsedURL = parseUrl(url);
-    auto host = parsedURL.first;
-    auto hostPath = parsedURL.second;
+    auto hostPath = parseUrl(url).second;
     auto headers = getHTTPHeaders(headerMap);
     uint64_t outputBufferPos = 0;
 
@@ -433,9 +431,7 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::putRequest(common::FileInfo* fileI
     const std::string& url, kuzu::httpfs::HeaderMap headerMap, const uint8_t* inputBuffer,
     uint64_t inputBufferLen, std::string /*params*/) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
-    auto parsedURL = parseUrl(url);
-    auto host = parsedURL.first;
-    auto hostPath = parsedURL.second;
+    auto hostPath = parseUrl(url).second;
     auto headers = getHTTPHeaders(headerMap);
     std::function<httplib::Result(void)> request([&]() {
         auto client = httpFileInfo->httpClient.get();
