@@ -79,14 +79,14 @@ struct TableFunction final : public Function {
     TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
         table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
         std::vector<common::LogicalTypeID> inputTypes)
-        : Function{FunctionType::TABLE, std::move(name), std::move(inputTypes)},
-          tableFunc{tableFunc}, bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
+        : Function{std::move(name), std::move(inputTypes)}, tableFunc{tableFunc},
+          bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
           initLocalStateFunc{initLocalFunc} {}
     TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
         table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
         table_func_progress_t progressFunc, std::vector<common::LogicalTypeID> inputTypes)
-        : Function{FunctionType::TABLE, std::move(name), std::move(inputTypes)},
-          tableFunc{tableFunc}, bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
+        : Function{std::move(name), std::move(inputTypes)}, tableFunc{tableFunc},
+          bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
           initLocalStateFunc{initLocalFunc}, progressFunc{progressFunc} {}
 
     inline std::string signatureToString() const override {

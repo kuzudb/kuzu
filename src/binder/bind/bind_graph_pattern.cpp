@@ -218,7 +218,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
             auto boundLhs =
                 expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, propertyName);
             auto boundRhs = expressionBinder.bindExpression(*rhs);
-            boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
+            boundRhs = expressionBinder.implicitCastIfNecessary(boundRhs, boundLhs->dataType);
             queryRel->addPropertyDataExpr(propertyName, std::move(boundRhs));
         }
     }
@@ -390,7 +390,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     for (auto& [propertyName, rhs] : relPattern.getPropertyKeyVals()) {
         auto boundLhs = expressionBinder.bindNodeOrRelPropertyExpression(*rel, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
-        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
+        boundRhs = expressionBinder.implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         auto predicate = expressionBinder.createEqualityComparisonExpression(boundLhs, boundRhs);
         relPredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND, relPredicate,
             predicate);
@@ -534,7 +534,7 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(const NodePattern& nodePat
     for (auto& [propertyName, rhs] : nodePattern.getPropertyKeyVals()) {
         auto boundLhs = expressionBinder.bindNodeOrRelPropertyExpression(*queryNode, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
-        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
+        boundRhs = expressionBinder.implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         queryNode->addPropertyDataExpr(propertyName, std::move(boundRhs));
     }
     queryGraph.addQueryNode(queryNode);

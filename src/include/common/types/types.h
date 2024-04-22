@@ -596,19 +596,7 @@ struct LogicalTypeUtils {
         LogicalTypeID& result);
     static bool tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
         LogicalType& result);
-    static LogicalTypeID getMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right);
-    static LogicalType getMaxLogicalType(const LogicalType& left, const LogicalType& right);
     static bool tryGetMaxLogicalType(const std::vector<LogicalType>& types, LogicalType& result);
-
-private:
-    static LogicalTypeID dataTypeIDFromString(const std::string& trimmedStr);
-    static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
-    static std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr);
-    static std::unique_ptr<LogicalType> parseArrayType(const std::string& trimmedStr);
-    static std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr);
-    static std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr);
-    static std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr);
-    static std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr);
 };
 
 enum class FileVersionType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };

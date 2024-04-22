@@ -1,7 +1,6 @@
 #include "binder/expression_binder.h"
 
 #include "binder/binder.h"
-#include "binder/expression/function_expression.h"
 #include "binder/expression_visitor.h"
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
@@ -15,6 +14,8 @@ using namespace kuzu::function;
 
 namespace kuzu {
 namespace binder {
+
+static void validateAggregationExpressionIsNotNested(const Expression& expression);
 
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     const parser::ParsedExpression& parsedExpression) {
@@ -112,15 +113,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
 std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
     if (CastFunction::hasImplicitCast(expression->dataType, targetType)) {
-        auto functionName = stringFormat("CAST_TO({})", targetType.toString());
-        auto children = expression_vector{expression};
-        auto bindData = std::make_unique<FunctionBindData>(targetType.copy());
-        auto scalarFunction = CastFunction::bindCastFunction(functionName,
-            expression->dataType.getLogicalTypeID(), targetType.getLogicalTypeID());
-        auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
-        return std::make_shared<ScalarFunctionExpression>(functionName, ExpressionType::FUNCTION,
-            std::move(bindData), std::move(children), scalarFunction->execFunc,
-            nullptr /* selectFunc */, std::move(uniqueName));
+        return forceCast(expression, targetType);
     } else {
         throw BinderException(unsupportedImplicitCastException(*expression, targetType.toString()));
     }
@@ -135,33 +128,7 @@ std::shared_ptr<Expression> ExpressionBinder::forceCast(
     return bindScalarFunctionExpression(children, functionName);
 }
 
-void ExpressionBinder::validateExpectedDataType(const Expression& expression,
-    const std::vector<LogicalTypeID>& targets) {
-    auto dataType = expression.dataType;
-    auto targetsSet = std::unordered_set<LogicalTypeID>{targets.begin(), targets.end()};
-    if (!targetsSet.contains(dataType.getLogicalTypeID())) {
-        throw BinderException(stringFormat("{} has data type {} but {} was expected.",
-            expression.toString(), LogicalTypeUtils::toString(dataType.getLogicalTypeID()),
-            LogicalTypeUtils::toString(targets)));
-    }
-}
-
-void ExpressionBinder::validateDataType(const Expression& expr, const LogicalType& expectedType) {
-    if (expr.getDataType() != expectedType) {
-        throw BinderException(stringFormat("{} has data type {} but {} was expected.",
-            expr.toString(), expr.getDataType().toString(), expectedType.toString()));
-    }
-}
-
-void ExpressionBinder::validateDataType(const Expression& expr, LogicalTypeID expectedTypeID) {
-    if (expr.getDataType().getLogicalTypeID() != expectedTypeID) {
-        throw BinderException(
-            stringFormat("{} has data type {} but {} was expected.", expr.toString(),
-                expr.getDataType().toString(), LogicalTypeUtils::toString(expectedTypeID)));
-    }
-}
-
-void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression& expression) {
+void validateAggregationExpressionIsNotNested(const Expression& expression) {
     if (expression.getNumChildren() == 0) {
         return;
     }

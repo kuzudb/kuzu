@@ -21,20 +21,20 @@ using function_set = std::vector<std::unique_ptr<Function>>;
 using scalar_bind_func = std::function<std::unique_ptr<FunctionBindData>(
     const binder::expression_vector&, Function* definition)>;
 
-enum class FunctionType : uint8_t {
-    UNKNOWN = 0,
-    SCALAR = 1,
-    REWRITE = 2,
-    AGGREGATE = 3,
-    TABLE = 4
-};
-
 struct Function {
-    Function() : type{FunctionType::UNKNOWN}, isVarLength{false} {};
-    Function(FunctionType type, std::string name,
-        std::vector<common::LogicalTypeID> parameterTypeIDs)
-        : type{type}, name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)},
-          isVarLength{false} {}
+    std::string name;
+    std::vector<common::LogicalTypeID> parameterTypeIDs;
+    // Currently we only one variable-length function which is list creation. The expectation is
+    // that all parameters must have the same type as parameterTypes[0].
+    bool isVarLength;
+
+    Function() : isVarLength{false} {};
+    Function(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs)
+        : name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)}, isVarLength{false} {
+    }
+    Function(const Function& other)
+        : name{other.name}, parameterTypeIDs{other.parameterTypeIDs},
+          isVarLength{other.isVarLength} {}
 
     virtual ~Function() = default;
 
@@ -44,14 +44,6 @@ struct Function {
 
     virtual std::unique_ptr<Function> copy() const = 0;
 
-    // TODO(Ziyi): Move to catalog entry once we have implemented the catalog entry.
-    FunctionType type;
-    std::string name;
-    std::vector<common::LogicalTypeID> parameterTypeIDs;
-    // Currently we only one variable-length function which is list creation. The expectation is
-    // that all parameters must have the same type as parameterTypes[0].
-    bool isVarLength;
-
     template<class TARGET>
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const Function*, const TARGET*>(this);
@@ -59,10 +51,12 @@ struct Function {
 };
 
 struct BaseScalarFunction : public Function {
-    BaseScalarFunction(FunctionType type, std::string name,
-        std::vector<common::LogicalTypeID> parameterTypeIDs, common::LogicalTypeID returnTypeID,
-        scalar_bind_func bindFunc)
-        : Function{type, std::move(name), std::move(parameterTypeIDs)}, returnTypeID{returnTypeID},
+    common::LogicalTypeID returnTypeID;
+    scalar_bind_func bindFunc;
+
+    BaseScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+        common::LogicalTypeID returnTypeID, scalar_bind_func bindFunc)
+        : Function{std::move(name), std::move(parameterTypeIDs)}, returnTypeID{returnTypeID},
           bindFunc{std::move(bindFunc)} {}
 
     std::string signatureToString() const override {
@@ -70,9 +64,6 @@ struct BaseScalarFunction : public Function {
         result += " -> " + common::LogicalTypeUtils::toString(returnTypeID);
         return result;
     }
-
-    common::LogicalTypeID returnTypeID;
-    scalar_bind_func bindFunc;
 };
 
 } // namespace function

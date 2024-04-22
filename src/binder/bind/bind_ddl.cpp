@@ -344,7 +344,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     if (dataType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
         throw BinderException("Serial property in node table must be the primary key.");
     }
-    auto defaultVal = ExpressionBinder::implicitCastIfNecessary(
+    auto defaultVal = expressionBinder.implicitCastIfNecessary(
         expressionBinder.bindExpression(*extraInfo->defaultValue), *dataType);
     auto boundExtraInfo =
         std::make_unique<BoundExtraAddPropertyInfo>(propertyName, *dataType, std::move(defaultVal));
