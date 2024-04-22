@@ -1,6 +1,7 @@
 #include "duckdb_catalog.h"
 
 #include "common/exception/binder.h"
+#include "duckdb_scan.h"
 #include "duckdb_table_catalog_entry.h"
 #include "duckdb_type_converter.h"
 
