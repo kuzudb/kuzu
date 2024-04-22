@@ -521,8 +521,7 @@ void HashIndex<T>::mergeBulkInserts() {
 template<typename T>
 void HashIndex<T>::mergeSlot(typename InMemHashIndex<T>::SlotIterator& slotToMerge,
     typename BaseDiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
-    typename BaseDiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator,
-    slot_id_t /*slotId*/) {
+    typename BaseDiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t slotId) {
     slot_id_t diskEntryPos = 0u;
     auto* diskSlot = &*diskSlotIterator;
     // Merge slot from local storage to existing slot
