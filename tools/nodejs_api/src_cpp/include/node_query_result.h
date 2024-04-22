@@ -136,6 +136,10 @@ public:
     void Execute() override {
         try {
             auto nextResult = currQueryResult->queryResult->getNextQueryResult();
+            if (!nextResult->isSuccess()) {
+                SetError(nextResult->getErrorMessage());
+                return;
+            }
             nextQueryResult->SetQueryResult(nextResult, false);
         } catch (const std::exception& exc) {
             SetError(std::string(exc.what()));
