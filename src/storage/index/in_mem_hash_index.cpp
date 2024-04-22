@@ -13,6 +13,7 @@
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/overflow_file.h"
+#include <bit>
 
 using namespace kuzu::common;
 
@@ -64,55 +65,64 @@ void InMemHashIndex<T>::reserve(uint32_t numEntries_) {
 }
 
 template<typename T>
-void InMemHashIndex<T>::copy(const SlotEntry<T>& oldEntry, slot_id_t newSlotId,
-    uint8_t fingerprint) {
-    SlotIterator iter(newSlotId, this);
-    do {
-        for (auto newEntryPos = 0u; newEntryPos < getSlotCapacity<T>(); newEntryPos++) {
-            if (!iter.slot->header.isEntryValid(newEntryPos)) {
-                // The original slot was marked as unused, but
-                // copying to the original slot is unnecessary and will cause undefined behaviour
-                if (&oldEntry != &iter.slot->entries[newEntryPos]) {
-                    iter.slot->entries[newEntryPos] = oldEntry;
-                }
-                iter.slot->header.setEntryValid(newEntryPos, fingerprint);
-                return;
-            }
-        }
-    } while (nextChainedSlot(iter));
-    // Didn't find an available entry in an existing slot. Insert a new overflow slot
-    auto newOvfSlotId = allocateAOSlot();
-    iter.slot->header.nextOvfSlotId = newOvfSlotId;
-    auto newOvfSlot = getSlot(SlotInfo{newOvfSlotId, SlotType::OVF});
-    auto newEntryPos = 0u; // Always insert to the first entry when there is a new slot.
-    newOvfSlot->entries[newEntryPos] = oldEntry;
-    newOvfSlot->header.setEntryValid(newEntryPos, fingerprint);
-}
-
-template<typename T>
 void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
     // Add new slot
     allocatePSlots(1);
 
     // Rehash the entries in the slot to split
-    SlotIterator iter(header.nextSplitSlotId, this);
+    SlotIterator originalSlot(header.nextSplitSlotId, this);
+    // Use a separate iterator to track the first empty position so that the gapless entries can be
+    // maintained
+    SlotIterator originalSlotForInsert(header.nextSplitSlotId, this);
+    auto entryPosToInsert = 0u;
+    SlotIterator newSlot(pSlots->getNumElements() - 1, this);
+    entry_pos_t newSlotPos = 0;
+    bool gaps = false;
     do {
-        // Keep a copy of the header so we know which entries were valid
-        SlotHeader slotHeader = iter.slot->header;
-        // Reset everything except the next overflow id so we can reuse the overflow slot
-        iter.slot->header.reset();
-        iter.slot->header.nextOvfSlotId = slotHeader.nextOvfSlotId;
         for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
-            if (!slotHeader.isEntryValid(entryPos)) {
-                continue; // Skip invalid entries.
+            if (!originalSlot.slot->header.isEntryValid(entryPos)) {
+                // Check that this function leaves no gaps
+                KU_ASSERT(originalSlot.slot->header.numEntries() ==
+                          std::countr_one(originalSlot.slot->header.validityMask));
+                // There should be no gaps, so when we encounter an invalid entry we can return
+                // early
+                header.incrementNextSplitSlotId();
+                return;
             }
-            const auto& entry = iter.slot->entries[entryPos];
-            hash_t hash = this->hashStored(entry.key);
-            auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
-            auto newSlotId = hash & header.higherLevelHashMask;
-            copy(entry, newSlotId, fingerprint);
+            const auto& entry = originalSlot.slot->entries[entryPos];
+            const auto& hash = this->hashStored(originalSlot.slot->entries[entryPos].key);
+            const auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
+            const auto newSlotId = hash & header.higherLevelHashMask;
+            if (newSlotId != header.nextSplitSlotId) {
+                if (newSlotPos >= getSlotCapacity<T>()) {
+                    auto newOvfSlotId = allocateAOSlot();
+                    newSlot.slot->header.nextOvfSlotId = newOvfSlotId;
+                    nextChainedSlot(newSlot);
+                    newSlotPos = 0;
+                }
+                newSlot.slot->entries[newSlotPos] = entry;
+                newSlot.slot->header.setEntryValid(newSlotPos, fingerprint);
+                originalSlot.slot->header.setEntryInvalid(entryPos);
+                newSlotPos++;
+                gaps = true;
+            } else if (gaps) {
+                // If we have created a gap previously, move the entry to the first gap to avoid
+                // leaving gaps
+                while (originalSlotForInsert.slot->header.isEntryValid(entryPosToInsert)) {
+                    entryPosToInsert++;
+                    if (entryPosToInsert >= getSlotCapacity<T>()) {
+                        entryPosToInsert = 0;
+                        nextChainedSlot(originalSlotForInsert);
+                    }
+                }
+                originalSlotForInsert.slot->entries[entryPosToInsert] = entry;
+                originalSlotForInsert.slot->header.setEntryValid(entryPosToInsert, fingerprint);
+                originalSlot.slot->header.setEntryInvalid(entryPos);
+            }
         }
-    } while (nextChainedSlot(iter));
+        KU_ASSERT(originalSlot.slot->header.numEntries() ==
+                  std::countr_one(originalSlot.slot->header.validityMask));
+    } while (nextChainedSlot(originalSlot));
 
     header.incrementNextSplitSlotId();
 }
