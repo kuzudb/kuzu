@@ -1,3 +1,4 @@
+#include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "function/scalar_function.h"
 #include "function/utility/scalar_utility_functions.h"
@@ -12,34 +13,17 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     if (arguments.empty()) {
         throw BinderException("COALESCE requires at least one argument");
     }
-    // TODO (Manh): Figure out a parameter type for all parameters (through maxLogicalTypeID)
-    // Return a FunctionBindData contains parameter type & result type
-    // Inside binder cast parameter towards parameter type
-    auto resultType = LogicalType(LogicalTypeID::ANY);
-    for (auto& argument : arguments) {
-        auto parameterType = argument->getDataType();
-        if (parameterType.getLogicalTypeID() != LogicalTypeID::ANY) {
-            resultType = parameterType;
-            break;
-        }
-    }
+    LogicalType resultType(LogicalTypeID::ANY);
+    binder::ExpressionUtil::tryCombineDataType(arguments, resultType);
     if (resultType.getLogicalTypeID() == LogicalTypeID::ANY) {
-        resultType = LogicalType(LogicalTypeID::STRING);
+        resultType = *LogicalType::STRING();
     }
-    for (auto& argument : arguments) {
-        auto parameterType = argument->getDataType();
-        if (parameterType != resultType) {
-            if (parameterType.getLogicalTypeID() == LogicalTypeID::ANY) {
-                argument->cast(resultType);
-            } else {
-                throw BinderException(
-                    stringFormat("Cannot mix values of type {} and {} in COALESCE function - an "
-                                 "explicit cast is required",
-                        parameterType.toString(), resultType.toString()));
-            }
-        }
+    auto bindData = std::make_unique<FunctionBindData>(resultType.copy());
+    for (auto& _ : arguments) {
+        (void)_;
+        bindData->paramTypes.push_back(resultType);
     }
-    return std::make_unique<FunctionBindData>(resultType.copy());
+    return bindData;
 }
 
 static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
@@ -93,9 +77,11 @@ static bool selectFunc(const std::vector<std::shared_ptr<ValueVector>>& params,
 
 function_set CoalesceFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
+    auto function =
         std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::ANY, execFunc, selectFunc, bindFunc, true /* isVarLength */));
+            LogicalTypeID::ANY, execFunc, selectFunc, bindFunc);
+    function->isVarLength = true;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 
@@ -103,7 +89,7 @@ function_set IfNullFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::ANY}, LogicalTypeID::ANY,
-        execFunc, selectFunc, bindFunc, false /* isVarLength */));
+        execFunc, selectFunc, bindFunc));
     return functionSet;
 }
 

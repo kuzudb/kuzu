@@ -13,7 +13,7 @@ Binder exception: COALESCE requires at least one argument
 -LOG DifferentParameterTypesError
 -STATEMENT RETURN coalesce(1, "hello");
 ---- error
-Binder exception: Cannot mix values of type STRING and INT64 in COALESCE function - an explicit cast is required
+Binder exception: Expression hello has data type STRING but expected INT64. Implicit cast is not supported.
 
 -LOG ErrorExpression
 -STATEMENT RETURN coalesce(1, cast("hello", "INT64"));
@@ -83,6 +83,16 @@ default_string
 ---- 1
 {1=a, 2=b}
 
+-LOG MixNumericTest
+-STATEMENT RETURN coalesce(1, NULL, 1.5);
+---- 1
+1.000000
+
+-LOG MixListTest
+-STATEMENT RETURN coalesce([1, 2, 3], [1.5, 2.5]);
+---- 1
+[1.000000,2.000000,3.000000]
+
 -LOG IfNullError
 -STATEMENT RETURN ifnull(NULL, 1, 2);
 ---- error
@@ -126,8 +136,11 @@ default_string
 444
 
 -STATEMENT MATCH (t:tbl) RETURN coalesce(t.b, t.id);
----- error
-Binder exception: Cannot mix values of type INT64 and INT32 in COALESCE function - an explicit cast is required
+---- 4
+111
+2
+3
+444
 
 -STATEMENT MATCH (t:tbl) RETURN coalesce(t.b, cast(t.id, "INT32"));
 ---- 4
@@ -138,7 +151,7 @@ Binder exception: Cannot mix values of type INT64 and INT32 in COALESCE function
 
 -STATEMENT MATCH (t:tbl) RETURN coalesce(t.a, t.c);
 ---- error
-Binder exception: Cannot mix values of type STRING and INT32 in COALESCE function - an explicit cast is required
+Binder exception: Expression t.c has data type STRING but expected INT32. Implicit cast is not supported.
 
 -STATEMENT MATCH (t:tbl) RETURN coalesce(t.a, cast(t.c, "INT32"));
 ---- 4
