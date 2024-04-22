@@ -238,7 +238,7 @@ static void scanArrowArrayDenseUnion(const ArrowSchema* schema, const ArrowArray
     auto offsets = ((const int32_t*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
     std::vector<int32_t> firstIncident(array->n_children, INT32_MAX);
-    for (uint64_t i = 0; i < count; i++) {
+    for (auto i = 0u; i < count; i++) {
         auto curType = types[i];
         auto curOffset = offsets[i];
         if (curOffset < firstIncident[curType]) {
