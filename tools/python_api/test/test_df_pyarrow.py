@@ -514,31 +514,66 @@ def test_pyarrow_struct_offset(conn_db_readonly: ConnDB) -> None:
     assert idx == len(index)
 
 
-def test_pyarrow_union(conn_db_readonly: ConnDB) -> None:
-    pytest.skip("unions are not very well supported by kuzu in general")
+def test_pyarrow_union_sparse(conn_db_readonly : ConnDB) -> None:
     conn, db = conn_db_readonly
     random.seed(100)
     datalength = 4096
     index = pa.array(range(datalength))
     type_codes = pa.array([random.randint(0, 2) for i in range(datalength)], type=pa.int8())
-    arr1 = pa.array([generate_primitive("int32[pyarrow]") for i in range(datalength)], type=pa.int32())
-    arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength)])
-    arr3 = pa.array([[generate_primitive("float32[pyarrow]") for i in range(10)] for j in range(datalength)])
-    col1 = pa.UnionArray.from_sparse(type_codes, [arr1, arr2, arr3])
-    df = pd.DataFrame({"index": arrowtopd(index), "col1": arrowtopd(col1)})
-    result = conn.execute("LOAD FROM df RETURN * ORDER BY index")
+    arr1 = pa.array([generate_primitive('int32[pyarrow]') for i in range(datalength + 1)], type=pa.int32())
+    arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength + 2)])
+    arr3 = pa.array([generate_primitive('float32[pyarrow]') for j in range(datalength + 3)])
+    col1 = pa.UnionArray.from_sparse(type_codes, [
+        arr1.slice(1, datalength), arr2.slice(2, datalength), arr3.slice(3, datalength)])
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1)
+    })
+    result = conn.execute('LOAD FROM df RETURN * ORDER BY index')
     idx = 0
     while result.has_next():
         assert idx < len(index)
         nxt = result.get_next()
         expected = [idx, col1[idx].as_py()]
-        assert expected == nxt
+        assert expected == nxt or (is_null(nxt[1]) and is_null(expected[1]))
         idx += 1
 
     assert idx == len(index)
 
+def test_pyarrow_union_dense(conn_db_readonly : ConnDB) -> None:
+    conn, db = conn_db_readonly
+    random.seed(100)
+    datalength = 4096
+    index = pa.array(range(datalength))
+    _type_codes = [random.randint(0, 2) for i in range(datalength)]
+    type_codes = pa.array(_type_codes, type=pa.int8())
+    _offsets = [0 for _ in range(datalength)]
+    _cnt = [0,0,0]
+    for i in range(len(_type_codes)):
+        _offsets[i] = _cnt[_type_codes[i]]
+        _cnt[_type_codes[i]] += 1
+    offsets = pa.array(_offsets, type=pa.int32())
+    arr1 = pa.array([generate_primitive('int32[pyarrow]') for i in range(datalength + 1)], type=pa.int32())
+    arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength + 2)])
+    arr3 = pa.array([generate_primitive('float32[pyarrow]') for j in range(datalength + 3)])
+    col1 = pa.UnionArray.from_dense(type_codes, offsets, [
+        arr1.slice(1, datalength), arr2.slice(2, datalength), arr3.slice(3, datalength)])
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(col1)
+    })
+    result = conn.execute('LOAD FROM df RETURN * ORDER BY index')
+    idx = 0
+    while result.has_next():
+        assert idx < len(index)
+        nxt = result.get_next()
+        expected = [idx, col1[idx].as_py()]
+        assert expected == nxt or (is_null(nxt[1]) and is_null(expected[1]))
+        idx += 1
 
-def test_pyarrow_map(conn_db_readonly: ConnDB) -> None:
+    assert idx == len(index)
+
+def test_pyarrow_map(conn_db_readonly : ConnDB) -> None:
     conn, db = conn_db_readonly
     random.seed(100)
     datalength = 4096

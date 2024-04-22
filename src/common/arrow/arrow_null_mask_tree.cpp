@@ -15,7 +15,7 @@ void ArrowNullMaskTree::copyToValueVector(ValueVector* vec, uint64_t dstOffset, 
     vec->setNullFromBits(mask->getData(), offset, dstOffset, count);
 }
 
-ArrowNullMaskTree ArrowNullMaskTree::operator+(int64_t offset) {
+ArrowNullMaskTree ArrowNullMaskTree::offsetBy(int64_t offset) {
     // this operation is mostly a special case for dictionary/run-end encoding
     ArrowNullMaskTree ret(*this);
     ret.offset += offset;
@@ -144,9 +144,9 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
             scanListPushDown<int32_t>(schema, array, srcOffset, count);
             break;
         case 'u': {
-            const int8_t* types = (const int8_t*)array->buffers[0];
+            auto types = (const int8_t*)array->buffers[0];
             if (schema->format[2] == 'd') {
-                const int32_t* offsets = (const int32_t*)array->buffers[1];
+                auto offsets = (const int32_t*)array->buffers[1];
                 std::vector<int32_t> countChildren(array->n_children),
                     lowestOffsets(array->n_children);
                 std::vector<int32_t> highestOffsets(array->n_children);
@@ -161,17 +161,19 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
                 }
                 for (int64_t i = 0; i < array->n_children; i++) {
                     children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
-                        lowestOffsets[i], highestOffsets[i] - lowestOffsets[i]));
+                        lowestOffsets[i] + array->children[i]->offset,
+                        highestOffsets[i] - lowestOffsets[i] + 1));
                 }
                 for (auto i = 0u; i < count; i++) {
                     int32_t curOffset = offsets[i + srcOffset];
                     int8_t curType = types[i + srcOffset];
-                    mask->setNull(i, children->operator[](curType).isNull(curOffset));
+                    mask->setNull(i,
+                        children->operator[](curType).isNull(curOffset - lowestOffsets[curType]));
                 }
             } else {
                 for (int64_t i = 0; i < array->n_children; i++) {
                     children->push_back(ArrowNullMaskTree(schema->children[i], array->children[i],
-                        srcOffset, count));
+                        srcOffset + array->children[i]->offset, count));
                 }
                 for (auto i = 0u; i < count; i++) {
                     int8_t curType = types[i + srcOffset];
