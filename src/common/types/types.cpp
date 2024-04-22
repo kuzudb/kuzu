@@ -1317,6 +1317,8 @@ static int alwaysCastOrder(const LogicalTypeID& typeID) {
         return 1;
     case LogicalTypeID::STRING:
         return 2;
+    default:
+        return -1;
     }
 }
 
