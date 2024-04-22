@@ -210,6 +210,20 @@ describe("Query", function () {
     ]);
     assert.deepEqual(results, [[{ 1: 1 }], [{ 2: 2 }], [{ 3: 3 }]]);
   });
+
+  it("should throw error if one of the multiple queries is invalid", async function () {
+    try {
+      await conn.query(`
+        RETURN 1;
+        RETURN 2;
+        MATCH (a:dog) RETURN COUNT(*);
+      `);
+      assert.fail("No error thrown when one of the multiple queries is invalid.");
+    } catch (e) {
+      assert.equal(e.message, "Binder exception: Table dog does not exist.");
+    }
+  }
+);
 });
 
 describe("Timeout", function () {
