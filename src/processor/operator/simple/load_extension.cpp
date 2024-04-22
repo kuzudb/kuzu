@@ -1,4 +1,4 @@
-#include "processor/operator/load_extension.h"
+#include "processor/operator/simple/load_extension.h"
 
 #include "common/exception/io.h"
 
@@ -53,11 +53,7 @@ void* dlsym(void* handle, const char* name) {
 }
 #endif
 
-bool LoadExtension::getNextTuplesInternal(ExecutionContext* context) {
-    if (hasExecuted) {
-        return false;
-    }
-    hasExecuted = true;
+void LoadExtension::executeInternal(kuzu::processor::ExecutionContext* context) {
     if (!extension::ExtensionUtils::isFullPath(path)) {
         path = ExtensionUtils::getExtensionPath(context->clientContext->getExtensionDir(), path);
     }
@@ -73,7 +69,10 @@ bool LoadExtension::getNextTuplesInternal(ExecutionContext* context) {
                 dlErrMessage()));
     }
     (*load)(context->clientContext);
-    return true;
+}
+
+std::string LoadExtension::getOutputMsg() {
+    return stringFormat("Extension: {} has been loaded.", path);
 }
 
 } // namespace processor

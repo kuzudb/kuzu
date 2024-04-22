@@ -51,6 +51,18 @@ std::vector<std::string> StringUtils::splitBySpace(const std::string& input) {
     return result;
 }
 
+std::string StringUtils::getUpper(const std::string& input) {
+    auto result = input;
+    toUpper(result);
+    return result;
+}
+
+std::string StringUtils::getLower(const std::string& input) {
+    auto result = input;
+    toLower(result);
+    return result;
+}
+
 void StringUtils::removeCStringWhiteSpaces(const char*& input, uint64_t& len) {
     // skip leading/trailing spaces
     while (len > 0 && isspace(input[0])) {

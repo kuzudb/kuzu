@@ -13,8 +13,8 @@ public:
         : Simple{PhysicalOperatorType::ATTACH_DATABASE, outputPos, id, paramsString},
           attachInfo{std::move(attachInfo)} {}
 
-    void executeInternal(ExecutionContext* context) final;
-    std::string getOutputMsg() final;
+    void executeInternal(ExecutionContext* context) override;
+    std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<AttachDatabase>(attachInfo, outputPos, id, paramsString);
