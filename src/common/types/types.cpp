@@ -1329,7 +1329,7 @@ static bool canAlwaysCast(const LogicalTypeID& typeID) {
     case LogicalTypeID::RDF_VARIANT:
         return true;
     default:
-        return 0;
+        return false;
     }
 }
 
