@@ -3,12 +3,15 @@
 #include "planner/operator/simple/logical_attach_database.h"
 #include "planner/operator/simple/logical_detach_database.h"
 #include "planner/operator/simple/logical_export_db.h"
+#include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_import_db.h"
 #include "planner/operator/simple/logical_use_database.h"
 #include "processor/operator/simple/attach_database.h"
 #include "processor/operator/simple/detach_database.h"
 #include "processor/operator/simple/export_db.h"
 #include "processor/operator/simple/import_db.h"
+#include "processor/operator/simple/install_extension.h"
+#include "processor/operator/simple/load_extension.h"
 #include "processor/operator/simple/use_database.h"
 #include "processor/plan_mapper.h"
 
@@ -77,6 +80,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(
         ku_dynamic_cast<LogicalOperator*, LogicalImportDatabase*>(logicalOperator);
     return std::make_unique<ImportDB>(importDatabase->getQuery(), getOutputPos(importDatabase),
         getOperatorID(), importDatabase->getExpressionsForPrinting());
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExtension(
+    planner::LogicalOperator* logicalOperator) {
+    auto logicalExtension =
+        common::ku_dynamic_cast<LogicalOperator*, LogicalExtension*>(logicalOperator);
+    auto outputPos = getOutputPos(logicalExtension);
+    switch (logicalExtension->getAction()) {
+    case ExtensionAction::INSTALL:
+        return std::make_unique<InstallExtension>(logicalExtension->getPath(), outputPos,
+            getOperatorID(), logicalExtension->getExpressionsForPrinting());
+    case ExtensionAction::LOAD:
+        return std::make_unique<LoadExtension>(logicalExtension->getPath(), outputPos,
+            getOperatorID(), logicalExtension->getExpressionsForPrinting());
+    default:
+        KU_UNREACHABLE;
+    }
 }
 
 } // namespace processor

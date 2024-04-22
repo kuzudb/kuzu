@@ -21,9 +21,7 @@ add_library(kuzu_processor_operator
         flatten.cpp
         index_lookup.cpp
         index_scan.cpp
-        install_extension.cpp
         limit.cpp
-        load_extension.cpp
         multiplicity_reducer.cpp
         partitioner.cpp
         physical_operator.cpp

@@ -17,11 +17,11 @@
 #include "planner/operator/logical_comment_on.h"
 #include "planner/operator/logical_create_macro.h"
 #include "planner/operator/logical_explain.h"
-#include "planner/operator/logical_extension.h"
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_transaction.h"
 #include "planner/operator/simple/logical_attach_database.h"
 #include "planner/operator/simple/logical_detach_database.h"
+#include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_use_database.h"
 #include "planner/planner.h"
 
@@ -98,7 +98,7 @@ void Planner::appendExtension(const BoundStatement& statement, LogicalPlan& plan
     auto& extensionStatement =
         common::ku_dynamic_cast<const BoundStatement&, const BoundExtensionStatement&>(statement);
     auto op = std::make_shared<LogicalExtension>(extensionStatement.getAction(),
-        extensionStatement.getPath());
+        extensionStatement.getPath(), statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(op));
 }
 

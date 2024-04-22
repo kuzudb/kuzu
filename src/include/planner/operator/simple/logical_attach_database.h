@@ -10,7 +10,7 @@ class LogicalAttachDatabase final : public LogicalSimple {
 public:
     explicit LogicalAttachDatabase(parser::AttachInfo attachInfo,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalSimple{LogicalOperatorType::ATTACH_DATABASE, outputExpression},
+        : LogicalSimple{LogicalOperatorType::ATTACH_DATABASE, std::move(outputExpression)},
           attachInfo{std::move(attachInfo)} {}
 
     parser::AttachInfo getAttachInfo() const { return attachInfo; }

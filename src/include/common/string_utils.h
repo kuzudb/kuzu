@@ -19,12 +19,8 @@ public:
     static void toUpper(std::string& input) {
         std::transform(input.begin(), input.end(), input.begin(), ::toupper);
     }
-    static std::string getUpper(const std::string& input) {
-        auto result = input;
-        toUpper(result);
-        return result;
-    }
-
+    static std::string getUpper(const std::string& input);
+    static std::string getLower(const std::string& input);
     static void toLower(std::string& input) {
         std::transform(input.begin(), input.end(), input.begin(), ::tolower);
     }

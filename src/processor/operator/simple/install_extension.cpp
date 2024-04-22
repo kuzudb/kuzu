@@ -1,4 +1,4 @@
-#include "processor/operator/install_extension.h"
+#include "processor/operator/simple/install_extension.h"
 
 #include "common/exception/io.h"
 #include "common/file_system/virtual_file_system.h"
@@ -13,12 +13,12 @@ namespace processor {
 using namespace kuzu::common;
 using namespace kuzu::extension;
 
-bool InstallExtension::getNextTuplesInternal(ExecutionContext* context) {
-    if (!hasExecuted) {
-        hasExecuted = true;
-        installExtension(context->clientContext);
-    }
-    return false;
+void InstallExtension::executeInternal(kuzu::processor::ExecutionContext* context) {
+    installExtension(context->clientContext);
+}
+
+std::string InstallExtension::getOutputMsg() {
+    return common::stringFormat("Extension: {} has been installed.", name);
 }
 
 std::string InstallExtension::tryDownloadExtension() {

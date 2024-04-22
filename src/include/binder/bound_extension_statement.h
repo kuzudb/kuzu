@@ -12,7 +12,7 @@ class BoundExtensionStatement final : public BoundStatement {
 public:
     explicit BoundExtensionStatement(ExtensionAction action, std::string path)
         : BoundStatement{common::StatementType::EXTENSION,
-              BoundStatementResult::createEmptyResult()},
+              BoundStatementResult::createSingleStringColumnResult()},
           action{action}, path{std::move(path)} {}
 
     inline ExtensionAction getAction() const { return action; }

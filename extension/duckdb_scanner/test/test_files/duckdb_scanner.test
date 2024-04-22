@@ -49,7 +49,7 @@ Binder exception: No database named tinysnb has been attached.
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/tinysnb.db' (dbtype 'duckdb');
 ---- 1
 Attach database successfully.
--STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/other.db' as other1 (dbtype 'duckdb');
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/other.db' as Other1 (dbtype 'duckdb');
 ---- 1
 Attach database successfully.
 -STATEMENT LOAD FROM other1.person RETURN *;
@@ -103,3 +103,7 @@ Runtime exception: No database named NONEXIST.
 ---- 2
 Jeff|32
 Wendy|28
+-LOG AttachSameDBError
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/dbfilewithoutext' (dbtype 'duckdb');
+---- error
+Runtime exception: Database with name: dbfilewithoutext has already been attached.
