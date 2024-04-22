@@ -79,28 +79,44 @@ bool isLittleEndian() {
 }
 
 template<>
-bool integerFitsIn<int64_t>(int64_t val) {return true;}
+bool integerFitsIn<int64_t>(int64_t val) {
+    return true;
+}
 
 template<>
-bool integerFitsIn<int32_t>(int64_t val) {return val >= INT32_MIN && val <= INT32_MAX;}
+bool integerFitsIn<int32_t>(int64_t val) {
+    return val >= INT32_MIN && val <= INT32_MAX;
+}
 
 template<>
-bool integerFitsIn<int16_t>(int64_t val) {return val >= INT16_MIN && val <= INT16_MAX;}
+bool integerFitsIn<int16_t>(int64_t val) {
+    return val >= INT16_MIN && val <= INT16_MAX;
+}
 
 template<>
-bool integerFitsIn<int8_t>(int64_t val) {return val >= INT8_MIN && val <= INT8_MAX;}
+bool integerFitsIn<int8_t>(int64_t val) {
+    return val >= INT8_MIN && val <= INT8_MAX;
+}
 
 template<>
-bool integerFitsIn<uint64_t>(int64_t val) {return val >= 0;}
+bool integerFitsIn<uint64_t>(int64_t val) {
+    return val >= 0;
+}
 
 template<>
-bool integerFitsIn<uint32_t>(int64_t val) {return val >= 0 && val <= UINT32_MAX;}
+bool integerFitsIn<uint32_t>(int64_t val) {
+    return val >= 0 && val <= UINT32_MAX;
+}
 
 template<>
-bool integerFitsIn<uint16_t>(int64_t val) {return val >= 0 && val <= UINT16_MAX;}
+bool integerFitsIn<uint16_t>(int64_t val) {
+    return val >= 0 && val <= UINT16_MAX;
+}
 
 template<>
-bool integerFitsIn<uint8_t>(int64_t val) {return val >= 0 && val <= UINT8_MAX;}
+bool integerFitsIn<uint8_t>(int64_t val) {
+    return val >= 0 && val <= UINT8_MAX;
+}
 
 } // namespace common
 } // namespace kuzu
