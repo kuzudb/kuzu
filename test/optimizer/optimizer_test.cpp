@@ -34,8 +34,22 @@ TEST_F(OptimizerTest, CrossJoinWithFilterWithoutPushDownTest) {
 }
 
 TEST_F(OptimizerTest, CrossJoinWithFilterPushDownTest) {
-    auto op = getRoot(
-        "MATCH (a:person) , (b:person) where a.fName=b.fName and a.fName is null RETURN a.gender;");
+    auto op = getRoot("MATCH (a:person) MATCH (b:person) where a.fName=b.fName and a.fName is NOT "
+                      "null RETURN a.fName;");
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::HASH_JOIN);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FLATTEN);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
+}
+
+TEST_F(OptimizerTest, CrossJoinWithFilterPushDownTest2) {
+    auto op = getRoot("MATCH (a:person) MATCH (b:person) where a.fName=b.fName and a.age > 1 + 2.0 "
+                      " RETURN a.fName;");
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
     op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::HASH_JOIN);
@@ -45,6 +59,8 @@ TEST_F(OptimizerTest, CrossJoinWithFilterPushDownTest) {
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
     op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
 }
 
 TEST_F(OptimizerTest, WithClauseProjectionListRewriterTest) {
