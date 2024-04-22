@@ -79,7 +79,7 @@ bool isLittleEndian() {
 }
 
 template<>
-bool integerFitsIn<int64_t>(int64_t val) {
+bool integerFitsIn<int64_t>(int64_t) {
     return true;
 }
 
