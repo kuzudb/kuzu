@@ -13,6 +13,10 @@ class Database;
 
 namespace extension {
 
+    std::string getOS();
+    std::string getArch();
+    std::string getPlatform();
+
 class KUZU_API Extension {
 public:
     virtual ~Extension() = default;
