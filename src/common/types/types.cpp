@@ -1309,7 +1309,20 @@ static uint32_t internalTimeOrder(const LogicalTypeID& type) {
     }
 }
 
-bool canAlwaysCast(const LogicalTypeID& typeID) {
+static int alwaysCastOrder(const LogicalTypeID& typeID) {
+    switch (typeID) {
+    case LogicalTypeID::ANY:
+        return 0;
+    case LogicalTypeID::RDF_VARIANT:
+        return 1;
+    case LogicalTypeID::STRING:
+        return 2;
+    default:
+        return -1;
+    }
+}
+
+static bool canAlwaysCast(const LogicalTypeID& typeID) {
     switch (typeID) {
     case LogicalTypeID::ANY:
     case LogicalTypeID::STRING:
@@ -1322,6 +1335,14 @@ bool canAlwaysCast(const LogicalTypeID& typeID) {
 
 bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right,
     LogicalTypeID& result) {
+    if (canAlwaysCast(left) && canAlwaysCast(right)) {
+        if (alwaysCastOrder(left) > alwaysCastOrder(right)) {
+            result = left;
+        } else {
+            result = right;
+        }
+        return true;
+    }
     if (left == right || canAlwaysCast(left)) {
         result = right;
         return true;
@@ -1373,6 +1394,14 @@ static inline bool isSemanticallyNested(LogicalTypeID ID) {
 
 bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
     LogicalType& result) {
+    if (canAlwaysCast(left.typeID) && canAlwaysCast(right.typeID)) {
+        if (alwaysCastOrder(left.typeID) > alwaysCastOrder(right.typeID)) {
+            result = left;
+        } else {
+            result = right;
+        }
+        return true;
+    }
     if (left == right || canAlwaysCast(left.typeID)) {
         result = right;
         return true;
