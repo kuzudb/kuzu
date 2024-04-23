@@ -20,80 +20,10 @@ static std::unique_ptr<FunctionBindData> ListExtractBindFunc(
     const binder::expression_vector& arguments, Function* function) {
     auto resultType = ListType::getChildType(&arguments[0]->dataType);
     auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
-    switch (resultType->getPhysicalType()) {
-    case PhysicalTypeID::BOOL: {
+    TypeUtils::visit(resultType->getPhysicalType(), [&]<typename T>(T) {
         scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, uint8_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::INT64: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, int64_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::INT32: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, int32_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::INT16: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, int16_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::INT8: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, int8_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::UINT64: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, uint64_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::UINT32: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, uint32_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::UINT16: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, uint16_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::UINT8: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, uint8_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::INT128: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, int128_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::DOUBLE: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, double, ListExtract>;
-    } break;
-    case PhysicalTypeID::FLOAT: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, float, ListExtract>;
-    } break;
-    case PhysicalTypeID::INTERVAL: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, interval_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::STRING: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, ku_string_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::LIST: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, list_entry_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::STRUCT: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, struct_entry_t, ListExtract>;
-    } break;
-    case PhysicalTypeID::INTERNAL_ID: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, internalID_t, ListExtract>;
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
+            BinaryExecListExtractFunction<list_entry_t, int64_t, T, ListExtract>;
+    });
     std::vector<LogicalType> paramTypes;
     paramTypes.push_back(arguments[0]->getDataType());
     paramTypes.push_back(LogicalType(function->parameterTypeIDs[1]));

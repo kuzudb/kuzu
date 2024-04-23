@@ -8,7 +8,7 @@
 ---- ok
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/tinysnb.db' as tinysnb (dbtype 'duckdb');
 ---- 1
-Attach database successfully.
+Attached database successfully.
 -STATEMENT LOAD FROM tinysnb.person RETURN *;
 ---- 8
 0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11|[96,54,86,92]
@@ -41,17 +41,17 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544| the movie is very v
 Catalog exception: Table: person1 does not exist.
 -STATEMENT DETACH tinysnb;
 ---- 1
-Detach database successfully.
+Detached database successfully.
 -STATEMENT LOAD FROM tinysnb.person RETURN *;
 ---- error
 Binder exception: No database named tinysnb has been attached.
 -LOG AttachMultipleDuckDB
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/tinysnb.db' (dbtype 'duckdb');
 ---- 1
-Attach database successfully.
+Attached database successfully.
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/other.db' as Other1 (dbtype 'duckdb');
 ---- 1
-Attach database successfully.
+Attached database successfully.
 -STATEMENT LOAD FROM other1.person RETURN *;
 ---- 4
 1
@@ -64,7 +64,7 @@ Attach database successfully.
 -LOG UseDatabaseStatement
 -STATEMENT USE other1;
 ---- 1
-Use database successfully.
+Used database successfully.
 -STATEMENT LOAD FROM person RETURN *;
 ---- 4
 1
@@ -73,7 +73,7 @@ Use database successfully.
 5
 -STATEMENT USE tinysnb;
 ---- 1
-Use database successfully.
+Used database successfully.
 -STATEMENT LOAD FROM person RETURN count(*);
 ---- 1
 8
@@ -107,3 +107,29 @@ Wendy|28
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/dbfilewithoutext' (dbtype 'duckdb');
 ---- error
 Runtime exception: Database with name: dbfilewithoutext has already been attached.
+-LOG DetachExistDB
+-STATEMENT DETACH dbfilewithoutext;
+---- ok
+-LOG DetachNotExistDBError
+-STATEMENT DETACH dbfilewithoutext;
+---- error
+Runtime exception: Database: dbfilewithoutext doesn't exist.
+-LOG AttachNotExistDBError
+-STATEMENT ATTACH 'notexist.db' (dbtype 'duckdb');
+---- error
+Runtime exception: 'notexist.db' is not a valid duckdb database path.
+
+-CASE AttachDBWithoutLoadingExtension
+-STATEMENT ATTACH 'notexist.db' (dbtype 'duckdb');
+---- error
+Runtime exception: No loaded extension can handle database type: duckdb.
+Did you forget to load duckdb extension?
+You can load it by: load extension duckdb_scanner;
+-STATEMENT ATTACH 'notexist.db' (dbtype 'postgres');
+---- error
+Runtime exception: No loaded extension can handle database type: postgres.
+Did you forget to load postgres extension?
+You can load it by: load extension postgres_scanner;
+-STATEMENT ATTACH 'notexist.db' (dbtype 'sqlite');
+---- error
+Runtime exception: No loaded extension can handle database type: sqlite.

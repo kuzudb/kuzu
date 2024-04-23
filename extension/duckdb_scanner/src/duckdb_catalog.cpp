@@ -1,6 +1,7 @@
 #include "duckdb_catalog.h"
 
 #include "common/exception/binder.h"
+#include "common/exception/runtime.h"
 #include "duckdb_scan.h"
 #include "duckdb_table_catalog_entry.h"
 #include "duckdb_type_converter.h"
@@ -22,7 +23,7 @@ void DuckDBCatalogContent::init(const std::string& dbPath, const std::string& ca
     } catch (std::exception& e) {
         throw common::BinderException(e.what());
     }
-    if (resultChunk->size() == 0) {
+    if (resultChunk == nullptr || resultChunk->size() == 0) {
         return;
     }
     common::ValueVector tableNamesVector{*common::LogicalType::STRING(),
@@ -126,9 +127,13 @@ std::string DuckDBCatalogContent::getDefaultSchemaName() const {
 
 std::pair<duckdb::DuckDB, duckdb::Connection> DuckDBCatalogContent::getConnection(
     const std::string& dbPath) const {
-    duckdb::DuckDB db(dbPath);
-    duckdb::Connection con(db);
-    return std::make_pair(std::move(db), std::move(con));
+    try {
+        duckdb::DuckDB db(dbPath);
+        duckdb::Connection con(db);
+        return std::make_pair(std::move(db), std::move(con));
+    } catch (std::exception& e) {
+        throw common::RuntimeException{e.what()};
+    }
 }
 
 } // namespace duckdb_scanner

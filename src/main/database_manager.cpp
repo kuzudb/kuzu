@@ -41,7 +41,8 @@ void DatabaseManager::detachDatabase(const std::string& databaseName) {
             return;
         }
     }
-    KU_UNREACHABLE;
+    throw common::RuntimeException{
+        common::stringFormat("Database: {} doesn't exist.", databaseName)};
 }
 
 void DatabaseManager::setDefaultDatabase(const std::string& databaseName) {
