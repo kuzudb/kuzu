@@ -106,11 +106,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install OpenSSL
+      - name: Install dependencies
         run: |
-          brew install openssl@3 duckdb
-          OPENSSL_ROOT=$(readlink -f /opt/homebrew/Cellar/openssl@3/*/)
-          echo "OPENSSL_ROOT_DIR=$OPENSSL_ROOT" >> $GITHUB_ENV
+          brew install duckdb openssl@3
 
       - name: Build precompiled extensions
         run: make extension-release LTO=1 NUM_THREADS=$(nproc)
@@ -137,7 +135,7 @@ jobs:
       - name: Build precompiled extensions
         run: make extension-release LTO=1 NUM_THREADS=$(nproc)
         env:
-          MACOSX_DEPLOYMENT_TARGET: 10.15
+          MACOSX_DEPLOYMENT_TARGET: 11.0
           CMAKE_OSX_ARCHITECTURES: "x86_64"
 
       - name: Collect built artifacts

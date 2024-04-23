@@ -406,8 +406,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip3 install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip3 install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip3 install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -505,6 +505,9 @@ jobs:
           node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
           cat postgres_scanner.test
 
+      - name: Install dependencies
+        run: pip install rangehttpserver
+
       - name: Extension test
         run: |
           cd scripts/ && python3 http-server.py &
@@ -538,6 +541,9 @@ jobs:
           node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
           cat postgres_scanner.test
 
+      - name: Install dependencies
+        run: pip3 install --break-system-packages rangehttpserver
+
       - name: Extension test
         run: |
           cd scripts/ && python3 http-server.py &
@@ -564,6 +570,9 @@ jobs:
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: pip install rangehttpserver
 
       - name: Update PostgreSQL host
         working-directory: extension/postgres_scanner/test/test_files

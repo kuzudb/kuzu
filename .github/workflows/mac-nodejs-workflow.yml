@@ -59,7 +59,7 @@ jobs:
         working-directory: tools/nodejs_api/package
         run: npm i
         env:
-          MACOSX_DEPLOYMENT_TARGET: 10.15
+          MACOSX_DEPLOYMENT_TARGET: 11.0
           ARCHFLAGS: "-arch x86_64"
 
       - name: Move Node.js native module

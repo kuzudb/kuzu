@@ -30,7 +30,7 @@ jobs:
         run: |
           env JAVA_HOME=$(/usr/libexec/java_home) make java LTO=1 NUM_THREADS=48
         env:
-          MACOSX_DEPLOYMENT_TARGET: 10.15
+          MACOSX_DEPLOYMENT_TARGET: 11.0
           ARCHFLAGS: "-arch x86_64"
 
       - uses: actions/upload-artifact@v3
