@@ -150,7 +150,8 @@ extension::ExtensionOptions* ClientContext::getExtensionOptions() const {
 }
 
 std::string ClientContext::getExtensionDir() const {
-    return common::stringFormat("{}/.kuzu/extension", config.homeDirectory);
+    return common::stringFormat("{}/.kuzu/extension/{}/{}", config.homeDirectory,
+        KUZU_EXTENSION_VERSION, kuzu::extension::getPlatform());
 }
 
 DatabaseManager* ClientContext::getDatabaseManager() const {
