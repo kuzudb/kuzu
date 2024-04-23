@@ -49,7 +49,7 @@ bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
     }
     distinctKeyVectors[groupByFlatKeyVectors.size()] = aggregateVector;
     computeVectorHashes(distinctKeyVectors, std::vector<ValueVector*>() /* unFlatKeyVectors */);
-    hash_t hash = hashVector->getValue<hash_t>(hashVector->state->selVector->selectedPositions[0]);
+    auto hash = hashVector->getValue<hash_t>(hashVector->state->selVector->selectedPositions[0]);
     auto distinctHTEntry = findEntryInDistinctHT(distinctKeyVectors, hash);
     if (distinctHTEntry == nullptr) {
         resizeHashTableIfNecessary(1);
@@ -378,6 +378,7 @@ uint8_t* AggregateHashTable::createEntryInDistinctHT(
         factorizedTable->updateFlatCell(entry, i, groupByHashKeyVectors[i],
             groupByHashKeyVectors[i]->state->selVector->selectedPositions[0]);
     }
+    factorizedTable->updateFlatCellNoNull(entry, hashColIdxInFT, &hash);
     fillEntryWithInitialNullAggregateState(entry);
     fillHashSlot(hash, entry);
     return entry;
