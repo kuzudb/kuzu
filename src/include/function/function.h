@@ -11,9 +11,15 @@ struct FunctionBindData {
 
     explicit FunctionBindData(std::unique_ptr<common::LogicalType> dataType)
         : resultType{std::move(dataType)} {}
+    FunctionBindData(std::vector<common::LogicalType> paramTypes,
+        std::unique_ptr<common::LogicalType> resultType)
+        : paramTypes{std::move(paramTypes)}, resultType{std::move(resultType)} {}
     DELETE_COPY_AND_MOVE(FunctionBindData);
 
     virtual ~FunctionBindData() = default;
+
+    static std::unique_ptr<FunctionBindData> getSimpleBindData(
+        const binder::expression_vector& params, const common::LogicalType& resultType);
 };
 
 struct Function;
@@ -47,6 +53,10 @@ struct Function {
     template<class TARGET>
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const Function*, const TARGET*>(this);
+    }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<Function*, TARGET*>(this);
     }
 };
 

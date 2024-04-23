@@ -1,9 +1,14 @@
 add_subdirectory(aggregate)
 add_subdirectory(arithmetic)
+add_subdirectory(array)
 add_subdirectory(cast)
-add_subdirectory(pattern)
-add_subdirectory(table)
 add_subdirectory(list)
+add_subdirectory(map)
+add_subdirectory(path)
+add_subdirectory(pattern)
+add_subdirectory(struct)
+add_subdirectory(table)
+add_subdirectory(union)
 
 add_library(kuzu_function
         OBJECT
@@ -14,24 +19,19 @@ add_library(kuzu_function
         cast_from_string_functions.cpp
         comparison_functions.cpp
         find_function.cpp
+        function.cpp
         function_collection.cpp
         scalar_macro_function.cpp
         vector_arithmetic_functions.cpp
-        vector_array_functions.cpp
         vector_boolean_functions.cpp
         vector_cast_functions.cpp
         vector_date_functions.cpp
         vector_hash_functions.cpp
-        vector_list_functions.cpp
         vector_null_functions.cpp
-        vector_path_functions.cpp
         vector_rdf_functions.cpp
         vector_node_rel_functions.cpp
         vector_string_functions.cpp
         vector_timestamp_functions.cpp
-        vector_struct_functions.cpp
-        vector_map_functions.cpp
-        vector_union_functions.cpp
         vector_blob_functions.cpp
         vector_uuid_functions.cpp
         vector_rdf_functions.cpp)

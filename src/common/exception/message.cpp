@@ -55,5 +55,11 @@ std::string ExceptionMessage::variableNotInScope(const std::string& varName) {
     return stringFormat("Variable {} is not in scope.", varName);
 }
 
+std::string ExceptionMessage::listFunctionIncompatibleChildrenType(const std::string& functionName,
+    const std::string& leftType, const std::string& rightType) {
+    return std::string("Cannot bind " + functionName + " with parameter type " + leftType +
+                       " and " + rightType + ".");
+}
+
 } // namespace common
 } // namespace kuzu

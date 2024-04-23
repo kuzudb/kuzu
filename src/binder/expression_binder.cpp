@@ -82,23 +82,6 @@ static std::string unsupportedImplicitCastException(const Expression& expression
 }
 
 std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
-    const std::shared_ptr<Expression>& expression, common::LogicalTypeID targetTypeID) {
-    if (LogicalTypeUtils::isNested(targetTypeID)) {
-        if (expression->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
-            throw BinderException(stringFormat(
-                "Cannot resolve recursive data type for expression {}.", expression->toString()));
-        }
-        // We don't support casting to nested data type. So instead we validate type match.
-        if (expression->getDataType().getLogicalTypeID() != targetTypeID) {
-            throw BinderException(unsupportedImplicitCastException(*expression,
-                LogicalTypeUtils::toString(targetTypeID)));
-        }
-        return expression;
-    }
-    return implicitCastIfNecessary(expression, LogicalType(targetTypeID));
-}
-
-std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
     if (targetType.getLogicalTypeID() == LogicalTypeID::ANY || expression->dataType == targetType) {
         return expression;

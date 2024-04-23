@@ -1,33 +1,13 @@
-#include "function/map/vector_map_functions.h"
-
-#include "function/map/functions/map_creation_function.h"
 #include "function/map/functions/map_extract_function.h"
-#include "function/map/functions/map_keys_function.h"
-#include "function/map/functions/map_values_function.h"
+
+#include "common/exception/runtime.h"
+#include "function/map/vector_map_functions.h"
 #include "function/scalar_function.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
-
-static std::unique_ptr<FunctionBindData> MapCreationBindFunc(
-    const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
-    auto keyType = ListType::getChildType(&arguments[0]->dataType);
-    auto valueType = ListType::getChildType(&arguments[1]->dataType);
-    auto resultType = LogicalType::MAP(*keyType, *valueType);
-    return std::make_unique<FunctionBindData>(std::move(resultType));
-}
-
-function_set MapCreationFunctions::getFunctionSet() {
-    auto execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, list_entry_t,
-        list_entry_t, MapCreation>;
-    function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::MAP,
-        execFunc, nullptr, MapCreationBindFunc));
-    return functionSet;
-}
 
 static void validateKeyType(const std::shared_ptr<binder::Expression>& mapExpression,
     const std::shared_ptr<binder::Expression>& extractKeyExpression) {
@@ -37,8 +17,8 @@ static void validateKeyType(const std::shared_ptr<binder::Expression>& mapExpres
     }
 }
 
-static std::unique_ptr<FunctionBindData> MapExtractBindFunc(
-    const binder::expression_vector& arguments, kuzu::function::Function* function) {
+static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
+    kuzu::function::Function* function) {
     validateKeyType(arguments[0], arguments[1]);
     auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     switch (arguments[1]->getDataType().getPhysicalType()) {
@@ -115,47 +95,15 @@ static std::unique_ptr<FunctionBindData> MapExtractBindFunc(
         KU_UNREACHABLE;
     }
     }
-    return std::make_unique<FunctionBindData>(LogicalType::LIST(
-        std::make_unique<LogicalType>(*MapType::getValueType(&arguments[0]->dataType))));
+    auto resultType = LogicalType::LIST(MapType::getValueType(&arguments[0]->dataType)->copy());
+    return FunctionBindData::getSimpleBindData(arguments, *resultType);
 }
 
 function_set MapExtractFunctions::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::MAP, LogicalTypeID::ANY}, LogicalTypeID::LIST,
-        nullptr, nullptr, MapExtractBindFunc));
-    return functionSet;
-}
-
-static std::unique_ptr<FunctionBindData> MapKeysBindFunc(const binder::expression_vector& arguments,
-    kuzu::function::Function* /*function*/) {
-    return std::make_unique<FunctionBindData>(LogicalType::LIST(
-        std::make_unique<LogicalType>(*MapType::getKeyType(&arguments[0]->dataType))));
-}
-
-function_set MapKeysFunctions::getFunctionSet() {
-    auto execFunc =
-        ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, MapKeys>;
-    function_set functionSet;
-    functionSet.push_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::MAP},
-            LogicalTypeID::LIST, execFunc, nullptr, MapKeysBindFunc));
-    return functionSet;
-}
-
-static std::unique_ptr<FunctionBindData> MapValuesBindFunc(
-    const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
-    return std::make_unique<FunctionBindData>(LogicalType::LIST(
-        std::make_unique<LogicalType>(*MapType::getValueType(&arguments[0]->dataType))));
-}
-
-function_set MapValuesFunctions::getFunctionSet() {
-    auto execFunc =
-        ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, MapValues>;
-    function_set functionSet;
-    functionSet.push_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::MAP},
-            LogicalTypeID::LIST, execFunc, nullptr, MapValuesBindFunc));
+        nullptr, nullptr, bindFunc));
     return functionSet;
 }
 

@@ -865,11 +865,18 @@ function_set CastToIntervalFunction::getFunctionSet() {
     return result;
 }
 
+static std::unique_ptr<FunctionBindData> toStringBindFunc(
+    const binder::expression_vector& arguments, Function*) {
+    return FunctionBindData::getSimpleBindData(arguments, *LogicalType::STRING());
+}
+
 function_set CastToStringFunction::getFunctionSet() {
     function_set result;
     result.reserve(LogicalTypeUtils::getAllValidLogicTypes().size());
     for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
-        result.push_back(CastFunction::bindCastFunction(name, type, LogicalTypeID::STRING));
+        auto function = CastFunction::bindCastFunction(name, type, LogicalTypeID::STRING);
+        function->bindFunc = toStringBindFunc;
+        result.push_back(std::move(function));
     }
     return result;
 }

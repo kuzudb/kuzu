@@ -23,6 +23,8 @@ struct ExceptionMessage {
         const std::string& offset, const std::string& direction);
     // Binding exception
     static std::string variableNotInScope(const std::string& varName);
+    static std::string listFunctionIncompatibleChildrenType(const std::string& functionName,
+        const std::string& leftType, const std::string& rightType);
 };
 
 } // namespace common
