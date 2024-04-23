@@ -1,7 +1,6 @@
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 
 #include "common/utils.h"
-#include "function/hash/vector_hash_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -49,23 +48,11 @@ bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
         distinctKeyVectors[i] = groupByFlatKeyVectors[i];
     }
     distinctKeyVectors[groupByFlatKeyVectors.size()] = aggregateVector;
-    if (groupByFlatKeyVectors.empty()) {
-        VectorHashFunction::computeHash(aggregateVector, hashVector.get());
-    } else {
-        VectorHashFunction::computeHash(groupByFlatKeyVectors[0], hashVector.get());
-        computeAndCombineVecHash(groupByFlatKeyVectors, 1 /* startVecIdx */);
-        auto tmpHashResultVector =
-            std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
-        auto tmpHashCombineResultVector =
-            std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
-        VectorHashFunction::computeHash(aggregateVector, tmpHashResultVector.get());
-        VectorHashFunction::combineHash(hashVector.get(), tmpHashResultVector.get(),
-            tmpHashCombineResultVector.get());
-        hashVector = std::move(tmpHashResultVector);
-    }
+    computeVectorHashes(distinctKeyVectors, std::vector<ValueVector*>() /* unFlatKeyVectors */);
     hash_t hash = hashVector->getValue<hash_t>(hashVector->state->selVector->selectedPositions[0]);
     auto distinctHTEntry = findEntryInDistinctHT(distinctKeyVectors, hash);
     if (distinctHTEntry == nullptr) {
+        resizeHashTableIfNecessary(1);
         createEntryInDistinctHT(distinctKeyVectors, hash);
         return true;
     }
