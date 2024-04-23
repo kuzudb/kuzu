@@ -1,7 +1,5 @@
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 
-#include <chrono>
-
 #include "common/utils.h"
 
 using namespace kuzu::common;
