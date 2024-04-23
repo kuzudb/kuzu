@@ -72,7 +72,7 @@ bool Value::operator==(const Value& rhs) const {
 }
 
 void Value::setDataType(const LogicalType& dataType_) {
-    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::ANY);
+    KU_ASSERT(dataType->containsAny());
     dataType = dataType_.copy();
 }
 

@@ -102,6 +102,10 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
     }
 }
 
+bool ListTypeInfo::containsAny() const {
+    return childType->containsAny();
+}
+
 bool ListTypeInfo::operator==(const ExtraTypeInfo& other) const {
     auto otherListTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const ListTypeInfo*>(&other);
     if (otherListTypeInfo) {
@@ -145,6 +149,10 @@ std::unique_ptr<ExtraTypeInfo> ArrayTypeInfo::copy() const {
 void ArrayTypeInfo::serializeInternal(Serializer& serializer) const {
     ListTypeInfo::serializeInternal(serializer);
     serializer.serializeValue(numElements);
+}
+
+bool StructField::containsAny() const {
+    return type->containsAny();
 }
 
 bool StructField::operator==(const StructField& other) const {
@@ -238,6 +246,15 @@ std::vector<const StructField*> StructTypeInfo::getStructFields() const {
     return structFields;
 }
 
+bool StructTypeInfo::containsAny() const {
+    for (auto& field : fields) {
+        if (field.containsAny()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool StructTypeInfo::operator==(const ExtraTypeInfo& other) const {
     auto otherStructTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const StructTypeInfo*>(&other);
     if (otherStructTypeInfo) {
@@ -312,6 +329,13 @@ LogicalType::LogicalType(const LogicalType& other) {
     if (other.extraTypeInfo != nullptr) {
         extraTypeInfo = other.extraTypeInfo->copy();
     }
+}
+
+bool LogicalType::containsAny() const {
+    if (extraTypeInfo != nullptr) {
+        return extraTypeInfo->containsAny();
+    }
+    return typeID == LogicalTypeID::ANY;
 }
 
 LogicalType& LogicalType::operator=(const LogicalType& other) {

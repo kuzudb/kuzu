@@ -15,12 +15,16 @@ public:
           variableName(std::move(variableName)), tableIDs{std::move(tableIDs)} {}
     ~NodeOrRelExpression() override = default;
 
-    inline std::string getVariableName() const { return variableName; }
-
-    inline void setTableIDs(common::table_id_vector_t tableIDs) {
-        this->tableIDs = std::move(tableIDs);
+    // Note: ideally I would try to remove this function. But for now, we have to create type
+    // after expression.
+    void setExtraTypeInfo(std::unique_ptr<common::ExtraTypeInfo> info) {
+        dataType.setExtraTypeInfo(std::move(info));
     }
-    inline void addTableIDs(const common::table_id_vector_t& tableIDsToAdd) {
+
+    std::string getVariableName() const { return variableName; }
+
+    void setTableIDs(common::table_id_vector_t tableIDs_) { tableIDs = std::move(tableIDs_); }
+    void addTableIDs(const common::table_id_vector_t& tableIDsToAdd) {
         auto tableIDsSet = getTableIDsSet();
         for (auto tableID : tableIDsToAdd) {
             if (!tableIDsSet.contains(tableID)) {
@@ -29,35 +33,34 @@ public:
         }
     }
 
-    inline bool isMultiLabeled() const { return tableIDs.size() > 1; }
-    inline uint32_t getNumTableIDs() const { return tableIDs.size(); }
-    inline std::vector<common::table_id_t> getTableIDs() const { return tableIDs; }
-    inline std::unordered_set<common::table_id_t> getTableIDsSet() const {
+    bool isMultiLabeled() const { return tableIDs.size() > 1; }
+    uint32_t getNumTableIDs() const { return tableIDs.size(); }
+    std::vector<common::table_id_t> getTableIDs() const { return tableIDs; }
+    std::unordered_set<common::table_id_t> getTableIDsSet() const {
         return {tableIDs.begin(), tableIDs.end()};
     }
-    inline common::table_id_t getSingleTableID() const {
+    common::table_id_t getSingleTableID() const {
         KU_ASSERT(tableIDs.size() == 1);
         return tableIDs[0];
     }
 
-    inline void addPropertyExpression(const std::string& propertyName,
+    void addPropertyExpression(const std::string& propertyName,
         std::unique_ptr<Expression> property) {
         KU_ASSERT(!propertyNameToIdx.contains(propertyName));
         propertyNameToIdx.insert({propertyName, propertyExprs.size()});
         propertyExprs.push_back(std::move(property));
     }
-    inline bool hasPropertyExpression(const std::string& propertyName) const {
+    bool hasPropertyExpression(const std::string& propertyName) const {
         return propertyNameToIdx.contains(propertyName);
     }
-    inline std::shared_ptr<Expression> getPropertyExpression(
-        const std::string& propertyName) const {
+    std::shared_ptr<Expression> getPropertyExpression(const std::string& propertyName) const {
         KU_ASSERT(propertyNameToIdx.contains(propertyName));
         return propertyExprs[propertyNameToIdx.at(propertyName)]->copy();
     }
-    inline const std::vector<std::unique_ptr<Expression>>& getPropertyExprsRef() const {
+    const std::vector<std::unique_ptr<Expression>>& getPropertyExprsRef() const {
         return propertyExprs;
     }
-    inline expression_vector getPropertyExprs() const {
+    expression_vector getPropertyExprs() const {
         expression_vector result;
         for (auto& expr : propertyExprs) {
             result.push_back(expr->copy());
@@ -65,27 +68,27 @@ public:
         return result;
     }
 
-    inline void setLabelExpression(std::shared_ptr<Expression> expression) {
+    void setLabelExpression(std::shared_ptr<Expression> expression) {
         labelExpression = std::move(expression);
     }
-    inline std::shared_ptr<Expression> getLabelExpression() const { return labelExpression; }
+    std::shared_ptr<Expression> getLabelExpression() const { return labelExpression; }
 
-    inline void addPropertyDataExpr(std::string propertyName, std::shared_ptr<Expression> expr) {
+    void addPropertyDataExpr(std::string propertyName, std::shared_ptr<Expression> expr) {
         propertyDataExprs.insert({propertyName, expr});
     }
-    inline const std::unordered_map<std::string, std::shared_ptr<Expression>>&
+    const std::unordered_map<std::string, std::shared_ptr<Expression>>&
     getPropertyDataExprRef() const {
         return propertyDataExprs;
     }
-    inline bool hasPropertyDataExpr(const std::string& propertyName) const {
+    bool hasPropertyDataExpr(const std::string& propertyName) const {
         return propertyDataExprs.contains(propertyName);
     }
-    inline std::shared_ptr<Expression> getPropertyDataExpr(const std::string& propertyName) const {
+    std::shared_ptr<Expression> getPropertyDataExpr(const std::string& propertyName) const {
         KU_ASSERT(propertyDataExprs.contains(propertyName));
         return propertyDataExprs.at(propertyName);
     }
 
-    inline std::string toStringInternal() const final { return variableName; }
+    std::string toStringInternal() const final { return variableName; }
 
 protected:
     std::string variableName;

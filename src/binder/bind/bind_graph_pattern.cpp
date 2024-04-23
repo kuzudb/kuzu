@@ -307,7 +307,7 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
         fields.emplace_back(property->getPropertyName(), property->getDataType().copy());
     }
     auto extraInfo = std::make_unique<StructTypeInfo>(std::move(fields));
-    RelType::setExtraTypeInfo(queryRel->getDataTypeReference(), std::move(extraInfo));
+    queryRel->setExtraTypeInfo(std::move(extraInfo));
     return queryRel;
 }
 
@@ -357,7 +357,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     }
     bindRecursiveRelProjectionList(nodeProjectionList, nodeFields);
     auto nodeExtraInfo = std::make_unique<StructTypeInfo>(std::move(nodeFields));
-    node->getDataTypeReference().setExtraTypeInfo(std::move(nodeExtraInfo));
+    node->setExtraTypeInfo(std::move(nodeExtraInfo));
     auto nodeCopy = createQueryNode(recursivePatternInfo->nodeName,
         std::vector<table_id_t>{nodeTableIDs.begin(), nodeTableIDs.end()});
     // Bind intermediate rel
@@ -384,7 +384,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     relFields.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
     bindRecursiveRelProjectionList(relProjectionList, relFields);
     auto relExtraInfo = std::make_unique<StructTypeInfo>(std::move(relFields));
-    rel->getDataTypeReference().setExtraTypeInfo(std::move(relExtraInfo));
+    rel->setExtraTypeInfo(std::move(relExtraInfo));
     // Bind predicates in {}, e.g. [e* {date=1999-01-01}]
     std::shared_ptr<Expression> relPredicate;
     for (auto& [propertyName, rhs] : relPattern.getPropertyKeyVals()) {
@@ -569,7 +569,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parse
         fieldTypes.emplace_back(property->dataType.copy());
     }
     auto extraInfo = std::make_unique<StructTypeInfo>(fieldNames, fieldTypes);
-    NodeType::setExtraTypeInfo(queryNode->getDataTypeReference(), std::move(extraInfo));
+    queryNode->setExtraTypeInfo(std::move(extraInfo));
     return queryNode;
 }
 

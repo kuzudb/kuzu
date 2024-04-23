@@ -1,0 +1,33 @@
+-GROUP CastFunction
+-DATASET CSV tinysnb
+
+--
+
+-CASE NestTypeImplicitCast
+
+-LOG ListAny
+-STATEMENT RETURN [], [[]], [{'b': NULL}];
+---- 1
+[]|[[]]|[{b: }]
+
+-LOG StructAny
+-STATEMENT RETURN {'a': NULL}, {'c': []}, {'d': {'x': NULL}};
+---- 1
+{a: }|{c: []}|{d: {x: }}
+
+-LOG MapAny
+-STATEMENT RETURN map([1,2], [NULL, NULL]), map([1,2], ['a', NULL]);
+---- 1
+{1=, 2=}|{1=a, 2=}
+-STATEMENT RETURN map([NULL, NULL], [1, 2]);
+---- error
+Runtime exception: Null value key is not allowed in map.
+
+-LOG ListImplicitCast
+-STATEMENT CREATE NODE TABLE T0(a SERIAL, b INT64[], c DOUBLE[], d STRING[], PRIMARY KEY(a));
+---- ok
+-STATEMENT CREATE (:T0 {b: [1.0, 2.0], c: [1, 2], d: [3, 5]});
+---- ok
+-STATEMENT MATCH (a:T0) RETURN a.a, a.b, a.c, a.d;
+---- 1
+0|[1,2]|[1.000000,2.000000]|[3,5]
