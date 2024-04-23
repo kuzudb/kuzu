@@ -13,7 +13,6 @@ struct ComparisonFunction {
     template<typename OP>
     static function_set getFunctionSet(const std::string& name) {
         function_set functionSet;
-        // We can only check whether two internal ids are equal or not.
         for (auto& comparableType : common::LogicalTypeUtils::getAllValidLogicTypes()) {
             functionSet.push_back(getFunction<OP>(name, comparableType, comparableType));
         }
