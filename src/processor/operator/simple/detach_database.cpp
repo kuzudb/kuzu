@@ -12,7 +12,7 @@ void DetachDatabase::executeInternal(kuzu::processor::ExecutionContext* context)
 }
 
 std::string DetachDatabase::getOutputMsg() {
-    return "Detached database successfully.";
+    return "Detach database successfully.";
 }
 
 } // namespace processor

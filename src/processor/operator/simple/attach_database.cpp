@@ -18,7 +18,7 @@ void AttachDatabase::executeInternal(ExecutionContext* context) {
 }
 
 std::string AttachDatabase::getOutputMsg() {
-    return "Attached database successfully.";
+    return "Attach database successfully.";
 }
 
 } // namespace processor
