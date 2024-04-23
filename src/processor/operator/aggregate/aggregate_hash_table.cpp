@@ -1,7 +1,6 @@
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 
 #include "common/utils.h"
-#include "function/hash/vector_hash_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
