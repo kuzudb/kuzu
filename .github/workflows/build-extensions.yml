@@ -137,7 +137,7 @@ jobs:
       - name: Build precompiled extensions
         run: make extension-release LTO=1 NUM_THREADS=$(nproc)
         env:
-          MACOSX_DEPLOYMENT_TARGET: 10.15
+          MACOSX_DEPLOYMENT_TARGET: 11.0
           CMAKE_OSX_ARCHITECTURES: "x86_64"
 
       - name: Collect built artifacts
