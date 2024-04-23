@@ -20,6 +20,10 @@ struct ComparisonFunction {
             getFunction<OP>(name, common::LogicalTypeID::LIST, common::LogicalTypeID::LIST));
         functionSet.push_back(
             getFunction<OP>(name, common::LogicalTypeID::STRUCT, common::LogicalTypeID::STRUCT));
+        functionSet.push_back(
+            getFunction<OP>(name, common::LogicalTypeID::NODE, common::LogicalTypeID::NODE));
+        functionSet.push_back(
+            getFunction<OP>(name, common::LogicalTypeID::REL, common::LogicalTypeID::REL));
         // We can only check whether two internal ids are equal or not. So INTERNAL_ID is not
         // part of the comparable logical types.
         functionSet.push_back(getFunction<OP>(name, common::LogicalTypeID::INTERNAL_ID,
