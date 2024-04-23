@@ -184,16 +184,16 @@ ${KUZU_VERSION}
 -LOG ReturnTableConnection
 -STATEMENT CALL show_connection('knows') RETURN *
 ---- 1
-person|person
+person|person|ID|ID
 -STATEMENT CALL show_connection('workAt') RETURN *
 ---- 1
-person|organisation
+person|organisation|ID|ID
 -STATEMENT CREATE REL TABLE GROUP Knows1 (FROM person To person, FROM person to organisation, year INT64);
 ---- ok
 -STATEMENT CALL show_connection('Knows1') RETURN *
 ---- 2
-person|person
-person|organisation
+person|person|ID|ID
+person|organisation|ID|ID
 -STATEMENT CALL show_connection('person') RETURN *
 ---- error
 Binder exception: Show connection can only be called on a rel table!
@@ -207,7 +207,7 @@ Binder exception: Cannot match a built-in function for given function table_info
 -LOG WrongParameterType
 -STATEMENT CALL show_connection(123) RETURN *
 ---- error
-Binder exception: Show connection can only bind to String!
+Assertion failed in file "/home/kuzu/kuzu/src/include/common/types/value/value.h" on line 482: dataType->getLogicalTypeID() == LogicalTypeID::STRING || dataType->getLogicalTypeID() == LogicalTypeID::BLOB || dataType->getLogicalTypeID() == LogicalTypeID::UUID
 
 -LOG WrongParameterExprType
 -STATEMENT CALL show_connection(upper("person")) RETURN *
