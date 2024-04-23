@@ -99,7 +99,7 @@ void ExportDB::executeInternal(ExecutionContext* context) {
 }
 
 std::string ExportDB::getOutputMsg() {
-    return "Export database successfully." + extraMsg;
+    return "Exported database successfully." + extraMsg;
 }
 
 } // namespace processor

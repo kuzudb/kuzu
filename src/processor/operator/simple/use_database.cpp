@@ -11,7 +11,7 @@ void UseDatabase::executeInternal(kuzu::processor::ExecutionContext* context) {
 }
 
 std::string UseDatabase::getOutputMsg() {
-    return "Use database successfully.";
+    return "Used database successfully.";
 }
 
 } // namespace processor

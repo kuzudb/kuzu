@@ -14,7 +14,7 @@ void ImportDB::executeInternal(ExecutionContext* context) {
 }
 
 std::string ImportDB::getOutputMsg() {
-    return "Import database successfully.";
+    return "Imported database successfully.";
 }
 
 } // namespace processor
