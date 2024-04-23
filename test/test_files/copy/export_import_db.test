@@ -14,11 +14,11 @@
 {key1=400, key2=250}
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
 ---- 1
-Export database successfully.
+Exported database successfully.
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
 ---- 1
-Import database successfully.
+Imported database successfully.
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
 -LOG ReturnAge
@@ -32,11 +32,11 @@ Import database successfully.
 -CASE ExportImportDatabaseWithCSVOption
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2" (format="csv", header=true)
 ---- 1
-Export database successfully.
+Exported database successfully.
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2"
 ---- 1
-Import database successfully.
+Imported database successfully.
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
 -LOG ReturnAge
@@ -109,11 +109,11 @@ Binder exception: File ${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4/schema.cypher 
 0
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case5/demo-db"
 ---- 1
-Export database successfully.
+Exported database successfully.
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case5/demo-db"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case5/demo-db"
 ---- 1
-Import database successfully.
+Imported database successfully.
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
 -LOG ReturnAge
@@ -131,4 +131,4 @@ Import database successfully.
 ---- ok
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case6/demo-db"
 ---- 1
-Export database successfully. But we skip exporting RDF graphs.
+Exported database successfully. But we skip exporting RDF graphs.
