@@ -207,7 +207,7 @@ Binder exception: Cannot match a built-in function for given function table_info
 -LOG WrongParameterType
 -STATEMENT CALL show_connection(123) RETURN *
 ---- error
-Assertion failed in file "/home/kuzu/kuzu/src/include/common/types/value/value.h" on line 482: dataType->getLogicalTypeID() == LogicalTypeID::STRING || dataType->getLogicalTypeID() == LogicalTypeID::BLOB || dataType->getLogicalTypeID() == LogicalTypeID::UUID
+Catalog exception: Table: 123 does not exist.
 
 -LOG WrongParameterExprType
 -STATEMENT CALL show_connection(upper("person")) RETURN *

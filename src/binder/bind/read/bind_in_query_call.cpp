@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
+#include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
@@ -21,28 +22,38 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto expr = call.getFunctionExpression();
     auto functionExpr = expr->constPtrCast<ParsedFunctionExpression>();
     auto functionName = functionExpr->getFunctionName();
-    expression_vector params;
+    expression_vector children;
     for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
-        auto child = functionExpr->getChild(i);
-        params.push_back(expressionBinder.bindExpression(*child));
+        auto childExpr = functionExpr->getChild(i);
+        children.push_back(expressionBinder.bindExpression(*childExpr));
     }
     TableFunction tableFunction;
-    std::vector<Value> inputValues;
     std::vector<LogicalType> inputTypes;
-    for (auto& param : params) {
-        ExpressionUtil::validateExpressionType(*param, ExpressionType::LITERAL);
-        auto literalExpr = param->constPtrCast<LiteralExpression>();
+    for (auto& child : children) {
+        ExpressionUtil::validateExpressionType(*child, ExpressionType::LITERAL);
+        auto literalExpr = child->constPtrCast<LiteralExpression>();
         inputTypes.push_back(literalExpr->getDataType());
-        inputValues.push_back(*literalExpr->getValue());
     }
     auto catalogSet = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     auto functionEntry = BuiltInFunctionsUtils::getFunctionCatalogEntry(functionName, catalogSet);
     if (functionEntry->getType() != CatalogEntryType::TABLE_FUNCTION_ENTRY) {
         throw BinderException(stringFormat("{} is not a table function.", functionName));
     }
-    auto func = BuiltInFunctionsUtils::matchFunction(functionExpr->getFunctionName(), inputTypes,
-        functionEntry);
+    auto func = BuiltInFunctionsUtils::matchFunction(functionName, inputTypes, functionEntry);
     tableFunction = *func->constPtrCast<TableFunction>();
+    std::vector<Value> inputValues;
+    for (auto i = 0u; i < children.size(); ++i) {
+        auto parameterTypeID = tableFunction.parameterTypeIDs[i];
+        auto parameterType = parameterTypeID == LogicalTypeID::RDF_VARIANT ?
+                                 *LogicalType::RDF_VARIANT() :
+                                 LogicalType(parameterTypeID);
+        auto childAfterCast = expressionBinder.implicitCastIfNecessary(children[i], parameterType);
+        if (ExpressionVisitor::needFold(*childAfterCast)) {
+            childAfterCast = expressionBinder.foldExpression(childAfterCast);
+        }
+        auto literalExpr = childAfterCast->constPtrCast<LiteralExpression>();
+        inputValues.push_back(*literalExpr->getValue());
+    }
     auto bindInput = function::TableFuncBindInput();
     bindInput.inputs = std::move(inputValues);
     auto bindData = tableFunction.bindFunc(clientContext, &bindInput);
