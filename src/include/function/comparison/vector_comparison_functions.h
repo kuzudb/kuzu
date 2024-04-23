@@ -13,17 +13,9 @@ struct ComparisonFunction {
     template<typename OP>
     static function_set getFunctionSet(const std::string& name) {
         function_set functionSet;
-        for (auto& comparableType : common::LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
+        for (auto& comparableType : common::LogicalTypeUtils::getAllValidLogicTypes()) {
             functionSet.push_back(getFunction<OP>(name, comparableType, comparableType));
         }
-        functionSet.push_back(
-            getFunction<OP>(name, common::LogicalTypeID::LIST, common::LogicalTypeID::LIST));
-        functionSet.push_back(
-            getFunction<OP>(name, common::LogicalTypeID::STRUCT, common::LogicalTypeID::STRUCT));
-        // We can only check whether two internal ids are equal or not. So INTERNAL_ID is not
-        // part of the comparable logical types.
-        functionSet.push_back(getFunction<OP>(name, common::LogicalTypeID::INTERNAL_ID,
-            common::LogicalTypeID::INTERNAL_ID));
         return functionSet;
     }
 

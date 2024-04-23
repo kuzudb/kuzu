@@ -14,3 +14,11 @@ INT64
 DOUBLE
 BOOL
 DATE
+
+-STATEMENT MATCH (s)-[p]->(o), (s1)-[p1]->(o1) WHERE o.val = o1.val return count(*);
+---- 1
+8
+
+-STATEMENT MATCH (s)-[p]->(o), (s1)-[p1]->(o1) WHERE o.val <> o1.val return count(*);
+---- 1
+56
