@@ -102,9 +102,13 @@ jobs:
         run: docker stop kuzu-x86
 
   build-mac-extensions-arm64:
-    runs-on: self-hosted-mac-x64
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          brew install duckdb openssl@3
 
       - name: Build precompiled extensions
         run: make extension-release LTO=1 NUM_THREADS=$(nproc)
