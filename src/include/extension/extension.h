@@ -13,7 +13,7 @@ class Database;
 
 namespace extension {
 
-    std::string getPlatform();
+std::string getPlatform();
 
 class KUZU_API Extension {
 public:
