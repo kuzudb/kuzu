@@ -1,8 +1,6 @@
 find_package(DuckDB REQUIRED)
-if(WIN32)
-        find_library(DuckDB_LIBRARY REQUIRED NAMES duckdb_static.lib)
-else()
-        find_library(DuckDB_LIBRARY REQUIRED NAMES libduckdb_static.a)
+if(NOT WIN32)
+        find_library(DuckDB_STATIC REQUIRED NAMES libduckdb_static.a)
 endif()
 
 add_library(postgres_scanner
@@ -34,9 +32,16 @@ set_target_properties(postgres_scanner
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
 )
 
-target_link_libraries(postgres_scanner
-        PRIVATE
-        ${DuckDB_LIBRARY})
+if (WIN32)
+        target_link_libraries(duckdb_scanner
+                PRIVATE
+                ${DuckDB_LIBRIES})
+else()
+        target_link_libraries(duckdb_scanner
+                PRIVATE
+                ${DuckDB_STATIC})
+endif()
+
 
 if (WIN32)
         # On windows, there is no dynamic lookup available, so it's not
