@@ -66,6 +66,7 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     auto homePath =
         getClientContext(*(Connection*)(connection->_connection))->getClientConfig()->homeDirectory;
     ASSERT_NE(database, nullptr);
+    kuzu_connection_destroy(connection);
     kuzu_database_destroy(database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
