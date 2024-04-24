@@ -1,3 +1,4 @@
+set(DuckDB_STATIC ON)
 find_package(DuckDB REQUIRED)
 
 include_directories(
