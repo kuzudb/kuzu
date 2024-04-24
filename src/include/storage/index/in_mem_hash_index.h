@@ -76,11 +76,7 @@ public:
 
     uint64_t size() { return this->indexHeader.numEntries; }
 
-    inline void clear() {
-        indexHeader = HashIndexHeader();
-        pSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true);
-        oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 1, true);
-    }
+    void clear();
 
     struct SlotIterator {
         explicit SlotIterator(slot_id_t newSlotId, InMemHashIndex<T>* builder)
