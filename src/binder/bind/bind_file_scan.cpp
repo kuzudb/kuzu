@@ -75,6 +75,9 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* sour
         auto filePaths = bindFilePaths(fileSource->filePaths);
         // Bind file type.
         auto fileType = bindFileType(filePaths);
+        if (fileType != FileType::CSV && options.size() != 0) {
+            throw BinderException{"Only copy from CSV can have options."};
+        }
         auto config = std::make_unique<ReaderConfig>(fileType, std::move(filePaths));
         // Bind options.
         config->options = bindParsingOptions(options);
