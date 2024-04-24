@@ -80,6 +80,11 @@ Used database successfully.
 -STATEMENT LOAD FROM other1.person RETURN count(*);
 ---- 1
 4
+-STATEMENT CALL DUCKDB_CLEAR_CACHE() RETURN *;
+---- ok
+-STATEMENT LOAD FROM other1.person RETURN count(*);
+---- 1
+4
 
 -CASE InvalidDuckDBDatabase
 -STATEMENT LOAD FROM tinysnb1.person RETURN *;

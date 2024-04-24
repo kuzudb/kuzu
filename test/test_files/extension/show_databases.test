@@ -3,25 +3,18 @@
 
 --
 
--CASE ExtensionTest
-
-# TODO: Extension on musl libc has not been supported yet due to no prebuilt binary.
+-CASE ShowDatabasesTest
 -SKIP_MUSL
 -LOG InstallExtension
--STATEMENT INSTALL httpfs;
+-STATEMENT INSTALL duckdb_scanner;
 ---- ok
--STATEMENT LOAD EXTENSION httpfs;
+-STATEMENT LOAD EXTENSION duckdb_scanner;
 ---- ok
--STATEMENT LOAD FROM 'http://extension.kuzudb.com/dataset/test/city.csv' return *;
----- 3
-Guelph|75000
-Kitchener|200000
-Waterloo|150000
-
--CASE ExtensionErrorTest
--SKIP
-# TODO: The error message is dependent on platform.
--LOG InstallInvalidExtension
--STATEMENT INSTALL http;
----- error
-IO exception: HTTP Returns: 404, Failed to download extension: "http" from extension.kuzudb.com/v0.1.0/osx_arm64/libhttp.kuzu_extension.
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/tinysnb.db' (dbtype 'duckdb');
+---- ok
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/dbfilewithoutext' (dbtype 'duckdb');
+---- ok
+-STATEMENT CALL show_databases() RETURN *;
+---- 2
+tinysnb|DUCKDB
+dbfilewithoutext|DUCKDB
