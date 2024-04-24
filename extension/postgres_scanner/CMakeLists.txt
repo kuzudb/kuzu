@@ -35,7 +35,7 @@ set_target_properties(postgres_scanner
 if (WIN32)
         target_link_libraries(duckdb_scanner
                 PRIVATE
-                ${DuckDB_LIBRIES})
+                ${DuckDB_LIBRARIES})
 else()
         target_link_libraries(duckdb_scanner
                 PRIVATE
