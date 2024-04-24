@@ -9,7 +9,7 @@ class PostgresStorageExtension final : public storage::StorageExtension {
 public:
     static constexpr const char* dbType = "POSTGRES";
 
-    PostgresStorageExtension(main::Database* database);
+    explicit PostgresStorageExtension(main::Database* database);
 
     bool canHandleDB(std::string dbType) const override;
 };

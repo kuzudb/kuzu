@@ -10,7 +10,7 @@ class DuckDBStorageExtension final : public storage::StorageExtension {
 public:
     static constexpr const char* dbType = "DUCKDB";
 
-    DuckDBStorageExtension(main::Database* database);
+    explicit DuckDBStorageExtension(main::Database* database);
 
     bool canHandleDB(std::string dbType) const override;
 };
