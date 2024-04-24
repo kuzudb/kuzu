@@ -149,6 +149,10 @@ uint32_t BuiltInFunctionsUtils::getCastCost(LogicalTypeID inputTypeID, LogicalTy
         // currently don't allow timestamp to other timestamp types
         // When we implement this in the future, revise tryGetMaxLogicalTypeID
         return castTimestamp(targetTypeID);
+    case LogicalTypeID::LIST:
+        return castList(targetTypeID);
+    case LogicalTypeID::ARRAY:
+        return castArray(targetTypeID);
     default:
         return UNDEFINED_CAST_COST;
     }
@@ -385,6 +389,24 @@ uint32_t BuiltInFunctionsUtils::castFromRDFVariant(LogicalTypeID inputTypeID) {
         return UNDEFINED_CAST_COST;
     default: // Any other inputTypeID can be cast to RDF_VARIANT, but this cast has a high cost
         return getTargetTypeCost(LogicalTypeID::RDF_VARIANT);
+    }
+}
+
+uint32_t BuiltInFunctionsUtils::castList(LogicalTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case LogicalTypeID::ARRAY:
+        return getTargetTypeCost(targetTypeID);
+    default:
+        return UNDEFINED_CAST_COST;
+    }
+}
+
+uint32_t BuiltInFunctionsUtils::castArray(LogicalTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case LogicalTypeID::LIST:
+        return getTargetTypeCost(targetTypeID);
+    default:
+        return UNDEFINED_CAST_COST;
     }
 }
 

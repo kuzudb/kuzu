@@ -71,6 +71,10 @@ private:
 
     static uint32_t castUUID(common::LogicalTypeID targetTypeID);
 
+    static uint32_t castList(common::LogicalTypeID targetTypeID);
+
+    static uint32_t castArray(common::LogicalTypeID targetTypeID);
+
     static Function* getBestMatch(std::vector<Function*>& functions);
 
     static uint32_t getFunctionCost(const std::vector<common::LogicalType>& inputTypes,

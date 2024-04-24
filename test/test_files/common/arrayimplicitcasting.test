@@ -9,3 +9,25 @@
 -STATEMENT CREATE (t:tab {a: cast([1, 2, 3], 'int64[3]')}) RETURN t.a
 ---- 1
 [1,2,3]
+
+-CASE ListArrayImplicitCast
+-STATEMENT CREATE NODE TABLE T0(a SERIAL, b INT64[], c DOUBLE[2], d STRING[], PRIMARY KEY(a));
+---- ok
+-STATEMENT CREATE (:T0 {b: [1.0, 2.0], c: [1, 2], d: [3, 5]});
+---- ok
+-STATEMENT MATCH (a:T0) RETURN a.a, a.b, a.c, a.d;
+---- 1
+0|[1,2]|[1.000000,2.000000]|[3,5]
+
+-CASE CastCostTest
+-SKIP
+-STATEMENT CREATE NODE TABLE Item(id UINT64, item STRING, price DOUBLE, vector DOUBLE[2], PRIMARY KEY (id))
+---- ok
+-STATEMENT MERGE (a:Item {id: 1, item: 'apple', price: 2.0, vector: [3.1, 4.1]})
+---- ok
+-STATEMENT MERGE (b:Item {id: 2, item: 'banana', price: 1.0, vector: [5.9, 26.5]})
+---- ok
+-STATEMENT MATCH (a:Item) RETURN a.item, a.price, array_cosine_similarity(a.vector, [6.0, 25.0]) AS sim ORDER BY sim DESC
+---- 2
+['banana',1.0,0.9998642653091405]
+['apple',2.0,0.9163829638139936]
