@@ -19,10 +19,8 @@ def test_exception(conn_db_readonly: ConnDB) -> None:
 
 def test_db_path_exception() -> None:
     path = ""
-    if sys.platform == "win32":
-        error_message = "Failed to create directory"
-    else:
-        error_message = "filesystem error"
+    error_message = ("IO exception: Failed to create directory  due to: IO exception: Directory  cannot be created. "
+                     "Check if it exists and remove it.")
     with pytest.raises(RuntimeError, match=error_message):
         kuzu.Database(path)
 
