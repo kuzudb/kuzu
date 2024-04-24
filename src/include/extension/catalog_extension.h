@@ -1,5 +1,5 @@
 #pragma once
-#include "catalog/catalog.h"
+#include "catalog/catalog_content.h"
 
 namespace kuzu {
 namespace extension {

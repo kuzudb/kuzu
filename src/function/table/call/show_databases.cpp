@@ -1,5 +1,3 @@
-#include "catalog/catalog.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "function/table/call_functions.h"
 #include "main/database_manager.h"
 

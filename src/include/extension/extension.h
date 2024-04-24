@@ -4,7 +4,6 @@
 #include <unordered_map>
 
 #include "common/api.h"
-#include "function/table/call_functions.h"
 #include "main/db_config.h"
 
 namespace kuzu {
