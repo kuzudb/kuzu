@@ -102,7 +102,7 @@ jobs:
         run: docker stop kuzu-x86
 
   build-mac-extensions-arm64:
-    runs-on: macos-14
+    runs-on: self-hosted-mac-arm
     steps:
       - uses: actions/checkout@v3
 
