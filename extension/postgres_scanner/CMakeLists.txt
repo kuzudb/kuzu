@@ -1,3 +1,4 @@
+set(DuckDB_USE_STATIC_LIBS ON)
 find_package(DuckDB REQUIRED)
 if(NOT WIN32)
         find_library(DuckDB_STATIC REQUIRED NAMES libduckdb_static.a)
@@ -32,15 +33,9 @@ set_target_properties(postgres_scanner
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
 )
 
-if (WIN32)
-        target_link_libraries(postgres_scanner
-                PRIVATE
-                ${DuckDB_LIBRARIES})
-else()
-        target_link_libraries(postgres_scanner
-                PRIVATE
-                ${DuckDB_STATIC})
-endif()
+target_link_libraries(postgres_scanner
+        PRIVATE
+        ${DuckDB_LIBRARIES})
 
 
 if (WIN32)
