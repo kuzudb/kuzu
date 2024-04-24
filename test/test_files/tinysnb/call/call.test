@@ -217,7 +217,7 @@ Binder exception: Cannot match a built-in function for given function table_info
 -LOG WrongParameterType
 -STATEMENT CALL show_connection(123) RETURN *
 ---- error
-Catalog exception: Table: 123 does not exist.
+Binder exception: 123 has data type INT64 but STRING was expected.
 
 -LOG WrongParameterExprType
 -STATEMENT CALL show_connection(upper("person")) RETURN *

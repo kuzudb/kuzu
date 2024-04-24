@@ -1,7 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
-#include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
@@ -28,11 +27,13 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         children.push_back(expressionBinder.bindExpression(*childExpr));
     }
     TableFunction tableFunction;
+    std::vector<Value> inputValues;
     std::vector<LogicalType> inputTypes;
     for (auto& child : children) {
         ExpressionUtil::validateExpressionType(*child, ExpressionType::LITERAL);
         auto literalExpr = child->constPtrCast<LiteralExpression>();
         inputTypes.push_back(literalExpr->getDataType());
+        inputValues.push_back(*literalExpr->getValue());
     }
     auto catalogSet = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     auto functionEntry = BuiltInFunctionsUtils::getFunctionCatalogEntry(functionName, catalogSet);
@@ -41,18 +42,9 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     }
     auto func = BuiltInFunctionsUtils::matchFunction(functionName, inputTypes, functionEntry);
     tableFunction = *func->constPtrCast<TableFunction>();
-    std::vector<Value> inputValues;
     for (auto i = 0u; i < children.size(); ++i) {
         auto parameterTypeID = tableFunction.parameterTypeIDs[i];
-        auto parameterType = parameterTypeID == LogicalTypeID::RDF_VARIANT ?
-                                 *LogicalType::RDF_VARIANT() :
-                                 LogicalType(parameterTypeID);
-        auto childAfterCast = expressionBinder.implicitCastIfNecessary(children[i], parameterType);
-        if (ExpressionVisitor::needFold(*childAfterCast)) {
-            childAfterCast = expressionBinder.foldExpression(childAfterCast);
-        }
-        auto literalExpr = childAfterCast->constPtrCast<LiteralExpression>();
-        inputValues.push_back(*literalExpr->getValue());
+        ExpressionUtil::validateDataType(*children[i], parameterTypeID);
     }
     auto bindInput = function::TableFuncBindInput();
     bindInput.inputs = std::move(inputValues);
