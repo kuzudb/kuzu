@@ -165,7 +165,7 @@ void LocalFileSystem::createDir(const std::string& dir) const {
             // This is a known issue with std::filesystem::create_directories. (link:
             // https://github.com/llvm/llvm-project/issues/60634). We have to manually remove the
             // last '/' if the path ends with '/'.
-            directoryToCreate.substr(0, directoryToCreate.size() - 1);
+            directoryToCreate = directoryToCreate.substr(0, directoryToCreate.size() - 1);
         }
         std::error_code errCode;
         if (!std::filesystem::create_directories(directoryToCreate, errCode)) {
