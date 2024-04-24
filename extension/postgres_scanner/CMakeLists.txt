@@ -1,5 +1,9 @@
-set(DuckDB_STATIC ON)
 find_package(DuckDB REQUIRED)
+if(WIN32)
+        find_library(DuckDB_LIBRARY REQUIRED NAMES duckdb_static.lib)
+else()
+        find_library(DuckDB_LIBRARY REQUIRED NAMES libduckdb_static.a)
+endif()
 
 add_library(postgres_scanner
         SHARED
@@ -32,7 +36,7 @@ set_target_properties(postgres_scanner
 
 target_link_libraries(postgres_scanner
         PRIVATE
-        ${DuckDB_LIBRARIES})
+        ${DuckDB_LIBRARY})
 
 if (WIN32)
         # On windows, there is no dynamic lookup available, so it's not

@@ -1,5 +1,9 @@
-set(DuckDB_STATIC ON)
 find_package(DuckDB REQUIRED)
+if(WIN32)
+        find_library(DuckDB_LIBRARY REQUIRED NAMES duckdb_static.lib)
+else()
+        find_library(DuckDB_LIBRARY REQUIRED NAMES libduckdb_static.a)
+endif()
 
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
@@ -24,7 +28,7 @@ set_target_properties(duckdb_scanner
 
 target_link_libraries(duckdb_scanner
         PRIVATE
-        ${DuckDB_LIBRARIES})
+        ${DuckDB_LIBRARY})
 
 set_target_properties(duckdb_scanner PROPERTIES
         OUTPUT_NAME duckdb_scanner
