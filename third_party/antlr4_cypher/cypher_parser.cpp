@@ -451,7 +451,7 @@ void cypherParserInitialize() {
   	0,519,520,5,49,0,0,520,521,5,150,0,0,521,523,3,286,143,0,522,524,5,150,
   	0,0,523,522,1,0,0,0,523,524,1,0,0,0,524,525,1,0,0,0,525,527,5,6,0,0,526,
   	528,5,150,0,0,527,526,1,0,0,0,527,528,1,0,0,0,528,529,1,0,0,0,529,530,
-  	3,238,119,0,530,27,1,0,0,0,531,532,5,50,0,0,532,533,5,150,0,0,533,534,
+  	3,190,95,0,530,27,1,0,0,0,531,532,5,50,0,0,532,533,5,150,0,0,533,534,
   	5,94,0,0,534,535,5,150,0,0,535,536,5,60,0,0,536,537,5,150,0,0,537,538,
   	3,284,142,0,538,539,5,150,0,0,539,540,5,125,0,0,540,541,5,150,0,0,541,
   	542,5,136,0,0,542,29,1,0,0,0,543,544,5,92,0,0,544,545,5,150,0,0,545,546,
@@ -2612,8 +2612,8 @@ CypherParser::OC_SymbolicNameContext* CypherParser::KU_StandaloneCallContext::oC
   return getRuleContext<CypherParser::OC_SymbolicNameContext>(0);
 }
 
-CypherParser::OC_LiteralContext* CypherParser::KU_StandaloneCallContext::oC_Literal() {
-  return getRuleContext<CypherParser::OC_LiteralContext>(0);
+CypherParser::OC_ExpressionContext* CypherParser::KU_StandaloneCallContext::oC_Expression() {
+  return getRuleContext<CypherParser::OC_ExpressionContext>(0);
 }
 
 
@@ -2661,7 +2661,7 @@ CypherParser::KU_StandaloneCallContext* CypherParser::kU_StandaloneCall() {
       match(CypherParser::SP);
     }
     setState(529);
-    oC_Literal();
+    oC_Expression();
    
   }
   catch (RecognitionException &e) {
