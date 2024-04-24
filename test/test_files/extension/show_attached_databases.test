@@ -14,7 +14,7 @@
 ---- ok
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/dbfilewithoutext' (dbtype 'duckdb');
 ---- ok
--STATEMENT CALL show_databases() RETURN *;
+-STATEMENT CALL show_attached_databases() RETURN *;
 ---- 2
 tinysnb|DUCKDB
 dbfilewithoutext|DUCKDB

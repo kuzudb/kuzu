@@ -86,8 +86,8 @@ struct StorageInfoFunction final : public CallFunction {
     static function_set getFunctionSet();
 };
 
-struct ShowDatabasesFunction final : public CallFunction {
-    static constexpr const char* name = "SHOW_DATABASES";
+struct ShowAttachedDatabasesFunction final : public CallFunction {
+    static constexpr const char* name = "SHOW_ATTACHED_DATABASES";
 
     static function_set getFunctionSet();
 };

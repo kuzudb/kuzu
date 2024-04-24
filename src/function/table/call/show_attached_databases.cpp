@@ -7,18 +7,18 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace function {
 
-struct ShowDatabasesBindData : public CallTableFuncBindData {
+struct ShowAttachedDatabasesBindData : public CallTableFuncBindData {
     std::vector<main::AttachedDatabase*> attachedDatabases;
 
-    ShowDatabasesBindData(std::vector<main::AttachedDatabase*> attachedDatabases,
+    ShowAttachedDatabasesBindData(std::vector<main::AttachedDatabase*> attachedDatabases,
         std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
         offset_t maxOffset)
         : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
           attachedDatabases{std::move(attachedDatabases)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowDatabasesBindData>(attachedDatabases, columnTypes, columnNames,
-            maxOffset);
+        return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases, columnTypes,
+            columnNames, maxOffset);
     }
 };
 
@@ -31,7 +31,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         return 0;
     }
     auto& attachedDatabases =
-        ku_dynamic_cast<function::TableFuncBindData*, ShowDatabasesBindData*>(input.bindData)
+        ku_dynamic_cast<function::TableFuncBindData*, ShowAttachedDatabasesBindData*>(
+            input.bindData)
             ->attachedDatabases;
     auto numDatabasesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numDatabasesToOutput; i++) {
@@ -51,11 +52,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columnNames.emplace_back("database type");
     columnTypes.emplace_back(*LogicalType::STRING());
     auto attachedDatabases = context->getDatabaseManager()->getAttachedDatabases();
-    return std::make_unique<ShowDatabasesBindData>(attachedDatabases, std::move(columnTypes),
-        std::move(columnNames), attachedDatabases.size());
+    return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases,
+        std::move(columnTypes), std::move(columnNames), attachedDatabases.size());
 }
 
-function_set ShowDatabasesFunction::getFunctionSet() {
+function_set ShowAttachedDatabasesFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, bindFunc,
         initSharedState, initEmptyLocalState, std::vector<LogicalTypeID>{}));
