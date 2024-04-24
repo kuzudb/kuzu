@@ -18,7 +18,8 @@ add_library(postgres_scanner
         ../duckdb_scanner/src/duckdb_type_converter.cpp
         src/postgres_scanner_extension.cpp
         src/postgres_storage.cpp
-        src/postgres_catalog.cpp)
+        src/postgres_catalog.cpp
+        src/postgres_functions.cpp)
 
 include_directories(
         src/include

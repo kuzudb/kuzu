@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "common/api.h"
+#include "function/table/call_functions.h"
 #include "main/db_config.h"
 
 namespace kuzu {
@@ -35,6 +36,9 @@ struct ExtensionUtils {
     static bool isFullPath(const std::string& extension);
 
     static ExtensionRepoInfo getExtensionRepoInfo(const std::string& extension);
+
+    KUZU_API static void registerFunction(main::Database& database,
+        std::unique_ptr<function::TableFunction> function);
 };
 
 struct ExtensionOptions {

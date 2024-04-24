@@ -8,7 +8,7 @@ namespace duckdb_scanner {
 
 void DuckDBScannerExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
-    db->registerStorageExtension("duckdb", std::make_unique<DuckDBStorageExtension>());
+    db->registerStorageExtension("duckdb", std::make_unique<DuckDBStorageExtension>(db));
 }
 
 } // namespace duckdb_scanner

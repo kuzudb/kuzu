@@ -8,7 +8,7 @@ namespace postgres_scanner {
 
 void PostgresScannerExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
-    db->registerStorageExtension("postgres", std::make_unique<PostgresStorageExtension>());
+    db->registerStorageExtension("postgres", std::make_unique<PostgresStorageExtension>(db));
 }
 
 } // namespace postgres_scanner

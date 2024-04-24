@@ -22,7 +22,8 @@ add_library(duckdb_scanner
         src/duckdb_scan.cpp
         src/duckdb_type_converter.cpp
         src/duckdb_catalog.cpp
-        src/duckdb_table_catalog_entry.cpp)
+        src/duckdb_table_catalog_entry.cpp
+        src/duckdb_functions.cpp)
 
 set_target_properties(duckdb_scanner
     PROPERTIES

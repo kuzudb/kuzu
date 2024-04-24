@@ -91,7 +91,7 @@ public:
 
     // Database component getters.
     KUZU_API Database* getDatabase() const { return database; }
-    DatabaseManager* getDatabaseManager() const;
+    KUZU_API DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
     KUZU_API storage::MemoryManager* getMemoryManager();
     catalog::Catalog* getCatalog() const;

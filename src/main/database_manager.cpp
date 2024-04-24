@@ -52,5 +52,21 @@ void DatabaseManager::setDefaultDatabase(const std::string& databaseName) {
     defaultDatabase = databaseName;
 }
 
+std::vector<AttachedDatabase*> DatabaseManager::getAttachedDatabases() const {
+    std::vector<AttachedDatabase*> attachedDatabasesPtr;
+    for (auto& attachedDatabase : attachedDatabases) {
+        attachedDatabasesPtr.push_back(attachedDatabase.get());
+    }
+    return attachedDatabasesPtr;
+}
+
+void DatabaseManager::invalidateCache(const std::string& dbType) {
+    for (auto& attachedDatabase : attachedDatabases) {
+        if (attachedDatabase->getDBType() == dbType) {
+            attachedDatabase->invalidateCache();
+        }
+    }
+}
+
 } // namespace main
 } // namespace kuzu

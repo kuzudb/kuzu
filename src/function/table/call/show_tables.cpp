@@ -29,9 +29,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto tables =
-        ku_dynamic_cast<function::TableFuncBindData*, function::ShowTablesBindData*>(input.bindData)
-            ->tables;
+    auto tables = ku_dynamic_cast<TableFuncBindData*, ShowTablesBindData*>(input.bindData)->tables;
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto tableEntry = tables[morsel.startOffset + i];
