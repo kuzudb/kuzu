@@ -2,6 +2,8 @@
 
 #include <filesystem>
 
+#include "common/exception/runtime.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "duckdb_catalog.h"
 
@@ -20,6 +22,11 @@ std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::st
         dbName = catalogName;
     }
     auto duckdbCatalog = std::make_unique<DuckDBCatalogContent>();
+    auto vfs = std::make_unique<common::VirtualFileSystem>();
+    if (!vfs->fileOrPathExists(dbPath)) {
+        throw common::RuntimeException{
+            common::stringFormat("'{}' is not a valid duckdb database path.", dbPath)};
+    }
     duckdbCatalog->init(dbPath, catalogName, clientContext);
     return std::make_unique<main::AttachedDatabase>(dbName, std::move(duckdbCatalog));
 }

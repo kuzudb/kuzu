@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace common {
 
-class VirtualFileSystem final : public FileSystem {
+class KUZU_API VirtualFileSystem final : public FileSystem {
 
 public:
     VirtualFileSystem();
