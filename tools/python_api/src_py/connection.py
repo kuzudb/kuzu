@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from . import _kuzu
 from .prepared_statement import PreparedStatement
 from .query_result import QueryResult
+from .types import Type
 
 if TYPE_CHECKING:
     import sys
@@ -16,7 +17,6 @@ if TYPE_CHECKING:
         from typing import Self
     else:
         from typing_extensions import Self
-
 
 class Connection:
     """Connection to a database."""
@@ -229,3 +229,24 @@ class Connection:
         """
         self.init_connection()
         self._connection.set_query_timeout(timeout_in_ms)
+
+    def set_UDF(self, name: str, udf: Callable[[...], Any], parameters: list[Type] = [], return_type: Type = None) -> None:
+        """
+        Sets a User Defined Function (UDF) to use in cypher queries.
+
+        Parameters
+        ----------
+        name: str
+            name of function
+        
+        udf: Callable[[...], Any]
+            function to be executed
+        
+        parameters: list[Type]
+            list of Type enums to describe the input parameters
+        
+        return_type: Type
+            a Type enum to describe the returned value
+        """
+        parsedRetval = "" if return_type is None else return_type.value
+        self._connection.set_UDF(name, udf, list(map(lambda x: x.value, parameters)), parsedRetval)

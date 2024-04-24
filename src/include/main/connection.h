@@ -115,6 +115,12 @@ public:
         commitUDFTrx(autoTrx);
     }
 
+    void addUDFFunctionSet(std::string name, function::function_set func) {
+        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
+        addScalarFunction(std::move(name), std::move(func));
+        commitUDFTrx(autoTrx);
+    }
+
     template<typename TR, typename... Args>
     void createVectorizedFunction(std::string name, function::scalar_func_exec_t scalarFunc) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());

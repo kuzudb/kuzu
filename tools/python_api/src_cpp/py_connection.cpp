@@ -10,6 +10,7 @@
 #include "common/utils.h"
 #include "datetime.h" // from Python
 #include "function/built_in_function_utils.h"
+#include "include/py_udf.h"
 #include "main/connection.h"
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
@@ -32,7 +33,9 @@ void PyConnection::initialize(py::handle& m) {
         .def("get_num_rels", &PyConnection::getNumRels, py::arg("rel_name"))
         .def("get_all_edges_for_torch_geometric", &PyConnection::getAllEdgesForTorchGeometric,
             py::arg("np_array"), py::arg("src_table_name"), py::arg("rel_name"),
-            py::arg("dst_table_name"), py::arg("query_batch_size"));
+            py::arg("dst_table_name"), py::arg("query_batch_size"))
+        .def("set_UDF", &PyConnection::createScalarFunction, py::arg("name"), py::arg("udf"),
+            py::arg("parameters"), py::arg("return_value"));
     PyDateTime_IMPORT;
 }
 
@@ -167,7 +170,6 @@ bool PyConnection::isPandasDataframe(const py::object& object) {
     return py::isinstance(object, importCache->pandas.DataFrame());
 }
 
-static Value transformPythonValue(py::handle val);
 
 static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
     const py::dict& params, Connection* conn) {
@@ -180,7 +182,7 @@ static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonPa
                                      py::str(key.get_type()).cast<std::string>());
         }
         auto name = key.cast<std::string>();
-        auto val = std::make_unique<Value>(transformPythonValue(value));
+        auto val = std::make_unique<Value>(PyConnection::transformPythonValue(value));
         result.insert({name, std::move(val)});
     }
     return result;
@@ -269,7 +271,7 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
     }
 }
 
-static Value transformPythonValueAs(py::handle val, const LogicalType& type) {
+Value PyConnection::transformPythonValueAs(py::handle val, const LogicalType& type) {
     // ignore the type of the actual python object, just directly cast
     auto datetime_datetime = importCache->datetime.datetime();
     auto time_delta = importCache->datetime.timedelta();
@@ -285,17 +287,17 @@ static Value transformPythonValueAs(py::handle val, const LogicalType& type) {
     case LogicalTypeID::INT64:
         return Value::createValue<int64_t>(py::cast<py::int_>(val).cast<int64_t>());
     case LogicalTypeID::UINT32:
-        return Value::createValue<uint32_t>(py::cast<py::int_>(val).cast<int64_t>());
+        return Value::createValue<uint32_t>(py::cast<py::int_>(val).cast<uint32_t>());
     case LogicalTypeID::INT32:
-        return Value::createValue<int32_t>(py::cast<py::int_>(val).cast<int64_t>());
+        return Value::createValue<int32_t>(py::cast<py::int_>(val).cast<int32_t>());
     case LogicalTypeID::UINT16:
-        return Value::createValue<uint16_t>(py::cast<py::int_>(val).cast<int64_t>());
+        return Value::createValue<uint16_t>(py::cast<py::int_>(val).cast<uint16_t>());
     case LogicalTypeID::INT16:
-        return Value::createValue<int16_t>(py::cast<py::int_>(val).cast<int64_t>());
+        return Value::createValue<int16_t>(py::cast<py::int_>(val).cast<int16_t>());
     case LogicalTypeID::UINT8:
-        return Value::createValue<uint8_t>(py::cast<py::int_>(val).cast<int64_t>());
+        return Value::createValue<uint8_t>(py::cast<py::int_>(val).cast<uint8_t>());
     case LogicalTypeID::INT8:
-        return Value::createValue<int8_t>(py::cast<py::int_>(val).cast<int64_t>());
+        return Value::createValue<int8_t>(py::cast<py::int_>(val).cast<int8_t>());
     case LogicalTypeID::DOUBLE:
         return Value::createValue<double>(py::cast<py::float_>(val).cast<double>());
     case LogicalTypeID::STRING:
@@ -398,7 +400,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType& type) {
     }
 }
 
-Value transformPythonValue(py::handle val) {
+Value PyConnection::transformPythonValue(py::handle val) {
     auto type = pyLogicalType(val);
     return transformPythonValueAs(val, *type);
 }
@@ -412,4 +414,9 @@ std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(
     pyQueryResult->queryResult = queryResult.release();
     pyQueryResult->isOwned = true;
     return pyQueryResult;
+}
+
+void PyConnection::createScalarFunction(const std::string& name, const py::function& udf,
+    const py::list& params, const std::string& retval) {
+    conn->addUDFFunctionSet(name, PyUDF::toFunctionSet(name, udf, params, retval));
 }
