@@ -60,8 +60,13 @@ TEST_F(CApiDatabaseTest, CreationInvalidPath) {
 }
 
 TEST_F(CApiDatabaseTest, CreationHomeDir) {
-    auto databasePathCStr = (char*)"~/ku_test.db";
+    auto databasePathCStr = (char*)"~/ku_test.db/";
     auto database = kuzu_database_init(databasePathCStr, kuzu_default_system_config());
+    auto connection = kuzu_connection_init(database);
+    auto homePath =
+        getClientContext(*(Connection*)(connection->_connection))->getClientConfig()->homeDirectory;
     ASSERT_NE(database, nullptr);
+    kuzu_connection_destroy(connection);
     kuzu_database_destroy(database);
+    std::filesystem::remove_all(homePath + "/ku_test.db");
 }

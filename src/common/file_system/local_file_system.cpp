@@ -160,10 +160,25 @@ void LocalFileSystem::createDir(const std::string& dir) const {
             throw IOException(stringFormat("Directory {} already exists.", dir));
             // LCOV_EXCL_STOP
         }
-        if (!std::filesystem::create_directories(dir)) {
+        auto directoryToCreate = dir;
+        if (directoryToCreate.ends_with('/')) {
+            // This is a known issue with std::filesystem::create_directories. (link:
+            // https://github.com/llvm/llvm-project/issues/60634). We have to manually remove the
+            // last '/' if the path ends with '/'.
+            directoryToCreate = directoryToCreate.substr(0, directoryToCreate.size() - 1);
+        }
+        std::error_code errCode;
+        if (!std::filesystem::create_directories(directoryToCreate, errCode)) {
             // LCOV_EXCL_START
-            throw IOException(stringFormat(
-                "Directory {} cannot be created. Check if it exists and remove it.", dir));
+            throw IOException(
+                stringFormat("Directory {} cannot be created. Check if it exists and remove it.",
+                    directoryToCreate));
+            // LCOV_EXCL_STOP
+        }
+        if (errCode) {
+            // LCOV_EXCL_START
+            throw IOException(stringFormat("Failed to create directory: {}, error message: {}.",
+                dir, errCode.message()));
             // LCOV_EXCL_STOP
         }
     } catch (std::exception& e) {
