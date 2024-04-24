@@ -1,0 +1,194 @@
+-GROUP CoalesceFunctionTests
+-DATASET CSV empty
+
+--
+
+-CASE ConstantTests
+
+-LOG NoArgumentError
+-STATEMENT RETURN coalesce();
+---- error
+Binder exception: COALESCE requires at least one argument
+
+-LOG DifferentParameterTypesError
+-STATEMENT RETURN coalesce(1, "hello");
+---- error
+Binder exception: Expression hello has data type STRING but expected INT64. Implicit cast is not supported.
+
+-LOG ErrorExpression
+-STATEMENT RETURN coalesce(1, cast("hello", "INT64"));
+---- error
+Conversion exception: Cast failed. Could not convert "hello" to INT64.
+
+-STATEMENT RETURN coalesce(NULL, cast("hello", "INT64"));
+---- error
+Conversion exception: Cast failed. Could not convert "hello" to INT64.
+
+-LOG NullTest
+-STATEMENT RETURN coalesce(NULL);
+---- 1
+
+
+-LOG IntegerTest
+-STATEMENT RETURN coalesce(NULL, NULL, 1, 2, NULL);
+---- 1
+1
+
+-LOG DoubleTest
+-STATEMENT RETURN coalesce(3.14, NULL, 1.23);
+---- 1
+3.140000
+
+-LOG BooleanTest
+-STATEMENT RETURN coalesce(NULL, false, true);
+---- 1
+False
+
+-LOG StringTest
+-STATEMENT RETURN coalesce(NULL, NULL, 'default_string');
+---- 1
+default_string
+
+-LOG DateTest
+-STATEMENT RETURN coalesce(date('2022-06-06'));
+---- 1
+2022-06-06
+
+-LOG TimestampTest
+-STATEMENT RETURN coalesce(NULL, timestamp("1970-01-01 00:00:00.004666-10"));
+---- 1
+1970-01-01 10:00:00.004666
+
+-LOG IntervalTest
+-STATEMENT RETURN coalesce(NULL, interval("1 year 2 days"), NULL);
+---- 1
+1 year 2 days
+
+-LOG ListTest
+-STATEMENT RETURN coalesce(NULL, [1, 2, 3], NULL, [4, 5, 6, 7, 8], NULL);
+---- 1
+[1,2,3]
+
+-LOG StructTest
+-STATEMENT RETURN coalesce(NULL, {name: 'Alice', age: 20}, NULL, NULL, {name: 'Bob', age: 25});
+---- 1
+{name: Alice, age: 20}
+
+-STATEMENT RETURN CAST(COALESCE(CAST(NULL, "STRUCT(a INT64, b STRING)"), CAST(NULL, "STRUCT(a INT64, b STRING)")), "STRUCT(a INT64, b STRING)");
+---- 1
+
+
+-LOG MapTest
+-STATEMENT RETURN coalesce(NULL, map([1, 2], ['a', 'b']), NULL, map([1, 2, 3], ['a', 'b', 'c']));
+---- 1
+{1=a, 2=b}
+
+-LOG MixNumericTest
+-STATEMENT RETURN coalesce(1, NULL, 1.5);
+---- 1
+1.000000
+
+-LOG MixListTest
+-STATEMENT RETURN coalesce([1, 2, 3], [1.5, 2.5]);
+---- 1
+[1.000000,2.000000,3.000000]
+
+-LOG IfNullError
+-STATEMENT RETURN ifnull(NULL, 1, 2);
+---- error
+Binder exception: Cannot match a built-in function for given function IFNULL(ANY,INT64,INT64). Supported inputs are
+(ANY,ANY) -> ANY
+
+-STATEMENT RETURN ifNULL;
+---- error
+Binder exception: Variable ifNULL is not in scope.
+
+-LOG IfNullTest
+-STATEMENT RETURN ifnull(NULL, 'default_string');
+---- 1
+default_string
+
+-CASE TableTest
+
+-STATEMENT CREATE node table tbl(id INT64, a INT32, b INT32, c STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE (t:tbl {id: 1, a: NULL, b: 111, c: '1111'});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 2, a: 22, b: NULL, c: '2222'});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 3, a: NULL, b: NULL, c: '3333'});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 4, a: 44, b: 444, c: '4444'});
+---- ok
+
+-STATEMENT MATCH (t:tbl) RETURN coalesce(t.a, t.b);
+---- 4
+111
+22
+
+44
+
+-STATEMENT MATCH (t:tbl) RETURN coalesce(t.b, t.a);
+---- 4
+111
+22
+
+444
+
+-STATEMENT MATCH (t:tbl) RETURN coalesce(t.b, t.id);
+---- 4
+111
+2
+3
+444
+
+-STATEMENT MATCH (t:tbl) RETURN coalesce(t.b, cast(t.id, "INT32"));
+---- 4
+111
+2
+3
+444
+
+-STATEMENT MATCH (t:tbl) RETURN coalesce(t.a, t.c);
+---- error
+Binder exception: Expression t.c has data type STRING but expected INT32. Implicit cast is not supported.
+
+-STATEMENT MATCH (t:tbl) RETURN coalesce(t.a, cast(t.c, "INT32"));
+---- 4
+1111
+22
+3333
+44
+
+-CASE PredicateTest
+
+-STATEMENT CREATE node table tbl(id INT64, bool BOOLEAN, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE (t:tbl {id: 1, bool: true});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 2, bool: false});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 3, bool: NULL});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 4, bool: true});
+---- ok
+
+-LOG CoalesceTest
+-STATEMENT MATCH (t:tbl) WHERE coalesce(NULL, t.bool, NULL) RETURN t.id;
+---- 2
+1
+4
+
+-STATEMENT MATCH (t:tbl) WHERE NOT coalesce(NULL, t.bool, NULL) RETURN t.id;
+---- 1
+2
+
+-LOG IfNullTest
+-STATEMENT MATCH (t:tbl) WHERE ifnull(NULL, t.bool) RETURN t.id;
+---- 2
+1
+4
+
+-STATEMENT MATCH (t:tbl) WHERE NOT ifnull(NULL, t.bool) RETURN t.id;
+---- 1
+2

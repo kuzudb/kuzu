@@ -21,6 +21,7 @@
 #include "function/table/call_functions.h"
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
+#include "function/utility/scalar_utility_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
@@ -182,6 +183,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Hash functions
         SCALAR_FUNCTION(MD5Function), SCALAR_FUNCTION(SHA256Function),
         SCALAR_FUNCTION(HashFunction),
+
+        // Scalar utility functions
+        SCALAR_FUNCTION(CoalesceFunction), SCALAR_FUNCTION(IfNullFunction),
 
         // Aggregate functions
         AGGREGATE_FUNCTION(CountStarFunction), AGGREGATE_FUNCTION(CountFunction),
