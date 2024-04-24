@@ -19,7 +19,9 @@ COPY Organisation_isLocatedIn FROM "dataset/ldbc-sf01/Organisation_isLocatedIn_P
 COPY hasInterest FROM "dataset/ldbc-sf01/Person_hasInterest_Tag.csv" (HEADER=true, DELIM='|');
 COPY Person_isLocatedIn FROM "dataset/ldbc-sf01/Person_isLocatedIn_Place.csv" (HEADER=true, DELIM='|');
 COPY knows FROM "dataset/ldbc-sf01/Person_knows_Person.csv" (HEADER=true, DELIM='|');
+COPY knows FROM "dataset/ldbc-sf01/Person_knows_Person_1.csv" (HEADER=true, DELIM='|');
 COPY likes_Comment FROM "dataset/ldbc-sf01/Person_likes_Comment.csv" (HEADER=true, DELIM='|');
+COPY likes_Comment FROM "dataset/ldbc-sf01/Person_likes_Comment_1.csv" (HEADER=true, DELIM='|');
 COPY likes_Post FROM "dataset/ldbc-sf01/Person_likes_Post.csv" (HEADER=true, DELIM='|');
 COPY studyAt FROM "dataset/ldbc-sf01/Person_studyAt_Organisation.csv" (HEADER=true, DELIM='|');
 COPY workAt FROM "dataset/ldbc-sf01/Person_workAt_Organisation.csv" (HEADER=true, DELIM='|');

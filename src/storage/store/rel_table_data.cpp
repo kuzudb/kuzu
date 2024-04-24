@@ -606,7 +606,8 @@ void RelTableData::slideForInsertions(offset_t nodeOffset, length_t numInsertion
         leftSize += header.getCSRLength(i);
     }
     KU_ASSERT(localState.header.getStartCSROffset(nodeOffset) >= leftSize);
-    auto gapSizeOfLeftSide = localState.header.getStartCSROffset(nodeOffset) - leftSize;
+    auto gapSizeOfLeftSide = localState.header.getStartCSROffset(nodeOffset) -
+                             localState.header.getStartCSROffset(leftBoundary) - leftSize;
     for (auto i = nodeOffset + 1; i <= rightBoundary; i++) {
         rightSize += header.getCSRLength(i);
     }
