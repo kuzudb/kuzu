@@ -37,7 +37,6 @@ target_link_libraries(postgres_scanner
         PRIVATE
         ${DuckDB_LIBRARIES})
 
-
 if (WIN32)
         # On windows, there is no dynamic lookup available, so it's not
         # possible to generically look for symbols on library load. There are
