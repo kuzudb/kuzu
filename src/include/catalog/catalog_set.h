@@ -26,6 +26,10 @@ public:
     std::unique_ptr<CatalogSet> copy() const;
 
 private:
+    void validateExist(const std::string& name) const;
+    void validateNotExist(const std::string& name) const;
+
+private:
     common::case_insensitive_map_t<std::unique_ptr<CatalogEntry>> entries;
 };
 

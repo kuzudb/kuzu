@@ -1,6 +1,5 @@
 #include "catalog/catalog_set.h"
 
-#include "common/assert.h"
 #include "common/exception/catalog.h"
 #include "common/string_format.h"
 
@@ -15,27 +14,29 @@ bool CatalogSet::containsEntry(const std::string& name) const {
 
 CatalogEntry* CatalogSet::getEntry(const std::string& name) {
     // LCOV_EXCL_START
-    // We should not trigger the following check. If so, we should throw more informative error
-    // message at catalog level.
-    if (!containsEntry(name)) {
-        throw CatalogException(stringFormat("Cannot find catalog entry with name {}.", name));
-    }
+    validateExist(name);
     // LCOV_EXCL_STOP
     return entries.at(name).get();
 }
 
 void CatalogSet::createEntry(std::unique_ptr<CatalogEntry> entry) {
-    KU_ASSERT(!entries.contains(entry->getName()));
+    // LCOV_EXCL_START
+    validateNotExist(entry->getName());
+    // LCOV_EXCL_STOP
     entries.emplace(entry->getName(), std::move(entry));
 }
 
 void CatalogSet::removeEntry(const std::string& name) {
-    KU_ASSERT(containsEntry(name));
+    // LCOV_EXCL_START
+    validateExist(name);
+    // LCOV_EXCL_STOP
     entries.erase(std::move(name));
 }
 
 void CatalogSet::renameEntry(const std::string& oldName, const std::string& newName) {
-    KU_ASSERT(containsEntry(oldName));
+    // LCOV_EXCL_START
+    validateExist(oldName);
+    // LCOV_EXCL_STOP
     auto entry = std::move(entries.at(oldName));
     entry->rename(newName);
     entries.erase(oldName);
@@ -80,6 +81,20 @@ std::unique_ptr<CatalogSet> CatalogSet::copy() const {
         newCatalogSet->createEntry(entry->copy());
     }
     return newCatalogSet;
+}
+
+// Ideally we should not trigger the following check. Instead, we should throw more informative
+// error message at catalog level.
+void CatalogSet::validateExist(const std::string& name) const {
+    if (!containsEntry(name)) {
+        throw CatalogException(stringFormat("{} does not exist in catalog.", name));
+    }
+}
+
+void CatalogSet::validateNotExist(const std::string& name) const {
+    if (containsEntry(name)) {
+        throw CatalogException(stringFormat("{} already exists in catalog.", name));
+    }
 }
 
 } // namespace catalog
