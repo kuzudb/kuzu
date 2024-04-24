@@ -1,6 +1,6 @@
 find_package(DuckDB REQUIRED)
 if(WIN32)
-        find_library(DuckDB_LIBRARY REQUIRED NAMES duckdb_static.lib)
+        find_library(DuckDB_LIBRARY REQUIRED NAMES duckdb.lib)
 else()
         find_library(DuckDB_LIBRARY REQUIRED NAMES libduckdb_static.a)
 endif()
