@@ -102,16 +102,12 @@ jobs:
         run: docker stop kuzu-x86
 
   build-mac-extensions-arm64:
-    runs-on: macos-14
+    runs-on: self-hosted-mac-arm
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: |
-          brew install duckdb openssl@3
-
       - name: Build precompiled extensions
-        run: make extension-release LTO=1 NUM_THREADS=$(nproc)
+        run: env OPENSSL_ROOT_DIR=/opt/homebrew/Cellar/openssl@3/3.3.0 make extension-release LTO=1 NUM_THREADS=$(sysctl -n hw.logicalcpu)
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           CMAKE_OSX_ARCHITECTURES: "arm64"
@@ -133,7 +129,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build precompiled extensions
-        run: make extension-release LTO=1 NUM_THREADS=$(nproc)
+        run: make extension-release LTO=1 NUM_THREADS=$(sysctl -n hw.logicalcpu)
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           CMAKE_OSX_ARCHITECTURES: "x86_64"

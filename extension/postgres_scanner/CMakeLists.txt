@@ -1,4 +1,14 @@
+# Address sanitizer may change the ABI, so we use dynamic linking
+# if it's enabled.
+if(${ENABLE_ADDRESS_SANITIZER})
+        set(DuckDB_USE_STATIC_LIBS OFF)
+else()
+        set(DuckDB_USE_STATIC_LIBS ON)
+endif()
 find_package(DuckDB REQUIRED)
+if(NOT WIN32)
+        find_library(DuckDB_STATIC REQUIRED NAMES libduckdb_static.a)
+endif()
 
 add_library(postgres_scanner
         SHARED
