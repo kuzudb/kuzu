@@ -51,12 +51,11 @@ void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
 }
 
 void StructColumn::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t startOffsetInChunk, ReadState& readState) {
-    Column::initReadState(transaction, nodeGroupIdx, startOffsetInChunk, readState);
+    ReadState& readState) {
+    Column::initReadState(transaction, nodeGroupIdx, readState);
     readState.childrenStates.resize(childColumns.size());
     for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
-            readState.childrenStates[i]);
+        childColumns[i]->initReadState(transaction, nodeGroupIdx, readState.childrenStates[i]);
     }
 }
 

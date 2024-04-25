@@ -54,7 +54,7 @@ public:
         RWPropertyStats propertyStatistics, bool enableCompression);
 
     void initReadState(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        common::offset_t startOffsetInChunk, ReadState& columnReadState) override;
+        ReadState& columnReadState) override;
     void scan(transaction::Transaction* transaction, ReadState& readState,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;

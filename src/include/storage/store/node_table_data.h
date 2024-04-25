@@ -57,8 +57,7 @@ public:
 
 private:
     void initializeColumnReadStates(transaction::Transaction* transaction,
-        common::offset_t startNodeOffset, kuzu::storage::NodeDataReadState& readState,
-        common::node_group_idx_t nodeGroupIdx);
+        NodeDataReadState& readState, common::node_group_idx_t nodeGroupIdx);
     void initializeLocalNodeReadState(transaction::Transaction* transaction,
         NodeDataReadState& readState, common::node_group_idx_t nodeGroupIdx);
 

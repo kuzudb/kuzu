@@ -16,7 +16,7 @@ public:
         transaction::Transaction* transaction, RWPropertyStats stats, bool enableCompression);
 
     void initReadState(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        common::offset_t startOffsetInChunk, Column::ReadState& columnReadState);
+        Column::ReadState& columnReadState);
 
     void append(common::node_group_idx_t nodeGroupIdx, const DictionaryChunk& dictChunk);
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,

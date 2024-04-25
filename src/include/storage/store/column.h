@@ -62,8 +62,7 @@ public:
         const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
 
     virtual void initReadState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInChunk,
-        ReadState& columnReadState);
+        common::node_group_idx_t nodeGroupIdx, ReadState& columnReadState);
 
     virtual void scan(transaction::Transaction* transaction, ReadState& readState,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);

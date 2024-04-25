@@ -182,8 +182,7 @@ private:
         const PackedCSRRegion& region, const LocalRelNG* localNG);
 
     void initializeColumnReadStates(transaction::Transaction* transaction,
-        common::offset_t startNodeOffset, RelDataReadState& readState,
-        common::node_group_idx_t nodeGroupIdx);
+        RelDataReadState& readState, common::node_group_idx_t nodeGroupIdx);
 
     std::vector<PackedCSRRegion> findRegions(const ChunkedCSRHeader& headerChunks,
         LocalState& localState);

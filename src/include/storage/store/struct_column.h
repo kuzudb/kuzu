@@ -13,7 +13,7 @@ public:
         RWPropertyStats propertyStatistics, bool enableCompression);
 
     void initReadState(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        common::offset_t startOffsetInChunk, ReadState& columnReadState) override;
+        ReadState& columnReadState) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         ColumnChunk* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;

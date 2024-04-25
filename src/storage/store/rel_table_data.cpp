@@ -171,9 +171,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     packedCSRInfo = PackedCSRInfo();
 }
 
-// TODO: Two optimizations:
-//       1. avoid scan the whole group of the csr header. just scan the vector.
-//       2. cache column chunk metadata.
+// TODO: avoid scan the whole group of the csr header. just scan the vector.
 void RelTableData::initializeReadState(Transaction* transaction, std::vector<column_id_t> columnIDs,
     const ValueVector& inNodeIDVector, RelDataReadState& readState) {
     readState.direction = direction;
@@ -184,13 +182,12 @@ void RelTableData::initializeReadState(Transaction* transaction, std::vector<col
     readState.readFromLocalStorage = false;
     auto nodeOffset =
         inNodeIDVector.readNodeOffset(inNodeIDVector.state->selVector->selectedPositions[0]);
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     // Reset to read from beginning for the csr of the new node offset.
     readState.posInCurrentCSR = 0;
     if (readState.isOutOfRange(nodeOffset)) {
         // Scan csr offsets and populate csr list entries for the new node group.
-        readState.startNodeOffset = startNodeOffset;
+        auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+        readState.startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         csrHeaderColumns.scan(transaction, nodeGroupIdx, readState.csrHeaderChunks);
         KU_ASSERT(readState.csrHeaderChunks.offset->getNumValues() ==
                   readState.csrHeaderChunks.length->getNumValues());
@@ -199,7 +196,7 @@ void RelTableData::initializeReadState(Transaction* transaction, std::vector<col
         readState.readFromPersistentStorage =
             nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumNodeGroups(transaction);
         if (readState.readFromPersistentStorage) {
-            initializeColumnReadStates(transaction, startNodeOffset, readState, nodeGroupIdx);
+            initializeColumnReadStates(transaction, readState, nodeGroupIdx);
         }
         if (transaction->isWriteTransaction()) {
             readState.localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
@@ -210,16 +207,15 @@ void RelTableData::initializeReadState(Transaction* transaction, std::vector<col
     }
 }
 
-void RelTableData::initializeColumnReadStates(Transaction* transaction, offset_t startNodeOffset,
-    RelDataReadState& readState, node_group_idx_t nodeGroupIdx) {
+void RelTableData::initializeColumnReadStates(Transaction* transaction, RelDataReadState& readState,
+    node_group_idx_t nodeGroupIdx) {
     readState.columnStates.resize(readState.columnIDs.size());
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
         auto columnID = readState.columnIDs[i];
         if (columnID == INVALID_COLUMN_ID) {
             continue;
         }
-        getColumn(columnID)->initReadState(transaction, nodeGroupIdx, startNodeOffset,
-            readState.columnStates[i]);
+        getColumn(columnID)->initReadState(transaction, nodeGroupIdx, readState.columnStates[i]);
     }
 }
 

@@ -25,12 +25,12 @@ DictionaryColumn::DictionaryColumn(const std::string& name, const MetadataDAHInf
 }
 
 void DictionaryColumn::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t startOffsetInChunk, Column::ReadState& readState) {
+    Column::ReadState& readState) {
     // We put states for data and offset columns into childrenStates.
     readState.childrenStates.resize(2);
-    dataColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+    dataColumn->initReadState(transaction, nodeGroupIdx,
         readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
-    offsetColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+    offsetColumn->initReadState(transaction, nodeGroupIdx,
         readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
 }
 

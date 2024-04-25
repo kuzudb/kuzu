@@ -63,13 +63,13 @@ ListColumn::ListColumn(std::string name, LogicalType dataType,
 }
 
 void ListColumn::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t startOffsetInChunk, ReadState& readState) {
-    Column::initReadState(transaction, nodeGroupIdx, startOffsetInChunk, readState);
+    ReadState& readState) {
+    Column::initReadState(transaction, nodeGroupIdx, readState);
     // We put states for size and data column into childrenStates.
     readState.childrenStates.resize(2);
-    sizeColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+    sizeColumn->initReadState(transaction, nodeGroupIdx,
         readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
-    dataColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+    dataColumn->initReadState(transaction, nodeGroupIdx,
         readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
 }
 

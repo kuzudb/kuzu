@@ -26,9 +26,9 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
           enableCompression} {}
 
 void StringColumn::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t startOffsetInChunk, ReadState& readState) {
-    Column::initReadState(transaction, nodeGroupIdx, startOffsetInChunk, readState);
-    dictionary.initReadState(transaction, nodeGroupIdx, startOffsetInChunk, readState);
+    ReadState& readState) {
+    Column::initReadState(transaction, nodeGroupIdx, readState);
+    dictionary.initReadState(transaction, nodeGroupIdx, readState);
 }
 
 void StringColumn::scan(Transaction* transaction, ReadState& readState, offset_t startOffsetInGroup,

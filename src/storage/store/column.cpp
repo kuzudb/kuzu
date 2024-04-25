@@ -269,13 +269,12 @@ void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, 
 }
 
 void Column::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    common::offset_t startOffsetInChunk, ReadState& readState) {
+    ReadState& readState) {
     if (nullColumn) {
         if (!readState.nullState) {
             readState.nullState = std::make_unique<ReadState>();
         }
-        nullColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
-            *readState.nullState);
+        nullColumn->initReadState(transaction, nodeGroupIdx, *readState.nullState);
     }
     KU_ASSERT(nodeGroupIdx < metadataDA->getNumElements(transaction->getType()));
     if (nodeGroupIdx != readState.nodeGroupIdx) {
