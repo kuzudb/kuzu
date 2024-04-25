@@ -45,14 +45,11 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto& dataChunk = output.dataChunk;
     auto srcVector = dataChunk.getValueVector(0).get();
     auto dstVector = dataChunk.getValueVector(1).get();
-    auto morsel = ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState)
-                      ->getMorsel();
+    auto morsel = input.sharedState->ptrCast<CallFuncSharedState>()->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto bindData =
-        ku_dynamic_cast<function::TableFuncBindData*, function::ShowConnectionBindData*>(
-            input.bindData);
+    auto bindData = input.bindData->constPtrCast<ShowConnectionBindData>();
     auto tableEntry = bindData->tableEntry;
     auto numRelationsToOutput = morsel.endOffset - morsel.startOffset;
     auto vectorPos = 0u;

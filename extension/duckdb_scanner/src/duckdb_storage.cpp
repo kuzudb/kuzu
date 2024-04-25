@@ -41,7 +41,8 @@ std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::st
 DuckDBStorageExtension::DuckDBStorageExtension(main::Database* database)
     : StorageExtension{attachDuckDB} {
     auto duckDBClearCacheFunction = std::make_unique<DuckDBClearCacheFunction>();
-    extension::ExtensionUtils::registerFunction(*database, std::move(duckDBClearCacheFunction));
+    extension::ExtensionUtils::registerTableFunction(*database,
+        std::move(duckDBClearCacheFunction));
 }
 
 bool DuckDBStorageExtension::canHandleDB(std::string dbType_) const {

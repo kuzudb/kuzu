@@ -24,23 +24,21 @@ struct PostgresClearCacheBindData : public duckdb_scanner::DuckDBClearCacheBindD
     }
 };
 
-static offset_t DuckDBClearCacheTableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t postgresClearCacheTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState =
-        ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState);
+    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto bindData =
-        ku_dynamic_cast<function::TableFuncBindData*, PostgresClearCacheBindData*>(input.bindData);
+    auto bindData = input.bindData->constPtrCast<duckdb_scanner::DuckDBClearCacheBindData>();
     bindData->databaseManager->invalidateCache(PostgresStorageExtension::dbType);
     dataChunk.getValueVector(0)->setValue<std::string>(0,
         "All attached duckdb database caches have been cleared.");
     return 1;
 }
 
-static std::unique_ptr<TableFuncBindData> DuckDBClearCacheBindFunc(ClientContext* context,
+static std::unique_ptr<TableFuncBindData> postgresClearCacheBindFunc(ClientContext* context,
     TableFuncBindInput*) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
@@ -51,7 +49,7 @@ static std::unique_ptr<TableFuncBindData> DuckDBClearCacheBindFunc(ClientContext
 }
 
 PostgresClearCacheFunction::PostgresClearCacheFunction()
-    : TableFunction{name, DuckDBClearCacheTableFunc, DuckDBClearCacheBindFunc,
+    : TableFunction{name, postgresClearCacheTableFunc, postgresClearCacheBindFunc,
           function::CallFunction::initSharedState, function::CallFunction::initEmptyLocalState,
           std::vector<LogicalTypeID>{}} {}
 

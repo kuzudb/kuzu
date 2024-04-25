@@ -36,7 +36,7 @@ struct ExtensionUtils {
 
     static ExtensionRepoInfo getExtensionRepoInfo(const std::string& extension);
 
-    KUZU_API static void registerFunction(main::Database& database,
+    KUZU_API static void registerTableFunction(main::Database& database,
         std::unique_ptr<function::TableFunction> function);
 };
 

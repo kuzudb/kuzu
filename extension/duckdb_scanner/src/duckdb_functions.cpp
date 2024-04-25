@@ -12,14 +12,12 @@ namespace duckdb_scanner {
 
 static offset_t DuckDBClearCacheTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState =
-        ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState);
+    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto bindData =
-        ku_dynamic_cast<function::TableFuncBindData*, DuckDBClearCacheBindData*>(input.bindData);
+    auto bindData = input.bindData->constPtrCast<DuckDBClearCacheBindData>();
     bindData->databaseManager->invalidateCache(DuckDBStorageExtension::dbType);
     dataChunk.getValueVector(0)->setValue<std::string>(0,
         "All attached duckdb database caches have been cleared.");

@@ -25,6 +25,11 @@ struct TableFuncBindData {
     virtual ~TableFuncBindData() = default;
 
     virtual std::unique_ptr<TableFuncBindData> copy() const = 0;
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const TableFuncBindData*, const TARGET*>(this);
+    }
 };
 
 struct ScanBindData : public TableFuncBindData {

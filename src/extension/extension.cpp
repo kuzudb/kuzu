@@ -58,7 +58,7 @@ ExtensionRepoInfo ExtensionUtils::getExtensionRepoInfo(const std::string& extens
     return {hostPath, hostURL, extensionURL};
 }
 
-void ExtensionUtils::registerFunction(main::Database& database,
+void ExtensionUtils::registerTableFunction(main::Database& database,
     std::unique_ptr<function::TableFunction> function) {
     auto name = function->name;
     function::function_set functionSet;

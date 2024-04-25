@@ -36,7 +36,8 @@ std::unique_ptr<main::AttachedDatabase> attachPostgres(std::string dbName, std::
 PostgresStorageExtension::PostgresStorageExtension(main::Database* database)
     : StorageExtension{attachPostgres} {
     auto postgresClearCacheFunction = std::make_unique<PostgresClearCacheFunction>();
-    extension::ExtensionUtils::registerFunction(*database, std::move(postgresClearCacheFunction));
+    extension::ExtensionUtils::registerTableFunction(*database,
+        std::move(postgresClearCacheFunction));
 }
 
 bool PostgresStorageExtension::canHandleDB(std::string dbType_) const {

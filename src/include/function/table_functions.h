@@ -15,6 +15,11 @@ struct TableFuncBindInput;
 
 struct TableFuncSharedState {
     virtual ~TableFuncSharedState() = default;
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<TableFuncSharedState*, TARGET*>(this);
+    }
 };
 
 struct TableFuncLocalState {
