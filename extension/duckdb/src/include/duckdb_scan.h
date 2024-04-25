@@ -41,5 +41,5 @@ void getDuckDBVectorConversionFunc(common::PhysicalTypeID physicalTypeID,
 
 function::TableFunction getScanFunction(DuckDBScanBindData bindData);
 
-} // namespace duckdb
+} // namespace duckdb_extension
 } // namespace kuzu

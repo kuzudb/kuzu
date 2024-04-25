@@ -133,5 +133,5 @@ std::pair<duckdb::DuckDB, duckdb::Connection> DuckDBCatalog::getConnection(
     }
 }
 
-} // namespace duckdb
+} // namespace duckdb_extension
 } // namespace kuzu

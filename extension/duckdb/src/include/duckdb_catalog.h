@@ -64,5 +64,5 @@ private:
     common::ValueVector tableNamesVector;
 };
 
-} // namespace duckdb
+} // namespace duckdb_extension
 } // namespace kuzu
