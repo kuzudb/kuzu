@@ -35,6 +35,9 @@ struct ExtensionUtils {
     static bool isFullPath(const std::string& extension);
 
     static ExtensionRepoInfo getExtensionRepoInfo(const std::string& extension);
+
+    KUZU_API static void registerTableFunction(main::Database& database,
+        std::unique_ptr<function::TableFunction> function);
 };
 
 struct ExtensionOptions {

@@ -8,8 +8,7 @@ namespace function {
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState =
-        ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState);
+    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
     auto outputVector = dataChunk.getValueVector(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;

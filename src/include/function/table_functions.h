@@ -15,6 +15,11 @@ struct TableFuncBindInput;
 
 struct TableFuncSharedState {
     virtual ~TableFuncSharedState() = default;
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<TableFuncSharedState*, TARGET*>(this);
+    }
 };
 
 struct TableFuncLocalState {
@@ -65,7 +70,7 @@ using table_func_init_local_t = std::function<std::unique_ptr<TableFuncLocalStat
 using table_func_can_parallel_t = std::function<bool()>;
 using table_func_progress_t = std::function<double(TableFuncSharedState* sharedState)>;
 
-struct TableFunction final : public Function {
+struct KUZU_API TableFunction : public Function {
     table_func_t tableFunc;
     table_func_bind_t bindFunc;
     table_func_init_shared_t initSharedStateFunc;

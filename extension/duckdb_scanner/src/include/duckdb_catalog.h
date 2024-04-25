@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/ddl/bound_create_table_info.h"
-#include "catalog/catalog_content.h"
+#include "extension/catalog_extension.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -31,12 +31,14 @@ struct BoundExtraCreateDuckDBTableInfo : public binder::BoundExtraCreateTableInf
     }
 };
 
-class DuckDBCatalogContent : public catalog::CatalogContent {
+class DuckDBCatalog : public extension::CatalogExtension {
 public:
-    DuckDBCatalogContent() : catalog::CatalogContent{} {}
+    DuckDBCatalog(std::string dbPath, std::string catalogName, main::ClientContext* context)
+        : CatalogExtension::CatalogExtension{}, dbPath{std::move(dbPath)},
+          catalogName{std::move(catalogName)},
+          tableNamesVector{*common::LogicalType::STRING(), context->getMemoryManager()} {}
 
-    virtual void init(const std::string& dbPath, const std::string& catalogName,
-        main::ClientContext* context);
+    void init() override;
 
 protected:
     bool bindPropertyInfos(duckdb::Connection& con, const std::string& tableName,
@@ -55,6 +57,11 @@ private:
 private:
     void createForeignTable(duckdb::Connection& con, const std::string& tableName,
         const std::string& dbPath, const std::string& catalogName);
+
+private:
+    std::string dbPath;
+    std::string catalogName;
+    common::ValueVector tableNamesVector;
 };
 
 } // namespace duckdb_scanner

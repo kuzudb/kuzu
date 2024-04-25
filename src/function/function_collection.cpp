@@ -197,6 +197,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(CurrentSettingFunction), TABLE_FUNCTION(DBVersionFunction),
         TABLE_FUNCTION(ShowTablesFunction), TABLE_FUNCTION(TableInfoFunction),
         TABLE_FUNCTION(ShowConnectionFunction), TABLE_FUNCTION(StorageInfoFunction),
+        TABLE_FUNCTION(ShowAttachedDatabasesFunction),
 
         // Read functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),

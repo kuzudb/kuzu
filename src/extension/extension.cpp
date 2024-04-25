@@ -1,7 +1,9 @@
 #include "extension/extension.h"
 
+#include "catalog/catalog.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "main/database.h"
 
 namespace kuzu {
 namespace extension {
@@ -54,6 +56,17 @@ ExtensionRepoInfo ExtensionUtils::getExtensionRepoInfo(const std::string& extens
     auto hostURL = "http://" + hostName;
     auto hostPath = extensionURL.substr(hostNamePos);
     return {hostPath, hostURL, extensionURL};
+}
+
+void ExtensionUtils::registerTableFunction(main::Database& database,
+    std::unique_ptr<function::TableFunction> function) {
+    auto name = function->name;
+    function::function_set functionSet;
+    functionSet.push_back(std::move(function));
+    auto catalog = database.getCatalog();
+    catalog->addFunction(catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name),
+        std::move(functionSet));
+    catalog->checkpointInMemory();
 }
 
 void ExtensionOptions::addExtensionOption(std::string name, common::LogicalTypeID type,

@@ -7,7 +7,9 @@ namespace postgres_scanner {
 
 class PostgresStorageExtension final : public storage::StorageExtension {
 public:
-    PostgresStorageExtension();
+    static constexpr const char* dbType = "POSTGRES";
+
+    explicit PostgresStorageExtension(main::Database* database);
 
     bool canHandleDB(std::string dbType) const override;
 };

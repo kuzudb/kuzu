@@ -1,0 +1,20 @@
+-GROUP ShowDatabasesTest
+-DATASET CSV empty
+
+--
+
+-CASE ShowDatabasesTest
+-SKIP_MUSL
+-LOG InstallExtension
+-STATEMENT INSTALL duckdb_scanner;
+---- ok
+-STATEMENT LOAD EXTENSION duckdb_scanner;
+---- ok
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/tinysnb.db' (dbtype 'duckdb');
+---- ok
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb_scanner/test/duckdb_database/dbfilewithoutext' (dbtype 'duckdb');
+---- ok
+-STATEMENT CALL show_attached_databases() RETURN *;
+---- 2
+tinysnb|DUCKDB
+dbfilewithoutext|DUCKDB

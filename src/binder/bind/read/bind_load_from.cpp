@@ -25,7 +25,7 @@ static TableFunction getObjectScanFunc(const ObjectScanSource* objectSource,
         throw BinderException{stringFormat("No database named {} has been attached.", dbName)};
     }
     auto tableName = objectSource->objectNames[1];
-    auto attachedCatalog = attachedDB->getCatalogContent();
+    auto attachedCatalog = attachedDB->getCatalog();
     auto tableID = attachedCatalog->getTableID(tableName);
     auto entry = attachedCatalog->getTableCatalogEntry(tableID);
     auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);

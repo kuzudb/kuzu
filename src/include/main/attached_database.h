@@ -3,23 +3,29 @@
 #include <memory>
 #include <string>
 
-#include "catalog/catalog_content.h"
+#include "extension/catalog_extension.h"
 
 namespace kuzu {
 namespace main {
 
 class AttachedDatabase {
 public:
-    AttachedDatabase(std::string dbName, std::unique_ptr<catalog::CatalogContent> catalogContent)
-        : dbName{std::move(dbName)}, catalogContent{std::move(catalogContent)} {}
+    AttachedDatabase(std::string dbName, std::string dbType,
+        std::unique_ptr<extension::CatalogExtension> catalog)
+        : dbName{std::move(dbName)}, dbType{std::move(dbType)}, catalog{std::move(catalog)} {}
 
-    std::string getDBName() { return dbName; }
+    std::string getDBName() const { return dbName; }
 
-    catalog::CatalogContent* getCatalogContent() { return catalogContent.get(); }
+    std::string getDBType() const { return dbType; }
+
+    extension::CatalogExtension* getCatalog() { return catalog.get(); }
+
+    void invalidateCache() { catalog->invalidateCache(); }
 
 private:
     std::string dbName;
-    std::unique_ptr<catalog::CatalogContent> catalogContent;
+    std::string dbType;
+    std::unique_ptr<extension::CatalogExtension> catalog;
 };
 
 } // namespace main

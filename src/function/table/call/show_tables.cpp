@@ -23,15 +23,12 @@ struct ShowTablesBindData : public CallTableFuncBindData {
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState =
-        ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState);
+    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto tables =
-        ku_dynamic_cast<function::TableFuncBindData*, function::ShowTablesBindData*>(input.bindData)
-            ->tables;
+    auto tables = input.bindData->constPtrCast<ShowTablesBindData>()->tables;
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto tableEntry = tables[morsel.startOffset + i];

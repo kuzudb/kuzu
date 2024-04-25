@@ -121,8 +121,7 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
 
 static std::unique_ptr<TableFuncSharedState> initStorageInfoSharedState(
     TableFunctionInitInput& input) {
-    auto storageInfoBindData =
-        ku_dynamic_cast<TableFuncBindData*, StorageInfoBindData*>(input.bindData);
+    auto storageInfoBindData = input.bindData->constPtrCast<StorageInfoBindData>();
     return std::make_unique<StorageInfoSharedState>(storageInfoBindData->table,
         storageInfoBindData->maxOffset);
 }
@@ -161,8 +160,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto& dataChunk = output.dataChunk;
     auto localState =
         ku_dynamic_cast<TableFuncLocalState*, StorageInfoLocalState*>(input.localState);
-    auto sharedState =
-        ku_dynamic_cast<TableFuncSharedState*, StorageInfoSharedState*>(input.sharedState);
+    auto sharedState = input.sharedState->ptrCast<StorageInfoSharedState>();
     KU_ASSERT(dataChunk.state->selVector->isUnfiltered());
     while (true) {
         if (localState->currChunkIdx < localState->dataChunkCollection->getNumChunks()) {
@@ -180,13 +178,11 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
             localState->currChunkIdx++;
             return numValuesToOutput;
         }
-        auto morsel =
-            ku_dynamic_cast<TableFuncSharedState*, CallFuncSharedState*>(input.sharedState)
-                ->getMorsel();
+        auto morsel = input.sharedState->ptrCast<CallFuncSharedState>()->getMorsel();
         if (!morsel.hasMoreToOutput()) {
             return 0;
         }
-        auto bindData = ku_dynamic_cast<TableFuncBindData*, StorageInfoBindData*>(input.bindData);
+        auto bindData = input.bindData->constPtrCast<StorageInfoBindData>();
         auto tableEntry = bindData->tableEntry;
         std::string tableType = tableEntry->getTableType() == TableType::NODE ? "NODE" : "REL";
         for (auto columnID = 0u; columnID < sharedState->columns.size(); columnID++) {

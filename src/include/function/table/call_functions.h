@@ -28,7 +28,7 @@ struct CallFuncSharedState : public TableFuncSharedState {
 
     explicit CallFuncSharedState(common::offset_t maxOffset) : maxOffset{maxOffset}, curOffset{0} {}
 
-    CallFuncMorsel getMorsel();
+    KUZU_API CallFuncMorsel getMorsel();
 };
 
 struct CallTableFuncBindData : public TableFuncBindData {
@@ -44,7 +44,7 @@ struct CallTableFuncBindData : public TableFuncBindData {
     }
 };
 
-struct CallFunction {
+struct KUZU_API CallFunction {
     static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input);
     static std::unique_ptr<TableFuncLocalState> initEmptyLocalState(TableFunctionInitInput& input,
         TableFuncSharedState* state, storage::MemoryManager* mm);
@@ -82,6 +82,12 @@ struct ShowConnectionFunction final : public CallFunction {
 
 struct StorageInfoFunction final : public CallFunction {
     static constexpr const char* name = "STORAGE_INFO";
+
+    static function_set getFunctionSet();
+};
+
+struct ShowAttachedDatabasesFunction final : public CallFunction {
+    static constexpr const char* name = "SHOW_ATTACHED_DATABASES";
 
     static function_set getFunctionSet();
 };

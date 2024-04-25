@@ -112,6 +112,8 @@ public:
     KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
         common::Value defaultValue);
 
+    KUZU_API catalog::Catalog* getCatalog() { return catalog.get(); }
+
     ExtensionOption* getExtensionOption(std::string name);
 
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
