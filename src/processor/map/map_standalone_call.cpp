@@ -10,9 +10,9 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapStandaloneCall(
     planner::LogicalOperator* logicalOperator) {
-    auto logicalStandaloneCall = reinterpret_cast<LogicalStandaloneCall*>(logicalOperator);
+    auto logicalStandaloneCall = logicalOperator->constPtrCast<LogicalStandaloneCall>();
     auto optionValue =
-        reinterpret_cast<binder::LiteralExpression*>(logicalStandaloneCall->getOptionValue().get());
+        logicalStandaloneCall->getOptionValue()->constPtrCast<binder::LiteralExpression>();
     auto standaloneCallInfo = std::make_unique<StandaloneCallInfo>(
         logicalStandaloneCall->getOption(), *optionValue->getValue());
     return std::make_unique<StandaloneCall>(std::move(standaloneCallInfo),
