@@ -13,7 +13,7 @@ using string_offset_t = DictionaryChunk::string_offset_t;
 
 DictionaryColumn::DictionaryColumn(const std::string& name, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats stats, bool enableCompression) {
+    Transaction* transaction, RWPropertyStats stats, bool enableCompression) {
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
     dataColumn = std::make_unique<Column>(dataColName, *LogicalType::UINT8(),
         *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
@@ -22,6 +22,16 @@ DictionaryColumn::DictionaryColumn(const std::string& name, const MetadataDAHInf
     offsetColumn = std::make_unique<Column>(offsetColName, *LogicalType::UINT64(),
         *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataFH, bufferManager, wal, transaction,
         stats, enableCompression, false /*requireNullColumn*/);
+}
+
+void DictionaryColumn::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    offset_t startOffsetInChunk, Column::ReadState& readState) {
+    // We put states for data and offset columns into childrenStates.
+    readState.childrenStates.resize(2);
+    dataColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+        readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+    offsetColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
+        readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
 }
 
 void DictionaryColumn::append(node_group_idx_t nodeGroupIdx, const DictionaryChunk& dictChunk) {
@@ -49,12 +59,10 @@ void DictionaryColumn::scan(Transaction* transaction, node_group_idx_t nodeGroup
     offsetColumn->scan(transaction, nodeGroupIdx, offsetChunk);
 }
 
-void DictionaryColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void DictionaryColumn::scan(Transaction* transaction, const Column::ReadState& offsetState,
+    const Column::ReadState& dataState,
     std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan, ValueVector* resultVector,
     const ColumnChunkMetadata& indexMeta) {
-    auto offsetState = offsetColumn->getReadState(transaction->getType(), nodeGroupIdx);
-    auto dataState = dataColumn->getReadState(transaction->getType(), nodeGroupIdx);
-
     string_index_t firstOffsetToScan, lastOffsetToScan;
     auto comp = [](auto pair1, auto pair2) { return pair1.first < pair2.first; };
     auto duplicationFactor = (double)offsetState.metadata.numValues / indexMeta.numValues;
