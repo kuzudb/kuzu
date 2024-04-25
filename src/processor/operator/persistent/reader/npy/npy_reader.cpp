@@ -16,7 +16,6 @@
 #include <unistd.h>
 #endif
 
-#include "common/exception/binder.h"
 #include "common/exception/copy.h"
 #include "common/string_format.h"
 #include "common/utils.h"
