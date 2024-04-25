@@ -11,7 +11,7 @@ namespace planner {
 enum class ExtendDirection : uint8_t { FWD = 0, BWD = 1, BOTH = 2 };
 
 struct ExtendDirectionUtils {
-    static inline ExtendDirection getExtendDirection(const binder::RelExpression& relExpression,
+    static ExtendDirection getExtendDirection(const binder::RelExpression& relExpression,
         const binder::NodeExpression& boundNode) {
         if (relExpression.getDirectionType() == binder::RelDirectionType::BOTH) {
             return ExtendDirection::BOTH;
@@ -23,7 +23,7 @@ struct ExtendDirectionUtils {
         }
     }
 
-    static inline common::RelDataDirection getRelDataDirection(ExtendDirection extendDirection) {
+    static common::RelDataDirection getRelDataDirection(ExtendDirection extendDirection) {
         KU_ASSERT(extendDirection != ExtendDirection::BOTH);
         return extendDirection == ExtendDirection::FWD ? common::RelDataDirection::FWD :
                                                          common::RelDataDirection::BWD;

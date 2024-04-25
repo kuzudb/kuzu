@@ -63,9 +63,9 @@ class PathScanner : public BaseFrontierScanner {
 public:
     PathScanner(TargetDstNodes* targetDstNodes, size_t k,
         std::unordered_map<common::table_id_t, std::string> tableIDToName,
-        path_semantic_check_t semanticCheckFunc)
+        path_semantic_check_t semanticCheckFunc, bool extendInBwd)
         : BaseFrontierScanner{targetDstNodes, k}, tableIDToName{std::move(tableIDToName)},
-          semanticCheckFunc{semanticCheckFunc} {
+          semanticCheckFunc{semanticCheckFunc}, extendInBwd{extendInBwd} {
         nodeIDs.resize(k + 1);
         relIDs.resize(k + 1);
     }
@@ -97,8 +97,10 @@ private:
     std::stack<nbrs_t> nbrsStack;
     std::stack<int64_t> cursorStack;
     std::unordered_map<common::table_id_t, std::string> tableIDToName;
-
+    // Path semantic
     path_semantic_check_t semanticCheckFunc;
+    // Extend direction
+    bool extendInBwd;
 };
 
 /*

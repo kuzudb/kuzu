@@ -20,48 +20,51 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
-    planner::LogicalOperator* logicalOperator) {
-    auto extend = (LogicalRecursiveExtend*)logicalOperator;
+std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(LogicalOperator* logicalOperator) {
+    auto extend = logicalOperator->constPtrCast<LogicalRecursiveExtend>();
     auto boundNode = extend->getBoundNode();
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
     auto recursiveInfo = rel->getRecursiveInfo();
-    auto lengthExpression = rel->getLengthExpression();
     // Map recursive plan
     auto logicalRecursiveRoot = extend->getRecursiveChild();
     auto recursiveRoot = mapOperator(logicalRecursiveRoot.get());
     auto recursivePlanSchema = logicalRecursiveRoot->getSchema();
-    auto recursivePlanResultSetDescriptor =
-        std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
-    auto recursiveDstNodeIDPos =
-        DataPos(recursivePlanSchema->getExpressionPos(*recursiveInfo->nodeCopy->getInternalID()));
-    auto recursiveEdgeIDPos = DataPos(
-        recursivePlanSchema->getExpressionPos(*recursiveInfo->rel->getInternalIDProperty()));
     // Generate RecursiveJoin
     auto outSchema = extend->getSchema();
     auto inSchema = extend->getChild(0)->getSchema();
-    auto boundNodeIDPos = DataPos(inSchema->getExpressionPos(*boundNode->getInternalID()));
-    auto nbrNodeIDPos = DataPos(outSchema->getExpressionPos(*nbrNode->getInternalID()));
-    auto lengthPos = DataPos(outSchema->getExpressionPos(*lengthExpression));
     auto sharedState = createSharedState(*nbrNode, *clientContext->getStorageManager());
-    auto pathPos = DataPos();
-    if (extend->getJoinType() == planner::RecursiveJoinType::TRACK_PATH) {
-        pathPos = DataPos(outSchema->getExpressionPos(*rel));
+    // Data info
+    auto dataInfo = RecursiveJoinDataInfo();
+    dataInfo.srcNodePos = getDataPos(*boundNode->getInternalID(), *inSchema);
+    dataInfo.dstNodePos = getDataPos(*nbrNode->getInternalID(), *outSchema);
+    dataInfo.dstNodeTableIDs = nbrNode->getTableIDsSet();
+    dataInfo.pathLengthPos = getDataPos(*rel->getLengthExpression(), *outSchema);
+    dataInfo.localResultSetDescriptor = std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
+    dataInfo.recursiveDstNodeIDPos =
+        getDataPos(*recursiveInfo->nodeCopy->getInternalID(), *recursivePlanSchema);
+    dataInfo.recursiveDstNodeTableIDs = recursiveInfo->node->getTableIDsSet();
+    dataInfo.recursiveEdgeIDPos =
+        getDataPos(*recursiveInfo->rel->getInternalIDProperty(), *recursivePlanSchema);
+    if (extend->getJoinType() == RecursiveJoinType::TRACK_PATH) {
+        dataInfo.pathPos = getDataPos(*rel, *outSchema);
+    } else {
+        dataInfo.pathPos = DataPos::getInvalidPos();
     }
-    std::unordered_map<common::table_id_t, std::string> tableIDToName;
     for (auto& entry : clientContext->getCatalog()->getTableEntries(clientContext->getTx())) {
-        tableIDToName.insert({entry->getTableID(), entry->getName()});
+        dataInfo.tableIDToName.insert({entry->getTableID(), entry->getName()});
     }
-    auto dataInfo = std::make_unique<RecursiveJoinDataInfo>(boundNodeIDPos, nbrNodeIDPos,
-        nbrNode->getTableIDsSet(), lengthPos, std::move(recursivePlanResultSetDescriptor),
-        recursiveDstNodeIDPos, recursiveInfo->node->getTableIDsSet(), recursiveEdgeIDPos, pathPos,
-        std::move(tableIDToName));
+    // Info
+    auto info = RecursiveJoinInfo();
+    info.dataInfo = std::move(dataInfo);
+    info.lowerBound = rel->getLowerBound();
+    info.upperBound = rel->getUpperBound();
+    info.queryRelType = rel->getRelType();
+    info.joinType = extend->getJoinType();
+    info.direction = extend->getDirection();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    return std::make_unique<RecursiveJoin>(rel->getLowerBound(), rel->getUpperBound(),
-        rel->getRelType(), extend->getJoinType(), sharedState, std::move(dataInfo),
-        std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting(),
-        std::move(recursiveRoot));
+    return std::make_unique<RecursiveJoin>(std::move(info), sharedState, std::move(prevOperator),
+        getOperatorID(), extend->getExpressionsForPrinting(), std::move(recursiveRoot));
 }
 
 } // namespace processor

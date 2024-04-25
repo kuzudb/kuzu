@@ -6,22 +6,28 @@
 #include "processor/operator/recursive_extend/variable_length_state.h"
 
 using namespace kuzu::common;
+using namespace kuzu::planner;
 
 namespace kuzu {
 namespace processor {
 
-void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
+void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
+    auto& dataInfo = info.dataInfo;
     populateTargetDstNodes(context);
     vectors = std::make_unique<RecursiveJoinVectors>();
-    vectors->srcNodeIDVector = resultSet->getValueVector(dataInfo->srcNodePos).get();
-    vectors->dstNodeIDVector = resultSet->getValueVector(dataInfo->dstNodePos).get();
-    vectors->pathLengthVector = resultSet->getValueVector(dataInfo->pathLengthPos).get();
+    vectors->srcNodeIDVector = resultSet->getValueVector(dataInfo.srcNodePos).get();
+    vectors->dstNodeIDVector = resultSet->getValueVector(dataInfo.dstNodePos).get();
+    vectors->pathLengthVector = resultSet->getValueVector(dataInfo.pathLengthPos).get();
     auto semantic = context->clientContext->getClientConfig()->recursivePatternSemantic;
     path_semantic_check_t semanticCheck = nullptr;
     std::vector<std::unique_ptr<BaseFrontierScanner>> scanners;
-    switch (queryRelType) {
+    auto joinType = info.joinType;
+    auto lowerBound = info.lowerBound;
+    auto upperBound = info.upperBound;
+    auto extendInBWD = info.direction == ExtendDirection::BWD;
+    switch (info.queryRelType) {
     case QueryRelType::VARIABLE_LENGTH: {
-        switch (joinType) {
+        switch (info.joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             switch (semantic) {
             case PathSemantic::TRIAL: {
@@ -33,12 +39,12 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
             default:
                 semanticCheck = nullptr;
             }
-            vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
+            vectors->pathVector = resultSet->getValueVector(dataInfo.pathPos).get();
             bfsState = std::make_unique<VariableLengthState<true /* TRACK_PATH */>>(upperBound,
                 targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i,
-                    dataInfo->tableIDToName, semanticCheck));
+                    dataInfo.tableIDToName, semanticCheck, extendInBWD));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
@@ -64,12 +70,12 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
         }
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
-            vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
+            vectors->pathVector = resultSet->getValueVector(dataInfo.pathPos).get();
             bfsState = std::make_unique<ShortestPathState<true /* TRACK_PATH */>>(upperBound,
                 targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i,
-                    dataInfo->tableIDToName, nullptr));
+                    dataInfo.tableIDToName, nullptr, extendInBWD));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
@@ -91,12 +97,12 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
         }
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
-            vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
+            vectors->pathVector = resultSet->getValueVector(dataInfo.pathPos).get();
             bfsState = std::make_unique<AllShortestPathState<true /* TRACK_PATH */>>(upperBound,
                 targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i,
-                    dataInfo->tableIDToName, nullptr));
+                    dataInfo.tableIDToName, nullptr, extendInBWD));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
@@ -235,13 +241,14 @@ void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
         KU_ASSERT(op->getNumChildren() == 1);
         op = op->getChild(0);
     }
+    auto& dataInfo = info.dataInfo;
     scanFrontier = (ScanFrontier*)op;
-    localResultSet = std::make_unique<ResultSet>(dataInfo->localResultSetDescriptor.get(),
+    localResultSet = std::make_unique<ResultSet>(dataInfo.localResultSetDescriptor.get(),
         context->clientContext->getMemoryManager());
     vectors->recursiveDstNodeIDVector =
-        localResultSet->getValueVector(dataInfo->recursiveDstNodeIDPos).get();
+        localResultSet->getValueVector(dataInfo.recursiveDstNodeIDPos).get();
     vectors->recursiveEdgeIDVector =
-        localResultSet->getValueVector(dataInfo->recursiveEdgeIDPos).get();
+        localResultSet->getValueVector(dataInfo.recursiveEdgeIDPos).get();
     recursiveRoot->initLocalState(localResultSet.get(), context);
 }
 
@@ -264,9 +271,10 @@ void RecursiveJoin::populateTargetDstNodes(ExecutionContext* context) {
         }
     }
     targetDstNodes = std::make_unique<TargetDstNodes>(numTargetNodes, std::move(targetNodeIDs));
-    for (auto tableID : dataInfo->recursiveDstNodeTableIDs) {
-        if (!dataInfo->dstNodeTableIDs.contains(tableID)) {
-            targetDstNodes->setTableIDFilter(dataInfo->dstNodeTableIDs);
+    auto& dataInfo = info.dataInfo;
+    for (auto tableID : dataInfo.recursiveDstNodeTableIDs) {
+        if (!dataInfo.dstNodeTableIDs.contains(tableID)) {
+            targetDstNodes->setTableIDFilter(dataInfo.dstNodeTableIDs);
             return;
         }
     }
