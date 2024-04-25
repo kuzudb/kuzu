@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 
+#include "common/exception/binder.h"
 #include "common/exception/copy.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
@@ -652,6 +653,9 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     function::TableFuncBindInput* input) {
     auto scanInput =
         ku_dynamic_cast<function::TableFuncBindInput*, function::ScanTableFuncBindInput*>(input);
+    if (!scanInput->config.options.empty()) {
+        throw BinderException{"Copy from Parquet cannot have options."};
+    }
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;
     bindColumns(scanInput, detectedColumnNames, detectedColumnTypes);

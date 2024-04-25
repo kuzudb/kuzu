@@ -58,4 +58,4 @@
 
 -STATEMENT COPY tableOfTypes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet" (HEADER=true);
 ---- error
-Binder exception: Only copy from CSV can have options.
+Binder exception: Copy from Parquet cannot have options.
