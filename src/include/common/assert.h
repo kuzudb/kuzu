@@ -15,16 +15,19 @@ namespace common {
 }
 
 #if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
+#define RUNTIME_CHECK(code) code
 #define KU_ASSERT(condition)                                                                       \
     static_cast<bool>(condition) ?                                                                 \
         void(0) :                                                                                  \
         kuzu::common::kuAssertFailureInternal(#condition, __FILE__, __LINE__)
 #else
 #define KU_ASSERT(condition) void(0)
+#define RUNTIME_CHECK(code) void(0)
 #endif
 
 #define KU_UNREACHABLE                                                                             \
     [[unlikely]] kuzu::common::kuAssertFailureInternal("KU_UNREACHABLE", __FILE__, __LINE__)
+#define KU_UNUSED(expr) (void)(expr)
 
 } // namespace common
 } // namespace kuzu

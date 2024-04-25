@@ -7,9 +7,11 @@ void SimpleAggregateScan::initLocalStateInternal(ResultSet* resultSet, Execution
     BaseAggregateScan::initLocalStateInternal(resultSet, context);
     KU_ASSERT(!aggregatesPos.empty());
     auto outDataChunkPos = aggregatesPos[0].dataChunkPos;
-    for (auto& dataPos : aggregatesPos) {
-        KU_ASSERT(dataPos.dataChunkPos == outDataChunkPos);
-    }
+    RUNTIME_CHECK({
+        for (auto& dataPos : aggregatesPos) {
+            KU_ASSERT(dataPos.dataChunkPos == outDataChunkPos);
+        }
+    });
     outDataChunk = resultSet->dataChunks[outDataChunkPos].get();
 }
 

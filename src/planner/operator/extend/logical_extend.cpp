@@ -15,9 +15,11 @@ f_group_pos_set LogicalExtend::getGroupsPosToFlatten() {
 
 void LogicalExtend::computeFactorizedSchema() {
     copyChildSchema(0);
-    auto boundGroupPos = schema->getGroupPos(*boundNode->getInternalID());
+    RUNTIME_CHECK({
+        auto boundGroupPos = schema->getGroupPos(*boundNode->getInternalID());
+        KU_ASSERT(schema->getGroup(boundGroupPos)->isFlat());
+    });
     uint32_t nbrGroupPos = 0u;
-    KU_ASSERT(schema->getGroup(boundGroupPos)->isFlat());
     nbrGroupPos = schema->createGroup();
     schema->insertToGroupAndScope(nbrNode->getInternalID(), nbrGroupPos);
     for (auto& property : properties) {

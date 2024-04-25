@@ -13,18 +13,18 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
         if (targetTypeID == LogicalTypeID::ARRAY || targetTypeID == LogicalTypeID::LIST) {
             return true;
         }
-    }
+    } break;
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {
         if (sourceTypeID == targetTypeID) {
             return true;
         }
-    }
+    } break;
     case LogicalTypeID::ARRAY: {
         if (targetTypeID == LogicalTypeID::LIST || targetTypeID == LogicalTypeID::ARRAY) {
             return true;
         }
-    }
+    } break;
     default:
         return false;
     }
@@ -62,7 +62,7 @@ bool CastArrayHelper::containsListToArray(const LogicalType* srcType, const Logi
                     return true;
                 }
             }
-        }
+        } break;
         default:
             return false;
         }

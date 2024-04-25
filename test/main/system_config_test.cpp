@@ -34,21 +34,21 @@ TEST_F(SystemConfigTest, testMaxDBSize) {
     systemConfig->maxDBSize = 1024;
     try {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);
-    } catch (BufferManagerException e) {
+    } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: The given max db size should be at least 4194304 bytes.");
     }
     systemConfig->maxDBSize = 4194305;
     try {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);
-    } catch (BufferManagerException e) {
+    } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: The given max db size should be a power of 2.");
     }
     systemConfig->maxDBSize = 4194304;
     try {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);
-    } catch (BufferManagerException e) {
+    } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: No more frame groups can be added to the allocator.");
     }
@@ -60,7 +60,7 @@ TEST_F(SystemConfigTest, testBufferPoolSize) {
     systemConfig->bufferPoolSize = 1024;
     try {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);
-    } catch (BufferManagerException e) {
+    } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: The given buffer pool size should be at least 4KB.");
     }

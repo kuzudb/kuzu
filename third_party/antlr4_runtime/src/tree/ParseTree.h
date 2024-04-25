@@ -47,7 +47,7 @@ namespace tree {
     /// based upon the parser.
     virtual std::string toStringTree(Parser *parser, bool pretty = false) = 0;
 
-    virtual bool operator == (const ParseTree &other) const;
+    bool operator == (const ParseTree &other) const;
 
     /// The <seealso cref="ParseTreeVisitor"/> needs a double dispatch method.
     // ml: This has been changed to use Any instead of a template parameter, to avoid the need of a virtual template function.

@@ -6,16 +6,17 @@
 namespace kuzu {
 namespace optimizer {
 
-// Due to the nature of graph pattern, a (node)-[rel]-(node) is always interpreted as two joins.
-// However, in many cases, a single join is sufficient.
-// E.g. MATCH (a)-[e]->(b) RETURN e.date
-// Our planner will generate a plan where the HJ is redundant.
-//      HJ
-//     /  \
-//   E(e) S(b)
-//    |
-//   S(a)
-// This optimizer prunes such redundant joins.
+/* Due to the nature of graph pattern, a (node)-[rel]-(node) is always interpreted as two joins.
+ * However, in many cases, a single join is sufficient.
+ * E.g. MATCH (a)-[e]->(b) RETURN e.date
+ * Our planner will generate a plan where the HJ is redundant.
+ *      HJ
+ *     /  \
+ *   E(e) S(b)
+ *    |
+ *   S(a)
+ * This optimizer prunes such redundant joins.
+ */
 class RemoveUnnecessaryJoinOptimizer : public LogicalOperatorVisitor {
 public:
     void rewrite(planner::LogicalPlan* plan);

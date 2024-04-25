@@ -17,6 +17,7 @@
  * under the License.
  */
 
+#include <cstddef>
 #ifndef _THRIFT_THRIFT_H_
 #define _THRIFT_THRIFT_H_ 1
 
@@ -50,9 +51,13 @@
 namespace kuzu_apache {
 namespace thrift {
 
-class TEnumIterator
-    : public std::iterator<std::forward_iterator_tag, std::pair<int, const char*> > {
+class TEnumIterator {
 public:
+  using iterator_category = std::forward_iterator_tag;
+  using value_type = std::pair<int, const char*>;
+  using pointer = std::pair<int, const char*>*;
+  using reference = std::pair<int, const char*>&;
+  using difference_type = std::ptrdiff_t;
   TEnumIterator(int n, int* enums, const char** names)
     : ii_(0), n_(n), enums_(enums), names_(names) {}
 

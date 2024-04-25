@@ -110,7 +110,7 @@ concept HashableTypes = (std::integral<T> || std::floating_point<T> ||
                          std::is_same_v<T, list_entry_t> || std::is_same_v<T, internalID_t> ||
                          std::is_same_v<T, interval_t> || std::is_same_v<T, ku_string_t>);
 
-enum class KUZU_API LogicalTypeID : uint8_t {
+enum class LogicalTypeID : uint8_t {
     ANY = 0,
     NODE = 10,
     REL = 11,

@@ -65,8 +65,7 @@ private:
     inline const kuzu_parquet::format::RowGroup& getGroup(ParquetReaderScanState& state) {
         KU_ASSERT(
             state.currentGroup >= 0 && (uint64_t)state.currentGroup < state.groupIdxList.size());
-        KU_ASSERT(state.groupIdxList[state.currentGroup] >= 0 &&
-                  state.groupIdxList[state.currentGroup] < metadata->row_groups.size());
+        KU_ASSERT(state.groupIdxList[state.currentGroup] < metadata->row_groups.size());
         return metadata->row_groups[state.groupIdxList[state.currentGroup]];
     }
     static std::unique_ptr<common::LogicalType> deriveLogicalType(

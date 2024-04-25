@@ -38,9 +38,7 @@ struct Function {
     Function(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs)
         : name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)}, isVarLength{false} {
     }
-    Function(const Function& other)
-        : name{other.name}, parameterTypeIDs{other.parameterTypeIDs},
-          isVarLength{other.isVarLength} {}
+    Function(const Function&) = default;
 
     virtual ~Function() = default;
 

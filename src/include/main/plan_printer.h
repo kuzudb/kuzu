@@ -58,8 +58,7 @@ private:
     static std::string genHorizLine(uint32_t len);
 
     inline void validateRowIdxAndColIdx(uint32_t rowIdx, uint32_t colIdx) const {
-        KU_ASSERT(0 <= rowIdx && rowIdx < opProfileBoxes.size() && 0 <= colIdx &&
-                  colIdx < opProfileBoxes[rowIdx].size());
+        KU_ASSERT(rowIdx < opProfileBoxes.size() && colIdx < opProfileBoxes[rowIdx].size());
         (void)rowIdx;
         (void)colIdx;
     }
@@ -70,8 +69,8 @@ private:
     OpProfileBox* getOpProfileBox(uint32_t rowIdx, uint32_t colIdx) const;
 
     bool hasOpProfileBox(uint32_t rowIdx, uint32_t colIdx) const {
-        return 0 <= rowIdx && rowIdx < opProfileBoxes.size() && 0 <= colIdx &&
-               colIdx < opProfileBoxes[rowIdx].size() && getOpProfileBox(rowIdx, colIdx);
+        return rowIdx < opProfileBoxes.size() && colIdx < opProfileBoxes[rowIdx].size() &&
+               getOpProfileBox(rowIdx, colIdx);
     }
 
     //! Returns true if there is a valid OpProfileBox on the upper left side of the OpProfileBox

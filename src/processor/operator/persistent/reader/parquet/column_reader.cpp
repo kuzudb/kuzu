@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "brotli/decode.h"
+#include "common/assert.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "common/types/date_t.h"
@@ -539,6 +540,7 @@ std::unique_ptr<ColumnReader> ColumnReader::createTimestampReader(ParquetReader&
             }
             // LCOV_EXCL_STOP
         }
+        KU_UNREACHABLE;
     }
     default: {
         KU_UNREACHABLE;

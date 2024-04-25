@@ -401,6 +401,7 @@ template<typename T>
 void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, offset_t posInSrc,
     uint8_t* dstBuffer, offset_t posInDst, offset_t numValues, const CompressionMetadata& metadata,
     const NullMask* nullMask) const {
+    KU_UNUSED(nullMask);
     auto header = BitpackHeader::readHeader(metadata.data);
     // This is a fairly naive implementation which uses fastunpack/fastpack
     // to modify the data by decompressing/compressing a single chunk of values.
