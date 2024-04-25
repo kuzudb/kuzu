@@ -62,6 +62,20 @@ Table likes has been created.
 -STATEMENT Call table_info('likes_person_organisation') RETURN *;
 ---- 1
 1|since|INT64
+-STATEMENT CREATE REL TABLE GROUP likes (FROM person TO person, FROM person TO organisation);
+---- error
+Binder exception: likes already exists in catalog.
+-STATEMENT CREATE REL TABLE GROUP knows (FROM person TO person, FROM person TO organisation);
+---- error
+Binder exception: knows already exists in catalog.
+-STATEMENT CREATE REL TABLE test_person_person (FROM person TO person);
+---- ok
+-STATEMENT CREATE REL TABLE GROUP test (FROM person TO person, FROM person TO organisation);
+---- error
+Catalog exception: test_person_person already exists in catalog.
+-STATEMENT CREATE REL TABLE GROUP test2 (FROM person TO person, FROM person TO person);
+---- error
+Catalog exception: test2_person_person already exists in catalog.
 
 -CASE CreateNodeTableCommitNormalExecution
 -STATEMENT CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))
