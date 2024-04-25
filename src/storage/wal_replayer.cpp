@@ -2,13 +2,11 @@
 
 #include <unordered_map>
 
-#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/storage.h"
 #include "common/file_system/file_info.h"
 #include "common/serializer/buffered_file.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
-#include "storage/store/node_table.h"
 #include "storage/wal/wal_record.h"
 #include "storage/wal_replayer_utils.h"
 #include "transaction/transaction.h"
@@ -220,25 +218,10 @@ void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {
     replayCreateTableRecord(*rdfGraphRecord.literalTripleTableRecord);
 }
 
-void WALReplayer::replayCopyTableRecord(const WALRecord& walRecord) {
-    auto& copyTableRecord = ku_dynamic_cast<const WALRecord&, const CopyTableRecord&>(walRecord);
-    auto tableID = copyTableRecord.tableID;
+void WALReplayer::replayCopyTableRecord(const WALRecord& /*walRecord*/) {
     if (isCheckpoint) {
         if (!isRecovering) {
             // CHECKPOINT.
-            // If we are not recovering, i.e., we are checkpointing during normal execution,
-            // then we need to update the nodeTable because the actual columns and lists
-            // files have been changed during checkpoint. So the in memory
-            // fileHandles are obsolete and should be reconstructed (e.g. since the numPages
-            // have likely changed they need to reconstruct their page locks).
-            auto catalogEntry = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
-            if (catalogEntry->getType() == CatalogEntryType::NODE_TABLE_ENTRY) {
-                auto nodeTableEntry =
-                    ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(catalogEntry);
-                auto nodeTable =
-                    ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(tableID));
-                nodeTable->initializePKIndex(nodeTableEntry, false /* readOnly */, vfs);
-            }
         } else {
             // RECOVERY.
             if (wal->isLastLoggedRecordCommit()) {
