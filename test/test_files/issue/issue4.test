@@ -3,10 +3,64 @@
 
 --
 
+-CASE 3262
+-STATEMENT CREATE NODE TABLE Exercise (xxx String, PRIMARY KEY (xxx));
+---- ok
+-STATEMENT CREATE REL TABLE next (FROM Exercise TO Exercise, xxx String);
+---- ok
+-STATEMENT CREATE NODE TABLE Source (xxx String, PRIMARY KEY (xxx));
+---- ok
+-STATEMENT CREATE NODE TABLE User (xxx String, PRIMARY KEY (xxx));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP has (FROM User TO Source, FROM Source TO Exercise, xxx String);
+---- ok
+-STATEMENT CREATE (ex:Exercise {xxx: "11-ex"});
+---- ok
+-STATEMENT CREATE (ex:Exercise {xxx: "12-ex"});
+---- ok
+-STATEMENT CREATE (ex:Exercise {xxx: "13-ex"});
+---- ok
+-STATEMENT MATCH (ex1:Exercise {xxx: "11-ex"}), (ex2:Exercise {xxx: "12-ex"}) CREATE (ex1)-[:next {xxx: "next"}]->(ex2);
+---- ok
+-STATEMENT MATCH (ex1:Exercise {xxx: "12-ex"}), (ex2:Exercise {xxx: "13-ex"}) CREATE (ex1)-[:next {xxx: "next"}]->(ex2);
+---- ok
+-STATEMENT CREATE (src:Source {xxx: "1-src"});
+---- ok
+-STATEMENT MATCH (src:Source {xxx: "1-src"}), (ex:Exercise {xxx: "11-ex"}) CREATE (src)-[:has {xxx: "has"}]->(ex);
+---- ok
+-STATEMENT MATCH (src:Source {xxx: "1-src"}), (ex:Exercise {xxx: "12-ex"}) CREATE (src)-[:has {xxx: "has"}]->(ex);
+---- ok
+-STATEMENT MATCH (src:Source {xxx: "1-src"}), (ex:Exercise {xxx: "13-ex"}) CREATE (src)-[:has {xxx: "has"}]->(ex);
+---- ok
+-STATEMENT CREATE (usr:User {xxx: "usr"});
+---- ok
+-STATEMENT MATCH (usr:User {xxx: "usr"}), (src:Source {xxx: "1-src"}) CREATE (usr)-[:has {xxx: "has"}]->(src);
+---- ok
+-STATEMENT CREATE (ex:Exercise {xxx: "21-ex"});
+---- ok
+-STATEMENT CREATE (ex:Exercise {xxx: "22-ex"});
+---- ok
+-STATEMENT MATCH (ex1:Exercise {xxx: "21-ex"}), (ex2:Exercise {xxx: "22-ex"}) CREATE (ex1)-[:next {xxx: "next"}]->(ex2);
+---- ok
+-STATEMENT CREATE (src:Source {xxx: "2-src"});
+---- ok
+-STATEMENT MATCH (src:Source {xxx: "2-src"}), (ex:Exercise {xxx: "21-ex"}) CREATE (src)-[:has {xxx: "has"}]->(ex);
+---- ok
+-STATEMENT MATCH (src:Source {xxx: "2-src"}), (ex:Exercise {xxx: "22-ex"}) CREATE (src)-[:has {xxx: "has"}]->(ex);
+---- ok
+-STATEMENT MATCH (usr:User {xxx: "usr"}), (src:Source {xxx: "2-src"}) CREATE (usr)-[:has {xxx: "has"}]->(src);
+---- ok
+-STATEMENT MATCH (usr:User)-[h1:has]->(src:Source {xxx: "1-src"}) RETURN h1;
+---- 1
+(3:0)-{_LABEL: has_User_Source, _ID: 5:0, xxx: has}->(2:0)
+-STATEMENT MATCH (usr:User)-[h1:has*1..1]->(src:Source {xxx: "1-src"}) RETURN rels(h1)[1];
+---- 1
+(3:0)-{_LABEL: has_User_Source, _ID: 5:0, xxx: has}->(2:0)
+
 -CASE 3083
 -STATEMENT CREATE NODE TABLE test ( prop0 STRING, prop1 STRING[], prop2 STRING, prop3 INT64, prop4 STRING, PRIMARY KEY(prop4) )
 ---- ok
--STATEMENT MERGE (n:test { prop4: "efwb2143d10ccfw" }) SET n.prop0 = "efwoj23", n.prop1 = ["eee", "wefwhiihifwe23343", "dmkwlenfwef232323"], n.prop2 = "NOT eee IS NULL AND dmkwlenfwef232323 < '2023-01-10T00:00:00-05:00' AND dmkwlenfwef232323 >= '2022-01-01T00:00:00-05:00'", n.prop3 = 5 RETURN n.prop4
+-STATEMENT MERGE (n:test { prop4: "efwb2143d10ccfw" }) SET n.prop0 = "efwoj23", n.prop1 = ["eee", "wefwhiihifwe23343", "dmkwlenfwef232323"], n.prop2 = "NOT eee IS NULL AND dmkwlenfwef232323 <'2023-01-10T00:00:00-05:00' AND dmkwlenfwef232323 >='2022-01-01T00:00:00-05:00'", n.prop3 = 5 RETURN n.prop4
 ---- ok
 -STATEMENT MERGE (n:test { prop4: "sdnweh2382933228" }) SET n.prop0 = "efwoj23", n.prop1 = ["customer_name", "wefwhiihifwe23343", "dmkwlenfwef232323"], n.prop2 = "NOT customer_name IS NULL AND NOT dmkwlenfwef232323 IS NULL" RETURN n.prop4
 ---- ok

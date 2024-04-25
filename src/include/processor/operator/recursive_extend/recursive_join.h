@@ -3,6 +3,7 @@
 #include "bfs_state.h"
 #include "common/enums/query_rel_type.h"
 #include "frontier_scanner.h"
+#include "planner/operator/extend/extend_direction.h"
 #include "planner/operator/extend/recursive_join_type.h"
 #include "processor/operator/mask.h"
 #include "processor/operator/physical_operator.h"
@@ -35,25 +36,21 @@ struct RecursiveJoinDataInfo {
     DataPos pathPos;
     std::unordered_map<common::table_id_t, std::string> tableIDToName;
 
-    RecursiveJoinDataInfo(const DataPos& srcNodePos, const DataPos& dstNodePos,
-        std::unordered_set<common::table_id_t> dstNodeTableIDs, const DataPos& pathLengthPos,
-        std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor,
-        const DataPos& recursiveDstNodeIDPos,
-        std::unordered_set<common::table_id_t> recursiveDstNodeTableIDs,
-        const DataPos& recursiveEdgeIDPos, const DataPos& pathPos,
-        std::unordered_map<common::table_id_t, std::string> tableIDToName)
-        : srcNodePos{srcNodePos}, dstNodePos{dstNodePos},
-          dstNodeTableIDs{std::move(dstNodeTableIDs)}, pathLengthPos{pathLengthPos},
-          localResultSetDescriptor{std::move(localResultSetDescriptor)},
-          recursiveDstNodeIDPos{recursiveDstNodeIDPos},
-          recursiveDstNodeTableIDs{std::move(recursiveDstNodeTableIDs)},
-          recursiveEdgeIDPos{recursiveEdgeIDPos}, pathPos{pathPos},
-          tableIDToName{std::move(tableIDToName)} {}
+    RecursiveJoinDataInfo() = default;
+    EXPLICIT_COPY_DEFAULT_MOVE(RecursiveJoinDataInfo);
 
-    inline std::unique_ptr<RecursiveJoinDataInfo> copy() {
-        return std::make_unique<RecursiveJoinDataInfo>(srcNodePos, dstNodePos, dstNodeTableIDs,
-            pathLengthPos, localResultSetDescriptor->copy(), recursiveDstNodeIDPos,
-            recursiveDstNodeTableIDs, recursiveEdgeIDPos, pathPos, tableIDToName);
+private:
+    RecursiveJoinDataInfo(const RecursiveJoinDataInfo& other) {
+        srcNodePos = other.srcNodePos;
+        dstNodePos = other.dstNodePos;
+        dstNodeTableIDs = other.dstNodeTableIDs;
+        pathLengthPos = other.pathLengthPos;
+        localResultSetDescriptor = other.localResultSetDescriptor->copy();
+        recursiveDstNodeIDPos = other.recursiveDstNodeIDPos;
+        recursiveDstNodeTableIDs = other.recursiveDstNodeTableIDs;
+        recursiveEdgeIDPos = other.recursiveEdgeIDPos;
+        pathPos = other.pathPos;
+        tableIDToName = other.tableIDToName;
     }
 };
 
@@ -75,29 +72,47 @@ struct RecursiveJoinVectors {
     common::ValueVector* recursiveDstNodeIDVector = nullptr;
 };
 
+struct RecursiveJoinInfo {
+    RecursiveJoinDataInfo dataInfo;
+    uint8_t lowerBound;
+    uint8_t upperBound;
+    common::QueryRelType queryRelType;
+    planner::RecursiveJoinType joinType;
+    planner::ExtendDirection direction;
+
+    RecursiveJoinInfo() = default;
+    EXPLICIT_COPY_DEFAULT_MOVE(RecursiveJoinInfo);
+
+private:
+    RecursiveJoinInfo(const RecursiveJoinInfo& other) {
+        dataInfo = other.dataInfo.copy();
+        lowerBound = other.lowerBound;
+        upperBound = other.upperBound;
+        queryRelType = other.queryRelType;
+        joinType = other.joinType;
+        direction = other.direction;
+    }
+};
+
 class RecursiveJoin : public PhysicalOperator {
 public:
-    RecursiveJoin(uint8_t lowerBound, uint8_t upperBound, common::QueryRelType queryRelType,
-        planner::RecursiveJoinType joinType, std::shared_ptr<RecursiveJoinSharedState> sharedState,
-        std::unique_ptr<RecursiveJoinDataInfo> dataInfo, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, const std::string& paramsString,
+    RecursiveJoin(RecursiveJoinInfo info, std::shared_ptr<RecursiveJoinSharedState> sharedState,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString,
         std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, std::move(child), id,
               paramsString},
-          lowerBound{lowerBound}, upperBound{upperBound}, queryRelType{queryRelType},
-          joinType{joinType}, sharedState{std::move(sharedState)}, dataInfo{std::move(dataInfo)},
+          info{std::move(info)}, sharedState{std::move(sharedState)},
           recursiveRoot{std::move(recursiveRoot)} {}
 
-    inline RecursiveJoinSharedState* getSharedState() const { return sharedState.get(); }
+    RecursiveJoinSharedState* getSharedState() const { return sharedState.get(); }
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<RecursiveJoin>(lowerBound, upperBound, queryRelType, joinType,
-            sharedState, dataInfo->copy(), children[0]->clone(), id, paramsString,
-            recursiveRoot->clone());
+    std::unique_ptr<PhysicalOperator> clone() final {
+        return std::make_unique<RecursiveJoin>(info.copy(), sharedState, children[0]->clone(), id,
+            paramsString, recursiveRoot->clone());
     }
 
 private:
@@ -113,13 +128,8 @@ private:
     void updateVisitedNodes(common::nodeID_t boundNodeID);
 
 private:
-    uint8_t lowerBound;
-    uint8_t upperBound;
-    common::QueryRelType queryRelType;
-    planner::RecursiveJoinType joinType;
-
+    RecursiveJoinInfo info;
     std::shared_ptr<RecursiveJoinSharedState> sharedState;
-    std::unique_ptr<RecursiveJoinDataInfo> dataInfo;
 
     // Local recursive plan
     std::unique_ptr<ResultSet> localResultSet;
