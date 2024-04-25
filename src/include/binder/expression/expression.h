@@ -63,8 +63,9 @@ public:
     }
 
     virtual void cast(const common::LogicalType& type);
+    // NOTE: Avoid using the following unsafe getter. It is meant for resolving ANY data type only.
+    common::LogicalType& getDataTypeUnsafe() { return dataType; }
     common::LogicalType getDataType() const { return dataType; }
-    common::LogicalType& getDataTypeReference() { return dataType; }
 
     bool hasAlias() const { return !alias.empty(); }
     std::string getAlias() const { return alias; }

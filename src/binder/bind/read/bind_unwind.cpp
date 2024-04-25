@@ -9,12 +9,23 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
+// E.g. UNWIND $1. We cannot validate $1 has data type LIST until we see the actual parameter.
+static bool skipDataTypeValidation(const Expression& expr) {
+    return expr.expressionType == ExpressionType::PARAMETER &&
+           expr.getDataType().getLogicalTypeID() == LogicalTypeID::ANY;
+}
+
 std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {
     auto& unwindClause = readingClause.constCast<UnwindClause>();
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
-    ExpressionUtil::validateDataType(*boundExpression, LogicalTypeID::LIST);
     auto aliasName = unwindClause.getAlias();
-    auto alias = createVariable(aliasName, *ListType::getChildType(&boundExpression->dataType));
+    std::shared_ptr<Expression> alias;
+    if (!skipDataTypeValidation(*boundExpression)) {
+        ExpressionUtil::validateDataType(*boundExpression, LogicalTypeID::LIST);
+        alias = createVariable(aliasName, *ListType::getChildType(&boundExpression->dataType));
+    } else {
+        alias = createVariable(aliasName, *LogicalType::ANY());
+    }
     std::shared_ptr<Expression> idExpr = nullptr;
     if (scope.hasMemorizedTableIDs(boundExpression->getAlias())) {
         auto tableIDs = scope.getMemorizedTableIDs(boundExpression->getAlias());

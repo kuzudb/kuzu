@@ -12,11 +12,13 @@ public:
         : Expression{common::ExpressionType::VARIABLE, std::move(dataType), std::move(uniqueName)},
           variableName{std::move(variableName)} {}
 
-    inline std::string getVariableName() const { return variableName; }
+    std::string getVariableName() const { return variableName; }
 
-    inline std::string toStringInternal() const final { return variableName; }
+    void cast(const common::LogicalType& type) override;
 
-    inline std::unique_ptr<Expression> copy() const final {
+    std::string toStringInternal() const final { return variableName; }
+
+    std::unique_ptr<Expression> copy() const final {
         return std::make_unique<VariableExpression>(*dataType.copy(), uniqueName, variableName);
     }
 

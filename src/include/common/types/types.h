@@ -173,7 +173,9 @@ class ExtraTypeInfo {
 public:
     virtual ~ExtraTypeInfo() = default;
 
-    inline void serialize(Serializer& serializer) const { serializeInternal(serializer); }
+    void serialize(Serializer& serializer) const { serializeInternal(serializer); }
+
+    virtual bool containsAny() const = 0;
 
     virtual bool operator==(const ExtraTypeInfo& other) const = 0;
 
@@ -188,8 +190,13 @@ public:
     ListTypeInfo() = default;
     explicit ListTypeInfo(std::unique_ptr<LogicalType> childType)
         : childType{std::move(childType)} {}
-    inline LogicalType* getChildType() const { return childType.get(); }
+
+    LogicalType* getChildType() const { return childType.get(); }
+
+    bool containsAny() const override;
+
     bool operator==(const ExtraTypeInfo& other) const override;
+
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
     static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
@@ -206,9 +213,13 @@ public:
     ArrayTypeInfo() = default;
     explicit ArrayTypeInfo(std::unique_ptr<LogicalType> childType, uint64_t numElements)
         : ListTypeInfo{std::move(childType)}, numElements{numElements} {}
-    inline uint64_t getNumElements() const { return numElements; }
+
+    uint64_t getNumElements() const { return numElements; }
+
     bool operator==(const ExtraTypeInfo& other) const override;
+
     static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
+
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
 private:
@@ -224,11 +235,14 @@ public:
     StructField(std::string name, std::unique_ptr<LogicalType> type)
         : name{std::move(name)}, type{std::move(type)} {};
 
-    inline bool operator!=(const StructField& other) const { return !(*this == other); }
-    inline std::string getName() const { return name; }
-    inline LogicalType* getType() const { return type.get(); }
+    std::string getName() const { return name; }
+
+    LogicalType* getType() const { return type.get(); }
+
+    bool containsAny() const;
 
     bool operator==(const StructField& other) const;
+    bool operator!=(const StructField& other) const { return !(*this == other); }
 
     void serialize(Serializer& serializer) const;
 
@@ -252,10 +266,14 @@ public:
     struct_field_idx_t getStructFieldIdx(std::string fieldName) const;
     const StructField* getStructField(struct_field_idx_t idx) const;
     const StructField* getStructField(const std::string& fieldName) const;
+    std::vector<const StructField*> getStructFields() const;
+
     LogicalType* getChildType(struct_field_idx_t idx) const;
     std::vector<LogicalType*> getChildrenTypes() const;
     std::vector<std::string> getChildrenNames() const;
-    std::vector<const StructField*> getStructFields() const;
+
+    bool containsAny() const override;
+
     bool operator==(const ExtraTypeInfo& other) const override;
 
     static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
@@ -292,6 +310,7 @@ public:
     static LogicalType fromString(const std::string& str);
 
     KUZU_API LogicalTypeID getLogicalTypeID() const { return typeID; }
+    bool containsAny() const;
 
     PhysicalTypeID getPhysicalType() const { return physicalType; }
     static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType);
@@ -461,22 +480,6 @@ struct ArrayType {
         KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::ARRAY);
         auto arrayTypeInfo = reinterpret_cast<ArrayTypeInfo*>(type->extraTypeInfo.get());
         return arrayTypeInfo->getNumElements();
-    }
-};
-
-struct NodeType {
-    static inline void setExtraTypeInfo(LogicalType& type,
-        std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
-        KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::NODE);
-        type.setExtraTypeInfo(std::move(extraTypeInfo));
-    }
-};
-
-struct RelType {
-    static inline void setExtraTypeInfo(LogicalType& type,
-        std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
-        KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::REL);
-        type.setExtraTypeInfo(std::move(extraTypeInfo));
     }
 };
 
