@@ -21,10 +21,10 @@ void AttachDatabase::executeInternal(ExecutionContext* context) {
         attachInfo.dbType);
     if (attachInfo.dbType == "duckdb") {
         errMsg += "\nDid you forget to load duckdb extension?\nYou can load it by: load "
-                  "extension duckdb_scanner;";
+                  "extension duckdb;";
     } else if (attachInfo.dbType == "postgres") {
         errMsg += "\nDid you forget to load postgres extension?\nYou can load it by: load "
-                  "extension postgres_scanner;";
+                  "extension postgres;";
     }
     throw common::RuntimeException{errMsg};
 }
