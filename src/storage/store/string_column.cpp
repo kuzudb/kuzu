@@ -25,6 +25,12 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
       dictionary{name, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction, stats,
           enableCompression} {}
 
+void StringColumn::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    offset_t startOffsetInChunk, ReadState& readState) {
+    Column::initReadState(transaction, nodeGroupIdx, startOffsetInChunk, readState);
+    dictionary.initReadState(transaction, nodeGroupIdx, startOffsetInChunk, readState);
+}
+
 void StringColumn::scan(Transaction* transaction, ReadState& readState, offset_t startOffsetInGroup,
     offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) {
     nullColumn->scan(transaction, *readState.nullState, startOffsetInGroup, endOffsetInGroup,
@@ -121,8 +127,10 @@ void StringColumn::scanUnfiltered(transaction::Transaction* transaction, ReadSta
         // All scanned values are null
         return;
     }
-    dictionary.scan(transaction, readState.nodeGroupIdx, offsetsToScan, resultVector,
-        readState.metadata);
+    dictionary.scan(transaction,
+        readState.childrenStates[DictionaryColumn::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        readState.childrenStates[DictionaryColumn::DATA_COLUMN_CHILD_READ_STATE_IDX], offsetsToScan,
+        resultVector, readState.metadata);
 }
 
 void StringColumn::scanFiltered(transaction::Transaction* transaction, ReadState& readState,
@@ -143,8 +151,10 @@ void StringColumn::scanFiltered(transaction::Transaction* transaction, ReadState
         // All scanned values are null
         return;
     }
-    dictionary.scan(transaction, readState.nodeGroupIdx, offsetsToScan, resultVector,
-        readState.metadata);
+    dictionary.scan(transaction,
+        readState.childrenStates[DictionaryColumn::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        readState.childrenStates[DictionaryColumn::DATA_COLUMN_CHILD_READ_STATE_IDX], offsetsToScan,
+        resultVector, readState.metadata);
 }
 
 void StringColumn::lookupInternal(Transaction* transaction, ReadState& readState,
@@ -166,8 +176,10 @@ void StringColumn::lookupInternal(Transaction* transaction, ReadState& readState
         // All scanned values are null
         return;
     }
-    dictionary.scan(transaction, readState.nodeGroupIdx, offsetsToScan, resultVector,
-        readState.metadata);
+    dictionary.scan(transaction,
+        readState.childrenStates[DictionaryColumn::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        readState.childrenStates[DictionaryColumn::DATA_COLUMN_CHILD_READ_STATE_IDX], offsetsToScan,
+        resultVector, readState.metadata);
 }
 
 bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,

@@ -47,7 +47,7 @@ public:
         uint64_t numValuesPerPage = UINT64_MAX;
         common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
         std::unique_ptr<ReadState> nullState = nullptr;
-        // Used for struct columns.
+        // Used for struct/list/string columns.
         std::vector<ReadState> childrenStates;
     };
 
