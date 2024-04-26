@@ -11,7 +11,7 @@ namespace function {
 struct ListLen {
 public:
     template<typename T>
-    static inline void operation(T& input, int64_t& result) {
+    static void operation(T& input, int64_t& result) {
         result = input.size;
     }
 };

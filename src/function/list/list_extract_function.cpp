@@ -19,8 +19,8 @@ static void BinaryExecListExtractFunction(const std::vector<std::shared_ptr<Valu
 static std::unique_ptr<FunctionBindData> ListExtractBindFunc(
     const binder::expression_vector& arguments, Function* function) {
     auto resultType = ListType::getChildType(&arguments[0]->dataType);
-    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
-    TypeUtils::visit(resultType->getPhysicalType(), [&]<typename T>(T) {
+    auto scalarFunction = function->ptrCast<ScalarFunction>();
+    TypeUtils::visit(resultType->getPhysicalType(), [&scalarFunction]<typename T>(T) {
         scalarFunction->execFunc =
             BinaryExecListExtractFunction<list_entry_t, int64_t, T, ListExtract>;
     });

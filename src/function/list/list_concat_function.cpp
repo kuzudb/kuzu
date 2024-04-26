@@ -10,6 +10,24 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+void ListConcat::operation(common::list_entry_t& left, common::list_entry_t& right,
+    common::list_entry_t& result, common::ValueVector& leftVector, common::ValueVector& rightVector,
+    common::ValueVector& resultVector) {
+    result = common::ListVector::addList(&resultVector, left.size + right.size);
+    auto resultDataVector = common::ListVector::getDataVector(&resultVector);
+    auto resultPos = result.offset;
+    auto leftDataVector = common::ListVector::getDataVector(&leftVector);
+    auto leftPos = left.offset;
+    for (auto i = 0u; i < left.size; i++) {
+        resultDataVector->copyFromVectorData(resultPos++, leftDataVector, leftPos++);
+    }
+    auto rightDataVector = common::ListVector::getDataVector(&rightVector);
+    auto rightPos = right.offset;
+    for (auto i = 0u; i < right.size; i++) {
+        resultDataVector->copyFromVectorData(resultPos++, rightDataVector, rightPos++);
+    }
+}
+
 std::unique_ptr<FunctionBindData> ListConcatFunction::bindFunc(
     const binder::expression_vector& arguments, Function* /*function*/) {
     if (arguments[0]->getDataType() != arguments[1]->getDataType()) {

@@ -928,6 +928,7 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
         LogicalTypeID::FLOAT, LogicalTypeID::SERIAL};
 }
 
+// TODO(Ziyi): Support int128 and uint types here.
 std::vector<LogicalTypeID> LogicalTypeUtils::getIntegerLogicalTypeIDs() {
     return std::vector<LogicalTypeID>{LogicalTypeID::INT64, LogicalTypeID::INT32,
         LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::SERIAL};
