@@ -217,6 +217,10 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
+      # The extension is stored in a shared user directory using USERPROFILE
+      # Without overriding it will conflict with other jobs when they attempt to read/write
+      # to the extension files at the same time
+      USERPROFILE: ${{ github.workspace }}/profile
     steps:
       - uses: actions/checkout@v3
 
@@ -568,6 +572,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
+      USERPROFILE: ${{ github.workspace }}/profile
     steps:
       - uses: actions/checkout@v3
 
