@@ -82,9 +82,12 @@ static scalar_func_exec_t getUDFExecution(const py::function& udf) {
     return [=](const std::vector<std::shared_ptr<ValueVector>>& params,
         ValueVector& result, void*) -> void {
         py::gil_scoped_acquire acquire;
-        auto vectorLength = 0u;
-        if (params.size() > 0) {
-            vectorLength = params[0]->state->selVector->selectedSize;
+        auto vectorLength = 1;
+        py::list basePyParams;
+        for (const auto& param: params) {
+            if (param->state->selVector->selectedSize != 1) {
+                vectorLength = param->state->selVector->selectedSize;
+            }
         }
         for (auto cur = 0u; cur < vectorLength; cur++) {
             py::list asPyParams;
