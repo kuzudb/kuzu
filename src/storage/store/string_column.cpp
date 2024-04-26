@@ -60,11 +60,10 @@ void StringColumn::writeValue(ChunkState& state, offset_t offsetInChunk,
     ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto& kuStr = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
     auto index = dictionary.append(state, kuStr.getAsStringView());
-    NullMask nullMask(1);
-    nullMask.setNull(0, vectorToWriteFrom->isNull(posInVectorToWriteFrom));
     // Write index to main column
     // This function should only be called when the string is non-null, so we don't need to pass
     // null data
+    KU_ASSERT(!vectorToWriteFrom->isNull(posInVectorToWriteFrom));
     Column::writeValues(state, offsetInChunk, (uint8_t*)&index, nullptr /*nullChunkData*/);
 }
 
@@ -90,8 +89,6 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunk* dat
         0 /*srcOffset*/, numValues);
     if (dstOffset + numValues > state.metadata.numValues) {
         state.metadata.numValues = dstOffset + numValues;
-        // TODO: Avoid updating metadataDA here.
-        // metadataDA->update(state.nodeGroupIdx, state.metadata);
     }
 }
 

@@ -856,9 +856,6 @@ void Column::applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& l
         } else {
             if (offsetInDstChunk >= state.metadata.numValues) {
                 state.metadata.numValues = offsetInDstChunk + 1;
-                // TODO: don't update metadaDA here.
-                KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
-                metadataDA->update(state.nodeGroupIdx, state.metadata);
             }
         }
     }

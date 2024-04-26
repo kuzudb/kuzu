@@ -125,8 +125,6 @@ void NullColumn::setNull(ChunkState& state, offset_t offsetInChunk, uint64_t val
         nullptr /*nullChunkData=*/);
     if (offsetInChunk >= state.metadata.numValues) {
         state.metadata.numValues = offsetInChunk + 1;
-        // TODO: Avoid updating.
-        // metadataDA->update(state.nodeGroupIdx, state.metadata);
     }
 }
 
@@ -138,8 +136,6 @@ void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ValueVector* v
     }
     if (offsetInChunk >= state.metadata.numValues) {
         state.metadata.numValues = offsetInChunk + 1;
-        // TODO: Avoid updating.
-        // metadataDA->update(state.nodeGroupIdx, state.metadata);
     }
 }
 
@@ -155,8 +151,6 @@ void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* d
     }
     if (offsetInChunk + numValues > state.metadata.numValues) {
         state.metadata.numValues = offsetInChunk + numValues;
-        // TODO: Avoid updating.
-        // metadataDA->update(state.nodeGroupIdx, state.metadata);
     }
 }
 

@@ -49,6 +49,7 @@ void RWPropertyStats::setHasNull(const transaction::Transaction& transaction) {
             tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID);
         if (!propStats.mayHaveNull()) {
             propStats.setHasNull();
+            tablesStatistics->setToUpdated();
         }
     }
 }
