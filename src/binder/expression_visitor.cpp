@@ -92,7 +92,8 @@ bool ExpressionVisitor::isConstant(const Expression& expression) {
     if (expression.expressionType == ExpressionType::AGGREGATE_FUNCTION) {
         return false; // We don't have a framework to fold aggregated constant.
     }
-    if (expression.getNumChildren() == 0) {
+    if (expression.getNumChildren() == 0 &&
+        expression.expressionType != ExpressionType::CASE_ELSE) {
         return expression.expressionType == ExpressionType::LITERAL;
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(expression)) {

@@ -488,7 +488,7 @@ public:
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_SymbolicNameContext *oC_SymbolicName();
-    OC_LiteralContext *oC_Literal();
+    OC_ExpressionContext *oC_Expression();
 
    
   };

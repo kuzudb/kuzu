@@ -7,7 +7,7 @@ namespace parser {
 std::unique_ptr<Statement> Transformer::transformStandaloneCall(
     CypherParser::KU_StandaloneCallContext& ctx) {
     auto optionName = transformSymbolicName(*ctx.oC_SymbolicName());
-    auto parameter = transformLiteral(*ctx.oC_Literal());
+    auto parameter = transformExpression(*ctx.oC_Expression());
     return std::make_unique<StandaloneCall>(std::move(optionName), std::move(parameter));
 }
 

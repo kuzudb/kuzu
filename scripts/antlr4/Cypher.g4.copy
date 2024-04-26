@@ -84,7 +84,7 @@ USE:
     ( 'U' | 'u') ( 'S' | 's') ( 'E' | 'e');
 
 kU_StandaloneCall
-    : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
+    : CALL SP oC_SymbolicName SP? '=' SP? oC_Expression ;
 
 CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 

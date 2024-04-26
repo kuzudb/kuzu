@@ -28,6 +28,11 @@
 -STATEMENT CALL current_setting('timeout') RETURN *
 ---- 1
 20000
+-STATEMENT CALL timeout=(1+2+3)*10000
+---- ok
+-STATEMENT CALL current_setting('timeout') RETURN *
+---- 1
+60000
 
 -LOG SetGetVarLengthMaxDepth
 -STATEMENT CALL var_length_extend_max_depth=10
@@ -53,6 +58,11 @@ True
 -STATEMENT CALL current_setting('progress_bar') RETURN *
 ---- 1
 False
+-STATEMENT CALL progress_bar=CASE WHEN 1<2 THEN True ELSE False END
+---- ok
+-STATEMENT CALL current_setting('progress_bar') RETURN *
+---- 1
+True
 
 -LOG SetGetProgressBarTime
 -STATEMENT CALL progress_bar_time=4000
@@ -184,16 +194,16 @@ ${KUZU_VERSION}
 -LOG ReturnTableConnection
 -STATEMENT CALL show_connection('knows') RETURN *
 ---- 1
-person|person
+person|person|ID|ID
 -STATEMENT CALL show_connection('workAt') RETURN *
 ---- 1
-person|organisation
+person|organisation|ID|ID
 -STATEMENT CREATE REL TABLE GROUP Knows1 (FROM person To person, FROM person to organisation, year INT64);
 ---- ok
 -STATEMENT CALL show_connection('Knows1') RETURN *
 ---- 2
-person|person
-person|organisation
+person|person|ID|ID
+person|organisation|ID|ID
 -STATEMENT CALL show_connection('person') RETURN *
 ---- error
 Binder exception: Show connection can only be called on a rel table!
@@ -207,7 +217,7 @@ Binder exception: Cannot match a built-in function for given function table_info
 -LOG WrongParameterType
 -STATEMENT CALL show_connection(123) RETURN *
 ---- error
-Binder exception: Show connection can only bind to String!
+Binder exception: 123 has data type INT64 but STRING was expected.
 
 -LOG WrongParameterExprType
 -STATEMENT CALL show_connection(upper("person")) RETURN *

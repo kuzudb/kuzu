@@ -535,7 +535,7 @@ Binder exception: Invalid option name: thread.
 -LOG InvalidCallOptionValue
 -STATEMENT CALL threads='abc'
 ---- error
-Binder exception: abc has data type STRING but INT64 was expected.
+Binder exception: Expression abc has data type STRING but expected INT64. Implicit cast is not supported.
 
 -LOG AllShortestPathInvalidLowerBound
 -STATEMENT MATCH p = (a)-[* ALL SHORTEST 2..3]-(b) RETURN p
