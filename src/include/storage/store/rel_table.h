@@ -10,10 +10,9 @@ namespace storage {
 struct RelTableReadState : public TableReadState {
     common::RelDataDirection direction;
 
-    RelTableReadState(const common::ValueVector& nodeIDVector,
-        const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors, common::RelDataDirection direction)
-        : TableReadState{nodeIDVector, columnIDs, outputVectors}, direction{direction} {
+    RelTableReadState(const std::vector<common::column_id_t>& columnIDs,
+        common::RelDataDirection direction)
+        : TableReadState{columnIDs}, direction{direction} {
         dataReadState = std::make_unique<RelDataReadState>();
     }
 
@@ -75,17 +74,17 @@ public:
 
     void initializeReadState(transaction::Transaction* transaction,
         common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs,
-        const common::ValueVector& inNodeIDVector, RelTableReadState& readState) {
+        RelTableReadState& readState) {
         if (!readState.dataReadState) {
             readState.dataReadState = std::make_unique<RelDataReadState>();
         }
+        auto& dataState = common::ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(
+            *readState.dataReadState);
         return direction == common::RelDataDirection::FWD ?
-                   fwdRelTableData->initializeReadState(transaction, columnIDs, inNodeIDVector,
-                       common::ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(
-                           *readState.dataReadState)) :
-                   bwdRelTableData->initializeReadState(transaction, columnIDs, inNodeIDVector,
-                       common::ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(
-                           *readState.dataReadState));
+                   fwdRelTableData->initializeReadState(transaction, columnIDs,
+                       *readState.nodeIDVector, dataState) :
+                   bwdRelTableData->initializeReadState(transaction, columnIDs,
+                       *readState.nodeIDVector, dataState);
     }
     void read(transaction::Transaction* transaction, TableReadState& readState) override;
 

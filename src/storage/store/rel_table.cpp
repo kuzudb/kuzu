@@ -70,9 +70,10 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     std::vector<column_id_t> relIDColumns = {REL_ID_COLUMN_ID};
     auto relIDVectors = std::vector<ValueVector*>{deleteState->dstNodeIDVector.get(),
         deleteState->relIDVector.get()};
-    auto relReadState = std::make_unique<RelTableReadState>(*srcNodeIDVector, relIDColumns,
-        relIDVectors, direction);
-    initializeReadState(transaction, direction, relIDColumns, *srcNodeIDVector, *relReadState);
+    auto relReadState = std::make_unique<RelTableReadState>(relIDColumns, direction);
+    relReadState->nodeIDVector = srcNodeIDVector;
+    relReadState->outputVectors = relIDVectors;
+    initializeReadState(transaction, direction, relIDColumns, *relReadState);
     row_idx_t numRelsDeleted = detachDeleteForCSRRels(transaction, tableData, reverseTableData,
         srcNodeIDVector, relReadState.get(), deleteState);
     auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
@@ -120,7 +121,7 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
 
 void RelTable::scan(Transaction* transaction, RelTableReadState& scanState) {
     auto tableData = getDirectedTableData(scanState.direction);
-    tableData->scan(transaction, *scanState.dataReadState, scanState.nodeIDVector,
+    tableData->scan(transaction, *scanState.dataReadState, *scanState.nodeIDVector,
         scanState.outputVectors);
 }
 

@@ -1,7 +1,15 @@
 #include "processor/operator/scan/scan_rel_table.h"
 
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
+
+void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    ScanTable::initLocalStateInternal(resultSet, context);
+    scanState = std::make_unique<RelTableReadState>(info->columnIDs, info->direction);
+    ScanTable::initVectors(*scanState, *resultSet);
+}
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
@@ -13,7 +21,7 @@ bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
             return false;
         }
         info->table->initializeReadState(context->clientContext->getTx(), info->direction,
-            info->columnIDs, *inVector, *scanState);
+            info->columnIDs, *scanState);
     }
 }
 

@@ -8,17 +8,20 @@ namespace kuzu {
 namespace storage {
 
 struct TableReadState {
-    const common::ValueVector& nodeIDVector;
+    // Read only input node id vector.
+    const common::ValueVector* nodeIDVector;
     std::vector<common::column_id_t> columnIDs;
-    const std::vector<common::ValueVector*>& outputVectors;
+    std::vector<common::ValueVector*> outputVectors;
     std::unique_ptr<TableDataReadState> dataReadState;
 
-    TableReadState(const common::ValueVector& nodeIDVector,
-        const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors)
+    explicit TableReadState(std::vector<common::column_id_t> columnIDs)
+        : columnIDs{std::move(columnIDs)} {}
+    TableReadState(const common::ValueVector* nodeIDVector,
+        std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
         : nodeIDVector{nodeIDVector}, columnIDs{std::move(columnIDs)},
-          outputVectors{outputVectors} {}
+          outputVectors{std::move(outputVectors)} {}
     virtual ~TableReadState() = default;
+    DELETE_COPY_AND_MOVE(TableReadState);
 };
 
 struct TableInsertState {
