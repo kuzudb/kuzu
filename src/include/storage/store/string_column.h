@@ -12,10 +12,10 @@ public:
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);
 
-    void initReadState(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ReadState& columnReadState) override;
+    void initChunkState(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, ChunkState& columnReadState) override;
 
-    void scan(transaction::Transaction* transaction, ReadState& readState,
+    void scan(transaction::Transaction* transaction, ChunkState& readState,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
@@ -24,12 +24,11 @@ public:
 
     void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx) override;
 
-    void writeValue(const ColumnChunkMetadata& chunkMeta, common::node_group_idx_t nodeGroupIdx,
-        common::offset_t offsetInChunk, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom) override;
+    void writeValue(ChunkState& state, common::offset_t offsetInChunk,
+        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
-    void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
-        ColumnChunk* data, common::offset_t dataOffset, common::length_t numValues) override;
+    void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunk* data,
+        common::offset_t dataOffset, common::length_t numValues) override;
 
     void prepareCommit() override;
     void checkpointInMemory() override;
@@ -38,33 +37,27 @@ public:
     inline const DictionaryColumn& getDictionary() const { return dictionary; }
 
 protected:
-    void scanInternal(transaction::Transaction* transaction, ReadState& readState,
+    void scanInternal(transaction::Transaction* transaction, ChunkState& readState,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
-    void scanUnfiltered(transaction::Transaction* transaction, ReadState& readState,
+    void scanUnfiltered(transaction::Transaction* transaction, ChunkState& readState,
         common::offset_t startOffsetInChunk, common::offset_t numValuesToRead,
         common::ValueVector* resultVector, common::sel_t startPosInVector = 0);
-    void scanFiltered(transaction::Transaction* transaction, ReadState& readState,
+    void scanFiltered(transaction::Transaction* transaction, ChunkState& readState,
         common::offset_t startOffsetInChunk, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
-    void lookupInternal(transaction::Transaction* transaction, ReadState& readState,
+    void lookupInternal(transaction::Transaction* transaction, ChunkState& readState,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:
-    bool canCommitInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunk,
+    bool canCommitInPlace(const ChunkState& state, const ChunkCollection& localInsertChunk,
         const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
         const offset_to_row_idx_t& updateInfo) override;
-    bool canCommitInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
+    bool canCommitInPlace(const ChunkState& state, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunk* chunk, common::offset_t srcOffset) override;
 
-    bool canIndexCommitInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, uint64_t numStrings, common::offset_t maxOffset);
-
-    bool checkUpdateInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, const ChunkCollection& localChunk,
-        const offset_to_row_idx_t& writeInfo);
+    bool canIndexCommitInPlace(const Column::ChunkState& dataState, uint64_t numStrings,
+        common::offset_t maxOffset);
 
 private:
     // Main column stores indices of values in the dictionary

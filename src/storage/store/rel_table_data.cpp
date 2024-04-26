@@ -215,7 +215,7 @@ void RelTableData::initializeColumnReadStates(Transaction* transaction, RelDataR
         if (columnID == INVALID_COLUMN_ID) {
             continue;
         }
-        getColumn(columnID)->initReadState(transaction, nodeGroupIdx, readState.columnStates[i]);
+        getColumn(columnID)->initChunkState(transaction, nodeGroupIdx, readState.columnStates[i]);
     }
 }
 
@@ -292,7 +292,8 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOff
     if (nodeGroupIdx >= csrHeaderColumns.length->getNumNodeGroups(transaction)) {
         return false;
     }
-    auto readState = csrHeaderColumns.length->getReadState(transaction->getType(), nodeGroupIdx);
+    Column::ChunkState readState;
+    csrHeaderColumns.length->initChunkState(transaction, nodeGroupIdx, readState);
     if (offsetInChunk >= readState.metadata.numValues) {
         return false;
     }
@@ -810,6 +811,7 @@ void RelTableData::applyDeletionsToColumn(Transaction* transaction, node_group_i
 
 // TODO(Guodong): Optimize the sliding by moving the suffix/prefix depending on shifting
 //                left/right.
+// TODO: applySliding should work for all columns. so no redundant computation of slidings.
 void RelTableData::applySliding(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     LocalState& localState, const PersistentState& persistentState, Column* column) {
     if (!localState.needSliding) {
@@ -929,14 +931,20 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
 void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNodeGroup,
     node_group_idx_t nodeGroupIdx, Column* column, ColumnChunk* chunk, LocalState& localState,
     const std::vector<common::offset_t>& dstOffsets) {
-    if (!isNewNodeGroup && column->canCommitInPlace(transaction, nodeGroupIdx, dstOffsets, chunk,
-                               localState.region.leftBoundary)) {
-        column->write(nodeGroupIdx, dstOffsets[0], chunk, localState.region.leftBoundary,
-            dstOffsets.size());
-    } else {
-        column->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
-            chunk, localState.region.leftBoundary);
+    if (!isNewNodeGroup) {
+        Column::ChunkState state;
+        column->initChunkState(transaction, nodeGroupIdx, state);
+        if (column->canCommitInPlace(state, dstOffsets, chunk, localState.region.leftBoundary)) {
+            // TODO: We're assuming dstOffsets are consecutive here. Always true? if so, bad
+            // interface then.
+            column->write(state, dstOffsets[0], chunk, localState.region.leftBoundary,
+                dstOffsets.size());
+            column->getMetadataDA()->update(nodeGroupIdx, state.metadata);
+            return;
+        }
     }
+    column->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
+        chunk, localState.region.leftBoundary);
 }
 
 void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState& localState,

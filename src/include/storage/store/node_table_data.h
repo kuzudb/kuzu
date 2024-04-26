@@ -14,7 +14,7 @@ struct NodeDataReadState : public TableDataReadState {
 
     common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
     bool readFromPersistent = false;
-    std::vector<Column::ReadState> columnReadStates;
+    std::vector<Column::ChunkState> columnReadStates;
 
     // Should be moved into LocalNodeReadState.
     LocalNodeNG* localNodeGroup = nullptr;

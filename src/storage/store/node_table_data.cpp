@@ -81,7 +81,7 @@ void NodeTableData::initializeColumnReadStates(Transaction* transaction,
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
         if (readState.columnIDs[i] != INVALID_COLUMN_ID) {
             getColumn(readState.columnIDs[i])
-                ->initReadState(transaction, nodeGroupIdx, dataReadState.columnReadStates[i]);
+                ->initChunkState(transaction, nodeGroupIdx, dataReadState.columnReadStates[i]);
         }
     }
     if (nodeGroupIdx != dataReadState.nodeGroupIdx) {
