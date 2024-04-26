@@ -170,7 +170,6 @@ bool PyConnection::isPandasDataframe(const py::object& object) {
     return py::isinstance(object, importCache->pandas.DataFrame());
 }
 
-
 static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
     const py::dict& params, Connection* conn) {
     std::unordered_map<std::string, std::unique_ptr<Value>> result;

@@ -778,7 +778,7 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
     // LCOV_EXCL_START
     switch (dataTypeID) {
     case LogicalTypeID::ANY:
-       return "ANY";
+        return "ANY";
     case LogicalTypeID::NODE:
         return "NODE";
     case LogicalTypeID::REL:

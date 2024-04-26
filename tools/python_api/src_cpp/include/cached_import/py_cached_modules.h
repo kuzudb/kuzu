@@ -27,8 +27,9 @@ public:
 class InspectCachedItem : public PythonCachedItem {
 
 public:
-    InspectCachedItem() : PythonCachedItem("inspect"), currentframe("currentframe", this),
-        signature("signature", this), _empty("_empty", this) {}
+    InspectCachedItem()
+        : PythonCachedItem("inspect"), currentframe("currentframe", this),
+          signature("signature", this), _empty("_empty", this) {}
 
     PythonCachedItem currentframe;
     PythonCachedItem signature;
