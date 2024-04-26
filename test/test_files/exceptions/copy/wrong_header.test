@@ -111,7 +111,7 @@ Binder exception: Number of columns mismatch. Expected 4 but got 3.
 -CASE NodeUnmatchedNumColumns
 -STATEMENT create node table person (ID1 SERIAL, ID INT64, fName INT64, age INT64, PRIMARY KEY (ID1))
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_1.parquet" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_1.parquet"
 ---- error
 Binder exception: Number of columns mismatch. Expected 3 but got 10.
 
@@ -120,6 +120,6 @@ Binder exception: Number of columns mismatch. Expected 3 but got 10.
 ---- ok
 -STATEMENT create rel table knows (FROM person TO person, time date, age INT64)
 ---- ok
--STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/follows.parquet" (HEADER=true)
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/follows.parquet"
 ---- error
 Binder exception: Number of columns mismatch. Expected 4 but got 3.

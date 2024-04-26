@@ -53,3 +53,8 @@
 -STATEMENT MATCH (row:tableOfTypes) WHERE 0 <= row.doubleColumn AND row.doubleColumn <= 10 AND 0 <= row.int64Column AND row.int64Column <= 10 RETURN count(*);
 ---- 1
 546
+
+-LOG CopyWithOptionsErrorTest
+-STATEMENT COPY tableOfTypes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet" (HEADER=true);
+---- error
+Binder exception: Copy from Parquet cannot have options.

@@ -184,7 +184,7 @@ Copy exception: Found NULL, which violates the non-null constraint of the primar
 ---- ok
 -STATEMENT COPY tableOfTypes12 (id, int64Column, doubleColumn, booleanColumn, dateColumn, stringColumn, listOfInt64,
 listOfString, listOfListOfInt64, structColumn) FROM
-"${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet" (HEADER=true);
+"${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet";
 ---- ok
 -STATEMENT MATCH (row:tableOfTypes12) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
 ---- 5
@@ -205,6 +205,6 @@ listOfString, listOfListOfInt64, structColumn) FROM
 ---- ok
 -STATEMENT COPY tableOfTypes12 (id, dateColumn, doubleColumn, booleanColumn, int64Column, stringColumn, listOfInt64,
 listOfString, listOfListOfInt64, structColumn) FROM
-"${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet" (HEADER=true);
+"${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet";
 ---- error
 Binder exception: Column `dateColumn` type mismatch. Expected DATE but got INT64.

@@ -55,12 +55,19 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
             copyFromStatement->getSource())
                              ->filePaths;
         KU_ASSERT(filePaths.size() == 1);
+        auto fileType = bindFileType(filePaths);
         auto copyFilePath = boundFilePath + "/" + filePaths[0];
-        auto csvConfig = CSVReaderConfig::construct(
-            bindParsingOptions(copyFromStatement->getParsingOptionsRef()));
-        auto csvQuery = stringFormat("COPY {} FROM \"{}\" {};", copyFromStatement->getTableName(),
-            copyFilePath, csvConfig.option.toCypher());
-        finalQueryStatements += csvQuery;
+        std::string query;
+        if (fileType == FileType::CSV) {
+            auto csvConfig = CSVReaderConfig::construct(
+                bindParsingOptions(copyFromStatement->getParsingOptionsRef()));
+            query = stringFormat("COPY {} FROM \"{}\" {};", copyFromStatement->getTableName(),
+                copyFilePath, csvConfig.option.toCypher());
+        } else {
+            query = stringFormat("COPY {} FROM \"{}\";", copyFromStatement->getTableName(),
+                copyFilePath);
+        }
+        finalQueryStatements += query;
     }
     finalQueryStatements += getQueryFromFile(fs, boundFilePath, ImportDBConstants::MACRO_NAME);
     return std::make_unique<BoundImportDatabase>(boundFilePath, finalQueryStatements);

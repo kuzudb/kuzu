@@ -296,6 +296,7 @@ static void bindColumns(const common::ReaderConfig& readerConfig,
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     function::TableFuncBindInput* input) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
+    KU_ASSERT(scanInput->config.options.empty());
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;
     bindColumns(scanInput->config, detectedColumnNames, detectedColumnTypes);
