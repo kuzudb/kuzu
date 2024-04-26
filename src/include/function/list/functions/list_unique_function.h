@@ -25,35 +25,10 @@ struct ListUnique {
     static uint64_t appendListElementsToValueSet(common::list_entry_t& input,
         common::ValueVector& inputVector, duplicate_value_handler duplicateValHandler = nullptr,
         unique_value_handler uniqueValueHandler = nullptr,
-        null_value_handler nullValueHandler = nullptr) {
-        ValueSet uniqueKeys;
-        auto dataVector = common::ListVector::getDataVector(&inputVector);
-        auto val = common::Value::createDefaultValue(dataVector->dataType);
-        for (auto i = 0u; i < input.size; i++) {
-            if (dataVector->isNull(input.offset + i)) {
-                if (nullValueHandler != nullptr) {
-                    nullValueHandler();
-                }
-                continue;
-            }
-            auto entryVal = common::ListVector::getListValuesWithOffset(&inputVector, input, i);
-            val.copyFromColLayout(entryVal, dataVector);
-            auto uniqueKey = uniqueKeys.insert(val).second;
-            if (duplicateValHandler != nullptr && !uniqueKey) {
-                duplicateValHandler(
-                    common::TypeUtils::entryToString(dataVector->dataType, entryVal, dataVector));
-            }
-            if (uniqueValueHandler != nullptr && uniqueKey) {
-                uniqueValueHandler(*dataVector, input.offset + i);
-            }
-        }
-        return uniqueKeys.size();
-    }
+        null_value_handler nullValueHandler = nullptr);
 
     static void operation(common::list_entry_t& input, int64_t& result,
-        common::ValueVector& inputVector, common::ValueVector& /*resultVector*/) {
-        result = appendListElementsToValueSet(input, inputVector);
-    }
+        common::ValueVector& inputVector, common::ValueVector& resultVector);
 };
 
 } // namespace function

@@ -82,6 +82,10 @@ struct int128_t;
 struct ku_string_t;
 
 template<typename T>
+concept NumericTypes =
+    std::integral<T> || std::floating_point<T> || std::is_same_v<T, common::int128_t>;
+
+template<typename T>
 concept HashablePrimitive = ((std::integral<T> && !std::is_same_v<T, bool>) ||
                              std::floating_point<T> || std::is_same_v<T, common::int128_t>);
 template<typename T>

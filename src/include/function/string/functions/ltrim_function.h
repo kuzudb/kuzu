@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstring>
-
 #include "base_str_function.h"
 #include "common/types/ku_string.h"
 

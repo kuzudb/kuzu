@@ -53,6 +53,16 @@ struct ScalarFunction final : public BaseScalarFunction {
           execFunc{std::move(execFunc)}, selectFunc(std::move(selectFunc)),
           compileFunc{std::move(compileFunc)} {}
 
+    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+        common::LogicalTypeID returnTypeID, scalar_bind_func bindFunc)
+        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+              nullptr /* execFunc */, nullptr /* selectFunc */, bindFunc} {}
+
+    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+        common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc, scalar_bind_func bindFunc)
+        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID, execFunc,
+              nullptr /* selectFunc */, bindFunc} {}
+
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
