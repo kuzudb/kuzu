@@ -5,6 +5,7 @@ from datetime import datetime
 from datetime import timedelta
 import kuzu
 from kuzu import Type
+import pandas as pd
 
 def udf_helper(conn, functionName, params, expectedResult):
     plist = ', '.join(map(lambda x: "$" + str(x+1), range(len(params))))
@@ -16,6 +17,7 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite
 
     def add5int(x: int) -> int:
+        print(x)
         return x + 5
     
     add5IntArgs = ["add5int", add5int]
@@ -87,6 +89,8 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     udf_helper(conn, "addToDate", [datetime(2024, 4, 25, 15, 39, 20), datetime(2025, 5, 26) - datetime(2024, 4, 25, 15, 39, 20)], datetime(2025, 5, 26))
 
 
-
+    df = pd.DataFrame({"col": list(range(5000))})
+    result = conn.execute("LOAD FROM df RETURN add5int(col) as ans").get_as_df()
+    assert list(result['ans']) == list(map(add5int, range(5000)))
 
 

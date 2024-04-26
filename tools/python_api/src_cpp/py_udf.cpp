@@ -82,15 +82,21 @@ static scalar_func_exec_t getUDFExecution(const py::function& udf) {
     return [=](const std::vector<std::shared_ptr<ValueVector>>& params,
         ValueVector& result, void*) -> void {
         py::gil_scoped_acquire acquire;
-        py::list asPyParams;
-        for (const auto& param: params) {
-            auto asValue = param->getAsValue(0);
-            auto asPyValue = PyQueryResult::convertValueToPyObject(*asValue);
-            asPyParams.append(asPyValue);
+        auto vectorLength = 0u;
+        if (params.size() > 0) {
+            vectorLength = params[0]->state->selVector->selectedSize;
         }
-        auto pyResult = udf(*asPyParams);
-        auto resultValue = PyConnection::transformPythonValueAs(pyResult, &result.dataType);
-        result.copyFromValue(0, resultValue);
+        for (auto cur = 0u; cur < vectorLength; cur++) {
+            py::list asPyParams;
+            for (const auto& param: params) {
+                auto asValue = param->getAsValue(param->state->selVector->selectedPositions[cur]);
+                auto asPyValue = PyQueryResult::convertValueToPyObject(*asValue);
+                asPyParams.append(asPyValue);
+            }
+            auto pyResult = udf(*asPyParams);
+            auto resultValue = PyConnection::transformPythonValueAs(pyResult, &result.dataType);
+            result.copyFromValue(result.state->selVector->selectedPositions[cur], resultValue);
+        }
     };
 }
 
