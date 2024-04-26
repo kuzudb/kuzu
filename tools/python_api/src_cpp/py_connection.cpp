@@ -34,7 +34,7 @@ void PyConnection::initialize(py::handle& m) {
         .def("get_all_edges_for_torch_geometric", &PyConnection::getAllEdgesForTorchGeometric,
             py::arg("np_array"), py::arg("src_table_name"), py::arg("rel_name"),
             py::arg("dst_table_name"), py::arg("query_batch_size"))
-        .def("set_UDF", &PyConnection::createScalarFunction, py::arg("name"), py::arg("udf"),
+        .def("set_udf", &PyConnection::createScalarFunction, py::arg("name"), py::arg("udf"),
             py::arg("parameters"), py::arg("return_value"));
     PyDateTime_IMPORT;
 }

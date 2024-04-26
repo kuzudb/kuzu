@@ -230,7 +230,7 @@ class Connection:
         self.init_connection()
         self._connection.set_query_timeout(timeout_in_ms)
 
-    def set_UDF(self, name: str, udf: Callable[[...], Any], parameters: list[Type] = [], return_type: Type = None) -> None:
+    def set_udf(self, name: str, udf: Callable[[...], Any], parameters: list[Type] = [], return_type: Type = None) -> None:
         """
         Sets a User Defined Function (UDF) to use in cypher queries.
 
@@ -249,4 +249,4 @@ class Connection:
             a Type enum to describe the returned value
         """
         parsedRetval = "" if return_type is None else return_type.value
-        self._connection.set_UDF(name, udf, list(map(lambda x: x.value, parameters)), parsedRetval)
+        self._connection.set_udf(name, udf, list(map(lambda x: x.value, parameters)), parsedRetval)

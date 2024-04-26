@@ -68,13 +68,13 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     selectIfSeven = ["selectIfSeven", selectIfSeven, [Type.INT64], Type.BOOL]
     # todo maxwell: implement select udf
 
-    conn.set_UDF(*add5IntArgs)
-    conn.set_UDF(*add5FloatArgs)
-    conn.set_UDF(*intToStringArgs)
-    conn.set_UDF(*sumOf7Args)
-    conn.set_UDF(*dateToDatetimeArgs)
-    conn.set_UDF(*datetimeToDateArgs)
-    conn.set_UDF(*addToDateArgs)
+    conn.set_udf(*add5IntArgs)
+    conn.set_udf(*add5FloatArgs)
+    conn.set_udf(*intToStringArgs)
+    conn.set_udf(*sumOf7Args)
+    conn.set_udf(*dateToDatetimeArgs)
+    conn.set_udf(*datetimeToDateArgs)
+    conn.set_udf(*addToDateArgs)
 
     udf_helper(conn, "add5int", [10], 15)
     udf_helper(conn, "add5int", [9], 14)
@@ -85,6 +85,8 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     udf_helper(conn, "dateToDatetime", [date(2024, 4, 25)], datetime(2024, 4, 25))
     udf_helper(conn, "datetimeToDate", [datetime(2024, 4, 25, 15, 39, 20)], date(2024, 4, 25))
     udf_helper(conn, "addToDate", [datetime(2024, 4, 25, 15, 39, 20), datetime(2025, 5, 26) - datetime(2024, 4, 25, 15, 39, 20)], datetime(2025, 5, 26))
+
+
 
 
 
