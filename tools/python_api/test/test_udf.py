@@ -13,6 +13,13 @@ def udf_helper(conn, functionName, params, expectedResult):
     result = conn.execute(queryString, {str(i+1) : params[i] for i in range(len(params))})
     assert result.get_next()[0] == expectedResult
 
+def udf_predicate_test(conn, functionName, params, expectedResult):
+    conn.execute("CREATE node table tbl (id INT64, primary key (id))")
+    for i in params:
+        conn.execute("CREATE (t:tbl {id: $num})", {"num" : i})
+    result = conn.execute(f"MATCH (t:tbl) WHERE {functionName}(t.id % 8) RETURN COUNT(*)")
+    assert result.get_next()[0] == expectedResult
+
 def test_udf(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite
 
@@ -64,11 +71,10 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     mergeMapsArgs = ["mergeMaps", mergeMaps, [Type.MAP] * 2, Type.MAP]
     # todo maxwell: implement nested udf
 
-    def selectIfSeven(a: int) -> int:
+    def selectIfSeven(a: int) -> bool:
         return a == 7
     
-    selectIfSeven = ["selectIfSeven", selectIfSeven, [Type.INT64], Type.BOOL]
-    # todo maxwell: implement select udf
+    selectIfSevenArgs = ["selectIfSeven", selectIfSeven]
 
     conn.set_udf(*add5IntArgs)
     conn.set_udf(*add5FloatArgs)
@@ -77,6 +83,7 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     conn.set_udf(*dateToDatetimeArgs)
     conn.set_udf(*datetimeToDateArgs)
     conn.set_udf(*addToDateArgs)
+    conn.set_udf(*selectIfSevenArgs)
 
     udf_helper(conn, "add5int", [10], 15)
     udf_helper(conn, "add5int", [9], 14)
@@ -87,10 +94,8 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     udf_helper(conn, "dateToDatetime", [date(2024, 4, 25)], datetime(2024, 4, 25))
     udf_helper(conn, "datetimeToDate", [datetime(2024, 4, 25, 15, 39, 20)], date(2024, 4, 25))
     udf_helper(conn, "addToDate", [datetime(2024, 4, 25, 15, 39, 20), datetime(2025, 5, 26) - datetime(2024, 4, 25, 15, 39, 20)], datetime(2025, 5, 26))
-
+    udf_predicate_test(conn, "selectIfSeven", range(65), 8)
 
     df = pd.DataFrame({"col": list(range(5000))})
     result = conn.execute("LOAD FROM df RETURN add5int(col) as ans").get_as_df()
     assert list(result['ans']) == list(map(add5int, range(5000)))
-
-

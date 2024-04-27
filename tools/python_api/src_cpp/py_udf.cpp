@@ -77,36 +77,62 @@ static PyUDFSignature analyzeSignature(const py::function& udf) {
     return retval;
 }
 
-static scalar_func_exec_t getUDFExecution(const py::function& udf) {
+static scalar_func_exec_t getUDFExecFunc(const py::function& udf) {
     return [=](const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
                void*) -> void {
         py::gil_scoped_acquire acquire;
-        auto vectorLength = 1;
-        py::list basePyParams;
-        for (const auto& param : params) {
-            if (param->state->selVector->selectedSize != 1) {
-                vectorLength = param->state->selVector->selectedSize;
-            }
-        }
-        for (auto cur = 0u; cur < vectorLength; cur++) {
-            py::list asPyParams;
+        result.resetAuxiliaryBuffer();
+        for (auto i = 0u; i < result.state->selVector->selectedSize; ++i) {
+            auto resultPos = result.state->selVector->selectedPositions[i];
+            py::list pyParams;
             for (const auto& param : params) {
-                auto asValue = param->getAsValue(param->state->selVector->selectedPositions[cur]);
-                auto asPyValue = PyQueryResult::convertValueToPyObject(*asValue);
-                asPyParams.append(asPyValue);
+                auto paramPos = param->state->isFlat() ?
+                                    param->state->selVector->selectedPositions[0] :
+                                    resultPos;
+                auto value = param->getAsValue(paramPos);
+                auto pyValue = PyQueryResult::convertValueToPyObject(*value);
+                pyParams.append(pyValue);
             }
-            auto pyResult = udf(*asPyParams);
+            auto pyResult = udf(*pyParams);
             auto resultValue = PyConnection::transformPythonValueAs(pyResult, &result.dataType);
-            result.copyFromValue(result.state->selVector->selectedPositions[cur], resultValue);
+            result.copyFromValue(resultPos, resultValue);
         }
     };
 }
 
-static scalar_func_exec_t getSelectExecution(const py::function& udf) {
-    // return [=](const std::vector<stsd::shared_ptr<ValueVector>>& params, common::SelectionVector&
-    // v) {
-    // TODO maxwell: implement select udf
-    // };
+static scalar_func_select_t getUDFSelectFunc(const py::function& udf) {
+    return
+        [=](const std::vector<std::shared_ptr<ValueVector>>& params, SelectionVector& selVector) {
+            py::gil_scoped_acquire acquire;
+            auto unFlatVectorIdx = 0u;
+            for (auto i = 0u; i < params.size(); ++i) {
+                if (!params[i]->state->isFlat()) {
+                    unFlatVectorIdx = i;
+                    break;
+                }
+            }
+            auto numSelectedValues = 0u;
+            auto selectedPositionsBuffer = selVector.getMultableBuffer();
+            for (auto i = 0u; i < params[unFlatVectorIdx]->state->selVector->selectedSize; ++i) {
+                auto resultPos = params[unFlatVectorIdx]->state->selVector->selectedPositions[i];
+                py::list pyParams;
+                for (const auto& param : params) {
+                    auto paramPos = param->state->isFlat() ?
+                                        param->state->selVector->selectedPositions[0] :
+                                        resultPos;
+                    auto value = param->getAsValue(paramPos);
+                    auto pyValue = PyQueryResult::convertValueToPyObject(*value);
+                    pyParams.append(pyValue);
+                }
+                auto pyResult = udf(*pyParams);
+                auto resultValue =
+                    PyConnection::transformPythonValueAs(pyResult, LogicalType::BOOL().get());
+                selectedPositionsBuffer[numSelectedValues] = resultPos;
+                numSelectedValues += resultValue.getValue<bool>();
+            }
+            selVector.selectedSize = numSelectedValues;
+            return numSelectedValues > 0;
+        };
 }
 
 function_set PyUDF::toFunctionSet(const std::string& name, const py::function& udf,
@@ -147,6 +173,6 @@ function_set PyUDF::toFunctionSet(const std::string& name, const py::function& u
 
     function_set definitions;
     definitions.push_back(std::make_unique<ScalarFunction>(name, pySignature.params,
-        pySignature.retval, getUDFExecution(udf)));
+        pySignature.retval, getUDFExecFunc(udf), getUDFSelectFunc(udf), nullptr /* bindFunc */));
     return definitions;
 }
