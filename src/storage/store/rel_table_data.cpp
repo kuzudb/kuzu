@@ -171,9 +171,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     packedCSRInfo = PackedCSRInfo();
 }
 
-// TODO: Two optimizations:
-//       1. avoid scan the whole group of the csr header. just scan the vector.
-//       2. cache column chunk metadata.
+// TODO: avoid scan the whole group of the csr header. just scan the vector.
 void RelTableData::initializeReadState(Transaction* transaction, std::vector<column_id_t> columnIDs,
     const ValueVector& inNodeIDVector, RelDataReadState& readState) {
     readState.direction = direction;
@@ -184,13 +182,12 @@ void RelTableData::initializeReadState(Transaction* transaction, std::vector<col
     readState.readFromLocalStorage = false;
     auto nodeOffset =
         inNodeIDVector.readNodeOffset(inNodeIDVector.state->selVector->selectedPositions[0]);
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     // Reset to read from beginning for the csr of the new node offset.
     readState.posInCurrentCSR = 0;
     if (readState.isOutOfRange(nodeOffset)) {
         // Scan csr offsets and populate csr list entries for the new node group.
-        readState.startNodeOffset = startNodeOffset;
+        auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+        readState.startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         csrHeaderColumns.scan(transaction, nodeGroupIdx, readState.csrHeaderChunks);
         KU_ASSERT(readState.csrHeaderChunks.offset->getNumValues() ==
                   readState.csrHeaderChunks.length->getNumValues());
@@ -199,7 +196,7 @@ void RelTableData::initializeReadState(Transaction* transaction, std::vector<col
         readState.readFromPersistentStorage =
             nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumNodeGroups(transaction);
         if (readState.readFromPersistentStorage) {
-            initializeColumnReadStates(transaction, startNodeOffset, readState, nodeGroupIdx);
+            initializeColumnReadStates(transaction, readState, nodeGroupIdx);
         }
         if (transaction->isWriteTransaction()) {
             readState.localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
@@ -210,16 +207,15 @@ void RelTableData::initializeReadState(Transaction* transaction, std::vector<col
     }
 }
 
-void RelTableData::initializeColumnReadStates(Transaction* transaction, offset_t startNodeOffset,
-    RelDataReadState& readState, node_group_idx_t nodeGroupIdx) {
+void RelTableData::initializeColumnReadStates(Transaction* transaction, RelDataReadState& readState,
+    node_group_idx_t nodeGroupIdx) {
     readState.columnStates.resize(readState.columnIDs.size());
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
         auto columnID = readState.columnIDs[i];
         if (columnID == INVALID_COLUMN_ID) {
             continue;
         }
-        getColumn(columnID)->initReadState(transaction, nodeGroupIdx, startNodeOffset,
-            readState.columnStates[i]);
+        getColumn(columnID)->initChunkState(transaction, nodeGroupIdx, readState.columnStates[i]);
     }
 }
 
@@ -296,7 +292,8 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOff
     if (nodeGroupIdx >= csrHeaderColumns.length->getNumNodeGroups(transaction)) {
         return false;
     }
-    auto readState = csrHeaderColumns.length->getReadState(transaction->getType(), nodeGroupIdx);
+    Column::ChunkState readState;
+    csrHeaderColumns.length->initChunkState(transaction, nodeGroupIdx, readState);
     if (offsetInChunk >= readState.metadata.numValues) {
         return false;
     }
@@ -814,6 +811,7 @@ void RelTableData::applyDeletionsToColumn(Transaction* transaction, node_group_i
 
 // TODO(Guodong): Optimize the sliding by moving the suffix/prefix depending on shifting
 //                left/right.
+// TODO: applySliding should work for all columns. so no redundant computation of slidings.
 void RelTableData::applySliding(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     LocalState& localState, const PersistentState& persistentState, Column* column) {
     if (!localState.needSliding) {
@@ -933,14 +931,20 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
 void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNodeGroup,
     node_group_idx_t nodeGroupIdx, Column* column, ColumnChunk* chunk, LocalState& localState,
     const std::vector<common::offset_t>& dstOffsets) {
-    if (!isNewNodeGroup && column->canCommitInPlace(transaction, nodeGroupIdx, dstOffsets, chunk,
-                               localState.region.leftBoundary)) {
-        column->write(nodeGroupIdx, dstOffsets[0], chunk, localState.region.leftBoundary,
-            dstOffsets.size());
-    } else {
-        column->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
-            chunk, localState.region.leftBoundary);
+    if (!isNewNodeGroup) {
+        Column::ChunkState state;
+        column->initChunkState(transaction, nodeGroupIdx, state);
+        if (column->canCommitInPlace(state, dstOffsets, chunk, localState.region.leftBoundary)) {
+            // TODO: We're assuming dstOffsets are consecutive here. Always true? if so, bad
+            // interface then.
+            column->write(state, dstOffsets[0], chunk, localState.region.leftBoundary,
+                dstOffsets.size());
+            column->getMetadataDA()->update(nodeGroupIdx, state.metadata);
+            return;
+        }
     }
+    column->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
+        chunk, localState.region.leftBoundary);
 }
 
 void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState& localState,

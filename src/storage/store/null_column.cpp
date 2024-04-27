@@ -45,7 +45,7 @@ NullColumn::NullColumn(std::string name, page_idx_t metaDAHPageIdx, BMFileHandle
     batchLookupFunc = nullptr;
 }
 
-void NullColumn::scan(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
+void NullColumn::scan(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
     if (propertyStatistics.mayHaveNull(*transaction)) {
         scanInternal(transaction, readState, nodeIDVector, resultVector);
@@ -54,7 +54,7 @@ void NullColumn::scan(Transaction* transaction, ReadState& readState, ValueVecto
     }
 }
 
-void NullColumn::scan(transaction::Transaction* transaction, ReadState& readState,
+void NullColumn::scan(transaction::Transaction* transaction, ChunkState& readState,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
     if (propertyStatistics.mayHaveNull(*transaction)) {
@@ -84,7 +84,7 @@ void NullColumn::scan(transaction::Transaction* transaction, node_group_idx_t no
     }
 }
 
-void NullColumn::lookup(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
+void NullColumn::lookup(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
     if (propertyStatistics.mayHaveNull(*transaction)) {
         lookupInternal(transaction, readState, nodeIDVector, resultVector);
@@ -107,9 +107,7 @@ void NullColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     }
 }
 
-bool NullColumn::isNull(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t offsetInChunk) {
-    auto state = getReadState(transaction->getType(), nodeGroupIdx);
+bool NullColumn::isNull(Transaction* transaction, const ChunkState& state, offset_t offsetInChunk) {
     uint64_t result = false;
     if (offsetInChunk >= state.metadata.numValues) {
         return true;
@@ -120,34 +118,29 @@ bool NullColumn::isNull(transaction::Transaction* transaction, node_group_idx_t 
     return result;
 }
 
-void NullColumn::setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, uint64_t value) {
+void NullColumn::setNull(ChunkState& state, offset_t offsetInChunk, uint64_t value) {
     propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
     // Must be aligned to an 8-byte chunk for NullMask read to not overflow
-    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     writeValues(state, offsetInChunk, reinterpret_cast<const uint8_t*>(&value),
         nullptr /*nullChunkData=*/);
     if (offsetInChunk >= state.metadata.numValues) {
         state.metadata.numValues = offsetInChunk + 1;
-        metadataDA->update(nodeGroupIdx, state.metadata);
     }
 }
 
-void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
-    ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-    writeValue(chunkMeta, nodeGroupIdx, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
+void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ValueVector* vectorToWriteFrom,
+    uint32_t posInVectorToWriteFrom) {
+    writeValue(state, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
     if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
         propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
     }
-    if (offsetInChunk >= chunkMeta.numValues) {
-        chunkMeta.numValues = offsetInChunk + 1;
-        metadataDA->update(nodeGroupIdx, chunkMeta);
+    if (offsetInChunk >= state.metadata.numValues) {
+        state.metadata.numValues = offsetInChunk + 1;
     }
 }
 
-void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, ColumnChunk* data,
+void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* data,
     offset_t dataOffset, length_t numValues) {
-    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     writeValues(state, offsetInChunk, data->getData(), nullptr /*nullChunkData=*/, dataOffset,
         numValues);
     auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(data);
@@ -158,21 +151,20 @@ void NullColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, Co
     }
     if (offsetInChunk + numValues > state.metadata.numValues) {
         state.metadata.numValues = offsetInChunk + numValues;
-        metadataDA->update(nodeGroupIdx, state.metadata);
     }
 }
 
-void NullColumn::commitLocalChunkInPlace(Transaction* /*transaction*/,
-    node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunks,
-    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
-    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
+void NullColumn::commitLocalChunkInPlace(Transaction* /*transaction*/, ChunkState& state,
+    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+    const offset_set_t& deleteInfo) {
     for (auto& [offsetInChunk, rowIdx] : updateInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
         auto localChunk = localUpdateChunks[chunkIdx];
         KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
                   !localChunk->getNullChunk());
-        write(nodeGroupIdx, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
+        write(state, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
     }
     for (auto& [offsetInChunk, rowIdx] : insertInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
@@ -180,13 +172,13 @@ void NullColumn::commitLocalChunkInPlace(Transaction* /*transaction*/,
         auto localChunk = localInsertChunks[chunkIdx];
         KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
                   !localChunk->getNullChunk());
-        write(nodeGroupIdx, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
+        write(state, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
     }
     // Set nulls based on deleteInfo. Note that this code path actually only gets executed when
     // the column is a regular format one. This is not a good design, should be unified with csr
     // one in the future.
     for (auto offsetInChunk : deleteInfo) {
-        setNull(nodeGroupIdx, offsetInChunk);
+        setNull(state, offsetInChunk);
     }
 }
 

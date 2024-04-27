@@ -67,7 +67,7 @@ void NodeTableData::initializeReadState(Transaction* transaction,
     KU_ASSERT((dataReadState.readFromPersistent && transaction->isReadOnly()) ||
               transaction->isWriteTransaction());
     if (dataReadState.readFromPersistent) {
-        initializeColumnReadStates(transaction, startNodeOffset, dataReadState, nodeGroupIdx);
+        initializeColumnReadStates(transaction, dataReadState, nodeGroupIdx);
     }
     if (transaction->isWriteTransaction()) {
         initializeLocalNodeReadState(transaction, dataReadState, nodeGroupIdx);
@@ -75,16 +75,13 @@ void NodeTableData::initializeReadState(Transaction* transaction,
     dataReadState.nodeGroupIdx = nodeGroupIdx;
 }
 
-void NodeTableData::initializeColumnReadStates(Transaction* transaction, offset_t startNodeOffset,
+void NodeTableData::initializeColumnReadStates(Transaction* transaction,
     NodeDataReadState& readState, node_group_idx_t nodeGroupIdx) {
-    auto startOffsetInChunk =
-        startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto& dataReadState = ku_dynamic_cast<TableDataReadState&, NodeDataReadState&>(readState);
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
         if (readState.columnIDs[i] != INVALID_COLUMN_ID) {
             getColumn(readState.columnIDs[i])
-                ->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
-                    dataReadState.columnReadStates[i]);
+                ->initChunkState(transaction, nodeGroupIdx, dataReadState.columnReadStates[i]);
         }
     }
     if (nodeGroupIdx != dataReadState.nodeGroupIdx) {

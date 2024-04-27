@@ -175,6 +175,7 @@ public:
 
 private:
     inline PageState* getPageState(common::page_idx_t pageIdx) {
+        std::shared_lock sLck{fhSharedMutex};
         KU_ASSERT(pageIdx < numPages && pageStates[pageIdx]);
         return pageStates[pageIdx].get();
     }

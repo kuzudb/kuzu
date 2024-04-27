@@ -101,7 +101,7 @@ public:
               bufferManager, wal, transaction, RWPropertyStats::empty(),
               false /* enableCompression */, false /*requireNullColumn*/} {}
 
-    void scan(Transaction*, ReadState&, ValueVector* nodeIDVector,
+    void scan(Transaction*, ChunkState&, ValueVector* nodeIDVector,
         ValueVector* resultVector) override {
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
@@ -112,7 +112,7 @@ public:
         }
     }
 
-    void lookup(Transaction*, ReadState&, ValueVector* nodeIDVector,
+    void lookup(Transaction*, ChunkState&, ValueVector* nodeIDVector,
         ValueVector* resultVector) override {
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
@@ -123,44 +123,41 @@ public:
         }
     }
 
-    bool canCommitInPlace(Transaction*, node_group_idx_t, const ChunkCollection&,
-        const offset_to_row_idx_t&, const ChunkCollection&,
-        const offset_to_row_idx_t& updateInfo) override {
+    bool canCommitInPlace(const ChunkState&, const ChunkCollection&, const offset_to_row_idx_t&,
+        const ChunkCollection&, const offset_to_row_idx_t& updateInfo) override {
         (void)updateInfo; // Avoid unused parameter warnings during release build.
         KU_ASSERT(updateInfo.empty());
         return true;
     }
 
-    bool canCommitInPlace(transaction::Transaction* /*transaction*/,
-        common::node_group_idx_t /*nodeGroupIdx*/,
-        const std::vector<common::offset_t>& /*dstOffset*/, ColumnChunk* /*chunk*/,
-        common::offset_t /*startOffset*/) override {
+    bool canCommitInPlace(const ChunkState&, const std::vector<common::offset_t>&, ColumnChunk*,
+        common::offset_t) override {
         // Note: only updates to rel table can trigger this code path. SERIAL is not supported in
         // rel table yet.
         KU_UNREACHABLE;
     }
 
-    void commitLocalChunkInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        const ChunkCollection&, const offset_to_row_idx_t& insertInfo, const ChunkCollection&,
+    void commitLocalChunkInPlace(Transaction*, ChunkState& state, const ChunkCollection&,
+        const offset_to_row_idx_t& insertInfo, const ChunkCollection&,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override {
         // Avoid unused parameter warnings during release build.
         (void)updateInfo;
         (void)deleteInfo;
         KU_ASSERT(updateInfo.empty() && deleteInfo.empty());
-        auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
-        auto numValues = chunkMeta.numValues;
+        auto numValues = state.metadata.numValues;
         for (auto& [offsetInChunk, _] : insertInfo) {
             if (offsetInChunk >= numValues) {
                 numValues = offsetInChunk + 1;
             }
         }
-        if (numValues > chunkMeta.numValues) {
-            chunkMeta.numValues = numValues;
-            metadataDA->update(nodeGroupIdx, chunkMeta);
+        if (numValues > state.metadata.numValues) {
+            state.metadata.numValues = numValues;
+            // TODO: Avoid updating metadataDA.
+            metadataDA->update(state.nodeGroupIdx, state.metadata);
         }
     }
 
-    void commitLocalChunkOutOfPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
+    void commitLocalChunkOutOfPlace(Transaction*, node_group_idx_t nodeGroupIdx,
         bool isNewNodeGroup, const ChunkCollection&, const offset_to_row_idx_t& insertInfo,
         const ChunkCollection&, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo) override {
@@ -180,9 +177,8 @@ public:
         metadataDA->update(nodeGroupIdx, chunkMeta);
     }
 
-    void commitColumnChunkInPlace(common::node_group_idx_t /*nodeGroupIdx*/,
-        const std::vector<common::offset_t>& /*dstOffset*/, ColumnChunk* /*chunk*/,
-        common::offset_t /*srcOffsetInChunk*/) override {
+    void commitColumnChunkInPlace(ChunkState&, const std::vector<common::offset_t>&, ColumnChunk*,
+        common::offset_t) override {
         // Note: only updates to rel table can trigger this code path. SERIAL is not supported in
         // rel table yet.
         KU_UNREACHABLE;
@@ -259,7 +255,9 @@ void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, 
         auto nodeOffset = nodeOffsets[i];
         auto [nodeGroupIdx, offsetInChunk] =
             StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-        auto cursor = getPageCursorForOffset(transaction->getType(), nodeGroupIdx, offsetInChunk);
+        ChunkState state;
+        initChunkState(transaction, nodeGroupIdx, state);
+        auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, state);
         auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
         KU_ASSERT(isPageIdxValid(cursor.pageIdx, chunkMeta));
         readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
@@ -268,14 +266,13 @@ void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, 
     }
 }
 
-void Column::initReadState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    common::offset_t startOffsetInChunk, ReadState& readState) {
+void Column::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    ChunkState& readState) {
     if (nullColumn) {
         if (!readState.nullState) {
-            readState.nullState = std::make_unique<ReadState>();
+            readState.nullState = std::make_unique<ChunkState>();
         }
-        nullColumn->initReadState(transaction, nodeGroupIdx, startOffsetInChunk,
-            *readState.nullState);
+        nullColumn->initChunkState(transaction, nodeGroupIdx, *readState.nullState);
     }
     KU_ASSERT(nodeGroupIdx < metadataDA->getNumElements(transaction->getType()));
     if (nodeGroupIdx != readState.nodeGroupIdx) {
@@ -289,7 +286,7 @@ void Column::initReadState(Transaction* transaction, node_group_idx_t nodeGroupI
     }
 }
 
-void Column::scan(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
+void Column::scan(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
     if (nullColumn) {
         KU_ASSERT(readState.nullState);
@@ -298,7 +295,7 @@ void Column::scan(Transaction* transaction, ReadState& readState, ValueVector* n
     scanInternal(transaction, readState, nodeIDVector, resultVector);
 }
 
-void Column::scan(Transaction* transaction, ReadState& readState, offset_t startOffsetInGroup,
+void Column::scan(Transaction* transaction, ChunkState& readState, offset_t startOffsetInGroup,
     offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) {
     if (nullColumn) {
         KU_ASSERT(readState.nullState);
@@ -354,7 +351,7 @@ void Column::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx, Colum
     }
 }
 
-void Column::scan(Transaction* transaction, const ReadState& state, offset_t startOffsetInGroup,
+void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
     offset_t endOffsetInGroup, uint8_t* result) {
     auto cursor = getPageCursorForOffsetInGroup(startOffsetInGroup, state);
     auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
@@ -372,8 +369,8 @@ void Column::scan(Transaction* transaction, const ReadState& state, offset_t sta
     }
 }
 
-void Column::scanInternal(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void Column::scanInternal(Transaction* transaction, ChunkState& readState,
+    ValueVector* nodeIDVector, ValueVector* resultVector) {
     auto [nodeGroupIdx, startOffsetInChunk] =
         StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeIDVector->readNodeOffset(0));
     KU_ASSERT(nodeGroupIdx == readState.nodeGroupIdx);
@@ -435,7 +432,7 @@ void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
     }
 }
 
-void Column::lookup(Transaction* transaction, ReadState& readState, ValueVector* nodeIDVector,
+void Column::lookup(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
     if (nullColumn) {
         KU_ASSERT(readState.nullState);
@@ -444,7 +441,7 @@ void Column::lookup(Transaction* transaction, ReadState& readState, ValueVector*
     lookupInternal(transaction, readState, nodeIDVector, resultVector);
 }
 
-void Column::lookupInternal(transaction::Transaction* transaction, ReadState& readState,
+void Column::lookupInternal(transaction::Transaction* transaction, ChunkState& readState,
     ValueVector* nodeIDVector, ValueVector* resultVector) {
     for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
@@ -456,7 +453,7 @@ void Column::lookupInternal(transaction::Transaction* transaction, ReadState& re
     }
 }
 
-void Column::lookupValue(transaction::Transaction* transaction, ReadState& readState,
+void Column::lookupValue(transaction::Transaction* transaction, ChunkState& readState,
     offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, readState);
@@ -511,34 +508,28 @@ void Column::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     }
 }
 
-void Column::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
-    ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+void Column::write(ChunkState& state, offset_t offsetInChunk, ValueVector* vectorToWriteFrom,
+    uint32_t posInVectorToWriteFrom) {
     bool isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
     if (!isNull) {
-        writeValue(chunkMeta, nodeGroupIdx, offsetInChunk, vectorToWriteFrom,
-            posInVectorToWriteFrom);
+        writeValue(state, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
     }
-    if (offsetInChunk >= chunkMeta.numValues) {
-        chunkMeta.numValues = offsetInChunk + 1;
-        KU_ASSERT(sanityCheckForWrites(chunkMeta, dataType));
-        metadataDA->update(nodeGroupIdx, chunkMeta);
+    if (offsetInChunk >= state.metadata.numValues) {
+        state.metadata.numValues = offsetInChunk + 1;
     }
 }
 
-void Column::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_idx_t nodeGroupIdx,
-    offset_t offsetInChunk, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    updatePageWithCursor(
-        getPageCursorForOffset(TransactionType::WRITE, nodeGroupIdx, offsetInChunk),
+void Column::writeValue(ChunkState& state, offset_t offsetInChunk, ValueVector* vectorToWriteFrom,
+    uint32_t posInVectorToWriteFrom) {
+    updatePageWithCursor(getPageCursorForOffsetInGroup(offsetInChunk, state),
         [&](auto frame, auto posInPage) {
             writeFromVectorFunc(frame, posInPage, vectorToWriteFrom, posInVectorToWriteFrom,
-                chunkMeta.compMeta);
+                state.metadata.compMeta);
         });
 }
 
-void Column::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, ColumnChunk* data,
+void Column::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* data,
     offset_t dataOffset, length_t numValues) {
-    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     NullMask nullMask{std::span<uint64_t>()};
     NullMask* nullMaskPtr = nullptr;
     if (data->getNullChunk()) {
@@ -548,12 +539,10 @@ void Column::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk, Column
     writeValues(state, offsetInChunk, data->getData(), nullMaskPtr, dataOffset, numValues);
     if (offsetInChunk + numValues > state.metadata.numValues) {
         state.metadata.numValues = offsetInChunk + numValues;
-        KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
-        metadataDA->update(nodeGroupIdx, state.metadata);
     }
 }
 
-void Column::writeValues(ReadState& state, common::offset_t dstOffset, const uint8_t* data,
+void Column::writeValues(ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
     const common::NullMask* nullChunkData, common::offset_t srcOffset, common::offset_t numValues) {
     auto numValuesWritten = 0u;
     auto cursor = getPageCursorForOffsetInGroup(dstOffset, state);
@@ -570,20 +559,21 @@ void Column::writeValues(ReadState& state, common::offset_t dstOffset, const uin
     }
 }
 
-offset_t Column::appendValues(node_group_idx_t nodeGroupIdx, const uint8_t* data,
+// Apend to the end of the chunk.
+offset_t Column::appendValues(ChunkState& state, const uint8_t* data,
     const common::NullMask* nullChunkData, offset_t numValues) {
-    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     auto startOffset = state.metadata.numValues;
     auto numPages = dataFH->getNumPages();
+    // TODO: writeValues should return new pages appended if any.
     writeValues(state, state.metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
     auto newNumPages = dataFH->getNumPages();
     state.metadata.numValues += numValues;
     state.metadata.numPages += (newNumPages - numPages);
-    metadataDA->update(nodeGroupIdx, state.metadata);
+    metadataDA->update(state.nodeGroupIdx, state.metadata);
     return startOffset;
 }
 
-PageCursor Column::getPageCursorForOffsetInGroup(offset_t offsetInChunk, const ReadState& state) {
+PageCursor Column::getPageCursorForOffsetInGroup(offset_t offsetInChunk, const ChunkState& state) {
     auto pageCursor = PageUtils::getPageCursorForPos(offsetInChunk, state.numValuesPerPage);
     pageCursor.pageIdx += state.metadata.pageIdx;
     return pageCursor;
@@ -603,12 +593,6 @@ void Column::updatePageWithCursor(PageCursor cursor,
         *wal, [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
 }
 
-Column::ReadState Column::getReadState(TransactionType transactionType,
-    node_group_idx_t nodeGroupIdx) const {
-    auto metadata = metadataDA->get(nodeGroupIdx, transactionType);
-    return {metadata, metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType)};
-}
-
 void Column::prepareCommit() {
     metadataDA->prepareCommit();
     if (nullColumn) {
@@ -616,7 +600,7 @@ void Column::prepareCommit() {
     }
 }
 
-void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void Column::prepareCommitForChunk(Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
     const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
     const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
     const offset_set_t& deleteInfo) {
@@ -629,27 +613,32 @@ void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t no
             insertInfo, localUpdateChunks, updateInfo, deleteInfo);
     } else {
         bool didInPlaceCommit = false;
+        ChunkState state;
+        initChunkState(transaction, nodeGroupIdx, state);
         // If this is not a new node group, we should first check if we can perform in-place commit.
-        if (canCommitInPlace(transaction, nodeGroupIdx, localInsertChunks, insertInfo,
-                localUpdateChunks, updateInfo)) {
-            commitLocalChunkInPlace(transaction, nodeGroupIdx, localInsertChunks, insertInfo,
+        if (canCommitInPlace(state, localInsertChunks, insertInfo, localUpdateChunks, updateInfo)) {
+            commitLocalChunkInPlace(transaction, state, localInsertChunks, insertInfo,
                 localUpdateChunks, updateInfo, deleteInfo);
             didInPlaceCommit = true;
+            KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
+            metadataDA->update(nodeGroupIdx, state.metadata);
         } else {
-            commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunks,
-                insertInfo, localUpdateChunks, updateInfo, deleteInfo);
+            commitLocalChunkOutOfPlace(transaction, state.nodeGroupIdx, isNewNodeGroup,
+                localInsertChunks, insertInfo, localUpdateChunks, updateInfo, deleteInfo);
         }
         // TODO(Guodong/Ben): The logic here on NullColumn is confusing as out-of-place commits and
         // in-place commits handle it differently. See if we can unify them.
         if (nullColumn) {
             // Uses functions written for the null chunk which only access the localColumnChunk's
             // null information
-            if (nullColumn->canCommitInPlace(transaction, nodeGroupIdx,
+            KU_ASSERT(state.nullState);
+            if (nullColumn->canCommitInPlace(*state.nullState,
                     getNullChunkCollection(localInsertChunks), insertInfo,
                     getNullChunkCollection(localUpdateChunks), updateInfo)) {
-                nullColumn->commitLocalChunkInPlace(transaction, nodeGroupIdx,
+                nullColumn->commitLocalChunkInPlace(transaction, *state.nullState,
                     getNullChunkCollection(localInsertChunks), insertInfo,
                     getNullChunkCollection(localUpdateChunks), updateInfo, deleteInfo);
+                nullColumn->metadataDA->update(nodeGroupIdx, state.nullState->metadata);
             } else if (didInPlaceCommit) {
                 // Out-of-place commits also commit the null chunk out of place,
                 // so we only need to do a separate out of place commit for the null chunk if the
@@ -666,6 +655,7 @@ void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t no
     const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk, offset_t startSrcOffset) {
     metadataDA->prepareCommit();
     auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
+    // TODO: Move newNodeGroup out to the table data level.
     auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {
         commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk,
@@ -673,18 +663,24 @@ void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t no
     } else {
         bool didInPlaceCommit = false;
         // If this is not a new node group, we should first check if we can perform in-place commit.
-        if (canCommitInPlace(transaction, nodeGroupIdx, dstOffsets, chunk, startSrcOffset)) {
-            commitColumnChunkInPlace(nodeGroupIdx, dstOffsets, chunk, startSrcOffset);
+        ChunkState state;
+        initChunkState(transaction, nodeGroupIdx, state);
+        if (canCommitInPlace(state, dstOffsets, chunk, startSrcOffset)) {
+            commitColumnChunkInPlace(state, dstOffsets, chunk, startSrcOffset);
             didInPlaceCommit = true;
+            KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
+            metadataDA->update(nodeGroupIdx, state.metadata);
         } else {
             commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
                 chunk, startSrcOffset);
         }
         if (nullColumn) {
-            if (nullColumn->canCommitInPlace(transaction, nodeGroupIdx, dstOffsets,
-                    chunk->getNullChunk(), startSrcOffset)) {
-                nullColumn->commitColumnChunkInPlace(nodeGroupIdx, dstOffsets,
+            KU_ASSERT(state.nullState);
+            if (nullColumn->canCommitInPlace(*state.nullState, dstOffsets, chunk->getNullChunk(),
+                    startSrcOffset)) {
+                nullColumn->commitColumnChunkInPlace(*state.nullState, dstOffsets,
                     chunk->getNullChunk(), startSrcOffset);
+                nullColumn->metadataDA->update(nodeGroupIdx, state.nullState->metadata);
             } else if (didInPlaceCommit) {
                 nullColumn->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
                     dstOffsets, chunk->getNullChunk(), startSrcOffset);
@@ -738,33 +734,31 @@ bool Column::checkUpdateInPlace(const ColumnChunkMetadata& metadata,
     return true;
 }
 
-bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo) {
-    auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
-    if (isInsertionsOutOfPagesCapacity(metadata, insertInfo)) {
+bool Column::canCommitInPlace(const ChunkState& state, const ChunkCollection& localInsertChunks,
+    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
+    const offset_to_row_idx_t& updateInfo) {
+    if (isInsertionsOutOfPagesCapacity(state.metadata, insertInfo)) {
         return false;
     }
-    if (metadata.compMeta.canAlwaysUpdateInPlace()) {
+    if (state.metadata.compMeta.canAlwaysUpdateInPlace()) {
         return true;
     }
-    return checkUpdateInPlace(metadata, localInsertChunks, insertInfo) &&
-           checkUpdateInPlace(metadata, localUpdateChunks, updateInfo);
+    return checkUpdateInPlace(state.metadata, localInsertChunks, insertInfo) &&
+           checkUpdateInPlace(state.metadata, localUpdateChunks, updateInfo);
 }
 
-bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+bool Column::canCommitInPlace(const ChunkState& state,
     const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
     common::offset_t srcOffset) {
     auto maxDstOffset = getMaxOffset(dstOffsets);
-    auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
-    if (isMaxOffsetOutOfPagesCapacity(metadata, maxDstOffset)) {
+    if (isMaxOffsetOutOfPagesCapacity(state.metadata, maxDstOffset)) {
         return false;
     }
-    if (metadata.compMeta.canAlwaysUpdateInPlace()) {
+    if (state.metadata.compMeta.canAlwaysUpdateInPlace()) {
         return true;
     }
     for (auto i = 0u; i < dstOffsets.size(); i++) {
-        if (!metadata.compMeta.canUpdateInPlace(chunk->getData(), srcOffset + i,
+        if (!state.metadata.compMeta.canUpdateInPlace(chunk->getData(), srcOffset + i,
                 dataType.getPhysicalType())) {
             return false;
         }
@@ -772,12 +766,12 @@ bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGro
     return true;
 }
 
-void Column::commitLocalChunkInPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
+void Column::commitLocalChunkInPlace(Transaction*, ChunkState& state,
     const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
     const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
-    const offset_set_t& /*deleteInfo*/) {
-    applyLocalChunkToColumn(nodeGroupIdx, localUpdateChunks, updateInfo);
-    applyLocalChunkToColumn(nodeGroupIdx, localInsertChunks, insertInfo);
+    const offset_set_t&) {
+    applyLocalChunkToColumn(state, localUpdateChunks, updateInfo);
+    applyLocalChunkToColumn(state, localInsertChunks, insertInfo);
 }
 
 std::unique_ptr<ColumnChunk> Column::getEmptyChunkForCommit(uint64_t capacity) {
@@ -812,10 +806,11 @@ void Column::commitLocalChunkOutOfPlace(Transaction* transaction, node_group_idx
     append(columnChunk.get(), nodeGroupIdx);
 }
 
-void Column::commitColumnChunkInPlace(node_group_idx_t nodeGroupIdx,
-    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
+void Column::commitColumnChunkInPlace(ChunkState& state, const std::vector<offset_t>& dstOffsets,
+    ColumnChunk* chunk, offset_t srcOffset) {
+    // TODO: Should always sort dstOffsets, and group writes to the same page.
     for (auto i = 0u; i < dstOffsets.size(); i++) {
-        write(nodeGroupIdx, dstOffsets[i], chunk, srcOffset + i, 1 /* numValues */);
+        write(state, dstOffsets[i], chunk, srcOffset + i, 1 /* numValues */);
     }
 }
 
@@ -850,20 +845,17 @@ void Column::applyLocalChunkToColumnChunk(const ChunkCollection& localChunks,
     }
 }
 
-void Column::applyLocalChunkToColumn(node_group_idx_t nodeGroupIdx,
-    const ChunkCollection& localChunks, const offset_to_row_idx_t& updateInfo) {
+void Column::applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
+    const offset_to_row_idx_t& updateInfo) {
     for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
         if (!localChunks[chunkIdx]->getNullChunk()->isNull(offsetInLocalChunk)) {
-            write(nodeGroupIdx, offsetInDstChunk, localChunks[chunkIdx], offsetInLocalChunk,
+            write(state, offsetInDstChunk, localChunks[chunkIdx], offsetInLocalChunk,
                 1 /*numValues*/);
         } else {
-            auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-            if (offsetInDstChunk >= chunkMeta.numValues) {
-                chunkMeta.numValues = offsetInDstChunk + 1;
-                KU_ASSERT(sanityCheckForWrites(chunkMeta, dataType));
-                metadataDA->update(nodeGroupIdx, chunkMeta);
+            if (offsetInDstChunk >= state.metadata.numValues) {
+                state.metadata.numValues = offsetInDstChunk + 1;
             }
         }
     }
@@ -906,12 +898,6 @@ void Column::populateWithDefaultVal(Transaction* transaction,
             append(columnChunk.get(), i);
         }
     }
-}
-
-PageCursor Column::getPageCursorForOffset(TransactionType transactionType,
-    node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
-    auto state = getReadState(transactionType, nodeGroupIdx);
-    return getPageCursorForOffsetInGroup(offsetInChunk, state);
 }
 
 ChunkCollection Column::getNullChunkCollection(const ChunkCollection& chunkCollection) {

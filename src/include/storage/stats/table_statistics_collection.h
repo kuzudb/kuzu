@@ -81,6 +81,8 @@ public:
 
     void initTableStatisticsForWriteTrx();
 
+    void setToUpdated() { isUpdated = true; }
+
 protected:
     virtual std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableCatalogEntry* tableEntry) = 0;
@@ -101,7 +103,6 @@ protected:
 
     void initTableStatisticsForWriteTrxNoLock();
 
-    void setToUpdated() { isUpdated = true; }
     void resetToNotUpdated() { isUpdated = false; }
 
 protected:

@@ -71,8 +71,8 @@ void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column
             auto nodeOffset = offsets[i];
             auto [nodeGroupIdx, offsetInChunk] =
                 StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-            Column::ReadState readState;
-            column->initReadState(transaction, nodeGroupIdx, offsetInChunk, readState);
+            Column::ChunkState readState;
+            column->initChunkState(transaction, nodeGroupIdx, readState);
             column->scan(transaction, readState, offsetInChunk, offsetInChunk + 1, &resultVector,
                 i);
         }

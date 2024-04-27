@@ -17,7 +17,7 @@ struct RelDataReadState : public TableDataReadState {
     std::vector<common::list_entry_t> csrListEntries;
     // Temp auxiliary data structure to scan the offset of each CSR node in the offset column chunk.
     ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/);
-    std::vector<Column::ReadState> columnStates;
+    std::vector<Column::ChunkState> columnStates;
 
     bool readFromPersistentStorage;
     // Following fields are used for local storage.
@@ -182,8 +182,7 @@ private:
         const PackedCSRRegion& region, const LocalRelNG* localNG);
 
     void initializeColumnReadStates(transaction::Transaction* transaction,
-        common::offset_t startNodeOffset, RelDataReadState& readState,
-        common::node_group_idx_t nodeGroupIdx);
+        RelDataReadState& readState, common::node_group_idx_t nodeGroupIdx);
 
     std::vector<PackedCSRRegion> findRegions(const ChunkedCSRHeader& headerChunks,
         LocalState& localState);
