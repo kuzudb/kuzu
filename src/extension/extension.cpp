@@ -69,6 +69,16 @@ void ExtensionUtils::registerTableFunction(main::Database& database,
     catalog->checkpointInMemory();
 }
 
+bool ExtensionUtils::isOfficialExtension(const std::string& extension) {
+    auto extensionUpperCase = common::StringUtils::getUpper(extension);
+    for (auto& officialExtension : OFFICIAL_EXTENSION) {
+        if (officialExtension == extensionUpperCase) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void ExtensionOptions::addExtensionOption(std::string name, common::LogicalTypeID type,
     common::Value defaultValue) {
     common::StringUtils::toLower(name);

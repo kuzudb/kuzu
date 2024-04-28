@@ -25,3 +25,15 @@ Waterloo|150000
 -STATEMENT INSTALL http;
 ---- error
 IO exception: HTTP Returns: 404, Failed to download extension: "http" from extension.kuzudb.com/v0.1.0/osx_arm64/libhttp.kuzu_extension.
+
+-CASE InstallUnofficialExtensions
+-STATEMENT INSTALL sqlitescanner;
+---- error
+Binder exception: sqlitescanner is not an official extension.
+Non-official extensions can be installed directly by: `LOAD EXTENSION [EXTENSION_PATH]`.
+-STATEMENT LOAD EXTENSION sqlitescanner;
+---- error
+Binder exception: The extension sqlitescanner is neither an official extension, nor does the extension path: 'sqlitescanner' exists.
+-STATEMENT LOAD EXTENSION '/tmp/iceberg';
+---- error
+Binder exception: The extension /tmp/iceberg is neither an official extension, nor does the extension path: '/tmp/iceberg' exists.
