@@ -6,6 +6,7 @@ from datetime import timedelta
 import kuzu
 from kuzu import Type
 import pandas as pd
+from type_aliases import ConnDB
 
 def udf_helper(conn, functionName, params, expectedResult):
     plist = ', '.join(map(lambda x: "$" + str(x+1), range(len(params))))
@@ -76,14 +77,14 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     
     selectIfSevenArgs = ["selectIfSeven", selectIfSeven]
 
-    conn.set_udf(*add5IntArgs)
-    conn.set_udf(*add5FloatArgs)
-    conn.set_udf(*intToStringArgs)
-    conn.set_udf(*sumOf7Args)
-    conn.set_udf(*dateToDatetimeArgs)
-    conn.set_udf(*datetimeToDateArgs)
-    conn.set_udf(*addToDateArgs)
-    conn.set_udf(*selectIfSevenArgs)
+    conn.create_function(*add5IntArgs)
+    conn.create_function(*add5FloatArgs)
+    conn.create_function(*intToStringArgs)
+    conn.create_function(*sumOf7Args)
+    conn.create_function(*dateToDatetimeArgs)
+    conn.create_function(*datetimeToDateArgs)
+    conn.create_function(*addToDateArgs)
+    conn.create_function(*selectIfSevenArgs)
 
     udf_helper(conn, "add5int", [10], 15)
     udf_helper(conn, "add5int", [9], 14)
