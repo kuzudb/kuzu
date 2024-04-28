@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "common/cast.h"
 #include "common/copier_config/reader_config.h"
 #include "common/types/value/value.h"
 
@@ -18,6 +19,11 @@ struct TableFuncBindInput {
     TableFuncBindInput() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(TableFuncBindInput);
     virtual ~TableFuncBindInput() = default;
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const TableFuncBindInput*, const TARGET*>(this);
+    }
 
 protected:
     TableFuncBindInput(const TableFuncBindInput& other) : inputs{other.inputs} {}

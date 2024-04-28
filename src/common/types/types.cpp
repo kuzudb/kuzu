@@ -20,6 +20,101 @@ using kuzu::function::BuiltInFunctionsUtils;
 namespace kuzu {
 namespace common {
 
+LogicalType* ListType::getChildType(const kuzu::common::LogicalType* type) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::LIST ||
+              type->getPhysicalType() == PhysicalTypeID::ARRAY);
+    auto listTypeInfo = type->extraTypeInfo->constPtrCast<ListTypeInfo>();
+    return listTypeInfo->getChildType();
+}
+
+LogicalType* ArrayType::getChildType(const LogicalType* type) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::ARRAY);
+    auto arrayTypeInfo = type->extraTypeInfo->constPtrCast<ArrayTypeInfo>();
+    return arrayTypeInfo->getChildType();
+}
+
+uint64_t ArrayType::getNumElements(const LogicalType* type) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::ARRAY);
+    auto arrayTypeInfo = type->extraTypeInfo->constPtrCast<ArrayTypeInfo>();
+    return arrayTypeInfo->getNumElements();
+}
+
+std::vector<LogicalType*> StructType::getFieldTypes(const LogicalType* type) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto structTypeInfo = type->extraTypeInfo->constPtrCast<StructTypeInfo>();
+    return structTypeInfo->getChildrenTypes();
+}
+
+std::vector<std::string> StructType::getFieldNames(const LogicalType* type) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto structTypeInfo = type->extraTypeInfo->constPtrCast<StructTypeInfo>();
+    return structTypeInfo->getChildrenNames();
+}
+
+uint64_t StructType::getNumFields(const LogicalType* type) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+    return getFieldTypes(type).size();
+}
+
+std::vector<const StructField*> StructType::getFields(const LogicalType* type) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto structTypeInfo = type->extraTypeInfo->constPtrCast<StructTypeInfo>();
+    return structTypeInfo->getStructFields();
+}
+
+bool StructType::hasField(const LogicalType* type, const std::string& key) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto structTypeInfo = type->extraTypeInfo->constPtrCast<StructTypeInfo>();
+    return structTypeInfo->hasField(key);
+}
+
+const StructField* StructType::getField(const LogicalType* type, struct_field_idx_t idx) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto structTypeInfo = type->extraTypeInfo->constPtrCast<StructTypeInfo>();
+    return structTypeInfo->getStructField(idx);
+}
+
+const StructField* StructType::getField(const LogicalType* type, const std::string& key) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto structTypeInfo = type->extraTypeInfo->constPtrCast<StructTypeInfo>();
+    return structTypeInfo->getStructField(key);
+}
+
+struct_field_idx_t StructType::getFieldIdx(const LogicalType* type, const std::string& key) {
+    KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto structTypeInfo = type->extraTypeInfo->constPtrCast<StructTypeInfo>();
+    return structTypeInfo->getStructFieldIdx(key);
+}
+
+LogicalType* MapType::getKeyType(const LogicalType* type) {
+    KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::MAP);
+    return StructType::getFieldTypes(ListType::getChildType(type))[0];
+}
+
+LogicalType* MapType::getValueType(const LogicalType* type) {
+    KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::MAP);
+    return StructType::getFieldTypes(ListType::getChildType(type))[1];
+}
+
+union_field_idx_t UnionType::getInternalFieldIdx(union_field_idx_t idx) {
+    return idx + 1;
+}
+
+std::string UnionType::getFieldName(const LogicalType* type, union_field_idx_t idx) {
+    KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::UNION);
+    return StructType::getFieldNames(type)[getInternalFieldIdx(idx)];
+}
+
+LogicalType* UnionType::getFieldType(const LogicalType* type, union_field_idx_t idx) {
+    KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::UNION);
+    return StructType::getFieldTypes(type)[getInternalFieldIdx(idx)];
+}
+
+uint64_t UnionType::getNumFields(const LogicalType* type) {
+    KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::UNION);
+    return StructType::getNumFields(type) - 1;
+}
+
 std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType) {
     // LCOV_EXCL_START
     switch (physicalType) {
@@ -921,17 +1016,21 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidComparableLogicalTypes()
         LogicalTypeID::UUID, LogicalTypeID::STRING, LogicalTypeID::SERIAL};
 }
 
-std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
-    return std::vector<LogicalTypeID>{LogicalTypeID::INT64, LogicalTypeID::INT32,
-        LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::UINT64, LogicalTypeID::UINT32,
-        LogicalTypeID::UINT16, LogicalTypeID::UINT8, LogicalTypeID::INT128, LogicalTypeID::DOUBLE,
-        LogicalTypeID::FLOAT, LogicalTypeID::SERIAL};
+std::vector<LogicalTypeID> LogicalTypeUtils::getIntegerTypeIDs() {
+    return std::vector<LogicalTypeID>{LogicalTypeID::INT128, LogicalTypeID::INT64,
+        LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::SERIAL,
+        LogicalTypeID::UINT64, LogicalTypeID::UINT32, LogicalTypeID::UINT16, LogicalTypeID::UINT8};
 }
 
-// TODO(Ziyi): Support int128 and uint types here.
-std::vector<LogicalTypeID> LogicalTypeUtils::getIntegerLogicalTypeIDs() {
-    return std::vector<LogicalTypeID>{LogicalTypeID::INT64, LogicalTypeID::INT32,
-        LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::SERIAL};
+static std::vector<LogicalTypeID> getFloatingPointTypeIDs() {
+    return std::vector<LogicalTypeID>{LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT};
+}
+
+std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
+    auto integerTypes = getIntegerTypeIDs();
+    auto floatingPointTypes = getFloatingPointTypeIDs();
+    integerTypes.insert(integerTypes.end(), floatingPointTypes.begin(), floatingPointTypes.end());
+    return integerTypes;
 }
 
 std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypes() {

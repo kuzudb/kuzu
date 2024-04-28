@@ -94,18 +94,18 @@ Binder exception: Cannot bind s.* as a single property expression.
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *
 ---- error
 Binder exception: Cannot match a built-in function for given function +(INTERNAL_ID,INT64). Supported inputs are
+(INT128,INT128) -> INT128
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
+(SERIAL,SERIAL) -> SERIAL
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
 (UINT8,UINT8) -> UINT8
-(INT128,INT128) -> INT128
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
-(SERIAL,SERIAL) -> SERIAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -120,18 +120,18 @@ Binder exception: Cannot match a built-in function for given function +(INTERNAL
 -STATEMENT MATCH (a:person) RETURN a.birthdate + date('2031-02-01')
 ---- error
 Binder exception: Cannot match a built-in function for given function +(DATE,DATE). Supported inputs are
+(INT128,INT128) -> INT128
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
+(SERIAL,SERIAL) -> SERIAL
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
 (UINT8,UINT8) -> UINT8
-(INT128,INT128) -> INT128
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
-(SERIAL,SERIAL) -> SERIAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -146,18 +146,18 @@ Binder exception: Cannot match a built-in function for given function +(DATE,DAT
 -STATEMENT MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *
 ---- error
 Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,INT64). Supported inputs are
+(INT128,INT128) -> INT128
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
+(SERIAL,SERIAL) -> SERIAL
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
 (UINT8,UINT8) -> UINT8
-(INT128,INT128) -> INT128
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
-(SERIAL,SERIAL) -> SERIAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -172,18 +172,18 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 -STATEMENT MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');
 ---- error
 Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,TIMESTAMP). Supported inputs are
+(INT128,INT128) -> INT128
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
+(SERIAL,SERIAL) -> SERIAL
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
 (UINT8,UINT8) -> UINT8
-(INT128,INT128) -> INT128
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
-(SERIAL,SERIAL) -> SERIAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -505,18 +505,18 @@ Binder exception: SERIAL properties are not supported in rel tables.
 -STATEMENT MATCH (a:person) RETURN a.age + 'hh'
 ---- error
 Binder exception: Cannot match a built-in function for given function +(INT64,STRING). Supported inputs are
+(INT128,INT128) -> INT128
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
+(SERIAL,SERIAL) -> SERIAL
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
 (UINT8,UINT8) -> UINT8
-(INT128,INT128) -> INT128
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
-(SERIAL,SERIAL) -> SERIAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -575,18 +575,18 @@ Binder exception: Cannot match a built-in function for given function CAST(STRIN
 -STATEMENT RETURN timestamp("2019-11-21") + "ok";
 ---- error
 Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,STRING). Supported inputs are
+(INT128,INT128) -> INT128
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
+(SERIAL,SERIAL) -> SERIAL
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
 (UINT8,UINT8) -> UINT8
-(INT128,INT128) -> INT128
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
-(SERIAL,SERIAL) -> SERIAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -599,18 +599,18 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 -STATEMENT RETURN cast("2019-11-21", "TIMESTAMP_MS") + "ok";
 ---- error
 Binder exception: Cannot match a built-in function for given function +(TIMESTAMP_MS,STRING). Supported inputs are
+(INT128,INT128) -> INT128
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
+(SERIAL,SERIAL) -> SERIAL
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
 (UINT8,UINT8) -> UINT8
-(INT128,INT128) -> INT128
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
-(SERIAL,SERIAL) -> SERIAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL

@@ -295,7 +295,7 @@ static void bindColumns(const common::ReaderConfig& readerConfig,
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     function::TableFuncBindInput* input) {
-    auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
+    auto scanInput = input->constPtrCast<function::ScanTableFuncBindInput>();
     KU_ASSERT(scanInput->config.options.empty());
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;
@@ -320,7 +320,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     function::TableFunctionInitInput& input) {
-    auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
+    auto bindData = input.bindData->constPtrCast<ScanBindData>();
     auto reader = make_unique<NpyReader>(bindData->config.filePaths[0]);
     return std::make_unique<NpyScanSharedState>(bindData->config.copy(), reader->getNumRows());
 }

@@ -55,6 +55,8 @@ Runtime exception: Step of range cannot be 0.
 -STATEMENT MATCH (a) RETURN range(a.NAME, 4, 1);
 ---- error
 Binder exception: Cannot match a built-in function for given function RANGE(STRING,INT64,INT64). Supported inputs are
+(INT128,INT128) -> LIST
+(INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
 (INT64,INT64,INT64) -> LIST
 (INT32,INT32) -> LIST
@@ -65,6 +67,14 @@ Binder exception: Cannot match a built-in function for given function RANGE(STRI
 (INT8,INT8,INT8) -> LIST
 (SERIAL,SERIAL) -> LIST
 (SERIAL,SERIAL,SERIAL) -> LIST
+(UINT64,UINT64) -> LIST
+(UINT64,UINT64,UINT64) -> LIST
+(UINT32,UINT32) -> LIST
+(UINT32,UINT32,UINT32) -> LIST
+(UINT16,UINT16) -> LIST
+(UINT16,UINT16,UINT16) -> LIST
+(UINT8,UINT8) -> LIST
+(UINT8,UINT8,UINT8) -> LIST
 -STATEMENT RETURN range(4, 3);
 ---- 1
 []
@@ -128,6 +138,21 @@ Binder exception: Cannot match a built-in function for given function RANGE(STRI
 -STATEMENT RETURN range(TO_INT8(-128), TO_INT8(127), TO_INT8(127));
 ---- 1
 [-128,-1,126]
+-STATEMENT RETURN range(CAST(-128, 'INT128'), CAST(122, 'INT128'), CAST(125, 'INT128'));
+---- 1
+[-128,-3,122]
+-STATEMENT RETURN range(CAST(4, 'uint64'), CAST(50, 'uint64'), CAST(16, 'uint64'));
+---- 1
+[4,20,36]
+-STATEMENT RETURN range(CAST(2, 'uint32'), CAST(70, 'uint32'), CAST(3, 'uint32'));
+---- 1
+[2,5,8,11,14,17,20,23,26,29,32,35,38,41,44,47,50,53,56,59,62,65,68]
+-STATEMENT RETURN range(CAST(1, 'uint16'), CAST(55, 'uint16'), CAST(128, 'uint16'));
+---- 1
+[1]
+-STATEMENT RETURN range(CAST(3, 'uint8'), CAST(50, 'uint8'), CAST(5, 'uint8'));
+---- 1
+[3,8,13,18,23,28,33,38,43,48]
 -STATEMENT RETURN range(3, 4, 0);
 ---- error
 Runtime exception: Step of range cannot be 0.

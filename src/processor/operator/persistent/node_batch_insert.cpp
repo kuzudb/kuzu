@@ -26,7 +26,7 @@ void NodeBatchInsertSharedState::initPKIndex(kuzu::processor::ExecutionContext* 
     if (readerSharedState != nullptr) {
         KU_ASSERT(distinctSharedState == nullptr);
         auto scanSharedState =
-            reinterpret_cast<function::BaseScanSharedState*>(readerSharedState->funcState.get());
+            readerSharedState->funcState->ptrCast<function::BaseScanSharedState>();
         numRows = scanSharedState->numRows;
     } else {
         numRows = distinctSharedState->getFactorizedTable()->getNumTuples();
