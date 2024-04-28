@@ -154,7 +154,7 @@ void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* d
     }
 }
 
-void NullColumn::commitLocalChunkInPlace(Transaction* /*transaction*/, ChunkState& state,
+void NullColumn::commitLocalChunkInPlace(ChunkState& state,
     const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
     const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
     const offset_set_t& deleteInfo) {

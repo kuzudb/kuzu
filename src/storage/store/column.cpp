@@ -137,7 +137,7 @@ public:
         KU_UNREACHABLE;
     }
 
-    void commitLocalChunkInPlace(Transaction*, ChunkState& state, const ChunkCollection&,
+    void commitLocalChunkInPlace(ChunkState& state, const ChunkCollection&,
         const offset_to_row_idx_t& insertInfo, const ChunkCollection&,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override {
         // Avoid unused parameter warnings during release build.
@@ -610,42 +610,10 @@ void Column::prepareCommitForChunk(Transaction* transaction, common::node_group_
         commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunks,
             insertInfo, localUpdateChunks, updateInfo, deleteInfo);
     } else {
-        bool didInPlaceCommit = false;
         ChunkState state;
         initChunkState(transaction, nodeGroupIdx, state);
-        // If this is not a new node group, we should first check if we can perform in-place commit.
-        if (canCommitInPlace(state, localInsertChunks, insertInfo, localUpdateChunks, updateInfo)) {
-            commitLocalChunkInPlace(transaction, state, localInsertChunks, insertInfo,
-                localUpdateChunks, updateInfo, deleteInfo);
-            didInPlaceCommit = true;
-            KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
-            metadataDA->update(nodeGroupIdx, state.metadata);
-        } else {
-            commitLocalChunkOutOfPlace(transaction, state.nodeGroupIdx, isNewNodeGroup,
-                localInsertChunks, insertInfo, localUpdateChunks, updateInfo, deleteInfo);
-        }
-        // TODO(Guodong/Ben): The logic here on NullColumn is confusing as out-of-place commits and
-        // in-place commits handle it differently. See if we can unify them.
-        if (nullColumn) {
-            // Uses functions written for the null chunk which only access the localColumnChunk's
-            // null information
-            KU_ASSERT(state.nullState);
-            if (nullColumn->canCommitInPlace(*state.nullState,
-                    getNullChunkCollection(localInsertChunks), insertInfo,
-                    getNullChunkCollection(localUpdateChunks), updateInfo)) {
-                nullColumn->commitLocalChunkInPlace(transaction, *state.nullState,
-                    getNullChunkCollection(localInsertChunks), insertInfo,
-                    getNullChunkCollection(localUpdateChunks), updateInfo, deleteInfo);
-                nullColumn->metadataDA->update(nodeGroupIdx, state.nullState->metadata);
-            } else if (didInPlaceCommit) {
-                // Out-of-place commits also commit the null chunk out of place,
-                // so we only need to do a separate out of place commit for the null chunk if the
-                // main chunk did an in-place commit.
-                nullColumn->commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
-                    getNullChunkCollection(localInsertChunks), insertInfo,
-                    getNullChunkCollection(localUpdateChunks), updateInfo, deleteInfo);
-            }
-        }
+        prepareCommitForExistingChunk(transaction, state, localInsertChunks, insertInfo,
+            localUpdateChunks, updateInfo, deleteInfo);
     }
 }
 
@@ -657,31 +625,49 @@ void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t no
         commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk,
             startSrcOffset);
     } else {
-        bool didInPlaceCommit = false;
         // If this is not a new node group, we should first check if we can perform in-place commit.
         ChunkState state;
         initChunkState(transaction, nodeGroupIdx, state);
-        if (canCommitInPlace(state, dstOffsets, chunk, startSrcOffset)) {
-            commitColumnChunkInPlace(state, dstOffsets, chunk, startSrcOffset);
-            didInPlaceCommit = true;
-            KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
-            metadataDA->update(nodeGroupIdx, state.metadata);
-        } else {
-            commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
-                chunk, startSrcOffset);
-        }
+        prepareCommitForExistingChunk(transaction, state, dstOffsets, chunk, startSrcOffset);
+    }
+}
+
+void Column::prepareCommitForExistingChunk(Transaction* transaction, Column::ChunkState& state,
+    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+    const offset_set_t& deleteInfo) {
+    // If this is not a new node group, we should first check if we can perform in-place commit.
+    if (canCommitInPlace(state, localInsertChunks, insertInfo, localUpdateChunks, updateInfo)) {
+        commitLocalChunkInPlace(state, localInsertChunks, insertInfo, localUpdateChunks, updateInfo,
+            deleteInfo);
+        KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
+        metadataDA->update(state.nodeGroupIdx, state.metadata);
         if (nullColumn) {
             KU_ASSERT(state.nullState);
-            if (nullColumn->canCommitInPlace(*state.nullState, dstOffsets, chunk->getNullChunk(),
-                    startSrcOffset)) {
-                nullColumn->commitColumnChunkInPlace(*state.nullState, dstOffsets,
-                    chunk->getNullChunk(), startSrcOffset);
-                nullColumn->metadataDA->update(nodeGroupIdx, state.nullState->metadata);
-            } else if (didInPlaceCommit) {
-                nullColumn->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
-                    dstOffsets, chunk->getNullChunk(), startSrcOffset);
-            }
+            auto nullInsertChunks = getNullChunkCollection(localInsertChunks);
+            auto nullUpdateChunks = getNullChunkCollection(localUpdateChunks);
+            nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState,
+                nullInsertChunks, insertInfo, nullUpdateChunks, updateInfo, deleteInfo);
         }
+    } else {
+        commitLocalChunkOutOfPlace(transaction, state.nodeGroupIdx, false /*isNewNodeGroup*/,
+            localInsertChunks, insertInfo, localUpdateChunks, updateInfo, deleteInfo);
+    }
+}
+
+void Column::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
+    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t startSrcOffset) {
+    if (canCommitInPlace(state, dstOffsets, chunk, startSrcOffset)) {
+        commitColumnChunkInPlace(state, dstOffsets, chunk, startSrcOffset);
+        KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
+        metadataDA->update(state.nodeGroupIdx, state.metadata);
+        if (nullColumn) {
+            nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState, dstOffsets,
+                chunk->getNullChunk(), startSrcOffset);
+        }
+    } else {
+        commitColumnChunkOutOfPlace(transaction, state.nodeGroupIdx, false /*isNewNodeGroup*/,
+            dstOffsets, chunk, startSrcOffset);
     }
 }
 
@@ -762,10 +748,9 @@ bool Column::canCommitInPlace(const ChunkState& state,
     return true;
 }
 
-void Column::commitLocalChunkInPlace(Transaction*, ChunkState& state,
-    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
-    const offset_set_t&) {
+void Column::commitLocalChunkInPlace(ChunkState& state, const ChunkCollection& localInsertChunks,
+    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
+    const offset_to_row_idx_t& updateInfo, const offset_set_t&) {
     applyLocalChunkToColumn(state, localUpdateChunks, updateInfo);
     applyLocalChunkToColumn(state, localInsertChunks, insertInfo);
 }

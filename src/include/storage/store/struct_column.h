@@ -36,13 +36,11 @@ public:
     void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunk* data,
         common::offset_t dataOffset, common::length_t numValues) override;
 
-    void prepareCommitForChunk(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
-        const ChunkCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-        const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
+    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
+        const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+        const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo) override;
-    void prepareCommitForChunk(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
+    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
         const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
         common::offset_t startSrcOffset) override;
 
@@ -51,12 +49,6 @@ protected:
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void lookupInternal(transaction::Transaction* transaction, ChunkState& readState,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
-
-    bool canCommitInPlace(const ChunkState& state, const ChunkCollection& localInsertChunk,
-        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
-        const offset_to_row_idx_t& updateInfo) override;
-    bool canCommitInPlace(const ChunkState& state, const std::vector<common::offset_t>& dstOffsets,
-        ColumnChunk* chunk, common::offset_t dataOffset) override;
 
 private:
     static ChunkCollection getStructChildChunkCollection(const ChunkCollection& chunkCollection,
