@@ -191,6 +191,11 @@ void NodeTableData::append(ChunkedNodeGroup* nodeGroup) {
 
 void NodeTableData::prepareLocalNodeGroupToCommit(node_group_idx_t nodeGroupIdx,
     Transaction* transaction, LocalNodeNG* localNodeGroup) {
+    auto numNodeGroups = columns[0]->getNumNodeGroups(transaction);
+    auto isNewNodeGroup = nodeGroupIdx >= numNodeGroups;
+    KU_ASSERT(std::find_if(columns.begin(), columns.end(), [&](const auto& column) {
+        return column->getNumNodeGroups(transaction) != numNodeGroups;
+    }) == columns.end());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         auto column = columns[columnID].get();
         auto localInsertChunk = localNodeGroup->getInsertChunks().getLocalChunk(columnID);
@@ -198,7 +203,7 @@ void NodeTableData::prepareLocalNodeGroupToCommit(node_group_idx_t nodeGroupIdx,
         if (localInsertChunk.empty() && localUpdateChunk.empty()) {
             continue;
         }
-        column->prepareCommitForChunk(transaction, nodeGroupIdx, localInsertChunk,
+        column->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunk,
             localNodeGroup->getInsertInfoRef(), localUpdateChunk,
             localNodeGroup->getUpdateInfoRef(columnID), {} /* deleteInfo */);
     }

@@ -37,12 +37,14 @@ public:
         common::offset_t dataOffset, common::length_t numValues) override;
 
     void prepareCommitForChunk(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunk,
-        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
-        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override;
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
+        const ChunkCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
+        const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo) override;
     void prepareCommitForChunk(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
-        ColumnChunk* chunk, common::offset_t startSrcOffset) override;
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        common::offset_t startSrcOffset) override;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, ChunkState& readState,

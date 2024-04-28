@@ -92,12 +92,14 @@ public:
 
     virtual void prepareCommit();
     virtual void prepareCommitForChunk(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, const ChunkCollection& localInsertChunks,
-        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
-        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
+        const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+        const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo);
     virtual void prepareCommitForChunk(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, const std::vector<common::offset_t>& dstOffsets,
-        ColumnChunk* chunk, common::offset_t startSrcOffset);
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        common::offset_t startSrcOffset);
 
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();

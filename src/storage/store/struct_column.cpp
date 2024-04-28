@@ -161,11 +161,9 @@ bool StructColumn::canCommitInPlace(const ChunkState& state,
 }
 
 void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const ChunkCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
-    const offset_set_t& deleteInfo) {
-    auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
-    auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
+    bool isNewNodeGroup, const ChunkCollection& localInsertChunk,
+    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
+    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
     if (isNewNodeGroup) {
         // If this is a new node group, updateInfo should be empty. We should perform out-of-place
         // commit with a new column chunk.
@@ -194,7 +192,7 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
         // Update each child column separately
         for (auto i = 0u; i < childColumns.size(); i++) {
             const auto& childColumn = childColumns[i];
-            childColumn->prepareCommitForChunk(transaction, nodeGroupIdx,
+            childColumn->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup,
                 getStructChildChunkCollection(localInsertChunk, i), insertInfo,
                 getStructChildChunkCollection(localUpdateChunk, i), updateInfo, deleteInfo);
         }
@@ -202,10 +200,9 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
 }
 
 void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
+    bool isNewNodeGroup, const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk,
+    offset_t srcOffset) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == dataType.getPhysicalType());
-    auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
-    auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {
         // If this is a new node group, updateInfo should be empty. We should perform out-of-place
         // commit with a new column chunk.
@@ -232,8 +229,8 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
         for (auto i = 0u; i < childColumns.size(); i++) {
             const auto& childColumn = childColumns[i];
             auto childChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(chunk)->getChild(i);
-            childColumn->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets, childChunk,
-                srcOffset);
+            childColumn->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup,
+                dstOffsets, childChunk, srcOffset);
         }
     }
 }

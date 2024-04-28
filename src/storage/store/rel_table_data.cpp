@@ -474,8 +474,8 @@ void RelTableData::applyDeletionsToChunk(const PersistentState& persistentState,
 }
 
 void RelTableData::distributeAndUpdateColumn(Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, column_id_t columnID, const PersistentState& persistentState,
-    LocalState& localState) {
+    node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, column_id_t columnID,
+    const PersistentState& persistentState, LocalState& localState) {
     auto column = getColumn(columnID);
     auto [leftNodeBoundary, rightNodeBoundary] = localState.region.getNodeOffsetBoundaries();
     KU_ASSERT(localState.regionCapacity >= (localState.rightCSROffset - localState.leftCSROffset));
@@ -516,8 +516,8 @@ void RelTableData::distributeAndUpdateColumn(Transaction* transaction,
     dstOffsets.resize(newChunk->getNumValues());
     fillSequence(dstOffsets, localState.leftCSROffset);
     KU_ASSERT(newChunk->sanityCheck());
-    column->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets, newChunk.get(),
-        0 /*srcOffset*/);
+    column->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
+        newChunk.get(), 0 /*srcOffset*/);
 }
 
 std::vector<PackedCSRRegion> RelTableData::findRegions(const ChunkedCSRHeader& headerChunks,
@@ -552,7 +552,7 @@ std::vector<PackedCSRRegion> RelTableData::findRegions(const ChunkedCSRHeader& h
 }
 
 void RelTableData::updateRegion(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    PersistentState& persistentState, LocalState& localState) {
+    bool isNewNodeGroup, PersistentState& persistentState, LocalState& localState) {
     // Scan RelID column chunk when there are updates or deletions.
     // TODO(Guodong): Should track for each region if it has updates or deletions.
     if (localState.localNG->hasUpdatesOrDeletions()) {
@@ -567,12 +567,13 @@ void RelTableData::updateRegion(Transaction* transaction, node_group_idx_t nodeG
     }
     if (localState.region.level == 0) {
         for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-            updateColumn(transaction, nodeGroupIdx, columnID, persistentState, localState);
+            updateColumn(transaction, nodeGroupIdx, isNewNodeGroup, columnID, persistentState,
+                localState);
         }
     } else {
         for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-            distributeAndUpdateColumn(transaction, nodeGroupIdx, columnID, persistentState,
-                localState);
+            distributeAndUpdateColumn(transaction, nodeGroupIdx, isNewNodeGroup, columnID,
+                persistentState, localState);
         }
     }
 }
@@ -687,19 +688,21 @@ void RelTableData::slideRightForInsertions(offset_t nodeOffset, offset_t rightBo
 }
 
 void RelTableData::updateColumn(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    column_id_t columnID, const RelTableData::PersistentState& persistentState,
+    bool isNewNodeGroup, column_id_t columnID, const RelTableData::PersistentState& persistentState,
     LocalState& localState) {
     auto column = getColumn(columnID);
-    applyUpdatesToColumn(transaction, nodeGroupIdx, columnID, persistentState, localState, column);
-    applyDeletionsToColumn(transaction, nodeGroupIdx, localState, persistentState, column);
-    applySliding(transaction, nodeGroupIdx, localState, persistentState, column);
-    applyInsertionsToColumn(transaction, nodeGroupIdx, columnID, localState, persistentState,
+    applyUpdatesToColumn(transaction, nodeGroupIdx, isNewNodeGroup, columnID, persistentState,
+        localState, column);
+    applyDeletionsToColumn(transaction, nodeGroupIdx, isNewNodeGroup, localState, persistentState,
         column);
+    applySliding(transaction, nodeGroupIdx, isNewNodeGroup, localState, persistentState, column);
+    applyInsertionsToColumn(transaction, nodeGroupIdx, isNewNodeGroup, columnID, localState,
+        persistentState, column);
 }
 
 void RelTableData::applyUpdatesToColumn(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    column_id_t columnID, const PersistentState& persistentState, LocalState& localState,
-    Column* column) {
+    bool isNewNodeGroup, column_id_t columnID, const PersistentState& persistentState,
+    LocalState& localState, Column* column) {
     offset_to_row_idx_t writeInfo;
     auto& updateChunk = localState.localNG->getUpdateChunks(columnID);
     for (auto& [srcOffset, updatesPerNode] : updateChunk.getSrcNodeOffsetToRelOffsets()) {
@@ -714,14 +717,14 @@ void RelTableData::applyUpdatesToColumn(Transaction* transaction, node_group_idx
     }
     if (!writeInfo.empty()) {
         auto localChunk = updateChunk.getLocalChunk(0 /*columnID*/);
-        column->prepareCommitForChunk(transaction, nodeGroupIdx, {}, {} /*insertInfo*/, localChunk,
-            writeInfo, {} /*deleteInfo*/);
+        column->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup, {},
+            {} /*insertInfo*/, localChunk, writeInfo, {} /*deleteInfo*/);
     }
 }
 
 void RelTableData::applyInsertionsToColumn(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    column_id_t columnID, LocalState& localState, const PersistentState& persistentState,
-    Column* column) {
+    bool isNewNodeGroup, column_id_t columnID, LocalState& localState,
+    const PersistentState& persistentState, Column* column) {
     (void)persistentState; // Avoid unused variable warning.
     offset_to_row_idx_t writeInfo;
     auto& insertChunks = localState.localNG->insertChunks;
@@ -741,7 +744,8 @@ void RelTableData::applyInsertionsToColumn(Transaction* transaction, node_group_
         }
     }
     auto localChunk = insertChunks.getLocalChunk(columnID);
-    column->prepareCommitForChunk(transaction, nodeGroupIdx, localChunk, writeInfo, {}, {}, {});
+    column->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup, localChunk, writeInfo,
+        {}, {}, {});
 }
 
 std::vector<std::pair<offset_t, offset_t>> RelTableData::getSlidesForDeletions(
@@ -789,7 +793,8 @@ std::vector<std::pair<offset_t, offset_t>> RelTableData::getSlidesForDeletions(
 //                slidings and benefit from this when there is few deletions.
 //                3. `getSlidesForDeletions` can be done once for all columns.
 void RelTableData::applyDeletionsToColumn(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    LocalState& localState, const PersistentState& persistentState, Column* column) {
+    bool isNewNodeGroup, LocalState& localState, const PersistentState& persistentState,
+    Column* column) {
     auto slides = getSlidesForDeletions(persistentState, localState);
     if (slides.empty()) {
         return;
@@ -806,14 +811,16 @@ void RelTableData::applyDeletionsToColumn(Transaction* transaction, node_group_i
         chunk->append(tmpChunkForRead.get(), 0, 1);
         dstOffsets[i] = slides[i].second;
     }
-    column->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets, chunk.get(), 0);
+    column->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
+        chunk.get(), 0);
 }
 
 // TODO(Guodong): Optimize the sliding by moving the suffix/prefix depending on shifting
 //                left/right.
 // TODO: applySliding should work for all columns. so no redundant computation of slidings.
 void RelTableData::applySliding(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    LocalState& localState, const PersistentState& persistentState, Column* column) {
+    bool isNewNodeGroup, LocalState& localState, const PersistentState& persistentState,
+    Column* column) {
     if (!localState.needSliding) {
         return;
     }
@@ -848,7 +855,8 @@ void RelTableData::applySliding(Transaction* transaction, node_group_idx_t nodeG
         chunk->append(tmpChunkForRead.get(), 0, 1);
         dstOffsets[i] = slides[i].second;
     }
-    column->prepareCommitForChunk(transaction, nodeGroupIdx, dstOffsets, chunk.get(), 0);
+    column->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
+        chunk.get(), 0);
 }
 
 offset_t RelTableData::getMaxNumNodesInRegion(const ChunkedCSRHeader& header,
@@ -864,7 +872,7 @@ offset_t RelTableData::getMaxNumNodesInRegion(const ChunkedCSRHeader& header,
 }
 
 void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    PersistentState& persistentState, LocalState& localState) {
+    bool isNewNodeGroup, PersistentState& persistentState, LocalState& localState) {
     auto [leftBoundary, rightBoundary] = localState.region.getNodeOffsetBoundaries();
     auto& header = persistentState.header;
     auto maxNumNodesInRegion =
@@ -921,7 +929,6 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(newHeader.offset->getNumValues() - localState.region.leftBoundary);
     fillSequence(dstOffsets, localState.region.leftBoundary);
-    auto isNewNodeGroup = nodeGroupIdx >= csrHeaderColumns.offset->getNumNodeGroups(transaction);
     commitCSRHeaderChunk(transaction, isNewNodeGroup, nodeGroupIdx, csrHeaderColumns.offset.get(),
         newHeader.offset.get(), localState, dstOffsets);
     commitCSRHeaderChunk(transaction, isNewNodeGroup, nodeGroupIdx, csrHeaderColumns.length.get(),
@@ -935,8 +942,7 @@ void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNode
         Column::ChunkState state;
         column->initChunkState(transaction, nodeGroupIdx, state);
         if (column->canCommitInPlace(state, dstOffsets, chunk, localState.region.leftBoundary)) {
-            // TODO: We're assuming dstOffsets are consecutive here. Always true? if so, bad
-            // interface then.
+            // TODO: We're assuming dstOffsets are consecutive here. This is a bad interface.
             column->write(state, dstOffsets[0], chunk, localState.region.leftBoundary,
                 dstOffsets.size());
             column->getMetadataDA()->update(nodeGroupIdx, state.metadata);
@@ -986,10 +992,11 @@ void RelTableData::prepareCommitNodeGroup(Transaction* transaction, node_group_i
     auto regions = findRegions(persistentState.header, localState);
     for (auto& region : regions) {
         localState.setRegion(region);
-        updateCSRHeader(transaction, nodeGroupIdx, persistentState, localState);
+        auto isNewNG = isNewNodeGroup(transaction, nodeGroupIdx);
+        updateCSRHeader(transaction, nodeGroupIdx, isNewNG, persistentState, localState);
         KU_ASSERT((region.level >= packedCSRInfo.calibratorTreeHeight && regions.size() == 1) ||
                   region.level < packedCSRInfo.calibratorTreeHeight);
-        updateRegion(transaction, nodeGroupIdx, persistentState, localState);
+        updateRegion(transaction, nodeGroupIdx, isNewNG, persistentState, localState);
     }
 }
 
