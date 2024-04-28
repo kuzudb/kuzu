@@ -73,7 +73,7 @@ public:
         MemoryManager* memoryManager, catalog::RelTableCatalogEntry* relTableEntry, WAL* wal,
         bool enableCompression);
 
-    inline void initializeReadState(transaction::Transaction* transaction,
+    void initializeReadState(transaction::Transaction* transaction,
         common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs,
         const common::ValueVector& inNodeIDVector, RelTableReadState& readState) {
         if (!readState.dataReadState) {
@@ -100,38 +100,38 @@ public:
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
         common::ValueVector* defaultValueVector) override;
-    inline void dropColumn(common::column_id_t columnID) override {
+    void dropColumn(common::column_id_t columnID) override {
         fwdRelTableData->dropColumn(columnID);
         bwdRelTableData->dropColumn(columnID);
     }
-    inline Column* getCSROffsetColumn(common::RelDataDirection direction) {
+    Column* getCSROffsetColumn(common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSROffsetColumn() :
                                                             bwdRelTableData->getCSROffsetColumn();
     }
-    inline Column* getCSRLengthColumn(common::RelDataDirection direction) {
+    Column* getCSRLengthColumn(common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSRLengthColumn() :
                                                             bwdRelTableData->getCSRLengthColumn();
     }
-    inline common::column_id_t getNumColumns() {
+    common::column_id_t getNumColumns() {
         KU_ASSERT(fwdRelTableData->getNumColumns() == bwdRelTableData->getNumColumns());
         return fwdRelTableData->getNumColumns();
     }
-    inline Column* getColumn(common::column_id_t columnID, common::RelDataDirection direction) {
+    Column* getColumn(common::column_id_t columnID, common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getColumn(columnID) :
                                                             bwdRelTableData->getColumn(columnID);
     }
-    inline const std::vector<std::unique_ptr<Column>>& getColumns(
+    const std::vector<std::unique_ptr<Column>>& getColumns(
         common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getColumns() :
                                                             bwdRelTableData->getColumns();
     }
 
-    inline void append(ChunkedNodeGroup* nodeGroup, common::RelDataDirection direction) {
+    void append(ChunkedNodeGroup* nodeGroup, common::RelDataDirection direction) {
         direction == common::RelDataDirection::FWD ? fwdRelTableData->append(nodeGroup) :
                                                      bwdRelTableData->append(nodeGroup);
     }
 
-    inline bool isNewNodeGroup(transaction::Transaction* transaction,
+    bool isNewNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ?
                    fwdRelTableData->isNewNodeGroup(transaction, nodeGroupIdx) :
@@ -144,7 +144,7 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
-    inline RelTableData* getDirectedTableData(common::RelDataDirection direction) {
+    RelTableData* getDirectedTableData(common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData.get() :
                                                             bwdRelTableData.get();
     }

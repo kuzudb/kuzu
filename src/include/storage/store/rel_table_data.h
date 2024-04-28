@@ -193,8 +193,8 @@ private:
     double getHighDensity(uint64_t level) const;
 
     void updateCSRHeader(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, PersistentState& persistentState,
-        LocalState& localState);
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
+        PersistentState& persistentState, LocalState& localState);
     void commitCSRHeaderChunk(transaction::Transaction* transaction, bool isNewNodeGroup,
         common::node_group_idx_t nodeGroupIdx, Column* column, ColumnChunk* columnChunk,
         LocalState& localState, const std::vector<common::offset_t>& dstOffsets);
@@ -202,12 +202,12 @@ private:
     void distributeOffsets(const ChunkedCSRHeader& header, LocalState& localState,
         common::offset_t leftBoundary, common::offset_t rightBoundary);
     void updateRegion(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        PersistentState& persistentState, LocalState& localState);
+        bool isNewNodeGroup, PersistentState& persistentState, LocalState& localState);
     void updateColumn(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        common::column_id_t columnID, const RelTableData::PersistentState& persistentState,
-        LocalState& localState);
+        bool isNewNodeGroup, common::column_id_t columnID,
+        const RelTableData::PersistentState& persistentState, LocalState& localState);
     void distributeAndUpdateColumn(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::column_id_t columnID,
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, common::column_id_t columnID,
         const PersistentState& persistentState, LocalState& localState);
 
     void findPositionsForInsertions(common::offset_t nodeOffset, common::length_t numInsertions,
@@ -227,16 +227,17 @@ private:
         ColumnChunk* chunk);
 
     void applyUpdatesToColumn(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::column_id_t columnID,
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, common::column_id_t columnID,
         const PersistentState& persistentState, LocalState& localState, Column* column);
     void applyInsertionsToColumn(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::column_id_t columnID, LocalState& localState,
-        const PersistentState& persistentState, Column* column);
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, common::column_id_t columnID,
+        LocalState& localState, const PersistentState& persistentState, Column* column);
     void applyDeletionsToColumn(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, LocalState& localState,
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, LocalState& localState,
         const PersistentState& persistentState, Column* column);
     void applySliding(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        LocalState& localState, const PersistentState& persistentState, Column* column);
+        bool isNewNodeGroup, LocalState& localState, const PersistentState& persistentState,
+        Column* column);
 
     std::vector<std::pair<common::offset_t, common::offset_t>> getSlidesForDeletions(
         const PersistentState& persistentState, const LocalState& localState);

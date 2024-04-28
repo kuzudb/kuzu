@@ -601,11 +601,9 @@ void Column::prepareCommit() {
 }
 
 void Column::prepareCommitForChunk(Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
-    const offset_set_t& deleteInfo) {
-    auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
-    auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
+    bool isNewNodeGroup, const ChunkCollection& localInsertChunks,
+    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
+    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
     if (isNewNodeGroup) {
         // If this is a new node group, updateInfo should be empty. We should perform out-of-place
         // commit with a new column chunk.
@@ -652,11 +650,9 @@ void Column::prepareCommitForChunk(Transaction* transaction, common::node_group_
 }
 
 void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk, offset_t startSrcOffset) {
+    bool isNewNodeGroup, const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+    offset_t startSrcOffset) {
     metadataDA->prepareCommit();
-    auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
-    // TODO: Move newNodeGroup out to the table data level.
-    auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {
         commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk,
             startSrcOffset);
@@ -822,8 +818,6 @@ void Column::commitColumnChunkOutOfPlace(Transaction* transaction, node_group_id
         append(chunk, nodeGroupIdx);
     } else {
         auto chunkMeta = getMetadata(nodeGroupIdx, transaction->getType());
-        // TODO(Guodong): Should consider caching the scanned column chunk to avoid redundant
-        // scans in the same transaction.
         auto columnChunk =
             getEmptyChunkForCommit(1.5 * std::bit_ceil(chunkMeta.numValues + dstOffsets.size()));
         scan(transaction, nodeGroupIdx, columnChunk.get());
