@@ -358,7 +358,7 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Test
-        run: make test TSAN=1
+        run: TSAN_OPTIONS=second_deadlock_stack=1 make test TSAN=1
 
   msvc-build-test:
     name: msvc build & test
