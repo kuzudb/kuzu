@@ -72,17 +72,45 @@ function_set ArrayCrossProductFunction::getFunctionSet() {
     return result;
 }
 
-static void validateArrayFunctionParameters(const LogicalType& leftType,
+static LogicalType getChildType(const LogicalType& type) {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::ARRAY:
+        return *ArrayType::getChildType(&type);
+    case LogicalTypeID::LIST:
+        return *ListType::getChildType(&type);
+        // LCOV_EXCL_START
+    default:
+        throw BinderException(stringFormat(
+            "Cannot retrieve child type of type {}. LIST or ARRAY is expected.", type.toString()));
+        // LCOV_EXCL_STOP
+    }
+}
+
+static void validateChildType(const LogicalType& type, const std::string& functionName) {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::DOUBLE:
+    case LogicalTypeID::FLOAT:
+        return;
+    default:
+        throw BinderException(
+            stringFormat("{} requires argument type to be FLOAT[] or DOUBLE[].", functionName));
+    }
+}
+
+static LogicalType validateArrayFunctionParameters(const LogicalType& leftType,
     const LogicalType& rightType, const std::string& functionName) {
-    if (leftType != rightType) {
-        throw BinderException(
-            stringFormat("{} requires both arrays to have the same element type", functionName));
+    auto leftChildType = getChildType(leftType);
+    auto rightChildType = getChildType(rightType);
+    validateChildType(leftChildType, functionName);
+    validateChildType(rightChildType, functionName);
+    if (leftType.getLogicalTypeID() == common::LogicalTypeID::ARRAY) {
+        return leftType;
+    } else if (rightType.getLogicalTypeID() == common::LogicalTypeID::ARRAY) {
+        return rightType;
     }
-    if (ArrayType::getChildType(&leftType)->getLogicalTypeID() != LogicalTypeID::FLOAT &&
-        ArrayType::getChildType(&leftType)->getLogicalTypeID() != LogicalTypeID::DOUBLE) {
-        throw BinderException(
-            stringFormat("{} requires argument type of FLOAT or DOUBLE.", functionName));
-    }
+    throw BinderException(
+        stringFormat("{} requires at least one argument to be ARRAY but all parameters are LIST.",
+            functionName));
 }
 
 template<typename OPERATION, typename RESULT>
@@ -113,9 +141,15 @@ std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName
     const binder::expression_vector& arguments, Function* function) {
     auto leftType = arguments[0]->dataType;
     auto rightType = arguments[1]->dataType;
-    validateArrayFunctionParameters(leftType, rightType, functionName);
-    function->ptrCast<ScalarFunction>()->execFunc = getScalarExecFunc<OPERATION>(leftType);
-    return FunctionBindData::getSimpleBindData(arguments, *ArrayType::getChildType(&leftType));
+    auto paramType = validateArrayFunctionParameters(leftType, rightType, functionName);
+    function->ptrCast<ScalarFunction>()->execFunc = getScalarExecFunc<OPERATION>(paramType);
+    auto bindData = std::make_unique<FunctionBindData>(ArrayType::getChildType(&paramType)->copy());
+    std::vector<LogicalType> paramTypes;
+    for (auto& _ : arguments) {
+        (void)_;
+        bindData->paramTypes.push_back(paramType);
+    }
+    return bindData;
 }
 
 template<typename OPERATION>
