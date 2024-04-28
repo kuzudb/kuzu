@@ -34,7 +34,10 @@ struct FTableScanSharedState final : public function::BaseScanSharedState {
         return morsel;
     }
 
-    uint64_t getNumRows() const override { return table->getTotalNumFlatTuples(); }
+    uint64_t getNumRows() const override {
+        KU_ASSERT(table->getNumTuples() == table->getTotalNumFlatTuples());
+        return table->getNumTuples();
+    }
 };
 
 static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
