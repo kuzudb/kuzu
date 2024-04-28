@@ -853,7 +853,7 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
     // LCOV_EXCL_STOP
 }
 
-LogicalTypeID LogicalTypeUtils::fromStringToID(std::string str) {
+LogicalTypeID LogicalTypeUtils::fromStringToID(const std::string& str) {
     if (str == "ANY") {
         return LogicalTypeID::ANY;
     } else if (str == "NODE") {

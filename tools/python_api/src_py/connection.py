@@ -231,11 +231,11 @@ class Connection:
         self._connection.set_query_timeout(timeout_in_ms)
 
     def create_function(
-        self, 
-        name: str, 
-        udf: Callable[[...], Any], 
-        params_type: list[Type] = None, 
-        return_type: Type = None
+        self,
+        name: str,
+        udf: Callable[[...], Any],
+        params_type: list[Type] | None = None,
+        return_type: Type | None = None
     ) -> None:
         """
         Sets a User Defined Function (UDF) to use in cypher queries.
@@ -248,10 +248,10 @@ class Connection:
         udf: Callable[[...], Any]
             function to be executed
 
-        parameters: list[Type]
+        params_type: Optional[list[Type]]
             list of Type enums to describe the input parameters
 
-        return_type: Type
+        return_type: Optional[Type]
             a Type enum to describe the returned value
         """
         parsed_params_type = [] if params_type is None else [param_type.value for param_type in params_type]

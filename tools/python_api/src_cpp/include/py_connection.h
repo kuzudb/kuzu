@@ -44,8 +44,8 @@ public:
     void createScalarFunction(const std::string& name, const py::function& udf,
         const py::list& params, const std::string& retval);
 
-    static Value transformPythonValue(py::handle val);
-    static Value transformPythonValueAs(py::handle val, const LogicalType* type);
+    static Value transformPythonValue(const py::handle& val);
+    static Value transformPythonValueAs(const py::handle& val, const LogicalType& type);
 
 private:
     std::unique_ptr<StorageDriver> storageDriver;

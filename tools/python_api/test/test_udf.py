@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from datetime import date
-from datetime import datetime
-from datetime import timedelta
+import pandas as pd
+from datetime import date, datetime, timedelta # noqa: TCH003
+
 import kuzu
 from kuzu import Type
-import pandas as pd
+
 from type_aliases import ConnDB
 
+
 def udf_helper(conn, functionName, params, expectedResult):
-    plist = ', '.join(map(lambda x: "$" + str(x+1), range(len(params))))
+    plist = ', '.join(f"${i+1}" for i in range(len(params)))
     queryString = f"RETURN {functionName}({plist})"
     result = conn.execute(queryString, {str(i+1) : params[i] for i in range(len(params))})
     assert result.get_next()[0] == expectedResult
@@ -64,13 +65,13 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
         return a+b+c
     
     concatThreeListsArgs = ["concatThreeLists", concatThreeLists, [Type.LIST] * 3, Type.LIST]
-    # todo maxwell: implement nested udf
+    # TODO: (Maxwell) implement nested udf
     
     def mergeMaps(a: dict, b: dict) -> dict:
         return a | b
     
     mergeMapsArgs = ["mergeMaps", mergeMaps, [Type.MAP] * 2, Type.MAP]
-    # todo maxwell: implement nested udf
+    # TODO: (Maxwell) implement nested udf
 
     def selectIfSeven(a: int) -> bool:
         return a == 7

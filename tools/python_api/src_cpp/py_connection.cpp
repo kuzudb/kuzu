@@ -34,8 +34,8 @@ void PyConnection::initialize(py::handle& m) {
         .def("get_all_edges_for_torch_geometric", &PyConnection::getAllEdgesForTorchGeometric,
             py::arg("np_array"), py::arg("src_table_name"), py::arg("rel_name"),
             py::arg("dst_table_name"), py::arg("query_batch_size"))
-        .def("create_function", &PyConnection::createScalarFunction, py::arg("name"), py::arg("udf"),
-            py::arg("params_type"), py::arg("return_value"));
+        .def("create_function", &PyConnection::createScalarFunction, py::arg("name"),
+            py::arg("udf"), py::arg("params_type"), py::arg("return_value"));
     PyDateTime_IMPORT;
 }
 
@@ -187,7 +187,7 @@ static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonPa
     return result;
 }
 
-static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
+static std::unique_ptr<LogicalType> pyLogicalType(const py::handle& val) {
     auto datetime_datetime = importCache->datetime.datetime();
     auto time_delta = importCache->datetime.timedelta();
     auto datetime_date = importCache->datetime.date();
@@ -270,7 +270,7 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
     }
 }
 
-Value PyConnection::transformPythonValueAs(py::handle val, const LogicalType& type) {
+Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalType& type) {
     // ignore the type of the actual python object, just directly cast
     auto datetime_datetime = importCache->datetime.datetime();
     auto time_delta = importCache->datetime.timedelta();
@@ -399,7 +399,7 @@ Value PyConnection::transformPythonValueAs(py::handle val, const LogicalType& ty
     }
 }
 
-Value PyConnection::transformPythonValue(py::handle val) {
+Value PyConnection::transformPythonValue(const py::handle& val) {
     auto type = pyLogicalType(val);
     return transformPythonValueAs(val, *type);
 }

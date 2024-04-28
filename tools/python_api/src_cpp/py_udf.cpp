@@ -14,25 +14,25 @@ using namespace kuzu;
 using namespace kuzu::function;
 
 struct PyUDFSignature {
-    std::vector<LogicalTypeID> params;
-    LogicalTypeID retval;
+    std::vector<LogicalTypeID> paramTypes;
+    LogicalTypeID resultType;
 
-    PyUDFSignature() : params(), retval(LogicalTypeID::ANY) {}
+    PyUDFSignature() : paramTypes(), resultType(LogicalTypeID::ANY) {}
 };
 
 static std::vector<LogicalTypeID> pyListToParams(const py::list& lst) {
-    std::vector<LogicalTypeID> result;
-    for (const auto& i : lst) {
-        result.push_back(LogicalTypeUtils::fromStringToID(py::cast<std::string>(i)));
+    std::vector<LogicalTypeID> params;
+    for (const auto& _ : lst) {
+        params.push_back(LogicalTypeUtils::fromStringToID(py::cast<std::string>(_)));
     }
-    return result;
+    return params;
 }
 
 static LogicalTypeID pyTypeToLogicalTypeID(const py::handle& ele) {
-    auto datetime_datetime = importCache->datetime.datetime();
-    auto time_delta = importCache->datetime.timedelta();
-    auto datetime_date = importCache->datetime.date();
-    auto uuid = importCache->uuid.UUID();
+    auto datetime_val = importCache->datetime.datetime()(1, 1, 1);
+    auto timedelta_val = importCache->datetime.timedelta()(0);
+    auto date_val = importCache->datetime.date()(1, 1, 1);
+    auto uuid_val = importCache->uuid.UUID()(py::arg("int") = 0);
     auto inspect_empty = importCache->inspect._empty();
     if (ele.is(py::type::of(py::none())) || ele.is(inspect_empty)) {
         return LogicalTypeID::ANY;
@@ -44,13 +44,13 @@ static LogicalTypeID pyTypeToLogicalTypeID(const py::handle& ele) {
         return LogicalTypeID::DOUBLE;
     } else if (ele.is(py::type::of(py::str()))) {
         return LogicalTypeID::STRING;
-    } else if (ele.is(py::type::of(datetime_datetime(1, 1, 1)))) {
+    } else if (ele.is(py::type::of(datetime_val))) {
         return LogicalTypeID::TIMESTAMP;
-    } else if (ele.is(py::type::of(datetime_date(1, 1, 1)))) {
+    } else if (ele.is(py::type::of(date_val))) {
         return LogicalTypeID::DATE;
-    } else if (ele.is(py::type::of(time_delta(0)))) {
+    } else if (ele.is(py::type::of(timedelta_val))) {
         return LogicalTypeID::INTERVAL;
-    } else if (ele.is(py::type::of(uuid(py::arg("int") = 0)))) {
+    } else if (ele.is(py::type::of(uuid_val))) {
         return LogicalTypeID::UUID;
     } else if (ele.is(py::type::of(py::str()))) {
         return LogicalTypeID::STRING;
@@ -65,21 +65,21 @@ static LogicalTypeID pyTypeToLogicalTypeID(const py::handle& ele) {
 }
 
 static PyUDFSignature analyzeSignature(const py::function& udf) {
-    PyUDFSignature retval;
+    PyUDFSignature UDFSignature;
     auto signature = kuzu::importCache->inspect.signature()(udf, py::arg("eval_str") = true);
-    auto sig_params = signature.attr("parameters");
-    auto return_annotation = signature.attr("return_annotation");
-    retval.retval = pyTypeToLogicalTypeID(return_annotation);
-    for (const auto& i : sig_params) {
-        auto param_annotation = sig_params.attr("__getitem__")(i).attr("annotation");
-        retval.params.push_back(pyTypeToLogicalTypeID(param_annotation));
+    auto parameters = signature.attr("parameters");
+    auto returnAnnotation = signature.attr("return_annotation");
+    UDFSignature.resultType = pyTypeToLogicalTypeID(returnAnnotation);
+    for (const auto& parameter : parameters) {
+        auto paramAnnotation = parameters.attr("__getitem__")(parameter).attr("annotation");
+        UDFSignature.paramTypes.push_back(pyTypeToLogicalTypeID(paramAnnotation));
     }
-    return retval;
+    return UDFSignature;
 }
 
 static scalar_func_exec_t getUDFExecFunc(const py::function& udf) {
     return [=](const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
-               void*) -> void {
+               void* /* dataPtr */) -> void {
         py::gil_scoped_acquire acquire;
         result.resetAuxiliaryBuffer();
         for (auto i = 0u; i < result.state->selVector->selectedSize; ++i) {
@@ -94,85 +94,50 @@ static scalar_func_exec_t getUDFExecFunc(const py::function& udf) {
                 pyParams.append(pyValue);
             }
             auto pyResult = udf(*pyParams);
-            auto resultValue = PyConnection::transformPythonValueAs(pyResult, &result.dataType);
+            auto resultValue = PyConnection::transformPythonValueAs(pyResult, result.dataType);
             result.copyFromValue(resultPos, resultValue);
         }
     };
 }
 
-static scalar_func_select_t getUDFSelectFunc(const py::function& udf) {
-    return
-        [=](const std::vector<std::shared_ptr<ValueVector>>& params, SelectionVector& selVector) {
-            py::gil_scoped_acquire acquire;
-            auto unFlatVectorIdx = 0u;
-            for (auto i = 0u; i < params.size(); ++i) {
-                if (!params[i]->state->isFlat()) {
-                    unFlatVectorIdx = i;
-                    break;
-                }
-            }
-            auto numSelectedValues = 0u;
-            auto selectedPositionsBuffer = selVector.getMultableBuffer();
-            for (auto i = 0u; i < params[unFlatVectorIdx]->state->selVector->selectedSize; ++i) {
-                auto resultPos = params[unFlatVectorIdx]->state->selVector->selectedPositions[i];
-                py::list pyParams;
-                for (const auto& param : params) {
-                    auto paramPos = param->state->isFlat() ?
-                                        param->state->selVector->selectedPositions[0] :
-                                        resultPos;
-                    auto value = param->getAsValue(paramPos);
-                    auto pyValue = PyQueryResult::convertValueToPyObject(*value);
-                    pyParams.append(pyValue);
-                }
-                auto pyResult = udf(*pyParams);
-                auto resultValue =
-                    PyConnection::transformPythonValueAs(pyResult, LogicalType::BOOL().get());
-                selectedPositionsBuffer[numSelectedValues] = resultPos;
-                numSelectedValues += resultValue.getValue<bool>();
-            }
-            selVector.selectedSize = numSelectedValues;
-            return numSelectedValues > 0;
-        };
-}
-
 function_set PyUDF::toFunctionSet(const std::string& name, const py::function& udf,
-    const py::list& params, const std::string& retType) {
+    const py::list& paramTypes, const std::string& resultType) {
     auto pySignature = analyzeSignature(udf);
-    auto explicitParams = pyListToParams(params);
-    if (explicitParams.size() > 0) {
-        if (explicitParams.size() != pySignature.params.size()) {
+    auto explicitParamTypes = pyListToParams(paramTypes);
+    if (explicitParamTypes.size() > 0) {
+        if (explicitParamTypes.size() != pySignature.paramTypes.size()) {
             throw RuntimeException(
                 "Explicit parameters and Function parameters must be the same length");
         }
-        pySignature.params = explicitParams;
+        pySignature.paramTypes = explicitParamTypes;
     }
-    for (auto i : pySignature.params) {
-        if (i == LogicalTypeID::ANY) {
+    for (const auto& paramType : pySignature.paramTypes) {
+        if (paramType == LogicalTypeID::ANY) {
             throw RuntimeException(
                 "Parameters must be annotated or explicitly given, and cannot be ANY");
         }
     }
-    if (retType != "") {
-        auto explicitRetType = LogicalTypeUtils::fromStringToID(retType);
-        pySignature.retval = explicitRetType;
+    if (resultType != "") {
+        auto explicitResultType = LogicalTypeUtils::fromStringToID(resultType);
+        pySignature.resultType = explicitResultType;
     }
-    if (pySignature.retval == LogicalTypeID::ANY) {
+    if (pySignature.resultType == LogicalTypeID::ANY) {
         throw RuntimeException(
             "Return value must be annotated or explicitly given, and cannot be ANY");
     }
 
     // TODO maxwell: support nested parameters
-    for (auto i : pySignature.params) {
-        if (LogicalTypeUtils::isNested(i)) {
+    for (auto paramType : pySignature.paramTypes) {
+        if (LogicalTypeUtils::isNested(paramType)) {
             throw RuntimeException("Nested type UDFs not implemented yet");
         }
     }
-    if (LogicalTypeUtils::isNested(pySignature.retval)) {
+    if (LogicalTypeUtils::isNested(pySignature.resultType)) {
         throw RuntimeException("Nested type UDFs not implemented yet");
     }
 
     function_set definitions;
-    definitions.push_back(std::make_unique<ScalarFunction>(name, pySignature.params,
-        pySignature.retval, getUDFExecFunc(udf), getUDFSelectFunc(udf), nullptr /* bindFunc */));
+    definitions.push_back(std::make_unique<ScalarFunction>(name, pySignature.paramTypes,
+        pySignature.resultType, getUDFExecFunc(udf)));
     return definitions;
 }

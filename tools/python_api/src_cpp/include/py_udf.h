@@ -13,5 +13,5 @@ class PyUDF {
 
 public:
     static function_set toFunctionSet(const std::string& name, const py::function& udf,
-        const py::list& params, const std::string& retType);
+        const py::list& paramTypes, const std::string& resultType);
 };
