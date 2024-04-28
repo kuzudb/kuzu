@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "common/api.h"
-#include "common/assert.h"
 #include "common/cast.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/interval_t.h"
