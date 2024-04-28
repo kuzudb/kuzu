@@ -15,6 +15,14 @@ struct Range {
     // - when end - start are of opposite sign of step, the result will be empty
     // - default step = 1
     template<typename T>
+    static void operation(T& end, list_entry_t& result, ValueVector& endVector,
+        ValueVector& resultVector) {
+        T step = 1;
+        T start = 0;
+        operation(start, end, step, result, endVector, resultVector);
+    }
+
+    template<typename T>
     static void operation(T& start, T& end, list_entry_t& result, ValueVector& leftVector,
         ValueVector& /*rightVector*/, ValueVector& resultVector) {
         T step = 1;
@@ -46,7 +54,7 @@ static scalar_func_exec_t getBinaryExecFunc(const LogicalType& type) {
     scalar_func_exec_t execFunc;
     TypeUtils::visit(
         type.getLogicalTypeID(),
-        [&execFunc]<NumericTypes T>(T) {
+        [&execFunc]<IntegerTypes T>(T) {
             execFunc = ScalarFunction::BinaryExecListStructFunction<T, T, list_entry_t, Range>;
         },
         [](auto) { KU_UNREACHABLE; });
@@ -57,7 +65,7 @@ static scalar_func_exec_t getTernaryExecFunc(const LogicalType& type) {
     scalar_func_exec_t execFunc;
     TypeUtils::visit(
         type.getLogicalTypeID(),
-        [&execFunc]<NumericTypes T>(T) {
+        [&execFunc]<IntegerTypes T>(T) {
             execFunc = ScalarFunction::TernaryExecListStructFunction<T, T, T, list_entry_t, Range>;
         },
         [](auto) { KU_UNREACHABLE; });
@@ -78,7 +86,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
 
 function_set ListRangeFunction::getFunctionSet() {
     function_set result;
-    for (auto typeID : LogicalTypeUtils::getIntegerLogicalTypeIDs()) {
+    for (auto typeID : LogicalTypeUtils::getIntegerTypeIDs()) {
         // start, end
         result.push_back(
             std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{typeID, typeID},

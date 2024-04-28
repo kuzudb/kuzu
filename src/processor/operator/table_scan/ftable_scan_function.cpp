@@ -1,5 +1,6 @@
 #include "processor/operator/table_scan/ftable_scan_function.h"
 
+#include "function/table/scan_functions.h"
 #include "function/table_functions.h"
 #include "processor/result/factorized_table.h"
 
@@ -17,22 +18,25 @@ struct FTableScanMorsel {
         : startTupleIdx{startTupleIdx}, numTuples{numTuples} {}
 };
 
-struct FTableScanSharedState final : public TableFuncSharedState {
-    std::mutex mtx;
+struct FTableScanSharedState final : public function::BaseScanSharedState {
     std::shared_ptr<FactorizedTable> table;
     uint64_t morselSize;
     common::offset_t nextTupleIdx;
 
     FTableScanSharedState(std::shared_ptr<FactorizedTable> table, uint64_t morselSize)
-        : TableFuncSharedState{}, table{std::move(table)}, morselSize{morselSize}, nextTupleIdx{0} {
-    }
+        : BaseScanSharedState{}, table{std::move(table)}, morselSize{morselSize}, nextTupleIdx{0} {}
 
     FTableScanMorsel getMorsel() {
-        std::unique_lock lck{mtx};
+        std::unique_lock lck{lock};
         auto numTuplesToScan = std::min(morselSize, table->getNumTuples() - nextTupleIdx);
         auto morsel = FTableScanMorsel(nextTupleIdx, numTuplesToScan);
         nextTupleIdx += numTuplesToScan;
         return morsel;
+    }
+
+    uint64_t getNumRows() const override {
+        KU_ASSERT(table->getNumTuples() == table->getTotalNumFlatTuples());
+        return table->getNumTuples();
     }
 };
 

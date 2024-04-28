@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "common/api.h"
-#include "common/assert.h"
+#include "common/cast.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/interval_t.h"
 
@@ -82,8 +82,18 @@ struct int128_t;
 struct ku_string_t;
 
 template<typename T>
-concept NumericTypes =
-    std::integral<T> || std::floating_point<T> || std::is_same_v<T, common::int128_t>;
+concept IntegerTypes =
+    std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
+    std::is_same_v<T, int64_t> || std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
+    std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> ||
+    std::is_same_v<T, common::int128_t>;
+
+template<typename T>
+concept NumericTypes = IntegerTypes<T> || std::floating_point<T>;
+
+template<typename T>
+concept ComparableTypes = NumericTypes<T> || std::is_same_v<T, common::ku_string_t> ||
+                          std::is_same_v<T, interval_t> || std::is_same_v<T, bool>;
 
 template<typename T>
 concept HashablePrimitive = ((std::integral<T> && !std::is_same_v<T, bool>) ||
@@ -184,6 +194,11 @@ public:
     virtual bool operator==(const ExtraTypeInfo& other) const = 0;
 
     virtual std::unique_ptr<ExtraTypeInfo> copy() const = 0;
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const ExtraTypeInfo*, const TARGET*>(this);
+    }
 
 protected:
     virtual void serializeInternal(Serializer& serializer) const = 0;
@@ -437,7 +452,7 @@ public:
     static KUZU_API std::unique_ptr<LogicalType> MAP(std::unique_ptr<LogicalType> keyType,
         std::unique_ptr<LogicalType> valueType);
     template<class T>
-    static inline std::unique_ptr<LogicalType> MAP(T&& keyType, T&& valueType) {
+    static std::unique_ptr<LogicalType> MAP(T&& keyType, T&& valueType) {
         return LogicalType::MAP(std::make_unique<LogicalType>(std::forward<T>(keyType)),
             std::make_unique<LogicalType>(std::forward<T>(valueType)));
     }
@@ -445,7 +460,7 @@ public:
     static KUZU_API std::unique_ptr<LogicalType> ARRAY(std::unique_ptr<LogicalType> childType,
         uint64_t numElements);
     template<class T>
-    static inline std::unique_ptr<LogicalType> ARRAY(T&& childType, uint64_t numElements) {
+    static std::unique_ptr<LogicalType> ARRAY(T&& childType, uint64_t numElements) {
         return LogicalType::ARRAY(std::make_unique<LogicalType>(std::forward<T>(childType)),
             numElements);
     }
@@ -465,87 +480,36 @@ private:
 using logical_type_vec_t = std::vector<LogicalType>;
 
 struct ListType {
-    static inline LogicalType* getChildType(const LogicalType* type) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::LIST ||
-                  type->getPhysicalType() == PhysicalTypeID::ARRAY);
-        auto listTypeInfo = reinterpret_cast<ListTypeInfo*>(type->extraTypeInfo.get());
-        return listTypeInfo->getChildType();
-    }
+    static LogicalType* getChildType(const LogicalType* type);
 };
 
-struct ArrayType {
-    static inline LogicalType* getChildType(const LogicalType* type) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::ARRAY);
-        auto arrayTypeInfo = reinterpret_cast<ArrayTypeInfo*>(type->extraTypeInfo.get());
-        return arrayTypeInfo->getChildType();
-    }
-
-    static inline uint64_t getNumElements(const LogicalType* type) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::ARRAY);
-        auto arrayTypeInfo = reinterpret_cast<ArrayTypeInfo*>(type->extraTypeInfo.get());
-        return arrayTypeInfo->getNumElements();
-    }
+struct KUZU_API ArrayType {
+    static LogicalType* getChildType(const LogicalType* type);
+    static uint64_t getNumElements(const LogicalType* type);
 };
 
 struct StructType {
-    static inline std::vector<LogicalType*> getFieldTypes(const LogicalType* type) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
-        return structTypeInfo->getChildrenTypes();
-    }
+    static std::vector<LogicalType*> getFieldTypes(const LogicalType* type);
 
-    static inline std::vector<std::string> getFieldNames(const LogicalType* type) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
-        return structTypeInfo->getChildrenNames();
-    }
+    static std::vector<std::string> getFieldNames(const LogicalType* type);
 
-    static inline uint64_t getNumFields(const LogicalType* type) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
-        return getFieldTypes(type).size();
-    }
+    static uint64_t getNumFields(const LogicalType* type);
 
-    static inline std::vector<const StructField*> getFields(const LogicalType* type) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
-        return structTypeInfo->getStructFields();
-    }
+    static std::vector<const StructField*> getFields(const LogicalType* type);
 
-    static inline bool hasField(const LogicalType* type, const std::string& key) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
-        return structTypeInfo->hasField(key);
-    }
+    static bool hasField(const LogicalType* type, const std::string& key);
 
-    static inline const StructField* getField(const LogicalType* type, struct_field_idx_t idx) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
-        return structTypeInfo->getStructField(idx);
-    }
+    static const StructField* getField(const LogicalType* type, struct_field_idx_t idx);
 
-    static inline const StructField* getField(const LogicalType* type, const std::string& key) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
-        return structTypeInfo->getStructField(key);
-    }
+    static const StructField* getField(const LogicalType* type, const std::string& key);
 
-    static inline struct_field_idx_t getFieldIdx(const LogicalType* type, const std::string& key) {
-        KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::STRUCT);
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
-        return structTypeInfo->getStructFieldIdx(key);
-    }
+    static struct_field_idx_t getFieldIdx(const LogicalType* type, const std::string& key);
 };
 
 struct MapType {
-    static inline LogicalType* getKeyType(const LogicalType* type) {
-        KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::MAP);
-        return StructType::getFieldTypes(ListType::getChildType(type))[0];
-    }
+    static LogicalType* getKeyType(const LogicalType* type);
 
-    static inline LogicalType* getValueType(const LogicalType* type) {
-        KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::MAP);
-        return StructType::getFieldTypes(ListType::getChildType(type))[1];
-    }
+    static LogicalType* getValueType(const LogicalType* type);
 };
 
 struct UnionType {
@@ -555,22 +519,13 @@ struct UnionType {
 
     static constexpr char TAG_FIELD_NAME[] = "tag";
 
-    static inline union_field_idx_t getInternalFieldIdx(union_field_idx_t idx) { return idx + 1; }
+    static union_field_idx_t getInternalFieldIdx(union_field_idx_t idx);
 
-    static inline std::string getFieldName(const LogicalType* type, union_field_idx_t idx) {
-        KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::UNION);
-        return StructType::getFieldNames(type)[getInternalFieldIdx(idx)];
-    }
+    static std::string getFieldName(const LogicalType* type, union_field_idx_t idx);
 
-    static inline LogicalType* getFieldType(const LogicalType* type, union_field_idx_t idx) {
-        KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::UNION);
-        return StructType::getFieldTypes(type)[getInternalFieldIdx(idx)];
-    }
+    static LogicalType* getFieldType(const LogicalType* type, union_field_idx_t idx);
 
-    static inline uint64_t getNumFields(const LogicalType* type) {
-        KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::UNION);
-        return StructType::getNumFields(type) - 1;
-    }
+    static uint64_t getNumFields(const LogicalType* type);
 };
 
 struct PhysicalTypeUtils {
@@ -597,7 +552,7 @@ struct LogicalTypeUtils {
     static bool isNested(LogicalTypeID logicalTypeID);
     static std::vector<LogicalTypeID> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
-    static std::vector<LogicalTypeID> getIntegerLogicalTypeIDs();
+    static std::vector<LogicalTypeID> getIntegerTypeIDs();
     static std::vector<LogicalTypeID> getAllValidLogicTypes();
     static bool tryGetMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right,
         LogicalTypeID& result);
