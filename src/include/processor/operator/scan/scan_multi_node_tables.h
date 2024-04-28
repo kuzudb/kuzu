@@ -23,7 +23,7 @@ public:
 
 private:
     common::table_id_map_t<std::unique_ptr<ScanNodeTableInfo>> infos;
-    common::table_id_map_t<std::unique_ptr<storage::TableReadState>> readStates;
+    common::table_id_map_t<std::unique_ptr<storage::NodeTableReadState>> readStates;
 };
 
 } // namespace processor

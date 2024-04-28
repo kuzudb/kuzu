@@ -62,7 +62,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
             ku_dynamic_cast<storage::Table*, storage::NodeTable*>(
                 clientContext->getStorageManager()->getTable(tableID)),
             std::move(columnIDs));
-        return std::make_unique<ScanSingleNodeTable>(std::move(info), inputNodeIDVectorPos,
+        return std::make_unique<ScanNodeTable>(std::move(info), inputNodeIDVectorPos,
             std::move(outVectorsPos), std::move(prevOperator), getOperatorID(),
             scanProperty.getExpressionsForPrinting());
     }

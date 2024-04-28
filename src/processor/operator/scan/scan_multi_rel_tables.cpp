@@ -54,9 +54,8 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
 bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
         if (currentScanner != nullptr &&
-            currentScanner->scan(anchorOutVector->state->selVector.get(),
-                context->clientContext->getTx())) {
-            metrics->numOutputTuple.increase(anchorOutVector->state->selVector->selectedSize);
+            currentScanner->scan(outState->selVector.get(), context->clientContext->getTx())) {
+            metrics->numOutputTuple.increase(outState->selVector->selectedSize);
             return true;
         }
         if (!children[0]->getNextTuple(context)) {
@@ -65,7 +64,7 @@ bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
         }
         auto currentIdx = nodeIDVector->state->selVector->selectedPositions[0];
         if (nodeIDVector->isNull(currentIdx)) {
-            anchorOutVector->state->selVector->selectedSize = 0;
+            outState->selVector->selectedSize = 0;
             continue;
         }
         auto nodeID = nodeIDVector->getValue<nodeID_t>(currentIdx);

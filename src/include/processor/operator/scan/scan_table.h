@@ -26,8 +26,8 @@ protected:
     std::vector<DataPos> outVectorsPos;
     // Node id vector.
     common::ValueVector* nodeIDVector;
-    // All output vectors share the same state. Keep one of them to retrieve state.
-    common::ValueVector* anchorOutVector;
+    // All output vectors share the same state.
+    common::DataChunkState* outState;
 };
 
 } // namespace processor

@@ -106,9 +106,8 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     }
     auto pkColumnIDs = {pkColumnID};
     auto pkVectors = std::vector<ValueVector*>{&nodeDeleteState.pkVector};
-    // TODO(Guodong): we are we creating TableReadState instead of NodeTableReadState?
     auto readState =
-        std::make_unique<TableReadState>(&nodeDeleteState.nodeIDVector, pkColumnIDs, pkVectors);
+        std::make_unique<NodeTableReadState>(&nodeDeleteState.nodeIDVector, pkColumnIDs, pkVectors);
     initializeReadState(transaction, pkColumnIDs, *readState);
     read(transaction, *readState);
     if (pkIndex) {
@@ -187,8 +186,7 @@ void NodeTable::updatePK(Transaction* transaction, column_id_t columnID,
     pkVector->state = nodeIDVector.state;
     auto outputVectors = std::vector<ValueVector*>{pkVector.get()};
     auto columnIDs = {columnID};
-    // TODO(Guodong): we are we creating TableReadState instead of NodeTableReadState?
-    auto readState = std::make_unique<TableReadState>(&nodeIDVector, columnIDs, outputVectors);
+    auto readState = std::make_unique<NodeTableReadState>(&nodeIDVector, columnIDs, outputVectors);
     initializeReadState(transaction, columnIDs, *readState);
     read(transaction, *readState);
     pkIndex->delete_(pkVector.get());

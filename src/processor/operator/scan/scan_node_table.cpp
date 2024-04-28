@@ -5,13 +5,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void ScanSingleNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     readState = std::make_unique<storage::NodeTableReadState>(info->columnIDs);
     ScanTable::initVectors(*readState, *resultSet);
 }
 
-bool ScanSingleNodeTable::getNextTuplesInternal(ExecutionContext* context) {
+bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }

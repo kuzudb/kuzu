@@ -19,8 +19,13 @@ namespace storage {
 class LocalNodeTable;
 
 struct NodeTableReadState : public TableReadState {
-    NodeTableReadState(std::vector<common::column_id_t> columnIDs)
+    explicit NodeTableReadState(std::vector<common::column_id_t> columnIDs)
         : TableReadState{std::move(columnIDs)} {
+        dataReadState = std::make_unique<NodeDataReadState>();
+    }
+    NodeTableReadState(const common::ValueVector* nodeIDVector,
+        std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
+        : TableReadState{nodeIDVector, std::move(columnIDs), std::move(outputVectors)} {
         dataReadState = std::make_unique<NodeDataReadState>();
     }
 };

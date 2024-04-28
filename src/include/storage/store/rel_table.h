@@ -74,18 +74,8 @@ public:
 
     void initializeReadState(transaction::Transaction* transaction,
         common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs,
-        RelTableReadState& readState) {
-        if (!readState.dataReadState) {
-            readState.dataReadState = std::make_unique<RelDataReadState>();
-        }
-        auto& dataState = common::ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(
-            *readState.dataReadState);
-        return direction == common::RelDataDirection::FWD ?
-                   fwdRelTableData->initializeReadState(transaction, columnIDs,
-                       *readState.nodeIDVector, dataState) :
-                   bwdRelTableData->initializeReadState(transaction, columnIDs,
-                       *readState.nodeIDVector, dataState);
-    }
+        RelTableReadState& readState);
+
     void read(transaction::Transaction* transaction, TableReadState& readState) override;
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
