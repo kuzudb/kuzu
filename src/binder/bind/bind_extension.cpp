@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/bound_extension_statement.h"
-#include "common/cast.h"
 #include "common/exception/binder.h"
 #include "common/file_system/local_file_system.h"
 #include "extension/extension.h"
