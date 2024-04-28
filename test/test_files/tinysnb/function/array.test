@@ -25,7 +25,6 @@
 ---- 1
 [[3,2],[4,7],[-2,3]]
 
--CASE ArrayCrossProduct
 -LOG ArrayCrossProductINT128
 -STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE(to_int128(1), to_int128(2), to_int128(3)), ARRAY_VALUE(to_int128(4), to_int128(5), to_int128(6)))
 ---- 1
@@ -85,7 +84,7 @@ Binder exception: ARRAY_CROSS_PRODUCT requires both arrays to have the same elem
 -LOG ArrayCosineSimilarityWrongType
 -STATEMENT MATCH (p:person) return ARRAY_COSINE_SIMILARITY(p.grades, p.grades)
 ---- error
-Binder exception: ARRAY_COSINE_SIMILARITY requires argument type of FLOAT or DOUBLE.
+Binder exception: ARRAY_COSINE_SIMILARITY requires argument type to be FLOAT[] or DOUBLE[].
 
 -LOG ArrayDistance
 -STATEMENT MATCH (p:person)-[e:meets]->(p1:person) return round(ARRAY_DISTANCE(e.location, array_value(to_float(3.4), to_float(2.7))),2)

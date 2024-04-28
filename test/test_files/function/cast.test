@@ -31,3 +31,36 @@ Runtime exception: Null value key is not allowed in map.
 -STATEMENT MATCH (a:T0) RETURN a.a, a.b, a.c, a.d;
 ---- 1
 0|[1,2]|[1.000000,2.000000]|[3,5]
+
+-LOG 3248
+-STATEMENT CREATE NODE TABLE Item(id UINT64, item STRING, price DOUBLE, vector DOUBLE[2], PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE (a:Item {id: 1, item: 'apple', price: 2.0, vector: [3.1, 4.1]});
+---- ok
+-STATEMENT MERGE (b:Item {id: 2, item: 'banana', price: 1.0, vector: [5.9, 26.5]});
+---- ok
+-STATEMENT MATCH (a:Item) RETURN a.item, a.price, array_cosine_similarity(a.vector, [6.0, 25.0]) AS sim ORDER BY sim DESC
+---- 2
+apple|2.000000|0.916383
+banana|1.000000|0.999864
+-STATEMENT MATCH (a:Item) RETURN a.item, a.price, array_cosine_similarity([6.0, 25.0], a.vector) AS sim ORDER BY sim DESC
+---- 2
+apple|2.000000|0.916383
+banana|1.000000|0.999864
+-STATEMENT MATCH (a:Item) RETURN a.item, a.price, array_distance([6.0, 25.0], a.vector) AS sim ORDER BY sim DESC
+---- 2
+apple|2.000000|21.100237
+banana|1.000000|1.503330
+-STATEMENT MATCH (a:Item) RETURN a.item, a.price, array_inner_product([6.0, 25.0], a.vector) AS sim ORDER BY sim DESC
+---- 2
+apple|2.000000|121.100000
+banana|1.000000|697.900000
+-STATEMENT RETURN array_cosine_similarity([1, 2], [3.0, 4.0]);
+---- error
+Binder exception: ARRAY_COSINE_SIMILARITY requires argument type to be FLOAT[] or DOUBLE[].
+-STATEMENT RETURN array_cosine_similarity([1.0, 2.0], [3.0, 4.0]);
+---- error
+Binder exception: ARRAY_COSINE_SIMILARITY requires at least one argument to be ARRAY but all parameters are LIST.
+-STATEMENT RETURN array_cosine_similarity(cast([1.0, 2.0], 'DOUBLE[2]'), [3.0, 4.0]);
+---- 1
+0.983870
