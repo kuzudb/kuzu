@@ -91,14 +91,22 @@ public:
     Column* getNullColumn();
 
     virtual void prepareCommit();
-    virtual void prepareCommitForChunk(transaction::Transaction* transaction,
+    void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
         const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
         const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo);
-    virtual void prepareCommitForChunk(transaction::Transaction* transaction,
+    void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
         const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        common::offset_t startSrcOffset);
+
+    virtual void prepareCommitForExistingChunk(transaction::Transaction* transaction,
+        ChunkState& state, const ChunkCollection& localInsertChunks,
+        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
+        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
+    virtual void prepareCommitForExistingChunk(transaction::Transaction* transaction,
+        ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
         common::offset_t startSrcOffset);
 
     virtual void checkpointInMemory();
@@ -187,7 +195,7 @@ private:
         const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
         common::offset_t srcOffset);
 
-    virtual void commitLocalChunkInPlace(transaction::Transaction* transaction, ChunkState& state,
+    virtual void commitLocalChunkInPlace(ChunkState& state,
         const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
         const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo);

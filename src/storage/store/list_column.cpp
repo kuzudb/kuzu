@@ -322,49 +322,37 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }
 
-void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    bool isNewNodeGroup, const ChunkCollection& localInsertChunks,
-    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
-    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
-    if (isNewNodeGroup) {
-        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunks,
-            insertInfo, localUpdateChunks, updateInfo, deleteInfo);
-    } else {
-        auto columnChunk = getEmptyChunkForCommit(updateInfo.size() + insertInfo.size());
-        std::vector<offset_t> dstOffsets;
-        for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
-            auto [chunkIdx, offsetInLocalChunk] =
-                LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-            auto localUpdateChunk = localUpdateChunks[chunkIdx];
-            dstOffsets.push_back(offsetInDstChunk);
-            columnChunk->append(localUpdateChunk, offsetInLocalChunk, 1);
-        }
-        for (auto& [offsetInDstChunk, rowIdx] : insertInfo) {
-            auto [chunkIdx, offsetInLocalChunk] =
-                LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-            auto localInsertChunk = localInsertChunks[chunkIdx];
-            dstOffsets.push_back(offsetInDstChunk);
-            columnChunk->append(localInsertChunk, offsetInLocalChunk, 1);
-        }
-        prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
-            columnChunk.get(), 0 /*startSrcOffset*/);
+void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
+    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+    const offset_set_t&) {
+    // TODO: Should handle deletions.
+    auto columnChunk = getEmptyChunkForCommit(updateInfo.size() + insertInfo.size());
+    std::vector<offset_t> dstOffsets;
+    for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        auto localUpdateChunk = localUpdateChunks[chunkIdx];
+        dstOffsets.push_back(offsetInDstChunk);
+        columnChunk->append(localUpdateChunk, offsetInLocalChunk, 1);
     }
+    for (auto& [offsetInDstChunk, rowIdx] : insertInfo) {
+        auto [chunkIdx, offsetInLocalChunk] =
+            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        auto localInsertChunk = localInsertChunks[chunkIdx];
+        dstOffsets.push_back(offsetInDstChunk);
+        columnChunk->append(localInsertChunk, offsetInLocalChunk, 1);
+    }
+    prepareCommitForExistingChunk(transaction, state, dstOffsets, columnChunk.get(),
+        0 /*startSrcOffset*/);
 }
 
-void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    bool isNewNodeGroup, const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
-    offset_t startSrcOffset) {
-    if (isNewNodeGroup) {
-        commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk,
-            startSrcOffset);
-        return;
-    }
+void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
+    const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk, offset_t startSrcOffset) {
     // we first check if we can in place commit data column chunk
     // if we can not in place commit data column chunk, we will out place commit offset/size/data
     // column chunk otherwise, we commit data column chunk in place and separately commit
     // offset/size column chunk
-    ChunkState state;
-    initChunkState(transaction, nodeGroupIdx, state);
     auto listChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(chunk);
     auto dataColumnSize = state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX].metadata.numValues;
     auto dataColumnChunk = listChunk->getDataColumnChunk();
@@ -381,13 +369,14 @@ void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_
         dataColumn->canCommitInPlace(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
             dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
     if (!dataColumnCanCommitInPlace) {
-        commitColumnChunkOutOfPlace(transaction, state.nodeGroupIdx, isNewNodeGroup, dstOffsets,
-            chunk, startSrcOffset);
+        commitColumnChunkOutOfPlace(transaction, state.nodeGroupIdx, false /*isNewNodeGroup*/,
+            dstOffsets, chunk, startSrcOffset);
     } else {
         // TODO: Shouldn't here be in place commit?
-        dataColumn->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup,
-            dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
-        sizeColumn->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
+        dataColumn->commitColumnChunkOutOfPlace(transaction, state.nodeGroupIdx,
+            false /*isNewNodeGroup*/, dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
+        sizeColumn->prepareCommitForExistingChunk(transaction,
+            state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX], dstOffsets,
             listChunk->getSizeColumnChunk(), startSrcOffset);
         for (auto i = 0u; i < numListsToAppend; i++) {
             auto listEndOffset = listChunk->getListEndOffset(startSrcOffset + i);
@@ -400,46 +389,26 @@ void ListColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_
 void ListColumn::prepareCommitForOffsetChunk(Transaction* transaction, ChunkState& offsetState,
     const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk, offset_t startSrcOffset) {
     metadataDA->prepareCommit();
-    bool didInPlaceCommit = false;
     if (canCommitInPlace(offsetState, dstOffsets, chunk, startSrcOffset)) {
-        commitOffsetColumnChunkInPlace(offsetState, dstOffsets, chunk, startSrcOffset);
-        didInPlaceCommit = true;
+        Column::commitColumnChunkInPlace(offsetState, dstOffsets, chunk, startSrcOffset);
         metadataDA->update(offsetState.nodeGroupIdx, offsetState.metadata);
-    } else {
-        commitOffsetColumnChunkOutOfPlace(transaction, offsetState.nodeGroupIdx, dstOffsets, chunk,
-            startSrcOffset);
-    }
-    if (nullColumn) {
-        KU_ASSERT(offsetState.nullState);
-        if (nullColumn->canCommitInPlace(*offsetState.nullState, dstOffsets, chunk->getNullChunk(),
-                startSrcOffset)) {
-            nullColumn->commitColumnChunkInPlace(*offsetState.nullState, dstOffsets,
-                chunk->getNullChunk(), startSrcOffset);
-            nullColumn->metadataDA->update(offsetState.nodeGroupIdx,
-                offsetState.nullState->metadata);
-        } else if (didInPlaceCommit) {
-            nullColumn->commitColumnChunkOutOfPlace(transaction, offsetState.nodeGroupIdx, false,
+        if (nullColumn) {
+            nullColumn->prepareCommitForChunk(transaction, offsetState.nodeGroupIdx, false,
                 dstOffsets, chunk->getNullChunk(), startSrcOffset);
         }
-    }
-}
-
-void ListColumn::commitOffsetColumnChunkInPlace(ChunkState& offsetState,
-    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
-    // TODO: Should sort and write per page.
-    for (auto i = 0u; i < dstOffsets.size(); i++) {
-        Column::write(offsetState, dstOffsets[i], chunk, srcOffset + i, 1 /* numValues */);
+    } else {
+        commitOffsetColumnChunkOutOfPlace(transaction, offsetState, dstOffsets, chunk,
+            startSrcOffset);
     }
 }
 
 void ListColumn::commitOffsetColumnChunkOutOfPlace(Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk,
+    const ChunkState& offsetState, const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk,
     offset_t startSrcOffset) {
     auto listChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(chunk);
-    auto offsetChunkMeta = getMetadata(nodeGroupIdx, transaction->getType());
     auto offsetColumnChunk = ColumnChunkFactory::createColumnChunk(*dataType.copy(),
-        enableCompression, 1.5 * std::bit_ceil(offsetChunkMeta.numValues + dstOffsets.size()));
-    Column::scan(transaction, nodeGroupIdx, offsetColumnChunk.get());
+        enableCompression, 1.5 * std::bit_ceil(offsetState.metadata.numValues + dstOffsets.size()));
+    Column::scan(transaction, offsetState.nodeGroupIdx, offsetColumnChunk.get());
     auto numListsToAppend = std::min(chunk->getNumValues(), (uint64_t)dstOffsets.size());
     for (auto i = 0u; i < numListsToAppend; i++) {
         auto listEndOffset = listChunk->getListEndOffset(startSrcOffset + i);
@@ -449,7 +418,7 @@ void ListColumn::commitOffsetColumnChunkOutOfPlace(Transaction* transaction,
     }
     auto offsetListChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(offsetColumnChunk.get());
     offsetListChunk->getSizeColumnChunk()->setNumValues(offsetColumnChunk->getNumValues());
-    Column::append(offsetColumnChunk.get(), nodeGroupIdx);
+    Column::append(offsetColumnChunk.get(), offsetState.nodeGroupIdx);
 }
 
 } // namespace storage

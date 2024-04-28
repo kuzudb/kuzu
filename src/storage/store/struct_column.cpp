@@ -144,94 +144,43 @@ void StructColumn::prepareCommit() {
     }
 }
 
-bool StructColumn::canCommitInPlace(const ChunkState& state,
+void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
     const ChunkCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo) {
-    // STRUCT column doesn't have actual data stored in buffer. Only need to check the null column.
-    // Children columns are committed separately.
-    KU_ASSERT(state.nullState);
-    return nullColumn->canCommitInPlace(*state.nullState, getNullChunkCollection(localInsertChunk),
-        insertInfo, getNullChunkCollection(localUpdateChunk), updateInfo);
-}
-
-bool StructColumn::canCommitInPlace(const ChunkState& state,
-    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
-    return nullColumn->canCommitInPlace(*state.nullState, dstOffsets, chunk->getNullChunk(),
-        srcOffset);
-}
-
-void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    bool isNewNodeGroup, const ChunkCollection& localInsertChunk,
-    const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
-    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
-    if (isNewNodeGroup) {
-        // If this is a new node group, updateInfo should be empty. We should perform out-of-place
-        // commit with a new column chunk.
-        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, localInsertChunk,
-            insertInfo, localUpdateChunk, updateInfo, deleteInfo);
-    } else {
-        // STRUCT column doesn't have actual data stored in buffer. Only need to update the null
-        // column.
-        ChunkState state;
-        initChunkState(transaction, nodeGroupIdx, state);
-        if (canCommitInPlace(state, localInsertChunk, insertInfo, localUpdateChunk, updateInfo)) {
-            KU_ASSERT(state.nullState);
-            nullColumn->commitLocalChunkInPlace(transaction, *state.nullState,
-                getNullChunkCollection(localInsertChunk), insertInfo,
-                getNullChunkCollection(localUpdateChunk), updateInfo, deleteInfo);
-            nullColumn->metadataDA->update(state.nodeGroupIdx, state.nullState->metadata);
-        } else {
-            nullColumn->commitLocalChunkOutOfPlace(transaction, state.nodeGroupIdx, isNewNodeGroup,
-                getNullChunkCollection(localInsertChunk), insertInfo,
-                getNullChunkCollection(localUpdateChunk), updateInfo, deleteInfo);
-        }
-        if (state.metadata.numValues != state.nullState->metadata.numValues) {
-            state.metadata.numValues = state.nullState->metadata.numValues;
-            metadataDA->update(state.nodeGroupIdx, state.metadata);
-        }
-        // Update each child column separately
-        for (auto i = 0u; i < childColumns.size(); i++) {
-            const auto& childColumn = childColumns[i];
-            childColumn->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup,
-                getStructChildChunkCollection(localInsertChunk, i), insertInfo,
-                getStructChildChunkCollection(localUpdateChunk, i), updateInfo, deleteInfo);
-        }
+    const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
+    const offset_set_t& deleteInfo) {
+    // STRUCT column doesn't have actual data stored in buffer. Only need to update the null
+    // column.
+    nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState,
+        getNullChunkCollection(localInsertChunk), insertInfo,
+        getNullChunkCollection(localUpdateChunk), updateInfo, deleteInfo);
+    if (state.metadata.numValues != state.nullState->metadata.numValues) {
+        state.metadata.numValues = state.nullState->metadata.numValues;
+        metadataDA->update(state.nodeGroupIdx, state.metadata);
+    }
+    // Update each child column separately
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        childColumns[i]->prepareCommitForExistingChunk(transaction, state.childrenStates[i],
+            getStructChildChunkCollection(localInsertChunk, i), insertInfo,
+            getStructChildChunkCollection(localUpdateChunk, i), updateInfo, deleteInfo);
     }
 }
 
-void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    bool isNewNodeGroup, const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk,
-    offset_t srcOffset) {
+void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
+    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == dataType.getPhysicalType());
-    if (isNewNodeGroup) {
-        // If this is a new node group, updateInfo should be empty. We should perform out-of-place
-        // commit with a new column chunk.
-        commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets, chunk,
-            srcOffset);
-    } else {
-        // STRUCT column doesn't have actual data stored in buffer. Only need to update the null
-        // column.
-        ChunkState state;
-        initChunkState(transaction, nodeGroupIdx, state);
-        if (canCommitInPlace(state, dstOffsets, chunk, srcOffset)) {
-            nullColumn->commitColumnChunkInPlace(*state.nullState, dstOffsets,
-                chunk->getNullChunk(), srcOffset);
-            nullColumn->metadataDA->update(state.nodeGroupIdx, state.nullState->metadata);
-        } else {
-            nullColumn->commitColumnChunkOutOfPlace(transaction, state.nodeGroupIdx, isNewNodeGroup,
-                dstOffsets, chunk->getNullChunk(), srcOffset);
-        }
-        if (state.metadata.numValues != state.nullState->metadata.numValues) {
-            state.metadata.numValues = state.nullState->metadata.numValues;
-            metadataDA->update(state.nodeGroupIdx, state.metadata);
-        }
-        // Update each child column separately
-        for (auto i = 0u; i < childColumns.size(); i++) {
-            const auto& childColumn = childColumns[i];
-            auto childChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(chunk)->getChild(i);
-            childColumn->prepareCommitForChunk(transaction, nodeGroupIdx, isNewNodeGroup,
-                dstOffsets, childChunk, srcOffset);
-        }
+    // STRUCT column doesn't have actual data stored in buffer. Only need to update the null
+    // column.
+    nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState, dstOffsets,
+        chunk->getNullChunk(), srcOffset);
+    if (state.metadata.numValues != state.nullState->metadata.numValues) {
+        state.metadata.numValues = state.nullState->metadata.numValues;
+        metadataDA->update(state.nodeGroupIdx, state.metadata);
+    }
+    // Update each child column separately
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        auto childChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(chunk)->getChild(i);
+        childColumns[i]->prepareCommitForExistingChunk(transaction, state.childrenStates[i],
+            dstOffsets, childChunk, srcOffset);
     }
 }
 
