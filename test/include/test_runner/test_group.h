@@ -25,6 +25,8 @@ struct TestStatement {
     std::vector<std::string> expectedTuples;
     bool enumerate = false;
     bool checkOutputOrder = false;
+    bool checkColumnNames = false;
+    std::string columnNames;
     std::string expectedTuplesCSVFile;
     // for multiple conns
     std::string batchStatmentsCSVFile;

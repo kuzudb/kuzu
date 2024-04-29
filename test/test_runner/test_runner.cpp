@@ -145,6 +145,15 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             sort(statement->expectedTuples.begin(), statement->expectedTuples.end());
         }
     }
+    if (statement->checkColumnNames) {
+        std::string resultColumns = TestRunner::convertResultColumnsToString((*result).getColumnNames());
+        if (resultColumns != statement->columnNames) {
+            spdlog::error("PLAN{} NOT PASSED.", planIdx);
+            spdlog::info("PLAN: \n{}", planStr);
+            spdlog::info("COLUMNS: {}\n", resultColumns);
+            return false;
+        }
+    }
     std::vector<std::string> resultTuples =
         TestRunner::convertResultToString(*result, statement->checkOutputOrder);
     if (statement->expectHash) {
@@ -209,6 +218,17 @@ std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool ch
         hasher.addToMD5(lineBreaker.c_str(), lineBreaker.size());
     }
     return std::string(hasher.finishMD5());
+}
+
+std::string TestRunner::convertResultColumnsToString(std::vector<std::string> columnNames) {
+    std::string columnsString;
+    for (auto i = 0ul; i < columnNames.size(); i++) {
+        if (i != 0) {
+            columnsString += "|";
+        }
+        columnsString += columnNames[i];
+    }
+    return columnsString;
 }
 
 std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(const std::string& query,
