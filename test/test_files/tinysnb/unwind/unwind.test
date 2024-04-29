@@ -40,3 +40,10 @@
 64
 100
 54
+
+-LOG unwindNestedArray
+-STATEMENT UNWIND CAST([[5,2,1],[2,3],[15,64,74]], 'INT64[][3]') AS x RETURN x;
+---- 3
+[5,2,1]
+[2,3]
+[15,64,74]
