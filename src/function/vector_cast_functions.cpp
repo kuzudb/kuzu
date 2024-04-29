@@ -118,6 +118,11 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
     auto bindData = CastFunctionBindData(result.dataType.copy());
     auto numOfEntries = selVector->selectedPositions[selVector->selectedSize - 1] + 1;
     resolveNestedVector(inputVector, &result, numOfEntries, &bindData);
+    if (inputVector->state->isFlat()) {
+        result.state->selVector->setToFiltered();
+        result.state->selVector->selectedPositions[0] =
+            inputVector->state->selVector->selectedPositions[0];
+    }
 }
 
 static bool hasImplicitCastList(const LogicalType& srcType, const LogicalType& dstType) {
