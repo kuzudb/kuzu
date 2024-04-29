@@ -7,23 +7,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace processor {
 
-void RelTableCollectionScanner::init(ValueVector* inVector,
-    const std::vector<ValueVector*>& outputVectors) {
-    readStates.resize(scanInfos.size());
-    for (auto i = 0u; i < scanInfos.size(); i++) {
-        auto scanInfo = scanInfos[i].get();
-        readStates[i] = std::make_unique<RelTableReadState>(*inVector, scanInfo->columnIDs,
-            outputVectors, scanInfo->direction);
-    }
-}
-
-bool RelTableCollectionScanner::scan(ValueVector* inVector,
-    const std::vector<ValueVector*>& outputVectors, Transaction* transaction) {
+bool RelTableCollectionScanner::scan(common::SelectionVector* selVector, Transaction* transaction) {
     while (true) {
         if (readStates[currentTableIdx]->hasMoreToRead(transaction)) {
             auto scanInfo = scanInfos[currentTableIdx].get();
             scanInfo->table->read(transaction, *readStates[currentTableIdx]);
-            if (outputVectors[0]->state->selVector->selectedSize > 0) {
+            if (selVector->selectedSize > 0) {
                 return true;
             }
         } else {
@@ -33,7 +22,7 @@ bool RelTableCollectionScanner::scan(ValueVector* inVector,
             }
             auto scanInfo = scanInfos[currentTableIdx].get();
             scanInfo->table->initializeReadState(transaction, scanInfo->direction,
-                scanInfo->columnIDs, *inVector, *readStates[currentTableIdx]);
+                scanInfo->columnIDs, *readStates[currentTableIdx]);
             nextTableIdx++;
         }
     }
@@ -49,9 +38,15 @@ std::unique_ptr<RelTableCollectionScanner> RelTableCollectionScanner::clone() co
 }
 
 void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    ScanRelTable::initLocalStateInternal(resultSet, context);
+    ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& [_, scanner] : scannerPerNodeTable) {
-        scanner->init(inVector, outVectors);
+        scanner->readStates.resize(scanner->scanInfos.size());
+        for (auto i = 0u; i < scanner->scanInfos.size(); i++) {
+            auto scanInfo = scanner->scanInfos[i].get();
+            scanner->readStates[i] =
+                std::make_unique<RelTableReadState>(scanInfo->columnIDs, scanInfo->direction);
+            ScanTable::initVectors(*scanner->readStates[i], *resultSet);
+        }
     }
     currentScanner = nullptr;
 }
@@ -59,20 +54,20 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
 bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
         if (currentScanner != nullptr &&
-            currentScanner->scan(inVector, outVectors, context->clientContext->getTx())) {
-            metrics->numOutputTuple.increase(outVectors[0]->state->selVector->selectedSize);
+            currentScanner->scan(outState->selVector.get(), context->clientContext->getTx())) {
+            metrics->numOutputTuple.increase(outState->selVector->selectedSize);
             return true;
         }
         if (!children[0]->getNextTuple(context)) {
             resetState();
             return false;
         }
-        auto currentIdx = inVector->state->selVector->selectedPositions[0];
-        if (inVector->isNull(currentIdx)) {
-            outVectors[0]->state->selVector->selectedSize = 0;
+        auto currentIdx = nodeIDVector->state->selVector->selectedPositions[0];
+        if (nodeIDVector->isNull(currentIdx)) {
+            outState->selVector->selectedSize = 0;
             continue;
         }
-        auto nodeID = inVector->getValue<nodeID_t>(currentIdx);
+        auto nodeID = nodeIDVector->getValue<nodeID_t>(currentIdx);
         initCurrentScanner(nodeID);
     }
 }
@@ -82,7 +77,7 @@ std::unique_ptr<PhysicalOperator> ScanMultiRelTable::clone() {
     for (auto& [tableID, scanner] : scannerPerNodeTable) {
         clonedScanners.insert({tableID, scanner->clone()});
     }
-    return make_unique<ScanMultiRelTable>(std::move(clonedScanners), inVectorPos, outVectorsPos,
+    return make_unique<ScanMultiRelTable>(std::move(clonedScanners), nodeIDPos, outVectorsPos,
         children[0]->clone(), id, paramsString);
 }
 

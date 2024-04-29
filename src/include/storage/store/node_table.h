@@ -19,10 +19,13 @@ namespace storage {
 class LocalNodeTable;
 
 struct NodeTableReadState : public TableReadState {
-    NodeTableReadState(const common::ValueVector& nodeIDVector,
-        const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors)
-        : TableReadState{nodeIDVector, columnIDs, outputVectors} {
+    explicit NodeTableReadState(std::vector<common::column_id_t> columnIDs)
+        : TableReadState{std::move(columnIDs)} {
+        dataReadState = std::make_unique<NodeDataReadState>();
+    }
+    NodeTableReadState(const common::ValueVector* nodeIDVector,
+        std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
+        : TableReadState{nodeIDVector, std::move(columnIDs), std::move(outputVectors)} {
         dataReadState = std::make_unique<NodeDataReadState>();
     }
 };
@@ -79,10 +82,8 @@ public:
     }
 
     void initializeReadState(transaction::Transaction* transaction,
-        std::vector<common::column_id_t> columnIDs, const common::ValueVector& inNodeIDVector,
-        TableReadState& readState) {
-        readState.dataReadState = std::make_unique<NodeDataReadState>();
-        tableData->initializeReadState(transaction, std::move(columnIDs), inNodeIDVector,
+        std::vector<common::column_id_t> columnIDs, TableReadState& readState) {
+        tableData->initializeReadState(transaction, std::move(columnIDs), *readState.nodeIDVector,
             *readState.dataReadState);
     }
     void read(transaction::Transaction* transaction, TableReadState& readState) override;

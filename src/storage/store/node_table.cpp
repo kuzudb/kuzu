@@ -39,13 +39,13 @@ void NodeTable::initializePKIndex(NodeTableCatalogEntry* nodeTableEntry, bool re
 }
 
 void NodeTable::read(Transaction* transaction, TableReadState& readState) {
-    tableData->read(transaction, *readState.dataReadState, readState.nodeIDVector,
+    tableData->read(transaction, *readState.dataReadState, *readState.nodeIDVector,
         readState.outputVectors);
     auto& dataReadState = ku_dynamic_cast<const TableDataReadState&, const NodeDataReadState&>(
         *readState.dataReadState);
     if (dataReadState.localNodeGroup) {
         KU_ASSERT(transaction->isWriteTransaction());
-        dataReadState.localNodeGroup->scan(readState.nodeIDVector, readState.columnIDs,
+        dataReadState.localNodeGroup->scan(*readState.nodeIDVector, readState.columnIDs,
             readState.outputVectors);
     }
 }
@@ -107,8 +107,8 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     auto pkColumnIDs = {pkColumnID};
     auto pkVectors = std::vector<ValueVector*>{&nodeDeleteState.pkVector};
     auto readState =
-        std::make_unique<TableReadState>(nodeDeleteState.nodeIDVector, pkColumnIDs, pkVectors);
-    initializeReadState(transaction, pkColumnIDs, nodeDeleteState.nodeIDVector, *readState);
+        std::make_unique<NodeTableReadState>(&nodeDeleteState.nodeIDVector, pkColumnIDs, pkVectors);
+    initializeReadState(transaction, pkColumnIDs, *readState);
     read(transaction, *readState);
     if (pkIndex) {
         pkIndex->delete_(&nodeDeleteState.pkVector);
@@ -186,8 +186,8 @@ void NodeTable::updatePK(Transaction* transaction, column_id_t columnID,
     pkVector->state = nodeIDVector.state;
     auto outputVectors = std::vector<ValueVector*>{pkVector.get()};
     auto columnIDs = {columnID};
-    auto readState = std::make_unique<TableReadState>(nodeIDVector, columnIDs, outputVectors);
-    initializeReadState(transaction, columnIDs, nodeIDVector, *readState);
+    auto readState = std::make_unique<NodeTableReadState>(&nodeIDVector, columnIDs, outputVectors);
+    initializeReadState(transaction, columnIDs, *readState);
     read(transaction, *readState);
     pkIndex->delete_(pkVector.get());
     insertPK(nodeIDVector, payloadVector);

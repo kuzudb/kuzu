@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -16,6 +17,8 @@ using relID_t = internalID_t;
 using table_id_t = uint64_t;
 using table_id_vector_t = std::vector<table_id_t>;
 using table_id_set_t = std::unordered_set<table_id_t>;
+template<typename T>
+using table_id_map_t = std::unordered_map<table_id_t, T>;
 using offset_t = uint64_t;
 constexpr table_id_t INVALID_TABLE_ID = UINT64_MAX;
 constexpr offset_t INVALID_OFFSET = UINT64_MAX;

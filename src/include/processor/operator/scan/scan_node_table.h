@@ -22,30 +22,25 @@ struct ScanNodeTableInfo {
     }
 };
 
-class ScanSingleNodeTable : public ScanTable {
+class ScanNodeTable final : public ScanTable {
 public:
-    ScanSingleNodeTable(std::unique_ptr<ScanNodeTableInfo> info, const DataPos& inVectorPos,
+    ScanNodeTable(std::unique_ptr<ScanNodeTableInfo> info, const DataPos& inVectorPos,
         std::vector<DataPos> outVectorsPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString)
-        : ScanSingleNodeTable{PhysicalOperatorType::SCAN_NODE_TABLE, std::move(info), inVectorPos,
+        : ScanNodeTable{PhysicalOperatorType::SCAN_NODE_TABLE, std::move(info), inVectorPos,
               std::move(outVectorsPos), std::move(child), id, paramsString} {}
 
-    inline void initLocalStateInternal(ResultSet* resultSet,
-        ExecutionContext* executionContext) final {
-        ScanTable::initLocalStateInternal(resultSet, executionContext);
-        readState =
-            std::make_unique<storage::NodeTableReadState>(*inVector, info->columnIDs, outVectors);
-    }
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* executionContext) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanSingleNodeTable>(info->copy(), inVectorPos, outVectorsPos,
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<ScanNodeTable>(info->copy(), nodeIDPos, outVectorsPos,
             children[0]->clone(), id, paramsString);
     }
 
 protected:
-    ScanSingleNodeTable(PhysicalOperatorType operatorType, std::unique_ptr<ScanNodeTableInfo> info,
+    ScanNodeTable(PhysicalOperatorType operatorType, std::unique_ptr<ScanNodeTableInfo> info,
         const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : ScanTable{operatorType, inVectorPos, std::move(outVectorsPos), std::move(child), id,
@@ -54,7 +49,7 @@ protected:
 
 private:
     std::unique_ptr<ScanNodeTableInfo> info;
-    std::unique_ptr<storage::TableReadState> readState;
+    std::unique_ptr<storage::NodeTableReadState> readState;
 };
 
 } // namespace processor

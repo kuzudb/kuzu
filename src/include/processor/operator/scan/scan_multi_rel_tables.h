@@ -6,19 +6,18 @@ namespace kuzu {
 namespace processor {
 
 class RelTableCollectionScanner {
+    friend class ScanMultiRelTable;
+
 public:
     explicit RelTableCollectionScanner(std::vector<std::unique_ptr<ScanRelTableInfo>> scanInfos)
         : scanInfos{std::move(scanInfos)} {}
 
-    inline void resetState() {
+    void resetState() {
         currentTableIdx = 0;
         nextTableIdx = 0;
     }
 
-    void init(common::ValueVector* inVector,
-        const std::vector<common::ValueVector*>& outputVectors);
-    bool scan(common::ValueVector* inVector, const std::vector<common::ValueVector*>& outputVectors,
-        transaction::Transaction* transaction);
+    bool scan(common::SelectionVector* selVector, transaction::Transaction* transaction);
 
     std::unique_ptr<RelTableCollectionScanner> clone() const;
 
@@ -29,7 +28,7 @@ private:
     uint32_t nextTableIdx = 0;
 };
 
-class ScanMultiRelTable : public ScanRelTable {
+class ScanMultiRelTable : public ScanTable {
     using node_table_id_scanner_map_t =
         std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollectionScanner>>;
 
@@ -37,7 +36,7 @@ public:
     ScanMultiRelTable(node_table_id_scanner_map_t scannerPerNodeTable, const DataPos& inVectorPos,
         std::vector<DataPos> outVectorsPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString)
-        : ScanRelTable{PhysicalOperatorType::SCAN_MULTI_REL_TABLES, nullptr /* info */, inVectorPos,
+        : ScanTable{PhysicalOperatorType::SCAN_MULTI_REL_TABLES, inVectorPos,
               std::move(outVectorsPos), std::move(child), id, paramsString},
           scannerPerNodeTable{std::move(scannerPerNodeTable)} {}
 
