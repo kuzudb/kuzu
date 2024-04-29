@@ -30,6 +30,8 @@ struct ExtensionUtils {
     static constexpr const char* EXTENSION_REPO =
         "http://extension.kuzudb.com/v{}/{}/lib{}.kuzu_extension";
 
+    static constexpr const char* OFFICIAL_EXTENSION[] = {"HTTPFS", "POSTGRES", "DUCKDB"};
+
     static std::string getExtensionPath(const std::string& extensionDir, const std::string& name);
 
     static bool isFullPath(const std::string& extension);
@@ -38,6 +40,8 @@ struct ExtensionUtils {
 
     KUZU_API static void registerTableFunction(main::Database& database,
         std::unique_ptr<function::TableFunction> function);
+
+    static bool isOfficialExtension(const std::string& extension);
 };
 
 struct ExtensionOptions {
