@@ -70,3 +70,8 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+TEST_F(CApiDatabaseTest, CreationHomeDir1) {
+    createDBAndConn();
+    printf("%s", conn->query("unwind cast('[1,3,2]', 'int64[3]') as x return x;")->toString().c_str());
+}

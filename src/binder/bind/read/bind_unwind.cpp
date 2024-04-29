@@ -21,7 +21,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
     auto aliasName = unwindClause.getAlias();
     std::shared_ptr<Expression> alias;
     if (!skipDataTypeValidation(*boundExpression)) {
-        ExpressionUtil::validateDataType(*boundExpression, LogicalTypeID::LIST);
+        ExpressionUtil::validateDataType(*boundExpression,
+            {LogicalTypeID::LIST, LogicalTypeID::ARRAY});
         alias = createVariable(aliasName, *ListType::getChildType(&boundExpression->dataType));
     } else {
         alias = createVariable(aliasName, *LogicalType::ANY());
