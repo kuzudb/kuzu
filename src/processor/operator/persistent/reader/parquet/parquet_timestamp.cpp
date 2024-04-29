@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/reader/parquet/parquet_timestamp.h"
 
+#include <cstring>
+
 namespace kuzu {
 namespace processor {
 
@@ -22,7 +24,8 @@ common::timestamp_t ParquetTimeStampUtils::parquetTimestampNsToTimestamp(const i
 
 int64_t ParquetTimeStampUtils::impalaTimestampToMicroseconds(const Int96& impalaTimestamp) {
     int64_t daysSinceEpoch = impalaTimestamp.value[2] - JULIAN_TO_UNIX_EPOCH_DAYS;
-    auto nanoSeconds = *reinterpret_cast<const int64_t*>(impalaTimestamp.value);
+    int64_t nanoSeconds;
+    memcpy(&nanoSeconds, &impalaTimestamp.value, sizeof(nanoSeconds));
     auto microseconds = nanoSeconds / NANOSECONDS_PER_MICRO;
     return daysSinceEpoch * MICROSECONDS_PER_DAY + microseconds;
 }

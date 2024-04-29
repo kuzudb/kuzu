@@ -26,7 +26,7 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const st
     }
     std::ifstream ifs(path);
     std::string line;
-    TestQueryConfig* currentConfig;
+    TestQueryConfig* currentConfig = nullptr;
     while (getline(ifs, line)) {
         if (line.starts_with("-NAME")) {
             auto config = std::make_unique<TestQueryConfig>();

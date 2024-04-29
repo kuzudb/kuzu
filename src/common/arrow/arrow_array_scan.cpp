@@ -510,9 +510,11 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
                 dstOffset, count);
         case 'w': {
             // ARRAY
-            auto arrowNumElements = std::stoul(arrowType + 3);
-            auto outputNumElements = ArrayType::getNumElements(&outputVector.dataType);
-            KU_ASSERT(arrowNumElements == outputNumElements);
+            RUNTIME_CHECK({
+                auto arrowNumElements = std::stoul(arrowType + 3);
+                auto outputNumElements = ArrayType::getNumElements(&outputVector.dataType);
+                KU_ASSERT(arrowNumElements == outputNumElements);
+            });
             return scanArrowArrayFixedList(schema, array, outputVector, mask, srcOffset, dstOffset,
                 count);
         }

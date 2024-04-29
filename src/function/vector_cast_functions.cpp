@@ -682,6 +682,7 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& 
                 std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID,
                 nestedTypesCastExecFunction);
         }
+        [[fallthrough]];
     }
     default:
         throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",

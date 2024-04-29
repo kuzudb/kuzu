@@ -306,7 +306,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
     auto config = scanInput->config.copy();
     KU_ASSERT(!config.filePaths.empty() && config.getNumFiles() == resultColumnNames.size());
-    row_idx_t numRows;
+    row_idx_t numRows = 0;
     for (auto i = 0u; i < config.getNumFiles(); i++) {
         auto reader = make_unique<NpyReader>(config.filePaths[i]);
         if (i == 0) {

@@ -205,7 +205,7 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
     tokenList.emplace_back(word);
     for (std::string& token : tokenList) {
         if (token.find(' ') == std::string::npos) {
-            for (const std::string& keyword : keywordList) {
+            for (const std::string keyword : keywordList) {
                 if (regex_search(token,
                         std::regex("^" + keyword + "$", std::regex_constants::icase)) ||
                     regex_search(token,

@@ -55,13 +55,8 @@ uint64_t Blob::fromString(const char* str, uint64_t length, uint8_t* resultBuffe
             resultBuffer[resultPos++] =
                 (firstByte << HexFormatConstants::NUM_BYTES_TO_SHIFT_FOR_FIRST_BYTE) + secondByte;
             i += HexFormatConstants::LENGTH - 1;
-        } else if (str[i] <= 127) {
-            resultBuffer[resultPos++] = str[i];
         } else {
-            // LCOV_EXCL_START
-            throw InternalException("Invalid byte encountered in STRING -> BLOB conversion that "
-                                    "should have been caught during getBlobSize");
-            // LCOV_EXCL_STOP
+            resultBuffer[resultPos++] = str[i];
         }
     }
     return resultPos;

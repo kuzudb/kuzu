@@ -473,7 +473,7 @@ void HashIndex<T>::mergeBulkInserts() {
     // TODO: one pass would also reduce locking when frames are unpinned,
     // which is useful if this can be paralellized
     reserve(bulkInsertLocalStorage.size());
-    auto originalNumEntries = this->indexHeaderForWriteTrx->numEntries;
+    RUNTIME_CHECK(auto originalNumEntries = this->indexHeaderForWriteTrx->numEntries;);
 
     // Storing as many slots in-memory as on-disk shouldn't be necessary (for one it makes memory
     // usage an issue as we may need significantly more memory to store the slots that we would
