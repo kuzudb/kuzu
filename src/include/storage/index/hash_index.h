@@ -124,8 +124,17 @@ private:
     }
     // Resizes the on-disk index to support the given number of new entries
     void reserve(uint64_t newEntries);
+
+    struct HashIndexEntryView {
+        slot_id_t diskSlotId;
+        uint8_t fingerprint;
+        const SlotEntry<T>* entry;
+    };
+
+    void sortEntries(typename InMemHashIndex<T>::SlotIterator& slotToMerge,
+        std::vector<HashIndexEntryView>& partitions);
     void mergeBulkInserts();
-    void mergeSlot(typename InMemHashIndex<T>::SlotIterator& slotToMerge,
+    void mergeSlot(std::vector<HashIndexEntryView>& slotToMerge,
         typename BaseDiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
         typename BaseDiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t slotId);
 
