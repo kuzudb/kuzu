@@ -83,8 +83,6 @@ public:
 
     void initializeReadState(transaction::Transaction* transaction,
         std::vector<common::column_id_t> columnIDs, TableReadState& readState) {
-        // TODO(Guodong): we shouldn't create new read state.
-        readState.dataReadState = std::make_unique<NodeDataReadState>();
         tableData->initializeReadState(transaction, std::move(columnIDs), *readState.nodeIDVector,
             *readState.dataReadState);
     }
