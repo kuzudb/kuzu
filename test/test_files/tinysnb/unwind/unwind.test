@@ -179,3 +179,46 @@ Aida|Alice|Bob|Dan
 {_ID: 0:5, _LABEL: person, ID: 8, fName: Farooq, gender: 2, isStudent: True, isWorker: False, age: 25, eyeSight: 4.500000, birthdate: 1980-10-26, registerTime: 1972-07-31 13:22:30.678559, lastJobDuration: 00:18:00.024, workedHours: [3,4,5,6,7], usedNames: [Fesdwe], courseScoresPerTerm: [[8]], grades: [80,78,34,83], height: 1.510000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16}
 {_ID: 0:6, _LABEL: person, ID: 9, fName: Greg, gender: 2, isStudent: False, isWorker: False, age: 40, eyeSight: 4.900000, birthdate: 1980-10-26, registerTime: 1976-12-23 04:41:42, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1], usedNames: [Grad], courseScoresPerTerm: [[10]], grades: [43,83,67,43], height: 1.600000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17}
 {_ID: 0:7, _LABEL: person, ID: 10, fName: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff, gender: 2, isStudent: False, isWorker: True, age: 83, eyeSight: 4.900000, birthdate: 1990-11-27, registerTime: 2023-02-21 13:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,11,12,3,4,5,6,7], usedNames: [Ad,De,Hi,Kye,Orlan], courseScoresPerTerm: [[7],[10],[6,7]], grades: [77,64,100,54], height: 1.323000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18}
+
+-LOG unwindArrayOfInt
+-STATEMENT MATCH (a:person) UNWIND a.grades as x RETURN x
+---- 32
+96
+54
+86
+92
+98
+42
+93
+88
+91
+75
+21
+95
+76
+88
+99
+89
+96
+59
+65
+88
+80
+78
+34
+83
+43
+83
+67
+43
+77
+64
+100
+54
+
+-LOG unwindNestedArray
+-STATEMENT UNWIND CAST([[5,2,1],[2,3],[15,64,74]], 'INT64[][3]') AS x RETURN x;
+---- 3
+[5,2,1]
+[2,3]
+[15,64,74]

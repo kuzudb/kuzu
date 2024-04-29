@@ -20,6 +20,10 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
     auto aliasName = unwindClause.getAlias();
     std::shared_ptr<Expression> alias;
+    if (boundExpression->getDataType().getLogicalTypeID() == LogicalTypeID::ARRAY) {
+        auto targetType = LogicalType::LIST(*ArrayType::getChildType(&boundExpression->dataType));
+        boundExpression = expressionBinder.implicitCast(boundExpression, *targetType);
+    }
     if (!skipDataTypeValidation(*boundExpression)) {
         ExpressionUtil::validateDataType(*boundExpression, LogicalTypeID::LIST);
         alias = createVariable(aliasName, *ListType::getChildType(&boundExpression->dataType));
