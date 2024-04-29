@@ -2,7 +2,11 @@
 
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 
+#include "common/concurrent_vector.h"
+#include "common/constants.h"
+#include "common/types/types.h"
 #include "storage/buffer_manager/vm_region.h"
 #include "storage/file_handle.h"
 
@@ -150,7 +154,7 @@ public:
     // This function assumes the page is already LOCKED.
     inline void setLockedPageDirty(common::page_idx_t pageIdx) {
         KU_ASSERT(pageIdx < numPages);
-        pageStates[pageIdx]->setDirty();
+        pageStates[pageIdx].setDirty();
     }
 
     common::page_group_idx_t addWALPageIdxGroupIfNecessary(common::page_idx_t originalPageIdx);
@@ -178,9 +182,8 @@ public:
 
 private:
     inline PageState* getPageState(common::page_idx_t pageIdx) {
-        std::shared_lock sLck{fhSharedMutex};
-        KU_ASSERT(pageIdx < numPages && pageStates[pageIdx]);
-        return pageStates[pageIdx].get();
+        KU_ASSERT(pageIdx < numPages);
+        return &pageStates[pageIdx];
     }
     inline common::frame_idx_t getFrameIdx(common::page_idx_t pageIdx) {
         KU_ASSERT(pageIdx < pageCapacity);
@@ -190,7 +193,6 @@ private:
     }
     inline common::PageSizeClass getPageSizeClass() const { return pageSizeClass; }
 
-    void initPageStatesAndGroups();
     common::page_idx_t addNewPageWithoutLock() override;
     void addNewPageGroupWithoutLock();
     inline common::page_group_idx_t getNumPageGroups() {
@@ -201,9 +203,16 @@ private:
     FileVersionedType fileVersionedType;
     BufferManager* bm;
     common::PageSizeClass pageSizeClass;
-    std::vector<std::unique_ptr<PageState>> pageStates;
+    // With a page group size of 2^10 and an 256KB index size, the access cost increases
+    // only with each 128GB added to the file
+    common::ConcurrentVector<PageState, common::StorageConstants::PAGE_GROUP_SIZE,
+        common::BufferPoolConstants::PAGE_256KB_SIZE / sizeof(void*)>
+        pageStates;
     // Each file page group corresponds to a frame group in the VMRegion.
-    std::vector<common::page_group_idx_t> frameGroupIdxes;
+    // Just one frame group for each page group, so performance is less sensitive than pageStates
+    // and left at the default which won't increase access cost for the frame groups until 16TB of
+    // data has been written
+    common::ConcurrentVector<common::page_group_idx_t> frameGroupIdxes;
     // For each page group, if it has any WAL page version, we keep a `WALPageIdxGroup` in this map.
     // `WALPageIdxGroup` records the WAL page idx for each page in the page group.
     // Accesses to this map is synchronized by `fhSharedMutex`.
