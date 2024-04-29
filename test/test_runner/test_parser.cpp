@@ -25,12 +25,21 @@ namespace testing {
 
 std::unique_ptr<TestGroup> TestParser::parseTestFile() {
     openFile();
+    genGroupName();
     parseHeader();
     if (!testGroup->isValid()) {
         throw TestException("Invalid test header [" + path + "].");
     }
     parseBody();
     return std::move(testGroup);
+}
+
+void TestParser::genGroupName() {
+    std::size_t subStart = TestHelper::appendKuzuRootPath(std::string(
+        TestHelper::E2E_TEST_FILES_DIRECTORY)).length() + 1;
+    std::size_t subEnd = path.find_last_of('/') - 1;
+    std::string relPath = path.substr(subStart, subEnd - subStart + 1);
+    testGroup->group = relPath;
 }
 
 void TestParser::extractDataset() {
@@ -67,8 +76,8 @@ void TestParser::parseHeader() {
             break;
         }
         case TokenType::GROUP: {
-            checkMinimumParams(1);
-            testGroup->group = currentToken.params[1];
+            // checkMinimumParams(1);
+            // testGroup->group = currentToken.params[1];
             break;
         }
         case TokenType::DATASET: {

@@ -91,6 +91,7 @@ private:
 
     void openFile();
     void tokenize();
+    void genGroupName();
     void parseHeader();
     void parseBody();
     void extractExpectedResult(TestStatement* statement);
