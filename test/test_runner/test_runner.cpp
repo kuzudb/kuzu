@@ -146,7 +146,8 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         }
     }
     if (statement->checkColumnNames) {
-        std::string resultColumns = TestRunner::convertResultColumnsToString((*result).getColumnNames());
+        std::string resultColumns =
+            TestRunner::convertResultColumnsToString((*result).getColumnNames());
         if (resultColumns != statement->columnNames) {
             spdlog::error("PLAN{} NOT PASSED.", planIdx);
             spdlog::info("PLAN: \n{}", planStr);
