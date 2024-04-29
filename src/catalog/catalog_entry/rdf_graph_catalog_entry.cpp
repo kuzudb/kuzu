@@ -25,6 +25,15 @@ bool RDFGraphCatalogEntry::isParent(common::table_id_t tableID) {
            tableID == resourceTripleTableID || tableID == literalTripleTableID;
 }
 
+common::table_id_set_t RDFGraphCatalogEntry::getTableIDSet() const {
+    common::table_id_set_t result;
+    result.insert(resourceTableID);
+    result.insert(literalTableID);
+    result.insert(resourceTripleTableID);
+    result.insert(literalTripleTableID);
+    return result;
+}
+
 std::string RDFGraphCatalogEntry::getResourceTableName(const std::string& graphName) {
     return graphName + std::string(common::rdf::RESOURCE_TABLE_SUFFIX);
 }

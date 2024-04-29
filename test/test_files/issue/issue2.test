@@ -123,3 +123,14 @@
 -STATEMENT MATCH  (f) - [r:etable] -> (t) WHERE  t.id = 'ewm8ewnn@l23:' and r.eprop3 = 'qqewj932-ew2b-5f88-nfew' RETURN COUNT(*);
 ---- 1
 1
+
+-CASE 3416
+-STATEMENT Export Database '${KUZU_EXPORT_DB_DIRECTORY}_3416/empty-db'
+---- 1
+Exported database successfully.
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_3416/empty-db"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_3416/empty-db"
+---- 1
+Imported database successfully.
+-STATEMENT CALL show_tables() RETURN *;
+---- 0

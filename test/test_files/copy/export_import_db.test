@@ -7,9 +7,9 @@
 
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;
 ---- ok
--STATEMENT ALTER TABLE User ADD random MAP(STRING, INT64) DEFAULT map(['key1','key2'],[400,250])
+-STATEMENT ALTER TABLE User ADD random MAP(STRING, INT64) DEFAULT map(["key1","key2"],[400,250])
 ---- ok
--STATEMENT MATCH (p:User) WHERE p.name = 'Adam' return p.random
+-STATEMENT MATCH (p:User) WHERE p.name = "Adam" return p.random
 ---- 1
 {key1=400, key2=250}
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
@@ -19,10 +19,10 @@ Exported database successfully.
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
 ---- 1
 Imported database successfully.
--STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+-STATEMENT MATCH (u:User) WHERE u.name = "Adam" SET u.age = 50
 ---- ok
 -LOG ReturnAge
--STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+-STATEMENT MATCH (u:User) WHERE u.name="Adam" RETURN u.age
 ---- 1
 50
 -STATEMENT return addWithDefault(2);
@@ -37,35 +37,35 @@ Exported database successfully.
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2"
 ---- 1
 Imported database successfully.
--STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+-STATEMENT MATCH (u:User) WHERE u.name = "Adam" SET u.age = 50
 ---- ok
 -LOG ReturnAge
--STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+-STATEMENT MATCH (u:User) WHERE u.name="Adam" RETURN u.age
 ---- 1
 50
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2" (format='csv', header=true)
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2" (format="csv", header=true)
 ---- error
 Runtime exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2 already exists.
 
 -CASE ExportImportDatabaseWithPARQUET
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db3" (format='parquet')
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db3" (format="parquet")
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db3"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db3"
 ---- ok
--STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+-STATEMENT MATCH (u:User) WHERE u.name = "Adam" SET u.age = 50
 ---- ok
 -LOG ReturnAge
--STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+-STATEMENT MATCH (u:User) WHERE u.name="Adam" RETURN u.age
 ---- 1
 50
 
 -CASE ExportImportDatabaseError
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format='TURTLE')
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format="TURTLE")
 ---- error
 Binder exception: Unsupported file type: TURTLE.
 
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format='npy')
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format="npy")
 ---- error
 Binder exception: Export database currently only supports csv and parquet files.
 
@@ -73,7 +73,7 @@ Binder exception: Export database currently only supports csv and parquet files.
 ---- error
 Binder exception: The type of format option must be a string.
 
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format='PARQUET', header=true)
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format="PARQUET", header=true)
 ---- error
 Binder exception: Only export to csv can have options.
 
@@ -114,10 +114,10 @@ Exported database successfully.
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case5/demo-db"
 ---- 1
 Imported database successfully.
--STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+-STATEMENT MATCH (u:User) WHERE u.name = "Adam" SET u.age = 50
 ---- ok
 -LOG ReturnAge
--STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+-STATEMENT MATCH (u:User) WHERE u.name="Adam" RETURN u.age
 ---- 1
 50
 -STATEMENT MATCH (a)-[r:REL2_A_B]->(b:B)
@@ -142,13 +142,13 @@ Exported database successfully. But we skip exporting RDF graphs.
 ---- ok
 -STATEMENT CREATE NODE TABLE twoserial(ID serial, prop STRING, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE (o:twoserial {prop: 'Alice'})
+-STATEMENT CREATE (o:twoserial {prop: "Alice"})
 ---- ok
--STATEMENT CREATE (o:twoserial {prop: 'Bob'})
+-STATEMENT CREATE (o:twoserial {prop: "Bob"})
 ---- ok
--STATEMENT CREATE (o:twoserial {prop: 'Carol'})
+-STATEMENT CREATE (o:twoserial {prop: "Carol"})
 ---- ok
--STATEMENT CREATE (o:twoserial {prop: 'Dan'})
+-STATEMENT CREATE (o:twoserial {prop: "Dan"})
 ---- ok
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case7/demo-db"
 ---- ok

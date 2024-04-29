@@ -56,11 +56,12 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::
         }
         ss << nodeTableEntry->toCypher(clientContext) << std::endl;
     }
-    for (auto& relTableEntry : catalog->getRelTableEntries(tx)) {
-        if (catalog->relTableExistInRelTableGroup(tx, relTableEntry->getTableID())) {
+    for (auto& entry : catalog->getRelTableEntries(tx)) {
+        if (catalog->tableInRelGroup(tx, entry->getTableID()) ||
+            catalog->tableInRDFGraph(tx, entry->getTableID())) {
             continue;
         }
-        ss << relTableEntry->toCypher(clientContext) << std::endl;
+        ss << entry->toCypher(clientContext) << std::endl;
     }
     for (auto& relGroupEntry : catalog->getRelTableGroupEntries(tx)) {
         ss << relGroupEntry->toCypher(clientContext) << std::endl;
@@ -82,33 +83,38 @@ std::string getMacroCypher(Catalog* catalog, Transaction* tx) {
 std::string getCopyCypher(Catalog* catalog, Transaction* tx, ReaderConfig* boundFileInfo) {
     stringstream ss;
     for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
+        if (catalog->tableInRDFGraph(tx, nodeTableEntry->getTableID())) {
+            continue;
+        }
         auto tableName = nodeTableEntry->getName();
         if (containOnlySerialProperty(nodeTableEntry)) {
             continue;
         }
         writeCopyStatement(ss, tableName, boundFileInfo);
     }
-    for (auto& relTableEntry : catalog->getRelTableEntries(tx)) {
-        auto tableName = relTableEntry->getName();
-        writeCopyStatement(ss, tableName, boundFileInfo);
+    for (auto& entry : catalog->getRelTableEntries(tx)) {
+        if (catalog->tableInRDFGraph(tx, entry->getTableID())) {
+            continue;
+        }
+        writeCopyStatement(ss, entry->getName(), boundFileInfo);
     }
     return ss.str();
 }
 
 void ExportDB::executeInternal(ExecutionContext* context) {
+    auto clientContext = context->clientContext;
+    auto fs = clientContext->getVFSUnsafe();
+    auto tx = clientContext->getTx();
+    auto catalog = clientContext->getCatalog();
     // write the schema.cypher file
-    writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
-        getSchemaCypher(context->clientContext, context->clientContext->getTx(), extraMsg),
+    writeStringStreamToFile(fs, getSchemaCypher(clientContext, tx, extraMsg),
         boundFileInfo.filePaths[0] + "/schema.cypher");
     // write macro.cypher file
-    writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
-        getMacroCypher(context->clientContext->getCatalog(), context->clientContext->getTx()),
+    writeStringStreamToFile(fs, getMacroCypher(catalog, tx),
         boundFileInfo.filePaths[0] + "/macro.cypher");
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
-    writeStringStreamToFile(context->clientContext->getVFSUnsafe(),
-        getCopyCypher(context->clientContext->getCatalog(), context->clientContext->getTx(),
-            &boundFileInfo),
+    writeStringStreamToFile(fs, getCopyCypher(catalog, tx, &boundFileInfo),
         boundFileInfo.filePaths[0] + "/copy.cypher");
 }
 

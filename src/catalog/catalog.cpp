@@ -80,17 +80,6 @@ std::vector<RelGroupCatalogEntry*> Catalog::getRelTableGroupEntries(Transaction*
         CatalogEntryType::REL_GROUP_ENTRY);
 }
 
-bool Catalog::relTableExistInRelTableGroup(Transaction* tx, table_id_t tableID) const {
-    auto relGroupEntries = getRelTableGroupEntries(tx);
-    for (auto relGroupEntry : relGroupEntries) {
-        auto tableIDs = relGroupEntry->getRelTableIDs();
-        if (std::find(tableIDs.begin(), tableIDs.end(), tableID) != tableIDs.end()) {
-            return true;
-        }
-    }
-    return false;
-}
-
 std::vector<RDFGraphCatalogEntry*> Catalog::getRdfGraphEntries(Transaction* tx) const {
     return getVersion(tx)->getTableCatalogEntries<RDFGraphCatalogEntry*>(
         CatalogEntryType::RDF_GRAPH_ENTRY);
@@ -112,6 +101,25 @@ std::vector<TableCatalogEntry*> Catalog::getTableSchemas(Transaction* tx,
             getVersion(tx)->getTableCatalogEntry(tableID)));
     }
     return result;
+}
+
+bool Catalog::tableInRDFGraph(Transaction* tx, table_id_t tableID) const {
+    for (auto& entry : getRdfGraphEntries(tx)) {
+        auto set = entry->getTableIDSet();
+        if (set.contains(tableID)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Catalog::tableInRelGroup(Transaction* tx, table_id_t tableID) const {
+    for (auto& entry : getRelTableGroupEntries(tx)) {
+        if (entry->isParent(tableID)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Catalog::prepareCommitOrRollback(TransactionAction action, VirtualFileSystem* fs) {
