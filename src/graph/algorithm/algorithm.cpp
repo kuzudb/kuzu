@@ -112,7 +112,7 @@ AlgorithmTask* Algorithm::checkIfAnyTaskCompleteOrInterrupted() {
     while (it != pendingAlgorithmTasks.end()) {
         it++;
     }
-    return it;
+    return it->get();
 }
 
 }
