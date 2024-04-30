@@ -1,5 +1,6 @@
 add_library(kuzu_graph_algorithm
         OBJECT
+        algorithm.cpp
         demo.cpp)
 
 set(ALL_OBJECT_FILES
