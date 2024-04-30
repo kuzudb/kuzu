@@ -103,5 +103,17 @@ void Algorithm::addTasksToQueue() {
     }
 }
 
+/**
+ * check if any task is interrupted or complete
+ * if returning null, then no task is interrupted else return pointer to the one complete / interrupted
+ */
+AlgorithmTask* Algorithm::checkIfAnyTaskCompleteOrInterrupted() {
+    auto it = pendingAlgorithmTasks.begin();
+    while (it != pendingAlgorithmTasks.end()) {
+        it++;
+    }
+    return it;
+}
+
 }
 }
