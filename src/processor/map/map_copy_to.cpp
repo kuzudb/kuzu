@@ -1,4 +1,3 @@
-#include "common/exception/runtime.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "processor/operator/persistent/copy_to_csv.h"
 #include "processor/operator/persistent/copy_to_parquet.h"
