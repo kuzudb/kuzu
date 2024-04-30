@@ -19,7 +19,7 @@ struct CopyToCSVInfo final : public CopyToInfo {
         : CopyToInfo{std::move(names), std::move(dataPoses), std::move(fileName), canParallel},
           isFlat{std::move(isFlat)}, copyToOption{std::move(copyToOption)} {}
 
-    uint64_t getNumFlatVectors();
+    uint64_t getNumFlatVectors() const;
 
     std::unique_ptr<CopyToInfo> copy() override {
         return std::make_unique<CopyToCSVInfo>(names, dataPoses, fileName, isFlat,

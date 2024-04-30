@@ -11,7 +11,7 @@ namespace processor {
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
-uint64_t CopyToCSVInfo::getNumFlatVectors() {
+uint64_t CopyToCSVInfo::getNumFlatVectors() const {
     uint64_t numFlatVectors = 0;
     for (auto flatInfo : isFlat) {
         if (flatInfo) {
@@ -22,7 +22,7 @@ uint64_t CopyToCSVInfo::getNumFlatVectors() {
 }
 
 void CopyToCSVLocalState::init(CopyToInfo* info, MemoryManager* mm, ResultSet* resultSet) {
-    auto copyToCSVInfo = ku_dynamic_cast<CopyToInfo*, CopyToCSVInfo*>(info);
+    auto copyToCSVInfo = info->constPtrCast<CopyToCSVInfo>();
     serializer = std::make_unique<BufferedSerializer>();
     vectorsToCast.reserve(info->dataPoses.size());
     auto numFlatVectors = copyToCSVInfo->getNumFlatVectors();
