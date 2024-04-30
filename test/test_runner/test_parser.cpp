@@ -35,8 +35,9 @@ std::unique_ptr<TestGroup> TestParser::parseTestFile() {
 }
 
 void TestParser::genGroupName() {
-    std::size_t subStart = TestHelper::appendKuzuRootPath(std::string(
-        TestHelper::E2E_TEST_FILES_DIRECTORY)).length() + 1;
+    std::size_t subStart =
+        TestHelper::appendKuzuRootPath(std::string(TestHelper::E2E_TEST_FILES_DIRECTORY)).length() +
+        1;
     std::size_t subEnd = path.find_last_of('.') - 1;
     std::string relPath = path.substr(subStart, subEnd - subStart + 1);
     std::replace(relPath.begin(), relPath.end(), '/', ':');
