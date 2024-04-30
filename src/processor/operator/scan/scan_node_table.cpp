@@ -15,9 +15,6 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    for (auto& vector : readState->outputVectors) {
-        vector->resetAuxiliaryBuffer();
-    }
     info->table->initializeReadState(context->clientContext->getTx(), info->columnIDs, *readState);
     info->table->read(context->clientContext->getTx(), *readState);
     return true;

@@ -169,7 +169,6 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
 
 void ListColumn::scanInternal(Transaction* transaction, ChunkState& readState,
     ValueVector* nodeIDVector, ValueVector* resultVector) {
-    resultVector->resetAuxiliaryBuffer();
     KU_ASSERT(resultVector->state);
     auto [nodeGroupIdx, startOffsetInChunk] =
         StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeIDVector->readNodeOffset(0));

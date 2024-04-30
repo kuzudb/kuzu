@@ -33,8 +33,8 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
 
 void RelTable::initializeReadState(Transaction* transaction, RelDataDirection direction,
     const std::vector<column_id_t>& columnIDs, RelTableReadState& readState) {
-    if (!readState.dataReadState) {
-        readState.dataReadState = std::make_unique<RelDataReadState>();
+    for (auto& vector : readState.outputVectors) {
+        vector->resetAuxiliaryBuffer();
     }
     auto& dataState =
         common::ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(*readState.dataReadState);

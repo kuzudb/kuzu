@@ -83,6 +83,9 @@ public:
 
     void initializeReadState(transaction::Transaction* transaction,
         std::vector<common::column_id_t> columnIDs, TableReadState& readState) {
+        for (auto& vector : readState.outputVectors) {
+            vector->resetAuxiliaryBuffer();
+        }
         tableData->initializeReadState(transaction, std::move(columnIDs), *readState.nodeIDVector,
             *readState.dataReadState);
     }
