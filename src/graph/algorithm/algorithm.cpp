@@ -60,6 +60,7 @@ AlgorithmTask* Algorithm::getJobFromQueue() {
         // iterate over all jobs to check which one is most suitable, important for
         // graph specific algorithms, such as for shortest path --> max[frontier_size / threads]
         // specific algorithms will override this
+        it->get()->measureCurrentWork();
     }
     return ret;
 }
