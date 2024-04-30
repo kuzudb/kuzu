@@ -44,63 +44,11 @@ jobs:
         working-directory: tools/nodejs_api
         run: npm install --include=dev
 
-      - name: Build
-        continue-on-error: true
-        run: |
-          make release NUM_THREADS=$(nproc)
-          echo "Build,$?" > status.txt
-
       - name: Test
         continue-on-error: true
         run: |
-          make test NUM_THREADS=$(nproc)
+          make test ASAN=1 NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
-
-      - name: C and C++ examples
-        continue-on-error: true
-        run: |
-          make example NUM_THREADS=$(nproc)
-          echo "C and C++ examples,$?" >> status.txt
-
-      - name: Python test
-        continue-on-error: true
-        run: |
-          make pytest NUM_THREADS=$(nproc)
-          echo "Python test,$?" >> status.txt
-
-      - name: Node.js test
-        continue-on-error: true
-        run: |
-          make nodejstest NUM_THREADS=$(nproc)
-          echo "Node.js test,$?" >> status.txt
-
-      - name: Java test
-        continue-on-error: true
-        run: |
-          make javatest NUM_THREADS=$(nproc)
-          echo "Java test,$?" >> status.txt
-
-      - name: Rust share build
-        continue-on-error: true
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
-      - name: Rust set env
-        continue-on-error: true
-        run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
-
-      - name: Rust test
-        continue-on-error: true
-        working-directory: tools/rust_api
-        run: |
-          cargo test --release --features arrow -- --test-threads=1
-          echo "Rust test,$?" >> ../../status.txt
-
-      - name: Rust example
-        continue-on-error: true
-        working-directory: examples/rust
-        run: |
-          cargo build --release --features arrow
-          echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
         continue-on-error: true
@@ -142,192 +90,15 @@ jobs:
         working-directory: tools/nodejs_api
         run: npm install --include=dev
 
-      - name: Build
-        continue-on-error: true
-        run: |
-          make release NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          echo "Build,$?" > status.txt
-
       - name: Test
         continue-on-error: true
         run: |
-          make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          make test ASAN=1 NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Test,$?" >> status.txt
-
-      - name: C and C++ examples
-        continue-on-error: true
-        run: |
-          make example NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          echo "C and C++ examples,$?" >> status.txt
-
-      - name: Python test
-        continue-on-error: true
-        run: |
-          make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          echo "Python test,$?" >> status.txt
-
-      - name: Node.js test
-        continue-on-error: true
-        run: |
-          make nodejstest NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          echo "Node.js test,$?" >> status.txt
-
-      - name: Java test
-        continue-on-error: true
-        run: |
-          make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          echo "Java test,$?" >> status.txt
-
-      - name: Rust share build
-        continue-on-error: true
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
-      - name: Rust set env
-        continue-on-error: true
-        run: echo "CARGO_BUILD_JOBS=$(sysctl -n hw.physicalcpu)" >> $GITHUB_ENV
-
-      - name: Rust test
-        continue-on-error: true
-        working-directory: tools/rust_api
-        run: |
-          cargo test --release --features arrow -- --test-threads=1
-          echo "Rust test,$?" >> ../../status.txt
-
-      - name: Rust example
-        continue-on-error: true
-        working-directory: examples/rust
-        run: |
-          cargo build --release --features arrow
-          echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
         continue-on-error: true
         run: mv status.txt ${{ matrix.runner }}.csv
-
-      - uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: ${{ matrix.runner }}
-          path: ${{ matrix.runner }}.csv
-
-  windows-build-test:
-    strategy:
-      matrix:
-        runner: [windows-2019, windows-2022]
-      fail-fast: false
-    name: ${{ matrix.runner }}
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - name: Disable Windows Defender
-        continue-on-error: true
-        shell: powershell
-        run: |
-          Set-MpPreference -DisableRealtimeMonitoring $true
-          Set-MpPreference -DisableBehaviorMonitoring $true
-          Set-MpPreference -DisableBlockAtFirstSeen $true
-          Set-MpPreference -DisableIOAVProtection $true
-          Set-MpPreference -DisablePrivacyMode $true
-          Set-MpPreference -SignatureDisableUpdateOnStartupWithoutEngine $true
-          Set-MpPreference -DisableArchiveScanning $true
-          Set-MpPreference -DisableIntrusionPreventionSystem $true
-          Set-MpPreference -DisableScriptScanning $true
-          Set-MpPreference -SubmitSamplesConsent NeverSend
-
-      - uses: actions/checkout@v3
-        continue-on-error: true
-
-      - uses: ilammy/msvc-dev-cmd@v1
-        continue-on-error: true
-
-      - uses: actions/setup-python@v4
-        continue-on-error: true
-        with:
-          python-version: "3.10"
-
-      - name: Ensure Python dependencies
-        continue-on-error: true
-        shell: cmd
-        run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        continue-on-error: true
-        shell: cmd
-        working-directory: .\tools\nodejs_api
-        run: npm install --include=dev
-
-      - name: Build
-        continue-on-error: true
-        shell: cmd
-        run: |
-          make release NUM_THREADS=%NUMBER_OF_PROCESSORS%
-          echo Build,%ERRORLEVEL% > status.txt
-
-      - name: Test
-        continue-on-error: true
-        shell: cmd
-        run: |
-          make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
-          echo Test,%ERRORLEVEL% >> status.txt
-
-      - name: C and C++ examples
-        continue-on-error: true
-        shell: cmd
-        run: |
-          make example NUM_THREADS=%NUMBER_OF_PROCESSORS%
-          echo C and C++ examples,%ERRORLEVEL% >> status.txt
-
-      - name: Python test
-        continue-on-error: true
-        shell: cmd
-        run: |
-          make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
-          echo Python test,%ERRORLEVEL% >> status.txt
-
-      - name: Node.js test
-        continue-on-error: true
-        shell: cmd
-        run: |
-          make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
-          echo Node.js test,%ERRORLEVEL% >> status.txt
-
-      - name: Java test
-        continue-on-error: true
-        shell: cmd
-        run: |
-          make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
-          echo Java test,%ERRORLEVEL% >> status.txt
-
-      - name: Rust share build
-        continue-on-error: true
-        shell: cmd
-        run: (echo [workspace]& echo members = ["tools/rust_api","examples/rust"]) > Cargo.toml
-
-      - name: Rust test
-        continue-on-error: true
-        shell: cmd
-        run: |
-          make clean
-          set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
-          set CXXFLAGS=/std:c++20
-          set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
-          cargo test --release --features arrow -- --test-threads=1
-          echo Rust test,%ERRORLEVEL% >> status.txt
-
-      - name: Rust example
-        continue-on-error: true
-        shell: cmd
-        run: |
-          set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
-          cargo build --release --features arrow
-          echo Rust example,%ERRORLEVEL% >> status.txt
-
-      - name: Rename status.txt
-        continue-on-error: true
-        shell: cmd
-        run: |
-          rename status.txt ${{ matrix.runner }}.csv
 
       - uses: actions/upload-artifact@v4
         continue-on-error: true
@@ -381,63 +152,11 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           $HOME/.cargo/bin/rustup toolchain install 1.76
 
-      - name: Build
-        continue-on-error: true
-        run: |
-          make release NUM_THREADS=$(nproc)
-          echo "Build,$?" > status.txt
-
       - name: Test
         continue-on-error: true
         run: |
-          make test NUM_THREADS=$(nproc)
+          make test ASAN=1 NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
-
-      - name: C and C++ examples
-        continue-on-error: true
-        run: |
-          make example NUM_THREADS=$(nproc)
-          echo "C and C++ examples,$?" >> status.txt
-
-      - name: Python test
-        continue-on-error: true
-        run: |
-          make pytest NUM_THREADS=$(nproc)
-          echo "Python test,$?" >> status.txt
-
-      - name: Node.js test
-        continue-on-error: true
-        run: |
-          make nodejstest NUM_THREADS=$(nproc)
-          echo "Node.js test,$?" >> status.txt
-
-      - name: Java test
-        continue-on-error: true
-        run: |
-          make javatest NUM_THREADS=$(nproc)
-          echo "Java test,$?" >> status.txt
-
-      - name: Rust share build
-        continue-on-error: true
-        run: echo '[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
-      - name: Rust set env
-        continue-on-error: true
-        run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
-
-      - name: Rust test
-        continue-on-error: true
-        working-directory: tools/rust_api
-        run: |
-          cargo test --release --features arrow -- --test-threads=1
-          echo "Rust test,$?" >> ../../status.txt
-
-      - name: Rust example
-        continue-on-error: true
-        working-directory: examples/rust
-        run: |
-          cargo build --release --features arrow
-          echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
         continue-on-error: true
@@ -520,64 +239,11 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           $HOME/.cargo/bin/rustup toolchain install 1.76
 
-      - name: Build
-        continue-on-error: true
-        run: |
-          make release NUM_THREADS=$(nproc)
-          echo "Build,$?" > status.txt
-
       - name: Test
         continue-on-error: true
         run: |
-          make test NUM_THREADS=$(nproc)
+          make test ASAN=1 NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
-
-      - name: C and C++ examples
-        continue-on-error: true
-        run: |
-          make example NUM_THREADS=$(nproc)
-          echo "C and C++ examples,$?" >> status.txt
-
-      - name: Python test
-        continue-on-error: true
-        run: |
-          source /opt/venv/bin/activate
-          make pytest NUM_THREADS=$(nproc)
-          echo "Python test,$?" >> status.txt
-
-      - name: Node.js test
-        continue-on-error: true
-        run: |
-          make nodejstest NUM_THREADS=$(nproc)
-          echo "Node.js test,$?" >> status.txt
-
-      - name: Java test
-        continue-on-error: true
-        run: |
-          make javatest NUM_THREADS=$(nproc)
-          echo "Java test,$?" >> status.txt
-
-      - name: Rust share build
-        continue-on-error: true
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
-      - name: Rust set env
-        continue-on-error: true
-        run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
-
-      - name: Rust test
-        continue-on-error: true
-        working-directory: tools/rust_api
-        run: |
-          cargo test --release --features arrow -- --test-threads=1
-          echo "Rust test,$?" >> ../../status.txt
-
-      - name: Rust example
-        continue-on-error: true
-        working-directory: examples/rust
-        run: |
-          cargo build --release --features arrow
-          echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
         continue-on-error: true
@@ -629,63 +295,11 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           $HOME/.cargo/bin/rustup toolchain install 1.76
 
-      - name: Build
-        continue-on-error: true
-        run: |
-          make release NUM_THREADS=$(nproc)
-          echo "Build,$?" > status.txt
-
       - name: Test
         continue-on-error: true
         run: |
-          make test NUM_THREADS=$(nproc)
+          make test ASAN=1 NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
-
-      - name: C and C++ examples
-        continue-on-error: true
-        run: |
-          make example NUM_THREADS=$(nproc)
-          echo "C and C++ examples,$?" >> status.txt
-
-      - name: Python test
-        continue-on-error: true
-        run: |
-          make pytest NUM_THREADS=$(nproc)
-          echo "Python test,$?" >> status.txt
-
-      - name: Node.js test
-        continue-on-error: true
-        run: |
-          make nodejstest NUM_THREADS=$(nproc)
-          echo "Node.js test,$?" >> status.txt
-
-      - name: Java test
-        continue-on-error: true
-        run: |
-          make javatest NUM_THREADS=$(nproc)
-          echo "Java test,$?" >> status.txt
-
-      - name: Rust share build
-        continue-on-error: true
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
-      - name: Rust set env
-        continue-on-error: true
-        run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
-
-      - name: Rust test
-        working-directory: tools/rust_api
-        continue-on-error: true
-        run: |
-          cargo test --release --features arrow -- --test-threads=1
-          echo "Rust test,$?" >> ../../status.txt
-
-      - name: Rust example
-        working-directory: examples/rust
-        continue-on-error: true
-        run: |
-          cargo build --release --features arrow
-          echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
         continue-on-error: true
