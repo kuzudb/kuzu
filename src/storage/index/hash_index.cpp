@@ -21,7 +21,6 @@
 #include "storage/index/in_mem_hash_index.h"
 #include "storage/storage_structure/disk_array.h"
 #include "transaction/transaction.h"
-#include <ranges>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
