@@ -62,7 +62,8 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenTyp
     {"-CREATE_CONNECTION", TokenType::CREATE_CONNECTION}, {"]", TokenType::END_OF_STATEMENT_BLOCK},
     {"----", TokenType::RESULT}, {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY},
     {"-SET", TokenType::SET}, {"-IMPORT_DATABASE", TokenType::IMPORT_DATABASE},
-    {"-REMOVE_FILE", TokenType::REMOVE_FILE}, {"-CHECK_COLUMN_NAMES", TokenType::CHECK_COLUMN_NAMES}};
+    {"-REMOVE_FILE", TokenType::REMOVE_FILE},
+    {"-CHECK_COLUMN_NAMES", TokenType::CHECK_COLUMN_NAMES}};
 
 class LogicToken {
 public:
