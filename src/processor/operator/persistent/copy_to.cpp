@@ -22,5 +22,9 @@ void CopyTo::executeInternal(processor::ExecutionContext* context) {
     localState->finalize(sharedState.get());
 }
 
+bool CopyTo::canParallel() const {
+    return info->canParallel;
+}
+
 } // namespace processor
 } // namespace kuzu

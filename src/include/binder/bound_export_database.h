@@ -13,9 +13,10 @@ struct ExportedTableData {
     std::unique_ptr<BoundRegularQuery> regularQuery;
     std::vector<std::string> columnNames;
     std::vector<common::LogicalType> columnTypes;
+    bool canParallel;
 
-    inline const std::vector<common::LogicalType>& getColumnTypesRef() const { return columnTypes; }
-    inline const BoundRegularQuery* getRegularQuery() const { return regularQuery.get(); }
+    const std::vector<common::LogicalType>& getColumnTypesRef() const { return columnTypes; }
+    const BoundRegularQuery* getRegularQuery() const { return regularQuery.get(); }
 };
 
 class BoundExportDatabase final : public BoundStatement {
@@ -30,14 +31,14 @@ public:
         boundFileInfo.options = std::move(csvOption);
     }
 
-    inline std::string getFilePath() const { return boundFileInfo.filePaths[0]; }
-    inline common::FileType getFileType() const { return boundFileInfo.fileType; }
-    inline common::CSVOption getCopyOption() const {
+    std::string getFilePath() const { return boundFileInfo.filePaths[0]; }
+    common::FileType getFileType() const { return boundFileInfo.fileType; }
+    common::CSVOption getCopyOption() const {
         auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo.options);
         return csvConfig.option.copy();
     }
-    inline const common::ReaderConfig* getBoundFileInfo() const { return &boundFileInfo; }
-    inline const std::vector<ExportedTableData>* getExportData() const { return &exportData; }
+    const common::ReaderConfig* getBoundFileInfo() const { return &boundFileInfo; }
+    const std::vector<ExportedTableData>* getExportData() const { return &exportData; }
 
 private:
     std::vector<ExportedTableData> exportData;

@@ -10,9 +10,17 @@ struct CopyToInfo {
     std::vector<std::string> names;
     std::vector<DataPos> dataPoses;
     std::string fileName;
+    bool canParallel;
 
-    CopyToInfo(std::vector<std::string> names, std::vector<DataPos> dataPoses, std::string fileName)
-        : names{std::move(names)}, dataPoses{std::move(dataPoses)}, fileName{std::move(fileName)} {}
+    CopyToInfo(std::vector<std::string> names, std::vector<DataPos> dataPoses, std::string fileName,
+        bool canParallel)
+        : names{std::move(names)}, dataPoses{std::move(dataPoses)}, fileName{std::move(fileName)},
+          canParallel{canParallel} {}
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const CopyToInfo*, const TARGET*>(this);
+    }
 
     virtual ~CopyToInfo() = default;
 
@@ -58,6 +66,8 @@ public:
     void finalize(ExecutionContext* context) final;
 
     void executeInternal(processor::ExecutionContext* context) final;
+
+    bool canParallel() const final;
 
 protected:
     std::unique_ptr<CopyToInfo> info;

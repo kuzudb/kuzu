@@ -14,15 +14,16 @@ struct CopyToCSVInfo final : public CopyToInfo {
     common::CSVOption copyToOption;
 
     CopyToCSVInfo(std::vector<std::string> names, std::vector<DataPos> dataPoses,
-        std::string fileName, std::vector<bool> isFlat, common::CSVOption copyToOption)
-        : CopyToInfo{std::move(names), std::move(dataPoses), std::move(fileName)},
+        std::string fileName, std::vector<bool> isFlat, common::CSVOption copyToOption,
+        bool canParallel)
+        : CopyToInfo{std::move(names), std::move(dataPoses), std::move(fileName), canParallel},
           isFlat{std::move(isFlat)}, copyToOption{std::move(copyToOption)} {}
 
-    uint64_t getNumFlatVectors();
+    uint64_t getNumFlatVectors() const;
 
-    inline std::unique_ptr<CopyToInfo> copy() override {
+    std::unique_ptr<CopyToInfo> copy() override {
         return std::make_unique<CopyToCSVInfo>(names, dataPoses, fileName, isFlat,
-            copyToOption.copy());
+            copyToOption.copy(), canParallel);
     }
 };
 
@@ -34,15 +35,15 @@ public:
 
     void finalize(CopyToSharedState* sharedState) override;
 
-    static void writeString(common::BufferedSerializer* serializer, CopyToCSVInfo* info,
+    static void writeString(common::BufferedSerializer* serializer, const CopyToCSVInfo* info,
         const uint8_t* strData, uint64_t strLen, bool forceQuote);
 
 private:
-    static bool requireQuotes(CopyToCSVInfo* info, const uint8_t* str, uint64_t len);
+    static bool requireQuotes(const CopyToCSVInfo* info, const uint8_t* str, uint64_t len);
 
     static std::string addEscapes(char toEscape, char escape, const std::string& val);
 
-    void writeRows(CopyToCSVInfo* info);
+    void writeRows(const CopyToCSVInfo* info);
 
 private:
     std::unique_ptr<common::BufferedSerializer> serializer;
@@ -79,7 +80,7 @@ public:
               std::make_unique<CopyToCSVLocalState>(), std::move(sharedState),
               PhysicalOperatorType::COPY_TO, std::move(child), id, paramsString} {}
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CopyToCSV>(resultSetDescriptor->copy(), info->copy(), sharedState,
             children[0]->clone(), id, paramsString);
     }

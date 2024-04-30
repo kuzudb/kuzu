@@ -132,3 +132,36 @@ Imported database successfully.
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case6/demo-db"
 ---- 1
 Exported database successfully. But we skip exporting RDF graphs.
+
+-CASE ExportDatabaseWithSerialTable
+-STATEMENT CREATE NODE TABLE oneserial(ID serial, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (o:oneserial)
+---- ok
+-STATEMENT CREATE (o:oneserial)
+---- ok
+-STATEMENT CREATE NODE TABLE twoserial(ID serial, prop STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (o:twoserial {prop: 'Alice'})
+---- ok
+-STATEMENT CREATE (o:twoserial {prop: 'Bob'})
+---- ok
+-STATEMENT CREATE (o:twoserial {prop: 'Carol'})
+---- ok
+-STATEMENT CREATE (o:twoserial {prop: 'Dan'})
+---- ok
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case7/demo-db"
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case7/demo-db"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case7/demo-db"
+---- 1
+Imported database successfully.
+-STATEMENT MATCH (o:twoserial) RETURN o.*;
+---- 4
+0|Alice
+1|Bob
+2|Carol
+3|Dan
+-STATEMENT MATCH (o:oneserial) RETURN *;
+---- error
+Binder exception: Table oneserial does not exist.

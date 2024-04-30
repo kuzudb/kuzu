@@ -5,3 +5,12 @@
 -CASE CopyLargeSerial
 -STATEMENT MATCH (a:serialtable) WHERE a.ID <> a.ID2 RETURN a LIMIT 10;
 ---- 0
+
+-CASE ExportLargeSerial
+-STATEMENT EXPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_large-serial/serial' (format='parquet');
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_large-serial/serial"
+-STATEMENT IMPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_large-serial/serial';
+---- ok
+-STATEMENT match (s:serialtable) where s.ID <> s.ID2 RETURN s LIMIT 10;
+---- 0

@@ -13,7 +13,7 @@ namespace processor {
 std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, std::string filePath,
     common::FileType fileType, common::CSVOption copyToOption, std::vector<std::string> columnNames,
     std::vector<std::unique_ptr<LogicalType>> columnsTypes, std::vector<DataPos> vectorsToCopyPos,
-    std::vector<bool> isFlat) {
+    std::vector<bool> isFlat, bool canParallel) {
     switch (fileType) {
     case FileType::PARQUET: {
         auto copyToSchema = std::make_unique<FactorizedTableSchema>();
@@ -35,11 +35,11 @@ std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, std::string fileP
         }
         return std::make_unique<CopyToParquetInfo>(std::move(copyToSchema), std::move(columnsTypes),
             std::move(columnNames), std::move(vectorsToCopyPos), std::move(filePath),
-            std::move(countingVecPos));
+            std::move(countingVecPos), canParallel);
     }
     case FileType::CSV: {
         return std::make_unique<CopyToCSVInfo>(std::move(columnNames), std::move(vectorsToCopyPos),
-            std::move(filePath), std::move(isFlat), std::move(copyToOption));
+            std::move(filePath), std::move(isFlat), std::move(copyToOption), canParallel);
     }
     default:
         KU_UNREACHABLE;
@@ -72,9 +72,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
         vectorsToCopyPos.emplace_back(childSchema->getExpressionPos(*expression));
         isFlat.push_back(childSchema->getGroup(expression)->isFlat());
     }
-    std::unique_ptr<CopyToInfo> copyToInfo = getCopyToInfo(childSchema, copy->getFilePath(),
-        copy->getFileType(), copy->getCopyOption()->copy(), std::move(columnNames),
-        std::move(columnTypes), std::move(vectorsToCopyPos), std::move(isFlat));
+    std::unique_ptr<CopyToInfo> copyToInfo =
+        getCopyToInfo(childSchema, copy->getFilePath(), copy->getFileType(),
+            copy->getCopyOption()->copy(), std::move(columnNames), std::move(columnTypes),
+            std::move(vectorsToCopyPos), std::move(isFlat), copy->getCanParallel());
     auto sharedState = getCopyToSharedState(copy->getFileType());
     std::unique_ptr<CopyTo> copyTo;
     if (copy->getFileType() == common::FileType::PARQUET) {

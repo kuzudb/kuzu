@@ -16,12 +16,10 @@ public:
     static BoundStatementResult createSingleStringColumnResult(
         const std::string& columnName = "result");
 
-    inline void addColumn(std::shared_ptr<Expression> column) {
-        columns.push_back(std::move(column));
-    }
-    inline expression_vector getColumns() const { return columns; }
+    void addColumn(std::shared_ptr<Expression> column) { columns.push_back(std::move(column)); }
+    expression_vector getColumns() const { return columns; }
 
-    inline std::shared_ptr<Expression> getSingleColumnExpr() const {
+    std::shared_ptr<Expression> getSingleColumnExpr() const {
         KU_ASSERT(columns.size() == 1);
         return columns[0];
     }

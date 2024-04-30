@@ -15,9 +15,11 @@ public:
 
     virtual ~BoundStatement() = default;
 
-    inline common::StatementType getStatementType() const { return statementType; }
+    common::StatementType getStatementType() const { return statementType; }
 
-    inline const BoundStatementResult* getStatementResult() const { return &statementResult; }
+    const BoundStatementResult* getStatementResult() const { return &statementResult; }
+
+    BoundStatementResult* getStatementResultUnsafe() { return &statementResult; }
 
 private:
     common::StatementType statementType;

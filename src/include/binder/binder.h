@@ -4,6 +4,7 @@
 #include "binder/expression_binder.h"
 #include "binder/query/bound_regular_query.h"
 #include "binder/query/query_graph.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/copier_config/reader_config.h"
 #include "common/enums/table_type.h"
 #include "parser/query/graph_pattern/pattern_element.h"
@@ -71,7 +72,8 @@ public:
 
     static std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
-    ExportedTableData extractExportData(std::string selQuery, std::string tableName);
+    bool bindExportTableData(ExportedTableData& tableData, catalog::TableCatalogEntry* entry,
+        const catalog::Catalog& catalog, transaction::Transaction* tx);
 
 private:
     std::shared_ptr<Expression> bindWhereExpression(
