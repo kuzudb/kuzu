@@ -67,7 +67,7 @@ public:
 
     void executeInternal(processor::ExecutionContext* context) final;
 
-    bool canParallel() const override final;
+    bool canParallel() const final;
 
 protected:
     std::unique_ptr<CopyToInfo> info;
