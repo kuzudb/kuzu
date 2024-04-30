@@ -145,6 +145,11 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
             return;
         }
         setCursorToPreviousLine();
+        if (statement->checkColumnNames) {
+            nextLine();
+            replaceVariables(line);
+            statement->columnNames = line;
+        }
         for (auto i = 0u; i < statement->expectedNumTuples; i++) {
             nextLine();
             replaceVariables(line);
@@ -260,9 +265,8 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         statement->encodedJoin = paramsToString(1);
         break;
     }
-    case TokenType::CHECK_COLUMNS: {
+    case TokenType::CHECK_COLUMN_NAMES: {
         statement->checkColumnNames = true;
-        statement->columnNames = currentToken.params[1];
         break;
     }
     case TokenType::EMPTY: {
