@@ -43,6 +43,8 @@ public:
     // called from compute to add tasks
     virtual void addTasksToQueue();
 
+    virtual AlgorithmTask* checkIfAnyTaskCompleteOrInterrupted();
+
 private:
     std::mutex mtx;
     std::atomic_bool isActive;
@@ -51,6 +53,7 @@ private:
 
     std::shared_ptr<Graph> graph;
     uint64_t totalThreadsRegistered;
+    uint64_t currentActiveTasks;
     bool masterIsSelected;
     AlgorithmConfig config;
     AlgorithmResult finalResult;

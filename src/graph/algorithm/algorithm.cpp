@@ -3,6 +3,7 @@
 namespace kuzu {
 namespace graph {
 
+// main entry point for all threads
 void Algorithm::startExecute() {
     mtx.lock();
     if (masterIsSelected && totalThreadsRegistered < config.maxThreadsForExecution) {
@@ -38,12 +39,13 @@ void Algorithm::workerThreadFunction() {
         try {
             // execute
             if(algorithmTask->getTaskType() == Algorithm_Task_Type::BELLMAN_FORD) {
-
+                algorithmTask->doParallelWork();
             } else {
-
+                algorithmTask->doParallelWork();
             }
         } catch (std::exception& e) {
             isActive.store(false);
+            algorithmTask->setExceptionPtr(e);
             continue;
         }
     }
@@ -63,7 +65,29 @@ AlgorithmTask* Algorithm::getJobFromQueue() {
 }
 
 void Algorithm::compute() {
+    std::unique_lock<std::mutex> lck{mtx, std::defer_lock};
     addTasksToQueue();
+    currentActiveTasks += config.maxActiveTasks;
+    AlgorithmTask* algorithmTask;
+    while (isActive) {
+        lck.lock();
+        cv.wait(lck, [&] {
+            algorithmTask = checkIfAnyTaskCompleteOrInterrupted();
+            return algorithmTask || !isActive;
+        });
+        lck.unlock();
+        if (!isActive) {
+            return;
+        }
+        if (algorithmTask->isComplete()) {
+            // reinit the algorithm task and place a new one
+            cv.notify_one();
+        }
+        if (algorithmTask->isInterrupted()) {
+            isActive.store(false);
+            cv.notify_all();
+        }
+    }
 }
 
 /**

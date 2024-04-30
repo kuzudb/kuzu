@@ -21,10 +21,21 @@ public:
         return taskType;
     }
 
+    inline void setExceptionPtr(const std::exception& e) {
+        exceptionPtr = e;
+    }
+
     virtual uint64_t measureCurrentWork();
+
+    virtual void doParallelWork();
+
+    virtual bool isComplete();
+
+    virtual bool isInterrupted();
 
 private:
     Algorithm_Task_Type taskType;
+    std::exception exceptionPtr;
 };
 
 struct BellmanFordTask : public AlgorithmTask {
