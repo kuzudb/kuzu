@@ -99,12 +99,12 @@ public:
         return std::make_pair(groupPos, groups[groupPos]->getExpressionPos(expression));
     }
 
-    inline void flattenGroup(f_group_pos pos) { groups[pos]->setFlat(); }
-    inline void setGroupAsSingleState(f_group_pos pos) { groups[pos]->setSingleState(); }
+    void flattenGroup(f_group_pos pos) { groups[pos]->setFlat(); }
+    void setGroupAsSingleState(f_group_pos pos) { groups[pos]->setSingleState(); }
 
     bool isExpressionInScope(const binder::Expression& expression) const;
 
-    inline binder::expression_vector getExpressionsInScope() const { return expressionsInScope; }
+    binder::expression_vector getExpressionsInScope() const { return expressionsInScope; }
 
     binder::expression_vector getExpressionsInScope(f_group_pos pos) const;
 

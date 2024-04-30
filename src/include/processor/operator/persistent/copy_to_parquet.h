@@ -17,14 +17,16 @@ struct CopyToParquetInfo final : public CopyToInfo {
 
     CopyToParquetInfo(std::unique_ptr<FactorizedTableSchema> tableSchema,
         std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> names,
-        std::vector<DataPos> dataPoses, std::string fileName, DataPos countingVecPos)
-        : CopyToInfo{std::move(names), std::move(dataPoses), std::move(fileName)},
+        std::vector<DataPos> dataPoses, std::string fileName, DataPos countingVecPos,
+        bool canParallel)
+        : CopyToInfo{std::move(names), std::move(dataPoses), std::move(fileName), canParallel},
           tableSchema{std::move(tableSchema)}, types{std::move(types)},
           countingVecPos{std::move(countingVecPos)} {}
 
     std::unique_ptr<CopyToInfo> copy() override {
         return std::make_unique<CopyToParquetInfo>(tableSchema->copy(),
-            common::LogicalType::copy(types), names, dataPoses, fileName, countingVecPos);
+            common::LogicalType::copy(types), names, dataPoses, fileName, countingVecPos,
+            canParallel);
     }
 };
 

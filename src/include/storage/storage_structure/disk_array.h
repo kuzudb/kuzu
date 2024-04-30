@@ -10,6 +10,7 @@
 #include "storage/storage_utils.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
+#include <bit>
 #include <span>
 
 namespace kuzu {

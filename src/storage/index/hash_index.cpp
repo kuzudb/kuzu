@@ -21,7 +21,6 @@
 #include "storage/index/in_mem_hash_index.h"
 #include "storage/storage_structure/disk_array.h"
 #include "transaction/transaction.h"
-#include <ranges>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -573,7 +572,8 @@ void HashIndex<T>::mergeSlot(std::vector<HashIndexEntryView>& slotToMerge,
     // in the slot to merge
     Slot<T>* diskSlot = &*diskSlotIterator.seek(diskSlotId);
     // Merge slot from local storage to existing slot
-    for (const auto& entry : slotToMerge | std::views::reverse) {
+    for (auto it = std::rbegin(slotToMerge); it != std::rend(slotToMerge); ++it) {
+        const auto& entry = *it;
         if (entry.diskSlotId != diskSlotId) {
             return;
         }

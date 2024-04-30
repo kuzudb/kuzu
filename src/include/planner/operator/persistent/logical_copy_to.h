@@ -11,27 +11,30 @@ class LogicalCopyTo : public LogicalOperator {
 public:
     LogicalCopyTo(std::string filePath, common::FileType fileType,
         std::vector<std::string> columnNames, std::vector<common::LogicalType> columnTypes,
-        common::CSVOption copyToOption, std::shared_ptr<LogicalOperator> child)
+        common::CSVOption copyToOption, std::shared_ptr<LogicalOperator> child,
+        bool canParallel = true)
         : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child)},
           filePath{std::move(filePath)}, fileType{fileType}, columnNames{std::move(columnNames)},
-          columnTypes{std::move(columnTypes)}, copyToOption{std::move(copyToOption)} {}
+          columnTypes{std::move(columnTypes)}, copyToOption{std::move(copyToOption)},
+          canParallel{canParallel} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    inline std::string getExpressionsForPrinting() const override { return std::string{}; }
+    std::string getExpressionsForPrinting() const override { return std::string{}; }
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline std::string getFilePath() const { return filePath; }
-    inline common::FileType getFileType() const { return fileType; }
-    inline std::vector<std::string> getColumnNames() const { return columnNames; }
-    inline const std::vector<common::LogicalType>& getColumnTypesRef() const { return columnTypes; }
-    inline const common::CSVOption* getCopyOption() const { return &copyToOption; }
+    std::string getFilePath() const { return filePath; }
+    common::FileType getFileType() const { return fileType; }
+    std::vector<std::string> getColumnNames() const { return columnNames; }
+    const std::vector<common::LogicalType>& getColumnTypesRef() const { return columnTypes; }
+    const common::CSVOption* getCopyOption() const { return &copyToOption; }
+    bool getCanParallel() const { return canParallel; }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
+    std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCopyTo>(filePath, fileType, columnNames, columnTypes,
-            copyToOption.copy(), children[0]->copy());
+            copyToOption.copy(), children[0]->copy(), canParallel);
     }
 
 private:
@@ -40,6 +43,7 @@ private:
     std::vector<std::string> columnNames;
     std::vector<common::LogicalType> columnTypes;
     common::CSVOption copyToOption;
+    bool canParallel;
 };
 
 } // namespace planner

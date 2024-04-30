@@ -33,7 +33,8 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
         auto copyTo = std::make_shared<LogicalCopyTo>(filePath + "/" + exportTableData.tableName +
                                                           copyToSuffix,
             fileType, exportTableData.columnNames, exportTableData.getColumnTypesRef(),
-            boundExportDatabase.getCopyOption(), tablePlan->getLastOperator());
+            boundExportDatabase.getCopyOption(), tablePlan->getLastOperator(),
+            exportTableData.canParallel);
         logicalOperators.push_back(std::move(copyTo));
     }
     auto exportDatabase =

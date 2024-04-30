@@ -70,3 +70,16 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+TEST_F(APIEmptyDBTest, CreationHomeDir) {
+    createDBAndConn();
+    printf("%s", conn->query("create node table person (id serial,  primary key(id));")
+                     ->toString()
+                     .c_str());
+    printf("%s",
+        conn->query("export database '/tmp/d23123' (format='parquet');")->toString().c_str());
+    conn->query("drop table person;");
+    printf("%s", conn->query("import database '/tmp/d23123';")->toString().c_str());
+    printf("%s", conn->query("match (p:person) return p.*;")->toString().c_str());
+    std::filesystem::remove_all("/tmp/d23123");
+}

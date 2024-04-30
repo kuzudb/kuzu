@@ -50,7 +50,7 @@ void CopyToCSVLocalState::init(CopyToInfo* info, MemoryManager* mm, ResultSet* r
 }
 
 void CopyToCSVLocalState::sink(CopyToSharedState* sharedState, CopyToInfo* info) {
-    auto copyToCSVInfo = ku_dynamic_cast<CopyToInfo*, CopyToCSVInfo*>(info);
+    auto copyToCSVInfo = info->constPtrCast<CopyToCSVInfo>();
     writeRows(copyToCSVInfo);
     if (serializer->getSize() > CopyToCSVConstants::DEFAULT_CSV_FLUSH_SIZE) {
         ku_dynamic_cast<CopyToSharedState*, CopyToCSVSharedState*>(sharedState)
@@ -68,7 +68,7 @@ void CopyToCSVLocalState::finalize(CopyToSharedState* sharedState) {
 }
 
 void CopyToCSVLocalState::writeString(common::BufferedSerializer* serializer,
-    CopyToCSVInfo* copyToCsvInfo, const uint8_t* strData, uint64_t strLen, bool forceQuote) {
+    const CopyToCSVInfo* copyToCsvInfo, const uint8_t* strData, uint64_t strLen, bool forceQuote) {
     if (!forceQuote) {
         forceQuote = requireQuotes(copyToCsvInfo, strData, strLen);
     }
@@ -104,7 +104,7 @@ void CopyToCSVLocalState::writeString(common::BufferedSerializer* serializer,
     }
 }
 
-bool CopyToCSVLocalState::requireQuotes(CopyToCSVInfo* copyToCsvInfo, const uint8_t* str,
+bool CopyToCSVLocalState::requireQuotes(const CopyToCSVInfo* copyToCsvInfo, const uint8_t* str,
     uint64_t len) {
     // Check if the string is equal to the null string.
     if (len == strlen(CopyToCSVConstants::DEFAULT_NULL_STR) &&
@@ -141,7 +141,7 @@ std::string CopyToCSVLocalState::addEscapes(char toEscape, char escape, const st
     return escapedStr;
 }
 
-void CopyToCSVLocalState::writeRows(CopyToCSVInfo* copyToCsvInfo) {
+void CopyToCSVLocalState::writeRows(const CopyToCSVInfo* copyToCsvInfo) {
     for (auto i = 0u; i < vectorsToCast.size(); i++) {
         std::vector<std::shared_ptr<ValueVector>> vectorToCast = {vectorsToCast[i]};
         castFuncs[i](vectorToCast, *castVectors[i], nullptr);
