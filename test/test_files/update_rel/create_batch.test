@@ -21,3 +21,35 @@
 -STATEMENT MATCH (p1:Person)-[r:knows]->(p2:Person) RETURN COUNT(*)
 ---- 1
 10000
+
+-CASE CreateRelBatch2
+-STATEMENT CREATE NODE TABLE Person(id SERIAL, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE knows(FROM Person TO Person);
+---- ok
+-STATEMENT UNWIND range(0, 200000) AS i
+           CREATE (n:Person);
+---- ok
+-STATEMENT MATCH (p1:Person {id: 180000}), (p2:Person {id: 18}) CREATE (p1)-[k]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person {id: 180000}), (p2:Person {id: 18}) CREATE (p1)-[k]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person {id: 180000}), (p2:Person {id: 18}) CREATE (p1)-[k]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person {id: 180000}), (p2:Person {id: 18}) CREATE (p1)-[k]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person {id: 180000}), (p2:Person {id: 18}) CREATE (p1)-[k]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person {id: 180000}), (p2:Person {id: 18}) CREATE (p1)-[k]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person {id: 180000}), (p2:Person {id: 18}) CREATE (p1)-[k]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person {id: 180000}), (p2:Person {id: 18}) CREATE (p1)-[k]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person {id: 180000}), (p2:Person {id: 18}) CREATE (p1)-[k]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person {id: 180000}), (p2:Person {id: 18}) CREATE (p1)-[k]->(p2);
+---- ok
+-STATEMENT MATCH (p1:Person)-[r:knows]->(p2:Person) RETURN COUNT(*)
+---- 1
+10

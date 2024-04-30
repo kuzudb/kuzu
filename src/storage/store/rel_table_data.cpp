@@ -14,7 +14,7 @@ namespace kuzu {
 namespace storage {
 
 RelDataReadState::RelDataReadState()
-    : startNodeOffset{0}, numNodes{0}, currentNodeOffset{0}, posInCurrentCSR{0},
+    : startNodeOffset{INVALID_OFFSET}, numNodes{0}, currentNodeOffset{0}, posInCurrentCSR{0},
       readFromPersistentStorage{false}, readFromLocalStorage{false}, localNodeGroup{nullptr} {
     csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
 }
@@ -192,10 +192,11 @@ void RelTableData::initializeReadState(Transaction* transaction, std::vector<col
         KU_ASSERT(readState.csrHeaderChunks.offset->getNumValues() ==
                   readState.csrHeaderChunks.length->getNumValues());
         readState.numNodes = readState.csrHeaderChunks.offset->getNumValues();
-        readState.populateCSRListEntries();
         readState.readFromPersistentStorage =
-            nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumNodeGroups(transaction);
+            nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumNodeGroups(transaction) &&
+            (nodeOffset - readState.startNodeOffset) < readState.numNodes;
         if (readState.readFromPersistentStorage) {
+            readState.populateCSRListEntries();
             initializeColumnReadStates(transaction, readState, nodeGroupIdx);
         }
         if (transaction->isWriteTransaction()) {
@@ -230,9 +231,7 @@ void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
         relReadState.posInCurrentCSR += numValuesRead;
         return;
     }
-    if (!relReadState.readFromPersistentStorage) {
-        return;
-    }
+    KU_ASSERT(relReadState.readFromPersistentStorage);
     auto [startOffset, endOffset] = relReadState.getStartAndEndOffset();
     auto numRowsToRead = endOffset - startOffset;
     outputVectors[0]->state->selVector->setToUnfiltered(numRowsToRead);

@@ -28,14 +28,16 @@ struct RelDataReadState : public TableDataReadState {
     DELETE_COPY_DEFAULT_MOVE(RelDataReadState);
 
     inline bool isOutOfRange(common::offset_t nodeOffset) const {
-        return nodeOffset < startNodeOffset || nodeOffset >= (startNodeOffset + numNodes);
+        return nodeOffset < startNodeOffset ||
+               nodeOffset >= (startNodeOffset + common::StorageConstants::NODE_GROUP_SIZE);
     }
     bool hasMoreToRead(transaction::Transaction* transaction);
     void populateCSRListEntries();
     std::pair<common::offset_t, common::offset_t> getStartAndEndOffset();
 
     inline bool hasMoreToReadInPersistentStorage() {
-        return posInCurrentCSR < csrListEntries[(currentNodeOffset - startNodeOffset)].size;
+        return (currentNodeOffset - startNodeOffset) < numNodes &&
+               posInCurrentCSR < csrListEntries[(currentNodeOffset - startNodeOffset)].size;
     }
     bool hasMoreToReadFromLocalStorage() const;
     bool trySwitchToLocalStorage();
