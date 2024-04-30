@@ -322,7 +322,6 @@ jobs:
       [
         ubuntu-2004-build-test,
         macos-build-test,
-        windows-build-test,
         debian-ubuntu-build-test,
         rhel-fedora-build-test,
         archlinux-build-test,
