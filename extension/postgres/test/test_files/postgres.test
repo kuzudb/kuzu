@@ -77,3 +77,20 @@ state_type|FOREIGN|pgscan(POSTGRES)|
 state_type|FOREIGN|tinysnb(POSTGRES)|
 stock_type|FOREIGN|pgscan(POSTGRES)|
 stock_type|FOREIGN|tinysnb(POSTGRES)|
+
+-STATEMENT CALL TABLE_INFO('pgscan.person') RETURN *;
+---- 14
+0|id|INT64
+1|fname|STRING
+2|gender|INT64
+3|isstudent|BOOL
+4|isworker|BOOL
+5|age|INT64
+6|eyesight|DOUBLE
+7|birthdate|DATE
+8|registertime|TIMESTAMP
+9|lastjobduration|INTERVAL
+10|workedhours|INT64[]
+11|usednames|STRING[]
+12|height|DOUBLE
+13|u|UUID
