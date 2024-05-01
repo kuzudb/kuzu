@@ -138,10 +138,6 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             throw TestException("Cannot open file: " + statement->expectedTuplesCSVFile);
         }
         std::string line;
-        if (statement->checkColumnNames) {
-            std::getline(expectedTuplesFile, line);
-            statement->columnNames = line;
-        }
         while (std::getline(expectedTuplesFile, line)) {
             statement->expectedTuples.push_back(line);
         }
@@ -150,11 +146,17 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         }
     }
     std::vector<std::string> resultTuples =
-        TestRunner::convertResultToString(*result, statement->checkOutputOrder);
+        TestRunner::convertResultToString(*result, statement->checkOutputOrder, 
+        statement->checkColumnNames);
+    uint64_t actualNumTuples = result->getNumTuples();
+    if (statement->checkColumnNames) {
+        actualNumTuples++;
+    }
     if (statement->expectHash) {
         std::string resultHash =
-            TestRunner::convertResultToMD5Hash(*result, statement->checkOutputOrder);
-        if (resultTuples.size() == result->getNumTuples() &&
+            TestRunner::convertResultToMD5Hash(*result, statement->checkOutputOrder, 
+            statement->checkColumnNames);
+        if (resultTuples.size() == actualNumTuples &&
             resultHash == statement->expectedHashValue &&
             resultTuples.size() == statement->expectedNumTuples) {
             spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
@@ -171,17 +173,7 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             return false;
         }
     }
-    if (statement->checkColumnNames) {
-        std::string resultColumns =
-            TestRunner::convertResultColumnsToString((*result).getColumnNames());
-        if (resultColumns != statement->columnNames) {
-            spdlog::error("PLAN{} NOT PASSED.", planIdx);
-            spdlog::info("PLAN: \n{}", planStr);
-            spdlog::info("COLUMNS: {}\n", resultColumns);
-            return false;
-        }
-    }
-    if (resultTuples.size() == result->getNumTuples() &&
+    if (resultTuples.size() == actualNumTuples &&
         resultTuples == statement->expectedTuples) {
         spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
             result->getQuerySummary()->getExecutionTime());
@@ -198,8 +190,11 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
 }
 
 std::vector<std::string> TestRunner::convertResultToString(QueryResult& queryResult,
-    bool checkOutputOrder) {
+    bool checkOutputOrder, bool checkColumnNames) {
     std::vector<std::string> actualOutput;
+    if (checkColumnNames) {
+        actualOutput.push_back(convertResultColumnsToString(queryResult));
+    }
     while (queryResult.hasNext()) {
         auto tuple = queryResult.getNext();
         actualOutput.push_back(tuple->toString(std::vector<uint32_t>(tuple->len(), 0)));
@@ -213,10 +208,12 @@ std::vector<std::string> TestRunner::convertResultToString(QueryResult& queryRes
     return actualOutput;
 }
 
-std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool checkOutputOrder) {
+std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool checkOutputOrder, 
+    bool checkColumnNames) {
     queryResult.resetIterator();
     MD5 hasher;
-    std::vector<std::string> stringRep = convertResultToString(queryResult, checkOutputOrder);
+    std::vector<std::string> stringRep = 
+        convertResultToString(queryResult, checkOutputOrder, checkColumnNames);
     std::string lineBreaker = "\n";
     for (std::string line : stringRep) {
         hasher.addToMD5(line.c_str(), line.size());
@@ -225,8 +222,9 @@ std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool ch
     return std::string(hasher.finishMD5());
 }
 
-std::string TestRunner::convertResultColumnsToString(std::vector<std::string> columnNames) {
+std::string TestRunner::convertResultColumnsToString(main::QueryResult& queryResult) {
     std::string columnsString;
+    std::vector<std::string> columnNames = queryResult.getColumnNames();
     for (auto i = 0ul; i < columnNames.size(); i++) {
         if (i != 0) {
             columnsString += "|";

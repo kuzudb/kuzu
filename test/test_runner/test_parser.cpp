@@ -145,11 +145,6 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
             return;
         }
         setCursorToPreviousLine();
-        if (statement->checkColumnNames) {
-            nextLine();
-            replaceVariables(line);
-            statement->columnNames = line;
-        }
         for (auto i = 0u; i < statement->expectedNumTuples; i++) {
             nextLine();
             replaceVariables(line);
