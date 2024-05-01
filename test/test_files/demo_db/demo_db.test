@@ -403,3 +403,18 @@ Adam|30
 Karissa|40
 Zhang|50
 Noura|25
+
+-STATEMENT CREATE NODE TABLE Person(name STRING, PRIMARY KEY (name));
+---- ok
+-STATEMENT CREATE REL TABLE Knows(FROM Person TO Person);
+---- ok
+-STATEMENT COPY Person FROM (MATCH (a:User) RETURN a.name);
+---- ok
+-STATEMENT COPY Knows FROM (MATCH (a:User)-[r:Follows]->(b:User) RETURN a.name, b.name);
+---- ok
+-STATEMENT MATCH (a:Person)-[:Knows]->(b:Person) RETURN a.name, b.name;
+---- 4
+Adam|Karissa
+Adam|Zhang
+Karissa|Zhang
+Zhang|Noura
