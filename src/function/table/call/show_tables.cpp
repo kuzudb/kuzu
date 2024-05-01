@@ -67,7 +67,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<TableInfo> tableInfos;
     auto localDatabaseName = "local(kuzu)";
     for (auto& entry : context->getCatalog()->getTableEntries(context->getTx())) {
-        // auto tableType =;
         auto tableInfo =
             TableInfo{entry->getName(), TableTypeUtils::toString(entry->getTableType()),
                 localDatabaseName, entry->getComment()};
