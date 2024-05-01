@@ -65,5 +65,5 @@ uint64_t kuzu_data_type_get_num_elements_in_array(kuzu_logical_type* data_type) 
     if (parent_type->getLogicalTypeID() != LogicalTypeID::ARRAY) {
         return 0;
     }
-    return ArrayType::getNumElements(static_cast<LogicalType*>(data_type->_data_type));
+    return ArrayType::getNumElements(*parent_type);
 }

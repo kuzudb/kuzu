@@ -131,21 +131,21 @@ static bool hasImplicitCastList(const LogicalType& srcType, const LogicalType& d
 }
 
 static bool hasImplicitCastArray(const LogicalType& srcType, const LogicalType& dstType) {
-    if (ArrayType::getNumElements(&srcType) != ArrayType::getNumElements(&dstType)) {
+    if (ArrayType::getNumElements(srcType) != ArrayType::getNumElements(dstType)) {
         return false;
     }
-    return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType),
-        *ArrayType::getChildType(&dstType));
+    return CastFunction::hasImplicitCast(*ArrayType::getChildType(srcType),
+        *ArrayType::getChildType(dstType));
 }
 
 static bool hasImplicitCastArrayToList(const LogicalType& srcType, const LogicalType& dstType) {
-    return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType),
+    return CastFunction::hasImplicitCast(*ArrayType::getChildType(srcType),
         *ListType::getChildType(dstType));
 }
 
 static bool hasImplicitCastListToArray(const LogicalType& srcType, const LogicalType& dstType) {
     return CastFunction::hasImplicitCast(*ListType::getChildType(srcType),
-        *ArrayType::getChildType(&dstType));
+        *ArrayType::getChildType(dstType));
 }
 
 static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType& dstType) {

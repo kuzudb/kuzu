@@ -45,7 +45,7 @@ bool CastArrayHelper::containsListToArray(const LogicalType* srcType, const Logi
                 ListType::getChildType(*dstType));
         }
         case PhysicalTypeID::ARRAY: {
-            return containsListToArray(ArrayType::getChildType(srcType),
+            return containsListToArray(ArrayType::getChildType(*srcType),
                 ListType::getChildType(*dstType));
         }
         case PhysicalTypeID::STRUCT: {
@@ -81,19 +81,19 @@ void CastArrayHelper::validateListEntry(ValueVector* inputVector, LogicalType* r
     case PhysicalTypeID::ARRAY: {
         if (inputType.getPhysicalType() == PhysicalTypeID::LIST) {
             auto listEntry = inputVector->getValue<list_entry_t>(pos);
-            if (listEntry.size != ArrayType::getNumElements(resultType)) {
+            if (listEntry.size != ArrayType::getNumElements(*resultType)) {
                 throw ConversionException{
                     stringFormat("Unsupported casting LIST with incorrect list entry to ARRAY. "
                                  "Expected: {}, Actual: {}.",
-                        ArrayType::getNumElements(resultType),
+                        ArrayType::getNumElements(*resultType),
                         inputVector->getValue<list_entry_t>(pos).size)};
             }
             auto inputChildVector = ListVector::getDataVector(inputVector);
             for (auto i = listEntry.offset; i < listEntry.offset + listEntry.size; i++) {
-                validateListEntry(inputChildVector, ArrayType::getChildType(resultType), i);
+                validateListEntry(inputChildVector, ArrayType::getChildType(*resultType), i);
             }
         } else if (inputType.getPhysicalType() == PhysicalTypeID::ARRAY) {
-            if (ArrayType::getNumElements(&inputType) != ArrayType::getNumElements(resultType)) {
+            if (ArrayType::getNumElements(inputType) != ArrayType::getNumElements(*resultType)) {
                 throw ConversionException(
                     stringFormat("Unsupported casting function from {} to {}.",
                         inputType.toString(), resultType->toString()));
@@ -101,7 +101,7 @@ void CastArrayHelper::validateListEntry(ValueVector* inputVector, LogicalType* r
             auto listEntry = inputVector->getValue<list_entry_t>(pos);
             auto inputChildVector = ListVector::getDataVector(inputVector);
             for (auto i = listEntry.offset; i < listEntry.offset + listEntry.size; i++) {
-                validateListEntry(inputChildVector, ArrayType::getChildType(resultType), i);
+                validateListEntry(inputChildVector, ArrayType::getChildType(*resultType), i);
             }
         }
     } break;

@@ -340,7 +340,7 @@ static inline void startListCast(const char* input, uint64_t len, T split, const
 
 // ---------------------- cast String to Array Helper ------------------------------ //
 static void validateNumElementsInArray(uint64_t numElementsRead, const LogicalType& type) {
-    auto numElementsInArray = ArrayType::getNumElements(&type);
+    auto numElementsInArray = ArrayType::getNumElements(type);
     if (numElementsRead != numElementsInArray) {
         throw CopyException(stringFormat(
             "Each array should have fixed number of elements. Expected: {}, Actual: {}.",

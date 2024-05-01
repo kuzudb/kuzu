@@ -155,8 +155,8 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value((float)0);
     case LogicalTypeID::ARRAY: {
         std::vector<std::unique_ptr<Value>> children;
-        auto childType = ArrayType::getChildType(&dataType);
-        auto arraySize = ArrayType::getNumElements(&dataType);
+        auto childType = ArrayType::getChildType(dataType);
+        auto arraySize = ArrayType::getNumElements(dataType);
         children.reserve(arraySize);
         for (auto i = 0u; i < arraySize; ++i) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*childType)));
@@ -391,7 +391,7 @@ void Value::copyFromRowLayout(const uint8_t* value) {
         copyFromRowLayoutList(*(ku_list_t*)value, *ListType::getChildType(*dataType));
     } break;
     case LogicalTypeID::ARRAY: {
-        copyFromRowLayoutList(*(ku_list_t*)value, *ArrayType::getChildType(dataType.get()));
+        copyFromRowLayoutList(*(ku_list_t*)value, *ArrayType::getChildType(*dataType));
     } break;
     case LogicalTypeID::UNION: {
         copyFromUnion(value);

@@ -1204,15 +1204,15 @@ static bool tryCombineListTypes(const LogicalType& left, const LogicalType& righ
 
 static bool tryCombineArrayTypes(const LogicalType& left, const LogicalType& right,
     LogicalType& result) {
-    if (ArrayType::getNumElements(&left) != ArrayType::getNumElements(&right)) {
+    if (ArrayType::getNumElements(left) != ArrayType::getNumElements(right)) {
         return tryCombineListTypes(left, right, result);
     }
     LogicalType childType;
-    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ArrayType::getChildType(&left),
-            *ArrayType::getChildType(&right), childType)) {
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ArrayType::getChildType(left),
+            *ArrayType::getChildType(right), childType)) {
         return false;
     }
-    result = *LogicalType::ARRAY(childType, ArrayType::getNumElements(&left));
+    result = *LogicalType::ARRAY(childType, ArrayType::getNumElements(left));
     return true;
 }
 
@@ -1220,7 +1220,7 @@ static bool tryCombineListArrayTypes(const LogicalType& left, const LogicalType&
     LogicalType& result) {
     LogicalType childType;
     if (!LogicalTypeUtils::tryGetMaxLogicalType(*ListType::getChildType(left),
-            *ArrayType::getChildType(&right), childType)) {
+            *ArrayType::getChildType(right), childType)) {
         return false;
     }
     result = *LogicalType::LIST(childType);

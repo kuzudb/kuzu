@@ -643,7 +643,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1chil
     auto* parent_type = getDataType(env, thisDT);
     LogicalType* child_type;
     if (parent_type->getLogicalTypeID() == LogicalTypeID::ARRAY) {
-        child_type = ArrayType::getChildType(parent_type);
+        child_type = ArrayType::getChildType(*parent_type);
     } else if (parent_type->getLogicalTypeID() == LogicalTypeID::LIST) {
         child_type = ListType::getChildType(*parent_type);
     } else {
@@ -661,7 +661,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1num_1e
     if (dt->getLogicalTypeID() != LogicalTypeID::ARRAY) {
         return 0;
     }
-    return static_cast<jlong>(ArrayType::getNumElements(dt));
+    return static_cast<jlong>(ArrayType::getNumElements(*dt));
 }
 
 /**

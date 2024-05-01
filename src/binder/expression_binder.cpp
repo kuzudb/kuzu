@@ -93,7 +93,7 @@ static bool compatible(const LogicalType& type, const LogicalType& target) {
         return compatible(*ListType::getChildType(type), *ListType::getChildType(target));
     }
     case LogicalTypeID::ARRAY: {
-        return compatible(*ArrayType::getChildType(&type), *ArrayType::getChildType(&target));
+        return compatible(*ArrayType::getChildType(type), *ArrayType::getChildType(target));
     }
     case LogicalTypeID::STRUCT: {
         if (StructType::getNumFields(&type) != StructType::getNumFields(&target)) {
