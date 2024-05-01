@@ -47,3 +47,18 @@
 -STATEMENT RETURN hash(list_creation(1,2,3,4,5,56,2));
 ---- 1
 5340394995802248375
+
+-LOG MD5Example
+-STATEMENT RETURN md5('kuzu')
+---- 1
+caca2358cada60d679fc0310d440f8ca
+
+-LOG SHA256Example
+-STATEMENT RETURN sha256('kuzu')
+---- 1
+e129f5000a4b71ccc3a0e6353a86cc57989106e670793db98efa34b7527aefa5
+
+-LOG Murmurhash64Example
+-STATEMENT RETURN hash('kuzu')
+---- 1
+-144620710730482887
