@@ -49,7 +49,7 @@ protected:
 
 protected:
     std::unique_ptr<ScanRelTableInfo> info;
-    std::unique_ptr<storage::RelTableReadState> scanState;
+    std::unique_ptr<storage::RelTableReadState> readState;
 };
 
 } // namespace processor

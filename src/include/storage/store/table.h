@@ -65,7 +65,12 @@ public:
         tablesStatistics->updateNumTuplesByValue(tableID, numTuples);
     }
 
-    virtual void read(transaction::Transaction* transaction, TableReadState& readState) = 0;
+    void read(transaction::Transaction* transaction, TableReadState& readState) {
+        for (auto& vector : readState.outputVectors) {
+            vector->resetAuxiliaryBuffer();
+        }
+        readInternal(transaction, readState);
+    }
 
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
     virtual void update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;
@@ -81,6 +86,9 @@ public:
     virtual void prepareRollback(LocalTable* localTable) = 0;
     virtual void checkpointInMemory() = 0;
     virtual void rollbackInMemory() = 0;
+
+protected:
+    virtual void readInternal(transaction::Transaction* transaction, TableReadState& readState) = 0;
 
 protected:
     common::TableType tableType;

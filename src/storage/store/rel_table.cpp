@@ -33,9 +33,6 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
 
 void RelTable::initializeReadState(Transaction* transaction, RelDataDirection direction,
     const std::vector<column_id_t>& columnIDs, RelTableReadState& readState) {
-    if (!readState.dataReadState) {
-        readState.dataReadState = std::make_unique<RelDataReadState>();
-    }
     auto& dataState =
         common::ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(*readState.dataReadState);
     return direction == common::RelDataDirection::FWD ?
@@ -45,7 +42,7 @@ void RelTable::initializeReadState(Transaction* transaction, RelDataDirection di
                    dataState);
 }
 
-void RelTable::read(Transaction* transaction, TableReadState& readState) {
+void RelTable::readInternal(Transaction* transaction, TableReadState& readState) {
     auto& relReadState = ku_dynamic_cast<TableReadState&, RelTableReadState&>(readState);
     scan(transaction, relReadState);
 }

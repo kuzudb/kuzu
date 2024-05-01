@@ -7,21 +7,21 @@ namespace processor {
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
-    scanState = std::make_unique<RelTableReadState>(info->columnIDs, info->direction);
-    ScanTable::initVectors(*scanState, *resultSet);
+    readState = std::make_unique<RelTableReadState>(info->columnIDs, info->direction);
+    ScanTable::initVectors(*readState, *resultSet);
 }
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
-        if (scanState->hasMoreToRead(context->clientContext->getTx())) {
-            info->table->read(context->clientContext->getTx(), *scanState);
+        if (readState->hasMoreToRead(context->clientContext->getTx())) {
+            info->table->read(context->clientContext->getTx(), *readState);
             return true;
         }
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
         info->table->initializeReadState(context->clientContext->getTx(), info->direction,
-            info->columnIDs, *scanState);
+            info->columnIDs, *readState);
     }
 }
 

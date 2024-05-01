@@ -86,7 +86,7 @@ public:
         tableData->initializeReadState(transaction, std::move(columnIDs), *readState.nodeIDVector,
             *readState.dataReadState);
     }
-    void read(transaction::Transaction* transaction, TableReadState& readState) override;
+    void readInternal(transaction::Transaction* transaction, TableReadState& readState) override;
 
     // Return the max node offset during insertions.
     common::offset_t validateUniquenessConstraint(transaction::Transaction* transaction,
