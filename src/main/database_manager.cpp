@@ -60,11 +60,9 @@ std::vector<AttachedDatabase*> DatabaseManager::getAttachedDatabases() const {
     return attachedDatabasesPtr;
 }
 
-void DatabaseManager::invalidateCache(const std::string& dbType) {
+void DatabaseManager::invalidateCache() {
     for (auto& attachedDatabase : attachedDatabases) {
-        if (attachedDatabase->getDBType() == dbType) {
-            attachedDatabase->invalidateCache();
-        }
+        attachedDatabase->invalidateCache();
     }
 }
 

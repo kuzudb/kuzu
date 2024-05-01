@@ -51,7 +51,7 @@ struct ShellCommand {
 
 const char* TAB = "    ";
 
-const std::array<const char*, 106> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXISTS",
+const std::array<const char*, 107> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXISTS",
     "FOREACH", "LOAD", "MATCH", "MERGE", "OPTIONAL", "REMOVE", "RETURN", "SET", "START", "UNION",
     "UNWIND", "WITH", "LIMIT", "ORDER", "SKIP", "WHERE", "YIELD", "ASC", "ASCENDING", "ASSERT",
     "BY", "CSV", "DESC", "DESCENDING", "ON", "ALL", "CASE", "ELSE", "END", "THEN", "WHEN", "AND",
@@ -62,7 +62,7 @@ const std::array<const char*, 106> keywordList = {"CALL", "CREATE", "DELETE", "D
     "MINUS", "COUNT", "PRIMARY", "COPY", "RDFGRAPH", "ALTER", "RENAME", "COMMENT", "MACRO", "GLOB",
     "COLUMN", "GROUP", "DEFAULT", "TO", "BEGIN", "TRANSACTION", "READ", "ONLY", "WRITE",
     "COMMIT_SKIP_CHECKPOINT", "ROLLBACK", "ROLLBACK_SKIP_CHECKPOINT", "INSTALL", "EXTENSION",
-    "SHORTEST", "ATTACH", "IMPORT", "EXPORT"};
+    "SHORTEST", "ATTACH", "IMPORT", "EXPORT", "USE"};
 
 const char* keywordColorPrefix = "\033[32m\033[1m";
 const char* keywordResetPostfix = "\033[39m\033[22m";

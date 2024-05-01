@@ -9,6 +9,11 @@ namespace binder {
 struct BoundExtraAlterInfo {
     virtual ~BoundExtraAlterInfo() = default;
 
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const BoundExtraAlterInfo*, const TARGET*>(this);
+    }
+
     virtual std::unique_ptr<BoundExtraAlterInfo> copy() const = 0;
 };
 

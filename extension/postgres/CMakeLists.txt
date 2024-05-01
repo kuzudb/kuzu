@@ -16,10 +16,10 @@ add_library(postgres_extension
         ../duckdb/src/duckdb_catalog.cpp
         ../duckdb/src/duckdb_table_catalog_entry.cpp
         ../duckdb/src/duckdb_type_converter.cpp
+        ../duckdb/src/duckdb_functions.cpp
         src/postgres_extension.cpp
         src/postgres_storage.cpp
-        src/postgres_catalog.cpp
-        src/postgres_functions.cpp)
+        src/postgres_catalog.cpp)
 
 include_directories(
         src/include

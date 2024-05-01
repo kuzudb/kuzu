@@ -2,12 +2,11 @@
 
 #include <regex>
 
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
+#include "duckdb_functions.h"
 #include "extension/extension.h"
 #include "postgres_catalog.h"
-#include "postgres_functions.h"
 
 namespace kuzu {
 namespace postgres_extension {
@@ -35,9 +34,8 @@ std::unique_ptr<main::AttachedDatabase> attachPostgres(std::string dbName, std::
 
 PostgresStorageExtension::PostgresStorageExtension(main::Database* database)
     : StorageExtension{attachPostgres} {
-    auto postgresClearCacheFunction = std::make_unique<PostgresClearCacheFunction>();
-    extension::ExtensionUtils::registerTableFunction(*database,
-        std::move(postgresClearCacheFunction));
+    auto clearCacheFunction = std::make_unique<duckdb_extension::ClearCacheFunction>();
+    extension::ExtensionUtils::registerTableFunction(*database, std::move(clearCacheFunction));
 }
 
 bool PostgresStorageExtension::canHandleDB(std::string dbType_) const {
