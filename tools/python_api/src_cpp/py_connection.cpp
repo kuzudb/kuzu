@@ -372,7 +372,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
     case LogicalTypeID::MAP: {
         py::dict dict = py::reinterpret_borrow<py::dict>(val);
         std::vector<std::unique_ptr<Value>> children;
-        auto childKeyType = MapType::getKeyType(type), childValueType = MapType::getValueType(type);
+        auto childKeyType = MapType::getKeyType(*type), childValueType = MapType::getValueType(*type);
         for (auto child : dict) {
             // type construction is inefficient, we have to create duplicates because it asks for
             // a unique ptr

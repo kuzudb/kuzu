@@ -1256,10 +1256,10 @@ static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& ri
 // If we can combine the key and value, then we cna combine the map
 static bool tryCombineMapTypes(const LogicalType& left, const LogicalType& right,
     LogicalType& result) {
-    auto leftKeyType = *MapType::getKeyType(&left);
-    auto leftValueType = *MapType::getValueType(&left);
-    auto rightKeyType = *MapType::getKeyType(&right);
-    auto rightValueType = *MapType::getValueType(&right);
+    auto leftKeyType = *MapType::getKeyType(left);
+    auto leftValueType = *MapType::getValueType(left);
+    auto rightKeyType = *MapType::getKeyType(right);
+    auto rightValueType = *MapType::getValueType(right);
     LogicalType resultKeyType, resultValueType;
     if (!LogicalTypeUtils::tryGetMaxLogicalType(leftKeyType, rightKeyType, resultKeyType) ||
         !LogicalTypeUtils::tryGetMaxLogicalType(leftValueType, rightValueType, resultValueType)) {
