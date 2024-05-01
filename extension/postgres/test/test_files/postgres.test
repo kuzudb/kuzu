@@ -54,29 +54,15 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 # auxiliary tables to store type information in postgres. When the user calls show_tables(), those auxiliary tables will also
 # be displayed.
 -STATEMENT CALL SHOW_TABLES() RETURN *;
----- 22
-audience_type|FOREIGN|pgscan(POSTGRES)|
-audience_type|FOREIGN|tinysnb(POSTGRES)|
-description_type|FOREIGN|pgscan(POSTGRES)|
-description_type|FOREIGN|tinysnb(POSTGRES)|
-movies_pkey|FOREIGN|pgscan(POSTGRES)|
-movies_pkey|FOREIGN|tinysnb(POSTGRES)|
+---- 8
 movies|FOREIGN|pgscan(POSTGRES)|
 movies|FOREIGN|tinysnb(POSTGRES)|
-organisation_pkey|FOREIGN|pgscan(POSTGRES)|
-organisation_pkey|FOREIGN|tinysnb(POSTGRES)|
 organisation|FOREIGN|pgscan(POSTGRES)|
 organisation|FOREIGN|tinysnb(POSTGRES)|
-person_pkey|FOREIGN|pgscan(POSTGRES)|
-person_pkey|FOREIGN|tinysnb(POSTGRES)|
 persontest|FOREIGN|pgscan(POSTGRES)|
 persontest|FOREIGN|tinysnb(POSTGRES)|
 person|FOREIGN|pgscan(POSTGRES)|
 person|FOREIGN|tinysnb(POSTGRES)|
-state_type|FOREIGN|pgscan(POSTGRES)|
-state_type|FOREIGN|tinysnb(POSTGRES)|
-stock_type|FOREIGN|pgscan(POSTGRES)|
-stock_type|FOREIGN|tinysnb(POSTGRES)|
 
 -STATEMENT CALL TABLE_INFO('pgscan.person') RETURN *;
 ---- 14
