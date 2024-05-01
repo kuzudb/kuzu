@@ -10,7 +10,6 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
-#include "common/cast.h"
 #include "common/exception/catalog.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
