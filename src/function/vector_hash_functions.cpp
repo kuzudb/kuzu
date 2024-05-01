@@ -1,8 +1,6 @@
 #include "function/hash/vector_hash_functions.h"
 
 #include "function/binary_function_executor.h"
-#include "function/hash/functions/md5_function.h"
-#include "function/hash/functions/sha256_function.h"
 #include "function/hash/hash_functions.h"
 #include "function/scalar_function.h"
 
@@ -198,22 +196,6 @@ void VectorHashFunction::combineHash(ValueVector* left, ValueVector* right, Valu
     // TODO(Xiyang/Guodong): we should resolve result state of hash vector at compile time.
     result->state = !right->state->isFlat() ? right->state : left->state;
     BinaryFunctionExecutor::execute<hash_t, hash_t, hash_t, CombineHash>(*left, *right, *result);
-}
-
-function_set MD5Function::getFunctionSet() {
-    function_set functionSet;
-    functionSet.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
-        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, MD5Operator>));
-    return functionSet;
-}
-
-function_set SHA256Function::getFunctionSet() {
-    function_set functionSet;
-    functionSet.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
-        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, SHA256Operator>));
-    return functionSet;
 }
 
 static void HashExecFunc(const std::vector<std::shared_ptr<common::ValueVector>>& params,

@@ -1,7 +1,7 @@
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "function/scalar_function.h"
-#include "function/utility/scalar_utility_functions.h"
+#include "function/utility/vector_utility_functions.h"
 
 using namespace kuzu::common;
 
