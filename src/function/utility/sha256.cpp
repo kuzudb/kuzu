@@ -1,7 +1,7 @@
-#pragma once
-
 #include "common/sha256.h"
-#include "common/vector/value_vector.h"
+
+#include "function/hash/vector_hash_functions.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 
@@ -16,6 +16,14 @@ struct SHA256Operator {
         hasher.finishSHA256(reinterpret_cast<char*>(result.getDataUnsafe()));
     }
 };
+
+function_set SHA256Function::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
+        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, SHA256Operator>));
+    return functionSet;
+}
 
 } // namespace function
 } // namespace kuzu

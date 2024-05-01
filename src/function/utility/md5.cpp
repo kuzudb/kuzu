@@ -1,7 +1,7 @@
-#pragma once
-
 #include "common/md5.h"
-#include "common/vector/value_vector.h"
+
+#include "function/hash/vector_hash_functions.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 
@@ -15,6 +15,14 @@ struct MD5Operator {
         StringVector::addString(&resultVector, result, std::string(hasher.finishMD5()));
     }
 };
+
+function_set MD5Function::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
+        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, MD5Operator>));
+    return functionSet;
+}
 
 } // namespace function
 } // namespace kuzu

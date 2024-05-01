@@ -192,3 +192,11 @@ Binder exception: Expression t.c has data type STRING but expected INT32. Implic
 -STATEMENT MATCH (t:tbl) WHERE NOT ifnull(NULL, t.bool) RETURN t.id;
 ---- 1
 2
+
+-LOG Example
+-STATEMENT RETURN coalesce(NULL, 'a', NULL);
+---- 1
+a
+-STATEMENT RETURN ifnull(NULL, 'a')
+---- 1
+a

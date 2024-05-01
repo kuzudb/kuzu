@@ -21,7 +21,7 @@
 #include "function/table/call_functions.h"
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
-#include "function/utility/scalar_utility_functions.h"
+#include "function/utility/vector_utility_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
