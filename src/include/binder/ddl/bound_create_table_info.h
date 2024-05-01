@@ -13,6 +13,18 @@ namespace binder {
 
 struct BoundExtraCreateCatalogEntryInfo {
     virtual ~BoundExtraCreateCatalogEntryInfo() = default;
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const BoundExtraCreateCatalogEntryInfo*, const TARGET*>(
+            this);
+    }
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, TARGET*>(this);
+    }
+
     virtual inline std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const = 0;
 };
 

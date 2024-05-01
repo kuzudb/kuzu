@@ -54,12 +54,12 @@ Attached database successfully.
 Attached database successfully.
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 6
-movies|FOREIGN|tinysnb(DUCKDB)|
-organisation|FOREIGN|tinysnb(DUCKDB)|
-person|FOREIGN|Other1(DUCKDB)|
-person|FOREIGN|tinysnb(DUCKDB)|
-tableOfTypes1|FOREIGN|tinysnb(DUCKDB)|
-tableOfTypes|FOREIGN|tinysnb(DUCKDB)|
+movies|ATTACHED|tinysnb(DUCKDB)|
+organisation|ATTACHED|tinysnb(DUCKDB)|
+person|ATTACHED|Other1(DUCKDB)|
+person|ATTACHED|tinysnb(DUCKDB)|
+tableOfTypes1|ATTACHED|tinysnb(DUCKDB)|
+tableOfTypes|ATTACHED|tinysnb(DUCKDB)|
 -STATEMENT LOAD FROM other1.person RETURN *;
 ---- 4
 1
@@ -88,7 +88,7 @@ Used database successfully.
 -STATEMENT LOAD FROM other1.person RETURN count(*);
 ---- 1
 4
--STATEMENT CALL DUCKDB_CLEAR_CACHE() RETURN *;
+-STATEMENT CALL CLEAR_ATTACHED_DB_CACHE() RETURN *;
 ---- ok
 -STATEMENT LOAD FROM other1.person RETURN count(*);
 ---- 1

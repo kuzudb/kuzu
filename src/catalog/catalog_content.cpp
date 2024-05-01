@@ -10,7 +10,6 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
-#include "common/cast.h"
 #include "common/exception/catalog.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
@@ -65,9 +64,7 @@ table_id_t CatalogContent::createTable(const BoundCreateTableInfo& info) {
 
 std::unique_ptr<CatalogEntry> CatalogContent::createNodeTableEntry(table_id_t tableID,
     const BoundCreateTableInfo& info) const {
-    auto extraInfo =
-        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateNodeTableInfo*>(
-            info.extraInfo.get());
+    auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateNodeTableInfo>();
     auto nodeTableEntry =
         std::make_unique<NodeTableCatalogEntry>(info.tableName, tableID, extraInfo->primaryKeyIdx);
     for (auto& propertyInfo : extraInfo->propertyInfos) {
@@ -78,13 +75,11 @@ std::unique_ptr<CatalogEntry> CatalogContent::createNodeTableEntry(table_id_t ta
 
 std::unique_ptr<CatalogEntry> CatalogContent::createRelTableEntry(table_id_t tableID,
     const BoundCreateTableInfo& info) const {
-    auto extraInfo =
-        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
-            info.extraInfo.get());
-    auto srcTableEntry = ku_dynamic_cast<CatalogEntry*, NodeTableCatalogEntry*>(
-        getTableCatalogEntry(extraInfo->srcTableID));
-    auto dstTableEntry = ku_dynamic_cast<CatalogEntry*, NodeTableCatalogEntry*>(
-        getTableCatalogEntry(extraInfo->dstTableID));
+    auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateRelTableInfo>();
+    auto srcTableEntry =
+        getTableCatalogEntry(extraInfo->srcTableID)->ptrCast<NodeTableCatalogEntry>();
+    auto dstTableEntry =
+        getTableCatalogEntry(extraInfo->dstTableID)->ptrCast<NodeTableCatalogEntry>();
     srcTableEntry->addFwdRelTableID(tableID);
     dstTableEntry->addBWdRelTableID(tableID);
     auto relTableEntry =
@@ -98,9 +93,7 @@ std::unique_ptr<CatalogEntry> CatalogContent::createRelTableEntry(table_id_t tab
 
 std::unique_ptr<CatalogEntry> CatalogContent::createRelTableGroupEntry(table_id_t tableID,
     const BoundCreateTableInfo& info) {
-    auto extraInfo =
-        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableGroupInfo*>(
-            info.extraInfo.get());
+    auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateRelTableGroupInfo>();
     std::vector<table_id_t> relTableIDs;
     relTableIDs.reserve(extraInfo->infos.size());
     for (auto& childInfo : extraInfo->infos) {
@@ -111,19 +104,15 @@ std::unique_ptr<CatalogEntry> CatalogContent::createRelTableGroupEntry(table_id_
 
 std::unique_ptr<CatalogEntry> CatalogContent::createRdfGraphEntry(table_id_t tableID,
     const BoundCreateTableInfo& info) {
-    auto extraInfo =
-        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRdfGraphInfo*>(
-            info.extraInfo.get());
+    auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateRdfGraphInfo>();
     auto& resourceInfo = extraInfo->resourceInfo;
     auto& literalInfo = extraInfo->literalInfo;
     auto& resourceTripleInfo = extraInfo->resourceTripleInfo;
     auto& literalTripleInfo = extraInfo->literalTripleInfo;
     auto resourceTripleExtraInfo =
-        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
-            resourceTripleInfo.extraInfo.get());
+        resourceTripleInfo.extraInfo->ptrCast<BoundExtraCreateRelTableInfo>();
     auto literalTripleExtraInfo =
-        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
-            literalTripleInfo.extraInfo.get());
+        literalTripleInfo.extraInfo->ptrCast<BoundExtraCreateRelTableInfo>();
     // Resource table
     auto resourceTableID = createTable(resourceInfo);
     // Literal table
@@ -145,7 +134,7 @@ std::unique_ptr<CatalogEntry> CatalogContent::createRdfGraphEntry(table_id_t tab
 void CatalogContent::dropTable(table_id_t tableID) {
     auto tableEntry = getTableCatalogEntry(tableID);
     if (tableEntry->getType() == CatalogEntryType::REL_GROUP_ENTRY) {
-        auto relGroupEntry = ku_dynamic_cast<CatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
+        auto relGroupEntry = tableEntry->ptrCast<RelGroupCatalogEntry>();
         for (auto& relTableID : relGroupEntry->getRelTableIDs()) {
             dropTable(relTableID);
         }
@@ -156,34 +145,23 @@ void CatalogContent::dropTable(table_id_t tableID) {
 void CatalogContent::alterTable(const BoundAlterInfo& info) {
     switch (info.alterType) {
     case AlterType::RENAME_TABLE: {
-        auto& renameInfo =
-            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraRenameTableInfo&>(
-                *info.extraInfo);
-        renameTable(info.tableID, renameInfo.newName);
+        auto renameInfo = info.extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
+        renameTable(info.tableID, renameInfo->newName);
     } break;
     case AlterType::ADD_PROPERTY: {
-        auto& addPropInfo =
-            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraAddPropertyInfo&>(
-                *info.extraInfo);
-        auto tableEntry =
-            ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(getTableCatalogEntry(info.tableID));
-        tableEntry->addProperty(addPropInfo.propertyName, addPropInfo.dataType.copy());
+        auto addPropInfo = info.extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
+        auto tableEntry = getTableCatalogEntry(info.tableID)->ptrCast<TableCatalogEntry>();
+        tableEntry->addProperty(addPropInfo->propertyName, addPropInfo->dataType.copy());
     } break;
     case AlterType::RENAME_PROPERTY: {
-        auto& renamePropInfo =
-            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraRenamePropertyInfo&>(
-                *info.extraInfo);
-        auto tableEntry =
-            ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(getTableCatalogEntry(info.tableID));
-        tableEntry->renameProperty(renamePropInfo.propertyID, renamePropInfo.newName);
+        auto renamePropInfo = info.extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
+        auto tableEntry = getTableCatalogEntry(info.tableID)->ptrCast<TableCatalogEntry>();
+        tableEntry->renameProperty(renamePropInfo->propertyID, renamePropInfo->newName);
     } break;
     case AlterType::DROP_PROPERTY: {
-        auto& dropPropInfo =
-            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraDropPropertyInfo&>(
-                *info.extraInfo);
-        auto tableEntry =
-            ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(getTableCatalogEntry(info.tableID));
-        tableEntry->dropProperty(dropPropInfo.propertyID);
+        auto dropPropInfo = info.extraInfo->constPtrCast<BoundExtraDropPropertyInfo>();
+        auto tableEntry = getTableCatalogEntry(info.tableID)->ptrCast<TableCatalogEntry>();
+        tableEntry->dropProperty(dropPropInfo->propertyID);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -195,7 +173,7 @@ void CatalogContent::renameTable(table_id_t tableID, const std::string& newName)
     // TODO(Xiyang/Ziyi): Do we allow renaming of rel table groups?
     auto tableEntry = getTableCatalogEntry(tableID);
     if (tableEntry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY) {
-        auto rdfGraphEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
+        auto rdfGraphEntry = tableEntry->constPtrCast<RDFGraphCatalogEntry>();
         renameTable(rdfGraphEntry->getResourceTableID(),
             RDFGraphCatalogEntry::getResourceTableName(newName));
         renameTable(rdfGraphEntry->getLiteralTableID(),
@@ -276,8 +254,7 @@ void CatalogContent::addFunction(CatalogEntryType entryType, std::string name,
 
 function::ScalarMacroFunction* CatalogContent::getScalarMacroFunction(
     const std::string& name) const {
-    return ku_dynamic_cast<CatalogEntry*, ScalarMacroCatalogEntry*>(functions->getEntry(name))
-        ->getMacroFunction();
+    return functions->getEntry(name)->constPtrCast<ScalarMacroCatalogEntry>()->getMacroFunction();
 }
 
 std::vector<const TableCatalogEntry*> CatalogContent::getTableEntries() const {
@@ -315,7 +292,7 @@ std::string CatalogContent::getTableName(table_id_t tableID) const {
 
 CatalogEntry* CatalogContent::getTableCatalogEntry(table_id_t tableID) const {
     for (auto& [name, table] : tables->getEntries()) {
-        auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(table.get());
+        auto tableEntry = table->constPtrCast<TableCatalogEntry>();
         if (tableEntry->getTableID() == tableID) {
             return table.get();
         }
@@ -324,18 +301,16 @@ CatalogEntry* CatalogContent::getTableCatalogEntry(table_id_t tableID) const {
 }
 
 table_id_t CatalogContent::getTableID(const std::string& tableName) const {
-    if (tables->containsEntry(tableName)) {
-        return ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tables->getEntry(tableName))
-            ->getTableID();
-    } else {
+    if (!tables->containsEntry(tableName)) {
         throw CatalogException{stringFormat("Table: {} does not exist.", tableName)};
     }
+    return tables->getEntry(tableName)->constPtrCast<TableCatalogEntry>()->getTableID();
 }
 
 std::vector<table_id_t> CatalogContent::getTableIDs(CatalogEntryType catalogType) const {
     std::vector<table_id_t> tableIDs;
     for (auto& [_, entry] : tables->getEntries()) {
-        auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry.get());
+        auto tableEntry = entry->constPtrCast<TableCatalogEntry>();
         if (tableEntry->getType() == catalogType) {
             tableIDs.push_back(tableEntry->getTableID());
         }

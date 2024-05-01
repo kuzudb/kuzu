@@ -38,6 +38,11 @@ public:
         return common::ku_dynamic_cast<const CatalogEntry*, const TARGET*>(this);
     }
 
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<CatalogEntry*, TARGET*>(this);
+    }
+
 private:
     CatalogEntryType type;
     std::string name;

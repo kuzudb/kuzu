@@ -39,7 +39,7 @@ Binder exception: No database named tinysnb1 has been attached.
 -STATEMENT LOAD FROM pgscan.movies RETURN count(*);
 ---- 1
 3
--STATEMENT CALL POSTGRES_CLEAR_CACHE() RETURN *;
+-STATEMENT CALL CLEAR_ATTACHED_DB_CACHE() RETURN *;
 ---- ok
 -STATEMENT LOAD FROM pgscan.movies where length > 2500 RETURN name;
 ---- 1
@@ -55,14 +55,14 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 # be displayed.
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 8
-movies|FOREIGN|pgscan(POSTGRES)|
-movies|FOREIGN|tinysnb(POSTGRES)|
-organisation|FOREIGN|pgscan(POSTGRES)|
-organisation|FOREIGN|tinysnb(POSTGRES)|
-persontest|FOREIGN|pgscan(POSTGRES)|
-persontest|FOREIGN|tinysnb(POSTGRES)|
-person|FOREIGN|pgscan(POSTGRES)|
-person|FOREIGN|tinysnb(POSTGRES)|
+movies|ATTACHED|pgscan(POSTGRES)|
+movies|ATTACHED|tinysnb(POSTGRES)|
+organisation|ATTACHED|pgscan(POSTGRES)|
+organisation|ATTACHED|tinysnb(POSTGRES)|
+persontest|ATTACHED|pgscan(POSTGRES)|
+persontest|ATTACHED|tinysnb(POSTGRES)|
+person|ATTACHED|pgscan(POSTGRES)|
+person|ATTACHED|tinysnb(POSTGRES)|
 
 -STATEMENT CALL TABLE_INFO('pgscan.person') RETURN *;
 ---- 14
