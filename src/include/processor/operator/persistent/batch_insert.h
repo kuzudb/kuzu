@@ -44,10 +44,7 @@ struct BatchInsertSharedState {
     }
     inline common::row_idx_t getNumRows() { return numRows.load(); }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-    inline void logBatchInsertWALRecord() {
-        wal->logCopyTableRecord(table->getTableID());
-        wal->flushAllPages();
-    }
+    inline void logBatchInsertWALRecord() { wal->logCopyTableRecord(table->getTableID()); }
     inline void updateNumTuplesForTable() { table->updateNumTuplesByValue(getNumRows()); }
 };
 

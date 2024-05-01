@@ -217,8 +217,8 @@ void Database::commit(Transaction* transaction, bool skipCheckpointForTestingRec
     // Note: committing and stopping new transactions can be done in any order. This
     // order allows us to throw exceptions if we have to wait a lot to stop.
     transactionManager->commitButKeepActiveWriteTransaction(transaction);
-    wal->flushAllPages();
     if (skipCheckpointForTestingRecovery) {
+        wal->flushAllPages();
         transactionManager->allowReceivingNewTransactions();
         return;
     }

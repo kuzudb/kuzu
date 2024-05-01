@@ -237,8 +237,6 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     if (nodeSharedState->globalIndexBuilder) {
         nodeSharedState->globalIndexBuilder->finalize(context);
     }
-    // Batch Insert wal record needs to be logged after PrimaryKeyIndex::prepareCommit
-    // so that the wal pages get flushed before the index is re-initialized.
     sharedState->logBatchInsertWALRecord();
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
         sharedState->getNumRows(), info->tableEntry->getName());
