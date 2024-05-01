@@ -66,7 +66,7 @@ void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, Arro
 void ArrowConverter::setArrowFormatForUnion(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
     const LogicalType& dataType) {
     std::string formatStr = "+ud";
-    child.n_children = (std::int64_t)UnionType::getNumFields(&dataType);
+    child.n_children = (std::int64_t)UnionType::getNumFields(dataType);
     rootHolder.nestedChildren.emplace_back();
     rootHolder.nestedChildren.back().resize(child.n_children);
     rootHolder.nestedChildrenPtr.emplace_back();
@@ -77,8 +77,8 @@ void ArrowConverter::setArrowFormatForUnion(ArrowSchemaHolder& rootHolder, Arrow
     child.children = &rootHolder.nestedChildrenPtr.back()[0];
     for (auto i = 0u; i < child.n_children; i++) {
         initializeChild(*child.children[i]);
-        auto unionFieldType = UnionType::getFieldType(&dataType, i);
-        auto unionFieldName = UnionType::getFieldName(&dataType, i);
+        auto unionFieldType = UnionType::getFieldType(dataType, i);
+        auto unionFieldName = UnionType::getFieldName(dataType, i);
         child.children[i]->name = copyName(rootHolder, unionFieldName);
         setArrowFormat(rootHolder, *child.children[i], *unionFieldType);
         formatStr += (i == 0u ? ":" : ",") + std::to_string(i);

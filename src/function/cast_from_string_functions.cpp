@@ -730,7 +730,7 @@ void CastStringHelper::cast(const char* input, uint64_t len, union_entry_t& /*re
     auto& type = vector->dataType;
     union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
 
-    for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
+    for (auto i = 0u; i < UnionType::getNumFields(type); i++) {
         auto internalFieldIdx = UnionType::getInternalFieldIdx(i);
         auto fieldVector = StructVector::getFieldVector(vector, internalFieldIdx).get();
         if (tryCastUnionField(fieldVector, rowToAdd, input, len)) {

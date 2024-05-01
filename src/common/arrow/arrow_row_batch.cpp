@@ -150,8 +150,8 @@ static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int6
     }
     resizeUnionOverflow(vector, vector->capacity);
     std::vector<LogicalType*> childTypes;
-    for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
-        childTypes.push_back(UnionType::getFieldType(&type, i));
+    for (auto i = 0u; i < UnionType::getNumFields(type); i++) {
+        childTypes.push_back(UnionType::getFieldType(type, i));
     }
     resizeChildVectors(vector, childTypes, vector->capacity);
 }
@@ -338,11 +338,11 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::UNION>(ArrowVector* 
     const LogicalType& type, Value* value, std::int64_t pos) {
     auto typeBuffer = (std::uint8_t*)vector->data.data();
     auto offsetsBuffer = (std::int32_t*)vector->overflow.data();
-    for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
-        if (*UnionType::getFieldType(&type, i) == *value->children[0]->dataType) {
+    for (auto i = 0u; i < UnionType::getNumFields(type); i++) {
+        if (*UnionType::getFieldType(type, i) == *value->children[0]->dataType) {
             typeBuffer[pos] = i;
             offsetsBuffer[pos] = vector->childData[i]->numValues;
-            return appendValue(vector->childData[i].get(), *UnionType::getFieldType(&type, i),
+            return appendValue(vector->childData[i].get(), *UnionType::getFieldType(type, i),
                 value->children[0].get());
         }
     }
@@ -771,7 +771,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::UNION>(ArrowVector
     const LogicalType& type) {
     // since union is a special case, we make the ArrowArray ourselves instead of using
     // createArrayFromVector
-    auto nChildren = UnionType::getNumFields(&type);
+    auto nChildren = UnionType::getNumFields(type);
     vector.array = std::make_unique<ArrowArray>();
     vector.array->private_data = nullptr;
     vector.array->release = releaseArrowVector;
@@ -787,7 +787,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::UNION>(ArrowVector
     vector.array->buffers[0] = vector.data.data();
     vector.array->buffers[1] = vector.overflow.data();
     for (auto i = 0u; i < nChildren; i++) {
-        auto childType = UnionType::getFieldType(&type, i);
+        auto childType = UnionType::getFieldType(type, i);
         vector.childPointers[i] = convertVectorToArray(*vector.childData[i], *childType);
     }
     return vector.array.get();
