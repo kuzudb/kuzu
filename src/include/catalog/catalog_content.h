@@ -36,13 +36,12 @@ public:
 
     common::table_id_t getTableID(const std::string& tableName) const;
     CatalogEntry* getTableCatalogEntry(common::table_id_t tableID) const;
+    std::vector<const TableCatalogEntry*> getTableEntries() const;
 
     void saveToFile(const std::string& directory, common::FileVersionType dbFileType,
         common::VirtualFileSystem* fs);
     void readFromFile(const std::string& directory, common::FileVersionType dbFileType,
         common::VirtualFileSystem* fs);
-
-    std::vector<const TableCatalogEntry*> getTableEntries() const;
 
     std::unique_ptr<CatalogContent> copy() const;
 
