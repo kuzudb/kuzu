@@ -10,19 +10,17 @@ using namespace kuzu::common;
 
 static void copyDir(const std::string& from, const std::string& to) {
     if (!std::filesystem::exists(from)) {
-        throw TestException(
-            stringFormat("Error copying nonexistent directory {}.", from));
+        throw TestException(stringFormat("Error copying nonexistent directory {}.", from));
     }
     if (std::filesystem::exists(to)) {
-        throw TestException(stringFormat(
-            "Error copying directory {} to {}. {} already exists.", from, to, to));
+        throw TestException(
+            stringFormat("Error copying directory {} to {}. {} already exists.", from, to, to));
     }
     std::error_code copyErrorCode;
     std::filesystem::copy(from, to, std::filesystem::copy_options::recursive, copyErrorCode);
     if (copyErrorCode) {
-        throw TestException(
-            stringFormat("Error copying directory {} to {}.  Error Message: {}", from, to,
-                copyErrorCode.message()));
+        throw TestException(stringFormat("Error copying directory {} to {}.  Error Message: {}",
+            from, to, copyErrorCode.message()));
     }
 }
 
