@@ -20,9 +20,6 @@ bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        for (auto& vector : readState->outputVectors) {
-            vector->resetAuxiliaryBuffer();
-        }
         info->table->initializeReadState(context->clientContext->getTx(), info->direction,
             info->columnIDs, *readState);
     }
