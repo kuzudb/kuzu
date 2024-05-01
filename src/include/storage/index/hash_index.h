@@ -134,7 +134,8 @@ private:
     void sortEntries(typename InMemHashIndex<T>::SlotIterator& slotToMerge,
         std::vector<HashIndexEntryView>& partitions);
     void mergeBulkInserts();
-    void mergeSlot(std::vector<HashIndexEntryView>& slotToMerge,
+    // Returns the number of elements merged which matched the given slot id
+    size_t mergeSlot(const std::vector<HashIndexEntryView>& slotToMerge,
         typename BaseDiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
         typename BaseDiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t slotId);
 
