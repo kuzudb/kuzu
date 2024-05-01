@@ -102,7 +102,7 @@ static bool bindExportQuery(ExportedTableData& tableData, std::string& exportQue
 
 bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalogEntry& entry,
     const Catalog& catalog, transaction::Transaction* tx) {
-    if (catalog.tableInRDFGraph(tx, entry->getTableID())) {
+    if (catalog.tableInRDFGraph(tx, entry.getTableID())) {
         return false;
     }
     std::string exportQuery;
