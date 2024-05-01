@@ -546,8 +546,10 @@ void HashIndex<T>::mergeBulkInserts() {
                         diskSlotPage = diskSlotId / NUM_SLOTS_PER_PAGE;
                     }
                     if (diskSlotId / NUM_SLOTS_PER_PAGE == diskSlotPage) {
-                        mergeSlot(partitionedEntries[i], diskSlotIterator, diskOverflowSlotIterator,
-                            diskSlotId);
+                        auto merged = mergeSlot(partitionedEntries[i], diskSlotIterator,
+                            diskOverflowSlotIterator, diskSlotId);
+                        KU_ASSERT(merged <= partitionedEntries[i].size());
+                        partitionedEntries[i].resize(partitionedEntries[i].size() - merged);
                         if (partitionedEntries[i].empty()) {
                             done[i] = true;
                         }
@@ -563,7 +565,7 @@ void HashIndex<T>::mergeBulkInserts() {
 }
 
 template<typename T>
-void HashIndex<T>::mergeSlot(std::vector<HashIndexEntryView>& slotToMerge,
+size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerge,
     typename BaseDiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
     typename BaseDiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator,
     slot_id_t diskSlotId) {
@@ -572,10 +574,10 @@ void HashIndex<T>::mergeSlot(std::vector<HashIndexEntryView>& slotToMerge,
     // in the slot to merge
     Slot<T>* diskSlot = &*diskSlotIterator.seek(diskSlotId);
     // Merge slot from local storage to existing slot
+    size_t merged = 0;
     for (auto it = std::rbegin(slotToMerge); it != std::rend(slotToMerge); ++it) {
-        const auto& entry = *it;
-        if (entry.diskSlotId != diskSlotId) {
-            return;
+        if (it->diskSlotId != diskSlotId) {
+            return merged;
         }
         // Find the next empty entry, or add a new slot if there are no more entries
         while (
@@ -597,21 +599,22 @@ void HashIndex<T>::mergeSlot(std::vector<HashIndexEntryView>& slotToMerge,
             }
         }
         KU_ASSERT(diskEntryPos < getSlotCapacity<T>());
-        copyAndUpdateSlotHeader<const T&, true>(*diskSlot, diskEntryPos, entry.entry->key,
-            UINT32_MAX, entry.fingerprint);
+        copyAndUpdateSlotHeader<const T&, true>(*diskSlot, diskEntryPos, it->entry->key, UINT32_MAX,
+            it->fingerprint);
         KU_ASSERT([&]() {
-            auto key = entry.entry->key;
+            auto key = it->entry->key;
             auto hash = hashStored(TransactionType::WRITE, key);
             auto primarySlot =
                 HashIndexUtils::getPrimarySlotIdForHash(*indexHeaderForWriteTrx, hash);
-            KU_ASSERT(entry.fingerprint == HashIndexUtils::getFingerprintForHash(hash));
+            KU_ASSERT(it->fingerprint == HashIndexUtils::getFingerprintForHash(hash));
             KU_ASSERT(primarySlot == diskSlotId);
             return true;
         }());
         indexHeaderForWriteTrx->numEntries++;
         diskEntryPos++;
-        slotToMerge.pop_back();
+        merged++;
     }
+    return merged;
 }
 
 template<typename T>
