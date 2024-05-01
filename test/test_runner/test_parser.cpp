@@ -65,6 +65,9 @@ void TestParser::extractDataset() {
     } else if (datasetType == "TTL") {
         testGroup->datasetType = TestGroup::DatasetType::TURTLE;
         testGroup->dataset = currentToken.params[2];
+    } else if (datasetType == "KUZU") {
+        testGroup->datasetType = TestGroup::DatasetType::KUZU;
+        testGroup->dataset = currentToken.params[2];
     } else {
         throw TestException(
             "Invalid dataset type `" + currentToken.params[1] + "` [" + path + ":" + line + "].");

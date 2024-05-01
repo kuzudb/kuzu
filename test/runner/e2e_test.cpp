@@ -22,9 +22,12 @@ public:
         setUpDataset();
         BaseGraphTest::SetUp();
         systemConfig->bufferPoolSize = bufferPoolSize;
+        if (datasetType == TestGroup::DatasetType::KUZU && dataset != "empty") {
+            copyDir(dataset, databasePath);
+        }
         createDB(checkpointWaitTimeout);
         createConns(connNames);
-        if (dataset != "empty") {
+        if (datasetType != TestGroup::DatasetType::KUZU && dataset != "empty") {
             initGraph();
         }
     }
