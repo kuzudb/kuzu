@@ -480,36 +480,36 @@ private:
 using logical_type_vec_t = std::vector<LogicalType>;
 
 struct ListType {
-    static LogicalType* getChildType(const LogicalType* type);
+    static LogicalType* getChildType(const LogicalType& type);
 };
 
 struct KUZU_API ArrayType {
-    static LogicalType* getChildType(const LogicalType* type);
-    static uint64_t getNumElements(const LogicalType* type);
+    static LogicalType* getChildType(const LogicalType& type);
+    static uint64_t getNumElements(const LogicalType& type);
 };
 
 struct StructType {
-    static std::vector<LogicalType*> getFieldTypes(const LogicalType* type);
+    static std::vector<LogicalType*> getFieldTypes(const LogicalType& type);
 
-    static std::vector<std::string> getFieldNames(const LogicalType* type);
+    static std::vector<std::string> getFieldNames(const LogicalType& type);
 
-    static uint64_t getNumFields(const LogicalType* type);
+    static uint64_t getNumFields(const LogicalType& type);
 
-    static std::vector<const StructField*> getFields(const LogicalType* type);
+    static std::vector<const StructField*> getFields(const LogicalType& type);
 
-    static bool hasField(const LogicalType* type, const std::string& key);
+    static bool hasField(const LogicalType& type, const std::string& key);
 
-    static const StructField* getField(const LogicalType* type, struct_field_idx_t idx);
+    static const StructField* getField(const LogicalType& type, struct_field_idx_t idx);
 
-    static const StructField* getField(const LogicalType* type, const std::string& key);
+    static const StructField* getField(const LogicalType& type, const std::string& key);
 
-    static struct_field_idx_t getFieldIdx(const LogicalType* type, const std::string& key);
+    static struct_field_idx_t getFieldIdx(const LogicalType& type, const std::string& key);
 };
 
 struct MapType {
-    static LogicalType* getKeyType(const LogicalType* type);
+    static LogicalType* getKeyType(const LogicalType& type);
 
-    static LogicalType* getValueType(const LogicalType* type);
+    static LogicalType* getValueType(const LogicalType& type);
 };
 
 struct UnionType {
@@ -521,11 +521,11 @@ struct UnionType {
 
     static union_field_idx_t getInternalFieldIdx(union_field_idx_t idx);
 
-    static std::string getFieldName(const LogicalType* type, union_field_idx_t idx);
+    static std::string getFieldName(const LogicalType& type, union_field_idx_t idx);
 
-    static LogicalType* getFieldType(const LogicalType* type, union_field_idx_t idx);
+    static LogicalType* getFieldType(const LogicalType& type, union_field_idx_t idx);
 
-    static uint64_t getNumFields(const LogicalType* type);
+    static uint64_t getNumFields(const LogicalType& type);
 };
 
 struct PhysicalTypeUtils {
