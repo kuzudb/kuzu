@@ -18,7 +18,7 @@ struct TableInfoBindData : public CallTableFuncBindData {
         : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
           tableEntry{tableEntry} {}
 
-    inline std::unique_ptr<TableFuncBindData> copy() const override {
+    std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<TableInfoBindData>(tableEntry, columnTypes, columnNames, maxOffset);
     }
 };

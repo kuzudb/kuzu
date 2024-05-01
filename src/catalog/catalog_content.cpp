@@ -280,6 +280,14 @@ function::ScalarMacroFunction* CatalogContent::getScalarMacroFunction(
         ->getMacroFunction();
 }
 
+std::vector<const TableCatalogEntry*> CatalogContent::getTableEntries() const {
+    std::vector<const TableCatalogEntry*> result;
+    for (auto& [_, entry] : tables->getEntries()) {
+        result.push_back(entry->constPtrCast<TableCatalogEntry>());
+    }
+    return result;
+}
+
 std::unique_ptr<CatalogContent> CatalogContent::copy() const {
     return std::make_unique<CatalogContent>(tables->copy(), nextTableID, functions->copy());
 }

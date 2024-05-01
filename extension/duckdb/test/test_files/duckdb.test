@@ -52,6 +52,14 @@ Attached database successfully.
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/other.db' as Other1 (dbtype 'duckdb');
 ---- 1
 Attached database successfully.
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 6
+movies|FOREIGN|tinysnb(DUCKDB)|
+organisation|FOREIGN|tinysnb(DUCKDB)|
+person|FOREIGN|Other1(DUCKDB)|
+person|FOREIGN|tinysnb(DUCKDB)|
+tableOfTypes1|FOREIGN|tinysnb(DUCKDB)|
+tableOfTypes|FOREIGN|tinysnb(DUCKDB)|
 -STATEMENT LOAD FROM other1.person RETURN *;
 ---- 4
 1

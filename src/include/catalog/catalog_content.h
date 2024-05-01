@@ -1,5 +1,6 @@
 #pragma once
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "common/cast.h"
 
@@ -40,6 +41,8 @@ public:
         common::VirtualFileSystem* fs);
     void readFromFile(const std::string& directory, common::FileVersionType dbFileType,
         common::VirtualFileSystem* fs);
+
+    std::vector<const TableCatalogEntry*> getTableEntries() const;
 
     std::unique_ptr<CatalogContent> copy() const;
 

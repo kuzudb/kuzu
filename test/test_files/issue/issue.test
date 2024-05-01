@@ -261,7 +261,7 @@ ge38f9dc-f751-4174-8b8b-ec9a1b6gab83|
 ---- ok
 -STATEMENT CALL SHOW_TABLES() WHERE true RETURN *;
 ---- 1
-T|NODE|
+T|NODE|local(kuzu)|
 -STATEMENT CALL SHOW_TABLES() WHERE false RETURN *;
 ---- 0
 

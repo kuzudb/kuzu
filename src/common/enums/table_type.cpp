@@ -22,6 +22,9 @@ std::string TableTypeUtils::toString(TableType tableType) {
     case TableType::REL_GROUP: {
         return "REL_GROUP";
     }
+    case TableType::FOREIGN: {
+        return "FOREIGN";
+    }
     default:
         KU_UNREACHABLE;
     }
