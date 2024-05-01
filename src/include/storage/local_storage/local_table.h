@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unordered_map>
+#include <map>
 
 #include "common/types/internal_id_t.h"
 #include "common/vector/value_vector.h"
@@ -10,9 +10,8 @@
 namespace kuzu {
 namespace storage {
 
-using offset_to_row_idx_t = std::unordered_map<common::offset_t, common::row_idx_t>;
-using offset_to_row_idx_vec_t =
-    std::unordered_map<common::offset_t, std::vector<common::row_idx_t>>;
+using offset_to_row_idx_t = std::map<common::offset_t, common::row_idx_t>;
+using offset_to_row_idx_vec_t = std::map<common::offset_t, std::vector<common::row_idx_t>>;
 using offset_set_t = std::unordered_set<common::offset_t>;
 
 static constexpr common::column_id_t NBR_ID_COLUMN_ID = 0;
