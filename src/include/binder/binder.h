@@ -72,7 +72,7 @@ public:
 
     static std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
-    bool bindExportTableData(ExportedTableData& tableData, catalog::TableCatalogEntry* entry,
+    bool bindExportTableData(ExportedTableData& tableData, const catalog::TableCatalogEntry& entry,
         const catalog::Catalog& catalog, transaction::Transaction* tx);
 
 private:

@@ -39,26 +39,26 @@ Binder exception: Cannot copy into knows table with type REL_GROUP.
 Binder exception: Cannot delete relationship table knows_personA_personB because it is referenced by relationship group knows.
 -STATEMENT CALL show_tables() RETURN *;
 ---- 10
-knows_personA_personB|REL|
-knows_personA_personC|REL|
-knows_personB_personC|REL|
-knows|REL_GROUP|
-likes_personA_personB|REL|
-likes_personB_personA|REL|
-likes|REL_GROUP|
-personA|NODE|
-personB|NODE|
-personC|NODE|
+knows_personA_personB|REL|local(kuzu)|
+knows_personA_personC|REL|local(kuzu)|
+knows_personB_personC|REL|local(kuzu)|
+knows|REL_GROUP|local(kuzu)|
+likes_personA_personB|REL|local(kuzu)|
+likes_personB_personA|REL|local(kuzu)|
+likes|REL_GROUP|local(kuzu)|
+personA|NODE|local(kuzu)|
+personB|NODE|local(kuzu)|
+personC|NODE|local(kuzu)|
 -STATEMENT DROP TABLE knows;
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 6
-likes_personA_personB|REL|
-likes_personB_personA|REL|
-likes|REL_GROUP|
-personA|NODE|
-personB|NODE|
-personC|NODE|
+likes_personA_personB|REL|local(kuzu)|
+likes_personB_personA|REL|local(kuzu)|
+likes|REL_GROUP|local(kuzu)|
+personA|NODE|local(kuzu)|
+personB|NODE|local(kuzu)|
+personC|NODE|local(kuzu)|
 -STATEMENT MATCH (a:personA)-[e:knows]->(b) RETURN COUNT(*)
 ---- error
 Binder exception: Table knows does not exist.
@@ -71,12 +71,12 @@ Binder exception: Table knows_personA_personB does not exist.
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 6
-likes_A_B|REL|
-likes_personB_personA|REL|
-hates|REL_GROUP|
-personA|NODE|
-personB|NODE|
-personC|NODE|
+likes_A_B|REL|local(kuzu)|
+likes_personB_personA|REL|local(kuzu)|
+hates|REL_GROUP|local(kuzu)|
+personA|NODE|local(kuzu)|
+personB|NODE|local(kuzu)|
+personC|NODE|local(kuzu)|
 -STATEMENT MATCH (a:personA)-[e:hates]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
 ---- 3
 likes_A_B|personB|2|Bob

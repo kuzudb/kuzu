@@ -31,7 +31,7 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog, Tran
     std::vector<ExportedTableData> exportData;
     for (auto tableEntry : catalog.getTableEntries(tx)) {
         ExportedTableData tableData;
-        if (binder->bindExportTableData(tableData, tableEntry, catalog, tx)) {
+        if (binder->bindExportTableData(tableData, *tableEntry, catalog, tx)) {
             exportData.push_back(std::move(tableData));
         }
     }
@@ -53,27 +53,27 @@ FileType getFileType(std::unordered_map<std::string, common::Value>& options) {
     return fileType;
 }
 
-static bool bindExportNodeTableDataQuery(ExportedTableData& tableData, TableCatalogEntry* entry,
-    std::string& exportQuery) {
-    exportQuery = stringFormat("match (a:{}) return ", entry->getName());
-    for (auto i = 0u; i < entry->getNumProperties(); i++) {
-        auto& prop = entry->getPropertiesRef()[i];
+static bool bindExportNodeTableDataQuery(ExportedTableData& tableData,
+    const TableCatalogEntry& entry, std::string& exportQuery) {
+    exportQuery = stringFormat("match (a:{}) return ", entry.getName());
+    for (auto i = 0u; i < entry.getNumProperties(); i++) {
+        auto& prop = entry.getPropertiesRef()[i];
         if (prop.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            if (entry->getNumProperties() == 1) {
+            if (entry.getNumProperties() == 1) {
                 return false;
             }
             tableData.canParallel = false;
             continue;
         }
         exportQuery += stringFormat("a.{}", prop.getName());
-        exportQuery += i == entry->getNumProperties() - 1 ? " " : ",";
+        exportQuery += i == entry.getNumProperties() - 1 ? " " : ",";
     }
     return true;
 }
 
-static void bindExportRelTableDataQuery(TableCatalogEntry* entry, std::string& exportQuery,
+static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery,
     const catalog::Catalog& catalog, transaction::Transaction* tx) {
-    auto relTableEntry = entry->constPtrCast<RelTableCatalogEntry>();
+    auto relTableEntry = entry.constPtrCast<RelTableCatalogEntry>();
     auto srcPrimaryKeyName = getPrimaryKeyName(relTableEntry->getSrcTableID(), catalog, tx);
     auto dstPrimaryKeyName = getPrimaryKeyName(relTableEntry->getDstTableID(), catalog, tx);
     auto srcName = catalog.getTableName(tx, relTableEntry->getSrcTableID());
@@ -84,8 +84,8 @@ static void bindExportRelTableDataQuery(TableCatalogEntry* entry, std::string& e
 }
 
 static bool bindExportQuery(ExportedTableData& tableData, std::string& exportQuery,
-    TableCatalogEntry* entry, const Catalog& catalog, transaction::Transaction* tx) {
-    switch (entry->getTableType()) {
+    const TableCatalogEntry& entry, const Catalog& catalog, transaction::Transaction* tx) {
+    switch (entry.getTableType()) {
     case common::TableType::NODE: {
         if (!bindExportNodeTableDataQuery(tableData, entry, exportQuery)) {
             return false;
@@ -100,14 +100,14 @@ static bool bindExportQuery(ExportedTableData& tableData, std::string& exportQue
     return true;
 }
 
-bool Binder::bindExportTableData(ExportedTableData& tableData, TableCatalogEntry* entry,
+bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalogEntry& entry,
     const Catalog& catalog, transaction::Transaction* tx) {
-    if (catalog.tableInRDFGraph(tx, entry->getTableID())) {
+    if (catalog.tableInRDFGraph(tx, entry.getTableID())) {
         return false;
     }
     std::string exportQuery;
     tableData.canParallel = true;
-    tableData.tableName = entry->getName();
+    tableData.tableName = entry.getName();
     if (!bindExportQuery(tableData, exportQuery, entry, catalog, tx)) {
         return false;
     }

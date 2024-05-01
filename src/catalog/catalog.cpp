@@ -85,12 +85,8 @@ std::vector<RDFGraphCatalogEntry*> Catalog::getRdfGraphEntries(Transaction* tx) 
         CatalogEntryType::RDF_GRAPH_ENTRY);
 }
 
-std::vector<TableCatalogEntry*> Catalog::getTableEntries(Transaction* tx) const {
-    std::vector<TableCatalogEntry*> result;
-    for (auto& [_, entry] : getVersion(tx)->tables->getEntries()) {
-        result.push_back(ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry.get()));
-    }
-    return result;
+std::vector<const TableCatalogEntry*> Catalog::getTableEntries(Transaction* tx) const {
+    return getVersion(tx)->getTableEntries();
 }
 
 std::vector<TableCatalogEntry*> Catalog::getTableSchemas(Transaction* tx,

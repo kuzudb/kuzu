@@ -52,6 +52,14 @@ Attached database successfully.
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/other.db' as Other1 (dbtype 'duckdb');
 ---- 1
 Attached database successfully.
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 6
+movies|FOREIGN|tinysnb(DUCKDB)|
+organisation|FOREIGN|tinysnb(DUCKDB)|
+person|FOREIGN|Other1(DUCKDB)|
+person|FOREIGN|tinysnb(DUCKDB)|
+tableOfTypes1|FOREIGN|tinysnb(DUCKDB)|
+tableOfTypes|FOREIGN|tinysnb(DUCKDB)|
 -STATEMENT LOAD FROM other1.person RETURN *;
 ---- 4
 1
@@ -85,6 +93,35 @@ Used database successfully.
 -STATEMENT LOAD FROM other1.person RETURN count(*);
 ---- 1
 4
+-STATEMENT CALL TABLE_INFO('other1.person') RETURN *;
+---- 1
+0|id|INT32
+-STATEMENT CALL TABLE_INFO('tinysnb.person') RETURN *;
+---- 16
+0|ID|INT64
+1|fName|STRING
+2|gender|INT64
+3|isStudent|BOOL
+4|isWorker|BOOL
+5|age|INT64
+6|eyeSight|DOUBLE
+7|birthdate|DATE
+8|registerTime|TIMESTAMP
+9|lastJobDuration|INTERVAL
+10|workedHours|INT64[]
+11|usedNames|STRING[]
+12|courseScoresPerTerm|INT64[][]
+13|height|FLOAT
+14|u|UUID
+15|grades|INT64[4]
+-LOG WrongTableName
+-STATEMENT CALL TABLE_INFO('tinysnb.personxx') RETURN *;
+---- error
+Catalog exception: Table: personxx does not exist.
+-LOG WrongCatalogName
+-STATEMENT CALL TABLE_INFO('tinysnbxx.person') RETURN *;
+---- error
+Runtime exception: Database: tinysnbxx doesn't exist.
 
 -CASE InvalidDuckDBDatabase
 -STATEMENT LOAD FROM tinysnb1.person RETURN *;

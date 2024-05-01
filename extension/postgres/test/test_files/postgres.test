@@ -50,3 +50,33 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 #---- error
 #Binder exception: Failed to attach postgres database due to: IO Error: Unable to connect to Postgres at dbname=test2132131 user=ci host=127.0.0.1: connection to server at "127.0.0.1", port 5432 failed: Connection refused
 #	Is the server running on that host and accepting TCP/IP connections?
+# Note: We use duckdb as an intermediate when scanning from postgres. When duckdb attaches postgres, it generates some
+# auxiliary tables to store type information in postgres. When the user calls show_tables(), those auxiliary tables will also
+# be displayed.
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 8
+movies|FOREIGN|pgscan(POSTGRES)|
+movies|FOREIGN|tinysnb(POSTGRES)|
+organisation|FOREIGN|pgscan(POSTGRES)|
+organisation|FOREIGN|tinysnb(POSTGRES)|
+persontest|FOREIGN|pgscan(POSTGRES)|
+persontest|FOREIGN|tinysnb(POSTGRES)|
+person|FOREIGN|pgscan(POSTGRES)|
+person|FOREIGN|tinysnb(POSTGRES)|
+
+-STATEMENT CALL TABLE_INFO('pgscan.person') RETURN *;
+---- 14
+0|id|INT64
+1|fname|STRING
+2|gender|INT64
+3|isstudent|BOOL
+4|isworker|BOOL
+5|age|INT64
+6|eyesight|DOUBLE
+7|birthdate|DATE
+8|registertime|TIMESTAMP
+9|lastjobduration|INTERVAL
+10|workedhours|INT64[]
+11|usednames|STRING[]
+12|height|DOUBLE
+13|u|UUID

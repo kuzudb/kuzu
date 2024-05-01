@@ -1,5 +1,6 @@
 #pragma once
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "common/cast.h"
 
@@ -35,6 +36,7 @@ public:
 
     common::table_id_t getTableID(const std::string& tableName) const;
     CatalogEntry* getTableCatalogEntry(common::table_id_t tableID) const;
+    std::vector<const TableCatalogEntry*> getTableEntries() const;
 
     void saveToFile(const std::string& directory, common::FileVersionType dbFileType,
         common::VirtualFileSystem* fs);

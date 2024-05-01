@@ -1,8 +1,11 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "common/exception/runtime.h"
 #include "common/keyword/rdf_keyword.h"
+#include "common/string_utils.h"
 #include "function/table/bind_input.h"
 #include "function/table/call_functions.h"
+#include "main/database_manager.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -11,15 +14,17 @@ namespace kuzu {
 namespace function {
 
 struct TableInfoBindData : public CallTableFuncBindData {
-    TableCatalogEntry* tableEntry;
+    std::unique_ptr<CatalogEntry> catalogEntry;
 
-    TableInfoBindData(TableCatalogEntry* tableEntry, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, offset_t maxOffset)
+    TableInfoBindData(std::unique_ptr<CatalogEntry> catalogEntry,
+        std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
+        offset_t maxOffset)
         : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
-          tableEntry{tableEntry} {}
+          catalogEntry{std::move(catalogEntry)} {}
 
-    inline std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<TableInfoBindData>(tableEntry, columnTypes, columnNames, maxOffset);
+    std::unique_ptr<TableFuncBindData> copy() const override {
+        return std::make_unique<TableInfoBindData>(catalogEntry->copy(), columnTypes, columnNames,
+            maxOffset);
     }
 };
 
@@ -31,7 +36,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         return 0;
     }
     auto bindData = input.bindData->constPtrCast<TableInfoBindData>();
-    auto tableEntry = bindData->tableEntry;
+    auto tableEntry = bindData->catalogEntry->constPtrCast<TableCatalogEntry>();
     auto numPropertiesToOutput = morsel.endOffset - morsel.startOffset;
     auto vectorPos = 0;
     for (auto i = 0u; i < numPropertiesToOutput; i++) {
@@ -56,8 +61,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         dataChunk.getValueVector(2)->setValue(vectorPos, property->getDataType()->toString());
 
         if (tableEntry->getTableType() == TableType::NODE) {
-            auto nodeTableEntry =
-                ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
+            auto nodeTableEntry = tableEntry->constPtrCast<NodeTableCatalogEntry>();
             auto primaryKeyID = nodeTableEntry->getPrimaryKeyPID();
             dataChunk.getValueVector(3)->setValue(vectorPos,
                 primaryKeyID == property->getPropertyID());
@@ -67,13 +71,31 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return vectorPos;
 }
 
+static std::unique_ptr<CatalogEntry> getTableCatalogEntry(main::ClientContext* context,
+    const std::string& tableName) {
+    auto tableInfo = common::StringUtils::split(tableName, ".");
+    if (tableInfo.size() == 1) {
+        auto tableID = context->getCatalog()->getTableID(context->getTx(), tableName);
+        return context->getCatalog()->getTableCatalogEntry(context->getTx(), tableID)->copy();
+    } else {
+        auto catalogName = tableInfo[0];
+        auto attachedTableName = tableInfo[1];
+        auto attachedDatabase = context->getDatabaseManager()->getAttachedDatabase(catalogName);
+        if (attachedDatabase == nullptr) {
+            throw common::RuntimeException{
+                common::stringFormat("Database: {} doesn't exist.", catalogName)};
+        }
+        auto tableID = attachedDatabase->getCatalog()->getTableID(attachedTableName);
+        return attachedDatabase->getCatalog()->getTableCatalogEntry(tableID)->copy();
+    }
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    auto tableName = input->inputs[0].getValue<std::string>();
-    auto tableID = context->getCatalog()->getTableID(context->getTx(), tableName);
-    auto tableEntry = context->getCatalog()->getTableCatalogEntry(context->getTx(), tableID);
+    auto catalogEntry = getTableCatalogEntry(context, input->inputs[0].getValue<std::string>());
+    auto tableEntry = catalogEntry->constPtrCast<TableCatalogEntry>();
     columnNames.emplace_back("property id");
     columnTypes.push_back(*LogicalType::INT64());
     columnNames.emplace_back("name");
@@ -84,7 +106,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         columnNames.emplace_back("primary key");
         columnTypes.push_back(*LogicalType::BOOL());
     }
-    return std::make_unique<TableInfoBindData>(tableEntry, std::move(columnTypes),
+    return std::make_unique<TableInfoBindData>(std::move(catalogEntry), std::move(columnTypes),
         std::move(columnNames), tableEntry->getNumProperties());
 }
 
