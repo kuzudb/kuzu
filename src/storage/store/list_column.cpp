@@ -59,8 +59,8 @@ ListColumn::ListColumn(std::string name, LogicalType dataType,
         *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
         propertyStatistics, enableCompression);
     dataColumn = ColumnFactory::createColumn(dataColName,
-        *ListType::getChildType(this->dataType)->copy(), *metaDAHeaderInfo.childrenInfos[1],
-        dataFH, metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
+        *ListType::getChildType(this->dataType)->copy(), *metaDAHeaderInfo.childrenInfos[1], dataFH,
+        metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
 }
 
 void ListColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,

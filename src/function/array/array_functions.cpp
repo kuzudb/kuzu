@@ -56,8 +56,8 @@ std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
                 ArrayCrossProductFunction::name)};
     }
     ku_dynamic_cast<Function*, ScalarFunction*>(function)->execFunc = execFunc;
-    auto resultType = LogicalType::ARRAY(*ArrayType::getChildType(leftType),
-        ArrayType::getNumElements(leftType));
+    auto resultType =
+        LogicalType::ARRAY(*ArrayType::getChildType(leftType), ArrayType::getNumElements(leftType));
     return FunctionBindData::getSimpleBindData(arguments, *resultType);
 }
 

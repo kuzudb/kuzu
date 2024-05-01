@@ -81,8 +81,7 @@ std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(Logi
     case PhysicalTypeID::LIST:
         return std::make_unique<ListAuxiliaryBuffer>(*ListType::getChildType(type), memoryManager);
     case PhysicalTypeID::ARRAY:
-        return std::make_unique<ListAuxiliaryBuffer>(*ArrayType::getChildType(type),
-            memoryManager);
+        return std::make_unique<ListAuxiliaryBuffer>(*ArrayType::getChildType(type), memoryManager);
     default:
         return nullptr;
     }
