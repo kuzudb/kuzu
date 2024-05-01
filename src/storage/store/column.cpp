@@ -803,8 +803,8 @@ void Column::commitColumnChunkOutOfPlace(Transaction* transaction, node_group_id
         append(chunk, nodeGroupIdx);
     } else {
         auto chunkMeta = getMetadata(nodeGroupIdx, transaction->getType());
-        auto columnChunk =
-            getEmptyChunkForCommit(1.5 * std::bit_ceil(chunkMeta.numValues + dstOffsets.size()));
+        auto columnChunk = getEmptyChunkForCommit(
+            std::max(std::bit_ceil(chunkMeta.numValues), getMaxOffset(dstOffsets) + 1));
         scan(transaction, nodeGroupIdx, columnChunk.get());
         for (auto i = 0u; i < dstOffsets.size(); i++) {
             columnChunk->write(chunk, srcOffset + i, dstOffsets[i], 1 /* numValues */);
