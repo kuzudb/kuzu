@@ -138,6 +138,10 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             throw TestException("Cannot open file: " + statement->expectedTuplesCSVFile);
         }
         std::string line;
+        if (statement->checkColumnNames) {
+            std::getline(expectedTuplesFile, line);
+            statement->columnNames = line;
+        }
         while (std::getline(expectedTuplesFile, line)) {
             statement->expectedTuples.push_back(line);
         }
