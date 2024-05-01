@@ -38,7 +38,7 @@ void NodeTable::initializePKIndex(NodeTableCatalogEntry* nodeTableEntry, bool re
     }
 }
 
-void NodeTable::read(Transaction* transaction, TableReadState& readState) {
+void NodeTable::readInternal(Transaction* transaction, TableReadState& readState) {
     tableData->read(transaction, *readState.dataReadState, *readState.nodeIDVector,
         readState.outputVectors);
     auto& dataReadState = ku_dynamic_cast<const TableDataReadState&, const NodeDataReadState&>(

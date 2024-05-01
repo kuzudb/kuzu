@@ -76,7 +76,7 @@ public:
         common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs,
         RelTableReadState& readState);
 
-    void read(transaction::Transaction* transaction, TableReadState& readState) override;
+    void readInternal(transaction::Transaction* transaction, TableReadState& readState) override;
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
