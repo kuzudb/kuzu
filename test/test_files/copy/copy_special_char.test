@@ -1,4 +1,3 @@
--GROUP CopySpecialChar
 -DATASET CSV copy-special-char-test
 
 ## TODO(Ziyi): Duckdb's seems only allow escape character to be followed by quote or escape

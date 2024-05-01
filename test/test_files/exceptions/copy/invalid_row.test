@@ -1,4 +1,3 @@
--GROUP CopyInvalidNumberTest
 -DATASET CSV copy-fault-tests/invalid-row
 
 --

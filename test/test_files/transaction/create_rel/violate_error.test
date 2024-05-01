@@ -1,4 +1,3 @@
--GROUP CreateRelTest_ViolateError
 -DATASET CSV rel-update-tests
 --
 

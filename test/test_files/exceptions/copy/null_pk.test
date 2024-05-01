@@ -1,4 +1,3 @@
--GROUP CopyNullPKTest
 -DATASET CSV copy-fault-tests/null-pk
 
 --

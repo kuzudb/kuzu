@@ -1,4 +1,3 @@
--GROUP CopyNodeFromParquetTest
 -DATASET PARQUET copy-test/node/parquet
 
 --

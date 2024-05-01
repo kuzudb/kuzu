@@ -1,4 +1,3 @@
--GROUP CopyInvalidUTF8
 -DATASET CSV copy-fault-tests/invalid-utf8
 
 --

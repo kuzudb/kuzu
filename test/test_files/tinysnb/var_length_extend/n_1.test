@@ -6,7 +6,6 @@
 # 1 * Node 7 extend to Node 3.
 # In general the formula is this: nth level will have 4 nodes (n > 2), and the first level has 7 nodes, second level
 # has 6 nodes.
--GROUP TinySnbReadTest
 -DATASET CSV tinysnb
 
 --

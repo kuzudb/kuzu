@@ -79,8 +79,6 @@ void TestParser::parseHeader() {
             break;
         }
         case TokenType::GROUP: {
-            // checkMinimumParams(1);
-            // testGroup->group = currentToken.params[1];
             break;
         }
         case TokenType::DATASET: {

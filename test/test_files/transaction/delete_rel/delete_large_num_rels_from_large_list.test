@@ -1,4 +1,3 @@
--GROUP DeleteRelTest_deleteLargeNumRelsFromLargeList
 -DATASET CSV rel-update-tests
 --
 

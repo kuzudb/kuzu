@@ -1,4 +1,3 @@
--GROUP CopyToBigResults
 -DATASET CSV copy-test/node/csv
 
 --

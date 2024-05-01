@@ -1,4 +1,3 @@
--GROUP CreateDeleteStringNodeTrxTest
 -DATASET CSV node-insertion-deletion-tests/string-pk
 --
 

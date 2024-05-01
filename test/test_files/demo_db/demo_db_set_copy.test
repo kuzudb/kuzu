@@ -1,4 +1,3 @@
--GROUP DemoDBSetAndCopyTest
 -DATASET CSV demo-db/csv
 
 --

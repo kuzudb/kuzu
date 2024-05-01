@@ -1,4 +1,3 @@
--GROUP DemoDBTest
 -DATASET PARQUET demo-db/parquet
 
 --

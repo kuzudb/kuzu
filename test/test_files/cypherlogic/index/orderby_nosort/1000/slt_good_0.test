@@ -1,6 +1,5 @@
 # These test are translated from SQLLogicTest.
 # They are part of the CypherLogicTest project.
--GROUP CypherLogicTest
 -DATASET CSV empty
 
 --

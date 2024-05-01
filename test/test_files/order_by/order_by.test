@@ -8,7 +8,6 @@
 # FactorizedTable: 2 pages (store results)
 # In total: we need 23 pages for this test case
 
--GROUP OrderByTests
 -DATASET CSV order-by-tests
 
 --

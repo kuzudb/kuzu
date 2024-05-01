@@ -1,4 +1,3 @@
--GROUP COPY_SNAP
 -DATASET CSV snap/amazon0601/parquet
 
 --

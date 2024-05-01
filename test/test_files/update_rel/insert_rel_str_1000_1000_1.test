@@ -1,4 +1,3 @@
--GROUP Issue3143InsertRelStringTest
 -DATASET CSV empty
 --
 -CASE InsertNodeStr
