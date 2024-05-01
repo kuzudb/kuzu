@@ -80,6 +80,9 @@ public:
         KU_ASSERT(getState(stateAndVersion.load()) == LOCKED);
         stateAndVersion &= ~DIRTY_MASK;
     }
+    // Meant to be used when flushing in a single thread.
+    // Should not be used if other threads are modifying the page state
+    inline void clearDirtyWithoutLock() { stateAndVersion &= ~DIRTY_MASK; }
     inline bool isDirty() const { return stateAndVersion & DIRTY_MASK; }
     uint64_t getStateAndVersion() const { return stateAndVersion.load(); }
 

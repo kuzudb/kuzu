@@ -322,6 +322,7 @@ void BufferManager::flushIfDirtyWithoutLock(BMFileHandle& fileHandle, page_idx_t
     if (pageState->isDirty()) {
         fileHandle.getFileInfo()->writeFile(getFrame(fileHandle, pageIdx), fileHandle.getPageSize(),
             pageIdx * fileHandle.getPageSize());
+        pageState->clearDirtyWithoutLock();
     }
 }
 
