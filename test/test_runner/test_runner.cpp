@@ -145,19 +145,16 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             sort(statement->expectedTuples.begin(), statement->expectedTuples.end());
         }
     }
-    std::vector<std::string> resultTuples =
-        TestRunner::convertResultToString(*result, statement->checkOutputOrder, 
-        statement->checkColumnNames);
+    std::vector<std::string> resultTuples = TestRunner::convertResultToString(*result,
+        statement->checkOutputOrder, statement->checkColumnNames);
     uint64_t actualNumTuples = result->getNumTuples();
     if (statement->checkColumnNames) {
         actualNumTuples++;
     }
     if (statement->expectHash) {
-        std::string resultHash =
-            TestRunner::convertResultToMD5Hash(*result, statement->checkOutputOrder, 
-            statement->checkColumnNames);
-        if (resultTuples.size() == actualNumTuples &&
-            resultHash == statement->expectedHashValue &&
+        std::string resultHash = TestRunner::convertResultToMD5Hash(*result,
+            statement->checkOutputOrder, statement->checkColumnNames);
+        if (resultTuples.size() == actualNumTuples && resultHash == statement->expectedHashValue &&
             resultTuples.size() == statement->expectedNumTuples) {
             spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
                 result->getQuerySummary()->getExecutionTime());
@@ -173,8 +170,7 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             return false;
         }
     }
-    if (resultTuples.size() == actualNumTuples &&
-        resultTuples == statement->expectedTuples) {
+    if (resultTuples.size() == actualNumTuples && resultTuples == statement->expectedTuples) {
         spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
             result->getQuerySummary()->getExecutionTime());
         return true;
@@ -208,11 +204,11 @@ std::vector<std::string> TestRunner::convertResultToString(QueryResult& queryRes
     return actualOutput;
 }
 
-std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool checkOutputOrder, 
+std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool checkOutputOrder,
     bool checkColumnNames) {
     queryResult.resetIterator();
     MD5 hasher;
-    std::vector<std::string> stringRep = 
+    std::vector<std::string> stringRep =
         convertResultToString(queryResult, checkOutputOrder, checkColumnNames);
     std::string lineBreaker = "\n";
     for (std::string line : stringRep) {

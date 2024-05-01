@@ -23,8 +23,8 @@ private:
         TestStatement* statement, main::Connection& conn, uint32_t planIdx);
     static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,
         bool checkOutputOrder = false, bool checkColumnNames = false);
-    static std::string convertResultToMD5Hash(main::QueryResult& queryResult,
-        bool checkOutputOrder, bool checkColumnNames); // returns hash and number of values hashed
+    static std::string convertResultToMD5Hash(main::QueryResult& queryResult, bool checkOutputOrder,
+        bool checkColumnNames); // returns hash and number of values hashed
     static std::string convertResultColumnsToString(main::QueryResult& queryResult);
     static bool checkPlanResult(std::unique_ptr<main::QueryResult>& result,
         TestStatement* statement, const std::string& planStr, uint32_t planIndex);
