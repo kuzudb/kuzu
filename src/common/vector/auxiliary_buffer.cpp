@@ -7,7 +7,7 @@ namespace common {
 
 StructAuxiliaryBuffer::StructAuxiliaryBuffer(const LogicalType& type,
     storage::MemoryManager* memoryManager) {
-    auto fieldTypes = StructType::getFieldTypes(&type);
+    auto fieldTypes = StructType::getFieldTypes(type);
     childrenVectors.reserve(fieldTypes.size());
     for (auto fieldType : fieldTypes) {
         childrenVectors.push_back(std::make_shared<ValueVector>(*fieldType, memoryManager));

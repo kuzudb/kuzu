@@ -101,12 +101,12 @@ static void computeListVectorHash(ValueVector* operand, ValueVector* result) {
 static void computeStructVecHash(ValueVector* operand, ValueVector* result) {
     switch (operand->dataType.getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
-        KU_ASSERT(0 == common::StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
+        KU_ASSERT(0 == common::StructType::getFieldIdx(operand->dataType, InternalKeyword::ID));
         UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
             *StructVector::getFieldVector(operand, 0), *result);
     } break;
     case LogicalTypeID::REL: {
-        KU_ASSERT(3 == StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
+        KU_ASSERT(3 == StructType::getFieldIdx(operand->dataType, InternalKeyword::ID));
         UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
             *StructVector::getFieldVector(operand, 3), *result);
     } break;
@@ -114,7 +114,7 @@ static void computeStructVecHash(ValueVector* operand, ValueVector* result) {
         VectorHashFunction::computeHash(StructVector::getFieldVector(operand, 0 /* idx */).get(),
             result);
         auto tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
-        for (auto i = 1u; i < StructType::getNumFields(&operand->dataType); i++) {
+        for (auto i = 1u; i < StructType::getNumFields(operand->dataType); i++) {
             auto fieldVector = StructVector::getFieldVector(operand, i);
             VectorHashFunction::computeHash(fieldVector.get(), tmpHashVector.get());
             VectorHashFunction::combineHash(tmpHashVector.get(), result, result);

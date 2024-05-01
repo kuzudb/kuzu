@@ -88,20 +88,20 @@ template<>
 
 static bool compareNodeEntry(common::ValueVector* vector, uint32_t vectorPos,
     const uint8_t* entry) {
-    KU_ASSERT(0 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
+    KU_ASSERT(0 == common::StructType::getFieldIdx(vector->dataType, common::InternalKeyword::ID));
     auto idVector = common::StructVector::getFieldVector(vector, 0).get();
     return compareEntry<common::internalID_t>(idVector, vectorPos,
         entry + common::NullBuffer::getNumBytesForNullValues(
-                    common::StructType::getNumFields(&vector->dataType)));
+                    common::StructType::getNumFields(vector->dataType)));
 }
 
 static bool compareRelEntry(common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
-    KU_ASSERT(3 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
+    KU_ASSERT(3 == common::StructType::getFieldIdx(vector->dataType, common::InternalKeyword::ID));
     auto idVector = common::StructVector::getFieldVector(vector, 3).get();
     return compareEntry<common::internalID_t>(idVector, vectorPos,
         entry + sizeof(common::internalID_t) * 2 + sizeof(common::ku_string_t) +
             common::NullBuffer::getNumBytesForNullValues(
-                common::StructType::getNumFields(&vector->dataType)));
+                common::StructType::getNumFields(vector->dataType)));
 }
 
 template<>
@@ -115,7 +115,7 @@ template<>
         return compareRelEntry(vector, vectorPos, entry);
     }
     case LogicalTypeID::STRUCT: {
-        auto numFields = StructType::getNumFields(&vector->dataType);
+        auto numFields = StructType::getNumFields(vector->dataType);
         auto entryToCompare = entry + NullBuffer::getNumBytesForNullValues(numFields);
         for (auto i = 0u; i < numFields; i++) {
             auto isNullInEntry = NullBuffer::isNull(entry, i);

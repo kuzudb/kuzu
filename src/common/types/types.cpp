@@ -458,7 +458,7 @@ std::string LogicalType::toString() const {
     case LogicalTypeID::MAP: {
         auto structType =
             ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get())->getChildType();
-        auto fieldTypes = StructType::getFieldTypes(structType);
+        auto fieldTypes = StructType::getFieldTypes(*structType);
         return "MAP(" + fieldTypes[0]->toString() + ", " + fieldTypes[1]->toString() + ")";
     }
     case LogicalTypeID::LIST: {
@@ -887,7 +887,7 @@ uint32_t LogicalTypeUtils::getRowLayoutSize(const LogicalType& type) {
     }
     case PhysicalTypeID::STRUCT: {
         uint32_t size = 0;
-        auto fieldsTypes = StructType::getFieldTypes(&type);
+        auto fieldsTypes = StructType::getFieldTypes(type);
         for (auto fieldType : fieldsTypes) {
             size += getRowLayoutSize(*fieldType);
         }
@@ -1231,7 +1231,7 @@ static bool tryCombineListArrayTypes(const LogicalType& left, const LogicalType&
 // the struct
 static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& right,
     LogicalType& result) {
-    auto leftFields = StructType::getFields(&left), rightFields = StructType::getFields(&right);
+    auto leftFields = StructType::getFields(left), rightFields = StructType::getFields(right);
     if (leftFields.size() != rightFields.size()) {
         return false;
     }
@@ -1275,7 +1275,7 @@ static bool tryCombineMapTypes(const LogicalType& left, const LogicalType& right
 // combine corresponding labels, then we can combine the union
 static bool tryCombineUnionTypes(const LogicalType& left, const LogicalType& right,
     LogicalType& result) {
-    auto leftFields = StructType::getFields(&left), rightFields = StructType::getFields(&right);
+    auto leftFields = StructType::getFields(left), rightFields = StructType::getFields(right);
     if (leftFields.size() > rightFields.size()) {
         std::swap(leftFields, rightFields);
     }

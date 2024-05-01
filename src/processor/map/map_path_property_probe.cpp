@@ -22,7 +22,7 @@ static std::pair<std::vector<struct_field_idx_t>, std::vector<ft_col_idx_t>> get
         StringUtils::toUpper(propertyName);
         propertyNameToColumnIdx.insert({propertyName, i + numKeys});
     }
-    auto structFields = StructType::getFields(&structType);
+    auto structFields = StructType::getFields(structType);
     std::vector<struct_field_idx_t> structFieldIndices;
     std::vector<ft_col_idx_t> colIndices;
     for (auto i = 0u; i < structFields.size(); ++i) {
@@ -64,7 +64,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
             std::make_unique<ResultSetDescriptor>(nodeBuildSchema), nodeBuildSharedState,
             std::move(nodeBuildInfo), std::move(nodeBuildPrevOperator), getOperatorID(), "");
         auto relDataType = rel->getDataType();
-        auto nodesField = StructType::getField(&relDataType, InternalKeyword::NODES);
+        auto nodesField = StructType::getField(relDataType, InternalKeyword::NODES);
         auto nodeStructType = ListType::getChildType(*nodesField->getType());
         auto [fieldIndices, columnIndices] =
             getColIdxToScan(nodePayloads, nodeKeys.size(), *nodeStructType);
@@ -91,7 +91,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
             std::make_unique<ResultSetDescriptor>(relBuildSchema), relBuildSharedState,
             std::move(relBuildInfo), std::move(relBuildPrvOperator), getOperatorID(), "");
         auto relDataType = rel->getDataType();
-        auto relsField = StructType::getField(&relDataType, InternalKeyword::RELS);
+        auto relsField = StructType::getField(relDataType, InternalKeyword::RELS);
         auto relStructType = ListType::getChildType(*relsField->getType());
         auto [fieldIndices, columnIndices] =
             getColIdxToScan(relPayloads, relKeys.size(), *relStructType);

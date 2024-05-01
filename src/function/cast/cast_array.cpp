@@ -49,8 +49,8 @@ bool CastArrayHelper::containsListToArray(const LogicalType* srcType, const Logi
                 ListType::getChildType(*dstType));
         }
         case PhysicalTypeID::STRUCT: {
-            auto srcFieldTypes = StructType::getFieldTypes(srcType);
-            auto dstFieldTypes = StructType::getFieldTypes(dstType);
+            auto srcFieldTypes = StructType::getFieldTypes(*srcType);
+            auto dstFieldTypes = StructType::getFieldTypes(*dstType);
             if (srcFieldTypes.size() != dstFieldTypes.size()) {
                 throw ConversionException{
                     stringFormat("Unsupported casting function from {} to {}.", srcType->toString(),
@@ -118,7 +118,7 @@ void CastArrayHelper::validateListEntry(ValueVector* inputVector, LogicalType* r
     case PhysicalTypeID::STRUCT: {
         if (inputType.getPhysicalType() == PhysicalTypeID::STRUCT) {
             auto fieldVectors = StructVector::getFieldVectors(inputVector);
-            auto fieldTypes = StructType::getFieldTypes(resultType);
+            auto fieldTypes = StructType::getFieldTypes(*resultType);
 
             auto structEntry = inputVector->getValue<struct_entry_t>(pos);
             for (auto i = 0u; i < fieldVectors.size(); i++) {

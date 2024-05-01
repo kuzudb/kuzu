@@ -1093,7 +1093,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1f
     JNIEnv* env, jclass, jobject thisSV, jlong index) {
     auto* sv = getValue(env, thisSV);
     auto dataType = sv->getDataType();
-    auto fieldNames = StructType::getFieldNames(dataType);
+    auto fieldNames = StructType::getFieldNames(*dataType);
     if ((uint64_t)index >= fieldNames.size() || index < 0) {
         return nullptr;
     }
@@ -1106,7 +1106,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1ind
     auto* sv = getValue(env, thisSV);
     const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
     auto dataType = sv->getDataType();
-    auto index = StructType::getFieldIdx(dataType, field_name_cstr);
+    auto index = StructType::getFieldIdx(*dataType, field_name_cstr);
     env->ReleaseStringUTFChars(field_name, field_name_cstr);
     if (index == INVALID_STRUCT_FIELD_IDX) {
         return -1;

@@ -12,8 +12,8 @@ void PathPropertyProbe::initLocalStateInternal(ResultSet* /*resultSet_*/,
     localState = std::make_unique<PathPropertyProbeLocalState>();
     vectors = std::make_unique<Vectors>();
     auto pathVector = resultSet->getValueVector(info->pathPos);
-    auto pathNodesFieldIdx = StructType::getFieldIdx(&pathVector->dataType, InternalKeyword::NODES);
-    auto pathRelsFieldIdx = StructType::getFieldIdx(&pathVector->dataType, InternalKeyword::RELS);
+    auto pathNodesFieldIdx = StructType::getFieldIdx(pathVector->dataType, InternalKeyword::NODES);
+    auto pathRelsFieldIdx = StructType::getFieldIdx(pathVector->dataType, InternalKeyword::RELS);
     vectors->pathNodesVector =
         StructVector::getFieldVector(pathVector.get(), pathNodesFieldIdx).get();
     vectors->pathRelsVector =
@@ -21,9 +21,9 @@ void PathPropertyProbe::initLocalStateInternal(ResultSet* /*resultSet_*/,
     auto pathNodesDataVector = ListVector::getDataVector(vectors->pathNodesVector);
     auto pathRelsDataVector = ListVector::getDataVector(vectors->pathRelsVector);
     auto pathNodesIDFieldIdx =
-        StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::ID);
+        StructType::getFieldIdx(pathNodesDataVector->dataType, InternalKeyword::ID);
     auto pathRelsIDFieldIdx =
-        StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::ID);
+        StructType::getFieldIdx(pathRelsDataVector->dataType, InternalKeyword::ID);
     vectors->pathNodesIDDataVector =
         StructVector::getFieldVector(pathNodesDataVector, pathNodesIDFieldIdx).get();
     vectors->pathRelsIDDataVector =

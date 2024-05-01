@@ -66,7 +66,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
     switch (type->getLogicalTypeID()) {
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT: {
-        auto fields = StructType::getFields(type);
+        auto fields = StructType::getFields(*type);
         // set up the schema element for this struct
         kuzu_parquet::format::SchemaElement schema_element;
         schema_element.repetition_type = nullType;

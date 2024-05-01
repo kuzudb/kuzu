@@ -46,7 +46,7 @@ void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, Arro
     const LogicalType& dataType) {
     child.format = "+s";
     // name is set by parent.
-    child.n_children = (std::int64_t)StructType::getNumFields(&dataType);
+    child.n_children = (std::int64_t)StructType::getNumFields(dataType);
     rootHolder.nestedChildren.emplace_back();
     rootHolder.nestedChildren.back().resize(child.n_children);
     rootHolder.nestedChildrenPtr.emplace_back();
@@ -57,7 +57,7 @@ void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, Arro
     child.children = &rootHolder.nestedChildrenPtr.back()[0];
     for (auto i = 0u; i < child.n_children; i++) {
         initializeChild(*child.children[i]);
-        auto structField = StructType::getField(&dataType, i);
+        auto structField = StructType::getField(dataType, i);
         child.children[i]->name = copyName(rootHolder, structField->getName());
         setArrowFormat(rootHolder, *child.children[i], *structField->getType());
     }

@@ -178,7 +178,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::RDF_VARIANT: {
         std::vector<std::unique_ptr<Value>> children;
-        for (auto& field : StructType::getFields(&dataType)) {
+        for (auto& field : StructType::getFields(dataType)) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*field->getType())));
         }
         return Value(dataType.copy(), std::move(children));
@@ -699,7 +699,7 @@ void Value::copyFromColLayoutStruct(const struct_entry_t& structEntry, ValueVect
 }
 
 void Value::copyFromUnion(const uint8_t* kuUnion) {
-    auto childrenTypes = StructType::getFieldTypes(dataType.get());
+    auto childrenTypes = StructType::getFieldTypes(*dataType);
     auto unionNullValues = kuUnion;
     auto unionValues = unionNullValues + NullBuffer::getNumBytesForNullValues(childrenTypes.size());
     // For union dataType, only one member can be active at a time. So we don't need to copy all
@@ -1007,7 +1007,7 @@ std::string Value::listToString() const {
 
 std::string Value::structToString() const {
     std::string result = "{";
-    auto fieldNames = StructType::getFieldNames(dataType.get());
+    auto fieldNames = StructType::getFieldNames(*dataType);
     for (auto i = 0u; i < childrenSize; ++i) {
         result += fieldNames[i] + ": ";
         result += children[i]->toString();
@@ -1026,7 +1026,7 @@ std::string Value::nodeToString() const {
         return "";
     }
     std::string result = "{";
-    auto fieldNames = StructType::getFieldNames(dataType.get());
+    auto fieldNames = StructType::getFieldNames(*dataType);
     for (auto i = 0u; i < childrenSize; ++i) {
         if (children[i]->isNull_) {
             // Avoid printing null key value pair.
@@ -1048,7 +1048,7 @@ std::string Value::relToString() const {
         return "";
     }
     std::string result = "(" + children[0]->toString() + ")-{";
-    auto fieldNames = StructType::getFieldNames(dataType.get());
+    auto fieldNames = StructType::getFieldNames(*dataType);
     for (auto i = 2u; i < childrenSize; ++i) {
         if (children[i]->isNull_) {
             // Avoid printing null key value pair.

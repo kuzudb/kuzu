@@ -72,7 +72,7 @@ private:
         switch (column->getDataType().getPhysicalType()) {
         case PhysicalTypeID::STRUCT: {
             auto structColumn = ku_dynamic_cast<Column*, StructColumn*>(column);
-            auto numChildren = StructType::getNumFields(&structColumn->getDataType());
+            auto numChildren = StructType::getNumFields(structColumn->getDataType());
             for (auto i = 0u; i < numChildren; i++) {
                 auto childColumn = structColumn->getChild(i);
                 auto subColumns = collectColumns(childColumn);

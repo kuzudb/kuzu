@@ -57,8 +57,8 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             // check if struct type can be cast
             auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
                 inputType->toString(), resultType->toString());
-            auto inputTypeNames = StructType::getFieldNames(inputType);
-            auto resultTypeNames = StructType::getFieldNames(resultType);
+            auto inputTypeNames = StructType::getFieldNames(*inputType);
+            auto resultTypeNames = StructType::getFieldNames(*resultType);
             if (inputTypeNames.size() != resultTypeNames.size()) {
                 throw ConversionException{errorMsg};
             }
@@ -149,7 +149,7 @@ static bool hasImplicitCastListToArray(const LogicalType& srcType, const Logical
 }
 
 static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType& dstType) {
-    auto srcFields = StructType::getFields(&srcType), dstFields = StructType::getFields(&dstType);
+    auto srcFields = StructType::getFields(srcType), dstFields = StructType::getFields(dstType);
     if (srcFields.size() != dstFields.size()) {
         return false;
     }

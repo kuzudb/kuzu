@@ -89,7 +89,7 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
         InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
-        auto fields = StructType::getFields(&dataType);
+        auto fields = StructType::getFields(dataType);
         metadataDAHInfo->childrenInfos.resize(fields.size());
         for (auto i = 0u; i < fields.size(); i++) {
             metadataDAHInfo->childrenInfos[i] =

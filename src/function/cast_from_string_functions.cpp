@@ -564,7 +564,7 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
         auto keyEnd = input;
         trimRightWhitespace(keyStart, keyEnd);
         trimQuotes(keyStart, keyEnd);
-        auto fieldIdx = StructType::getFieldIdx(&type, std::string{keyStart, keyEnd});
+        auto fieldIdx = StructType::getFieldIdx(type, std::string{keyStart, keyEnd});
         if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
             throw ParserException{"Invalid struct field name: " + std::string{keyStart, keyEnd}};
         }

@@ -49,7 +49,7 @@ uint64_t logical_type_get_array_num_elements(const LogicalType& logicalType) {
 rust::Vec<rust::String> logical_type_get_struct_field_names(
     const kuzu::common::LogicalType& value) {
     rust::Vec<rust::String> names;
-    for (auto name : kuzu::common::StructType::getFieldNames(&value)) {
+    for (auto name : kuzu::common::StructType::getFieldNames(value)) {
         names.push_back(name);
     }
     return names;
@@ -58,7 +58,7 @@ rust::Vec<rust::String> logical_type_get_struct_field_names(
 std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_field_types(
     const kuzu::common::LogicalType& value) {
     std::vector<kuzu::common::LogicalType> result;
-    for (auto type : kuzu::common::StructType::getFieldTypes(&value)) {
+    for (auto type : kuzu::common::StructType::getFieldTypes(value)) {
         result.push_back(*type);
     }
     return std::make_unique<std::vector<LogicalType>>(result);
