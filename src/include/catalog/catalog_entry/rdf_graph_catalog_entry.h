@@ -25,6 +25,7 @@ public:
     common::table_id_t getLiteralTableID() const { return literalTableID; }
     common::table_id_t getResourceTripleTableID() const { return resourceTripleTableID; }
     common::table_id_t getLiteralTripleTableID() const { return literalTripleTableID; }
+    common::table_id_set_t getTableIDSet() const;
     static std::string getResourceTableName(const std::string& graphName);
     static std::string getLiteralTableName(const std::string& graphName);
     static std::string getResourceTripleTableName(const std::string& graphName);

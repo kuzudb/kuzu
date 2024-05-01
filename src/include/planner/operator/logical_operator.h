@@ -6,12 +6,12 @@
 namespace kuzu {
 namespace planner {
 
+// This ENUM is sorted by alphabetical order.
 enum class LogicalOperatorType : uint8_t {
     ACCUMULATE,
     AGGREGATE,
     ALTER,
     ATTACH_DATABASE,
-    DETACH_DATABASE,
     COMMENT_ON,
     COPY_FROM,
     COPY_TO,
@@ -20,6 +20,7 @@ enum class LogicalOperatorType : uint8_t {
     CROSS_PRODUCT,
     DELETE_NODE,
     DELETE_REL,
+    DETACH_DATABASE,
     DISTINCT,
     DROP_TABLE,
     DUMMY_SCAN,
@@ -27,11 +28,14 @@ enum class LogicalOperatorType : uint8_t {
     EXPLAIN,
     EXPRESSIONS_SCAN,
     EXTEND,
+    EXTENSION,
+    EXPORT_DATABASE,
     FILTER,
     FLATTEN,
     HASH_JOIN,
     IN_QUERY_CALL,
     INDEX_SCAN_NODE,
+    IMPORT_DATABASE,
     INTERSECT,
     INSERT,
     LIMIT,
@@ -56,9 +60,6 @@ enum class LogicalOperatorType : uint8_t {
     UNION_ALL,
     UNWIND,
     USE_DATABASE,
-    EXTENSION,
-    EXPORT_DATABASE,
-    IMPORT_DATABASE,
 };
 
 struct LogicalOperatorUtils {

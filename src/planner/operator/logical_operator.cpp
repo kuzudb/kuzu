@@ -1,20 +1,23 @@
 #include "planner/operator/logical_operator.h"
 
+#include "common/exception/runtime.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace planner {
 
+// LCOV_EXCL_START
 std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorType type) {
     switch (type) {
-    case LogicalOperatorType::ATTACH_DATABASE:
-        return "ATTACH_DATABASE";
     case LogicalOperatorType::ACCUMULATE:
         return "ACCUMULATE";
     case LogicalOperatorType::AGGREGATE:
         return "AGGREGATE";
     case LogicalOperatorType::ALTER:
         return "ALTER";
+    case LogicalOperatorType::ATTACH_DATABASE:
+        return "ATTACH_DATABASE";
     case LogicalOperatorType::COMMENT_ON:
         return "COMMENT_ON";
     case LogicalOperatorType::COPY_FROM:
@@ -33,8 +36,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "DELETE_REL";
     case LogicalOperatorType::DETACH_DATABASE:
         return "DETACH_DATABASE";
-    case LogicalOperatorType::USE_DATABASE:
-        return "USE_DATABASE";
     case LogicalOperatorType::DISTINCT:
         return "DISTINCT";
     case LogicalOperatorType::DROP_TABLE:
@@ -43,12 +44,16 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "DUMMY_SCAN";
     case LogicalOperatorType::EMPTY_RESULT:
         return "EMPTY_RESULT";
-    case LogicalOperatorType::EXTEND:
-        return "EXTEND";
-    case LogicalOperatorType::EXPRESSIONS_SCAN:
-        return "EXPRESSIONS_SCAN";
     case LogicalOperatorType::EXPLAIN:
         return "EXPLAIN";
+    case LogicalOperatorType::EXPRESSIONS_SCAN:
+        return "EXPRESSIONS_SCAN";
+    case LogicalOperatorType::EXTENSION:
+        return "LOAD";
+    case LogicalOperatorType::EXPORT_DATABASE:
+        return "EXPORT_DATABASE";
+    case LogicalOperatorType::EXTEND:
+        return "EXTEND";
     case LogicalOperatorType::FILTER:
         return "FILTER";
     case LogicalOperatorType::FLATTEN:
@@ -59,6 +64,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "IN_QUERY_CALL";
     case LogicalOperatorType::INDEX_SCAN_NODE:
         return "INDEX_SCAN_NODE";
+    case LogicalOperatorType::IMPORT_DATABASE:
+        return "IMPORT_DATABASE";
     case LogicalOperatorType::INTERSECT:
         return "INTERSECT";
     case LogicalOperatorType::INSERT:
@@ -105,16 +112,13 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "UNION_ALL";
     case LogicalOperatorType::UNWIND:
         return "UNWIND";
-    case LogicalOperatorType::EXTENSION:
-        return "LOAD";
-    case LogicalOperatorType::EXPORT_DATABASE:
-        return "EXPORT_DATABASE";
-    case LogicalOperatorType::IMPORT_DATABASE:
-        return "IMPORT_DATABASE";
+    case LogicalOperatorType::USE_DATABASE:
+        return "USE_DATABASE";
     default:
-        KU_UNREACHABLE;
+        throw RuntimeException("Unknown logical operator type.");
     }
 }
+// LCOV_EXCL_STOP
 
 bool LogicalOperatorUtils::isUpdate(LogicalOperatorType type) {
     switch (type) {

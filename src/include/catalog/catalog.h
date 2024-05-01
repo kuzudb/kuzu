@@ -49,8 +49,8 @@ public:
     std::vector<TableCatalogEntry*> getTableEntries(transaction::Transaction* tx) const;
     std::vector<TableCatalogEntry*> getTableSchemas(transaction::Transaction* tx,
         const common::table_id_vector_t& tableIDs) const;
-    bool relTableExistInRelTableGroup(transaction::Transaction* tx,
-        common::table_id_t tableID) const;
+    bool tableInRDFGraph(transaction::Transaction* tx, common::table_id_t tableID) const;
+    bool tableInRelGroup(transaction::Transaction* tx, common::table_id_t tableID) const;
 
     common::table_id_t createTableSchema(const binder::BoundCreateTableInfo& info);
     void dropTableSchema(common::table_id_t tableID);

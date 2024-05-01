@@ -10,6 +10,9 @@ namespace processor {
 using std::stringstream;
 
 void ImportDB::executeInternal(ExecutionContext* context) {
+    if (query.empty()) { // Export empty database.
+        return;
+    }
     context->clientContext->runQuery(query);
 }
 

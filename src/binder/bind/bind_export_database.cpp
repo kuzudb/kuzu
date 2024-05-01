@@ -102,6 +102,9 @@ static bool bindExportQuery(ExportedTableData& tableData, std::string& exportQue
 
 bool Binder::bindExportTableData(ExportedTableData& tableData, TableCatalogEntry* entry,
     const Catalog& catalog, transaction::Transaction* tx) {
+    if (catalog.tableInRDFGraph(tx, entry->getTableID())) {
+        return false;
+    }
     std::string exportQuery;
     tableData.canParallel = true;
     tableData.tableName = entry->getName();
@@ -123,10 +126,13 @@ bool Binder::bindExportTableData(ExportedTableData& tableData, TableCatalogEntry
 }
 
 std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement& statement) {
-    auto& exportDatabaseStatement = ku_dynamic_cast<const Statement&, const ExportDB&>(statement);
-    auto boundFilePath = exportDatabaseStatement.getFilePath();
+    auto& exportDB = statement.constCast<ExportDB>();
+    auto boundFilePath = exportDB.getFilePath();
     auto exportData = getExportInfo(*clientContext->getCatalog(), clientContext->getTx(), this);
-    auto parsedOptions = bindParsingOptions(exportDatabaseStatement.getParsingOptionsRef());
+    //    if (exportData.empty()) {
+    //        throw BinderException("Cannot export an empty database.");
+    //    }
+    auto parsedOptions = bindParsingOptions(exportDB.getParsingOptionsRef());
     auto fileType = getFileType(parsedOptions);
     if (fileType != FileType::CSV && fileType != FileType::PARQUET) {
         throw BinderException("Export database currently only supports csv and parquet files.");
