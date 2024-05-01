@@ -91,7 +91,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
             std::move(childWriters), canHaveNullsToCreate);
     }
     case LogicalTypeID::LIST: {
-        auto childType = ListType::getChildType(type);
+        auto childType = ListType::getChildType(*type);
         // Set up the two schema elements for the list
         // for some reason we only set the converted type in the OPTIONAL element
         // first an OPTIONAL element.

@@ -59,7 +59,7 @@ ListColumn::ListColumn(std::string name, LogicalType dataType,
         *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
         propertyStatistics, enableCompression);
     dataColumn = ColumnFactory::createColumn(dataColName,
-        *ListType::getChildType(&this->dataType)->copy(), *metaDAHeaderInfo.childrenInfos[1],
+        *ListType::getChildType(this->dataType)->copy(), *metaDAHeaderInfo.childrenInfos[1],
         dataFH, metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
 }
 
@@ -148,7 +148,7 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
             listColumnChunk->resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
             auto tmpDataColumnChunk =
                 std::make_unique<ListDataColumnChunk>(ColumnChunkFactory::createColumnChunk(
-                    *ListType::getChildType(&this->dataType)->copy(), enableCompression,
+                    *ListType::getChildType(this->dataType)->copy(), enableCompression,
                     std::bit_ceil(resizeNumValues)));
             auto dataListColumnChunk = listColumnChunk->getDataColumnChunk();
             for (auto i = 0u; i < columnChunk->getNumValues(); i++) {

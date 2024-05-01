@@ -41,12 +41,12 @@ bool CastArrayHelper::containsListToArray(const LogicalType* srcType, const Logi
     if (checkCompatibleNestedTypes(srcType->getLogicalTypeID(), dstType->getLogicalTypeID())) {
         switch (srcType->getPhysicalType()) {
         case PhysicalTypeID::LIST: {
-            return containsListToArray(ListType::getChildType(srcType),
-                ListType::getChildType(dstType));
+            return containsListToArray(ListType::getChildType(*srcType),
+                ListType::getChildType(*dstType));
         }
         case PhysicalTypeID::ARRAY: {
             return containsListToArray(ArrayType::getChildType(srcType),
-                ListType::getChildType(dstType));
+                ListType::getChildType(*dstType));
         }
         case PhysicalTypeID::STRUCT: {
             auto srcFieldTypes = StructType::getFieldTypes(srcType);
@@ -111,7 +111,7 @@ void CastArrayHelper::validateListEntry(ValueVector* inputVector, LogicalType* r
             auto listEntry = inputVector->getValue<list_entry_t>(pos);
             auto inputChildVector = ListVector::getDataVector(inputVector);
             for (auto i = listEntry.offset; i < listEntry.offset + listEntry.size; i++) {
-                validateListEntry(inputChildVector, ListType::getChildType(resultType), i);
+                validateListEntry(inputChildVector, ListType::getChildType(*resultType), i);
             }
         }
     } break;

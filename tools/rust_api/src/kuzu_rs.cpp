@@ -37,7 +37,7 @@ std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
 }
 
 const LogicalType& logical_type_get_list_child_type(const LogicalType& logicalType) {
-    return *kuzu::common::ListType::getChildType(&logicalType);
+    return *kuzu::common::ListType::getChildType(logicalType);
 }
 const LogicalType& logical_type_get_array_child_type(const LogicalType& logicalType) {
     return *kuzu::common::ArrayType::getChildType(&logicalType);

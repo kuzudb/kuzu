@@ -100,7 +100,7 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
         metadataDAHInfo->childrenInfos.push_back(
             createMetadataDAHInfo(*LogicalType::UINT32(), metadataFH, bm, wal));
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(*ListType::getChildType(&dataType), metadataFH, bm, wal));
+            createMetadataDAHInfo(*ListType::getChildType(dataType), metadataFH, bm, wal));
     } break;
     case PhysicalTypeID::ARRAY: {
         metadataDAHInfo->childrenInfos.push_back(

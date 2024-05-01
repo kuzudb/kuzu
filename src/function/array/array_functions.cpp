@@ -77,7 +77,7 @@ static LogicalType getChildType(const LogicalType& type) {
     case LogicalTypeID::ARRAY:
         return *ArrayType::getChildType(&type);
     case LogicalTypeID::LIST:
-        return *ListType::getChildType(&type);
+        return *ListType::getChildType(type);
         // LCOV_EXCL_START
     default:
         throw BinderException(stringFormat(

@@ -645,7 +645,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1chil
     if (parent_type->getLogicalTypeID() == LogicalTypeID::ARRAY) {
         child_type = ArrayType::getChildType(parent_type);
     } else if (parent_type->getLogicalTypeID() == LogicalTypeID::LIST) {
-        child_type = ListType::getChildType(parent_type);
+        child_type = ListType::getChildType(*parent_type);
     } else {
         return nullptr;
     }

@@ -26,7 +26,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
     }
     if (!skipDataTypeValidation(*boundExpression)) {
         ExpressionUtil::validateDataType(*boundExpression, LogicalTypeID::LIST);
-        alias = createVariable(aliasName, *ListType::getChildType(&boundExpression->dataType));
+        alias = createVariable(aliasName, *ListType::getChildType(boundExpression->dataType));
     } else {
         alias = createVariable(aliasName, *LogicalType::ANY());
     }

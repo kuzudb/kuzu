@@ -365,7 +365,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
         std::vector<std::unique_ptr<Value>> children;
         for (auto child : lst) {
             children.push_back(std::make_unique<Value>(
-                transformPythonValueAs(child, ListType::getChildType(type))));
+                transformPythonValueAs(child, ListType::getChildType(*type))));
         }
         return Value(std::make_unique<LogicalType>(*type), std::move(children));
     }

@@ -126,8 +126,8 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
 }
 
 static bool hasImplicitCastList(const LogicalType& srcType, const LogicalType& dstType) {
-    return CastFunction::hasImplicitCast(*ListType::getChildType(&srcType),
-        *ListType::getChildType(&dstType));
+    return CastFunction::hasImplicitCast(*ListType::getChildType(srcType),
+        *ListType::getChildType(dstType));
 }
 
 static bool hasImplicitCastArray(const LogicalType& srcType, const LogicalType& dstType) {
@@ -140,11 +140,11 @@ static bool hasImplicitCastArray(const LogicalType& srcType, const LogicalType& 
 
 static bool hasImplicitCastArrayToList(const LogicalType& srcType, const LogicalType& dstType) {
     return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType),
-        *ListType::getChildType(&dstType));
+        *ListType::getChildType(dstType));
 }
 
 static bool hasImplicitCastListToArray(const LogicalType& srcType, const LogicalType& dstType) {
-    return CastFunction::hasImplicitCast(*ListType::getChildType(&srcType),
+    return CastFunction::hasImplicitCast(*ListType::getChildType(srcType),
         *ArrayType::getChildType(&dstType));
 }
 

@@ -129,7 +129,7 @@ static void resizeFixedListVector(ArrowVector* vector, const LogicalType& type, 
 static void resizeListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
     int64_t childCapacity) {
     resizeGeneric(vector, type, capacity);
-    resizeChildVectors(vector, {ListType::getChildType(&type)}, childCapacity);
+    resizeChildVectors(vector, {ListType::getChildType(type)}, childCapacity);
 }
 
 static void resizeStructVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
@@ -301,9 +301,9 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::LIST>(ArrowVector* v
         offsets[pos] = 0;
     }
     offsets[pos + 1] = offsets[pos] + numElements;
-    resizeChildVectors(vector, {ListType::getChildType(&type)}, offsets[pos + 1] + 1);
+    resizeChildVectors(vector, {ListType::getChildType(type)}, offsets[pos + 1] + 1);
     for (auto i = 0u; i < numElements; i++) {
-        appendValue(vector->childData[0].get(), *ListType::getChildType(&type),
+        appendValue(vector->childData[0].get(), *ListType::getChildType(type),
             value->children[i].get());
     }
 }
@@ -705,7 +705,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::LIST>(ArrowVector&
     result->children = vector.childPointers.data();
     result->n_children = 1;
     vector.childPointers[0] =
-        convertVectorToArray(*vector.childData[0], *ListType::getChildType(&type));
+        convertVectorToArray(*vector.childData[0], *ListType::getChildType(type));
     vector.array = std::move(result);
     return vector.array.get();
 }

@@ -20,7 +20,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     auto literalExpr = arguments[1]->constPtrCast<LiteralExpression>();
     auto key = literalExpr->getValue().getValue<std::string>();
     auto listType = arguments[0]->getDataType();
-    auto childType = ListType::getChildType(&listType);
+    auto childType = ListType::getChildType(listType);
     struct_field_idx_t fieldIdx;
     if (childType->getLogicalTypeID() == LogicalTypeID::NODE ||
         childType->getLogicalTypeID() == LogicalTypeID::REL) {

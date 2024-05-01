@@ -388,7 +388,7 @@ void Value::copyFromRowLayout(const uint8_t* value) {
     } break;
     case LogicalTypeID::MAP:
     case LogicalTypeID::LIST: {
-        copyFromRowLayoutList(*(ku_list_t*)value, *ListType::getChildType(dataType.get()));
+        copyFromRowLayoutList(*(ku_list_t*)value, *ListType::getChildType(*dataType));
     } break;
     case LogicalTypeID::ARRAY: {
         copyFromRowLayoutList(*(ku_list_t*)value, *ArrayType::getChildType(dataType.get()));
