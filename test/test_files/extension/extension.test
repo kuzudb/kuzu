@@ -8,10 +8,8 @@
 -SKIP_MUSL
 -LOG InstallExtension
 -STATEMENT INSTALL httpfs;
----- ok
--STATEMENT LOAD EXTENSION httpfs;
----- ok
--STATEMENT LOAD FROM 'http://extension.kuzudb.com/dataset/test/city.csv' return *;
+           LOAD EXTENSION httpfs;
+           LOAD FROM 'http://extension.kuzudb.com/dataset/test/city.csv' return *;
 ---- 3
 Guelph|75000
 Kitchener|200000
