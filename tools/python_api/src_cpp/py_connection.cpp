@@ -275,9 +275,9 @@ static Value transformPythonValueAs(py::handle val, const LogicalType& type) {
     auto time_delta = importCache->datetime.timedelta();
     auto datetime_date = importCache->datetime.date();
     if (val.is_none()) {
-        return Value::createNullValue(*type);
+        return Value::createNullValue(type);
     }
-    switch (type->getLogicalTypeID()) {
+    switch (type.getLogicalTypeID()) {
     case LogicalTypeID::ANY:
         return Value::createNullValue();
     case LogicalTypeID::BOOL:
@@ -372,8 +372,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType& type) {
     case LogicalTypeID::MAP: {
         py::dict dict = py::reinterpret_borrow<py::dict>(val);
         std::vector<std::unique_ptr<Value>> children;
-        auto childKeyType = MapType::getKeyType(type),
-             childValueType = MapType::getValueType(type);
+        auto childKeyType = MapType::getKeyType(type), childValueType = MapType::getValueType(type);
         for (auto child : dict) {
             // type construction is inefficient, we have to create duplicates because it asks for
             // a unique ptr
@@ -401,7 +400,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType& type) {
 
 Value transformPythonValue(py::handle val) {
     auto type = pyLogicalType(val);
-    return transformPythonValueAs(val, type.get());
+    return transformPythonValueAs(val, *type);
 }
 
 std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(

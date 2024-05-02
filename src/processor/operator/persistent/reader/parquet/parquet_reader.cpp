@@ -288,7 +288,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
                 thisIdx, maxDefine, maxRepeat, std::move(childrenReaders));
         } else {
             // if we have a struct with only a single type, pull up
-            resultType = structFields[0].getType()->copy();
+            resultType = structFields[0].getType().copy();
             result = std::move(childrenReaders[0]);
         }
         if (isRepeated) {

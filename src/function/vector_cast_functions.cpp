@@ -33,13 +33,13 @@ struct CastChildFunctionExecutor {
 
 static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector,
     uint64_t numOfEntries, CastFunctionBindData* dataPtr) {
-    auto inputType = &inputVector->dataType;
-    auto resultType = &resultVector->dataType;
+    auto inputType = inputVector->dataType;
+    auto resultType = resultVector->dataType;
     while (true) {
-        if ((inputType->getPhysicalType() == PhysicalTypeID::LIST ||
-                inputType->getPhysicalType() == PhysicalTypeID::ARRAY) &&
-            (resultType->getPhysicalType() == PhysicalTypeID::LIST ||
-                resultType->getPhysicalType() == PhysicalTypeID::ARRAY)) {
+        if ((inputType.getPhysicalType() == PhysicalTypeID::LIST ||
+                inputType.getPhysicalType() == PhysicalTypeID::ARRAY) &&
+            (resultType.getPhysicalType() == PhysicalTypeID::LIST ||
+                resultType.getPhysicalType() == PhysicalTypeID::ARRAY)) {
             // copy data and nullmask from input
             memcpy(resultVector->getData(), inputVector->getData(),
                 numOfEntries * resultVector->getNumBytesPerValue());
@@ -50,15 +50,15 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
 
             inputVector = ListVector::getSharedDataVector(inputVector.get());
             resultVector = ListVector::getDataVector(resultVector);
-            inputType = &inputVector->dataType;
-            resultType = &resultVector->dataType;
-        } else if (inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
-                   resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) {
+            inputType = inputVector->dataType;
+            resultType = resultVector->dataType;
+        } else if (inputType.getLogicalTypeID() == LogicalTypeID::STRUCT &&
+                   resultType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
             // check if struct type can be cast
             auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
-                inputType->toString(), resultType->toString());
-            auto inputTypeNames = StructType::getFieldNames(*inputType);
-            auto resultTypeNames = StructType::getFieldNames(*resultType);
+                inputType.toString(), resultType.toString());
+            auto inputTypeNames = StructType::getFieldNames(inputType);
+            auto resultTypeNames = StructType::getFieldNames(resultType);
             if (inputTypeNames.size() != resultTypeNames.size()) {
                 throw ConversionException{errorMsg};
             }
@@ -86,9 +86,9 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
     }
 
     // non-nested types
-    if (inputType->getLogicalTypeID() != resultType->getLogicalTypeID()) {
+    if (inputType.getLogicalTypeID() != resultType.getLogicalTypeID()) {
         auto func = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",
-            inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
+            inputType.getLogicalTypeID(), resultType.getLogicalTypeID())
                         ->execFunc;
         std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
         dataPtr->numOfEntries = numOfEntries;
@@ -107,10 +107,10 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
     const auto& inputVector = params[0];
 
     // check if all selcted list entry have the requried fixed list size
-    if (CastArrayHelper::containsListToArray(&inputVector->dataType, &result.dataType)) {
+    if (CastArrayHelper::containsListToArray(inputVector->dataType, result.dataType)) {
         for (auto i = 0u; i < inputVector->state->selVector->selectedSize; i++) {
             auto pos = inputVector->state->selVector->selectedPositions[i];
-            CastArrayHelper::validateListEntry(inputVector.get(), &result.dataType, pos);
+            CastArrayHelper::validateListEntry(inputVector.get(), result.dataType, pos);
         }
     };
 

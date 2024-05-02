@@ -95,7 +95,7 @@ static void resizeChildVectors(ArrowVector* vector, const std::vector<LogicalTyp
         if (i >= vector->childData.size()) {
             vector->childData.push_back(std::make_unique<ArrowVector>());
         }
-        resizeVector(vector->childData[i].get(), *childTypes[i], childCapacity);
+        resizeVector(vector->childData[i].get(), childTypes[i], childCapacity);
     }
 }
 
@@ -744,7 +744,7 @@ ArrowArray* ArrowRowBatch::convertStructVectorToArray(ArrowVector& vector,
     result->children = vector.childPointers.data();
     result->n_children = (std::int64_t)StructType::getNumFields(type);
     for (auto i = 0u; i < StructType::getNumFields(type); i++) {
-        auto& childType = StructType::getFieldTypes(type)[i];
+        auto childType = StructType::getFieldTypes(type)[i];
         vector.childPointers[i] = convertVectorToArray(*vector.childData[i], childType);
     }
     vector.array = std::move(result);

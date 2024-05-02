@@ -302,7 +302,7 @@ struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) cons
 }
 
 StructField StructTypeInfo::getStructField(struct_field_idx_t idx) const {
-    return fields[idx];
+    return fields[idx].copy();
 }
 
 StructField StructTypeInfo::getStructField(const std::string& fieldName) const {
@@ -310,7 +310,7 @@ StructField StructTypeInfo::getStructField(const std::string& fieldName) const {
     if (idx == INVALID_STRUCT_FIELD_IDX) {
         throw BinderException("Cannot find field " + fieldName + " in STRUCT.");
     }
-    return fields[idx];
+    return fields[idx].copy();
 }
 
 LogicalType StructTypeInfo::getChildType(kuzu::common::struct_field_idx_t idx) const {
@@ -336,7 +336,7 @@ std::vector<std::string> StructTypeInfo::getChildrenNames() const {
 std::vector<StructField> StructTypeInfo::getStructFields() const {
     std::vector<StructField> structFields{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {
-        structFields[i] = fields[i];
+        structFields[i] = fields[i].copy();
     }
     return structFields;
 }

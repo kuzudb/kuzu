@@ -47,12 +47,12 @@ ParquetWriter::ParquetWriter(std::string fileName,
     std::vector<std::string> schemaPath;
     for (auto i = 0u; i < this->types.size(); i++) {
         columnWriters.push_back(ColumnWriter::createWriterRecursive(fileMetaData.schema, *this,
-            this->types[i].get(), this->columnNames[i], schemaPath, mm));
+            *this->types[i], this->columnNames[i], schemaPath, mm));
     }
 }
 
-Type::type ParquetWriter::convertToParquetType(LogicalType* type) {
-    switch (type->getLogicalTypeID()) {
+Type::type ParquetWriter::convertToParquetType(const LogicalType& type) {
+    switch (type.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         return Type::BOOLEAN;
     case LogicalTypeID::INT8:
@@ -84,12 +84,12 @@ Type::type ParquetWriter::convertToParquetType(LogicalType* type) {
     default:
         throw RuntimeException{
             stringFormat("Writing a column with type: {} to parquet is not supported.",
-                LogicalTypeUtils::toString(type->getLogicalTypeID()))};
+                LogicalTypeUtils::toString(type.getLogicalTypeID()))};
     }
 }
 
-void ParquetWriter::setSchemaProperties(LogicalType* type, SchemaElement& schemaElement) {
-    switch (type->getLogicalTypeID()) {
+void ParquetWriter::setSchemaProperties(const LogicalType& type, SchemaElement& schemaElement) {
+    switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INT8: {
         schemaElement.converted_type = ConvertedType::INT_8;
         schemaElement.__isset.converted_type = true;
@@ -145,7 +145,7 @@ void ParquetWriter::setSchemaProperties(LogicalType* type, SchemaElement& schema
         schemaElement.__isset.logicalType = true;
         schemaElement.logicalType.__isset.TIMESTAMP = true;
         schemaElement.logicalType.TIMESTAMP.isAdjustedToUTC =
-            (type->getLogicalTypeID() == LogicalTypeID::TIMESTAMP_TZ);
+            (type.getLogicalTypeID() == LogicalTypeID::TIMESTAMP_TZ);
         schemaElement.logicalType.TIMESTAMP.unit.__isset.MICROS = true;
     } break;
     case LogicalTypeID::TIMESTAMP_MS: {

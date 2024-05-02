@@ -37,7 +37,7 @@ static std::unique_ptr<FunctionBindData> ListSortBindFunc(
             arguments[0]->toString()));
     }
     common::TypeUtils::visit(
-        getChildType(arguments[0]->dataType).getPhysicalType(),
+        ListType::getChildType(arguments[0]->dataType).getPhysicalType(),
         [&arguments, &scalarFunction]<ComparableTypes T>(
             T) { scalarFunction->execFunc = getListSortExecFunction<ListSort<T>>(arguments); },
         [](auto) { KU_UNREACHABLE; });

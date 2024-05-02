@@ -15,7 +15,7 @@ namespace evaluator {
 static std::vector<ValueVector*> getFieldVectors(const LogicalType& inputType,
     const LogicalType& resultType, ValueVector* inputVector) {
     std::vector<ValueVector*> result;
-    for (auto field : StructType::getFields(resultType)) {
+    for (auto& field : StructType::getFields(resultType)) {
         auto fieldName = StringUtils::getUpper(field.getName());
         if (StructType::hasField(inputType, fieldName)) {
             auto idx = StructType::getFieldIdx(inputType, fieldName);

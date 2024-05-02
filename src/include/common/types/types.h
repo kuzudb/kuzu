@@ -181,130 +181,9 @@ enum class PhysicalTypeID : uint8_t {
     POINTER = 25,
 };
 
-class LogicalType;
-
-class ExtraTypeInfo {
-public:
-    virtual ~ExtraTypeInfo() = default;
-
-    void serialize(Serializer& serializer) const { serializeInternal(serializer); }
-
-    virtual bool containsAny() const = 0;
-
-    virtual bool operator==(const ExtraTypeInfo& other) const = 0;
-
-    virtual std::unique_ptr<ExtraTypeInfo> copy() const = 0;
-
-    template<class TARGET>
-    const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const ExtraTypeInfo*, const TARGET*>(this);
-    }
-
-protected:
-    virtual void serializeInternal(Serializer& serializer) const = 0;
-};
-
-class ListTypeInfo : public ExtraTypeInfo {
-public:
-    ListTypeInfo() = default;
-    explicit ListTypeInfo(std::unique_ptr<LogicalType> childType)
-        : childType{std::move(childType)} {}
-
-    LogicalType getChildType() const { return *childType; }
-
-    bool containsAny() const override;
-
-    bool operator==(const ExtraTypeInfo& other) const override;
-
-    std::unique_ptr<ExtraTypeInfo> copy() const override;
-
-    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
-
-protected:
-    void serializeInternal(Serializer& serializer) const override;
-
-protected:
-    std::unique_ptr<LogicalType> childType;
-};
-
-class ArrayTypeInfo : public ListTypeInfo {
-public:
-    ArrayTypeInfo() = default;
-    explicit ArrayTypeInfo(std::unique_ptr<LogicalType> childType, uint64_t numElements)
-        : ListTypeInfo{std::move(childType)}, numElements{numElements} {}
-
-    uint64_t getNumElements() const { return numElements; }
-
-    bool operator==(const ExtraTypeInfo& other) const override;
-
-    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
-
-    std::unique_ptr<ExtraTypeInfo> copy() const override;
-
-private:
-    void serializeInternal(Serializer& serializer) const override;
-
-private:
-    uint64_t numElements;
-};
-
-class StructField {
-public:
-    StructField() : type{std::make_unique<LogicalType>()} {}
-    StructField(std::string name, std::unique_ptr<LogicalType> type)
-        : name{std::move(name)}, type{std::move(type)} {};
-
-    std::string getName() const { return name; }
-
-    LogicalType getType() const { return *type; }
-
-    bool containsAny() const;
-
-    bool operator==(const StructField& other) const;
-    bool operator!=(const StructField& other) const { return !(*this == other); }
-
-    void serialize(Serializer& serializer) const;
-
-    static StructField deserialize(Deserializer& deserializer);
-
-    StructField copy() const;
-
-private:
-    std::string name;
-    std::unique_ptr<LogicalType> type;
-};
-
-class StructTypeInfo : public ExtraTypeInfo {
-public:
-    StructTypeInfo() = default;
-    explicit StructTypeInfo(std::vector<StructField>&& fields);
-    StructTypeInfo(const std::vector<std::string>& fieldNames,
-        const std::vector<std::unique_ptr<LogicalType>>& fieldTypes);
-
-    bool hasField(const std::string& fieldName) const;
-    struct_field_idx_t getStructFieldIdx(std::string fieldName) const;
-    StructField getStructField(struct_field_idx_t idx) const;
-    StructField getStructField(const std::string& fieldName) const;
-    std::vector<StructField> getStructFields() const;
-
-    LogicalType getChildType(struct_field_idx_t idx) const;
-    std::vector<LogicalType> getChildrenTypes() const;
-    std::vector<std::string> getChildrenNames() const;
-
-    bool containsAny() const override;
-
-    bool operator==(const ExtraTypeInfo& other) const override;
-
-    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
-    std::unique_ptr<ExtraTypeInfo> copy() const override;
-
-private:
-    void serializeInternal(Serializer& serializer) const override;
-
-private:
-    std::vector<StructField> fields;
-    std::unordered_map<std::string, struct_field_idx_t> fieldNameToIdxMap;
-};
+class ExtraTypeInfo;
+class StructField;
+class StructTypeInfo;
 
 class LogicalType {
     friend struct LogicalTypeUtils;
@@ -475,6 +354,129 @@ private:
     LogicalTypeID typeID;
     PhysicalTypeID physicalType;
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
+};
+
+class ExtraTypeInfo {
+public:
+    virtual ~ExtraTypeInfo() = default;
+
+    void serialize(Serializer& serializer) const { serializeInternal(serializer); }
+
+    virtual bool containsAny() const = 0;
+
+    virtual bool operator==(const ExtraTypeInfo& other) const = 0;
+
+    virtual std::unique_ptr<ExtraTypeInfo> copy() const = 0;
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const ExtraTypeInfo*, const TARGET*>(this);
+    }
+
+protected:
+    virtual void serializeInternal(Serializer& serializer) const = 0;
+};
+
+class ListTypeInfo : public ExtraTypeInfo {
+public:
+    ListTypeInfo() = default;
+    explicit ListTypeInfo(std::unique_ptr<LogicalType> childType)
+        : childType{std::move(childType)} {}
+
+    LogicalType getChildType() const { return *childType; }
+
+    bool containsAny() const override;
+
+    bool operator==(const ExtraTypeInfo& other) const override;
+
+    std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
+
+protected:
+    void serializeInternal(Serializer& serializer) const override;
+
+protected:
+    std::unique_ptr<LogicalType> childType;
+};
+
+class ArrayTypeInfo : public ListTypeInfo {
+public:
+    ArrayTypeInfo() = default;
+    explicit ArrayTypeInfo(std::unique_ptr<LogicalType> childType, uint64_t numElements)
+        : ListTypeInfo{std::move(childType)}, numElements{numElements} {}
+
+    uint64_t getNumElements() const { return numElements; }
+
+    bool operator==(const ExtraTypeInfo& other) const override;
+
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
+
+    std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+private:
+    void serializeInternal(Serializer& serializer) const override;
+
+private:
+    uint64_t numElements;
+};
+
+class StructField {
+public:
+    StructField() : type{std::make_unique<LogicalType>()} {}
+    StructField(std::string name, std::unique_ptr<LogicalType> type)
+        : name{std::move(name)}, type{std::move(type)} {};
+
+    std::string getName() const { return name; }
+
+    LogicalType getType() const { return *type; }
+
+    bool containsAny() const;
+
+    bool operator==(const StructField& other) const;
+    bool operator!=(const StructField& other) const { return !(*this == other); }
+
+    void serialize(Serializer& serializer) const;
+
+    static StructField deserialize(Deserializer& deserializer);
+
+    StructField copy() const;
+
+private:
+    std::string name;
+    std::unique_ptr<LogicalType> type;
+};
+
+class StructTypeInfo : public ExtraTypeInfo {
+public:
+    StructTypeInfo() = default;
+    explicit StructTypeInfo(std::vector<StructField>&& fields);
+    StructTypeInfo(const std::vector<std::string>& fieldNames,
+        const std::vector<std::unique_ptr<LogicalType>>& fieldTypes);
+
+    bool hasField(const std::string& fieldName) const;
+    struct_field_idx_t getStructFieldIdx(std::string fieldName) const;
+    StructField getStructField(struct_field_idx_t idx) const;
+    StructField getStructField(const std::string& fieldName) const;
+    std::vector<StructField> getStructFields() const;
+
+    LogicalType getChildType(struct_field_idx_t idx) const;
+    std::vector<LogicalType> getChildrenTypes() const;
+    std::vector<std::string> getChildrenNames() const;
+
+    bool containsAny() const override;
+
+    bool operator==(const ExtraTypeInfo& other) const override;
+
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
+    std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+private:
+    void serializeInternal(Serializer& serializer) const override;
+
+private:
+    std::vector<StructField> fields;
+    std::unordered_map<std::string, struct_field_idx_t> fieldNameToIdxMap;
 };
 
 using logical_type_vec_t = std::vector<LogicalType>;

@@ -54,7 +54,7 @@ ColumnWriter::ColumnWriter(ParquetWriter& writer, uint64_t schemaIdx,
 
 std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
     std::vector<kuzu_parquet::format::SchemaElement>& schemas, ParquetWriter& writer,
-    LogicalType* type, const std::string& name, std::vector<std::string> schemaPathToCreate,
+    const LogicalType& type, const std::string& name, std::vector<std::string> schemaPathToCreate,
     storage::MemoryManager* mm, uint64_t maxRepeatToCreate, uint64_t maxDefineToCreate,
     bool canHaveNullsToCreate) {
     auto nullType =
@@ -63,10 +63,10 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         maxDefineToCreate--;
     }
     auto schemaIdx = schemas.size();
-    switch (type->getLogicalTypeID()) {
+    switch (type.getLogicalTypeID()) {
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT: {
-        auto fields = StructType::getFields(*type);
+        auto fields = StructType::getFields(type);
         // set up the schema element for this struct
         kuzu_parquet::format::SchemaElement schema_element;
         schema_element.repetition_type = nullType;
@@ -82,16 +82,15 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         std::vector<std::unique_ptr<ColumnWriter>> childWriters;
         childWriters.reserve(fields.size());
         for (auto& field : fields) {
-            childWriters.push_back(
-                createWriterRecursive(schemas, writer, &field.getType(), field.getName(),
-                    schemaPathToCreate, mm, maxRepeatToCreate, maxDefineToCreate + 1));
+            childWriters.push_back(createWriterRecursive(schemas, writer, field.getType(),
+                field.getName(), schemaPathToCreate, mm, maxRepeatToCreate, maxDefineToCreate + 1));
         }
         return std::make_unique<StructColumnWriter>(writer, schemaIdx,
             std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
             std::move(childWriters), canHaveNullsToCreate);
     }
     case LogicalTypeID::LIST: {
-        auto childType = ListType::getChildType(*type);
+        auto childType = ListType::getChildType(type);
         // Set up the two schema elements for the list
         // for some reason we only set the converted type in the OPTIONAL element
         // first an OPTIONAL element.
@@ -118,7 +117,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         schemas.push_back(std::move(repeatedElem));
         schemaPathToCreate.emplace_back("list");
 
-        auto child_writer = createWriterRecursive(schemas, writer, &childType, "element",
+        auto child_writer = createWriterRecursive(schemas, writer, childType, "element",
             schemaPathToCreate, mm, maxRepeatToCreate + 1, maxDefineToCreate + 2);
         return std::make_unique<ListColumnWriter>(writer, schemaIdx, std::move(schemaPathToCreate),
             maxRepeatToCreate, maxDefineToCreate, std::move(child_writer), canHaveNullsToCreate);
@@ -155,13 +154,13 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         schemaPathToCreate.emplace_back("key_value");
 
         // Construct the child types recursively.
-        std::vector<common::LogicalType> kvTypes{MapType::getKeyType(*type),
-            MapType::getValueType(*type)};
+        std::vector<common::LogicalType> kvTypes{MapType::getKeyType(type),
+            MapType::getValueType(type)};
         std::vector<std::string> kvNames{"key", "value"};
         std::vector<std::unique_ptr<ColumnWriter>> childrenWriters;
         childrenWriters.reserve(2);
         for (auto i = 0u; i < 2; i++) {
-            auto childWriter = createWriterRecursive(schemas, writer, &kvTypes[i], kvNames[i],
+            auto childWriter = createWriterRecursive(schemas, writer, kvTypes[i], kvNames[i],
                 schemaPathToCreate, mm, maxRepeatToCreate + 1, maxDefineToCreate + 2, i != 0);
             childrenWriters.push_back(std::move(childWriter));
         }
@@ -183,7 +182,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         schemas.push_back(std::move(schemaElement));
         schemaPathToCreate.push_back(name);
 
-        switch (type->getLogicalTypeID()) {
+        switch (type.getLogicalTypeID()) {
         case LogicalTypeID::BOOL:
             return std::make_unique<BooleanColumnWriter>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,

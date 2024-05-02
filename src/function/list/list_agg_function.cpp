@@ -21,9 +21,9 @@ static std::unique_ptr<FunctionBindData> bindFuncListAggr(
         },
         [&function, &resultType](auto) {
             throw BinderException(stringFormat("Unsupported inner data type for {}: {}",
-                function->name, LogicalTypeUtils::toString(resultType->getLogicalTypeID())));
+                function->name, LogicalTypeUtils::toString(resultType.getLogicalTypeID())));
         });
-    return FunctionBindData::getSimpleBindData(arguments, *resultType);
+    return FunctionBindData::getSimpleBindData(arguments, resultType);
 }
 
 struct ListSum {

@@ -706,11 +706,11 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
     // union fields into value.
     auto activeFieldIdx = UnionType::getInternalFieldIdx(*(union_field_idx_t*)unionValues);
     auto childValue = children[0].get();
-    childValue->dataType = childrenTypes[activeFieldIdx]->copy();
+    childValue->dataType = childrenTypes[activeFieldIdx].copy();
     auto curMemberIdx = 0u;
     // Seek to the current active member value.
     while (curMemberIdx < activeFieldIdx) {
-        unionValues += storage::StorageUtils::getDataTypeSize(*childrenTypes[curMemberIdx]);
+        unionValues += storage::StorageUtils::getDataTypeSize(childrenTypes[curMemberIdx]);
         curMemberIdx++;
     }
     if (NullBuffer::isNull(unionNullValues, activeFieldIdx)) {
