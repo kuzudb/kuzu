@@ -20,6 +20,7 @@ using namespace kuzu;
 void PyConnection::initialize(py::handle& m) {
     py::class_<PyConnection>(m, "Connection")
         .def(py::init<PyDatabase*, uint64_t>(), py::arg("database"), py::arg("num_threads") = 0)
+        .def("close", &PyConnection::close)
         .def("execute", &PyConnection::execute, py::arg("prepared_statement"),
             py::arg("parameters") = py::dict())
         .def("query", &PyConnection::query, py::arg("statement"))
@@ -42,6 +43,10 @@ PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
     if (numThreads > 0) {
         conn->setMaxNumThreadForExec(numThreads);
     }
+}
+
+void PyConnection::close() {
+    conn.reset();
 }
 
 void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {

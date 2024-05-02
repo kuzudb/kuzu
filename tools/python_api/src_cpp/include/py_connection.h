@@ -12,6 +12,8 @@ public:
 
     explicit PyConnection(PyDatabase* pyDatabase, uint64_t numThreads);
 
+    void close();
+
     ~PyConnection() = default;
 
     void setQueryTimeout(uint64_t timeoutInMS);

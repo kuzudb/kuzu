@@ -255,7 +255,16 @@ class Database:
         raise ValueError(msg)
 
     def close(self) -> None:
-        """Close the database."""
+        """
+        Close the database. Once the database is closed, the lock on the database
+        files is released and the database can be opened in another process.
+
+        Note: Call to this method is not required. The Python garbage collector
+        will automatically close the database when no references to the database
+        object exist. It is recommended not to call this method explicitly. If you
+        decide to manually close the database, make sure that all the QueryResult
+        and Connection objects are closed before calling this method.
+        """
         if self.is_closed:
             return
         self.is_closed = True
@@ -275,5 +284,5 @@ class Database:
         """
         if not self.is_closed:
             return
-        msg = "Query result is closed"
+        msg = "Database is closed"
         raise RuntimeError(msg)
