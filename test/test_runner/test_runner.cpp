@@ -58,10 +58,20 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn,
             conn.preparedStatementWithError("Connection Exception: Query is empty.");
         return checkLogicalPlan(errorPreparedStatement, statement, conn, 0);
     }
-    if (parsedStatements.size() > 1) {
-        throw TestException("Current test framework does not support multiple query statements!");
+    // Run the non-last queries
+    size_t numParsed = parsedStatements.size();
+    for (int i = 0; i < numParsed - 1; i++) {
+        preparedStatement = conn.prepareNoLock(std::move(parsedStatements[i]), statement->enumerate);
+        if (!preparedStatement->isSuccess()) {
+            spdlog::error(preparedStatement->getErrorMessage());
+            return false;
+        }
+        auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), 0);
+        if (!result->isSuccess()) {
+            return false;
+        }
     }
-    auto parsedStatement = std::move(parsedStatements[0]);
+    auto parsedStatement = std::move(parsedStatements[numParsed - 1]);
     if (statement->encodedJoin.empty()) {
         preparedStatement = conn.prepareNoLock(parsedStatement, statement->enumerate);
     } else {
