@@ -28,7 +28,7 @@ InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
     : overflowFileHandle(overflowFileHandle),
       dummy{"dummyfile", FileHandle::O_IN_MEM_TEMP_FILE, nullptr},
       pSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true)},
-      oSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 1, true)},
+      oSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true)},
       indexHeader{TypeUtils::getPhysicalTypeIDForType<T>()} {
     // Match HashIndex in allocating at least one page of slots so that we don't split within the
     // same page
@@ -39,7 +39,7 @@ template<typename T>
 void InMemHashIndex<T>::clear() {
     indexHeader = HashIndexHeader(TypeUtils::getPhysicalTypeIDForType<T>());
     pSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true);
-    oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 1, true);
+    oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true);
     allocateSlots(BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
 }
 
@@ -267,6 +267,10 @@ uint32_t InMemHashIndex<T>::allocatePSlots(uint32_t numSlotsToAllocate) {
     auto oldNumSlots = pSlots->getNumElements();
     auto newNumSlots = oldNumSlots + numSlotsToAllocate;
     pSlots->resize(newNumSlots, true /*setToZero*/);
+    // TODO: resize should value-initialize
+    for (size_t i = 0; i < numSlotsToAllocate; i++) {
+        (*pSlots)[oldNumSlots + i] = Slot<T>();
+    }
     return oldNumSlots;
 }
 
@@ -276,6 +280,7 @@ uint32_t InMemHashIndex<T>::allocateAOSlot() {
         auto oldNumSlots = oSlots->getNumElements();
         auto newNumSlots = oldNumSlots + 1;
         oSlots->resize(newNumSlots, true /*setToZero*/);
+        (*oSlots)[oldNumSlots] = Slot<T>();
         return oldNumSlots;
     } else {
         auto freeOSlotId = indexHeader.firstFreeOverflowSlotId;
@@ -360,7 +365,7 @@ void InMemHashIndex<T>::createEmptyIndexFiles(uint64_t indexPos, FileHandle& fil
         NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, 0 /*numElements */);
     // Reserve a slot for oSlots, which is always skipped, as we treat slot idx 0 as NULL.
     InMemDiskArrayBuilder<Slot<T>> oSlots(fileHandle,
-        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, 1 /*numElements */);
+        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, 0 /*numElements */);
 
     headerArray.saveToDisk();
     pSlots.saveToDisk();

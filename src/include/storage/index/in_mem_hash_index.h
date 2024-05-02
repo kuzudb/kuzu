@@ -99,7 +99,7 @@ public:
     inline bool nextChainedSlot(SlotIterator& iter) const {
         iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
         iter.slotInfo.slotType = SlotType::OVF;
-        if (iter.slot->header.nextOvfSlotId != 0) {
+        if (iter.slot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
             iter.slot = getSlot(iter.slotInfo);
             return true;
         }

@@ -384,7 +384,7 @@ void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit
                     newEntryPos++;
                 }
             }
-        } while (originalSlot->header.nextOvfSlotId != 0 &&
+        } while (originalSlot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID &&
                  (originalSlot = &*overflowSlotIterator.seek(originalSlot->header.nextOvfSlotId)));
         header.incrementNextSplitSlotId();
     }
@@ -397,7 +397,8 @@ template<typename T>
 std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(slot_id_t pSlotId) {
     std::vector<std::pair<SlotInfo, Slot<T>>> slots;
     SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
-    while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId != 0) {
+    while (slotInfo.slotType == SlotType::PRIMARY ||
+           slotInfo.slotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
         auto slot = getSlot(TransactionType::WRITE, slotInfo);
         slots.emplace_back(slotInfo, slot);
         slotInfo.slotId = slot.header.nextOvfSlotId;
@@ -576,7 +577,7 @@ size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerg
             diskSlot->header.isEntryValid(diskEntryPos) || diskEntryPos >= getSlotCapacity<T>()) {
             diskEntryPos++;
             if (diskEntryPos >= getSlotCapacity<T>()) {
-                if (diskSlot->header.nextOvfSlotId == 0) {
+                if (diskSlot->header.nextOvfSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
                     // If there are no more disk slots in this chain, we need to add one
                     diskSlot->header.nextOvfSlotId = diskOverflowSlotIterator.size();
                     // This may invalidate diskSlot
