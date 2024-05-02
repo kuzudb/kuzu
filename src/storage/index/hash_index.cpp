@@ -559,8 +559,7 @@ void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage)
 template<typename T>
 size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerge,
     typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
-    typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator,
-    slot_id_t diskSlotId) {
+    typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t diskSlotId) {
     slot_id_t diskEntryPos = 0u;
     // mergeSlot should only be called when there is at least one entry for the given disk slot id
     // in the slot to merge

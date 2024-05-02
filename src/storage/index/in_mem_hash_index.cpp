@@ -23,13 +23,8 @@ namespace storage {
 
 template<typename T>
 InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
-    // TODO(bmwinger): Remove temp file and make the builder a completely separate class from the
-    // disk array Or remove it entirely (though it might have some benefit as a custom version of
-    // std::deque with a reasonable chunk size).
-    : overflowFileHandle(overflowFileHandle),
-      dummy{"dummyfile", FileHandle::O_IN_MEM_TEMP_FILE, nullptr},
-      pSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true)},
-      oSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true)},
+    : overflowFileHandle(overflowFileHandle), pSlots{std::make_unique<BlockVector<Slot<T>>>()},
+      oSlots{std::make_unique<BlockVector<Slot<T>>>()},
       indexHeader{TypeUtils::getPhysicalTypeIDForType<T>()} {
     // Match HashIndex in allocating at least one page of slots so that we don't split within the
     // same page
@@ -39,8 +34,8 @@ InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
 template<typename T>
 void InMemHashIndex<T>::clear() {
     indexHeader = HashIndexHeader(TypeUtils::getPhysicalTypeIDForType<T>());
-    pSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true);
-    oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true);
+    pSlots = std::make_unique<BlockVector<Slot<T>>>();
+    oSlots = std::make_unique<BlockVector<Slot<T>>>();
     allocateSlots(BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
 }
 
@@ -87,7 +82,7 @@ void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
     // maintained
     SlotIterator originalSlotForInsert(header.nextSplitSlotId, this);
     auto entryPosToInsert = 0u;
-    SlotIterator newSlot(pSlots->getNumElements() - 1, this);
+    SlotIterator newSlot(pSlots->size() - 1, this);
     entry_pos_t newSlotPos = 0;
     bool gaps = false;
     do {
@@ -265,23 +260,18 @@ bool InMemHashIndex<T>::lookup(Key key, offset_t& result) {
 
 template<typename T>
 uint32_t InMemHashIndex<T>::allocatePSlots(uint32_t numSlotsToAllocate) {
-    auto oldNumSlots = pSlots->getNumElements();
+    auto oldNumSlots = pSlots->size();
     auto newNumSlots = oldNumSlots + numSlotsToAllocate;
-    pSlots->resize(newNumSlots, true /*setToZero*/);
-    // TODO: resize should value-initialize
-    for (size_t i = 0; i < numSlotsToAllocate; i++) {
-        (*pSlots)[oldNumSlots + i] = Slot<T>();
-    }
+    pSlots->resize(newNumSlots);
     return oldNumSlots;
 }
 
 template<typename T>
 uint32_t InMemHashIndex<T>::allocateAOSlot() {
     if (indexHeader.firstFreeOverflowSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
-        auto oldNumSlots = oSlots->getNumElements();
+        auto oldNumSlots = oSlots->size();
         auto newNumSlots = oldNumSlots + 1;
-        oSlots->resize(newNumSlots, true /*setToZero*/);
-        (*oSlots)[oldNumSlots] = Slot<T>();
+        oSlots->resize(newNumSlots);
         return oldNumSlots;
     } else {
         auto freeOSlotId = indexHeader.firstFreeOverflowSlotId;
@@ -358,7 +348,7 @@ bool InMemHashIndex<ku_string_t>::equals(std::string_view keyToLookup,
 template<typename T>
 void InMemHashIndex<T>::createEmptyIndexFiles(uint64_t indexPos, FileHandle& fileHandle) {
     // Write header
-    std::array<uint8_t, BufferPoolConstants::PAGE_4KB_SIZE> buffer;
+    std::array<uint8_t, BufferPoolConstants::PAGE_4KB_SIZE> buffer{};
     HashIndexHeader indexHeader(TypeUtils::getPhysicalTypeIDForType<T>());
     memcpy(buffer.data(), &indexHeader, sizeof(indexHeader));
     fileHandle.writePage(buffer.data(),

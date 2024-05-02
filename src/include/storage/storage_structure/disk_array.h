@@ -103,9 +103,6 @@ struct PIPUpdates {
  */
 class DiskArrayInternal {
 public:
-    // Used by copiers.
-    DiskArrayInternal(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
-        uint64_t elementSize);
     // Used when loading from file
     DiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
@@ -116,17 +113,17 @@ public:
     uint64_t getNumElements(
         transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY);
 
-    void get(uint64_t idx, transaction::TransactionType trxType, std::span<uint8_t> val);
+    void get(uint64_t idx, transaction::TransactionType trxType, std::span<std::byte> val);
 
     // Note: This function is to be used only by the WRITE trx.
-    void update(uint64_t idx, std::span<uint8_t> val);
+    void update(uint64_t idx, std::span<std::byte> val);
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
-    uint64_t pushBack(std::span<uint8_t> val);
+    uint64_t pushBack(std::span<std::byte> val);
 
     // Note: Currently, this function doesn't support shrinking the size of the array.
-    uint64_t resize(uint64_t newNumElements, std::span<uint8_t> defaultVal);
+    uint64_t resize(uint64_t newNumElements, std::span<std::byte> defaultVal);
 
     virtual inline void checkpointInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
@@ -170,7 +167,7 @@ public:
 
         WriteIterator& seek(size_t newIdx);
         // Adds a new element to the disk array and seeks to the new element
-        void pushBack(std::span<uint8_t> val);
+        void pushBack(std::span<std::byte> val);
 
         inline WriteIterator& operator+=(size_t increment) { return seek(idx + increment); }
 
@@ -191,9 +188,7 @@ public:
 
     WriteIterator iter_mut(uint64_t valueSize);
 
-    inline common::page_idx_t getAPIdx(uint64_t idx) const {
-        return getAPIdxAndOffsetInAP(idx).pageIdx;
-    }
+    inline common::page_idx_t getAPIdx(uint64_t idx) const;
 
 protected:
     // Updates to new pages (new to this transaction) bypass the wal file.
@@ -201,7 +196,7 @@ protected:
 
     void updateLastPageOnDisk();
 
-    uint64_t pushBackNoLock(std::span<uint8_t> val);
+    uint64_t pushBackNoLock(std::span<std::byte> val);
 
     inline uint64_t getNumElementsNoLock(transaction::TransactionType trxType) {
         return getDiskArrayHeader(trxType).numElements;
@@ -225,16 +220,6 @@ protected:
     void clearWALPageVersionAndRemovePageFromFrameIfNecessary(common::page_idx_t pageIdx);
 
     virtual void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
-
-    inline PageCursor getAPIdxAndOffsetInAP(uint64_t idx) const {
-        // We assume that `numElementsPerPageLog2`, `elementPageOffsetMask`,
-        // `alignedElementSizeLog2` are never modified throughout transactional updates, thus, we
-        // directly use them from header here.
-        common::page_idx_t apIdx = idx >> header.numElementsPerPageLog2;
-        uint16_t byteOffsetInAP = (idx & header.elementPageOffsetMask)
-                                  << header.alignedElementSizeLog2;
-        return PageCursor{apIdx, byteOffsetInAP};
-    }
 
 private:
     bool checkOutOfBoundAccess(transaction::TransactionType trxType, uint64_t idx);
@@ -273,8 +258,8 @@ protected:
 };
 
 template<typename U>
-inline std::span<uint8_t> getSpan(U& val) {
-    return std::span(reinterpret_cast<uint8_t*>(&val), sizeof(U));
+inline std::span<std::byte> getSpan(U& val) {
+    return std::span(reinterpret_cast<std::byte*>(&val), sizeof(U));
 }
 
 template<typename U>
@@ -282,10 +267,6 @@ class DiskArray {
     static_assert(sizeof(U) <= common::BufferPoolConstants::PAGE_4KB_SIZE);
 
 public:
-    // Used by copiers.
-    DiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx)
-        : diskArray(fileHandle, headerPageIdx, getAlignedElementSize()) {}
-    // Used when loading from file
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
     // should be called on this file handle exactly once during prepare commit.
@@ -376,19 +357,16 @@ private:
     DiskArrayInternal diskArray;
 };
 
-class InMemDiskArrayBuilderInternal : public DiskArrayInternal {
+class BlockVectorInternal {
 public:
-    InMemDiskArrayBuilderInternal(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
-        uint64_t numElements, size_t elementSize, bool setToZero = false);
+    explicit BlockVectorInternal(size_t elementSize) : header{elementSize} {}
 
     // This function is designed to be used during building of a disk array, i.e., during loading.
     // In particular, it changes the needed capacity non-transactionally, i.e., without writing
     // anything to the wal.
-    void resize(uint64_t newNumElements, bool setToZero);
+    void resize(uint64_t newNumElements, std::span<std::byte> defaultVal);
 
-    void saveToDisk();
-
-    inline uint64_t getNumElements() const { return header.numElements; }
+    inline uint64_t size() const { return header.numElements; }
 
     // [] operator can be used to update elements, e.g., diskArray[5] = 4, when building an
     // InMemDiskArrayBuilder without transactional updates. This changes the contents directly in
@@ -407,42 +385,37 @@ protected:
     }
 
 private:
-    inline uint64_t getNumArrayPagesNeededForElements(uint64_t numElements) {
+    inline uint64_t getNumArrayPagesNeededForElements(uint64_t numElements) const {
         return (numElements >> this->header.numElementsPerPageLog2) +
                ((numElements & this->header.elementPageOffsetMask) > 0 ? 1 : 0);
     }
     void addNewArrayPageForBuilding();
 
-    void setNumElementsAndAllocateDiskAPsForBuilding(uint64_t newNumElements);
-
 protected:
     std::vector<std::unique_ptr<uint8_t[]>> inMemArrayPages;
+    DiskArrayHeader header;
 };
 
 template<typename U>
-class InMemDiskArrayBuilder {
+class BlockVector {
 public:
-    InMemDiskArrayBuilder(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
-        uint64_t numElements, bool setToZero = false)
-        : diskArray(fileHandle, headerPageIdx, numElements, sizeof(U), setToZero) {}
+    explicit BlockVector(uint64_t numElements = 0) : vector(sizeof(U)) { resize(numElements); }
 
-    inline U& operator[](uint64_t idx) { return *(U*)diskArray[idx]; }
+    inline U& operator[](uint64_t idx) { return *(U*)vector[idx]; }
 
-    inline void resize(uint64_t newNumElements, bool setToZero) {
-        diskArray.resize(newNumElements, setToZero);
+    inline void resize(uint64_t newNumElements) {
+        U defaultVal;
+        vector.resize(newNumElements, getSpan(defaultVal));
     }
 
-    inline uint64_t getNumElements() const { return diskArray.getNumElements(); }
-    inline uint64_t size() const { return diskArray.getNumElements(); }
-
-    inline void saveToDisk() { diskArray.saveToDisk(); }
+    inline uint64_t size() const { return vector.size(); }
 
     static constexpr uint32_t getAlignedElementSize() {
         return DiskArray<U>::getAlignedElementSize();
     }
 
 private:
-    InMemDiskArrayBuilderInternal diskArray;
+    BlockVectorInternal vector;
 };
 
 } // namespace storage

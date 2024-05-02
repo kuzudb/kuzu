@@ -158,9 +158,8 @@ private:
     // TODO: might be more efficient to use a vector for each slot since this is now only needed
     // in-memory and it would remove the need to handle overflow slots.
     OverflowFileHandle* overflowFileHandle;
-    FileHandle dummy;
-    std::unique_ptr<InMemDiskArrayBuilder<Slot<T>>> pSlots;
-    std::unique_ptr<InMemDiskArrayBuilder<Slot<T>>> oSlots;
+    std::unique_ptr<BlockVector<Slot<T>>> pSlots;
+    std::unique_ptr<BlockVector<Slot<T>>> oSlots;
     HashIndexHeader indexHeader;
 };
 
