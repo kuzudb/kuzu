@@ -87,10 +87,9 @@
 
 # This can produce exception messages with different connected rel table on different platforms.
 -CASE DeleteNodeWithConnectedRels
--SKIP
 -STATEMENT MATCH (a:person {ID: 0}) DELETE a
----- error
-Runtime exception: Node(nodeOffset: 0) has connected edges in table studyAt in the fwd direction, which cannot be deleted. Please delete the edges first or try DETACH DELETE.
+---- error(regex)
+^Runtime exception: Node\(nodeOffset: 0\) has connected edges in table (knows|studyAt|meets|marries) in the fwd direction, which cannot be deleted\. Please delete the edges first or try DETACH DELETE\.$
 -STATEMENT MATCH (o:organisation {ID: 6}) DELETE o
 ---- error
 Runtime exception: Node(nodeOffset: 2) has connected edges in table workAt in the bwd direction, which cannot be deleted. Please delete the edges first or try DETACH DELETE.
