@@ -106,9 +106,6 @@ jobs:
 
       - name: Install Doxygen
         run: brew install doxygen
-      
-      - name: Install NetworkX
-        run: pip3 install networkx
 
       - name: Generate C and C++ docs
         shell: bash
