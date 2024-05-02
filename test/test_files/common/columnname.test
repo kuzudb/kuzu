@@ -1,0 +1,25 @@
+-GROUP ColumnName
+-DATASET CSV demo-db/csv
+
+--
+
+-CASE ColumnName
+-CHECK_COLUMN_NAMES
+-STATEMENT MATCH (a:User) RETURN a.name, COUNT { MATCH (a)<-[:Follows]-(b:User) } AS num_follower ORDER BY num_follower;
+---- 5
+a.name|num_follower
+Adam|0
+Karissa|1
+Noura|1
+Zhang|2
+
+-CASE ColumnNameOrdered
+-CHECK_ORDER
+-CHECK_COLUMN_NAMES
+-STATEMENT MATCH (u:User) RETURN u.name, u.age ORDER BY u.age;
+---- 5
+u.name|u.age
+Noura|25
+Adam|30
+Karissa|40
+Zhang|50

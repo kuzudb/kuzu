@@ -260,6 +260,10 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         statement->encodedJoin = paramsToString(1);
         break;
     }
+    case TokenType::CHECK_COLUMN_NAMES: {
+        statement->checkColumnNames = true;
+        break;
+    }
     case TokenType::EMPTY: {
         break;
     }
