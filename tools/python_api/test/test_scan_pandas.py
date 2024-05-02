@@ -339,10 +339,7 @@ def test_scan_all_null(tmp_path: Path) -> None:
 def test_copy_from_scan_pandas_result(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    df = pd.DataFrame({
-        "name": ["Adam", "Karissa", "Zhang", "Noura"],
-        "age": [30, 40, 50, 25]
-    })
+    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]})
     conn.execute("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY (name));")
     conn.execute("COPY Person FROM (LOAD FROM df WHERE age < 30 RETURN *);")
     result = conn.execute("match (p:Person) return p.*")
@@ -353,10 +350,9 @@ def test_copy_from_scan_pandas_result(tmp_path: Path) -> None:
 def test_scan_from_py_arrow_pandas(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    df = pd.DataFrame({
-        "name": ["Adam", "Karissa", "Zhang", "Noura"],
-        "age": [30, 40, 50, 25]
-    }).convert_dtypes(dtype_backend="pyarrow")
+    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]}).convert_dtypes(
+        dtype_backend="pyarrow"
+    )
     result = conn.execute("LOAD FROM df RETURN *;")
     assert result.get_next() == ["Adam", 30]
     assert result.get_next() == ["Karissa", 40]

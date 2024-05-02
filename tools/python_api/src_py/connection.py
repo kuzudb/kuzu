@@ -7,8 +7,15 @@ from .prepared_statement import PreparedStatement
 from .query_result import QueryResult
 
 if TYPE_CHECKING:
-    from .database import Database
+    import sys
     from types import TracebackType
+
+    from .database import Database
+
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self
 
 
 class Connection:
@@ -44,7 +51,8 @@ class Connection:
     def init_connection(self) -> None:
         """Establish a connection to the database, if not already initalised."""
         if self.is_closed:
-            raise RuntimeError("Connection is closed.")
+            error_msg = "Connection is closed."
+            raise RuntimeError(error_msg)
         self.database.init_database()
         if self._connection is None:
             self._connection = _kuzu.Connection(self.database._database, self.num_threads)  # type: ignore[union-attr]
@@ -61,11 +69,11 @@ class Connection:
         """
         self.init_connection()
         self._connection.set_max_threads_for_exec(num_threads)
-    
+
     def close(self) -> None:
         """
         Close the connection.
-    
+
         Note: Call to this method is optional. The connection will be closed
         automatically when the object goes out of scope.
         """
