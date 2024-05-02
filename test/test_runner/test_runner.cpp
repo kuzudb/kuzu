@@ -61,7 +61,8 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn,
     // Run the non-last queries
     size_t numParsed = parsedStatements.size();
     for (int i = 0; i < numParsed - 1; i++) {
-        preparedStatement = conn.prepareNoLock(std::move(parsedStatements[i]), statement->enumerate);
+        preparedStatement =
+            conn.prepareNoLock(std::move(parsedStatements[i]), statement->enumerate);
         if (!preparedStatement->isSuccess()) {
             spdlog::error(preparedStatement->getErrorMessage());
             return false;
