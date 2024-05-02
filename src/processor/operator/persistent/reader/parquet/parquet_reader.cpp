@@ -337,8 +337,8 @@ std::unique_ptr<ColumnReader> ParquetReader::createReader() {
     }
     // LCOV_EXCL_STOP
     for (auto& field : StructType::getFields(*rootReader->getDataType())) {
-        columnNames.push_back(field->getName());
-        columnTypes.push_back(field->getType()->copy());
+        columnNames.push_back(field.getName());
+        columnTypes.push_back(field.getType().copy());
     }
 
     KU_ASSERT(nextSchemaIdx == metadata->schema.size() - 1);

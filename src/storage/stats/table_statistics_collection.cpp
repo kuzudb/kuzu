@@ -93,7 +93,7 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
         metadataDAHInfo->childrenInfos.resize(fields.size());
         for (auto i = 0u; i < fields.size(); i++) {
             metadataDAHInfo->childrenInfos[i] =
-                createMetadataDAHInfo(*fields[i]->getType(), metadataFH, bm, wal);
+                createMetadataDAHInfo(fields[i].getType(), metadataFH, bm, wal);
         }
     } break;
     case PhysicalTypeID::LIST: {

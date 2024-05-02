@@ -57,7 +57,7 @@ expression_vector ExpressionBinder::bindStructPropertyStarExpression(
     expression_vector result;
     auto childType = child->getDataType();
     for (auto field : StructType::getFields(childType)) {
-        result.push_back(bindStructPropertyExpression(child, field->getName()));
+        result.push_back(bindStructPropertyExpression(child, field.getName()));
     }
     return result;
 }

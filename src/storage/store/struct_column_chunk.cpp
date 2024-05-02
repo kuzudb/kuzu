@@ -18,7 +18,7 @@ StructColumnChunk::StructColumnChunk(LogicalType dataType, uint64_t capacity,
     auto fieldTypes = StructType::getFieldTypes(this->dataType);
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childChunks[i] = ColumnChunkFactory::createColumnChunk(*fieldTypes[i]->copy(),
+        childChunks[i] = ColumnChunkFactory::createColumnChunk(*fieldTypes[i].copy(),
             enableCompression, capacity, inMemory);
     }
 }

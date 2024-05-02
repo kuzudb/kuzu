@@ -83,7 +83,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         childWriters.reserve(fields.size());
         for (auto& field : fields) {
             childWriters.push_back(
-                createWriterRecursive(schemas, writer, field->getType(), field->getName(),
+                createWriterRecursive(schemas, writer, &field.getType(), field.getName(),
                     schemaPathToCreate, mm, maxRepeatToCreate, maxDefineToCreate + 1));
         }
         return std::make_unique<StructColumnWriter>(writer, schemaIdx,

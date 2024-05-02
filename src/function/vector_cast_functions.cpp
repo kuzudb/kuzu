@@ -154,10 +154,10 @@ static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType&
         return false;
     }
     for (auto i = 0u; i < srcFields.size(); i++) {
-        if (srcFields[i]->getName() != dstFields[i]->getName()) {
+        if (srcFields[i].getName() != dstFields[i].getName()) {
             return false;
         }
-        if (!CastFunction::hasImplicitCast(*srcFields[i]->getType(), *dstFields[i]->getType())) {
+        if (!CastFunction::hasImplicitCast(srcFields[i].getType(), dstFields[i].getType())) {
             return false;
         }
     }

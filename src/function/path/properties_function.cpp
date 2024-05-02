@@ -32,8 +32,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
         throw BinderException(
             stringFormat("Cannot extract properties from {}.", listType.toString()));
     }
-    auto field = StructType::getField(*childType, fieldIdx);
-    auto returnType = LogicalType::LIST(field->getType()->copy());
+    auto field = StructType::getField(childType, fieldIdx);
+    auto returnType = LogicalType::LIST(field.getType().copy());
     auto bindData = std::make_unique<PropertiesBindData>(std::move(returnType), fieldIdx);
     bindData->paramTypes.push_back(arguments[0]->getDataType());
     bindData->paramTypes.push_back(LogicalType(function->parameterTypeIDs[1]));

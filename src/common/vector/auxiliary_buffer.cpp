@@ -10,7 +10,7 @@ StructAuxiliaryBuffer::StructAuxiliaryBuffer(const LogicalType& type,
     auto fieldTypes = StructType::getFieldTypes(type);
     childrenVectors.reserve(fieldTypes.size());
     for (auto fieldType : fieldTypes) {
-        childrenVectors.push_back(std::make_shared<ValueVector>(*fieldType, memoryManager));
+        childrenVectors.push_back(std::make_shared<ValueVector>(fieldType, memoryManager));
     }
 }
 

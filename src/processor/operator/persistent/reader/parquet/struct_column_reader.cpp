@@ -70,13 +70,13 @@ void StructColumnReader::skip(uint64_t num_values) {
     }
 }
 
-static bool TypeHasExactRowCount(const common::LogicalType* type) {
-    switch (type->getLogicalTypeID()) {
+static bool TypeHasExactRowCount(const common::LogicalType& type) {
+    switch (type.getLogicalTypeID()) {
     case common::LogicalTypeID::LIST:
     case common::LogicalTypeID::MAP:
         return false;
     case common::LogicalTypeID::STRUCT:
-        for (auto& kv : common::StructType::getFieldTypes(*type)) {
+        for (auto& kv : common::StructType::getFieldTypes(type)) {
             if (TypeHasExactRowCount(kv)) {
                 return true;
             }
@@ -89,7 +89,7 @@ static bool TypeHasExactRowCount(const common::LogicalType* type) {
 
 uint64_t StructColumnReader::getGroupRowsAvailable() {
     for (auto i = 0u; i < childReaders.size(); i++) {
-        if (TypeHasExactRowCount(childReaders[i]->getDataType())) {
+        if (TypeHasExactRowCount(*childReaders[i]->getDataType())) {
             return childReaders[i]->getGroupRowsAvailable();
         }
     }

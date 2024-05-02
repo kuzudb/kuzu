@@ -209,7 +209,7 @@ static std::string structToString(const struct_entry_t& val, ValueVector* vector
         if (i != 0) {
             result += ", ";
         }
-        result += StructType::getField(vector->dataType, i)->getName();
+        result += StructType::getField(vector->dataType, i).getName();
         result += ": ";
         result += entryToStringWithPos(val.pos, fieldVector.get());
     }
@@ -223,7 +223,7 @@ static std::string structToString(const struct_entry_t& val, ValueVector* vector
     if (i != 0) {
         result += ", ";
     }
-    result += StructType::getField(vector->dataType, i)->getName();
+    result += StructType::getField(vector->dataType, i).getName();
     result += ": ";
     result += entryToStringWithPos(val.pos, fieldVector.get());
     result += "}";

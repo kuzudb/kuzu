@@ -27,7 +27,7 @@ static std::pair<std::vector<struct_field_idx_t>, std::vector<ft_col_idx_t>> get
     std::vector<ft_col_idx_t> colIndices;
     for (auto i = 0u; i < structFields.size(); ++i) {
         auto field = structFields[i];
-        auto fieldName = StringUtils::getUpper(field->getName());
+        auto fieldName = StringUtils::getUpper(field.getName());
         if (propertyNameToColumnIdx.contains(fieldName)) {
             structFieldIndices.push_back(i);
             colIndices.push_back(propertyNameToColumnIdx.at(fieldName));

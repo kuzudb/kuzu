@@ -221,7 +221,7 @@ uint64_t kuzu_value_get_struct_num_fields(kuzu_value* value) {
 char* kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index) {
     auto val = static_cast<Value*>(value->_value);
     auto data_type = val->getDataType();
-    return convertToOwnedCString(StructType::getFields(*data_type)[index]->getName());
+    return convertToOwnedCString(StructType::getFields(*data_type)[index].getName());
 }
 
 kuzu_value* kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index) {

@@ -16,7 +16,7 @@ static std::vector<ValueVector*> getFieldVectors(const LogicalType& inputType,
     const LogicalType& resultType, ValueVector* inputVector) {
     std::vector<ValueVector*> result;
     for (auto field : StructType::getFields(resultType)) {
-        auto fieldName = StringUtils::getUpper(field->getName());
+        auto fieldName = StringUtils::getUpper(field.getName());
         if (StructType::hasField(inputType, fieldName)) {
             auto idx = StructType::getFieldIdx(inputType, fieldName);
             result.push_back(StructVector::getFieldVector(inputVector, idx).get());

@@ -179,7 +179,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::RDF_VARIANT: {
         std::vector<std::unique_ptr<Value>> children;
         for (auto& field : StructType::getFields(dataType)) {
-            children.push_back(std::make_unique<Value>(createDefaultValue(*field->getType())));
+            children.push_back(std::make_unique<Value>(createDefaultValue(field.getType())));
         }
         return Value(dataType.copy(), std::move(children));
     }

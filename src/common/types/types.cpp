@@ -458,7 +458,7 @@ std::string LogicalType::toString() const {
     case LogicalTypeID::MAP: {
         auto structType =
             ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get())->getChildType();
-        auto fieldTypes = StructType::getFieldTypes(*structType);
+        auto fieldTypes = StructType::getFieldTypes(structType);
         return "MAP(" + fieldTypes[0].toString() + ", " + fieldTypes[1].toString() + ")";
     }
     case LogicalTypeID::LIST: {
@@ -889,7 +889,7 @@ uint32_t LogicalTypeUtils::getRowLayoutSize(const LogicalType& type) {
         uint32_t size = 0;
         auto fieldsTypes = StructType::getFieldTypes(type);
         for (auto fieldType : fieldsTypes) {
-            size += getRowLayoutSize(*fieldType);
+            size += getRowLayoutSize(fieldType);
         }
         size += NullBuffer::getNumBytesForNullValues(fieldsTypes.size());
         return size;
@@ -1237,14 +1237,14 @@ static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& ri
     }
     std::vector<StructField> newFields;
     for (auto i = 0u; i < leftFields.size(); i++) {
-        if (leftFields[i]->getName() != rightFields[i]->getName()) {
+        if (leftFields[i].getName() != rightFields[i].getName()) {
             return false;
         }
         LogicalType combinedType;
-        if (LogicalTypeUtils::tryGetMaxLogicalType(*leftFields[i]->getType(),
-                *rightFields[i]->getType(), combinedType)) {
+        if (LogicalTypeUtils::tryGetMaxLogicalType(leftFields[i].getType(),
+                rightFields[i].getType(), combinedType)) {
             newFields.push_back(
-                StructField(leftFields[i]->getName(), std::make_unique<LogicalType>(combinedType)));
+                StructField(leftFields[i].getName(), std::make_unique<LogicalType>(combinedType)));
         } else {
             return false;
         }
@@ -1281,17 +1281,17 @@ static bool tryCombineUnionTypes(const LogicalType& left, const LogicalType& rig
     }
     std::vector<StructField> newFields;
     for (auto i = 1u, j = 1u; i < leftFields.size(); i++) {
-        while (j < rightFields.size() && leftFields[i]->getName() != rightFields[j]->getName()) {
+        while (j < rightFields.size() && leftFields[i].getName() != rightFields[j].getName()) {
             j++;
         }
         if (j == rightFields.size()) {
             return false;
         }
         LogicalType combinedType;
-        if (!LogicalTypeUtils::tryGetMaxLogicalType(*leftFields[i]->getType(),
-                *rightFields[j]->getType(), combinedType)) {
+        if (!LogicalTypeUtils::tryGetMaxLogicalType(leftFields[i].getType(),
+                rightFields[j].getType(), combinedType)) {
             newFields.push_back(
-                StructField(leftFields[i]->getName(), std::make_unique<LogicalType>(combinedType)));
+                StructField(leftFields[i].getName(), std::make_unique<LogicalType>(combinedType)));
         }
     }
     result = *LogicalType::UNION(std::move(newFields));

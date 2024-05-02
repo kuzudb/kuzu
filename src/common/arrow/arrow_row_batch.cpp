@@ -328,7 +328,7 @@ template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRUCT>(ArrowVector* vector,
     const LogicalType& type, Value* value, std::int64_t /*pos*/) {
     for (auto i = 0u; i < value->childrenSize; i++) {
-        appendValue(vector->childData[i].get(), *StructType::getFieldTypes(type)[i],
+        appendValue(vector->childData[i].get(), StructType::getFieldTypes(type)[i],
             value->children[i].get());
     }
 }
@@ -362,16 +362,16 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(ArrowVe
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::NODE>(ArrowVector* vector,
     const LogicalType& type, Value* value, std::int64_t /*pos*/) {
-    appendValue(vector->childData[0].get(), *StructType::getFieldTypes(type)[0],
+    appendValue(vector->childData[0].get(), StructType::getFieldTypes(type)[0],
         NodeVal::getNodeIDVal(value));
-    appendValue(vector->childData[1].get(), *StructType::getFieldTypes(type)[1],
+    appendValue(vector->childData[1].get(), StructType::getFieldTypes(type)[1],
         NodeVal::getLabelVal(value));
     std::int64_t propertyId = 2;
     auto numProperties = NodeVal::getNumProperties(value);
     for (auto i = 0u; i < numProperties; i++) {
         auto val = NodeVal::getPropertyVal(value, i);
         appendValue(vector->childData[propertyId].get(),
-            *StructType::getFieldTypes(type)[propertyId], val);
+            StructType::getFieldTypes(type)[propertyId], val);
         propertyId++;
     }
 }
@@ -379,20 +379,20 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::NODE>(ArrowVector* v
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::REL>(ArrowVector* vector,
     const LogicalType& type, Value* value, std::int64_t /*pos*/) {
-    appendValue(vector->childData[0].get(), *StructType::getFieldTypes(type)[0],
+    appendValue(vector->childData[0].get(), StructType::getFieldTypes(type)[0],
         RelVal::getSrcNodeIDVal(value));
-    appendValue(vector->childData[1].get(), *StructType::getFieldTypes(type)[1],
+    appendValue(vector->childData[1].get(), StructType::getFieldTypes(type)[1],
         RelVal::getDstNodeIDVal(value));
-    appendValue(vector->childData[2].get(), *StructType::getFieldTypes(type)[2],
+    appendValue(vector->childData[2].get(), StructType::getFieldTypes(type)[2],
         RelVal::getLabelVal(value));
-    appendValue(vector->childData[3].get(), *StructType::getFieldTypes(type)[3],
+    appendValue(vector->childData[3].get(), StructType::getFieldTypes(type)[3],
         RelVal::getIDVal(value));
     std::int64_t propertyId = 4;
     auto numProperties = RelVal::getNumProperties(value);
     for (auto i = 0u; i < numProperties; i++) {
         auto val = RelVal::getPropertyVal(value, i);
         appendValue(vector->childData[propertyId].get(),
-            *StructType::getFieldTypes(type)[propertyId], val);
+            StructType::getFieldTypes(type)[propertyId], val);
         propertyId++;
     }
 }
@@ -744,7 +744,7 @@ ArrowArray* ArrowRowBatch::convertStructVectorToArray(ArrowVector& vector,
     result->children = vector.childPointers.data();
     result->n_children = (std::int64_t)StructType::getNumFields(type);
     for (auto i = 0u; i < StructType::getNumFields(type); i++) {
-        auto& childType = *StructType::getFieldTypes(type)[i];
+        auto& childType = StructType::getFieldTypes(type)[i];
         vector.childPointers[i] = convertVectorToArray(*vector.childData[i], childType);
     }
     vector.array = std::move(result);

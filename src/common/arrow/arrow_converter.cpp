@@ -58,8 +58,8 @@ void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, Arro
     for (auto i = 0u; i < child.n_children; i++) {
         initializeChild(*child.children[i]);
         auto structField = StructType::getField(dataType, i);
-        child.children[i]->name = copyName(rootHolder, structField->getName());
-        setArrowFormat(rootHolder, *child.children[i], *structField->getType());
+        child.children[i]->name = copyName(rootHolder, structField.getName());
+        setArrowFormat(rootHolder, *child.children[i], structField.getType());
     }
 }
 
