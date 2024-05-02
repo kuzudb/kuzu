@@ -365,6 +365,13 @@ public:
             [&](uint8_t* frame) -> void { memcpy(frame, &daHeader, sizeof(DiskArrayHeader)); });
     }
 
+    static inline void addDAHPageToFile(FileHandle& fileHandle, common::page_idx_t pageIdx) {
+        std::array<uint8_t, common::BufferPoolConstants::PAGE_4KB_SIZE> buffer;
+        DiskArrayHeader header(sizeof(U));
+        memcpy(buffer.data(), &header, sizeof(DiskArrayHeader));
+        fileHandle.writePage(buffer.data(), pageIdx);
+    }
+
 private:
     DiskArrayInternal diskArray;
 };

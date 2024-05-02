@@ -4,6 +4,7 @@
 
 #include <cstring>
 
+#include "common/constants.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
@@ -356,20 +357,17 @@ bool InMemHashIndex<ku_string_t>::equals(std::string_view keyToLookup,
 
 template<typename T>
 void InMemHashIndex<T>::createEmptyIndexFiles(uint64_t indexPos, FileHandle& fileHandle) {
-    InMemDiskArrayBuilder<HashIndexHeader> headerArray(fileHandle,
-        NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, 0 /*numElements*/);
+    // Write header
+    std::array<uint8_t, BufferPoolConstants::PAGE_4KB_SIZE> buffer;
     HashIndexHeader indexHeader(TypeUtils::getPhysicalTypeIDForType<T>());
-    headerArray.resize(1, true /*setToZero=*/);
-    headerArray[0] = indexHeader;
-    InMemDiskArrayBuilder<Slot<T>> pSlots(fileHandle,
-        NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, 0 /*numElements */);
-    // Reserve a slot for oSlots, which is always skipped, as we treat slot idx 0 as NULL.
-    InMemDiskArrayBuilder<Slot<T>> oSlots(fileHandle,
-        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, 0 /*numElements */);
+    memcpy(buffer.data(), &indexHeader, sizeof(indexHeader));
+    fileHandle.writePage(buffer.data(),
+        NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX);
 
-    headerArray.saveToDisk();
-    pSlots.saveToDisk();
-    oSlots.saveToDisk();
+    DiskArray<Slot<T>>::addDAHPageToFile(fileHandle,
+        NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX);
+    DiskArray<Slot<T>>::addDAHPageToFile(fileHandle,
+        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX);
 }
 
 template<typename T>

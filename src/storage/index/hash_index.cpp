@@ -108,15 +108,14 @@ template<typename T>
 HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
     const std::shared_ptr<BMFileHandle>& fileHandle, OverflowFileHandle* overflowFileHandle,
     uint64_t indexPos, BufferManager& bufferManager, WAL* wal)
-    : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal}, fileHandle(fileHandle),
-      overflowFileHandle(overflowFileHandle) {
-    // TODO: Handle data not existing
-    headerArray = std::make_unique<DiskArray<HashIndexHeader>>(*fileHandle,
-        dbFileIDAndName.dbFileID, NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX,
-        &bm, wal, Transaction::getDummyReadOnlyTrx().get(), true /*bypassWAL*/);
+    : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal},
+      headerPageIdx{NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX},
+      fileHandle(fileHandle), overflowFileHandle(overflowFileHandle) {
+    this->indexHeaderForReadTrx = std::make_unique<HashIndexHeader>();
+    bufferManager.optimisticRead(*fileHandle, headerPageIdx, [&](auto* frame) {
+        memcpy(this->indexHeaderForReadTrx.get(), frame, sizeof(HashIndexHeader));
+    });
     // Read indexHeader from the headerArray, which contains only one element.
-    this->indexHeaderForReadTrx = std::make_unique<HashIndexHeader>(
-        headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
     this->indexHeaderForWriteTrx = std::make_unique<HashIndexHeader>(*indexHeaderForReadTrx);
     KU_ASSERT(
         this->indexHeaderForReadTrx->keyDataTypeID == TypeUtils::getPhysicalTypeIDForType<T>());
@@ -289,9 +288,11 @@ void HashIndex<T>::prepareCommit() {
         }
         localStorage->applyLocalChanges([&](Key key) { deleteFromPersistentIndex(key); },
             [&](const auto& insertions) { mergeBulkInserts(insertions); });
-        headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, *indexHeaderForWriteTrx);
+        DBFileUtils::updatePage(*fileHandle, dbFileIDAndName.dbFileID, headerPageIdx,
+            true /*don't need to read original data*/, bm, *wal, [&](auto* frame) {
+                memcpy(frame, indexHeaderForWriteTrx.get(), sizeof(HashIndexHeader));
+            });
     }
-    headerArray->prepareCommit();
     pSlots->prepareCommit();
     oSlots->prepareCommit();
 }
@@ -309,7 +310,6 @@ void HashIndex<T>::checkpointInMemory() {
         return;
     }
     *indexHeaderForReadTrx = *indexHeaderForWriteTrx;
-    headerArray->checkpointInMemoryIfNecessary();
     pSlots->checkpointInMemoryIfNecessary();
     oSlots->checkpointInMemoryIfNecessary();
     localStorage->clear();
@@ -323,7 +323,6 @@ void HashIndex<T>::rollbackInMemory() {
     if (!localStorage->hasUpdates()) {
         return;
     }
-    headerArray->rollbackInMemoryIfNecessary();
     pSlots->rollbackInMemoryIfNecessary();
     oSlots->rollbackInMemoryIfNecessary();
     localStorage->clear();

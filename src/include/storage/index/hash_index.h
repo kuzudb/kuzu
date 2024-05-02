@@ -213,8 +213,8 @@ private:
     DBFileIDAndName dbFileIDAndName;
     BufferManager& bm;
     WAL* wal;
+    uint64_t headerPageIdx;
     std::shared_ptr<BMFileHandle> fileHandle;
-    std::unique_ptr<DiskArray<HashIndexHeader>> headerArray;
     std::unique_ptr<DiskArray<Slot<T>>> pSlots;
     std::unique_ptr<DiskArray<Slot<T>>> oSlots;
     OverflowFileHandle* overflowFileHandle;
