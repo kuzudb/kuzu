@@ -149,7 +149,7 @@ static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int6
         resizeMainBuffer(vector, type, vector->capacity);
     }
     resizeUnionOverflow(vector, vector->capacity);
-    std::vector<LogicalType*> childTypes;
+    std::vector<LogicalType> childTypes;
     for (auto i = 0u; i < UnionType::getNumFields(type); i++) {
         childTypes.push_back(UnionType::getFieldType(type, i));
     }
@@ -339,10 +339,10 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::UNION>(ArrowVector* 
     auto typeBuffer = (std::uint8_t*)vector->data.data();
     auto offsetsBuffer = (std::int32_t*)vector->overflow.data();
     for (auto i = 0u; i < UnionType::getNumFields(type); i++) {
-        if (*UnionType::getFieldType(type, i) == *value->children[0]->dataType) {
+        if (UnionType::getFieldType(type, i) == *value->children[0]->dataType) {
             typeBuffer[pos] = i;
             offsetsBuffer[pos] = vector->childData[i]->numValues;
-            return appendValue(vector->childData[i].get(), *UnionType::getFieldType(type, i),
+            return appendValue(vector->childData[i].get(), UnionType::getFieldType(type, i),
                 value->children[0].get());
         }
     }
@@ -788,7 +788,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::UNION>(ArrowVector
     vector.array->buffers[1] = vector.overflow.data();
     for (auto i = 0u; i < nChildren; i++) {
         auto childType = UnionType::getFieldType(type, i);
-        vector.childPointers[i] = convertVectorToArray(*vector.childData[i], *childType);
+        vector.childPointers[i] = convertVectorToArray(*vector.childData[i], childType);
     }
     return vector.array.get();
 }

@@ -80,7 +80,7 @@ void ArrowConverter::setArrowFormatForUnion(ArrowSchemaHolder& rootHolder, Arrow
         auto unionFieldType = UnionType::getFieldType(dataType, i);
         auto unionFieldName = UnionType::getFieldName(dataType, i);
         child.children[i]->name = copyName(rootHolder, unionFieldName);
-        setArrowFormat(rootHolder, *child.children[i], *unionFieldType);
+        setArrowFormat(rootHolder, *child.children[i], unionFieldType);
         formatStr += (i == 0u ? ":" : ",") + std::to_string(i);
     }
     child.format = copyName(rootHolder, formatStr);
