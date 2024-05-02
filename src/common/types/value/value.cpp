@@ -159,7 +159,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         auto arraySize = ArrayType::getNumElements(dataType);
         children.reserve(arraySize);
         for (auto i = 0u; i < arraySize; ++i) {
-            children.push_back(std::make_unique<Value>(createDefaultValue(*childType)));
+            children.push_back(std::make_unique<Value>(createDefaultValue(childType)));
         }
         return Value(dataType.copy(), std::move(children));
     }
@@ -388,10 +388,10 @@ void Value::copyFromRowLayout(const uint8_t* value) {
     } break;
     case LogicalTypeID::MAP:
     case LogicalTypeID::LIST: {
-        copyFromRowLayoutList(*(ku_list_t*)value, *ListType::getChildType(*dataType));
+        copyFromRowLayoutList(*(ku_list_t*)value, ListType::getChildType(*dataType));
     } break;
     case LogicalTypeID::ARRAY: {
-        copyFromRowLayoutList(*(ku_list_t*)value, *ArrayType::getChildType(*dataType));
+        copyFromRowLayoutList(*(ku_list_t*)value, ArrayType::getChildType(*dataType));
     } break;
     case LogicalTypeID::UNION: {
         copyFromUnion(value);

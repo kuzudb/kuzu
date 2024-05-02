@@ -89,7 +89,7 @@ static void resizeUnionOverflow(ArrowVector* vector, int64_t capacity) {
     vector->overflow.resize(capacity * sizeof(int32_t));
 }
 
-static void resizeChildVectors(ArrowVector* vector, const std::vector<LogicalType*> childTypes,
+static void resizeChildVectors(ArrowVector* vector, const std::vector<LogicalType> childTypes,
     int64_t childCapacity) {
     for (auto i = 0u; i < childTypes.size(); i++) {
         if (i >= vector->childData.size()) {
@@ -303,7 +303,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::LIST>(ArrowVector* v
     offsets[pos + 1] = offsets[pos] + numElements;
     resizeChildVectors(vector, {ListType::getChildType(type)}, offsets[pos + 1] + 1);
     for (auto i = 0u; i < numElements; i++) {
-        appendValue(vector->childData[0].get(), *ListType::getChildType(type),
+        appendValue(vector->childData[0].get(), ListType::getChildType(type),
             value->children[i].get());
     }
 }
@@ -313,7 +313,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::ARRAY>(ArrowVector* 
     const LogicalType& type, Value* value, std::int64_t /*pos*/) {
     auto numElements = value->childrenSize;
     for (auto i = 0u; i < numElements; i++) {
-        appendValue(vector->childData[0].get(), *ArrayType::getChildType(type),
+        appendValue(vector->childData[0].get(), ArrayType::getChildType(type),
             value->children[i].get());
     }
 }
@@ -705,7 +705,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::LIST>(ArrowVector&
     result->children = vector.childPointers.data();
     result->n_children = 1;
     vector.childPointers[0] =
-        convertVectorToArray(*vector.childData[0], *ListType::getChildType(type));
+        convertVectorToArray(*vector.childData[0], ListType::getChildType(type));
     vector.array = std::move(result);
     return vector.array.get();
 }
@@ -719,7 +719,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::ARRAY>(ArrowVector
     result->children = vector.childPointers.data();
     result->n_children = 1;
     vector.childPointers[0] =
-        convertVectorToArray(*vector.childData[0], *ArrayType::getChildType(type));
+        convertVectorToArray(*vector.childData[0], ArrayType::getChildType(type));
     vector.array = std::move(result);
     return vector.array.get();
 }

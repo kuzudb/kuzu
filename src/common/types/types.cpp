@@ -1194,8 +1194,8 @@ std::unique_ptr<LogicalType> LogicalType::ARRAY(std::unique_ptr<LogicalType> chi
 static bool tryCombineListTypes(const LogicalType& left, const LogicalType& right,
     LogicalType& result) {
     LogicalType childType;
-    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ListType::getChildType(left),
-            *ListType::getChildType(right), childType)) {
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(ListType::getChildType(left),
+            ListType::getChildType(right), childType)) {
         return false;
     }
     result = *LogicalType::LIST(childType);
@@ -1208,8 +1208,8 @@ static bool tryCombineArrayTypes(const LogicalType& left, const LogicalType& rig
         return tryCombineListTypes(left, right, result);
     }
     LogicalType childType;
-    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ArrayType::getChildType(left),
-            *ArrayType::getChildType(right), childType)) {
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(ArrayType::getChildType(left),
+            ArrayType::getChildType(right), childType)) {
         return false;
     }
     result = *LogicalType::ARRAY(childType, ArrayType::getNumElements(left));
@@ -1219,8 +1219,8 @@ static bool tryCombineArrayTypes(const LogicalType& left, const LogicalType& rig
 static bool tryCombineListArrayTypes(const LogicalType& left, const LogicalType& right,
     LogicalType& result) {
     LogicalType childType;
-    if (!LogicalTypeUtils::tryGetMaxLogicalType(*ListType::getChildType(left),
-            *ArrayType::getChildType(right), childType)) {
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(ListType::getChildType(left),
+            ArrayType::getChildType(right), childType)) {
         return false;
     }
     result = *LogicalType::LIST(childType);

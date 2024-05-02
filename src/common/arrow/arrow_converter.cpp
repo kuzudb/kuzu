@@ -186,7 +186,7 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         initializeChild(rootHolder.nestedChildren.back()[0]);
         child.children = &rootHolder.nestedChildrenPtr.back()[0];
         child.children[0]->name = "l";
-        setArrowFormat(rootHolder, **child.children, *ListType::getChildType(dataType));
+        setArrowFormat(rootHolder, **child.children, ListType::getChildType(dataType));
     } break;
     case LogicalTypeID::ARRAY: {
         auto numValuesPerArray = "+w:" + std::to_string(ArrayType::getNumElements(dataType));
@@ -199,7 +199,7 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         initializeChild(rootHolder.nestedChildren.back()[0]);
         child.children = &rootHolder.nestedChildrenPtr.back()[0];
         child.children[0]->name = "l";
-        setArrowFormat(rootHolder, **child.children, *ArrayType::getChildType(dataType));
+        setArrowFormat(rootHolder, **child.children, ArrayType::getChildType(dataType));
     } break;
     case LogicalTypeID::MAP: {
         child.format = "+m";
@@ -211,7 +211,7 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         initializeChild(rootHolder.nestedChildren.back()[0]);
         child.children = &rootHolder.nestedChildrenPtr.back()[0];
         child.children[0]->name = "l";
-        setArrowFormat(rootHolder, **child.children, *ListType::getChildType(dataType));
+        setArrowFormat(rootHolder, **child.children, ListType::getChildType(dataType));
     } break;
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::NODE:

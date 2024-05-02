@@ -65,9 +65,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
             std::move(nodeBuildInfo), std::move(nodeBuildPrevOperator), getOperatorID(), "");
         auto relDataType = rel->getDataType();
         auto nodesField = StructType::getField(relDataType, InternalKeyword::NODES);
-        auto nodeStructType = ListType::getChildType(*nodesField->getType());
+        auto nodeStructType = ListType::getChildType(nodesField.getType());
         auto [fieldIndices, columnIndices] =
-            getColIdxToScan(nodePayloads, nodeKeys.size(), *nodeStructType);
+            getColIdxToScan(nodePayloads, nodeKeys.size(), nodeStructType);
         nodeFieldIndices = std::move(fieldIndices);
         nodeTableColumnIndices = std::move(columnIndices);
     }
@@ -92,9 +92,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
             std::move(relBuildInfo), std::move(relBuildPrvOperator), getOperatorID(), "");
         auto relDataType = rel->getDataType();
         auto relsField = StructType::getField(relDataType, InternalKeyword::RELS);
-        auto relStructType = ListType::getChildType(*relsField->getType());
+        auto relStructType = ListType::getChildType(relsField.getType());
         auto [fieldIndices, columnIndices] =
-            getColIdxToScan(relPayloads, relKeys.size(), *relStructType);
+            getColIdxToScan(relPayloads, relKeys.size(), relStructType);
         relFieldIndices = std::move(fieldIndices);
         relTableColumnIndices = std::move(columnIndices);
     }

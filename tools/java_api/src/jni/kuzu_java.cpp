@@ -641,7 +641,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1id(J
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1child_1type(JNIEnv* env,
     jclass, jobject thisDT) {
     auto* parent_type = getDataType(env, thisDT);
-    LogicalType* child_type;
+    LogicalType child_type;
     if (parent_type->getLogicalTypeID() == LogicalTypeID::ARRAY) {
         child_type = ArrayType::getChildType(*parent_type);
     } else if (parent_type->getLogicalTypeID() == LogicalTypeID::LIST) {
@@ -649,7 +649,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1chil
     } else {
         return nullptr;
     }
-    auto* new_child_type = new LogicalType(*child_type);
+    auto* new_child_type = new LogicalType(child_type);
     jobject ret =
         createJavaObject(env, new_child_type, J_C_KuzuDataType, J_C_KuzuDataType_F_dt_ref);
     return ret;

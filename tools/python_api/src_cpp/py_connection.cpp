@@ -269,7 +269,7 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
     }
 }
 
-static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
+static Value transformPythonValueAs(py::handle val, const LogicalType& type) {
     // ignore the type of the actual python object, just directly cast
     auto datetime_datetime = importCache->datetime.datetime();
     auto time_delta = importCache->datetime.timedelta();
@@ -365,15 +365,15 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
         std::vector<std::unique_ptr<Value>> children;
         for (auto child : lst) {
             children.push_back(std::make_unique<Value>(
-                transformPythonValueAs(child, ListType::getChildType(*type))));
+                transformPythonValueAs(child, ListType::getChildType(type))));
         }
-        return Value(std::make_unique<LogicalType>(*type), std::move(children));
+        return Value(std::make_unique<LogicalType>(type), std::move(children));
     }
     case LogicalTypeID::MAP: {
         py::dict dict = py::reinterpret_borrow<py::dict>(val);
         std::vector<std::unique_ptr<Value>> children;
-        auto childKeyType = MapType::getKeyType(*type),
-             childValueType = MapType::getValueType(*type);
+        auto childKeyType = MapType::getKeyType(type),
+             childValueType = MapType::getValueType(type);
         for (auto child : dict) {
             // type construction is inefficient, we have to create duplicates because it asks for
             // a unique ptr

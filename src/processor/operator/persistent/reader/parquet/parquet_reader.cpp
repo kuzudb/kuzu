@@ -276,7 +276,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
                 std::make_unique<ListTypeInfo>(std::move(structType))));
 
             auto structReader = std::make_unique<StructColumnReader>(*this,
-                ListType::getChildType(*resultType)->copy(), sEle, thisIdx, maxDefine - 1,
+                ListType::getChildType(*resultType).copy(), sEle, thisIdx, maxDefine - 1,
                 maxRepeat - 1, std::move(childrenReaders));
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
                 maxDefine, maxRepeat, std::move(structReader), context->getMemoryManager());

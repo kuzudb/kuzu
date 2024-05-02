@@ -192,7 +192,7 @@ void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
         }
         return;
     } else if (type_.getLogicalTypeID() == LogicalTypeID::ARRAY) {
-        if (this->type != ArrayType::getChildType(type_)->getLogicalTypeID()) {
+        if (this->type != ArrayType::getChildType(type_).getLogicalTypeID()) {
             throw CopyException(stringFormat("The type of npy file {} does not "
                                              "match the expected type.",
                 filePath));

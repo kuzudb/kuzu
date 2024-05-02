@@ -22,9 +22,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     auto listType = arguments[0]->getDataType();
     auto childType = ListType::getChildType(listType);
     struct_field_idx_t fieldIdx;
-    if (childType->getLogicalTypeID() == LogicalTypeID::NODE ||
-        childType->getLogicalTypeID() == LogicalTypeID::REL) {
-        fieldIdx = StructType::getFieldIdx(*childType, key);
+    if (childType.getLogicalTypeID() == LogicalTypeID::NODE ||
+        childType.getLogicalTypeID() == LogicalTypeID::REL) {
+        fieldIdx = StructType::getFieldIdx(childType, key);
         if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
             throw BinderException(stringFormat("Invalid property name: {}.", key));
         }

@@ -118,7 +118,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         schemas.push_back(std::move(repeatedElem));
         schemaPathToCreate.emplace_back("list");
 
-        auto child_writer = createWriterRecursive(schemas, writer, childType, "element",
+        auto child_writer = createWriterRecursive(schemas, writer, &childType, "element",
             schemaPathToCreate, mm, maxRepeatToCreate + 1, maxDefineToCreate + 2);
         return std::make_unique<ListColumnWriter>(writer, schemaIdx, std::move(schemaPathToCreate),
             maxRepeatToCreate, maxDefineToCreate, std::move(child_writer), canHaveNullsToCreate);
