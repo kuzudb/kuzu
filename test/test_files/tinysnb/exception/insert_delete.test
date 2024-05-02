@@ -27,7 +27,6 @@ Runtime exception: Found NULL, which violates the non-null constraint of the pri
 
 # This can produce exception messages with different connected rel table on different platforms.
 -CASE DeleteNodeWithEdgeErrorTest
--SKIP
 -STATEMENT MATCH (a:person) WHERE a.ID = 0 DELETE a
----- error
-Runtime exception: Node(nodeOffset: 0) has connected edges in table studyAt in the fwd direction, which cannot be deleted. Please delete the edges first or try DETACH DELETE.
+---- error(regex)
+^Runtime exception: Node\(nodeOffset: 0\) has connected edges in table (knows|studyAt|meets|marries) in the fwd direction, which cannot be deleted. Please delete the edges first or try DETACH DELETE.$

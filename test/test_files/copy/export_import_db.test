@@ -89,7 +89,7 @@ Binder exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db5 does not 
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4"
 ---- error(regex)
-Binder exception: File ${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db4/schema.cypher does not exist.
+^Binder exception: File ${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4[/\\]schema.cypher does not exist.$
 
 
 -CASE ExportImportDatabaseRelGroup
