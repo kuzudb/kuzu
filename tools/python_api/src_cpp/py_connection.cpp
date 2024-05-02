@@ -56,8 +56,8 @@ void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
 static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
     const py::dict& params, Connection* conn);
 
-std::unique_ptr<PyQueryResult> PyConnection::execute(
-    PyPreparedStatement* preparedStatement, const py::dict& params) {
+std::unique_ptr<PyQueryResult> PyConnection::execute(PyPreparedStatement* preparedStatement,
+    const py::dict& params) {
     auto parameters = transformPythonParameters(params, conn.get());
     py::gil_scoped_release release;
     auto queryResult =
@@ -245,14 +245,14 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
             auto curChildKeyType = pyLogicalType(child.first),
                  curChildValueType = pyLogicalType(child.second);
             LogicalType resultKey, resultValue;
-            if (!LogicalTypeUtils::tryGetMaxLogicalType(
-                    *childKeyType, *curChildKeyType, resultKey)) {
+            if (!LogicalTypeUtils::tryGetMaxLogicalType(*childKeyType, *curChildKeyType,
+                    resultKey)) {
                 throw RuntimeException(stringFormat(
                     "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
                     childKeyType->toString(), curChildKeyType->toString()));
             }
-            if (!LogicalTypeUtils::tryGetMaxLogicalType(
-                    *childValueType, *curChildValueType, resultValue)) {
+            if (!LogicalTypeUtils::tryGetMaxLogicalType(*childValueType, *curChildValueType,
+                    resultValue)) {
                 throw RuntimeException(stringFormat(
                     "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
                     childValueType->toString(), curChildValueType->toString()));
@@ -377,17 +377,17 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
             // type construction is inefficient, we have to create duplicates because it asks for
             // a unique ptr
             std::vector<StructField> fields;
-            fields.emplace_back(
-                InternalKeyword::MAP_KEY, std::make_unique<LogicalType>(*childKeyType));
-            fields.emplace_back(
-                InternalKeyword::MAP_VALUE, std::make_unique<LogicalType>(*childValueType));
+            fields.emplace_back(InternalKeyword::MAP_KEY,
+                std::make_unique<LogicalType>(*childKeyType));
+            fields.emplace_back(InternalKeyword::MAP_VALUE,
+                std::make_unique<LogicalType>(*childValueType));
             std::vector<std::unique_ptr<Value>> structValues;
             structValues.push_back(
                 std::make_unique<Value>(transformPythonValueAs(child.first, childKeyType)));
             structValues.push_back(
                 std::make_unique<Value>(transformPythonValueAs(child.second, childValueType)));
-            children.push_back(std::make_unique<Value>(
-                LogicalType::STRUCT(std::move(fields)), std::move(structValues)));
+            children.push_back(std::make_unique<Value>(LogicalType::STRUCT(std::move(fields)),
+                std::move(structValues)));
         }
         return Value(std::make_unique<LogicalType>(*type), std::move(children));
     }
