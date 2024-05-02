@@ -20,6 +20,7 @@ class QueryResult {
     );
     this._connection = connection;
     this._queryResult = queryResult;
+    this._isClosed = false;
   }
 
   /**
@@ -27,6 +28,7 @@ class QueryResult {
    * This function is useful if the query result is iterated multiple times.
    */
   resetIterator() {
+    this._checkClosed();
     this._queryResult.resetIterator();
   }
 
@@ -35,6 +37,7 @@ class QueryResult {
    * @returns {Boolean} true if the query result has more rows.
    */
   hasNext() {
+    this._checkClosed();
     return this._queryResult.hasNext();
   }
 
@@ -43,6 +46,7 @@ class QueryResult {
    * @returns {Number} the number of rows of the query result.
    */
   getNumTuples() {
+    this._checkClosed();
     return this._queryResult.getNumTuples();
   }
 
@@ -51,6 +55,7 @@ class QueryResult {
    * @returns {Promise<Object>} a promise that resolves to the next row of the query result. The promise is rejected if there is an error.
    */
   getNext() {
+    this._checkClosed();
     return new Promise((resolve, reject) => {
       this._queryResult.getNextAsync((err, result) => {
         if (err) {
@@ -68,6 +73,7 @@ class QueryResult {
    * @param {Function} errorCallback the callback function that is called when there is an error.
    */
   each(resultCallback, doneCallback, errorCallback) {
+    this._checkClosed();
     if (!this.hasNext()) {
       return doneCallback();
     }
@@ -86,6 +92,7 @@ class QueryResult {
    * @returns {Promise<Array<Object>>} a promise that resolves to all rows of the query result. The promise is rejected if there is an error.
    */
   async getAll() {
+    this._checkClosed();
     this._queryResult.resetIterator();
     const result = [];
     while (this.hasNext()) {
@@ -100,6 +107,7 @@ class QueryResult {
    * @param {Function} errorCallback the callback function that is called when there is an error.
    */
   all(resultCallback, errorCallback) {
+    this._checkClosed();
     this.getAll()
       .then((result) => {
         resultCallback(result);
@@ -114,6 +122,7 @@ class QueryResult {
    * @returns {Promise<Array<String>>} a promise that resolves to the data types of the columns of the query result. The promise is rejected if there is an error.
    */
   getColumnDataTypes() {
+    this._checkClosed();
     return new Promise((resolve, reject) => {
       this._queryResult.getColumnDataTypesAsync((err, result) => {
         if (err) {
@@ -129,6 +138,7 @@ class QueryResult {
    * @returns {Promise<Array<String>>} a promise that resolves to the names of the columns of the query result. The promise is rejected if there is an error.
    */
   getColumnNames() {
+    this._checkClosed();
     return new Promise((resolve, reject) => {
       this._queryResult.getColumnNamesAsync((err, result) => {
         if (err) {
@@ -137,6 +147,29 @@ class QueryResult {
         return resolve(result);
       });
     });
+  }
+
+  /**
+   * Close the query result.
+   */
+  close() {
+    if (this._isClosed) {
+      return;
+    }
+    this._queryResult.close();
+    delete this._queryResult;
+    this._connection = null;
+    this._isClosed = true;
+  }
+
+  /**
+   * Internal function to check if the query result is closed.
+   * @throws {Error} if the query result is closed.
+   */
+  _checkClosed() {
+    if (this._isClosed) {
+      throw new Error("Query result is closed.");
+    }
   }
 }
 

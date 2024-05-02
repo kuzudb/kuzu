@@ -11,8 +11,7 @@ Napi::Object NodeQueryResult::Init(Napi::Env env, Napi::Object exports) {
     Napi::HandleScope scope(env);
 
     Napi::Function t = DefineClass(env, "NodeQueryResult",
-        {
-            InstanceMethod("resetIterator", &NodeQueryResult::ResetIterator),
+        {InstanceMethod("resetIterator", &NodeQueryResult::ResetIterator),
             InstanceMethod("hasNext", &NodeQueryResult::HasNext),
             InstanceMethod("hasNextQueryResult", &NodeQueryResult::HasNextQueryResult),
             InstanceMethod("getNextQueryResultAsync", &NodeQueryResult::GetNextQueryResultAsync),
@@ -20,7 +19,7 @@ Napi::Object NodeQueryResult::Init(Napi::Env env, Napi::Object exports) {
             InstanceMethod("getNextAsync", &NodeQueryResult::GetNextAsync),
             InstanceMethod("getColumnDataTypesAsync", &NodeQueryResult::GetColumnDataTypesAsync),
             InstanceMethod("getColumnNamesAsync", &NodeQueryResult::GetColumnNamesAsync),
-        });
+            InstanceMethod("close", &NodeQueryResult::Close)});
 
     exports.Set("NodeQueryResult", t);
     return exports;
@@ -30,10 +29,7 @@ NodeQueryResult::NodeQueryResult(const Napi::CallbackInfo& info)
     : Napi::ObjectWrap<NodeQueryResult>(info) {}
 
 NodeQueryResult::~NodeQueryResult() {
-    if (this->isOwned) {
-        delete this->queryResult;
-        this->queryResult = nullptr;
-    }
+    this->Close();
 }
 
 void NodeQueryResult::SetQueryResult(QueryResult* queryResult, bool isOwned) {
@@ -122,4 +118,17 @@ Napi::Value NodeQueryResult::GetColumnNamesAsync(const Napi::CallbackInfo& info)
         GetColumnMetadataType::NAME);
     asyncWorker->Queue();
     return info.Env().Undefined();
+}
+
+void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    this->Close();
+}
+
+void NodeQueryResult::Close() {
+    if (this->isOwned) {
+        delete this->queryResult;
+        this->queryResult = nullptr;
+    }
 }

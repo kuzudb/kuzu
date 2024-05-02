@@ -195,3 +195,20 @@ describe("Get column data types", function () {
     assert.deepEqual(columnDataTypes, ansexpectedResultArr);
   });
 });
+
+describe("Close", function () {
+  it("should close the query result", async function () {
+    const queryResult = await conn.query(
+      "MATCH (a:person) RETURN a.ID ORDER BY a.ID"
+    );
+    assert.isFalse(queryResult._isClosed);
+    queryResult.close();
+    assert.isTrue(queryResult._isClosed);
+    try {
+      await queryResult.getNext();
+      assert.fail("No error thrown when the query result is closed");
+    } catch (err) {
+      assert.equal(err.message, "Query result is closed.");
+    }
+  });
+});

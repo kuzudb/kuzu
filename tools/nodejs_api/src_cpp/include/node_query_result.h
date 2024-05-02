@@ -30,6 +30,8 @@ private:
     Napi::Value GetNextAsync(const Napi::CallbackInfo& info);
     Napi::Value GetColumnDataTypesAsync(const Napi::CallbackInfo& info);
     Napi::Value GetColumnNamesAsync(const Napi::CallbackInfo& info);
+    void Close(const Napi::CallbackInfo& info);
+    void Close();
 
 private:
     QueryResult* queryResult = nullptr;

@@ -218,12 +218,13 @@ describe("Query", function () {
         RETURN 2;
         MATCH (a:dog) RETURN COUNT(*);
       `);
-      assert.fail("No error thrown when one of the multiple queries is invalid.");
+      assert.fail(
+        "No error thrown when one of the multiple queries is invalid."
+      );
     } catch (e) {
       assert.equal(e.message, "Binder exception: Table dog does not exist.");
     }
-  }
-);
+  });
 });
 
 describe("Timeout", function () {
@@ -252,6 +253,22 @@ describe("Timeout", function () {
       assert.fail("No error thrown when the query times out.");
     } catch (err) {
       assert.equal(err.message, "Interrupted.");
+    }
+  });
+});
+
+describe("Close", function () {
+  it("should close the connection", async function () {
+    const newConn = new kuzu.Connection(db);
+    await newConn.init();
+    await newConn.close();
+    assert.isTrue(newConn._isClosed);
+    assert.notExists(newConn._connection);
+    try {
+      await newConn.query("MATCH (a:person) RETURN COUNT(*)");
+      assert.fail("No error thrown when the connection is closed.");
+    } catch (e) {
+      assert.equal(e.message, "Connection is closed.");
     }
   });
 });

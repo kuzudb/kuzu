@@ -25,6 +25,7 @@ class Connection {
     this._connection = null;
     this._isInitialized = false;
     this._initPromise = null;
+    this._isClosed = false;
     numThreads = parseInt(numThreads);
     if (numThreads && numThreads > 0) {
       this._numThreads = numThreads;
@@ -36,6 +37,9 @@ class Connection {
    * connection is initialized automatically when the first query is executed.
    */
   async init() {
+    if (this._isClosed) {
+      throw new Error("Connection is closed.");
+    }
     if (!this._connection) {
       const database = await this._database._getDatabase();
       this._connection = new KuzuNative.NodeConnection(database);
@@ -69,6 +73,9 @@ class Connection {
    * @returns {KuzuNative.NodeConnection} the underlying native connection.
    */
   async _getConnection() {
+    if (this._isClosed) {
+      throw new Error("Connection is closed.");
+    }
     await this.init();
     return this._connection;
   }
@@ -123,30 +130,34 @@ class Connection {
           );
         }
       }
-      this._getConnection().then((connection) => {
-        const nodeQueryResult = new KuzuNative.NodeQueryResult();
-        try {
-          connection.executeAsync(
-            preparedStatement._preparedStatement,
-            nodeQueryResult,
-            paramArray,
-            (err) => {
-              if (err) {
-                return reject(err);
-              }
-              this._unwrapMultipleQueryResults(nodeQueryResult)
-                .then((queryResults) => {
-                  return resolve(queryResults);
-                })
-                .catch((err) => {
+      this._getConnection()
+        .then((connection) => {
+          const nodeQueryResult = new KuzuNative.NodeQueryResult();
+          try {
+            connection.executeAsync(
+              preparedStatement._preparedStatement,
+              nodeQueryResult,
+              paramArray,
+              (err) => {
+                if (err) {
                   return reject(err);
-                });
-            }
-          );
-        } catch (e) {
-          return reject(e);
-        }
-      });
+                }
+                this._unwrapMultipleQueryResults(nodeQueryResult)
+                  .then((queryResults) => {
+                    return resolve(queryResults);
+                  })
+                  .catch((err) => {
+                    return reject(err);
+                  });
+              }
+            );
+          } catch (e) {
+            return reject(e);
+          }
+        })
+        .catch((err) => {
+          return reject(err);
+        });
     });
   }
 
@@ -160,18 +171,22 @@ class Connection {
       if (typeof statement !== "string") {
         return reject(new Error("statement must be a string."));
       }
-      this._getConnection().then((connection) => {
-        const preparedStatement = new KuzuNative.NodePreparedStatement(
-          connection,
-          statement
-        );
-        preparedStatement.initAsync((err) => {
-          if (err) {
-            return reject(err);
-          }
-          return resolve(new PreparedStatement(this, preparedStatement));
+      this._getConnection()
+        .then((connection) => {
+          const preparedStatement = new KuzuNative.NodePreparedStatement(
+            connection,
+            statement
+          );
+          preparedStatement.initAsync((err) => {
+            if (err) {
+              return reject(err);
+            }
+            return resolve(new PreparedStatement(this, preparedStatement));
+          });
+        })
+        .catch((err) => {
+          return reject(err);
         });
-      });
     });
   }
 
@@ -185,25 +200,29 @@ class Connection {
       if (typeof statement !== "string") {
         return reject(new Error("statement must be a string."));
       }
-      this._getConnection().then((connection) => {
-        const nodeQueryResult = new KuzuNative.NodeQueryResult();
-        try {
-          connection.queryAsync(statement, nodeQueryResult, (err) => {
-            if (err) {
-              return reject(err);
-            }
-            this._unwrapMultipleQueryResults(nodeQueryResult)
-              .then((queryResults) => {
-                return resolve(queryResults);
-              })
-              .catch((err) => {
+      this._getConnection()
+        .then((connection) => {
+          const nodeQueryResult = new KuzuNative.NodeQueryResult();
+          try {
+            connection.queryAsync(statement, nodeQueryResult, (err) => {
+              if (err) {
                 return reject(err);
-              });
-          });
-        } catch (e) {
-          return reject(e);
-        }
-      });
+              }
+              this._unwrapMultipleQueryResults(nodeQueryResult)
+                .then((queryResults) => {
+                  return resolve(queryResults);
+                })
+                .catch((err) => {
+                  return reject(err);
+                });
+            });
+          } catch (e) {
+            return reject(e);
+          }
+        })
+        .catch((err) => {
+          return reject(err);
+        });
     });
   }
 
@@ -238,8 +257,7 @@ class Connection {
     let currentQueryResult = nodeQueryResult;
     while (currentQueryResult.hasNextQueryResult()) {
       queryResults.push(await this._getNextQueryResult(currentQueryResult));
-      currentQueryResult =
-        queryResults[queryResults.length - 1]._queryResult;
+      currentQueryResult = queryResults[queryResults.length - 1]._queryResult;
     }
     return queryResults;
   }
@@ -279,6 +297,34 @@ class Connection {
     } else {
       this._queryTimeout = timeoutInMs;
     }
+  }
+
+  /**
+   * Close the connection. 
+   * 
+   * Note: Call to this method is optional. The connection will be closed
+   * automatically when the object goes out of scope.
+   */
+  async close() {
+    if (this._isClosed) {
+      return;
+    }
+    if (!this._isInitialized) {
+      if (this._initPromise) {
+        // Connection is initializing, wait for it to finish first.
+        await this._initPromise;
+      } else {
+        // Connection is not initialized, simply mark it as closed and initialized.
+        this._isInitialized = true;
+        this._isClosed = true;
+        delete this._connection;
+        return;
+      }
+    }
+    // Connection is initialized, close it.
+    this._connection.close();
+    delete this._connection;
+    this._isClosed = true;
   }
 }
 
