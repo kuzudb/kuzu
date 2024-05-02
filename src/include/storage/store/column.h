@@ -113,13 +113,13 @@ public:
     virtual void rollbackInMemory();
 
     void populateWithDefaultVal(transaction::Transaction* transaction,
-        InMemDiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector);
+        DiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector);
 
     ColumnChunkMetadata getMetadata(common::node_group_idx_t nodeGroupIdx,
         transaction::TransactionType transaction) const {
         return metadataDA->get(nodeGroupIdx, transaction);
     }
-    InMemDiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
+    DiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
 
     std::string getName() const { return name; }
 
@@ -231,7 +231,7 @@ protected:
     BMFileHandle* metadataFH;
     BufferManager* bufferManager;
     WAL* wal;
-    std::unique_ptr<InMemDiskArray<ColumnChunkMetadata>> metadataDA;
+    std::unique_ptr<DiskArray<ColumnChunkMetadata>> metadataDA;
     std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;
     write_values_from_vector_func_t writeFromVectorFunc;

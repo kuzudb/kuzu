@@ -53,10 +53,10 @@ class InMemHashIndex final {
     // Size of the validity mask
     static_assert(getSlotCapacity<T>() <= sizeof(SlotHeader().validityMask) * 8);
     static_assert(getSlotCapacity<T>() <= std::numeric_limits<entry_pos_t>::max() + 1);
-    static_assert(BaseDiskArray<Slot<T>>::getAlignedElementSize() <=
+    static_assert(DiskArray<Slot<T>>::getAlignedElementSize() <=
                   common::HashIndexConstants::SLOT_CAPACITY_BYTES);
-    static_assert(BaseDiskArray<Slot<T>>::getAlignedElementSize() >= sizeof(Slot<T>));
-    static_assert(BaseDiskArray<Slot<T>>::getAlignedElementSize() >
+    static_assert(DiskArray<Slot<T>>::getAlignedElementSize() >= sizeof(Slot<T>));
+    static_assert(DiskArray<Slot<T>>::getAlignedElementSize() >
                   common::HashIndexConstants::SLOT_CAPACITY_BYTES / 2);
 
 public:

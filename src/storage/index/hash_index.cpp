@@ -111,7 +111,7 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
     : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal}, fileHandle(fileHandle),
       overflowFileHandle(overflowFileHandle) {
     // TODO: Handle data not existing
-    headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
+    headerArray = std::make_unique<DiskArray<HashIndexHeader>>(*fileHandle,
         dbFileIDAndName.dbFileID, NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX,
         &bm, wal, Transaction::getDummyReadOnlyTrx().get(), true /*bypassWAL*/);
     // Read indexHeader from the headerArray, which contains only one element.
@@ -120,10 +120,10 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
     this->indexHeaderForWriteTrx = std::make_unique<HashIndexHeader>(*indexHeaderForReadTrx);
     KU_ASSERT(
         this->indexHeaderForReadTrx->keyDataTypeID == TypeUtils::getPhysicalTypeIDForType<T>());
-    pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
+    pSlots = std::make_unique<DiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
         NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, &bm, wal,
         Transaction::getDummyReadOnlyTrx().get(), true /*bypassWAL*/);
-    oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
+    oSlots = std::make_unique<DiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
         NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, &bm, wal,
         Transaction::getDummyReadOnlyTrx().get(), true /*bypassWAL*/);
     // Initialize functions.
@@ -508,7 +508,7 @@ void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage)
     // Store sorted slot positions. Re-use to avoid re-allocating memory
     // TODO: Unify implementations to make sure this matches the size used by the disk array
     constexpr size_t NUM_SLOTS_PER_PAGE =
-        BufferPoolConstants::PAGE_4KB_SIZE / BaseDiskArray<Slot<T>>::getAlignedElementSize();
+        BufferPoolConstants::PAGE_4KB_SIZE / DiskArray<Slot<T>>::getAlignedElementSize();
     std::array<std::vector<HashIndexEntryView>, NUM_SLOTS_PER_PAGE> partitionedEntries;
     // Sort entries for a page of slots at a time, then move vertically and process all entries
     // which map to a given page on disk, then horizontally to the next page in the set. These pages
@@ -558,8 +558,8 @@ void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage)
 
 template<typename T>
 size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerge,
-    typename BaseDiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
-    typename BaseDiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator,
+    typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
+    typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator,
     slot_id_t diskSlotId) {
     slot_id_t diskEntryPos = 0u;
     // mergeSlot should only be called when there is at least one entry for the given disk slot id
