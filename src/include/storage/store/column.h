@@ -81,10 +81,10 @@ public:
     // Append column chunk in a new node group.
     virtual void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx);
 
-    inline common::LogicalType& getDataType() { return dataType; }
-    inline const common::LogicalType& getDataType() const { return dataType; }
-    inline uint32_t getNumBytesPerValue() const { return numBytesPerFixedSizedValue; }
-    inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
+    common::LogicalType& getDataType() { return dataType; }
+    const common::LogicalType& getDataType() const { return dataType; }
+    uint32_t getNumBytesPerValue() const { return numBytesPerFixedSizedValue; }
+    uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
         return metadataDA->getNumElements(transaction->getType());
     }
 
@@ -115,13 +115,13 @@ public:
     void populateWithDefaultVal(transaction::Transaction* transaction,
         InMemDiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector);
 
-    inline ColumnChunkMetadata getMetadata(common::node_group_idx_t nodeGroupIdx,
+    ColumnChunkMetadata getMetadata(common::node_group_idx_t nodeGroupIdx,
         transaction::TransactionType transaction) const {
         return metadataDA->get(nodeGroupIdx, transaction);
     }
-    inline InMemDiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
+    InMemDiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
 
-    inline std::string getName() const { return name; }
+    std::string getName() const { return name; }
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
@@ -170,12 +170,11 @@ protected:
     void updatePageWithCursor(PageCursor cursor,
         const std::function<void(uint8_t*, common::offset_t)>& writeOp);
 
-    inline common::offset_t getMaxOffset(const std::vector<common::offset_t>& offsets) {
-        common::offset_t maxOffset = 0u;
-        for (auto offset : offsets) {
-            maxOffset = std::max(maxOffset, offset);
-        }
-        return maxOffset;
+    common::offset_t getMaxOffset(const std::vector<common::offset_t>& offsets) {
+        return offsets.empty() ? 0 : *std::max_element(offsets.begin(), offsets.end());
+    }
+    common::offset_t getMaxOffset(const offset_to_row_idx_t& offsets) {
+        return offsets.empty() ? 0 : offsets.rbegin()->first;
     }
 
     static ChunkCollection getNullChunkCollection(const ChunkCollection& chunkCollection);
@@ -217,7 +216,7 @@ private:
         const offset_to_row_idx_t& info);
 
     // check if val is in range [start, end)
-    static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
+    static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
         return val >= start && val < end;
     }
 
@@ -249,13 +248,13 @@ public:
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats stats, bool enableCompression);
 
-    inline void scan(transaction::Transaction* transaction, ChunkState& state,
+    void scan(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
         Column::scan(transaction, state, nodeIDVector, resultVector);
         populateCommonTableID(resultVector);
     }
 
-    inline void scan(transaction::Transaction* transaction, ChunkState& state,
+    void scan(transaction::Transaction* transaction, ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) override {
         Column::scan(transaction, state, startOffsetInGroup, endOffsetInGroup, resultVector,
@@ -263,14 +262,14 @@ public:
         populateCommonTableID(resultVector);
     }
 
-    inline void lookup(transaction::Transaction* transaction, ChunkState& state,
+    void lookup(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
         Column::lookup(transaction, state, nodeIDVector, resultVector);
         populateCommonTableID(resultVector);
     }
 
     // TODO(Guodong): This function should be removed through rewritting INTERNAL_ID as STRUCT.
-    inline void setCommonTableID(common::table_id_t tableID) { commonTableID = tableID; }
+    void setCommonTableID(common::table_id_t tableID) { commonTableID = tableID; }
 
 private:
     void populateCommonTableID(common::ValueVector* resultVector) const;

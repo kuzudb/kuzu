@@ -759,16 +759,22 @@ std::unique_ptr<ColumnChunk> Column::getEmptyChunkForCommit(uint64_t capacity) {
     return ColumnChunkFactory::createColumnChunk(*dataType.copy(), enableCompression, capacity);
 }
 
+// TODO: Pass state in to avoid access metadata.
 void Column::commitLocalChunkOutOfPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     bool isNewNodeGroup, const ChunkCollection& localInsertChunks,
     const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
     const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
-    auto columnChunk = getEmptyChunkForCommit(common::StorageConstants::NODE_GROUP_SIZE);
+    std::unique_ptr<ColumnChunk> columnChunk;
     if (isNewNodeGroup) {
         KU_ASSERT(updateInfo.empty() && deleteInfo.empty());
+        columnChunk = getEmptyChunkForCommit(getMaxOffset(insertInfo) + 1);
         // Apply inserts from the local chunk.
         applyLocalChunkToColumnChunk(localInsertChunks, columnChunk.get(), insertInfo);
     } else {
+        auto maxNodeOffset = std::max(getMaxOffset(insertInfo), getMaxOffset(updateInfo));
+        auto chunkMeta = getMetadata(nodeGroupIdx, transaction->getType());
+        maxNodeOffset = std::max(maxNodeOffset, chunkMeta.numValues);
+        columnChunk = getEmptyChunkForCommit(maxNodeOffset + 1);
         // First, scan the whole column chunk from persistent storage.
         scan(transaction, nodeGroupIdx, columnChunk.get());
         // Then, apply updates from the local chunk.
