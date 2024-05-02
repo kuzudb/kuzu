@@ -2,7 +2,7 @@
 
 --
 
--CASE MatchNpy-1d
+-CASE MatchNpy_1d
 
 -LOG count
 -STATEMENT MATCH (n:npytable) RETURN COUNT(*)
