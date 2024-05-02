@@ -171,10 +171,10 @@ static bool hasImplicitCastUnion(const LogicalType& /*srcType*/, const LogicalTy
 }
 
 static bool hasImplicitCastMap(const LogicalType& srcType, const LogicalType& dstType) {
-    auto srcKeyType = *MapType::getKeyType(srcType);
-    auto srcValueType = *MapType::getValueType(srcType);
-    auto dstKeyType = *MapType::getKeyType(dstType);
-    auto dstValueType = *MapType::getValueType(dstType);
+    auto srcKeyType = MapType::getKeyType(srcType);
+    auto srcValueType = MapType::getValueType(srcType);
+    auto dstKeyType = MapType::getKeyType(dstType);
+    auto dstValueType = MapType::getValueType(dstType);
     return CastFunction::hasImplicitCast(srcKeyType, dstKeyType) &&
            CastFunction::hasImplicitCast(srcValueType, dstValueType);
 }

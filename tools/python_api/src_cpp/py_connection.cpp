@@ -379,9 +379,9 @@ static Value transformPythonValueAs(py::handle val, const LogicalType& type) {
             // a unique ptr
             std::vector<StructField> fields;
             fields.emplace_back(InternalKeyword::MAP_KEY,
-                std::make_unique<LogicalType>(*childKeyType));
+                std::make_unique<LogicalType>(childKeyType));
             fields.emplace_back(InternalKeyword::MAP_VALUE,
-                std::make_unique<LogicalType>(*childValueType));
+                std::make_unique<LogicalType>(childValueType));
             std::vector<std::unique_ptr<Value>> structValues;
             structValues.push_back(
                 std::make_unique<Value>(transformPythonValueAs(child.first, childKeyType)));
@@ -390,7 +390,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType& type) {
             children.push_back(std::make_unique<Value>(LogicalType::STRUCT(std::move(fields)),
                 std::move(structValues)));
         }
-        return Value(std::make_unique<LogicalType>(*type), std::move(children));
+        return Value(std::make_unique<LogicalType>(type), std::move(children));
     }
     // LCOV_EXCL_START
     default:
