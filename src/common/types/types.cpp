@@ -20,14 +20,14 @@ using kuzu::function::BuiltInFunctionsUtils;
 namespace kuzu {
 namespace common {
 
-LogicalType* ListType::getChildType(const kuzu::common::LogicalType& type) {
+LogicalType ListType::getChildType(const kuzu::common::LogicalType& type) {
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::LIST ||
               type.getPhysicalType() == PhysicalTypeID::ARRAY);
     auto listTypeInfo = type.extraTypeInfo->constPtrCast<ListTypeInfo>();
     return listTypeInfo->getChildType();
 }
 
-LogicalType* ArrayType::getChildType(const LogicalType& type) {
+LogicalType ArrayType::getChildType(const LogicalType& type) {
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::ARRAY);
     auto arrayTypeInfo = type.extraTypeInfo->constPtrCast<ArrayTypeInfo>();
     return arrayTypeInfo->getChildType();
@@ -39,7 +39,7 @@ uint64_t ArrayType::getNumElements(const LogicalType& type) {
     return arrayTypeInfo->getNumElements();
 }
 
-std::vector<LogicalType*> StructType::getFieldTypes(const LogicalType& type) {
+std::vector<LogicalType> StructType::getFieldTypes(const LogicalType& type) {
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structTypeInfo = type.extraTypeInfo->constPtrCast<StructTypeInfo>();
     return structTypeInfo->getChildrenTypes();
@@ -56,7 +56,7 @@ uint64_t StructType::getNumFields(const LogicalType& type) {
     return getFieldTypes(type).size();
 }
 
-std::vector<const StructField*> StructType::getFields(const LogicalType& type) {
+std::vector<StructField> StructType::getFields(const LogicalType& type) {
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structTypeInfo = type.extraTypeInfo->constPtrCast<StructTypeInfo>();
     return structTypeInfo->getStructFields();
@@ -68,13 +68,13 @@ bool StructType::hasField(const LogicalType& type, const std::string& key) {
     return structTypeInfo->hasField(key);
 }
 
-const StructField* StructType::getField(const LogicalType& type, struct_field_idx_t idx) {
+StructField StructType::getField(const LogicalType& type, struct_field_idx_t idx) {
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structTypeInfo = type.extraTypeInfo->constPtrCast<StructTypeInfo>();
     return structTypeInfo->getStructField(idx);
 }
 
-const StructField* StructType::getField(const LogicalType& type, const std::string& key) {
+StructField StructType::getField(const LogicalType& type, const std::string& key) {
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structTypeInfo = type.extraTypeInfo->constPtrCast<StructTypeInfo>();
     return structTypeInfo->getStructField(key);
@@ -86,14 +86,14 @@ struct_field_idx_t StructType::getFieldIdx(const LogicalType& type, const std::s
     return structTypeInfo->getStructFieldIdx(key);
 }
 
-LogicalType* MapType::getKeyType(const LogicalType& type) {
+LogicalType MapType::getKeyType(const LogicalType& type) {
     KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::MAP);
-    return StructType::getFieldTypes(*ListType::getChildType(type))[0];
+    return StructType::getFieldTypes(ListType::getChildType(type))[0];
 }
 
-LogicalType* MapType::getValueType(const LogicalType& type) {
+LogicalType MapType::getValueType(const LogicalType& type) {
     KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::MAP);
-    return StructType::getFieldTypes(*ListType::getChildType(type))[1];
+    return StructType::getFieldTypes(ListType::getChildType(type))[1];
 }
 
 union_field_idx_t UnionType::getInternalFieldIdx(union_field_idx_t idx) {
@@ -105,7 +105,7 @@ std::string UnionType::getFieldName(const LogicalType& type, union_field_idx_t i
     return StructType::getFieldNames(type)[getInternalFieldIdx(idx)];
 }
 
-LogicalType* UnionType::getFieldType(const LogicalType& type, union_field_idx_t idx) {
+LogicalType UnionType::getFieldType(const LogicalType& type, union_field_idx_t idx) {
     KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::UNION);
     return StructType::getFieldTypes(type)[getInternalFieldIdx(idx)];
 }
@@ -301,24 +301,24 @@ struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) cons
     return INVALID_STRUCT_FIELD_IDX;
 }
 
-const StructField* StructTypeInfo::getStructField(struct_field_idx_t idx) const {
-    return &fields[idx];
+StructField StructTypeInfo::getStructField(struct_field_idx_t idx) const {
+    return fields[idx];
 }
 
-const StructField* StructTypeInfo::getStructField(const std::string& fieldName) const {
+StructField StructTypeInfo::getStructField(const std::string& fieldName) const {
     auto idx = getStructFieldIdx(fieldName);
     if (idx == INVALID_STRUCT_FIELD_IDX) {
         throw BinderException("Cannot find field " + fieldName + " in STRUCT.");
     }
-    return &fields[idx];
+    return fields[idx];
 }
 
-LogicalType* StructTypeInfo::getChildType(kuzu::common::struct_field_idx_t idx) const {
+LogicalType StructTypeInfo::getChildType(kuzu::common::struct_field_idx_t idx) const {
     return fields[idx].getType();
 }
 
-std::vector<LogicalType*> StructTypeInfo::getChildrenTypes() const {
-    std::vector<LogicalType*> childrenTypesToReturn{fields.size()};
+std::vector<LogicalType> StructTypeInfo::getChildrenTypes() const {
+    std::vector<LogicalType> childrenTypesToReturn{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {
         childrenTypesToReturn[i] = fields[i].getType();
     }
@@ -333,10 +333,10 @@ std::vector<std::string> StructTypeInfo::getChildrenNames() const {
     return childrenNames;
 }
 
-std::vector<const StructField*> StructTypeInfo::getStructFields() const {
-    std::vector<const StructField*> structFields{fields.size()};
+std::vector<StructField> StructTypeInfo::getStructFields() const {
+    std::vector<StructField> structFields{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {
-        structFields[i] = &fields[i];
+        structFields[i] = fields[i];
     }
     return structFields;
 }
@@ -459,15 +459,15 @@ std::string LogicalType::toString() const {
         auto structType =
             ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get())->getChildType();
         auto fieldTypes = StructType::getFieldTypes(*structType);
-        return "MAP(" + fieldTypes[0]->toString() + ", " + fieldTypes[1]->toString() + ")";
+        return "MAP(" + fieldTypes[0].toString() + ", " + fieldTypes[1].toString() + ")";
     }
     case LogicalTypeID::LIST: {
         auto listTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get());
-        return listTypeInfo->getChildType()->toString() + "[]";
+        return listTypeInfo->getChildType().toString() + "[]";
     }
     case LogicalTypeID::ARRAY: {
         auto arrayTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, ArrayTypeInfo*>(extraTypeInfo.get());
-        return arrayTypeInfo->getChildType()->toString() + "[" +
+        return arrayTypeInfo->getChildType().toString() + "[" +
                std::to_string(arrayTypeInfo->getNumElements()) + "]";
     }
     case LogicalTypeID::UNION: {
@@ -477,7 +477,7 @@ std::string LogicalType::toString() const {
         auto fieldNames = unionTypeInfo->getChildrenNames();
         for (auto i = 1u; i < numFields; i++) {
             dataTypeStr += fieldNames[i] + " ";
-            dataTypeStr += unionTypeInfo->getChildType(i)->toString();
+            dataTypeStr += unionTypeInfo->getChildType(i).toString();
             dataTypeStr += (i == numFields - 1 ? ")" : ", ");
         }
         return dataTypeStr;
@@ -489,11 +489,11 @@ std::string LogicalType::toString() const {
         auto fieldNames = structTypeInfo->getChildrenNames();
         for (auto i = 0u; i < numFields - 1; i++) {
             dataTypeStr += fieldNames[i] + " ";
-            dataTypeStr += structTypeInfo->getChildType(i)->toString();
+            dataTypeStr += structTypeInfo->getChildType(i).toString();
             dataTypeStr += ", ";
         }
         dataTypeStr += fieldNames[numFields - 1] + " ";
-        dataTypeStr += structTypeInfo->getChildType(numFields - 1)->toString();
+        dataTypeStr += structTypeInfo->getChildType(numFields - 1).toString();
         return dataTypeStr + ")";
     }
     case LogicalTypeID::ANY:
