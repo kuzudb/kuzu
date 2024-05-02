@@ -175,7 +175,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Path functions
         SCALAR_FUNCTION(NodesFunction), SCALAR_FUNCTION(RelsFunction),
         SCALAR_FUNCTION(PropertiesFunction), SCALAR_FUNCTION(IsTrailFunction),
-        SCALAR_FUNCTION(IsACyclicFunction),
+        SCALAR_FUNCTION(IsACyclicFunction), REWRITE_FUNCTION(LengthFunction),
 
         // Rdf functions
         SCALAR_FUNCTION(RDFTypeFunction), SCALAR_FUNCTION(ValidatePredicateFunction),
