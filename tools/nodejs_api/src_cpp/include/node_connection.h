@@ -29,6 +29,7 @@ private:
     void SetQueryTimeout(const Napi::CallbackInfo& info);
     Napi::Value ExecuteAsync(const Napi::CallbackInfo& info);
     Napi::Value QueryAsync(const Napi::CallbackInfo& info);
+    void Close(const Napi::CallbackInfo& info);
 
 private:
     std::shared_ptr<Database> database;

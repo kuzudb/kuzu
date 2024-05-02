@@ -132,7 +132,15 @@ class Database {
   }
 
   /**
-   * Close the database.
+   * Close the database. Once the database is closed, the lock on the database 
+   * files is released and the database can be opened in another process.
+   * 
+   * Note: Call to this method is not required. 
+   * The Node.js garbage collector will automatically close the database when no 
+   * references to the database object exist. It is recommended not to call this 
+   * method explicitly. If you decide to manually close the database, make sure 
+   * that all the QueryResult and Connection objects are closed before calling 
+   * this method.
    */
   async close() {
     if (this._isClosed) {
