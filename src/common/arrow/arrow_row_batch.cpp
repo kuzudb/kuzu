@@ -89,7 +89,7 @@ static void resizeUnionOverflow(ArrowVector* vector, int64_t capacity) {
     vector->overflow.resize(capacity * sizeof(int32_t));
 }
 
-static void resizeChildVectors(ArrowVector* vector, const std::vector<LogicalType> childTypes,
+static void resizeChildVectors(ArrowVector* vector, const std::vector<LogicalType>& childTypes,
     int64_t childCapacity) {
     for (auto i = 0u; i < childTypes.size(); i++) {
         if (i >= vector->childData.size()) {
@@ -158,8 +158,8 @@ static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int6
 
 static void resizeInternalIDVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
     resizeGeneric(vector, type, capacity);
-    auto childType = LogicalType::INT64();
-    resizeChildVectors(vector, {childType.get(), childType.get()}, vector->capacity);
+    auto childType = *LogicalType::INT64();
+    resizeChildVectors(vector, {childType, childType}, vector->capacity);
 }
 
 static void resizeVector(ArrowVector* vector, const LogicalType& type, std::int64_t capacity) {
