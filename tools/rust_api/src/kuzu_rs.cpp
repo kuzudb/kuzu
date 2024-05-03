@@ -36,11 +36,11 @@ std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
     return LogicalType::MAP(std::move(keyType), std::move(valueType));
 }
 
-const LogicalType& logical_type_get_list_child_type(const LogicalType& logicalType) {
-    return kuzu::common::ListType::getChildType(logicalType);
+std::unique_ptr<LogicalType> logical_type_get_list_child_type(const LogicalType& logicalType) {
+    return kuzu::common::ListType::getChildType(logicalType).copy();
 }
-const LogicalType& logical_type_get_array_child_type(const LogicalType& logicalType) {
-    return kuzu::common::ArrayType::getChildType(logicalType);
+std::unique_ptr<LogicalType> logical_type_get_array_child_type(const LogicalType& logicalType) {
+    return kuzu::common::ArrayType::getChildType(logicalType).copy();
 }
 uint64_t logical_type_get_array_num_elements(const LogicalType& logicalType) {
     return kuzu::common::ArrayType::getNumElements(logicalType);
@@ -59,7 +59,7 @@ std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_
     const kuzu::common::LogicalType& value) {
     std::vector<kuzu::common::LogicalType> result;
     for (auto type : kuzu::common::StructType::getFieldTypes(value)) {
-        result.push_back(*type);
+        result.push_back(type);
     }
     return std::make_unique<std::vector<LogicalType>>(result);
 }

@@ -223,8 +223,8 @@ pub(crate) mod ffi {
             valueType: UniquePtr<LogicalType>,
         ) -> UniquePtr<LogicalType>;
 
-        fn logical_type_get_list_child_type(value: &LogicalType) -> &LogicalType;
-        fn logical_type_get_array_child_type(value: &LogicalType) -> &LogicalType;
+        fn logical_type_get_list_child_type(value: &LogicalType) -> UniquePtr<LogicalType>;
+        fn logical_type_get_array_child_type(value: &LogicalType) -> UniquePtr<LogicalType>;
         fn logical_type_get_array_num_elements(value: &LogicalType) -> u64;
         fn logical_type_get_struct_field_names(value: &LogicalType) -> Vec<String>;
         fn logical_type_get_struct_field_types(
