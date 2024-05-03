@@ -44,6 +44,11 @@ struct ExpressionUtil {
 
     static bool tryCombineDataType(const expression_vector& expressions,
         common::LogicalType& result);
+
+    // Check If we can directly assign a new data type to an expression.
+    // This mostly happen when a literal is an empty list. By default, we assign its data type to
+    // INT64[] but it can be cast to any other list type at compile time.
+    static bool canCastStatically(const Expression& expr, const common::LogicalType& targetType);
 };
 
 } // namespace binder

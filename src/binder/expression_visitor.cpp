@@ -7,6 +7,7 @@
 #include "binder/expression/rel_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/cast.h"
+#include "function/list/vector_list_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
 
 using namespace kuzu::common;
@@ -94,6 +95,15 @@ bool ExpressionVisitor::isConstant(const Expression& expression) {
     }
     if (expression.getNumChildren() == 0 &&
         expression.expressionType != ExpressionType::CASE_ELSE) {
+        // If a function does not have children, we should be able to evaluate them as a constant.
+        // But I wanna apply this change separately.
+        if (expression.expressionType == ExpressionType::FUNCTION) {
+            auto& funcExpr = expression.constCast<FunctionExpression>();
+            if (funcExpr.getFunctionName() == function::ListCreationFunction::name) {
+                return true;
+            }
+            return false;
+        }
         return expression.expressionType == ExpressionType::LITERAL;
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(expression)) {

@@ -41,7 +41,7 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
     propertyInfos.reserve(propertyNameDataTypes.size());
     for (auto& propertyNameDataType : propertyNameDataTypes) {
         propertyInfos.emplace_back(propertyNameDataType.first,
-            *bindDataType(propertyNameDataType.second));
+            LogicalType::fromString(propertyNameDataType.second));
     }
     validateUniquePropertyName(propertyInfos);
     for (auto& info : propertyInfos) {
@@ -333,7 +333,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto info = alter.getInfo();
     auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraAddPropertyInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
-    auto dataType = bindDataType(extraInfo->dataType);
+    auto dataType = LogicalType::fromString(extraInfo->dataType);
     auto propertyName = extraInfo->propertyName;
     validateTableExist(tableName);
     auto catalog = clientContext->getCatalog();
@@ -341,13 +341,13 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
     validatePropertyDDLOnTable(tableSchema, "add");
     validatePropertyNotExist(tableSchema, propertyName);
-    if (dataType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+    if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
         throw BinderException("Serial property in node table must be the primary key.");
     }
     auto defaultVal = expressionBinder.implicitCastIfNecessary(
-        expressionBinder.bindExpression(*extraInfo->defaultValue), *dataType);
+        expressionBinder.bindExpression(*extraInfo->defaultValue), dataType);
     auto boundExtraInfo =
-        std::make_unique<BoundExtraAddPropertyInfo>(propertyName, *dataType, std::move(defaultVal));
+        std::make_unique<BoundExtraAddPropertyInfo>(propertyName, dataType, std::move(defaultVal));
     auto boundInfo =
         BoundAlterInfo(AlterType::ADD_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
     return std::make_unique<BoundAlter>(std::move(boundInfo));

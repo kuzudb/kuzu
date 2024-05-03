@@ -1,6 +1,8 @@
 #include "binder/expression/expression_util.h"
 
+#include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
+#include "common/types/value/nested.h"
 
 using namespace kuzu::common;
 
@@ -162,12 +164,126 @@ void ExpressionUtil::validateDataType(const Expression& expr,
         expr.getDataType().toString(), LogicalTypeUtils::toString(expectedTypeIDs)));
 }
 
-bool ExpressionUtil::tryCombineDataType(const expression_vector& expressions, LogicalType& result) {
-    std::vector<common::LogicalType> inputTypes;
-    for (auto& expr : expressions) {
-        inputTypes.push_back(expr->getDataType());
+// For primitive types, two types are compatible if they have the same id.
+// For nested types, two types are compatible if they have the same id and their children are also
+// compatible.
+// E.g. [NULL] is compatible with [1,2]
+// E.g. {a: NULL, b: NULL} is compatible with {a: [1,2], b: ['c']}
+static bool compatible(const LogicalType& type, const LogicalType& target) {
+    if (type.getLogicalTypeID() == LogicalTypeID::ANY) {
+        return true;
     }
-    return LogicalTypeUtils::tryGetMaxLogicalType(inputTypes, result);
+    if (type.getLogicalTypeID() != target.getLogicalTypeID()) {
+        return false;
+    }
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::LIST: {
+        return compatible(ListType::getChildType(type), ListType::getChildType(target));
+    }
+    case LogicalTypeID::ARRAY: {
+        return compatible(ArrayType::getChildType(type), ArrayType::getChildType(target));
+    }
+    case LogicalTypeID::STRUCT: {
+        if (StructType::getNumFields(type) != StructType::getNumFields(target)) {
+            return false;
+        }
+        for (auto i = 0u; i < StructType::getNumFields(type); ++i) {
+            if (!compatible(StructType::getField(type, i).getType(),
+                    StructType::getField(target, i).getType())) {
+                return false;
+            }
+        }
+        return true;
+    }
+    case LogicalTypeID::RDF_VARIANT:
+    case LogicalTypeID::UNION:
+    case LogicalTypeID::MAP:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
+        return false;
+    default:
+        return true;
+    }
+}
+
+// Handle special cases where value can be compatible to a type. This happens when a value is a
+// nested value but does not have any child.
+// E.g. [] is compatible with [1,2]
+static bool compatible(const Value& value, const LogicalType& targetType) {
+    if (value.isNull()) { // Value is null. We can safely change its type.
+        return true;
+    }
+    if (value.getDataType()->getLogicalTypeID() != targetType.getLogicalTypeID()) {
+        return false;
+    }
+    switch (value.getDataType()->getLogicalTypeID()) {
+    case LogicalTypeID::LIST: {
+        if (!value.hasNoneNullChildren()) { // Empty list free to change.
+            return true;
+        }
+        for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
+            if (!compatible(*NestedVal::getChildVal(&value, i),
+                    ListType::getChildType(targetType))) {
+                return false;
+            }
+        }
+        return true;
+    }
+    case LogicalTypeID::ARRAY: {
+        if (!value.hasNoneNullChildren()) { // Empty array free to change.
+            return true;
+        }
+        for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
+            if (!compatible(*NestedVal::getChildVal(&value, i),
+                    ArrayType::getChildType(targetType))) {
+                return false;
+            }
+        }
+        return true;
+    }
+    default:
+        break;
+    }
+    return compatible(*value.getDataType(), targetType);
+}
+
+bool ExpressionUtil::tryCombineDataType(const expression_vector& expressions, LogicalType& result) {
+    std::vector<Value> secondaryValues;
+    std::vector<LogicalType> primaryTypes;
+    for (auto& expr : expressions) {
+        if (expr->expressionType != common::ExpressionType::LITERAL) {
+            primaryTypes.push_back(expr->getDataType());
+            continue;
+        }
+        auto literalExpr = expr->constPtrCast<LiteralExpression>();
+        if (literalExpr->getValue().allowTypeChange()) {
+            secondaryValues.push_back(literalExpr->getValue());
+            continue;
+        }
+        primaryTypes.push_back(expr->getDataType());
+    }
+    if (!LogicalTypeUtils::tryGetMaxLogicalType(primaryTypes, result)) {
+        return false;
+    }
+    for (auto& value : secondaryValues) {
+        if (compatible(value, result)) {
+            continue;
+        }
+        if (!LogicalTypeUtils::tryGetMaxLogicalType(result, *value.getDataType(), result)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ExpressionUtil::canCastStatically(const Expression& expr, const LogicalType& targetType) {
+    if (expr.expressionType != common::ExpressionType::LITERAL) {
+        // Not a literal, check if we can
+        return compatible(expr.getDataType(), targetType);
+    }
+    auto value = expr.constPtrCast<LiteralExpression>()->getValue();
+    return compatible(value, targetType);
 }
 
 } // namespace binder

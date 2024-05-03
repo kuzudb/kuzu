@@ -77,10 +77,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     if (functionName == CastAnyFunction::name) {
         bindData = function->bindFunc(children, function);
         if (bindData == nullptr) { // No need to cast.
+            // TODO(Xiyang): We should return a deep copy otherwise the same expression might
+            // appear in the final projection list repeatedly.
+            // E.g. RETURN cast([NULL], "INT64[1][]"), cast([NULL], "INT64[1][][]")
             return children[0];
         }
         auto childAfterCast = children[0];
-        // See castBindFunc for explanation.
         if (children[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             childAfterCast = implicitCastIfNecessary(children[0], *LogicalType::STRING());
         }

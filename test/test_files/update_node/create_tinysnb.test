@@ -20,16 +20,19 @@
 32|1997-03-22|2 years
 9|1980-10-26|10 years 5 months 13:00:00.000024
 
--CASE InsertNodeWithStringTest
+-CASE InsertNodeWithStringAndNestedTest
 -STATEMENT CREATE (:person {ID:32, fName:'A'}), (:person {ID:33, fName:'BCD'}), (:person {ID:34, fName:'this is a long name'})
 ---- ok
--STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.fName
----- 5
-10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
-32|A
-33|BCD
-34|this is a long name
-9|Greg
+-STATEMENT CREATE (:person {ID: 99, workedHours: [1], courseScoresPerTerm: [[7,20],[],[]]});
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.fName, a.workedHours, a.courseScoresPerTerm
+---- 6
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[10,11,12,3,4,5,6,7]|[[7],[10],[6,7]]
+32|A||
+33|BCD||
+34|this is a long name||
+99||[1]|[[7,20],[],[]]
+9|Greg|[1]|[[10]]
 
 -CASE InsertNodeWithUUIDTest
 -STATEMENT CREATE (:person {ID:32, fName: 'Emma', age: 25, u: UUID('A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A20')});

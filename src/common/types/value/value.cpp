@@ -72,7 +72,7 @@ bool Value::operator==(const Value& rhs) const {
 }
 
 void Value::setDataType(const LogicalType& dataType_) {
-    KU_ASSERT(dataType->containsAny());
+    KU_ASSERT(allowTypeChange());
     dataType = dataType_.copy();
 }
 
@@ -855,6 +855,38 @@ void Value::validateType(LogicalTypeID targetTypeID) const {
     }
     throw BinderException(stringFormat("{} has data type {} but {} was expected.", toString(),
         dataType->toString(), LogicalTypeUtils::toString(targetTypeID)));
+}
+
+bool Value::hasNoneNullChildren() const {
+    for (auto i = 0u; i < childrenSize; ++i) {
+        if (!children[i]->isNull()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Handle the case of casting empty list to a different type.
+bool Value::allowTypeChange() const {
+    if (isNull_) {
+        return true;
+    }
+    switch (dataType->getLogicalTypeID()) {
+    case LogicalTypeID::LIST:
+    case LogicalTypeID::ARRAY: {
+        if (childrenSize == 0) {
+            return true;
+        }
+        for (auto i = 0u; i < childrenSize; ++i) {
+            if (children[i]->allowTypeChange()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    default:
+        return false;
+    }
 }
 
 uint64_t Value::computeHash() const {

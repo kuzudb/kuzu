@@ -32,7 +32,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     LogicalType combinedType(LogicalTypeID::ANY);
     binder::ExpressionUtil::tryCombineDataType(arguments, combinedType);
     if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {
-        combinedType = *LogicalType::STRING();
+        combinedType = *LogicalType::INT64();
     }
     auto resultType = LogicalType::LIST(combinedType.copy());
     auto bindData = std::make_unique<FunctionBindData>(std::move(resultType));
